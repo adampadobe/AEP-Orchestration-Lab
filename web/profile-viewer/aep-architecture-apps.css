@@ -3210,3 +3210,60 @@ html[data-aep-theme='dark'] .arch-assist-prompt {
   border-color: var(--dash-input-border);
 }
 
+/* Right-click context menu (Edit diagram mode) */
+.arch-diagram-context-menu {
+  position: fixed;
+  z-index: 12000;
+  min-width: 11.5rem;
+  padding: 0.35rem 0;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow, 0 8px 24px rgba(0, 0, 0, 0.12));
+  color: var(--dash-text);
+}
+
+.arch-diagram-context-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.42rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arch-diagram-context-menu__item:hover:not(:disabled),
+.arch-diagram-context-menu__item:focus-visible:not(:disabled) {
+  background: var(--dash-hover);
+  outline: none;
+}
+
+.arch-diagram-context-menu__item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.arch-diagram-context-menu__label {
+  flex: 1 1 auto;
+}
+
+.arch-diagram-context-menu__shortcut {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.arch-diagram-context-menu__sep {
+  height: 1px;
+  margin: 0.3rem 0.5rem;
+  background: var(--dash-border);
+}
+

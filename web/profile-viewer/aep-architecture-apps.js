@@ -73,6 +73,14 @@
   var archUndoStack = null;
   /** Multi-select for platform nodes in Edit mode (AEPDiagram.selection). */
   var archSelection = null;
+  /** Unified multi-select member refs: cbox:id, label:id, node:key (Edit mode). */
+  var archEditMulti = null;
+  /** Object groups persisted in master layout v14+. */
+  var archDiagramGroups = [];
+  /** Batch move state when dragging grouped / multi-selected objects. */
+  var archMoveBatch = null;
+  /** Right-click context menu element (Edit mode). */
+  var archContextMenuEl = null;
   /** Selected decorative background plate id (data-arch-bg), Edit mode only. */
   var archBgSelectedId = null;
 
@@ -272,7 +280,9 @@
     });
     $all('.arch-int-svg-wrap svg text[data-arch-id]').forEach(function (el) {
       var lid = el.getAttribute('data-arch-id');
-      el.classList.toggle('arch-label-text--selected', !!(lid && archLabelSelectedId === lid));
+      var sel =
+        !!(lid && (archLabelSelectedId === lid || archEditMultiHas(archMemberRef('label', lid))));
+      el.classList.toggle('arch-label-text--selected', sel);
     });
     archSelectionPanelSync();
   }
@@ -398,7 +408,441 @@
   function archEditSelectionInit() {
     if (archSelection || !(window.AEPDiagram && window.AEPDiagram.selection)) return;
     archSelection = window.AEPDiagram.selection.create();
+    if (!archEditMulti) {
+      archEditMulti = { ids: new Set(), primary: null };
+    }
     archSelectionPanelSync();
+  }
+
+  function archGroupsApi() {
+    return window.AEPDiagram && window.AEPDiagram.groups ? window.AEPDiagram.groups : null;
+  }
+
+  function archMemberRef(kind, id) {
+    var G = archGroupsApi();
+    return G ? G.makeMemberRef(kind, id) : kind + ':' + id;
+  }
+
+  function archEditMultiToArray() {
+    if (!archEditMulti || !archEditMulti.ids) return [];
+    return Array.from(archEditMulti.ids);
+  }
+
+  function archEditMultiHas(ref) {
+    return !!(archEditMulti && archEditMulti.ids && archEditMulti.ids.has(ref));
+  }
+
+  function archEditMultiClear() {
+    if (!archEditMulti) return;
+    archEditMulti.ids.clear();
+    archEditMulti.primary = null;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    archLabelClearSelection();
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    archBgClearSelection();
+    if (archSelection) archSelection.clear();
+  }
+
+  function archEditMultiSyncLegacy() {
+    if (!archEditMulti) return;
+    var refs = archEditMultiToArray();
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    archBgClearSelection();
+    if (archSelection) archSelection.clear();
+    $all('.arch-int-svg-wrap svg text[data-arch-id]').forEach(function (el) {
+      el.classList.remove('arch-label-text--selected');
+    });
+    archLabelSelectedId = null;
+
+    if (!refs.length) {
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+      return;
+    }
+
+    var nodeDomIds = [];
+    refs.forEach(function (ref) {
+      var G = archGroupsApi();
+      var p = G ? G.parseMemberRef(ref) : null;
+      if (p && p.kind === 'node') nodeDomIds.push('node-' + p.id);
+    });
+    if (nodeDomIds.length && archSelection) {
+      archSelection.setMany(nodeDomIds, nodeDomIds[0]);
+    }
+
+    var primary = archEditMulti.primary || refs[0];
+    var Gp = archGroupsApi();
+    var pp = Gp ? Gp.parseMemberRef(primary) : null;
+    if (pp) {
+      if (pp.kind === 'cbox') archCustomBoxSelectedId = pp.id;
+      else if (pp.kind === 'label') {
+        archLabelSelectedId = pp.id;
+        var te = qs('[data-arch-id="' + pp.id + '"]');
+        if (te) te.classList.add('arch-label-text--selected');
+      }
+    }
+
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+  }
+
+  function archEditMultiSetMany(refs, primaryRef) {
+    if (!archEditMulti) archEditMulti = { ids: new Set(), primary: null };
+    archEditMulti.ids.clear();
+    (refs || []).forEach(function (r) {
+      if (r) archEditMulti.ids.add(String(r));
+    });
+    archEditMulti.primary = primaryRef != null ? String(primaryRef) : refs && refs[0] ? String(refs[0]) : null;
+    archEditMultiSyncLegacy();
+  }
+
+  function archEditMultiToggle(ref, multi) {
+    if (!ref) return;
+    if (!archEditMulti) archEditMulti = { ids: new Set(), primary: null };
+    var sid = String(ref);
+    if (!multi) {
+      archEditMultiSetMany([sid], sid);
+      return;
+    }
+    if (archEditMulti.ids.has(sid)) {
+      archEditMulti.ids.delete(sid);
+      if (archEditMulti.primary === sid) {
+        archEditMulti.primary = archEditMulti.ids.size ? Array.from(archEditMulti.ids)[0] : null;
+      }
+    } else {
+      archEditMulti.ids.add(sid);
+      archEditMulti.primary = sid;
+    }
+    archEditMultiSyncLegacy();
+  }
+
+  function archEditMultiGetMoveRefs(pickedRef) {
+    var G = archGroupsApi();
+    var refs = archEditMultiToArray();
+    if (!refs.length && pickedRef) refs = [pickedRef];
+    else if (pickedRef && refs.length && !archEditMultiHas(pickedRef)) refs = [pickedRef];
+    if (G && typeof G.expandWithGroupMembers === 'function') {
+      return G.expandWithGroupMembers(refs, archDiagramGroups);
+    }
+    return refs;
+  }
+
+  function archMemberRefGetPosition(ref) {
+    var G = archGroupsApi();
+    var p = G ? G.parseMemberRef(ref) : null;
+    if (!p) return null;
+    if (p.kind === 'cbox') {
+      var box = archCustomBoxFind(p.id);
+      if (!box) return null;
+      return { kind: 'cbox', id: p.id, x: box.x || 0, y: box.y || 0 };
+    }
+    if (p.kind === 'label') {
+      var lp = archLabel.state.pos[p.id] || { x: 0, y: 0 };
+      return { kind: 'label', id: p.id, x: lp.x || 0, y: lp.y || 0 };
+    }
+    if (p.kind === 'node' && NODE_LAYOUT[p.id]) {
+      var np = archDrag.pos[p.id] || { x: 0, y: 0 };
+      return { kind: 'node', id: p.id, x: np.x || 0, y: np.y || 0 };
+    }
+    return null;
+  }
+
+  function archMoveBatchBegin(pickedRef) {
+    var refs = archEditMultiGetMoveRefs(pickedRef);
+    var starts = {};
+    refs.forEach(function (ref) {
+      var pos = archMemberRefGetPosition(ref);
+      if (pos) starts[ref] = pos;
+    });
+    archMoveBatch = { refs: refs, starts: starts };
+  }
+
+  function archMoveBatchApplyDelta(dx, dy, snapExclude) {
+    if (!archMoveBatch || !archMoveBatch.starts) return;
+    var firstRef = archMoveBatch.refs[0];
+    var firstStart = firstRef ? archMoveBatch.starts[firstRef] : null;
+    if (!firstStart) return;
+    var snapDx = dx;
+    var snapDy = dy;
+    if (firstStart.kind === 'cbox') {
+      var box0 = archCustomBoxFind(firstStart.id);
+      if (box0) {
+        var b0 = archCustomBoxNormalize(box0);
+        var twr = {
+          left: firstStart.x + dx,
+          top: firstStart.y + dy,
+          right: firstStart.x + dx + b0.w,
+          bottom: firstStart.y + dy + b0.h,
+          w: b0.w,
+          h: b0.h,
+          cx: firstStart.x + dx + b0.w / 2,
+          cy: firstStart.y + dy + b0.h / 2,
+        };
+        var snapped = archSnapWorldRect(twr, snapExclude || { kind: 'cbox', id: firstStart.id });
+        snapDx = snapped.left - firstStart.x;
+        snapDy = snapped.top - firstStart.y;
+        archDragGuidesShow(snapped.guides);
+      }
+    } else if (firstStart.kind === 'node') {
+      var wr = archDragGetWorldRect(firstStart.id, { x: firstStart.x + dx, y: firstStart.y + dy });
+      var snappedN = archSnapWorldRect(wr, snapExclude || { kind: 'node', id: firstStart.id });
+      snapDx = snappedN.left - (wr.left - dx);
+      snapDy = snappedN.top - (wr.top - dy);
+      archDragGuidesShow(snappedN.guides);
+    }
+
+    archMoveBatch.refs.forEach(function (ref) {
+      var s = archMoveBatch.starts[ref];
+      if (!s) return;
+      var nx = s.x + snapDx;
+      var ny = s.y + snapDy;
+      if (s.kind === 'cbox') {
+        var box = archCustomBoxFind(s.id);
+        if (!box) return;
+        var bn = archCustomBoxNormalize(box);
+        nx = archClamp(nx, 0, ARCH_GUIDE_VIEW.w - bn.w);
+        ny = archClamp(ny, 0, ARCH_GUIDE_VIEW.h - bn.h);
+        box.x = nx;
+        box.y = ny;
+      } else if (s.kind === 'label') {
+        archLabel.state.pos[s.id] = { x: nx, y: ny };
+        var el = qs('[data-arch-id="' + s.id + '"]');
+        if (el) {
+          var tgt = archLabelTransformTarget(el);
+          tgt.setAttribute('transform', 'translate(' + nx + ',' + ny + ')');
+        }
+      } else if (s.kind === 'node') {
+        if (!archDrag.pos[s.id]) archDrag.pos[s.id] = { x: 0, y: 0 };
+        archDrag.pos[s.id].x = nx;
+        archDrag.pos[s.id].y = ny;
+      }
+    });
+    archDragApply();
+    archCustomBoxesRender();
+    archUserLineRender();
+  }
+
+  function archMoveBatchEnd() {
+    archMoveBatch = null;
+    archDragGuidesClear();
+  }
+
+  function archDiagramGroupsPersist() {
+    try {
+      var raw = localStorage.getItem(LS_MASTER);
+      var data = raw ? JSON.parse(raw) : archMasterSerialize();
+      var G = archGroupsApi();
+      data.groups = G ? G.normalizeGroups(archDiagramGroups) : archDiagramGroups.slice();
+      data.version = 14;
+      localStorage.setItem(LS_MASTER, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function archDiagramGroupSelection() {
+    if (!archIsEditMode()) return;
+    var G = archGroupsApi();
+    if (!G) return;
+    var refs = archEditMultiToArray().filter(G.isGroupableRef);
+    if (refs.length < 2) {
+      if (liveRegion) liveRegion.textContent = 'Select two or more shapes, labels, or tiles to group.';
+      return;
+    }
+    if (G.anyMemberInGroup(refs, archDiagramGroups)) {
+      if (liveRegion) liveRegion.textContent = 'Ungroup first — a selected object is already in a group.';
+      return;
+    }
+    var grp = G.createGroup(refs, archDiagramGroups);
+    if (!grp) return;
+    archDiagramGroupsPersist();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Grouped ' + refs.length + ' objects — drag any member to move together.';
+  }
+
+  function archDiagramUngroupSelection() {
+    if (!archIsEditMode()) return;
+    var G = archGroupsApi();
+    if (!G) return;
+    var refs = archEditMultiToArray();
+    if (!refs.length) {
+      if (liveRegion) liveRegion.textContent = 'Select a grouped object to ungroup.';
+      return;
+    }
+    var grp = G.findGroupForMember(refs[0], archDiagramGroups);
+    if (!grp) {
+      if (liveRegion) liveRegion.textContent = 'Selection is not part of a group.';
+      return;
+    }
+    G.dissolveGroup(grp.id, archDiagramGroups);
+    archDiagramGroupsPersist();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Ungrouped — objects keep their positions.';
+  }
+
+  function archDiagramCanGroupSelection() {
+    var G = archGroupsApi();
+    if (!G || !archIsEditMode()) return false;
+    var refs = archEditMultiToArray().filter(G.isGroupableRef);
+    return refs.length >= 2 && !G.anyMemberInGroup(refs, archDiagramGroups);
+  }
+
+  function archDiagramCanUngroupSelection() {
+    var G = archGroupsApi();
+    if (!G || !archIsEditMode()) return false;
+    var refs = archEditMultiToArray();
+    return !!(refs.length && G.findGroupForMember(refs[0], archDiagramGroups));
+  }
+
+  function archContextMenuEnsure() {
+    if (archContextMenuEl) return archContextMenuEl;
+    var el = document.createElement('div');
+    el.id = 'archDiagramContextMenu';
+    el.className = 'arch-diagram-context-menu arch-diagram-ui';
+    el.hidden = true;
+    el.setAttribute('role', 'menu');
+    document.body.appendChild(el);
+    archContextMenuEl = el;
+    return el;
+  }
+
+  function archContextMenuClose() {
+    if (archContextMenuEl) archContextMenuEl.hidden = true;
+  }
+
+  function archContextMenuBuildModel() {
+    var hasSel = !!(
+      archEditMultiToArray().length ||
+      archCustomBoxSelectedId ||
+      userLines.selectedId ||
+      archLabelSelectedId ||
+      (archSelection && archSelection.count() > 0)
+    );
+    var canText =
+      !!archLabelSelectedId ||
+      !!(archCustomBoxSelectedId && archCustomBoxLabelActiveId === archCustomBoxSelectedId);
+    var canLayer = archLayerOrderCanAdjust();
+    return [
+      { id: 'cut', label: 'Cut', shortcut: '⌘X', disabled: !hasSel, action: archDiagramCutSelection },
+      { id: 'copy', label: 'Copy', shortcut: '⌘C', disabled: !hasSel, action: archDiagramCopySelection },
+      { id: 'paste', label: 'Paste', shortcut: '⌘V', disabled: !archDiagramClipboard, action: archDiagramPasteClipboard },
+      { id: 'duplicate', label: 'Duplicate', shortcut: '⌘D', disabled: !hasSel, action: archDiagramDuplicateSelection },
+      { id: 'sep1', separator: true },
+      { id: 'group', label: 'Group', shortcut: '⌘G', disabled: !archDiagramCanGroupSelection(), action: archDiagramGroupSelection },
+      { id: 'ungroup', label: 'Ungroup', shortcut: '⌘⇧G', disabled: !archDiagramCanUngroupSelection(), action: archDiagramUngroupSelection },
+      { id: 'sep2', separator: true },
+      { id: 'front', label: 'Bring to Front', shortcut: '⌘]', disabled: !canLayer, action: function () { archLayerOrderToExtreme(true); } },
+      { id: 'back', label: 'Send to Back', shortcut: '⌘[', disabled: !canLayer, action: function () { archLayerOrderToExtreme(false); } },
+      { id: 'sep3', separator: true },
+      { id: 'editText', label: 'Edit Text', disabled: !canText, action: archContextMenuEditText },
+      { id: 'delete', label: 'Delete', shortcut: '⌫', disabled: !hasSel, action: archContextMenuDelete },
+    ];
+  }
+
+  function archContextMenuEditText() {
+    if (archLabelSelectedId) {
+      var te = qs('[data-arch-id="' + archLabelSelectedId + '"]');
+      if (te) archLabelOpenEditor(te, { force: true });
+      return;
+    }
+    if (archCustomBoxSelectedId && archCustomBoxLabelActiveId === archCustomBoxSelectedId) {
+      var g = qs('#node-cbox-' + archCustomBoxSelectedId);
+      var tx = g && g.querySelector('.arch-custom-box-label');
+      if (tx) archLabelOpenEditor(tx, { force: true, kind: 'cbox', boxId: archCustomBoxSelectedId });
+    }
+  }
+
+  function archContextMenuDelete() {
+    var ev = { preventDefault: function () {}, key: 'Delete' };
+    archUserLineOnGlobalDelete(ev);
+  }
+
+  function archContextMenuShow(clientX, clientY) {
+    if (!archIsEditMode()) return;
+    var menu = archContextMenuEnsure();
+    var items = archContextMenuBuildModel();
+    menu.textContent = '';
+    items.forEach(function (item) {
+      if (item.separator) {
+        var sep = document.createElement('div');
+        sep.className = 'arch-diagram-context-menu__sep';
+        sep.setAttribute('role', 'separator');
+        menu.appendChild(sep);
+        return;
+      }
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'arch-diagram-context-menu__item';
+      btn.setAttribute('role', 'menuitem');
+      btn.disabled = !!item.disabled;
+      var lab = document.createElement('span');
+      lab.className = 'arch-diagram-context-menu__label';
+      lab.textContent = item.label;
+      btn.appendChild(lab);
+      if (item.shortcut) {
+        var sc = document.createElement('span');
+        sc.className = 'arch-diagram-context-menu__shortcut';
+        sc.textContent = item.shortcut;
+        btn.appendChild(sc);
+      }
+      if (!item.disabled && typeof item.action === 'function') {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          archContextMenuClose();
+          item.action();
+        });
+      }
+      menu.appendChild(btn);
+    });
+    menu.hidden = false;
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    var mw = menu.offsetWidth;
+    var mh = menu.offsetHeight;
+    var left = Math.min(clientX, window.innerWidth - mw - 8);
+    var top = Math.min(clientY, window.innerHeight - mh - 8);
+    menu.style.left = Math.max(8, left) + 'px';
+    menu.style.top = Math.max(8, top) + 'px';
+  }
+
+  function archContextMenuInit() {
+    if (document.documentElement.getAttribute('data-arch-ctx-menu')) return;
+    document.documentElement.setAttribute('data-arch-ctx-menu', '1');
+    document.addEventListener(
+      'pointerdown',
+      function (e) {
+        if (!archContextMenuEl || archContextMenuEl.hidden) return;
+        if (e.target && e.target.closest && e.target.closest('#archDiagramContextMenu')) return;
+        archContextMenuClose();
+      },
+      true
+    );
+    document.addEventListener(
+      'keydown',
+      function (e) {
+        if (e.key === 'Escape') archContextMenuClose();
+      },
+      true
+    );
+  }
+
+  function archDiagramContextMenuOnCanvas(e) {
+    if (!archIsEditMode()) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    archContextMenuShow(e.clientX, e.clientY);
   }
 
   /** Snapshot without `savedAt` so identical layouts dedupe in the undo stack. */
@@ -514,8 +958,8 @@
       archLabelClearSelection();
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
-      if (e.shiftKey) archSelection.toggle(g.id, true);
-      else archSelection.setSingle(g.id);
+      if (e.shiftKey) archEditMultiToggle(archMemberRef('node', key), true);
+      else archEditMultiSetMany([archMemberRef('node', key)], archMemberRef('node', key));
       archCustomBoxesRender();
       archUserLineRender();
       archUserLineSyncPropsHud();
@@ -523,20 +967,9 @@
       return;
     }
     if (!e.shiftKey) {
-      archBgClearSelection();
-      archLabelClearSelection();
+      archDiagramDeselectAll();
       archLabelCloseInlineEditor(true);
-      archCustomBoxSelectedId = null;
-      archCustomBoxLabelActiveId = null;
-      archLabelClearSelection();
-      userLines.selectedId = null;
-      userLines.selectedHandleIdx = null;
-      archFlowClearSelection();
-      archSelection.clear();
-      archCustomBoxesRender();
-      archUserLineRender();
-      archUserLineSyncPropsHud();
-      archSelectionRefreshDom();
+      return;
     }
   }
 
@@ -697,10 +1130,8 @@
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
       archLabelClearSelection();
-      archCustomBoxSelectedId = rawId;
-      archCustomBoxLabelActiveId = null;
       archBgClearSelection();
-      if (archSelection) archSelection.clear();
+      archEditMultiSetMany([archMemberRef('cbox', rawId)], archMemberRef('cbox', rawId));
       archCustomBoxesRender();
       archUserLineRender();
       archUserLineSyncPropsHud();
@@ -717,8 +1148,8 @@
     archCustomBoxLabelActiveId = null;
     archLabelClearSelection();
     archBgClearSelection();
-    if (e.shiftKey && archSelection) archSelection.toggle(g.id, true);
-    else if (archSelection) archSelection.setSingle(g.id);
+    if (e.shiftKey) archEditMultiToggle(archMemberRef('node', key), true);
+    else archEditMultiSetMany([archMemberRef('node', key)], archMemberRef('node', key));
     archCustomBoxesRender();
     archUserLineRender();
     archUserLineSyncPropsHud();
@@ -7125,6 +7556,7 @@
       my: archLabel.dragPending.sy,
       worldRect: archLabelWorldRect(archLabel.dragPending.id),
     };
+    archMoveBatchBegin(archMemberRef('label', archLabel.dragPending.id));
     archLabelClearPendingListeners();
     if (archViewport) archViewport.classList.add('arch-label-dragging');
     if (archViewport) archViewport.classList.add('arch-dragging');
@@ -7332,6 +7764,10 @@
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var dx = p.x - archLabel.dragStart.mx;
     var dy = p.y - archLabel.dragStart.my;
+    if (archMoveBatch && archMoveBatch.refs && archMoveBatch.refs.length > 1) {
+      archMoveBatchApplyDelta(dx, dy, { kind: 'label', id: archLabel.dragActive });
+      return;
+    }
     var rawOx = archLabel.dragStart.ox + dx;
     var rawOy = archLabel.dragStart.oy + dy;
     var ox = rawOx;
@@ -7366,6 +7802,7 @@
   function archLabelPointerUpWin() {
     if (!archLabel.dragActive) return;
     archDragGuidesClear();
+    archMoveBatchEnd();
     if (archViewport) archViewport.classList.remove('arch-label-dragging');
     if (archViewport) archViewport.classList.remove('arch-dragging');
     window.removeEventListener('pointermove', archLabelPointerMoveWin, true);
@@ -7397,6 +7834,10 @@
     e.preventDefault();
     e.stopPropagation();
     var id = te.getAttribute('data-arch-id');
+    if (e.shiftKey && archIsEditMode() && archGetActiveTool() === 'select') {
+      archEditMultiToggle(archMemberRef('label', id), true);
+      return;
+    }
     archLabelSelect(id, te);
     var cur = archLabel.state.pos[id] || { x: 0, y: 0 };
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
@@ -7447,6 +7888,10 @@
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var dx = p.x - archDrag.start.mx;
     var dy = p.y - archDrag.start.my;
+    if (archMoveBatch && archMoveBatch.refs && archMoveBatch.refs.length > 1) {
+      archMoveBatchApplyDelta(dx, dy, { kind: 'node', id: archDrag.active });
+      return;
+    }
     var rawOx = archDrag.start.ox + dx;
     var rawOy = archDrag.start.oy + dy;
     var snapped = archDragSnapBoxPosition(archDrag.active, rawOx, rawOy, archDrag.start.ow, archDrag.start.oh);
@@ -7464,6 +7909,7 @@
   function archDragPointerUpWin() {
     if (!archDrag.active) return;
     archDragGuidesClear();
+    archMoveBatchEnd();
     if (archViewport) archViewport.classList.remove('arch-dragging');
     window.removeEventListener('pointermove', archDragPointerMoveWin, true);
     window.removeEventListener('pointerup', archDragPointerUpWin, true);
@@ -7699,6 +8145,7 @@
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     archDrag.start.mx = p.x;
     archDrag.start.my = p.y;
+    archMoveBatchBegin(archMemberRef('node', which));
     if (archViewport) archViewport.classList.add('arch-dragging');
     window.addEventListener('pointermove', archDragPointerMoveWin, true);
     window.addEventListener('pointerup', archDragPointerUpWin, true);
@@ -8104,7 +8551,9 @@
         (isSpectrum ? ' arch-custom-box--spectrum-icon' : '') +
         (isProductLogo ? ' arch-custom-box--product-logo' : '');
       g.setAttribute('class', gClass);
-      if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
+      if (archCustomBoxSelectedId === b.id || archEditMultiHas(archMemberRef('cbox', b.id))) {
+        g.classList.add('arch-custom-box--selected');
+      }
       var cx = b.w / 2;
       var cy = b.h / 2;
       var tfm = b.angle
@@ -8446,6 +8895,10 @@
     var dx = p.x - archCustomDrag.start.mx;
     var dy = p.y - archCustomDrag.start.my;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) archCustomDrag.start.moved = true;
+    if (archMoveBatch && archMoveBatch.refs && archMoveBatch.refs.length) {
+      archMoveBatchApplyDelta(dx, dy, { kind: 'cbox', id: archCustomDrag.active });
+      return;
+    }
     var box = archCustomBoxFind(archCustomDrag.active);
     if (!box) return;
     var nx = archCustomDrag.start.ox + dx;
@@ -8481,6 +8934,7 @@
     var moved = !!(start && start.moved);
     var labelHit = !!(start && start.labelHit);
     archDragGuidesClear();
+    archMoveBatchEnd();
     archCustomDrag.active = null;
     archCustomDrag.start = null;
     if (archViewport) archViewport.classList.remove('arch-dragging');
@@ -8499,6 +8953,7 @@
       return;
     }
     archCustomBoxesPersist();
+    archLabelSave();
     if (moved) archUndoMaybePushSnapshot();
   }
 
@@ -8564,6 +9019,13 @@
 
     var labelHit = e.target && e.target.closest && e.target.closest('.arch-custom-box-label');
 
+    if (e.shiftKey && archIsEditMode() && archGetActiveTool() === 'select' && !labelHit) {
+      archEditMultiToggle(archMemberRef('cbox', rawId), true);
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     if (!archDrag.enabled) {
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
@@ -8586,12 +9048,15 @@
     userLines.selectedHandleIdx = null;
     archFlowClearSelection();
     archLabelClearSelection();
+    if (!e.shiftKey) archEditMultiSetMany([archMemberRef('cbox', rawId)], archMemberRef('cbox', rawId));
+    else if (!archEditMultiHas(archMemberRef('cbox', rawId))) archEditMultiToggle(archMemberRef('cbox', rawId), true);
     archCustomBoxSelectedId = rawId;
     archCustomBoxLabelActiveId = labelHit ? rawId : null;
     archUserLineRender();
     archUserLineSyncPropsHud();
     e.preventDefault();
     e.stopPropagation();
+    archMoveBatchBegin(archMemberRef('cbox', rawId));
     archCustomDrag.active = rawId;
     archCustomDrag.start = {
       ox: box.x,
@@ -8725,7 +9190,7 @@
   function archMasterSerialize() {
     archLayerOrderEnsure();
     var payload = {
-      version: 13,
+      version: 14,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
@@ -8740,6 +9205,10 @@
       flowOverrides: JSON.parse(JSON.stringify(archFlowOverrides || {})),
       layerOrder: archLayerOrder.slice(),
       flowPathOrder: archFlowPathOrderFromDom(),
+      groups: (function () {
+        var G = archGroupsApi();
+        return G ? G.normalizeGroups(archDiagramGroups) : archDiagramGroups.slice();
+      })(),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
       payload.scene = window.AEPDiagram.model.legacyToScene(payload);
@@ -8822,6 +9291,12 @@
       });
     } else {
       archFlowPathOrder = null;
+    }
+    if (Array.isArray(data.groups)) {
+      var Gg = archGroupsApi();
+      archDiagramGroups = Gg ? Gg.normalizeGroups(data.groups) : data.groups.slice();
+    } else {
+      archDiagramGroups = [];
     }
     archLayerOrderPersist();
     archHiddenFlowsPersist();
@@ -9131,8 +9606,55 @@
     return o;
   }
 
+  function archMemberRefExportPayload(ref) {
+    var G = archGroupsApi();
+    var p = G ? G.parseMemberRef(ref) : null;
+    if (!p) return null;
+    if (p.kind === 'cbox') {
+      var box = archCustomBoxFind(p.id);
+      if (!box) return null;
+      var b = archCustomBoxNormalize(box);
+      var cp = JSON.parse(JSON.stringify(b));
+      delete cp.id;
+      return { refKind: 'cbox', sourceRef: ref, data: cp };
+    }
+    if (p.kind === 'label') {
+      var payload = archLabelCopyPayloadForId(p.id);
+      if (!payload) return null;
+      return { refKind: 'label', sourceRef: ref, data: payload };
+    }
+    if (p.kind === 'node' && NODE_LAYOUT[p.id]) {
+      var np = archDrag.pos[p.id] || { x: 0, y: 0 };
+      return {
+        refKind: 'node',
+        sourceRef: ref,
+        data: { key: p.id, x: np.x || 0, y: np.y || 0, w: np.w, h: np.h, angle: np.angle },
+      };
+    }
+    return null;
+  }
+
   function archDiagramCopySelection() {
     if (!archIsEditMode()) return;
+    var G = archGroupsApi();
+    var multiRefs = archEditMultiToArray().filter(function (r) {
+      return G && G.isGroupableRef(r);
+    });
+    if (multiRefs.length > 1) {
+      var items = multiRefs.map(archMemberRefExportPayload).filter(Boolean);
+      if (!items.length) return;
+      var grp = G.findGroupForMember(multiRefs[0], archDiagramGroups);
+      var groupMeta = null;
+      if (grp && multiRefs.length === grp.members.length) {
+        var allSame = grp.members.every(function (m) {
+          return multiRefs.indexOf(m) >= 0;
+        });
+        if (allSame) groupMeta = { members: grp.members.slice() };
+      }
+      archDiagramClipboard = { kind: 'multi', items: items, group: groupMeta };
+      if (liveRegion) liveRegion.textContent = 'Copied ' + items.length + ' objects — ⌘V to paste.';
+      return;
+    }
     if (archCustomBoxSelectedId) {
       var box = archCustomBoxFind(archCustomBoxSelectedId);
       if (!box) return;
@@ -9164,6 +9686,87 @@
     if (!archIsEditMode()) return;
     if (!archDiagramClipboard) {
       if (liveRegion) liveRegion.textContent = 'Nothing to paste — copy a shape, label, or connector first.';
+      return;
+    }
+    if (archDiagramClipboard.kind === 'multi' && Array.isArray(archDiagramClipboard.items)) {
+      var off = ARCH_DIAGRAM_PASTE_OFFSET;
+      var idMap = {};
+      var pastedRefs = [];
+      archDiagramClipboard.items.forEach(function (item) {
+        if (!item || !item.refKind) return;
+        if (item.refKind === 'cbox' && item.data) {
+          var b = archCustomBoxNormalize(item.data);
+          var nb = archCustomBoxNormalize({
+            id: 'cbox-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            x: b.x + off,
+            y: b.y + off,
+            w: b.w,
+            h: b.h,
+            name: (b.name || 'Box') + ' (copy)',
+            fill: b.fill,
+            stroke: b.stroke,
+            labelFontSize: b.labelFontSize,
+            kind: b.kind,
+            iconFile: b.iconFile,
+            logoFile: b.logoFile,
+            logoDescription: b.logoDescription,
+            angle: b.angle,
+          });
+          nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
+          nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
+          archCustomBoxes.push(nb);
+          var newRef = archMemberRef('cbox', nb.id);
+          if (item.sourceRef) idMap[item.sourceRef] = newRef;
+          pastedRefs.push(newRef);
+          archLayerOrderRegisterKey(archLayerOrderKeyCbox(nb.id));
+        } else if (item.refKind === 'label' && item.data) {
+          var Lb = item.data;
+          var newLabelId = 'floating-txt-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+          archLabelCreateFloating(
+            newLabelId,
+            (Number(Lb.pos && Lb.pos.x) || 0) + off,
+            (Number(Lb.pos && Lb.pos.y) || 0) + off,
+            Lb.content || '',
+            Lb.fontSize,
+            Lb.className
+          );
+          var lref = archMemberRef('label', newLabelId);
+          if (item.sourceRef) idMap[item.sourceRef] = lref;
+          pastedRefs.push(lref);
+        } else if (item.refKind === 'node' && item.data && NODE_LAYOUT[item.data.key]) {
+          var nk = item.data;
+          if (!archDrag.pos[nk.key]) archDrag.pos[nk.key] = { x: 0, y: 0 };
+          archDrag.pos[nk.key].x = (nk.x || 0) + off;
+          archDrag.pos[nk.key].y = (nk.y || 0) + off;
+          if (typeof nk.w === 'number') archDrag.pos[nk.key].w = nk.w;
+          if (typeof nk.h === 'number') archDrag.pos[nk.key].h = nk.h;
+          if (typeof nk.angle === 'number') archDrag.pos[nk.key].angle = nk.angle;
+          var nref = archMemberRef('node', nk.key);
+          if (item.sourceRef) idMap[item.sourceRef] = nref;
+          pastedRefs.push(nref);
+        }
+      });
+      if (archDiagramClipboard.group && archDiagramClipboard.group.members) {
+        var Gp = archGroupsApi();
+        var newMembers = archDiagramClipboard.group.members
+          .map(function (m) {
+            return idMap[m] || m;
+          })
+          .filter(function (m) {
+            return Gp && Gp.isGroupableRef(m);
+          });
+        if (Gp && newMembers.length >= 2) Gp.createGroup(newMembers, archDiagramGroups);
+      }
+      archLabelSave();
+      archCustomBoxesPersist();
+      archDragSave();
+      archDiagramGroupsPersist();
+      archDragApply();
+      archCustomBoxesRender();
+      archUserLineRender();
+      if (pastedRefs.length) archEditMultiSetMany(pastedRefs, pastedRefs[0]);
+      archUndoMaybePushSnapshot();
+      if (liveRegion) liveRegion.textContent = 'Pasted ' + pastedRefs.length + ' objects.';
       return;
     }
     if (archDiagramClipboard.kind === 'label') {
@@ -9349,6 +9952,13 @@
 
   function archDiagramDuplicateSelection() {
     if (!archIsEditMode()) return;
+    if (archEditMultiToArray().length > 1) {
+      var prevM = archDiagramClipboard;
+      archDiagramCopySelection();
+      archDiagramPasteClipboard();
+      archDiagramClipboard = prevM;
+      return;
+    }
     if (!archCustomBoxSelectedId && !userLines.selectedId && !archLabelSelectedId) {
       if (liveRegion) liveRegion.textContent = 'Select a shape, label, or connector to duplicate.';
       return;
@@ -9380,13 +9990,7 @@
   }
 
   function archDiagramDeselectAll() {
-    archCustomBoxSelectedId = null;
-    archCustomBoxLabelActiveId = null;
-    archLabelClearSelection();
-    userLines.selectedId = null;
-    userLines.selectedHandleIdx = null;
-    archFlowClearSelection();
-    if (archSelection) archSelection.clear();
+    archEditMultiClear();
     archCustomBoxesRender();
     archUserLineRender();
     archUserLineSyncPropsHud();
@@ -9396,6 +10000,41 @@
   function archDiagramNudgeSelection(dx, dy) {
     if (!archIsEditMode()) return false;
     var moved = false;
+    var G = archGroupsApi();
+    var multiRefs = archEditMultiToArray();
+    if (multiRefs.length > 1) {
+      multiRefs = G ? G.expandWithGroupMembers(multiRefs, archDiagramGroups) : multiRefs;
+      multiRefs.forEach(function (ref) {
+        var pos = archMemberRefGetPosition(ref);
+        if (!pos) return;
+        if (pos.kind === 'cbox') {
+          var box = archCustomBoxFind(pos.id);
+          if (!box) return;
+          box.x = archClamp((box.x || 0) + dx, 0, ARCH_GUIDE_VIEW.w - (box.w || 0));
+          box.y = archClamp((box.y || 0) + dy, 0, ARCH_GUIDE_VIEW.h - (box.h || 0));
+          moved = true;
+        } else if (pos.kind === 'label') {
+          var lcur = archLabel.state.pos[pos.id] || { x: 0, y: 0 };
+          archLabel.state.pos[pos.id] = { x: (lcur.x || 0) + dx, y: (lcur.y || 0) + dy };
+          moved = true;
+        } else if (pos.kind === 'node') {
+          var p = archDrag.pos[pos.id] || (archDrag.pos[pos.id] = { x: 0, y: 0 });
+          p.x = (p.x || 0) + dx;
+          p.y = (p.y || 0) + dy;
+          moved = true;
+        }
+      });
+      if (moved) {
+        archCustomBoxesPersist();
+        archLabelSave();
+        archDragApply();
+        archDragSave();
+        archCustomBoxesRender();
+        archLabelApplyAll();
+      }
+      if (moved) try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (errN) {}
+      return moved;
+    }
 
     if (archCustomBoxSelectedId) {
       var box = archCustomBoxFind(archCustomBoxSelectedId);
@@ -10199,6 +10838,7 @@
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('click', archDiagramFlowClick, true);
     archDrag.svg.addEventListener('dblclick', archDblClickEdit, true);
+    archDrag.svg.addEventListener('contextmenu', archDiagramContextMenuOnCanvas, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
     archDrag.svg.addEventListener('pointerdown', archUserLineOnPointerDown, false);
 
@@ -10210,6 +10850,7 @@
     archEditorSyncLinesDockChrome();
 
     archEditSelectionInit();
+    archContextMenuInit();
     archLayerOrderInit();
     archHiddenNodesApply();
     archBackgroundsApply();
@@ -10263,6 +10904,12 @@
             archDiagramDuplicateSelection();
             return;
           }
+          if (mod && e.key.toLowerCase() === 'g') {
+            e.preventDefault();
+            if (e.shiftKey) archDiagramUngroupSelection();
+            else archDiagramGroupSelection();
+            return;
+          }
           if (mod && e.key.toLowerCase() === 'a') {
             e.preventDefault();
             archDiagramSelectAllBaseNodes();
@@ -10310,7 +10957,13 @@
             }
           }
           if (!mod && archIsEditMode() && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-            var hasSel = !!(archCustomBoxSelectedId || userLines.selectedId || archLabelSelectedId || (archSelection && archSelection.count() > 0));
+            var hasSel = !!(
+              archEditMultiToArray().length ||
+              archCustomBoxSelectedId ||
+              userLines.selectedId ||
+              archLabelSelectedId ||
+              (archSelection && archSelection.count() > 0)
+            );
             if (!hasSel) return;
             var step = e.shiftKey ? 10 : 1;
             var dx = 0, dy = 0;
