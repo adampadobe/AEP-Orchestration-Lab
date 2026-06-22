@@ -9,26 +9,157 @@ html[data-aep-theme='dark'] body.loyalty-reward-provider-page {
 }
 
 .loyalty-reward-provider-page .lrp-layout {
-  display: grid;
-  grid-template-columns: minmax(16rem, 22rem) 1fr;
-  gap: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   padding: 0 1.5rem 2rem;
-  align-items: start;
+  max-width: 72rem;
 }
 
-@media (max-width: 56rem) {
-  .loyalty-reward-provider-page .lrp-layout {
-    grid-template-columns: 1fr;
-  }
+.loyalty-reward-provider-page .lrp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.loyalty-reward-provider-page .lrp-toolbar-hint {
+  font-size: 0.8125rem;
+  color: var(--dash-muted);
 }
 
 .loyalty-reward-provider-page .lrp-panel {
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm, 12px);
-  padding: 1rem 1.1rem;
   box-shadow: var(--dash-shadow);
   color: var(--dash-text);
+  overflow: hidden;
+}
+
+.loyalty-reward-provider-page .lrp-panel--ledger {
+  border-color: var(--dash-blue);
+  box-shadow: var(--dash-shadow), 0 0 0 1px color-mix(in srgb, var(--dash-blue) 18%, transparent);
+}
+
+.loyalty-reward-provider-page .lrp-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem 0.55rem 0.45rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.loyalty-reward-provider-page .lrp-panel.is-collapsed .lrp-panel-head {
+  border-bottom-color: transparent;
+}
+
+.loyalty-reward-provider-page .lrp-panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.loyalty-reward-provider-page .lrp-panel-toggle:hover {
+  background: var(--dash-hover);
+}
+
+.loyalty-reward-provider-page .lrp-panel-toggle:focus {
+  outline: none;
+}
+
+.loyalty-reward-provider-page .lrp-panel-toggle:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.loyalty-reward-provider-page .lrp-panel-chevron {
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: 0.1rem;
+  border-right: 2px solid var(--dash-muted);
+  border-bottom: 2px solid var(--dash-muted);
+  transform: rotate(-135deg);
+  transition: transform 0.22s ease;
+}
+
+.loyalty-reward-provider-page .lrp-panel.is-collapsed .lrp-panel-chevron {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loyalty-reward-provider-page .lrp-panel-chevron,
+  .loyalty-reward-provider-page .lrp-panel-collapse {
+    transition-duration: 0.01ms;
+  }
+}
+
+.loyalty-reward-provider-page .lrp-panel-title {
+  flex: 0 0 auto;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  white-space: nowrap;
+}
+
+.loyalty-reward-provider-page .lrp-panel-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loyalty-reward-provider-page .lrp-panel-action {
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+}
+
+.loyalty-reward-provider-page .lrp-panel-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
+}
+
+.loyalty-reward-provider-page .lrp-panel.is-collapsed .lrp-panel-collapse {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.loyalty-reward-provider-page .lrp-panel-collapse-inner {
+  overflow: hidden;
+  padding: 1rem 1.1rem;
+}
+
+.loyalty-reward-provider-page .lrp-panel.is-collapsed .lrp-panel-collapse-inner {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.loyalty-reward-provider-page .lrp-status--compact {
+  margin: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6875rem;
+}
+
+.loyalty-reward-provider-page .lrp-panel-meta .lrp-status--compact {
+  vertical-align: middle;
 }
 
 .loyalty-reward-provider-page .lrp-panel h3 {
@@ -267,15 +398,6 @@ html[data-aep-theme='dark'] body.loyalty-reward-provider-page {
 
 .loyalty-reward-provider-page .lrp-steps a {
   color: var(--dash-blue);
-}
-
-.loyalty-reward-provider-page .lrp-ledger-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
 }
 
 .loyalty-reward-provider-page .lrp-ledger-meta {

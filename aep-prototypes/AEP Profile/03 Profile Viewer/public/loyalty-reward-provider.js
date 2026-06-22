@@ -3,10 +3,21 @@
 
   var msgEl = document.getElementById('lrpMessage');
   var healthStatusEl = document.getElementById('lrpHealthStatus');
+  var healthStatusLabelEl = document.getElementById('lrpHealthStatusLabel');
+  var healthStatusCompactEl = document.getElementById('lrpHealthStatusCompact');
+  var healthStatusCompactLabelEl = document.getElementById('lrpHealthStatusCompactLabel');
   var ledgerMetaEl = document.getElementById('lrpLedgerMeta');
+  var ledgerMetaCompactEl = document.getElementById('lrpLedgerMetaCompact');
   var ledgerBodyEl = document.getElementById('lrpLedgerBody');
   var ledgerEmptyEl = document.getElementById('lrpLedgerEmpty');
   var ledgerTableWrapEl = document.getElementById('lrpLedgerTableWrap');
+
+  var SESSION_PANEL_KEY = 'lrpPanelState';
+  var PANEL_DEFAULTS = {
+    connection: true,
+    ajo: false,
+    ledger: true,
+  };
 
   function selectedSandbox() {
     var sandbox = 'apalmer';
@@ -72,11 +83,15 @@
   }
 
   function setHealthStatus(label, variant) {
-    if (!healthStatusEl) return;
-    healthStatusEl.textContent = label;
-    healthStatusEl.className =
+    var className =
       'lrp-status' +
       (variant === 'ok' ? ' lrp-status--ok' : variant === 'err' ? ' lrp-status--err' : ' lrp-status--warn');
+    if (healthStatusLabelEl) healthStatusLabelEl.textContent = label;
+    if (healthStatusEl) healthStatusEl.className = className;
+    if (healthStatusCompactLabelEl) healthStatusCompactLabelEl.textContent = label;
+    if (healthStatusCompactEl) {
+      healthStatusCompactEl.className = className + ' lrp-status--compact';
+    }
   }
 
   function copyText(text, okMessage) {
@@ -179,13 +194,16 @@
     if (!ledgerBodyEl || !ledgerEmptyEl || !ledgerTableWrapEl) return;
 
     var count = Array.isArray(entries) ? entries.length : 0;
-    if (ledgerMetaEl) {
-      var totalNote = typeof totalStored === 'number' ? ' · ' + totalStored + ' stored in memory' : '';
-      ledgerMetaEl.textContent =
-        (count ? count + ' recent request' + (count === 1 ? '' : 's') : 'No requests yet') +
-        ' · sandbox ' +
-        selectedSandbox() +
-        totalNote;
+    var metaText =
+      (count ? count + ' recent request' + (count === 1 ? '' : 's') : 'No requests yet') +
+      ' · sandbox ' +
+      selectedSandbox() +
+      (typeof totalStored === 'number' ? ' · ' + totalStored + ' stored in memory' : '');
+    if (ledgerMetaEl) ledgerMetaEl.textContent = metaText;
+    if (ledgerMetaCompactEl) {
+      ledgerMetaCompactEl.textContent = count
+        ? count + ' request' + (count === 1 ? '' : 's') + ' · ' + selectedSandbox()
+        : 'Waiting for requests · ' + selectedSandbox();
     }
 
     ledgerBodyEl.innerHTML = '';
@@ -238,6 +256,7 @@
 
   async function refreshLedger() {
     if (ledgerMetaEl) ledgerMetaEl.textContent = 'Loading…';
+    if (ledgerMetaCompactEl) ledgerMetaCompactEl.textContent = 'Loading…';
     try {
       var res = await fetch(ledgerApiUrl(), {
         headers: { Accept: 'application/json' },
@@ -350,10 +369,97 @@
     });
   }
 
+  function readPanelState() {
+    var state = Object.assign({}, PANEL_DEFAULTS);
+    try {
+      var raw = sessionStorage.getItem(SESSION_PANEL_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          if (typeof parsed.connection === 'boolean') state.connection = parsed.connection;
+          if (typeof parsed.ajo === 'boolean') state.ajo = parsed.ajo;
+          if (typeof parsed.ledger === 'boolean') state.ledger = parsed.ledger;
+        }
+      }
+    } catch (_e) {}
+    return state;
+  }
+
+  function writePanelState(state) {
+    try {
+      sessionStorage.setItem(SESSION_PANEL_KEY, JSON.stringify(state));
+    } catch (_e) {}
+  }
+
+  function isFocusMode(state) {
+    return !state.connection && !state.ajo && state.ledger;
+  }
+
+  function updateFocusButton(state) {
+    var btn = document.getElementById('lrpFocusMode');
+    if (!btn) return;
+    var active = isFocusMode(state);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    btn.textContent = active ? 'Show all panels' : 'Focus on ledger';
+  }
+
+  function setPanelExpanded(panelKey, expanded) {
+    var panel = document.querySelector('[data-lrp-panel="' + panelKey + '"]');
+    var toggle = panel ? panel.querySelector('.lrp-panel-toggle') : null;
+    if (!panel || !toggle) return;
+
+    panel.classList.toggle('is-collapsed', !expanded);
+    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function applyPanelState(state) {
+    setPanelExpanded('connection', state.connection);
+    setPanelExpanded('ajo', state.ajo);
+    setPanelExpanded('ledger', state.ledger);
+    updateFocusButton(state);
+  }
+
+  function initPanelCollapse() {
+    var state = readPanelState();
+    applyPanelState(state);
+
+    function persistAndApply(next) {
+      writePanelState(next);
+      applyPanelState(next);
+    }
+
+    function wireToggle(panelKey, toggleId) {
+      var toggle = document.getElementById(toggleId);
+      if (!toggle) return;
+      toggle.addEventListener('click', function () {
+        var next = readPanelState();
+        next[panelKey] = !next[panelKey];
+        persistAndApply(next);
+      });
+    }
+
+    wireToggle('connection', 'lrpConnectionToggle');
+    wireToggle('ajo', 'lrpAjoToggle');
+    wireToggle('ledger', 'lrpLedgerToggle');
+
+    var focusBtn = document.getElementById('lrpFocusMode');
+    if (focusBtn) {
+      focusBtn.addEventListener('click', function () {
+        var current = readPanelState();
+        if (isFocusMode(current)) {
+          persistAndApply(Object.assign({}, PANEL_DEFAULTS));
+          return;
+        }
+        persistAndApply({ connection: false, ajo: false, ledger: true });
+      });
+    }
+  }
+
   function init() {
     initStaticUrls();
     bindCopyButtons();
     initSandboxSelect();
+    initPanelCollapse();
 
     var healthBtn = document.getElementById('lrpCheckHealth');
     var refreshBtn = document.getElementById('lrpRefreshLedger');
