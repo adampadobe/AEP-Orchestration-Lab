@@ -42,9 +42,13 @@ Cursor loads MCP from two places — they appear as separate sections in **Setti
 | **User / global** (your machine only, all projects) | `~/.cursor/mcp.json` | **User MCP Servers** |
 
 - **Workspace (this repo):** **Firebase MCP** only — `firebase-tools experimental:mcp` (same auth as **Firebase CLI** / ADC). Keeps deploy/emulator tooling tied to the lab project without duplicating personal Adobe OAuth servers in git.
-- **User / global:** Adobe product MCPs (**Real-Time CDP**, **Journey Optimizer**, AEP AMA, Analytics, etc.) belong here alongside your other Adobe entries. Paste into `~/.cursor/mcp.json` (merge; do not wipe existing servers):
+- **User / global:** Adobe product MCPs belong here alongside your other Adobe entries. Prefer the unified **[CX Enterprise MCP](https://experienceleague.adobe.com/en/docs/cx-enterprise-agentic-tools/using/tools/mcp-servers)** (one endpoint for Analytics, AEP, AJO, CJA, RTCDP, Marketo, and more); per-product servers (Real-Time CDP, Journey Optimizer, AEP AMA, Analytics, etc.) are optional if you need a single-app surface. Paste into `~/.cursor/mcp.json` (merge; do not wipe existing servers):
 
 ```json
+"adobe-cx-enterprise": {
+  "type": "http",
+  "url": "https://cx-enterprise.adobe.io/mcp"
+},
 "rtcdp": {
   "type": "streamable-http",
   "url": "https://rtcdp-mcp.adobe.io/mcp"
