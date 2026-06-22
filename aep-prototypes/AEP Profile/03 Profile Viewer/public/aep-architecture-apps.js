@@ -867,6 +867,7 @@
     archHiddenFlowsLoad();
     archHiddenNodesLoad();
     archHiddenBackgroundsLoad();
+    archLayerOrderLoad();
     archFlowOverridesLoad();
     if (TE) TE.highlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
@@ -7022,6 +7023,7 @@
     archCustomBoxes = archCustomBoxes.filter(function (b) {
       return b.id !== sid;
     });
+    archLayerOrderUnregisterKey(archLayerOrderKeyCbox(sid));
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
     Object.keys(archHiliteOverrides()).forEach(function (k) {
@@ -8364,9 +8366,11 @@
 
   function archUserLineDeleteSelected() {
     if (!userLines.selectedId) return;
+    var delId = userLines.selectedId;
     userLines.lines = userLines.lines.filter(function (x) {
-      return x.id !== userLines.selectedId;
+      return x.id !== delId;
     });
+    archLayerOrderUnregisterKey(archLayerOrderKeyUl(delId));
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
     archUserLineRender();
