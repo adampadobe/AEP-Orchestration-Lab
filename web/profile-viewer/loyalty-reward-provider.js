@@ -237,7 +237,11 @@
     var rewardEl = document.getElementById('lrpRewardKey');
     var headersPre = document.getElementById('lrpHeadersSnippet');
     var registerCmd = document.getElementById('lrpRegisterCmd');
+    var configureCmd = document.getElementById('lrpConfigureCmd');
     var challengeCmd = document.getElementById('lrpChallengeCmd');
+    var challengeIdEl = document.getElementById('lrpChallengeId');
+    var audienceIdEl = document.getElementById('lrpAudienceId');
+    var audienceNameEl = document.getElementById('lrpAudienceName');
 
     if (fulfillEl) fulfillEl.textContent = fulfillUrl();
     if (healthEl) healthEl.textContent = healthUrl();
@@ -262,14 +266,28 @@
         ' \\\n  --sandbox ' +
         sandbox;
     }
+    if (configureCmd) {
+      configureCmd.textContent =
+        'npm run ajo:loyalty-setup -- \\\n  --sandbox ' + sandbox;
+    }
+    if (challengeIdEl) challengeIdEl.textContent = getCfg().labChallengeId || '—';
+    if (audienceIdEl) audienceIdEl.textContent = getCfg().labAudienceId || '—';
+    if (audienceNameEl) {
+      var audName = getCfg().labAudienceName;
+      audienceNameEl.textContent = audName ? audName + (getCfg().labChallengeState ? ' · challenge ' + getCfg().labChallengeState : '') : '';
+    }
     if (challengeCmd) {
       challengeCmd.textContent =
         'npm run ajo:loyalty-create-challenge -- \\\n  --sandbox ' +
         sandbox +
-        ' \\\n  --audience-id <segment-uuid> \\\n  --provider-guid ' +
+        ' \\\n  --audience-id ' +
+        (getCfg().labAudienceId || '<segment-uuid>') +
+        ' \\\n  --provider-guid ' +
         (getCfg().registeredProviderGuid || '<provider-guid>') +
         ' \\\n  --reward-definition ' +
-        (getCfg().rewardDefinitionKey || 'points');
+        (getCfg().rewardDefinitionKey || 'points') +
+        ' \\\n  --task-id ' +
+        (getCfg().labTaskId || 'aep-lab-purchase-task');
     }
   }
 

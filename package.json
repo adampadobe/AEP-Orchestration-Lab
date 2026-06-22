@@ -9,6 +9,7 @@
   "scripts": {
     "aep:create-hotel-edge-segments": "node scripts/create-hotel-edge-segments.mjs",
     "ajo:create-content-template": "node scripts/create-ajo-content-template.mjs",
+    "ajo:loyalty-configure": "node scripts/ajo-loyalty-setup.mjs",
     "ajo:loyalty-create-challenge": "node scripts/ajo-loyalty-create-challenge.mjs",
     "ajo:loyalty-register-provider": "node scripts/ajo-loyalty-register-provider.mjs",
     "ajo:loyalty-setup": "node scripts/ajo-loyalty-setup.mjs",

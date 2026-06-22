@@ -110,6 +110,43 @@ Creates a **draft** Standard challenge with one **purchase** task. Publish via U
 
 Implementation: [`scripts/ajo-loyalty-create-challenge.mjs`](../scripts/ajo-loyalty-create-challenge.mjs)
 
+## Full setup (idempotent script)
+
+Runs config, event definition, audience resolution, task, challenge, publish, and optional journey linking in one pass:
+
+```bash
+npm run ajo:loyalty-setup -- --sandbox apalmer
+# alias:
+npm run ajo:loyalty-configure -- --sandbox apalmer
+```
+
+Options:
+
+| Flag | Purpose |
+|------|---------|
+| `--audience-id <uuid>` | Skip audience auto-pick; use this AEP segment |
+| `--provider-guid <uuid>` | Override default lab provider guid |
+| `--skip-journey` | Skip `challenges/initialize` + journey from challenge |
+| `--skip-segments` | Do not list UPS segments (requires `--audience-id`) |
+| `--dry-run` | Print planned lab constants only |
+
+The script lists UPS segment definitions and prefers lab hotel edge audiences (e.g. **Hotel - Known email for orchestration**). If none exist, run `npm run aep:create-hotel-edge-segments -- --sandbox apalmer --tenant demoemea --upsert` first.
+
+Implementation: [`scripts/ajo-loyalty-setup.mjs`](../scripts/ajo-loyalty-setup.mjs) (`npm run ajo:loyalty-setup` or alias `npm run ajo:loyalty-configure`).
+
+### apalmer reference IDs (non-secret)
+
+| Resource | ID / value |
+|----------|------------|
+| Identity namespace | `loyaltyId` |
+| Reward provider | `15b4d932-9d69-4c3a-b6bd-f8daa5656fdd` |
+| Purchase event definition | `f1fcdc05-17be-4b01-bd40-2a7ba54db385` (`commerce.purchases.value`) |
+| Task | `aep-lab-purchase-task` |
+| Challenge | `e07ca362-4d53-42cc-a6d5-0e78e8015a26` (**published**) |
+| Audience | `7a22b088-cff4-4ecc-824f-856bc3c15746` — Hotel - Elevated modelled churn risk |
+
+Journey auto-creation may return **500** (`Api Key is invalid` on `journey-private.adobe.io`) until Journey Optimizer authoring API access is fixed for the OAuth client — create/publish the journey in Loyalty admin UI if needed.
+
 ## Profile generator — loyalty fields (already present)
 
 No code changes required for MVP. The Profile Viewer generator already writes loyalty attributes, including:
@@ -147,7 +184,8 @@ Base: `https://platform.adobe.io/ajo`
 | Create task | POST | `/loyalty/metadata/tasks` |
 | Create challenge | POST | `/loyalty/metadata/challenges` |
 | Publish | POST | `/loyalty/metadata/challenges/{id}/publish` |
-| Journey from challenge | POST | `/loyalty/metadata/journeys/from-challenge/{id}` |
+| Journey from challenge | PUT | `/loyalty/metadata/journeys/from-challenge/{id}` |
+| Initialize journey shell | POST | `/loyalty/metadata/challenges/initialize` |
 | Health | GET | `/loyalty/journeys/health` |
 
 ## Troubleshooting
