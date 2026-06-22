@@ -1,14 +1,14 @@
 {
-  "gitSha": "a7728bb1d36a5ca51314d6139a7c5c8529d16b35",
-  "gitShortSha": "a7728bb1",
+  "gitSha": "d1714324080ee0d03397b259b86721aae0fd0d90",
+  "gitShortSha": "d1714324",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: canvas zoom control for architecture diagram",
+  "gitCommitSubject": "[apalmer] fix: selectable icons inside architecture diagram boxes",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T14:00:36+01:00",
-  "deployedAt": "2026-06-22T13:00:43.157Z",
+  "gitCommitDate": "2026-06-22T14:09:06+01:00",
+  "deployedAt": "2026-06-22T13:10:08.311Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 1,
+  "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a7728bb1d36a5ca51314d6139a7c5c8529d16b35"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d1714324080ee0d03397b259b86721aae0fd0d90"
 }
