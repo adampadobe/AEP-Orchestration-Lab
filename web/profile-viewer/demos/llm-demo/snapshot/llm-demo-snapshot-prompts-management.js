@@ -165,6 +165,208 @@
     return SKY_PROMPT_MARKERS.test(String(text || ''));
   }
 
+  var ADOBE_TABLE_LABELS = /^(Firefly|Adobe|Photoshop|Creative Cloud)$/i;
+  var DEFAULT_CATEGORY = 'Firefly';
+
+  function isLeaf(el) {
+    return el && el.childElementCount === 0;
+  }
+
+  function buildTablePrompts(cfg) {
+    var brand = cfg.brand || cfg.brandPickerLabel || 'Brand';
+    var host = cfg.siteHost || brand.toLowerCase().replace(/\s+/g, '') + '.com';
+    if (cfg.samplePrompts && cfg.samplePrompts.length >= 4) {
+      return cfg.samplePrompts.map(function (p, idx) {
+        p = String(p || '').trim();
+        if (!p) return brand.toLowerCase() + ' prompt ' + (idx + 1);
+        if (p.length <= 80 && !/^(How|What|Which|Is|Can|Do|Are|Why)\b/i.test(p)) return p;
+        p = p.replace(/\?+$/, '').trim();
+        p = p.replace(/\bAdobe\b/gi, brand).replace(/\badobe\.com\b/gi, host);
+        if (p.length > 78) p = p.slice(0, 75) + '…';
+        return p;
+      });
+    }
+    var b = brand.toLowerCase();
+    return [
+      b + ' customer support and contact',
+      b + ' pricing plans comparison',
+      'best ' + b + ' features ' + new Date().getFullYear(),
+      b + ' free trial sign up',
+      'how to use ' + b + ' platform',
+      b + ' vs leading competitors',
+      b + ' product reviews',
+      b + ' account login help',
+      b + ' documentation and tutorials',
+      b + ' integration options',
+      b + ' enterprise pricing',
+      b + ' mobile app features',
+    ];
+  }
+
+  function buildTableTopics(cfg) {
+    var brand = cfg.brand || 'Brand';
+    var themes = (cfg.claimThemes || []).slice(0, 8);
+    if (themes.length >= 4) {
+      return themes.map(function (t) {
+        if (typeof t === 'string') return t.split(/[—\-:|]/)[0].trim().slice(0, 40);
+        if (t && t.title) return String(t.title).slice(0, 40);
+        return brand + ' topic';
+      });
+    }
+    return [
+      brand + ' products',
+      brand + ' services',
+      brand + ' support',
+      'Comparison',
+      'Pricing',
+      'Reviews',
+      'Features',
+      'Integrations',
+    ];
+  }
+
+  function findTabList() {
+    return document.querySelector('[role="tablist"][aria-label="Prompts Management"]') ||
+      document.querySelector('[role="tablist"]');
+  }
+
+  function findTabPanel(tabKey) {
+    var tab = document.querySelector('[role="tab"][data-key="' + tabKey + '"]');
+    if (tab) {
+      var controls = tab.getAttribute('aria-controls');
+      if (controls) {
+        var byId = document.getElementById(controls);
+        if (byId) return byId;
+      }
+    }
+    if (tabKey === 'prompt-suggestions-v2') {
+      return document.querySelector('[id*="tabpanel-prompt-suggestions-v2"]');
+    }
+    if (tabKey === 'data-insights') {
+      return document.querySelector('[id*="tabpanel-data-insights"]');
+    }
+    if (tabKey === 'google-search-console') {
+      return document.querySelector('[id*="tabpanel-google-search-console"]');
+    }
+    return null;
+  }
+
+  function switchPromptsTab(tabKey) {
+    var tablist = findTabList();
+    if (!tablist) return false;
+    var tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+    var target = tabs.find(function (t) {
+      return t.getAttribute('data-key') === tabKey;
+    });
+    if (!target) return false;
+
+    tabs.forEach(function (tab) {
+      var selected = tab === target;
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      tab.setAttribute('tabindex', selected ? '0' : '-1');
+      if (selected) tab.setAttribute('data-selected', 'true');
+      else tab.removeAttribute('data-selected');
+    });
+
+    ['data-insights', 'google-search-console', 'prompt-suggestions-v2'].forEach(function (key) {
+      var panel = findTabPanel(key);
+      if (!panel) return;
+      var show = key === tabKey;
+      panel.hidden = !show;
+      panel.style.display = show ? '' : 'none';
+      panel.setAttribute('aria-hidden', show ? 'false' : 'true');
+    });
+
+    if (tabKey === 'prompt-suggestions-v2') {
+      global.setTimeout(wireIntentCoveragePopup, 50);
+    }
+    return true;
+  }
+
+  function wirePromptsTabList() {
+    if (!isPromptsPage()) return;
+    var tablist = findTabList();
+    if (!tablist || tablist.dataset.llmTabsWired === '1') return;
+    tablist.dataset.llmTabsWired = '1';
+
+    tablist.querySelectorAll('[role="tab"]').forEach(function (tab) {
+      if (tab.dataset.llmTabWired === '1') return;
+      tab.dataset.llmTabWired = '1';
+      tab.addEventListener(
+        'click',
+        function (e) {
+          var key = tab.getAttribute('data-key');
+          if (!key) return;
+          e.preventDefault();
+          e.stopPropagation();
+          switchPromptsTab(key);
+        },
+        true,
+      );
+    });
+
+    var active =
+      tablist.querySelector('[role="tab"][aria-selected="true"]') ||
+      tablist.querySelector('[role="tab"][data-key="data-insights"]');
+    var activeKey = (active && active.getAttribute('data-key')) || 'data-insights';
+    switchPromptsTab(activeKey);
+  }
+
+  function patchPromptsTable(root, cfg) {
+    if (!root) return false;
+    var brand = cfg.brand || cfg.brandPickerLabel || 'Brand';
+    var prompts = buildTablePrompts(cfg);
+    var topics = buildTableTopics(cfg);
+    var promptEls = [];
+    root.querySelectorAll('[role="rowheader"] [data-rsp-slot="text"]').forEach(function (el) {
+      if (!isLeaf(el)) return;
+      var txt = (el.textContent || '').trim();
+      if (txt.length < 4 || txt.length > 140) return;
+      if (/^(Prompt|Category|Intent|Source|Topic|Actions)$/i.test(txt)) return;
+      promptEls.push(el);
+    });
+    if (!promptEls.length) return false;
+
+    promptEls.forEach(function (el, idx) {
+      el.textContent = prompts[idx % prompts.length];
+    });
+
+    root.querySelectorAll('[role="row"] [data-rsp-slot="text"]').forEach(function (el) {
+      if (!isLeaf(el)) return;
+      var txt = (el.textContent || '').trim();
+      if (ADOBE_TABLE_LABELS.test(txt) || txt === DEFAULT_CATEGORY) el.textContent = brand;
+    });
+
+    var topicEls = [];
+    root.querySelectorAll('[role="gridcell"] [data-rsp-slot="text"], [role="cell"] [data-rsp-slot="text"]').forEach(
+      function (el) {
+        if (!isLeaf(el)) return;
+        var txt = (el.textContent || '').trim();
+        if (!txt || txt.length > 48) return;
+        if (/^(informational|research|human|commercial|comparative|transactional|instructional)$/i.test(txt)) return;
+        if (ADOBE_TABLE_LABELS.test(txt)) return;
+        if (/^(AI Art|AI Animation|AI Avatar|Generic|Partner Models|Video Generator|Tattoo Generator)$/i.test(txt)) {
+          topicEls.push(el);
+        }
+      },
+    );
+    topicEls.forEach(function (el, idx) {
+      el.textContent = topics[idx % topics.length];
+    });
+
+    return true;
+  }
+
+  function patchAdobeDemoLabels(root, cfg) {
+    var brand = cfg.brand || cfg.brandPickerLabel || 'Brand';
+    root.querySelectorAll('[data-rsp-slot="text"], span, strong').forEach(function (el) {
+      if (!isLeaf(el)) return;
+      var txt = (el.textContent || '').trim();
+      if (!txt || txt.length > 96) return;
+      if (txt === 'Firefly' || txt === 'Adobe' || txt === 'Photoshop') el.textContent = brand;
+    });
+  }
+
   function findPromptsRoot() {
     var heads = Array.from(document.querySelectorAll('span[data-rsp-slot="text"], h1, h2')).filter(function (n) {
       var t = (n.textContent || '').trim();
@@ -185,21 +387,7 @@
   }
 
   function activatePromptSuggestionsTab() {
-    if (!isPromptsPage()) return;
-    var selected = document.querySelector(
-      '[data-key="prompt-suggestions-v2"][aria-selected="true"], [id*="tab-prompt-suggestions-v2"][aria-selected="true"]',
-    );
-    if (selected) return;
-    var tab =
-      document.querySelector('[data-key="prompt-suggestions-v2"]') ||
-      document.querySelector('[id*="tab-prompt-suggestions-v2"]');
-    if (tab) {
-      tab.click();
-      return;
-    }
-    document.querySelectorAll('[role="tab"]').forEach(function (el) {
-      if ((el.textContent || '').indexOf('Prompt Suggestions') >= 0) el.click();
-    });
+    switchPromptsTab('prompt-suggestions-v2');
   }
 
   function closeIntentCoverageOverlay() {
@@ -388,6 +576,9 @@
 
     var key = (cfg.brand || '') + '|' + (cfg.siteHost || '') + '|' + inferIndustry(cfg);
     var didWork = false;
+    var insightsPanel = findTabPanel('data-insights') || root;
+    if (patchPromptsTable(insightsPanel, cfg)) didWork = true;
+    patchAdobeDemoLabels(root, cfg);
     if (patchWithSamplePrompts(root, cfg)) {
       didWork = true;
     } else if (patchPromptTitles(root, cfg)) {
@@ -421,7 +612,7 @@
 
   function init() {
     if (!isPromptsPage()) return;
-    activatePromptSuggestionsTab();
+    wirePromptsTabList();
     wireIntentCoveragePopup();
     patch();
     ensureObserver();
@@ -434,6 +625,8 @@
     isPromptsPage: isPromptsPage,
     applyPromptText: applyPromptText,
     activatePromptSuggestionsTab: activatePromptSuggestionsTab,
+    switchPromptsTab: switchPromptsTab,
+    wirePromptsTabList: wirePromptsTabList,
     wireIntentCoveragePopup: wireIntentCoveragePopup,
     openIntentCoverageOverlay: openIntentCoverageOverlay,
     closeIntentCoverageOverlay: closeIntentCoverageOverlay,
@@ -446,9 +639,9 @@
   }
   [200, 500, 1200, 2500, 4500].forEach(function (ms) {
     global.setTimeout(function () {
-      activatePromptSuggestionsTab();
+      wirePromptsTabList();
       wireIntentCoveragePopup();
-      init();
+      patch();
     }, ms);
   });
 
