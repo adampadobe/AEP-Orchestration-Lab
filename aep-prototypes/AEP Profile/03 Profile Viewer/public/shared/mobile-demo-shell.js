@@ -18,6 +18,26 @@
   var PRESENTATION_ON_LABEL = 'Exit presentation';
   var PRESENTATION_OFF_LABEL = 'Expand simulator';
   var BROWSER_FS_BANNER_KEY = 'aepMobileDemoBrowserFsBannerDismissed';
+  var ENV_FS_BTN_ATTR = 'data-mobile-demo-env-fs-btn';
+
+  /** Spectrum S2 enter/exit — matches aep-fullscreen.js for env toolbar parity. */
+  var LOGO_ENTER =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M12.75,14.93652h-5.5c-1.24072,0-2.25-1.00928-2.25-2.25v-5.5c0-1.24072,1.00928-2.25,2.25-2.25h5.5c1.24072,0,2.25,1.00928,2.25,2.25v5.5c0,1.24072-1.00928,2.25-2.25,2.25ZM7.25,6.43652c-.41357,0-.75.33643-.75.75v5.5c0,.41357.33643.75.75.75h5.5c.41357,0,.75-.33643.75-.75v-5.5c0-.41357-.33643-.75-.75-.75h-5.5Z"/>' +
+    '<path fill="currentColor" d="M4.5,19h-2.25c-.68945,0-1.25-.56055-1.25-1.25v-2.25c0-.41406.33594-.75.75-.75s.75.33594.75.75v2h2c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"/>' +
+    '<path fill="currentColor" d="M17.75,19h-2.25c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2v-2c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.25c0,.68945-.56055,1.25-1.25,1.25Z"/>' +
+    '<path fill="currentColor" d="M18.25,5.25c-.41406,0-.75-.33594-.75-.75v-2h-2c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2.25c.68945,0,1.25.56055,1.25,1.25v2.25c0,.41406-.33594.75-.75.75ZM17.75,2.5h.00977-.00977Z"/>' +
+    '<path fill="currentColor" d="M1.75,5.25c-.41406,0-.75-.33594-.75-.75v-2.25c0-.68945.56055-1.25,1.25-1.25h2.25c.41406,0,.75.33594.75.75s-.33594.75-.75.75h-2v2c0,.41406-.33594.75-.75.75Z"/>' +
+    '</svg>';
+
+  var LOGO_EXIT =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M12.75,15h-5.5c-1.24072,0-2.25-1.00928-2.25-2.25v-5.5c0-1.24072,1.00928-2.25,2.25-2.25h5.5c1.24072,0,2.25,1.00928,2.25,2.25v5.5c0,1.24072-1.00928,2.25-2.25,2.25ZM7.25,6.5c-.41357,0-.75.33643-.75.75v5.5c0,.41357.33643.75.75.75h5.5c.41357,0,.75-.33643.75-.75v-5.5c0-.41357-.33643-.75-.75-.75h-5.5Z"/>' +
+    '<path fill="currentColor" d="M19,4.5h-2.25c-.68945,0-1.25-.56055-1.25-1.25V1c0-.41406.33594-.75.75-.75s.75.33594.75.75v2h2c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"/>' +
+    '<path fill="currentColor" d="M3.25,4.5H1c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2V1c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.25c0,.68945-.56055,1.25-1.25,1.25Z"/>' +
+    '<path fill="currentColor" d="M3.75,19.75c-.41406,0-.75-.33594-.75-.75v-2H1c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2.25c.68945,0,1.25.56055,1.25,1.25v2.25c0,.41406-.33594.75-.75.75ZM3.25,17h.00977-.00977Z"/>' +
+    '<path fill="currentColor" d="M16.25,19.75c-.41406,0-.75-.33594-.75-.75v-2.25c0-.68945.56055-1.25,1.25-1.25h2.25c.41406,0,.75.33594.75.75s-.33594.75-.75.75h-2v2c0,.41406-.33594.75-.75.75Z"/>' +
+    '</svg>';
 
   function isBrowserFullscreen() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -285,22 +305,40 @@
     return { applyDevice: applyDevice, applyAppUrl: applyAppUrl, getConfig: function () { return config; } };
   }
 
+  function findEnvToolbarInsertPoint() {
+    var dockBtn = document.getElementById('aepLabEnvDockToolbarBtn');
+    if (dockBtn && dockBtn.parentNode) return { parent: dockBtn.parentNode, before: dockBtn };
+    var toolbarActions = document.querySelector('.lab-env-toolbar__actions');
+    if (toolbarActions) return { parent: toolbarActions, before: toolbarActions.firstChild };
+    return null;
+  }
+
   function initFullscreen() {
     var fsRoot = $('mobileDemoFsRoot');
     var fsBtn = $('mobileDemoFullscreenBtn');
     var fsExitFloat = $('mobileDemoFsExitFloat');
+    var envFsBtn = null;
+
+    if (!fsRoot) return;
 
     function isPresentation() {
-      return fsRoot && fsRoot.classList.contains(PRESENTATION_CLASS);
+      return fsRoot.classList.contains(PRESENTATION_CLASS);
     }
 
-    function syncFsButton() {
+    function syncFsButtons() {
       var on = isPresentation();
       if (fsBtn) {
         fsBtn.textContent = on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL;
         fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
         fsBtn.setAttribute('title', on ? 'Exit presentation mode' : 'Expand simulator (presentation mode)');
         fsBtn.setAttribute('aria-label', on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL);
+      }
+      if (envFsBtn) {
+        envFsBtn.innerHTML = on ? LOGO_EXIT : LOGO_ENTER;
+        envFsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        var envLabel = on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL;
+        envFsBtn.setAttribute('aria-label', envLabel);
+        envFsBtn.setAttribute('title', on ? 'Exit presentation mode' : 'Expand simulator (presentation mode)');
       }
       if (fsExitFloat) {
         fsExitFloat.hidden = !on;
@@ -310,23 +348,51 @@
     }
 
     function setPresentation(on) {
-      if (!fsRoot) return;
       var active = !!on;
       fsRoot.classList.toggle(PRESENTATION_CLASS, active);
       document.body.classList.toggle('mobile-demo-page--fs', active);
-      syncFsButton();
+      syncFsButtons();
     }
 
-    if (!fsBtn || !fsRoot) return;
+    function togglePresentation() {
+      setPresentation(!isPresentation());
+    }
+
+    function mountEnvBarPresentationBtn() {
+      if (envFsBtn || document.querySelector('[' + ENV_FS_BTN_ATTR + ']')) {
+        envFsBtn = document.querySelector('[' + ENV_FS_BTN_ATTR + ']');
+        return !!envFsBtn;
+      }
+      var point = findEnvToolbarInsertPoint();
+      if (!point) return false;
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute(ENV_FS_BTN_ATTR, '1');
+      btn.className = 'spectrum-env-icon-btn lab-env-fullscreen-btn lab-env-presentation-btn aep-fullscreen-btn';
+      btn.addEventListener('click', togglePresentation);
+      point.parent.insertBefore(btn, point.before || null);
+      envFsBtn = btn;
+      document.body.classList.add('mobile-demo-shell-page--env-fs-toolbar');
+      syncFsButtons();
+      return true;
+    }
+
+    function scheduleEnvBarPresentationBtn() {
+      mountEnvBarPresentationBtn();
+      window.setTimeout(mountEnvBarPresentationBtn, 0);
+      window.setTimeout(mountEnvBarPresentationBtn, 400);
+      window.setTimeout(mountEnvBarPresentationBtn, 1500);
+    }
 
     /* CSS presentation mode — avoids Chrome sticky “press and hold Esc” overlay */
     purgeBrowserFullscreen().finally(function () {
       if (isBrowserFullscreen()) showBrowserFsBannerIfNeeded();
     });
 
-    fsBtn.addEventListener('click', function () {
-      setPresentation(!isPresentation());
-    });
+    if (fsBtn) {
+      fsBtn.addEventListener('click', togglePresentation);
+    }
     if (fsExitFloat) {
       fsExitFloat.addEventListener('click', function () {
         setPresentation(false);
@@ -335,7 +401,11 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && isPresentation()) setPresentation(false);
     });
-    syncFsButton();
+
+    scheduleEnvBarPresentationBtn();
+    global.addEventListener('env-bar-change', scheduleEnvBarPresentationBtn);
+    global.addEventListener('aep-demo-env-strip-mounted', scheduleEnvBarPresentationBtn);
+    syncFsButtons();
   }
 
   global.MobileDemoShell = {

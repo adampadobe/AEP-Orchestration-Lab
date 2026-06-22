@@ -120,6 +120,15 @@
   width: 100%;
 }
 
+/* Presentation toggle lives in compact env toolbar — hide duplicate text control */
+body.mobile-demo-shell-page--env-fs-toolbar .mobile-demo-fullscreen-btn {
+  display: none;
+}
+
+.lab-env-presentation-btn {
+  flex-shrink: 0;
+}
+
 .mobile-demo-shell-device-toggle {
   display: inline-flex;
   border: 1px solid var(--dash-border);
