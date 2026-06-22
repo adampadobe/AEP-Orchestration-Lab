@@ -405,6 +405,14 @@
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
 
+    var flowEl = e.target.closest && e.target.closest('.arch-flow');
+    if (flowEl && flowEl.classList.contains('is-visible') && !archHiddenFlowsHas(flowEl.id)) {
+      e.preventDefault();
+      e.stopPropagation();
+      archFlowSelect(flowEl.id);
+      return;
+    }
+
     var ul = e.target.closest && e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (ul && ul.getAttribute) {
       var lid = ul.getAttribute('data-user-line-id');
@@ -419,7 +427,7 @@
         archUserLineRender();
         archUserLineSyncPropsHud();
         archSelectionRefreshDom();
-        if (liveRegion) liveRegion.textContent = 'Connector selected — Delete or Backspace removes it.';
+        if (liveRegion) liveRegion.textContent = 'Connector selected — drag to move, handles to adjust path.';
         return;
       }
     }
@@ -2250,6 +2258,140 @@
     window.addEventListener('pointermove', archFlowHandlePointerMove, true);
     window.addEventListener('pointerup', archFlowHandlePointerUp, true);
     window.addEventListener('pointercancel', archFlowHandlePointerUp, true);
+  }
+
+  /** Drag entire connector path (built-in flow or user line) — like moving a box. */
+  var archConnectorBodyDrag = {
+    active: false,
+    kind: '',
+    id: '',
+    startMx: 0,
+    startMy: 0,
+    startPoints: null,
+    pointerId: null,
+    el: null,
+  };
+
+  function archConnectorBodyDragPointsFor(kind, id) {
+    if (kind === 'flow') {
+      return archFlowGetPoints(id).map(function (p) {
+        return { x: p.x, y: p.y };
+      });
+    }
+    if (kind === 'user') {
+      var ln = archUserLineFindById(id);
+      if (!ln || !ln.points || ln.points.length < 2) return [];
+      if (archUserLineIsConnector(ln)) archUserLineConnectorSyncEndpoints(ln);
+      return ln.points.map(function (pt) {
+        var o = archUserLinePointXY(pt);
+        return { x: o.x, y: o.y };
+      });
+    }
+    return [];
+  }
+
+  function archConnectorBodyDragApply(kind, id, pts) {
+    if (!pts || pts.length < 2) return;
+    if (kind === 'flow') {
+      archFlowSaveOverridePoints(id, pts);
+      archFlowHandlesRefresh();
+      return;
+    }
+    if (kind === 'user') {
+      var ln = archUserLineFindById(id);
+      if (!ln) return;
+      if (archUserLineIsConnector(ln)) {
+        ln.points = pts.map(function (p) {
+          return { x: p.x, y: p.y };
+        });
+        ln.from = { kind: 'free', x: pts[0].x, y: pts[0].y };
+        ln.to = { kind: 'free', x: pts[pts.length - 1].x, y: pts[pts.length - 1].y };
+        if (ln.sourcesDividerLocal) delete ln.sourcesDividerLocal;
+      } else if (archUserLineIsFreehandLine(ln)) {
+        ln.points = pts.map(function (p) {
+          return [p.x, p.y];
+        });
+      }
+      archUserLineRender();
+    }
+  }
+
+  function archConnectorBodyDragMove(e) {
+    if (!archConnectorBodyDrag.active || !archDrag.svg || !archConnectorBodyDrag.startPoints) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var dx = p.x - archConnectorBodyDrag.startMx;
+    var dy = p.y - archConnectorBodyDrag.startMy;
+    var next = archConnectorBodyDrag.startPoints.map(function (pt) {
+      return { x: pt.x + dx, y: pt.y + dy };
+    });
+    archConnectorBodyDragApply(archConnectorBodyDrag.kind, archConnectorBodyDrag.id, next);
+  }
+
+  function archConnectorBodyDragEnd() {
+    if (!archConnectorBodyDrag.active) return;
+    var did = archConnectorBodyDrag.id;
+    var kind = archConnectorBodyDrag.kind;
+    archConnectorBodyDrag.active = false;
+    window.removeEventListener('pointermove', archConnectorBodyDragMove, true);
+    window.removeEventListener('pointerup', archConnectorBodyDragEnd, true);
+    window.removeEventListener('pointercancel', archConnectorBodyDragEnd, true);
+    var el = archConnectorBodyDrag.el;
+    var pid = archConnectorBodyDrag.pointerId;
+    archConnectorBodyDrag.el = null;
+    archConnectorBodyDrag.pointerId = null;
+    archConnectorBodyDrag.startPoints = null;
+    archConnectorBodyDrag.id = '';
+    archConnectorBodyDrag.kind = '';
+    if (el && pid != null && el.releasePointerCapture) {
+      try {
+        el.releasePointerCapture(pid);
+      } catch (err) {}
+    }
+    if (did) {
+      if (kind === 'user') archUserLinePersist();
+      else archFlowOverridesPersist();
+      archUndoMaybePushSnapshot();
+    }
+  }
+
+  function archConnectorBodyDragBegin(kind, id, e) {
+    if (!archIsEditMode() || !id) return false;
+    if (archFlowFloatJunctionMode && kind === 'flow') return false;
+    var pts = archConnectorBodyDragPointsFor(kind, id);
+    if (pts.length < 2) return false;
+    var p0 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    archConnectorBodyDrag.active = true;
+    archConnectorBodyDrag.kind = kind;
+    archConnectorBodyDrag.id = id;
+    archConnectorBodyDrag.startMx = p0.x;
+    archConnectorBodyDrag.startMy = p0.y;
+    archConnectorBodyDrag.startPoints = pts;
+    archConnectorBodyDrag.pointerId = e.pointerId;
+    archConnectorBodyDrag.el = e.target;
+    if (e.target && e.target.setPointerCapture) {
+      try {
+        e.target.setPointerCapture(e.pointerId);
+      } catch (err2) {}
+    }
+    window.addEventListener('pointermove', archConnectorBodyDragMove, true);
+    window.addEventListener('pointerup', archConnectorBodyDragEnd, true);
+    window.addEventListener('pointercancel', archConnectorBodyDragEnd, true);
+    return true;
+  }
+
+  function archDiagramFlowPointerDown(e) {
+    if (!archIsEditMode() || archGetActiveTool() !== 'select') return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('arch-flow')) return;
+    if (archHiddenFlowsHas(t.id) || !t.classList.contains('is-visible')) return;
+    if (archFlowFloatJunctionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    archFlowSelect(t.id);
+    archConnectorBodyDragBegin('flow', t.id, e);
   }
 
   function archFlowFloatUpdateVisibility() {
@@ -7211,7 +7353,7 @@
       hit.setAttribute('class', 'arch-user-line-hit');
       g.appendChild(hit);
     });
-    archUserLineHandlesRefresh();
+    archEditLineHandlesRefresh();
     if (TE) TE.userLinePickerRefresh();
     applyState();
   }
@@ -7608,9 +7750,22 @@
     if (userLines.selectedId) {
       var ln = archUserLineGetSelected();
       if (ln && Array.isArray(ln.points)) {
-        ln.points = ln.points.map(function (p) {
-          return [(Number(p && p[0]) || 0) + dx, (Number(p && p[1]) || 0) + dy];
-        });
+        if (archUserLineIsConnector(ln)) {
+          archUserLineConnectorSyncEndpoints(ln);
+          ln.points = ln.points.map(function (pt) {
+            var o = archUserLinePointXY(pt);
+            return { x: o.x + dx, y: o.y + dy };
+          });
+          var p0 = archUserLinePointXY(ln.points[0]);
+          var pN = archUserLinePointXY(ln.points[ln.points.length - 1]);
+          ln.from = { kind: 'free', x: p0.x, y: p0.y };
+          ln.to = { kind: 'free', x: pN.x, y: pN.y };
+          if (ln.sourcesDividerLocal) delete ln.sourcesDividerLocal;
+        } else if (archUserLineIsFreehandLine(ln)) {
+          ln.points = ln.points.map(function (pt) {
+            return [(Number(pt && pt[0]) || 0) + dx, (Number(pt && pt[1]) || 0) + dy];
+          });
+        }
         archUserLinePersist();
         archUserLineRender();
         moved = true;
@@ -7721,6 +7876,7 @@
       e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (!userLines.drawMode) {
       if (lineHit && archGetActiveTool() === 'select') {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
         var lidPick = lineHit.getAttribute('data-user-line-id');
         userLines.selectedHandleIdx = null;
         userLines.selectedId = lidPick;
@@ -7732,7 +7888,9 @@
         archUserLineRender();
         archUserLineSyncPropsHud();
         archSelectionRefreshDom();
+        e.preventDefault();
         e.stopPropagation();
+        archConnectorBodyDragBegin('user', lidPick, e);
       }
       return;
     }
@@ -8328,6 +8486,7 @@
 
     archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archFlowHandlePointerDown, true);
+    archDrag.svg.addEventListener('pointerdown', archDiagramFlowPointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('click', archDiagramFlowClick, true);
