@@ -49,6 +49,17 @@
     return cfg('modalMountSelector', '#ksiaMobileBcSheetMount');
   }
 
+  /** postMessage `source` for iframe app bridge (Starbucks vs KSIA). */
+  function postMessageSource() {
+    var explicit = cfg('postMessageSource', '');
+    if (explicit) return String(explicit);
+    var frameId = iframeId();
+    if (/^starbucks/i.test(frameId)) return 'starbucks-mobile-lab-parent';
+    if (/^ksia/i.test(frameId)) return 'ksia-mobile-lab-parent';
+    if (/^etihad/i.test(frameId)) return 'etihad-mobile-lab-parent';
+    return 'ksia-mobile-lab-parent';
+  }
+
   function getFrame() {
     return document.getElementById(iframeId());
   }
@@ -193,7 +204,7 @@
       frame.contentWindow.postMessage(
         Object.assign(
           {
-            source: 'ksia-mobile-lab-parent',
+            source: postMessageSource(),
             bcEnabled: isBcMasterEnabled(),
             displayMode: getEffectiveDisplayModeKey(refreshToggles()),
           },

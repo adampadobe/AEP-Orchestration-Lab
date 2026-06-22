@@ -128,20 +128,20 @@ window.addEventListener('message', function (ev) {
 });
 
 /* Notify iframe when SDK injected; trigger mobile BC sync */
-if (window.envBar && typeof window.envBar.onChange === 'function') {
-  window.envBar.onChange(function (detail) {
-    if (detail && detail.type === 'tags-injected' && starbucksMobileFrame && starbucksMobileFrame.contentWindow) {
-      try {
-        starbucksMobileFrame.contentWindow.postMessage({ source: 'starbucks-mobile-lab-parent', type: 'sdk-injected' }, '*');
-      } catch (_) {
-        /* ignore */
-      }
-      if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
-        void window.MobileBcBoot.sync();
-      }
-    }
-  });
+function notifyStarbucksMobileIframeSdkInjected() {
+  if (!starbucksMobileFrame || !starbucksMobileFrame.contentWindow) return;
+  try {
+    starbucksMobileFrame.contentWindow.postMessage({ source: 'starbucks-mobile-lab-parent', type: 'sdk-injected' }, '*');
+  } catch (_) {
+    /* ignore */
+  }
+  if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
+    void window.MobileBcBoot.sync();
+  }
 }
+
+window.addEventListener('aep-demo-tags-injected', notifyStarbucksMobileIframeSdkInjected);
+window.addEventListener('aep-demo-env-configured', notifyStarbucksMobileIframeSdkInjected);
 
 (function initStarbucksMobileShell() {
   if (typeof MobileDemoConfigs === 'undefined' || typeof MobileDemoShell === 'undefined') return;

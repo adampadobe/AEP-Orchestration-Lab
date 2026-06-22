@@ -172,11 +172,23 @@
 
   postEvent('starbucks.mobile.page.view', { pageId: PAGE_ID || 'home' }, 'Starbucks mobile — ' + (PAGE_ID || 'home'));
 
+  function hideSdkHint() {
+    var hint = document.getElementById('sbMobileSdkHint');
+    if (hint) hint.hidden = true;
+  }
+
   window.addEventListener('message', function (ev) {
     if (!ev.data || ev.data.source !== 'starbucks-mobile-lab-parent') return;
     if (ev.data.type === 'sdk-injected') {
-      var hint = document.getElementById('sbMobileSdkHint');
-      if (hint) hint.hidden = true;
+      hideSdkHint();
+      return;
+    }
+    if (ev.data.type === 'bc-ready') {
+      hideSdkHint();
+      return;
+    }
+    if (ev.data.type === 'bc-display-mode' && ev.data.mode && ev.data.mode !== 'off') {
+      hideSdkHint();
     }
   });
 })();

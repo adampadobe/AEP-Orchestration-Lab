@@ -128,20 +128,20 @@ window.addEventListener('message', function (ev) {
 });
 
 /* Notify iframe when SDK injected; trigger mobile BC sync */
-if (window.envBar && typeof window.envBar.onChange === 'function') {
-  window.envBar.onChange(function (detail) {
-    if (detail && detail.type === 'tags-injected' && ksiaMobileFrame && ksiaMobileFrame.contentWindow) {
-      try {
-        ksiaMobileFrame.contentWindow.postMessage({ source: 'ksia-mobile-lab-parent', type: 'sdk-injected' }, '*');
-      } catch (_) {
-        /* ignore */
-      }
-      if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
-        void window.MobileBcBoot.sync();
-      }
-    }
-  });
+function notifyKsiaMobileIframeSdkInjected() {
+  if (!ksiaMobileFrame || !ksiaMobileFrame.contentWindow) return;
+  try {
+    ksiaMobileFrame.contentWindow.postMessage({ source: 'ksia-mobile-lab-parent', type: 'sdk-injected' }, '*');
+  } catch (_) {
+    /* ignore */
+  }
+  if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
+    void window.MobileBcBoot.sync();
+  }
 }
+
+window.addEventListener('aep-demo-tags-injected', notifyKsiaMobileIframeSdkInjected);
+window.addEventListener('aep-demo-env-configured', notifyKsiaMobileIframeSdkInjected);
 
 (function initKsiaMobileShell() {
   if (typeof MobileDemoConfigs === 'undefined' || typeof MobileDemoShell === 'undefined') return;

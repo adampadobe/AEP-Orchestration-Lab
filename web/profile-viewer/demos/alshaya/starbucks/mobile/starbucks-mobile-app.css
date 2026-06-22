@@ -129,6 +129,10 @@ body.sb-mobile-app {
   border: 1px dashed #ccc;
 }
 
+.sb-mobile-sdk-hint[hidden] {
+  display: none !important;
+}
+
 .sb-mobile-section-title {
   margin: 0 0 0.65rem;
   font-size: 0.95rem;
