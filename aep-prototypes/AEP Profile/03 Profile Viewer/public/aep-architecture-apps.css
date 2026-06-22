@@ -10,14 +10,21 @@
   --arch-int-state-body-lines: 7;
 }
 
+/* Main column height follows diagram + toolbars — not sidebar stretch (home.css flex defaults). */
+.arch-int-page .dashboard-shell {
+  align-items: flex-start;
+}
+
 .arch-int-page .dashboard-main.app-page {
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - 4rem);
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 /* Fullscreen presentation: <main> is the fullscreen element — browser hides sidebar & topbar (outside main) */
 .arch-int-page .dashboard-main.app-page.arch-main--presentation-fs {
+  flex: 1 1 auto;
   min-height: 100%;
   justify-content: stretch;
 }
@@ -85,7 +92,7 @@
 .arch-int-viewport {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 0 1 auto;
   min-height: min(56dvh, 780px);
   width: 100%;
   background: linear-gradient(180deg, #f4f6f9 0%, #eef1f6 100%);
