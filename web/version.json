@@ -1,14 +1,14 @@
 {
-  "gitSha": "8e2e24c2d3d7ea7c6d3324dbaf91c5a04d901fa1",
-  "gitShortSha": "8e2e24c2",
+  "gitSha": "d05772584b95eff35ce28d2a0796afcb592edc0a",
+  "gitShortSha": "d0577258",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version for tools bar align icons deploy",
+  "gitCommitSubject": "[apalmer] fix: logo inside platform tile selectable on click",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T14:10:08+01:00",
-  "deployedAt": "2026-06-22T13:10:35.733Z",
+  "gitCommitDate": "2026-06-22T14:30:02+01:00",
+  "deployedAt": "2026-06-22T13:30:24.340Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8e2e24c2d3d7ea7c6d3324dbaf91c5a04d901fa1"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d05772584b95eff35ce28d2a0796afcb592edc0a"
 }
