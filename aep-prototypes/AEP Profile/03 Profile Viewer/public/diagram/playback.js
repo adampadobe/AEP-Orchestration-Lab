@@ -383,9 +383,32 @@
 
     (ctx.flowElements || []).forEach(function (path) {
       var spec = activeIds[path.id];
-      if (!spec || isFlowHidden(path.id)) {
+      var hidden = isFlowHidden(path.id);
+      if (ctx.isEditMode) {
+        if (hidden) {
+          path.classList.remove('is-visible');
+          path.classList.remove('arch-flow--selected');
+          path.classList.remove('arch-flow--edit-dim');
+          path.removeAttribute('data-flow-kind');
+          path.style.stroke = '';
+          return;
+        }
+        path.classList.add('is-visible');
+        path.classList.toggle('arch-flow--edit-dim', !spec);
+        path.classList.toggle('arch-flow--selected', selectedFlowId === path.id);
+        if (spec) {
+          path.style.stroke = spec.stroke;
+          path.setAttribute('data-flow-kind', spec.kind || 'intra');
+        } else {
+          path.style.stroke = 'var(--dash-muted, #94a3b8)';
+          path.setAttribute('data-flow-kind', 'intra');
+        }
+        return;
+      }
+      if (!spec || hidden) {
         path.classList.remove('is-visible');
         path.classList.remove('arch-flow--selected');
+        path.classList.remove('arch-flow--edit-dim');
         path.removeAttribute('data-flow-kind');
         path.style.stroke = '';
         return;
@@ -393,6 +416,7 @@
       path.style.stroke = spec.stroke;
       path.setAttribute('data-flow-kind', spec.kind || 'intra');
       path.classList.add('is-visible');
+      path.classList.remove('arch-flow--edit-dim');
       path.classList.toggle('arch-flow--selected', selectedFlowId === path.id);
     });
 

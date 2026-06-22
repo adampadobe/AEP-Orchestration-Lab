@@ -328,13 +328,18 @@
     var prev = document.getElementById(archSelectedFlowId);
     if (prev) prev.classList.remove('arch-flow--selected');
     archSelectedFlowId = null;
+    archFlowSelectedHandleIdx = null;
+    archFlowFloatSetJunction(false);
+    archEditLineHandlesRefresh();
+    archFlowFloatUpdateVisibility();
   }
 
   function archFlowSelect(id) {
     archFlowClearSelection();
     var el = id && document.getElementById(id);
-    if (!el || !el.classList.contains('arch-flow')) return;
+    if (!el || !el.classList.contains('arch-flow') || archHiddenFlowsHas(id)) return;
     archSelectedFlowId = id;
+    archFlowSelectedHandleIdx = null;
     el.classList.add('arch-flow--selected');
     // Clear other selections so Delete unambiguously targets the flow.
     archCustomBoxSelectedId = null;
@@ -346,12 +351,18 @@
     archUserLineRender();
     archUserLineSyncPropsHud();
     archSelectionRefreshDom();
-    if (liveRegion) liveRegion.textContent = 'Flow line selected — Delete or Backspace removes it.';
+    archEditLineHandlesRefresh();
+    archFlowFloatUpdateVisibility();
+    if (liveRegion) {
+      liveRegion.textContent =
+        'Built-in flow selected — drag handles to bend, Corner tool to add bends, Reset to restore auto-route.';
+    }
   }
 
   function archFlowDeleteSelected() {
     if (!archSelectedFlowId) return;
     var id = archSelectedFlowId;
+    archFlowClearOverride(id);
     archHiddenFlowsAdd(id);
     archFlowClearSelection();
     var el = document.getElementById(id);
@@ -367,11 +378,18 @@
 
   function archDiagramFlowClick(e) {
     if (!archIsEditMode()) return;
+    if (archGetActiveTool() !== 'select') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     var t = e.target;
     if (!t || !t.classList || !t.classList.contains('arch-flow')) return;
+    if (archHiddenFlowsHas(t.id)) return;
     if (!t.classList.contains('is-visible')) return;
     e.stopPropagation();
+    if (archFlowFloatJunctionMode) {
+      archFlowSelect(t.id);
+      archFlowTryInsertBendAtClient(t.id, e.clientX, e.clientY);
+      return;
+    }
     archFlowSelect(t.id);
   }
 
@@ -393,6 +411,7 @@
       if (lid) {
         userLines.selectedId = lid;
         userLines.selectedHandleIdx = null;
+        archFlowClearSelection();
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         if (archSelection) archSelection.clear();
@@ -492,8 +511,11 @@
   function archToolsFloatSyncLineOffsetClass() {
     if (!archViewport) return;
     var lineBar = qs('#archLineFloatBar');
+    var flowBar = qs('#archFlowFloatBar');
     var lineVis = !!(lineBar && !lineBar.hidden && archIsEditMode());
+    var flowVis = !!(flowBar && !flowBar.hidden && archIsEditMode());
     archViewport.classList.toggle('arch-int-viewport--tools-float-line-offset', lineVis);
+    archViewport.classList.toggle('arch-int-viewport--flow-float-open', flowVis);
   }
 
   function archToolsFloatSyncPosition() {
@@ -598,6 +620,8 @@
           TE.highlightPickerSync();
           TE.editorSync();
         }
+        archFlowHandlesRefresh();
+        archFlowFloatUpdateVisibility();
       },
     };
   }
@@ -623,9 +647,32 @@
     });
     $all('.arch-flow').forEach(function (path) {
       var spec = activeIds[path.id];
-      if (!spec || archHiddenFlowsHas(path.id)) {
+      var hidden = archHiddenFlowsHas(path.id);
+      if (archIsEditMode()) {
+        if (hidden) {
+          path.classList.remove('is-visible');
+          path.classList.remove('arch-flow--selected');
+          path.classList.remove('arch-flow--edit-dim');
+          path.removeAttribute('data-flow-kind');
+          path.style.stroke = '';
+          return;
+        }
+        path.classList.add('is-visible');
+        path.classList.toggle('arch-flow--edit-dim', !spec);
+        path.classList.toggle('arch-flow--selected', archSelectedFlowId === path.id);
+        if (spec) {
+          path.style.stroke = spec.stroke;
+          path.setAttribute('data-flow-kind', spec.kind || 'intra');
+        } else {
+          path.style.stroke = 'var(--dash-muted, #94a3b8)';
+          path.setAttribute('data-flow-kind', 'intra');
+        }
+        return;
+      }
+      if (!spec || hidden) {
         path.classList.remove('is-visible');
         path.classList.remove('arch-flow--selected');
+        path.classList.remove('arch-flow--edit-dim');
         path.removeAttribute('data-flow-kind');
         path.style.stroke = '';
         return;
@@ -633,8 +680,13 @@
       path.style.stroke = spec.stroke;
       path.setAttribute('data-flow-kind', spec.kind || 'intra');
       path.classList.add('is-visible');
+      path.classList.remove('arch-flow--edit-dim');
       path.classList.toggle('arch-flow--selected', archSelectedFlowId === path.id);
     });
+    if (archIsEditMode()) {
+      archFlowHandlesRefresh();
+      archFlowFloatUpdateVisibility();
+    }
     var statesLen = TE ? TE.getStates().length : 1;
     if (hudTitle) hudTitle.textContent = st.label;
     if (hudMeta) hudMeta.textContent = 'Slide ' + (idx + 1) + ' / ' + statesLen;
@@ -723,6 +775,7 @@
     archStateHighlightOverridesLoad();
     archHiddenFlowsLoad();
     archHiddenNodesLoad();
+    archFlowOverridesLoad();
     if (TE) TE.highlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
     if (archHighlightResetBtn) {
@@ -816,9 +869,13 @@
       archSyncPlaybackNav();
       archSelectionPanelSync();
       archLineFloatUpdateVisibility();
+      archFlowFloatUpdateVisibility();
       /** Re-sync connector handles: they only exist in edit mode; without a render they stay in the DOM when edit is turned off. */
       archUserLineRender();
-      if (!on) archEditorClearNodeAndBoxSelection();
+      if (!on) {
+        archEditorClearNodeAndBoxSelection();
+        archFlowClearSelection();
+      }
       archEditModeWasOn = on;
     }
 
@@ -1320,6 +1377,7 @@
   }
 
   function archFlowSet(id, d) {
+    if (id && archFlowOverrides && archFlowOverrides[id]) return;
     var el = qs('#' + id);
     if (el) el.setAttribute('d', d);
   }
@@ -1764,6 +1822,7 @@
     if (rt && paid) archFlowSet('flow-cdp-paid', egressH(rt, paid));
     if (cja && jrpt) archFlowSet('flow-cja-jrpt', egressH(cja, jrpt));
     if (mix && mrpt) archFlowSet('flow-mix-mrpt', egressH(mix, mrpt));
+    archFlowApplyOverrides();
   }
 
   function archDragApply() {
@@ -1899,8 +1958,20 @@
   var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
   /** Base flow lines (the animated dashed connectors in #layer-flows) hidden per sandbox/proposal. */
   var LS_HIDDEN_FLOWS = 'aepArchHiddenFlows';
+  var LS_FLOW_OVERRIDES = 'aepArchFlowOverrides';
   var archHiddenFlows = {};
   var archSelectedFlowId = null;
+  /** Manual path overrides for built-in `.arch-flow` connectors (skip auto-reroute when set). */
+  var archFlowOverrides = {};
+  var archFlowSelectedHandleIdx = null;
+  var archFlowEditDrag = {
+    active: false,
+    flowId: '',
+    handleIndex: -1,
+    pointerId: null,
+    el: null,
+  };
+  var archFlowFloatJunctionMode = false;
 
   function archHiddenFlowsLoad() {
     try {
@@ -1914,6 +1985,318 @@
   }
   function archHiddenFlowsHas(id) { return !!(id && archHiddenFlows[id]); }
   function archHiddenFlowsAdd(id) { if (id) { archHiddenFlows[id] = 1; archHiddenFlowsPersist(); } }
+
+  function archFlowOverridesLoad() {
+    try {
+      var raw = localStorage.getItem(LS_FLOW_OVERRIDES);
+      var p = raw ? JSON.parse(raw) : null;
+      archFlowOverrides = p && typeof p === 'object' ? p : {};
+    } catch (e) {
+      archFlowOverrides = {};
+    }
+  }
+
+  function archFlowOverridesPersist() {
+    try {
+      localStorage.setItem(LS_FLOW_OVERRIDES, JSON.stringify(archFlowOverrides));
+    } catch (e) {}
+  }
+
+  function archFlowHasOverride(id) {
+    return !!(id && archFlowOverrides && archFlowOverrides[id]);
+  }
+
+  function archFlowParseD(d) {
+    if (!d || typeof d !== 'string') return [];
+    var pts = [];
+    var parts = d.trim().split(/\s+/);
+    var i = 0;
+    while (i < parts.length) {
+      var cmd = parts[i];
+      if (cmd === 'M' || cmd === 'L') {
+        var x = parseFloat(parts[i + 1], 10);
+        var y = parseFloat(parts[i + 2], 10);
+        if (isFinite(x) && isFinite(y)) pts.push({ x: x, y: y });
+        i += 3;
+      } else if (cmd === 'Z' || cmd === 'z') {
+        i += 1;
+      } else {
+        var x2 = parseFloat(cmd, 10);
+        var y2 = parseFloat(parts[i + 1], 10);
+        if (isFinite(x2) && isFinite(y2)) {
+          pts.push({ x: x2, y: y2 });
+          i += 2;
+        } else {
+          i += 1;
+        }
+      }
+    }
+    return pts;
+  }
+
+  function archFlowPointsToD(pts) {
+    if (!pts || !pts.length) return '';
+    var d = 'M ' + pts[0].x + ' ' + pts[0].y;
+    for (var pi = 1; pi < pts.length; pi++) {
+      d += ' L ' + pts[pi].x + ' ' + pts[pi].y;
+    }
+    return d;
+  }
+
+  function archFlowGetPoints(flowId) {
+    var o = archFlowOverrides[flowId];
+    if (o && Array.isArray(o.points) && o.points.length >= 2) {
+      return o.points.map(function (p) {
+        return { x: Number(p.x) || 0, y: Number(p.y) || 0 };
+      });
+    }
+    if (o && typeof o.d === 'string' && o.d) return archFlowParseD(o.d);
+    var el = document.getElementById(flowId);
+    return el ? archFlowParseD(el.getAttribute('d') || '') : [];
+  }
+
+  function archFlowApplyOverrideToDom(flowId) {
+    if (!flowId || archHiddenFlowsHas(flowId)) return;
+    var el = document.getElementById(flowId);
+    if (!el) return;
+    var pts = archFlowGetPoints(flowId);
+    if (pts.length >= 2) el.setAttribute('d', archFlowPointsToD(pts));
+  }
+
+  function archFlowApplyOverrides() {
+    Object.keys(archFlowOverrides || {}).forEach(function (fid) {
+      archFlowApplyOverrideToDom(fid);
+    });
+  }
+
+  function archFlowSaveOverridePoints(flowId, pts) {
+    if (!flowId || !pts || pts.length < 2) return;
+    archFlowOverrides[flowId] = {
+      points: pts.map(function (p) {
+        return { x: Number(p.x) || 0, y: Number(p.y) || 0 };
+      }),
+    };
+    archFlowApplyOverrideToDom(flowId);
+    archFlowOverridesPersist();
+  }
+
+  function archFlowClearOverride(flowId) {
+    if (!flowId || !archFlowOverrides[flowId]) return;
+    delete archFlowOverrides[flowId];
+    archFlowOverridesPersist();
+  }
+
+  function archFlowResetSelectedToAuto() {
+    if (!archSelectedFlowId) return;
+    var id = archSelectedFlowId;
+    archFlowClearOverride(id);
+    archFlowSelectedHandleIdx = null;
+    archDragRebuildFlows();
+    archFlowHandlesRefresh();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Flow reset to auto-route.';
+  }
+
+  function archFlowInsertBendNear(flowId, px, py) {
+    var pts = archFlowGetPoints(flowId);
+    if (pts.length < 2) return -1;
+    var bestI = -1;
+    var bestD = USER_LINE_INSERT_MAX_DIST + 1;
+    var bestProj = null;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = pts[i];
+      var b = pts[i + 1];
+      var proj = archUserLineClosestPointOnSeg(px, py, a.x, a.y, b.x, b.y);
+      if (proj.dist < bestD) {
+        bestD = proj.dist;
+        bestI = i;
+        bestProj = proj;
+      }
+    }
+    if (bestI < 0 || !bestProj || bestD > USER_LINE_INSERT_MAX_DIST) return -1;
+    var aIns = pts[bestI];
+    var bIns = pts[bestI + 1];
+    var dFromA = Math.hypot(bestProj.x - aIns.x, bestProj.y - aIns.y);
+    var dFromB = Math.hypot(bestProj.x - bIns.x, bestProj.y - bIns.y);
+    if (dFromA < USER_LINE_INSERT_MIN_FROM_VERTEX || dFromB < USER_LINE_INSERT_MIN_FROM_VERTEX) return -1;
+    pts.splice(bestI + 1, 0, { x: bestProj.x, y: bestProj.y });
+    archFlowSaveOverridePoints(flowId, pts);
+    return bestI + 1;
+  }
+
+  function archFlowTryInsertBendAtClient(flowId, clientX, clientY) {
+    if (!flowId || !archDrag.svg) return false;
+    var p = svgClientToSvg(archDrag.svg, clientX, clientY);
+    var ni = archFlowInsertBendNear(flowId, p.x, p.y);
+    if (ni < 0) {
+      archFlowHandlesRefresh();
+      return false;
+    }
+    archFlowSelectedHandleIdx = ni;
+    archFlowHandlesRefresh();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) {
+      liveRegion.textContent = 'Corner point added — drag to bend (hold Shift for 45° snaps).';
+    }
+    return true;
+  }
+
+  function archFlowHandlesRefresh() {
+    var hg = qs('#layer-flow-handles');
+    if (!hg) return;
+    while (hg.firstChild) hg.removeChild(hg.firstChild);
+    if (!archIsEditMode() || !archSelectedFlowId || archHiddenFlowsHas(archSelectedFlowId)) return;
+    var pts = archFlowGetPoints(archSelectedFlowId);
+    if (pts.length < 2) return;
+    var fid = archSelectedFlowId;
+    var n = pts.length;
+    if (archFlowSelectedHandleIdx != null && (archFlowSelectedHandleIdx < 0 || archFlowSelectedHandleIdx >= n)) {
+      archFlowSelectedHandleIdx = null;
+    }
+    var selIdx = archFlowSelectedHandleIdx;
+    for (var hi = 0; hi < n; hi++) {
+      var role = hi === 0 ? 'from' : hi === n - 1 ? 'to' : 'bend';
+      var c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('cx', String(pts[hi].x));
+      c.setAttribute('cy', String(pts[hi].y));
+      c.setAttribute('r', '6');
+      c.setAttribute(
+        'class',
+        'arch-flow-handle arch-user-line-handle arch-user-line-handle--' +
+          role +
+          (selIdx != null && selIdx === hi ? ' is-active' : '')
+      );
+      c.setAttribute('data-arch-flow-handle', role);
+      c.setAttribute('data-flow-handle-index', String(hi));
+      c.setAttribute('data-flow-id', fid);
+      c.setAttribute('pointer-events', 'all');
+      hg.appendChild(c);
+    }
+  }
+
+  function archFlowHandlePointerMove(e) {
+    if (!archFlowEditDrag.active || !archDrag.svg) return;
+    var flowId = archFlowEditDrag.flowId;
+    if (!flowId) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var idx = archFlowEditDrag.handleIndex;
+    var pts = archFlowGetPoints(flowId);
+    if (!pts || pts.length < 2 || idx < 0 || idx >= pts.length) return;
+    if (idx === 0 || idx === pts.length - 1) {
+      pts[idx] = { x: p.x, y: p.y };
+    } else {
+      var prev = pts[idx - 1];
+      var next = pts[idx + 1];
+      var useNext = !!e.altKey;
+      var origin = useNext ? next : prev;
+      var disableSnap = !e.shiftKey;
+      var nb = archSnapRadialFromOrigin(origin.x, origin.y, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
+      pts[idx] = { x: nb.x, y: nb.y };
+    }
+    archFlowSaveOverridePoints(flowId, pts);
+    archFlowHandlesRefresh();
+  }
+
+  function archFlowHandlePointerUp() {
+    if (!archFlowEditDrag.active) return;
+    var doneId = archFlowEditDrag.flowId;
+    archFlowEditDrag.active = false;
+    window.removeEventListener('pointermove', archFlowHandlePointerMove, true);
+    window.removeEventListener('pointerup', archFlowHandlePointerUp, true);
+    window.removeEventListener('pointercancel', archFlowHandlePointerUp, true);
+    var el = archFlowEditDrag.el;
+    var pid = archFlowEditDrag.pointerId;
+    archFlowEditDrag.el = null;
+    archFlowEditDrag.pointerId = null;
+    archFlowEditDrag.handleIndex = -1;
+    archFlowEditDrag.flowId = '';
+    if (el && pid != null && el.releasePointerCapture) {
+      try {
+        el.releasePointerCapture(pid);
+      } catch (err) {}
+    }
+    if (doneId) {
+      archFlowOverridesPersist();
+      archUndoMaybePushSnapshot();
+      archFlowHandlesRefresh();
+    }
+  }
+
+  function archFlowHandlePointerDown(e) {
+    if (!archIsEditMode()) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('arch-flow-handle')) return;
+    var hix = t.getAttribute('data-flow-handle-index');
+    var fid = t.getAttribute('data-flow-id');
+    if (hix == null || !fid) return;
+    var hi = parseInt(hix, 10);
+    if (isNaN(hi)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    archFlowSelect(fid);
+    archFlowSelectedHandleIdx = hi;
+    archFlowEditDrag.active = true;
+    archFlowEditDrag.handleIndex = hi;
+    archFlowEditDrag.flowId = fid;
+    archFlowEditDrag.pointerId = e.pointerId;
+    archFlowEditDrag.el = t;
+    if (t.setPointerCapture) {
+      try {
+        t.setPointerCapture(e.pointerId);
+      } catch (err2) {}
+    }
+    window.addEventListener('pointermove', archFlowHandlePointerMove, true);
+    window.addEventListener('pointerup', archFlowHandlePointerUp, true);
+    window.addEventListener('pointercancel', archFlowHandlePointerUp, true);
+  }
+
+  function archFlowFloatUpdateVisibility() {
+    var bar = qs('#archFlowFloatBar');
+    if (!bar) return;
+    var show = archIsEditMode() && !!archSelectedFlowId && archGetActiveTool() === 'select';
+    bar.hidden = !show;
+    var resetBtn = qs('#archFlowFloatReset');
+    if (resetBtn) resetBtn.disabled = !show || !archFlowHasOverride(archSelectedFlowId);
+    var juncBtn = qs('#archFlowFloatJunction');
+    if (juncBtn) juncBtn.classList.toggle('is-active', !!archFlowFloatJunctionMode);
+    archToolsFloatSyncLineOffsetClass();
+  }
+
+  function archFlowFloatSetJunction(on) {
+    archFlowFloatJunctionMode = !!on;
+    archFlowFloatUpdateVisibility();
+  }
+
+  function archFlowFloatInit() {
+    var bar = qs('#archFlowFloatBar');
+    if (!bar || bar.getAttribute('data-arch-flow-float-init') === '1') return;
+    bar.setAttribute('data-arch-flow-float-init', '1');
+    bar.addEventListener('click', function (e) {
+      var jbtn = e.target.closest && e.target.closest('#archFlowFloatJunction');
+      if (jbtn) {
+        archFlowFloatSetJunction(!archFlowFloatJunctionMode);
+        return;
+      }
+      var rbtn = e.target.closest && e.target.closest('#archFlowFloatReset');
+      if (rbtn) {
+        archFlowResetSelectedToAuto();
+        return;
+      }
+      var dbtn = e.target.closest && e.target.closest('#archFlowFloatDelete');
+      if (dbtn) {
+        archFlowDeleteSelected();
+        return;
+      }
+      var cbtn = e.target.closest && e.target.closest('#archFlowFloatClose');
+      if (cbtn) {
+        archFlowClearSelection();
+        archFlowFloatSetJunction(false);
+        archFlowFloatUpdateVisibility();
+      }
+    });
+  }
 
   /** Base nodes (arch-draggable groups with id node-<key>) hidden per sandbox/proposal. */
   var LS_HIDDEN_NODES = 'aepArchHiddenNodes';
@@ -2346,8 +2729,8 @@
   function archLineFloatUpdateVisibility() {
     var bar = qs('#archLineFloatBar');
     if (!bar) return;
-    /** Floating bar when Edit mode + Lines tool (sources rail) + line draw; visibility uses #archLineFloatBar[hidden] + CSS. */
-    var show = archIsEditMode() && userLines.drawMode;
+    /** Floating bar when Edit mode + Lines tool, or when a user connector is selected. */
+    var show = archIsEditMode() && (userLines.drawMode || !!userLines.selectedId);
     bar.hidden = !show;
     var del = qs('#archLineFloatDelete');
     if (del) del.disabled = !show || !userLines.selectedId;
@@ -6409,6 +6792,7 @@
     box.x = nx;
     box.y = ny;
     archCustomBoxesRender();
+    archDragRebuildFlows();
     archUserLineRender();
   }
 
@@ -6489,6 +6873,7 @@
     if (!archDrag.enabled) {
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
+      archFlowClearSelection();
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = labelHit ? rawId : null;
       archUserLineRender();
@@ -6498,23 +6883,11 @@
       return;
     }
 
-    if (labelHit) {
-      userLines.selectedId = null;
-      userLines.selectedHandleIdx = null;
-      archCustomBoxSelectedId = rawId;
-      archCustomBoxLabelActiveId = rawId;
-      archUserLineRender();
-      archUserLineSyncPropsHud();
-      archCustomBoxesRender();
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
     archCustomBoxSelectedId = rawId;
-    archCustomBoxLabelActiveId = null;
+    archCustomBoxLabelActiveId = labelHit ? rawId : null;
     archUserLineRender();
     archUserLineSyncPropsHud();
     e.preventDefault();
@@ -6648,7 +7021,7 @@
 
   function archMasterSerialize() {
     var payload = {
-      version: 10,
+      version: 11,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
@@ -6659,6 +7032,7 @@
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
       hiddenFlows: JSON.parse(JSON.stringify(archHiddenFlows || {})),
       hiddenNodes: JSON.parse(JSON.stringify(archHiddenNodes || {})),
+      flowOverrides: JSON.parse(JSON.stringify(archFlowOverrides || {})),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
       payload.scene = window.AEPDiagram.model.legacyToScene(payload);
@@ -6718,8 +7092,14 @@
     } else {
       archHiddenNodes = {};
     }
+    if (data.flowOverrides && typeof data.flowOverrides === 'object') {
+      archFlowOverrides = JSON.parse(JSON.stringify(data.flowOverrides));
+    } else {
+      archFlowOverrides = {};
+    }
     archHiddenFlowsPersist();
     archHiddenNodesPersist();
+    archFlowOverridesPersist();
     archHiddenNodesApply();
   }
 
@@ -6736,6 +7116,11 @@
     } catch (e) {
       return false;
     }
+  }
+
+  function archEditLineHandlesRefresh() {
+    archUserLineHandlesRefresh();
+    archFlowHandlesRefresh();
   }
 
   function archUserLineHandlesRefresh() {
@@ -6937,7 +7322,7 @@
   function archUserLineSyncPropsHud() {
     var sel = archUserLineGetSelected();
     archLineFloatUpdateVisibility();
-    if (sel) {
+    if (sel && userLines.drawMode) {
       archEditorSetPanel('sources');
       archLineFloatSyncFromLine(sel);
     }
@@ -7232,6 +7617,18 @@
       }
     }
 
+    if (archSelectedFlowId) {
+      var fpts = archFlowGetPoints(archSelectedFlowId);
+      if (fpts.length >= 2) {
+        fpts = fpts.map(function (p) {
+          return { x: (p.x || 0) + dx, y: (p.y || 0) + dy };
+        });
+        archFlowSaveOverridePoints(archSelectedFlowId, fpts);
+        archFlowHandlesRefresh();
+        moved = true;
+      }
+    }
+
     if (archSelection && archSelection.count() > 0) {
       var ids = [];
       try { ids = archSelection.toArray ? archSelection.toArray() : []; } catch (e) {}
@@ -7323,15 +7720,18 @@
       e.target.closest &&
       e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (!userLines.drawMode) {
-      if (lineHit) {
+      if (lineHit && archGetActiveTool() === 'select') {
         var lidPick = lineHit.getAttribute('data-user-line-id');
         userLines.selectedHandleIdx = null;
         userLines.selectedId = lidPick;
+        archFlowClearSelection();
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
+        if (archSelection) archSelection.clear();
         archCustomBoxesRender();
         archUserLineRender();
         archUserLineSyncPropsHud();
+        archSelectionRefreshDom();
         e.stopPropagation();
       }
       return;
@@ -7424,6 +7824,23 @@
     )
       return;
     if (archSelectedFlowId) {
+      if (
+        archFlowSelectedHandleIdx != null &&
+        archFlowSelectedHandleIdx > 0
+      ) {
+        var fpts = archFlowGetPoints(archSelectedFlowId);
+        var fk = archFlowSelectedHandleIdx;
+        if (fpts.length > 2 && fk > 0 && fk < fpts.length - 1) {
+          e.preventDefault();
+          fpts.splice(fk, 1);
+          archFlowSaveOverridePoints(archSelectedFlowId, fpts);
+          archFlowSelectedHandleIdx = null;
+          archFlowHandlesRefresh();
+          archUndoMaybePushSnapshot();
+          if (liveRegion) liveRegion.textContent = 'Removed bend point from built-in flow.';
+          return;
+        }
+      }
       e.preventDefault();
       archFlowDeleteSelected();
       return;
@@ -7515,6 +7932,9 @@
       localStorage.removeItem('aepDiagramUndoStack');
       localStorage.removeItem('aepDiagramSelection');
       localStorage.removeItem(LS_LINE_TOOLBAR_DEFAULTS);
+      localStorage.removeItem(LS_HIDDEN_FLOWS);
+      localStorage.removeItem(LS_HIDDEN_NODES);
+      localStorage.removeItem(LS_FLOW_OVERRIDES);
     } catch (e) {}
     window.location.reload();
   }
@@ -7768,7 +8188,9 @@
     archCustomBoxesPersist();
 
     archLineFloatInit();
+    archFlowFloatInit();
     archLineFloatUpdateVisibility();
+    archFlowFloatUpdateVisibility();
 
     var reset = qs('#archDragReset');
     var masterSave = qs('#archMasterSave');
@@ -7905,6 +8327,7 @@
     }
 
     archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
+    archDrag.svg.addEventListener('pointerdown', archFlowHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('click', archDiagramFlowClick, true);
@@ -8128,6 +8551,7 @@
     'aepArchMenuGroupLabelOverrides',
     'aepArchHiddenFlows',
     'aepArchHiddenNodes',
+    'aepArchFlowOverrides',
     'aepArchPlayDelayMs',
   ];
   var ARCH_PROPOSAL_LS_ACTIVE = 'aepArchActiveProposalId';
