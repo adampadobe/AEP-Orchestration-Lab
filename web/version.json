@@ -1,14 +1,14 @@
 {
-  "gitSha": "f1c948e8d643b9806c307f13ca1134494f73c06c",
-  "gitShortSha": "f1c948e8",
+  "gitSha": "f9e951ce6b5a291999e3b836156a55d8efc85ee2",
+  "gitShortSha": "f9e951ce",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: edit selected line arrow style and anchor toolbars under diagram",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json after hosting deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T09:03:09+01:00",
-  "deployedAt": "2026-06-22T08:03:25.097Z",
+  "gitCommitDate": "2026-06-22T09:09:26+01:00",
+  "deployedAt": "2026-06-22T08:09:52.903Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f1c948e8d643b9806c307f13ca1134494f73c06c"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f9e951ce6b5a291999e3b836156a55d8efc85ee2"
 }
