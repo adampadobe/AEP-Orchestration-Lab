@@ -27,6 +27,8 @@
     "prepare:llm-demo-visibility-overview": "node scripts/prepare-llm-demo-visibility-overview.mjs",
     "prepare:llm-demo-prompt-research": "node scripts/prepare-llm-demo-prompt-research.mjs",
     "prepare:llm-demo-market-comparison": "node scripts/prepare-llm-demo-market-comparison.mjs",
+    "prepare:llm-demo-prompts-management": "node scripts/prepare-llm-demo-prompts-management.mjs",
+    "prepare:llm-demo-intent-coverage-overlay": "node scripts/prepare-llm-demo-intent-coverage-overlay.mjs",
     "sync:llm-demo-snapshot-scripts": "node scripts/sync-sky-llm-snapshot-scripts.mjs",
     "verify:experimentation-accelerator": "node scripts/verify-experimentation-accelerator-snapshot.mjs",
     "verify:context7-coverage": "node scripts/verify-context7-coverage.mjs",

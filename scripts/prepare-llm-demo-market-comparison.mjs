@@ -10,7 +10,7 @@ prepareWalnutPage({
   srcAssetsDir,
   filesPathPrefix: 'Adobe Brand Visibility - Jun 08, 2026 MC_files/',
   findHtml: {
-    preferredName: 'assets(18).html',
-    markers: ['Market Comparison', 'Intent coverage', 'Google Search Console'],
+    preferredName: 'assets(17).html',
+    markers: ['Historical Comparison', 'Market Comparison'],
   },
 });

@@ -2343,7 +2343,8 @@
       getPageKind() === 'referral-traffic' ||
       getPageKind() === 'visibility-overview' ||
       getPageKind() === 'prompt-research' ||
-      getPageKind() === 'market-comparison'
+      getPageKind() === 'market-comparison' ||
+      /prompts-management\.html/i.test(location.pathname || '')
     ) {
       return;
     }

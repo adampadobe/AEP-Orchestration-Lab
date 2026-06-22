@@ -167,15 +167,124 @@
 
   function findPromptsRoot() {
     var heads = Array.from(document.querySelectorAll('span[data-rsp-slot="text"], h1, h2')).filter(function (n) {
-      return (n.textContent || '').trim() === 'Prompts Management' && n.childElementCount === 0;
+      var t = (n.textContent || '').trim();
+      return (t === 'Prompts Management' || t === 'Prompt Suggestions') && n.childElementCount === 0;
     });
     if (!heads.length) return document.getElementById('root');
     var root = heads[0].parentElement;
     for (var i = 0; i < 16 && root; i++) {
       if (root.querySelector('span[title]') && root.textContent.indexOf('Active Prompts') >= 0) return root;
+      if (root.querySelector('[role="tablist"]') && root.textContent.indexOf('Prompt Suggestions') >= 0) return root;
       root = root.parentElement;
     }
     return document.getElementById('root');
+  }
+
+  function snapshotBuild() {
+    return (global.LLM_DEMO_SNAPSHOT_BUILD || '20260738');
+  }
+
+  function activatePromptSuggestionsTab() {
+    if (!isPromptsPage()) return;
+    var selected = document.querySelector(
+      '[data-key="prompt-suggestions-v2"][aria-selected="true"], [id*="tab-prompt-suggestions-v2"][aria-selected="true"]',
+    );
+    if (selected) return;
+    var tab =
+      document.querySelector('[data-key="prompt-suggestions-v2"]') ||
+      document.querySelector('[id*="tab-prompt-suggestions-v2"]');
+    if (tab) {
+      tab.click();
+      return;
+    }
+    document.querySelectorAll('[role="tab"]').forEach(function (el) {
+      if ((el.textContent || '').indexOf('Prompt Suggestions') >= 0) el.click();
+    });
+  }
+
+  function closeIntentCoverageOverlay() {
+    var overlay = document.getElementById('llm-intent-coverage-overlay');
+    if (overlay) overlay.remove();
+    document.documentElement.classList.remove('llm-intent-coverage-host');
+  }
+
+  function openIntentCoverageOverlay() {
+    if (document.getElementById('llm-intent-coverage-overlay')) return;
+    document.documentElement.classList.add('llm-intent-coverage-host');
+    var build = snapshotBuild();
+    var overlay = document.createElement('div');
+    overlay.id = 'llm-intent-coverage-overlay';
+    overlay.className = 'llm-intent-coverage-overlay';
+    overlay.innerHTML =
+      '<div class="llm-intent-coverage-backdrop" aria-hidden="true"></div>' +
+      '<div class="llm-intent-coverage-panel" role="dialog" aria-modal="true" aria-label="Intent Coverage">' +
+      '<iframe class="llm-intent-coverage-frame" title="Intent Coverage" src="./intent-coverage-overlay.html?v=' +
+      build +
+      '&llmDemo=1"></iframe>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('.llm-intent-coverage-backdrop').addEventListener('click', closeIntentCoverageOverlay);
+    global.addEventListener(
+      'keydown',
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          closeIntentCoverageOverlay();
+          global.removeEventListener('keydown', onKey);
+        }
+      },
+      { once: true },
+    );
+  }
+
+  function findIntentCoverageBlock() {
+    var labels = Array.from(document.querySelectorAll('[data-rsp-slot="text"]')).filter(function (el) {
+      return (el.textContent || '').trim() === 'Intent coverage' && el.childElementCount === 0;
+    });
+    if (!labels.length) return null;
+    var label = labels[0];
+    for (var up = 0; label && up < 14; up++) {
+      if ((label.textContent || '').indexOf('View details') >= 0) return label;
+      label = label.parentElement;
+    }
+    return labels[0].closest('[class*="macro-static"]') || labels[0].parentElement;
+  }
+
+  function wireIntentCoveragePopup() {
+    if (!isPromptsPage()) return;
+    var block = findIntentCoverageBlock();
+    if (!block) return;
+    block.querySelectorAll('button').forEach(function (btn) {
+      if (btn.dataset.llmIntentWired === '1') return;
+      var txt = (btn.textContent || '').trim();
+      if (txt !== 'View details') return;
+      btn.dataset.llmIntentWired = '1';
+      btn.addEventListener(
+        'click',
+        function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openIntentCoverageOverlay();
+        },
+        true,
+      );
+    });
+    var card = block.closest('[style*="cursor:pointer"]');
+    if (card && card.dataset.llmIntentWired !== '1') {
+      card.dataset.llmIntentWired = '1';
+      card.setAttribute('data-llm-intent-trigger', '1');
+      card.addEventListener(
+        'click',
+        function (e) {
+          if (e.target.closest('button[aria-label="Information"]')) return;
+          if (e.target.closest('button') && (e.target.closest('button').textContent || '').trim() !== 'View details') {
+            return;
+          }
+          if (e.target.closest('button[data-llm-intent-wired="1"]')) return;
+          openIntentCoverageOverlay();
+        },
+        true,
+      );
+    }
   }
 
   function setPromptNodeText(el, text) {
@@ -312,6 +421,8 @@
 
   function init() {
     if (!isPromptsPage()) return;
+    activatePromptSuggestionsTab();
+    wireIntentCoveragePopup();
     patch();
     ensureObserver();
     schedulePatch();
@@ -322,6 +433,10 @@
     schedulePatch: schedulePatch,
     isPromptsPage: isPromptsPage,
     applyPromptText: applyPromptText,
+    activatePromptSuggestionsTab: activatePromptSuggestionsTab,
+    wireIntentCoveragePopup: wireIntentCoveragePopup,
+    openIntentCoverageOverlay: openIntentCoverageOverlay,
+    closeIntentCoverageOverlay: closeIntentCoverageOverlay,
   };
 
   if (document.readyState === 'loading') {
@@ -330,7 +445,11 @@
     init();
   }
   [200, 500, 1200, 2500, 4500].forEach(function (ms) {
-    global.setTimeout(init, ms);
+    global.setTimeout(function () {
+      activatePromptSuggestionsTab();
+      wireIntentCoveragePopup();
+      init();
+    }, ms);
   });
 
   global.addEventListener('storage', function (e) {

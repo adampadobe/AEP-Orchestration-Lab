@@ -1,0 +1,31 @@
+/** Crop Intent Coverage overlay page to the modal panel only. */
+html.llm-intent-overlay-host,
+html.llm-intent-overlay-host body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: rgb(255, 255, 255);
+}
+
+html.llm-intent-overlay-host #root,
+html.llm-intent-overlay-host body {
+  min-height: 100%;
+}
+
+html.llm-intent-overlay-host .llm-intent-overlay-panel {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+  max-width: 920px;
+  box-sizing: border-box;
+}
+
+html.llm-intent-overlay-host body > *:not(.llm-intent-overlay-panel):not(script):not(link):not(style):not(noscript) {
+  display: none !important;
+}
+
+html.llm-intent-overlay-host .llm-intent-overlay-panel [aria-label='close'],
+html.llm-intent-overlay-host .llm-intent-overlay-panel button[aria-label='close'] {
+  pointer-events: none;
+  opacity: 0.35;
+}

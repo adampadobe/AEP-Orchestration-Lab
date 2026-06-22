@@ -22,6 +22,18 @@ const WALNUT_PAGE_SCRIPTS = [
   '<script src="./llm-demo-snapshot-patch.js' + v + '"></script>',
 ];
 
+const PROMPTS_MANAGEMENT_SCRIPTS = WALNUT_PAGE_SCRIPTS.concat([
+  '<link rel="stylesheet" href="./llm-demo-snapshot-intent-coverage.css' + v + '">',
+  '<script src="./llm-demo-snapshot-prompts-management.js' + v + '"></script>',
+]);
+
+const INTENT_OVERLAY_SCRIPTS = [
+  '<link rel="stylesheet" href="./llm-demo-snapshot-intent-coverage-overlay.css' + v + '">',
+  '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
+  '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
+  '<script src="./llm-demo-snapshot-intent-coverage-overlay.js' + v + '"></script>',
+];
+
 const PAGE_SCRIPTS = {
   'overview.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
@@ -50,6 +62,8 @@ const PAGE_SCRIPTS = {
   'visibility-overview.html': WALNUT_PAGE_SCRIPTS,
   'prompt-research.html': WALNUT_PAGE_SCRIPTS,
   'market-comparison.html': WALNUT_PAGE_SCRIPTS,
+  'prompts-management.html': PROMPTS_MANAGEMENT_SCRIPTS,
+  'intent-coverage-overlay.html': INTENT_OVERLAY_SCRIPTS,
   'opportunities.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
     '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
@@ -94,7 +108,9 @@ for (const file of fs.readdirSync(snapDir).filter((f) => f.endsWith('.html'))) {
   } else if (
     (file === 'visibility-overview.html' ||
       file === 'prompt-research.html' ||
-      file === 'market-comparison.html') &&
+      file === 'market-comparison.html' ||
+      file === 'prompts-management.html' ||
+      file === 'intent-coverage-overlay.html') &&
     blockPatchEndRe.test(html)
   ) {
     html = html.replace(blockPatchEndRe, injection);
