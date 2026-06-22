@@ -78,7 +78,7 @@
   min-height: 0;
 }
 
-.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-svg-wrap svg {
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-canvas-wrap svg {
   width: 100%;
   height: auto;
   max-height: 100%;
@@ -764,12 +764,101 @@ html[data-aep-theme='dark'] .arch-proposals-bar {
   padding: 0 0.5rem 0.45rem;
 }
 
-.arch-int-svg-wrap svg {
-  display: block;
+.arch-int-canvas-wrap {
   flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  transform-origin: center top;
+  will-change: transform;
+}
+
+.arch-int-canvas-wrap svg {
+  display: block;
   width: 100%;
   height: auto;
   max-width: 100%;
+}
+
+/* PowerPoint-style zoom status bar — bottom-right of diagram viewport */
+.arch-canvas-zoom-bar {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.45rem;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.28rem;
+  border-radius: 6px;
+  background: var(--dash-surface, #fff);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: var(--dash-shadow, 0 2px 8px rgba(0, 0, 0, 0.1));
+  color: var(--dash-text-secondary, #4b5563);
+  pointer-events: auto;
+}
+
+.arch-canvas-zoom-btn {
+  flex: 0 0 auto;
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arch-canvas-zoom-btn:hover {
+  background: var(--dash-hover, rgba(255, 255, 255, 0.08));
+}
+
+.arch-canvas-zoom-btn:focus-visible {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 1px;
+}
+
+.arch-canvas-zoom-slider {
+  width: 5.5rem;
+  height: 0.2rem;
+  margin: 0 0.1rem;
+  accent-color: var(--dash-blue, #1473e6);
+  cursor: pointer;
+}
+
+.arch-canvas-zoom-pct {
+  flex: 0 0 auto;
+  min-width: 2.85rem;
+  padding: 0.12rem 0.28rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  text-align: center;
+}
+
+.arch-canvas-zoom-pct:hover {
+  background: var(--dash-hover, rgba(0, 0, 0, 0.06));
+}
+
+html[data-aep-theme='dark'] .arch-canvas-zoom-bar {
+  background: var(--dash-surface-alt, #2a2f38);
+  color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] .arch-canvas-zoom-btn:hover,
+html[data-aep-theme='dark'] .arch-canvas-zoom-pct:hover {
+  background: var(--dash-hover, rgba(255, 255, 255, 0.08));
 }
 
 /* Line / flow / canvas toolbars — sit directly under the diagram canvas */

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260622e">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260622f">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -101,7 +101,8 @@
                   </div>
                 </div>
               </div>
-              <div class="arch-int-svg-wrap">
+              <div class="arch-int-svg-wrap" id="archIntSvgWrap">
+                <div class="arch-int-canvas-wrap" id="archIntCanvasWrap">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" preserveAspectRatio="xMidYMin meet">
             <defs>
               <marker id="archUserArrowEnd" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
@@ -426,7 +427,14 @@
             <!-- PowerPoint-style alignment guides while dragging a box -->
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
-          </div>
+                </div>
+                <div class="arch-canvas-zoom-bar arch-diagram-ui" id="archCanvasZoomBar" role="group" aria-label="Canvas zoom">
+                  <button type="button" class="arch-canvas-zoom-btn" id="archCanvasZoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+                  <input type="range" class="arch-canvas-zoom-slider" id="archCanvasZoomSlider" min="50" max="200" step="1" value="100" aria-label="Canvas zoom level" aria-valuemin="50" aria-valuemax="200" aria-valuenow="100"/>
+                  <button type="button" class="arch-canvas-zoom-btn" id="archCanvasZoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+                  <button type="button" class="arch-canvas-zoom-pct" id="archCanvasZoomPct" title="Reset zoom to 100% (double-click)" aria-label="Zoom 100 percent, double-click to reset">100%</button>
+                </div>
+              </div>
               <div id="archLineFloatBar" class="arch-line-float-bar arch-connector-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Lines and connectors">
                 <div class="arch-line-float-seg arch-line-float-tools" role="group" aria-label="Line type">
                   <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-draw-only="1" data-arch-line-tool="freehand" title="Freehand — drag to sketch a path">
