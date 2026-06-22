@@ -94,11 +94,36 @@
     });
   }
 
+  function archLabelClearSelection() {
+    archLabelSelectedId = null;
+    $all('.arch-int-svg-wrap svg text[data-arch-id]').forEach(function (el) {
+      el.classList.remove('arch-label-text--selected');
+    });
+  }
+
+  function archLabelSelect(id, textEl) {
+    archLabelClearSelection();
+    archLabelSelectedId = id;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    archBgClearSelection();
+    if (archSelection) archSelection.clear();
+    if (textEl) textEl.classList.add('arch-label-text--selected');
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+  }
+
   function archBgSelect(id) {
     if (!id || archHiddenBackgroundsHas(id)) return;
     archBgSelectedId = id;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archLabelClearSelection();
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
     archFlowClearSelection();
@@ -137,6 +162,10 @@
       if (!id || id.indexOf('node-') !== 0 || id.indexOf('node-cbox-') === 0) return;
       g.classList.toggle('arch-node--selected', archSelection.has(id));
     });
+    $all('.arch-int-svg-wrap svg text[data-arch-id]').forEach(function (el) {
+      var lid = el.getAttribute('data-arch-id');
+      el.classList.toggle('arch-label-text--selected', !!(lid && archLabelSelectedId === lid));
+    });
     archSelectionPanelSync();
   }
 
@@ -148,9 +177,14 @@
     var hasCbox = !!archCustomBoxSelectedId;
     var lineOnly = !!(userLines && userLines.selectedId) && !hasPlatform && !hasCbox;
     if (lineOnly) return;
-    if (!hasPlatform && !hasCbox) return;
+    if (!hasPlatform && !hasCbox && !archLabelSelectedId) return;
 
     archDragSetEnabled(true);
+
+    if (archLabelSelectedId) {
+      archLabelSetEnabled(true);
+      return;
+    }
 
     if (hasPlatform) {
       archLabelSetEnabled(true);
@@ -186,6 +220,14 @@
         '\nId: ' +
         archBgSelectedId +
         '\n\nPress Delete to remove from this proposal. Use layer buttons ([ / ]) to send backward or bring forward.';
+      return;
+    }
+    if (archLabelSelectedId) {
+      ins.hidden = false;
+      body.textContent =
+        'Diagram label\nId: ' +
+        archLabelSelectedId +
+        '\n\nClick to edit inline. ⌘C / Ctrl+C to copy, ⌘V to paste duplicate (+20px). Delete removes pasted labels or resets text on built-in labels.';
       return;
     }
     if (archCustomBoxSelectedId) {
@@ -242,7 +284,7 @@
       human +
       '\nElement id: ' +
       id +
-      '\n\nDrag to move, corners to resize, double-click text to edit. Align contents inside: Tools bar Align buttons. Layer order: [ / ] or toolbar buttons.';
+      '\n\nDrag to move, corners to resize, click text to edit inline. Align contents inside: Tools bar Align buttons. Layer order: [ / ] or toolbar buttons.';
   }
 
   function archEditSelectionInit() {
@@ -361,6 +403,7 @@
       if (!NODE_LAYOUT[key]) return;
       e.stopPropagation();
       archBgClearSelection();
+      archLabelClearSelection();
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       if (e.shiftKey) archSelection.toggle(g.id, true);
@@ -373,8 +416,11 @@
     }
     if (!e.shiftKey) {
       archBgClearSelection();
+      archLabelClearSelection();
+      archLabelCloseInlineEditor(true);
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
+      archLabelClearSelection();
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
       archFlowClearSelection();
@@ -407,6 +453,7 @@
     // Clear other selections so Delete unambiguously targets the flow.
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archLabelClearSelection();
     archBgClearSelection();
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
@@ -486,6 +533,7 @@
         userLines.selectedHandleIdx = null;
         archFlowClearSelection();
         archBgClearSelection();
+        archLabelClearSelection();
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         if (archSelection) archSelection.clear();
@@ -517,6 +565,7 @@
       if (!rawId) return;
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
+      archLabelClearSelection();
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = null;
       archBgClearSelection();
@@ -535,6 +584,7 @@
     userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archLabelClearSelection();
     archBgClearSelection();
     if (e.shiftKey && archSelection) archSelection.toggle(g.id, true);
     else if (archSelection) archSelection.setSingle(g.id);
@@ -625,6 +675,7 @@
     if (archSelection) archSelection.clear();
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archLabelClearSelection();
     archBgClearSelection();
     archSelectionRefreshDom();
     archCustomBoxesRender();
@@ -3843,6 +3894,11 @@
   var archCustomBoxSelectedId = null;
   /** When set, label size −/+ applies to this box (user clicked the SVG label). */
   var archCustomBoxLabelActiveId = null;
+  /** Selected diagram text (`data-arch-id`), Edit mode. */
+  var archLabelSelectedId = null;
+  /** Active inline label editor textarea (if any). */
+  var archLabelInlineEditorEl = null;
+  var ARCH_DIAGRAM_PASTE_OFFSET = 20;
   var customBoxDrawMode = false;
   var customBoxDrawPending = null;
   var archCustomDrag = { active: null, start: null };
@@ -6571,48 +6627,182 @@
   }
 
   function archLabelPointerPendingUp() {
+    if (
+      archLabel.dragPending &&
+      !archLabel.dragActive &&
+      archIsEditMode() &&
+      archGetActiveTool() === 'select'
+    ) {
+      var id = archLabel.dragPending.id;
+      var te = qs('[data-arch-id="' + id + '"]');
+      if (te) {
+        archLabelSelect(id, te);
+        archLabelOpenEditor(te, { force: true });
+      }
+    }
     archLabelClearPendingListeners();
   }
 
-  function archLabelOpenEditor(textEl) {
-    if (!archLabel.enabled) return;
+  function archLabelCanInteract() {
+    return archLabel.enabled || (archIsEditMode() && archGetActiveTool() === 'select');
+  }
+
+  function archLabelCloseInlineEditor(save) {
+    if (!archLabelInlineEditorEl) return;
+    var ta = archLabelInlineEditorEl;
+    if (typeof ta._archFinish === 'function') ta._archFinish(!!save);
+    else if (ta.parentNode) ta.parentNode.removeChild(ta);
+    archLabelInlineEditorEl = null;
+  }
+
+  function archLabelEnsureFloatingLayer() {
+    var layer = qs('#layer-floating-labels');
+    if (layer) return layer;
+    layer = document.createElementNS(SVG_NS, 'g');
+    layer.setAttribute('id', 'layer-floating-labels');
+    layer.setAttribute('class', 'arch-floating-labels-layer');
+    layer.setAttribute('pointer-events', 'all');
+    var ref = qs('#layer-custom-boxes');
+    if (ref && ref.parentNode) ref.parentNode.insertBefore(layer, ref.nextSibling);
+    else if (archDrag && archDrag.svg) archDrag.svg.appendChild(layer);
+    return layer;
+  }
+
+  function archLabelIsDynamicFloating(id) {
+    return !!(id && String(id).indexOf('floating-txt-') === 0);
+  }
+
+  function archLabelCopyPayloadForId(labelId) {
+    if (!labelId) return null;
+    var el = qs('[data-arch-id="' + labelId + '"]');
+    if (!el) return null;
+    var wr = archLabelWorldRect(labelId);
+    var pos = archLabel.state.pos[labelId] || { x: 0, y: 0 };
+    return {
+      content: archGetTextContent(el),
+      pos: wr ? { x: wr.left, y: wr.top } : { x: pos.x || 0, y: pos.y || 0 },
+      fontSize: el.getAttribute('font-size') || null,
+      className: el.getAttribute('class') || 'arch-floating-label',
+    };
+  }
+
+  function archLabelCreateFloating(id, x, y, content, fontSize, className) {
+    var layer = archLabelEnsureFloatingLayer();
+    if (!layer) return null;
+    var t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('data-arch-id', id);
+    t.setAttribute('data-arch-default', content || '');
+    t.setAttribute('class', className || 'arch-floating-label');
+    if (fontSize) t.setAttribute('font-size', fontSize);
+    t.setAttribute('x', '0');
+    t.setAttribute('y', '0');
+    archSetTextContent(t, content || '');
+    var wrap = document.createElementNS(SVG_NS, 'g');
+    wrap.setAttribute('data-arch-label-wrap', '1');
+    wrap.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+    wrap.appendChild(t);
+    layer.appendChild(wrap);
+    archLabel.state.pos[id] = { x: x, y: y };
+    archLabel.state.content[id] = content || '';
+    return t;
+  }
+
+  function archLabelRemoveFloating(id) {
+    if (!archLabelIsDynamicFloating(id)) return false;
+    var el = qs('[data-arch-id="' + id + '"]');
+    if (!el) return false;
+    var wrap = archLabelTransformTarget(el);
+    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    delete archLabel.state.pos[id];
+    delete archLabel.state.content[id];
+    return true;
+  }
+
+  function archLabelOpenEditor(textEl, opts) {
+    opts = opts || {};
+    if (!textEl) return;
+    if (!opts.force && !archLabelCanInteract()) return;
+    if (
+      opts.force &&
+      archIsEditMode() &&
+      archGetActiveTool() !== 'select'
+    ) {
+      return;
+    }
     archLabelClearPendingListeners();
+    archLabelCloseInlineEditor(true);
+
     var rect = textEl.getBoundingClientRect();
     var ta = document.createElement('textarea');
-    ta.value = archGetTextContent(textEl);
+    ta.className = 'arch-label-inline-editor arch-diagram-ui';
+    ta.setAttribute('data-arch-inline-label-editor', '1');
     ta.setAttribute('aria-label', 'Edit diagram label');
+    if (opts.kind === 'cbox' && opts.boxId) {
+      var box0 = archCustomBoxFind(opts.boxId);
+      ta.value = box0 ? box0.name || '' : '';
+    } else {
+      ta.value = archGetTextContent(textEl);
+    }
+    var prevValue = ta.value;
+    var w = Math.max(120, Math.min(420, rect.width + 28));
+    var h = Math.max(36, Math.min(180, rect.height + 20));
     ta.style.position = 'fixed';
-    ta.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 300)) + 'px';
-    ta.style.top = Math.max(8, Math.min(rect.top, window.innerHeight - 140)) + 'px';
-    ta.style.width = '280px';
-    ta.style.height = '110px';
+    ta.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8)) + 'px';
+    ta.style.top = Math.max(8, Math.min(rect.top, window.innerHeight - h - 8)) + 'px';
+    ta.style.width = w + 'px';
+    ta.style.height = h + 'px';
     ta.style.zIndex = '10000';
-    ta.style.fontSize = '13px';
-    ta.style.fontFamily = 'Inter, system-ui, sans-serif';
     document.body.appendChild(ta);
+    archLabelInlineEditorEl = ta;
     ta.focus();
-    function finish() {
+    ta.select();
+
+    function finish(save) {
       if (!ta.parentNode) return;
-      var id = textEl.getAttribute('data-arch-id');
-      archSetTextContent(textEl, ta.value);
-      if (id) archLabel.state.content[id] = ta.value;
-      archLabelSave();
+      var next = ta.value;
+      if (save) {
+        if (opts.kind === 'cbox' && opts.boxId) {
+          var box = archCustomBoxFind(opts.boxId);
+          if (box) {
+            box.name = next || 'Box';
+            archCustomBoxesPersist();
+            archCustomBoxesRender();
+            archUserLineRender();
+            archCustomBoxSyncPropsHud();
+          }
+        } else {
+          archSetTextContent(textEl, next);
+          var id = textEl.getAttribute('data-arch-id');
+          if (id) archLabel.state.content[id] = next;
+          archLabelSave();
+        }
+        if (next !== prevValue) archUndoMaybePushSnapshot();
+      }
       document.body.removeChild(ta);
       ta.removeEventListener('blur', onBlur);
+      if (archLabelInlineEditorEl === ta) archLabelInlineEditorEl = null;
     }
+    ta._archFinish = finish;
+
     function onBlur() {
-      finish();
+      finish(true);
     }
     ta.addEventListener('blur', onBlur);
     ta.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape') {
         ta.removeEventListener('blur', onBlur);
-        if (ta.parentNode) document.body.removeChild(ta);
+        finish(false);
         ev.preventDefault();
+      }
+      if (ev.key === 'Enter' && !ev.shiftKey) {
+        ev.preventDefault();
+        ta.removeEventListener('blur', onBlur);
+        finish(true);
       }
       if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) {
         ev.preventDefault();
-        finish();
+        ta.removeEventListener('blur', onBlur);
+        finish(true);
       }
     });
   }
@@ -6671,13 +6861,14 @@
   function archLabelPointerDownCapture(e) {
     if (e.target && e.target.closest && e.target.closest('.arch-node-resize-handle')) return;
     if (userLines.drawMode || customBoxDrawMode) return;
-    if (!archLabel.enabled) return;
+    if (!archLabelCanInteract()) return;
     var te = e.target.closest('text');
     if (!te || !te.getAttribute('data-arch-id')) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.preventDefault();
     e.stopPropagation();
     var id = te.getAttribute('data-arch-id');
+    archLabelSelect(id, te);
     var cur = archLabel.state.pos[id] || { x: 0, y: 0 };
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     archLabel.dragPending = { id: id, ox: cur.x, oy: cur.y, sx: p.x, sy: p.y };
@@ -6686,13 +6877,15 @@
   }
 
   function archLabelDblClick(e) {
-    if (!archLabel.enabled) return;
+    if (!archLabelCanInteract()) return;
     var te = e.target.closest('text');
     if (!te || !te.getAttribute('data-arch-id')) return;
     e.preventDefault();
     e.stopPropagation();
     archLabelClearPendingListeners();
-    archLabelOpenEditor(te);
+    var id = te.getAttribute('data-arch-id');
+    archLabelSelect(id, te);
+    archLabelOpenEditor(te, { force: true });
   }
 
   function svgClientToSvg(svg, clientX, clientY) {
@@ -7716,6 +7909,7 @@
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var dx = p.x - archCustomDrag.start.mx;
     var dy = p.y - archCustomDrag.start.my;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) archCustomDrag.start.moved = true;
     var box = archCustomBoxFind(archCustomDrag.active);
     if (!box) return;
     var nx = archCustomDrag.start.ox + dx;
@@ -7746,6 +7940,10 @@
 
   function archCustomBoxDragPointerUpWin() {
     if (!archCustomDrag.active) return;
+    var boxId = archCustomDrag.active;
+    var start = archCustomDrag.start;
+    var moved = !!(start && start.moved);
+    var labelHit = !!(start && start.labelHit);
     archDragGuidesClear();
     archCustomDrag.active = null;
     archCustomDrag.start = null;
@@ -7753,8 +7951,19 @@
     window.removeEventListener('pointermove', archCustomBoxDragPointerMoveWin, true);
     window.removeEventListener('pointerup', archCustomBoxDragPointerUpWin, true);
     window.removeEventListener('pointercancel', archCustomBoxDragPointerUpWin, true);
+    if (
+      labelHit &&
+      !moved &&
+      archIsEditMode() &&
+      archGetActiveTool() === 'select'
+    ) {
+      var g = qs('#node-cbox-' + boxId);
+      var tx = g && g.querySelector('.arch-custom-box-label');
+      if (tx) archLabelOpenEditor(tx, { force: true, kind: 'cbox', boxId: boxId });
+      return;
+    }
     archCustomBoxesPersist();
-    archUndoMaybePushSnapshot();
+    if (moved) archUndoMaybePushSnapshot();
   }
 
   function archCboxRotatePointerDown(e) {
@@ -7823,18 +8032,24 @@
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
       archFlowClearSelection();
+      archLabelClearSelection();
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = labelHit ? rawId : null;
       archUserLineRender();
       archUserLineSyncPropsHud();
       archCustomBoxesRender();
       e.stopPropagation();
+      if (labelHit && archIsEditMode() && archGetActiveTool() === 'select') {
+        var tx0 = g.querySelector('.arch-custom-box-label');
+        if (tx0) archLabelOpenEditor(tx0, { force: true, kind: 'cbox', boxId: rawId });
+      }
       return;
     }
 
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
     archFlowClearSelection();
+    archLabelClearSelection();
     archCustomBoxSelectedId = rawId;
     archCustomBoxLabelActiveId = labelHit ? rawId : null;
     archUserLineRender();
@@ -7848,6 +8063,8 @@
       mx: svgClientToSvg(archDrag.svg, e.clientX, e.clientY).x,
       my: svgClientToSvg(archDrag.svg, e.clientX, e.clientY).y,
       worldRect: archCustomBoxWorldRect(box),
+      labelHit: !!labelHit,
+      moved: false,
     };
     if (archViewport) archViewport.classList.add('arch-dragging');
     window.addEventListener('pointermove', archCustomBoxDragPointerMoveWin, true);
@@ -8395,22 +8612,57 @@
       if (liveRegion) liveRegion.textContent = 'Copied connector — Ctrl+V or ⌘V to paste.';
       return;
     }
-    if (liveRegion) liveRegion.textContent = 'Select a custom shape or connector to copy.';
+    if (archLabelSelectedId) {
+      var payload = archLabelCopyPayloadForId(archLabelSelectedId);
+      if (!payload) return;
+      archDiagramClipboard = { kind: 'label', label: payload };
+      if (liveRegion) liveRegion.textContent = 'Copied label — Ctrl+V or ⌘V to paste.';
+      return;
+    }
+    if (liveRegion) liveRegion.textContent = 'Select a custom shape, label, or connector to copy.';
   }
 
   function archDiagramPasteClipboard() {
     if (!archIsEditMode()) return;
     if (!archDiagramClipboard) {
-      if (liveRegion) liveRegion.textContent = 'Nothing to paste — copy a custom shape or connector first.';
+      if (liveRegion) liveRegion.textContent = 'Nothing to paste — copy a shape, label, or connector first.';
+      return;
+    }
+    if (archDiagramClipboard.kind === 'label') {
+      var Lb = archDiagramClipboard.label;
+      if (!Lb) return;
+      var off = ARCH_DIAGRAM_PASTE_OFFSET;
+      var newLabelId = 'floating-txt-' + Date.now();
+      var teNew = archLabelCreateFloating(
+        newLabelId,
+        (Number(Lb.pos && Lb.pos.x) || 0) + off,
+        (Number(Lb.pos && Lb.pos.y) || 0) + off,
+        Lb.content || '',
+        Lb.fontSize,
+        Lb.className
+      );
+      archLabelSave();
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
+      if (archSelection) archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      if (teNew) archLabelSelect(newLabelId, teNew);
+      archUndoMaybePushSnapshot();
+      if (liveRegion) liveRegion.textContent = 'Pasted label.';
       return;
     }
     if (archDiagramClipboard.kind === 'cbox') {
       var raw = archDiagramClipboard.box;
       var b = archCustomBoxNormalize(raw);
+      var pasteOff = ARCH_DIAGRAM_PASTE_OFFSET;
       var nb = archCustomBoxNormalize({
         id: 'cbox-' + Date.now(),
-        x: b.x + 28,
-        y: b.y + 28,
+        x: b.x + pasteOff,
+        y: b.y + pasteOff,
         w: b.w,
         h: b.h,
         name: (b.name || 'Box') + ' (copy)',
@@ -8427,6 +8679,7 @@
       archCustomBoxes.push(nb);
       archCustomBoxSelectedId = nb.id;
       archCustomBoxLabelActiveId = null;
+      archLabelClearSelection();
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
       if (archSelection) archSelection.clear();
@@ -8526,19 +8779,40 @@
 
   function archDiagramCutSelection() {
     if (!archIsEditMode()) return;
-    if (!archCustomBoxSelectedId && !userLines.selectedId) {
-      if (liveRegion) liveRegion.textContent = 'Select a shape or connector to cut.';
+    if (!archCustomBoxSelectedId && !userLines.selectedId && !archLabelSelectedId) {
+      if (liveRegion) liveRegion.textContent = 'Select a shape, label, or connector to cut.';
       return;
     }
     archDiagramCopySelection();
+    if (archLabelSelectedId) {
+      var cutId = archLabelSelectedId;
+      if (archLabelRemoveFloating(cutId)) {
+        archLabelClearSelection();
+        archLabelSave();
+        archUndoMaybePushSnapshot();
+        if (liveRegion) liveRegion.textContent = 'Cut label.';
+        return;
+      }
+      var el = qs('[data-arch-id="' + cutId + '"]');
+      if (el) {
+        var def = el.getAttribute('data-arch-default');
+        archSetTextContent(el, def != null ? def : '');
+        delete archLabel.state.content[cutId];
+        archLabelSave();
+        archLabelClearSelection();
+        archUndoMaybePushSnapshot();
+        if (liveRegion) liveRegion.textContent = 'Cut label text reset.';
+      }
+      return;
+    }
     if (archCustomBoxSelectedId) { archCustomBoxDeleteSelected(); return; }
     if (userLines.selectedId) { archUserLineDeleteSelected(); return; }
   }
 
   function archDiagramDuplicateSelection() {
     if (!archIsEditMode()) return;
-    if (!archCustomBoxSelectedId && !userLines.selectedId) {
-      if (liveRegion) liveRegion.textContent = 'Select a shape or connector to duplicate.';
+    if (!archCustomBoxSelectedId && !userLines.selectedId && !archLabelSelectedId) {
+      if (liveRegion) liveRegion.textContent = 'Select a shape, label, or connector to duplicate.';
       return;
     }
     var prev = archDiagramClipboard;
@@ -8570,6 +8844,7 @@
   function archDiagramDeselectAll() {
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archLabelClearSelection();
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
     archFlowClearSelection();
@@ -8884,6 +9159,31 @@
         try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err2) {}
         return;
       }
+    }
+    if (archLabelSelectedId) {
+      e.preventDefault();
+      var delLabelId = archLabelSelectedId;
+      if (archLabelRemoveFloating(delLabelId)) {
+        archLabelClearSelection();
+        archLabelSave();
+        archUndoMaybePushSnapshot();
+        if (liveRegion) liveRegion.textContent = 'Label removed.';
+        return;
+      }
+      var delEl = qs('[data-arch-id="' + delLabelId + '"]');
+      if (delEl) {
+        var defTxt = delEl.getAttribute('data-arch-default');
+        archSetTextContent(delEl, defTxt != null ? defTxt : '');
+        delete archLabel.state.content[delLabelId];
+        var tgtDel = archLabelTransformTarget(delEl);
+        tgtDel.removeAttribute('transform');
+        delete archLabel.state.pos[delLabelId];
+        archLabelSave();
+        archLabelClearSelection();
+        archUndoMaybePushSnapshot();
+        if (liveRegion) liveRegion.textContent = 'Label text reset.';
+      }
+      return;
     }
     if (archCustomBoxSelectedId) {
       e.preventDefault();
@@ -9384,6 +9684,7 @@
               (e.target.closest && e.target.closest('[contenteditable="true"]')))
           )
             return;
+          if (!archIsEditMode()) return;
           var mod = e.metaKey || e.ctrlKey;
           if (mod && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
             e.preventDefault();
@@ -9463,7 +9764,7 @@
             }
           }
           if (!mod && archIsEditMode() && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-            var hasSel = !!(archCustomBoxSelectedId || userLines.selectedId || (archSelection && archSelection.count() > 0));
+            var hasSel = !!(archCustomBoxSelectedId || userLines.selectedId || archLabelSelectedId || (archSelection && archSelection.count() > 0));
             if (!hasSel) return;
             var step = e.shiftKey ? 10 : 1;
             var dx = 0, dy = 0;

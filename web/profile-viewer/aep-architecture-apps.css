@@ -1732,6 +1732,39 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   cursor: grabbing;
 }
 
+/* Edit mode: diagram labels are clickable for select + inline edit (without Labels toggle). */
+.arch-int-viewport--edit-mode svg text[data-arch-id],
+.arch-int-viewport--edit-mode .arch-custom-box-label {
+  pointer-events: painted;
+  cursor: text;
+}
+
+.arch-int-viewport--edit-mode svg text[data-arch-id].arch-label-text--selected,
+.arch-int-viewport--edit-mode .arch-custom-box-label--active {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 2px;
+}
+
+.arch-label-inline-editor {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  font-size: 13px;
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.35;
+  color: var(--dash-text, #1a1d21);
+  background: var(--dash-input-bg, #fff);
+  border: 1px solid var(--dash-input-border, #c9cdd3);
+  border-radius: var(--dash-radius-sm, 12px);
+  box-shadow: var(--dash-shadow, 0 4px 16px rgba(0, 0, 0, 0.12));
+  resize: none;
+}
+
+.arch-label-inline-editor:focus {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 1px;
+}
+
 .arch-int-viewport.arch-user-line-draw svg {
   cursor: crosshair;
 }
