@@ -1,14 +1,14 @@
 {
-  "gitSha": "fba4741a13153df19b10b82a1520b40cb61df5ff",
-  "gitShortSha": "fba4741a",
+  "gitSha": "1b781913bb8834d28309f72006afcdc9974859aa",
+  "gitShortSha": "1b781913",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: inline text edit and copy-paste duplicate for diagram objects",
+  "gitCommitSubject": "[apalmer] fix: show fullscreen toggle on Starbucks mobile env bar",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T09:28:21+01:00",
-  "deployedAt": "2026-06-22T08:30:11.109Z",
+  "gitCommitDate": "2026-06-22T10:15:39+01:00",
+  "deployedAt": "2026-06-22T09:16:19.552Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fba4741a13153df19b10b82a1520b40cb61df5ff"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1b781913bb8834d28309f72006afcdc9974859aa"
 }
