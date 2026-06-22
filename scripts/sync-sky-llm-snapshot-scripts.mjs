@@ -12,8 +12,14 @@ const buildMatch = fs.readFileSync(buildIdPath, 'utf8').match(/LLM_DEMO_SNAPSHOT
 const BUILD = buildMatch ? buildMatch[1] : '20260621';
 const v = '?v=' + BUILD;
 
+const PAGE_HEADER_ASSETS = [
+  '<link rel="stylesheet" href="./llm-demo-snapshot-page-header.css' + v + '">',
+  '<script src="./llm-demo-snapshot-page-header.js' + v + '"></script>',
+];
+
 const WALNUT_PAGE_SCRIPTS = [
   '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+  ...PAGE_HEADER_ASSETS,
   '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
   '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
   '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
@@ -37,6 +43,7 @@ const INTENT_OVERLAY_SCRIPTS = [
 const PAGE_SCRIPTS = {
   'overview.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+    ...PAGE_HEADER_ASSETS,
     '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
     '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
@@ -49,6 +56,7 @@ const PAGE_SCRIPTS = {
   ],
   'brand-presence.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+    ...PAGE_HEADER_ASSETS,
     '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
     '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css' + v + '">',
     '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
@@ -66,6 +74,7 @@ const PAGE_SCRIPTS = {
   'intent-coverage-overlay.html': INTENT_OVERLAY_SCRIPTS,
   'opportunities.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+    ...PAGE_HEADER_ASSETS,
     '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
     '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css' + v + '">',
     '<link rel="stylesheet" href="./llm-demo-snapshot-opportunities.css' + v + '">',
@@ -82,6 +91,7 @@ const PAGE_SCRIPTS = {
 
 const DEFAULT_SCRIPTS = [
   '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+  ...PAGE_HEADER_ASSETS,
   '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
   '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
   '<script src="./llm-demo-snapshot-opportunities-catalog.js' + v + '"></script>',

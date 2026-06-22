@@ -1,0 +1,77 @@
+/* Text-only page header band — matches Prompts Management (no decorative page icon). */
+
+.llm-page-header-icon-hidden {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 0 !important;
+}
+
+.llm-page-header-band {
+  padding-top: 24px !important;
+  padding-bottom: 12px !important;
+}
+
+.llm-page-header-root,
+[class*='macro-static-8MDf3'] > [class*='macro-static-UZueWc'].llm-page-header-root {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+[class*='macro-static-8MDf3'] > [class*='macro-static-UZueWc'] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+
+[class*='macro-static-6pVFYd'].llm-page-header-root,
+[class*='macro-static-h7Bmqc'].llm-page-header-root {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+#dashboard-layout-heading,
+.llm-page-header-root h1 {
+  display: block !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+[class*='macro-static-4z6Tfd'] {
+  display: block !important;
+  width: 100% !important;
+}
+
+[class*='macro-static-yQMlXc'],
+.llm-page-header-root [slot='description'],
+.llm-page-header-root span[data-rsp-slot='text'][slot='description'] {
+  display: block !important;
+  margin-top: 0 !important;
+  max-width: 56rem !important;
+}
+
+.llm-page-header-overview-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+
+.llm-page-header-overview-row > div:has(> h1) {
+  width: 100% !important;
+}
