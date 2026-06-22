@@ -5,6 +5,10 @@
  * Collections:
  *   architectureMasters/default                         — shared baseline snapshot
  *   architectureProposals/{sandbox__proposalId}         — per-sandbox named snapshot
+ *
+ * Deploy note: Hosting deploy does NOT write this collection. Repo JSON under
+ * web/profile-viewer/data/ seeds Adobe defaults in-browser only when Firestore
+ * master is missing and the user has no personal proposal loaded.
  */
 
 const admin = require('firebase-admin');

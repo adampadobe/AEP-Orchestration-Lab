@@ -213,6 +213,17 @@
   margin-left: auto;
   color: var(--dash-muted, #64748b);
 }
+.arch-proposals-bar-baseline {
+  color: var(--dash-text-secondary, #475569);
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border, #e2e8f0);
+  background: var(--dash-surface-alt, #f8fafc);
+}
+.arch-proposals-bar-baseline:not([hidden]) + .arch-proposals-bar-status {
+  margin-left: 0.35rem;
+}
 html[data-aep-theme='dark'] .arch-proposals-bar {
   background: var(--dash-surface-alt, #1f242a);
   border-top-color: var(--dash-border);

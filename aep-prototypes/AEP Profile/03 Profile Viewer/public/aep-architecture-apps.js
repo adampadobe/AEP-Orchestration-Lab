@@ -925,6 +925,9 @@
     var cur = archUndoStack.peek();
     if (cur && archUndoSnapshotsEqual(cur, s)) return;
     archUndoStack.push(s);
+    try {
+      localStorage.setItem('aepArchUserEditedBaseline', '1');
+    } catch (e) {}
     archUndoSyncUi();
   }
 
@@ -10993,6 +10996,10 @@
       localStorage.removeItem(LS_HIDDEN_BACKGROUNDS);
       localStorage.removeItem(LS_LAYER_ORDER);
       localStorage.removeItem(LS_FLOW_OVERRIDES);
+      localStorage.removeItem('aepArchMasterAppliedTs');
+      localStorage.removeItem('aepArchUserEditedBaseline');
+      localStorage.removeItem('aepArchBaselineSource');
+      localStorage.removeItem('aepArchActiveProposalId');
     } catch (e) {}
     window.location.reload();
   }
@@ -11667,10 +11674,15 @@
     'aepArchMenuGroupLabelOverrides',
     'aepArchHiddenFlows',
     'aepArchHiddenNodes',
+    'aepArchHiddenBackgrounds',
+    'aepArchLayerOrder',
     'aepArchFlowOverrides',
     'aepArchPlayDelayMs',
   ];
   var ARCH_PROPOSAL_LS_ACTIVE = 'aepArchActiveProposalId';
+  var ARCH_MASTER_APPLIED_TS_KEY = 'aepArchMasterAppliedTs';
+  var ARCH_USER_EDITED_BASELINE_KEY = 'aepArchUserEditedBaseline';
+  var ARCH_BASELINE_SOURCE_KEY = 'aepArchBaselineSource';
   /** Sandboxes allowed to overwrite the shared master baseline (server env may extend). */
   var ARCH_MASTER_OWNER_SANDBOXES = ['apalmer'];
 
@@ -11686,25 +11698,157 @@
       if (v != null) out[k] = v;
     }
     return {
-      version: 2,
+      version: 3,
       keys: out,
+      layout: archMasterSerialize(),
       tour: PB ? PB.cloneTour(archGetTour()) : JSON.parse(JSON.stringify(archGetTour())),
     };
+  }
+
+  /** Flush live canvas state into localStorage before Firestore save. */
+  function archSnapshotSyncLiveToLocalStorage() {
+    try {
+      localStorage.setItem(LS_MASTER, JSON.stringify(archMasterSerialize()));
+    } catch (e) {}
+    archDragSave();
+    archLabelSave();
+    archUserLinePersist();
+    archSourcesDividersPersist();
+    archCustomBoxesPersist();
+    archStateHighlightOverridesPersist();
+    archHiddenFlowsPersist();
+    archHiddenNodesPersist();
+    archHiddenBackgroundsPersist();
+    archFlowOverridesPersist();
+    archLayerOrderPersist();
+    if (TE) TE.persist();
+  }
+
+  function archMasterRecordTimestamp(record) {
+    if (!record || !record.updatedAt) return 0;
+    var u = record.updatedAt;
+    if (typeof u === 'number') return u;
+    if (typeof u.toMillis === 'function') return u.toMillis();
+    if (typeof u._seconds === 'number') return u._seconds * 1000;
+    if (typeof u.seconds === 'number') return u.seconds * 1000;
+    return 0;
+  }
+
+  function archBaselineUserEdited() {
+    try {
+      return localStorage.getItem(ARCH_USER_EDITED_BASELINE_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function archBaselineSetSource(source) {
+    try {
+      localStorage.setItem(ARCH_BASELINE_SOURCE_KEY, source === 'team-master' ? 'team-master' : 'adobe-default');
+    } catch (e) {}
+    archProposalsBaselineIndicatorSync();
+  }
+
+  async function archMasterApiGetSafe() {
+    try {
+      var r = await fetch('/api/arch-master');
+      if (!r.ok) return null;
+      var j = await r.json();
+      return j && j.record ? j.record : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Resolve team master from Firestore before layout init so deploy cannot seed
+   * SVG defaults into localStorage ahead of the remote baseline.
+   */
+  async function archMasterBootstrap() {
+    try {
+      if (localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE)) {
+        archProposalsBaselineIndicatorSync();
+        return { source: 'proposal' };
+      }
+      var record = await archMasterApiGetSafe();
+      if (!record || !record.snapshot) {
+        archBaselineSetSource('adobe-default');
+        return { source: 'adobe-default' };
+      }
+      var remoteTs = archMasterRecordTimestamp(record);
+      var appliedTs = 0;
+      try {
+        appliedTs = Number(localStorage.getItem(ARCH_MASTER_APPLIED_TS_KEY) || '0') || 0;
+      } catch (e2) {}
+      var userEdited = archBaselineUserEdited();
+      var shouldApply = !appliedTs || (remoteTs > appliedTs && !userEdited);
+      if (shouldApply) {
+        archSnapshotRestore(record.snapshot);
+        try {
+          localStorage.setItem(ARCH_MASTER_APPLIED_TS_KEY, String(remoteTs || Date.now()));
+          localStorage.removeItem(ARCH_USER_EDITED_BASELINE_KEY);
+        } catch (e3) {}
+        archBaselineSetSource('team-master');
+        return { source: 'team-master', applied: true };
+      }
+      archBaselineSetSource(appliedTs ? 'team-master' : 'adobe-default');
+      return { source: appliedTs ? 'team-master' : 'adobe-default', cached: true };
+    } catch (e4) {
+      archProposalsBaselineIndicatorSync();
+      return { source: 'adobe-default' };
+    }
+  }
+
+  function archProposalsBaselineIndicatorSync() {
+    var el = qs('#archBaselineIndicator');
+    if (!el) return;
+    var activeProposal = '';
+    try {
+      activeProposal = localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE) || '';
+    } catch (e) {}
+    if (activeProposal) {
+      el.textContent = 'Proposal loaded';
+      el.hidden = false;
+      return;
+    }
+    var source = '';
+    try {
+      source = localStorage.getItem(ARCH_BASELINE_SOURCE_KEY) || '';
+    } catch (e2) {}
+    if (source === 'team-master') {
+      el.textContent = 'Using team master';
+      el.hidden = false;
+      return;
+    }
+    el.textContent = 'Adobe defaults';
+    el.hidden = false;
   }
 
   function archSnapshotRestore(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return;
     var version = Number(snapshot.version) || 1;
     var keys = snapshot.keys && typeof snapshot.keys === 'object' ? snapshot.keys : snapshot;
+    if (snapshot.layout && typeof snapshot.layout === 'object') {
+      try {
+        var layout = snapshot.layout;
+        if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.migrateLayout) {
+          layout = window.AEPDiagram.model.migrateLayout(layout);
+        }
+        localStorage.setItem(LS_MASTER, JSON.stringify(layout));
+      } catch (eLayout) {}
+    }
     for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
       var k = ARCH_SNAPSHOT_KEYS[i];
       if (Object.prototype.hasOwnProperty.call(keys, k)) {
         try { localStorage.setItem(k, String(keys[k])); } catch (e) {}
-      } else {
-        try { localStorage.removeItem(k); } catch (e) {}
+      } else if (k !== LS_MASTER || !(snapshot.layout && typeof snapshot.layout === 'object')) {
+        try { localStorage.removeItem(k); } catch (eR) {}
       }
     }
     if (snapshot.tour && typeof snapshot.tour === 'object') {
+      try {
+        localStorage.setItem('aepArchTour', JSON.stringify(snapshot.tour));
+      } catch (eTour) {}
       if (TE) {
         TE.applyStatesFromTour(snapshot.tour);
         TE.persist();
@@ -11814,7 +11958,12 @@
     if (!id) {
       if (!window.confirm('Reset canvas to base diagram? All unsaved edits in this browser will be cleared.')) return;
       archSnapshotRestore({ keys: {} });
-      try { localStorage.removeItem(ARCH_PROPOSAL_LS_ACTIVE); } catch (e) {}
+      try {
+        localStorage.removeItem(ARCH_PROPOSAL_LS_ACTIVE);
+        localStorage.removeItem(ARCH_MASTER_APPLIED_TS_KEY);
+        localStorage.removeItem(ARCH_USER_EDITED_BASELINE_KEY);
+        localStorage.removeItem(ARCH_BASELINE_SOURCE_KEY);
+      } catch (e) {}
       archProposalsSetStatus('Loaded base diagram. Reload the page to apply.');
       window.location.reload();
       return;
@@ -11918,9 +12067,16 @@
     }
     if (!window.confirm('Overwrite the shared base diagram for everyone with the current canvas?')) return;
     try {
+      archSnapshotSyncLiveToLocalStorage();
       var snapshot = archSnapshotCollect();
-      await archMasterApiSave(sandbox, snapshot);
-      archProposalsSetStatus('Master saved.');
+      var res = await archMasterApiSave(sandbox, snapshot);
+      var ts = archMasterRecordTimestamp(res && res.record ? res.record : null) || Date.now();
+      try {
+        localStorage.setItem(ARCH_MASTER_APPLIED_TS_KEY, String(ts));
+        localStorage.removeItem(ARCH_USER_EDITED_BASELINE_KEY);
+      } catch (e) {}
+      archBaselineSetSource('team-master');
+      archProposalsSetStatus('Master saved — team baseline updated.');
     } catch (e) {
       archProposalsSetStatus('Master save failed: ' + e.message);
     }
@@ -11937,28 +12093,6 @@
     var tgl = qs('#archEditModeToggle');
     if (!bar) return;
     bar.hidden = !(tgl && tgl.checked);
-  }
-
-  var ARCH_MASTER_APPLIED_TS_KEY = 'aepArchMasterAppliedTs';
-
-  async function archProposalsMaybeApplyMaster() {
-    try {
-      if (localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE)) return;
-      var alreadyApplied = localStorage.getItem(ARCH_MASTER_APPLIED_TS_KEY);
-      var hasLocalEdits = false;
-      for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
-        if (localStorage.getItem(ARCH_SNAPSHOT_KEYS[i]) != null) { hasLocalEdits = true; break; }
-      }
-      if (alreadyApplied && hasLocalEdits) return;
-      var data = await archMasterApiGet();
-      if (!data || !data.record || !data.record.snapshot) return;
-      var ts = (data.record.updatedAt && data.record.updatedAt._seconds) || (data.record.updatedAt && data.record.updatedAt.seconds) || 0;
-      if (alreadyApplied && Number(alreadyApplied) === Number(ts)) return;
-      if (hasLocalEdits) return;
-      archSnapshotRestore(data.record.snapshot);
-      try { localStorage.setItem(ARCH_MASTER_APPLIED_TS_KEY, String(ts)); } catch (e) {}
-      window.location.reload();
-    } catch (e) {}
   }
 
   function archProposalsBarInit() {
@@ -11990,24 +12124,20 @@
     archProposalsBarSyncVisibility();
     archProposalsMasterBtnSyncVisibility();
     archProposalsRefresh();
-    archProposalsMaybeApplyMaster();
+    archProposalsBaselineIndicatorSync();
+  }
+
+  function archPageBootstrap() {
+    archMasterBootstrap().then(function () {
+      init();
+      initArchDrag();
+      initArchCanvasZoom();
+    });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', archPageBootstrap);
   } else {
-    init();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initArchDrag);
-  } else {
-    initArchDrag();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initArchCanvasZoom);
-  } else {
-    initArchCanvasZoom();
+    archPageBootstrap();
   }
 })();
