@@ -10,7 +10,7 @@
 
   function snapshotPageUrl(file) {
     return (
-      '../../sky-llm-snapshot/' +
+      './snapshot/' +
       (file || 'overview.html') +
       '?v=' +
       snapshotBuild() +

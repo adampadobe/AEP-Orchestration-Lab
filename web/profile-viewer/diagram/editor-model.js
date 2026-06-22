@@ -147,6 +147,9 @@
     if (data.customBoxes != null && !Array.isArray(data.customBoxes)) {
       errors.push('customBoxes must be an array when present');
     }
+    if (data.groups != null && !Array.isArray(data.groups)) {
+      errors.push('groups must be an array when present');
+    }
     return { ok: errors.length === 0, errors: errors };
   }
 

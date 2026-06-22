@@ -1,6 +1,6 @@
 /**
  * LLM Demo — lightweight link/input patches inside frozen snapshot iframes.
- * Brand labels and charts are handled by sky-llm-snapshot-llm-demo-brands.js (scoped, no full-DOM scan).
+ * Brand labels and charts are handled by llm-demo-snapshot-llm-demo-brands.js (scoped, no full-DOM scan).
  */
 (function () {
   'use strict';
