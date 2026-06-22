@@ -32,6 +32,11 @@ const LEGACY_PROVIDER_NAMES = [
   'apalmer loyalty provider',
 ];
 
+function labProviderNamesForSandbox(sandbox) {
+  const sb = String(sandbox || 'apalmer').trim().toLowerCase();
+  return [...LEGACY_PROVIDER_NAMES, `${sb} loyalty provider`];
+}
+
 function loadEnvFile(filePath) {
   const out = {};
   if (!filePath || !existsSync(filePath)) return out;
@@ -230,8 +235,9 @@ async function main() {
   const providersList = await loyaltyFetch(auth, 'GET', '/loyalty/metadata/config/rewards/providers');
   if (providersList.res.ok) {
     const providers = Array.isArray(providersList.parsed) ? providersList.parsed : [];
+    const providerNames = labProviderNamesForSandbox(sandbox);
     const toDelete = providers.filter(
-      (p) => p.guid === LEGACY_PROVIDER_GUID || LEGACY_PROVIDER_NAMES.includes(p.name),
+      (p) => p.guid === LEGACY_PROVIDER_GUID || providerNames.includes(p.name),
     );
     for (const provider of toDelete) {
       report.providers.push(await deleteProvider(auth, provider, args.dryRun));

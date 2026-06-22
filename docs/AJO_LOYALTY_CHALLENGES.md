@@ -117,6 +117,27 @@ Implementation: [`scripts/ajo-loyalty-setup.mjs`](../scripts/ajo-loyalty-setup.m
 
 After setup, update IDs in [`web/profile-viewer/loyalty-reward-provider-config.js`](../web/profile-viewer/loyalty-reward-provider-config.js) under `sandboxProfiles.apalmer`.
 
+### Coffee use case (kirkham — Alan Kirkham)
+
+Same challenge pattern as apalmer; audience is **Loyalty Members** (no hotel segment in kirkham yet):
+
+```bash
+npm run ajo:loyalty-reset -- --sandbox kirkham   # optional clean slate
+npm run ajo:loyalty-setup -- --sandbox kirkham --skip-journey
+```
+
+| Item | Value |
+|------|--------|
+| Challenge | **Buy 3 Coffees — Lab Challenge** |
+| Task | `aep-lab-coffee-purchase-task` — purchase qty goal **3** |
+| Event | `loyalty.coffee.purchase` (`AEP Lab Coffee Purchase Event`) |
+| Reward | 100 points via registered provider |
+| Provider name | `kirkham loyalty provider` |
+| Fulfillment URL | `https://loyalty-reward-provider-a5xduykcsq-uc.a.run.app/kirkham/v1/fulfill` |
+| Audience | **Loyalty Members** |
+
+After setup, update IDs in [`web/profile-viewer/loyalty-reward-provider-config.js`](../web/profile-viewer/loyalty-reward-provider-config.js) under `sandboxProfiles.kirkham`.
+
 ## Register reward provider (script)
 
 ```bash

@@ -25,6 +25,23 @@
       labJourneyName: 'Buy 3 Coffees — Lab Journey',
       labIdentityNamespace: 'loyaltyId',
     },
+    kirkham: {
+      registeredProviderGuid: '332657d9-6d81-4b9b-be13-88386fcbf399',
+      rewardDefinitionKey: 'points',
+      labAudienceId: '432dc8d5-c281-47d5-af0a-137df096733b',
+      labAudienceName: 'Loyalty Members',
+      labChallengeId: 'b9ab9319-6d32-4036-8506-b68d1642024c',
+      labChallengeName: 'Buy 3 Coffees — Lab Challenge',
+      labChallengeState: 'published',
+      labEventDefinitionGuid: 'd54487c0-a34e-4efb-848b-c2a8bc835efd',
+      labEventDefinitionName: 'AEP Lab Coffee Purchase Event',
+      labEventIdentifier: 'loyalty.coffee.purchase',
+      labTaskId: 'aep-lab-coffee-purchase-task',
+      labCoffeePurchaseGoal: 3,
+      labRewardPoints: '100',
+      labJourneyName: 'Buy 3 Coffees — Lab Journey',
+      labIdentityNamespace: 'loyaltyId',
+    },
   };
 
   function buildProviderBaseUrl() {

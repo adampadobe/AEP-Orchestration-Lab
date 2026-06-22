@@ -283,6 +283,13 @@ async function ensureNamespace(auth, dryRun) {
     ...config,
     namespace: LAB_NAMESPACE,
   });
+  if (
+    put.res.status === 409
+    && put.parsed?.namespace === LAB_NAMESPACE
+  ) {
+    console.log(`Config namespace already "${LAB_NAMESPACE}" (409 version conflict).`);
+    return { ok: true, config: put.parsed };
+  }
   if (!put.res.ok) throw new Error(`PUT config ${put.res.status}: ${JSON.stringify(put.parsed)}`);
   return { ok: true, config: put.parsed };
 }
