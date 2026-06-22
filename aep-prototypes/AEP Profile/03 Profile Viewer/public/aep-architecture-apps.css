@@ -2019,6 +2019,29 @@ html[data-aep-theme='dark'] .arch-palette-block {
   filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.95));
 }
 
+/* Decorative background plates — selectable in Edit mode */
+#node-aep [data-arch-hit] {
+  pointer-events: none;
+}
+
+.arch-int-viewport.arch-drag-on #node-aep.arch-node--selected [data-arch-hit] {
+  pointer-events: all;
+}
+
+.arch-int-viewport--edit-mode .arch-bg-plate rect {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.arch-int-viewport--edit-mode .arch-bg-plate--selected rect[data-arch-bg-shell],
+.arch-int-viewport--edit-mode .arch-bg-plate--selected > rect {
+  filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.95));
+}
+
+.arch-int-viewport:not(.arch-state-highlights-off) #arch-bg-aep-platform.is-highlighted rect[data-arch-bg-shell] {
+  filter: drop-shadow(0 0 3px rgba(20, 115, 230, 0.85));
+}
+
 .arch-int-dots {
   display: flex;
   flex-wrap: wrap;

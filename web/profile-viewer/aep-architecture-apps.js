@@ -73,6 +73,46 @@
   var archUndoStack = null;
   /** Multi-select for platform nodes in Edit mode (AEPDiagram.selection). */
   var archSelection = null;
+  /** Selected decorative background plate id (data-arch-bg), Edit mode only. */
+  var archBgSelectedId = null;
+
+  var ARCH_BG_LABELS = {
+    'profile-strip': 'Profile & decisioning strip',
+    'aep-platform': 'AEP platform shell',
+  };
+
+  function archBgClearSelection() {
+    archBgSelectedId = null;
+    archBgRefreshDom();
+    archInspectorSync();
+  }
+
+  function archBgRefreshDom() {
+    $all('.arch-bg-plate[data-arch-bg]').forEach(function (g) {
+      var id = g.getAttribute('data-arch-bg');
+      g.classList.toggle('arch-bg-plate--selected', !!(id && archBgSelectedId === id));
+    });
+  }
+
+  function archBgSelect(id) {
+    if (!id || archHiddenBackgroundsHas(id)) return;
+    archBgSelectedId = id;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    if (archSelection) archSelection.clear();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+    archBgRefreshDom();
+    if (liveRegion) {
+      liveRegion.textContent =
+        'Background selected — press Delete to remove from this proposal.';
+    }
+  }
 
   /** True when "Edit diagram" is on — state stepping must not advance (playback paused). */
   function archIsEditMode() {
@@ -136,6 +176,16 @@
       ins.hidden = true;
       return;
     }
+    if (archBgSelectedId) {
+      ins.hidden = false;
+      body.textContent =
+        'Background plate\n' +
+        (ARCH_BG_LABELS[archBgSelectedId] || archBgSelectedId) +
+        '\nId: ' +
+        archBgSelectedId +
+        '\n\nPress Delete to remove from this proposal.';
+      return;
+    }
     if (archCustomBoxSelectedId) {
       var cbox = archCustomBoxFind(archCustomBoxSelectedId);
       if (cbox) {
@@ -168,7 +218,7 @@
       }
     }
     if (!archSelection || archSelection.count() !== 1) {
-      ins.hidden = true;
+      if (!archBgSelectedId) ins.hidden = true;
       return;
     }
     var id = archSelection.primary;
@@ -295,10 +345,20 @@
     if (userLines.drawMode || customBoxDrawMode) return;
     var g = e.target.closest && e.target.closest('g.arch-node');
     if (g && g.classList.contains('arch-custom-box')) return;
+    var bgPlate = e.target.closest && e.target.closest('.arch-bg-plate[data-arch-bg]');
+    if (bgPlate) {
+      var bgId = bgPlate.getAttribute('data-arch-bg');
+      if (bgId && !archHiddenBackgroundsHas(bgId)) {
+        e.stopPropagation();
+        archBgSelect(bgId);
+        return;
+      }
+    }
     if (g && g.id && g.id.indexOf('node-') === 0 && g.id.indexOf('node-cbox-') !== 0) {
       var key = g.id.slice(5);
       if (!NODE_LAYOUT[key]) return;
       e.stopPropagation();
+      archBgClearSelection();
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       if (e.shiftKey) archSelection.toggle(g.id, true);
@@ -310,6 +370,7 @@
       return;
     }
     if (!e.shiftKey) {
+      archBgClearSelection();
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       userLines.selectedId = null;
@@ -344,6 +405,7 @@
     // Clear other selections so Delete unambiguously targets the flow.
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archBgClearSelection();
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
     if (archSelection) archSelection.clear();
@@ -420,6 +482,7 @@
         userLines.selectedId = lid;
         userLines.selectedHandleIdx = null;
         archFlowClearSelection();
+        archBgClearSelection();
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         if (archSelection) archSelection.clear();
@@ -428,6 +491,17 @@
         archUserLineSyncPropsHud();
         archSelectionRefreshDom();
         if (liveRegion) liveRegion.textContent = 'Connector selected — drag to move, handles to adjust path.';
+        return;
+      }
+    }
+
+    var bgPlate = e.target.closest && e.target.closest('.arch-bg-plate[data-arch-bg]');
+    if (bgPlate) {
+      var bgId = bgPlate.getAttribute('data-arch-bg');
+      if (bgId && !archHiddenBackgroundsHas(bgId)) {
+        e.preventDefault();
+        e.stopPropagation();
+        archBgSelect(bgId);
         return;
       }
     }
@@ -442,6 +516,7 @@
       userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = null;
+      archBgClearSelection();
       if (archSelection) archSelection.clear();
       archCustomBoxesRender();
       archUserLineRender();
@@ -457,6 +532,7 @@
     userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archBgClearSelection();
     if (e.shiftKey && archSelection) archSelection.toggle(g.id, true);
     else if (archSelection) archSelection.setSingle(g.id);
     archCustomBoxesRender();
@@ -546,6 +622,7 @@
     if (archSelection) archSelection.clear();
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
+    archBgClearSelection();
     archSelectionRefreshDom();
     archCustomBoxesRender();
   }
@@ -622,6 +699,8 @@
         $all('.arch-node').forEach(function (el) {
           el.classList.toggle('is-highlighted', hilites.indexOf(el.id) >= 0);
         });
+        var aepBg = qs('#arch-bg-aep-platform');
+        if (aepBg) aepBg.classList.toggle('is-highlighted', hilites.indexOf('node-aep') >= 0);
       },
       onAfterApply: function () {
         if (TE) {
@@ -639,6 +718,8 @@
     $all('.arch-node').forEach(function (el) {
       el.classList.toggle('is-highlighted', hilites.indexOf(el.id) >= 0);
     });
+    var aepBg = qs('#arch-bg-aep-platform');
+    if (aepBg) aepBg.classList.toggle('is-highlighted', hilites.indexOf('node-aep') >= 0);
   }
 
   function applyState() {
@@ -783,6 +864,7 @@
     archStateHighlightOverridesLoad();
     archHiddenFlowsLoad();
     archHiddenNodesLoad();
+    archHiddenBackgroundsLoad();
     archFlowOverridesLoad();
     if (TE) TE.highlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
@@ -1849,7 +1931,7 @@
         ? 'translate(' + (tx + nodePivotX) + ',' + (ty + nodePivotY) + ') rotate(' + nodeAngle + ') translate(' + (-nodePivotX) + ',' + (-nodePivotY) + ')'
         : 'translate(' + tx + ',' + ty + ')';
       g.setAttribute('transform', nodeTfm);
-      var shell = g.querySelector('[data-arch-shell]');
+      var shell = g.querySelector('[data-arch-shell], [data-arch-hit]');
       if (shell) {
         var wh = archNodeEffectiveWH(key);
         shell.setAttribute('width', String(wh.w));
@@ -1884,6 +1966,7 @@
     archDragRebuildFlows();
     archUserLineSyncSourcesDividerLocals();
     if (userLines.lines.length) archUserLineRender();
+    archAepBgPlateSync();
   }
 
   function archEnsureResizeHandles() {
@@ -2465,6 +2548,57 @@
       if (archHiddenNodesHas(key)) g.style.display = 'none';
       else g.style.display = '';
     });
+  }
+
+  /** Decorative SVG background plates hidden per sandbox/proposal. */
+  var LS_HIDDEN_BACKGROUNDS = 'aepArchHiddenBackgrounds';
+  var archHiddenBackgrounds = {};
+
+  function archHiddenBackgroundsLoad() {
+    try {
+      var raw = localStorage.getItem(LS_HIDDEN_BACKGROUNDS);
+      var p = raw ? JSON.parse(raw) : null;
+      archHiddenBackgrounds = p && typeof p === 'object' ? p : {};
+    } catch (e) {
+      archHiddenBackgrounds = {};
+    }
+  }
+  function archHiddenBackgroundsPersist() {
+    try {
+      localStorage.setItem(LS_HIDDEN_BACKGROUNDS, JSON.stringify(archHiddenBackgrounds));
+    } catch (e) {}
+  }
+  function archHiddenBackgroundsHas(key) {
+    return !!(key && archHiddenBackgrounds[key]);
+  }
+  function archHiddenBackgroundsAdd(key) {
+    if (key) {
+      archHiddenBackgrounds[key] = 1;
+      archHiddenBackgroundsPersist();
+    }
+  }
+
+  function archBackgroundsApply() {
+    $all('.arch-bg-plate[data-arch-bg]').forEach(function (g) {
+      var id = g.getAttribute('data-arch-bg');
+      if (!id) return;
+      g.style.display = archHiddenBackgroundsHas(id) ? 'none' : '';
+    });
+    if (archBgSelectedId && archHiddenBackgroundsHas(archBgSelectedId)) archBgClearSelection();
+    archBgRefreshDom();
+  }
+
+  function archAepBgPlateSync() {
+    if (!NODE_LAYOUT.aep) return;
+    var L = NODE_LAYOUT.aep;
+    var p = archDrag.pos.aep || { x: 0, y: 0 };
+    var wh = archNodeEffectiveWH('aep');
+    var shell = qs('#arch-bg-aep-platform [data-arch-bg-shell]');
+    if (!shell) return;
+    shell.setAttribute('x', String(L.rect[0] + p.x));
+    shell.setAttribute('y', String(L.rect[1] + p.y));
+    shell.setAttribute('width', String(wh.w));
+    shell.setAttribute('height', String(wh.h));
   }
   /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
   var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
@@ -7163,7 +7297,7 @@
 
   function archMasterSerialize() {
     var payload = {
-      version: 11,
+      version: 12,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
@@ -7174,6 +7308,7 @@
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
       hiddenFlows: JSON.parse(JSON.stringify(archHiddenFlows || {})),
       hiddenNodes: JSON.parse(JSON.stringify(archHiddenNodes || {})),
+      hiddenBackgrounds: JSON.parse(JSON.stringify(archHiddenBackgrounds || {})),
       flowOverrides: JSON.parse(JSON.stringify(archFlowOverrides || {})),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
@@ -7234,6 +7369,11 @@
     } else {
       archHiddenNodes = {};
     }
+    if (data.hiddenBackgrounds && typeof data.hiddenBackgrounds === 'object') {
+      archHiddenBackgrounds = JSON.parse(JSON.stringify(data.hiddenBackgrounds));
+    } else {
+      archHiddenBackgrounds = {};
+    }
     if (data.flowOverrides && typeof data.flowOverrides === 'object') {
       archFlowOverrides = JSON.parse(JSON.stringify(data.flowOverrides));
     } else {
@@ -7241,8 +7381,10 @@
     }
     archHiddenFlowsPersist();
     archHiddenNodesPersist();
+    archHiddenBackgroundsPersist();
     archFlowOverridesPersist();
     archHiddenNodesApply();
+    archBackgroundsApply();
   }
 
   function archMasterTryLoad() {
@@ -8003,6 +8145,15 @@
       archFlowDeleteSelected();
       return;
     }
+    if (archBgSelectedId) {
+      e.preventDefault();
+      archHiddenBackgroundsAdd(archBgSelectedId);
+      archBgClearSelection();
+      archBackgroundsApply();
+      if (liveRegion) liveRegion.textContent = 'Background removed from this proposal.';
+      try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (errBg) {}
+      return;
+    }
     if (archSelection && archSelection.count() > 0) {
       var ids = [];
       try { ids = archSelection.toArray ? archSelection.toArray() : []; } catch (err) {}
@@ -8504,6 +8655,8 @@
 
     archEditSelectionInit();
     archHiddenNodesApply();
+    archBackgroundsApply();
+    archAepBgPlateSync();
     archUndoInitOnce();
 
     if (!document.documentElement.getAttribute('data-arch-undo-keys')) {
