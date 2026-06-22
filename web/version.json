@@ -1,14 +1,14 @@
 {
-  "gitSha": "2d8688ce1cfd2788bda5626ad2be965a404753be",
-  "gitShortSha": "2d8688ce",
+  "gitSha": "03cef5f593a8237ed2c3e6c9c89d7e441547cab3",
+  "gitShortSha": "03cef5f5",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: make architecture connector lines editable in edit mode",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json after architecture line edit deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T08:02:45+01:00",
-  "deployedAt": "2026-06-22T07:04:15.193Z",
+  "gitCommitDate": "2026-06-22T08:04:33+01:00",
+  "deployedAt": "2026-06-22T07:09:21.164Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/2d8688ce1cfd2788bda5626ad2be965a404753be"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/03cef5f593a8237ed2c3e6c9c89d7e441547cab3"
 }
