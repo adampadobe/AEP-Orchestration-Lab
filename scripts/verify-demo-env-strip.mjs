@@ -46,7 +46,6 @@ const ENV_STRIP_EXCEPTION_HTML = [];
 const ENV_STRIP_EXCEPTION_BASENAME_RE = [];
 
 const MINIMAL_ENV_BAR_HTML = [
-  'sky-llm-optimizer.html',
   'sky-llm-brand-presence.html',
   'sky-llm-agentic-traffic.html',
   'sky-llm-opportunities.html',
