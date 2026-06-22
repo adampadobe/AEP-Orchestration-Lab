@@ -492,8 +492,10 @@
     if (!archIsEditMode()) return;
     if (archGetActiveTool() !== 'select') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
-    var t = e.target;
-    if (!t || !t.classList || !t.classList.contains('arch-flow')) return;
+    var flowId = archFlowIdFromTarget(e.target);
+    if (!flowId) return;
+    var t = document.getElementById(flowId);
+    if (!t || !t.classList.contains('arch-flow')) return;
     if (archHiddenFlowsHas(t.id)) return;
     if (!t.classList.contains('is-visible')) return;
     e.stopPropagation();
@@ -517,7 +519,28 @@
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
 
-    var flowEl = e.target.closest && e.target.closest('.arch-flow');
+    if (archDrag && archDrag.svg) {
+      var sp0 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+      var nearFlowId = archFlowPickNearestVisible(sp0.x, sp0.y, FLOW_PICK_NEAR_LABEL_MAX_DIST);
+      if (nearFlowId) {
+        e.preventDefault();
+        e.stopPropagation();
+        archFlowSelect(nearFlowId);
+        return;
+      }
+      var flowLbl = archFlowLabelAtSvgPoint(sp0.x, sp0.y);
+      if (flowLbl) {
+        e.preventDefault();
+        e.stopPropagation();
+        var lid = flowLbl.getAttribute('data-arch-id');
+        archLabelSelect(lid, flowLbl);
+        archLabelOpenEditor(flowLbl, { force: true });
+        return;
+      }
+    }
+
+    var flowId = archFlowIdFromTarget(e.target);
+    var flowEl = flowId ? document.getElementById(flowId) : null;
     if (flowEl && flowEl.classList.contains('is-visible') && !archHiddenFlowsHas(flowEl.id)) {
       e.preventDefault();
       e.stopPropagation();
@@ -719,7 +742,7 @@
     archUserLineSyncDrawModeFromEditor();
     var selectToolOn = !!(archIsEditMode() && archGetActiveTool() === 'select');
     archDragSetEnabled(selectToolOn);
-    archLabelSetEnabled(selectToolOn);
+    archLabelSetEnabled(false);
     if (archGetActiveTool() !== 'select') archEditorClearNodeAndBoxSelection();
     archEditorSyncLinesDockChrome();
     if (archEditorActivePanelId !== 'layout') {
@@ -824,6 +847,7 @@
       path.classList.remove('arch-flow--edit-dim');
       path.classList.toggle('arch-flow--selected', archSelectedFlowId === path.id);
     });
+    archFlowHitsEnsureAll();
     if (archIsEditMode()) {
       archFlowHandlesRefresh();
       archLineFloatUpdateVisibility();
@@ -1005,7 +1029,7 @@
       }
       var selectToolOn = !!(on && archGetActiveTool() === 'select');
       archDragSetEnabled(selectToolOn);
-      archLabelSetEnabled(selectToolOn);
+      archLabelSetEnabled(false);
       if (!on) archToolsFloatSetOpen(false);
       archUserLineSyncDrawModeFromEditor();
       archEditorSyncLinesDockChrome();
@@ -1769,6 +1793,100 @@
     if (id && archFlowOverrides && archFlowOverrides[id]) return;
     var el = qs('#' + id);
     if (el) el.setAttribute('d', d);
+    archFlowSyncHit(id);
+  }
+
+  function archFlowGetHitEl(flowId) {
+    if (!flowId) return null;
+    var layer = qs('#layer-flows');
+    if (!layer) return null;
+    return layer.querySelector('.arch-flow-hit[data-arch-flow-hit-for="' + flowId + '"]');
+  }
+
+  function archFlowSyncHit(flowId) {
+    if (!flowId) return;
+    var el = document.getElementById(flowId);
+    if (!el || !el.classList.contains('arch-flow')) return;
+    var layer = qs('#layer-flows');
+    if (!layer) return;
+    var hit = archFlowGetHitEl(flowId);
+    if (!hit) {
+      hit = document.createElementNS(SVG_NS, 'path');
+      hit.setAttribute('class', 'arch-flow-hit');
+      hit.setAttribute('data-arch-flow-hit-for', flowId);
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-linecap', 'round');
+      hit.setAttribute('stroke-linejoin', 'round');
+      if (el.nextSibling) layer.insertBefore(hit, el.nextSibling);
+      else layer.appendChild(hit);
+    }
+    var d = el.getAttribute('d') || '';
+    hit.setAttribute('d', d);
+    var sw = parseFloat(el.getAttribute('stroke-width') || '2.2', 10);
+    if (!isFinite(sw)) sw = 2.2;
+    hit.setAttribute('stroke-width', String(Math.max(FLOW_HIT_STROKE_MIN, sw + 10)));
+    hit.classList.toggle('is-visible', el.classList.contains('is-visible'));
+    hit.classList.toggle('arch-flow--edit-dim', el.classList.contains('arch-flow--edit-dim'));
+  }
+
+  function archFlowHitsEnsureAll() {
+    var layer = qs('#layer-flows');
+    if (!layer) return;
+    $all('.arch-flow', layer).forEach(function (p) {
+      if (p.id) archFlowSyncHit(p.id);
+    });
+  }
+
+  function archFlowIdFromTarget(t) {
+    if (!t || !t.classList) return null;
+    if (t.classList.contains('arch-flow') && t.id) return t.id;
+    if (t.classList.contains('arch-flow-hit')) {
+      return t.getAttribute('data-arch-flow-hit-for') || null;
+    }
+    var flowEl = t.closest && t.closest('.arch-flow');
+    return flowEl && flowEl.id ? flowEl.id : null;
+  }
+
+  function archFlowDistanceToPath(flowId, sx, sy) {
+    var pts = archFlowGetPoints(flowId);
+    if (!pts || pts.length < 2) return Infinity;
+    var minD = Infinity;
+    for (var i = 1; i < pts.length; i++) {
+      var c = archUserLineClosestPointOnSeg(sx, sy, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y);
+      if (c.dist < minD) minD = c.dist;
+    }
+    return minD;
+  }
+
+  function archFlowPickNearestVisible(sx, sy, maxDist) {
+    var layer = qs('#layer-flows');
+    if (!layer) return null;
+    var bestId = null;
+    var bestD = maxDist != null ? maxDist : FLOW_PICK_NEAR_LABEL_MAX_DIST;
+    $all('.arch-flow', layer).forEach(function (p) {
+      if (!p.id || archHiddenFlowsHas(p.id) || !p.classList.contains('is-visible')) return;
+      var d = archFlowDistanceToPath(p.id, sx, sy);
+      if (d < bestD) {
+        bestD = d;
+        bestId = p.id;
+      }
+    });
+    return bestId;
+  }
+
+  function archFlowLabelAtSvgPoint(sx, sy) {
+    var best = null;
+    $all('.arch-flow-label[data-arch-id]').forEach(function (t) {
+      var id = t.getAttribute('data-arch-id');
+      if (!id) return;
+      var wr = archLabelWorldRect(id);
+      if (!wr) return;
+      var pad = 2;
+      if (sx < wr.left - pad || sx > wr.right + pad || sy < wr.top - pad || sy > wr.bottom + pad) return;
+      best = t;
+    });
+    return best;
   }
 
   function archDragRebuildFlows() {
@@ -2451,6 +2569,7 @@
     if (!el) return;
     var pts = archFlowGetPoints(flowId);
     if (pts.length >= 2) el.setAttribute('d', archFlowPointsToD(pts));
+    archFlowSyncHit(flowId);
   }
 
   function archFlowApplyOverrides() {
@@ -2770,7 +2889,9 @@
     if (!archIsEditMode() || archGetActiveTool() !== 'select') return;
     if (userLines.drawMode || customBoxDrawMode) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
-    var t = e.target;
+    var flowId = archFlowIdFromTarget(e.target);
+    if (!flowId) return;
+    var t = document.getElementById(flowId);
     if (!t || !t.classList || !t.classList.contains('arch-flow')) return;
     if (archHiddenFlowsHas(t.id) || !t.classList.contains('is-visible')) return;
     if (archFlowFloatJunctionMode) return;
@@ -3156,6 +3277,8 @@
     paths[j] = tmp;
     paths.forEach(function (p) {
       layer.appendChild(p);
+      var hit = archFlowGetHitEl(p.id);
+      if (hit) layer.appendChild(hit);
     });
     archFlowPathOrder = archFlowPathOrderFromDom();
     archLayerOrderPersist();
@@ -6346,6 +6469,12 @@
   /** Min half-width (px) for invisible stroke hit-testing along connector paths. */
   var USER_LINE_HIT_STROKE_MIN = 12;
 
+  /** Min half-width (px) for built-in `.arch-flow` connector hit paths. */
+  var FLOW_HIT_STROKE_MIN = 14;
+
+  /** Prefer connector pick over flow label when click is within this distance (SVG units). */
+  var FLOW_PICK_NEAR_LABEL_MAX_DIST = 12;
+
   /** Max distance (SVG user units) from click to segment for double-click insert. */
   var USER_LINE_INSERT_MAX_DIST = 14;
 
@@ -6913,16 +7042,27 @@
     ) {
       var id = archLabel.dragPending.id;
       var te = qs('[data-arch-id="' + id + '"]');
-      if (te) {
+      if (te && !archLabelIsFlowLabel(te)) {
         archLabelSelect(id, te);
         archLabelOpenEditor(te, { force: true });
+      } else if (te && archLabelIsFlowLabel(te)) {
+        archLabelSelect(id, te);
       }
     }
     archLabelClearPendingListeners();
   }
 
-  function archLabelCanInteract() {
-    return archLabel.enabled || (archIsEditMode() && archGetActiveTool() === 'select');
+  function archLabelCanInteract(te) {
+    if (!archIsEditMode() || archGetActiveTool() !== 'select') return false;
+    if (te && te.classList && te.classList.contains('arch-flow-label')) {
+      var id = te.getAttribute('data-arch-id');
+      return !!(id && archLabelSelectedId === id);
+    }
+    return archLabel.enabled;
+  }
+
+  function archLabelIsFlowLabel(te) {
+    return !!(te && te.classList && te.classList.contains('arch-flow-label'));
   }
 
   function archLabelCloseInlineEditor(save) {
@@ -7139,9 +7279,19 @@
   function archLabelPointerDownCapture(e) {
     if (e.target && e.target.closest && e.target.closest('.arch-node-resize-handle')) return;
     if (userLines.drawMode || customBoxDrawMode) return;
-    if (!archLabelCanInteract()) return;
     var te = e.target.closest('text');
     if (!te || !te.getAttribute('data-arch-id')) return;
+    if (archLabelIsFlowLabel(te)) {
+      if (!archLabelCanInteract(te)) {
+        if (archDrag && archDrag.svg) {
+          var spNear = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+          if (archFlowPickNearestVisible(spNear.x, spNear.y, FLOW_PICK_NEAR_LABEL_MAX_DIST)) return;
+        }
+        return;
+      }
+    } else if (!archLabelCanInteract(te)) {
+      return;
+    }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.preventDefault();
     e.stopPropagation();
@@ -7155,9 +7305,13 @@
   }
 
   function archLabelDblClick(e) {
-    if (!archLabelCanInteract()) return;
     var te = e.target.closest('text');
     if (!te || !te.getAttribute('data-arch-id')) return;
+    if (archLabelIsFlowLabel(te) && archDrag && archDrag.svg) {
+      var spDbl = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+      if (archFlowPickNearestVisible(spDbl.x, spDbl.y, FLOW_PICK_NEAR_LABEL_MAX_DIST)) return;
+    }
+    if (!archLabelCanInteract(te) && !archLabelIsFlowLabel(te)) return;
     e.preventDefault();
     e.stopPropagation();
     archLabelClearPendingListeners();
@@ -9751,6 +9905,7 @@
     if (!archDrag.svg) return;
 
     archAssignTextIdsAndDefaults();
+    archFlowHitsEnsureAll();
     archEnsureResizeHandles();
     archSourcesDividers = archSourcesDividersDefaultArray();
     archCustomBoxes = [];
