@@ -1781,94 +1781,97 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   pointer-events: none;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle {
+/* Resize handles — selected platform tiles and custom boxes only (Shift+multi-select keeps all selected). */
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle,
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle {
   opacity: 1;
   pointer-events: all;
   cursor: nwse-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='nw'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='se'] {
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='nw'],
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='se'] {
   cursor: nwse-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='ne'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='sw'] {
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='ne'],
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='sw'] {
   cursor: nesw-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='n'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='s'] {
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='n'],
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='s'] {
   cursor: ns-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
   cursor: ew-resize;
 }
 
 /* Built-in Adobe tiles — same handle geometry as custom boxes */
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='nw'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='se'] {
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='nw'],
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='se'] {
   cursor: nwse-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='ne'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='ne'],
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
   cursor: nesw-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='n'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='s'] {
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='n'],
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='s'] {
   cursor: ns-resize;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='w'],
-.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='e'] {
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='w'],
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='e'] {
   cursor: ew-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle,
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle {
   cursor: nwse-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='nw'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='se'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='nw'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='se'] {
   cursor: nwse-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='ne'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='sw'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='ne'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='sw'] {
   cursor: nesw-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='n'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='s'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='n'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='s'] {
   cursor: ns-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-custom-box--selected .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
   cursor: ew-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='nw'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='se'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='nw'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='se'] {
   cursor: nwse-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='ne'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='ne'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
   cursor: nesw-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='n'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='s'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='n'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='s'] {
   cursor: ns-resize;
 }
 
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='w'],
-.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='e'] {
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='w'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node.arch-node--selected .arch-node-resize-handle--node[data-arch-node-handle='e'] {
   cursor: ew-resize;
 }
 
@@ -1881,7 +1884,8 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   pointer-events: none;
 }
 
-.arch-int-viewport.arch-drag-on .arch-rotate-handle {
+.arch-int-viewport.arch-drag-on .arch-node.arch-node--selected .arch-rotate-handle,
+.arch-int-viewport.arch-drag-on .arch-custom-box--selected .arch-rotate-handle {
   opacity: 1;
   pointer-events: all;
   cursor: grab;
@@ -3214,11 +3218,11 @@ html[data-aep-theme='dark'] .arch-custom-logo-drop-hint {
   cursor: pointer;
 }
 
-.arch-int-viewport.arch-drag-on .arch-node-icon-part [data-arch-icon-hit] {
+.arch-int-viewport.arch-drag-on .arch-node-icon-part--selected [data-arch-icon-hit] {
   cursor: grab;
 }
 
-.arch-int-viewport.arch-drag-on.arch-dragging .arch-node-icon-part [data-arch-icon-hit] {
+.arch-int-viewport.arch-drag-on.arch-dragging .arch-node-icon-part--selected [data-arch-icon-hit] {
   cursor: grabbing;
 }
 
