@@ -4,26 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Starbucks UAE — Home</title>
-  <link rel="stylesheet" href="starbucks-site.css?v=20260622b">
+  <link rel="stylesheet" href="starbucks-site.css?v=20260622-nav">
 </head>
 <body class="starbucks-site" data-starbucks-page-id="home">
   <header class="sb-header">
     <div class="sb-header-inner">
-      <a class="sb-logo" href="index.html" id="sbLogo">
-        <img class="sb-logo-img" src="assets/logo.png" alt="Starbucks" width="48" height="48">
-        <span class="sb-logo-text">Starbucks</span>
+      <a class="sb-logo" href="index.html" id="sbLogo" aria-label="Starbucks home">
+        <img class="sb-logo-img" src="assets/logo.png" alt="" width="62" height="62">
       </a>
-      <nav aria-label="Primary">
+      <nav class="sb-header-primary" aria-label="Primary">
         <ul class="sb-nav">
-          <li><a href="#menu">Menu</a></li>
           <li><a href="#rewards">Rewards</a></li>
-          <li><a href="#stores">Stores</a></li>
-          <li><a href="#gift">Gift Cards</a></li>
+          <li><a href="#menu">Menu</a></li>
+          <li><a href="#delivery">Delivery</a></li>
+          <li><a href="#empowerme">EmpowerME</a></li>
+          <li><a href="#uae">Starbucks UAE</a></li>
         </ul>
       </nav>
-      <div class="sb-header-cta">
-        <button type="button" class="sb-btn sb-btn-outline" id="sbSignInBtn">Sign in</button>
-        <button type="button" class="sb-btn sb-btn-primary" id="sbJoinRewardsBtn">Join Rewards</button>
+      <div class="sb-header-util" aria-label="Account and settings">
+        <a class="sb-find-store" href="#stores">
+          <svg class="sb-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill="currentColor"/>
+          </svg>
+          <span>Find a store</span>
+        </a>
+        <button type="button" class="sb-btn sb-btn-join" id="sbJoinRewardsBtn">Join now</button>
+        <button type="button" class="sb-btn sb-btn-signin" id="sbSignInBtn">Sign in</button>
+        <button type="button" class="sb-lang" aria-label="Select language" aria-haspopup="listbox">
+          <svg class="sb-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M3 12h18M12 3c2.5 2.8 4 6 4 9s-1.5 6.2-4 9M12 3c-2.5 2.8-4 6-4 9s1.5 6.2 4 9" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="sb-lang-label">EN</span>
+          <svg class="sb-icon sb-icon-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
     </div>
   </header>
@@ -61,6 +77,24 @@
       <p class="sb-section-kicker">Menu highlights</p>
       <h2 id="sb-menu-heading">Handcrafted favourites</h2>
       <div class="sb-drinks" id="sbFeaturedDrinks"></div>
+    </section>
+
+    <section class="sb-section" id="delivery" aria-labelledby="sb-delivery-heading">
+      <p class="sb-section-kicker">Starbucks Delivers</p>
+      <h2 id="sb-delivery-heading">Get your favourites delivered</h2>
+      <p class="sb-section-lead">Order through our delivery partners and enjoy Starbucks at home or the office across the UAE.</p>
+    </section>
+
+    <section class="sb-section" id="empowerme" aria-labelledby="sb-empowerme-heading">
+      <p class="sb-section-kicker">EmpowerME</p>
+      <h2 id="sb-empowerme-heading">Building inclusive communities</h2>
+      <p class="sb-section-lead">Starbucks EmpowerME supports opportunity and inclusion for partners and communities across the region.</p>
+    </section>
+
+    <section class="sb-section" id="uae" aria-labelledby="sb-uae-heading">
+      <p class="sb-section-kicker">Starbucks United Arab Emirates</p>
+      <h2 id="sb-uae-heading">Our story in the UAE</h2>
+      <p class="sb-section-lead">Since 2000, Starbucks has grown to more than 250 stores across the UAE — proudly serving our local communities.</p>
     </section>
 
     <section class="sb-section" id="stores" aria-labelledby="sb-stores-heading">
