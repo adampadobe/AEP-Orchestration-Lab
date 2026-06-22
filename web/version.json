@@ -1,14 +1,14 @@
 {
-  "gitSha": "0fa6ece3dc879d7fecce1b1a548356dbadd2cb7a",
-  "gitShortSha": "0fa6ece3",
+  "gitSha": "f045656688dace4777735871d8707822fb8ccc1f",
+  "gitShortSha": "f0456566",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: keyboard shortcuts and init for architecture layer order",
+  "gitCommitSubject": "[apalmer] chore: bump architecture apps cache buster and stamp version.json",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T08:33:17+01:00",
-  "deployedAt": "2026-06-22T07:33:35.748Z",
+  "gitCommitDate": "2026-06-22T08:34:01+01:00",
+  "deployedAt": "2026-06-22T07:34:14.172Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0fa6ece3dc879d7fecce1b1a548356dbadd2cb7a"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f045656688dace4777735871d8707822fb8ccc1f"
 }
