@@ -1,14 +1,14 @@
 {
-  "gitSha": "5bc5836087d5a47a1eca4f589d80de6f7d6b28a0",
-  "gitShortSha": "5bc58360",
+  "gitSha": "3efe7844ecf237d94714505976d49b8975fdfbed",
+  "gitShortSha": "3efe7844",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: accept identityMap from base ExperienceEvent class",
+  "gitCommitSubject": "[apalmer] docs: Coworker dx-api for HTTP flows and Edge datastreams",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T20:51:53+01:00",
-  "deployedAt": "2026-06-23T19:52:06.302Z",
+  "gitCommitDate": "2026-06-23T21:06:27+01:00",
+  "deployedAt": "2026-06-23T20:06:41.523Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5bc5836087d5a47a1eca4f589d80de6f7d6b28a0"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3efe7844ecf237d94714505976d49b8975fdfbed"
 }
