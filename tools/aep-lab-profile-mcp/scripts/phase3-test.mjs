@@ -13,7 +13,7 @@ import {
 } from '../src/personaBuilder.mjs';
 import { loadAuthConfig, validateMcpApiKey, validateOAuthBearer } from '../src/auth.mjs';
 import { assertSandboxAllowedForAccess } from '../src/sandboxAllowlist.mjs';
-import { checkBatchJobRate, checkGenerateRate } from '../src/rateLimiter.mjs';
+import { checkBatchJobRate, checkEdgeSendRate, checkGenerateRate } from '../src/rateLimiter.mjs';
 import { keyIdFromApiKey } from '../src/auditLog.mjs';
 import { LAB_INDUSTRY_KEYS } from '../src/industries.mjs';
 
@@ -153,6 +153,19 @@ async function run() {
   }
   assert(!checkBatchJobRate(batchKey).ok, 'batch rate capped at 3/hr');
 
+  const edgeKey = 'rate-edge-' + Date.now();
+  for (let i = 0; i < 30; i += 1) {
+    assert(checkEdgeSendRate(edgeKey).ok, `edge send rate ${i}`);
+  }
+  assert(!checkEdgeSendRate(edgeKey).ok, 'edge send rate capped at 30/min');
+
+  const { registerListEventTargetsTool } = await import('../src/tools/listEventTargets.mjs');
+  const { registerSendProfileEventTool } = await import('../src/tools/sendProfileEvent.mjs');
+  const { registerSendEdgeEventTool } = await import('../src/tools/sendEdgeEvent.mjs');
+  assert(typeof registerListEventTargetsTool === 'function', 'registerListEventTargetsTool');
+  assert(typeof registerSendProfileEventTool === 'function', 'registerSendProfileEventTool');
+  assert(typeof registerSendEdgeEventTool === 'function', 'registerSendEdgeEventTool');
+
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');
 
@@ -166,7 +179,7 @@ async function run() {
 
   console.log(JSON.stringify({
     ok: true,
-    tests: 'phase3.1 persona parity + segment hints + ACL + rate limits',
+    tests: 'phase3.2 persona parity + segment hints + ACL + rate limits + event tools',
     industries: LAB_INDUSTRY_KEYS.length,
     segmentPacks: { travel: TRAVEL_SEGMENT_HINTS, fsi: FSI_SEGMENT_HINTS, retail: RETAIL_SEGMENT_HINTS },
   }));

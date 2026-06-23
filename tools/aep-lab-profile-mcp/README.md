@@ -1,8 +1,8 @@
-# AEP Orchestration Lab — Profile MCP (Phase 3.1)
+# AEP Orchestration Lab — Profile MCP (Phase 3.2)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.1.0** — 15 tools. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.2.0** — 18 tools. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Tools
 
@@ -17,6 +17,9 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
 | `lab_profile_activity` | events + consent APIs | Narration string; optional audiences |
+| `lab_list_event_targets` | `GET /api/events/generator-targets` | Static + Firestore Edge presets for Event tool |
+| `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (mirrors Event Generator UI) |
+| `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |
 | `lab_batch_job_status` | *(job store)* | Poll `profile_batch` or `onboard_all` jobs |
 | `lab_provision_profile_infra_step` | infra step API | Provisioning wizard step |
@@ -87,6 +90,7 @@ Base personas for all **7 industries** (generic, travel, fsi, retail, telecom, m
 | Limit | Scope |
 |-------|--------|
 | 30 / minute | `lab_generate_profile` + each batch item generate |
+| 30 / minute | `lab_send_profile_event` + `lab_send_edge_event` (shared bucket) |
 | 3 / hour | new `lab_generate_profiles_batch` jobs |
 
 Clear MCP error with `retryAfterSec`. Not global across Cloud Run instances.
@@ -98,6 +102,19 @@ Structured JSON to **stdout** (Cloud Logging) **and** Firestore collection **`mc
 `timestamp`, `keyId`, `tool`, `sandbox`, `industry`, `email`/`identifier`, `result` (`ok`/`error`), `durationMs`, optional `jobId`.
 
 Disable Firestore locally: `AEP_LAB_MCP_FIRESTORE=off`.
+
+### Event sending workflow (Phase 3.2)
+
+Mirrors Profile Viewer **Event tool** (`event-generator.html`):
+
+1. **`lab_generate_profile`** — capture `ecid` from response (or use email).
+2. **`lab_list_event_targets`** — pick `target_id` (Edge or DCS streaming preset).
+3. **`lab_send_profile_event`** — send with email/ecid + optional event_type, view_name, channel, public fields.
+4. **`lab_profile_activity`** or **`lab_get_profile`** — verify events landed on the profile.
+
+Advanced: **`lab_send_edge_event`** when you have `datastream_id` directly (optional `raw_payload` for full Edge interact body).
+
+Read-only event history is already available via **`lab_profile_activity`** (GET `/api/profile/events`).
 
 ### Profile Viewer workflows (Phase 2.1)
 

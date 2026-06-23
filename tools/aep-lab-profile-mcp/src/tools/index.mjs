@@ -13,6 +13,9 @@ import { registerEnableProfileTool } from './enableProfile.mjs';
 import { registerSandboxProfileConfigTool } from './sandboxProfileConfig.mjs';
 import { registerOnboardSandboxTool } from './onboardSandbox.mjs';
 import { registerMcpAccessInfoTool } from './mcpAccessInfo.mjs';
+import { registerListEventTargetsTool } from './listEventTargets.mjs';
+import { registerSendProfileEventTool } from './sendProfileEvent.mjs';
+import { registerSendEdgeEventTool } from './sendEdgeEvent.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -28,6 +31,9 @@ export function registerProfileTools(mcpServer) {
   registerGetProfileTool(mcpServer);
   registerUpdateProfileTool(mcpServer);
   registerProfileActivityTool(mcpServer);
+  registerListEventTargetsTool(mcpServer);
+  registerSendProfileEventTool(mcpServer);
+  registerSendEdgeEventTool(mcpServer);
   registerGenerateProfilesBatchTool(mcpServer);
   registerBatchJobStatusTool(mcpServer);
   registerProvisionProfileInfraStepTool(mcpServer);

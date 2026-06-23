@@ -261,3 +261,68 @@ export async function enableProfileInfra({ routePrefix, sandbox }) {
     timeoutMs: 300_000,
   });
 }
+
+/**
+ * GET /api/events/generator-targets?sandbox=
+ * @param {object} params
+ * @param {string} params.sandbox
+ */
+export async function listEventTargets({ sandbox }) {
+  return labApiRequest('/api/events/generator-targets', {
+    query: { sandbox },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/events/generator — Event Generator (mirrors Profile Viewer Event tool).
+ * @param {object} params
+ */
+export async function sendProfileEvent(params) {
+  /** @type {Record<string, unknown>} */
+  const body = { sandbox: params.sandbox };
+  if (params.email) body.email = params.email;
+  if (params.ecid) body.ecid = params.ecid;
+  if (params.target_id) body.targetId = params.target_id;
+  if (params.event_type) body.eventType = params.event_type;
+  if (params.view_name) body.viewName = params.view_name;
+  if (params.view_url) body.viewUrl = params.view_url;
+  if (params.channel) body.channel = params.channel;
+  if (params.orchestration_event_id) body.orchestrationEventID = params.orchestration_event_id;
+  if (params.event_id) body.eventID = params.event_id;
+  if (params.timestamp) body.timestamp = params.timestamp;
+  if (params.public && typeof params.public === 'object') body.public = params.public;
+  return labApiRequest('/api/events/generator', {
+    method: 'POST',
+    body,
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/events/edge — direct Edge interact send (advanced).
+ * @param {object} params
+ */
+export async function sendEdgeEvent(params) {
+  /** @type {Record<string, unknown>} */
+  const body = { datastreamId: params.datastream_id };
+  if (params.raw_payload && typeof params.raw_payload === 'object') {
+    body.rawPayload = params.raw_payload;
+  } else {
+    if (params.email) body.email = params.email;
+    if (params.ecid) body.ecid = params.ecid;
+    if (params.event_type) body.eventType = params.event_type;
+    if (params.view_name) body.viewName = params.view_name;
+    if (params.view_url) body.viewUrl = params.view_url;
+    if (params.channel) body.channel = params.channel;
+    if (params.orchestration_event_id) body.orchestrationEventID = params.orchestration_event_id;
+    if (params.event_id) body.eventID = params.event_id;
+    if (params.timestamp) body.timestamp = params.timestamp;
+    if (params.public && typeof params.public === 'object') body.public = params.public;
+  }
+  return labApiRequest('/api/events/edge', {
+    method: 'POST',
+    body,
+    timeoutMs: 120_000,
+  });
+}

@@ -1438,7 +1438,9 @@ exports.eventEdgeProxy = onRequest(
 
     try {
       let payload;
-      if (body.triggerTemplate && typeof body.triggerTemplate === 'object') {
+      if (body.rawPayload && typeof body.rawPayload === 'object') {
+        payload = body.rawPayload;
+      } else if (body.triggerTemplate && typeof body.triggerTemplate === 'object') {
         payload = eventEdgeService.buildTriggerPayload(
           body.triggerTemplate,
           body.ecid || '',

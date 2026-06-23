@@ -2,14 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab Profile MCP
-  (Streamable HTTP on Cloud Run v3). Use when generating test profiles, checking
-  infra, batch seeding, segment personas, access info, getting/updating profiles
-  (full-snapshot stitch), profile activity, or provisioning profile pipelines.
+  (Streamable HTTP on Cloud Run v3). Use when generating test profiles, sending
+  experience events, checking infra, batch seeding, segment personas, access info,
+  getting/updating profiles (full-snapshot stitch), profile activity, or provisioning
+  profile pipelines.
 ---
 
-# AEP Lab Profile MCP — Coworker workflows (Phase 3.1)
+# AEP Lab Profile MCP — Coworker workflows (Phase 3.2)
 
-MCP server: **AEP Orchestration Lab — Profile MCP v3.1.0** (see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab — Profile MCP v3.2.0** (see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -131,6 +132,34 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Re-run lab_profile_activity with include_audiences true if audience membership matters for the demo.
 
+## Workflow 5b — Send experience event (Phase 3.2)
+
+Mirrors Profile Viewer **Event tool**.
+
+1. **Generate profile and capture ECID**
+
+   > lab_generate_profile: sandbox apalmer, industry travel, email event.demo+001@adobetest.com, randomize true. Save ecid from the response.
+
+2. **List event targets**
+
+   > lab_list_event_targets for sandbox apalmer. Pick a target_id (Edge or DCS streaming).
+
+3. **Send event**
+
+   > lab_send_profile_event: sandbox apalmer, email event.demo+001@adobetest.com, ecid from step 1, target_id from step 2, event_type transaction, view_name "Lab demo page", channel web.
+
+4. **Verify**
+
+   > lab_profile_activity for sandbox apalmer, identifier event.demo+001@adobetest.com. Confirm event count increased and recent events include the sent type.
+
+**Public-sector donation demo:**
+
+   > lab_send_profile_event with event_type donation.made, public { donationAmount: 250, donationDate: "2026-06-23", eventRegistration: "annual-gala" }.
+
+**Advanced (direct datastream):**
+
+   > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email event.demo+001@adobetest.com, ecid …, event_type transaction.
+
 ## Workflow 6 — Batch seed N profiles
 
 1. **Start batch job**
@@ -170,7 +199,7 @@ Same MCP key as all other tools.
 - Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning.
 - **lab_mcp_access_info** — check allowlist without secrets; use after ops adds Kirkham ACL.
 - **segment_hint** — travel: `hotel_high_value`, `hotel_reactivation`; fsi: `high_net_worth`, `credit_rebuild`; retail: `loyalty_vip`, `cart_abandoner`.
-- Rate limits (per instance): 30 generates/min, 3 batch jobs/hr — backoff using retryAfterSec.
+- Rate limits (per instance): 30 generates/min, 30 event sends/min, 3 batch jobs/hr — backoff using retryAfterSec.
 - Batch jobs max **100** profiles; use `email_pattern` for custom addressing (`{n}`, `{industry}`).
 - Industry aliases: `telco` → `telecom`, `public` → `generic`.
 - Provisioning is sandbox-allowlist gated like every other tool.
