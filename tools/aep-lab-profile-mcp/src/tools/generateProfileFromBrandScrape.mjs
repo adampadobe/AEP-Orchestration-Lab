@@ -1,9 +1,11 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
+import { assessScrapeGenerateIndustryReadiness } from '../brandScrapeIndustryReadiness.mjs';
 import {
   buildAttributesFromBrandScrapePersona,
   extractBrandScrapePersonas,
-  inferLabIndustryFromScrape,
+  extractScrapeIndustryTaxonomy,
+  inferLabIndustryFromRecord,
   suggestEmailForScrapePersona,
 } from '../brandScrapePersonaMap.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
@@ -152,7 +154,9 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         'Loads a saved brand scrape (lab_get_brand_scrape / Portal history), maps a marketing persona to correlated XDM attributes ' +
         '(identity from scrape + randomized industry paths via personaBuilder), then streams via lab_generate_profile dual-stream flow. ' +
         'Requires personas on the scrape (re-run lab_brand_scrape with include.personas:true). ' +
-        'Industry defaults from scrape classification (Travel & Hospitality → travel, etc.) unless overridden. ' +
+        'Industry defaults from scrape taxonomy (record.industry / industryInfo — e.g. Food & beverage → retail, Travel & Hospitality → travel). ' +
+        'Do NOT pass industry unless the user explicitly requests an override — wrong industry skips industry-owned XDM paths. ' +
+        'Response includes scrape_industry, lab_industry, industry_source. Warns when lab_sandbox_profile_config is not ready. ' +
         'segment_hint can be explicit or inferred from persona.suggested_segments. ' +
         'Chain: lab_brand_scrape → lab_generate_profile_from_brand_scrape → lab_send_profile_event.',
       inputSchema: {
@@ -172,7 +176,9 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         industry: z
           .string()
           .optional()
-          .describe('Override lab industry key; default inferred from scrape.industry taxonomy'),
+          .describe(
+            'Override lab industry key — omit unless user explicitly asks; default is scrape-inferred lab_industry from taxonomy',
+          ),
         email: z.string().email().optional().describe('Profile email; default brand.persona+n@adobetest.com'),
         segment_hint: z.string().optional().describe('Optional lab segment_hint overlay (travel/fsi/retail)'),
         loyalty_member: z.boolean().optional().describe('Emit loyalty block (default false)'),
@@ -242,6 +248,7 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
 
       let industry = 'generic';
       let industrySource = 'default';
+      const scrapeIndustry = extractScrapeIndustryTaxonomy(record) || null;
       if (industryOverride) {
         const norm = normalizeIndustry(industryOverride);
         if (!LAB_INDUSTRY_KEYS.includes(norm.industry)) {
@@ -250,10 +257,16 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         industry = norm.industry;
         industrySource = 'argument';
       } else {
-        const inferred = inferLabIndustryFromScrape(record.industry);
+        const inferred = inferLabIndustryFromRecord(record);
         industry = inferred.industry;
         industrySource = inferred.source;
       }
+
+      const industryReadiness = await assessScrapeGenerateIndustryReadiness({
+        sandbox: allowed.sandbox,
+        industry,
+      });
+      const readinessWarnings = industryReadiness.ready ? [] : industryReadiness.warnings;
 
       const indices = all_personas
         ? personas.map((_, i) => i)
@@ -333,13 +346,26 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         sandbox: allowed.sandbox,
         scrapeId,
         brandName: record.brandName || null,
-        scrapeIndustry: record.industry || null,
+        scrape_industry: scrapeIndustry,
+        inferred_industry: scrapeIndustry,
+        lab_industry: industry,
+        scrapeIndustry,
         industry,
         industrySource,
+        industry_source: industrySource,
+        industry_readiness: industryReadiness,
+        warnings: readinessWarnings.length ? readinessWarnings : undefined,
         personaCount: personas.length,
         generated: results.length,
         profiles: results,
         coworkerHints: {
+          industryRule:
+            industrySource === 'argument'
+              ? 'Industry was overridden via argument — confirm with user if dual-stream paths look wrong.'
+              : `Using scrape-inferred lab_industry "${industry}" — do not override unless user asks.`,
+          infra: industryReadiness.ready
+            ? undefined
+            : industryReadiness.next_action || 'lab_sandbox_profile_config',
           nextSteps: [
             'lab_send_profile_event with email + ecid from each profile',
             'lab_profile_activity to verify events',
@@ -362,7 +388,10 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         scrape_id: z.string().describe('Brand scrape id'),
-        industry: z.string().optional().describe('Override inferred lab industry'),
+        industry: z
+          .string()
+          .optional()
+          .describe('Override inferred lab industry — omit unless user explicitly requests'),
         persona_indices: z
           .array(z.number().int().min(0).max(11))
           .optional()
@@ -422,6 +451,7 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
 
       let canonicalIndustry = 'generic';
       let industrySource = 'default';
+      const scrapeIndustry = extractScrapeIndustryTaxonomy(record) || null;
       if (industry) {
         const norm = normalizeIndustry(industry);
         if (!LAB_INDUSTRY_KEYS.includes(norm.industry)) {
@@ -430,10 +460,15 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         canonicalIndustry = norm.industry;
         industrySource = 'argument';
       } else {
-        const inferred = inferLabIndustryFromScrape(record.industry);
+        const inferred = inferLabIndustryFromRecord(record);
         canonicalIndustry = inferred.industry;
         industrySource = inferred.source;
       }
+
+      const industryReadiness = await assessScrapeGenerateIndustryReadiness({
+        sandbox: allowed.sandbox,
+        industry: canonicalIndustry,
+      });
 
       const results = [];
       const gap = delay_ms ?? 400;
@@ -488,8 +523,14 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         ok: true,
         sandbox: allowed.sandbox,
         scrapeId,
+        scrape_industry: scrapeIndustry,
+        inferred_industry: scrapeIndustry,
+        lab_industry: canonicalIndustry,
         industry: canonicalIndustry,
         industrySource,
+        industry_source: industrySource,
+        industry_readiness: industryReadiness,
+        warnings: industryReadiness.ready ? undefined : industryReadiness.warnings,
         generated: results.length,
         profiles: results,
       });

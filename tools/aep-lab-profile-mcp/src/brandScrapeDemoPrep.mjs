@@ -2,10 +2,12 @@
  * Orchestration helpers: brand scrape → golden profiles, events, Client Journey v2.
  */
 
+import { assessScrapeGenerateIndustryReadiness } from './brandScrapeIndustryReadiness.mjs';
 import {
   buildAttributesFromBrandScrapePersona,
   extractBrandScrapePersonas,
-  inferLabIndustryFromScrape,
+  extractScrapeIndustryTaxonomy,
+  inferLabIndustryFromRecord,
   suggestEmailForScrapePersona,
 } from './brandScrapePersonaMap.mjs';
 import {
@@ -31,16 +33,21 @@ export function summarizeScrapeForDemoPrep(record) {
     record?.campaigns && Array.isArray(record.campaigns.campaigns) ? record.campaigns.campaigns : [];
   const segments =
     record?.segments && Array.isArray(record.segments.segments) ? record.segments.segments : [];
-  const inferred = inferLabIndustryFromScrape(record.industry);
+  const inferred = inferLabIndustryFromRecord(record);
+  const scrapeIndustry = extractScrapeIndustryTaxonomy(record) || null;
 
   return {
     scrapeId: record?.scrapeId || null,
     brandName: record?.brandName || null,
     url: record?.url || record?.baseUrl || null,
     scrapeStatus: record?.scrapeStatus || null,
-    scrapeIndustry: record?.industry || null,
+    scrapeIndustry,
+    scrape_industry: scrapeIndustry,
+    inferred_industry: inferred.scrape_industry,
+    lab_industry: inferred.industry,
     industry: inferred.industry,
     industrySource: inferred.source,
+    industry_source: inferred.source,
     personasCount: personas.length,
     campaignsCount: campaigns.length,
     segmentsCount: segments.length,
@@ -106,10 +113,16 @@ export async function generateProfilesFromScrapePersonas({
     canonicalIndustry = norm.industry;
     industrySource = 'argument';
   } else {
-    const inferred = inferLabIndustryFromScrape(record.industry);
+    const inferred = inferLabIndustryFromRecord(record);
     canonicalIndustry = inferred.industry;
     industrySource = inferred.source;
   }
+
+  const scrapeIndustry = extractScrapeIndustryTaxonomy(record) || null;
+  const readiness = await assessScrapeGenerateIndustryReadiness({
+    sandbox,
+    industry: canonicalIndustry,
+  });
 
   const personas = extractBrandScrapePersonas(record);
   const indices =
@@ -215,8 +228,14 @@ export async function generateProfilesFromScrapePersonas({
   return {
     ok: failed === 0,
     sandbox,
+    scrape_industry: scrapeIndustry,
+    inferred_industry: scrapeIndustry,
+    lab_industry: canonicalIndustry,
     industry: canonicalIndustry,
     industrySource,
+    industry_source: industrySource,
+    industry_readiness: readiness,
+    warnings: readiness.ready ? [] : readiness.warnings,
     succeeded,
     failed,
     results,

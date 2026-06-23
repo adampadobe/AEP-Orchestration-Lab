@@ -423,7 +423,7 @@ export function registerBrandScrapeTools(mcpServer) {
       title: 'Resolve existing brand scrape for URL',
       description:
         'List sandbox scrape history and pick the best existing match for a brand URL before running lab_brand_scrape. ' +
-        'Returns scrape_id + summary when a suitable complete scrape exists, or need_new_scrape:true with reason. ' +
+        'Returns scrape_id + summary (includes scrape_industry, lab_industry, industry_source) when a suitable complete scrape exists, or need_new_scrape:true with reason. ' +
         'Coworker: call this first — "Before scraping, check if we already have a complete scrape for this URL on this sandbox."',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -527,7 +527,7 @@ export function registerBrandScrapeTools(mcpServer) {
     {
       title: 'Get brand scrape by id',
       description:
-        'GET /api/brand-scraper/scrapes/{scrapeId} — full GCS-backed record plus Coworker summary (colours, fonts, personas, status). ' +
+        'GET /api/brand-scraper/scrapes/{scrapeId} — full GCS-backed record plus Coworker summary (colours, fonts, personas, status, lab_industry). ' +
         'Same data Portal shows when you open a scrape card.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),

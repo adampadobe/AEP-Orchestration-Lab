@@ -13,26 +13,93 @@ import {
 } from './personaBuilder.mjs';
 import { assign } from './personaBuilder/utils.mjs';
 
-/** Brand Scraper INDUSTRY_TAXONOMY → lab industry keys (functions/brandScraperService.js). */
-const SCRAPE_INDUSTRY_TO_LAB = {
+/**
+ * Brand Scraper INDUSTRY_TAXONOMY → lab industry keys (functions/brandScraperService.js INDUSTRY_TAXONOMY).
+ * Keys are normalized via normalizeScrapeTaxonomyKey before lookup.
+ */
+export const SCRAPE_INDUSTRY_TO_LAB = {
   'travel & hospitality': 'travel',
+  hospitality: 'travel',
+  travel: 'travel',
   'financial services': 'fsi',
   'retail & e-commerce': 'retail',
+  'retail and e-commerce': 'retail',
+  retail: 'retail',
+  'e-commerce': 'retail',
+  ecommerce: 'retail',
   telecommunications: 'telecom',
+  telecom: 'telecom',
   'media & entertainment': 'media',
+  media: 'media',
+  entertainment: 'media',
+  sports: 'sports',
   automotive: 'generic',
   'technology & software': 'generic',
+  technology: 'generic',
+  software: 'generic',
   'healthcare & pharma': 'generic',
+  healthcare: 'generic',
+  pharma: 'generic',
   'energy & utilities': 'generic',
+  utilities: 'generic',
   'consumer packaged goods': 'retail',
+  cpg: 'retail',
   education: 'generic',
   'government & non-profit': 'generic',
+  'government and non-profit': 'generic',
+  'non-profit': 'generic',
+  nonprofit: 'generic',
   'professional services': 'generic',
   'real estate': 'generic',
   'food & beverage': 'retail',
+  'food and beverage': 'retail',
+  'food & drink': 'retail',
+  fmcg: 'retail',
   'manufacturing & industrial': 'generic',
+  manufacturing: 'generic',
+  industrial: 'generic',
   other: 'generic',
 };
+
+/**
+ * @param {string | null | undefined} raw
+ */
+export function normalizeScrapeTaxonomyKey(raw) {
+  return String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\s+&\s+/g, ' & ')
+    .replace(/\band\b/g, '&')
+    .replace(/\s*&\s*/g, ' & ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Raw taxonomy string from a scrape record (top-level, industryInfo, or legacy analysis).
+ * @param {Record<string, unknown> | null | undefined} record
+ */
+export function extractScrapeIndustryTaxonomy(record) {
+  if (!record || typeof record !== 'object') return '';
+
+  const top = String(record.industry || '').trim();
+  if (top) return top;
+
+  const info = /** @type {Record<string, unknown>} */ (record.industryInfo || {});
+  if (info && typeof info === 'object' && !info.error && !info.skipped) {
+    const fromInfo = String(info.industry || '').trim();
+    if (fromInfo) return fromInfo;
+  }
+
+  const analysis = /** @type {Record<string, unknown>} */ (record.analysis || {});
+  if (analysis && typeof analysis === 'object') {
+    const fromAnalysis = String(analysis.industry || '').trim();
+    if (fromAnalysis) return fromAnalysis;
+  }
+
+  return '';
+}
 
 /** Keyword hints in scrape segment names → lab segment_hint tokens. */
 const SEGMENT_KEYWORD_HINTS = [
@@ -44,24 +111,37 @@ const SEGMENT_KEYWORD_HINTS = [
 ];
 
 /**
+ * Map Brand Scraper taxonomy label → lab industry key.
  * @param {string | null | undefined} scrapeIndustry
- * @returns {{ industry: string, source: string }}
+ * @returns {{ industry: string, source: string, scrape_industry: string | null }}
  */
 export function inferLabIndustryFromScrape(scrapeIndustry) {
   const raw = String(scrapeIndustry || '').trim();
   if (!raw) {
-    return { industry: 'generic', source: 'default' };
+    return { industry: 'generic', source: 'default', scrape_industry: null };
   }
-  const key = raw.toLowerCase();
+  const key = normalizeScrapeTaxonomyKey(raw);
   const mapped = SCRAPE_INDUSTRY_TO_LAB[key];
   if (mapped && LAB_INDUSTRY_KEYS.includes(mapped)) {
-    return { industry: mapped, source: 'scrape_taxonomy' };
+    return { industry: mapped, source: 'scrape_taxonomy', scrape_industry: raw };
   }
   const norm = normalizeIndustry(key);
   if (LAB_INDUSTRY_KEYS.includes(norm.industry)) {
-    return { industry: norm.industry, source: 'lab_alias' };
+    return { industry: norm.industry, source: 'lab_alias', scrape_industry: raw };
   }
-  return { industry: 'generic', source: 'fallback' };
+  return { industry: 'generic', source: 'fallback', scrape_industry: raw };
+}
+
+/** @deprecated Use inferLabIndustryFromScrape — kept for docs/tests referencing mapTaxonomyToLabIndustry. */
+export const mapTaxonomyToLabIndustry = inferLabIndustryFromScrape;
+
+/**
+ * Infer lab industry from a full scrape record (industry, industryInfo, analysis).
+ * @param {Record<string, unknown> | null | undefined} record
+ */
+export function inferLabIndustryFromRecord(record) {
+  const taxonomy = extractScrapeIndustryTaxonomy(record);
+  return inferLabIndustryFromScrape(taxonomy);
 }
 
 /**

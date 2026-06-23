@@ -25,6 +25,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
         'optional experience events per profile, optional Client Journey v2 HTML asset. ' +
         'Provide scrape_id OR url — when url is given, resolves an existing complete scrape via lab_resolve_brand_scrape logic. ' +
+        'Profile industry defaults from scrape taxonomy (lab_industry in summary) — do not override unless user asks. ' +
         'Prerequisite: complete scrape with personas (lab_resolve_brand_scrape → lab_brand_scrape if need_new_scrape). ' +
         'Does not create RTCDP audiences or AJO platform journeys — see lab_create_journey_from_brand_scrape ajoPlatformGap.',
       inputSchema: {
@@ -38,7 +39,10 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
           .boolean()
           .optional()
           .describe('When resolving url, reuse existing scrape (default true)'),
-        industry: z.string().optional().describe('Override inferred industry for profile generation'),
+        industry: z
+          .string()
+          .optional()
+          .describe('Override scrape-inferred lab_industry for profile generation — omit unless user explicitly asks'),
         steps: z
           .object({
             profiles: z.boolean().optional().describe('Generate golden profiles (default true)'),

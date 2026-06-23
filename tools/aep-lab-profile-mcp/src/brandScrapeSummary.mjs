@@ -2,7 +2,29 @@
  * Coworker-friendly summary of a brand scrape record (same shape as Portal / GCS payload).
  */
 
+import {
+  extractScrapeIndustryTaxonomy,
+  inferLabIndustryFromScrape,
+} from './brandScrapePersonaMap.mjs';
+
 const PORTAL_BRAND_SCRAPER_URL = 'https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html';
+
+/**
+ * Lab industry fields for Coworker (scrape taxonomy → dual-stream industry key).
+ * @param {Record<string, unknown> | null | undefined} record
+ * @param {string | null | undefined} [listIndustry]
+ */
+export function scrapeIndustryLabFields(record, listIndustry) {
+  const scrapeIndustry =
+    extractScrapeIndustryTaxonomy(record) || String(listIndustry || '').trim() || null;
+  const inferred = inferLabIndustryFromScrape(scrapeIndustry);
+  return {
+    scrape_industry: scrapeIndustry,
+    inferred_industry: inferred.scrape_industry,
+    lab_industry: inferred.industry,
+    industry_source: inferred.source,
+  };
+}
 
 function colorEntries(raw) {
   if (!Array.isArray(raw)) return [];
@@ -47,6 +69,7 @@ export function summarizeBrandScrape(record) {
 
   const scrapeId = String(record.scrapeId || '');
   const sandbox = String(record.sandbox || record.scopeId || '');
+  const industryFields = scrapeIndustryLabFields(record);
 
   return {
     scrapeId,
@@ -55,7 +78,8 @@ export function summarizeBrandScrape(record) {
     url: record.url || record.baseUrl || null,
     businessType: record.businessType || null,
     country: record.country || null,
-    industry: record.industry || analysis.industry || null,
+    industry: industryFields.scrape_industry,
+    ...industryFields,
     scrapeStatus: record.scrapeStatus || null,
     scrapeError: record.scrapeError || null,
     buildPhase: record.buildPhase || null,
@@ -94,6 +118,7 @@ export function summarizeBrandScrape(record) {
  */
 export function summarizeBrandScrapeListItem(item) {
   if (!item || typeof item !== 'object') return null;
+  const industryFields = scrapeIndustryLabFields(null, item.industry);
   return {
     scrapeId: item.scrapeId,
     brandName: item.brandName,
@@ -101,7 +126,8 @@ export function summarizeBrandScrapeListItem(item) {
     scrapeStatus: item.scrapeStatus,
     scrapeError: item.scrapeError,
     pagesScraped: item.pagesScraped,
-    industry: item.industry,
+    industry: industryFields.scrape_industry,
+    ...industryFields,
     analysisPresent: item.analysisPresent,
     personasPresent: item.personasPresent,
     campaignsPresent: item.campaignsPresent,

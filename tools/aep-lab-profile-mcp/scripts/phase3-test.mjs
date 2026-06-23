@@ -531,6 +531,9 @@ async function run() {
 
   const {
     inferLabIndustryFromScrape,
+    inferLabIndustryFromRecord,
+    extractScrapeIndustryTaxonomy,
+    mapTaxonomyToLabIndustry,
     parsePersonaName,
     buildAttributesFromBrandScrapePersona,
     inferSegmentHintFromScrape,
@@ -538,6 +541,23 @@ async function run() {
   } = await import('../src/brandScrapePersonaMap.mjs');
   assert(inferLabIndustryFromScrape('Travel & Hospitality').industry === 'travel', 'scrape industry travel');
   assert(inferLabIndustryFromScrape('Financial services').industry === 'fsi', 'scrape industry fsi');
+  assert(inferLabIndustryFromScrape('FOOD & BEVERAGE').industry === 'retail', 'Starbucks food beverage → retail');
+  assert(inferLabIndustryFromScrape('Food & beverage').industry === 'retail', 'food beverage canonical');
+  assert(mapTaxonomyToLabIndustry('Retail & E-commerce').industry === 'retail', 'mapTaxonomy alias');
+  assert(inferLabIndustryFromScrape('Telecommunications').industry === 'telecom', 'telecom taxonomy');
+  assert(inferLabIndustryFromScrape('Media & Entertainment').industry === 'media', 'media taxonomy');
+  const starbucksRecord = {
+    brandName: 'Starbucks',
+    industryInfo: { industry: 'Food & beverage', confidence: 'high' },
+  };
+  assert(extractScrapeIndustryTaxonomy(starbucksRecord) === 'Food & beverage', 'extract from industryInfo');
+  assert(inferLabIndustryFromRecord(starbucksRecord).industry === 'retail', 'Starbucks record → retail');
+  const etihadRecord = { industry: 'Travel & Hospitality' };
+  assert(inferLabIndustryFromRecord(etihadRecord).industry === 'travel', 'record top-level industry');
+  const { scrapeIndustryLabFields } = await import('../src/brandScrapeSummary.mjs');
+  const summaryFields = scrapeIndustryLabFields({ industry: 'Food & beverage' });
+  assert(summaryFields.lab_industry === 'retail', 'summary lab_industry retail');
+  assert(summaryFields.scrape_industry === 'Food & beverage', 'summary scrape_industry');
   const parsed = parsePersonaName('Sarah Chen');
   assert(parsed.firstName === 'Sarah' && parsed.lastName === 'Chen', 'parsePersonaName');
   const emailSuggest = suggestEmailForScrapePersona({
