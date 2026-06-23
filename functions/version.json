@@ -1,14 +1,14 @@
 {
-  "gitSha": "8469bca787bae68f5135a83ea6f90a6aba664c6f",
-  "gitShortSha": "8469bca7",
+  "gitSha": "26f4e5027a6d76dc3c0d0661192952ed97ccf4db",
+  "gitShortSha": "26f4e502",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Stamp deploy version metadata for af47af17",
+  "gitCommitSubject": "[apalmer] feat: automate Event Tool Profile enable with identityMap",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T09:35:36+01:00",
-  "deployedAt": "2026-06-23T08:36:16.157Z",
+  "gitCommitDate": "2026-06-23T20:37:50+01:00",
+  "deployedAt": "2026-06-23T19:41:28.769Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8469bca787bae68f5135a83ea6f90a6aba664c6f"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/26f4e5027a6d76dc3c0d0661192952ed97ccf4db"
 }
