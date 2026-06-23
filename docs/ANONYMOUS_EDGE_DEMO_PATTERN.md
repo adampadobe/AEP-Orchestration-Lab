@@ -61,7 +61,7 @@ Omit `sandbox` to use the function default (`ADOBE_SANDBOX_NAME` at deploy, ofte
 
 ## Event Tool (`event-tool.html`) automated schema
 
-The Profile Viewer **Event Tool** “Create schema” action (Cloud Function `eventInfraService`) creates an **ExperienceEvent** schema, attaches **Experience Event Core v2.1** when that ExperienceEvent-class field group exists in the sandbox (not Profile Core v2, which is for Profile-class schemas), and adds **non-primary** identity descriptors for **ECID** and **Email** on **`_{tenant}.identification.core.*`**. You still enable **Profile** in the AEP UI with **alternate primary identity** and send **`identityMap`** on each Edge payload (this doc).
+The Profile Viewer **Event Tool** “Create schema” / **Set up event infrastructure** action (Cloud Function `eventInfraService`) creates an **ExperienceEvent** schema, attaches **Experience Event Core v2.1** when that ExperienceEvent-class field group exists in the sandbox (not Profile Core v2, which is for Profile-class schemas), auto-provisions and attaches **Interaction Details Lite**, **Travel - Hotel Experience v1**, **B2C Event Identity v1**, and **AEP Event Tool - Booker Stayer v1** when missing, and adds **non-primary** identity descriptors for **ECID** and **Email** on **`_{tenant}.identification.core.*`**. Re-run **Set up event infrastructure** or `attachRecommendedFieldGroups` to repair an existing schema that is missing field groups. You still enable **Profile** in the AEP UI with **alternate primary identity** and send **`identityMap`** on each Edge payload (this doc).
 
 ## Related
 

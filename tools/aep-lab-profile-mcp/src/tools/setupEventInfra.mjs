@@ -19,7 +19,7 @@ export function registerSetupEventInfraTool(mcpServer) {
     {
       title: 'Set up event schema and dataset',
       description:
-        'POST /api/events/infra/step step=setupEventInfra — creates ExperienceEvent schema, attaches recommended field groups, and creates dataset (same as Profile Viewer Event tool **Set up event infrastructure**). ' +
+        'POST /api/events/infra/step step=setupEventInfra — creates ExperienceEvent schema, attaches Experience Event Core v2.1 + Interaction Details Lite + Travel - Hotel Experience v1 + B2C Event Identity v1 + Booker/Stayer field groups (auto-creates tenant FGs when missing), registers ECID/Email identity descriptors, and creates dataset (same as Profile Viewer Event tool **Set up event infrastructure**). ' +
         'Default schema: AEP Lab - Event Generic - Schema; dataset name derives Schema→Dataset unless dataset_name is set. ' +
         'After success: create Edge datastream in Data Collection, then lab_save_event_datastream or Event tool save.',
       inputSchema: {

@@ -5,12 +5,16 @@ const assert = require('node:assert/strict');
 const {
   findInteractionDetailsLiteMixin,
   findTravelHotelExperienceV1Mixin,
+  findB2cEventIdentityV1Mixin,
   mixinExtendsExperienceEventClass,
   matchesInteractionDetailsLiteTitle,
   matchesTravelHotelExperienceV1Title,
+  matchesB2cEventIdentityV1Title,
   buildInteractionDetailsLiteExperienceEventFieldGroup,
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
+  buildB2cEventIdentityV1ExperienceEventFieldGroup,
   buildEventSchemaIdentityDescriptorPairs,
+  REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES,
   SETUP_EVENT_INFRA_SUBSTEPS,
   runEventInfraStep,
 } = require('../eventInfraService');
@@ -112,4 +116,39 @@ test('buildEventSchemaIdentityDescriptorPairs defaults tenant to _demoemea', () 
   assert.equal(pairs[0].path, '/_demoemea/identification/core/ecid');
   assert.equal(pairs[1].path, '/_demoemea/identification/core/email');
   assert.equal(pairs.every((p) => p.isPrimary === false), true);
+});
+
+test('findB2cEventIdentityV1Mixin matches by title', () => {
+  const rows = [
+    {
+      title: 'B2C Event Identity v1',
+      $id: 'https://ns.adobe.com/prisacar/mixins/b2c-event-identity-v1',
+      'meta:intendedToExtend': ['https://ns.adobe.com/xdm/context/experienceevent'],
+    },
+  ];
+  const hit = findB2cEventIdentityV1Mixin(rows);
+  assert.ok(hit);
+  assert.equal(hit.title, 'B2C Event Identity v1');
+});
+
+test('matchesB2cEventIdentityV1Title accepts spacing variants', () => {
+  assert.equal(matchesB2cEventIdentityV1Title('B2C Event Identity v1'), true);
+  assert.equal(matchesB2cEventIdentityV1Title('B2CEvent Identity v1'), true);
+});
+
+test('buildB2cEventIdentityV1ExperienceEventFieldGroup wraps identification.core under tenant namespace', () => {
+  const body = buildB2cEventIdentityV1ExperienceEventFieldGroup(TENANT);
+  assert.equal(body.title, 'B2C Event Identity v1');
+  assert.ok(body.properties._prisacar);
+  assert.ok(body.properties._prisacar.properties.identification.properties.core.properties.ecid);
+  assert.ok(body.properties._prisacar.properties.identification.properties.core.properties.email);
+  assert.equal(body.properties.identification, undefined);
+});
+
+test('REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES lists lab Event Tool parity field groups', () => {
+  assert.deepEqual(REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES, [
+    'Interaction Details Lite',
+    'Travel - Hotel Experience v1',
+    'B2C Event Identity v1',
+  ]);
 });

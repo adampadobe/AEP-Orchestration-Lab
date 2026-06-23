@@ -1,8 +1,10 @@
 /**
  * Event Infrastructure — create XDM ExperienceEvent schema + dataset in a sandbox.
- * Optionally attaches **Experience Event Core v2.1** (ExperienceEvent-class field group) + ECID/Email
- * identity descriptors on `_{tenant}.identification.core.*` so the schema can be Profile-enabled in
- * the UI with **alternate primary identity** (`identityMap` per event).
+ * Optionally attaches **Experience Event Core v2.1** (ExperienceEvent-class field group),
+ * **Interaction Details Lite**, **Travel - Hotel Experience v1**, **B2C Event Identity v1**,
+ * **AEP Event Tool - Booker Stayer v1**, and non-primary ECID/Email identity descriptors on
+ * `_{tenant}.identification.core.*` so the schema can be Profile-enabled in the UI with
+ * **alternate primary identity** (`identityMap` per event).
  */
 
 const SCHEMA_REGISTRY = 'https://platform.adobe.io/data/foundation/schemaregistry';
@@ -67,6 +69,11 @@ function matchesInteractionDetailsLiteTitle(title) {
 
 function matchesTravelHotelExperienceV1Title(title) {
   return /travel\s*[-–]?\s*hotel\s*experience\s*v1/i.test(String(title || ''));
+}
+
+function matchesB2cEventIdentityV1Title(title) {
+  const key = normalizeFgTitleKey(title);
+  return key === 'b2ceventidentityv1' || /b2ceventidentityv1$/.test(key);
 }
 
 function headers(token, clientId, orgId, sandbox, extra = {}) {
@@ -283,16 +290,46 @@ function findTravelHotelExperienceV1Mixin(rows) {
   );
 }
 
+/** Adobe / lab "B2C Event Identity v1" (ExperienceEvent) — tenant identification.core.* for ECID, Email, etc. */
+function findB2cEventIdentityV1Mixin(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return (
+    list.find((m) => {
+      if (matchesB2cEventIdentityV1Title(m.title)) return true;
+      if (!mixinExtendsExperienceEventClass(m)) return false;
+      const t = String(m.title || '').toLowerCase().replace(/\s+/g, ' ');
+      return /b2c\s*event\s*identity\s*v1/.test(t);
+    }) || null
+  );
+}
+
 function isExperienceEventFieldGroupListRow(row) {
   if (!row || typeof row.$id !== 'string' || !row.$id) return false;
   if (mixinExtendsExperienceEventClass(row)) return true;
   if (matchesInteractionDetailsLiteTitle(row.title)) return true;
   if (matchesTravelHotelExperienceV1Title(row.title)) return true;
+  if (matchesB2cEventIdentityV1Title(row.title)) return true;
   return false;
 }
 
+/** Required ExperienceEvent field groups for Event Tool / lab_setup_event_infra parity (titles). */
+const REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES = [
+  'Interaction Details Lite',
+  'Travel - Hotel Experience v1',
+  'B2C Event Identity v1',
+];
+
 const INTERACTION_DETAILS_LITE_FG_TITLE = 'Interaction Details Lite';
 const TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE = 'Travel - Hotel Experience v1';
+const B2C_EVENT_IDENTITY_V1_FG_TITLE = 'B2C Event Identity v1';
+
+function xdmStringField(title) {
+  return { type: 'string', title, 'meta:xdmType': 'string' };
+}
+
+function xdmBoolField(title) {
+  return { type: 'boolean', title, 'meta:xdmType': 'boolean' };
+}
 
 /** Root-level `interactionDetails.core.channel` — matches Event Tool + generator payloads. */
 const INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES = {
@@ -453,6 +490,48 @@ function buildTravelHotelExperienceV1ExperienceEventFieldGroup(tenantId) {
   );
 }
 
+/** Tenant `identification.core.*` — aligned with AEP Event Tool reference schema + identity descriptors. */
+const B2C_EVENT_IDENTITY_V1_EE_TENANT_INNER = {
+  identification: {
+    type: 'object',
+    title: 'Identification',
+    properties: {
+      core: {
+        type: 'object',
+        title: 'Core identification',
+        properties: {
+          ecid: xdmStringField('Experience Cloud ID (ECID)'),
+          email: xdmStringField('Email address'),
+          crmId: xdmStringField('CRM ID'),
+          emailIdSha256: xdmStringField('Email SHA256'),
+          gaid: xdmStringField('Google Advertising ID'),
+          loyaltyId: xdmStringField('Loyalty ID'),
+          passportId: xdmStringField('Passport ID'),
+          phoneNumber: xdmStringField('Phone number'),
+          pushTokens: {
+            type: 'array',
+            title: 'Push tokens',
+            items: { type: 'string', 'meta:xdmType': 'string' },
+            'meta:xdmType': 'array',
+          },
+          stackchatId: xdmStringField('Stackchat ID'),
+        },
+        'meta:xdmType': 'object',
+      },
+    },
+    'meta:xdmType': 'object',
+  },
+};
+
+function buildB2cEventIdentityV1ExperienceEventFieldGroup(tenantId) {
+  return buildExperienceEventTenantFieldGroup(
+    tenantId,
+    B2C_EVENT_IDENTITY_V1_FG_TITLE,
+    'AEP Orchestration Lab — auto-created ExperienceEvent field group for tenant identification.core (B2C Event Identity v1).',
+    B2C_EVENT_IDENTITY_V1_EE_TENANT_INNER
+  );
+}
+
 async function relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox, expectedIds) {
   const expected = new Set((expectedIds || []).filter(Boolean).map(String));
   const BACKOFF_MS = [0, 800, 1500, 2500, 4000, 6000, 8000];
@@ -482,7 +561,7 @@ async function relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox,
 }
 
 /**
- * Resolve Interaction Details Lite + Travel - Hotel Experience v1 for ExperienceEvent.
+ * Resolve Interaction Details Lite, Travel - Hotel Experience v1, and B2C Event Identity v1 for ExperienceEvent.
  * When absent from tenant/global catalogs, auto-create tenant FGs (same pattern as profile
  * infra `createIfMissing` / Event Tool booker-stayer provisioning).
  */
@@ -496,8 +575,12 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
   let merged = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
   let interactionLite = findInteractionDetailsLiteMixin(merged);
   let travelHotel = findTravelHotelExperienceV1Mixin(merged);
+  let b2cEventIdentity = findB2cEventIdentityV1Mixin(merged);
 
-  let tenantId = parseTenantFromUri(interactionLite && interactionLite.$id) || parseTenantFromUri(travelHotel && travelHotel.$id);
+  let tenantId =
+    parseTenantFromUri(interactionLite && interactionLite.$id) ||
+    parseTenantFromUri(travelHotel && travelHotel.$id) ||
+    parseTenantFromUri(b2cEventIdentity && b2cEventIdentity.$id);
   if (!tenantId) {
     try {
       const tenantCtx = await discoverTenantContextForEventTool(token, clientId, orgId, sandbox);
@@ -509,6 +592,7 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
       return {
         interactionLite,
         travelHotel,
+        b2cEventIdentity,
         merged,
         created,
         warnings,
@@ -517,6 +601,12 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
       };
     }
   }
+
+  const titleMatcherByKey = {
+    interactionLite: matchesInteractionDetailsLiteTitle,
+    travelHotel: matchesTravelHotelExperienceV1Title,
+    b2cEventIdentity: matchesB2cEventIdentityV1Title,
+  };
 
   const specs = [];
   if (!interactionLite) {
@@ -529,6 +619,12 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
     specs.push({
       key: 'travelHotel',
       body: buildTravelHotelExperienceV1ExperienceEventFieldGroup(tenantId),
+    });
+  }
+  if (!b2cEventIdentity) {
+    specs.push({
+      key: 'b2cEventIdentity',
+      body: buildB2cEventIdentityV1ExperienceEventFieldGroup(tenantId),
     });
   }
 
@@ -549,8 +645,7 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
       const httpStatus = e.httpStatus;
       if (/409|already exists|duplicate|conflict/i.test(msg)) {
         log(sandbox, 'ensureRecommendedFg.alreadyExists', { title: item.body.title });
-        const titleMatcher =
-          item.key === 'interactionLite' ? matchesInteractionDetailsLiteTitle : matchesTravelHotelExperienceV1Title;
+        const titleMatcher = titleMatcherByKey[item.key];
         const existing = await findTenantExperienceEventFieldGroupByTitle(
           token,
           clientId,
@@ -575,6 +670,9 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
   if (!travelHotel && createdByKey.travelHotel && createdByKey.travelHotel.$id) {
     travelHotel = createdByKey.travelHotel;
   }
+  if (!b2cEventIdentity && createdByKey.b2cEventIdentity && createdByKey.b2cEventIdentity.$id) {
+    b2cEventIdentity = createdByKey.b2cEventIdentity;
+  }
 
   if (newIds.length) {
     await relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox, newIds);
@@ -583,6 +681,8 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
       findInteractionDetailsLiteMixin(merged) || createdByKey.interactionLite || interactionLite;
     travelHotel =
       findTravelHotelExperienceV1Mixin(merged) || createdByKey.travelHotel || travelHotel;
+    b2cEventIdentity =
+      findB2cEventIdentityV1Mixin(merged) || createdByKey.b2cEventIdentity || b2cEventIdentity;
   }
 
   if (!interactionLite) {
@@ -609,10 +709,23 @@ async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgI
         matchesTravelHotelExperienceV1Title
       ));
   }
+  if (!b2cEventIdentity) {
+    b2cEventIdentity =
+      createdByKey.b2cEventIdentity ||
+      (await findTenantExperienceEventFieldGroupByTitle(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        B2C_EVENT_IDENTITY_V1_FG_TITLE,
+        matchesB2cEventIdentityV1Title
+      ));
+  }
 
   return {
     interactionLite,
     travelHotel,
+    b2cEventIdentity,
     merged,
     created,
     warnings,
@@ -820,6 +933,8 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     profileCoreAttached: false,
     interactionDetailsLiteAttached: false,
     travelHotelExperienceV1Attached: false,
+    b2cEventIdentityV1Attached: false,
+    bookerStayerAttached: false,
     hospitalityFieldGroupWarnings: [],
     identityDescriptors: 0,
     warn: null,
@@ -888,26 +1003,57 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
 
   const interactionLite = findInteractionDetailsLiteMixin(merged);
   const travelHotel = findTravelHotelExperienceV1Mixin(merged);
+  const b2cEventIdentity = findB2cEventIdentityV1Mixin(merged);
   let hospitalityCreated = [];
   let hospitalityEnsureWarnings = [];
   let hospitalityPlatformErrors = [];
   let resolvedInteractionLite = interactionLite;
   let resolvedTravelHotel = travelHotel;
-  if (!interactionLite || !travelHotel) {
+  let resolvedB2cEventIdentity = b2cEventIdentity;
+  if (!interactionLite || !travelHotel || !b2cEventIdentity) {
     const ensured = await ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox);
     hospitalityCreated = ensured.created || [];
     hospitalityEnsureWarnings = ensured.warnings || [];
     hospitalityPlatformErrors = ensured.platformErrors || [];
     resolvedInteractionLite = ensured.interactionLite || interactionLite;
     resolvedTravelHotel = ensured.travelHotel || travelHotel;
+    resolvedB2cEventIdentity = ensured.b2cEventIdentity || b2cEventIdentity;
     if (ensured.merged) merged = ensured.merged;
   }
+
+  let bookerStayerRow = await findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, BOOKER_STAYER_FG_TITLE);
+  let bookerStayerCreated = false;
+  if (!bookerStayerRow) {
+    try {
+      bookerStayerRow = await postTenantFieldGroup(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        buildBookerStayerExperienceEventFieldGroup(tenantCtx.tenantId)
+      );
+      bookerStayerCreated = true;
+      hospitalityCreated.push({ title: BOOKER_STAYER_FG_TITLE, $id: String(bookerStayerRow.$id) });
+    } catch (e) {
+      const msg = String(e.message || e);
+      if (/duplicate|already exists|409/i.test(msg)) {
+        bookerStayerRow = await findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, BOOKER_STAYER_FG_TITLE);
+      } else {
+        hospitalityEnsureWarnings.push(`Could not auto-create "${BOOKER_STAYER_FG_TITLE}": ${msg.slice(0, 220)}`);
+      }
+    }
+  }
+
   const extraRefs = [
     resolvedInteractionLite && resolvedInteractionLite.$id,
     resolvedTravelHotel && resolvedTravelHotel.$id,
+    resolvedB2cEventIdentity && resolvedB2cEventIdentity.$id,
+    bookerStayerRow && bookerStayerRow.$id,
   ].filter(Boolean);
   let interactionDetailsLiteAttached = false;
   let travelHotelExperienceV1Attached = false;
+  let b2cEventIdentityV1Attached = false;
+  let bookerStayerAttached = false;
   const hospitalityFieldGroupWarnings = [...hospitalityEnsureWarnings];
   for (const c of hospitalityCreated) {
     if (c && c.title) hospitalityFieldGroupWarnings.push(`Auto-created field group "${c.title}" in this sandbox.`);
@@ -921,11 +1067,23 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     if (resolvedTravelHotel && resolvedTravelHotel.$id && fgRes.attached.includes(resolvedTravelHotel.$id)) {
       travelHotelExperienceV1Attached = true;
     }
+    if (resolvedB2cEventIdentity && resolvedB2cEventIdentity.$id && fgRes.attached.includes(resolvedB2cEventIdentity.$id)) {
+      b2cEventIdentityV1Attached = true;
+    }
+    if (bookerStayerRow && bookerStayerRow.$id && fgRes.attached.includes(bookerStayerRow.$id)) {
+      bookerStayerAttached = true;
+    }
     if (resolvedInteractionLite && resolvedInteractionLite.$id && fgRes.skipped.includes(resolvedInteractionLite.$id)) {
       interactionDetailsLiteAttached = true;
     }
     if (resolvedTravelHotel && resolvedTravelHotel.$id && fgRes.skipped.includes(resolvedTravelHotel.$id)) {
       travelHotelExperienceV1Attached = true;
+    }
+    if (resolvedB2cEventIdentity && resolvedB2cEventIdentity.$id && fgRes.skipped.includes(resolvedB2cEventIdentity.$id)) {
+      b2cEventIdentityV1Attached = true;
+    }
+    if (bookerStayerRow && bookerStayerRow.$id && fgRes.skipped.includes(bookerStayerRow.$id)) {
+      bookerStayerAttached = true;
     }
     if (!resolvedInteractionLite) {
       hospitalityFieldGroupWarnings.push(
@@ -935,6 +1093,16 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     if (!resolvedTravelHotel) {
       hospitalityFieldGroupWarnings.push(
         'Travel - Hotel Experience v1 (ExperienceEvent) could not be resolved or auto-created — retry in a few seconds or add the field group manually in AEP if org policy blocks tenant FG creation.'
+      );
+    }
+    if (!resolvedB2cEventIdentity) {
+      hospitalityFieldGroupWarnings.push(
+        'B2C Event Identity v1 (ExperienceEvent) could not be resolved or auto-created — retry in a few seconds or add the field group manually in AEP if org policy blocks tenant FG creation.'
+      );
+    }
+    if (!bookerStayerRow) {
+      hospitalityFieldGroupWarnings.push(
+        `"${BOOKER_STAYER_FG_TITLE}" could not be resolved or auto-created — run ensureBookerStayerFieldGroup or retry setup.`
       );
     }
     full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
@@ -968,6 +1136,9 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     profileCoreAttached: experienceEventCoreV21Attached,
     interactionDetailsLiteAttached,
     travelHotelExperienceV1Attached,
+    b2cEventIdentityV1Attached,
+    bookerStayerAttached,
+    bookerStayerFieldGroupCreated: bookerStayerCreated,
     hospitalityFieldGroupWarnings,
     hospitalityPlatformErrors,
     createdFieldGroups: hospitalityCreated,
@@ -1058,14 +1229,6 @@ async function runEventInfraStatus(sandbox, token, clientId, orgId, schemaTitle,
 
 /** Tenant ExperienceEvent field group: typed booker/stayer under `_{tenant}.public.bookingParty`. */
 const BOOKER_STAYER_FG_TITLE = 'AEP Event Tool - Booker Stayer v1';
-
-function xdmStringField(title) {
-  return { type: 'string', title, 'meta:xdmType': 'string' };
-}
-
-function xdmBoolField(title) {
-  return { type: 'boolean', title, 'meta:xdmType': 'boolean' };
-}
 
 function buildBookerStayerExperienceEventFieldGroup(tenantId) {
   const tid = String(tenantId || '').trim();
@@ -1236,13 +1399,21 @@ async function runSetupEventInfra(sandbox, token, clientId, orgId, opts = {}) {
   let datasetId = null;
 
   const ensured = await ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox);
-  const fgOk = !!(ensured.interactionLite && ensured.interactionLite.$id && ensured.travelHotel && ensured.travelHotel.$id);
+  const fgOk = !!(
+    ensured.interactionLite &&
+    ensured.interactionLite.$id &&
+    ensured.travelHotel &&
+    ensured.travelHotel.$id &&
+    ensured.b2cEventIdentity &&
+    ensured.b2cEventIdentity.$id
+  );
   subSteps.push({
     step: 'ensureFieldGroups',
     ok: fgOk,
     skipped: !ensured.autoProvisionAttempted && fgOk,
     interactionDetailsLiteId: ensured.interactionLite && ensured.interactionLite.$id ? String(ensured.interactionLite.$id) : null,
     travelHotelExperienceV1Id: ensured.travelHotel && ensured.travelHotel.$id ? String(ensured.travelHotel.$id) : null,
+    b2cEventIdentityV1Id: ensured.b2cEventIdentity && ensured.b2cEventIdentity.$id ? String(ensured.b2cEventIdentity.$id) : null,
     createdFieldGroups: ensured.created || [],
     warnings: ensured.warnings || [],
     platformErrors: ensured.platformErrors || [],
@@ -1260,7 +1431,7 @@ async function runSetupEventInfra(sandbox, token, clientId, orgId, opts = {}) {
       platformErrors: ensured.platformErrors || [],
       warnings: ensured.warnings || [],
       error:
-        'Could not resolve or auto-create Interaction Details Lite and Travel - Hotel Experience v1 for ExperienceEvent. ' +
+        'Could not resolve or auto-create required ExperienceEvent field groups (Interaction Details Lite, Travel - Hotel Experience v1, B2C Event Identity v1). ' +
         (detail ||
           'Check Schema Registry permissions or import the field groups manually in AEP → Schemas → Browse.'),
     };
@@ -1348,8 +1519,10 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     const attach = await attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, created);
     const parts = [`Schema "${title}" created (ExperienceEvent class).`];
     if (attach.experienceEventCoreV21Attached) parts.push('Experience Event Core v2.1 field group attached.');
-    if (attach.interactionDetailsLiteAttached) parts.push('Interaction Details Lite attached (root interactionDetails.core.channel).');
-    if (attach.travelHotelExperienceV1Attached) parts.push('Travel - Hotel Experience v1 attached (maps core stay fields to hotel.bookingDetails on payloads).');
+    if (attach.interactionDetailsLiteAttached) parts.push('Interaction Details Lite attached (tenant interactionDetails.core.channel).');
+    if (attach.travelHotelExperienceV1Attached) parts.push('Travel - Hotel Experience v1 attached (tenant hotel stay lifecycle).');
+    if (attach.b2cEventIdentityV1Attached) parts.push('B2C Event Identity v1 attached (tenant identification.core.ecid / .email).');
+    if (attach.bookerStayerAttached) parts.push(`${BOOKER_STAYER_FG_TITLE} attached (tenant public.bookingParty).`);
     for (const w of attach.hospitalityFieldGroupWarnings || []) {
       if (w) parts.push(`Note: ${w}`);
     }
@@ -1371,6 +1544,8 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       profileCoreAttached: !!attach.profileCoreAttached,
       interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
       travelHotelExperienceV1Attached: !!attach.travelHotelExperienceV1Attached,
+      b2cEventIdentityV1Attached: !!attach.b2cEventIdentityV1Attached,
+      bookerStayerAttached: !!attach.bookerStayerAttached,
       hospitalityFieldGroupWarnings: attach.hospitalityFieldGroupWarnings || [],
       platformErrors: attach.hospitalityPlatformErrors || [],
       createdFieldGroups: attach.createdFieldGroups || [],
@@ -1409,47 +1584,53 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       const ref = String(schema.$id || schemaIdOpt || title || 'schema').trim();
       return { ok: false, error: `Schema "${ref}" has no meta:altId yet — wait a few seconds after creation and retry.` };
     }
-    const ensured = await ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox);
-    const interactionLite = ensured.interactionLite;
-    const travelHotel = ensured.travelHotel;
-    const refs = [interactionLite && interactionLite.$id, travelHotel && travelHotel.$id].filter(Boolean);
-    if (!refs.length) {
-      const platformDetail = (ensured.platformErrors || [])
-        .map((p) => `${p.title}: ${p.message}`)
-        .join(' ');
-      const warningDetail = (ensured.warnings || []).join(' ');
-      const detail = [platformDetail, warningDetail].filter(Boolean).join(' ');
-      return {
-        ok: false,
-        autoProvisionAttempted: !!ensured.autoProvisionAttempted,
-        createdFieldGroups: ensured.created || [],
-        warnings: ensured.warnings || [],
-        platformErrors: ensured.platformErrors || [],
-        error:
-          'Could not resolve or auto-create Interaction Details Lite and Travel - Hotel Experience v1 for ExperienceEvent. ' +
-          (detail ||
-            'Wait a few seconds and retry — the lab creates tenant field groups when they are missing from the sandbox (same pattern as Travel/FSI profile setup).') +
-          ' If this persists, check Schema Registry permissions or import the field groups manually in AEP → Schemas → Browse.',
-      };
-    }
-    const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, refs);
+
+    const attach = await attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, schema);
     const label = schemaIdOpt ? schema.$id || schemaIdOpt : title;
-    const parts = [`Field groups processed for "${label}".`];
-    if ((ensured.created || []).length) {
+    const parts = [`Field groups and identity descriptors processed for "${label}".`];
+    if (attach.experienceEventCoreV21Attached) parts.push('Experience Event Core v2.1 attached or already present.');
+    if (attach.interactionDetailsLiteAttached) parts.push('Interaction Details Lite attached or already present.');
+    if (attach.travelHotelExperienceV1Attached) parts.push('Travel - Hotel Experience v1 attached or already present.');
+    if (attach.b2cEventIdentityV1Attached) parts.push('B2C Event Identity v1 attached or already present.');
+    if (attach.bookerStayerAttached) parts.push(`${BOOKER_STAYER_FG_TITLE} attached or already present.`);
+    if ((attach.createdFieldGroups || []).length) {
+      parts.push(`Auto-created: ${attach.createdFieldGroups.map((c) => c.title).join(', ')}.`);
+    }
+    if (attach.identityDescriptors > 0) {
       parts.push(
-        `Auto-created in sandbox: ${ensured.created.map((c) => c.title).join(', ')}.`,
+        `Identity descriptors on ${attach.tenantXdmKey || 'tenant'}.identification.core.ecid / .email (${attach.identityDescriptors} registered).`
       );
     }
-    if (fgRes.attached.length) parts.push(`Attached: ${fgRes.attached.length} (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
-    if (fgRes.skipped.length) parts.push(`Already present: ${fgRes.skipped.length}.`);
-    for (const w of fgRes.warnings) parts.push(`Warning: ${w}`);
-    for (const w of ensured.warnings || []) parts.push(`Note: ${w}`);
-    if (!interactionLite) {
-      parts.push('Note: Interaction Details Lite still not resolved after auto-provision — retry shortly.');
+    for (const w of attach.hospitalityFieldGroupWarnings || []) {
+      if (w) parts.push(`Note: ${w}`);
     }
-    if (!travelHotel) {
-      parts.push('Note: Travel - Hotel Experience v1 still not resolved after auto-provision — retry shortly.');
+    if (attach.warn) parts.push(`Note: ${attach.warn}`);
+
+    const coreOk =
+      attach.interactionDetailsLiteAttached &&
+      attach.travelHotelExperienceV1Attached &&
+      attach.b2cEventIdentityV1Attached;
+    if (!coreOk) {
+      return {
+        ok: false,
+        sandbox,
+        step,
+        schemaTitle: String(schema.title || '').trim() || null,
+        schemaId: schema.$id,
+        schemaMetaAltId: metaAltId,
+        interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
+        travelHotelExperienceV1Attached: !!attach.travelHotelExperienceV1Attached,
+        b2cEventIdentityV1Attached: !!attach.b2cEventIdentityV1Attached,
+        bookerStayerAttached: !!attach.bookerStayerAttached,
+        experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
+        createdFieldGroups: attach.createdFieldGroups || [],
+        platformErrors: attach.hospitalityPlatformErrors || [],
+        warnings: attach.hospitalityFieldGroupWarnings || [],
+        error:
+          'Could not attach required ExperienceEvent field groups (Interaction Details Lite, Travel - Hotel Experience v1, B2C Event Identity v1). Retry shortly or check Schema Registry permissions.',
+      };
     }
+
     return {
       ok: true,
       sandbox,
@@ -1457,14 +1638,19 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaTitle: String(schema.title || '').trim() || null,
       schemaId: schema.$id,
       schemaMetaAltId: metaAltId,
-      attachedFieldGroupIds: fgRes.attached,
-      skippedFieldGroupIds: fgRes.skipped,
-      createdFieldGroups: ensured.created || [],
-      autoProvisionAttempted: !!ensured.autoProvisionAttempted,
-      interactionDetailsLiteFound: !!interactionLite,
-      travelHotelExperienceV1Found: !!travelHotel,
-      platformErrors: ensured.platformErrors || [],
-      warnings: [...(fgRes.warnings || []), ...(ensured.warnings || [])],
+      experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
+      interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
+      travelHotelExperienceV1Attached: !!attach.travelHotelExperienceV1Attached,
+      b2cEventIdentityV1Attached: !!attach.b2cEventIdentityV1Attached,
+      bookerStayerAttached: !!attach.bookerStayerAttached,
+      identityDescriptorsCreated: Number(attach.identityDescriptors) || 0,
+      createdFieldGroups: attach.createdFieldGroups || [],
+      interactionDetailsLiteFound: !!attach.interactionDetailsLiteAttached,
+      travelHotelExperienceV1Found: !!attach.travelHotelExperienceV1Attached,
+      b2cEventIdentityV1Found: !!attach.b2cEventIdentityV1Attached,
+      platformErrors: attach.hospitalityPlatformErrors || [],
+      warnings: attach.hospitalityFieldGroupWarnings || [],
+      tenantXdmKey: attach.tenantXdmKey || null,
       message: parts.join(' '),
     };
   }
@@ -1769,14 +1955,18 @@ module.exports = {
   runEventInfraStep,
   fetchSchemaEventTypes,
   SETUP_EVENT_INFRA_SUBSTEPS,
+  REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES,
   // Test / script helpers
   findInteractionDetailsLiteMixin,
   findTravelHotelExperienceV1Mixin,
+  findB2cEventIdentityV1Mixin,
   mixinExtendsExperienceEventClass,
   matchesInteractionDetailsLiteTitle,
   matchesTravelHotelExperienceV1Title,
+  matchesB2cEventIdentityV1Title,
   buildInteractionDetailsLiteExperienceEventFieldGroup,
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
+  buildB2cEventIdentityV1ExperienceEventFieldGroup,
   buildEventSchemaIdentityDescriptorPairs,
   ensureRecommendedExperienceEventFieldGroups,
 };
