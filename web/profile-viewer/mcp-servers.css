@@ -558,10 +558,37 @@ body.mcp-key-modal-open {
   box-shadow: var(--dash-shadow, 0 8px 24px rgba(0, 0, 0, 0.12));
 }
 
+.mcp-key-modal-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
 .mcp-key-modal-title {
-  margin: 0 0 0.5rem;
+  margin: 0;
+  flex: 1 1 12rem;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.mcp-key-modal-header-copy {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.mcp-key-modal-copy-toast {
+  min-height: 1.25rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--dash-success-text, #15803d);
+  line-height: 1.35;
+}
+
+.mcp-key-modal-copy-toast:empty {
+  display: none;
 }
 
 .mcp-key-modal-warning {

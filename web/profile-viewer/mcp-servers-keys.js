@@ -132,15 +132,57 @@
     return iso ? new Date(iso).toLocaleString() : '—';
   }
 
-  function copyTextToClipboard(text, btn, defaultLabel) {
-    if (!btn) return;
-    try {
-      navigator.clipboard.writeText(text);
-      btn.textContent = 'Copied';
-      setTimeout(function () {
-        btn.textContent = defaultLabel;
-      }, 1500);
-    } catch (_e) {}
+  function setModalCopyToast(message) {
+    var toast = document.getElementById('mcpLabKeyModalCopyToast');
+    if (!toast) return;
+    toast.textContent = message || '';
+    if (message) {
+      clearTimeout(setModalCopyToast._timer);
+      setModalCopyToast._timer = setTimeout(function () {
+        toast.textContent = '';
+      }, 2200);
+    }
+  }
+
+  function copyTextToClipboard(text, btn, defaultLabel, toastMessage) {
+    if (!text) return Promise.resolve(false);
+    var write = Promise.resolve();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      write = navigator.clipboard.writeText(text);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch (_e) {
+        document.body.removeChild(ta);
+        return Promise.resolve(false);
+      }
+      document.body.removeChild(ta);
+    }
+    return write
+      .then(function () {
+        if (btn) {
+          var priorLabel = btn.getAttribute('aria-label') || defaultLabel;
+          btn.textContent = 'Copied';
+          btn.setAttribute('aria-label', 'Copied to clipboard');
+          setTimeout(function () {
+            btn.textContent = defaultLabel;
+            btn.setAttribute('aria-label', priorLabel);
+          }, 1500);
+        }
+        setModalCopyToast(toastMessage || 'Copied to clipboard');
+        return true;
+      })
+      .catch(function () {
+        setModalCopyToast('Copy failed — select text and copy manually');
+        return false;
+      });
   }
 
   function renderCurrentKey(keys, currentKeyFromApi) {
@@ -301,28 +343,33 @@
     wrap.setAttribute('aria-modal', 'true');
     wrap.setAttribute('aria-labelledby', 'mcpLabKeyModalTitle');
 
-    var snippet = coworkerSnippet(apiKey);
+    var snippetWithKey = coworkerSnippet(apiKey);
+    var snippetPlaceholder = coworkerSnippetPlaceholder();
     wrap.innerHTML =
       '<div class="mcp-key-modal">' +
+      '<div class="mcp-key-modal-header">' +
       '<h3 id="mcpLabKeyModalTitle" class="mcp-key-modal-title">' +
       escapeHtml(title) +
       '</h3>' +
+      '<button type="button" class="dashboard-btn-outline mcp-key-modal-header-copy" id="mcpLabKeyCopyConfigBtn" aria-label="Copy Coworker config without API key (paste key separately)">Copy Coworker config</button>' +
+      '</div>' +
       '<p class="mcp-key-modal-warning">' +
       escapeHtml(warning || 'Copy this key now. It will not be shown again.') +
       '</p>' +
+      '<p id="mcpLabKeyModalCopyToast" class="mcp-key-modal-copy-toast" aria-live="polite"></p>' +
       '<label class="mcp-key-modal-label" for="mcpLabKeyPlaintext">API key</label>' +
       '<div class="mcp-key-modal-row">' +
       '<input id="mcpLabKeyPlaintext" class="mcp-key-modal-input" type="text" readonly value="' +
       escapeHtml(apiKey) +
       '">' +
-      '<button type="button" class="dashboard-btn-outline mcp-key-copy-btn" data-copy-target="mcpLabKeyPlaintext">Copy key</button>' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopySecretBtn" aria-label="Copy API key secret only">Copy key</button>' +
       '</div>' +
-      '<label class="mcp-key-modal-label" for="mcpLabKeySnippet">Coworker / Cursor mcp.json snippet</label>' +
-      '<textarea id="mcpLabKeySnippet" class="mcp-key-modal-snippet" readonly rows="8">' +
-      escapeHtml(snippet) +
+      '<label class="mcp-key-modal-label" for="mcpLabKeySnippet">Coworker / Cursor mcp.json (preview — key slot empty)</label>' +
+      '<textarea id="mcpLabKeySnippet" class="mcp-key-modal-snippet" readonly rows="8" aria-label="Coworker MCP config preview without secret">' +
+      escapeHtml(snippetPlaceholder) +
       '</textarea>' +
       '<div class="mcp-key-modal-actions">' +
-      '<button type="button" class="dashboard-btn-outline mcp-key-copy-btn" data-copy-target="mcpLabKeySnippet">Copy snippet</button>' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyAllBtn" aria-label="Copy complete Coworker config with API key filled in">Copy all</button>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyModalClose">Done</button>' +
       '</div>' +
       '</div>';
@@ -336,22 +383,36 @@
       storeKeyInSession('latest', apiKey);
     }
 
-    wrap.querySelectorAll('.mcp-key-copy-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = btn.getAttribute('data-copy-target');
-        var el = id ? document.getElementById(id) : null;
-        if (!el) return;
-        el.select();
-        el.setSelectionRange(0, 99999);
-        try {
-          navigator.clipboard.writeText(el.value);
-          btn.textContent = 'Copied';
-          setTimeout(function () {
-            btn.textContent = id === 'mcpLabKeyPlaintext' ? 'Copy key' : 'Copy snippet';
-          }, 1500);
-        } catch (_e) {}
+    var copyConfigBtn = document.getElementById('mcpLabKeyCopyConfigBtn');
+    if (copyConfigBtn) {
+      copyConfigBtn.addEventListener('click', function () {
+        copyTextToClipboard(
+          snippetPlaceholder,
+          copyConfigBtn,
+          'Copy Coworker config',
+          'Coworker config copied (no secret) — paste your key into X-AEP-Lab-Mcp-Key',
+        );
       });
-    });
+    }
+
+    var copySecretBtn = document.getElementById('mcpLabKeyCopySecretBtn');
+    if (copySecretBtn) {
+      copySecretBtn.addEventListener('click', function () {
+        copyTextToClipboard(apiKey, copySecretBtn, 'Copy key', 'API key copied');
+      });
+    }
+
+    var copyAllBtn = document.getElementById('mcpLabKeyCopyAllBtn');
+    if (copyAllBtn) {
+      copyAllBtn.addEventListener('click', function () {
+        copyTextToClipboard(
+          snippetWithKey,
+          copyAllBtn,
+          'Copy all',
+          'Complete Coworker config copied (includes secret)',
+        );
+      });
+    }
 
     var closeBtn = document.getElementById('mcpLabKeyModalClose');
     if (closeBtn) {
