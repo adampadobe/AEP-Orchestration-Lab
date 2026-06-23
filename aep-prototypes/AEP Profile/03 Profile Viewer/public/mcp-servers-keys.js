@@ -186,21 +186,6 @@
       });
   }
 
-  function updateSandboxContextBanner() {
-    var banner = document.getElementById('mcpLabKeySandboxBanner');
-    if (!banner) return;
-    var sb = getGlobalSandboxName();
-    if (!sb) {
-      banner.innerHTML =
-        '<p class="mcp-key-hint">Select a sandbox in the Profile Viewer nav to manage its MCP API key.</p>';
-      return;
-    }
-    banner.innerHTML =
-      '<p class="mcp-key-sandbox-banner">Key for sandbox <code>' +
-      escapeHtml(sb) +
-      '</code> — follows your global sandbox selection. Switch sandbox in the nav to manage another key.</p>';
-  }
-
   function renderCurrentKey(current, sandbox) {
     var section = document.getElementById('mcpLabKeyCurrentSection');
     if (!section) return;
@@ -477,7 +462,6 @@
   function applyKeysPayload(data) {
     cachedKeysPayload = data;
     var sandbox = data.sandbox || getGlobalSandboxName();
-    updateSandboxContextBanner();
     renderCurrentKey(data.currentKey, sandbox);
     renderKeysList(data.keys || []);
     var hasKey = !!(data.currentKey && !data.currentKey.revoked);
@@ -503,7 +487,6 @@
   function refreshKeys() {
     var sandbox = getGlobalSandboxName();
     if (!sandbox) {
-      updateSandboxContextBanner();
       renderCurrentKey(null, '');
       renderKeysList([]);
       var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
@@ -616,9 +599,6 @@
 
   function onGlobalSandboxChange() {
     refreshKeys();
-    if (global.AepProfileGenPrefsSync && typeof global.AepProfileGenPrefsSync.pull === 'function') {
-      global.AepProfileGenPrefsSync.pull(getGlobalSandboxName());
-    }
   }
 
   function renderSignedOut() {
@@ -645,13 +625,6 @@
     if (!panel) return;
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
-      '<p class="mcp-key-lead">Personal key for the sandbox selected in the nav. Scoped to that sandbox only — use <strong>Copy Coworker config</strong> after generate or rotate.</p>' +
-      '<div id="mcpLabKeySandboxBanner" class="mcp-key-sandbox-banner-wrap" aria-live="polite"></div>' +
-      '<div class="mcp-gen-prefs-sync">' +
-      '<h4 class="mcp-gen-prefs-sync-title">Profile generation sync</h4>' +
-      '<p class="mcp-gen-prefs-sync-lead">Shared base email with Profile generation — Coworker uses the same prefs when generating without an explicit email.</p>' +
-      '<p class="profile-gen-prefs-sync-status" id="mcpLabGenPrefsSyncStatus" data-profile-gen-prefs-sync aria-live="polite" hidden></p>' +
-      '</div>' +
       '<div id="mcpLabKeyCurrentSection" class="mcp-key-section mcp-key-current-section" aria-live="polite"></div>' +
       '<div class="mcp-key-actions-row">' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyGenerateBtn">Generate key</button>' +
@@ -662,13 +635,6 @@
 
     var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
     if (genBtn) genBtn.addEventListener('click', generateKey);
-    if (global.AepProfileGenPrefsSync && typeof global.AepProfileGenPrefsSync.bindSyncStatus === 'function') {
-      global.AepProfileGenPrefsSync.bindSyncStatus(document.getElementById('mcpLabGenPrefsSyncStatus'));
-      if (typeof global.AepProfileGenPrefsSync.pull === 'function') {
-        global.AepProfileGenPrefsSync.pull(getGlobalSandboxName());
-      }
-    }
-    updateSandboxContextBanner();
     refreshKeys();
   }
 
