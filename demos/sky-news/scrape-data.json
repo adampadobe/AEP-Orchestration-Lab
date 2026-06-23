@@ -1,0 +1,272 @@
+{
+  "scrape_id": "sky-news-uk-20260623-a636a2",
+  "scrapedAt": "2026-06-23T14:18:09.339Z",
+  "sourceUrl": "https://news.sky.com/uk",
+  "scrapeNote": "Live site blocked automated fetch (Akamai 403). Structure and headlines curated from public Sky News UK homepage content via supplemental research; layout follows Sky multi-column news grid patterns.",
+  "title": "UK News - The Latest News from the UK and Around the World | Sky News",
+  "navLinks": [
+    {
+      "text": "Home",
+      "href": "/",
+      "section": "home"
+    },
+    {
+      "text": "UK",
+      "href": "/uk",
+      "section": "uk",
+      "active": true
+    },
+    {
+      "text": "Politics",
+      "href": "/politics",
+      "section": "politics"
+    },
+    {
+      "text": "World",
+      "href": "/world",
+      "section": "world"
+    },
+    {
+      "text": "US",
+      "href": "/us",
+      "section": "us"
+    },
+    {
+      "text": "Money",
+      "href": "/money",
+      "section": "money"
+    },
+    {
+      "text": "Science, Climate & Tech",
+      "href": "/science-climate-tech",
+      "section": "tech"
+    },
+    {
+      "text": "Ents & Arts",
+      "href": "/entertainment",
+      "section": "ents"
+    },
+    {
+      "text": "Offbeat",
+      "href": "/offbeat",
+      "section": "offbeat"
+    },
+    {
+      "text": "Analysis",
+      "href": "/analysis",
+      "section": "analysis"
+    },
+    {
+      "text": "Data & Forensics",
+      "href": "/data",
+      "section": "data"
+    },
+    {
+      "text": "Weather",
+      "href": "/weather",
+      "section": "weather"
+    },
+    {
+      "text": "Watch Live",
+      "href": "/watch-live",
+      "section": "live"
+    }
+  ],
+  "hero": {
+    "id": "story-13388452",
+    "headline": "Starmer says welfare vote will go ahead despite threat of Labour rebellion",
+    "standfirst": "Sir Keir Starmer insists reforms will be pressed ahead as more than 100 Labour MPs signal opposition to the government's welfare bill.",
+    "category": "Politics",
+    "timestamp": "Wednesday 25 June 2025 16:15, UK",
+    "href": "/story/starmer-welfare-vote-labour-rebellion",
+    "isLive": true,
+    "author": "Beth Rigby, Political Editor"
+  },
+  "secondaryHeadlines": [
+    {
+      "id": "story-13387759",
+      "headline": "PM warns of 'era of radical uncertainty' as UK pledges to increase defence spending",
+      "category": "UK",
+      "timestamp": "Tuesday 24 June 2025 13:24, UK",
+      "href": "/story/uk-nato-defence-spending-2035"
+    },
+    {
+      "id": "story-13388026",
+      "headline": "More Britons than ever struggling to make ends meet, report warns",
+      "category": "UK",
+      "timestamp": "Wednesday 25 June 2025 14:25, UK",
+      "href": "/story/britons-struggling-cost-of-living"
+    }
+  ],
+  "stories": [
+    {
+      "id": "story-13388485",
+      "headline": "Patient's death linked to cyber attack on NHS, hospital trust says",
+      "category": "Science, Climate & Tech",
+      "timestamp": "Wednesday 25 June 2025 17:02, UK",
+      "href": "/story/nhs-cyber-attack-patient-death",
+      "imageTone": "tech"
+    },
+    {
+      "id": "story-13387936",
+      "headline": "Starmer defiant over welfare cuts as Sadiq Khan calls for rethink",
+      "category": "Politics",
+      "timestamp": "Tuesday 24 June 2025 17:33, UK",
+      "href": "/story/starmer-welfare-cuts-sadiq-khan",
+      "imageTone": "politics"
+    },
+    {
+      "id": "story-13387674",
+      "headline": "Labour MPs table reasoned amendment in attempt to halt welfare bill",
+      "category": "Politics",
+      "timestamp": "Monday 23 June 2025 11:40, UK",
+      "href": "/story/labour-mps-welfare-amendment",
+      "imageTone": "politics"
+    },
+    {
+      "id": "story-nato-hague",
+      "headline": "NATO allies agree to increase defence spend to 5% by 2035",
+      "category": "World",
+      "timestamp": "Tuesday 24 June 2025 09:15, UK",
+      "href": "/story/nato-defence-spending-pledge",
+      "imageTone": "world"
+    },
+    {
+      "id": "story-council-tax",
+      "headline": "Council tax arrears rise 11% to £6.6bn across England",
+      "category": "Money",
+      "timestamp": "Wednesday 25 June 2025 08:30, UK",
+      "href": "/story/council-tax-arrears-england",
+      "imageTone": "money"
+    },
+    {
+      "id": "story-iran-israel",
+      "headline": "Escalating conflict between Iran, US and Israel raises NATO security fears",
+      "category": "World",
+      "timestamp": "Tuesday 24 June 2025 18:45, UK",
+      "href": "/story/iran-israel-us-nato",
+      "imageTone": "world"
+    },
+    {
+      "id": "story-ukraine",
+      "headline": "Ukraine war enters new phase as allies debate long-range weapons",
+      "category": "World",
+      "timestamp": "Wednesday 25 June 2025 07:20, UK",
+      "href": "/story/ukraine-long-range-weapons",
+      "imageTone": "world"
+    },
+    {
+      "id": "story-pip-reform",
+      "headline": "What the welfare reforms mean for PIP and universal credit claimants",
+      "category": "Analysis",
+      "timestamp": "Wednesday 25 June 2025 12:00, UK",
+      "href": "/story/welfare-reforms-pip-explained",
+      "imageTone": "analysis"
+    }
+  ],
+  "liveSection": {
+    "title": "Politics Hub Live",
+    "label": "LIVE",
+    "updates": [
+      {
+        "time": "16:42",
+        "text": "Armed forces minister Luke Pollard says talks continue with rebel MPs about potential concessions on welfare reforms."
+      },
+      {
+        "time": "16:15",
+        "text": "Sir Keir Starmer: 'We are committed to reforming our welfare system. It doesn't work. It traps people.'"
+      },
+      {
+        "time": "15:30",
+        "text": "More than 100 Labour MPs have signed a reasoned amendment that could halt the government's welfare bill."
+      },
+      {
+        "time": "14:55",
+        "text": "Sir Sadiq Khan becomes most senior Labour figure to call for a rethink of disability benefit proposals."
+      }
+    ]
+  },
+  "videoSection": {
+    "title": "Must Watch",
+    "items": [
+      {
+        "id": "video-politics-hub",
+        "title": "The Politics Hub with Sophy Ridge",
+        "duration": "Live",
+        "href": "/video/politics-hub-sophy-ridge"
+      },
+      {
+        "id": "video-nato-summit",
+        "title": "Starmer on defence spending at NATO summit",
+        "duration": "4:12",
+        "href": "/video/starmer-nato-defence"
+      },
+      {
+        "id": "video-welfare-explainer",
+        "title": "Welfare reforms explained in two minutes",
+        "duration": "2:04",
+        "href": "/video/welfare-reforms-explainer"
+      },
+      {
+        "id": "video-nhs-cyber",
+        "title": "How the NHS cyber attack disrupted hospitals",
+        "duration": "3:38",
+        "href": "/video/nhs-cyber-attack-impact"
+      }
+    ]
+  },
+  "sectionHeadings": [
+    "Top Stories",
+    "More from UK",
+    "Politics Hub Live",
+    "Must Watch",
+    "Analysis & Insight"
+  ],
+  "footerLinks": [
+    {
+      "text": "About Sky News",
+      "href": "/about"
+    },
+    {
+      "text": "Sky News International",
+      "href": "/international"
+    },
+    {
+      "text": "Sky News Library Sales",
+      "href": "/library-sales"
+    },
+    {
+      "text": "Contact Us",
+      "href": "/contact"
+    },
+    {
+      "text": "Sky News Board",
+      "href": "/board"
+    },
+    {
+      "text": "Sky Data",
+      "href": "/data"
+    },
+    {
+      "text": "Sky News RSS",
+      "href": "/rss"
+    },
+    {
+      "text": "Sky News For Your Phone",
+      "href": "/apps"
+    },
+    {
+      "text": "Sky News Radio",
+      "href": "/radio"
+    },
+    {
+      "text": "Privacy & Cookies",
+      "href": "/privacy"
+    },
+    {
+      "text": "Terms & Conditions",
+      "href": "/terms"
+    }
+  ],
+  "scrapeMethod": "playwright_blocked_fallback_to_curated"
+}

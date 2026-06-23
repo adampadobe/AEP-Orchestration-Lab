@@ -1,0 +1,60 @@
+{
+  "scrape_id": "sky-news-uk-20260623-a636a2",
+  "emailPattern": "adamp.adobedemo+DDMMYYYY-n@gmail.com",
+  "personas": [
+    {
+      "id": "politics-focused-reader",
+      "fullName": "Helen Marsh",
+      "email": "adamp.adobedemo+23062026-1@gmail.com",
+      "ecid": "3847291056382741",
+      "preferredCategories": ["Politics", "Analysis", "UK"],
+      "engagementStyle": ["click", "scroll", "article-deep-read"],
+      "description": "Westminster watcher who reads political explainers and follows live updates during parliamentary votes."
+    },
+    {
+      "id": "breaking-news-follower",
+      "fullName": "Marcus Okonkwo",
+      "email": "adamp.adobedemo+23062026-2@gmail.com",
+      "ecid": "9182736450382719",
+      "preferredCategories": ["UK", "World", "Breaking"],
+      "engagementStyle": ["push-notification-response", "scroll", "rapid-click"],
+      "description": "Checks headlines several times a day; prioritises live blogs and developing stories."
+    },
+    {
+      "id": "casual-headline-browser",
+      "fullName": "Priya Shah",
+      "email": "adamp.adobedemo+23062026-3@gmail.com",
+      "ecid": "5629103847561029",
+      "preferredCategories": ["UK", "Money", "Offbeat"],
+      "engagementStyle": ["scroll", "headline-scan", "occasional-click"],
+      "description": "Morning commute reader who skims the homepage and opens one or two domestic stories."
+    },
+    {
+      "id": "video-first-viewer",
+      "fullName": "Daniel Fraser",
+      "email": "adamp.adobedemo+23062026-4@gmail.com",
+      "ecid": "7401928374650192",
+      "preferredCategories": ["Politics", "World", "Live Video"],
+      "engagementStyle": ["video", "watch-live", "minimal-scroll"],
+      "description": "Prefers broadcast-style coverage; starts with Must Watch and Politics Hub clips."
+    },
+    {
+      "id": "tech-finance-specialist",
+      "fullName": "Amelia Chen",
+      "email": "adamp.adobedemo+23062026-5@gmail.com",
+      "ecid": "3058471926384750",
+      "preferredCategories": ["Science, Climate & Tech", "Money", "Data & Forensics"],
+      "engagementStyle": ["click", "article-deep-read", "section-navigation"],
+      "description": "Specialist reader who navigates directly to tech and money sections for cyber and economic coverage."
+    },
+    {
+      "id": "world-affairs-analyst",
+      "fullName": "James Whitfield",
+      "email": "adamp.adobedemo+23062026-6@gmail.com",
+      "ecid": "8291047563829104",
+      "preferredCategories": ["World", "Analysis", "US"],
+      "engagementStyle": ["navigation", "click", "scroll", "revisit-homepage"],
+      "description": "Cross-section navigator who moves UK → World → Analysis and returns to the homepage to compare framing."
+    }
+  ]
+}

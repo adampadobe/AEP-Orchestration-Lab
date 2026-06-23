@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK News | Sky News (demo)</title>
+  <meta name="description" content="Sky News UK homepage demo — AEP Orchestration Lab. Not affiliated with Sky Group.">
+  <link rel="stylesheet" href="css/sky-news.css">
+</head>
+<body>
+  <div class="sky-demo-banner" role="note">
+    AEP Orchestration Lab demo — recreated layout and headlines for illustration only. Not affiliated with Sky Group.
+  </div>
+
+  <header class="sky-header">
+    <div class="sky-header__inner">
+      <div class="sky-brand">
+        <div class="sky-brand__mark">sky <span>news</span></div>
+        <span class="sky-brand__edition">United Kingdom</span>
+      </div>
+      <nav class="sky-nav" id="skyNav" aria-label="Primary"></nav>
+    </div>
+  </header>
+
+  <main class="sky-main" id="skyMain" aria-live="polite"></main>
+
+  <footer class="sky-footer">
+    <div class="sky-footer__inner">
+      <nav class="sky-footer__links" id="skyFooterLinks" aria-label="Footer"></nav>
+      <p class="sky-footer__legal">
+        © Sky News demo replica · Placeholder imagery · Telemetry events exposed on <code>window.SkyNewsEventLog</code>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/sky-news.js"></script>
+</body>
+</html>

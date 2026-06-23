@@ -1,0 +1,94 @@
+{
+  "scrape_id": "sky-news-uk-20260623-a636a2",
+  "schema": "AEP Web SDK style experience events",
+  "journeys": [
+    {
+      "personaId": "politics-focused-reader",
+      "ecid": "3847291056382741",
+      "events": [
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T07:42:00Z", "web": { "webPageDetails": { "name": "Sky News UK", "URL": "https://news.sky.com/uk", "siteSection": "UK" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T07:42:18Z", "web": { "webPageDetails": { "name": "Sky News UK" }, "webInteraction": { "scrollDepth": 35 } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T07:42:32Z", "web": { "webPageDetails": { "name": "Sky News UK" }, "webInteraction": { "linkClicks": { "value": 1 }, "name": "Hero — Starmer welfare vote", "type": "other", "URL": "https://news.sky.com/story/starmer-welfare-vote-labour-rebellion" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T07:42:33Z", "web": { "webPageDetails": { "name": "Starmer says welfare vote will go ahead", "URL": "https://news.sky.com/story/starmer-welfare-vote-labour-rebellion", "siteSection": "Politics" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T07:44:10Z", "web": { "webPageDetails": { "name": "Starmer welfare vote article" }, "webInteraction": { "scrollDepth": 78 } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T07:44:45Z", "web": { "webPageDetails": { "name": "Politics section" }, "webInteraction": { "name": "Politics nav", "type": "other", "URL": "https://news.sky.com/politics" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T07:44:46Z", "web": { "webPageDetails": { "name": "Politics", "URL": "https://news.sky.com/politics", "siteSection": "Politics" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T07:45:02Z", "web": { "webPageDetails": { "name": "Politics" }, "webInteraction": { "name": "Labour MPs welfare amendment", "URL": "https://news.sky.com/story/labour-mps-welfare-amendment" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T07:46:50Z", "web": { "webInteraction": { "scrollDepth": 90 } } }
+      ]
+    },
+    {
+      "personaId": "breaking-news-follower",
+      "ecid": "9182736450382719",
+      "events": [
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T12:05:00Z", "web": { "webPageDetails": { "name": "Sky News UK", "URL": "https://news.sky.com/uk", "siteSection": "UK" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T12:05:08Z", "web": { "webInteraction": { "scrollDepth": 15 } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T12:05:12Z", "web": { "webInteraction": { "name": "Politics Hub Live strip", "URL": "https://news.sky.com/uk#live" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T12:05:40Z", "web": { "webInteraction": { "scrollDepth": 55, "name": "Live updates panel" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T12:06:05Z", "web": { "webInteraction": { "name": "NATO defence spending pledge", "URL": "https://news.sky.com/story/nato-defence-spending-pledge" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T12:06:06Z", "web": { "webPageDetails": { "name": "NATO allies agree defence spend", "siteSection": "World" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T12:06:45Z", "web": { "webInteraction": { "name": "Iran Israel NATO security", "URL": "https://news.sky.com/story/iran-israel-us-nato" } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T12:07:20Z", "web": { "webInteraction": { "name": "UK nav return", "URL": "https://news.sky.com/uk" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T12:07:21Z", "web": { "webPageDetails": { "name": "Sky News UK revisit", "siteSection": "UK" } } }
+      ]
+    },
+    {
+      "personaId": "casual-headline-browser",
+      "ecid": "5629103847561029",
+      "events": [
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T08:18:00Z", "web": { "webPageDetails": { "name": "Sky News UK", "URL": "https://news.sky.com/uk", "siteSection": "UK" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T08:18:22Z", "web": { "webInteraction": { "scrollDepth": 45 } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T08:18:35Z", "web": { "webInteraction": { "name": "Britons struggling cost of living", "URL": "https://news.sky.com/story/britons-struggling-cost-of-living" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T08:18:36Z", "web": { "webPageDetails": { "name": "Cost of living report", "siteSection": "UK" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T08:19:15Z", "web": { "webInteraction": { "scrollDepth": 40 } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T08:19:30Z", "web": { "webInteraction": { "name": "Money section", "URL": "https://news.sky.com/money" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T08:19:31Z", "web": { "webPageDetails": { "name": "Money", "siteSection": "Money" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T08:19:55Z", "web": { "webInteraction": { "scrollDepth": 25 } } }
+      ]
+    },
+    {
+      "personaId": "video-first-viewer",
+      "ecid": "7401928374650192",
+      "events": [
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T19:30:00Z", "web": { "webPageDetails": { "name": "Sky News UK", "URL": "https://news.sky.com/uk", "siteSection": "UK" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T19:30:06Z", "web": { "webInteraction": { "scrollDepth": 60, "name": "Must Watch section" } } },
+        { "eventType": "web.videoStart", "timestamp": "2026-06-23T19:30:12Z", "web": { "webInteraction": { "name": "Politics Hub with Sophy Ridge", "type": "other", "URL": "https://news.sky.com/video/politics-hub-sophy-ridge" }, "mediaInteraction": { "name": "Politics Hub Live", "action": "start" } } },
+        { "eventType": "web.videoStart", "timestamp": "2026-06-23T19:34:50Z", "web": { "webInteraction": { "name": "Starmer NATO defence", "URL": "https://news.sky.com/video/starmer-nato-defence" }, "mediaInteraction": { "action": "start" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T19:36:00Z", "web": { "webInteraction": { "name": "Hero welfare vote", "URL": "https://news.sky.com/story/starmer-welfare-vote-labour-rebellion" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T19:36:01Z", "web": { "webPageDetails": { "name": "Starmer welfare vote", "siteSection": "Politics" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T19:36:30Z", "web": { "webInteraction": { "scrollDepth": 20 } } }
+      ]
+    },
+    {
+      "personaId": "tech-finance-specialist",
+      "ecid": "3058471926384750",
+      "events": [
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T11:02:00Z", "web": { "webPageDetails": { "name": "Sky News UK", "URL": "https://news.sky.com/uk", "siteSection": "UK" } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T11:02:08Z", "web": { "webInteraction": { "name": "Science Climate Tech nav", "URL": "https://news.sky.com/science-climate-tech" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T11:02:09Z", "web": { "webPageDetails": { "name": "Science, Climate & Tech", "siteSection": "Science, Climate & Tech" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T11:02:22Z", "web": { "webInteraction": { "name": "NHS cyber attack patient death", "URL": "https://news.sky.com/story/nhs-cyber-attack-patient-death" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T11:02:23Z", "web": { "webPageDetails": { "name": "NHS cyber attack article", "siteSection": "Science, Climate & Tech" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T11:04:00Z", "web": { "webInteraction": { "scrollDepth": 85 } } },
+        { "eventType": "web.videoStart", "timestamp": "2026-06-23T11:04:30Z", "web": { "webInteraction": { "name": "NHS cyber attack impact video", "URL": "https://news.sky.com/video/nhs-cyber-attack-impact" }, "mediaInteraction": { "action": "start" } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T11:06:10Z", "web": { "webInteraction": { "name": "Money section", "URL": "https://news.sky.com/money" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T11:06:28Z", "web": { "webInteraction": { "name": "Council tax arrears", "URL": "https://news.sky.com/story/council-tax-arrears-england" } } }
+      ]
+    },
+    {
+      "personaId": "world-affairs-analyst",
+      "ecid": "8291047563829104",
+      "events": [
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T16:20:00Z", "web": { "webPageDetails": { "name": "Sky News UK", "URL": "https://news.sky.com/uk", "siteSection": "UK" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T16:20:15Z", "web": { "webInteraction": { "name": "UK NATO defence spending", "URL": "https://news.sky.com/story/uk-nato-defence-spending-2035" } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T16:21:00Z", "web": { "webInteraction": { "name": "World nav", "URL": "https://news.sky.com/world" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T16:21:01Z", "web": { "webPageDetails": { "name": "World", "siteSection": "World" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T16:21:18Z", "web": { "webInteraction": { "name": "Ukraine long-range weapons", "URL": "https://news.sky.com/story/ukraine-long-range-weapons" } } },
+        { "eventType": "web.scrollDepth", "timestamp": "2026-06-23T16:22:40Z", "web": { "webInteraction": { "scrollDepth": 70 } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T16:23:10Z", "web": { "webInteraction": { "name": "Analysis nav", "URL": "https://news.sky.com/analysis" } } },
+        { "eventType": "web.articleClick", "timestamp": "2026-06-23T16:23:35Z", "web": { "webInteraction": { "name": "Welfare reforms PIP explained", "URL": "https://news.sky.com/story/welfare-reforms-pip-explained" } } },
+        { "eventType": "web.navigation", "timestamp": "2026-06-23T16:25:00Z", "web": { "webInteraction": { "name": "Homepage revisit", "URL": "https://news.sky.com/uk" } } },
+        { "eventType": "web.pageView", "timestamp": "2026-06-23T16:25:01Z", "web": { "webPageDetails": { "name": "Sky News UK revisit", "siteSection": "UK" } } }
+      ]
+    }
+  ]
+}
