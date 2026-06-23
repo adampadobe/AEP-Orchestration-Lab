@@ -150,10 +150,7 @@
     }
   }
 
-  if (dom.channel) {
-    dom.channel.addEventListener('change', persistChannelSelection);
-  }
-
+  function bindSchemaDatasetNameSync() {
     if (dom.schemaTitle) {
       dom.schemaTitle.addEventListener('input', function () {
         syncDatasetFromSchema(false);
@@ -165,6 +162,10 @@
         datasetNameTouched = true;
       });
     }
+  }
+
+  if (dom.channel) {
+    dom.channel.addEventListener('change', persistChannelSelection);
   }
 
   /* ── Sandbox helper (uses inline select on this page) ── */
