@@ -5,6 +5,7 @@
   'use strict';
 
   var MCP_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp';
+  var MCP_HEADER_NAME = 'X-AEP-Lab-Mcp-Key';
   var MCP_SERVER_ID = 'aep-orchestration-lab-mcp';
   var PANEL_ID = 'mcpLabKeyPanel';
   var MODAL_ID = 'mcpLabKeyModal';
@@ -96,7 +97,7 @@
           type: 'streamable-http',
           url: MCP_URL,
           headers: {
-            'X-AEP-Lab-Mcp-Key': apiKey,
+            [MCP_HEADER_NAME]: apiKey,
           },
         },
       },
@@ -317,6 +318,32 @@
     }
   }
 
+  function modalCopyField(fieldId, label, value, btnId, btnLabel) {
+    return (
+      '<div class="mcp-key-modal-field">' +
+      '<label class="mcp-key-modal-label" for="' +
+      fieldId +
+      '">' +
+      escapeHtml(label) +
+      '</label>' +
+      '<div class="mcp-key-modal-row">' +
+      '<input id="' +
+      fieldId +
+      '" class="mcp-key-modal-input" type="text" readonly value="' +
+      escapeHtml(value) +
+      '">' +
+      '<button type="button" class="dashboard-btn-outline" id="' +
+      btnId +
+      '" aria-label="Copy ' +
+      escapeHtml(label) +
+      '">' +
+      escapeHtml(btnLabel) +
+      '</button>' +
+      '</div>' +
+      '</div>'
+    );
+  }
+
   function showKeyModal(title, apiKey, warning) {
     var existing = document.getElementById(MODAL_ID);
     if (existing) existing.remove();
@@ -342,17 +369,23 @@
       escapeHtml(warning || 'Copy this key now. It will not be shown again.') +
       '</p>' +
       '<p id="mcpLabKeyModalCopyToast" class="mcp-key-modal-copy-toast" aria-live="polite"></p>' +
-      '<label class="mcp-key-modal-label" for="mcpLabKeyPlaintext">API key</label>' +
-      '<div class="mcp-key-modal-row">' +
-      '<input id="mcpLabKeyPlaintext" class="mcp-key-modal-input" type="text" readonly value="' +
-      escapeHtml(apiKey) +
-      '">' +
-      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopySecretBtn" aria-label="Copy API key secret only">Copy key</button>' +
+      '<div class="mcp-key-modal-fields">' +
+      modalCopyField('mcpLabKeyUrl', 'MCP URL', MCP_URL, 'mcpLabKeyCopyUrlBtn', 'Copy URL') +
+      modalCopyField(
+        'mcpLabKeyHeader',
+        'Header',
+        MCP_HEADER_NAME,
+        'mcpLabKeyCopyHeaderBtn',
+        'Copy header',
+      ) +
+      modalCopyField('mcpLabKeyPlaintext', 'API key', apiKey, 'mcpLabKeyCopySecretBtn', 'Copy key') +
       '</div>' +
-      '<label class="mcp-key-modal-label" for="mcpLabKeySnippet">Coworker / Cursor mcp.json (preview — key slot empty)</label>' +
+      '<details class="mcp-key-modal-snippet-details">' +
+      '<summary class="mcp-key-modal-snippet-summary">Coworker / Cursor mcp.json preview</summary>' +
       '<textarea id="mcpLabKeySnippet" class="mcp-key-modal-snippet" readonly rows="8" aria-label="Coworker MCP config preview without secret">' +
       escapeHtml(snippetPlaceholder) +
       '</textarea>' +
+      '</details>' +
       '<div class="mcp-key-modal-actions">' +
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyAllBtn" aria-label="Copy complete Coworker config with API key filled in">Copy all</button>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyModalClose">Done</button>' +
@@ -369,8 +402,22 @@
           snippetPlaceholder,
           copyConfigBtn,
           'Copy Coworker config',
-          'Coworker config copied (no secret) — paste your key into X-AEP-Lab-Mcp-Key',
+          'Coworker config copied (no secret) — paste your key into ' + MCP_HEADER_NAME,
         );
+      });
+    }
+
+    var copyUrlBtn = document.getElementById('mcpLabKeyCopyUrlBtn');
+    if (copyUrlBtn) {
+      copyUrlBtn.addEventListener('click', function () {
+        copyTextToClipboard(MCP_URL, copyUrlBtn, 'Copy URL', 'MCP URL copied');
+      });
+    }
+
+    var copyHeaderBtn = document.getElementById('mcpLabKeyCopyHeaderBtn');
+    if (copyHeaderBtn) {
+      copyHeaderBtn.addEventListener('click', function () {
+        copyTextToClipboard(MCP_HEADER_NAME, copyHeaderBtn, 'Copy header', 'Header name copied');
       });
     }
 
