@@ -1,14 +1,14 @@
 {
-  "gitSha": "1ebfb81287fdfd648a8470f246225321eb559bc5",
-  "gitShortSha": "1ebfb812",
+  "gitSha": "ab9fcf9250db1433476dd15094d90aa909b3976f",
+  "gitShortSha": "ab9fcf92",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Stamp deploy version metadata (clean tree) for hosting deploy",
+  "gitCommitSubject": "[apalmer] fix: Event Tool email-only identityMap with channel in preview",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T22:11:49+01:00",
-  "deployedAt": "2026-06-23T21:12:54.782Z",
+  "gitCommitDate": "2026-06-23T22:30:26+01:00",
+  "deployedAt": "2026-06-23T21:32:03.331Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1ebfb81287fdfd648a8470f246225321eb559bc5"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ab9fcf9250db1433476dd15094d90aa909b3976f"
 }
