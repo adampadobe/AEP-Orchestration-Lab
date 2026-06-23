@@ -1,14 +1,14 @@
 {
-  "gitSha": "99c88acaa4bf06c86343ab94f7c3fa453e3c2bf5",
-  "gitShortSha": "99c88aca",
+  "gitSha": "07560737cd302bb8e5a046afbc23d14ffc86636d",
+  "gitShortSha": "07560737",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] MCP key modal: split copy actions for config vs secret",
+  "gitCommitSubject": "[apalmer] Fix baseEmail portal→Firestore sync for MCP generation prefs",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T09:26:15+01:00",
-  "deployedAt": "2026-06-23T08:26:28.130Z",
+  "gitCommitDate": "2026-06-23T09:32:39+01:00",
+  "deployedAt": "2026-06-23T08:32:53.613Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/99c88acaa4bf06c86343ab94f7c3fa453e3c2bf5"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/07560737cd302bb8e5a046afbc23d14ffc86636d"
 }
