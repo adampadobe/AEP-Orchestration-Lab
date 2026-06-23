@@ -21,7 +21,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
     {
       title: 'Batch generate test profiles (async)',
       description:
-        'Queue an async batch job that generates 1–100 profiles via POST /api/profile/generate. Returns job_id immediately; poll with lab_batch_job_status. Optional segment_hint (travel: hotel_high_value, hotel_reactivation). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
+        'Queue an async batch job that generates 1–100 profiles via POST /api/profile/generate. Returns job_id immediately; poll with lab_batch_job_status. Optional segment_hint: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
@@ -53,7 +53,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         segment_hint: z
           .string()
           .optional()
-          .describe('Travel only: hotel_high_value | hotel_reactivation'),
+          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
         delay_ms: z
           .number()
           .int()

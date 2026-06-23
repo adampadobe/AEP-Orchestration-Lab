@@ -1,8 +1,8 @@
-# AEP Orchestration Lab — Profile MCP (Phase 3)
+# AEP Orchestration Lab — Profile MCP (Phase 3.1)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.0.0** — 15 tools. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.1.0** — 15 tools. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Tools
 
@@ -12,7 +12,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
-| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; `randomize`, optional `segment_hint` (travel) |
+| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; `randomize`, optional `segment_hint` (travel, fsi, retail) |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
@@ -61,14 +61,20 @@ node scripts/seed-mcp-sandbox-allowlist.mjs \
 
 Shared key + per-principal docs: use the same `--api-key` and different `--sandboxes` only when rotating to per-colleague keys. For a dedicated Kirkham key, rotate Secret Manager `aep-lab-profile-mcp-api-key` (or issue a second key in a future release) and seed `mcpSandboxAllowlist/{thatKeyId}`.
 
-### Travel segment hints (Phase 3)
+### Segment hints (Phase 3.1)
 
 On **`lab_generate_profile`** and **`lab_generate_profiles_batch`** when `randomize: true` and `attributes` omitted:
 
-| `segment_hint` | Travel persona |
-|----------------|----------------|
-| `hotel_reactivation` | Checkout **>12 months ago**, `totalNights` ≥5, churn >0.5, propensity >0.65 — aligns with hotel edge segments |
-| `hotel_high_value` | Platinum tier, high LTV/propensity, recent stay, rich `hotel.bookingDetails` |
+| Industry | `segment_hint` | Persona overlay |
+|----------|----------------|-----------------|
+| **travel** | `hotel_reactivation` | Checkout **>12 months ago**, `totalNights` ≥5, churn >0.5, propensity >0.65 — aligns with hotel edge segments |
+| **travel** | `hotel_high_value` | Platinum tier, high LTV/propensity, recent stay, rich `hotel.bookingDetails` |
+| **fsi** | `high_net_worth` | Income `500k_plus`, excellent credit (780+), high savings/investment holdings, platinum tier |
+| **fsi** | `credit_rebuild` | Income `under_50k`, poor credit (≤579), elevated churn, low propensity |
+| **retail** | `loyalty_vip` | Platinum loyalty, LTV ≥25k, high ordersYTD, cobranded card, high retail propensity scores |
+| **retail** | `cart_abandoner` | Recent basket activity, low propensity/churn risk, modest LTV — abandonment demo cohort |
+
+Base personas for all **7 industries** (generic, travel, fsi, retail, telecom, media, sports) mirror Profile Viewer **Fill random sample** correlations: FSI income→credit band, retail order-value triplet, telecom bundle coherence, media subscription/viewing, sports fan/team, etc. Implementation: `src/personaBuilder/` submodules.
 
 ### Batch & onboard async jobs (Phase 3)
 

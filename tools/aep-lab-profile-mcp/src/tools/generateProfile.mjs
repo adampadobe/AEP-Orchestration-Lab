@@ -17,7 +17,7 @@ export function registerGenerateProfileTool(mcpServer) {
     {
       title: 'Generate / stream test profile',
       description:
-        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Set randomize or fill_sample_data to build rich industry attributes server-side when attributes omitted. Optional segment_hint for travel: hotel_high_value (platinum, recent stay, high LTV) or hotel_reactivation (checkout >12mo ago, churn/propensity for edge segments).',
+        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Set randomize or fill_sample_data to build rich correlated industry attributes server-side when attributes omitted. Optional segment_hint: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner).',
       inputSchema: {
         email: z.string().email().describe('Profile email address'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -40,7 +40,7 @@ export function registerGenerateProfileTool(mcpServer) {
         segment_hint: z
           .string()
           .optional()
-          .describe('Travel only: hotel_high_value | hotel_reactivation — overlays hotel.bookingDetails + scoring paths'),
+          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
         append_if_existing: z
           .boolean()
           .optional()

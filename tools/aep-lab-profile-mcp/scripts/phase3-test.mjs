@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 /**
- * Phase 3 unit tests: segment hints, sandbox ACL helpers, rate limits, OAuth stub, audit keyId.
+ * Phase 3 / 3.1 unit tests: persona parity, segment hints, ACL, rate limits.
  */
 
 import { createHash } from 'node:crypto';
-import { buildPersonaAttributes, normalizeSegmentHint, TRAVEL_SEGMENT_HINTS } from '../src/personaBuilder.mjs';
+import {
+  buildPersonaAttributes,
+  normalizeSegmentHint,
+  TRAVEL_SEGMENT_HINTS,
+  FSI_SEGMENT_HINTS,
+  RETAIL_SEGMENT_HINTS,
+} from '../src/personaBuilder.mjs';
 import { loadAuthConfig, validateMcpApiKey, validateOAuthBearer } from '../src/auth.mjs';
 import { assertSandboxAllowedForAccess } from '../src/sandboxAllowlist.mjs';
 import { checkBatchJobRate, checkGenerateRate } from '../src/rateLimiter.mjs';
 import { keyIdFromApiKey } from '../src/auditLog.mjs';
+import { LAB_INDUSTRY_KEYS } from '../src/industries.mjs';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -18,11 +25,55 @@ function mockReq(headers = {}) {
   return { headers };
 }
 
-async function run() {
-  process.env.AEP_LAB_MCP_API_KEY = 'phase3-test-key';
-  process.env.AEP_LAB_MCP_BATCH_STORE = 'memory';
-  process.env.AEP_LAB_MCP_FIRESTORE = 'off';
+const INDUSTRY_REQUIRED_PATHS = {
+  travel: [
+    'individualCharacteristics.travel.favouriteAirlineCompany',
+    ['individualCharacteristics.travel.recentStay', 'hotelName'],
+  ],
+  fsi: ['individualCharacteristics.fsi.financialDetails.creditScore', 'personalFinances.creditScores'],
+  retail: ['individualCharacteristics.retail.favoriteStore', 'orderProfile.lifetimeValue'],
+  telecom: ['telecomSubscription.bundleName', 'telecomSubscription.mobileSubscription'],
+  media: ['media.accountType', 'subscriptions'],
+  sports: ['industrySports.favouriteSport', 'scoring.product.affinity'],
+  generic: ['individualCharacteristics.core.favouriteCategory'],
+};
 
+function getPathValue(attrs, path) {
+  if (Array.isArray(path)) {
+    const [base, key] = path;
+    const obj = attrs[base];
+    return obj && typeof obj === 'object' ? obj[key] : undefined;
+  }
+  return attrs[path];
+}
+
+function testIndustryPersonas() {
+  for (const industry of LAB_INDUSTRY_KEYS) {
+    const attrs = buildPersonaAttributes(industry, `${industry}@test.com`);
+    assert(Object.keys(attrs).length > 5, `${industry}: non-empty persona`);
+    for (const path of INDUSTRY_REQUIRED_PATHS[industry] || []) {
+      const val = getPathValue(attrs, path);
+      const label = Array.isArray(path) ? `${path[0]}.${path[1]}` : path;
+      assert(val != null && val !== '', `${industry}: ${label}`);
+    }
+  }
+}
+
+function testFsiIncomeCreditCorrelation() {
+  const samples = Array.from({ length: 30 }, () => buildPersonaAttributes('fsi', 'fsi@test.com', 'high_net_worth'));
+  for (const attrs of samples) {
+    const score = Number(attrs['individualCharacteristics.fsi.financialDetails.creditScore']);
+    assert(score >= 780, 'high_net_worth credit score >= 780');
+    assert(attrs['industryFsi.householdIncomeBand'] === '500k_plus', 'high_net_worth income band');
+  }
+
+  const rebuild = buildPersonaAttributes('fsi', 'rebuild@test.com', 'credit_rebuild');
+  const rebuildScore = Number(rebuild['individualCharacteristics.fsi.financialDetails.creditScore']);
+  assert(rebuildScore <= 579, 'credit_rebuild score <= 579');
+  assert(rebuild['industryFsi.creditScoreBand'] === 'poor', 'credit_rebuild poor band');
+}
+
+function testSegmentHints() {
   for (const hint of TRAVEL_SEGMENT_HINTS) {
     const attrs = buildPersonaAttributes('travel', 'hotel@test.com', hint);
     assert(attrs['hotel.bookingDetails.hotelName'], `${hint}: hotelName`);
@@ -38,11 +89,46 @@ async function run() {
   const highValue = buildPersonaAttributes('travel', 'hv@test.com', 'hotel_high_value');
   assert(highValue['loyalty.tier'] === 'platinum', 'high value platinum');
 
-  const badHint = normalizeSegmentHint('invalid', 'travel');
-  assert(String(badHint).includes('Unknown'), 'invalid travel hint error');
+  for (const hint of FSI_SEGMENT_HINTS) {
+    const norm = normalizeSegmentHint(hint, 'fsi');
+    assert(norm === hint, `fsi hint ${hint} normalizes`);
+    const attrs = buildPersonaAttributes('fsi', 'fsi@test.com', hint);
+    assert(attrs['personalFinances.creditScores'], `fsi ${hint} creditScores`);
+  }
 
-  const retailHint = normalizeSegmentHint('hotel_high_value', 'retail');
-  assert(String(retailHint).includes('not supported'), 'retail segment_hint rejected');
+  for (const hint of RETAIL_SEGMENT_HINTS) {
+    const norm = normalizeSegmentHint(hint, 'retail');
+    assert(norm === hint, `retail hint ${hint} normalizes`);
+    const attrs = buildPersonaAttributes('retail', 'retail@test.com', hint);
+    assert(attrs['orderProfile.lifetimeValue'] != null, `retail ${hint} LTV`);
+  }
+
+  const vip = buildPersonaAttributes('retail', 'vip@test.com', 'loyalty_vip');
+  assert(vip['loyalty.tier'] === 'platinum', 'loyalty_vip platinum');
+  assert(Number(vip['orderProfile.lifetimeValue']) >= 25000, 'loyalty_vip high LTV');
+
+  const abandoner = buildPersonaAttributes('retail', 'ab@test.com', 'cart_abandoner');
+  assert(Number(abandoner['scoring.core.propensityScore']) <= 0.35 || Number(abandoner['scoring.core.propensityScore']) <= 35,
+    'cart_abandoner low propensity');
+
+  const badTravel = normalizeSegmentHint('invalid', 'travel');
+  assert(String(badTravel).includes('Unknown'), 'invalid travel hint error');
+
+  const badRetail = normalizeSegmentHint('hotel_high_value', 'retail');
+  assert(String(badRetail).includes('Unknown'), 'travel hint rejected for retail');
+
+  const badGeneric = normalizeSegmentHint('loyalty_vip', 'generic');
+  assert(String(badGeneric).includes('not supported'), 'retail hint rejected for generic');
+}
+
+async function run() {
+  process.env.AEP_LAB_MCP_API_KEY = 'phase3-test-key';
+  process.env.AEP_LAB_MCP_BATCH_STORE = 'memory';
+  process.env.AEP_LAB_MCP_FIRESTORE = 'off';
+
+  testIndustryPersonas();
+  testFsiIncomeCreditCorrelation();
+  testSegmentHints();
 
   loadAuthConfig();
   const cfg = loadAuthConfig();
@@ -78,7 +164,12 @@ async function run() {
   const goodKey = validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase3-test-key' }));
   assert(goodKey.ok, 'api key ok');
 
-  console.log(JSON.stringify({ ok: true, tests: 'phase3 segment hints + ACL + rate limits + oauth stub' }));
+  console.log(JSON.stringify({
+    ok: true,
+    tests: 'phase3.1 persona parity + segment hints + ACL + rate limits',
+    industries: LAB_INDUSTRY_KEYS.length,
+    segmentPacks: { travel: TRAVEL_SEGMENT_HINTS, fsi: FSI_SEGMENT_HINTS, retail: RETAIL_SEGMENT_HINTS },
+  }));
 }
 
 run().catch((err) => {

@@ -7,9 +7,9 @@ description: >-
   (full-snapshot stitch), profile activity, or provisioning profile pipelines.
 ---
 
-# AEP Lab Profile MCP — Coworker workflows (Phase 3)
+# AEP Lab Profile MCP — Coworker workflows (Phase 3.1)
 
-MCP server: **AEP Orchestration Lab — Profile MCP v3.0.0** (see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab — Profile MCP v3.1.0** (see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -35,7 +35,7 @@ Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or
 
    > Call lab_lookup_profile with sandbox apalmer, namespace email, identifier travel.demo+001@adobetest.com. Summarize key travel attributes.
 
-## Workflow 2 — Hotel segment personas (Phase 3)
+## Workflow 2 — Hotel segment personas (travel)
 
 1. **Reactivation segment**
 
@@ -48,6 +48,34 @@ Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or
 3. **Batch seed for segments**
 
    > lab_generate_profiles_batch: sandbox apalmer, industry travel, count 10, base_email kirkham+hotel-seed, randomize true, segment_hint hotel_reactivation, delay_ms 800. Poll lab_batch_job_status until complete.
+
+## Workflow 2b — FSI segment personas (Phase 3.1)
+
+1. **High net worth**
+
+   > lab_generate_profile: sandbox apalmer, industry fsi, email fsi.hnw+001@adobetest.com, randomize true, segment_hint high_net_worth.
+
+2. **Credit rebuild**
+
+   > lab_generate_profile: sandbox apalmer, industry fsi, email fsi.rebuild+001@adobetest.com, randomize true, segment_hint credit_rebuild.
+
+3. **Batch seed FSI segments**
+
+   > lab_generate_profiles_batch: sandbox apalmer, industry fsi, count 10, base_email kirkham+fsi-seed, randomize true, segment_hint credit_rebuild, delay_ms 800. Poll lab_batch_job_status.
+
+## Workflow 2c — Retail segment personas (Phase 3.1)
+
+1. **Loyalty VIP**
+
+   > lab_generate_profile: sandbox apalmer, industry retail, email retail.vip+001@adobetest.com, randomize true, segment_hint loyalty_vip.
+
+2. **Cart abandoner**
+
+   > lab_generate_profile: sandbox apalmer, industry retail, email retail.abandon+001@adobetest.com, randomize true, segment_hint cart_abandoner.
+
+3. **Batch seed retail VIP cohort**
+
+   > lab_generate_profiles_batch: sandbox apalmer, industry retail, count 25, base_email kirkham+retail-vip, randomize true, segment_hint loyalty_vip.
 
 ## Workflow 3 — Get profile → discuss changes → full-snapshot update
 
@@ -141,7 +169,7 @@ Same MCP key as all other tools.
 
 - Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning.
 - **lab_mcp_access_info** — check allowlist without secrets; use after ops adds Kirkham ACL.
-- **segment_hint** — travel only: `hotel_high_value`, `hotel_reactivation`.
+- **segment_hint** — travel: `hotel_high_value`, `hotel_reactivation`; fsi: `high_net_worth`, `credit_rebuild`; retail: `loyalty_vip`, `cart_abandoner`.
 - Rate limits (per instance): 30 generates/min, 3 batch jobs/hr — backoff using retryAfterSec.
 - Batch jobs max **100** profiles; use `email_pattern` for custom addressing (`{n}`, `{industry}`).
 - Industry aliases: `telco` → `telecom`, `public` → `generic`.
