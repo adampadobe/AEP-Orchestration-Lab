@@ -266,6 +266,7 @@ export function suggestEmailForScrapePersona({ persona, brandName, personaIndex 
  * @param {string | null} [params.segmentHint]
  * @param {boolean} [params.loyalty_member]
  * @param {boolean} [params.last_order_details]
+ * @param {string | null} [params.mobilePhone] — static mobile from Firestore generation prefs
  * @returns {{ attributes: Record<string, unknown>, segmentHint: string | null, overlays: string[] }}
  */
 export function buildAttributesFromBrandScrapePersona({
@@ -275,6 +276,7 @@ export function buildAttributesFromBrandScrapePersona({
   segmentHint = null,
   loyalty_member = false,
   last_order_details,
+  mobilePhone = null,
 }) {
   const resolvedHint =
     segmentHint ||
@@ -329,6 +331,12 @@ export function buildAttributesFromBrandScrapePersona({
   }
 
   assign(attrs, 'personalEmail.address', email);
+
+  const staticMobile = String(mobilePhone || '').trim();
+  if (staticMobile) {
+    assign(attrs, 'mobilePhone.number', staticMobile);
+    overlays.push('mobilePhone.number');
+  }
 
   return { attributes: attrs, segmentHint: segmentNorm, overlays };
 }

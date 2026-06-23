@@ -8,8 +8,12 @@ import {
   extractBrandScrapePersonas,
   extractScrapeIndustryTaxonomy,
   inferLabIndustryFromRecord,
-  suggestEmailForScrapePersona,
 } from './brandScrapePersonaMap.mjs';
+import {
+  resolveStoredPrefsEmail,
+  shouldUseStoredGenerationPrefs,
+  STORED_PREFS_MISSING_HINT,
+} from './tools/generationPrefs.mjs';
 import {
   clientJourneyV2Generate,
   clientJourneyV2ImportProfile,
@@ -101,6 +105,7 @@ export async function generateProfilesFromScrapePersonas({
   test_profile,
   loyalty_member,
   last_order_details,
+  use_stored_prefs,
   delay_ms = 0,
 }) {
   let canonicalIndustry = 'generic';
@@ -146,11 +151,49 @@ export async function generateProfilesFromScrapePersonas({
     }
 
     const persona = personas[idx];
-    const email = suggestEmailForScrapePersona({
-      persona,
-      brandName: record.brandName,
-      personaIndex: idx,
-    });
+    const useStored = shouldUseStoredGenerationPrefs(use_stored_prefs, undefined);
+    /** @type {string} */
+    let email;
+    /** @type {string | null} */
+    let storedMobile = null;
+    /** @type {Record<string, unknown>} */
+    let storedPrefsMeta = {};
+
+    if (useStored) {
+      const reserved = await resolveStoredPrefsEmail(sandbox);
+      if (!reserved.ok) {
+        results.push({
+          personaIndex: idx,
+          personaName: persona.name || null,
+          email: '',
+          ok: false,
+          error: reserved.error,
+          hint: reserved.hint || STORED_PREFS_MISSING_HINT,
+        });
+        failed += 1;
+        continue;
+      }
+      email = reserved.email;
+      storedMobile = reserved.mobilePhone ? String(reserved.mobilePhone) : null;
+      storedPrefsMeta = {
+        use_stored_prefs: true,
+        counterN: reserved.counterN,
+        nextCounterN: reserved.nextCounterN,
+        baseEmail: reserved.baseEmail,
+        mobilePhone: storedMobile,
+      };
+    } else {
+      results.push({
+        personaIndex: idx,
+        personaName: persona.name || null,
+        email: '',
+        ok: false,
+        error: 'email is required when use_stored_prefs is false.',
+        hint: STORED_PREFS_MISSING_HINT,
+      });
+      failed += 1;
+      continue;
+    }
 
     const built = buildAttributesFromBrandScrapePersona({
       persona,
@@ -159,6 +202,7 @@ export async function generateProfilesFromScrapePersonas({
       segmentHint: segment_hint || null,
       loyalty_member,
       last_order_details,
+      mobilePhone: storedMobile,
     });
 
     const mergedAttributes = ensurePreferredLanguageOnAttributes(built.attributes).attributes;
@@ -222,6 +266,7 @@ export async function generateProfilesFromScrapePersonas({
       generate_step_results: apiResult.stepResults || null,
       error: apiResult.ok ? undefined : apiResult.error,
       recent_profiles_sync: recentSync,
+      ...storedPrefsMeta,
     });
   }
 

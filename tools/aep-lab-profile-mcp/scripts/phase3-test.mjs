@@ -583,6 +583,26 @@ async function run() {
   assert(built.segmentHint === 'hotel_reactivation', 'overlay segment hotel_reactivation');
   assert(built.overlays.includes('person.name'), 'overlays tracked');
 
+  const withMobile = buildAttributesFromBrandScrapePersona({
+    persona: { name: 'Chloe Park' },
+    email: 'adamp.adobedemo+23062026-1@gmail.com',
+    industry: 'retail',
+    mobilePhone: '+447425627462',
+  });
+  assert(withMobile.attributes['mobilePhone.number'] === '+447425627462', 'stored mobile overlay');
+  assert(withMobile.overlays.includes('mobilePhone.number'), 'mobile overlay tracked');
+  assert(withMobile.attributes['person.name.firstName'] === 'Chloe', 'persona name independent of email');
+
+  const {
+    shouldUseStoredGenerationPrefs,
+    STORED_PREFS_MISSING_HINT,
+  } = await import('../src/tools/generationPrefs.mjs');
+  assert(shouldUseStoredGenerationPrefs(undefined, undefined) === true, 'default use stored when no email');
+  assert(shouldUseStoredGenerationPrefs(undefined, 'a@b.com') === false, 'explicit email skips stored');
+  assert(shouldUseStoredGenerationPrefs(false, undefined) === false, 'explicit false skips stored');
+  assert(shouldUseStoredGenerationPrefs(true, 'a@b.com') === true, 'explicit true with email');
+  assert(STORED_PREFS_MISSING_HINT.includes('Profile Generation'), 'prefs missing hint mentions portal');
+
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');
 

@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.8.2). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.8.3). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, brand scraping,
   access info, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.7)
 
-MCP server: **AEP Orchestration Lab MCP v3.8.2** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.8.3** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -37,7 +37,7 @@ Coworker should call these **before** improvising lab conventions:
 2. **preferredLanguage** — BCP-47 on `preferredLanguage` (root), `preferences.preferredLanguage`, and `personalEmail.language`. MCP randomize defaults `en-US` when missing. `profileStreamingCore.mirrorPreferredLanguageDemoSchema` dual-writes root + tenant.
 3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; `_demoemea.identification.core` mirrors both. Preflight: `lab_preflight_profile_event`.
-5. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox. Call `lab_confirm_generation_plan` before first generate; use `lab_generate_profile` without email (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
+5. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). Call `lab_confirm_generation_plan` before first generate; use `lab_generate_profile` without email (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. **Brand scrape profile tools** (`lab_generate_profile_from_brand_scrape`, `lab_generate_profiles_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}+N@adobetest.com`. Static **mobilePhone.number** comes from prefs too. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 6. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
 
 ### How the lab executes
@@ -278,7 +278,7 @@ End-to-end chain for customer-specific demo prep.
 
 2. **Golden profiles**
 
-   > lab_generate_profile_from_brand_scrape: sandbox apalmer, scrape_id `<id>`, persona_index 0 — **omit industry** so `lab_industry` comes from scrape taxonomy. Check response `lab_industry` / `industry_readiness` before events.
+   > lab_generate_profile_from_brand_scrape: sandbox apalmer, scrape_id `<id>`, persona_index 0 — **omit industry** so `lab_industry` comes from scrape taxonomy; **omit email** so Firestore generation prefs supply scaled email + mobile (same as Portal Profile Generation). Check response `lab_industry` / `industry_readiness` before events.
 
 3. **One-shot orchestration (optional)**
 

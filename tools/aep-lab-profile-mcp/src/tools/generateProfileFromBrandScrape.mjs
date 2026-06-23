@@ -6,7 +6,6 @@ import {
   extractBrandScrapePersonas,
   extractScrapeIndustryTaxonomy,
   inferLabIndustryFromRecord,
-  suggestEmailForScrapePersona,
 } from '../brandScrapePersonaMap.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { executeGeneratePlan, planDualStreamGenerate } from '../framework/dualStreamGenerate.mjs';
@@ -17,7 +16,11 @@ import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
-import { resolveStoredPrefsEmail } from './generationPrefs.mjs';
+import {
+  resolveStoredPrefsEmail,
+  shouldUseStoredGenerationPrefs,
+  STORED_PREFS_MISSING_HINT,
+} from './generationPrefs.mjs';
 
 /**
  * @param {object} params
@@ -37,29 +40,37 @@ async function generateOneFromScrapePersona({
   test_profile_override_reason,
   use_stored_prefs,
 }) {
-  const useStored = use_stored_prefs === true && !email;
+  const useStored = shouldUseStoredGenerationPrefs(use_stored_prefs, email);
   let resolvedEmail = email;
   /** @type {Record<string, unknown>} */
   let storedPrefsMeta = {};
+  /** @type {string | null} */
+  let storedMobile = null;
 
   if (useStored) {
     const reserved = await resolveStoredPrefsEmail(sandbox);
     if (!reserved.ok) {
-      return { ok: false, error: reserved.error, hint: 'Set base email via lab_set_generation_prefs or pass email explicitly.' };
+      return {
+        ok: false,
+        error: reserved.error,
+        hint: reserved.hint || STORED_PREFS_MISSING_HINT,
+      };
     }
     resolvedEmail = reserved.email;
+    storedMobile = reserved.mobilePhone ? String(reserved.mobilePhone) : null;
     storedPrefsMeta = {
       use_stored_prefs: true,
       counterN: reserved.counterN,
       nextCounterN: reserved.nextCounterN,
       baseEmail: reserved.baseEmail,
+      mobilePhone: storedMobile,
     };
   } else if (!resolvedEmail) {
-    resolvedEmail = suggestEmailForScrapePersona({
-      persona,
-      brandName: record.brandName,
-      personaIndex,
-    });
+    return {
+      ok: false,
+      error: 'email is required when use_stored_prefs is false.',
+      hint: STORED_PREFS_MISSING_HINT,
+    };
   }
 
   const built = buildAttributesFromBrandScrapePersona({
@@ -69,6 +80,7 @@ async function generateOneFromScrapePersona({
     segmentHint: segment_hint || null,
     loyalty_member,
     last_order_details,
+    mobilePhone: storedMobile,
   });
 
   let mergedAttributes = ensurePreferredLanguageOnAttributes(built.attributes).attributes;
@@ -158,6 +170,8 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         'Do NOT pass industry unless the user explicitly requests an override — wrong industry skips industry-owned XDM paths. ' +
         'Response includes scrape_industry, lab_industry, industry_source. Warns when lab_sandbox_profile_config is not ready. ' +
         'segment_hint can be explicit or inferred from persona.suggested_segments. ' +
+        'Email/mobile: omit email to atomically reserve next scaled email + static mobile from shared Firestore generation prefs (Portal Profile Generation; same uid as MCP API key). ' +
+        'Persona name/age/location still overlay on attributes; email never derived from persona slug. ' +
         'Chain: lab_brand_scrape → lab_generate_profile_from_brand_scrape → lab_send_profile_event.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -179,7 +193,11 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
           .describe(
             'Override lab industry key — omit unless user explicitly asks; default is scrape-inferred lab_industry from taxonomy',
           ),
-        email: z.string().email().optional().describe('Profile email; default brand.persona+n@adobetest.com'),
+        email: z
+          .string()
+          .email()
+          .optional()
+          .describe('Profile email — omit to reserve next scaled email from Firestore generation prefs (Portal + MCP counter)'),
         segment_hint: z.string().optional().describe('Optional lab segment_hint overlay (travel/fsi/retail)'),
         loyalty_member: z.boolean().optional().describe('Emit loyalty block (default false)'),
         last_order_details: z.boolean().optional().describe('Retail: include last-order block (default true)'),
@@ -189,7 +207,9 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         use_stored_prefs: z
           .boolean()
           .optional()
-          .describe('When true without email, reserve scaled email from Firestore prefs (single persona only)'),
+          .describe(
+            'When true (default when email omitted), reserve next scaled email + static mobile from Firestore prefs per persona (works with all_personas)',
+          ),
       },
     },
     async (args) => {
@@ -219,10 +239,6 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
       const scrapeId = String(scrape_id || '').trim();
       if (!scrapeId) {
         return toolError('scrape_id is required.');
-      }
-
-      if (all_personas && use_stored_prefs) {
-        return toolError('use_stored_prefs cannot be used with all_personas:true — pass email_pattern via per-persona suggested emails.');
       }
 
       const apiFetch = await getBrandScrape({ sandbox: allowed.sandbox, scrapeId });
@@ -294,14 +310,17 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
           persona,
           personaIndex: idx,
           industry,
-          email: indices.length === 1 ? email : undefined,
+          email: all_personas || indices.length > 1 ? undefined : email,
           segment_hint,
           loyalty_member,
           last_order_details,
           append_if_existing,
           test_profile,
           test_profile_override_reason,
-          use_stored_prefs: indices.length === 1 ? use_stored_prefs : false,
+          use_stored_prefs: shouldUseStoredGenerationPrefs(
+            use_stored_prefs,
+            all_personas || indices.length > 1 ? undefined : email,
+          ),
         });
 
         writeAuditLog({
@@ -384,6 +403,7 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
       title: 'Generate golden profiles for all scrape personas (alias)',
       description:
         'Alias for lab_generate_profile_from_brand_scrape with all_personas:true — streams one AEP test profile per brand scrape persona. ' +
+        'Each profile reserves the next scaled email from Firestore generation prefs (omit email; same Portal counter). ' +
         'See lab_generate_profile_from_brand_scrape for single-persona options (persona_index, use_stored_prefs).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -401,6 +421,10 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         last_order_details: z.boolean().optional(),
         append_if_existing: z.boolean().optional(),
         test_profile: z.boolean().optional(),
+        use_stored_prefs: z
+          .boolean()
+          .optional()
+          .describe('When true (default when email omitted), reserve scaled email + mobile per persona from Firestore prefs'),
         delay_ms: z.number().int().min(0).max(5000).optional().describe('Delay between generates (default 400)'),
       },
     },
@@ -414,6 +438,7 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
       last_order_details,
       append_if_existing,
       test_profile,
+      use_stored_prefs,
       delay_ms,
     }) => {
       const started = Date.now();
@@ -492,6 +517,7 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
           last_order_details,
           append_if_existing,
           test_profile,
+          use_stored_prefs: shouldUseStoredGenerationPrefs(use_stored_prefs, undefined),
         });
 
         writeAuditLog({

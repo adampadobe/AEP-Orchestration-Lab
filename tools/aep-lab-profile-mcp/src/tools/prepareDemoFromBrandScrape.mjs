@@ -24,6 +24,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       description:
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
         'optional experience events per profile, optional Client Journey v2 HTML asset. ' +
+        'Profiles reserve scaled emails + static mobile from Firestore generation prefs (Portal Profile Generation; same uid as MCP key). ' +
         'Provide scrape_id OR url — when url is given, resolves an existing complete scrape via lab_resolve_brand_scrape logic. ' +
         'Profile industry defaults from scrape taxonomy (lab_industry in summary) — do not override unless user asks. ' +
         'Prerequisite: complete scrape with personas (lab_resolve_brand_scrape → lab_brand_scrape if need_new_scrape). ' +
@@ -58,6 +59,10 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         event_view_name: z.string().optional().describe('Page view name for events step'),
         append_if_existing: z.boolean().optional(),
         test_profile: z.boolean().optional(),
+        use_stored_prefs: z
+          .boolean()
+          .optional()
+          .describe('When true (default), reserve scaled email + mobile per persona from Firestore generation prefs'),
         loyalty_member: z.boolean().optional(),
       },
     },
@@ -76,6 +81,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       event_view_name,
       append_if_existing,
       test_profile,
+      use_stored_prefs,
       loyalty_member,
     }) => {
       const started = Date.now();
@@ -169,6 +175,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
           append_if_existing,
           test_profile,
           loyalty_member,
+          use_stored_prefs,
           delay_ms: 400,
         });
         pipeline.stepsRun.push('profiles');

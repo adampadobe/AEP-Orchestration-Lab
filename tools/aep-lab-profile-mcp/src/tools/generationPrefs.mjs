@@ -110,19 +110,58 @@ export function registerGenerationPrefsTools(mcpServer) {
   );
 }
 
+/** @typedef {{ use_stored_prefs?: boolean, email?: string }} StoredPrefsEmailInput */
+
+export const STORED_PREFS_MISSING_HINT =
+  'Set base email in Profile Viewer → Profile Generation (or lab_set_generation_prefs), then retry.';
+
+/**
+ * Default true when email omitted — matches lab_generate_profile.
+ * @param {boolean | undefined} use_stored_prefs
+ * @param {string | undefined} email
+ */
+export function shouldUseStoredGenerationPrefs(use_stored_prefs, email) {
+  return use_stored_prefs ?? !email;
+}
+
+/**
+ * Overlay Firestore static mobile onto generated attributes.
+ * @param {Record<string, unknown> | undefined} attributes
+ * @param {string | null | undefined} mobilePhone
+ */
+export function applyStoredPrefsMobileToAttributes(attributes, mobilePhone) {
+  if (!attributes || typeof attributes !== 'object') return attributes;
+  const phone = String(mobilePhone || '').trim();
+  if (!phone) return attributes;
+  return { ...attributes, 'mobilePhone.number': phone };
+}
+
 /**
  * Resolve email for generate when use_stored_prefs is enabled.
  * @param {string} sandbox
- * @returns {Promise<{ ok: true, email: string, counterN: number } | { ok: false, error: string }>}
+ * @returns {Promise<{ ok: true, email: string, counterN: number, nextCounterN?: number, baseEmail?: string, mobilePhone?: string, testProfile?: boolean } | { ok: false, error: string, hint?: string }>}
  */
 export async function resolveStoredPrefsEmail(sandbox) {
   const apiResult = await reserveGenerationNextEmail({ sandbox });
   if (!apiResult.ok) {
-    return { ok: false, error: apiResult.error || 'Failed to reserve next email' };
+    return {
+      ok: false,
+      error: apiResult.error || 'Failed to reserve next email',
+      hint: STORED_PREFS_MISSING_HINT,
+    };
   }
   const email = apiResult.data?.scaledEmail;
   if (!email) {
-    return { ok: false, error: apiResult.data?.error || 'No scaled email returned' };
+    const err = apiResult.data?.error || 'No scaled email returned';
+    const needsBase =
+      String(err).includes('baseEmail') ||
+      String(err).includes('Profile Viewer') ||
+      String(err).includes('lab_set_generation_prefs');
+    return {
+      ok: false,
+      error: err,
+      hint: needsBase ? STORED_PREFS_MISSING_HINT : undefined,
+    };
   }
   return {
     ok: true,
