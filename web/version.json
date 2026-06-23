@@ -1,14 +1,14 @@
 {
-  "gitSha": "26f4e5027a6d76dc3c0d0661192952ed97ccf4db",
-  "gitShortSha": "26f4e502",
+  "gitSha": "5bc5836087d5a47a1eca4f589d80de6f7d6b28a0",
+  "gitShortSha": "5bc58360",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: automate Event Tool Profile enable with identityMap",
+  "gitCommitSubject": "[apalmer] fix: accept identityMap from base ExperienceEvent class",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T20:37:50+01:00",
-  "deployedAt": "2026-06-23T19:41:28.769Z",
+  "gitCommitDate": "2026-06-23T20:51:53+01:00",
+  "deployedAt": "2026-06-23T19:52:06.302Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/26f4e5027a6d76dc3c0d0661192952ed97ccf4db"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5bc5836087d5a47a1eca4f589d80de6f7d6b28a0"
 }
