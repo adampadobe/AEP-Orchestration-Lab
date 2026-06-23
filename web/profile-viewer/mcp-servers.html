@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Reference for Adobe-hosted MCP servers with documented HTTPS endpoints, plus common third-party MCPs for documentation, data, APIs, and delivery workflows. Each row notes how it is usually enabled in Cursor. This page does not store credentials and is not Adobe-sandbox-dependent.
+                Reference for lab-hosted, Adobe-hosted, and third-party MCP servers with documented HTTPS endpoints. Each row notes how it is usually enabled in Cursor or Adobe AI Coworker. This page does not store credentials and is not Adobe-sandbox-dependent.
               </p>
               <p class="mcp-claude-hint" id="mcpClaudeHint">
                 <span class="mcp-claude-hint-label" aria-hidden="true">Tip</span>
@@ -68,6 +68,28 @@
             </div>
           </div>
           <p id="mcpCount" class="mcp-status-text" aria-live="polite"></p>
+
+          <div class="mcp-section" data-mcp-section="lab" aria-labelledby="mcpSectionLabHeading">
+            <h2 id="mcpSectionLabHeading" class="mcp-section-heading">AEP Orchestration Lab</h2>
+            <p class="mcp-section-lead">Lab-hosted MCP servers on Cloud Run — custom tools for profile generation, infra checks, and sandbox workflows (not Adobe product MCPs).</p>
+            <div class="mcp-table-wrap">
+              <table class="mcp-table" aria-describedby="mcpSectionLabHeading">
+                <thead>
+                  <tr>
+                    <th scope="col">Server</th>
+                    <th scope="col">Product / area</th>
+                    <th scope="col">MCP server URL</th>
+                    <th scope="col">What it does</th>
+                    <th scope="col">Typical use cases</th>
+                    <th scope="col">Config notes</th>
+                  </tr>
+                </thead>
+                <tbody id="mcpTableBodyLab"></tbody>
+              </table>
+            </div>
+            <div id="mcpCardsLab" class="mcp-cards" aria-label="AEP Orchestration Lab MCP servers (mobile cards)"></div>
+            <p id="mcpEmptyLab" class="mcp-section-empty mcp-status-text" hidden>No lab-hosted servers match your search.</p>
+          </div>
 
           <div class="mcp-section" data-mcp-section="adobe" aria-labelledby="mcpSectionAdobeHeading">
             <h2 id="mcpSectionAdobeHeading" class="mcp-section-heading">Adobe</h2>
@@ -117,7 +139,7 @@
     </div>
   </div>
 
-  <script src="mcp-servers.js?v=20260603"></script>
+  <script src="mcp-servers.js?v=20260623"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260602-mcp-servers"></script>
