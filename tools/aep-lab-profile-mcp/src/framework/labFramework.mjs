@@ -210,7 +210,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.9.0',
+    version: '3.10.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -284,6 +284,27 @@ export function getExecutionFramework() {
         advanced: 'lab_send_edge_event when datastream_id is known (anonymous Edge / raw_payload).',
         api: 'POST /api/events/generator or POST /api/events/edge',
       },
+      event_infra_setup: {
+        tools: [
+          'lab_setup_event_infra',
+          'lab_get_event_config',
+          'lab_save_event_datastream',
+          'lab_list_event_targets',
+        ],
+        when: 'Sandbox needs ExperienceEvent schema + dataset before Edge event sends (Event tool step 1).',
+        order: [
+          'lab_setup_event_infra sandbox {sandbox} — POST setupEventInfra (schema + field groups + dataset)',
+          'Enable schema + dataset for Profile in AEP UI (alternate primary from identityMap)',
+          'Create Edge datastream in Adobe Data Collection targeting the event schema/dataset',
+          'lab_save_event_datastream datastream_id {id} (+ schema_id from setup response) OR Event tool Save',
+          'lab_list_event_targets — confirm lab-event-tool-edge has dataStreamId',
+        ],
+        naming: {
+          default_schema_title: 'AEP Lab - Event Generic - Schema',
+          dataset_derive: 'Replace word Schema with Dataset in schema title unless dataset_name set',
+        },
+        api: 'POST /api/events/infra/step step=setupEventInfra',
+      },
       batch_seed: {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],
         limits: { maxCount: 100, rateLimit: '3 batch jobs/hour per MCP key' },
@@ -345,6 +366,10 @@ export function getExecutionFramework() {
         'Direct Alloy-style Edge interact when you have datastream_id; same identityMap rules; include _demoemea.identification.core for Demo Website schemas.',
       lab_onboard_sandbox:
         'New colleague sandbox missing Firestore connection docs or profile not enabled on dataset.',
+      lab_setup_event_infra:
+        'Create ExperienceEvent schema, attach recommended field groups, and catalog dataset (Event tool Set up event infrastructure). Follow with datastream save.',
+      lab_save_event_datastream:
+        'After manual Edge datastream creation in Data Collection — persist datastreamId to Firestore so lab-event-tool-edge works.',
     },
     dataflow_pattern: {
       description: 'Per industry: schema → dataset → HTTP API streaming flow → Firestore connection doc.',

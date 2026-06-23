@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.9.0). Use when generating test profiles, sending
-  experience events, checking infra, batch seeding, segment personas, brand scraping,
+  (Streamable HTTP on Cloud Run v3.10.0). Use when generating test profiles, sending
+  experience events, setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   access info, MCP first-run onboarding, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.9)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.10)
 
-MCP server: **AEP Orchestration Lab MCP v3.9.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.10.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -222,6 +222,34 @@ Mirrors Profile Viewer **Event tool** identity rules (`eventEdgeService.buildXdm
 **Advanced (direct datastream):**
 
    > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email event.demo+001@adobetest.com, ecid from generate, event_type transaction.
+
+## Workflow 5c — Event infrastructure setup (schema + dataset + datastream)
+
+Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (save datastream ID).
+
+1. **Create schema, field groups, and dataset**
+
+   > lab_setup_event_infra for sandbox prisacar. Default schema **AEP Lab - Event Generic - Schema**; dataset name auto-derives **AEP Lab - Event Generic - Dataset**.
+
+2. **Enable Profile in AEP UI**
+
+   > Enable the ExperienceEvent schema and dataset for Profile with **alternate primary identity** (identityMap per event). See response `identity_map_hint`.
+
+3. **Create Edge datastream (manual in Data Collection)**
+
+   > In Tags / Data Collection, create an Edge datastream mapped to the event schema and dataset. Copy the datastream / Edge configuration ID.
+
+4. **Save datastream ID**
+
+   > lab_save_event_datastream sandbox prisacar datastream_id `<edge-id>` schema_id from step 1 response. Or Portal [Event tool](https://aep-orchestration-lab.web.app/profile-viewer/event-tool.html).
+
+5. **Verify**
+
+   > lab_list_event_targets for sandbox prisacar — preset **lab-event-tool-edge** should include `dataStreamId`. Then chain **Workflow 5b** to send events.
+
+**One-shot Coworker prompt:**
+
+> Set up event schema and dataset for sandbox **prisacar**, then tell me how to save the datastream ID after I create it in Data Collection.
 
 ## Workflow 6 — Batch seed N profiles
 

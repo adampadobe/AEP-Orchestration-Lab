@@ -732,6 +732,42 @@ async function run() {
   const { registerSendProfileEventsBatchTool } = await import('../src/tools/sendProfileEventsBatch.mjs');
   assert(typeof registerSendProfileEventsBatchTool === 'function', 'registerSendProfileEventsBatchTool');
 
+  const {
+    DEFAULT_EVENT_SCHEMA_TITLE,
+    deriveDatasetNameFromSchemaTitle,
+    resolveEventInfraNames,
+    buildEventInfraNextSteps,
+  } = await import('../src/framework/eventInfraNaming.mjs');
+  assert(
+    deriveDatasetNameFromSchemaTitle(DEFAULT_EVENT_SCHEMA_TITLE) === 'AEP Lab - Event Generic - Dataset',
+    'deriveDatasetName Schema→Dataset',
+  );
+  assert(
+    deriveDatasetNameFromSchemaTitle('AEP Lab - Travel Profile - Schema') === 'AEP Lab - Travel Profile - Dataset',
+    'deriveDatasetName profile parity',
+  );
+  const infraResolved = resolveEventInfraNames({});
+  assert(infraResolved.schemaTitle === DEFAULT_EVENT_SCHEMA_TITLE && infraResolved.derivedDataset, 'resolveEventInfraNames defaults');
+  const explicit = resolveEventInfraNames({ schema_title: 'Custom - Schema', dataset_name: 'My Dataset' });
+  assert(explicit.datasetName === 'My Dataset' && !explicit.derivedDataset, 'explicit dataset_name');
+  const steps = buildEventInfraNextSteps({ sandbox: 'prisacar', schemaId: 'sch1', datasetId: 'ds1' });
+  assert(steps.event_tool_url.includes('prisacar') && steps.schema_id === 'sch1', 'buildEventInfraNextSteps');
+
+  const { buildSetupEventInfraPostBody } = await import('../src/labApiClient.mjs');
+  const postBody = buildSetupEventInfraPostBody({
+    schemaTitle: DEFAULT_EVENT_SCHEMA_TITLE,
+    datasetName: 'AEP Lab - Event Generic - Dataset',
+  });
+  assert(postBody.step === 'setupEventInfra' && postBody.schemaTitle && postBody.datasetName, 'setupEventInfra POST body');
+
+  const { registerSetupEventInfraTool } = await import('../src/tools/setupEventInfra.mjs');
+  const { registerEventConfigTools } = await import('../src/tools/eventConfig.mjs');
+  assert(typeof registerSetupEventInfraTool === 'function', 'registerSetupEventInfraTool');
+  assert(typeof registerEventConfigTools === 'function', 'registerEventConfigTools');
+
+  const { eventConfigDocId } = await import('../src/eventConfigStore.mjs');
+  assert(eventConfigDocId('prisacar') === 'prisacar', 'eventConfigDocId simple sandbox');
+
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');
 

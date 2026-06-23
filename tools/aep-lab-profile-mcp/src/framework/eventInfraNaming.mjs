@@ -1,0 +1,59 @@
+/**
+ * Event infrastructure naming — mirrors Profile Viewer event-tool.js and profile infra constants.
+ */
+
+export const DEFAULT_EVENT_SCHEMA_TITLE = 'AEP Lab - Event Generic - Schema';
+
+/**
+ * Derive catalog dataset name from schema title (word-boundary Schema → Dataset).
+ * @param {string} schemaTitle
+ * @returns {string}
+ */
+export function deriveDatasetNameFromSchemaTitle(schemaTitle) {
+  return String(schemaTitle || '').replace(/\bSchema\b/i, 'Dataset');
+}
+
+/**
+ * Resolve schema + dataset names for setupEventInfra (MCP + tests).
+ * @param {object} [params]
+ * @param {string} [params.schema_title]
+ * @param {string} [params.dataset_name]
+ * @returns {{ schemaTitle: string, datasetName: string, derivedDataset: boolean }}
+ */
+export function resolveEventInfraNames(params = {}) {
+  const schemaTitle = String(params.schema_title || DEFAULT_EVENT_SCHEMA_TITLE).trim();
+  const explicitDataset = String(params.dataset_name || '').trim();
+  if (explicitDataset) {
+    return { schemaTitle, datasetName: explicitDataset, derivedDataset: false };
+  }
+  return {
+    schemaTitle,
+    datasetName: deriveDatasetNameFromSchemaTitle(schemaTitle),
+    derivedDataset: true,
+  };
+}
+
+/**
+ * Build next-step guidance after setupEventInfra succeeds.
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} [params.schemaId]
+ * @param {string} [params.datasetId]
+ */
+export function buildEventInfraNextSteps({ sandbox, schemaId, datasetId }) {
+  const origin = String(process.env.AEP_LAB_API_ORIGIN || 'https://aep-orchestration-lab.web.app').replace(/\/$/, '');
+  const eventToolUrl = `${origin}/profile-viewer/event-tool.html?sandbox=${encodeURIComponent(sandbox)}`;
+  return {
+    enable_profile_in_aep:
+      'In AEP Schemas: enable the ExperienceEvent schema for Profile with alternate primary identity (identityMap per event). Enable the matching dataset for Profile.',
+    create_datastream:
+      'In Adobe Data Collection: create an Edge datastream (AEP Web SDK extension) mapped to the event schema and dataset. Copy the datastream / Edge configuration ID.',
+    save_datastream_id:
+      `Save the datastream ID in Firestore via Profile Viewer Event tool (${eventToolUrl}) or MCP lab_save_event_datastream.`,
+    verify_targets: 'Call lab_list_event_targets — preset lab-event-tool-edge should include dataStreamId when config is saved.',
+    optional_mcp_save_tool: 'lab_save_event_datastream',
+    event_tool_url: eventToolUrl,
+    schema_id: schemaId || null,
+    dataset_id: datasetId || null,
+  };
+}

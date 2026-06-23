@@ -29,6 +29,8 @@ import { registerCreateJourneyFromBrandScrapeTool } from './createJourneyFromBra
 import { registerSendRetailJourneyEventsTool } from './sendRetailJourneyEvents.mjs';
 import { registerSendProfileEventsBatchTool } from './sendProfileEventsBatch.mjs';
 import { registerMcpFirstRunSetupTool } from './mcpFirstRunSetup.mjs';
+import { registerSetupEventInfraTool } from './setupEventInfra.mjs';
+import { registerEventConfigTools } from './eventConfig.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -51,6 +53,8 @@ export function registerProfileTools(mcpServer) {
   registerUpdateProfileTool(mcpServer);
   registerProfileActivityTool(mcpServer);
   registerListEventTargetsTool(mcpServer);
+  registerSetupEventInfraTool(mcpServer);
+  registerEventConfigTools(mcpServer);
   registerSendProfileEventTool(mcpServer);
   registerSendEdgeEventTool(mcpServer);
   registerPreflightProfileEventTool(mcpServer);

@@ -43,6 +43,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
 | `lab_profile_activity` | events + consent APIs | Narration string; optional audiences |
 | `lab_list_event_targets` | `GET /api/events/generator-targets` | Static + Firestore Edge presets for Event tool |
+| `lab_setup_event_infra` | `POST /api/events/infra/step` (`setupEventInfra`) | ExperienceEvent schema + field groups + dataset (Event tool step 1) |
+| `lab_get_event_config` | `GET /api/events/config` | Read saved datastream/schema/dataset Firestore config |
+| `lab_save_event_datastream` | Firestore `eventEdgeConfig` (Admin) | Save Edge datastream ID after Data Collection setup |
 | `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
 | `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (any `event_type` string); portal-identical POST body |
 | `lab_send_profile_events_batch` | `POST /api/events/generator` × N | Multiple events, one profile; `events[]` or `event_types[]` |

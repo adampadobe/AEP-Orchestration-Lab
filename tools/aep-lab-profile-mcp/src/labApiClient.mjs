@@ -279,6 +279,48 @@ export async function listEventTargets({ sandbox }) {
 }
 
 /**
+ * POST body for setupEventInfra — exported for unit tests.
+ * @param {object} params
+ * @param {string} params.schemaTitle
+ * @param {string} params.datasetName
+ */
+export function buildSetupEventInfraPostBody({ schemaTitle, datasetName }) {
+  return {
+    step: 'setupEventInfra',
+    schemaTitle,
+    datasetName,
+  };
+}
+
+/**
+ * POST /api/events/infra/step — setupEventInfra (schema + field groups + dataset).
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} params.schemaTitle
+ * @param {string} params.datasetName
+ */
+export async function setupEventInfra({ sandbox, schemaTitle, datasetName }) {
+  return labApiRequest('/api/events/infra/step', {
+    method: 'POST',
+    query: { sandbox },
+    body: buildSetupEventInfraPostBody({ schemaTitle, datasetName }),
+    timeoutMs: 300_000,
+  });
+}
+
+/**
+ * GET /api/events/config?sandbox=
+ * @param {object} params
+ * @param {string} params.sandbox
+ */
+export async function getEventConfig({ sandbox }) {
+  return labApiRequest('/api/events/config', {
+    query: { sandbox },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
  * POST /api/events/generator — Event Generator (mirrors Profile Viewer Event tool).
  * @param {object} params
  */
