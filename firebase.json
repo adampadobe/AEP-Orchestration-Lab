@@ -763,6 +763,20 @@
         }
       },
       {
+        "source": "/api/lab/mcp-keys",
+        "function": {
+          "functionId": "labMcpKeys",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/lab/mcp-keys/rotate",
+        "function": {
+          "functionId": "labMcpKeys",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/workspace-auth/register-google",
         "function": {
           "functionId": "labWorkspaceAuthRegisterGoogle",

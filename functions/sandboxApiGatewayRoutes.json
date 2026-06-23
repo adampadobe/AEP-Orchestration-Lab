@@ -415,6 +415,16 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/lab/mcp-keys",
+      "functionId": "labMcpKeys",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/mcp-keys/rotate",
+      "functionId": "labMcpKeys",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/consent-infra/status",
       "functionId": "consentInfraStatus",
       "region": "us-east4"

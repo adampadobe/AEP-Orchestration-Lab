@@ -83,6 +83,8 @@ const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { registerProfileRoutes } = require('./profileRoutes');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
+const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
+const mcpApiKeyStore = lazyRequireMod('./mcpApiKeyStore');
 const { registerSnowflakeRoutes } = require('./snowflakeRoutes');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
@@ -1859,6 +1861,22 @@ Object.assign(
     labRtdbProvisionService,
     labWorkspaceAuthService,
   })
+);
+
+Object.assign(
+  exports,
+  registerMcpKeyRoutes({
+    onRequest,
+    CONSENT_STORE_FN_OPTS,
+    setCors,
+    labUserSandboxStore,
+    mcpApiKeyStore,
+    labWorkspaceAuthService,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
+    sandboxesList,
+  }),
 );
 
 /** GET /api/tags/reactor — Reactor JSON:API: companies, properties, allProperties, property-scoped lists, ruleComponents&ruleId= */

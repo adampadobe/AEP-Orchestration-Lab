@@ -72,7 +72,7 @@ async function main() {
   });
 
   app.post('/mcp', async (req, res) => {
-    const auth = validateMcpApiKey(req);
+    const auth = await validateMcpApiKey(req);
     if (!auth.ok) {
       jsonRpcError(res, auth.status, auth.message);
       return;
@@ -127,7 +127,7 @@ async function main() {
   });
 
   app.delete('/mcp', async (req, res) => {
-    const auth = validateMcpApiKey(req);
+    const auth = await validateMcpApiKey(req);
     if (!auth.ok) {
       res.status(auth.status).json({ error: auth.message });
       return;

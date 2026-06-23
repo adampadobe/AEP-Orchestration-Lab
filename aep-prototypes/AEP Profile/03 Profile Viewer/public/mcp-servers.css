@@ -327,3 +327,213 @@
     display: flex;
   }
 }
+
+/* MCP API key self-service panel */
+.mcp-key-panel {
+  margin: 1.25rem 0 0;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--dash-border, #e2e2e2);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt, #f8f8f8);
+}
+
+.mcp-key-panel-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-key-lead {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-key-lead code {
+  font-size: 0.92em;
+}
+
+.mcp-key-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #888);
+}
+
+.mcp-key-sandboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.mcp-key-sandbox-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--dash-text, #2c2c2c);
+  cursor: pointer;
+}
+
+.mcp-key-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mcp-key-status {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.84rem;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-key-status--error {
+  color: var(--dash-error-text, #c9252d);
+}
+
+.mcp-key-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.mcp-key-empty,
+.mcp-key-hint {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-key-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--dash-border, #e2e2e2);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface, #fff);
+}
+
+.mcp-key-card-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1rem;
+  min-width: min(100%, 12rem);
+}
+
+.mcp-key-card-prefix {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-key-card-id {
+  font-size: 0.78rem;
+  color: var(--dash-muted, #888);
+}
+
+.mcp-key-card-meta {
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-key-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+body.mcp-key-modal-open {
+  overflow: hidden;
+}
+
+.mcp-key-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--dash-text, #2c2c2c) 45%, transparent);
+}
+
+.mcp-key-modal {
+  width: min(520px, 100%);
+  max-height: min(90vh, 640px);
+  overflow: auto;
+  padding: 1.35rem 1.5rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border, #e2e2e2);
+  background: var(--dash-surface, #fff);
+  box-shadow: var(--dash-shadow, 0 8px 24px rgba(0, 0, 0, 0.12));
+}
+
+.mcp-key-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.mcp-key-modal-warning {
+  margin: 0 0 1rem;
+  font-size: 0.86rem;
+  color: var(--dash-warning-text, #b45309);
+  line-height: 1.45;
+}
+
+.mcp-key-modal-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #888);
+}
+
+.mcp-key-modal-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.mcp-key-modal-input,
+.mcp-key-modal-snippet {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--dash-input-border, #cacaca);
+  border-radius: 8px;
+  background: var(--dash-input-bg, #fff);
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-key-modal-snippet {
+  margin-bottom: 1rem;
+  resize: vertical;
+  min-height: 8rem;
+}
+
+.mcp-key-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.mcp-key-modal-row .mcp-key-modal-input {
+  flex: 1;
+  min-width: 0;
+}
+

@@ -224,6 +224,25 @@ gcloud run deploy "${SERVICE}" \
 2. **Provision:** `lab_sandbox_profile_config` → `lab_onboard_sandbox` (`plan` / `execute` / `execute_all`).
 3. **Verify:** `lab_mcp_access_info`, `lab_generate_profile`.
 
+- `mcpSandboxAllowlist`
+- `mcpApiKeys` (user-generated keys; hash lookup)
+
+## Self-service API keys (Profile Viewer portal)
+
+Colleagues with **approved lab access** can manage personal MCP keys on **Profile Viewer → MCP servers** (no ops seed script required for day-to-day use).
+
+| API | Auth | Notes |
+|-----|------|--------|
+| `GET /api/lab/mcp-keys` | Firebase ID token | List keys (prefix, sandboxes, dates — no secret) |
+| `POST /api/lab/mcp-keys` | Firebase ID token | Body `{ sandboxes: string[] }` — returns plaintext **once** |
+| `POST /api/lab/mcp-keys/rotate` | Firebase ID token | Body `{ keyId, action: "rotate" }` — same `keyId`, new secret, old key invalid immediately |
+| `DELETE /api/lab/mcp-keys?keyId=` | Firebase ID token | Revoke + remove `mcpSandboxAllowlist/{keyId}` |
+
+- Max **3** active keys per user; sandboxes must match the user’s **workspace slug** and active Adobe sandboxes.
+- Firestore: `mcpApiKeys/{keyId}` stores `keyHash` (SHA-256), `keyPrefix`, `allowedSandboxes`, `principalUid`, `revoked`.
+- MCP Cloud Run auth: shared ops key (`AEP_LAB_MCP_API_KEY`) **or** user key via `keyHash` query on `mcpApiKeys`.
+- Ops seed script `scripts/seed-mcp-sandbox-allowlist.mjs` remains for shared / legacy keys.
+
 ## Phase 3.5 OAuth (future)
 
 `validateOAuthBearer` in `src/auth.mjs` checks `AEP_LAB_MCP_OAUTH_ISSUER` and `AEP_LAB_MCP_OAUTH_AUDIENCE`. When both are set, a stub returns *not implemented* until Coworker OIDC docs land. **Today:** use `X-AEP-Lab-Mcp-Key` only.

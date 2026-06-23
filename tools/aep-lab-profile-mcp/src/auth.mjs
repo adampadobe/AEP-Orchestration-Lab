@@ -1,10 +1,24 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { keyIdFromApiKey } from './auditLog.mjs';
 import { getPrincipalAccess } from './requestContext.mjs';
 import { assertSandboxAllowedForAccess } from './sandboxAllowlist.mjs';
+import { getFirestoreDb } from './firestoreAdmin.mjs';
 
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
+const KEYS_COLLECTION = 'mcpApiKeys';
 
 let configCache = null;
+
+function hashApiKey(apiKey) {
+  return createHash('sha256').update(String(apiKey || ''), 'utf8').digest('hex');
+}
+
+function safeEqual(a, b) {
+  const sa = String(a || '');
+  const sb = String(b || '');
+  if (sa.length !== sb.length) return false;
+  return timingSafeEqual(Buffer.from(sa, 'utf8'), Buffer.from(sb, 'utf8'));
+}
 
 /**
  * Load auth + sandbox policy from environment (cached after first call).
@@ -39,12 +53,44 @@ export function loadAuthConfig() {
 }
 
 /**
- * Validate incoming MCP HTTP request API key.
- * @param {import('express').Request} req
- * @returns {{ ok: true, keyId: string } | { ok: false, status: number, message: string }}
+ * Validate user-generated key from Firestore mcpApiKeys/{keyId}.
+ * @param {string} provided
  */
-export function validateMcpApiKey(req) {
-  const cfg = loadAuthConfig();
+async function validateUserGeneratedKey(provided) {
+  const db = await getFirestoreDb();
+  if (!db) return null;
+
+  const keyHash = hashApiKey(provided);
+  try {
+    const snap = await db
+      .collection(KEYS_COLLECTION)
+      .where('keyHash', '==', keyHash)
+      .where('revoked', '==', false)
+      .limit(1)
+      .get();
+    if (snap.empty) return null;
+
+    const doc = snap.docs[0];
+    const data = doc.data() || {};
+    if (!safeEqual(data.keyHash, keyHash)) return null;
+
+    doc.ref.update({ lastUsedAt: new Date() }).catch(() => {});
+
+    return { ok: true, keyId: doc.id, source: 'user' };
+  } catch (err) {
+    console.warn('[aep-lab-profile-mcp] mcpApiKeys lookup failed:', err?.message || err);
+    return null;
+  }
+}
+
+/**
+ * Validate incoming MCP HTTP request API key.
+ * Ops shared key (env) OR per-user Firestore mcpApiKeys.
+ *
+ * @param {import('express').Request} req
+ * @returns {Promise<{ ok: true, keyId: string, source?: string } | { ok: false, status: number, message: string }>}
+ */
+export async function validateMcpApiKey(req) {
   const provided = String(req.headers[MCP_KEY_HEADER] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
 
   if (!provided) {
@@ -55,15 +101,21 @@ export function validateMcpApiKey(req) {
     };
   }
 
-  if (provided !== cfg.apiKey) {
-    return {
-      ok: false,
-      status: 403,
-      message: 'Invalid MCP API key.',
-    };
+  const cfg = loadAuthConfig();
+  if (safeEqual(provided, cfg.apiKey)) {
+    return { ok: true, keyId: cfg.keyId, source: 'env' };
   }
 
-  return { ok: true, keyId: cfg.keyId };
+  const userAuth = await validateUserGeneratedKey(provided);
+  if (userAuth) {
+    return userAuth;
+  }
+
+  return {
+    ok: false,
+    status: 403,
+    message: 'Invalid MCP API key.',
+  };
 }
 
 /**
