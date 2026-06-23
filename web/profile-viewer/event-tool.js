@@ -74,6 +74,66 @@
   let resolvedEmail = '';
   let activeMode = 'trigger';
 
+  /** Default event schema title — mirrors profile-gen `AEP Lab - … - Schema` naming. */
+  const DEFAULT_EVENT_SCHEMA_TITLE = 'AEP Lab - Event Generic - Schema';
+  /** True once the operator edits dataset name away from auto-derived value. */
+  let datasetNameTouched = false;
+  /** Guard: programmatic dataset writes must not flip datasetNameTouched. */
+  let syncingDatasetName = false;
+
+  function deriveDatasetName(schemaTitle) {
+    return String(schemaTitle || '').replace(/\bSchema\b/i, 'Dataset');
+  }
+
+  function ensureDefaultSchemaTitle() {
+    if (!dom.schemaTitle) return;
+    if (!(dom.schemaTitle.value || '').trim()) {
+      dom.schemaTitle.value = DEFAULT_EVENT_SCHEMA_TITLE;
+    }
+  }
+
+  function syncDatasetFromSchema(force) {
+    if (!dom.schemaTitle || !dom.datasetName) return;
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    if (!schemaTitle) return;
+    const derived = deriveDatasetName(schemaTitle);
+    const current = (dom.datasetName.value || '').trim();
+    if (force || !datasetNameTouched || !current) {
+      syncingDatasetName = true;
+      dom.datasetName.value = derived;
+      syncingDatasetName = false;
+    }
+  }
+
+  function applyLoadedDatasetName(schemaTitle, datasetName) {
+    if (!dom.datasetName) return;
+    const schema = String(schemaTitle || '').trim();
+    const saved = String(datasetName || '').trim();
+    if (saved) {
+      syncingDatasetName = true;
+      dom.datasetName.value = saved;
+      syncingDatasetName = false;
+      datasetNameTouched = saved !== deriveDatasetName(schema);
+    } else {
+      datasetNameTouched = false;
+      syncDatasetFromSchema(true);
+    }
+  }
+
+  function bindSchemaDatasetNameSync() {
+    if (dom.schemaTitle) {
+      dom.schemaTitle.addEventListener('input', function () {
+        syncDatasetFromSchema(false);
+      });
+    }
+    if (dom.datasetName) {
+      dom.datasetName.addEventListener('input', function () {
+        if (syncingDatasetName) return;
+        datasetNameTouched = true;
+      });
+    }
+  }
+
   /* ── Sandbox helper (uses inline select on this page) ── */
   function getSandboxName() {
     if (dom.sandboxSelect && dom.sandboxSelect.value) return dom.sandboxSelect.value;
@@ -188,8 +248,12 @@
       if (data.ok && data.record) {
         if (data.record.datastreamId) dom.dsInput.value = data.record.datastreamId;
         if (data.record.schemaTitle) dom.schemaTitle.value = data.record.schemaTitle;
+        else ensureDefaultSchemaTitle();
         if (dom.schemaId && data.record.schemaId) dom.schemaId.value = data.record.schemaId;
-        if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
+        applyLoadedDatasetName(
+          data.record.schemaTitle || dom.schemaTitle.value,
+          data.record.datasetName
+        );
         customTriggers = Array.isArray(data.record.customTriggers) ? data.record.customTriggers : [];
         if (Array.isArray(data.record.quickMenuTriggers)) {
           quickMenuTriggers = data.record.quickMenuTriggers.map(function (x) { return typeof x === 'string' ? x : triggerKey(x); }).filter(Boolean);
@@ -213,10 +277,15 @@
         }
       } else {
         expandConfig();
+        datasetNameTouched = false;
+        ensureDefaultSchemaTitle();
+        syncDatasetFromSchema(true);
         setMsg(dom.infraMsg, 'No configuration found for this sandbox. Complete the steps below to get started.', '');
       }
     } catch {
       expandConfig();
+      ensureDefaultSchemaTitle();
+      syncDatasetFromSchema(true);
       setMsg(dom.infraMsg, '', '');
     }
   }
@@ -531,7 +600,11 @@
   function applySetupEventInfraResult(data) {
     if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
     if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
-    if (data.datasetName && dom.datasetName) dom.datasetName.value = data.datasetName;
+    if (data.datasetName && dom.datasetName) {
+      syncingDatasetName = true;
+      dom.datasetName.value = data.datasetName;
+      syncingDatasetName = false;
+    }
     saveConfigField({
       schemaTitle: data.schemaTitle || (dom.schemaTitle && dom.schemaTitle.value) || undefined,
       schemaId: data.schemaId || undefined,
@@ -641,8 +714,11 @@
         const r = data.record;
         const parts = [];
         if (r.schemaTitle) { dom.schemaTitle.value = r.schemaTitle; parts.push('Schema: ' + r.schemaTitle); }
+        else ensureDefaultSchemaTitle();
         if (dom.schemaId && r.schemaId) dom.schemaId.value = r.schemaId;
-        if (r.datasetName) { dom.datasetName.value = r.datasetName; parts.push('Dataset: ' + r.datasetName); }
+        applyLoadedDatasetName(r.schemaTitle || dom.schemaTitle.value, r.datasetName);
+        if (r.datasetName) parts.push('Dataset: ' + r.datasetName);
+        else if (dom.datasetName && dom.datasetName.value) parts.push('Dataset: ' + dom.datasetName.value);
         if (r.datastreamId) { dom.dsInput.value = r.datastreamId; parts.push('Datastream: ' + r.datastreamId); }
         customTriggers = Array.isArray(r.customTriggers) ? r.customTriggers : [];
         if (Array.isArray(r.quickMenuTriggers)) {
@@ -1014,6 +1090,7 @@
     customTriggers = [];
     quickMenuTriggers = [];
     schemaEventTypes = [];
+    datasetNameTouched = false;
     dom.dsInput.value = '';
     if (dom.triggerType) dom.triggerType.value = '';
     dom.profileInfo.hidden = true;
@@ -1033,6 +1110,7 @@
   /* ═══════════ Init ═══════════ */
 
   async function init() {
+    bindSchemaDatasetNameSync();
     await initSandboxSelect();
     loadTriggerTemplates();
     if (window.__aepLabSyncReady) {
