@@ -1,14 +1,14 @@
 {
-  "gitSha": "f4408aaf2e81e1044b4c696b47bc811b7013f843",
-  "gitShortSha": "f4408aaf",
+  "gitSha": "ba54ab4190619b536bedaa99c68b54d79a1c4c75",
+  "gitShortSha": "ba54ab41",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Sync Express mirror LLM demo snapshot paths and validate diagram groups.",
+  "gitCommitSubject": "[apalmer] feat: Profile MCP profile workflows and sandbox onboarding",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T21:40:47+01:00",
-  "deployedAt": "2026-06-22T20:41:14.820Z",
+  "gitCommitDate": "2026-06-23T01:11:32+01:00",
+  "deployedAt": "2026-06-23T00:14:18.303Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f4408aaf2e81e1044b4c696b47bc811b7013f843"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ba54ab4190619b536bedaa99c68b54d79a1c4c75"
 }
