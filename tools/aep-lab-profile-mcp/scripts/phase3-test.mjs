@@ -604,32 +604,104 @@ async function run() {
   assert(STORED_PREFS_MISSING_HINT.includes('Profile Generation'), 'prefs missing hint mentions portal');
 
   const {
-    PORTAL_EVENT_TYPES,
+    EVENT_TYPE_SUGGESTIONS,
     buildRetailJourneyEventPack,
     resolveDemoEventSequence,
-    toGeneratorPostBody,
+    buildEventsFromEventTypes,
   } = await import('../src/framework/demoEventPacks.mjs');
+  const {
+    buildGeneratorPostBody,
+    portalEventGeneratorSendBody,
+  } = await import('../src/framework/buildGeneratorPostBody.mjs');
+
   const starbucksPack = buildRetailJourneyEventPack({ brandName: 'Starbucks', baseUrl: 'https://www.starbucks.ae' });
   assert(starbucksPack.length === 4, 'retail journey pack has 4 events');
-  assert(starbucksPack[0].event_type === PORTAL_EVENT_TYPES.productViews, 'step1 productViews');
-  assert(starbucksPack[3].event_type === PORTAL_EVENT_TYPES.transaction, 'step4 transaction');
+  assert(starbucksPack[0].event_type === EVENT_TYPE_SUGGESTIONS.productViews, 'step1 productViews');
+  assert(starbucksPack[3].event_type === EVENT_TYPE_SUGGESTIONS.transaction, 'step4 transaction');
   assert(starbucksPack[0].view_name.includes('Pike Place'), 'Starbucks default product');
   const retailResolved = resolveDemoEventSequence({ industry: 'retail' });
   assert(retailResolved.sequence === 'retail_journey', 'retail industry defaults retail_journey');
   assert(retailResolved.events.length === 4, 'retail resolved 4 events');
   const travelResolved = resolveDemoEventSequence({ industry: 'travel' });
   assert(travelResolved.sequence === 'single_page_view', 'travel defaults single page view');
-  assert(travelResolved.events[0].event_type === PORTAL_EVENT_TYPES.pageViews, 'single page view type');
-  const genBody = toGeneratorPostBody(starbucksPack[0], {
+  assert(travelResolved.events[0].event_type === EVENT_TYPE_SUGGESTIONS.pageViews, 'single page view type');
+  const customList = resolveDemoEventSequence({
+    event_types: ['starbucks.mobile.page.view', 'application.login'],
+    view_name: 'Mobile lab',
+  });
+  assert(customList.sequence === 'custom_list', 'event_types custom_list');
+  assert(customList.events[0].event_type === 'starbucks.mobile.page.view', 'custom event type preserved');
+
+  const portalRef = portalEventGeneratorSendBody({
+    email: 'demo+001@adobetest.com',
+    ecid: '62722406001178632594092146103219305888',
+    eventType: 'donation.made',
+    viewName: 'Race for Life',
+    viewUrl: 'https://example.com/donate',
+    channel: 'web',
+    eventID: 'orch-abc',
+    timestamp: '2026-06-23T12:00:00.000Z',
+    industry: 'public',
+    public: { donationAmount: 50 },
+    targetId: 'lab-event-tool-edge',
+    sandbox: 'apalmer',
+  });
+  const mcpBody = buildGeneratorPostBody({
+    sandbox: 'apalmer',
+    email: 'demo+001@adobetest.com',
+    ecid: '62722406001178632594092146103219305888',
+    event_type: 'donation.made',
+    view_name: 'Race for Life',
+    view_url: 'https://example.com/donate',
+    channel: 'web',
+    event_id: 'orch-abc',
+    timestamp: '2026-06-23T12:00:00.000Z',
+    public: { donationAmount: 50 },
+    target_id: 'lab-event-tool-edge',
+  });
+  function normalizeGeneratorBody(body) {
+    return JSON.stringify(body, Object.keys(body).sort());
+  }
+  assert(
+    normalizeGeneratorBody(mcpBody) === normalizeGeneratorBody(portalRef),
+    'MCP generator body matches portal event-generator.js extract',
+  );
+
+  const mobileBody = buildGeneratorPostBody({
+    email: 'demo+001@adobetest.com',
+    ecid: '62722406001178632594092146103219305888',
+    event_type: 'starbucks.mobile.page.view',
+    view_name: 'Starbucks mobile lab',
+    channel: 'Mobile App',
+    xdm_tenant_key: '_demoemea',
+    identity_map_ecid_key: 'ECID',
+    public: {},
+  });
+  assert(mobileBody.eventType === 'starbucks.mobile.page.view', 'mobile custom eventType');
+  assert(mobileBody.xdmTenantKey === '_demoemea', 'mobile tenant key');
+  assert(mobileBody.identityMapEcidKey === 'ECID', 'mobile ecid key');
+
+  const genBody = buildGeneratorPostBody({
+    sandbox: 'apalmer',
     email: 'demo+001@adobetest.com',
     ecid: '62722406001178632594092146103219305888',
     target_id: 'lab-event-tool-edge',
+    event_type: starbucksPack[0].event_type,
+    view_name: starbucksPack[0].view_name,
+    view_url: starbucksPack[0].view_url,
+    channel: starbucksPack[0].channel,
+    timestamp: starbucksPack[0].timestamp,
   });
   assert(genBody.eventType === 'commerce.productViews', 'generator body eventType camelCase');
-  assert(genBody.viewName && genBody.ecid && genBody.email, 'generator body identity fields');
+  assert(genBody.viewName && genBody.ecid && genBody.email && genBody._id, 'generator body identity + timestamp _id');
+
+  const shorthand = buildEventsFromEventTypes(['ferrariworld.pageView', 'transaction'], { view_name: 'FW' });
+  assert(shorthand.length === 2, 'buildEventsFromEventTypes length');
 
   const { registerSendRetailJourneyEventsTool } = await import('../src/tools/sendRetailJourneyEvents.mjs');
   assert(typeof registerSendRetailJourneyEventsTool === 'function', 'registerSendRetailJourneyEventsTool');
+  const { registerSendProfileEventsBatchTool } = await import('../src/tools/sendProfileEventsBatch.mjs');
+  assert(typeof registerSendProfileEventsBatchTool === 'function', 'registerSendProfileEventsBatchTool');
 
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');

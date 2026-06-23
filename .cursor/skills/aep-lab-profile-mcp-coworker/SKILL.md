@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.8.4). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.8.5). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, brand scraping,
   access info, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.7)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.8)
 
-MCP server: **AEP Orchestration Lab MCP v3.8.4** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.8.5** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -37,7 +37,7 @@ Coworker should call these **before** improvising lab conventions:
 2. **preferredLanguage** — BCP-47 on `preferredLanguage` (root), `preferences.preferredLanguage`, and `personalEmail.language`. MCP randomize defaults `en-US` when missing. `profileStreamingCore.mirrorPreferredLanguageDemoSchema` dual-writes root + tenant.
 3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; `_demoemea.identification.core` mirrors both. Preflight: `lab_preflight_profile_event`.
-5. **Portal event types** — never invent custom `eventType` strings (e.g. `starbucks.page.view`). Use Event tool datalist types via `lab_list_event_targets` + `lab_send_retail_journey_events` or `lab_prepare_demo_from_brand_scrape` with `steps.events` (retail → commerce journey pack).
+5. **Portal event types** — `event_type` is **free text** (any string, same as Event tool). Datalist / `lab_send_retail_journey_events` commerce pack are optional suggestions. Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`.
 6. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). Call `lab_confirm_generation_plan` before first generate; use `lab_generate_profile` without email (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. **Brand scrape profile tools** (`lab_generate_profile_from_brand_scrape`, `lab_generate_profiles_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}+N@adobetest.com`. Static **mobilePhone.number** comes from prefs too. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 7. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
 
@@ -46,7 +46,7 @@ Coworker should call these **before** improvising lab conventions:
 1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset.
 2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via per-industry HTTP API connections. **Non-generic industries dual-stream automatically:** step 1 `industry generic` (generic-owned paths), step 2 `industry travel|fsi|…` with `appendIfExisting` (industry-owned paths, same email/ECID). `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
-4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (does not rewrite profile attributes). **Identity**: pass email **and** ecid from `lab_generate_profile`; `identityMap` uses ECID primary + Email secondary; `_demoemea.identification.core` mirrors both. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event`. Auto-fetches ecid from UPS when email-only.
+4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (same POST body as Profile Viewer **Event Generator** and mobile lab shells). **`event_type` is free text** — any string (e.g. `transaction`, `donation.made`, `starbucks.mobile.page.view`, `ferrariworld.pageView`). Event tool datalist / `lab_send_retail_journey_events` commerce pack are **suggestions only**. **Identity**: pass email **and** ecid from `lab_generate_profile`; `identityMap` uses ECID primary + Email secondary; `_demoemea.identification.core` mirrors both. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event` (returns `generatorPostBody`). Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`. Auto-fetches ecid from UPS when email-only.
 
 ### Test data conventions
 

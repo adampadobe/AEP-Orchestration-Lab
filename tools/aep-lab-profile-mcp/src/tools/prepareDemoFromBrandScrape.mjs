@@ -55,12 +55,16 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         journey_persona_name: z.string().optional().describe('Persona for CJv2 when steps.journey true'),
         journey_type: z.string().optional().describe('Journey type override for CJv2'),
         journey_tier: z.enum(['Foundation', 'Advanced']).optional(),
-        event_type: z.string().optional().describe('Legacy: single schema-valid event type override (omit for retail journey pack)'),
+        event_type: z.string().optional().describe('Single event type override (any string; portal free-text)'),
+        event_types: z
+          .array(z.string())
+          .optional()
+          .describe('Multiple event types per profile — any strings; overrides event_type / journey packs'),
         event_view_name: z.string().optional().describe('Product or page name for events step'),
         event_sequence: z
           .enum(['retail_journey', 'single_page_view'])
           .optional()
-          .describe('Event pack when steps.events true — retail industry defaults retail_journey'),
+          .describe('Optional commerce pack when event_types omitted — retail defaults retail_journey'),
         realistic_events: z
           .boolean()
           .optional()
@@ -93,9 +97,10 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       journey_type,
       journey_tier,
       event_type,
-      event_view_name,
+      event_types,
       event_sequence,
       realistic_events,
+      event_view_name,
       event_delay_ms,
       append_if_existing,
       test_profile,
@@ -226,7 +231,9 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
           sandbox: allowed.sandbox,
           profileResults: profileRows,
           industry: profileOutcome?.industry || profileOutcome?.lab_industry || loaded.summary?.lab_industry,
+          event_types,
           event_sequence: realistic_events === false ? 'single_page_view' : event_sequence,
+          realistic_events,
           event_type,
           view_name: event_view_name,
           brand_name: loaded.summary?.brandName || undefined,

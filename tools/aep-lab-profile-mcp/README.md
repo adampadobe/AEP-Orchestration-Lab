@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.8.4** — 28 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.8.5** — 29 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -43,7 +43,8 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_profile_activity` | events + consent APIs | Narration string; optional audiences |
 | `lab_list_event_targets` | `GET /api/events/generator-targets` | Static + Firestore Edge presets for Event tool |
 | `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
-| `lab_send_profile_event` | `POST /api/events/generator` | Send experience event; auto-fetch ecid; email+ecid stitching |
+| `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (any `event_type` string); portal-identical POST body |
+| `lab_send_profile_events_batch` | `POST /api/events/generator` × N | Multiple events, one profile; `events[]` or `event_types[]` |
 | `lab_send_retail_journey_events` | `POST /api/events/generator` (×4) | Portal-aligned retail commerce journey pack; preflight + staggered timestamps |
 | `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |
@@ -165,7 +166,7 @@ Mirrors Profile Viewer **Event tool** (`event-generator.html`):
 
 1. **`lab_generate_profile`** — capture `ecid` from response (or use email).
 2. **`lab_list_event_targets`** — pick `target_id` (Edge or DCS streaming preset).
-3. **`lab_send_profile_event`** — send with email/ecid + optional event_type, view_name, channel, public fields.
+3. **`lab_send_profile_event`** — send with email/ecid + **any** `event_type` string (Event tool datalist is suggestions only), view_name, channel, public, message, timestamp (+ `_id`).
 4. **`lab_profile_activity`** or **`lab_get_profile`** — verify events landed on the profile.
 
 Advanced: **`lab_send_edge_event`** when you have `datastream_id` directly (optional `raw_payload` for full Edge interact body).

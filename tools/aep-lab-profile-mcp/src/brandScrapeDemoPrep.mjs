@@ -375,7 +375,8 @@ export async function createClientJourneyFromScrape({
  * @param {Array<Record<string, unknown>>} [params.profileResults]
  * @param {string} [params.industry] — lab industry; retail defaults to retail_journey sequence
  * @param {string} [params.event_sequence] — retail_journey | single_page_view
- * @param {string} [params.event_type] — legacy single-event override (must be schema-valid portal type)
+ * @param {string[]} [params.event_types] — any custom eventType strings (portal free-text)
+ * @param {boolean} [params.realistic_events] — retail: use retail_journey pack when no event_types
  * @param {string} [params.view_name]
  * @param {string} [params.brand_name]
  * @param {string} [params.base_url]
@@ -389,6 +390,8 @@ export async function sendDemoEventsForProfiles({
   profileResults,
   industry,
   event_sequence,
+  event_types,
+  realistic_events,
   event_type,
   view_name,
   brand_name,
@@ -399,7 +402,11 @@ export async function sendDemoEventsForProfiles({
   preflight = true,
 }) {
   const resolvedSequence = resolveDemoEventSequence({
-    event_sequence,
+    event_types,
+    event_sequence:
+      realistic_events && String(industry || '').trim().toLowerCase() === 'retail'
+        ? 'retail_journey'
+        : event_sequence,
     industry,
     event_type,
     view_name,
@@ -460,6 +467,6 @@ export async function sendDemoEventsForProfiles({
     results: eventResults,
     verify_hint: 'lab_profile_activity per email — allow 30–60s UPS lag after last event.',
     event_type_policy:
-      'Use schema-valid types from lab_list_event_targets / Event tool datalist only. Never invent custom eventType strings.',
+      'event_type accepts any string — same as Event tool free-text input. Datalist / retail_journey pack are optional suggestions.',
   };
 }

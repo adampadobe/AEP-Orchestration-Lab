@@ -117,14 +117,15 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
   },
   {
-    id: 'portal_event_types_only',
+    id: 'portal_event_types_free_text',
     rule:
-      'Never invent custom eventType strings (e.g. starbucks.page.view). Use schema-valid types from Event Generator datalist ' +
-      'or lab_list_event_targets — commerce.productViews, commerce.productListAdds, transaction, web.webPageDetails.pageViews, etc.',
+      'event_type accepts ANY string — same free-text field as Event tool / mobile lab senders (e.g. transaction, donation.made, ' +
+      'starbucks.mobile.page.view, ferrariworld.pageView). Event tool datalist and retail journey pack are optional suggestions only.',
     retail_journey:
-      'lab_send_retail_journey_events or lab_prepare_demo_from_brand_scrape steps.events — retail lab_industry defaults ' +
-      'commerce.productViews → commerce.productListAdds → commerce.productListViews → transaction with email+ecid from generate.',
-    ui: 'web/profile-viewer/event-generator.html eventType datalist + GET /api/schema/event-types.',
+      'lab_send_retail_journey_events or lab_prepare_demo_from_brand_scrape steps.events — optional commerce pack when event_types omitted; ' +
+      'retail lab_industry defaults commerce.productViews → … → transaction with email+ecid from generate.',
+    batch: 'lab_send_profile_events_batch or event_types[] on lab_prepare_demo_from_brand_scrape for arbitrary multi-event sequences.',
+    ui: 'web/profile-viewer/event-generator.js + mobile lab shells — buildGeneratorPostBody parity in MCP.',
     verify: 'lab_profile_activity after send — allow 30–60s UPS lag; retry if ecid was missing on first attempt.',
   },
 ];

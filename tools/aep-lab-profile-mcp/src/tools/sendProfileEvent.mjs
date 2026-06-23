@@ -4,12 +4,17 @@ import { lookupProfile, sendProfileEvent } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
+import { EVENT_TYPE_SUGGESTIONS } from '../framework/buildGeneratorPostBody.mjs';
 import {
   buildEventIdentityMap,
   extractEcidFromProfileTable,
   resolveEventIdentities,
 } from '../framework/eventIdentity.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
+
+const eventTypeDescribe =
+  'XDM eventType — any custom string (same free-text field as Event tool). ' +
+  `Suggestions: ${EVENT_TYPE_SUGGESTIONS.slice(0, 6).join(', ')}, …`;
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -20,11 +25,11 @@ export function registerSendProfileEventTool(mcpServer) {
     {
       title: 'Send profile experience event',
       description:
-        'POST /api/events/generator — mirrors Profile Viewer Event tool. Append experience events (not profile attribute rewrites). ' +
-        'Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH email and ecid from the generate response for reliable stitching. ' +
-        'When ecid is omitted but email is set, auto-fetches ecid from UPS (lab_get_profile). ' +
-        'identityMap: ECID primary + Email secondary when both present; _demoemea.identification.core mirrors both. ' +
-        'Default target_id lab-event-tool-edge (Firestore Event tool datastream). Preflight: lab_preflight_profile_event.',
+        'POST /api/events/generator — identical payload to Profile Viewer Event tool / mobile lab senders. ' +
+        'event_type accepts ANY string (datalist suggestions are optional). ' +
+        'Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
+        'identityMap: ECID primary + Email secondary; _demoemea.identification.core mirrors both. ' +
+        'Default target_id lab-event-tool-edge. Preflight: lab_preflight_profile_event. Batch: lab_send_profile_events_batch.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email (at least one of email or ecid required)'),
@@ -36,38 +41,53 @@ export function registerSendProfileEventTool(mcpServer) {
           .string()
           .optional()
           .describe('Preset id from lab_list_event_targets (default lab-event-tool-edge)'),
-        event_type: z.string().optional().describe('XDM eventType (e.g. transaction, donation.made, web.webPageViews)'),
+        event_type: z.string().optional().describe(eventTypeDescribe),
         view_name: z.string().optional().describe('Web page view name / title'),
         view_url: z.string().optional().describe('Web page URL'),
-        channel: z.string().optional().describe('Interaction channel (web, mobile, email, …)'),
-        orchestration_event_id: z.string().optional().describe('AJO orchestration event ID'),
-        event_id: z.string().optional().describe('Alias for orchestration_event_id (eventID)'),
-        timestamp: z.string().optional().describe('ISO-8601 event timestamp'),
+        channel: z.string().optional().describe('Interaction channel (web, mobile, Mobile App, email, …)'),
+        orchestration_event_id: z.string().optional().describe('AJO orchestration event ID (sent as eventID)'),
+        event_id: z.string().optional().describe('Alias for orchestration_event_id (portal eventID field)'),
+        timestamp: z.string().optional().describe('ISO-8601 event timestamp (also sets _id like Event tool)'),
         public: z
           .record(z.unknown())
           .optional()
-          .describe('Public-sector / demo tenant fields (donationAmount, hotel*, etc.)'),
+          .describe('Tenant public fields (donationAmount, hotel*, quoteForm, retail via public object, etc.)'),
+        message: z
+          .record(z.unknown())
+          .optional()
+          .describe('_demoemea.message object (call centre / contact centre demos)'),
+        industry: z
+          .string()
+          .optional()
+          .describe('Industry context label (portal uses public sector fields when industry=public)'),
+        xdm_tenant_key: z
+          .string()
+          .optional()
+          .describe('XDM tenant prefix e.g. _demoemea (mobile demos default _demoemea)'),
+        identity_map_ecid_key: z
+          .string()
+          .optional()
+          .describe('identityMap ECID key (default ECID; mobile demos use ECID)'),
+        primary_identity: z
+          .enum(['email'])
+          .optional()
+          .describe('Email-only primary identity for guests without ECID'),
+        email_primary_identity: z.boolean().optional().describe('Alias for primary_identity email'),
         auto_fetch_ecid: z
           .boolean()
           .optional()
           .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
       },
     },
-    async ({
-      sandbox,
-      email,
-      ecid,
-      target_id,
-      event_type,
-      view_name,
-      view_url,
-      channel,
-      orchestration_event_id,
-      event_id,
-      timestamp,
-      public: publicFields,
-      auto_fetch_ecid,
-    }) => {
+    async (params) => {
+      const {
+        sandbox,
+        email,
+        ecid,
+        auto_fetch_ecid,
+        ...eventFields
+      } = params;
+
       const started = Date.now();
       const keyId = getRequestKeyId();
 
@@ -130,15 +150,7 @@ export function registerSendProfileEventTool(mcpServer) {
         sandbox: allowed.sandbox,
         email: resolved.email || undefined,
         ecid: resolved.ecid || undefined,
-        target_id,
-        event_type,
-        view_name,
-        view_url,
-        channel,
-        orchestration_event_id,
-        event_id,
-        timestamp,
-        public: publicFields,
+        ...eventFields,
       });
 
       const lab = apiResult.ok && apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : {};
@@ -169,7 +181,7 @@ export function registerSendProfileEventTool(mcpServer) {
         transport: lab.transport || null,
         requestId: lab.requestId || null,
         eventId: lab.eventId || null,
-        targetId: lab.targetId || target_id || null,
+        targetId: lab.targetId || eventFields.target_id || null,
         message: lab.message || null,
         identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
         ecid: resolved.ecid || null,

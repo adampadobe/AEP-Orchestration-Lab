@@ -3,6 +3,7 @@ import { assertSandboxAllowed } from '../auth.mjs';
 import { listEventTargets, lookupProfile } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
+import { buildGeneratorPostBody } from '../framework/buildGeneratorPostBody.mjs';
 import {
   buildEventPreflightSummary,
   extractEcidFromProfileTable,
@@ -19,8 +20,8 @@ export function registerPreflightProfileEventTool(mcpServer) {
     {
       title: 'Preflight profile experience event',
       description:
-        'Dry-run event identity + target resolution without sending. Shows identityMap, _demoemea.identification.core, ' +
-        'and resolved target_id (default lab-event-tool-edge). Auto-fetches ecid from UPS when email provided and ecid omitted.',
+        'Dry-run event identity + target + POST body without sending. Shows identityMap, generatorPostBody ' +
+        '(same shape as Event tool), and resolved target_id. Auto-fetches ecid from UPS when email provided.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email'),
@@ -29,13 +30,26 @@ export function registerPreflightProfileEventTool(mcpServer) {
           .string()
           .optional()
           .describe('Preset id from lab_list_event_targets (default lab-event-tool-edge)'),
+        event_type: z.string().optional().describe('Any eventType string (portal free-text)'),
+        view_name: z.string().optional(),
+        view_url: z.string().optional(),
+        channel: z.string().optional(),
+        event_id: z.string().optional().describe('Orchestration eventID'),
+        timestamp: z.string().optional(),
+        public: z.record(z.unknown()).optional(),
+        message: z.record(z.unknown()).optional(),
+        industry: z.string().optional(),
+        xdm_tenant_key: z.string().optional(),
+        identity_map_ecid_key: z.string().optional(),
+        primary_identity: z.enum(['email']).optional(),
+        email_primary_identity: z.boolean().optional(),
         auto_fetch_ecid: z
           .boolean()
           .optional()
           .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
       },
     },
-    async ({ sandbox, email, ecid, target_id, auto_fetch_ecid }) => {
+    async ({ sandbox, email, ecid, target_id, auto_fetch_ecid, ...eventFields }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
 
@@ -100,6 +114,12 @@ export function registerPreflightProfileEventTool(mcpServer) {
         target_id,
         targets,
         warnings: resolved.warnings,
+        eventFields: {
+          ...eventFields,
+          target_id,
+          email: resolved.email,
+          ecid: resolved.ecid,
+        },
       });
 
       if (!targetsResult.ok) {

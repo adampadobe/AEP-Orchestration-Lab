@@ -4,6 +4,7 @@
  */
 
 import { getRequestMcpApiKey } from './requestContext.mjs';
+import { buildGeneratorPostBody } from './framework/buildGeneratorPostBody.mjs';
 
 const DEFAULT_ORIGIN = 'https://aep-orchestration-lab.web.app';
 
@@ -282,19 +283,7 @@ export async function listEventTargets({ sandbox }) {
  * @param {object} params
  */
 export async function sendProfileEvent(params) {
-  /** @type {Record<string, unknown>} */
-  const body = { sandbox: params.sandbox };
-  if (params.email) body.email = params.email;
-  if (params.ecid) body.ecid = params.ecid;
-  if (params.target_id) body.targetId = params.target_id;
-  if (params.event_type) body.eventType = params.event_type;
-  if (params.view_name) body.viewName = params.view_name;
-  if (params.view_url) body.viewUrl = params.view_url;
-  if (params.channel) body.channel = params.channel;
-  if (params.orchestration_event_id) body.orchestrationEventID = params.orchestration_event_id;
-  if (params.event_id) body.eventID = params.event_id;
-  if (params.timestamp) body.timestamp = params.timestamp;
-  if (params.public && typeof params.public === 'object') body.public = params.public;
+  const body = buildGeneratorPostBody(params);
   return labApiRequest('/api/events/generator', {
     method: 'POST',
     body,

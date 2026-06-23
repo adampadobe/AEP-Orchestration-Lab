@@ -105,6 +105,7 @@ export async function sendProfileEventSequence({
       channel: step.channel || 'web',
       timestamp: step.timestamp,
       public: step.public,
+      message: step.message,
     });
 
     stepResults.push({

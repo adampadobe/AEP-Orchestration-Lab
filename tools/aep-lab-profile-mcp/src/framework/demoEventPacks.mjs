@@ -1,13 +1,12 @@
 /**
- * Portal Event Generator–aligned event sequences for MCP demo prep.
- * Event types MUST match web/profile-viewer/event-generator.html datalist + schema enum.
- * Never invent custom eventType strings (e.g. starbucks.page.view) — they are dropped by UPS.
+ * Optional event sequences for demo prep — suggestions only; any event_type string works
+ * (same as Profile Viewer Event tool free-text input + mobile lab senders).
  */
 
-/** @typedef {{ event_type: string, view_name?: string, view_url?: string, channel?: string, timestamp?: string, public?: Record<string, unknown> }} DemoEventStep */
+/** @typedef {{ event_type: string, view_name?: string, view_url?: string, channel?: string, timestamp?: string, public?: Record<string, unknown>, message?: Record<string, unknown> }} DemoEventStep */
 
-/** Schema-valid types from Event tool datalist (event-generator.html). */
-export const PORTAL_EVENT_TYPES = Object.freeze({
+/** Common datalist suggestions (event-generator.html) — not an allowlist. */
+export const EVENT_TYPE_SUGGESTIONS = Object.freeze({
   productViews: 'commerce.productViews',
   productListAdds: 'commerce.productListAdds',
   productListViews: 'commerce.productListViews',
@@ -43,7 +42,7 @@ export function defaultRetailProductName(brandName) {
 }
 
 /**
- * Retail customer journey — mirrors Event tool commerce types for F&B / Starbucks demos.
+ * Retail customer journey — optional convenience pack using common commerce types.
  *
  * @param {object} [context]
  * @param {string} [context.brandName]
@@ -58,28 +57,28 @@ export function buildRetailJourneyEventPack(context = {}) {
 
   return [
     {
-      event_type: PORTAL_EVENT_TYPES.productViews,
+      event_type: EVENT_TYPE_SUGGESTIONS.productViews,
       view_name: product,
       view_url: `${baseUrl}/menu/product`,
       channel: 'web',
       timestamp: hoursAgoIso(4),
     },
     {
-      event_type: PORTAL_EVENT_TYPES.productListAdds,
+      event_type: EVENT_TYPE_SUGGESTIONS.productListAdds,
       view_name: `Cart — ${product}`,
       view_url: `${baseUrl}/cart`,
       channel: 'web',
       timestamp: hoursAgoIso(3),
     },
     {
-      event_type: PORTAL_EVENT_TYPES.productListViews,
+      event_type: EVENT_TYPE_SUGGESTIONS.productListViews,
       view_name: 'Review cart',
       view_url: `${baseUrl}/cart`,
       channel: 'web',
       timestamp: hoursAgoIso(2),
     },
     {
-      event_type: PORTAL_EVENT_TYPES.transaction,
+      event_type: EVENT_TYPE_SUGGESTIONS.transaction,
       view_name: `${brand} order complete`,
       view_url: `${baseUrl}/checkout/confirmation`,
       channel: 'web',
@@ -89,25 +88,72 @@ export function buildRetailJourneyEventPack(context = {}) {
 }
 
 /**
+ * Build steps from an explicit list of event type strings (Coworker / custom demos).
+ *
+ * @param {string[]} eventTypes
+ * @param {object} [context]
+ * @param {string} [context.view_name]
+ * @param {string} [context.view_url]
+ * @param {string} [context.channel]
+ */
+export function buildEventsFromEventTypes(eventTypes, context = {}) {
+  const types = (Array.isArray(eventTypes) ? eventTypes : [])
+    .map((t) => String(t || '').trim())
+    .filter(Boolean);
+  if (!types.length) {
+    return [
+      {
+        event_type: EVENT_TYPE_SUGGESTIONS.pageViews,
+        view_name: context.view_name || 'Brand demo landing',
+        view_url: context.view_url,
+        channel: context.channel || 'web',
+      },
+    ];
+  }
+  return types.map((event_type, index) => ({
+    event_type,
+    view_name:
+      index === 0 && context.view_name
+        ? context.view_name
+        : context.view_name
+          ? `${context.view_name} — ${event_type}`
+          : event_type,
+    view_url: context.view_url,
+    channel: context.channel || 'web',
+  }));
+}
+
+/**
  * Resolve event steps for demo prep / journey send tools.
  *
  * @param {object} opts
+ * @param {string[]} [opts.event_types] — explicit list (any strings); highest priority
  * @param {string} [opts.event_sequence] — retail_journey | single_page_view
- * @param {string} [opts.industry] — lab industry (retail → default retail_journey)
- * @param {string} [opts.event_type] — explicit single event (legacy override)
+ * @param {string} [opts.industry] — lab industry; retail defaults to retail_journey when no event_types
+ * @param {string} [opts.event_type] — single custom event override
  * @param {string} [opts.view_name]
  * @param {string} [opts.brandName]
  * @param {string} [opts.baseUrl]
+ * @param {string} [opts.channel]
  * @returns {{ sequence: string, events: DemoEventStep[] }}
  */
 export function resolveDemoEventSequence({
+  event_types,
   event_sequence,
   industry,
   event_type,
   view_name,
   brandName,
   baseUrl,
+  channel,
 }) {
+  if (Array.isArray(event_types) && event_types.length) {
+    return {
+      sequence: 'custom_list',
+      events: buildEventsFromEventTypes(event_types, { view_name, channel }),
+    };
+  }
+
   if (event_type) {
     return {
       sequence: 'custom_single',
@@ -115,7 +161,8 @@ export function resolveDemoEventSequence({
         {
           event_type,
           view_name: view_name || 'Brand demo landing',
-          channel: 'web',
+          view_url: undefined,
+          channel: channel || 'web',
         },
       ],
     };
@@ -142,38 +189,10 @@ export function resolveDemoEventSequence({
     sequence: EVENT_SEQUENCE_KEYS.single_page_view,
     events: [
       {
-        event_type: PORTAL_EVENT_TYPES.pageViews,
+        event_type: EVENT_TYPE_SUGGESTIONS.pageViews,
         view_name: view_name || 'Brand demo landing',
-        channel: 'web',
+        channel: channel || 'web',
       },
     ],
   };
-}
-
-/**
- * POST /api/events/generator body shape (camelCase) — matches event-generator.js.
- *
- * @param {DemoEventStep} step
- * @param {object} identity
- * @param {string} identity.email
- * @param {string} identity.ecid
- * @param {string} [target_id]
- */
-export function toGeneratorPostBody(step, { email, ecid, target_id }) {
-  /** @type {Record<string, unknown>} */
-  const body = {
-    email,
-    eventType: step.event_type,
-    viewName: step.view_name || '',
-    channel: step.channel || 'web',
-  };
-  if (ecid) body.ecid = ecid;
-  if (step.view_url) body.viewUrl = step.view_url;
-  if (step.timestamp) {
-    body.timestamp = step.timestamp;
-    body._id = String(new Date(step.timestamp).getTime());
-  }
-  if (target_id) body.targetId = target_id;
-  if (step.public && typeof step.public === 'object') body.public = step.public;
-  return body;
 }

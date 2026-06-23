@@ -19,11 +19,9 @@ export function registerSendRetailJourneyEventsTool(mcpServer) {
     {
       title: 'Send retail journey experience events',
       description:
-        'Send a Portal Event tool–aligned retail customer journey (commerce.productViews → productListAdds → ' +
-        'productListViews → transaction) for one profile. Uses schema-valid eventType values from Event Generator ' +
-        'datalist — never custom strings like starbucks.page.view. Requires email + ecid from lab_generate_profile. ' +
-        'Preflights identity before send; staggered timestamps spread events over the last few hours. ' +
-        'Verify with lab_profile_activity (30–60s UPS lag). For batch brand-scrape demos use lab_prepare_demo_from_brand_scrape with steps.events.',
+        'Send an optional retail customer journey (commerce.productViews → … → transaction) for one profile. ' +
+        'Convenience pack only — for arbitrary types use lab_send_profile_event or lab_send_profile_events_batch. ' +
+        'Requires email + ecid from lab_generate_profile.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().describe('Profile email from generate response'),

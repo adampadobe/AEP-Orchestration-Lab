@@ -4,6 +4,8 @@
  * Profile Viewer: web/profile-viewer/event-generator.js, event-tool.js
  */
 
+import { buildGeneratorPostBody } from './buildGeneratorPostBody.mjs';
+
 /** Default Firestore-backed Edge preset id (functions/eventGeneratorService.js). */
 export const LAB_EVENT_TOOL_TARGET_ID = 'lab-event-tool-edge';
 
@@ -144,8 +146,9 @@ export function resolveEventIdentities({ email, ecid, profileEcid, autoFetchedEc
  * @param {string} [opts.target_id]
  * @param {Array<{ id?: string, label?: string, transport?: string, dataStreamId?: string }>} [opts.targets]
  * @param {string[]} [opts.warnings]
+ * @param {Record<string, unknown>} [opts.eventFields] — passed to buildGeneratorPostBody for dry-run body
  */
-export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, targets, warnings }) {
+export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, targets, warnings, eventFields }) {
   const identityMap = buildEventIdentityMap({ email, ecid });
   const targetId = String(target_id || LAB_EVENT_TOOL_TARGET_ID).trim();
   const targetList = Array.isArray(targets) ? targets : [];
@@ -154,6 +157,14 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
     (targetId === LAB_EVENT_TOOL_TARGET_ID
       ? { id: LAB_EVENT_TOOL_TARGET_ID, note: 'Default Event tool preset when Firestore eventConfig has datastreamId' }
       : null);
+
+  const generatorPostBody = buildGeneratorPostBody({
+    sandbox,
+    ...(eventFields && typeof eventFields === 'object' ? eventFields : {}),
+    email,
+    ecid,
+    target_id: targetId,
+  });
 
   return {
     sandbox,
@@ -173,8 +184,10 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
         'When both present: identityMap.ECID primary:true, identityMap.Email primary:false.',
         '_demoemea.identification.core must carry the same ecid + email strings for Demo Website stitching.',
         'Prefer BOTH after lab_generate_profile — capture ecid from generate response.',
+        'event_type is free text — Event tool datalist entries are suggestions only.',
       ],
     },
+    generatorPostBody,
     target: {
       requested_id: targetId,
       resolved: resolvedTarget,
