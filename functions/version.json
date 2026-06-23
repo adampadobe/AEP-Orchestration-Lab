@@ -1,14 +1,14 @@
 {
-  "gitSha": "900a356a84172c37948bf9bc636e9aab114b0f7f",
-  "gitShortSha": "900a356a",
+  "gitSha": "028452b6811c92d752986166807d87c32b804561",
+  "gitShortSha": "028452b6",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Expose lab execution framework in Profile MCP v3.3",
+  "gitCommitSubject": "[apalmer] Bidirectional profile generation prefs sync (Portal + MCP v3.5)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T08:58:40+01:00",
-  "deployedAt": "2026-06-23T08:00:39.261Z",
+  "gitCommitDate": "2026-06-23T09:14:01+01:00",
+  "deployedAt": "2026-06-23T08:14:31.264Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/900a356a84172c37948bf9bc636e9aab114b0f7f"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/028452b6811c92d752986166807d87c32b804561"
 }
