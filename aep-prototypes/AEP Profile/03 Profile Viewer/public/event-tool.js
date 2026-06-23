@@ -130,6 +130,66 @@
     return ch || DEFAULT_CHANNEL;
   }
 
+  function resolveIdentityNamespace() {
+    if (typeof AepIdentityPicker !== 'undefined') {
+      return AepIdentityPicker.getNamespace('etIdentifier');
+    }
+    return (dom.namespace && dom.namespace.value) || 'email';
+  }
+
+  function namespaceIsEcid(ns) {
+    var s = String(ns || '').trim().toLowerCase();
+    return s === 'ecid' || s === 'experiencecloudid';
+  }
+
+  function isValidEdgeEcid(val) {
+    var s = String(val || '').trim();
+    return s && s !== '—' && /^\d{10,}$/.test(s);
+  }
+
+  /** Resolve email and/or ECID for Edge send — either alone is valid. */
+  function resolveSendIdentity() {
+    var identifier = (dom.identifier.value || '').trim();
+    var ns = resolveIdentityNamespace();
+    var email = resolvedEmail ? String(resolvedEmail).trim() : '';
+    var ecid = isValidEdgeEcid(resolvedEcid) ? String(resolvedEcid).trim() : '';
+
+    if (email && isValidEdgeEcid(email) && !ecid && namespaceIsEcid(ns)) {
+      ecid = email;
+      email = '';
+    }
+
+    if (!email && !ecid && identifier) {
+      if (namespaceIsEcid(ns) && isValidEdgeEcid(identifier)) {
+        ecid = identifier;
+      } else if (identifier.indexOf('@') >= 0 || String(ns).toLowerCase() === 'email') {
+        email = identifier;
+      } else if (isValidEdgeEcid(identifier)) {
+        ecid = identifier;
+      } else {
+        email = identifier;
+      }
+    }
+
+    return { email: email, ecid: ecid };
+  }
+
+  function applyResolvedIdentityFromProfile(id, ns, data) {
+    var emailVal = (data && data.email) ? String(data.email).trim() : '';
+    var ecidVal = '';
+    if (data && data.ecid != null) {
+      ecidVal = Array.isArray(data.ecid) ? String(data.ecid[0] || '').trim() : String(data.ecid).trim();
+    }
+    if (!isValidEdgeEcid(ecidVal) && namespaceIsEcid(ns) && isValidEdgeEcid(id)) {
+      ecidVal = id;
+    }
+    if (!emailVal && !namespaceIsEcid(ns) && (String(ns).toLowerCase() === 'email' || id.indexOf('@') >= 0)) {
+      emailVal = id;
+    }
+    resolvedEmail = emailVal;
+    resolvedEcid = isValidEdgeEcid(ecidVal) ? ecidVal : '';
+  }
+
   function persistChannelSelection() {
     try {
       sessionStorage.setItem(CHANNEL_STORAGE_KEY, getSelectedChannel());
@@ -945,22 +1005,19 @@
       }
 
       if (data.found) {
-        dom.infoEmail.textContent = data.email || id;
+        applyResolvedIdentityFromProfile(id, ns, data);
+        dom.infoEmail.textContent = resolvedEmail || '—';
         dom.infoFirst.textContent = data.firstName || '—';
         dom.infoLast.textContent = data.lastName || '—';
-        const ecidVal = Array.isArray(data.ecid) ? (data.ecid[0] || '') : (data.ecid || '');
-        dom.infoEcid.textContent = ecidVal || '—';
-        resolvedEcid = String(ecidVal);
-        resolvedEmail = data.email || id;
+        dom.infoEcid.textContent = resolvedEcid || '—';
         dom.profileInfo.hidden = false;
         setMsg(dom.profileMsg, 'Profile found.', 'success');
       } else {
-        dom.infoEmail.textContent = id;
+        applyResolvedIdentityFromProfile(id, ns, null);
+        dom.infoEmail.textContent = resolvedEmail || '—';
         dom.infoFirst.textContent = '—';
         dom.infoLast.textContent = '—';
-        dom.infoEcid.textContent = '—';
-        resolvedEcid = '';
-        resolvedEmail = id;
+        dom.infoEcid.textContent = resolvedEcid || '—';
         dom.profileInfo.hidden = false;
         setMsg(dom.profileMsg, 'No profile found — event may create a new profile.', 'success');
       }
@@ -1064,21 +1121,18 @@
   function buildRequestBody() {
     const dsId = (dom.dsInput.value || '').trim();
     if (!dsId) return { error: 'Set a Datastream ID in Configuration first.' };
-    const email = resolvedEmail || (dom.identifier.value || '').trim();
-    if (!email) return { error: 'Enter an identifier first.' };
-
-    const body = { datastreamId: dsId, email, channel: getSelectedChannel() };
-    if (resolvedEcid && resolvedEcid !== '—' && /^\d+$/.test(resolvedEcid) && resolvedEcid.length >= 10) {
-      body.ecid = resolvedEcid;
+    const identity = resolveSendIdentity();
+    if (!identity.email && !identity.ecid) {
+      return { error: 'Enter an identifier (email or ECID) first.' };
     }
+
+    const body = { datastreamId: dsId, channel: getSelectedChannel(), xdmStyle: 'minimal' };
+    if (identity.email) body.email = identity.email;
+    if (identity.ecid) body.ecid = identity.ecid;
 
     if (activeMode === 'trigger') {
       const key = (dom.triggerType.value || '').trim();
       if (!key) return { error: 'Enter or select an event type.' };
-      const tpl = triggerTemplates[key];
-      if (tpl && tpl.payload) {
-        body.triggerTemplate = tpl.payload;
-      }
       body.eventType = key;
     } else {
       body.eventType = (dom.eventType.value || '').trim() || 'transaction';
@@ -1112,30 +1166,10 @@
     var email = body.email || '';
     var ecid = body.ecid || '';
 
-    if (body.triggerTemplate) {
-      var tpl = JSON.parse(JSON.stringify(body.triggerTemplate));
-      var replacements = { ecid: ecid, email: email, _id: 'trigger-' + Date.now(), timestamp: now, eventType: eventType };
-      (function replace(obj) {
-        if (!obj || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) { obj.forEach(function (v, i) { obj[i] = replace(v); }); return obj; }
-        for (var k of Object.keys(obj)) {
-          if (typeof obj[k] === 'string') {
-            for (var rk in replacements) { obj[k] = obj[k].replace(new RegExp('\\{\\{' + rk + '\\}\\}', 'g'), String(replacements[rk])); }
-          } else if (typeof obj[k] === 'object') { replace(obj[k]); }
-        }
-        return obj;
-      })(tpl);
-      if (tpl.event && tpl.event.xdm) {
-        tpl.event.xdm.identityMap = {};
-        if (ecid) tpl.event.xdm.identityMap.ECID = [{ id: ecid, primary: true }];
-        if (email) tpl.event.xdm.identityMap.Email = [{ id: email, primary: !ecid }];
-      }
-      return { endpoint: 'POST https://server.adobedc.net/ee/v2/interact?dataStreamId=' + body.datastreamId, payload: tpl };
-    }
-
+    var ecidOk = isValidEdgeEcid(ecid);
     var identityMap = {};
-    if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
-    if (email) identityMap.Email = [{ id: email, primary: !ecid }];
+    if (ecidOk) identityMap.ECID = [{ id: ecid, primary: true }];
+    if (email) identityMap.Email = [{ id: email, primary: !ecidOk }];
 
     var xdm = {
       identityMap: identityMap,

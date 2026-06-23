@@ -124,6 +124,45 @@ test('buildLabFirestoreGeneratorPresets uses minimal xdmStyle for event tool', (
   assert.equal(out[0].xdmStyle, 'minimal');
 });
 
+test('buildMinimalEdgeXdm email-only uses Email as primary identity', () => {
+  const xdm = buildMinimalEdgeXdm({
+    email: EMAIL,
+    eventType: 'transaction',
+    channel: 'web',
+    timestamp: '2026-06-23T12:00:00.000Z',
+    _id: '12345',
+  });
+  assert.equal(xdm.identityMap.ECID, undefined);
+  assert.equal(xdm.identityMap.Email[0].id, EMAIL);
+  assert.equal(xdm.identityMap.Email[0].primary, true);
+  assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.equal(xdm._demoemea, undefined);
+});
+
+test('buildMinimalEdgeXdm ecid-only uses ECID as primary identity', () => {
+  const xdm = buildMinimalEdgeXdm({
+    ecid: ECID,
+    eventType: 'advertising.conversions',
+    channel: 'web',
+  });
+  assert.equal(xdm.identityMap.ECID[0].id, ECID);
+  assert.equal(xdm.identityMap.ECID[0].primary, true);
+  assert.equal(xdm.identityMap.Email, undefined);
+  assert.equal(xdm._demoemea, undefined);
+});
+
+test('buildXdm with xdmStyle minimal ignores public opt-in fields', () => {
+  const xdm = buildXdm({
+    email: EMAIL,
+    ecid: ECID,
+    eventType: 'donation.made',
+    xdmStyle: 'minimal',
+    public: { donationAmount: 50 },
+  });
+  assert.equal(xdm._demoemea, undefined);
+  assert.equal(xdm.public, undefined);
+});
+
 test('buildTriggerPayload uses Email primary when ecid is empty', () => {
   const template = {
     event: {

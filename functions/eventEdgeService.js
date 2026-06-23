@@ -92,11 +92,12 @@ function buildMinimalEdgeXdm(body) {
   const eventType = (b.eventType || '').trim() || 'transaction';
   const orchestrationId = (b.eventID || b.orchestrationEventID || '').trim();
   const email = (b.email || '').trim();
-  const ecid = b.ecid ? String(b.ecid).trim() : '';
+  const ecidRaw = b.ecid ? String(b.ecid).trim() : '';
+  const ecidOk = isValidEdgeEcid(ecidRaw);
 
   const identityMap = {};
-  if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
-  if (email) identityMap.Email = [{ id: email, primary: !ecid }];
+  if (ecidOk) identityMap.ECID = [{ id: ecidRaw, primary: true }];
+  if (email) identityMap.Email = [{ id: email, primary: !ecidOk }];
 
   const xdm = {
     identityMap,
