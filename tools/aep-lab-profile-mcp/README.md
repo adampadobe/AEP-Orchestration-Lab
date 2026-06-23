@@ -170,7 +170,7 @@ Mirrors Profile Viewer **Event tool** (`event-generator.html`):
 
 1. **`lab_generate_profile`** — capture `ecid` from response (or use email).
 2. **`lab_list_event_targets`** — pick `target_id` (Edge or DCS streaming preset).
-3. **`lab_send_profile_event`** — send with email/ecid + **any** `event_type` string (Event tool datalist is suggestions only), view_name, channel, public, message, timestamp (+ `_id`).
+3. **`lab_send_profile_event`** — send with email/ecid + **any** `event_type` string. **Default: minimal Edge XDM** (`identityMap`, `eventType`, `_id`, `timestamp`). Rich tenant/channel/field-group alignment when you pass `public`, `message`, `channel`, `xdm_tenant_key`, or set `xdm_style=full` / `edge_minimal=false`.
 4. **`lab_profile_activity`** or **`lab_get_profile`** — verify events landed on the profile.
 
 Advanced: **`lab_send_edge_event`** when you have `datastream_id` directly (optional `raw_payload` for full Edge interact body).

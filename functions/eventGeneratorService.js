@@ -620,7 +620,7 @@ function buildLabFirestoreGeneratorPresets(sandbox, eventRec, decisionRec) {
       transport: 'edge',
       dataStreamId: dsEt,
       edgeInteractBase: 'https://server.adobedc.net/ee/v2/interact',
-      xdmStyle: 'full',
+      xdmStyle: 'minimal',
       source: 'eventConfig',
     });
   }
@@ -647,6 +647,11 @@ module.exports = {
   mergeGeneratorPublicIntoTenant,
   normalizeInteractionDetailsChannel,
   resolveEffectiveGeneratorChannel,
+  getXdmTenantKey,
+  shouldUseEmailPrimaryIdentity,
+  syncXdmDemoemeaLowercaseAlias,
+  syncXdmTenantLowercaseAlias,
+  normalizeExperienceCloudIdNamespaceInIdentityMap,
   LAB_EVENT_TOOL_TARGET_ID,
   LAB_DECISION_LAB_TARGET_ID,
   EVENT_GENERATOR_STREAMING_URL,

@@ -1062,6 +1062,18 @@
     return { body };
   }
 
+  function shouldUseRichPreview(body) {
+    if (!body || typeof body !== 'object') return false;
+    var style = String(body.xdmStyle || body.xdm_style || '').trim().toLowerCase();
+    if (style === 'full') return true;
+    if (style === 'minimal') return false;
+    if (body.xdmTenantKey || body.xdm_tenant_key) return true;
+    if (body.channel && String(body.channel).trim()) return true;
+    if (body.message && typeof body.message === 'object' && Object.keys(body.message).length) return true;
+    if (body.public && typeof body.public === 'object' && Object.keys(body.public).length) return true;
+    return false;
+  }
+
   function buildPreviewXdm(body) {
     var now = new Date().toISOString();
     var _id = String(Date.now());
@@ -1099,10 +1111,34 @@
       _id: _id,
       eventType: eventType,
       timestamp: now,
-      _experience: { campaign: { orchestration: { eventID: body.eventID || '' } } },
     };
+
+    var orchId = (body.eventID || body.orchestrationEventID || '').trim();
+    if (orchId) {
+      xdm._experience = { campaign: { orchestration: { eventID: orchId } } };
+    }
+
     if (body.viewName || body.viewUrl) {
       xdm.web = { webPageDetails: { URL: body.viewUrl || '', name: body.viewName || '', viewName: body.viewName || '' } };
+    }
+
+    if (shouldUseRichPreview(body)) {
+      var tenantKey = (body.xdmTenantKey || body.xdm_tenant_key || '_demoemea').trim();
+      var tenantNode = { identification: { core: { ecid: ecid || '', email: email || '' } } };
+      if (body.public && typeof body.public === 'object') {
+        tenantNode.public = JSON.parse(JSON.stringify(body.public));
+      }
+      var ch = (body.channel || '').trim();
+      if (ch) {
+        tenantNode.interactionDetails = { core: { channel: ch.toLowerCase() === 'mobile app' ? 'mobile' : ch.toLowerCase() } };
+      }
+      if (body.message && typeof body.message === 'object') {
+        tenantNode.message = JSON.parse(JSON.stringify(body.message));
+      }
+      xdm[tenantKey] = tenantNode;
+      if (tenantKey === '_demoemea') {
+        try { xdm.demoemea = JSON.parse(JSON.stringify(tenantNode)); } catch (e) { xdm.demoemea = tenantNode; }
+      }
     }
 
     return {

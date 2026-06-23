@@ -43,6 +43,8 @@ export function registerPreflightProfileEventTool(mcpServer) {
         identity_map_ecid_key: z.string().optional(),
         primary_identity: z.enum(['email']).optional(),
         email_primary_identity: z.boolean().optional(),
+        edge_minimal: z.boolean().optional().describe('Default true — minimal XDM unless rich fields set'),
+        xdm_style: z.enum(['minimal', 'full']).optional(),
         auto_fetch_ecid: z
           .boolean()
           .optional()

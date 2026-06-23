@@ -60,7 +60,8 @@ export function isValidGeneratorEcid(ecid) {
  * @param {string} [params.identity_map_ecid_key] — default ECID
  * @param {string} [params.primary_identity] — email-primary guests
  * @param {boolean} [params.email_primary_identity]
- * @param {boolean} [params.edge_minimal] — default eventType donation.made when event_type omitted
+ * @param {boolean} [params.edge_minimal] — when true (default), server sends minimal XDM unless rich fields present; when false, forces full tenant/channel FG alignment
+ * @param {'minimal'|'full'} [params.xdm_style] — explicit XDM style override (full forces rich payload)
  * @returns {Record<string, unknown>}
  */
 export function buildGeneratorPostBody(params = {}) {
@@ -75,7 +76,8 @@ export function buildGeneratorPostBody(params = {}) {
   const targetId = trimOrEmpty(params.target_id);
   const sandbox = trimOrEmpty(params.sandbox);
 
-  const edgeMinimal = params.edge_minimal === true;
+  const edgeMinimal = params.edge_minimal !== false;
+  const xdmStyleExplicit = trimOrEmpty(params.xdm_style).toLowerCase();
   const defaultEventType = edgeMinimal ? 'donation.made' : PORTAL_DEFAULT_EVENT_TYPE;
 
   /** @type {Record<string, unknown>} */
@@ -118,6 +120,12 @@ export function buildGeneratorPostBody(params = {}) {
   const primaryIdentity = trimOrEmpty(params.primary_identity);
   if (primaryIdentity) body.primaryIdentity = primaryIdentity;
   if (params.email_primary_identity === true) body.emailPrimaryIdentity = true;
+
+  if (xdmStyleExplicit === 'full' || params.edge_minimal === false) {
+    body.xdmStyle = 'full';
+  } else if (xdmStyleExplicit === 'minimal') {
+    body.xdmStyle = 'minimal';
+  }
 
   return body;
 }

@@ -31,48 +31,69 @@ function bodySnippet(text, max) {
 
 /* ── XDM helpers ── */
 
-function syncDemoemeaAlias(xdm) {
-  if (!xdm || typeof xdm !== 'object' || !xdm._demoemea) return;
-  try { xdm.demoemea = JSON.parse(JSON.stringify(xdm._demoemea)); }
-  catch { xdm.demoemea = { ...xdm._demoemea }; }
-}
-
 const {
   mergeGeneratorPublicIntoTenant,
   alignExperienceEventFieldGroupPayloads,
   normalizeInteractionDetailsChannel,
   resolveEffectiveGeneratorChannel,
+  getXdmTenantKey,
+  shouldUseEmailPrimaryIdentity,
+  syncXdmDemoemeaLowercaseAlias,
+  syncXdmTenantLowercaseAlias,
+  normalizeExperienceCloudIdNamespaceInIdentityMap,
 } = require('./eventGeneratorService');
 
-function mergePublicFields(demoemea, pub) {
-  mergeGeneratorPublicIntoTenant(demoemea, pub);
+function readXdmStyle(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  return String(b.xdmStyle || b.xdm_style || '').trim().toLowerCase();
 }
 
-function mergeChannel(demoemea, channel) {
-  if (!demoemea) return;
-  const ch = normalizeInteractionDetailsChannel(channel == null ? '' : String(channel).trim());
-  if (!ch) return;
-  if (!demoemea.interactionDetails) demoemea.interactionDetails = {};
-  if (!demoemea.interactionDetails.core) demoemea.interactionDetails.core = {};
-  demoemea.interactionDetails.core.channel = ch;
+function hasHospitalityPublic(pub) {
+  if (!pub || typeof pub !== 'object' || Array.isArray(pub)) return false;
+  const keys = Object.keys(pub);
+  if (keys.some((k) => /^hotel/i.test(k))) return true;
+  if (pub.hotelItineraryId != null && String(pub.hotelItineraryId).trim()) return true;
+  if (pub.itineraryId != null && String(pub.itineraryId).trim()) return true;
+  if (pub.bookingParty && typeof pub.bookingParty === 'object') return true;
+  return false;
 }
 
 /**
- * Build an XDM payload from request body fields.
+ * Rich XDM when callers opt in (tenant mirror, channel, public, message, etc.).
+ * @param {Record<string, unknown>} body
  */
-function buildXdm(body) {
+function shouldUseRichEdgeXdm(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const style = readXdmStyle(b);
+  if (style === 'full') return true;
+  if (style === 'minimal') return false;
+
+  const explicitTenant = String(b.xdmTenantKey || b.xdm_tenant_key || b.xdmTenantNamespace || '').trim();
+  if (explicitTenant) return true;
+
+  const ch = b.channel == null ? '' : String(b.channel).trim();
+  if (ch) return true;
+
+  if (b.message && typeof b.message === 'object' && !Array.isArray(b.message) && Object.keys(b.message).length > 0) {
+    return true;
+  }
+
+  const pub = b.public && typeof b.public === 'object' && !Array.isArray(b.public) ? b.public : null;
+  if (pub && Object.keys(pub).length > 0) return true;
+
+  if (shouldUseEmailPrimaryIdentity(b, '_demoemea')) return true;
+
+  return false;
+}
+
+function buildMinimalEdgeXdm(body) {
   const b = body && typeof body === 'object' ? body : {};
   const now = (typeof b.timestamp === 'string' && b.timestamp.trim()) || new Date().toISOString();
   const _id = b._id != null ? String(b._id) : String(Date.now());
   const eventType = (b.eventType || '').trim() || 'transaction';
-  const orchestrationId = (b.eventID || b.orchestrationEventID || '').trim() || '';
+  const orchestrationId = (b.eventID || b.orchestrationEventID || '').trim();
   const email = (b.email || '').trim();
   const ecid = b.ecid ? String(b.ecid).trim() : '';
-
-  const _demoemea = { identification: { core: { ecid: ecid || '', email: email || '' } } };
-  mergePublicFields(_demoemea, b.public);
-  const effectiveCh = resolveEffectiveGeneratorChannel(b);
-  mergeChannel(_demoemea, effectiveCh);
 
   const identityMap = {};
   if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
@@ -80,12 +101,14 @@ function buildXdm(body) {
 
   const xdm = {
     identityMap,
-    _demoemea,
     _id,
-    _experience: { campaign: { orchestration: { eventID: orchestrationId } } },
     eventType,
     timestamp: now,
   };
+
+  if (orchestrationId) {
+    xdm._experience = { campaign: { orchestration: { eventID: orchestrationId } } };
+  }
 
   const viewName = (b.viewName || '').trim();
   const viewUrl = (b.viewUrl || '').trim();
@@ -93,9 +116,72 @@ function buildXdm(body) {
     xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName } };
   }
 
-  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', effectiveCh);
-  syncDemoemeaAlias(xdm);
   return xdm;
+}
+
+function buildRichEdgeXdm(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const now = (typeof b.timestamp === 'string' && b.timestamp.trim()) || new Date().toISOString();
+  const _id = b._id != null ? String(b._id) : String(Date.now());
+  const eventType = (b.eventType || '').trim() || 'transaction';
+  const orchestrationId = (b.eventID || b.orchestrationEventID || '').trim();
+  const email = (b.email || '').trim();
+  const ecid = b.ecid ? String(b.ecid).trim() : '';
+  const tenantKey = getXdmTenantKey(b);
+  const effectiveCh = resolveEffectiveGeneratorChannel(b);
+
+  const tenantNode = { identification: { core: { ecid: ecid || '', email: email || '' } } };
+  mergeGeneratorPublicIntoTenant(tenantNode, b.public);
+  const ch = normalizeInteractionDetailsChannel(effectiveCh);
+  if (ch) {
+    if (!tenantNode.interactionDetails) tenantNode.interactionDetails = {};
+    if (!tenantNode.interactionDetails.core) tenantNode.interactionDetails.core = {};
+    tenantNode.interactionDetails.core.channel = ch;
+  }
+  if (b.message && typeof b.message === 'object' && !Array.isArray(b.message)) {
+    tenantNode.message = { ...b.message };
+  }
+
+  const identityMap = {};
+  if (shouldUseEmailPrimaryIdentity(b, tenantKey)) {
+    identityMap.Email = [{ id: email, primary: true }];
+    tenantNode.identification = { core: { email } };
+  } else {
+    if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
+    if (email) identityMap.Email = [{ id: email, primary: !ecid }];
+  }
+
+  const xdm = {
+    identityMap,
+    [tenantKey]: tenantNode,
+    _id,
+    eventType,
+    timestamp: now,
+  };
+
+  if (orchestrationId) {
+    xdm._experience = { campaign: { orchestration: { eventID: orchestrationId } } };
+  }
+
+  const viewName = (b.viewName || '').trim();
+  const viewUrl = (b.viewUrl || '').trim();
+  if (viewName || viewUrl) {
+    xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName } };
+  }
+
+  alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveCh);
+  if (tenantKey === '_demoemea') syncXdmDemoemeaLowercaseAlias(xdm);
+  else if (tenantKey.startsWith('_')) syncXdmTenantLowercaseAlias(xdm, tenantKey);
+  normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+  return xdm;
+}
+
+/**
+ * Build an XDM payload from request body fields.
+ * Default: minimal (identityMap + eventType + _id + timestamp). Rich tenant/channel/FG only when opted in.
+ */
+function buildXdm(body) {
+  return shouldUseRichEdgeXdm(body) ? buildRichEdgeXdm(body) : buildMinimalEdgeXdm(body);
 }
 
 /* ── Trigger template substitution ── */
@@ -470,6 +556,9 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
 
 module.exports = {
   buildXdm,
+  buildMinimalEdgeXdm,
+  buildRichEdgeXdm,
+  shouldUseRichEdgeXdm,
   buildTriggerPayload,
   sendEdgeEvent,
   listDatastreams,

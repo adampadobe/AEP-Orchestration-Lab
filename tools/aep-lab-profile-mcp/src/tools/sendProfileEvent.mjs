@@ -28,7 +28,7 @@ export function registerSendProfileEventTool(mcpServer) {
         'POST /api/events/generator — identical payload to Profile Viewer Event tool / mobile lab senders. ' +
         'event_type accepts ANY string (datalist suggestions are optional). ' +
         'Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
-        'identityMap: ECID primary + Email secondary; _demoemea.identification.core mirrors both. ' +
+        'Default: minimal Edge XDM (identityMap + eventType + _id + timestamp). Rich tenant/channel/FG when public, message, channel, xdm_tenant_key, or xdm_style=full. ' +
         'Default target_id lab-event-tool-edge. Preflight: lab_preflight_profile_event. Batch: lab_send_profile_events_batch.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -73,6 +73,14 @@ export function registerSendProfileEventTool(mcpServer) {
           .optional()
           .describe('Email-only primary identity for guests without ECID'),
         email_primary_identity: z.boolean().optional().describe('Alias for primary_identity email'),
+        edge_minimal: z
+          .boolean()
+          .optional()
+          .describe('When true (default), minimal Edge XDM unless rich fields (public, channel, message) are set'),
+        xdm_style: z
+          .enum(['minimal', 'full'])
+          .optional()
+          .describe('Force minimal or full XDM shape (full adds tenant mirror, channel FG, demoemea alias)'),
         auto_fetch_ecid: z
           .boolean()
           .optional()

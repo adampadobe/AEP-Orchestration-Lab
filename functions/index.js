@@ -1572,11 +1572,25 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
         res.status(500).json({ error: 'Preset is missing dataStreamId.' });
         return;
       }
-      const xdmStyle = preset.xdmStyle === 'minimal' ? 'minimal' : 'full';
-      const xdm = eventGeneratorService.buildEventGeneratorXdm(body, {
-        style: xdmStyle,
-        defaultOrchestrationEventID: preset.defaultOrchestrationEventID || '',
-      });
+      const styleExplicit = String(body.xdmStyle || body.xdm_style || '').trim().toLowerCase();
+      const presetFull = preset.xdmStyle === 'full';
+      const forceFull = styleExplicit === 'full' || (presetFull && styleExplicit !== 'minimal');
+      const rich = forceFull || eventEdgeService.shouldUseRichEdgeXdm(body);
+
+      let genBody = body;
+      if (!rich && preset.defaultOrchestrationEventID) {
+        const hasOrch = String(body.eventID || body.orchestrationEventID || '').trim();
+        if (!hasOrch) {
+          genBody = { ...body, eventID: preset.defaultOrchestrationEventID };
+        }
+      }
+
+      const xdm = rich
+        ? eventGeneratorService.buildEventGeneratorXdm(genBody, {
+            style: 'full',
+            defaultOrchestrationEventID: preset.defaultOrchestrationEventID || '',
+          })
+        : eventEdgeService.buildXdm(genBody);
       const edgeBase = (preset.edgeInteractBase || 'https://server.adobedc.net/ee/v2/interact').split('?')[0];
       const edgeUrl = `${edgeBase}?dataStreamId=${encodeURIComponent(preset.dataStreamId)}`;
       const payload = { event: { xdm } };
