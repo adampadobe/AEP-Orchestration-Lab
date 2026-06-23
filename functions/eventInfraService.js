@@ -166,6 +166,21 @@ function xdmKeyFromTenantId(tenantId) {
   return tenantId ? `_${tenantId}` : '_demoemea';
 }
 
+/**
+ * Identity descriptor targets for Event Tool ExperienceEvent schemas.
+ * ECID + Email are secondary on tenant identification.core.* — schema primary comes from identityMap per event.
+ * @param {string} tenantXdmKey e.g. `_demoemea` or `_prisacar`
+ * @returns {{ path: string, namespace: string, isPrimary: boolean, label: string }[]}
+ */
+function buildEventSchemaIdentityDescriptorPairs(tenantXdmKey) {
+  const tenant = String(tenantXdmKey || '_demoemea').replace(/^_/, '');
+  const base = `/_${tenant}/identification/core`;
+  return [
+    { path: `${base}/ecid`, namespace: 'ECID', isPrimary: false, label: 'ecid' },
+    { path: `${base}/email`, namespace: 'Email', isPrimary: false, label: 'email' },
+  ];
+}
+
 async function discoverTenantContextForEventTool(token, clientId, orgId, sandbox) {
   const url = `${SCHEMA_REGISTRY}/tenant/schemas?limit=10&properties=title,$id,meta:altId`;
   const { res, data } = await fetchJson(url, {
@@ -926,17 +941,21 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
   }
 
   const ver = Number(full.version) || 1;
-  const tenant = String(tenantCtx.xdmKey || '_demoemea').replace(/^_/, '');
-  const ecidPath = `/_${tenant}/identification/core/ecid`;
-  const emailPath = `/_${tenant}/identification/core/email`;
   let identityDescriptors = 0;
-  const pairs = [
-    { path: ecidPath, ns: 'ECID', label: 'ecid' },
-    { path: emailPath, ns: 'Email', label: 'email' },
-  ];
+  const pairs = buildEventSchemaIdentityDescriptorPairs(tenantCtx.xdmKey);
   for (const p of pairs) {
     try {
-      const r = await postIdentityDescriptor(token, clientId, orgId, sandbox, schemaId, ver, p.path, p.ns, false);
+      const r = await postIdentityDescriptor(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        schemaId,
+        ver,
+        p.path,
+        p.namespace,
+        p.isPrimary
+      );
       if (r && (r.duplicate || r['@id'] || r['meta:altId'])) identityDescriptors += 1;
     } catch (e) {
       log(sandbox, 'eventInfra.descriptor.warn', { label: p.label, err: String(e.message || e).slice(0, 160) });
@@ -1758,5 +1777,6 @@ module.exports = {
   matchesTravelHotelExperienceV1Title,
   buildInteractionDetailsLiteExperienceEventFieldGroup,
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
+  buildEventSchemaIdentityDescriptorPairs,
   ensureRecommendedExperienceEventFieldGroups,
 };

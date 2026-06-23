@@ -326,7 +326,7 @@
 }
 [data-aep-theme="dark"] .et-my-triggers-delete:hover { background: #3a2020; color: #e74c3c; }
 
-/* ── Primary setup + advanced steps ── */
+/* ── Primary setup (two-step UI) ── */
 .et-config-step--primary {
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
@@ -338,51 +338,10 @@
   gap: 0.5rem;
   align-items: center;
 }
-.et-config-advanced {
-  margin: 0.75rem 0 1rem;
-  border-radius: var(--dash-radius-sm, 12px);
-  border: 1px solid var(--dash-border);
-  background: var(--dash-surface-alt);
+.et-config-util-row {
+  margin-top: 0.75rem;
+  gap: 0.5rem;
 }
-.et-config-advanced__summary {
-  cursor: pointer;
-  font-weight: 600;
-  padding: 0.65rem 0.85rem;
-  color: var(--dash-text-secondary);
-}
-.et-config-advanced__body {
-  padding: 0 0.85rem 0.85rem;
-}
-
-/* ── IdentityMap / Profile hint (Step 1 follow-up) ── */
-.et-identity-map-hint {
-  margin: 0.75rem 0 1rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: var(--dash-radius-sm, 12px);
-  border: 1px solid var(--dash-border);
-  background: var(--dash-surface-alt);
-}
-.et-identity-map-hint__summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--dash-text);
-  list-style: none;
-}
-.et-identity-map-hint__summary::-webkit-details-marker { display: none; }
-.et-identity-map-hint__body {
-  margin-top: 0.55rem;
-  padding-top: 0.45rem;
-  border-top: 1px solid var(--dash-border);
-}
-.et-identity-map-hint__list {
-  margin: 0.35rem 0 0.35rem 1.15rem;
-  padding: 0;
-  color: var(--dash-text);
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-.et-identity-map-hint__list li { margin: 0.4rem 0; }
-.et-identity-map-hint__doc { margin-bottom: 0; }
 .et-code-inline {
   font-size: 0.88em;
   padding: 0.08rem 0.3rem;
@@ -391,25 +350,6 @@
   color: var(--dash-text);
   word-break: break-word;
 }
-[data-aep-theme="dark"] .et-identity-map-hint {
-  border-color: var(--dash-input-border);
-  background: var(--dash-surface-alt);
-}
 [data-aep-theme="dark"] .et-code-inline {
   background: var(--dash-surface);
-}
-
-.et-schema-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-
-.et-schema-id-row {
-  margin-top: 0.35rem;
-}
-.et-schema-id-row input {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8rem;
 }

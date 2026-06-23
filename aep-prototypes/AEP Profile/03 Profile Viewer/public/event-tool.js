@@ -1,7 +1,7 @@
 /**
  * Event Tool — unified Edge event sender.
  * Sandbox selector shown inline, identity query first,
- * collapsible config section (schema → dataset → datastream).
+ * two-step config (setupEventInfra → datastream ID + save).
  */
 (function () {
   'use strict';
@@ -24,25 +24,14 @@
     configBadge:      document.getElementById('etConfigBadge'),
     schemaTitle:      document.getElementById('etSchemaTitle'),
     schemaId:         document.getElementById('etSchemaId'),
-    createSchemaBtn:  document.getElementById('etCreateSchemaBtn'),
-    attachFieldGroupsBtn: document.getElementById('etAttachFieldGroupsBtn'),
-    bookerStayerFgBtn: document.getElementById('etBookerStayerFgBtn'),
-    schemaMsg:        document.getElementById('etSchemaMsg'),
-    attachFgMsg:      document.getElementById('etAttachFgMsg'),
-    bookerStayerMsg:  document.getElementById('etBookerStayerMsg'),
     datasetName:      document.getElementById('etDatasetName'),
-    createDatasetBtn: document.getElementById('etCreateDatasetBtn'),
-    datasetMsg:       document.getElementById('etDatasetMsg'),
-    datastreamTitle:  document.getElementById('etDatastreamTitle'),
-    createDatastreamBtn: document.getElementById('etCreateDatastreamBtn'),
-    datastreamProvisionMsg: document.getElementById('etDatastreamProvisionMsg'),
-    probeTagsBtn:     document.getElementById('etProbeTagsBtn'),
-    tagsApiMsg:       document.getElementById('etTagsApiMsg'),
     dsInput:          document.getElementById('etManualDs'),
     saveConfigBtn:    document.getElementById('etSaveConfigBtn'),
     connectionMsg:    document.getElementById('etConnectionMsg'),
     fetchConfigBtn:   document.getElementById('etFetchConfigBtn'),
+    setupInfraBtn:    document.getElementById('etSetupInfraBtn'),
     checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
+    infraProgressList: document.getElementById('etInfraProgressList'),
     infraMsg:         document.getElementById('etInfraMsg'),
 
     triggerMode:      document.getElementById('etTriggerMode'),
@@ -493,204 +482,121 @@
     persistTriggersState();
   }
 
-  /* ═══════════ Step 1 — Create Schema ═══════════ */
+  /* ═══════════ Combined setup (schema + field groups + dataset) ═══════════ */
 
-  dom.createSchemaBtn.addEventListener('click', async () => {
-    const schemaTitle = (dom.schemaTitle.value || '').trim();
-    if (!schemaTitle) { setMsg(dom.schemaMsg, 'Enter a schema name.', 'error'); return; }
-    const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.schemaMsg, 'Select a sandbox first.', 'error'); return; }
-    dom.createSchemaBtn.disabled = true;
-    setMsg(dom.schemaMsg, 'Creating schema…', '');
-    try {
-      const res = await fetch('/api/events/infra/step' + sandboxQs(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'createSchema', schemaTitle }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.schemaMsg, formatInfraStepError(data), 'error'); return; }
-      setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
-      saveConfigField({ schemaTitle });
-      loadSchemaEventTypes(schemaTitle);
-    } catch (e) {
-      setMsg(dom.schemaMsg, e.message || 'Network error', 'error');
-    } finally {
-      dom.createSchemaBtn.disabled = false;
+  const COMBINED_EVENT_INFRA_STEPS = [
+    { step: 'ensureFieldGroups', label: 'Field groups' },
+    { step: 'createSchema', label: 'Schema' },
+    { step: 'attachRecommendedFieldGroups', label: 'Attach field groups' },
+    { step: 'createDataset', label: 'Dataset' },
+  ];
+
+  function ensureEventInfraProgressList() {
+    if (!dom.infraProgressList) return null;
+    dom.infraProgressList.hidden = false;
+    dom.infraProgressList.innerHTML = '';
+    COMBINED_EVENT_INFRA_STEPS.forEach(function (s, i) {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = (i + 1) + '. ' + s.label;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      dom.infraProgressList.appendChild(li);
+    });
+    return dom.infraProgressList;
+  }
+
+  function setEventInfraProgressItem(step, state, detailText) {
+    if (!dom.infraProgressList) return;
+    const li = dom.infraProgressList.querySelector('[data-step="' + step + '"]');
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent = state === 'success' ? '✓' : state === 'error' ? '✗' : state === 'working' ? '…' : '·';
     }
-  });
-
-  if (dom.attachFieldGroupsBtn) {
-    dom.attachFieldGroupsBtn.addEventListener('click', async () => {
-      const schemaTitle = (dom.schemaTitle.value || '').trim();
-      const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
-      if (!schemaTitle && !schemaId) {
-        setMsg(dom.attachFgMsg, 'Enter the schema name or paste the full schema $id URI.', 'error');
-        return;
-      }
-      const sandbox = getSandboxName();
-      if (!sandbox) { setMsg(dom.attachFgMsg, 'Select a sandbox first.', 'error'); return; }
-      dom.attachFieldGroupsBtn.disabled = true;
-      setMsg(dom.attachFgMsg, 'Attaching field groups…', '');
-      try {
-        const body = { step: 'attachRecommendedFieldGroups' };
-        if (schemaId) body.schemaId = schemaId;
-        if (schemaTitle) body.schemaTitle = schemaTitle;
-        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!data.ok) { setMsg(dom.attachFgMsg, formatInfraStepError(data), 'error'); return; }
-        setMsg(dom.attachFgMsg, data.message || 'Done.', 'success');
-        if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
-        if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
-        saveConfigField({ schemaTitle: data.schemaTitle || schemaTitle, schemaId: data.schemaId || schemaId });
-        loadSchemaEventTypes(data.schemaTitle || schemaTitle, data.schemaId || schemaId);
-      } catch (e) {
-        setMsg(dom.attachFgMsg, e.message || 'Network error', 'error');
-      } finally {
-        dom.attachFieldGroupsBtn.disabled = false;
-      }
-    });
+    if (detail) detail.textContent = detailText ? ' — ' + detailText : '';
   }
 
-  if (dom.bookerStayerFgBtn) {
-    dom.bookerStayerFgBtn.addEventListener('click', async () => {
-      const schemaTitle = (dom.schemaTitle.value || '').trim();
-      const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
-      if (!schemaTitle && !schemaId) {
-        setMsg(dom.bookerStayerMsg, 'Enter the schema name or paste the full schema $id URI.', 'error');
-        return;
-      }
-      const sandbox = getSandboxName();
-      if (!sandbox) { setMsg(dom.bookerStayerMsg, 'Select a sandbox first.', 'error'); return; }
-      dom.bookerStayerFgBtn.disabled = true;
-      setMsg(dom.bookerStayerMsg, 'Creating / attaching booker-stayer field group…', '');
-      try {
-        const body = { step: 'ensureBookerStayerFieldGroup' };
-        if (schemaId) body.schemaId = schemaId;
-        if (schemaTitle) body.schemaTitle = schemaTitle;
-        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!data.ok) { setMsg(dom.bookerStayerMsg, data.error || 'Failed.', 'error'); return; }
-        setMsg(dom.bookerStayerMsg, data.message || 'Done.', 'success');
-        if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
-        if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
-        saveConfigField({ schemaTitle: data.schemaTitle || schemaTitle, schemaId: data.schemaId || schemaId });
-        loadSchemaEventTypes(data.schemaTitle || schemaTitle, data.schemaId || schemaId);
-      } catch (e) {
-        setMsg(dom.bookerStayerMsg, e.message || 'Network error', 'error');
-      } finally {
-        dom.bookerStayerFgBtn.disabled = false;
-      }
+  function applySetupEventInfraResult(data) {
+    if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+    if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
+    if (data.datasetName && dom.datasetName) dom.datasetName.value = data.datasetName;
+    saveConfigField({
+      schemaTitle: data.schemaTitle || (dom.schemaTitle && dom.schemaTitle.value) || undefined,
+      schemaId: data.schemaId || undefined,
+      datasetName: data.datasetName || (dom.datasetName && dom.datasetName.value) || undefined,
     });
+    loadSchemaEventTypes(data.schemaTitle || dom.schemaTitle.value, data.schemaId);
   }
 
-  /* ═══════════ Step 2 — Create Dataset ═══════════ */
-
-  dom.createDatasetBtn.addEventListener('click', async () => {
+  async function runSetupEventInfra() {
     const schemaTitle = (dom.schemaTitle.value || '').trim();
-    if (!schemaTitle) { setMsg(dom.datasetMsg, 'Enter the schema name first — the dataset links to it.', 'error'); return; }
     const datasetName = (dom.datasetName.value || '').trim();
-    if (!datasetName) { setMsg(dom.datasetMsg, 'Enter a dataset name.', 'error'); return; }
+    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name.', 'error'); return; }
+    if (!datasetName) { setMsg(dom.infraMsg, 'Enter a dataset name.', 'error'); return; }
     const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.datasetMsg, 'Select a sandbox first.', 'error'); return; }
-    dom.createDatasetBtn.disabled = true;
-    setMsg(dom.datasetMsg, 'Creating dataset…', '');
+    if (!sandbox) { setMsg(dom.infraMsg, 'Select a sandbox first.', 'error'); return; }
+
+    const busy = [dom.setupInfraBtn, dom.checkInfraBtn].filter(Boolean);
+    busy.forEach(function (b) { b.disabled = true; });
+    ensureEventInfraProgressList();
+    setMsg(dom.infraMsg, 'Setting up schema, field groups and dataset…', '');
+
+    COMBINED_EVENT_INFRA_STEPS.forEach(function (s) {
+      setEventInfraProgressItem(s.step, 'working', 'working…');
+    });
+
     try {
       const res = await fetch('/api/events/infra/step' + sandboxQs(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'createDataset', schemaTitle, datasetName }),
+        body: JSON.stringify({ step: 'setupEventInfra', schemaTitle, datasetName }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.datasetMsg, data.error || 'Failed.', 'error'); return; }
-      setMsg(dom.datasetMsg, data.message || 'Dataset created.', 'success');
-      saveConfigField({ schemaTitle, datasetName });
-    } catch (e) {
-      setMsg(dom.datasetMsg, e.message || 'Network error', 'error');
-    } finally {
-      dom.createDatasetBtn.disabled = false;
-    }
-  });
+      const data = await res.json().catch(function () { return {}; });
 
-  /* ═══════════ Step 2b — Create datastream (Edge API) ═══════════ */
+      if (Array.isArray(data.subSteps)) {
+        data.subSteps.forEach(function (sub) {
+          if (!sub || !sub.step) return;
+          if (sub.ok === false) {
+            setEventInfraProgressItem(sub.step, 'error', formatInfraStepError(sub));
+          } else if (sub.skipped) {
+            setEventInfraProgressItem(sub.step, 'success', 'already configured');
+          } else {
+            setEventInfraProgressItem(sub.step, 'success', 'done');
+          }
+        });
+      }
 
-  if (dom.createDatastreamBtn) {
-    dom.createDatastreamBtn.addEventListener('click', async () => {
-      const schemaTitle = (dom.schemaTitle.value || '').trim();
-      const datasetName = (dom.datasetName.value || '').trim();
-      const datastreamName = (dom.datastreamTitle && dom.datastreamTitle.value || '').trim();
-      if (!schemaTitle || !datasetName) {
-        setMsg(dom.datastreamProvisionMsg, 'Enter schema name and dataset name first.', 'error');
+      if (!res.ok || data.ok === false) {
+        setMsg(dom.infraMsg, formatInfraStepError(data), 'error');
         return;
       }
-      const sandbox = getSandboxName();
-      if (!sandbox) { setMsg(dom.datastreamProvisionMsg, 'Select a sandbox first.', 'error'); return; }
-      dom.createDatastreamBtn.disabled = true;
-      setMsg(dom.datastreamProvisionMsg, 'Creating datastream…', '');
-      try {
-        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            step: 'createDatastream',
-            schemaTitle,
-            datasetName,
-            datastreamName: datastreamName || undefined,
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!data.ok) {
-          let detail = data.error || 'Failed.';
-          if (data.errors && data.errors[0]) detail += ' ' + JSON.stringify(data.errors[0]).slice(0, 240);
-          setMsg(dom.datastreamProvisionMsg, detail, 'error');
-          return;
-        }
-        if (data.datastreamId && dom.dsInput) dom.dsInput.value = data.datastreamId;
-        setMsg(dom.datastreamProvisionMsg, data.message || 'Datastream created.', 'success');
-        saveConfigField({ datastreamId: data.datastreamId });
-      } catch (e) {
-        setMsg(dom.datastreamProvisionMsg, e.message || 'Network error', 'error');
-      } finally {
-        dom.createDatastreamBtn.disabled = false;
-      }
-    });
+
+      applySetupEventInfraResult(data);
+      setMsg(dom.infraMsg, data.message || 'Event infrastructure ready.', 'success');
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      busy.forEach(function (b) { b.disabled = false; });
+    }
   }
 
-  if (dom.probeTagsBtn) {
-    dom.probeTagsBtn.addEventListener('click', async () => {
-      const sandbox = getSandboxName();
-      if (!sandbox) { setMsg(dom.tagsApiMsg, 'Select a sandbox first.', 'error'); return; }
-      dom.probeTagsBtn.disabled = true;
-      setMsg(dom.tagsApiMsg, 'Checking Tags API…', '');
-      try {
-        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step: 'probeTagsApi' }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (data.ok && data.authorized) {
-          setMsg(dom.tagsApiMsg, (data.hint || 'OK') + (data.companiesCount != null ? ' Companies: ' + data.companiesCount : ''), 'success');
-        } else {
-          setMsg(dom.tagsApiMsg, data.hint || data.detail || data.error || 'Check failed.', 'error');
-        }
-      } catch (e) {
-        setMsg(dom.tagsApiMsg, e.message || 'Network error', 'error');
-      } finally {
-        dom.probeTagsBtn.disabled = false;
-      }
-    });
+  if (dom.setupInfraBtn) {
+    dom.setupInfraBtn.addEventListener('click', runSetupEventInfra);
   }
 
-  /* ═══════════ Step 3 — Save Datastream ID ═══════════ */
+  /* ═══════════ Step 2 — Save Datastream ID ═══════════ */
 
   dom.saveConfigBtn.addEventListener('click', async () => {
     const dsId = (dom.dsInput.value || '').trim();
@@ -1113,8 +1019,6 @@
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
-    setMsg(dom.schemaMsg, '', '');
-    setMsg(dom.datasetMsg, '', '');
     setMsg(dom.infraMsg, '', '');
     setMsg(dom.sendMsg, '', '');
     if (dom.configBadge) dom.configBadge.hidden = true;

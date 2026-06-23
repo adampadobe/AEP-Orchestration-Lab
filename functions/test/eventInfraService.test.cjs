@@ -10,6 +10,7 @@ const {
   matchesTravelHotelExperienceV1Title,
   buildInteractionDetailsLiteExperienceEventFieldGroup,
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
+  buildEventSchemaIdentityDescriptorPairs,
   SETUP_EVENT_INFRA_SUBSTEPS,
   runEventInfraStep,
 } = require('../eventInfraService');
@@ -92,4 +93,23 @@ test('runEventInfraStep setupEventInfra validates required fields without callin
 
 test('matchesTravelHotelExperienceV1Title accepts en-dash variant', () => {
   assert.equal(matchesTravelHotelExperienceV1Title('Travel – Hotel Experience v1'), true);
+});
+
+test('buildEventSchemaIdentityDescriptorPairs registers ECID + Email as secondary tenant paths', () => {
+  const pairs = buildEventSchemaIdentityDescriptorPairs('_prisacar');
+  assert.equal(pairs.length, 2);
+  assert.deepEqual(
+    pairs.map((p) => ({ path: p.path, namespace: p.namespace, isPrimary: p.isPrimary })),
+    [
+      { path: '/_prisacar/identification/core/ecid', namespace: 'ECID', isPrimary: false },
+      { path: '/_prisacar/identification/core/email', namespace: 'Email', isPrimary: false },
+    ]
+  );
+});
+
+test('buildEventSchemaIdentityDescriptorPairs defaults tenant to _demoemea', () => {
+  const pairs = buildEventSchemaIdentityDescriptorPairs();
+  assert.equal(pairs[0].path, '/_demoemea/identification/core/ecid');
+  assert.equal(pairs[1].path, '/_demoemea/identification/core/email');
+  assert.equal(pairs.every((p) => p.isPrimary === false), true);
 });
