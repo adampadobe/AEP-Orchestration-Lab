@@ -168,6 +168,7 @@ const RAW_PATH_OWNERSHIP = [
       'travelPreferences.',
       'industryTravel.',
       'hotel.',
+      'individualCharacteristics.travel.',
       '<TENANT>travelReservations.',
       '<TENANT>travelPreferences.',
       '<TENANT>industryTravel.',

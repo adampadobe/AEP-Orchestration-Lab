@@ -69,6 +69,18 @@ export const CRITICAL_RULES = [
     tool: 'lab_preflight_profile_generate or lab_sandbox_profile_config before first generate on a sandbox.',
   },
   {
+    id: 'dual_stream_generate',
+    rule:
+      'Non-generic lab_generate_profile MUST dual-stream: step 1 POST /api/profile/generate industry generic ' +
+      '(generic-owned paths — person, scoring, loyalty, personalEmail, …), step 2 POST industry travel|fsi|… ' +
+      'with appendIfExisting:true (industry-owned paths, same email/ECID). Matches Profile Viewer Attributes table Source column.',
+    split: 'functions/industryAttributeMap.js resolveIndustryForPath — MCP planDualStreamGenerate mirrors ownership.',
+    portal:
+      'Travel Generate panel streams via POST /api/profile/update to the travel HTTP connection; union profile Source pills ' +
+      'reflect path ownership (generic vs travel), not a single physical dataflow.',
+    mcp: 'lab_generate_profile and lab_generate_profiles_batch apply dual-stream automatically when industry !== generic.',
+  },
+  {
     id: 'full_snapshot_update',
     rule: 'lab_update_profile streams FULL writable industry snapshot — never minimal attribute deltas.',
   },
@@ -400,6 +412,16 @@ const INDUSTRY_PLAYBOOKS = {
   travel: {
     label: 'Travel & hospitality',
     profileGenerateIndustry: 'travel',
+    dual_stream_generate: {
+      when: 'industry travel (and all non-generic industries)',
+      steps: [
+        '1. POST /api/profile/generate — industry generic — generic-owned persona paths (person.*, scoring.*, loyalty.*, personalEmail.*, …)',
+        '2. POST /api/profile/generate — industry travel — travel-owned paths (individualCharacteristics.travel.*, hotel.*, travelReservations.*, travelPreferences.*) with appendIfExisting:true and same email/ECID',
+      ],
+      verify:
+        'lab_lookup_profile or Profile Viewer attribute table: rows show Source pills Generic AND Travel for the same email.',
+      mcp: 'lab_generate_profile industry travel — dual_stream:true in response; generate_plan lists both steps.',
+    },
     persona_fields: [
       'individualCharacteristics.travel.* (airline, class, recentStay)',
       'hotel.bookingDetails.* (segment overlays)',

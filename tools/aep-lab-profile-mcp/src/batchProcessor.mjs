@@ -2,7 +2,7 @@
  * Background batch profile generation worker.
  */
 
-import { generateProfile } from './labApiClient.mjs';
+import { executeGeneratePlan, planDualStreamGenerate } from './framework/dualStreamGenerate.mjs';
 import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
 import { resolveStoredPrefsEmail } from './tools/generationPrefs.mjs';
 import { ensurePreferredLanguageOnAttributes, resolveTestProfileParam } from './framework/generateProfileParams.mjs';
@@ -102,11 +102,16 @@ export async function processBatchJob(jobId, { keyId }) {
         errors.push({ index: i, email, error: errMsg });
         results.push({ index: i, email, ok: false, error: errMsg });
       } else {
-      const apiResult = await generateProfile({
-        email,
-        sandbox: params.sandbox,
+      const generatePlan = planDualStreamGenerate({
         industry: params.industry,
         attributes,
+        email,
+      });
+
+      const apiResult = await executeGeneratePlan({
+        email,
+        sandbox: params.sandbox,
+        plan: generatePlan,
         append_if_existing: params.append_if_existing,
         test_profile: testProfileResolved.test_profile,
       });
@@ -114,6 +119,7 @@ export async function processBatchJob(jobId, { keyId }) {
       if (apiResult.ok) {
         completed += 1;
         const ecid =
+          apiResult.ecid ||
           apiResult.data?.ecid ||
           apiResult.data?.identification?.core?.ecid ||
           apiResult.data?.profile?.ecid ||

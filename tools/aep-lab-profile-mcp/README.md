@@ -1,10 +1,12 @@
-# AEP Orchestration Lab MCP (Phase 3.5)
+# AEP Orchestration Lab MCP (Phase 3.6)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.5.0** — 24 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.6.0** — 24 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
-## Framework tools & resources (v3.5)
+## Framework tools & resources (v3.6)
+
+**Dual-stream generate (v3.6):** `lab_generate_profile` / `lab_generate_profiles_batch` with `industry` ≠ `generic` POST twice — generic-owned paths to `industry=generic`, then industry-owned paths to the target industry with `appendIfExisting:true` (same email/ECID). Response includes `dual_stream`, `generate_plan`, `generate_step_results`.
 
 Coworker should call **`lab_get_execution_framework`** first — encodes **criticalRules** (testProfile, preferredLanguage, sandbox preflight) plus lab execution knowledge:
 

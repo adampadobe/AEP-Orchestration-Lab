@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
-import { generateProfile } from '../labApiClient.mjs';
+import { executeGeneratePlan, planDualStreamGenerate } from '../framework/dualStreamGenerate.mjs';
 import { buildPersonaAttributes, normalizeSegmentHint } from '../personaBuilder.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
@@ -34,6 +34,7 @@ export function registerGenerateProfileTool(mcpServer) {
         'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
         'Preview with lab_confirm_generation_plan; configure with lab_get_generation_prefs / lab_set_generation_prefs. ' +
         'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
+        'Non-generic industries dual-stream automatically: generic-owned paths first (POST industry generic), then industry-owned paths (POST industry travel|fsi|… with appendIfExisting). ' +
         'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
         'See lab_get_execution_framework criticalRules and lab_get_industry_playbook.',
       inputSchema: {
@@ -177,11 +178,16 @@ export function registerGenerateProfileTool(mcpServer) {
         return toolError(normalized.error);
       }
 
-      const apiResult = await generateProfile({
-        email: resolvedEmail,
-        sandbox: allowed.sandbox,
+      const generatePlan = planDualStreamGenerate({
         industry: norm.industry,
         attributes: normalized.attributes,
+        email: resolvedEmail,
+      });
+
+      const apiResult = await executeGeneratePlan({
+        email: resolvedEmail,
+        sandbox: allowed.sandbox,
+        plan: generatePlan,
         append_if_existing,
         test_profile: normalized.test_profile,
       });
@@ -202,6 +208,7 @@ export function registerGenerateProfileTool(mcpServer) {
       let recentSync = null;
       if (apiResult.ok) {
         const ecid =
+          apiResult.ecid ||
           apiResult.data?.ecid ||
           apiResult.data?.identification?.core?.ecid ||
           apiResult.data?.profile?.ecid ||
@@ -217,7 +224,16 @@ export function registerGenerateProfileTool(mcpServer) {
         });
       }
 
-      return fromLabApi(apiResult, {
+      const labApiShape = apiResult.ok
+        ? { ok: true, status: 200, data: apiResult.data }
+        : {
+            ok: false,
+            status: apiResult.data?.streamingStatus || 502,
+            error: apiResult.error || 'Generate failed',
+            data: apiResult.data,
+          };
+
+      return fromLabApi(labApiShape, {
         sandbox: allowed.sandbox,
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,
@@ -227,6 +243,16 @@ export function registerGenerateProfileTool(mcpServer) {
         test_profile: normalized.test_profile,
         preferredLanguage: readLanguageFromAttrs(normalized.attributes),
         recent_profiles_sync: recentSync,
+        dual_stream: generatePlan.dualStream,
+        generate_plan: generatePlan.steps.map((s) => ({
+          step: s.step,
+          industry: s.industry,
+          role: s.role,
+          appendIfExisting: s.appendIfExisting,
+          attributeCount: Object.keys(s.attributes || {}).length,
+        })),
+        generate_step_results: apiResult.stepResults || null,
+        ecid: apiResult.ecid || apiResult.data?.ecid || null,
         ...storedPrefsMeta,
         lab_defaults_applied: {
           test_profile: normalized.test_profile,

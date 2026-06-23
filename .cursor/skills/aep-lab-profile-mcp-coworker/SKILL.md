@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.4)
 
-MCP server: **AEP Orchestration Lab MCP v3.5.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.6.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -42,7 +42,7 @@ Coworker should call these **before** improvising lab conventions:
 ### How the lab executes
 
 1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset.
-2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via the industry HTTP API connection. `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
+2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via per-industry HTTP API connections. **Non-generic industries dual-stream automatically:** step 1 `industry generic` (generic-owned paths), step 2 `industry travel|fsi|…` with `appendIfExisting` (industry-owned paths, same email/ECID). `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
 4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (does not rewrite profile attributes). **Identity**: pass email **and** ecid from `lab_generate_profile`; `identityMap` uses ECID primary + Email secondary; `_demoemea.identification.core` mirrors both. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event`. Auto-fetches ecid from UPS when email-only.
 

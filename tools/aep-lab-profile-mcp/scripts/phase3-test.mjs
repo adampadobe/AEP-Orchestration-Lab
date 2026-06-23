@@ -31,6 +31,10 @@ import {
   resolveEventIdentities,
   validateEventIdentity,
 } from '../src/framework/eventIdentity.mjs';
+import {
+  planDualStreamGenerate,
+  splitAttributesByIndustry,
+} from '../src/framework/dualStreamGenerate.mjs';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -228,6 +232,45 @@ function testSegmentHints() {
   assert(String(badGeneric).includes('not supported'), 'retail hint rejected for generic');
 }
 
+function testDualStreamGeneratePlan() {
+  const email = 'travel.demo+001@adobetest.com';
+  const attrs = buildPersonaAttributes('travel', email, 'hotel_reactivation');
+  const split = splitAttributesByIndustry(attrs, 'travel');
+  assert(
+    split.genericAttrs['person.name.firstName'] != null,
+    'travel persona keeps person.* on generic stream',
+  );
+  assert(
+    split.industryAttrs['individualCharacteristics.travel.favouriteAirlineCompany'] != null,
+    'travel persona keeps travel.* on industry stream',
+  );
+  assert(
+    split.genericAttrs['scoring.churn.churnPrediction'] != null,
+    'scoring.* routes to generic stream',
+  );
+  assert(
+    split.industryAttrs['hotel.bookingDetails.hotelName'] != null,
+    'hotel segment overlay routes to travel stream',
+  );
+
+  const plan = planDualStreamGenerate({ industry: 'travel', attributes: attrs, email });
+  assert(plan.dualStream === true, 'travel generate plan is dual-stream');
+  assert(plan.steps.length === 2, 'travel generate plan has generic + travel steps');
+  assert(plan.steps[0].industry === 'generic' && plan.steps[0].role === 'generic_base', 'step 1 generic base');
+  assert(
+    plan.steps[1].industry === 'travel' && plan.steps[1].appendIfExisting === true,
+    'step 2 travel overlay appendIfExisting',
+  );
+
+  const genericOnly = planDualStreamGenerate({
+    industry: 'generic',
+    attributes: buildPersonaAttributes('generic', email),
+    email,
+  });
+  assert(genericOnly.dualStream === false, 'generic industry single stream');
+  assert(genericOnly.steps.length === 1, 'generic single step');
+}
+
 async function run() {
   process.env.AEP_LAB_MCP_API_KEY = 'phase3-test-key';
   process.env.AEP_LAB_MCP_BATCH_STORE = 'memory';
@@ -240,6 +283,7 @@ async function run() {
   testIndustryPersonas();
   testFsiIncomeCreditCorrelation();
   testSegmentHints();
+  testDualStreamGeneratePlan();
 
   loadAuthConfig();
   const cfg = loadAuthConfig();
