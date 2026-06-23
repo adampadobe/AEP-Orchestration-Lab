@@ -1,14 +1,14 @@
 {
-  "gitSha": "35e06a9a92158ce79d45e4739eee53aee7250710",
-  "gitShortSha": "35e06a9a",
+  "gitSha": "64b59218973d27bc4ba1f81a57f7c4bbed18e36b",
+  "gitShortSha": "64b59218",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Profile MCP Phase 3 — audit log, per-key ACL, segment hints, rate limits",
+  "gitCommitSubject": "[apalmer] feat: MCP portal reveal keys and open sandbox ACL",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T01:17:31+01:00",
-  "deployedAt": "2026-06-23T00:20:03.783Z",
+  "gitCommitDate": "2026-06-23T08:22:32+01:00",
+  "deployedAt": "2026-06-23T07:22:36.723Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 0,
+  "aheadOfOrigin": 1,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/35e06a9a92158ce79d45e4739eee53aee7250710"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/64b59218973d27bc4ba1f81a57f7c4bbed18e36b"
 }
