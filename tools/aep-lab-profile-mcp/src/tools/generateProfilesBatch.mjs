@@ -75,6 +75,10 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .string()
           .optional()
           .describe('Required when test_profile is false'),
+        use_stored_prefs: z
+          .boolean()
+          .optional()
+          .describe('When true, each profile uses POST /api/lab/generation-prefs/next-email (shared Portal counter)'),
       },
     },
     async ({
@@ -91,6 +95,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       append_if_existing,
       test_profile,
       test_profile_override_reason,
+      use_stored_prefs,
     }) => {
       const keyId = getRequestKeyId();
 
@@ -141,6 +146,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           append_if_existing,
           test_profile: normalizedTest.test_profile,
           test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
+          use_stored_prefs: !!use_stored_prefs,
         },
       });
 

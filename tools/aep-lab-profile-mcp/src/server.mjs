@@ -24,7 +24,7 @@ import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
 import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { registerProfileTools } from './tools/index.mjs';
 
-const MCP_VERSION = '3.4.0';
+const MCP_VERSION = '3.5.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -80,9 +80,11 @@ async function main() {
       return;
     }
 
+    const mcpKey = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
+
     const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
 
-    await requestContext.run({ keyId: auth.keyId, principalAccess }, async () => {
+    await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey }, async () => {
       try {
         const sessionId = req.headers['mcp-session-id'];
         let transport;

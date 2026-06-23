@@ -23,6 +23,8 @@ function registerLabRoutes(deps) {
     envBarPreferencesStore,
     labRtdbProvisionService,
     labWorkspaceAuthService,
+    labProfileGenerationPrefsStore,
+    labGenerationPrefsAuth,
   } = deps;
 
   const routes = {};
@@ -618,6 +620,97 @@ function registerLabRoutes(deps) {
     }
   },
 );
+
+  /** GET/PUT/POST /api/lab/generation-prefs — shared Portal + MCP profile generation config */
+  routes.labGenerationPrefs = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+    setCors(res, 'GET, PUT, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, {
+      labWorkspaceAuthService,
+    });
+    if (!principal.ok) {
+      res.status(principal.status).json(principal.body);
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(
+      (req.method === 'GET' ? (req.query && req.query.sandbox) : body.sandbox) || '',
+    ).trim();
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    if (req.method === 'GET') {
+      try {
+        const prefs = await labProfileGenerationPrefsStore.getPrefs(principal.uid, sandbox);
+        res.status(200).json({ ok: true, prefs, authSource: principal.authSource });
+      } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+      }
+      return;
+    }
+
+    if (req.method === 'PUT' || req.method === 'POST') {
+      try {
+        const prefs = await labProfileGenerationPrefsStore.updatePrefs(principal.uid, sandbox, {
+          baseEmail: body.baseEmail,
+          mobilePhone: body.mobilePhone,
+          counterN: body.counterN,
+          resetCounter: !!body.resetCounter,
+          testProfile: body.testProfile,
+        });
+        res.status(200).json({ ok: true, prefs, authSource: principal.authSource });
+      } catch (e) {
+        const status = Number(e && e.status) || 400;
+        res.status(status).json({ ok: false, error: String(e.message || e), sandbox });
+      }
+      return;
+    }
+
+    res.status(405).json({ error: 'Method not allowed' });
+  });
+
+  /** POST /api/lab/generation-prefs/next-email — atomically reserve scaled email + advance counter */
+  routes.labGenerationPrefsNextEmail = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, {
+      labWorkspaceAuthService,
+    });
+    if (!principal.ok) {
+      res.status(principal.status).json(principal.body);
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String((body.sandbox || (req.query && req.query.sandbox)) || '').trim();
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    try {
+      const reserved = await labProfileGenerationPrefsStore.reserveNextEmail(principal.uid, sandbox);
+      res.status(200).json({ ok: true, ...reserved, authSource: principal.authSource });
+    } catch (e) {
+      const status = Number(e && e.status) || 400;
+      res.status(status).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  });
 
   /** GET /api/lab/workspace-auth/approve?uid=...&token=... — one-click account approval. */
   routes.labWorkspaceAuthApprove = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {

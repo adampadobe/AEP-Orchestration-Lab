@@ -77,6 +77,20 @@ export const CRITICAL_RULES = [
     rule: `Use @${LAB_TEST_EMAIL_DOMAIN} plus-addressing for test identities (e.g. travel.demo+001@${LAB_TEST_EMAIL_DOMAIN}).`,
   },
   {
+    id: 'shared_generation_counter',
+    rule:
+      'Profile Viewer and MCP share one daily counter N per Firebase uid + sandbox in Firestore labProfileGenerationPrefs. ' +
+      'POST /api/lab/generation-prefs/next-email atomically reserves the next scaled email (<local>+DDMMYYYY-N@<domain>).',
+    portal: 'web/profile-viewer/profile-generation-prefs-sync.js + Profile Viewer Generate button',
+    mcp:
+      'lab_confirm_generation_plan (preview) → lab_generate_profile with use_stored_prefs:true (default when email omitted) → lab_set_generation_prefs / lab_get_generation_prefs',
+    api: [
+      'GET /api/lab/generation-prefs?sandbox=',
+      'PUT /api/lab/generation-prefs',
+      'POST /api/lab/generation-prefs/next-email',
+    ],
+  },
+  {
     id: 'event_identity_stitch',
     rule:
       'Experience events must land on the profile: at least one of email or ecid (10+ digits). After lab_generate_profile, pass BOTH — ecid from response + email.',

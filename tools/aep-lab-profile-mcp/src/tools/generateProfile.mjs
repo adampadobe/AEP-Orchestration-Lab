@@ -11,6 +11,7 @@ import {
   normalizeGenerateProfileParams,
 } from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
+import { resolveStoredPrefsEmail } from './generationPrefs.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -26,11 +27,13 @@ export function registerGenerateProfileTool(mcpServer) {
         'Email: use @adobetest.com plus-addressing (e.g. travel.demo+001@adobetest.com). ' +
         'CRITICAL: test_profile defaults true (AEP test profile); false requires test_profile_override_reason. ' +
         'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
+        'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
+        'Preview with lab_confirm_generation_plan; configure with lab_get_generation_prefs / lab_set_generation_prefs. ' +
         'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
         'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
         'See lab_get_execution_framework criticalRules and lab_get_industry_playbook.',
       inputSchema: {
-        email: z.string().email().describe('Profile email address'),
+        email: z.string().email().optional().describe('Profile email address (omit to use shared Firestore scaler via use_stored_prefs)'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
           .string()
@@ -64,6 +67,10 @@ export function registerGenerateProfileTool(mcpServer) {
           .string()
           .optional()
           .describe('Required when test_profile is false — non-demo justification only'),
+        use_stored_prefs: z
+          .boolean()
+          .optional()
+          .describe('When true (default if email omitted), reserve next scaled email from shared Firestore prefs (Portal + MCP counter sync)'),
       },
     },
     async ({
@@ -77,6 +84,7 @@ export function registerGenerateProfileTool(mcpServer) {
       append_if_existing,
       test_profile,
       test_profile_override_reason,
+      use_stored_prefs,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -107,6 +115,28 @@ export function registerGenerateProfileTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
+      const useStored = use_stored_prefs ?? !email;
+      let resolvedEmail = email;
+      /** @type {Record<string, unknown>} */
+      let storedPrefsMeta = {};
+      if (useStored) {
+        const reserved = await resolveStoredPrefsEmail(allowed.sandbox);
+        if (!reserved.ok) {
+          return toolError(reserved.error, {
+            hint: 'Set base email via lab_set_generation_prefs or Profile Viewer, then retry.',
+          });
+        }
+        resolvedEmail = reserved.email;
+        storedPrefsMeta = {
+          use_stored_prefs: true,
+          counterN: reserved.counterN,
+          nextCounterN: reserved.nextCounterN,
+          baseEmail: reserved.baseEmail,
+        };
+      } else if (!resolvedEmail) {
+        return toolError('email is required when use_stored_prefs is false.');
+      }
+
       const norm = normalizeIndustry(industry);
       if (!LAB_INDUSTRY_KEYS.includes(norm.industry)) {
         return toolError(`Unknown industry "${industry}". Supported: ${LAB_INDUSTRY_KEYS.join(', ')}.`, {
@@ -124,7 +154,7 @@ export function registerGenerateProfileTool(mcpServer) {
       if (useRandomize && (!attributes || Object.keys(attributes).length === 0)) {
         mergedAttributes = buildPersonaAttributes(
           norm.industry,
-          email,
+          resolvedEmail,
           typeof segmentNorm === 'string' ? segmentNorm : null,
         );
       }
@@ -144,7 +174,7 @@ export function registerGenerateProfileTool(mcpServer) {
       }
 
       const apiResult = await generateProfile({
-        email,
+        email: resolvedEmail,
         sandbox: allowed.sandbox,
         industry: norm.industry,
         attributes: normalized.attributes,
@@ -157,8 +187,8 @@ export function registerGenerateProfileTool(mcpServer) {
         tool: 'lab_generate_profile',
         sandbox: allowed.sandbox,
         industry: norm.industry,
-        email,
-        emailDomain: String(email).split('@')[1] || null,
+        email: resolvedEmail,
+        emailDomain: String(resolvedEmail).split('@')[1] || null,
         segmentHint: typeof segmentNorm === 'string' ? segmentNorm : null,
         randomized: useRandomize && (!attributes || !Object.keys(attributes).length),
         result: apiResult.ok ? 'ok' : 'error',
@@ -174,6 +204,7 @@ export function registerGenerateProfileTool(mcpServer) {
         segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
         test_profile: normalized.test_profile,
         preferredLanguage: readLanguageFromAttrs(normalized.attributes),
+        ...storedPrefsMeta,
         lab_defaults_applied: {
           test_profile: normalized.test_profile,
           preferredLanguage: readLanguageFromAttrs(normalized.attributes),

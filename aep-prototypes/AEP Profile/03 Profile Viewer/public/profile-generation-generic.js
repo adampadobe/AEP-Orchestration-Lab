@@ -1754,6 +1754,31 @@
     }
   }
 
+  async function reserveEmailForGenerate(base, dryRun) {
+    const sb = getSandboxName();
+    if (!dryRun && window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.reserveNextEmail === 'function') {
+      const reserved = await window.AepProfileGenPrefsSync.reserveNextEmail(sb, base);
+      if (reserved && reserved.ok && reserved.scaledEmail) {
+        if (counterEl) counterEl.value = String(reserved.nextCounterN || reserved.counterN || 1);
+        updateEmailPreview();
+        return { email: reserved.scaledEmail, n: reserved.counterN };
+      }
+      if (reserved && reserved.error) {
+        return { error: reserved.error };
+      }
+    }
+    const n = parseInt(counterEl.value || '1', 10) || 1;
+    const email = scaleEmail(base, n, new Date());
+    if (!dryRun) bumpCounter();
+    return { email, n };
+  }
+
+  function persistPrefsField(patch) {
+    if (window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.scheduleSave === 'function') {
+      window.AepProfileGenPrefsSync.scheduleSave(patch, getSandboxName());
+    }
+  }
+
   async function generateProfiles() {
     const base = trimVal(baseEmailEl);
     if (!base || !base.includes('@')) {
@@ -1773,8 +1798,13 @@
     let lastEmail = '';
     try {
       for (let i = 0; i < count; i++) {
-        const n = parseInt(counterEl.value || '1', 10) || 1;
-        const email = scaleEmail(base, n, new Date());
+        const reserved = await reserveEmailForGenerate(base, dryRun);
+        if (reserved.error) {
+          lastError = reserved.error;
+          break;
+        }
+        const n = reserved.n;
+        const email = reserved.email;
         if (!email) {
           lastError = 'Could not scale email — invalid base format.';
           break;
@@ -1793,9 +1823,6 @@
             break;
           }
           successCount += 1;
-          // Record in the per-(sandbox, base, day) recent picker so the user
-          // can reload this exact profile to inspect or modify it later.
-          // Skip dry runs — they didn't actually create anything in AEP.
           if (!dryRun) {
             recordGenerated(email, n, snapshotForm());
             persistLastStreamed(email, n);
@@ -1804,8 +1831,6 @@
           lastError = e.message || 'Network error';
           break;
         }
-        // Always bump counter after a successful send so retries don't collide.
-        bumpCounter();
       }
       if (successCount === count && !lastError) {
         setMessage(
@@ -2013,17 +2038,31 @@
 
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
-      // Persist base email per sandbox via shared store (set-and-forget for this sandbox only).
       Shared.writeBaseEmail(getSandboxName(), baseEmailEl.value || '');
-      // When the base email changes, reload the counter for the new (sandbox, base, today) key.
+      persistPrefsField({ baseEmail: baseEmailEl.value || '' });
       loadCounterForCurrentContext();
     });
-    baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
+    baseEmailEl.addEventListener('change', () => {
+      persistPrefsField({ baseEmail: baseEmailEl.value || '' });
+      loadCounterForCurrentContext();
+    });
+    baseEmailEl.addEventListener('blur', () => {
+      persistPrefsField({ baseEmail: baseEmailEl.value || '' });
+    });
   }
   if (mobilePhoneEl) {
-    mobilePhoneEl.addEventListener('input', persistBaseMobile);
-    mobilePhoneEl.addEventListener('change', persistBaseMobile);
-    mobilePhoneEl.addEventListener('blur', persistBaseMobile);
+    mobilePhoneEl.addEventListener('input', () => {
+      persistBaseMobile();
+      persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+    });
+    mobilePhoneEl.addEventListener('change', () => {
+      persistBaseMobile();
+      persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+    });
+    mobilePhoneEl.addEventListener('blur', () => {
+      persistBaseMobile();
+      persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+    });
   }
   if (counterEl) {
     counterEl.addEventListener('input', () => {
@@ -2037,6 +2076,7 @@
       counterEl.value = '1';
       persistCounter(1);
       updateEmailPreview();
+      persistPrefsField({ resetCounter: true });
     });
   }
 
@@ -2152,15 +2192,26 @@
     // collapse it again if it finds a saved connection for the new sandbox.
     applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
-    loadBaseEmailForCurrentSandbox();
-    loadBaseMobileForCurrentSandbox();
-    loadCounterForCurrentContext();
-    renderRecent();
+    const pullPrefs = window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.pull === 'function'
+      ? window.AepProfileGenPrefsSync.pull(getSandboxName())
+      : Promise.resolve(null);
+    pullPrefs.finally(() => {
+      loadBaseEmailForCurrentSandbox();
+      loadBaseMobileForCurrentSandbox();
+      loadCounterForCurrentContext();
+      renderRecent();
+    });
   }
   if (sandboxSelect) {
     sandboxSelect.addEventListener('change', onSandboxChange);
   }
   window.addEventListener('aep-global-sandbox-change', onSandboxChange);
+  window.addEventListener('aep-profile-gen-prefs-applied', () => {
+    loadBaseEmailForCurrentSandbox();
+    loadBaseMobileForCurrentSandbox();
+    loadCounterForCurrentContext();
+    updateEmailPreview();
+  });
 
   // When the user picks "Generic" in the industry dropdown, profile-generation.js
   // emits aep-generic-panel-shown — that's a good cue to refresh the picker

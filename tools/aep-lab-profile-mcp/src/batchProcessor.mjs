@@ -4,6 +4,7 @@
 
 import { generateProfile } from './labApiClient.mjs';
 import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
+import { resolveStoredPrefsEmail } from './tools/generationPrefs.mjs';
 import { ensurePreferredLanguageOnAttributes, resolveTestProfileParam } from './framework/generateProfileParams.mjs';
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
@@ -49,12 +50,25 @@ export async function processBatchJob(jobId, { keyId }) {
   let failed = 0;
 
   for (let i = 1; i <= count; i += 1) {
-    const email = resolveBatchEmail({
-      index: i,
-      baseEmail: params.base_email,
-      emailPattern: params.email_pattern,
-      industry: params.industry,
-    });
+    let email;
+    if (params.use_stored_prefs) {
+      const reserved = await resolveStoredPrefsEmail(params.sandbox);
+      if (!reserved.ok) {
+        failed += 1;
+        const errMsg = reserved.error || 'Failed to reserve stored prefs email';
+        errors.push({ index: i, email: '', error: errMsg });
+        results.push({ index: i, email: '', ok: false, error: errMsg });
+        continue;
+      }
+      email = reserved.email;
+    } else {
+      email = resolveBatchEmail({
+        index: i,
+        baseEmail: params.base_email,
+        emailPattern: params.email_pattern,
+        industry: params.industry,
+      });
+    }
 
     let attributes = params.attributes;
     if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {

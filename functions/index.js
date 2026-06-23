@@ -95,6 +95,8 @@ const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
 const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
+const labProfileGenerationPrefsStore = lazyRequireMod('./labProfileGenerationPrefsStore');
+const labGenerationPrefsAuth = lazyRequireMod('./labGenerationPrefsAuth');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
@@ -1860,6 +1862,8 @@ Object.assign(
     envBarPreferencesStore,
     labRtdbProvisionService,
     labWorkspaceAuthService,
+    labProfileGenerationPrefsStore,
+    labGenerationPrefsAuth,
   })
 );
 

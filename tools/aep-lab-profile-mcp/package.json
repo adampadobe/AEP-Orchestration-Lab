@@ -1,7 +1,7 @@
 {
   "name": "aep-lab-profile-mcp",
   "private": true,
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Streamable HTTP MCP server for AEP Orchestration Lab profile tools (Coworker)",
   "type": "module",
   "engines": {

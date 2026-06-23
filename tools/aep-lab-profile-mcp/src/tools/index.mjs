@@ -20,6 +20,7 @@ import { registerPreflightProfileEventTool } from './preflightProfileEvent.mjs';
 import { registerGetExecutionFrameworkTool } from './getExecutionFramework.mjs';
 import { registerGetIndustryPlaybookTool } from './getIndustryPlaybook.mjs';
 import { registerPreflightProfileGenerateTool } from './preflightProfileGenerate.mjs';
+import { registerGenerationPrefsTools } from './generationPrefs.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -29,6 +30,7 @@ export function registerProfileTools(mcpServer) {
   registerGetExecutionFrameworkTool(mcpServer);
   registerGetIndustryPlaybookTool(mcpServer);
   registerPreflightProfileGenerateTool(mcpServer);
+  registerGenerationPrefsTools(mcpServer);
   registerListIndustriesTool(mcpServer);
   registerListSandboxesTool(mcpServer);
   registerMcpAccessInfoTool(mcpServer);

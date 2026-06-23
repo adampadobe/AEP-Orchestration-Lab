@@ -372,7 +372,12 @@ async function validateUserApiKey(apiKey) {
 
   doc.ref.update({ lastUsedAt: admin.firestore.FieldValue.serverTimestamp() }).catch(() => {});
 
-  return { ok: true, keyId: doc.id };
+  return {
+    ok: true,
+    keyId: doc.id,
+    principalUid: String(data.principalUid || '').trim().slice(0, 128),
+    principalEmail: data.principalEmail ? String(data.principalEmail) : null,
+  };
 }
 
 module.exports = {

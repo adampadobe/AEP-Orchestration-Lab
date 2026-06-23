@@ -3,6 +3,8 @@
  * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
  */
 
+import { getRequestMcpApiKey } from './requestContext.mjs';
+
 const DEFAULT_ORIGIN = 'https://aep-orchestration-lab.web.app';
 
 export function getLabApiOrigin() {
@@ -38,6 +40,7 @@ export async function labApiRequest(path, opts = {}) {
     method,
     headers: {
       Accept: 'application/json',
+      ...(opts.headers && typeof opts.headers === 'object' ? opts.headers : {}),
     },
     signal: controller.signal,
   };
@@ -324,5 +327,51 @@ export async function sendEdgeEvent(params) {
     method: 'POST',
     body,
     timeoutMs: 120_000,
+  });
+}
+
+function generationPrefsAuthHeaders() {
+  const key = getRequestMcpApiKey();
+  return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
+}
+
+export async function getGenerationPrefs({ sandbox }) {
+  return labApiRequest('/api/lab/generation-prefs', {
+    query: { sandbox },
+    headers: generationPrefsAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+/**
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} [params.baseEmail]
+ * @param {string} [params.mobilePhone]
+ * @param {number} [params.counterN]
+ * @param {boolean} [params.resetCounter]
+ * @param {boolean} [params.testProfile]
+ */
+export async function setGenerationPrefs(params) {
+  const body = { sandbox: params.sandbox };
+  if (params.baseEmail != null) body.baseEmail = params.baseEmail;
+  if (params.mobilePhone != null) body.mobilePhone = params.mobilePhone;
+  if (params.counterN != null) body.counterN = params.counterN;
+  if (params.resetCounter != null) body.resetCounter = params.resetCounter;
+  if (params.testProfile != null) body.testProfile = params.testProfile;
+  return labApiRequest('/api/lab/generation-prefs', {
+    method: 'PUT',
+    body,
+    headers: generationPrefsAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function reserveGenerationNextEmail({ sandbox }) {
+  return labApiRequest('/api/lab/generation-prefs/next-email', {
+    method: 'POST',
+    body: { sandbox },
+    headers: generationPrefsAuthHeaders(),
+    timeoutMs: 30_000,
   });
 }

@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.4)
 
-MCP server: **AEP Orchestration Lab MCP v3.4.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.5.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -37,6 +37,7 @@ Coworker should call these **before** improvising lab conventions:
 2. **preferredLanguage** — BCP-47 on `preferredLanguage` (root), `preferences.preferredLanguage`, and `personalEmail.language`. MCP randomize defaults `en-US` when missing. `profileStreamingCore.mirrorPreferredLanguageDemoSchema` dual-writes root + tenant.
 3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; `_demoemea.identification.core` mirrors both. Preflight: `lab_preflight_profile_event`.
+5. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox. Call `lab_confirm_generation_plan` before first generate; use `lab_generate_profile` without email (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 
 ### How the lab executes
 

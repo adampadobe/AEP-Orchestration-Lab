@@ -649,6 +649,31 @@
       updateEmailPreview();
     }
 
+    async function reserveEmailForGenerate(base, dryRun) {
+      const sb = getSandboxName();
+      if (!dryRun && window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.reserveNextEmail === 'function') {
+        const reserved = await window.AepProfileGenPrefsSync.reserveNextEmail(sb, base);
+        if (reserved && reserved.ok && reserved.scaledEmail) {
+          if (counterEl) counterEl.value = String(reserved.nextCounterN || reserved.counterN || 1);
+          updateEmailPreview();
+          return { email: reserved.scaledEmail, n: reserved.counterN };
+        }
+        if (reserved && reserved.error) {
+          return { error: reserved.error };
+        }
+      }
+      const n = parseInt(counterEl.value || '1', 10) || 1;
+      const email = scaleEmail(base, n, new Date());
+      if (!dryRun) bumpCounter();
+      return { email, n };
+    }
+
+    function persistPrefsField(patch) {
+      if (window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.scheduleSave === 'function') {
+        window.AepProfileGenPrefsSync.scheduleSave(patch, getSandboxName());
+      }
+    }
+
     // ---- Streaming connection (Firestore) ----
     function fillStreamingFields(streaming) {
       if (!streaming || typeof streaming !== 'object') return;
@@ -1878,8 +1903,13 @@
       let lastEmail = '';
       try {
         for (let i = 0; i < count; i++) {
-          const n = parseInt(counterEl.value || '1', 10) || 1;
-          const email = scaleEmail(base, n, new Date());
+          const reserved = await reserveEmailForGenerate(base, dryRun);
+          if (reserved.error) {
+            lastError = reserved.error;
+            break;
+          }
+          const n = reserved.n;
+          const email = reserved.email;
           if (!email) {
             lastError = 'Could not scale email — invalid base format.';
             break;
@@ -1906,7 +1936,6 @@
             lastError = e.message || 'Network error';
             break;
           }
-          bumpCounter();
         }
         if (successCount === count && !lastError) {
           setMessage(
@@ -2117,14 +2146,30 @@
     if (baseEmailEl) {
       baseEmailEl.addEventListener('input', () => {
         Shared.writeBaseEmail(getSandboxName(), baseEmailEl.value || '');
+        persistPrefsField({ baseEmail: baseEmailEl.value || '' });
         loadCounterForCurrentContext();
       });
-      baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
+      baseEmailEl.addEventListener('change', () => {
+        persistPrefsField({ baseEmail: baseEmailEl.value || '' });
+        loadCounterForCurrentContext();
+      });
+      baseEmailEl.addEventListener('blur', () => {
+        persistPrefsField({ baseEmail: baseEmailEl.value || '' });
+      });
     }
     if (mobilePhoneEl) {
-      mobilePhoneEl.addEventListener('input', persistBaseMobile);
-      mobilePhoneEl.addEventListener('change', persistBaseMobile);
-      mobilePhoneEl.addEventListener('blur', persistBaseMobile);
+      mobilePhoneEl.addEventListener('input', () => {
+        persistBaseMobile();
+        persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+      });
+      mobilePhoneEl.addEventListener('change', () => {
+        persistBaseMobile();
+        persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+      });
+      mobilePhoneEl.addEventListener('blur', () => {
+        persistBaseMobile();
+        persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+      });
     }
     if (counterEl) {
       counterEl.addEventListener('input', () => {
@@ -2138,6 +2183,7 @@
         counterEl.value = '1';
         persistCounter(1);
         updateEmailPreview();
+        persistPrefsField({ resetCounter: true });
       });
     }
 
@@ -2230,21 +2276,28 @@
     }
 
     function onSandboxChange() {
-      // Reset the auto-discover cache so the new sandbox gets one fresh
-      // attempt; the cache exists to avoid re-hitting AEP on panel-show /
-      // firestore-reload cycles within a single sandbox, not to suppress
-      // discovery across sandboxes.
       _autoDiscoverAttempted.clear();
       clearStreamingFields();
       applyConfiguredCollapseState();
       loadConnectionFromFirestore(true);
-      loadBaseEmailForCurrentSandbox();
-      loadBaseMobileForCurrentSandbox();
-      loadCounterForCurrentContext();
-      renderRecent();
+      const pullPrefs = window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.pull === 'function'
+        ? window.AepProfileGenPrefsSync.pull(getSandboxName())
+        : Promise.resolve(null);
+      pullPrefs.finally(() => {
+        loadBaseEmailForCurrentSandbox();
+        loadBaseMobileForCurrentSandbox();
+        loadCounterForCurrentContext();
+        renderRecent();
+      });
     }
     if (sandboxSelect) sandboxSelect.addEventListener('change', onSandboxChange);
     window.addEventListener('aep-global-sandbox-change', onSandboxChange);
+    window.addEventListener('aep-profile-gen-prefs-applied', () => {
+      loadBaseEmailForCurrentSandbox();
+      loadBaseMobileForCurrentSandbox();
+      loadCounterForCurrentContext();
+      updateEmailPreview();
+    });
 
     window.addEventListener(panelShownEvent, () => {
       loadBaseMobileForCurrentSandbox();
