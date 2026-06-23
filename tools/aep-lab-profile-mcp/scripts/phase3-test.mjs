@@ -11,6 +11,11 @@ import {
   FSI_SEGMENT_HINTS,
   RETAIL_SEGMENT_HINTS,
 } from '../src/personaBuilder.mjs';
+import {
+  isValidPreferredMarketingChannel,
+  normalizePreferredMarketingChannel,
+  PREFERRED_MARKETING_CHANNEL_VALUES,
+} from '../src/personaBuilder/xdmEnums.mjs';
 import { loadAuthConfig, validateMcpApiKey, validateOAuthBearer } from '../src/auth.mjs';
 import { assertSandboxAllowedForAccess } from '../src/sandboxAllowlist.mjs';
 import { checkBatchJobRate, checkEdgeSendRate, checkGenerateRate } from '../src/rateLimiter.mjs';
@@ -179,6 +184,29 @@ function testEventIdentityValidation() {
 
   assert(isValidEcid('1234567890'), 'isValidEcid true');
   assert(!isValidEcid('abc'), 'isValidEcid false');
+}
+
+function testSchemaSafePersonaFields() {
+  assert(normalizePreferredMarketingChannel('direct_mail') === 'phyMail', 'direct_mail → phyMail');
+  assert(normalizePreferredMarketingChannel('postal') === 'phyMail', 'postal → phyMail');
+  assert(!PREFERRED_MARKETING_CHANNEL_VALUES.includes('direct_mail'), 'direct_mail not in XDM enum');
+
+  for (const industry of LAB_INDUSTRY_KEYS) {
+    for (let i = 0; i < 25; i += 1) {
+      const attrs = buildPersonaAttributes(industry, `${industry}+${i}@test.com`);
+      const preferred = attrs['consents.marketing.preferred'];
+      assert(
+        isValidPreferredMarketingChannel(preferred),
+        `${industry}: consents.marketing.preferred must be schema enum, got ${JSON.stringify(preferred)}`,
+      );
+    }
+    if (industry === 'generic') {
+      const generic = buildPersonaAttributes('generic', 'gen@test.com');
+      const postal = generic['homeAddress.postalCode'];
+      assert(typeof postal === 'string', 'generic homeAddress.postalCode is string');
+      assert(/^\d{5}$/.test(postal), 'generic postal code is 5-digit string');
+    }
+  }
 }
 
 function testIndustryPersonas() {
@@ -374,6 +402,7 @@ async function run() {
   testEventIdentityValidation();
   testTestProfileDefaults();
   testPreferredLanguageOnPersona();
+  testSchemaSafePersonaFields();
   testIndustryPersonas();
   testTravelPortalParity();
   testIndustryPortalParity();

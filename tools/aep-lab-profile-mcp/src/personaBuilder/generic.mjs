@@ -4,6 +4,7 @@ import {
   randomBetween,
   randomPick,
 } from './utils.mjs';
+import { randomPostalCodeString } from './xdmEnums.mjs';
 
 const FAV_CATEGORIES = ['general', 'retail', 'travel', 'media', 'public_sector'];
 const STREETS = ['123 Maple Ave', '456 Oak Street', '789 Pine Rd', '42 Cedar Ln'];
@@ -23,7 +24,7 @@ export function buildGenericPersonaAttributes() {
   assign(attrs, 'homeAddress.street1', randomPick(STREETS));
   assign(attrs, 'homeAddress.city', randomPick(CITIES));
   assign(attrs, 'homeAddress.stateProvince', randomPick(STATES));
-  assign(attrs, 'homeAddress.postalCode', String(randomBetween(10000, 99999)));
+  assign(attrs, 'homeAddress.postalCode', randomPostalCodeString());
   assign(attrs, 'homeAddress.country', randomPick(['US', 'GB', 'CA']));
 
   if (favCategory === 'public_sector' || Math.random() < 0.25) {

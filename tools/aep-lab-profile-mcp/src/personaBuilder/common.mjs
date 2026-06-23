@@ -6,6 +6,10 @@ import {
   randomBirthDateIso,
   randomPick,
 } from './utils.mjs';
+import {
+  normalizePreferredMarketingChannel,
+  PERSONA_RANDOM_PREFERRED_CHANNELS,
+} from './xdmEnums.mjs';
 
 const MALE_FIRST = [
   'James', 'Michael', 'Robert', 'David', 'Daniel', 'Matthew', 'Ryan', 'Kevin', 'Brian', 'Jason',
@@ -21,7 +25,6 @@ const LAST_NAMES = [
   'Lee', 'Kim', 'Patel', 'Cohen', 'Okafor', 'Silva', 'Andersen', 'Nielsen', 'Kowalski', 'Tanaka',
 ];
 const GENDERS = ['male', 'female', 'non_specific'];
-const PREFERRED_CHANNELS = ['email', 'sms', 'phone', 'direct_mail'];
 const LANGUAGES = ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'ja-JP'];
 function randomFirstNameForGender(gender) {
   const g = String(gender || '').toLowerCase();
@@ -48,7 +51,7 @@ export function buildCommonPersonaAttributes(email, options = {}) {
   const lastName = randomPick(LAST_NAMES);
   const birthDate = randomBirthDateIso();
   const age = computeAgeFromBirthDate(birthDate);
-  const preferredChannel = randomPick(PREFERRED_CHANNELS);
+  const preferredChannel = normalizePreferredMarketingChannel(randomPick(PERSONA_RANDOM_PREFERRED_CHANNELS));
   const language = randomPick(LANGUAGES);
 
   assign(attrs, 'personalEmail.address', email);

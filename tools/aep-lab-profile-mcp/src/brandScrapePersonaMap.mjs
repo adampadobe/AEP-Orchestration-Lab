@@ -196,6 +196,7 @@ export function mapPreferredChannel(channels) {
     if (c.includes('sms') || c.includes('text')) return 'sms';
     if (c.includes('phone') || c.includes('call')) return 'phone';
     if (c.includes('push')) return 'push';
+    if (c.includes('mail') || c.includes('postal')) return 'phyMail';
     if (c.includes('web')) return 'email';
   }
   return null;

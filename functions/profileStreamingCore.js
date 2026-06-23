@@ -144,15 +144,22 @@ function setByPath(obj, path, value) {
 }
 
 /**
- * Travel Hotel Experience FG types these leaves as string; operators (and
- * randomizers) often use digit-only values ("101", "12345678"). The profile
- * update merge historically coerced /^\d+$/ strings to integers for tenant
- * paths — which breaks DCVS-1104-400 when the schema expects String.
+ * XDM leaves typed as string that operators (and randomizers) often fill with
+ * digit-only values ("101", "95101"). Profile streaming historically coerced
+ * /^\d+$/ strings to integers — which breaks DCVS-1104-400 when the schema
+ * expects String (e.g. homeAddress.postalCode, hotel room numbers).
  */
-function isHotelBookingStringLeafPath(relativePath) {
+function isDigitStringSchemaLeafPath(relativePath) {
   if (!relativePath || typeof relativePath !== 'string') return false;
   const p = relativePath.toLowerCase();
-  return /^hotel\.bookingdetails\.(roomnumber|confirmationnumber|ratecode)$/.test(p);
+  if (/^hotel\.bookingdetails\.(roomnumber|confirmationnumber|ratecode)$/.test(p)) return true;
+  if (/^homeaddress\.postalcode$/.test(p)) return true;
+  return false;
+}
+
+/** @deprecated Use isDigitStringSchemaLeafPath */
+function isHotelBookingStringLeafPath(relativePath) {
+  return isDigitStringSchemaLeafPath(relativePath);
 }
 
 /**
@@ -175,7 +182,7 @@ function assignProfileStreamingAttributes(demoemeaTenant, rootExtras, filteredAt
       typeof out === 'string' &&
       out.trim() !== '' &&
       /^\d+$/.test(out) &&
-      !isHotelBookingStringLeafPath(cleanPath)
+      !isDigitStringSchemaLeafPath(cleanPath)
     ) {
       setByPath(target, cleanPath, parseInt(out, 10));
     } else {
@@ -646,6 +653,7 @@ module.exports = {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   mirrorPreferredLanguageDemoSchema,
   assignProfileStreamingAttributes,
+  isDigitStringSchemaLeafPath,
   isHotelBookingStringLeafPath,
   setByPath,
   normalizeProfileUpdateDateString,

@@ -518,7 +518,7 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       if (
         typeof out === 'string' &&
         valueType !== 'string' &&
-        !profileStreamingCore.isHotelBookingStringLeafPath(path) &&
+        !profileStreamingCore.isDigitStringSchemaLeafPath(path) &&
         out.trim() !== '' &&
         /^\d+$/.test(out)
       ) {
