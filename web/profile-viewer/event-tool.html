@@ -104,7 +104,7 @@
                   <p class="field-hint">
                     Creates an <strong>ExperienceEvent</strong> schema and attaches <strong>Experience Event Core v2.1</strong> when that field group exists in the sandbox, then
                     <strong>Interaction Details Lite</strong> (channel on <code class="et-code-inline">interactionDetails.core.channel</code>) and
-                    <strong>Travel - Hotel Experience v1</strong> when those global field groups are visible to the Schema Registry API.
+                    <strong>Travel - Hotel Experience v1</strong> — importing from the global library when visible, or <strong>auto-creating tenant field groups</strong> when missing (same pattern as Travel/FSI profile setup).
                     It also registers <strong>ECID</strong> + <strong>Email</strong> on
                     <code class="et-code-inline">_{tenant}.identification.core.*</code> as <strong>secondary</strong> identity descriptors (not the schema primary).
                     <strong>Add booker/stayer field group</strong> creates and attaches <strong>AEP Event Tool - Booker Stayer v1</strong> (typed <code class="et-code-inline">public.bookingParty</code> under your tenant prefix) for booker vs guest-of-record.

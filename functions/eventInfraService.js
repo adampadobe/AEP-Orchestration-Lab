@@ -236,6 +236,248 @@ function findTravelHotelExperienceV1Mixin(rows) {
   );
 }
 
+const INTERACTION_DETAILS_LITE_FG_TITLE = 'Interaction Details Lite';
+const TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE = 'Travel - Hotel Experience v1';
+
+/** Root-level `interactionDetails.core.channel` — matches Event Tool + generator payloads. */
+const INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES = {
+  interactionDetails: {
+    type: 'object',
+    title: 'Interaction Details',
+    properties: {
+      core: {
+        type: 'object',
+        title: 'Core interaction details',
+        properties: {
+          channel: {
+            type: 'string',
+            title: 'Channel',
+            description: 'Experience channel for this event (Interaction Details Lite).',
+            'meta:enum': {
+              web: 'Web',
+              mobile: 'Mobile App',
+              email: 'Email',
+              pos: 'Point of Sale',
+              callcentre: 'Call Centre',
+              kiosk: 'Kiosk',
+              agent: 'Travel Agent',
+              partner: 'Partner',
+            },
+            'meta:xdmType': 'string',
+          },
+        },
+        'meta:xdmType': 'object',
+      },
+    },
+    'meta:xdmType': 'object',
+  },
+};
+
+/**
+ * Root-level `hotel.*` on ExperienceEvent — aligned with travel profile FG + eventGeneratorService
+ * `mergeHospitalityPublicIntoHotelBookingDetails`.
+ */
+const TRAVEL_HOTEL_EXPERIENCE_V1_EE_ROOT_PROPERTIES = {
+  hotel: {
+    type: 'object',
+    title: 'Hotel Experience',
+    description:
+      'Hotel stay lifecycle: booking details, check-in experience, in-stay services, and check-out rating.',
+    properties: {
+      bookingDetails: {
+        type: 'object',
+        title: 'Booking details',
+        properties: {
+          hotelName: { type: 'string', title: 'Hotel name' },
+          hotelLocation: { type: 'string', title: 'Hotel location / city' },
+          hotelChain: { type: 'string', title: 'Hotel chain' },
+          checkInDate: { type: 'string', title: 'Check-in date', format: 'date' },
+          checkOutDate: { type: 'string', title: 'Check-out date', format: 'date' },
+          nightsStay: { type: 'integer', title: 'Nights this stay' },
+          totalNights: { type: 'integer', title: 'Total nights past year' },
+          roomType: { type: 'string', title: 'Room type' },
+          rateCode: { type: 'string', title: 'Rate code' },
+          roomNumber: { type: 'string', title: 'Room number' },
+          confirmationNumber: { type: 'string', title: 'Confirmation number' },
+          roomCost: { type: 'number', title: 'Room cost per night' },
+          totalCost: { type: 'number', title: 'Total stay cost' },
+        },
+      },
+      checkIn: {
+        type: 'object',
+        title: 'Check-in experience',
+        properties: {
+          checkInMethod: { type: 'string', title: 'Check-in method' },
+          queueTime: { type: 'integer', title: 'Queue time (minutes)' },
+          earlyCheckIn: { type: 'boolean', title: 'Early check-in' },
+          roomReady: { type: 'boolean', title: 'Room ready on arrival' },
+          upgradedRoom: { type: 'boolean', title: 'Room upgraded' },
+          welcomeAmenities: { type: 'boolean', title: 'Welcome amenities provided' },
+        },
+      },
+      housekeeping: {
+        type: 'object',
+        title: 'Housekeeping',
+        properties: {
+          doNotDisturb: { type: 'boolean', title: 'Do not disturb' },
+          extraTowels: { type: 'boolean', title: 'Extra towels requested' },
+          serviceRequested: { type: 'boolean', title: 'Housekeeping service requested' },
+          cleanlinessRating: { type: 'integer', title: 'Cleanliness rating (1–10)' },
+        },
+      },
+      amenities: {
+        type: 'object',
+        title: 'Amenity usage',
+        properties: {
+          amenityType: { type: 'string', title: 'Amenity type' },
+          satisfactionRating: { type: 'integer', title: 'Amenity satisfaction rating (1–10)' },
+        },
+      },
+      roomService: {
+        type: 'object',
+        title: 'Room service',
+        properties: {
+          interactionType: { type: 'string', title: 'Room service interaction type' },
+          orderTotal: { type: 'number', title: 'Room service order total' },
+          serviceRating: { type: 'integer', title: 'Room service rating (1–10)' },
+        },
+      },
+      checkOut: {
+        type: 'object',
+        title: 'Check-out and rating',
+        properties: {
+          checkOutMethod: { type: 'string', title: 'Check-out method' },
+          lateCheckOut: { type: 'boolean', title: 'Late check-out' },
+          overallRating: { type: 'integer', title: 'Overall stay rating (1–10)' },
+          finalBillAmount: { type: 'number', title: 'Final bill amount' },
+          incidentalCharges: { type: 'number', title: 'Incidental charges' },
+        },
+      },
+    },
+  },
+};
+
+function buildExperienceEventRootFieldGroup(title, description, rootProperties) {
+  return {
+    title,
+    description,
+    type: 'object',
+    'meta:intendedToExtend': [XDM_EXPERIENCE_EVENT_CLASS],
+    definitions: {
+      hospitalityFields: {
+        type: 'object',
+        properties: rootProperties,
+      },
+    },
+    allOf: [{ $ref: '#/definitions/hospitalityFields', type: 'object', 'meta:xdmType': 'object' }],
+  };
+}
+
+function buildInteractionDetailsLiteExperienceEventFieldGroup() {
+  return buildExperienceEventRootFieldGroup(
+    INTERACTION_DETAILS_LITE_FG_TITLE,
+    'AEP Orchestration Lab — auto-created ExperienceEvent field group for root interactionDetails.core.channel (Interaction Details Lite).',
+    INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES
+  );
+}
+
+function buildTravelHotelExperienceV1ExperienceEventFieldGroup() {
+  return buildExperienceEventRootFieldGroup(
+    TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE,
+    'AEP Orchestration Lab — auto-created ExperienceEvent field group for hotel stay lifecycle (booking through check-out).',
+    TRAVEL_HOTEL_EXPERIENCE_V1_EE_ROOT_PROPERTIES
+  );
+}
+
+async function relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox, expectedIds) {
+  const expected = new Set((expectedIds || []).filter(Boolean).map(String));
+  const BACKOFF_MS = [0, 800, 1500, 2500, 4000];
+  let last = [];
+  for (let i = 0; i < BACKOFF_MS.length; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, BACKOFF_MS[i]));
+    try {
+      last = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
+    } catch {
+      last = [];
+    }
+    const seen = new Set(last.map((r) => String(r.$id || '')));
+    let allSeen = true;
+    for (const id of expected) {
+      if (!seen.has(id)) {
+        allSeen = false;
+        break;
+      }
+    }
+    if (allSeen) {
+      log(sandbox, 'relistTenantFieldGroups.allSeen', { attempts: i + 1, expected: [...expected] });
+      return last;
+    }
+  }
+  log(sandbox, 'relistTenantFieldGroups.timeout', { expected: [...expected] });
+  return last;
+}
+
+/**
+ * Resolve Interaction Details Lite + Travel - Hotel Experience v1 for ExperienceEvent.
+ * When absent from tenant/global catalogs, auto-create tenant FGs (same pattern as profile
+ * infra `createIfMissing` / Event Tool booker-stayer provisioning).
+ */
+async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox) {
+  /** @type {{ title: string, $id: string }[]} */
+  const created = [];
+  /** @type {string[]} */
+  const warnings = [];
+  let merged = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
+  let interactionLite = findInteractionDetailsLiteMixin(merged);
+  let travelHotel = findTravelHotelExperienceV1Mixin(merged);
+
+  const specs = [];
+  if (!interactionLite) {
+    specs.push({ key: 'interactionLite', body: buildInteractionDetailsLiteExperienceEventFieldGroup() });
+  }
+  if (!travelHotel) {
+    specs.push({ key: 'travelHotel', body: buildTravelHotelExperienceV1ExperienceEventFieldGroup() });
+  }
+
+  const newIds = [];
+  for (const item of specs) {
+    try {
+      const row = await postTenantFieldGroup(token, clientId, orgId, sandbox, item.body);
+      if (row && row.$id) {
+        newIds.push(String(row.$id));
+        created.push({ title: row.title || item.body.title, $id: String(row.$id) });
+        log(sandbox, 'ensureRecommendedFg.created', { title: item.body.title, $id: row.$id });
+      }
+    } catch (e) {
+      const msg = String(e.message || e);
+      if (/409|already exists|duplicate|conflict/i.test(msg)) {
+        log(sandbox, 'ensureRecommendedFg.alreadyExists', { title: item.body.title });
+        continue;
+      }
+      warnings.push(`Could not auto-create "${item.body.title}": ${msg.slice(0, 220)}`);
+      log(sandbox, 'ensureRecommendedFg.createFailed', { title: item.body.title, err: msg.slice(0, 220) });
+    }
+  }
+
+  if (newIds.length) {
+    await relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox, newIds);
+    merged = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
+    interactionLite = findInteractionDetailsLiteMixin(merged);
+    travelHotel = findTravelHotelExperienceV1Mixin(merged);
+  }
+
+  if (!interactionLite) {
+    const byTitle = await findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, INTERACTION_DETAILS_LITE_FG_TITLE);
+    if (byTitle && byTitle.$id && mixinExtendsExperienceEventClass(byTitle)) interactionLite = byTitle;
+  }
+  if (!travelHotel) {
+    const byTitle = await findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE);
+    if (byTitle && byTitle.$id && mixinExtendsExperienceEventClass(byTitle)) travelHotel = byTitle;
+  }
+
+  return { interactionLite, travelHotel, merged, created, warnings, autoProvisionAttempted: specs.length > 0 };
+}
+
 function dedupeFieldgroupsById(rows) {
   const map = new Map();
   for (const r of rows || []) {
@@ -506,33 +748,51 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
 
   const interactionLite = findInteractionDetailsLiteMixin(merged);
   const travelHotel = findTravelHotelExperienceV1Mixin(merged);
-  const extraRefs = [interactionLite && interactionLite.$id, travelHotel && travelHotel.$id].filter(Boolean);
+  let hospitalityCreated = [];
+  let hospitalityEnsureWarnings = [];
+  let resolvedInteractionLite = interactionLite;
+  let resolvedTravelHotel = travelHotel;
+  if (!interactionLite || !travelHotel) {
+    const ensured = await ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox);
+    hospitalityCreated = ensured.created || [];
+    hospitalityEnsureWarnings = ensured.warnings || [];
+    resolvedInteractionLite = ensured.interactionLite || interactionLite;
+    resolvedTravelHotel = ensured.travelHotel || travelHotel;
+    if (ensured.merged) merged = ensured.merged;
+  }
+  const extraRefs = [
+    resolvedInteractionLite && resolvedInteractionLite.$id,
+    resolvedTravelHotel && resolvedTravelHotel.$id,
+  ].filter(Boolean);
   let interactionDetailsLiteAttached = false;
   let travelHotelExperienceV1Attached = false;
-  const hospitalityFieldGroupWarnings = [];
+  const hospitalityFieldGroupWarnings = [...hospitalityEnsureWarnings];
+  for (const c of hospitalityCreated) {
+    if (c && c.title) hospitalityFieldGroupWarnings.push(`Auto-created field group "${c.title}" in this sandbox.`);
+  }
   if (extraRefs.length) {
     const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, extraRefs);
     for (const w of fgRes.warnings || []) hospitalityFieldGroupWarnings.push(w);
-    if (interactionLite && interactionLite.$id && fgRes.attached.includes(interactionLite.$id)) {
+    if (resolvedInteractionLite && resolvedInteractionLite.$id && fgRes.attached.includes(resolvedInteractionLite.$id)) {
       interactionDetailsLiteAttached = true;
     }
-    if (travelHotel && travelHotel.$id && fgRes.attached.includes(travelHotel.$id)) {
+    if (resolvedTravelHotel && resolvedTravelHotel.$id && fgRes.attached.includes(resolvedTravelHotel.$id)) {
       travelHotelExperienceV1Attached = true;
     }
-    if (interactionLite && interactionLite.$id && fgRes.skipped.includes(interactionLite.$id)) {
+    if (resolvedInteractionLite && resolvedInteractionLite.$id && fgRes.skipped.includes(resolvedInteractionLite.$id)) {
       interactionDetailsLiteAttached = true;
     }
-    if (travelHotel && travelHotel.$id && fgRes.skipped.includes(travelHotel.$id)) {
+    if (resolvedTravelHotel && resolvedTravelHotel.$id && fgRes.skipped.includes(resolvedTravelHotel.$id)) {
       travelHotelExperienceV1Attached = true;
     }
-    if (!interactionLite) {
+    if (!resolvedInteractionLite) {
       hospitalityFieldGroupWarnings.push(
-        'Interaction Details Lite (ExperienceEvent) not found in Schema Registry — import it in AEP (Add field groups) if you need root interactionDetails on the schema.'
+        'Interaction Details Lite (ExperienceEvent) could not be resolved or auto-created — retry in a few seconds or add the field group manually in AEP if org policy blocks tenant FG creation.'
       );
     }
-    if (!travelHotel) {
+    if (!resolvedTravelHotel) {
       hospitalityFieldGroupWarnings.push(
-        'Travel - Hotel Experience v1 (ExperienceEvent) not found in Schema Registry — add it from the standard library in AEP if you need hotel.bookingDetails on the schema.'
+        'Travel - Hotel Experience v1 (ExperienceEvent) could not be resolved or auto-created — retry in a few seconds or add the field group manually in AEP if org policy blocks tenant FG creation.'
       );
     }
     full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
@@ -563,6 +823,7 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     interactionDetailsLiteAttached,
     travelHotelExperienceV1Attached,
     hospitalityFieldGroupWarnings,
+    createdFieldGroups: hospitalityCreated,
     identityDescriptors,
     warn: null,
     tenantXdmKey: tenantCtx.xdmKey,
@@ -830,6 +1091,7 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
       travelHotelExperienceV1Attached: !!attach.travelHotelExperienceV1Attached,
       hospitalityFieldGroupWarnings: attach.hospitalityFieldGroupWarnings || [],
+      createdFieldGroups: attach.createdFieldGroups || [],
       identityDescriptorsCreated: Number(attach.identityDescriptors) || 0,
       experienceEventCoreWarning: attach.warn || null,
       profileCoreWarning: attach.warn || null,
@@ -865,30 +1127,38 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       const ref = String(schema.$id || schemaIdOpt || title || 'schema').trim();
       return { ok: false, error: `Schema "${ref}" has no meta:altId yet — wait a few seconds after creation and retry.` };
     }
-    let merged;
-    try {
-      merged = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
-    } catch (e) {
-      return { ok: false, error: String(e.message || e) };
-    }
-    const interactionLite = findInteractionDetailsLiteMixin(merged);
-    const travelHotel = findTravelHotelExperienceV1Mixin(merged);
+    const ensured = await ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox);
+    const interactionLite = ensured.interactionLite;
+    const travelHotel = ensured.travelHotel;
     const refs = [interactionLite && interactionLite.$id, travelHotel && travelHotel.$id].filter(Boolean);
     if (!refs.length) {
       return {
         ok: false,
+        autoProvisionAttempted: !!ensured.autoProvisionAttempted,
+        createdFieldGroups: ensured.created || [],
+        warnings: ensured.warnings || [],
         error:
-          'No matching ExperienceEvent field groups found. In AEP → Schemas → Browse, import **Interaction Details Lite** and **Travel - Hotel Experience v1** for the ExperienceEvent class, then retry.',
+          'Could not resolve or auto-create Interaction Details Lite and Travel - Hotel Experience v1 for ExperienceEvent. Wait a few seconds and retry — the lab creates tenant field groups when they are missing from the sandbox (same pattern as Travel/FSI profile setup). If this persists, check Schema Registry permissions or import the field groups manually in AEP → Schemas → Browse.',
       };
     }
     const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, refs);
     const label = schemaIdOpt ? schema.$id || schemaIdOpt : title;
     const parts = [`Field groups processed for "${label}".`];
+    if ((ensured.created || []).length) {
+      parts.push(
+        `Auto-created in sandbox: ${ensured.created.map((c) => c.title).join(', ')}.`,
+      );
+    }
     if (fgRes.attached.length) parts.push(`Attached: ${fgRes.attached.length} (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
     if (fgRes.skipped.length) parts.push(`Already present: ${fgRes.skipped.length}.`);
     for (const w of fgRes.warnings) parts.push(`Warning: ${w}`);
-    if (!interactionLite) parts.push('Note: Interaction Details Lite not found in registry — add from AEP field group library.');
-    if (!travelHotel) parts.push('Note: Travel - Hotel Experience v1 not found in registry — add from AEP field group library.');
+    for (const w of ensured.warnings || []) parts.push(`Note: ${w}`);
+    if (!interactionLite) {
+      parts.push('Note: Interaction Details Lite still not resolved after auto-provision — retry shortly.');
+    }
+    if (!travelHotel) {
+      parts.push('Note: Travel - Hotel Experience v1 still not resolved after auto-provision — retry shortly.');
+    }
     return {
       ok: true,
       sandbox,
@@ -898,9 +1168,11 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaMetaAltId: metaAltId,
       attachedFieldGroupIds: fgRes.attached,
       skippedFieldGroupIds: fgRes.skipped,
+      createdFieldGroups: ensured.created || [],
+      autoProvisionAttempted: !!ensured.autoProvisionAttempted,
       interactionDetailsLiteFound: !!interactionLite,
       travelHotelExperienceV1Found: !!travelHotel,
-      warnings: fgRes.warnings,
+      warnings: [...(fgRes.warnings || []), ...(ensured.warnings || [])],
       message: parts.join(' '),
     };
   }
@@ -1196,4 +1468,14 @@ async function fetchSchemaEventTypes(sandbox, token, clientId, orgId, schemaTitl
   return { ok: true, schemaTitle: resolvedTitle, schemaId: schema.$id, eventTypes };
 }
 
-module.exports = { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes };
+module.exports = {
+  runEventInfraStatus,
+  runEventInfraStep,
+  fetchSchemaEventTypes,
+  // Test / script helpers
+  findInteractionDetailsLiteMixin,
+  findTravelHotelExperienceV1Mixin,
+  mixinExtendsExperienceEventClass,
+  buildInteractionDetailsLiteExperienceEventFieldGroup,
+  buildTravelHotelExperienceV1ExperienceEventFieldGroup,
+};
