@@ -1071,6 +1071,8 @@
     if (body.channel && String(body.channel).trim()) return true;
     if (body.message && typeof body.message === 'object' && Object.keys(body.message).length) return true;
     if (body.public && typeof body.public === 'object' && Object.keys(body.public).length) return true;
+    if (body.viewName && String(body.viewName).trim()) return true;
+    if (body.viewUrl && String(body.viewUrl).trim()) return true;
     return false;
   }
 
@@ -1118,10 +1120,6 @@
       xdm._experience = { campaign: { orchestration: { eventID: orchId } } };
     }
 
-    if (body.viewName || body.viewUrl) {
-      xdm.web = { webPageDetails: { URL: body.viewUrl || '', name: body.viewName || '', viewName: body.viewName || '' } };
-    }
-
     if (shouldUseRichPreview(body)) {
       var tenantKey = (body.xdmTenantKey || body.xdm_tenant_key || '_demoemea').trim();
       var tenantNode = { identification: { core: { ecid: ecid || '', email: email || '' } } };
@@ -1138,6 +1136,11 @@
       xdm[tenantKey] = tenantNode;
       if (tenantKey === '_demoemea') {
         try { xdm.demoemea = JSON.parse(JSON.stringify(tenantNode)); } catch (e) { xdm.demoemea = tenantNode; }
+      }
+      var vn = (body.viewName || '').trim();
+      var vu = (body.viewUrl || '').trim();
+      if (vn || vu) {
+        xdm.web = { webPageDetails: { URL: vu, name: vn, viewName: vn } };
       }
     }
 

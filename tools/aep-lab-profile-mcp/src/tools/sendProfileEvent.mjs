@@ -28,7 +28,7 @@ export function registerSendProfileEventTool(mcpServer) {
         'POST /api/events/generator — identical payload to Profile Viewer Event tool / mobile lab senders. ' +
         'event_type accepts ANY string (datalist suggestions are optional). ' +
         'Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
-        'Default: minimal Edge XDM (identityMap + eventType + _id + timestamp). Rich tenant/channel/FG when public, message, channel, xdm_tenant_key, or xdm_style=full. ' +
+        'Default: minimal Edge XDM (identityMap + eventType + _id + timestamp). Rich tenant/channel/FG when public, message, channel, view_name, view_url, xdm_tenant_key, or xdm_style=full. ' +
         'Default target_id lab-event-tool-edge. Preflight: lab_preflight_profile_event. Batch: lab_send_profile_events_batch.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),

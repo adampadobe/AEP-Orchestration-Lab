@@ -76,6 +76,22 @@ test('buildXdm rich when xdmStyle is full', () => {
   assert.ok(xdm._demoemea);
 });
 
+test('buildXdm rich when viewName is set', () => {
+  const xdm = buildXdm({
+    email: EMAIL,
+    ecid: ECID,
+    eventType: 'transaction',
+    viewName: 'Lab demo page',
+  });
+  assert.ok(xdm._demoemea);
+  assert.equal(xdm.web.webPageDetails.viewName, 'Lab demo page');
+});
+
+test('buildXdm minimal omits web when only identity fields set', () => {
+  const xdm = buildXdm({ email: EMAIL, ecid: ECID, eventType: 'transaction' });
+  assert.equal(xdm.web, undefined);
+});
+
 test('shouldUseRichEdgeXdm respects explicit minimal style', () => {
   assert.equal(shouldUseRichEdgeXdm({ channel: 'web', xdmStyle: 'minimal' }), false);
 });

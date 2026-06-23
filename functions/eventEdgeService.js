@@ -81,7 +81,9 @@ function shouldUseRichEdgeXdm(body) {
   const pub = b.public && typeof b.public === 'object' && !Array.isArray(b.public) ? b.public : null;
   if (pub && Object.keys(pub).length > 0) return true;
 
-  if (shouldUseEmailPrimaryIdentity(b, '_demoemea')) return true;
+  const viewName = (b.viewName || '').trim();
+  const viewUrl = (b.viewUrl || '').trim();
+  if (viewName || viewUrl) return true;
 
   return false;
 }
@@ -108,12 +110,6 @@ function buildMinimalEdgeXdm(body) {
 
   if (orchestrationId) {
     xdm._experience = { campaign: { orchestration: { eventID: orchestrationId } } };
-  }
-
-  const viewName = (b.viewName || '').trim();
-  const viewUrl = (b.viewUrl || '').trim();
-  if (viewName || viewUrl) {
-    xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName } };
   }
 
   return xdm;
