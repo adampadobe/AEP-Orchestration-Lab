@@ -1,14 +1,14 @@
 {
-  "gitSha": "3efe7844ecf237d94714505976d49b8975fdfbed",
-  "gitShortSha": "3efe7844",
+  "gitSha": "08d93b8c97d9da9bb49491f92e763c2942594191",
+  "gitShortSha": "08d93b8c",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] docs: Coworker dx-api for HTTP flows and Edge datastreams",
+  "gitCommitSubject": "[apalmer] feat: Event Tool channel dropdown on minimal payload",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T21:06:27+01:00",
-  "deployedAt": "2026-06-23T20:06:41.523Z",
+  "gitCommitDate": "2026-06-23T22:03:22+01:00",
+  "deployedAt": "2026-06-23T21:10:42.039Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3efe7844ecf237d94714505976d49b8975fdfbed"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/08d93b8c97d9da9bb49491f92e763c2942594191"
 }

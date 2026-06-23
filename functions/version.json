@@ -1,14 +1,14 @@
 {
-  "gitSha": "5bc5836087d5a47a1eca4f589d80de6f7d6b28a0",
-  "gitShortSha": "5bc58360",
+  "gitSha": "08d93b8c97d9da9bb49491f92e763c2942594191",
+  "gitShortSha": "08d93b8c",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: accept identityMap from base ExperienceEvent class",
+  "gitCommitSubject": "[apalmer] feat: Event Tool channel dropdown on minimal payload",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T20:51:53+01:00",
-  "deployedAt": "2026-06-23T19:52:06.302Z",
+  "gitCommitDate": "2026-06-23T22:03:22+01:00",
+  "deployedAt": "2026-06-23T21:10:42.039Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5bc5836087d5a47a1eca4f589d80de6f7d6b28a0"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/08d93b8c97d9da9bb49491f92e763c2942594191"
 }
