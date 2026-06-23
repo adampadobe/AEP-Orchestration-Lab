@@ -490,6 +490,11 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/lab/recent-profiles",
+      "functionId": "labRecentProfiles",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/lab/env-bar-preferences",
       "functionId": "labEnvBarPreferences",
       "region": "us-east4"

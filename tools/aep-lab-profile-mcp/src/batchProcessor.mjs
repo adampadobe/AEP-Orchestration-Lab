@@ -6,6 +6,10 @@ import { generateProfile } from './labApiClient.mjs';
 import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
 import { resolveStoredPrefsEmail } from './tools/generationPrefs.mjs';
 import { ensurePreferredLanguageOnAttributes, resolveTestProfileParam } from './framework/generateProfileParams.mjs';
+import {
+  personHintsFromAttributes,
+  recordRecentProfileGenerated,
+} from './framework/recordRecentProfile.mjs';
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
 import { checkGenerateRate } from './rateLimiter.mjs';
@@ -115,6 +119,15 @@ export async function processBatchJob(jobId, { keyId }) {
           apiResult.data?.profile?.ecid ||
           undefined;
         results.push({ index: i, email, ok: true, ecid });
+        const hints = personHintsFromAttributes(attributes);
+        await recordRecentProfileGenerated({
+          sandbox: params.sandbox,
+          email,
+          ecid,
+          industry: params.industry,
+          attributes,
+          ...hints,
+        });
       } else {
         failed += 1;
         const errMsg = apiResult.error || 'Lab API request failed';

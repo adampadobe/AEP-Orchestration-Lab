@@ -96,6 +96,7 @@ const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
 const labProfileGenerationPrefsStore = lazyRequireMod('./labProfileGenerationPrefsStore');
+const labProfileRecentGeneratedStore = lazyRequireMod('./labProfileRecentGeneratedStore');
 const labGenerationPrefsAuth = lazyRequireMod('./labGenerationPrefsAuth');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
@@ -1863,6 +1864,7 @@ Object.assign(
     labRtdbProvisionService,
     labWorkspaceAuthService,
     labProfileGenerationPrefsStore,
+    labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
   })
 );

@@ -375,3 +375,23 @@ export async function reserveGenerationNextEmail({ sandbox }) {
     timeoutMs: 30_000,
   });
 }
+
+export async function getRecentProfiles({ sandbox }) {
+  return labApiRequest('/api/lab/recent-profiles', {
+    query: { sandbox },
+    headers: generationPrefsAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+/**
+ * @param {object} body — sandbox, email, ecid, industry, source, attributes, snapshot, summaryLabel, …
+ */
+export async function appendRecentProfile(body) {
+  return labApiRequest('/api/lab/recent-profiles', {
+    method: 'POST',
+    body,
+    headers: generationPrefsAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}

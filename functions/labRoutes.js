@@ -24,6 +24,7 @@ function registerLabRoutes(deps) {
     labRtdbProvisionService,
     labWorkspaceAuthService,
     labProfileGenerationPrefsStore,
+    labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
   } = deps;
 
@@ -710,6 +711,96 @@ function registerLabRoutes(deps) {
       const status = Number(e && e.status) || 400;
       res.status(status).json({ ok: false, error: String(e.message || e), sandbox });
     }
+  });
+
+  /** GET/POST /api/lab/recent-profiles — shared Portal + MCP recently generated list */
+  routes.labRecentProfiles = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+    setCors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, {
+      labWorkspaceAuthService,
+    });
+    if (!principal.ok) {
+      res.status(principal.status).json(principal.body);
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(
+      (req.method === 'GET' ? (req.query && req.query.sandbox) : body.sandbox) || '',
+    ).trim();
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    if (req.method === 'GET') {
+      try {
+        const listed = await labProfileRecentGeneratedStore.listItems(principal.uid, sandbox);
+        res.status(200).json({
+          ok: true,
+          items: listed.items,
+          sandbox: listed.sandbox,
+          authSource: principal.authSource,
+        });
+      } catch (e) {
+        res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+      }
+      return;
+    }
+
+    if (req.method === 'POST') {
+      try {
+        const items = Array.isArray(body.items) ? body.items : null;
+        if (items && items.length) {
+          const listed = await labProfileRecentGeneratedStore.appendMany(
+            principal.uid,
+            sandbox,
+            items.map((row) => ({ ...row, sandbox, source: row.source || body.source || 'portal' })),
+          );
+          res.status(200).json({
+            ok: true,
+            items: listed.items,
+            sandbox: listed.sandbox,
+            migrated: items.length,
+            authSource: principal.authSource,
+          });
+          return;
+        }
+
+        const appended = await labProfileRecentGeneratedStore.appendItem(principal.uid, sandbox, {
+          email: body.email || body.scaledEmail,
+          ecid: body.ecid,
+          industry: body.industry,
+          summaryLabel: body.summaryLabel,
+          generatedAt: body.generatedAt,
+          source: body.source || 'portal',
+          personName: body.personName,
+          mobilePhone: body.mobilePhone,
+          snapshot: body.snapshot,
+          attributes: body.attributes,
+          n: body.n,
+          sandbox,
+        });
+        res.status(200).json({
+          ok: true,
+          item: appended.item,
+          items: appended.items,
+          sandbox,
+          authSource: principal.authSource,
+        });
+      } catch (e) {
+        const status = Number(e && e.status) || 400;
+        res.status(status).json({ ok: false, error: String(e.message || e), sandbox });
+      }
+      return;
+    }
+
+    res.status(405).json({ error: 'Method not allowed' });
   });
 
   /** GET /api/lab/workspace-auth/approve?uid=...&token=... — one-click account approval. */

@@ -21,6 +21,7 @@ import { registerGetExecutionFrameworkTool } from './getExecutionFramework.mjs';
 import { registerGetIndustryPlaybookTool } from './getIndustryPlaybook.mjs';
 import { registerPreflightProfileGenerateTool } from './preflightProfileGenerate.mjs';
 import { registerGenerationPrefsTools } from './generationPrefs.mjs';
+import { registerListRecentProfilesTool } from './listRecentProfiles.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -31,6 +32,7 @@ export function registerProfileTools(mcpServer) {
   registerGetIndustryPlaybookTool(mcpServer);
   registerPreflightProfileGenerateTool(mcpServer);
   registerGenerationPrefsTools(mcpServer);
+  registerListRecentProfilesTool(mcpServer);
   registerListIndustriesTool(mcpServer);
   registerListSandboxesTool(mcpServer);
   registerMcpAccessInfoTool(mcpServer);

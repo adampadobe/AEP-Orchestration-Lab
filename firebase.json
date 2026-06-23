@@ -721,6 +721,13 @@
         }
       },
       {
+        "source": "/api/lab/recent-profiles",
+        "function": {
+          "functionId": "labRecentProfiles",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/env-bar-preferences",
         "function": {
           "functionId": "labEnvBarPreferences",

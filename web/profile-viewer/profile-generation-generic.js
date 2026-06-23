@@ -1824,7 +1824,7 @@
           }
           successCount += 1;
           if (!dryRun) {
-            recordGenerated(email, n, snapshotForm());
+            recordGenerated(email, n, snapshotForm(), { ecid: data && data.ecid });
             persistLastStreamed(email, n);
           }
         } catch (e) {
@@ -1875,6 +1875,9 @@
   }
 
   function readRecent() {
+    if (window.AepProfileGenRecentSync && typeof window.AepProfileGenRecentSync.getMergedList === 'function') {
+      return window.AepProfileGenRecentSync.getMergedList(getSandboxName(), trimVal(baseEmailEl));
+    }
     return Shared.readRecent(getSandboxName(), trimVal(baseEmailEl));
   }
 
@@ -1882,7 +1885,7 @@
     Shared.writeRecent(getSandboxName(), trimVal(baseEmailEl), arr);
   }
 
-  function recordGenerated(scaledEmail, n, snapshotOverride) {
+  function recordGenerated(scaledEmail, n, snapshotOverride, extra) {
     if (!scaledEmail) return;
     const snap =
       snapshotOverride && typeof snapshotOverride === 'object' ? snapshotOverride : snapshotForm();
@@ -1892,6 +1895,24 @@
       ts: Date.now(),
       snapshot: snap,
     });
+    if (window.AepProfileGenRecentSync && typeof window.AepProfileGenRecentSync.appendEntry === 'function') {
+      const tail = summariseSnapshot(snap);
+      const summaryLabel = tail ? `${scaledEmail} — ${tail}` : scaledEmail;
+      window.AepProfileGenRecentSync.appendEntry({
+        sandbox: getSandboxName(),
+        baseEmail: trimVal(baseEmailEl),
+        scaledEmail,
+        email: scaledEmail,
+        n: Number.isFinite(n) ? n : null,
+        ts: Date.now(),
+        snapshot: snap,
+        industry: 'generic',
+        summaryLabel,
+        ecid: extra && extra.ecid,
+        source: 'portal',
+        writeLocal: false,
+      }).then(() => renderRecent());
+    }
     renderRecent();
     // Also seed the shared cross-page identifier cache so this scaled email
     // appears in the autocomplete datalist on every other lookup page in
@@ -1945,7 +1966,10 @@
       list.forEach((entry) => {
         const opt = document.createElement('option');
         opt.value = entry.scaledEmail;
-        const tail = summariseSnapshot(entry.snapshot);
+        let tail = summariseSnapshot(entry.snapshot);
+        if (!tail && window.AepProfileGenRecentSync) {
+          tail = window.AepProfileGenRecentSync.summariseEntry(entry);
+        }
         opt.textContent = tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail;
         recentSelectEl.appendChild(opt);
       });
@@ -1963,7 +1987,11 @@
         tdTs.textContent = formatRelative(entry.ts);
         tdTs.title = new Date(entry.ts).toISOString();
         const tdSummary = document.createElement('td');
-        tdSummary.textContent = summariseSnapshot(entry.snapshot);
+        let rowSummary = summariseSnapshot(entry.snapshot);
+        if (!rowSummary && window.AepProfileGenRecentSync) {
+          rowSummary = window.AepProfileGenRecentSync.summariseEntry(entry);
+        }
+        tdSummary.textContent = rowSummary;
         const tdAction = document.createElement('td');
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -2205,6 +2233,8 @@
   if (sandboxSelect) {
     sandboxSelect.addEventListener('change', onSandboxChange);
   }
+  window.addEventListener('aep-profile-gen-recent-pulled', () => renderRecent());
+
   window.addEventListener('aep-global-sandbox-change', onSandboxChange);
   window.addEventListener('aep-profile-gen-prefs-applied', () => {
     loadBaseEmailForCurrentSandbox();

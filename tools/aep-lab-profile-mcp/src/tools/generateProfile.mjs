@@ -12,6 +12,10 @@ import {
 } from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 import { resolveStoredPrefsEmail } from './generationPrefs.mjs';
+import {
+  personHintsFromAttributes,
+  recordRecentProfileGenerated,
+} from '../framework/recordRecentProfile.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -195,6 +199,24 @@ export function registerGenerateProfileTool(mcpServer) {
         durationMs: Date.now() - started,
       });
 
+      let recentSync = null;
+      if (apiResult.ok) {
+        const ecid =
+          apiResult.data?.ecid ||
+          apiResult.data?.identification?.core?.ecid ||
+          apiResult.data?.profile?.ecid ||
+          undefined;
+        const hints = personHintsFromAttributes(normalized.attributes);
+        recentSync = await recordRecentProfileGenerated({
+          sandbox: allowed.sandbox,
+          email: resolvedEmail,
+          ecid,
+          industry: norm.industry,
+          attributes: normalized.attributes,
+          ...hints,
+        });
+      }
+
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         industry: norm.industry,
@@ -204,6 +226,7 @@ export function registerGenerateProfileTool(mcpServer) {
         segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
         test_profile: normalized.test_profile,
         preferredLanguage: readLanguageFromAttrs(normalized.attributes),
+        recent_profiles_sync: recentSync,
         ...storedPrefsMeta,
         lab_defaults_applied: {
           test_profile: normalized.test_profile,
