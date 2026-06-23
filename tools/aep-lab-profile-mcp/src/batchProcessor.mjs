@@ -78,6 +78,7 @@ export async function processBatchJob(jobId, { keyId }) {
     if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {
       attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null, {
         loyalty_member: params.loyalty_member === true,
+        last_order_details: params.last_order_details,
       });
     }
     if (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
