@@ -15,14 +15,6 @@
         { "fieldPath": "principalUid", "order": "ASCENDING" },
         { "fieldPath": "revoked", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "mcpApiKeys",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "principalUid", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []

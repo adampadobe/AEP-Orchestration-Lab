@@ -105,11 +105,13 @@ function registerMcpKeyRoutes(deps) {
     if (req.method === 'GET') {
       try {
         const keys = await mcpApiKeyStore.listKeysForUser(uid);
+        const currentKey = mcpApiKeyStore.pickCurrentKey(keys);
         const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
         const allowedSandboxes = mcpApiKeyStore.workspaceSandboxCandidates(profile);
         res.status(200).json({
           ok: true,
           keys,
+          currentKey,
           allowedSandboxes,
           maxActiveKeys: mcpApiKeyStore.MAX_ACTIVE_KEYS_PER_USER,
         });

@@ -7,6 +7,8 @@
   var MCP_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp';
   var PANEL_ID = 'mcpLabKeyPanel';
   var MODAL_ID = 'mcpLabKeyModal';
+  var KEY_PLACEHOLDER = '<paste your key — shown only at generate/rotate>';
+  var selectedCurrentKeyId = null;
 
   function escapeHtml(str) {
     return String(str)
@@ -60,6 +62,158 @@
       null,
       2,
     );
+  }
+
+  function coworkerSnippetPlaceholder() {
+    return coworkerSnippet(KEY_PLACEHOLDER);
+  }
+
+  function activeKeysSorted(keys) {
+    return (keys || [])
+      .filter(function (k) {
+        return k && !k.revoked;
+      })
+      .sort(function (a, b) {
+        var ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+        var tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return tb - ta;
+      });
+  }
+
+  function resolveCurrentKey(keys, currentKeyFromApi) {
+    var active = activeKeysSorted(keys);
+    if (!active.length) return null;
+    if (selectedCurrentKeyId) {
+      var picked = active.find(function (k) {
+        return k.keyId === selectedCurrentKeyId;
+      });
+      if (picked) return picked;
+    }
+    if (currentKeyFromApi && currentKeyFromApi.keyId) {
+      var fromApi = active.find(function (k) {
+        return k.keyId === currentKeyFromApi.keyId;
+      });
+      if (fromApi) return fromApi;
+    }
+    return active[0];
+  }
+
+  function formatKeyDate(iso) {
+    return iso ? new Date(iso).toLocaleString() : '—';
+  }
+
+  function copyTextToClipboard(text, btn, defaultLabel) {
+    if (!btn) return;
+    try {
+      navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied';
+      setTimeout(function () {
+        btn.textContent = defaultLabel;
+      }, 1500);
+    } catch (_e) {}
+  }
+
+  function renderCurrentKey(keys, currentKeyFromApi) {
+    var section = document.getElementById('mcpLabKeyCurrentSection');
+    if (!section) return;
+
+    var active = activeKeysSorted(keys);
+    var current = resolveCurrentKey(keys, currentKeyFromApi);
+
+    if (!current) {
+      section.innerHTML =
+        '<h4 class="mcp-key-section-title">Your active key</h4>' +
+        '<p class="mcp-key-empty">No active MCP key yet. Select sandboxes below and click <strong>Generate key</strong>.</p>';
+      return;
+    }
+
+    selectedCurrentKeyId = current.keyId;
+    var sandboxes = Array.isArray(current.allowedSandboxes)
+      ? current.allowedSandboxes.join(', ')
+      : '—';
+    var created = formatKeyDate(current.createdAt);
+    var rotated = current.rotatedAt ? formatKeyDate(current.rotatedAt) : '';
+
+    var pickerHtml = '';
+    if (active.length > 1) {
+      pickerHtml =
+        '<label class="mcp-key-label" for="mcpLabKeyCurrentSelect">Active key</label>' +
+        '<select id="mcpLabKeyCurrentSelect" class="mcp-key-current-select">' +
+        active
+          .map(function (k) {
+            var label =
+              (k.keyPrefix || '????????') +
+              '… · ID ' +
+              k.keyId +
+              (k.createdAt ? ' · ' + formatKeyDate(k.createdAt) : '');
+            return (
+              '<option value="' +
+              escapeHtml(k.keyId) +
+              '"' +
+              (k.keyId === current.keyId ? ' selected' : '') +
+              '>' +
+              escapeHtml(label) +
+              '</option>'
+            );
+          })
+          .join('') +
+        '</select>';
+    }
+
+    section.innerHTML =
+      '<h4 class="mcp-key-section-title">Your active key</h4>' +
+      '<p class="mcp-key-current-lead">Metadata for your current MCP API key. The full secret is only shown once when you generate or rotate.</p>' +
+      pickerHtml +
+      '<dl class="mcp-key-current-meta">' +
+      '<div class="mcp-key-current-meta-row">' +
+      '<dt>Key prefix</dt>' +
+      '<dd><code class="mcp-key-current-prefix">' +
+      escapeHtml(current.keyPrefix || '????????') +
+      '…</code></dd>' +
+      '</div>' +
+      '<div class="mcp-key-current-meta-row">' +
+      '<dt>Key ID</dt>' +
+      '<dd><code>' +
+      escapeHtml(current.keyId) +
+      '</code></dd>' +
+      '</div>' +
+      '<div class="mcp-key-current-meta-row">' +
+      '<dt>Sandboxes</dt>' +
+      '<dd>' +
+      escapeHtml(sandboxes) +
+      '</dd>' +
+      '</div>' +
+      '<div class="mcp-key-current-meta-row">' +
+      '<dt>Created</dt>' +
+      '<dd>' +
+      escapeHtml(created) +
+      '</dd>' +
+      '</div>' +
+      (rotated
+        ? '<div class="mcp-key-current-meta-row"><dt>Last rotated</dt><dd>' +
+          escapeHtml(rotated) +
+          '</dd></div>'
+        : '') +
+      '</dl>' +
+      '<p class="mcp-key-current-note">Full key is only shown once when you <strong>Generate key</strong> or <strong>Rotate key</strong>. If you lost it, use <strong>Rotate key</strong> below to issue a new secret.</p>' +
+      '<div class="mcp-key-actions-row">' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyCoworkerBtn">Copy Coworker config</button>' +
+      '</div>';
+
+    var selectEl = document.getElementById('mcpLabKeyCurrentSelect');
+    if (selectEl) {
+      selectEl.addEventListener('change', function () {
+        selectedCurrentKeyId = selectEl.value || null;
+        renderCurrentKey(keys, null);
+      });
+    }
+
+    var copyBtn = document.getElementById('mcpLabKeyCopyCoworkerBtn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        copyTextToClipboard(coworkerSnippetPlaceholder(), copyBtn, 'Copy Coworker config');
+      });
+    }
   }
 
   function showKeyModal(title, apiKey, warning) {
@@ -259,6 +413,7 @@
           throw new Error((pair.data && pair.data.error) || 'Failed to load keys');
         }
         renderSandboxPicker(pair.data.allowedSandboxes);
+        renderCurrentKey(pair.data.keys, pair.data.currentKey);
         renderKeysList(pair.data.keys);
         var active = (pair.data.keys || []).filter(function (k) {
           return k && !k.revoked;
@@ -373,6 +528,7 @@
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
       '<p class="mcp-key-lead">Generate a personal key for <strong>AEP Orchestration Lab — Profile MCP</strong>. Keys are scoped to your workspace sandbox. Max 3 active keys per user.</p>' +
+      '<div id="mcpLabKeyCurrentSection" class="mcp-key-section mcp-key-current-section" aria-live="polite"></div>' +
       '<div class="mcp-key-section">' +
       '<p class="mcp-key-label">Allowed sandboxes</p>' +
       '<div id="mcpLabKeySandboxes" class="mcp-key-sandboxes"></div>' +
@@ -381,6 +537,7 @@
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyGenerateBtn">Generate key</button>' +
       '</div>' +
       '<p id="mcpLabKeyStatus" class="mcp-key-status" aria-live="polite"></p>' +
+      '<h4 class="mcp-key-section-title mcp-key-list-heading">All keys</h4>' +
       '<div id="mcpLabKeyList" class="mcp-key-list"></div>';
 
     var genBtn = document.getElementById('mcpLabKeyGenerateBtn');

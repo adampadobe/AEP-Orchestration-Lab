@@ -121,6 +121,10 @@ function validateRequestedSandboxes(requested, userCandidates, activeSandboxName
   return sandboxes;
 }
 
+function firestoreTimestampToIso(value) {
+  return value && typeof value.toDate === 'function' ? value.toDate().toISOString() : null;
+}
+
 function serializeKeyDoc(data) {
   if (!data) return null;
   return {
@@ -128,14 +132,23 @@ function serializeKeyDoc(data) {
     keyPrefix: String(data.keyPrefix || ''),
     allowedSandboxes: Array.isArray(data.allowedSandboxes) ? [...data.allowedSandboxes] : [],
     principalLabel: String(data.principalLabel || ''),
-    createdAt: data.createdAt && typeof data.createdAt.toDate === 'function'
-      ? data.createdAt.toDate().toISOString()
-      : null,
-    lastUsedAt: data.lastUsedAt && typeof data.lastUsedAt.toDate === 'function'
-      ? data.lastUsedAt.toDate().toISOString()
-      : null,
+    createdAt: firestoreTimestampToIso(data.createdAt),
+    rotatedAt: firestoreTimestampToIso(data.rotatedAt),
+    lastUsedAt: firestoreTimestampToIso(data.lastUsedAt),
     revoked: !!data.revoked,
   };
+}
+
+/** Newest active key metadata (plaintext secret is never stored). */
+function pickCurrentKey(keys) {
+  const active = (Array.isArray(keys) ? keys : [])
+    .filter((k) => k && !k.revoked)
+    .sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
+    });
+  return active[0] || null;
 }
 
 async function countActiveKeysForUser(uid) {
@@ -366,6 +379,7 @@ module.exports = {
   workspaceSandboxCandidates,
   validateRequestedSandboxes,
   listKeysForUser,
+  pickCurrentKey,
   generateStableKeyId,
   createKey,
   rotateKey,

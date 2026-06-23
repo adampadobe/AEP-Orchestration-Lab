@@ -53,6 +53,16 @@ describe('mcpApiKeyStore', () => {
     assert.equal(timingSafeEqual('abc', 'abc'), true);
     assert.equal(timingSafeEqual('abc', 'abd'), false);
   });
+
+  it('pickCurrentKey returns newest active key', () => {
+    const { pickCurrentKey } = require('../mcpApiKeyStore');
+    const current = pickCurrentKey([
+      { keyId: 'a', revoked: false, createdAt: '2026-01-01T00:00:00.000Z' },
+      { keyId: 'b', revoked: false, createdAt: '2026-06-01T00:00:00.000Z' },
+      { keyId: 'c', revoked: true, createdAt: '2026-12-01T00:00:00.000Z' },
+    ]);
+    assert.equal(current.keyId, 'b');
+  });
 });
 
 describe('registerMcpKeyRoutes', () => {
