@@ -299,11 +299,38 @@ export function buildSetupEventInfraPostBody({ schemaTitle, datasetName }) {
  * @param {string} params.schemaTitle
  * @param {string} params.datasetName
  */
-export async function setupEventInfra({ sandbox, schemaTitle, datasetName }) {
+export async function setupEventInfra({ sandbox, schemaTitle, datasetName, enableForProfile = false }) {
   return labApiRequest('/api/events/infra/step', {
     method: 'POST',
     query: { sandbox },
-    body: buildSetupEventInfraPostBody({ schemaTitle, datasetName }),
+    body: {
+      ...buildSetupEventInfraPostBody({ schemaTitle, datasetName }),
+      ...(enableForProfile ? { enable_for_profile: true } : {}),
+    },
+    timeoutMs: 300_000,
+  });
+}
+
+/**
+ * POST /api/events/infra/step — enableForProfile (union + dataset Profile tags).
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} [params.schemaTitle]
+ * @param {string} [params.schemaId]
+ * @param {string} [params.datasetName]
+ * @param {string} [params.datasetId]
+ */
+export async function enableEventProfileInfra({ sandbox, schemaTitle, schemaId, datasetName, datasetId }) {
+  return labApiRequest('/api/events/infra/step', {
+    method: 'POST',
+    query: { sandbox },
+    body: {
+      step: 'enableForProfile',
+      ...(schemaTitle ? { schemaTitle } : {}),
+      ...(schemaId ? { schemaId } : {}),
+      ...(datasetName ? { datasetName } : {}),
+      ...(datasetId ? { datasetId } : {}),
+    },
     timeoutMs: 300_000,
   });
 }

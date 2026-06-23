@@ -218,7 +218,35 @@ test('buildB2cEventIdentityV1ExperienceEventFieldGroup wraps identification.core
 test('REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES lists lab Event Tool parity field groups', () => {
   assert.deepEqual(REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES, [
     'Interaction Details Lite',
-    'Travel - Hotel Experience v1',
     'B2C Event Identity v1',
   ]);
+});
+
+const {
+  schemaHasProfileUnionTag,
+  schemaIncludesIdentityMapField,
+  datasetHasProfileEnabledTag,
+  buildAddProfileUnionPatchOps,
+} = require('../eventInfraService');
+
+test('buildAddProfileUnionPatchOps adds union tag for Profile enable (identityMap alternate primary)', () => {
+  assert.deepEqual(buildAddProfileUnionPatchOps(undefined), [
+    { op: 'add', path: '/meta:immutableTags', value: ['union'] },
+  ]);
+  assert.deepEqual(buildAddProfileUnionPatchOps(['stable']), [
+    { op: 'add', path: '/meta:immutableTags/-', value: 'union' },
+  ]);
+  assert.deepEqual(buildAddProfileUnionPatchOps(['union']), []);
+});
+
+test('schemaIncludesIdentityMapField detects top-level identityMap on resolved schema', () => {
+  assert.equal(schemaIncludesIdentityMapField({ properties: { identityMap: { type: 'object' } } }), true);
+  assert.equal(schemaIncludesIdentityMapField({ properties: { eventType: { type: 'string' } } }), false);
+});
+
+test('schemaHasProfileUnionTag and datasetHasProfileEnabledTag', () => {
+  assert.equal(schemaHasProfileUnionTag({ 'meta:immutableTags': ['union'] }), true);
+  assert.equal(schemaHasProfileUnionTag({ 'meta:immutableTags': [] }), false);
+  assert.equal(datasetHasProfileEnabledTag({ tags: { unifiedProfile: ['enabled:true'] } }), true);
+  assert.equal(datasetHasProfileEnabledTag({ tags: {} }), false);
 });

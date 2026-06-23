@@ -33,6 +33,8 @@
     checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
     infraProgressList: document.getElementById('etInfraProgressList'),
     infraMsg:         document.getElementById('etInfraMsg'),
+    enableProfileBtn: document.getElementById('etEnableProfileBtn'),
+    enableProfileProgressList: document.getElementById('etEnableProfileProgressList'),
 
     triggerMode:      document.getElementById('etTriggerMode'),
     customMode:       document.getElementById('etCustomMode'),
@@ -667,6 +669,119 @@
 
   if (dom.setupInfraBtn) {
     dom.setupInfraBtn.addEventListener('click', runSetupEventInfra);
+  }
+
+  /* ═══════════ Enable schema + dataset for Profile (identityMap alternate primary) ═══════════ */
+
+  const ENABLE_PROFILE_PROGRESS_STEPS = [
+    { step: 'schemaUnion', label: 'Schema enabled for Profile (identityMap)' },
+    { step: 'datasetProfile', label: 'Dataset enabled for Profile' },
+  ];
+
+  function ensureEnableProfileProgressList() {
+    if (!dom.enableProfileProgressList) return null;
+    dom.enableProfileProgressList.hidden = false;
+    dom.enableProfileProgressList.innerHTML = '';
+    ENABLE_PROFILE_PROGRESS_STEPS.forEach(function (s) {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = s.label;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      dom.enableProfileProgressList.appendChild(li);
+    });
+    return dom.enableProfileProgressList;
+  }
+
+  function setEnableProfileProgressItem(step, state, detailText) {
+    if (!dom.enableProfileProgressList) return;
+    const li = dom.enableProfileProgressList.querySelector('[data-step="' + step + '"]');
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent = state === 'success' ? '✓' : state === 'error' ? '✗' : state === 'working' ? '…' : '·';
+    }
+    if (detail) detail.textContent = detailText ? ' — ' + detailText : '';
+  }
+
+  function describeEnableSubResult(value, errorText) {
+    if (value === 'enabled') return { state: 'success', text: 'enabled' };
+    if (value === 'already-enabled') return { state: 'success', text: 'already enabled' };
+    if (value === 'skipped') return { state: 'pending', text: 'skipped' };
+    return { state: 'error', text: errorText || 'failed' };
+  }
+
+  async function runEnableSchemaAndDatasetForProfile() {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    const datasetName = (dom.datasetName.value || '').trim();
+    const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
+    if (!schemaTitle && !schemaId) {
+      setMsg(dom.infraMsg, 'Enter a schema name or run Set up event infrastructure first.', 'error');
+      return;
+    }
+    if (!datasetName) {
+      setMsg(dom.infraMsg, 'Enter a dataset name.', 'error');
+      return;
+    }
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'Select a sandbox first.', 'error'); return; }
+
+    if (!dom.enableProfileBtn) return;
+    dom.enableProfileBtn.disabled = true;
+    ensureEnableProfileProgressList();
+    setEnableProfileProgressItem('schemaUnion', 'working', 'working…');
+    setEnableProfileProgressItem('datasetProfile', 'pending', '');
+    setMsg(dom.infraMsg, 'Enabling ExperienceEvent schema (union + identityMap alternate primary), then dataset…', '');
+
+    try {
+      const body = {
+        step: 'enableForProfile',
+        schemaTitle: schemaTitle || undefined,
+        schemaId: schemaId || undefined,
+        datasetName,
+      };
+      const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(function () { return {}; });
+
+      const schemaSub = describeEnableSubResult(data.schemaUnion, data.schemaError || data.error);
+      setEnableProfileProgressItem('schemaUnion', schemaSub.state, schemaSub.text);
+      if (data.datasetProfile) {
+        const dsSub = describeEnableSubResult(data.datasetProfile, data.datasetError);
+        setEnableProfileProgressItem('datasetProfile', dsSub.state, dsSub.text);
+      }
+
+      if (!res.ok || data.ok === false) {
+        setMsg(dom.infraMsg, data.message || data.error || formatInfraStepError(data), 'error');
+        return;
+      }
+
+      if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+      setMsg(dom.infraMsg, data.message || 'Schema and dataset are Profile-enabled (identityMap alternate primary).', 'success');
+    } catch (e) {
+      setEnableProfileProgressItem('schemaUnion', 'error', e.message || 'Network error');
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.enableProfileBtn.disabled = false;
+    }
+  }
+
+  if (dom.enableProfileBtn) {
+    dom.enableProfileBtn.addEventListener('click', runEnableSchemaAndDatasetForProfile);
   }
 
   /* ═══════════ Step 2 — Save Datastream ID ═══════════ */

@@ -95,14 +95,16 @@
               </summary>
               <div class="profile-box-content">
                 <p class="field-hint event-gen-box-intro">
-                  Two steps: provision schema + dataset in AEP, then wire a Data Collection datastream. After Step 1, enable the schema and dataset for Profile with <strong>alternate primary identity</strong> (<code class="et-code-inline">identityMap</code> per event).
+                  Two steps: provision schema + dataset in AEP, then wire a Data Collection datastream. After Step 1, click
+                  <strong>Enable schema &amp; dataset for Profile (identityMap)</strong> — same as the AEP UI option
+                  <em>Use alternate primary identity</em> (primary ID per event in <code class="et-code-inline">identityMap</code>, not a schema field).
                 </p>
 
                 <!-- Step 1 — Schema + dataset (one click) -->
                 <div class="et-config-step et-config-step--primary">
                   <h4 class="et-config-step-title">Step 1 — Set up event infrastructure</h4>
                   <p class="field-hint">
-                    One click creates the <strong>ExperienceEvent</strong> schema (Experience Event Core v2.1, Interaction Details Lite, Travel - Hotel Experience v1, B2C Event Identity v1, Booker/Stayer),
+                    One click creates the <strong>ExperienceEvent</strong> schema (Experience Event Core v2.1, Interaction Details Lite, B2C Event Identity v1),
                     registers <strong>ECID</strong> and <strong>Email</strong> as secondary identity descriptors on <code class="et-code-inline">_{tenant}.identification.core.*</code>,
                     and creates the linked dataset. Safe to re-run — existing assets are skipped.
                   </p>
@@ -123,6 +125,20 @@
                   <input type="hidden" id="etSchemaId" value="">
                   <ol id="etInfraProgressList" class="consent-infra-progress" hidden aria-live="polite"></ol>
                   <div id="etInfraMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+
+                  <div class="enable-profile-step et-enable-profile-step">
+                    <p class="field-hint">
+                      Matches the AEP Schemas modal: enable for Real-Time Customer Profile with
+                      <strong>alternate primary identity</strong> — each event carries its primary ID in
+                      <code class="et-code-inline">identityMap</code> (anonymous: <code class="et-code-inline">ECID</code> with <code class="et-code-inline">primary: true</code>;
+                      known user: ECID primary + Email secondary, or Email-only when no ECID). Schema identity descriptors on
+                      <code class="et-code-inline">_{tenant}.identification.core.*</code> stay <em>secondary</em>.
+                    </p>
+                    <div class="enable-profile-step__action">
+                      <button type="button" id="etEnableProfileBtn" class="btn btn-secondary">Enable schema &amp; dataset for Profile (identityMap)</button>
+                    </div>
+                    <ol id="etEnableProfileProgressList" class="consent-infra-progress" hidden aria-live="polite"></ol>
+                  </div>
                 </div>
 
                 <!-- Step 2 — Datastream in Data Collection -->

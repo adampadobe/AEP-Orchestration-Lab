@@ -30,6 +30,7 @@ import { registerSendRetailJourneyEventsTool } from './sendRetailJourneyEvents.m
 import { registerSendProfileEventsBatchTool } from './sendProfileEventsBatch.mjs';
 import { registerMcpFirstRunSetupTool } from './mcpFirstRunSetup.mjs';
 import { registerSetupEventInfraTool } from './setupEventInfra.mjs';
+import { registerEnableEventProfileTool } from './enableEventProfile.mjs';
 import { registerEventConfigTools } from './eventConfig.mjs';
 
 /**
@@ -54,6 +55,7 @@ export function registerProfileTools(mcpServer) {
   registerProfileActivityTool(mcpServer);
   registerListEventTargetsTool(mcpServer);
   registerSetupEventInfraTool(mcpServer);
+  registerEnableEventProfileTool(mcpServer);
   registerEventConfigTools(mcpServer);
   registerSendProfileEventTool(mcpServer);
   registerSendEdgeEventTool(mcpServer);

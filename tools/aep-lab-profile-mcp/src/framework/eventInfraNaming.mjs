@@ -45,7 +45,7 @@ export function buildEventInfraNextSteps({ sandbox, schemaId, datasetId }) {
   const eventToolUrl = `${origin}/profile-viewer/event-tool.html?sandbox=${encodeURIComponent(sandbox)}`;
   return {
     enable_profile_in_aep:
-      'In AEP Schemas: enable the ExperienceEvent schema for Profile with alternate primary identity (identityMap per event). Enable the matching dataset for Profile.',
+      'Click Enable schema & dataset for Profile (identityMap) in Event tool, or MCP lab_enable_event_profile / lab_setup_event_infra with enable_for_profile:true (PATCH schema meta:immutableTags union + dataset tags.unifiedProfile).',
     create_datastream:
       'In Adobe Data Collection: create an Edge datastream (AEP Web SDK extension) mapped to the event schema and dataset. Copy the datastream / Edge configuration ID.',
     save_datastream_id:

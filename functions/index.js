@@ -2303,7 +2303,9 @@ exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
       schemaTitle: body.schemaTitle,
       schemaId: body.schemaId,
       datasetName: body.datasetName,
+      datasetId: body.datasetId,
       datastreamName: body.datastreamName,
+      enableForProfile: body.enableForProfile === true || body.enable_for_profile === true,
     });
     res.status(200).json(result);
   } catch (e) {

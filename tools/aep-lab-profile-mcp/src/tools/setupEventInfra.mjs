@@ -19,7 +19,7 @@ export function registerSetupEventInfraTool(mcpServer) {
     {
       title: 'Set up event schema and dataset',
       description:
-        'POST /api/events/infra/step step=setupEventInfra — creates ExperienceEvent schema, attaches Experience Event Core v2.1 + Interaction Details Lite + Travel - Hotel Experience v1 + B2C Event Identity v1 + Booker/Stayer field groups (auto-creates tenant FGs when missing), registers ECID/Email identity descriptors, and creates dataset (same as Profile Viewer Event tool **Set up event infrastructure**). ' +
+        'POST /api/events/infra/step step=setupEventInfra — creates ExperienceEvent schema, attaches Experience Event Core v2.1 + Interaction Details Lite + B2C Event Identity v1 (auto-creates tenant FGs when missing), registers ECID/Email identity descriptors, and creates dataset (same as Profile Viewer Event tool **Set up event infrastructure**). ' +
         'Default schema: AEP Lab - Event Generic - Schema; dataset name derives Schema→Dataset unless dataset_name is set. ' +
         'After success: create Edge datastream in Data Collection, then lab_save_event_datastream or Event tool save.',
       inputSchema: {
@@ -32,9 +32,15 @@ export function registerSetupEventInfraTool(mcpServer) {
           .string()
           .optional()
           .describe('Catalog dataset name; default replaces word Schema with Dataset in schema_title'),
+        enable_for_profile: z
+          .boolean()
+          .optional()
+          .describe(
+            'When true, also runs enableForProfile after setup (union tag + dataset Profile — identityMap alternate primary). Same as lab_enable_event_profile.',
+          ),
       },
     },
-    async ({ sandbox, schema_title, dataset_name }) => {
+    async ({ sandbox, schema_title, dataset_name, enable_for_profile }) => {
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
@@ -54,6 +60,7 @@ export function registerSetupEventInfraTool(mcpServer) {
         sandbox: allowed.sandbox,
         schemaTitle: names.schemaTitle,
         datasetName: names.datasetName,
+        enableForProfile: enable_for_profile === true,
       });
 
       if (!apiResult.ok) {
@@ -84,6 +91,8 @@ export function registerSetupEventInfraTool(mcpServer) {
         sub_steps: lab.subSteps || [],
         message: lab.message || null,
         identity_map_hint: lab.identityMapHint || null,
+        schema_union: lab.schemaUnion || null,
+        dataset_profile: lab.datasetProfile || null,
         next_steps: nextSteps,
         lab,
       });
