@@ -12,6 +12,7 @@ import { registerProvisionProfileInfraStepTool } from './provisionProfileInfraSt
 import { registerEnableProfileTool } from './enableProfile.mjs';
 import { registerSandboxProfileConfigTool } from './sandboxProfileConfig.mjs';
 import { registerOnboardSandboxTool } from './onboardSandbox.mjs';
+import { registerMcpAccessInfoTool } from './mcpAccessInfo.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -20,6 +21,7 @@ import { registerOnboardSandboxTool } from './onboardSandbox.mjs';
 export function registerProfileTools(mcpServer) {
   registerListIndustriesTool(mcpServer);
   registerListSandboxesTool(mcpServer);
+  registerMcpAccessInfoTool(mcpServer);
   registerProfileInfraStatusTool(mcpServer);
   registerGenerateProfileTool(mcpServer);
   registerLookupProfileTool(mcpServer);

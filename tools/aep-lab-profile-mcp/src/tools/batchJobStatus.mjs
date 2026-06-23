@@ -11,8 +11,9 @@ export function registerBatchJobStatusTool(mcpServer) {
   mcpServer.registerTool(
     'lab_batch_job_status',
     {
-      title: 'Poll batch profile generation job',
-      description: 'Returns status, progress, results summary, and per-item errors for a lab_generate_profiles_batch job_id.',
+      title: 'Poll async MCP job',
+      description:
+        'Returns status, progress, and results for lab_generate_profiles_batch (profile_batch) or lab_onboard_sandbox mode=execute_all (onboard_all) job_id.',
       inputSchema: {
         job_id: z.string().uuid().describe('Job ID returned by lab_generate_profiles_batch'),
       },
@@ -37,6 +38,7 @@ export function registerBatchJobStatusTool(mcpServer) {
       return jsonResult({
         ok: true,
         job_id: job.jobId || job_id,
+        job_type: job.jobType || 'profile_batch',
         status: job.status,
         progress,
         storeMode: job.storeMode,

@@ -27,6 +27,12 @@ const PREFERRED_CHANNELS = ['email', 'sms', 'phone', 'direct_mail'];
 const LANGUAGES = ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'ja-JP'];
 const LOYALTY_TIERS = ['bronze', 'silver', 'gold', 'platinum'];
 
+/** Travel segment hints for hotel edge segments (see scripts/bulk-seed-travel-hotel-segment-profiles.mjs). */
+export const TRAVEL_SEGMENT_HINTS = ['hotel_high_value', 'hotel_reactivation'];
+
+const HOTEL_NAMES = ['Premier Inn Demo Central', 'Grand Plaza', 'Harbour Inn', 'Demo Hotel'];
+const HOTEL_LOCATIONS = ['Manchester, UK', 'London, UK', 'Edinburgh, UK', 'Birmingham, UK'];
+
 function randomBetween(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
@@ -99,6 +105,16 @@ function isoDateAgo(daysAgo) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   return d.toISOString().slice(0, 10);
+}
+
+function isoDateFromMs(ms) {
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
+function randomDecimal(min, max, decimals = 2) {
+  const v = min + Math.random() * (max - min);
+  return Math.round(v * 10 ** decimals) / 10 ** decimals;
 }
 
 /** @param {Record<string, unknown>} attrs */
@@ -211,7 +227,7 @@ function defaultIndustryAttributes(industry) {
         },
       });
       assign(attrs, 'individualCharacteristics.travel.recentStay', {
-        hotelName: randomPick(['Demo Hotel', 'Grand Plaza', 'Harbour Inn']),
+        hotelName: randomPick(HOTEL_NAMES),
         hotelRoomType: randomPick(['King', 'Twin', 'Suite']),
         hotelClass: randomPick(['3-star', '4-star', '5-star']),
         hotelLengthDays: randomBetween(1, 7),
@@ -267,17 +283,109 @@ function defaultIndustryAttributes(industry) {
 }
 
 /**
+ * Apply travel hotel segment persona overlays (hotel.bookingDetails + scoring paths).
+ * @param {Record<string, unknown>} attrs
+ * @param {string} segmentHint
+ */
+function applyTravelSegmentHint(attrs, segmentHint) {
+  const hint = String(segmentHint || '').trim().toLowerCase();
+  if (!hint || hint === 'default') return attrs;
+
+  const bd = 'hotel.bookingDetails';
+
+  if (hint === 'hotel_reactivation') {
+    const checkoutDaysAgo = randomBetween(366, 500);
+    const checkoutMs = Date.now() - checkoutDaysAgo * 86400000;
+    const checkInMs = checkoutMs - 5 * 86400000;
+    const nightsStay = 5;
+    const totalNights = randomBetween(7, 28);
+
+    assign(attrs, 'scoring.churn.churnPrediction', randomDecimal(0.55, 0.85));
+    assign(attrs, 'scoring.core.propensityScore', randomDecimal(0.66, 0.92));
+    assign(attrs, `${bd}.hotelName`, randomPick(HOTEL_NAMES));
+    assign(attrs, `${bd}.hotelLocation`, randomPick(HOTEL_LOCATIONS));
+    assign(attrs, `${bd}.hotelChain`, 'Lab Chain');
+    assign(attrs, `${bd}.checkInDate`, isoDateFromMs(checkInMs));
+    assign(attrs, `${bd}.checkOutDate`, isoDateFromMs(checkoutMs));
+    assign(attrs, `${bd}.nightsStay`, nightsStay);
+    assign(attrs, `${bd}.totalNights`, totalNights);
+    assign(attrs, `${bd}.roomType`, randomPick(['Double', 'King', 'Twin']));
+    assign(attrs, `${bd}.confirmationNumber`, `LAB-${randomBetween(100000, 999999)}`);
+    return attrs;
+  }
+
+  if (hint === 'hotel_high_value') {
+    const checkoutDaysAgo = randomBetween(14, 120);
+    const checkoutMs = Date.now() - checkoutDaysAgo * 86400000;
+    const nightsStay = randomBetween(3, 7);
+    const checkInMs = checkoutMs - nightsStay * 86400000;
+    const totalNights = randomBetween(20, 60);
+    const roomCost = randomBetween(180, 420);
+
+    assign(attrs, 'loyalty.tier', 'platinum');
+    assign(attrs, 'loyaltyDetails.level', 'platinum');
+    assign(attrs, 'loyalty.points', randomBetween(80_000, 200_000));
+    assign(attrs, 'loyaltyDetails.points', randomBetween(80_000, 200_000));
+    assign(attrs, 'scoring.churn.churnPrediction', randomDecimal(0.05, 0.25));
+    assign(attrs, 'scoring.core.propensityScore', randomDecimal(0.75, 0.95));
+    assign(attrs, 'scoring.npsScore', randomBetween(8, 10));
+    assign(attrs, 'orderProfile.lifetimeValue', randomBetween(15_000, 45_000));
+    assign(attrs, 'individualCharacteristics.travel.primaryTravelClass', randomPick(['business', 'first']));
+    assign(attrs, `${bd}.hotelName`, randomPick(HOTEL_NAMES));
+    assign(attrs, `${bd}.hotelLocation`, randomPick(HOTEL_LOCATIONS));
+    assign(attrs, `${bd}.hotelChain`, 'Lab Chain');
+    assign(attrs, `${bd}.checkInDate`, isoDateFromMs(checkInMs));
+    assign(attrs, `${bd}.checkOutDate`, isoDateFromMs(checkoutMs));
+    assign(attrs, `${bd}.nightsStay`, nightsStay);
+    assign(attrs, `${bd}.totalNights`, totalNights);
+    assign(attrs, `${bd}.roomType`, randomPick(['Suite', 'King', 'Executive King']));
+    assign(attrs, `${bd}.roomCost`, roomCost);
+    assign(attrs, `${bd}.totalCost`, roomCost * nightsStay);
+    assign(attrs, `${bd}.rateCode`, randomPick(['CORP', 'FLEX', 'BAR']));
+    assign(attrs, `${bd}.confirmationNumber`, `HV-${randomBetween(100000, 999999)}`);
+    return attrs;
+  }
+
+  return attrs;
+}
+
+/**
  * Build randomized persona attributes for an industry + email.
  * @param {string} industry - canonical industry key
  * @param {string} email
+ * @param {string} [segmentHint] - optional segment overlay (travel: hotel_high_value, hotel_reactivation)
  * @returns {Record<string, unknown>}
  */
-export function buildPersonaAttributes(industry, email) {
+export function buildPersonaAttributes(industry, email, segmentHint) {
   const key = LAB_INDUSTRY_KEYS.includes(industry) ? industry : 'generic';
-  return {
+  let attrs = {
     ...buildCommonPersonaAttributes(email),
     ...defaultIndustryAttributes(key),
   };
+
+  if (key === 'travel' && segmentHint) {
+    attrs = applyTravelSegmentHint(attrs, segmentHint);
+  }
+
+  return attrs;
+}
+
+/**
+ * @param {string | undefined | null} segmentHint
+ * @param {string} industry
+ * @returns {string | null} normalized hint or validation error message
+ */
+export function normalizeSegmentHint(segmentHint, industry) {
+  if (!segmentHint) return null;
+  const hint = String(segmentHint).trim().toLowerCase();
+  if (!hint) return null;
+
+  if (industry === 'travel') {
+    if (TRAVEL_SEGMENT_HINTS.includes(hint)) return hint;
+    return `Unknown travel segment_hint "${segmentHint}". Supported: ${TRAVEL_SEGMENT_HINTS.join(', ')}.`;
+  }
+
+  return `segment_hint "${segmentHint}" is not supported for industry "${industry}" (travel only: ${TRAVEL_SEGMENT_HINTS.join(', ')}).`;
 }
 
 /**

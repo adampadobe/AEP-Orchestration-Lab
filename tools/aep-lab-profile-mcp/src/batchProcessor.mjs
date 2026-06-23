@@ -6,6 +6,7 @@ import { generateProfile } from './labApiClient.mjs';
 import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
+import { checkGenerateRate } from './rateLimiter.mjs';
 
 const DEFAULT_DELAY_MS = 500;
 const MAX_DELAY_MS = 5000;
@@ -32,7 +33,10 @@ export async function processBatchJob(jobId, { keyId }) {
 
   const params = job.params || {};
   const count = Number(params.count || 0);
-  const delayMs = batchDelayMs();
+  const delayMs =
+    params.delay_ms != null && Number.isFinite(Number(params.delay_ms))
+      ? Math.min(Math.max(0, Number(params.delay_ms)), MAX_DELAY_MS)
+      : batchDelayMs();
 
   await updateBatchJob(jobId, { status: 'running', startedAt: new Date().toISOString() });
 
@@ -53,10 +57,17 @@ export async function processBatchJob(jobId, { keyId }) {
 
     let attributes = params.attributes;
     if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {
-      attributes = buildPersonaAttributes(params.industry, email);
+      attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null);
     }
 
     try {
+      const genRate = checkGenerateRate(keyId);
+      if (!genRate.ok) {
+        failed += 1;
+        const errMsg = genRate.message;
+        errors.push({ index: i, email, error: errMsg });
+        results.push({ index: i, email, ok: false, error: errMsg });
+      } else {
       const apiResult = await generateProfile({
         email,
         sandbox: params.sandbox,
@@ -79,6 +90,7 @@ export async function processBatchJob(jobId, { keyId }) {
         const errMsg = apiResult.error || 'Lab API request failed';
         errors.push({ index: i, email, error: errMsg });
         results.push({ index: i, email, ok: false, error: errMsg });
+      }
       }
     } catch (err) {
       failed += 1;

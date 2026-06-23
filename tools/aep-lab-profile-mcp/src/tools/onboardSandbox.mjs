@@ -6,6 +6,8 @@ import {
   profileInfraStatusAll,
   provisionProfileInfraStep,
 } from '../labApiClient.mjs';
+import { createBatchJob, getBatchStoreMode } from '../batchJobStore.mjs';
+import { processOnboardAllJob } from '../onboardJobProcessor.mjs';
 import {
   assessIndustrySandboxConfig,
   buildOnboardingPlan,
@@ -27,27 +29,34 @@ export function registerOnboardSandboxTool(mcpServer) {
     {
       title: 'Onboard sandbox profile config',
       description:
-        'Guided sandbox onboarding: assess config → plan provisioning steps → optionally execute (provision all_core, enable profile, verify). Default mode=plan returns Coworker-chained steps; mode=execute runs one industry at a time (avoid MCP timeout).',
+        'Guided sandbox onboarding: assess config → plan provisioning steps → optionally execute (provision all_core, enable profile, verify). Default mode=plan returns Coworker-chained steps; mode=execute runs one industry per call; mode=execute_all queues async job for all not-ready industries (poll lab_batch_job_status).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         mode: z
-          .enum(['plan', 'execute'])
+          .enum(['plan', 'execute', 'execute_all'])
           .optional()
-          .describe('plan = return steps only (default); execute = run provisioning for industry'),
+          .describe('plan = steps only (default); execute = one industry; execute_all = async all industries'),
         industry: z
           .string()
           .optional()
           .describe('Required when mode=execute — provision one industry per call'),
         refresh: z.boolean().optional().describe('Bypass infra status cache'),
+        poll_delay_ms: z
+          .number()
+          .int()
+          .min(0)
+          .max(10000)
+          .optional()
+          .describe('Delay between industries for mode=execute_all (default 2000ms)'),
       },
     },
-    async ({ sandbox, mode, industry, refresh }) => {
+    async ({ sandbox, mode, industry, refresh, poll_delay_ms }) => {
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
-      const runMode = mode === 'execute' ? 'execute' : 'plan';
+      const runMode = mode === 'execute' ? 'execute' : mode === 'execute_all' ? 'execute_all' : 'plan';
 
       writeAuditLog({
         keyId: getRequestKeyId(),
@@ -85,6 +94,44 @@ export function registerOnboardSandboxTool(mcpServer) {
       });
 
       const plan = buildOnboardingPlan(report, { execute: runMode === 'execute' });
+
+      if (runMode === 'execute_all') {
+        const industries =
+          report.notReadyIndustries.length > 0 ? report.notReadyIndustries : LAB_INDUSTRY_KEYS;
+        const job = await createBatchJob({
+          jobType: 'onboard_all',
+          count: industries.length,
+          progress: { completed: 0, total: industries.length, failed: 0, succeeded: 0 },
+          params: {
+            sandbox: allowed.sandbox,
+            refresh: refresh === true,
+            poll_delay_ms: poll_delay_ms ?? 2000,
+            industries,
+          },
+        });
+
+        const keyId = getRequestKeyId();
+        setImmediate(() => {
+          processOnboardAllJob(job.jobId, { keyId }).catch((err) => {
+            console.error('[aep-lab-profile-mcp] onboard job failed:', job.jobId, err);
+          });
+        });
+
+        return jsonResult({
+          ok: true,
+          sandbox: allowed.sandbox,
+          ready: report.ready,
+          notReadyIndustries: report.notReadyIndustries,
+          job_id: job.jobId,
+          job_type: 'onboard_all',
+          status: job.status,
+          industryCount: industries.length,
+          storeMode: getBatchStoreMode(),
+          pollTool: 'lab_batch_job_status',
+          warning:
+            'execute_all runs sequentially in background — provisioning can take several minutes per industry. Poll lab_batch_job_status.',
+        });
+      }
 
       if (runMode === 'plan') {
         return jsonResult({

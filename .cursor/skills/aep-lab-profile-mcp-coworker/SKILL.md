@@ -2,20 +2,24 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab Profile MCP
-  (Streamable HTTP on Cloud Run). Use when generating test profiles, checking
-  infra, batch seeding, getting/updating profiles (full-snapshot stitch),
-  profile activity, or provisioning profile pipelines in allowed sandboxes.
+  (Streamable HTTP on Cloud Run v3). Use when generating test profiles, checking
+  infra, batch seeding, segment personas, access info, getting/updating profiles
+  (full-snapshot stitch), profile activity, or provisioning profile pipelines.
 ---
 
-# AEP Lab Profile MCP — Coworker workflows
+# AEP Lab Profile MCP — Coworker workflows (Phase 3)
 
-MCP server: **AEP Orchestration Lab — Profile MCP** (see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab — Profile MCP v3.0.0** (see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
 - `X-AEP-Lab-Mcp-Key` — required for all tools (including provisioning)
 
-Allowed sandboxes (default): `apalmer`, `kirkham`.
+Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
+
+## Workflow 0 — Check MCP access
+
+> Call **lab_mcp_access_info**. Report keyId, allowed sandboxes, principal label, and allowlist source.
 
 ## Workflow 1 — Check infra → generate travel profile → lookup
 
@@ -31,7 +35,21 @@ Allowed sandboxes (default): `apalmer`, `kirkham`.
 
    > Call lab_lookup_profile with sandbox apalmer, namespace email, identifier travel.demo+001@adobetest.com. Summarize key travel attributes.
 
-## Workflow 2 — Get profile → discuss changes → full-snapshot update
+## Workflow 2 — Hotel segment personas (Phase 3)
+
+1. **Reactivation segment**
+
+   > lab_generate_profile: sandbox apalmer, industry travel, email hotel.reactivation+001@adobetest.com, randomize true, segment_hint hotel_reactivation.
+
+2. **High-value segment**
+
+   > lab_generate_profile: sandbox apalmer, industry travel, email hotel.hv+001@adobetest.com, randomize true, segment_hint hotel_high_value.
+
+3. **Batch seed for segments**
+
+   > lab_generate_profiles_batch: sandbox apalmer, industry travel, count 10, base_email kirkham+hotel-seed, randomize true, segment_hint hotel_reactivation, delay_ms 800. Poll lab_batch_job_status until complete.
+
+## Workflow 3 — Get profile → discuss changes → full-snapshot update
 
 Profile Viewer streams **full writable snapshots** per industry dataflow — not minimal deltas. The MCP mirrors this.
 
@@ -51,7 +69,7 @@ Profile Viewer streams **full writable snapshots** per industry dataflow — not
 
    > Call lab_get_profile again and confirm the changed fields.
 
-## Workflow 3 — Switch sandbox / onboard new sandbox
+## Workflow 4 — Switch sandbox / onboard new sandbox
 
 When Coworker switches to a sandbox that has no Firestore connection docs, generate/update will fail until infra is provisioned.
 
@@ -63,17 +81,19 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Use lab_onboard_sandbox with sandbox apalmer, mode plan. List the ordered steps.
 
-3. **Execute per industry (one at a time)**
+3. **Execute one industry (sync)**
 
    > Use lab_onboard_sandbox with sandbox apalmer, mode execute, industry travel. Wait for completion, then repeat for other not-ready industries.
 
-   Or chain manually: lab_provision_profile_infra_step (step all_core) → lab_enable_profile → lab_sandbox_profile_config (refresh true).
+4. **Execute all industries (async, Phase 3)**
 
-4. **Ops note for brand-new sandbox names**
+   > lab_onboard_sandbox: sandbox apalmer, mode execute_all. Poll lab_batch_job_status with job_id every 15s until completed. Report per-industry results.
 
-   > Sandbox must be on Cloud Run allowlist `AEP_LAB_MCP_ALLOWED_SANDBOXES` (see README § Onboarding a new sandbox).
+5. **Ops note for new colleague sandboxes**
 
-## Workflow 4 — Profile activity narration
+   > Ops seeds Firestore mcpSandboxAllowlist/{keyId} or updates AEP_LAB_MCP_ALLOWED_SANDBOXES — see README. Coworker verifies with lab_mcp_access_info.
+
+## Workflow 5 — Profile activity narration
 
 1. **Events + channels**
 
@@ -83,7 +103,7 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Re-run lab_profile_activity with include_audiences true if audience membership matters for the demo.
 
-## Workflow 5 — Batch seed N profiles
+## Workflow 6 — Batch seed N profiles
 
 1. **Start batch job**
 
@@ -97,7 +117,7 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Pick the first succeeded email from results and run lab_get_profile (namespace email).
 
-## Workflow 6 — Provision industry infra
+## Workflow 7 — Provision industry infra
 
 Same MCP key as all other tools.
 
@@ -120,9 +140,9 @@ Same MCP key as all other tools.
 ## Tips
 
 - Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning.
-- **lab_sandbox_profile_config** — use when switching sandboxes; returns Firestore connection manifest + `ready` / `next_action`.
-- **lab_onboard_sandbox** — `mode=plan` for Coworker checklist; `mode=execute` + one `industry` per call (provisioning is slow).
-- **lab_update_profile** always uses full-snapshot stitch when `attribute_changes` is provided (fetch → merge → stream all writable rows for industry). Pass explicit `attributes` only when you have a complete dot-path snapshot.
+- **lab_mcp_access_info** — check allowlist without secrets; use after ops adds Kirkham ACL.
+- **segment_hint** — travel only: `hotel_high_value`, `hotel_reactivation`.
+- Rate limits (per instance): 30 generates/min, 3 batch jobs/hr — backoff using retryAfterSec.
 - Batch jobs max **100** profiles; use `email_pattern` for custom addressing (`{n}`, `{industry}`).
 - Industry aliases: `telco` → `telecom`, `public` → `generic`.
-- Provisioning is sandbox-allowlist gated like every other tool — only `apalmer` and `kirkham` by default.
+- Provisioning is sandbox-allowlist gated like every other tool.

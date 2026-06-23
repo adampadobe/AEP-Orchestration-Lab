@@ -41,6 +41,8 @@ async function run() {
   process.env.AEP_LAB_MCP_API_KEY = API_KEY;
   process.env.PORT = String(PORT);
   process.env.HOST = '127.0.0.1';
+  process.env.AEP_LAB_MCP_BATCH_STORE = 'memory';
+  process.env.AEP_LAB_MCP_FIRESTORE = 'off';
 
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: join(__dirname, '..'),
@@ -111,6 +113,7 @@ async function run() {
   const expected = [
     'lab_list_industries',
     'lab_list_sandboxes',
+    'lab_mcp_access_info',
     'lab_profile_infra_status',
     'lab_generate_profile',
     'lab_lookup_profile',
@@ -134,14 +137,36 @@ async function run() {
     jsonrpc: '2.0',
     id: 3,
     method: 'tools/call',
-    params: { name: 'lab_list_industries', arguments: {} },
+    params: { name: 'lab_mcp_access_info', arguments: {} },
   });
 
   if (call.status !== 200 || call.json.error) {
-    throw new Error(`tools/call failed: ${JSON.stringify(call.json)}`);
+    throw new Error(`lab_mcp_access_info failed: ${JSON.stringify(call.json)}`);
   }
 
-  console.log(JSON.stringify({ ok: true, tools: names, sample: call.json.result?.content?.[0]?.text?.slice(0, 120) }));
+  const accessText = call.json.result?.content?.[0]?.text || '';
+  if (!accessText.includes('keyId')) {
+    throw new Error('lab_mcp_access_info missing keyId in response');
+  }
+
+  const listCall = await mcpRequest(sessionId, {
+    jsonrpc: '2.0',
+    id: 4,
+    method: 'tools/call',
+    params: { name: 'lab_list_industries', arguments: {} },
+  });
+
+  if (listCall.status !== 200 || listCall.json.error) {
+    throw new Error(`tools/call failed: ${JSON.stringify(listCall.json)}`);
+  }
+
+  console.log(JSON.stringify({
+    ok: true,
+    toolCount: names.length,
+    tools: names,
+    accessInfo: accessText.slice(0, 200),
+    sample: listCall.json.result?.content?.[0]?.text?.slice(0, 120),
+  }));
   child.kill();
 }
 

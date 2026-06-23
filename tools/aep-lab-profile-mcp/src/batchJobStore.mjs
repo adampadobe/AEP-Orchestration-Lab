@@ -1,8 +1,9 @@
 /**
- * Batch job persistence — Firestore (Cloud Run ADC) with in-memory fallback.
+ * Batch / onboard job persistence — Firestore (Cloud Run ADC) with in-memory fallback.
  */
 
 import { randomUUID } from 'node:crypto';
+import { getFirestoreDb } from './firestoreAdmin.mjs';
 
 const COLLECTION = 'mcpProfileBatchJobs';
 
@@ -13,7 +14,7 @@ let firestore = null;
 let storeMode = 'memory';
 let initAttempted = false;
 
-async function initFirestore() {
+async function initStore() {
   if (initAttempted) return firestore;
   initAttempted = true;
 
@@ -22,21 +23,12 @@ async function initFirestore() {
     return null;
   }
 
-  try {
-    const { initializeApp, getApps } = await import('firebase-admin/app');
-    const { getFirestore } = await import('firebase-admin/firestore');
-    if (!getApps().length) {
-      initializeApp({ projectId: process.env.GOOGLE_CLOUD_PROJECT || 'aep-orchestration-lab' });
-    }
-    firestore = getFirestore();
+  firestore = await getFirestoreDb();
+  if (firestore) {
     storeMode = 'firestore';
     console.log(JSON.stringify({ type: 'aep-lab-profile-mcp-batch-store', mode: 'firestore', collection: COLLECTION }));
-  } catch (err) {
-    console.warn(
-      '[aep-lab-profile-mcp] Firestore unavailable; using in-memory batch store. Jobs lost on restart.',
-      err?.message || err,
-    );
-    firestore = null;
+  } else {
+    console.warn('[aep-lab-profile-mcp] Firestore unavailable; using in-memory batch store.');
     storeMode = 'memory';
   }
   return firestore;
@@ -48,14 +40,17 @@ export function getBatchStoreMode() {
 
 /**
  * @param {object} job
+ * @param {string} [job.jobType]
  */
 export async function createBatchJob(job) {
-  await initFirestore();
+  await initStore();
   const id = randomUUID();
+  const jobType = job.jobType || 'profile_batch';
   const record = {
     jobId: id,
+    jobType,
     status: 'queued',
-    progress: { completed: 0, total: job.count, failed: 0 },
+    progress: job.progress || { completed: 0, total: job.count || 0, failed: 0 },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     results: [],
@@ -76,7 +71,7 @@ export async function createBatchJob(job) {
  * @param {string} jobId
  */
 export async function getBatchJob(jobId) {
-  await initFirestore();
+  await initStore();
   const id = String(jobId || '').trim();
   if (!id) return null;
 
@@ -92,7 +87,7 @@ export async function getBatchJob(jobId) {
  * @param {object} patch
  */
 export async function updateBatchJob(jobId, patch) {
-  await initFirestore();
+  await initStore();
   const id = String(jobId || '').trim();
   const updatedAt = new Date().toISOString();
   const payload = { ...patch, updatedAt };

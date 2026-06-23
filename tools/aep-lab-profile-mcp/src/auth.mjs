@@ -1,4 +1,6 @@
 import { keyIdFromApiKey } from './auditLog.mjs';
+import { getPrincipalAccess } from './requestContext.mjs';
+import { assertSandboxAllowedForAccess } from './sandboxAllowlist.mjs';
 
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 
@@ -65,41 +67,52 @@ export function validateMcpApiKey(req) {
 }
 
 /**
- * Ensure sandbox is on the MCP allowlist (case-insensitive).
+ * Ensure sandbox is on the MCP allowlist for the current principal (case-insensitive).
+ * Uses Firestore mcpSandboxAllowlist/{keyId} when present, else env fallback.
+ *
  * @param {string | undefined | null} sandbox
  * @returns {{ ok: true, sandbox: string } | { ok: false, message: string, allowedSandboxes: string[] }}
  */
 export function assertSandboxAllowed(sandbox) {
+  const access = getPrincipalAccess();
+  if (access) {
+    return assertSandboxAllowedForAccess(sandbox, access);
+  }
+
   const cfg = loadAuthConfig();
-  const normalized = String(sandbox || '').trim().toLowerCase();
-  if (!normalized) {
-    return {
-      ok: false,
-      message: 'sandbox is required.',
-      allowedSandboxes: cfg.allowedSandboxes,
-    };
-  }
-  if (!cfg.allowedSet.has(normalized)) {
-    return {
-      ok: false,
-      message: `Sandbox "${sandbox}" is not allowed for this MCP server. Allowed: ${cfg.allowedSandboxes.join(', ')}.`,
-      allowedSandboxes: cfg.allowedSandboxes,
-    };
-  }
-  return { ok: true, sandbox: normalized };
+  return assertSandboxAllowedForAccess(sandbox, {
+    allowedSandboxes: cfg.allowedSandboxes,
+    allowedSet: cfg.allowedSet,
+  });
 }
 
 /**
- * Phase 2 OAuth scaffold — not wired in Phase 1.
- * When enabled, validate Authorization: Bearer <JWT> against issuer/audience env vars.
+ * Phase 3.5 OAuth scaffold — not wired for Coworker OIDC yet.
+ * When AEP_LAB_MCP_OAUTH_ISSUER and AEP_LAB_MCP_OAUTH_AUDIENCE are set, validate Bearer JWT (stub).
  *
- * @param {import('express').Request} _req
- * @returns {{ ok: false, message: string }}
+ * @param {import('express').Request} req
+ * @returns {{ ok: true } | { ok: false, message: string }}
  */
-export function validateOAuthBearer(_req) {
+export function validateOAuthBearer(req) {
+  const issuer = String(process.env.AEP_LAB_MCP_OAUTH_ISSUER || '').trim();
+  const audience = String(process.env.AEP_LAB_MCP_OAUTH_AUDIENCE || '').trim();
+
+  if (!issuer || !audience) {
+    return {
+      ok: false,
+      message:
+        'OAuth bearer auth is not configured. Set AEP_LAB_MCP_OAUTH_ISSUER and AEP_LAB_MCP_OAUTH_AUDIENCE (Phase 3.5). Use X-AEP-Lab-Mcp-Key today.',
+    };
+  }
+
+  const authHeader = String(req.headers.authorization || '').trim();
+  if (!authHeader.startsWith('Bearer ')) {
+    return { ok: false, message: 'Missing Authorization: Bearer token.' };
+  }
+
   return {
     ok: false,
     message:
-      'OAuth bearer auth is not enabled in Phase 1. Use X-AEP-Lab-Mcp-Key. Set AEP_LAB_MCP_OAUTH_* env vars in a future release.',
+      'OAuth issuer/audience env vars are set but JWT validation is not implemented yet (Phase 3.5). Use X-AEP-Lab-Mcp-Key.',
   };
 }

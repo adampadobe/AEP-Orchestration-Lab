@@ -20,7 +20,10 @@ import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { loadAuthConfig, validateMcpApiKey } from './auth.mjs';
 import { getLabApiOrigin } from './labApiClient.mjs';
 import { requestContext } from './requestContext.mjs';
+import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
 import { registerProfileTools } from './tools/index.mjs';
+
+const MCP_VERSION = '3.0.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -31,7 +34,7 @@ const transports = {};
 function createMcpServer() {
   const server = new McpServer({
     name: 'aep-lab-profile',
-    version: '2.0.0',
+    version: MCP_VERSION,
   });
   registerProfileTools(server);
   return server;
@@ -61,9 +64,10 @@ async function main() {
     res.status(200).json({
       ok: true,
       service: 'aep-lab-profile-mcp',
-      version: '2.0.0',
+      version: MCP_VERSION,
       labOrigin: getLabApiOrigin(),
       allowedSandboxes: cfg.allowedSandboxes,
+      note: 'Per-principal allowlist may override via Firestore mcpSandboxAllowlist/{keyId}',
     });
   });
 
@@ -74,7 +78,9 @@ async function main() {
       return;
     }
 
-    await requestContext.run({ keyId: auth.keyId }, async () => {
+    const principalAccess = await resolvePrincipalAccess(auth.keyId);
+
+    await requestContext.run({ keyId: auth.keyId, principalAccess }, async () => {
       try {
         const sessionId = req.headers['mcp-session-id'];
         let transport;
@@ -116,7 +122,6 @@ async function main() {
     });
   });
 
-  // Spec: clients MAY open SSE via GET; we use JSON-only POST mode for Coworker simplicity.
   app.get('/mcp', (_req, res) => {
     res.status(405).set('Allow', 'POST').json({ error: 'Use POST /mcp for Streamable HTTP (JSON mode).' });
   });
@@ -145,6 +150,7 @@ async function main() {
     console.log(
       JSON.stringify({
         type: 'aep-lab-profile-mcp-start',
+        version: MCP_VERSION,
         host,
         port,
         labOrigin: getLabApiOrigin(),

@@ -1,8 +1,9 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
 import { generateProfile } from '../labApiClient.mjs';
-import { buildPersonaAttributes } from '../personaBuilder.mjs';
+import { buildPersonaAttributes, normalizeSegmentHint } from '../personaBuilder.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
+import { checkGenerateRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
@@ -16,7 +17,7 @@ export function registerGenerateProfileTool(mcpServer) {
     {
       title: 'Generate / stream test profile',
       description:
-        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Set randomize or fill_sample_data to build rich industry attributes server-side when attributes omitted.',
+        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Set randomize or fill_sample_data to build rich industry attributes server-side when attributes omitted. Optional segment_hint for travel: hotel_high_value (platinum, recent stay, high LTV) or hotel_reactivation (checkout >12mo ago, churn/propensity for edge segments).',
       inputSchema: {
         email: z.string().email().describe('Profile email address'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -36,6 +37,10 @@ export function registerGenerateProfileTool(mcpServer) {
           .boolean()
           .optional()
           .describe('Alias for randomize'),
+        segment_hint: z
+          .string()
+          .optional()
+          .describe('Travel only: hotel_high_value | hotel_reactivation — overlays hotel.bookingDetails + scoring paths'),
         append_if_existing: z
           .boolean()
           .optional()
@@ -46,9 +51,43 @@ export function registerGenerateProfileTool(mcpServer) {
           .describe('Set testProfile flag on payload (lab default true when omitted)'),
       },
     },
-    async ({ email, sandbox, industry, attributes, randomize, fill_sample_data, append_if_existing, test_profile }) => {
+    async ({
+      email,
+      sandbox,
+      industry,
+      attributes,
+      randomize,
+      fill_sample_data,
+      segment_hint,
+      append_if_existing,
+      test_profile,
+    }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+
+      const rate = checkGenerateRate(keyId);
+      if (!rate.ok) {
+        writeAuditLog({
+          keyId,
+          tool: 'lab_generate_profile',
+          sandbox,
+          email,
+          result: 'error',
+          durationMs: Date.now() - started,
+        });
+        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+      }
+
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
+        writeAuditLog({
+          keyId,
+          tool: 'lab_generate_profile',
+          sandbox,
+          email,
+          result: 'error',
+          durationMs: Date.now() - started,
+        });
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
@@ -59,19 +98,19 @@ export function registerGenerateProfileTool(mcpServer) {
         });
       }
 
-      writeAuditLog({
-        keyId: getRequestKeyId(),
-        tool: 'lab_generate_profile',
-        sandbox: allowed.sandbox,
-        industry: norm.industry,
-        emailDomain: String(email).split('@')[1] || null,
-        randomized: Boolean((randomize ?? fill_sample_data) && (!attributes || !Object.keys(attributes).length)),
-      });
+      const segmentNorm = segment_hint ? normalizeSegmentHint(segment_hint, norm.industry) : null;
+      if (segment_hint && segmentNorm && (segmentNorm.includes('Unknown') || segmentNorm.includes('not supported'))) {
+        return toolError(segmentNorm);
+      }
 
       const useRandomize = randomize ?? fill_sample_data ?? false;
       let mergedAttributes = attributes;
       if (useRandomize && (!attributes || Object.keys(attributes).length === 0)) {
-        mergedAttributes = buildPersonaAttributes(norm.industry, email);
+        mergedAttributes = buildPersonaAttributes(
+          norm.industry,
+          email,
+          typeof segmentNorm === 'string' ? segmentNorm : null,
+        );
       }
 
       const apiResult = await generateProfile({
@@ -83,12 +122,26 @@ export function registerGenerateProfileTool(mcpServer) {
         test_profile,
       });
 
+      writeAuditLog({
+        keyId,
+        tool: 'lab_generate_profile',
+        sandbox: allowed.sandbox,
+        industry: norm.industry,
+        email,
+        emailDomain: String(email).split('@')[1] || null,
+        segmentHint: typeof segmentNorm === 'string' ? segmentNorm : null,
+        randomized: useRandomize && (!attributes || !Object.keys(attributes).length),
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,
         aliasNote: norm.aliasNote,
         randomized: useRandomize && (!attributes || !Object.keys(attributes).length),
+        segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
       });
     },
   );
