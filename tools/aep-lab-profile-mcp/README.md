@@ -258,7 +258,7 @@ gcloud run deploy "${SERVICE}" \
   --env-vars-file /tmp/aep-lab-profile-mcp-env.yaml \
   --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest" \
   --memory 512Mi \
-  --timeout 300 \
+  --timeout 540 \
   --min-instances 0 \
   --max-instances 10
 ```
