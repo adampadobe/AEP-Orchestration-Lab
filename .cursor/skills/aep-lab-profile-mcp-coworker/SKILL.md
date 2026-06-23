@@ -2,21 +2,54 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.3). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, access info,
-  getting/updating profiles (full-snapshot stitch), profile activity, or provisioning
-  profile pipelines.
+  getting/updating profiles (full-snapshot stitch), profile activity, provisioning
+  profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.2)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.3)
 
-MCP server: **AEP Orchestration Lab MCP v3.2.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.3.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
 - `X-AEP-Lab-Mcp-Key` — required for all tools (including provisioning)
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
+
+## Framework knowledge (server-side — no manual retraining)
+
+Coworker should call these **before** improvising lab conventions:
+
+| Tool / resource | Purpose |
+|-----------------|--------|
+| **`lab_get_execution_framework`** | Workflows, dataflow pattern, when to use generate vs update vs event, conventions |
+| **`lab_get_industry_playbook`** | Per-industry persona paths, segment_hints, infra prerequisites, example prompt chain |
+| `lab://framework/overview` | Markdown execution overview (MCP resource) |
+| `lab://framework/conventions` | Email, phone, testProfile, stitching rules |
+| `lab://framework/industries/{industry}` | JSON playbook for one industry |
+
+### How the lab executes
+
+1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset.
+2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via the industry HTTP API connection. `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
+3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
+4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (does not rewrite profile attributes).
+
+### Test data conventions
+
+- **Email domain**: `@adobetest.com` (plus-addressing: `travel.demo+001@adobetest.com`, batch `kirkham+retail-seed`).
+- **Profile Viewer UI scaler** (browser only): `apalmer@adobetest.com` → `apalmer+DDMMYYYY-N@adobetest.com` daily counter in localStorage.
+- **Mobile**: lab default **`+447425627462`** (Profile Viewer placeholder + bulk seed scripts; MCP randomize uses same).
+- **segment_hint** (with `randomize:true`): travel `hotel_high_value` \| `hotel_reactivation`; fsi `high_net_worth` \| `credit_rebuild`; retail `loyalty_vip` \| `cart_abandoner`.
+- **Industry aliases**: `telco` / `telecommunications` → `telecom`; `public` → `generic`.
+- **Anonymous Edge** (Web SDK demos): `getIdentity` then `sendEvent` with `identityMap.ECID` **and** `_<tenant>.identification.core.ecid` (same ECID string). See `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`.
+- **Profile Core v2 top-up**: travel sandboxes need `travelReservations.*` + `hotel.*` tenant leaves — provision step 2 runs ADD-only patch from `profileCoreV2Manifest.js`.
+
+### Example prompt that needs zero manual context (v3.3+)
+
+> Call **lab_get_execution_framework**, then **lab_get_industry_playbook** for travel. If sandbox apalmer travel is ready, **lab_generate_profile** with email `hotel.reactivation+001@adobetest.com`, randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile**.
 
 ## Workflow 0 — Check MCP access
 

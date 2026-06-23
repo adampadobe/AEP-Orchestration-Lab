@@ -19,7 +19,8 @@ export function registerSandboxProfileConfigTool(mcpServer) {
     {
       title: 'Sandbox profile config manifest',
       description:
-        'For a sandbox (+ optional industry): returns profile infra status, saved Firestore connection manifest (url, flowId, datasetId, schemaId, xdmKey), ready flag, missing_steps, and next_action for Coworker. Use when switching sandboxes in Coworker.',
+        'For a sandbox (+ optional industry): returns profile infra status, saved Firestore connection manifest (url, flowId, datasetId, schemaId, xdmKey), ready flag, missing_steps, and next_action. ' +
+        'Call before lab_generate_profile on a new sandbox. Use with lab_onboard_sandbox when notReadyIndustries is non-empty. See lab_get_execution_framework workflows.onboard_sandbox.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z

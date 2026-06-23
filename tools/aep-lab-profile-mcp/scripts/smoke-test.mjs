@@ -111,6 +111,8 @@ async function run() {
 
   const names = toolsList.json?.result?.tools?.map((t) => t.name) || [];
   const expected = [
+    'lab_get_execution_framework',
+    'lab_get_industry_playbook',
     'lab_list_industries',
     'lab_list_sandboxes',
     'lab_mcp_access_info',

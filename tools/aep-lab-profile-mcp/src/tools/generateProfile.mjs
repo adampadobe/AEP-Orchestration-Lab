@@ -17,7 +17,12 @@ export function registerGenerateProfileTool(mcpServer) {
     {
       title: 'Generate / stream test profile',
       description:
-        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Set randomize or fill_sample_data to build rich correlated industry attributes server-side when attributes omitted. Optional segment_hint: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner).',
+        'POST /api/profile/generate — streams a sample profile via the lab saved industry HTTP connection (Firestore manifest). ' +
+        'Requires sandbox on MCP allowlist and industry connection ready (lab_sandbox_profile_config). ' +
+        'Email: use @adobetest.com plus-addressing (e.g. travel.demo+001@adobetest.com). ' +
+        'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/); sets testProfile:true by default and lab mobile +447425627462. ' +
+        'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
+        'See lab_get_execution_framework and lab_get_industry_playbook for full lab conventions.',
       inputSchema: {
         email: z.string().email().describe('Profile email address'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),

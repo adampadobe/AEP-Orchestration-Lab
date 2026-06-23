@@ -21,9 +21,10 @@ import { loadAuthConfig, validateMcpApiKey } from './auth.mjs';
 import { getLabApiOrigin } from './labApiClient.mjs';
 import { requestContext } from './requestContext.mjs';
 import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
+import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { registerProfileTools } from './tools/index.mjs';
 
-const MCP_VERSION = '3.2.0';
+const MCP_VERSION = '3.3.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -36,6 +37,7 @@ function createMcpServer() {
     name: 'aep-orchestration-lab-mcp',
     version: MCP_VERSION,
   });
+  registerFrameworkResources(server);
   registerProfileTools(server);
   return server;
 }

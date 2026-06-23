@@ -23,7 +23,9 @@ export function registerSendProfileEventTool(mcpServer) {
     {
       title: 'Send profile experience event',
       description:
-        'POST /api/events/generator — mirrors Profile Viewer Event tool. Requires email and/or ecid (from lab_generate_profile). Optional target_id from lab_list_event_targets; defaults to first preset.',
+        'POST /api/events/generator — mirrors Profile Viewer Event tool. Append experience events (not profile attribute rewrites). ' +
+        'Requires email and/or ecid from lab_generate_profile. Pick target_id from lab_list_event_targets. ' +
+        'For anonymous Edge demos include matching _<tenant>.identification.core.ecid — see lab_get_execution_framework conventions.identity_stitching.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email (at least one of email or ecid required)'),

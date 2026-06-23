@@ -12,7 +12,7 @@ export function registerListIndustriesTool(mcpServer) {
     {
       title: 'List profile industries',
       description:
-        'Returns canonical lab profile industry keys (generic, travel, fsi, telecom, retail, media, sports) and alias notes (telecommunications→telecom, public→generic). No lab HTTP call.',
+        'Returns canonical lab profile industry keys and alias notes. For persona fields, tenant paths, and segment_hints use lab_get_industry_playbook. No lab HTTP call.',
       inputSchema: {},
     },
     async () => {

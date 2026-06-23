@@ -25,7 +25,9 @@ export function registerUpdateProfileTool(mcpServer) {
     {
       title: 'Update profile (full-snapshot stitch)',
       description:
-        'POST /api/profile/update using Profile Viewer full-snapshot stitch: fetch current profile, merge attribute_changes, stream ALL writable rows for the industry dataflow. Or pass explicit attributes dot-path map for a complete snapshot. NOT minimal delta patches.',
+        'POST /api/profile/update using Profile Viewer full-snapshot stitch: fetch current profile, merge attribute_changes, stream ALL writable rows for the industry dataflow. ' +
+        'NOT minimal delta patches (sibling leaves would clear). Requires profile exists and industry connection ready. ' +
+        'Use lab_get_profile first to see writable paths and dataflow ownership. See lab_get_execution_framework.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z.string().describe('Industry dataflow key (generic, travel, fsi, telecom, retail, media, sports)'),

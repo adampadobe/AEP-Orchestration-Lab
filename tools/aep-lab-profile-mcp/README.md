@@ -1,13 +1,30 @@
-# AEP Orchestration Lab MCP (Phase 3.2)
+# AEP Orchestration Lab MCP (Phase 3.3)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.2.0** — 18 tools. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.3.0** — 20 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+
+## Framework tools & resources (v3.3)
+
+Coworker should call **`lab_get_execution_framework`** first — encodes lab execution knowledge (not just API wrappers):
+
+| Tool / URI | Purpose |
+|------------|---------|
+| `lab_get_execution_framework` | Workflows, conventions, dataflow pattern, segment catalog |
+| `lab_get_industry_playbook` | Per-industry persona paths, segment_hints, infra, example prompts |
+| `lab://framework/overview` | Markdown overview |
+| `lab://framework/conventions` | Email, `+447425627462`, testProfile, stitching |
+| `lab://framework/industries/{industry}` | JSON industry playbook |
+| `lab://framework/overview.json` | Same as execution framework tool (JSON) |
+
+Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources in `web/profile-viewer/profile-generation-*.js`, `functions/industryAttributeMap.js`).
 
 ## Tools
 
 | Tool | Lab API | Notes |
 |------|---------|--------|
+| `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — call first in Coworker |
+| `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_list_industries` | *(static)* | Canonical keys + alias notes |
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |

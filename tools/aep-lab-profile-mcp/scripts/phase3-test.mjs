@@ -174,7 +174,7 @@ async function run() {
   const oauthStub = validateOAuthBearer(mockReq({ authorization: 'Bearer fake' }));
   assert(!oauthStub.ok && oauthStub.message.includes('not implemented'), 'oauth stub when env set');
 
-  const goodKey = validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase3-test-key' }));
+  const goodKey = await validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase3-test-key' }));
   assert(goodKey.ok, 'api key ok');
 
   console.log(JSON.stringify({

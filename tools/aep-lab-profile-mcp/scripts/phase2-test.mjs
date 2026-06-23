@@ -28,6 +28,7 @@ function mockReq(headers = {}) {
 async function run() {
   process.env.AEP_LAB_MCP_API_KEY = 'phase2-test-key';
   process.env.AEP_LAB_MCP_BATCH_STORE = 'memory';
+  process.env.AEP_LAB_MCP_FIRESTORE = 'off';
 
   for (const industry of LAB_INDUSTRY_KEYS) {
     const email = `test+${industry}@adobetest.com`;
@@ -55,13 +56,13 @@ async function run() {
 
   loadAuthConfig();
 
-  const noKey = validateMcpApiKey(mockReq({}));
+  const noKey = await validateMcpApiKey(mockReq({}));
   assert(!noKey.ok, 'rejects missing MCP key');
 
-  const badKey = validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'wrong' }));
+  const badKey = await validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'wrong' }));
   assert(!badKey.ok, 'rejects wrong MCP key');
 
-  const goodKey = validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase2-test-key' }));
+  const goodKey = await validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase2-test-key' }));
   assert(goodKey.ok, 'accepts valid MCP key (provisioning uses same key)');
 
   // Profile merge — full-snapshot stitch

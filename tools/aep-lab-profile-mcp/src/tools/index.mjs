@@ -16,12 +16,16 @@ import { registerMcpAccessInfoTool } from './mcpAccessInfo.mjs';
 import { registerListEventTargetsTool } from './listEventTargets.mjs';
 import { registerSendProfileEventTool } from './sendProfileEvent.mjs';
 import { registerSendEdgeEventTool } from './sendEdgeEvent.mjs';
+import { registerGetExecutionFrameworkTool } from './getExecutionFramework.mjs';
+import { registerGetIndustryPlaybookTool } from './getIndustryPlaybook.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
  */
 export function registerProfileTools(mcpServer) {
+  registerGetExecutionFrameworkTool(mcpServer);
+  registerGetIndustryPlaybookTool(mcpServer);
   registerListIndustriesTool(mcpServer);
   registerListSandboxesTool(mcpServer);
   registerMcpAccessInfoTool(mcpServer);

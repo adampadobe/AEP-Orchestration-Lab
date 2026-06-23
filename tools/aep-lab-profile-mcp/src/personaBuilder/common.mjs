@@ -1,3 +1,4 @@
+import { LAB_DEFAULT_MOBILE_PHONE } from '../framework/labFramework.mjs';
 import {
   assign,
   computeAgeFromBirthDate,
@@ -47,11 +48,9 @@ function randomLoyaltyPointsForTier(tier) {
   }
 }
 
-function randomMobilePhone() {
-  const area = randomBetween(200, 999);
-  const mid = randomBetween(200, 999);
-  const last = randomBetween(1000, 9999);
-  return `+1${area}${mid}${last}`;
+/** Lab UI + bulk scripts use a fixed UK test MSISDN by default. */
+function labDefaultMobilePhone() {
+  return LAB_DEFAULT_MOBILE_PHONE;
 }
 
 /**
@@ -78,7 +77,7 @@ export function buildCommonPersonaAttributes(email) {
   assign(attrs, 'person.gender', gender);
   assign(attrs, 'person.birthDate', birthDate);
   if (age != null) assign(attrs, 'individualCharacteristics.core.age', age);
-  assign(attrs, 'mobilePhone.number', randomMobilePhone());
+  assign(attrs, 'mobilePhone.number', labDefaultMobilePhone());
   assign(attrs, 'consents.marketing.preferred', preferredChannel);
   assign(attrs, 'preferences.preferredLanguage', language);
   assign(attrs, 'personalEmail.language', language);
