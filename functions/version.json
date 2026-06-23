@@ -1,14 +1,14 @@
 {
-  "gitSha": "3dfcb65d656410fa83032d55832f5de7967c916d",
-  "gitShortSha": "3dfcb65d",
+  "gitSha": "1ebfb81287fdfd648a8470f246225321eb559bc5",
+  "gitShortSha": "1ebfb812",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Stamp deploy version metadata for a9f0dcca",
+  "gitCommitSubject": "[apalmer] Stamp deploy version metadata (clean tree) for hosting deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T22:11:48+01:00",
-  "deployedAt": "2026-06-23T21:11:49.581Z",
+  "gitCommitDate": "2026-06-23T22:11:49+01:00",
+  "deployedAt": "2026-06-23T21:12:54.782Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 1,
+  "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3dfcb65d656410fa83032d55832f5de7967c916d"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1ebfb81287fdfd648a8470f246225321eb559bc5"
 }
