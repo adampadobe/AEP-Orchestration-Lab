@@ -113,6 +113,7 @@ async function run() {
   const expected = [
     'lab_get_execution_framework',
     'lab_get_industry_playbook',
+    'lab_preflight_profile_generate',
     'lab_list_industries',
     'lab_list_sandboxes',
     'lab_mcp_access_info',
@@ -123,6 +124,7 @@ async function run() {
     'lab_update_profile',
     'lab_profile_activity',
     'lab_list_event_targets',
+    'lab_preflight_profile_event',
     'lab_send_profile_event',
     'lab_send_edge_event',
     'lab_sandbox_profile_config',

@@ -1,14 +1,14 @@
 {
-  "gitSha": "64b59218973d27bc4ba1f81a57f7c4bbed18e36b",
-  "gitShortSha": "64b59218",
+  "gitSha": "900a356a84172c37948bf9bc636e9aab114b0f7f",
+  "gitShortSha": "900a356a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: MCP portal reveal keys and open sandbox ACL",
+  "gitCommitSubject": "[apalmer] Expose lab execution framework in Profile MCP v3.3",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T08:22:32+01:00",
-  "deployedAt": "2026-06-23T07:22:36.723Z",
+  "gitCommitDate": "2026-06-23T08:58:40+01:00",
+  "deployedAt": "2026-06-23T08:00:39.261Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 1,
+  "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/64b59218973d27bc4ba1f81a57f7c4bbed18e36b"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/900a356a84172c37948bf9bc636e9aab114b0f7f"
 }

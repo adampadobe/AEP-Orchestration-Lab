@@ -1,18 +1,15 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
-import { sendEdgeEvent } from '../labApiClient.mjs';
+import { lookupProfile, sendEdgeEvent } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
+import {
+  buildEventIdentityMap,
+  extractEcidFromProfileTable,
+  resolveEventIdentities,
+} from '../framework/eventIdentity.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
-
-/**
- * @param {string | undefined | null} ecid
- */
-function isValidEcid(ecid) {
-  const s = ecid != null ? String(ecid).trim() : '';
-  return /^\d{10,}$/.test(s);
-}
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -23,12 +20,14 @@ export function registerSendEdgeEventTool(mcpServer) {
     {
       title: 'Send Edge experience event (advanced)',
       description:
-        'POST /api/events/edge — direct Edge interact when you have datastream_id. Sandbox is audit-only. Prefer lab_send_profile_event for preset targets.',
+        'POST /api/events/edge — direct Edge interact when you have datastream_id. Sandbox is audit-only. ' +
+        'Prefer lab_send_profile_event for preset targets. Same identity rules: email and/or ecid; when both present ECID is primary in identityMap. ' +
+        'Include matching _demoemea.identification.core.ecid + email for Demo Website stitching. Auto-fetches ecid from UPS when email-only.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist; audit only, not sent to Edge)'),
         datastream_id: z.string().describe('Adobe datastream / Edge configuration id'),
         email: z.string().email().optional(),
-        ecid: z.string().optional(),
+        ecid: z.string().optional().describe('10+ digit ECID — pass with email after lab_generate_profile'),
         event_type: z.string().optional(),
         view_name: z.string().optional(),
         view_url: z.string().optional(),
@@ -41,6 +40,10 @@ export function registerSendEdgeEventTool(mcpServer) {
           .unknown()
           .optional()
           .describe('Full Edge interact payload { event: { xdm } } — skips buildXdm when set'),
+        auto_fetch_ecid: z
+          .boolean()
+          .optional()
+          .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
       },
     },
     async ({
@@ -57,6 +60,7 @@ export function registerSendEdgeEventTool(mcpServer) {
       timestamp,
       public: publicFields,
       raw_payload,
+      auto_fetch_ecid,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -91,18 +95,43 @@ export function registerSendEdgeEventTool(mcpServer) {
       }
 
       const hasRaw = raw_payload != null && typeof raw_payload === 'object';
+      let resolved = { ok: true, email: '', ecid: '', warnings: [] };
+
       if (!hasRaw) {
+        let profileEcid = null;
+        let autoFetched = false;
+        const shouldFetch = auto_fetch_ecid !== false;
         const emailTrim = email != null ? String(email).trim() : '';
         const ecidTrim = ecid != null ? String(ecid).trim() : '';
-        if (!emailTrim && !isValidEcid(ecidTrim)) {
-          return toolError('Without raw_payload, provide email and/or ecid (10+ digits).');
+
+        if (shouldFetch && emailTrim && !ecidTrim) {
+          const profileResult = await lookupProfile({
+            sandbox: allowed.sandbox,
+            namespace: 'email',
+            identifier: emailTrim,
+          });
+          if (profileResult.ok) {
+            profileEcid = extractEcidFromProfileTable(profileResult.data);
+            autoFetched = !!profileEcid;
+          }
         }
+
+        const identityResult = resolveEventIdentities({
+          email: emailTrim,
+          ecid: ecidTrim,
+          profileEcid,
+          autoFetchedEcid: autoFetched,
+        });
+        if (!identityResult.ok) {
+          return toolError(identityResult.error);
+        }
+        resolved = identityResult;
       }
 
       const apiResult = await sendEdgeEvent({
         datastream_id: dsId,
-        email: email != null ? String(email).trim() : undefined,
-        ecid: ecid != null ? String(ecid).trim() : undefined,
+        email: resolved.email || (email != null ? String(email).trim() : undefined),
+        ecid: resolved.ecid || (ecid != null ? String(ecid).trim() : undefined),
         event_type,
         view_name,
         view_url,
@@ -118,8 +147,8 @@ export function registerSendEdgeEventTool(mcpServer) {
         keyId,
         tool: 'lab_send_edge_event',
         sandbox: allowed.sandbox,
-        email: email != null ? String(email).trim() : null,
-        identifier: ecid != null ? String(ecid).trim() : null,
+        email: resolved.email || (email != null ? String(email).trim() : null),
+        identifier: resolved.ecid || (ecid != null ? String(ecid).trim() : null),
         result: apiResult.ok ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });
@@ -127,6 +156,10 @@ export function registerSendEdgeEventTool(mcpServer) {
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         datastream_id: dsId,
+        identityMap: hasRaw
+          ? undefined
+          : buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
+        warnings: resolved.warnings?.length ? resolved.warnings : undefined,
       });
     },
   );

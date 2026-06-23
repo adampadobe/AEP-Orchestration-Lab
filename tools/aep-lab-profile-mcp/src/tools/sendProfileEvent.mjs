@@ -1,18 +1,15 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
-import { sendProfileEvent } from '../labApiClient.mjs';
+import { lookupProfile, sendProfileEvent } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
+import {
+  buildEventIdentityMap,
+  extractEcidFromProfileTable,
+  resolveEventIdentities,
+} from '../framework/eventIdentity.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
-
-/**
- * @param {string | undefined | null} ecid
- */
-function isValidEcid(ecid) {
-  const s = ecid != null ? String(ecid).trim() : '';
-  return /^\d{10,}$/.test(s);
-}
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -24,13 +21,21 @@ export function registerSendProfileEventTool(mcpServer) {
       title: 'Send profile experience event',
       description:
         'POST /api/events/generator — mirrors Profile Viewer Event tool. Append experience events (not profile attribute rewrites). ' +
-        'Requires email and/or ecid from lab_generate_profile. Pick target_id from lab_list_event_targets. ' +
-        'For anonymous Edge demos include matching _<tenant>.identification.core.ecid — see lab_get_execution_framework conventions.identity_stitching.',
+        'Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH email and ecid from the generate response for reliable stitching. ' +
+        'When ecid is omitted but email is set, auto-fetches ecid from UPS (lab_get_profile). ' +
+        'identityMap: ECID primary + Email secondary when both present; _demoemea.identification.core mirrors both. ' +
+        'Default target_id lab-event-tool-edge (Firestore Event tool datastream). Preflight: lab_preflight_profile_event.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email (at least one of email or ecid required)'),
-        ecid: z.string().optional().describe('Experience Cloud ID from lab_generate_profile response'),
-        target_id: z.string().optional().describe('Preset id from lab_list_event_targets'),
+        ecid: z
+          .string()
+          .optional()
+          .describe('Experience Cloud ID from lab_generate_profile response — strongly recommended with email'),
+        target_id: z
+          .string()
+          .optional()
+          .describe('Preset id from lab_list_event_targets (default lab-event-tool-edge)'),
         event_type: z.string().optional().describe('XDM eventType (e.g. transaction, donation.made, web.webPageViews)'),
         view_name: z.string().optional().describe('Web page view name / title'),
         view_url: z.string().optional().describe('Web page URL'),
@@ -42,6 +47,10 @@ export function registerSendProfileEventTool(mcpServer) {
           .record(z.unknown())
           .optional()
           .describe('Public-sector / demo tenant fields (donationAmount, hotel*, etc.)'),
+        auto_fetch_ecid: z
+          .boolean()
+          .optional()
+          .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
       },
     },
     async ({
@@ -57,6 +66,7 @@ export function registerSendProfileEventTool(mcpServer) {
       event_id,
       timestamp,
       public: publicFields,
+      auto_fetch_ecid,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -87,18 +97,39 @@ export function registerSendProfileEventTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
+      let profileEcid = null;
+      let autoFetched = false;
+      const shouldFetch = auto_fetch_ecid !== false;
       const emailTrim = email != null ? String(email).trim() : '';
       const ecidTrim = ecid != null ? String(ecid).trim() : '';
-      if (!emailTrim && !isValidEcid(ecidTrim)) {
-        return toolError(
-          'At least one identity required: email and/or ecid (10+ digits, typically from lab_generate_profile).',
-        );
+
+      if (shouldFetch && emailTrim && !ecidTrim) {
+        const profileResult = await lookupProfile({
+          sandbox: allowed.sandbox,
+          namespace: 'email',
+          identifier: emailTrim,
+        });
+        if (profileResult.ok) {
+          profileEcid = extractEcidFromProfileTable(profileResult.data);
+          autoFetched = !!profileEcid;
+        }
+      }
+
+      const resolved = resolveEventIdentities({
+        email: emailTrim,
+        ecid: ecidTrim,
+        profileEcid,
+        autoFetchedEcid: autoFetched,
+      });
+
+      if (!resolved.ok) {
+        return toolError(resolved.error);
       }
 
       const apiResult = await sendProfileEvent({
         sandbox: allowed.sandbox,
-        email: emailTrim || undefined,
-        ecid: ecidTrim || undefined,
+        email: resolved.email || undefined,
+        ecid: resolved.ecid || undefined,
         target_id,
         event_type,
         view_name,
@@ -116,8 +147,8 @@ export function registerSendProfileEventTool(mcpServer) {
         keyId,
         tool: 'lab_send_profile_event',
         sandbox: allowed.sandbox,
-        email: emailTrim || null,
-        identifier: ecidTrim || emailTrim || null,
+        email: resolved.email || null,
+        identifier: resolved.ecid || resolved.email || null,
         result: apiResult.ok ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });
@@ -128,6 +159,8 @@ export function registerSendProfileEventTool(mcpServer) {
           url: apiResult.url,
           response: apiResult.data,
           sandbox: allowed.sandbox,
+          identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
+          warnings: resolved.warnings,
         });
       }
 
@@ -138,6 +171,9 @@ export function registerSendProfileEventTool(mcpServer) {
         eventId: lab.eventId || null,
         targetId: lab.targetId || target_id || null,
         message: lab.message || null,
+        identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
+        ecid: resolved.ecid || null,
+        warnings: resolved.warnings.length ? resolved.warnings : undefined,
       });
     },
   );
