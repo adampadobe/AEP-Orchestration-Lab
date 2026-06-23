@@ -154,6 +154,23 @@
     el.hidden = !text;
   }
 
+  function formatInfraStepError(data) {
+    const parts = [];
+    if (data && data.error) parts.push(String(data.error));
+    if (Array.isArray(data && data.platformErrors) && data.platformErrors.length) {
+      for (const pe of data.platformErrors) {
+        if (!pe || !pe.message) continue;
+        parts.push(pe.title ? `${pe.title}: ${pe.message}` : pe.message);
+      }
+    }
+    if (Array.isArray(data && data.warnings) && data.warnings.length) {
+      for (const w of data.warnings) {
+        if (w) parts.push(String(w));
+      }
+    }
+    return parts.filter(Boolean).join(' ') || 'Failed.';
+  }
+
   /* ── Identity setup ── */
   if (typeof attachEmailDatalist === 'function') attachEmailDatalist('etIdentifier');
   if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('etIdentifier', 'etNamespace');
@@ -492,7 +509,7 @@
         body: JSON.stringify({ step: 'createSchema', schemaTitle }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.schemaMsg, data.error || 'Failed.', 'error'); return; }
+      if (!data.ok) { setMsg(dom.schemaMsg, formatInfraStepError(data), 'error'); return; }
       setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
       saveConfigField({ schemaTitle });
       loadSchemaEventTypes(schemaTitle);
@@ -525,7 +542,7 @@
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (!data.ok) { setMsg(dom.attachFgMsg, data.error || 'Failed.', 'error'); return; }
+        if (!data.ok) { setMsg(dom.attachFgMsg, formatInfraStepError(data), 'error'); return; }
         setMsg(dom.attachFgMsg, data.message || 'Done.', 'success');
         if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
         if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;

@@ -42,7 +42,9 @@
     saveConfigBtn:    document.getElementById('etSaveConfigBtn'),
     connectionMsg:    document.getElementById('etConnectionMsg'),
     fetchConfigBtn:   document.getElementById('etFetchConfigBtn'),
+    setupInfraBtn:    document.getElementById('etSetupInfraBtn'),
     checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
+    infraProgressList: document.getElementById('etInfraProgressList'),
     infraMsg:         document.getElementById('etInfraMsg'),
 
     triggerMode:      document.getElementById('etTriggerMode'),
@@ -152,6 +154,23 @@
     el.textContent = text;
     el.className = 'consent-message' + (type ? ' ' + type : '');
     el.hidden = !text;
+  }
+
+  function formatInfraStepError(data) {
+    const parts = [];
+    if (data && data.error) parts.push(String(data.error));
+    if (Array.isArray(data && data.platformErrors) && data.platformErrors.length) {
+      for (const pe of data.platformErrors) {
+        if (!pe || !pe.message) continue;
+        parts.push(pe.title ? `${pe.title}: ${pe.message}` : pe.message);
+      }
+    }
+    if (Array.isArray(data && data.warnings) && data.warnings.length) {
+      for (const w of data.warnings) {
+        if (w) parts.push(String(w));
+      }
+    }
+    return parts.filter(Boolean).join(' ') || 'Failed.';
   }
 
   /* ── Identity setup ── */
@@ -476,6 +495,126 @@
     persistTriggersState();
   }
 
+  /* ═══════════ Combined setup (schema + field groups + dataset) ═══════════ */
+
+  const COMBINED_EVENT_INFRA_STEPS = [
+    { step: 'ensureFieldGroups', label: 'Field groups' },
+    { step: 'createSchema', label: 'Schema' },
+    { step: 'attachRecommendedFieldGroups', label: 'Attach field groups' },
+    { step: 'createDataset', label: 'Dataset' },
+  ];
+
+  function ensureEventInfraProgressList() {
+    if (!dom.infraProgressList) return null;
+    dom.infraProgressList.hidden = false;
+    dom.infraProgressList.innerHTML = '';
+    COMBINED_EVENT_INFRA_STEPS.forEach(function (s, i) {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = (i + 1) + '. ' + s.label;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      dom.infraProgressList.appendChild(li);
+    });
+    return dom.infraProgressList;
+  }
+
+  function setEventInfraProgressItem(step, state, detailText) {
+    if (!dom.infraProgressList) return;
+    const li = dom.infraProgressList.querySelector('[data-step="' + step + '"]');
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent = state === 'success' ? '✓' : state === 'error' ? '✗' : state === 'working' ? '…' : '·';
+    }
+    if (detail) detail.textContent = detailText ? ' — ' + detailText : '';
+  }
+
+  function applySetupEventInfraResult(data) {
+    if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+    if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
+    if (data.datasetName && dom.datasetName) dom.datasetName.value = data.datasetName;
+    saveConfigField({
+      schemaTitle: data.schemaTitle || (dom.schemaTitle && dom.schemaTitle.value) || undefined,
+      schemaId: data.schemaId || undefined,
+      datasetName: data.datasetName || (dom.datasetName && dom.datasetName.value) || undefined,
+    });
+    loadSchemaEventTypes(data.schemaTitle || dom.schemaTitle.value, data.schemaId);
+  }
+
+  async function runSetupEventInfra() {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    const datasetName = (dom.datasetName.value || '').trim();
+    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name.', 'error'); return; }
+    if (!datasetName) { setMsg(dom.infraMsg, 'Enter a dataset name.', 'error'); return; }
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'Select a sandbox first.', 'error'); return; }
+
+    const busy = [
+      dom.setupInfraBtn,
+      dom.checkInfraBtn,
+      dom.createSchemaBtn,
+      dom.attachFieldGroupsBtn,
+      dom.createDatasetBtn,
+    ].filter(Boolean);
+    busy.forEach(function (b) { b.disabled = true; });
+    ensureEventInfraProgressList();
+    setMsg(dom.infraMsg, 'Setting up schema, field groups and dataset…', '');
+
+    COMBINED_EVENT_INFRA_STEPS.forEach(function (s) {
+      setEventInfraProgressItem(s.step, 'working', 'working…');
+    });
+
+    try {
+      const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'setupEventInfra', schemaTitle, datasetName }),
+      });
+      const data = await res.json().catch(function () { return {}; });
+
+      if (Array.isArray(data.subSteps)) {
+        data.subSteps.forEach(function (sub) {
+          if (!sub || !sub.step) return;
+          if (sub.ok === false) {
+            setEventInfraProgressItem(sub.step, 'error', formatInfraStepError(sub));
+          } else if (sub.skipped) {
+            setEventInfraProgressItem(sub.step, 'success', 'already configured');
+          } else {
+            setEventInfraProgressItem(sub.step, 'success', 'done');
+          }
+        });
+      }
+
+      if (!res.ok || data.ok === false) {
+        setMsg(dom.infraMsg, formatInfraStepError(data), 'error');
+        return;
+      }
+
+      applySetupEventInfraResult(data);
+      setMsg(dom.infraMsg, data.message || 'Event infrastructure ready.', 'success');
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      busy.forEach(function (b) { b.disabled = false; });
+    }
+  }
+
+  if (dom.setupInfraBtn) {
+    dom.setupInfraBtn.addEventListener('click', runSetupEventInfra);
+  }
+
   /* ═══════════ Step 1 — Create Schema ═══════════ */
 
   dom.createSchemaBtn.addEventListener('click', async () => {
@@ -492,7 +631,7 @@
         body: JSON.stringify({ step: 'createSchema', schemaTitle }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.schemaMsg, data.error || 'Failed.', 'error'); return; }
+      if (!data.ok) { setMsg(dom.schemaMsg, formatInfraStepError(data), 'error'); return; }
       setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
       saveConfigField({ schemaTitle });
       loadSchemaEventTypes(schemaTitle);
@@ -525,7 +664,7 @@
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (!data.ok) { setMsg(dom.attachFgMsg, data.error || 'Failed.', 'error'); return; }
+        if (!data.ok) { setMsg(dom.attachFgMsg, formatInfraStepError(data), 'error'); return; }
         setMsg(dom.attachFgMsg, data.message || 'Done.', 'success');
         if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
         if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
