@@ -299,6 +299,12 @@
     Shared.writeBaseMobile(getSandboxName(), mobilePhoneEl.value || '');
   }
 
+  function persistPrefsField(patch) {
+    if (window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.scheduleSave === 'function') {
+      window.AepProfileGenPrefsSync.scheduleSave(patch, getSandboxName());
+    }
+  }
+
   function querySuffix(extra) {
     const params = new URLSearchParams();
     const sb = getSandboxName();
@@ -2866,14 +2872,30 @@
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
       Shared.writeBaseEmail(getSandboxName(), baseEmailEl.value || '');
+      persistPrefsField({ baseEmail: baseEmailEl.value || '' });
       loadCounterForCurrentContext();
     });
-    baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
+    baseEmailEl.addEventListener('change', () => {
+      persistPrefsField({ baseEmail: baseEmailEl.value || '' });
+      loadCounterForCurrentContext();
+    });
+    baseEmailEl.addEventListener('blur', () => {
+      persistPrefsField({ baseEmail: baseEmailEl.value || '' });
+    });
   }
   if (mobilePhoneEl) {
-    mobilePhoneEl.addEventListener('input', persistBaseMobile);
-    mobilePhoneEl.addEventListener('change', persistBaseMobile);
-    mobilePhoneEl.addEventListener('blur', persistBaseMobile);
+    mobilePhoneEl.addEventListener('input', () => {
+      persistBaseMobile();
+      persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+    });
+    mobilePhoneEl.addEventListener('change', () => {
+      persistBaseMobile();
+      persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+    });
+    mobilePhoneEl.addEventListener('blur', () => {
+      persistBaseMobile();
+      persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
+    });
   }
   if (counterEl) {
     counterEl.addEventListener('input', () => {
@@ -2886,6 +2908,7 @@
     resetCounterBtn.addEventListener('click', () => {
       counterEl.value = '1';
       persistCounter(1);
+      persistPrefsField({ resetCounter: true });
       updateEmailPreview();
     });
   }

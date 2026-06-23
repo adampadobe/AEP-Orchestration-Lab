@@ -537,6 +537,25 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   line-height: 1.45;
 }
 
+.profile-gen-prefs-sync-status {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--dash-text-secondary);
+}
+
+.profile-gen-prefs-sync-status.profile-gen-prefs-sync--saved {
+  color: var(--dash-success-text, var(--dash-text-secondary));
+}
+
+.profile-gen-prefs-sync-status.profile-gen-prefs-sync--error {
+  color: var(--dash-error-text, var(--dash-text));
+}
+
+.profile-gen-prefs-sync-status.profile-gen-prefs-sync--saving {
+  color: var(--dash-muted);
+}
+
 /* Profile email sub-blocks: separate the lookup widget from the pattern/generate widget
    visually so the user reads them as two consolidated actions in the same box. */
 .profile-generation-page .generic-lookup-block,

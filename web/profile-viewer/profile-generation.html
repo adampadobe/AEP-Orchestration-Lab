@@ -1195,11 +1195,12 @@
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
             We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
-            Your base email is <strong>saved on this device</strong> — type once, edit any time, autosaved.
+            Your base email syncs to your account when signed in (shared with MCP/Coworker). Local copy kept for fast reload.
           </p>
+          <p class="profile-gen-prefs-sync-status" data-profile-gen-prefs-sync aria-live="polite" hidden></p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="genBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="genBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="genBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -5483,7 +5484,7 @@
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
   <script src="profile-generation-shared.js?v=20260623prefs"></script>
-  <script src="profile-generation-prefs-sync.js?v=20260623prefs"></script>
+  <script src="profile-generation-prefs-sync.js?v=20260623prefs2"></script>
   <script src="profile-generation.js?v=20260511a"></script>
   <script src="profile-generation-generic.js?v=20260515payload-preview"></script>
   <script src="profile-generation-travel.js?v=20260515payload-preview"></script>

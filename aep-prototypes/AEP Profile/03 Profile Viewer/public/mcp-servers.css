@@ -644,3 +644,29 @@ body.mcp-key-modal-open {
   min-width: 0;
 }
 
+.mcp-gen-prefs-sync {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt);
+}
+
+.mcp-gen-prefs-sync-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.mcp-gen-prefs-sync-lead {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary);
+}
+
+.mcp-gen-prefs-sync .profile-gen-prefs-sync-status {
+  margin: 0;
+}
+

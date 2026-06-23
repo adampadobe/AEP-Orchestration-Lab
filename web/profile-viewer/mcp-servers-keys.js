@@ -677,6 +677,11 @@
       '<p class="mcp-key-lead">Generate a personal key for <strong>AEP Orchestration Lab MCP</strong> (<code>' +
       escapeHtml(MCP_SERVER_ID) +
       '</code>). Keys are scoped to sandboxes you select. Max 3 active keys per user.</p>' +
+      '<div class="mcp-gen-prefs-sync">' +
+      '<h4 class="mcp-gen-prefs-sync-title">Profile generation sync</h4>' +
+      '<p class="mcp-gen-prefs-sync-lead">Base email for <code>lab_get_generation_prefs</code> / <code>lab_confirm_generation_plan</code> — same Firestore doc as Profile generation when signed in as this user.</p>' +
+      '<p class="profile-gen-prefs-sync-status" id="mcpLabGenPrefsSyncStatus" data-profile-gen-prefs-sync aria-live="polite" hidden></p>' +
+      '</div>' +
       '<div id="mcpLabKeyCurrentSection" class="mcp-key-section mcp-key-current-section" aria-live="polite"></div>' +
       '<div class="mcp-key-section">' +
       '<p class="mcp-key-label">Allowed sandboxes</p>' +
@@ -691,6 +696,12 @@
 
     var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
     if (genBtn) genBtn.addEventListener('click', generateKey);
+    if (global.AepProfileGenPrefsSync && typeof global.AepProfileGenPrefsSync.bindSyncStatus === 'function') {
+      global.AepProfileGenPrefsSync.bindSyncStatus(document.getElementById('mcpLabGenPrefsSyncStatus'));
+      if (typeof global.AepProfileGenPrefsSync.pull === 'function') {
+        global.AepProfileGenPrefsSync.pull();
+      }
+    }
     refreshKeys();
   }
 
