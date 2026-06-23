@@ -244,6 +244,31 @@ test('schemaIncludesIdentityMapField detects top-level identityMap on resolved s
   assert.equal(schemaIncludesIdentityMapField({ properties: { eventType: { type: 'string' } } }), false);
 });
 
+test('schemaIncludesIdentityMapField accepts identityMap from base ExperienceEvent class without Core v2.1', () => {
+  assert.equal(
+    schemaIncludesIdentityMapField({
+      'meta:class': EE_CLASS,
+      allOf: [{ $ref: EE_CLASS }, { $ref: `https://ns.adobe.com/${TENANT}/mixins/interactiondetailslite` }],
+      'meta:extends': [EE_CLASS],
+      properties: { [`_${TENANT}`]: { type: 'object' } },
+    }),
+    true,
+  );
+  assert.equal(
+    schemaIncludesIdentityMapField({
+      allOf: [{ $ref: 'https://ns.adobe.com/xdm/context/profile' }],
+      properties: { personID: { type: 'string' } },
+    }),
+    false,
+  );
+  assert.equal(
+    schemaIncludesIdentityMapField({
+      allOf: [{ properties: { identityMap: { type: 'object', 'meta:xdmType': 'map' } } }],
+    }),
+    true,
+  );
+});
+
 test('schemaHasProfileUnionTag and datasetHasProfileEnabledTag', () => {
   assert.equal(schemaHasProfileUnionTag({ 'meta:immutableTags': ['union'] }), true);
   assert.equal(schemaHasProfileUnionTag({ 'meta:immutableTags': [] }), false);

@@ -1248,7 +1248,25 @@ function tagValueIsEmpty(v) {
   return String(v).trim() === '';
 }
 
-/** Resolved XED full schema includes top-level `identityMap` when Experience Event Core v2.1 is attached. */
+function schemaRefLooksLikeExperienceEventClass(ref) {
+  const s = String(ref || '').toLowerCase();
+  return s.includes('/context/experienceevent') || s.endsWith('experienceevent');
+}
+
+/** True when schema composes the XDM ExperienceEvent class (root identityMap comes from the class). */
+function schemaExtendsExperienceEventClass(schema) {
+  if (!schema || typeof schema !== 'object') return false;
+  if (schemaRefLooksLikeExperienceEventClass(schema['meta:class'])) return true;
+  for (const ref of collectSchemaRefUris(schema)) {
+    if (schemaRefLooksLikeExperienceEventClass(ref)) return true;
+  }
+  return false;
+}
+
+/**
+ * Resolved or composited schema exposes top-level `identityMap`.
+ * Present on the base ExperienceEvent class, Experience Event Core v2.1, or other mixins — not Core v2.1 alone.
+ */
 function schemaIncludesIdentityMapField(fullSchema) {
   if (!fullSchema || typeof fullSchema !== 'object') return false;
   const props = fullSchema.properties;
@@ -1259,6 +1277,10 @@ function schemaIncludesIdentityMapField(fullSchema) {
       if (d && d.properties && d.properties.identityMap) return true;
     }
   }
+  for (const entry of fullSchema.allOf || []) {
+    if (entry && entry.properties && entry.properties.identityMap) return true;
+  }
+  if (schemaExtendsExperienceEventClass(fullSchema)) return true;
   return false;
 }
 
@@ -1304,7 +1326,7 @@ async function enableProfileOnDataset(token, clientId, orgId, sandbox, datasetId
  * **alternate primary identity from identityMap** (matches AEP UI checkbox).
  *
  * Schema: PATCH `meta:immutableTags` += `"union"` when identityMap is on the schema
- * (Experience Event Core v2.1) and ECID/Email descriptors are secondary — primary
+ * (base ExperienceEvent class or a mixin) and ECID/Email descriptors are secondary — primary
  * per event comes from payload `identityMap` (`primary: true` on exactly one entry).
  * Dataset: PATCH `tags.unifiedProfile = ['enabled:true']` after schema union lands.
  */
@@ -1361,11 +1383,14 @@ async function runEnableSchemaAndDatasetForProfile(sandbox, token, clientId, org
     return out;
   }
 
-  const fullSchema = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, out.schemaMetaAltId)) || schemaRow;
+  const fullSchema =
+    (await fetchFullSchema(token, clientId, orgId, sandbox, schemaRow)) ||
+    (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, out.schemaMetaAltId)) ||
+    schemaRow;
   if (!schemaIncludesIdentityMapField(fullSchema)) {
     out.schemaUnion = 'failed';
     out.schemaError =
-      'Schema is missing the identityMap field (attach Experience Event Core v2.1 via Set up event infrastructure, then retry).';
+      'Schema is missing the identityMap field. Use an XDM ExperienceEvent schema (identityMap is on the base class) or attach a field group that adds identityMap, then retry.';
     out.message = out.schemaError;
     return out;
   }
