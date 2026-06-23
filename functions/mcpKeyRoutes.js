@@ -1,5 +1,6 @@
 /**
- * Self-service MCP API key routes — POST/GET/DELETE /api/lab/mcp-keys
+ * Self-service MCP API key routes — GET/POST/DELETE /api/lab/mcp-keys
+ * One active key per user per sandbox (?sandbox= on GET/POST).
  */
 
 /**
@@ -88,6 +89,12 @@ function registerMcpKeyRoutes(deps) {
     }
   }
 
+  function sandboxFromRequest(req, body) {
+    const fromQuery = req.query && req.query.sandbox;
+    const fromBody = body && (body.sandbox || (Array.isArray(body.sandboxes) ? body.sandboxes[0] : ''));
+    return mcpApiKeyStore.normalizeSandboxName(fromQuery || fromBody || '');
+  }
+
   routes.labMcpKeys = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
     setCors(res, 'GET, POST, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') {
@@ -105,19 +112,19 @@ function registerMcpKeyRoutes(deps) {
     if (req.method === 'GET') {
       try {
         const keys = await mcpApiKeyStore.listKeysForUser(uid);
-        const currentKey = mcpApiKeyStore.pickCurrentKey(keys);
+        const sandbox = sandboxFromRequest(req, null);
+        const currentKey = sandbox
+          ? mcpApiKeyStore.pickKeyForSandbox(keys, sandbox)
+          : mcpApiKeyStore.pickCurrentKey(keys);
         const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
         const activeSandboxNames = await fetchActiveSandboxNames();
-        const allowedSandboxes = activeSandboxNames.length > 0
-          ? activeSandboxNames
-          : mcpApiKeyStore.workspaceSandboxCandidates(profile);
         res.status(200).json({
           ok: true,
           keys,
           currentKey,
-          allowedSandboxes,
+          sandbox: sandbox || null,
           activeSandboxNames,
-          maxActiveKeys: mcpApiKeyStore.MAX_ACTIVE_KEYS_PER_USER,
+          workspaceSandboxes: mcpApiKeyStore.workspaceSandboxCandidates(profile),
         });
       } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });
@@ -149,6 +156,7 @@ function registerMcpKeyRoutes(deps) {
             key: rotated.key,
             keyId: rotated.keyId,
             keyPrefix: rotated.keyPrefix,
+            sandbox: rotated.sandbox,
             allowedSandboxes: rotated.allowedSandboxes,
             rotatedAt: rotated.rotatedAt,
             warning: 'Copy this key now. The previous key no longer works.',
@@ -160,7 +168,11 @@ function registerMcpKeyRoutes(deps) {
         return;
       }
 
-      const sandboxes = Array.isArray(body.sandboxes) ? body.sandboxes : [];
+      const sandbox = sandboxFromRequest(req, body);
+      if (!sandbox) {
+        res.status(400).json({ ok: false, error: 'sandbox query parameter or body field is required' });
+        return;
+      }
       try {
         const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
         const activeSandboxNames = await fetchActiveSandboxNames();
@@ -168,7 +180,7 @@ function registerMcpKeyRoutes(deps) {
           uid,
           email,
           displayName,
-          sandboxes,
+          sandbox,
           profile,
           activeSandboxNames,
         });
@@ -177,6 +189,7 @@ function registerMcpKeyRoutes(deps) {
           key: created.key,
           keyId: created.keyId,
           keyPrefix: created.keyPrefix,
+          sandbox: created.sandbox,
           allowedSandboxes: created.allowedSandboxes,
           principalLabel: created.principalLabel,
           createdAt: created.createdAt,
@@ -184,7 +197,9 @@ function registerMcpKeyRoutes(deps) {
         });
       } catch (e) {
         const status = Number(e && e.status) || 400;
-        res.status(status).json({ ok: false, error: String(e.message || e) });
+        const bodyOut = { ok: false, error: String(e.message || e) };
+        if (e && e.keyId) bodyOut.existingKeyId = e.keyId;
+        res.status(status).json(bodyOut);
       }
       return;
     }

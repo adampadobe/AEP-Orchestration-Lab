@@ -291,12 +291,12 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 | API | Auth | Notes |
 |-----|------|--------|
-| `GET /api/lab/mcp-keys` | Firebase ID token | List keys (prefix, sandboxes, dates — no secret) |
-| `POST /api/lab/mcp-keys` | Firebase ID token | Body `{ sandboxes: string[] }` — returns plaintext **once** |
+| `GET /api/lab/mcp-keys?sandbox=` | Firebase ID token | List keys; `currentKey` is the active key for that sandbox |
+| `POST /api/lab/mcp-keys?sandbox=` | Firebase ID token | Body `{ sandbox: "kirkham" }` — one key per user per sandbox; plaintext **once** |
 | `POST /api/lab/mcp-keys/rotate` | Firebase ID token | Body `{ keyId, action: "rotate" }` — same `keyId`, new secret, old key invalid immediately |
 | `DELETE /api/lab/mcp-keys?keyId=` | Firebase ID token | Revoke + remove `mcpSandboxAllowlist/{keyId}` |
 
-- Max **3** active keys per user; sandboxes must match the user’s **workspace slug** and active Adobe sandboxes.
+- One active key per user **per sandbox**; `allowedSandboxes` on the key is always `[sandbox]`. Legacy multi-sandbox keys still work via `allowedSandboxes[0]`.
 - Firestore: `mcpApiKeys/{keyId}` stores `keyHash` (SHA-256), `keyPrefix`, `allowedSandboxes`, `principalUid`, `revoked`.
 - MCP Cloud Run auth: shared ops key (`AEP_LAB_MCP_API_KEY`) **or** user key via `keyHash` query on `mcpApiKeys`.
 - Ops seed script `scripts/seed-mcp-sandbox-allowlist.mjs` remains for shared / legacy keys.

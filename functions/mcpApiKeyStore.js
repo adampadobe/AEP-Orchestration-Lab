@@ -1,6 +1,6 @@
 /**
  * Self-service MCP API keys — Firestore mcpApiKeys/{keyId} + mcpSandboxAllowlist/{keyId}.
- * Plaintext key returned only at creation; stored as SHA-256 hash.
+ * One active key per principalUid + sandbox. Plaintext returned only at create/rotate.
  */
 
 const crypto = require('node:crypto');
@@ -9,7 +9,6 @@ const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
 
 const KEYS_COLLECTION = 'mcpApiKeys';
 const ALLOWLIST_COLLECTION = 'mcpSandboxAllowlist';
-const MAX_ACTIVE_KEYS_PER_USER = 3;
 const KEY_BYTE_LEN = 32;
 const KEY_PREFIX_DISPLAY_LEN = 8;
 
@@ -50,6 +49,20 @@ function normalizeSandboxList(raw) {
     out.push(name);
   }
   return out;
+}
+
+function normalizeSandboxName(raw) {
+  const list = normalizeSandboxList([raw]);
+  return list[0] || '';
+}
+
+/** Derive primary sandbox from key doc (new `sandbox` field or legacy allowedSandboxes). */
+function deriveSandboxFromKeyData(data) {
+  if (!data || typeof data !== 'object') return '';
+  const direct = normalizeSandboxName(data.sandbox);
+  if (direct) return direct;
+  const allowed = normalizeSandboxList(data.allowedSandboxes);
+  return allowed.length === 1 ? allowed[0] : (allowed[0] || '');
 }
 
 function generatePlaintextKey() {
@@ -128,16 +141,36 @@ function validateRequestedSandboxes(requested, userCandidates, activeSandboxName
   return sandboxes;
 }
 
+/**
+ * Validate a single sandbox for per-sandbox key creation.
+ * @param {string} sandbox
+ * @param {string[]} userCandidates
+ * @param {string[]} [activeSandboxNames]
+ */
+function validateSingleSandbox(sandbox, userCandidates, activeSandboxNames) {
+  const name = normalizeSandboxName(sandbox);
+  if (!name) {
+    throw Object.assign(new Error('sandbox is required.'), { status: 400 });
+  }
+  const validated = validateRequestedSandboxes([name], userCandidates, activeSandboxNames);
+  return validated[0];
+}
+
 function firestoreTimestampToIso(value) {
   return value && typeof value.toDate === 'function' ? value.toDate().toISOString() : null;
 }
 
 function serializeKeyDoc(data) {
   if (!data) return null;
+  const sandbox = deriveSandboxFromKeyData(data);
+  const allowedSandboxes = sandbox
+    ? [sandbox]
+    : (Array.isArray(data.allowedSandboxes) ? [...data.allowedSandboxes] : []);
   return {
     keyId: String(data.keyId || ''),
     keyPrefix: String(data.keyPrefix || ''),
-    allowedSandboxes: Array.isArray(data.allowedSandboxes) ? [...data.allowedSandboxes] : [],
+    sandbox,
+    allowedSandboxes,
     principalLabel: String(data.principalLabel || ''),
     createdAt: firestoreTimestampToIso(data.createdAt),
     rotatedAt: firestoreTimestampToIso(data.rotatedAt),
@@ -158,18 +191,21 @@ function pickCurrentKey(keys) {
   return active[0] || null;
 }
 
-async function countActiveKeysForUser(uid) {
-  const userId = String(uid || '').trim().slice(0, 128);
-  if (!userId) return 0;
-  const snap = await getDb()
-    .collection(KEYS_COLLECTION)
-    .where('principalUid', '==', userId)
-    .get();
-  let count = 0;
-  for (const doc of snap.docs) {
-    if (!doc.data()?.revoked) count += 1;
+/**
+ * Active key for a specific sandbox (one key per uid + sandbox).
+ * @param {object[]} keys serialized keys
+ * @param {string} sandbox
+ */
+function pickKeyForSandbox(keys, sandbox) {
+  const sb = normalizeSandboxName(sandbox);
+  if (!sb) return null;
+  const active = (Array.isArray(keys) ? keys : []).filter((k) => k && !k.revoked);
+  for (const key of active) {
+    const keySb = normalizeSandboxName(key.sandbox)
+      || deriveSandboxFromKeyData(key);
+    if (keySb === sb) return key;
   }
-  return count;
+  return null;
 }
 
 async function listKeysForUser(uid) {
@@ -181,11 +217,35 @@ async function listKeysForUser(uid) {
     .get();
   const keys = snap.docs.map((doc) => serializeKeyDoc({ keyId: doc.id, ...doc.data() }));
   keys.sort((a, b) => {
+    const sa = String(a.sandbox || '');
+    const sb = String(b.sandbox || '');
+    if (sa !== sb) return sa < sb ? -1 : 1;
     const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
     const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
     return tb - ta;
   });
-  return keys.slice(0, 20);
+  return keys.slice(0, 50);
+}
+
+async function findActiveKeyDocForSandbox(uid, sandbox) {
+  const userId = String(uid || '').trim().slice(0, 128);
+  const sb = normalizeSandboxName(sandbox);
+  if (!userId || !sb) return null;
+
+  const snap = await getDb()
+    .collection(KEYS_COLLECTION)
+    .where('principalUid', '==', userId)
+    .get();
+
+  for (const doc of snap.docs) {
+    const data = doc.data() || {};
+    if (data.revoked) continue;
+    const keySb = deriveSandboxFromKeyData(data);
+    if (keySb === sb) {
+      return { ref: doc.ref, data: { keyId: doc.id, ...data } };
+    }
+  }
+  return null;
 }
 
 /**
@@ -193,7 +253,7 @@ async function listKeysForUser(uid) {
  * @param {string} input.uid
  * @param {string} input.email
  * @param {string} input.displayName
- * @param {string[]} input.sandboxes
+ * @param {string} input.sandbox
  * @param {object | null} [input.profile]
  * @param {string[]} [input.activeSandboxNames]
  */
@@ -201,21 +261,22 @@ async function createKey(input) {
   const uid = String(input.uid || '').trim().slice(0, 128);
   if (!uid) throw Object.assign(new Error('uid is required'), { status: 400 });
 
-  const activeCount = await countActiveKeysForUser(uid);
-  if (activeCount >= MAX_ACTIVE_KEYS_PER_USER) {
-    throw Object.assign(
-      new Error(`Maximum ${MAX_ACTIVE_KEYS_PER_USER} active MCP keys per user. Revoke an existing key first.`),
-      { status: 429 },
-    );
-  }
-
   const userCandidates = workspaceSandboxCandidates(input.profile || null);
-  const allowedSandboxes = validateRequestedSandboxes(
-    input.sandboxes,
+  const sandbox = validateSingleSandbox(
+    input.sandbox,
     userCandidates,
     input.activeSandboxNames,
   );
 
+  const existing = await findActiveKeyDocForSandbox(uid, sandbox);
+  if (existing) {
+    throw Object.assign(
+      new Error(`You already have an active MCP key for sandbox "${sandbox}". Rotate or revoke it first.`),
+      { status: 409, keyId: existing.data.keyId },
+    );
+  }
+
+  const allowedSandboxes = [sandbox];
   const plaintext = generatePlaintextKey();
   const keyId = generateStableKeyId();
   const keyHash = hashApiKey(plaintext);
@@ -231,6 +292,7 @@ async function createKey(input) {
     principalUid: uid,
     principalEmail,
     principalLabel,
+    sandbox,
     allowedSandboxes,
     revoked: false,
     createdAt: now,
@@ -254,6 +316,7 @@ async function createKey(input) {
     key: plaintext,
     keyId,
     keyPrefix,
+    sandbox,
     allowedSandboxes,
     principalLabel,
     createdAt: new Date().toISOString(),
@@ -285,11 +348,12 @@ async function rotateKey(uid, keyId) {
     throw Object.assign(new Error('Cannot rotate a revoked key'), { status: 400 });
   }
 
+  const sandbox = deriveSandboxFromKeyData(data);
+  const allowedSandboxes = sandbox ? [sandbox] : normalizeSandboxList(data.allowedSandboxes);
   const plaintext = generatePlaintextKey();
   const keyHash = hashApiKey(plaintext);
   const keyPrefix = plaintext.slice(0, KEY_PREFIX_DISPLAY_LEN);
   const now = admin.firestore.FieldValue.serverTimestamp();
-  const allowedSandboxes = Array.isArray(data.allowedSandboxes) ? data.allowedSandboxes : [];
 
   const batch = getDb().batch();
   batch.update(ref, {
@@ -297,6 +361,7 @@ async function rotateKey(uid, keyId) {
     keyPrefix,
     rotatedAt: now,
     lastUsedAt: null,
+    ...(sandbox ? { sandbox, allowedSandboxes } : {}),
   });
   batch.set(
     getDb().collection(ALLOWLIST_COLLECTION).doc(id),
@@ -315,6 +380,7 @@ async function rotateKey(uid, keyId) {
     key: plaintext,
     keyId: id,
     keyPrefix,
+    sandbox,
     allowedSandboxes,
     rotatedAt: new Date().toISOString(),
   };
@@ -345,7 +411,7 @@ async function revokeKey(uid, keyId) {
   batch.update(ref, { revoked: true, revokedAt: now });
   batch.delete(getDb().collection(ALLOWLIST_COLLECTION).doc(id));
   await batch.commit();
-  return { ok: true, keyId: id, revoked: true };
+  return { ok: true, keyId: id, revoked: true, sandbox: deriveSandboxFromKeyData(data) };
 }
 
 /**
@@ -377,21 +443,25 @@ async function validateUserApiKey(apiKey) {
     keyId: doc.id,
     principalUid: String(data.principalUid || '').trim().slice(0, 128),
     principalEmail: data.principalEmail ? String(data.principalEmail) : null,
+    sandbox: deriveSandboxFromKeyData(data),
   };
 }
 
 module.exports = {
   KEYS_COLLECTION,
   ALLOWLIST_COLLECTION,
-  MAX_ACTIVE_KEYS_PER_USER,
   keyIdFromApiKey,
   hashApiKey,
   timingSafeEqual,
   normalizeSandboxList,
+  normalizeSandboxName,
+  deriveSandboxFromKeyData,
   workspaceSandboxCandidates,
   validateRequestedSandboxes,
+  validateSingleSandbox,
   listKeysForUser,
   pickCurrentKey,
+  pickKeyForSandbox,
   generateStableKeyId,
   createKey,
   rotateKey,

@@ -4,16 +4,30 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   normalizeSandboxList,
+  normalizeSandboxName,
+  deriveSandboxFromKeyData,
   workspaceSandboxCandidates,
   validateRequestedSandboxes,
+  validateSingleSandbox,
   hashApiKey,
   keyIdFromApiKey,
   timingSafeEqual,
+  pickKeyForSandbox,
 } = require('../mcpApiKeyStore');
 
 describe('mcpApiKeyStore', () => {
   it('normalizeSandboxList dedupes and lowercases', () => {
     assert.deepEqual(normalizeSandboxList(['Apalmer', 'apalmer', 'kirkham']), ['apalmer', 'kirkham']);
+  });
+
+  it('normalizeSandboxName returns single lowercase sandbox', () => {
+    assert.equal(normalizeSandboxName('Kirkham'), 'kirkham');
+    assert.equal(normalizeSandboxName(''), '');
+  });
+
+  it('deriveSandboxFromKeyData prefers sandbox field over legacy allowedSandboxes', () => {
+    assert.equal(deriveSandboxFromKeyData({ sandbox: 'kirkham', allowedSandboxes: ['apalmer'] }), 'kirkham');
+    assert.equal(deriveSandboxFromKeyData({ allowedSandboxes: ['apalmer'] }), 'apalmer');
   });
 
   it('workspaceSandboxCandidates uses profile slug and email', () => {
@@ -38,13 +52,10 @@ describe('mcpApiKeyStore', () => {
     assert.deepEqual(out, ['kirkham']);
   });
 
-  it('validateRequestedSandboxes falls back to workspace when Adobe list empty', () => {
-    assert.throws(
-      () => validateRequestedSandboxes(['other'], ['apalmer'], []),
-      /not in your lab workspace/,
-    );
-    const out = validateRequestedSandboxes(['apalmer'], ['apalmer'], []);
-    assert.deepEqual(out, ['apalmer']);
+  it('validateSingleSandbox requires one sandbox', () => {
+    const out = validateSingleSandbox('kirkham', ['apalmer'], ['apalmer', 'kirkham']);
+    assert.equal(out, 'kirkham');
+    assert.throws(() => validateSingleSandbox('', ['apalmer'], []), /sandbox is required/);
   });
 
   it('hashApiKey is stable sha256 hex', () => {
@@ -71,6 +82,23 @@ describe('mcpApiKeyStore', () => {
       { keyId: 'c', revoked: true, createdAt: '2026-12-01T00:00:00.000Z' },
     ]);
     assert.equal(current.keyId, 'b');
+  });
+
+  it('pickKeyForSandbox returns key for matching sandbox only', () => {
+    const keys = [
+      { keyId: 'a', revoked: false, sandbox: 'apalmer', createdAt: '2026-01-01T00:00:00.000Z' },
+      { keyId: 'b', revoked: false, sandbox: 'kirkham', createdAt: '2026-06-01T00:00:00.000Z' },
+    ];
+    assert.equal(pickKeyForSandbox(keys, 'kirkham').keyId, 'b');
+    assert.equal(pickKeyForSandbox(keys, 'apalmer').keyId, 'a');
+    assert.equal(pickKeyForSandbox(keys, 'other'), null);
+  });
+
+  it('pickKeyForSandbox matches legacy allowedSandboxes', () => {
+    const keys = [
+      { keyId: 'legacy', revoked: false, allowedSandboxes: ['apalmer'], createdAt: '2026-01-01T00:00:00.000Z' },
+    ];
+    assert.equal(pickKeyForSandbox(keys, 'apalmer').keyId, 'legacy');
   });
 });
 

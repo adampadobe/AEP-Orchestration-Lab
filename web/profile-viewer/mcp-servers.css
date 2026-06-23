@@ -329,7 +329,43 @@
 }
 
 /* MCP API key self-service panel */
-.mcp-key-panel {
+.mcp-key-sandbox-banner-wrap {
+  margin-bottom: 1rem;
+}
+
+.mcp-key-sandbox-banner {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #6e6e6e);
+  border: 1px solid var(--dash-border, #e2e2e2);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface, #fff);
+}
+
+.mcp-key-sandbox-banner code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.mcp-key-card--current {
+  border-color: var(--dash-blue, #0265dc);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dash-blue, #0265dc) 25%, transparent);
+}
+
+.mcp-key-card-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dash-blue, #0265dc);
+  border: 1px solid color-mix(in srgb, var(--dash-blue, #0265dc) 35%, transparent);
+  border-radius: 999px;
+}
+
   margin: 1.25rem 0 0;
   padding: 1.25rem 1.35rem;
   border: 1px solid var(--dash-border, #e2e2e2);
