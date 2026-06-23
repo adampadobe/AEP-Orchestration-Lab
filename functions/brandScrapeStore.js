@@ -593,9 +593,48 @@ async function saveScrape(sandbox, payload, options = {}) {
   };
 }
 
+/** Fail stale running rows for one sandbox (portal list / MCP resolve refresh). */
+async function reapStaleRunningForSandbox(sandbox) {
+  const name = String(sandbox || '').trim();
+  if (!name) return 0;
+  const db = getDb();
+  const nowMs = Date.now();
+  let failed = 0;
+  const staleStatuses = ['running', 'crawl_complete'];
+  for (const status of staleStatuses) {
+    const runSnap = await db.collection(COLLECTION)
+      .where('sandbox', '==', name)
+      .where('scrapeStatus', '==', status)
+      .limit(80)
+      .get();
+    for (const doc of runSnap.docs) {
+      const d = doc.data() || {};
+      const t = firestoreTimestampToMs(d.runStartedAt) || 0;
+      if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId) {
+        await markScrapeFailed(name, String(d.scrapeId), {
+          error: 'Run timed out (stale). The worker did not finish within 35 minutes; cancel/retry from the card.',
+          steps: [{
+            id: 'runtime',
+            label: 'Run did not finish',
+            status: 'failed',
+            detail: `Status "${status}" stayed active past the timeout window (worker disconnect, long crawl, or crash).`,
+          }],
+        });
+        failed += 1;
+      }
+    }
+  }
+  return failed;
+}
+
 async function listScrapes(sandbox, { limit = 50 } = {}) {
   const name = String(sandbox || '').trim();
   if (!name) return [];
+  try {
+    await reapStaleRunningForSandbox(name);
+  } catch (e) {
+    console.warn('[brandScrapeStore] reapStaleRunningForSandbox', name, String((e && e.message) || e));
+  }
   const snap = await getDb()
     .collection(COLLECTION)
     .where('sandbox', '==', name)
@@ -913,6 +952,7 @@ module.exports = {
   markScrapeFailed,
   touchScrapeRunningHeartbeat,
   cancelScrapeRun,
+  reapStaleRunningForSandbox,
   runBrandScrapeStaleMaintenance,
   extendScrapeRetention,
   hasRealPayload,

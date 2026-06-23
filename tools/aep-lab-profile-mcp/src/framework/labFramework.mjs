@@ -274,14 +274,16 @@ export function getExecutionFramework() {
           'lab_profile_activity',
         ],
         steps: [
-          'lab_resolve_brand_scrape for sandbox + url — reuse scrape_id when a complete scrape with personas exists',
-          'If need_new_scrape: lab_brand_scrape with include.personas:true (default MCP scrape omits personas — enable explicitly)',
+          'lab_resolve_brand_scrape for sandbox + url (optional — lab_brand_scrape also dedupes by default)',
+          'If need_new_scrape: lab_brand_scrape with include.personas:true (default MCP scrape omits personas — enable explicitly); force_new:true only to refresh',
           'lab_generate_profile_from_brand_scrape scrape_id + persona_index (or all_personas:true)',
           'lab_send_profile_event with email + ecid from generate response',
           'lab_profile_activity verify',
         ],
         note:
-          'Before scraping, check existing history — Coworker should call lab_resolve_brand_scrape first. ' +
+          'lab_brand_scrape defaults prefer_existing:true — reuses complete scrapes with personas for the same URL. ' +
+          'Call lab_resolve_brand_scrape first for explicit checks, or force_new:true for a fresh crawl. ' +
+          'Stuck runs: lab_cancel_brand_scrape or Portal history Cancel. ' +
           'Scrape personas are marketing narrative; golden profiles overlay identity onto personaBuilder industry randomize. ' +
           'Scrape segments[] are demo copy, not UPS audiences — use lab segment_hint or RTCDP APIs separately.',
       },

@@ -5,6 +5,7 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import {
   brandScrapeAnalyze,
+  cancelBrandScrape,
   getBrandScrape,
   listBrandScrapes,
 } from '../labApiClient.mjs';
@@ -78,6 +79,7 @@ export function registerBrandScrapeTools(mcpServer) {
       description:
         'POST brandScraperAnalyze (direct Cloud Function, same store as Profile Viewer Brand scraper). ' +
         'Crawls the brand URL, extracts colours/fonts/assets, and runs optional Gemini brand analysis. ' +
+        'Default prefer_existing:true reuses a complete scrape with personas for the same URL — set force_new:true only when you need a fresh crawl. ' +
         'Default is async (202 + scrapeId) — poll with lab_get_brand_scrape or set wait_for_complete:true. ' +
         'Results appear in portal brand-scraper.html history and Image hosting for the same sandbox.',
       inputSchema: {
@@ -94,6 +96,24 @@ export function registerBrandScrapeTools(mcpServer) {
           .boolean()
           .optional()
           .describe('When true, poll lab store until scrapeStatus is complete or failed (default true)'),
+        prefer_existing: z
+          .boolean()
+          .optional()
+          .describe(
+            'When true (default), reuse a complete scrape with personas for this URL instead of starting a new crawl',
+          ),
+        force_new: z
+          .boolean()
+          .optional()
+          .describe('When true, always start a new crawl (skips prefer_existing dedupe)'),
+        require_personas: z
+          .boolean()
+          .optional()
+          .describe('When prefer_existing, require personasPresent (default true)'),
+        require_complete: z
+          .boolean()
+          .optional()
+          .describe('When prefer_existing, require scrapeStatus complete (default true)'),
         poll_timeout_sec: z
           .number()
           .int()
@@ -114,6 +134,10 @@ export function registerBrandScrapeTools(mcpServer) {
       mode,
       existing_scrape_id,
       wait_for_complete,
+      prefer_existing,
+      force_new,
+      require_personas,
+      require_complete,
       poll_timeout_sec,
     }) => {
       const started = Date.now();
@@ -141,6 +165,69 @@ export function registerBrandScrapeTools(mcpServer) {
 
       const includeMerged = { ...DEFAULT_INCLUDE, ...(include && typeof include === 'object' ? include : {}) };
       const shouldWait = wait_for_complete !== false;
+      const shouldPreferExisting = prefer_existing !== false && !force_new && scrapeMode !== 'append';
+
+      if (shouldPreferExisting) {
+        const listResult = await listBrandScrapes({ sandbox: allowed.sandbox });
+        if (listResult.ok) {
+          const items = Array.isArray(listResult.data?.items) ? listResult.data.items : [];
+          const resolved = resolveBrandScrapeFromList(items, {
+            url: brandUrl,
+            prefer_existing: true,
+            require_personas: require_personas !== false,
+            require_complete: require_complete !== false,
+          });
+          if (!resolved.need_new_scrape && resolved.scrape_id) {
+            const reuseId = String(resolved.scrape_id).trim();
+            writeAuditLog({
+              keyId: getRequestKeyId(),
+              tool: 'lab_brand_scrape',
+              sandbox: allowed.sandbox,
+              identifier: reuseId,
+              result: 'ok',
+              durationMs: Date.now() - started,
+            });
+
+            if (!shouldWait) {
+              return jsonResult({
+                ok: true,
+                sandbox: allowed.sandbox,
+                scrapeId: reuseId,
+                reused: true,
+                resolve: resolved,
+                summary: resolved.summary,
+                coworkerHints: {
+                  portalUrl: resolved.summary?.portalUrl,
+                  reuse: 'Existing complete scrape reused — no new crawl started.',
+                },
+              });
+            }
+
+            const poll = await pollBrandScrapeUntilTerminal({
+              sandbox: allowed.sandbox,
+              scrapeId: reuseId,
+              pollIntervalMs: 2000,
+              timeoutMs: 15_000,
+            });
+            const summary = summarizeBrandScrape(poll.record || resolved.summary);
+            return jsonResult({
+              ok: true,
+              sandbox: allowed.sandbox,
+              scrapeId: reuseId,
+              reused: true,
+              resolve: resolved,
+              waitedMs: poll.elapsedMs,
+              summary,
+              lab: poll.record || undefined,
+              coworkerHints: {
+                portalUrl: summary?.portalUrl,
+                reuse: 'Existing complete scrape reused — no new crawl started.',
+                refresh: 'Call force_new:true only when you need a fresh crawl.',
+              },
+            });
+          }
+        }
+      }
 
       const analyzeResult = await brandScrapeAnalyze({
         sandbox: allowed.sandbox,
@@ -152,6 +239,10 @@ export function registerBrandScrapeTools(mcpServer) {
         include: includeMerged,
         mode: scrapeMode,
         existing_scrape_id,
+        prefer_existing: shouldPreferExisting,
+        force_new: force_new === true,
+        require_personas: require_personas !== false,
+        require_complete: require_complete !== false,
       });
 
       if (!analyzeResult.ok) {
@@ -173,6 +264,30 @@ export function registerBrandScrapeTools(mcpServer) {
       const scrapeId = String(analyzeResult.scrapeId || analyzeResult.data?.scrapeId || '').trim();
       if (!scrapeId) {
         return toolError('Analyze accepted but no scrapeId returned.', { lab: analyzeResult.data });
+      }
+
+      const serverReused = analyzeResult.data?.reused === true;
+      if (serverReused && analyzeResult.data?.reuseReason === 'complete' && !shouldWait) {
+        const summary = summarizeBrandScrape(analyzeResult.data);
+        writeAuditLog({
+          keyId: getRequestKeyId(),
+          tool: 'lab_brand_scrape',
+          sandbox: allowed.sandbox,
+          identifier: scrapeId,
+          result: 'ok',
+          durationMs: Date.now() - started,
+        });
+        return jsonResult({
+          ok: true,
+          sandbox: allowed.sandbox,
+          scrapeId,
+          reused: true,
+          serverReused: true,
+          summary,
+          coworkerHints: {
+            reuse: 'Server returned existing complete scrape — no new crawl started.',
+          },
+        });
       }
 
       if (!shouldWait) {
@@ -242,6 +357,61 @@ export function registerBrandScrapeTools(mcpServer) {
           refresh: poll.timedOut
             ? `Poll again with lab_get_brand_scrape scrape_id=${scrapeId}.`
             : undefined,
+        },
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_cancel_brand_scrape',
+    {
+      title: 'Cancel a stuck brand scrape',
+      description:
+        'POST /api/brand-scraper/scrapes/{id}/cancel — same as Portal history card Cancel. ' +
+        'Marks a running or crawl_complete scrape as failed so history no longer shows Running. ' +
+        'Use when a scrape is stuck in fetch/crawl; then force_new:true to retry if needed.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        scrape_id: z.string().describe('Scrape id from history or lab_list_brand_scrapes'),
+        reason: z.string().optional().describe('Optional cancel reason stored on the scrape row'),
+      },
+    },
+    async ({ sandbox, scrape_id, reason }) => {
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const scrapeId = String(scrape_id || '').trim();
+      if (!scrapeId) {
+        return toolError('scrape_id is required.');
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_cancel_brand_scrape',
+        sandbox: allowed.sandbox,
+        identifier: scrapeId,
+      });
+
+      const apiResult = await cancelBrandScrape({
+        sandbox: allowed.sandbox,
+        scrapeId,
+        reason,
+      });
+
+      if (!apiResult.ok) {
+        return fromLabApi(apiResult, { sandbox: allowed.sandbox, scrapeId });
+      }
+
+      return jsonResult({
+        ok: true,
+        sandbox: allowed.sandbox,
+        scrapeId,
+        lab: apiResult.data,
+        coworkerHints: {
+          portalUrl: 'https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html',
+          next: 'Refresh history — card should show failed/cancelled. Use lab_brand_scrape with force_new:true to retry.',
         },
       });
     },

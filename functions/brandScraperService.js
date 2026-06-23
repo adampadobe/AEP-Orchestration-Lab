@@ -7,6 +7,7 @@
 'use strict';
 
 const brandScrapeStore = require('./brandScrapeStore');
+const brandScrapeUrlMatch = require('./brandScrapeUrlMatch');
 const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
 const slideDeck = require('./brandScraperSlideDeck');
@@ -1951,6 +1952,59 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
     const appendMode = !analysisOnly && body.mode === 'append' && body.existingScrapeId;
     const existingSid = String(body.existingScrapeId || '').trim();
+    const forceNew = body.forceNew === true || body.force_new === true;
+    const preferExisting = body.preferExisting !== false && body.prefer_existing !== false;
+
+    if (!analysisOnly && !appendMode && !forceNew && preferExisting && url) {
+      try {
+        const history = await brandScrapeStore.listScrapes(sandbox, { limit: 80 });
+        const urlNorm = brandScrapeUrlMatch.normalizeBrandScrapeUrl(url);
+        if (urlNorm) {
+          const inFlight = history.find((row) => {
+            const st = String(row.scrapeStatus || '');
+            if (st !== 'running' && st !== 'crawl_complete') return false;
+            return brandScrapeUrlMatch.itemMatchesBrandScrapeUrl(row.url, row.baseUrl, urlNorm);
+          });
+          if (inFlight && inFlight.scrapeId) {
+            res.set('X-Brand-Scrape-Id', String(inFlight.scrapeId));
+            res.status(202).json({
+              accepted: true,
+              async: true,
+              reused: true,
+              reuseReason: 'in_flight',
+              scrapeId: inFlight.scrapeId,
+              sandbox: scope.scopeId,
+              scopeType: scope.scopeType,
+              scopeId: scope.scopeId,
+            });
+            return;
+          }
+        }
+        const reusable = brandScrapeUrlMatch.resolveBrandScrapeFromList(history, {
+          url,
+          require_personas: body.requirePersonas !== false && body.require_personas !== false,
+          require_complete: body.requireComplete !== false && body.require_complete !== false,
+        });
+        if (reusable && reusable.scrapeId) {
+          res.set('X-Brand-Scrape-Id', String(reusable.scrapeId));
+          res.status(200).json({
+            ok: true,
+            reused: true,
+            reuseReason: 'complete',
+            scrapeId: reusable.scrapeId,
+            sandbox: scope.scopeId,
+            scopeType: scope.scopeType,
+            scopeId: scope.scopeId,
+            brandName: reusable.brandName || null,
+            scrapeStatus: reusable.scrapeStatus || 'complete',
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('[brandScraper] preferExisting lookup failed', String((e && e.message) || e));
+      }
+    }
+
     runScrapeId = (analysisOnly && existingSid)
       ? existingSid
       : ((appendMode && existingSid) ? existingSid : brandScrapeStore.genId());

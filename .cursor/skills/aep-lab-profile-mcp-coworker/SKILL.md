@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.8). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.8.1). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, brand scraping,
   access info, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.7)
 
-MCP server: **AEP Orchestration Lab MCP v3.8.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.8.1** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -245,9 +245,9 @@ Same MCP key as all other tools.
 
 ## Workflow 6 — Brand scrape (Portal parity)
 
-> Before scraping, check if we already have a complete scrape for this URL on this sandbox.
+> **Dedupe:** `lab_brand_scrape` defaults **`prefer_existing:true`** — reuses a complete scrape with personas for the same URL. Call **`lab_resolve_brand_scrape`** first when you want an explicit check, or set **`force_new:true`** only when you need a fresh crawl. **Never** fire parallel `lab_brand_scrape` calls for the same URL.
 
-> Call **lab_mcp_access_info** first. Then **lab_resolve_brand_scrape** with sandbox apalmer and the customer url. If `need_new_scrape`, run **lab_brand_scrape**; otherwise reuse `scrape_id` from the resolve response.
+> Call **lab_mcp_access_info** first. Then **lab_resolve_brand_scrape** with sandbox apalmer and the customer url. If `need_new_scrape`, run **lab_brand_scrape** (it will also dedupe by default); otherwise reuse `scrape_id` from the resolve response.
 
 1. **Resolve or list existing scrapes**
 
@@ -255,9 +255,13 @@ Same MCP key as all other tools.
 
 2. **Run a new scrape (only when needed)**
 
-   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, include `{ "personas": true, "segments": true }`, wait_for_complete true.
+   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, include `{ "personas": true, "segments": true }`, wait_for_complete true. Add `force_new: true` only to bypass dedupe.
 
-3. **Fetch one scrape for demos**
+3. **Cancel stuck scrapes**
+
+   > lab_cancel_brand_scrape: sandbox apalmer, scrape_id `<stuck-id>`. Or Portal Brand scraper history card → **Cancel**.
+
+4. **Fetch one scrape for demos**
 
    > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id>`. Use summary in conversation; full `lab` payload for CJv2 / LLM Demo import.
 

@@ -439,6 +439,16 @@ export async function brandScrapeAnalyze(params) {
   };
 
   if (params.existing_scrape_id) body.existingScrapeId = params.existing_scrape_id;
+  if (params.force_new === true) {
+    body.forceNew = true;
+    body.preferExisting = false;
+  } else if (params.prefer_existing === false) {
+    body.preferExisting = false;
+  } else if (params.prefer_existing !== false) {
+    body.preferExisting = true;
+  }
+  if (params.require_personas === false) body.requirePersonas = false;
+  if (params.require_complete === false) body.requireComplete = false;
   if (params.sync === true) {
     body.sync = true;
     body.async = false;
@@ -522,6 +532,23 @@ export async function getBrandScrape({ sandbox, scrapeId, version }) {
       ...(version ? { version } : {}),
     },
     timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/brand-scraper/scrapes/{scrapeId}/cancel?sandbox=
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} params.scrapeId
+ * @param {string} [params.reason]
+ */
+export async function cancelBrandScrape({ sandbox, scrapeId, reason }) {
+  const path = `/api/brand-scraper/scrapes/${encodeURIComponent(scrapeId)}/cancel`;
+  return labApiRequest(path, {
+    method: 'POST',
+    query: { sandbox },
+    body: reason ? { reason } : {},
+    timeoutMs: 30_000,
   });
 }
 

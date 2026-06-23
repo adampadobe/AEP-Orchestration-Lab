@@ -475,6 +475,30 @@ async function run() {
   const norm = normalizeBrandScrapeUrl('https://www.Nike.com/');
   assert(norm && norm.key === 'nike.com/', 'normalizeBrandScrapeUrl strips www');
   assert(brandScrapeUrlsMatch('https://nike.com', norm), 'url match nike');
+  const sbNorm = normalizeBrandScrapeUrl('https://www.starbucks.ae/en');
+  assert(sbNorm && sbNorm.key === 'starbucks.ae/en', 'normalize starbucks.ae/en');
+  const sbResolved = resolveBrandScrapeFromList(
+    [
+      {
+        scrapeId: 'home1',
+        url: 'https://www.starbucks.ae/en',
+        brandName: 'Homepage',
+        scrapeStatus: 'complete',
+        personasPresent: true,
+        updatedAt: '2026-06-23T12:20:00.000Z',
+      },
+      {
+        scrapeId: 'dup1',
+        url: 'https://starbucks.ae/en',
+        brandName: 'Starbucks',
+        scrapeStatus: 'running',
+        personasPresent: false,
+        updatedAt: '2026-06-23T12:16:00.000Z',
+      },
+    ],
+    { url: 'https://www.starbucks.ae/en', require_personas: true, require_complete: true },
+  );
+  assert(!sbResolved.need_new_scrape && sbResolved.scrape_id === 'home1', 'resolve reuses Homepage complete starbucks scrape');
   const resolved = resolveBrandScrapeFromList(
     [
       {

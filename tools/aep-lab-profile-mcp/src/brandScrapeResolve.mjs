@@ -152,7 +152,7 @@ export function resolveBrandScrapeFromList(items, options = {}) {
     alternatives: matches.slice(1, 5).map((item) => summarizeBrandScrapeListItem(item)),
     coworkerHints: {
       reuse: `Reuse scrape_id ${best.scrapeId} with lab_prepare_demo_from_brand_scrape or lab_generate_profile_from_brand_scrape.`,
-      refresh: 'Call lab_brand_scrape with prefer_existing:false (or set require_complete:false) only when you need a fresh crawl.',
+      refresh: 'Call lab_brand_scrape with force_new:true only when you need a fresh crawl.',
     },
   };
 }
