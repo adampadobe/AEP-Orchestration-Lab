@@ -90,7 +90,6 @@ function buildMinimalEdgeXdm(body) {
   const now = (typeof b.timestamp === 'string' && b.timestamp.trim()) || new Date().toISOString();
   const _id = b._id != null ? String(b._id) : String(Date.now());
   const eventType = (b.eventType || '').trim() || 'transaction';
-  const orchestrationId = (b.eventID || b.orchestrationEventID || '').trim();
   const email = (b.email || '').trim();
   const ecidRaw = b.ecid ? String(b.ecid).trim() : '';
   const ecidOk = isValidEdgeEcid(ecidRaw);
@@ -105,10 +104,6 @@ function buildMinimalEdgeXdm(body) {
     eventType,
     timestamp: now,
   };
-
-  if (orchestrationId) {
-    xdm._experience = { campaign: { orchestration: { eventID: orchestrationId } } };
-  }
 
   const ch = normalizeInteractionDetailsChannel(
     b.channel == null ? '' : typeof b.channel === 'string' ? b.channel.trim() : String(b.channel).trim(),

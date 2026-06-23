@@ -47,16 +47,31 @@ test('buildMinimalEdgeXdm adds root interactionDetails.core.channel without tena
   assert.equal(xdm.channel, undefined);
 });
 
-test('buildXdm minimal omits orchestration eventID unless provided', () => {
-  const xdm = buildXdm({ email: EMAIL, ecid: ECID, eventType: 'transaction' });
-  assert.equal(xdm._experience, undefined);
-  const withOrch = buildXdm({
+test('buildMinimalEdgeXdm ignores orchestration eventID (skinny payload)', () => {
+  const xdm = buildMinimalEdgeXdm({
     email: EMAIL,
-    ecid: ECID,
     eventType: 'transaction',
     eventID: 'orch-abc',
+    channel: 'web',
   });
-  assert.equal(withOrch._experience.campaign.orchestration.eventID, 'orch-abc');
+  assert.equal(xdm._experience, undefined);
+});
+
+test('buildXdm with xdmStyle minimal ignores eventID and view fields', () => {
+  const xdm = buildXdm({
+    email: EMAIL,
+    eventType: 'transaction',
+    xdmStyle: 'minimal',
+    eventID: 'orch-abc',
+    viewName: 'Home',
+    viewUrl: 'https://example.com',
+    channel: 'email',
+  });
+  assert.equal(xdm._experience, undefined);
+  assert.equal(xdm.web, undefined);
+  assert.equal(xdm.interactionDetails.core.channel, 'email');
+  assert.equal(xdm.identityMap.ECID, undefined);
+  assert.equal(xdm.identityMap.Email[0].primary, true);
 });
 
 test('buildXdm stays minimal when only channel is set', () => {

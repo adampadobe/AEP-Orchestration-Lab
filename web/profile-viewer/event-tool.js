@@ -1136,12 +1136,6 @@
       body.eventType = key;
     } else {
       body.eventType = (dom.eventType.value || '').trim() || 'transaction';
-      const orchId = (dom.orchId.value || '').trim();
-      if (orchId) body.eventID = orchId;
-      const vn = (dom.viewName.value || '').trim();
-      const vu = (dom.viewUrl.value || '').trim();
-      if (vn) body.viewName = vn;
-      if (vu) body.viewUrl = vu;
     }
     return { body };
   }
@@ -1159,12 +1153,23 @@
     return false;
   }
 
+  function normalizePreviewChannel(raw) {
+    var chNorm = String(raw || '').trim().toLowerCase();
+    if (!chNorm) return '';
+    if (chNorm === 'mobile app' || chNorm === 'app') return 'mobile';
+    if (chNorm === 'website') return 'web';
+    if (chNorm === 'call center' || chNorm === 'call centre' || chNorm === 'cx') return 'callcentre';
+    if (chNorm === 'point of sale') return 'pos';
+    if (chNorm === 'travel agent') return 'agent';
+    return chNorm;
+  }
+
   function buildPreviewXdm(body) {
     var now = new Date().toISOString();
     var _id = String(Date.now());
     var eventType = body.eventType || 'transaction';
-    var email = body.email || '';
-    var ecid = body.ecid || '';
+    var email = (body.email || '').trim();
+    var ecid = body.ecid ? String(body.ecid).trim() : '';
 
     var ecidOk = isValidEdgeEcid(ecid);
     var identityMap = {};
@@ -1178,22 +1183,16 @@
       timestamp: now,
     };
 
-    var orchId = (body.eventID || body.orchestrationEventID || '').trim();
-    if (orchId) {
-      xdm._experience = { campaign: { orchestration: { eventID: orchId } } };
-    }
-
-    var chNorm = String(body.channel || '').trim().toLowerCase();
-    if (chNorm === 'mobile app' || chNorm === 'app') chNorm = 'mobile';
-    else if (chNorm === 'website') chNorm = 'web';
-    else if (chNorm === 'call center' || chNorm === 'cx') chNorm = 'callcentre';
-    else if (chNorm === 'point of sale') chNorm = 'pos';
-    else if (chNorm === 'travel agent') chNorm = 'agent';
+    var chNorm = normalizePreviewChannel(body.channel);
     if (chNorm) {
       xdm.interactionDetails = { core: { channel: chNorm } };
     }
 
     if (shouldUseRichPreview(body)) {
+      var orchId = (body.eventID || body.orchestrationEventID || '').trim();
+      if (orchId) {
+        xdm._experience = { campaign: { orchestration: { eventID: orchId } } };
+      }
       var tenantKey = (body.xdmTenantKey || body.xdm_tenant_key || '_demoemea').trim();
       var tenantNode = { identification: { core: { ecid: ecid || '', email: email || '' } } };
       if (body.public && typeof body.public === 'object') {

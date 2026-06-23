@@ -50,7 +50,7 @@
             <!-- ═══════════ Query profile (sandbox + identity) ═══════════ -->
             <div class="profile-box et-full-width" id="lookupPanel">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Query profile</h3>
-              <p class="field-hint event-gen-box-intro">Select a <strong>sandbox</strong> and <strong>identity namespace</strong>, enter the identifier, then click <strong>Query profile</strong> to resolve the ECID for event sending.</p>
+              <p class="field-hint event-gen-box-intro">Select a <strong>sandbox</strong> and <strong>identity namespace</strong>, enter an identifier (<strong>email or ECID</strong>), then click <strong>Query profile</strong> to confirm identity before sending.</p>
               <div class="profile-box-content">
                 <div class="config-row">
                   <div class="form-row profile-viewer-sandbox-row">
@@ -71,7 +71,7 @@
                   </div>
                   <div class="form-row profile-viewer-email-row">
                     <label for="etIdentifier">Identifier value</label>
-                    <input type="text" id="etIdentifier" placeholder="Enter email address" autocomplete="off">
+                    <input type="text" id="etIdentifier" placeholder="Email or ECID" autocomplete="off">
                   </div>
                   <div class="form-row form-row--action profile-gen-actions">
                     <button type="button" id="etQueryBtn" class="btn btn-primary btn-query">Query profile</button>
