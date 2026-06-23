@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260623-event-tool-two-step">
+  <link rel="stylesheet" href="event-tool.css?v=20260623-event-tool-channel">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -175,6 +175,22 @@
             <div class="profile-box profile-box--event-def et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Event</h3>
               <div class="profile-box-content">
+                <p class="field-hint event-gen-box-intro">Choose a <strong>channel</strong>, then an <strong>event type</strong>, then send.</p>
+                <div class="form-row et-channel-row">
+                  <label for="etChannel">Channel</label>
+                  <select id="etChannel" class="sandbox-select" aria-label="Interaction channel">
+                    <option value="web" selected>Web</option>
+                    <option value="mobile">Mobile</option>
+                    <option value="email">Email</option>
+                    <option value="messaging">Messaging</option>
+                    <option value="pos">Point of sale</option>
+                    <option value="callcentre">Call centre</option>
+                    <option value="kiosk">Kiosk</option>
+                    <option value="agent">Travel agent</option>
+                    <option value="partner">Partner</option>
+                  </select>
+                </div>
+
                 <div class="et-mode-toggle">
                   <button type="button" class="et-mode-btn et-mode-btn--active" data-mode="trigger">Quick trigger</button>
                   <button type="button" class="et-mode-btn" data-mode="custom">Custom event</button>
@@ -228,10 +244,6 @@
                     <label for="etViewUrl">URL <span class="field-hint">(optional)</span></label>
                     <input type="text" id="etViewUrl" placeholder="e.g. https://example.com/page">
                   </div>
-                  <div class="form-row">
-                    <label for="etChannel">Channel <span class="field-hint">(optional)</span></label>
-                    <input type="text" id="etChannel" placeholder="e.g. Web, Email, App" autocomplete="off">
-                  </div>
                 </div>
 
                 <div class="button-row event-gen-send-actions">
@@ -269,7 +281,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="event-tool.js?v=20260623-event-tool-schema-dataset-sync"></script>
+  <script src="event-tool.js?v=20260623-event-tool-channel"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>

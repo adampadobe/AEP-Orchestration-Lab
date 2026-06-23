@@ -12,7 +12,7 @@ const { buildLabFirestoreGeneratorPresets, LAB_EVENT_TOOL_TARGET_ID } = require(
 const ECID = '62722406001178632594092146103219305888';
 const EMAIL = 'demo+001@adobetest.com';
 
-test('buildMinimalEdgeXdm is identityMap + eventType + _id + timestamp only', () => {
+test('buildMinimalEdgeXdm is identityMap + eventType + _id + timestamp only when channel omitted', () => {
   const xdm = buildMinimalEdgeXdm({
     email: EMAIL,
     ecid: ECID,
@@ -28,6 +28,22 @@ test('buildMinimalEdgeXdm is identityMap + eventType + _id + timestamp only', ()
   assert.equal(xdm._demoemea, undefined);
   assert.equal(xdm.demoemea, undefined);
   assert.equal(xdm._experience, undefined);
+  assert.equal(xdm.interactionDetails, undefined);
+});
+
+test('buildMinimalEdgeXdm adds root interactionDetails.core.channel without tenant mirror', () => {
+  const xdm = buildMinimalEdgeXdm({
+    email: EMAIL,
+    ecid: ECID,
+    eventType: 'transaction',
+    channel: 'web',
+    timestamp: '2026-06-23T12:00:00.000Z',
+    _id: '12345',
+  });
+  assert.deepEqual(Object.keys(xdm).sort(), ['_id', 'eventType', 'identityMap', 'interactionDetails', 'timestamp']);
+  assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.equal(xdm._demoemea, undefined);
+  assert.equal(xdm.channel, undefined);
 });
 
 test('buildXdm minimal omits orchestration eventID unless provided', () => {
@@ -42,16 +58,15 @@ test('buildXdm minimal omits orchestration eventID unless provided', () => {
   assert.equal(withOrch._experience.campaign.orchestration.eventID, 'orch-abc');
 });
 
-test('buildXdm rich when channel is set', () => {
+test('buildXdm stays minimal when only channel is set', () => {
   const xdm = buildXdm({
     email: EMAIL,
     ecid: ECID,
     eventType: 'transaction',
     channel: 'web',
   });
-  assert.ok(xdm._demoemea);
-  assert.equal(xdm._demoemea.interactionDetails.core.channel, 'web');
-  assert.ok(xdm.demoemea);
+  assert.equal(xdm._demoemea, undefined);
+  assert.equal(xdm.demoemea, undefined);
   assert.equal(xdm.interactionDetails.core.channel, 'web');
 });
 
@@ -90,6 +105,10 @@ test('buildXdm rich when viewName is set', () => {
 test('buildXdm minimal omits web when only identity fields set', () => {
   const xdm = buildXdm({ email: EMAIL, ecid: ECID, eventType: 'transaction' });
   assert.equal(xdm.web, undefined);
+});
+
+test('shouldUseRichEdgeXdm is false when only channel is set', () => {
+  assert.equal(shouldUseRichEdgeXdm({ channel: 'web' }), false);
 });
 
 test('shouldUseRichEdgeXdm respects explicit minimal style', () => {

@@ -71,9 +71,6 @@ function shouldUseRichEdgeXdm(body) {
   const explicitTenant = String(b.xdmTenantKey || b.xdm_tenant_key || b.xdmTenantNamespace || '').trim();
   if (explicitTenant) return true;
 
-  const ch = b.channel == null ? '' : String(b.channel).trim();
-  if (ch) return true;
-
   if (b.message && typeof b.message === 'object' && !Array.isArray(b.message) && Object.keys(b.message).length > 0) {
     return true;
   }
@@ -110,6 +107,13 @@ function buildMinimalEdgeXdm(body) {
 
   if (orchestrationId) {
     xdm._experience = { campaign: { orchestration: { eventID: orchestrationId } } };
+  }
+
+  const ch = normalizeInteractionDetailsChannel(
+    b.channel == null ? '' : typeof b.channel === 'string' ? b.channel.trim() : String(b.channel).trim(),
+  );
+  if (ch) {
+    xdm.interactionDetails = { core: { channel: ch } };
   }
 
   return xdm;

@@ -77,7 +77,16 @@
 .et-config-step-row .form-row.et-ds-id-row { flex: 2 1 22rem; }
 .et-config-step-row .form-row.form-row--action { flex: 0 0 auto; }
 
-/* Full-width cards */
+/* Channel selector — shared above quick trigger / custom event */
+.et-channel-row {
+  max-width: 22rem;
+  margin-bottom: 0.75rem;
+}
+
+.et-channel-row .sandbox-select {
+  width: 100%;
+}
+
 .et-full-width { grid-column: 1 / -1 !important; }
 
 /* Mode toggle pills */

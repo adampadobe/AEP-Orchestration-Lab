@@ -78,6 +78,8 @@
 
   /** Default event schema title — mirrors profile-gen `AEP Lab - … - Schema` naming. */
   const DEFAULT_EVENT_SCHEMA_TITLE = 'AEP Lab - Event Generic - Schema';
+  const CHANNEL_STORAGE_KEY = 'aepEventToolChannel';
+  const DEFAULT_CHANNEL = 'web';
   /** True once the operator edits dataset name away from auto-derived value. */
   let datasetNameTouched = false;
   /** Guard: programmatic dataset writes must not flip datasetNameTouched. */
@@ -122,7 +124,36 @@
     }
   }
 
-  function bindSchemaDatasetNameSync() {
+  function getSelectedChannel() {
+    if (!dom.channel) return DEFAULT_CHANNEL;
+    const ch = (dom.channel.value || '').trim();
+    return ch || DEFAULT_CHANNEL;
+  }
+
+  function persistChannelSelection() {
+    try {
+      sessionStorage.setItem(CHANNEL_STORAGE_KEY, getSelectedChannel());
+    } catch { /* ignore */ }
+  }
+
+  function restoreChannelSelection() {
+    if (!dom.channel) return;
+    try {
+      const saved = sessionStorage.getItem(CHANNEL_STORAGE_KEY);
+      if (saved && dom.channel.querySelector('option[value="' + saved.replace(/"/g, '') + '"]')) {
+        dom.channel.value = saved;
+      } else {
+        dom.channel.value = DEFAULT_CHANNEL;
+      }
+    } catch {
+      dom.channel.value = DEFAULT_CHANNEL;
+    }
+  }
+
+  if (dom.channel) {
+    dom.channel.addEventListener('change', persistChannelSelection);
+  }
+
     if (dom.schemaTitle) {
       dom.schemaTitle.addEventListener('input', function () {
         syncDatasetFromSchema(false);
@@ -1035,7 +1066,7 @@
     const email = resolvedEmail || (dom.identifier.value || '').trim();
     if (!email) return { error: 'Enter an identifier first.' };
 
-    const body = { datastreamId: dsId, email };
+    const body = { datastreamId: dsId, email, channel: getSelectedChannel() };
     if (resolvedEcid && resolvedEcid !== '—' && /^\d+$/.test(resolvedEcid) && resolvedEcid.length >= 10) {
       body.ecid = resolvedEcid;
     }
@@ -1056,8 +1087,6 @@
       const vu = (dom.viewUrl.value || '').trim();
       if (vn) body.viewName = vn;
       if (vu) body.viewUrl = vu;
-      const ch = (dom.channel.value || '').trim();
-      if (ch) body.channel = ch;
     }
     return { body };
   }
@@ -1068,7 +1097,6 @@
     if (style === 'full') return true;
     if (style === 'minimal') return false;
     if (body.xdmTenantKey || body.xdm_tenant_key) return true;
-    if (body.channel && String(body.channel).trim()) return true;
     if (body.message && typeof body.message === 'object' && Object.keys(body.message).length) return true;
     if (body.public && typeof body.public === 'object' && Object.keys(body.public).length) return true;
     if (body.viewName && String(body.viewName).trim()) return true;
@@ -1120,15 +1148,24 @@
       xdm._experience = { campaign: { orchestration: { eventID: orchId } } };
     }
 
+    var chNorm = String(body.channel || '').trim().toLowerCase();
+    if (chNorm === 'mobile app' || chNorm === 'app') chNorm = 'mobile';
+    else if (chNorm === 'website') chNorm = 'web';
+    else if (chNorm === 'call center' || chNorm === 'cx') chNorm = 'callcentre';
+    else if (chNorm === 'point of sale') chNorm = 'pos';
+    else if (chNorm === 'travel agent') chNorm = 'agent';
+    if (chNorm) {
+      xdm.interactionDetails = { core: { channel: chNorm } };
+    }
+
     if (shouldUseRichPreview(body)) {
       var tenantKey = (body.xdmTenantKey || body.xdm_tenant_key || '_demoemea').trim();
       var tenantNode = { identification: { core: { ecid: ecid || '', email: email || '' } } };
       if (body.public && typeof body.public === 'object') {
         tenantNode.public = JSON.parse(JSON.stringify(body.public));
       }
-      var ch = (body.channel || '').trim();
-      if (ch) {
-        tenantNode.interactionDetails = { core: { channel: ch.toLowerCase() === 'mobile app' ? 'mobile' : ch.toLowerCase() } };
+      if (chNorm) {
+        tenantNode.interactionDetails = { core: { channel: chNorm } };
       }
       if (body.message && typeof body.message === 'object') {
         tenantNode.message = JSON.parse(JSON.stringify(body.message));
@@ -1265,6 +1302,7 @@
 
   async function init() {
     bindSchemaDatasetNameSync();
+    restoreChannelSelection();
     await initSandboxSelect();
     loadTriggerTemplates();
     if (window.__aepLabSyncReady) {
