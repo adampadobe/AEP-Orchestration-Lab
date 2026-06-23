@@ -79,6 +79,7 @@ export function buildCommonPersonaAttributes(email) {
   if (age != null) assign(attrs, 'individualCharacteristics.core.age', age);
   assign(attrs, 'mobilePhone.number', labDefaultMobilePhone());
   assign(attrs, 'consents.marketing.preferred', preferredChannel);
+  assign(attrs, 'preferredLanguage', language);
   assign(attrs, 'preferences.preferredLanguage', language);
   assign(attrs, 'personalEmail.language', language);
   assign(attrs, 'scoring.churn.churnPrediction', randomBetween(0, 100));

@@ -6,6 +6,10 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
+import {
+  ensurePreferredLanguageOnAttributes,
+  normalizeGenerateProfileParams,
+} from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 
 /**
@@ -18,11 +22,13 @@ export function registerGenerateProfileTool(mcpServer) {
       title: 'Generate / stream test profile',
       description:
         'POST /api/profile/generate — streams a sample profile via the lab saved industry HTTP connection (Firestore manifest). ' +
-        'Requires sandbox on MCP allowlist and industry connection ready (lab_sandbox_profile_config). ' +
+        'Requires sandbox on MCP allowlist and industry connection ready (lab_sandbox_profile_config / lab_preflight_profile_generate). ' +
         'Email: use @adobetest.com plus-addressing (e.g. travel.demo+001@adobetest.com). ' +
-        'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/); sets testProfile:true by default and lab mobile +447425627462. ' +
+        'CRITICAL: test_profile defaults true (AEP test profile); false requires test_profile_override_reason. ' +
+        'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
+        'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
         'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
-        'See lab_get_execution_framework and lab_get_industry_playbook for full lab conventions.',
+        'See lab_get_execution_framework criticalRules and lab_get_industry_playbook.',
       inputSchema: {
         email: z.string().email().describe('Profile email address'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -53,7 +59,11 @@ export function registerGenerateProfileTool(mcpServer) {
         test_profile: z
           .boolean()
           .optional()
-          .describe('Set testProfile flag on payload (lab default true when omitted)'),
+          .describe('Mark as AEP test profile (lab default true when omitted). false requires test_profile_override_reason.'),
+        test_profile_override_reason: z
+          .string()
+          .optional()
+          .describe('Required when test_profile is false — non-demo justification only'),
       },
     },
     async ({
@@ -66,6 +76,7 @@ export function registerGenerateProfileTool(mcpServer) {
       segment_hint,
       append_if_existing,
       test_profile,
+      test_profile_override_reason,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -118,13 +129,27 @@ export function registerGenerateProfileTool(mcpServer) {
         );
       }
 
+      if (mergedAttributes && typeof mergedAttributes === 'object' && Object.keys(mergedAttributes).length > 0) {
+        mergedAttributes = ensurePreferredLanguageOnAttributes(mergedAttributes).attributes;
+      }
+
+      const normalized = normalizeGenerateProfileParams({
+        test_profile,
+        test_profile_override_reason,
+        attributes: mergedAttributes,
+        ensureLanguage: false,
+      });
+      if (!normalized.ok) {
+        return toolError(normalized.error);
+      }
+
       const apiResult = await generateProfile({
         email,
         sandbox: allowed.sandbox,
         industry: norm.industry,
-        attributes: mergedAttributes,
+        attributes: normalized.attributes,
         append_if_existing,
-        test_profile,
+        test_profile: normalized.test_profile,
       });
 
       writeAuditLog({
@@ -147,7 +172,26 @@ export function registerGenerateProfileTool(mcpServer) {
         aliasNote: norm.aliasNote,
         randomized: useRandomize && (!attributes || !Object.keys(attributes).length),
         segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
+        test_profile: normalized.test_profile,
+        preferredLanguage: readLanguageFromAttrs(normalized.attributes),
+        lab_defaults_applied: {
+          test_profile: normalized.test_profile,
+          preferredLanguage: readLanguageFromAttrs(normalized.attributes),
+        },
       });
     },
+  );
+}
+
+/**
+ * @param {Record<string, unknown> | undefined} attrs
+ */
+function readLanguageFromAttrs(attrs) {
+  if (!attrs) return null;
+  return (
+    attrs.preferredLanguage ||
+    attrs['preferences.preferredLanguage'] ||
+    attrs['personalEmail.language'] ||
+    null
   );
 }

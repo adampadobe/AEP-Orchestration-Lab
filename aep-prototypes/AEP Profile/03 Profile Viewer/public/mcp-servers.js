@@ -26,8 +26,11 @@
       product: 'AEP Orchestration Lab (Cloud Run)',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
-        'Lab-hosted Streamable HTTP MCP (v3.1) for Adobe AI Coworker and Cursor: list industries and sandboxes, check profile infra status, generate stream test profiles (7-industry persona parity + segment_hint packs for travel/fsi/retail), batch seed up to 100 profiles, get/lookup/update UPS profiles (full-snapshot stitch), profile activity (events + channels), and run infra provisioning via the hosted lab APIs — all with a single X-AEP-Lab-Mcp-Key.',
+        'Lab-hosted Streamable HTTP MCP (v3.4) for Adobe AI Coworker and Cursor: criticalRules (testProfile + preferredLanguage + sandbox preflight), lab execution framework + per-industry playbooks (resources + tools), list industries/sandboxes, profile infra, generate stream test profiles (7-industry persona parity + segment_hint packs), lab_preflight_profile_generate dry-run, batch seed, get/lookup/update UPS (full-snapshot stitch), profile activity, events, and sandbox onboarding — all with X-AEP-Lab-Mcp-Key.',
       useCases: [
+        'Call lab_get_execution_framework criticalRules + lab_preflight_profile_generate before first generate on a sandbox',
+        'Call lab_get_execution_framework / lab_get_industry_playbook — lab conventions without manual retraining',
+        'Read MCP resources lab://framework/overview and lab://framework/industries/{industry}',
         'Generate industry-specific test profiles in allowed sandboxes (apalmer, kirkham) with randomize/fill_sample_data',
         'Seed segment personas: travel hotel_high_value/hotel_reactivation, fsi high_net_worth/credit_rebuild, retail loyalty_vip/cart_abandoner',
         'Batch seed N profiles asynchronously and poll job status',
@@ -40,7 +43,7 @@
         'Look up profile table data by namespace and identifier from conversation',
       ],
       configNotes:
-        'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http", url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <your key>. Sign in on MCP servers page (Profile Viewer → MCP servers) to generate, rotate, or revoke a personal key scoped to your workspace sandbox — or use the shared ops key from GCP Secret Manager. Never commit secrets. Tools: lab_list_industries, lab_list_sandboxes, lab_mcp_access_info, lab_profile_infra_status, lab_generate_profile, lab_lookup_profile, lab_get_profile, lab_update_profile, lab_profile_activity, lab_list_event_targets, lab_send_profile_event, lab_send_edge_event, lab_sandbox_profile_config, lab_onboard_sandbox, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools — MCP client timeout ≥ 300s. Verify allowlist with lab_mcp_access_info.',
+        'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http", url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <your key>. Sign in on MCP servers page (Profile Viewer → MCP servers) to generate, rotate, or revoke a personal key scoped to your workspace sandbox — or use the shared ops key from GCP Secret Manager. Never commit secrets. Framework: lab_get_execution_framework (criticalRules), lab_get_industry_playbook, lab_preflight_profile_generate, resources lab://framework/*. Tools: lab_list_industries, lab_list_sandboxes, lab_mcp_access_info, lab_profile_infra_status, lab_generate_profile (defaults test_profile:true + preferredLanguage en-US), lab_lookup_profile, lab_get_profile, lab_update_profile, lab_profile_activity, lab_list_event_targets, lab_send_profile_event, lab_send_edge_event, lab_sandbox_profile_config, lab_onboard_sandbox, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools — MCP client timeout ≥ 300s. Verify allowlist with lab_mcp_access_info.',
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',

@@ -14,7 +14,7 @@ export function registerGetIndustryPlaybookTool(mcpServer) {
     {
       title: 'Get per-industry lab playbook',
       description:
-        'Industry param returns persona field groups, tenant XDM paths, segment_hints + semantics, infra prerequisites, and example Coworker prompt chain. ' +
+        'Industry param returns persona field groups, tenant XDM paths, testProfile + preferredLanguage rules, dataflow manifest shape, segment_hints + semantics, failure_modes, infra prerequisites, and example Coworker prompt chain. ' +
         'Omit industry to list all playbooks. Complements lab_generate_profile (randomize + segment_hint). ' +
         'Resource: lab://framework/industries/{industry}.',
       inputSchema: {

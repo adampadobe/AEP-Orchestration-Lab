@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.3). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.4). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, access info,
   getting/updating profiles (full-snapshot stitch), profile activity, provisioning
   profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.3)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.4)
 
-MCP server: **AEP Orchestration Lab MCP v3.3.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.4.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -24,18 +24,26 @@ Coworker should call these **before** improvising lab conventions:
 
 | Tool / resource | Purpose |
 |-----------------|--------|
-| **`lab_get_execution_framework`** | Workflows, dataflow pattern, when to use generate vs update vs event, conventions |
-| **`lab_get_industry_playbook`** | Per-industry persona paths, segment_hints, infra prerequisites, example prompt chain |
+| **`lab_get_execution_framework`** | **criticalRules** at top + workflows, dataflow pattern, when to use generate vs update vs event |
+| **`lab_get_industry_playbook`** | Per-industry persona paths, language/testProfile rules, dataflow manifest shape, failure_modes |
+| **`lab_preflight_profile_generate`** | Dry-run: sandbox config ready + what will be sent (testProfile, language, connection) without streaming |
 | `lab://framework/overview` | Markdown execution overview (MCP resource) |
-| `lab://framework/conventions` | Email, phone, testProfile, stitching rules |
+| `lab://framework/conventions` | Email, phone, testProfile, preferredLanguage, stitching rules |
 | `lab://framework/industries/{industry}` | JSON playbook for one industry |
+
+### Critical rules (always enforce)
+
+1. **testProfile** — every generated profile is an AEP test profile. MCP defaults `test_profile:true` → POST `body.testProfile` → server sets root `testProfile` + mirrors `xdm:testProfile`. Opt out only with `test_profile:false` + `test_profile_override_reason`.
+2. **preferredLanguage** — BCP-47 on `preferredLanguage` (root), `preferences.preferredLanguage`, and `personalEmail.language`. MCP randomize defaults `en-US` when missing. `profileStreamingCore.mirrorPreferredLanguageDemoSchema` dual-writes root + tenant.
+3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
+4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; `_demoemea.identification.core` mirrors both. Preflight: `lab_preflight_profile_event`.
 
 ### How the lab executes
 
 1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset.
 2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via the industry HTTP API connection. `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
-4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (does not rewrite profile attributes).
+4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (does not rewrite profile attributes). **Identity**: pass email **and** ecid from `lab_generate_profile`; `identityMap` uses ECID primary + Email secondary; `_demoemea.identification.core` mirrors both. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event`. Auto-fetches ecid from UPS when email-only.
 
 ### Test data conventions
 
@@ -44,12 +52,13 @@ Coworker should call these **before** improvising lab conventions:
 - **Mobile**: lab default **`+447425627462`** (Profile Viewer placeholder + bulk seed scripts; MCP randomize uses same).
 - **segment_hint** (with `randomize:true`): travel `hotel_high_value` \| `hotel_reactivation`; fsi `high_net_worth` \| `credit_rebuild`; retail `loyalty_vip` \| `cart_abandoner`.
 - **Industry aliases**: `telco` / `telecommunications` → `telecom`; `public` → `generic`.
+- **Known-profile events** (MCP / Event tool): after `lab_generate_profile`, capture **ecid** from response. Send with **both** email + ecid so `identityMap.ECID` is primary and `identityMap.Email` secondary; `_demoemea.identification.core` carries the same strings. See `lab_get_execution_framework` → `criticalRules.event_identity_stitch`.
 - **Anonymous Edge** (Web SDK demos): `getIdentity` then `sendEvent` with `identityMap.ECID` **and** `_<tenant>.identification.core.ecid` (same ECID string). See `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`.
 - **Profile Core v2 top-up**: travel sandboxes need `travelReservations.*` + `hotel.*` tenant leaves — provision step 2 runs ADD-only patch from `profileCoreV2Manifest.js`.
 
-### Example prompt that needs zero manual context (v3.3+)
+### Example prompt that needs zero manual context (v3.4+)
 
-> Call **lab_get_execution_framework**, then **lab_get_industry_playbook** for travel. If sandbox apalmer travel is ready, **lab_generate_profile** with email `hotel.reactivation+001@adobetest.com`, randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile**.
+> Call **lab_get_execution_framework** (read criticalRules). **lab_preflight_profile_generate** for sandbox apalmer industry travel. If ready, **lab_get_industry_playbook** travel, then **lab_generate_profile** with email `hotel.reactivation+001@adobetest.com`, randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile**.
 
 ## Workflow 0 — Check MCP access
 
@@ -165,25 +174,31 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Re-run lab_profile_activity with include_audiences true if audience membership matters for the demo.
 
-## Workflow 5b — Send experience event (Phase 3.2)
+## Workflow 5b — Generate → event → verify (canonical chain)
 
-Mirrors Profile Viewer **Event tool**.
+Mirrors Profile Viewer **Event tool** identity rules (`eventEdgeService.buildXdm`).
 
 1. **Generate profile and capture ECID**
 
-   > lab_generate_profile: sandbox apalmer, industry travel, email event.demo+001@adobetest.com, randomize true. Save ecid from the response.
+   > lab_generate_profile: sandbox apalmer, industry travel, email event.demo+001@adobetest.com, randomize true. **Save ecid from the response.**
 
-2. **List event targets**
+2. **Optional preflight (no send)**
 
-   > lab_list_event_targets for sandbox apalmer. Pick a target_id (Edge or DCS streaming).
+   > lab_preflight_profile_event: sandbox apalmer, email event.demo+001@adobetest.com, ecid from step 1. Confirm identityMap + target_id lab-event-tool-edge.
 
-3. **Send event**
+3. **List event targets**
 
-   > lab_send_profile_event: sandbox apalmer, email event.demo+001@adobetest.com, ecid from step 1, target_id from step 2, event_type transaction, view_name "Lab demo page", channel web.
+   > lab_list_event_targets for sandbox apalmer. Pick target_id (default **lab-event-tool-edge**).
 
-4. **Verify**
+4. **Send event (email + ecid)**
 
-   > lab_profile_activity for sandbox apalmer, identifier event.demo+001@adobetest.com. Confirm event count increased and recent events include the sent type.
+   > lab_send_profile_event: sandbox apalmer, email event.demo+001@adobetest.com, ecid from step 1, target_id lab-event-tool-edge, event_type transaction, view_name "Lab demo page", channel web.
+
+5. **Verify**
+
+   > lab_profile_activity for sandbox apalmer, identifier event.demo+001@adobetest.com. Confirm event count increased (allow UPS lag 30–60s).
+
+**If ecid omitted:** MCP auto-fetches from UPS by email; response includes `warnings` when stitching may be weak.
 
 **Public-sector donation demo:**
 
@@ -191,7 +206,7 @@ Mirrors Profile Viewer **Event tool**.
 
 **Advanced (direct datastream):**
 
-   > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email event.demo+001@adobetest.com, ecid …, event_type transaction.
+   > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email event.demo+001@adobetest.com, ecid from generate, event_type transaction.
 
 ## Workflow 6 — Batch seed N profiles
 

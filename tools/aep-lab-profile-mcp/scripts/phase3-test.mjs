@@ -16,6 +16,21 @@ import { assertSandboxAllowedForAccess } from '../src/sandboxAllowlist.mjs';
 import { checkBatchJobRate, checkEdgeSendRate, checkGenerateRate } from '../src/rateLimiter.mjs';
 import { keyIdFromApiKey } from '../src/auditLog.mjs';
 import { LAB_INDUSTRY_KEYS } from '../src/industries.mjs';
+import {
+  ensurePreferredLanguageOnAttributes,
+  normalizeGenerateProfileParams,
+  resolveTestProfileParam,
+} from '../src/framework/generateProfileParams.mjs';
+import { CRITICAL_RULES } from '../src/framework/labFramework.mjs';
+import {
+  buildDemoemeaIdentificationCore,
+  buildEventIdentityMap,
+  buildEventPreflightSummary,
+  extractEcidFromProfileTable,
+  isValidEcid,
+  resolveEventIdentities,
+  validateEventIdentity,
+} from '../src/framework/eventIdentity.mjs';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -45,6 +60,98 @@ function getPathValue(attrs, path) {
     return obj && typeof obj === 'object' ? obj[key] : undefined;
   }
   return attrs[path];
+}
+
+function testTestProfileDefaults() {
+  const defaultResolved = resolveTestProfileParam({});
+  assert(defaultResolved.ok && defaultResolved.test_profile === true, 'test_profile defaults true');
+
+  const blocked = resolveTestProfileParam({ test_profile: false });
+  assert(!blocked.ok && String(blocked.error).includes('test_profile_override_reason'), 'false without reason blocked');
+
+  const override = resolveTestProfileParam({
+    test_profile: false,
+    test_profile_override_reason: 'production identity migration test',
+  });
+  assert(override.ok && override.test_profile === false, 'false with reason allowed');
+
+  const normalized = normalizeGenerateProfileParams({ test_profile: undefined });
+  assert(normalized.ok && normalized.test_profile === true, 'normalize defaults test_profile true');
+}
+
+function testPreferredLanguageOnPersona() {
+  for (const industry of LAB_INDUSTRY_KEYS) {
+    const attrs = buildPersonaAttributes(industry, `${industry}@test.com`);
+    assert(attrs['preferredLanguage'], `${industry}: root preferredLanguage`);
+    assert(attrs['preferences.preferredLanguage'], `${industry}: preferences.preferredLanguage`);
+    assert(attrs['personalEmail.language'], `${industry}: personalEmail.language`);
+    const lang = attrs['preferredLanguage'];
+    assert(typeof lang === 'string' && lang.includes('-'), `${industry}: BCP-47 language`);
+  }
+
+  const empty = ensurePreferredLanguageOnAttributes({});
+  assert(empty.appliedDefault && empty.language === 'en-US', 'empty attrs get en-US default');
+  assert(empty.attributes['preferredLanguage'] === 'en-US', 'default on root path');
+
+  const partial = ensurePreferredLanguageOnAttributes({ 'personalEmail.language': 'fr-FR' });
+  assert(partial.language === 'fr-FR' && !partial.appliedDefault, 'existing language preserved');
+}
+
+function testCriticalRulesPresent() {
+  assert(Array.isArray(CRITICAL_RULES) && CRITICAL_RULES.length >= 4, 'criticalRules array');
+  const ids = CRITICAL_RULES.map((r) => r.id);
+  assert(ids.includes('test_profile_required'), 'test_profile rule');
+  assert(ids.includes('preferred_language_required'), 'language rule');
+  assert(ids.includes('sandbox_config_preflight'), 'preflight rule');
+  assert(ids.includes('event_identity_stitch'), 'event identity rule');
+}
+
+function testEventIdentityValidation() {
+  assert(!validateEventIdentity({}).ok, 'reject empty identity');
+  assert(!validateEventIdentity({ ecid: '123' }).ok, 'reject short ecid');
+  assert(validateEventIdentity({ ecid: '1234567890' }).ok, 'accept ecid only');
+  assert(validateEventIdentity({ email: 'a@b.com' }).ok, 'accept email only');
+
+  const both = buildEventIdentityMap({ email: 'demo@adobetest.com', ecid: '1234567890123' });
+  assert(both.ECID[0].primary === true, 'ECID primary when both');
+  assert(both.Email[0].primary === false, 'Email secondary when ecid present');
+
+  const emailOnly = buildEventIdentityMap({ email: 'demo@adobetest.com' });
+  assert(emailOnly.Email[0].primary === true, 'Email primary when ecid absent');
+  assert(!emailOnly.ECID, 'no ECID key when absent');
+
+  const core = buildDemoemeaIdentificationCore({ email: 'demo@adobetest.com', ecid: '9999999999' });
+  assert(core.ecid === '9999999999' && core.email === 'demo@adobetest.com', 'tenant core mirrors ids');
+
+  const extracted = extractEcidFromProfileTable({
+    ecid: '1111111111',
+    rows: [{ path: '_demoemea.identification.core.ecid', value: '2222222222' }],
+  });
+  assert(extracted === '1111111111', 'prefer top-level ecid');
+
+  const resolved = resolveEventIdentities({
+    email: 'demo@adobetest.com',
+    profileEcid: '3333333333',
+  });
+  assert(resolved.ok && resolved.ecid === '3333333333', 'auto-resolve ecid from profile');
+  assert(resolved.warnings.length >= 1, 'warn on auto-resolve');
+
+  const emailOnlyWarn = resolveEventIdentities({ email: 'solo@adobetest.com' });
+  assert(emailOnlyWarn.ok && !emailOnlyWarn.ecid, 'email-only resolves');
+  assert(emailOnlyWarn.warnings.some((w) => w.includes('email-only')), 'warn email-only');
+
+  const preflight = buildEventPreflightSummary({
+    sandbox: 'apalmer',
+    email: 'demo@adobetest.com',
+    ecid: '1234567890',
+    target_id: 'lab-event-tool-edge',
+    targets: [{ id: 'lab-event-tool-edge', dataStreamId: 'ds-abc', transport: 'edge' }],
+  });
+  assert(preflight.identity.identityMap.ECID, 'preflight identityMap');
+  assert(preflight.target.resolved?.dataStreamId === 'ds-abc', 'preflight target resolved');
+
+  assert(isValidEcid('1234567890'), 'isValidEcid true');
+  assert(!isValidEcid('abc'), 'isValidEcid false');
 }
 
 function testIndustryPersonas() {
@@ -126,6 +233,10 @@ async function run() {
   process.env.AEP_LAB_MCP_BATCH_STORE = 'memory';
   process.env.AEP_LAB_MCP_FIRESTORE = 'off';
 
+  testCriticalRulesPresent();
+  testEventIdentityValidation();
+  testTestProfileDefaults();
+  testPreferredLanguageOnPersona();
   testIndustryPersonas();
   testFsiIncomeCreditCorrelation();
   testSegmentHints();
@@ -162,9 +273,11 @@ async function run() {
   const { registerListEventTargetsTool } = await import('../src/tools/listEventTargets.mjs');
   const { registerSendProfileEventTool } = await import('../src/tools/sendProfileEvent.mjs');
   const { registerSendEdgeEventTool } = await import('../src/tools/sendEdgeEvent.mjs');
+  const { registerPreflightProfileEventTool } = await import('../src/tools/preflightProfileEvent.mjs');
   assert(typeof registerListEventTargetsTool === 'function', 'registerListEventTargetsTool');
   assert(typeof registerSendProfileEventTool === 'function', 'registerSendProfileEventTool');
   assert(typeof registerSendEdgeEventTool === 'function', 'registerSendEdgeEventTool');
+  assert(typeof registerPreflightProfileEventTool === 'function', 'registerPreflightProfileEventTool');
 
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');
@@ -179,7 +292,7 @@ async function run() {
 
   console.log(JSON.stringify({
     ok: true,
-    tests: 'phase3.2 persona parity + segment hints + ACL + rate limits + event tools',
+    tests: 'phase3.4 event identity + critical rules + testProfile/language + persona + ACL + rate limits',
     industries: LAB_INDUSTRY_KEYS.length,
     segmentPacks: { travel: TRAVEL_SEGMENT_HINTS, fsi: FSI_SEGMENT_HINTS, retail: RETAIL_SEGMENT_HINTS },
   }));

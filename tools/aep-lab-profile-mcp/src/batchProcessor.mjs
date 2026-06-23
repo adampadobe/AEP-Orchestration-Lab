@@ -4,6 +4,7 @@
 
 import { generateProfile } from './labApiClient.mjs';
 import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
+import { ensurePreferredLanguageOnAttributes, resolveTestProfileParam } from './framework/generateProfileParams.mjs';
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
 import { checkGenerateRate } from './rateLimiter.mjs';
@@ -59,6 +60,21 @@ export async function processBatchJob(jobId, { keyId }) {
     if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {
       attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null);
     }
+    if (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
+      attributes = ensurePreferredLanguageOnAttributes(attributes).attributes;
+    }
+
+    const testProfileResolved = resolveTestProfileParam({
+      test_profile: params.test_profile,
+      test_profile_override_reason: params.test_profile_override_reason,
+    });
+    if (!testProfileResolved.ok) {
+      failed += 1;
+      const errMsg = testProfileResolved.error;
+      errors.push({ index: i, email, error: errMsg });
+      results.push({ index: i, email, ok: false, error: errMsg });
+      continue;
+    }
 
     try {
       const genRate = checkGenerateRate(keyId);
@@ -74,7 +90,7 @@ export async function processBatchJob(jobId, { keyId }) {
         industry: params.industry,
         attributes,
         append_if_existing: params.append_if_existing,
-        test_profile: params.test_profile,
+        test_profile: testProfileResolved.test_profile,
       });
 
       if (apiResult.ok) {

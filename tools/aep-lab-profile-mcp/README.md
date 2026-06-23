@@ -1,19 +1,20 @@
-# AEP Orchestration Lab MCP (Phase 3.3)
+# AEP Orchestration Lab MCP (Phase 3.4)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.3.0** — 20 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.4.0** — 21 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
-## Framework tools & resources (v3.3)
+## Framework tools & resources (v3.4)
 
-Coworker should call **`lab_get_execution_framework`** first — encodes lab execution knowledge (not just API wrappers):
+Coworker should call **`lab_get_execution_framework`** first — encodes **criticalRules** (testProfile, preferredLanguage, sandbox preflight) plus lab execution knowledge:
 
 | Tool / URI | Purpose |
 |------------|---------|
-| `lab_get_execution_framework` | Workflows, conventions, dataflow pattern, segment catalog |
-| `lab_get_industry_playbook` | Per-industry persona paths, segment_hints, infra, example prompts |
+| `lab_get_execution_framework` | **criticalRules** array + workflows, conventions, dataflow pattern, segment catalog |
+| `lab_get_industry_playbook` | Per-industry persona paths, testProfile/language, dataflow manifest, failure_modes |
+| `lab_preflight_profile_generate` | Dry-run: config ready + payload preview (no AEP stream) |
 | `lab://framework/overview` | Markdown overview |
-| `lab://framework/conventions` | Email, `+447425627462`, testProfile, stitching |
+| `lab://framework/conventions` | Email, `+447425627462`, testProfile, preferredLanguage, stitching |
 | `lab://framework/industries/{industry}` | JSON industry playbook |
 | `lab://framework/overview.json` | Same as execution framework tool (JSON) |
 
@@ -23,19 +24,21 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 
 | Tool | Lab API | Notes |
 |------|---------|--------|
-| `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — call first in Coworker |
+| `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
+| `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
 | `lab_list_industries` | *(static)* | Canonical keys + alias notes |
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
-| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; `randomize`, optional `segment_hint` (travel, fsi, retail) |
+| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; defaults **test_profile:true**, enforces **preferredLanguage**; `randomize`, `segment_hint` |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
 | `lab_profile_activity` | events + consent APIs | Narration string; optional audiences |
 | `lab_list_event_targets` | `GET /api/events/generator-targets` | Static + Firestore Edge presets for Event tool |
-| `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (mirrors Event Generator UI) |
+| `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
+| `lab_send_profile_event` | `POST /api/events/generator` | Send experience event; auto-fetch ecid; email+ecid stitching |
 | `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |
 | `lab_batch_job_status` | *(job store)* | Poll `profile_batch` or `onboard_all` jobs |

@@ -7,6 +7,7 @@ import { normalizeSegmentHint } from '../personaBuilder.mjs';
 import { checkBatchJobRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
+import { normalizeGenerateProfileParams } from '../framework/generateProfileParams.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 const BATCH_MAX = 100;
@@ -66,7 +67,14 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .optional()
           .describe('Optional fixed attributes merged for every profile in the batch'),
         append_if_existing: z.boolean().optional(),
-        test_profile: z.boolean().optional(),
+        test_profile: z
+          .boolean()
+          .optional()
+          .describe('Mark as AEP test profile (default true). false requires test_profile_override_reason.'),
+        test_profile_override_reason: z
+          .string()
+          .optional()
+          .describe('Required when test_profile is false'),
       },
     },
     async ({
@@ -82,6 +90,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       attributes,
       append_if_existing,
       test_profile,
+      test_profile_override_reason,
     }) => {
       const keyId = getRequestKeyId();
 
@@ -107,6 +116,15 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
 
       const useRandomize = randomize ?? fill_sample_data ?? true;
 
+      const normalizedTest = normalizeGenerateProfileParams({
+        test_profile,
+        test_profile_override_reason,
+        ensureLanguage: false,
+      });
+      if (!normalizedTest.ok) {
+        return toolError(normalizedTest.error);
+      }
+
       const job = await createBatchJob({
         jobType: 'profile_batch',
         count,
@@ -121,7 +139,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           delay_ms,
           attributes,
           append_if_existing,
-          test_profile,
+          test_profile: normalizedTest.test_profile,
+          test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
         },
       });
 

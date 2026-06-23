@@ -16,6 +16,7 @@ import {
   RETAIL_SEGMENT_HINTS,
 } from '../personaBuilder/segments.mjs';
 import { INDUSTRY_CONNECTION_COLLECTION } from '../sandboxConfig.mjs';
+import { LAB_EVENT_TOOL_TARGET_ID } from './eventIdentity.mjs';
 
 /** Lab-default mobile used in Profile Viewer placeholders and bulk seed scripts. */
 export const LAB_DEFAULT_MOBILE_PHONE = '+447425627462';
@@ -23,12 +24,156 @@ export const LAB_DEFAULT_MOBILE_PHONE = '+447425627462';
 /** Preferred test email domain in lab demos. */
 export const LAB_TEST_EMAIL_DOMAIN = 'adobetest.com';
 
+/** BCP-47 default when persona/UI omits language. */
+export const LAB_DEFAULT_PREFERRED_LANGUAGE = 'en-US';
+
+/**
+ * Non-negotiable profile-generation rules distilled from Profile Viewer UI +
+ * functions/profileGenerateService.js + profileStreamingCore.js.
+ * Surfaced at top of lab_get_execution_framework and playbooks.
+ */
+export const CRITICAL_RULES = [
+  {
+    id: 'test_profile_required',
+    rule:
+      'Every lab-generated profile MUST be an AEP test profile. MCP defaults test_profile:true; ' +
+      'profileGenerateService sets root testProfile:true unless explicitly opted out.',
+    payload:
+      'Streaming root keys testProfile + xdm:testProfile (dual-write via mirrorRootTestProfileFields). ' +
+      'Profile Viewer checkbox pushes both paths before POST.',
+    mcp: 'lab_generate_profile test_profile defaults true; false requires test_profile_override_reason.',
+    ui: 'web/profile-viewer/profile-generation*.js — "Mark as AEP test profile" (default ON).',
+  },
+  {
+    id: 'preferred_language_required',
+    rule:
+      'Profiles must carry BCP-47 preferred language or AJO/localization demos fail silently.',
+    paths: {
+      ui_generic_travel: ['preferences.preferredLanguage', 'personalEmail.language'],
+      ui_industry_runtime: ['preferredLanguage', 'personalEmail.language'],
+      streaming_root: 'preferredLanguage',
+      streaming_preferences: 'preferences.preferredLanguage',
+      streaming_personalEmail: 'personalEmail.language',
+      tenant_mirror: '_<tenant>.preferredLanguage',
+    },
+    mirror:
+      'profileStreamingCore.mirrorPreferredLanguageDemoSchema — precedence: root preferredLanguage → preferences.preferredLanguage → personalEmail.language; mirrors to tenant.',
+    mcp: `MCP randomize enforces language (default ${LAB_DEFAULT_PREFERRED_LANGUAGE}) on all three dot-paths when missing.`,
+    default: LAB_DEFAULT_PREFERRED_LANGUAGE,
+  },
+  {
+    id: 'sandbox_config_preflight',
+    rule: 'Generate/update fail until lab_sandbox_profile_config reports ready for the target industry.',
+    connectionFields: ['streaming.url', 'streaming.flowId', 'streaming.datasetId', 'streaming.schemaId', 'streaming.xdmKey'],
+    firestore: 'One collection per industry ({industry}ProfileConnections), doc id = sanitized sandbox name.',
+    tool: 'lab_preflight_profile_generate or lab_sandbox_profile_config before first generate on a sandbox.',
+  },
+  {
+    id: 'full_snapshot_update',
+    rule: 'lab_update_profile streams FULL writable industry snapshot — never minimal attribute deltas.',
+  },
+  {
+    id: 'test_email_domain',
+    rule: `Use @${LAB_TEST_EMAIL_DOMAIN} plus-addressing for test identities (e.g. travel.demo+001@${LAB_TEST_EMAIL_DOMAIN}).`,
+  },
+  {
+    id: 'event_identity_stitch',
+    rule:
+      'Experience events must land on the profile: at least one of email or ecid (10+ digits). After lab_generate_profile, pass BOTH — ecid from response + email.',
+    identityMap:
+      'ECID primary:true when present; Email primary:false (secondary). Email-only when ecid absent (primary:true). Matches eventEdgeService.buildXdm.',
+    tenant:
+      '_demoemea.identification.core.ecid + .email must mirror identityMap strings for Demo Website / Event tool stitching.',
+    target_id: `Default ${LAB_EVENT_TOOL_TARGET_ID} (Firestore eventConfig datastream) — lab_list_event_targets.`,
+    tools: 'lab_preflight_profile_event (dry-run) → lab_send_profile_event → lab_profile_activity verify.',
+    mcp:
+      'lab_send_profile_event auto-fetches ecid from UPS when email-only; warns when ecid missing on profile. Prefer explicit ecid from generate.',
+    ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
+  },
+];
+
+/** Shared language documentation for playbooks. */
+const LANGUAGE_PLAYBOOK = {
+  default: LAB_DEFAULT_PREFERRED_LANGUAGE,
+  ui_by_generator: {
+    generic: ['preferences.preferredLanguage', 'personalEmail.language'],
+    travel: ['preferences.preferredLanguage', 'personalEmail.language'],
+    fsi_retail_telecom_media_sports: ['preferredLanguage', 'personalEmail.language'],
+  },
+  streaming_mirror:
+    'profileStreamingCore.mirrorPreferredLanguageDemoSchema sets root + tenant preferredLanguage from any source path.',
+  mcp_persona_paths: ['preferredLanguage', 'preferences.preferredLanguage', 'personalEmail.language'],
+};
+
+/** Shared testProfile documentation for playbooks. */
+const TEST_PROFILE_PLAYBOOK = {
+  required: true,
+  mcp_default: true,
+  payload_root_keys: ['testProfile', 'xdm:testProfile'],
+  server_default:
+    'profileGenerateService rootExtras.testProfile=true unless body.testProfile:false or omitTestProfile',
+  opt_out: 'test_profile:false + test_profile_override_reason only for non-demo exceptions',
+};
+
+/** Shared dataflow / connection shape per industry. */
+function dataflowPlaybook(industry) {
+  const collection = INDUSTRY_CONNECTION_COLLECTION[industry];
+  return {
+    firestoreCollection: collection,
+    firestoreDocPattern: '{sanitizedSandboxName}',
+    connectionApi: `/api/${industry === 'generic' ? 'generic-profile' : `${industry}-profile`}-connection`,
+    manifestFields: ['streaming.url', 'streaming.flowId', 'streaming.datasetId', 'streaming.schemaId', 'streaming.xdmKey'],
+    prerequisite: 'lab_sandbox_profile_config ready:true for this industry before lab_generate_profile',
+    flowPattern: 'HTTP API connection → Adobe DCS collection URL + flowId; envelope uses datasetId + schemaId',
+  };
+}
+
+const COMMON_FAILURE_MODES = [
+  {
+    symptom: '400 missing streaming.datasetId/schemaId',
+    cause: 'Firestore connection incomplete — save HTTP dataflow from Profile Viewer wizard or lab_provision_profile_infra_step all_core',
+    fix: 'lab_sandbox_profile_config → lab_onboard_sandbox or lab_provision_profile_infra_step step all_core',
+  },
+  {
+    symptom: 'Profile streams but industry attributes missing in UPS',
+    cause: 'Tenant-prefixed paths on OOTB root mixins (e.g. travelPreferences, personalFinances, subscriptions)',
+    fix: 'Use paths from industry playbook; travel needs Profile Core v2 top-up for travelReservations/hotel',
+  },
+  {
+    symptom: 'AJO cannot target profile / not in test segment',
+    cause: 'testProfile or preferredLanguage not on streamed record',
+    fix: 'Ensure test_profile:true (default) and language paths populated — run lab_preflight_profile_generate',
+  },
+  {
+    symptom: 'Industry not ready',
+    cause: 'Schema/dataset/profile union or HTTP connection not saved',
+    fix: 'lab_sandbox_profile_config → lab_enable_profile → lab_provision_profile_infra_step',
+  },
+  {
+    symptom: 'Event sent but not on profile / lab_profile_activity count unchanged',
+    cause: 'Email-only event without ecid, wrong datastream (target_id), or UPS lag',
+    fix:
+      'lab_generate_profile → capture ecid → lab_preflight_profile_event → lab_send_profile_event with email+ecid → retry activity after 30–60s',
+  },
+  {
+    symptom: '400 missing identity on event send',
+    cause: 'Neither email nor valid ecid (10+ digits) in request',
+    fix: 'Pass email and/or ecid from lab_generate_profile response',
+  },
+  {
+    symptom: 'Event generator target missing / no datastream',
+    cause: `Firestore eventConfig has no datastreamId for sandbox — ${LAB_EVENT_TOOL_TARGET_ID} unavailable`,
+    fix: 'Profile Viewer Event tool → save Edge config for sandbox, or lab_list_event_targets to pick another preset',
+  },
+];
+
 /**
  * @returns {object} Structured execution framework for lab_get_execution_framework / resources.
  */
 export function getExecutionFramework() {
   return {
-    version: '3.3.0',
+    version: '3.4.0',
+    criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
       'Generate creates/streams a profile; update re-streams a full writable snapshot (not deltas); ' +
@@ -67,12 +212,24 @@ export function getExecutionFramework() {
         api: 'POST /api/profile/update?industry=',
       },
       send_event: {
-        tools: ['lab_generate_profile', 'lab_list_event_targets', 'lab_send_profile_event', 'lab_profile_activity'],
+        tools: [
+          'lab_generate_profile',
+          'lab_list_event_targets',
+          'lab_preflight_profile_event',
+          'lab_send_profile_event',
+          'lab_profile_activity',
+        ],
         steps: [
-          'Generate profile; capture ecid from response',
-          'lab_list_event_targets — pick target_id',
-          'lab_send_profile_event with email, ecid, event_type, view_name',
-          'lab_profile_activity — confirm event count',
+          'lab_generate_profile — capture ecid from response + email',
+          'lab_list_event_targets — pick target_id (default lab-event-tool-edge)',
+          'Optional: lab_preflight_profile_event — shows identityMap + resolved target without sending',
+          'lab_send_profile_event with email AND ecid, event_type, view_name, channel',
+          'lab_profile_activity — confirm event count (allow UPS lag)',
+        ],
+        identity_rules: [
+          'At least one of email or ecid required',
+          'identityMap: ECID primary when both present; Email secondary',
+          '_demoemea.identification.core.ecid + email for tenant stitching',
         ],
         advanced: 'lab_send_edge_event when datastream_id is known (anonymous Edge / raw_payload).',
         api: 'POST /api/events/generator or POST /api/events/edge',
@@ -87,10 +244,12 @@ export function getExecutionFramework() {
         'New test identity, first stream into sandbox, or refresh with randomize/segment_hint. Sets testProfile by default.',
       lab_update_profile:
         'Change existing profile attributes after discuss step. Requires profile already in UPS. Uses industry dataflow from argument.',
+      lab_preflight_profile_event:
+        'Dry-run event identity + target resolution (identityMap, _demoemea.identification.core) without sending.',
       lab_send_profile_event:
-        'Append experience events (web views, transactions, donations) without rewriting profile attributes.',
+        'Append experience events (web views, transactions, donations) without rewriting profile attributes. Pass email+ecid after generate.',
       lab_send_edge_event:
-        'Direct Alloy-style Edge interact when you have datastream_id; include _<tenant>.identification.core.ecid for Demo Website schemas.',
+        'Direct Alloy-style Edge interact when you have datastream_id; same identityMap rules; include _demoemea.identification.core for Demo Website schemas.',
       lab_onboard_sandbox:
         'New colleague sandbox missing Firestore connection docs or profile not enabled on dataset.',
     },
@@ -117,9 +276,14 @@ export function getExecutionFramework() {
     attribute_ownership:
       'Static map in functions/industryAttributeMap.js — industry-specific prefixes first, generic catch-all last. ' +
       'lab_get_profile includes ownership hints. Updates must target the owning industry dataflow.',
+    failure_modes: COMMON_FAILURE_MODES,
     sources: [
       'web/profile-viewer/profile-generation-shared.js',
+      'web/profile-viewer/event-generator.js',
+      'web/profile-viewer/event-tool.js',
       'functions/profileGenerateService.js',
+      'functions/eventGeneratorService.js',
+      'functions/eventEdgeService.js',
       'functions/industryAttributeMap.js',
       'functions/profileCoreV2Manifest.js',
       'docs/PROFILE_CORE_V2_TOPUP.md',
@@ -155,18 +319,29 @@ export function getLabConventions() {
         'MCP randomize uses lab_default unless attributes override mobilePhone.number.',
     },
     testProfile: {
-      default: true,
+      ...TEST_PROFILE_PLAYBOOK,
       behavior:
         'profileGenerateService sets root testProfile:true unless test_profile:false or omitTestProfile. ' +
         'Streaming mirrors to xdm:testProfile for OOTB test-details mixin.',
-      mcp_param: 'lab_generate_profile test_profile (optional boolean)',
+      mcp_param: 'lab_generate_profile test_profile (defaults true; false needs test_profile_override_reason)',
     },
+    preferredLanguage: LANGUAGE_PLAYBOOK,
     identity_stitching: {
       profile_stream: 'Email is primary identity on generate/update; ECID in identityMap when append_if_existing or from prior generate.',
       anonymous_edge:
         'Web SDK: getIdentity → sendEvent with identityMap.ECID AND _<tenant>.identification.core.ecid (same string). See ANONYMOUS_EDGE_DEMO_PATTERN.md.',
       known_profile_event:
-        'After email lookup, sendEvent may include identityMap ECID primary + email secondary — distinct from anonymous page-view.',
+        'identityMap.ECID [{ id, primary:true }] + identityMap.Email [{ id, primary:false }]; _demoemea.identification.core.ecid + email match eventEdgeService.buildXdm.',
+      event_identity_map_example: {
+        ECID: [{ id: '<ecid-from-generate>', primary: true }],
+        Email: [{ id: 'travel.demo+001@adobetest.com', primary: false }],
+      },
+      event_tenant_core_example: {
+        _demoemea: {
+          identification: { core: { ecid: '<ecid-from-generate>', email: 'travel.demo+001@adobetest.com' } },
+        },
+      },
+      default_target_id: LAB_EVENT_TOOL_TARGET_ID,
     },
     full_snapshot_update:
       'lab_update_profile merges into entire writable industry snapshot before POST — same as Profile Viewer table editor.',
@@ -190,12 +365,22 @@ const INDUSTRY_PLAYBOOKS = {
       'person.*, personalEmail.*, loyalty.*, scoring.* (shared common persona)',
     ],
     tenant_paths: ['_<tenant>.individualCharacteristics.core.*', 'scoring.* (shared)'],
+    field_groups: ['Profile Core v2 (tenant)', 'Profile preferences-details', 'Consent and Preference Details'],
     segment_hints: [],
-    infra_prerequisites: ['genericProfileConnections Firestore doc', 'Profile enabled on generic dataset', 'Profile Core v2 top-up (shared leaves)'],
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: LANGUAGE_PLAYBOOK,
+    dataflow: dataflowPlaybook('generic'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry generic', 'lab_preflight_profile_generate sandbox {sandbox} industry generic email demo+001@adobetest.com'],
+    failure_modes: COMMON_FAILURE_MODES,
+    infra_prerequisites: ['genericProfileConnections Firestore doc with full streaming manifest', 'Profile enabled on generic dataset', 'Profile Core v2 top-up (shared leaves)'],
     example_prompt_chain: [
-      'lab_sandbox_profile_config sandbox apalmer industry generic',
+      'lab_get_industry_playbook industry generic',
+      'lab_preflight_profile_generate sandbox apalmer industry generic email demo+001@adobetest.com randomize true',
       'lab_generate_profile sandbox apalmer industry generic email demo+001@adobetest.com randomize true',
       'lab_get_profile sandbox apalmer identifier demo+001@adobetest.com',
+      'lab_preflight_profile_event sandbox apalmer email demo+001@adobetest.com ecid <from-generate>',
+      'lab_send_profile_event sandbox apalmer email demo+001@adobetest.com ecid <from-generate> event_type donation.made',
+      'lab_profile_activity sandbox apalmer identifier demo+001@adobetest.com',
     ],
   },
   travel: {
@@ -205,25 +390,39 @@ const INDUSTRY_PLAYBOOKS = {
       'individualCharacteristics.travel.* (airline, class, recentStay)',
       'hotel.bookingDetails.* (segment overlays)',
       'travelReservations.flightReservations.*',
-      'travelPreferences.* (root mixin)',
+      'travelPreferences.* (OOTB root mixin — NOT tenant-prefixed)',
     ],
     tenant_paths: [
       'travelReservations.*',
       'hotel.bookingDetails.*',
       'individualCharacteristics.travel.*',
     ],
+    field_groups: ['Profile Travel v1', 'Hotel Experience', 'Travel Preferences (root)', 'Profile Core v2 top-up: travelReservations + hotel'],
     segment_hints: TRAVEL_SEGMENT_HINTS,
     segment_semantics: {
       hotel_reactivation: 'Checkout >12 months ago, totalNights≥5, elevated churn/propensity — hotel edge segments',
       hotel_high_value: 'Platinum tier, high LTV, recent stay, rich hotel.bookingDetails',
     },
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: LANGUAGE_PLAYBOOK,
+    dataflow: dataflowPlaybook('travel'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry travel'],
+    failure_modes: [
+      ...COMMON_FAILURE_MODES,
+      {
+        symptom: 'travelPreferences or flight/hotel leaves missing in UPS',
+        cause: 'Paths tenant-prefixed incorrectly or Profile Core v2 top-up not run',
+        fix: 'lab_provision_profile_infra_step step all_core (attachFieldGroups runs profileCoreV2TopUp)',
+      },
+    ],
     infra_prerequisites: [
-      'travelProfileConnections doc',
+      'travelProfileConnections doc with streaming.url/flowId/datasetId/schemaId/xdmKey',
       'Profile Travel v1 + Hotel Experience FG',
       'Profile Core v2 top-up for travelReservations + hotel subtrees',
     ],
     example_prompt_chain: [
       'lab_generate_profile sandbox apalmer industry travel email hotel.reactivation+001@adobetest.com randomize true segment_hint hotel_reactivation',
+      'lab_send_profile_event sandbox apalmer email hotel.reactivation+001@adobetest.com ecid <from-generate> event_type transaction channel web',
       'lab_profile_activity sandbox apalmer identifier hotel.reactivation+001@adobetest.com',
     ],
   },
@@ -232,15 +431,21 @@ const INDUSTRY_PLAYBOOKS = {
     persona_fields: [
       'industryFsi.* (income/credit bands, products)',
       'individualCharacteristics.fsi.*',
-      'personalFinances.* (root)',
+      'personalFinances.* (OOTB root — NOT tenant-prefixed)',
     ],
     tenant_paths: ['industryFsi.*', 'individualCharacteristics.fsi.*'],
+    field_groups: ['Profile FSI v2', 'Personal Finance Details (root personalFinances.*)'],
     segment_hints: FSI_SEGMENT_HINTS,
     segment_semantics: {
       high_net_worth: 'Income 500k_plus, excellent credit 780+, high savings, platinum tier',
       credit_rebuild: 'Income under_50k, poor credit ≤579, elevated churn, bronze tier',
     },
-    infra_prerequisites: ['fsiProfileConnections', 'Profile FSI v2 FG'],
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: { ...LANGUAGE_PLAYBOOK, ui_note: 'FSI uses industry-runtime generator: root preferredLanguage + personalEmail.language' },
+    dataflow: dataflowPlaybook('fsi'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry fsi'],
+    failure_modes: COMMON_FAILURE_MODES,
+    infra_prerequisites: ['fsiProfileConnections full manifest', 'Profile FSI v2 FG', 'personalFinances on schema union'],
     example_prompt_chain: [
       'lab_generate_profile sandbox apalmer industry fsi email fsi.hnw+001@adobetest.com randomize true segment_hint high_net_worth',
     ],
@@ -253,37 +458,63 @@ const INDUSTRY_PLAYBOOKS = {
       'orderProfile.* (generic-owned LTV/orders)',
     ],
     tenant_paths: ['individualCharacteristics.retail.*', 'scoring.retail.*', 'industryRetail.*'],
+    field_groups: ['Profile Retail v2'],
     segment_hints: RETAIL_SEGMENT_HINTS,
     segment_semantics: {
       loyalty_vip: 'Platinum, LTV≥25k, high ordersYTD, cobranded card',
       cart_abandoner: 'Recent basket, low propensity, modest LTV',
     },
-    infra_prerequisites: ['retailProfileConnections', 'Profile Retail v2 FG'],
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: LANGUAGE_PLAYBOOK,
+    dataflow: dataflowPlaybook('retail'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry retail'],
+    failure_modes: COMMON_FAILURE_MODES,
+    infra_prerequisites: ['retailProfileConnections full manifest', 'Profile Retail v2 FG'],
     example_prompt_chain: [
       'lab_generate_profiles_batch sandbox apalmer industry retail count 25 base_email kirkham+retail-vip randomize true segment_hint loyalty_vip',
     ],
   },
   telecom: {
     label: 'Telecommunications',
-    persona_fields: ['industryTelecom.*', 'telecomSubscription.* (root)', 'bundle-coherent plan tiers'],
-    tenant_paths: ['industryTelecom.*', 'telecomSubscription.*'],
+    persona_fields: ['industryTelecom.*', 'telecomSubscription.* (OOTB root)', 'bundle-coherent plan tiers'],
+    tenant_paths: ['industryTelecom.*'],
+    root_paths: ['telecomSubscription.*'],
+    field_groups: ['Profile Telecom v1'],
     segment_hints: [],
-    infra_prerequisites: ['telecomProfileConnections', 'Profile Telecom v1 FG'],
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: LANGUAGE_PLAYBOOK,
+    dataflow: dataflowPlaybook('telecom'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry telecom'],
+    failure_modes: COMMON_FAILURE_MODES,
+    infra_prerequisites: ['telecomProfileConnections full manifest', 'Profile Telecom v1 FG'],
     aliases: ['telecommunications', 'telco'],
   },
   media: {
     label: 'Media & entertainment',
-    persona_fields: ['industryMedia.*', 'subscriptions.* (root)', 'viewing/binge coherence'],
-    tenant_paths: ['industryMedia.*', 'subscriptions.*'],
+    persona_fields: ['industryMedia.*', 'subscriptions.* (OOTB root)', 'viewing/binge coherence'],
+    tenant_paths: ['industryMedia.*'],
+    root_paths: ['subscriptions.*'],
+    field_groups: ['Profile Media v1/v2', 'Subscription Details (root subscriptions.*)'],
     segment_hints: [],
-    infra_prerequisites: ['mediaProfileConnections', 'Profile Media v1/v2 FG'],
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: LANGUAGE_PLAYBOOK,
+    dataflow: dataflowPlaybook('media'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry media'],
+    failure_modes: COMMON_FAILURE_MODES,
+    infra_prerequisites: ['mediaProfileConnections full manifest'],
   },
   sports: {
     label: 'Sports & venues',
     persona_fields: ['industrySports.* (favouriteSport, team, fanSegment, merch)'],
     tenant_paths: ['industrySports.*'],
+    field_groups: ['Profile Sports v1'],
     segment_hints: [],
-    infra_prerequisites: ['sportsProfileConnections', 'Profile Sports v1 FG'],
+    testProfile: TEST_PROFILE_PLAYBOOK,
+    language: LANGUAGE_PLAYBOOK,
+    dataflow: dataflowPlaybook('sports'),
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry sports'],
+    failure_modes: COMMON_FAILURE_MODES,
+    infra_prerequisites: ['sportsProfileConnections full manifest'],
   },
 };
 
@@ -299,6 +530,7 @@ export function getIndustryPlaybook(rawIndustry) {
       industry: 'all',
       playbook: {
         industries: LAB_INDUSTRY_KEYS.map((k) => ({ key: k, ...INDUSTRY_PLAYBOOKS[k] })),
+        criticalRules: CRITICAL_RULES,
         conventions: getLabConventions(),
       },
     };
@@ -323,8 +555,15 @@ export function getIndustryPlaybook(rawIndustry) {
     industry: resolved,
     playbook: {
       ...INDUSTRY_PLAYBOOKS[resolved],
+      criticalRules: CRITICAL_RULES,
       conventions: getLabConventions(),
-      framework_tools: ['lab_get_execution_framework', 'lab_get_industry_playbook', 'lab_generate_profile'],
+      framework_tools: [
+        'lab_get_execution_framework',
+        'lab_get_industry_playbook',
+        'lab_preflight_profile_generate',
+        'lab_sandbox_profile_config',
+        'lab_generate_profile',
+      ],
     },
   };
 }
@@ -339,6 +578,9 @@ export function frameworkOverviewMarkdown() {
     '',
     fw.summary,
     '',
+    '## Critical rules (read first)',
+    ...CRITICAL_RULES.map((r) => `- **${r.id}**: ${r.rule}`),
+    '',
     '## Workflows',
     ...Object.entries(fw.workflows).map(([name, w]) => `- **${name}**: ${w.tools?.join(', ') || ''}`),
     '',
@@ -348,7 +590,8 @@ export function frameworkOverviewMarkdown() {
     '## Conventions',
     `- Test email domain: **${LAB_TEST_EMAIL_DOMAIN}**`,
     `- Default mobile: **${LAB_DEFAULT_MOBILE_PHONE}**`,
-    `- testProfile: default **true** on generate`,
+    `- testProfile: default **true** on generate (root \`testProfile\` + \`xdm:testProfile\`)`,
+    `- preferredLanguage: default **${LAB_DEFAULT_PREFERRED_LANGUAGE}** (root + preferences + personalEmail mirrors)`,
     `- Updates: **full-snapshot stitch** only`,
     '',
     'Call **lab_get_execution_framework** for full JSON.',
@@ -376,7 +619,14 @@ export function frameworkConventionsMarkdown() {
     '## testProfile',
     c.testProfile.behavior,
     '',
+    '## preferredLanguage',
+    `Default: ${c.preferredLanguage.default}. UI paths: generic/travel use preferences.preferredLanguage; industry-runtime uses root preferredLanguage. Streaming mirrors via profileStreamingCore.mirrorPreferredLanguageDemoSchema.`,
+    '',
     '## Identity / Edge',
     c.identity_stitching.anonymous_edge,
+    '',
+    '## Known-profile events',
+    c.identity_stitching.known_profile_event,
+    `Default target: **${LAB_EVENT_TOOL_TARGET_ID}**`,
   ].join('\n');
 }
