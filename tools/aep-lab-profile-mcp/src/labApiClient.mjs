@@ -154,3 +154,34 @@ export async function lookupProfile(params) {
     timeoutMs: 120_000,
   });
 }
+
+/**
+ * POST /api/{industry-route-prefix}-infra/step
+ * @param {object} params
+ * @param {string} params.routePrefix - e.g. travel-profile
+ * @param {string} params.sandbox
+ * @param {string} params.step
+ */
+export async function provisionProfileInfraStep({ routePrefix, sandbox, step }) {
+  return labApiRequest(`/api/${routePrefix}-infra/step`, {
+    method: 'POST',
+    query: { sandbox },
+    body: { step },
+    timeoutMs: 300_000,
+  });
+}
+
+/**
+ * POST /api/{industry-route-prefix}-infra/enable-profile
+ * @param {object} params
+ * @param {string} params.routePrefix
+ * @param {string} params.sandbox
+ */
+export async function enableProfileInfra({ routePrefix, sandbox }) {
+  return labApiRequest(`/api/${routePrefix}-infra/enable-profile`, {
+    method: 'POST',
+    query: { sandbox },
+    body: {},
+    timeoutMs: 300_000,
+  });
+}

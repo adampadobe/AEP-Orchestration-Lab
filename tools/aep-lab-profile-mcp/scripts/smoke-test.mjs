@@ -114,6 +114,10 @@ async function run() {
     'lab_profile_infra_status',
     'lab_generate_profile',
     'lab_lookup_profile',
+    'lab_generate_profiles_batch',
+    'lab_batch_job_status',
+    'lab_provision_profile_infra_step',
+    'lab_enable_profile',
   ];
   for (const name of expected) {
     if (!names.includes(name)) {

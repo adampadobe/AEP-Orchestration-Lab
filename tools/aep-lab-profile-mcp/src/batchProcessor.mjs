@@ -1,0 +1,121 @@
+/**
+ * Background batch profile generation worker.
+ */
+
+import { generateProfile } from './labApiClient.mjs';
+import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
+import { updateBatchJob } from './batchJobStore.mjs';
+import { writeAuditLog } from './auditLog.mjs';
+
+const DEFAULT_DELAY_MS = 500;
+const MAX_DELAY_MS = 5000;
+
+function batchDelayMs() {
+  const raw = Number(process.env.AEP_LAB_MCP_BATCH_DELAY_MS || DEFAULT_DELAY_MS);
+  if (!Number.isFinite(raw) || raw < 0) return DEFAULT_DELAY_MS;
+  return Math.min(raw, MAX_DELAY_MS);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * @param {string} jobId
+ * @param {object} opts
+ * @param {string} opts.keyId
+ */
+export async function processBatchJob(jobId, { keyId }) {
+  const { getBatchJob } = await import('./batchJobStore.mjs');
+  const job = await getBatchJob(jobId);
+  if (!job) return;
+
+  const params = job.params || {};
+  const count = Number(params.count || 0);
+  const delayMs = batchDelayMs();
+
+  await updateBatchJob(jobId, { status: 'running', startedAt: new Date().toISOString() });
+
+  /** @type {Array<{ index: number, email: string, ok: boolean, ecid?: string, error?: string }>} */
+  const results = [];
+  /** @type {Array<{ index: number, email: string, error: string }>} */
+  const errors = [];
+  let completed = 0;
+  let failed = 0;
+
+  for (let i = 1; i <= count; i += 1) {
+    const email = resolveBatchEmail({
+      index: i,
+      baseEmail: params.base_email,
+      emailPattern: params.email_pattern,
+      industry: params.industry,
+    });
+
+    let attributes = params.attributes;
+    if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {
+      attributes = buildPersonaAttributes(params.industry, email);
+    }
+
+    try {
+      const apiResult = await generateProfile({
+        email,
+        sandbox: params.sandbox,
+        industry: params.industry,
+        attributes,
+        append_if_existing: params.append_if_existing,
+        test_profile: params.test_profile,
+      });
+
+      if (apiResult.ok) {
+        completed += 1;
+        const ecid =
+          apiResult.data?.ecid ||
+          apiResult.data?.identification?.core?.ecid ||
+          apiResult.data?.profile?.ecid ||
+          undefined;
+        results.push({ index: i, email, ok: true, ecid });
+      } else {
+        failed += 1;
+        const errMsg = apiResult.error || 'Lab API request failed';
+        errors.push({ index: i, email, error: errMsg });
+        results.push({ index: i, email, ok: false, error: errMsg });
+      }
+    } catch (err) {
+      failed += 1;
+      const errMsg = String(err?.message || err);
+      errors.push({ index: i, email, error: errMsg });
+      results.push({ index: i, email, ok: false, error: errMsg });
+    }
+
+    await updateBatchJob(jobId, {
+      progress: { completed: completed + failed, total: count, failed, succeeded: completed },
+      results,
+      errors,
+    });
+
+    if (i < count && delayMs > 0) {
+      await sleep(delayMs);
+    }
+  }
+
+  const finalStatus = failed === count ? 'failed' : failed > 0 ? 'completed_with_errors' : 'completed';
+  await updateBatchJob(jobId, {
+    status: finalStatus,
+    finishedAt: new Date().toISOString(),
+    progress: { completed: count, total: count, failed, succeeded: completed },
+    results,
+    errors,
+  });
+
+  writeAuditLog({
+    keyId,
+    tool: 'lab_generate_profiles_batch',
+    jobId,
+    sandbox: params.sandbox,
+    industry: params.industry,
+    count,
+    succeeded: completed,
+    failed,
+    status: finalStatus,
+  });
+}

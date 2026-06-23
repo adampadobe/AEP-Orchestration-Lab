@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
 import { generateProfile } from '../labApiClient.mjs';
+import { buildPersonaAttributes } from '../personaBuilder.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
@@ -15,7 +16,7 @@ export function registerGenerateProfileTool(mcpServer) {
     {
       title: 'Generate / stream test profile',
       description:
-        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Industry aliases normalized (telecommunications→telecom).',
+        'POST /api/profile/generate — streams a sample profile via the lab saved industry connection. Requires email + sandbox on allowlist. Set randomize or fill_sample_data to build rich industry attributes server-side when attributes omitted.',
       inputSchema: {
         email: z.string().email().describe('Profile email address'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -27,6 +28,14 @@ export function registerGenerateProfileTool(mcpServer) {
           .record(z.unknown())
           .optional()
           .describe('Optional XDM attribute overrides merged into the streamed payload'),
+        randomize: z
+          .boolean()
+          .optional()
+          .describe('When true, build sample persona attributes server-side if attributes omitted'),
+        fill_sample_data: z
+          .boolean()
+          .optional()
+          .describe('Alias for randomize'),
         append_if_existing: z
           .boolean()
           .optional()
@@ -37,7 +46,7 @@ export function registerGenerateProfileTool(mcpServer) {
           .describe('Set testProfile flag on payload (lab default true when omitted)'),
       },
     },
-    async ({ email, sandbox, industry, attributes, append_if_existing, test_profile }) => {
+    async ({ email, sandbox, industry, attributes, randomize, fill_sample_data, append_if_existing, test_profile }) => {
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
@@ -56,13 +65,20 @@ export function registerGenerateProfileTool(mcpServer) {
         sandbox: allowed.sandbox,
         industry: norm.industry,
         emailDomain: String(email).split('@')[1] || null,
+        randomized: Boolean((randomize ?? fill_sample_data) && (!attributes || !Object.keys(attributes).length)),
       });
+
+      const useRandomize = randomize ?? fill_sample_data ?? false;
+      let mergedAttributes = attributes;
+      if (useRandomize && (!attributes || Object.keys(attributes).length === 0)) {
+        mergedAttributes = buildPersonaAttributes(norm.industry, email);
+      }
 
       const apiResult = await generateProfile({
         email,
         sandbox: allowed.sandbox,
         industry: norm.industry,
-        attributes,
+        attributes: mergedAttributes,
         append_if_existing,
         test_profile,
       });
@@ -72,6 +88,7 @@ export function registerGenerateProfileTool(mcpServer) {
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,
         aliasNote: norm.aliasNote,
+        randomized: useRandomize && (!attributes || !Object.keys(attributes).length),
       });
     },
   );

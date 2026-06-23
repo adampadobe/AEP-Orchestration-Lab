@@ -1,7 +1,7 @@
 {
   "name": "aep-lab-profile-mcp",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Streamable HTTP MCP server for AEP Orchestration Lab profile tools (Coworker)",
   "type": "module",
   "engines": {
@@ -9,12 +9,14 @@
   },
   "scripts": {
     "start": "node src/server.mjs",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "test:phase2": "node scripts/phase2-test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
     "zod": "^3.25.76"
   }
 }

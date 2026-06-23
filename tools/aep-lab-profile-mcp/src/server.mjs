@@ -31,7 +31,7 @@ const transports = {};
 function createMcpServer() {
   const server = new McpServer({
     name: 'aep-lab-profile',
-    version: '1.0.0',
+    version: '2.0.0',
   });
   registerProfileTools(server);
   return server;
@@ -61,6 +61,7 @@ async function main() {
     res.status(200).json({
       ok: true,
       service: 'aep-lab-profile-mcp',
+      version: '2.0.0',
       labOrigin: getLabApiOrigin(),
       allowedSandboxes: cfg.allowedSandboxes,
     });
