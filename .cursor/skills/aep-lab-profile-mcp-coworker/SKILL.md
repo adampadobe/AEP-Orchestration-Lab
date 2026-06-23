@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.4). Use when generating test profiles, sending
-  experience events, checking infra, batch seeding, segment personas, access info,
-  getting/updating profiles (full-snapshot stitch), profile activity, provisioning
-  profile pipelines, or reading lab execution framework / industry playbooks.
+  (Streamable HTTP on Cloud Run v3.7). Use when generating test profiles, sending
+  experience events, checking infra, batch seeding, segment personas, brand scraping,
+  access info, getting/updating profiles (full-snapshot stitch), profile activity,
+  provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.4)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.7)
 
-MCP server: **AEP Orchestration Lab MCP v3.6.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.7.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -243,9 +243,27 @@ Same MCP key as all other tools.
 
    > lab_profile_infra_status again and confirm profile enabled / connection saved.
 
+## Workflow 6 — Brand scrape (Portal parity)
+
+> Call **lab_mcp_access_info** first. Then **lab_brand_scrape** with sandbox apalmer and url `https://www.adobe.com` (or the customer's site). Default waits until complete. Summarize colours, fonts, about, and persona counts from the `summary` block.
+
+1. **List existing scrapes**
+
+   > lab_list_brand_scrapes for sandbox apalmer. Show brandName, scrapeStatus, updatedAt.
+
+2. **Run a new scrape**
+
+   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, wait_for_complete true.
+
+3. **Fetch one scrape for demos**
+
+   > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id from step 2>`. Use summary in conversation; full `lab` payload for CJv2 / LLM Demo import.
+
+Portal: [Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html) history and [Image hosting](https://aep-orchestration-lab.web.app/profile-viewer/image-hosting.html) read the same Firestore/GCS records.
+
 ## Tips
 
-- Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning.
+- Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning. ≥ **540s** for **lab_brand_scrape** with `wait_for_complete:true`.
 - **lab_mcp_access_info** — check allowlist without secrets; use after ops adds Kirkham ACL.
 - **segment_hint** — travel: `hotel_high_value`, `hotel_reactivation`; fsi: `high_net_worth`, `credit_rebuild`; retail: `loyalty_vip`, `cart_abandoner`.
 - Rate limits (per instance): 30 generates/min, 30 event sends/min, 3 batch jobs/hr — backoff using retryAfterSec.

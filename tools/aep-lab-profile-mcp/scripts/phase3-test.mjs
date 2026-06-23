@@ -414,10 +414,39 @@ async function run() {
   const { registerSendProfileEventTool } = await import('../src/tools/sendProfileEvent.mjs');
   const { registerSendEdgeEventTool } = await import('../src/tools/sendEdgeEvent.mjs');
   const { registerPreflightProfileEventTool } = await import('../src/tools/preflightProfileEvent.mjs');
+  const { registerBrandScrapeTools } = await import('../src/tools/brandScrape.mjs');
   assert(typeof registerListEventTargetsTool === 'function', 'registerListEventTargetsTool');
   assert(typeof registerSendProfileEventTool === 'function', 'registerSendProfileEventTool');
   assert(typeof registerSendEdgeEventTool === 'function', 'registerSendEdgeEventTool');
   assert(typeof registerPreflightProfileEventTool === 'function', 'registerPreflightProfileEventTool');
+  assert(typeof registerBrandScrapeTools === 'function', 'registerBrandScrapeTools');
+
+  const {
+    summarizeBrandScrape,
+    summarizeBrandScrapeListItem,
+    isBrandScrapeTerminal,
+  } = await import('../src/brandScrapeSummary.mjs');
+  const sampleSummary = summarizeBrandScrape({
+    scrapeId: 'abc123',
+    sandbox: 'apalmer',
+    brandName: 'Acme',
+    url: 'https://acme.example',
+    scrapeStatus: 'complete',
+    crawlSummary: { assets: { colors: ['#112233'], fonts: ['Inter'] }, pagesScraped: 3 },
+    analysis: { about: 'Acme sells widgets.', tone: 'friendly' },
+    personas: { personas: [{ name: 'Buyer' }] },
+  });
+  assert(sampleSummary && sampleSummary.scrapeId === 'abc123', 'summarizeBrandScrape scrapeId');
+  assert(sampleSummary.colors[0] === '#112233', 'summarizeBrandScrape colors');
+  assert(sampleSummary.personasCount === 1, 'summarizeBrandScrape personasCount');
+  const listItem = summarizeBrandScrapeListItem({ scrapeId: 'x', brandName: 'X', scrapeStatus: 'running' });
+  assert(listItem && listItem.scrapeId === 'x', 'summarizeBrandScrapeListItem');
+  assert(isBrandScrapeTerminal('complete') && isBrandScrapeTerminal('failed'), 'terminal statuses');
+  assert(!isBrandScrapeTerminal('running'), 'running not terminal');
+
+  const { getBrandScraperCfOrigin } = await import('../src/labApiClient.mjs');
+  const cfOrigin = getBrandScraperCfOrigin();
+  assert(cfOrigin.includes('cloudfunctions.net'), 'brand scraper CF origin default');
 
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');

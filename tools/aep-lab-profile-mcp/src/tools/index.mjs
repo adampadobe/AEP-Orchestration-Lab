@@ -22,6 +22,7 @@ import { registerGetIndustryPlaybookTool } from './getIndustryPlaybook.mjs';
 import { registerPreflightProfileGenerateTool } from './preflightProfileGenerate.mjs';
 import { registerGenerationPrefsTools } from './generationPrefs.mjs';
 import { registerListRecentProfilesTool } from './listRecentProfiles.mjs';
+import { registerBrandScrapeTools } from './brandScrape.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -52,4 +53,5 @@ export function registerProfileTools(mcpServer) {
   registerEnableProfileTool(mcpServer);
   registerSandboxProfileConfigTool(mcpServer);
   registerOnboardSandboxTool(mcpServer);
+  registerBrandScrapeTools(mcpServer);
 }

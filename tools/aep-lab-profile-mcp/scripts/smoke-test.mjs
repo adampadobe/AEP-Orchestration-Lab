@@ -133,6 +133,9 @@ async function run() {
     'lab_batch_job_status',
     'lab_provision_profile_infra_step',
     'lab_enable_profile',
+    'lab_brand_scrape',
+    'lab_list_brand_scrapes',
+    'lab_get_brand_scrape',
   ];
   for (const name of expected) {
     if (!names.includes(name)) {

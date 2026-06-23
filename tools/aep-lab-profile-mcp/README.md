@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.6)
+# AEP Orchestration Lab MCP (Phase 3.7)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.6.0** — 24 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.7.0** — 27 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -51,8 +51,27 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_enable_profile` | enable-profile API | Enable profile on infra |
 | `lab_sandbox_profile_config` | status-all + connection APIs | `ready`, `missing_steps`, `next_action` |
 | `lab_onboard_sandbox` | *(orchestrates provisioning)* | `plan`, `execute`, or `execute_all` (async) |
+| `lab_brand_scrape` | `POST …/brandScraperAnalyze` (direct CF) + poll `GET …/scrapes/{id}` | Crawl brand URL; same Firestore/GCS as Portal Brand scraper; default waits for complete |
+| `lab_list_brand_scrapes` | `GET /api/brand-scraper/scrapes` | History list for sandbox |
+| `lab_get_brand_scrape` | `GET /api/brand-scraper/scrapes/{id}` | Full record + Coworker summary (colours, fonts, personas) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
+
+### Brand scrape (Phase 3.7)
+
+Mirrors Profile Viewer **[Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html)**:
+
+1. **`lab_brand_scrape`** — `url` + `sandbox`; hits direct Cloud Function `brandScraperAnalyze` (540s, bypasses Hosting 60s cap). Default **`wait_for_complete:true`** polls until `scrapeStatus` is `complete` or `failed`.
+2. **`lab_list_brand_scrapes`** — same Firestore index `brandScrapes/{sandbox}__{scrapeId}` the portal history uses.
+3. **`lab_get_brand_scrape`** — hydrates GCS `record.json` + summary for Coworker (colours, fonts, about, persona counts).
+
+Storage: Firestore index + GCS bucket `aep-orchestration-lab-brand-scrapes` (see `functions/brandScrapeStore.js`). Scrapes also surface in **Image hosting** and **Client Journey Asset v2** import pickers.
+
+Optional env: **`AEP_LAB_BRAND_SCRAPER_CF_ORIGIN`** (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`).
+
+**Tool timeouts:** set MCP client ≥ **540s** for `lab_brand_scrape` when `wait_for_complete:true`.
+
+### Segment hints (Phase 3.1)
 
 ### Per-principal sandbox ACL (Phase 3)
 
@@ -166,6 +185,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 |----------|----------|-------------|
 | `AEP_LAB_MCP_API_KEY` | Yes | Secret sent as `X-AEP-Lab-Mcp-Key` |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
+| `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
 | `AEP_LAB_MCP_ALLOWED_SANDBOXES` | No | Env fallback allowlist (default `apalmer,kirkham`) |
 | `AEP_LAB_MCP_BATCH_STORE` | No | `memory` for local; omit for Firestore on Cloud Run |
 | `AEP_LAB_MCP_BATCH_DELAY_MS` | No | Default batch delay (500ms, max 5000) |
@@ -202,7 +222,7 @@ AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=
 }
 ```
 
-**Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, and `execute_all` polling.
+**Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
 
 ## Deploy to Cloud Run
 
