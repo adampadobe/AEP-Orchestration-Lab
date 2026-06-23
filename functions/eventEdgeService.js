@@ -206,14 +206,46 @@ function replacePlaceholders(obj, replacements) {
   return obj;
 }
 
+function isValidEdgeEcid(ecid) {
+  const s = String(ecid || '').trim();
+  return /^\d{10,}$/.test(s);
+}
+
+function pruneEmptyTenantEcid(xdm) {
+  if (!xdm || typeof xdm !== 'object') return;
+  for (const tk of ['_demoemea', 'demoemea']) {
+    const tenant = xdm[tk];
+    const core = tenant && tenant.identification && tenant.identification.core;
+    if (!core || typeof core !== 'object') continue;
+    if (core.ecid != null && !String(core.ecid).trim()) delete core.ecid;
+  }
+}
+
 function buildTriggerPayload(template, ecid, email, eventType) {
   const payload = JSON.parse(JSON.stringify(template));
+  const ecidStr = String(ecid || '').trim();
+  const emailStr = String(email || '').trim();
+  const ecidOk = isValidEdgeEcid(ecidStr);
   const _id = `trigger-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const timestamp = new Date().toISOString();
-  replacePlaceholders(payload, { ecid, email: email || '', _id, timestamp, eventType });
+  replacePlaceholders(payload, { ecid: ecidOk ? ecidStr : '', email: emailStr, _id, timestamp, eventType });
   if (payload.event && payload.event.xdm) {
-    payload.event.xdm.identityMap = { ECID: [{ id: ecid, primary: true }] };
-    if (email) payload.event.xdm.identityMap.Email = [{ id: email, primary: false }];
+    const xdm = payload.event.xdm;
+    const identityMap = {};
+    if (ecidOk) identityMap.ECID = [{ id: ecidStr, primary: true }];
+    if (emailStr) identityMap.Email = [{ id: emailStr, primary: !ecidOk }];
+    xdm.identityMap = identityMap;
+    if (emailStr && !ecidOk) {
+      for (const tk of ['_demoemea', 'demoemea']) {
+        const tenant = xdm[tk];
+        if (!tenant || typeof tenant !== 'object') continue;
+        if (!tenant.identification) tenant.identification = {};
+        tenant.identification.core = { email: emailStr };
+      }
+    }
+    pruneEmptyTenantEcid(xdm);
+    normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+    if (xdm._demoemea) syncXdmDemoemeaLowercaseAlias(xdm);
   }
   return payload;
 }

@@ -1129,6 +1129,20 @@
         tpl.event.xdm.identityMap = {};
         if (ecid) tpl.event.xdm.identityMap.ECID = [{ id: ecid, primary: true }];
         if (email) tpl.event.xdm.identityMap.Email = [{ id: email, primary: !ecid }];
+        if (email && !ecid) {
+          ['_demoemea', 'demoemea'].forEach(function (tk) {
+            var tenant = tpl.event.xdm[tk];
+            if (tenant && typeof tenant === 'object') {
+              tenant.identification = { core: { email: email } };
+            }
+          });
+        } else {
+          ['_demoemea', 'demoemea'].forEach(function (tk) {
+            var tenant = tpl.event.xdm[tk];
+            var core = tenant && tenant.identification && tenant.identification.core;
+            if (core && core.ecid != null && !String(core.ecid).trim()) delete core.ecid;
+          });
+        }
       }
       return { endpoint: 'POST https://server.adobedc.net/ee/v2/interact?dataStreamId=' + body.datastreamId, payload: tpl };
     }

@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   buildXdm,
   buildMinimalEdgeXdm,
+  buildTriggerPayload,
   shouldUseRichEdgeXdm,
 } = require('../eventEdgeService');
 const { buildLabFirestoreGeneratorPresets, LAB_EVENT_TOOL_TARGET_ID } = require('../eventGeneratorService');
@@ -121,4 +122,45 @@ test('buildLabFirestoreGeneratorPresets uses minimal xdmStyle for event tool', (
   }, null);
   assert.equal(out[0].id, LAB_EVENT_TOOL_TARGET_ID);
   assert.equal(out[0].xdmStyle, 'minimal');
+});
+
+test('buildTriggerPayload uses Email primary when ecid is empty', () => {
+  const template = {
+    event: {
+      xdm: {
+        _demoemea: {
+          identification: { core: { ecid: '{{ecid}}', email: '{{email}}' } },
+        },
+        eventType: 'advertising.conversions',
+        timestamp: '{{timestamp}}',
+      },
+    },
+  };
+  const payload = buildTriggerPayload(template, '', EMAIL, 'advertising.conversions');
+  const xdm = payload.event.xdm;
+  assert.equal(xdm.identityMap.ECID, undefined);
+  assert.equal(xdm.identityMap.Email[0].id, EMAIL);
+  assert.equal(xdm.identityMap.Email[0].primary, true);
+  assert.equal(xdm._demoemea.identification.core.email, EMAIL);
+  assert.equal(xdm._demoemea.identification.core.ecid, undefined);
+});
+
+test('buildTriggerPayload keeps ECID primary when ecid is valid', () => {
+  const template = {
+    event: {
+      xdm: {
+        _demoemea: {
+          identification: { core: { ecid: '{{ecid}}', email: '{{email}}' } },
+        },
+        eventType: 'advertising.conversions',
+        timestamp: '{{timestamp}}',
+      },
+    },
+  };
+  const payload = buildTriggerPayload(template, ECID, EMAIL, 'advertising.conversions');
+  const xdm = payload.event.xdm;
+  assert.equal(xdm.identityMap.ECID[0].id, ECID);
+  assert.equal(xdm.identityMap.ECID[0].primary, true);
+  assert.equal(xdm.identityMap.Email[0].id, EMAIL);
+  assert.equal(xdm.identityMap.Email[0].primary, false);
 });
