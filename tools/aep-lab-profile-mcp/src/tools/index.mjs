@@ -23,6 +23,9 @@ import { registerPreflightProfileGenerateTool } from './preflightProfileGenerate
 import { registerGenerationPrefsTools } from './generationPrefs.mjs';
 import { registerListRecentProfilesTool } from './listRecentProfiles.mjs';
 import { registerBrandScrapeTools } from './brandScrape.mjs';
+import { registerGenerateProfileFromBrandScrapeTools } from './generateProfileFromBrandScrape.mjs';
+import { registerPrepareDemoFromBrandScrapeTool } from './prepareDemoFromBrandScrape.mjs';
+import { registerCreateJourneyFromBrandScrapeTool } from './createJourneyFromBrandScrape.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -54,4 +57,7 @@ export function registerProfileTools(mcpServer) {
   registerSandboxProfileConfigTool(mcpServer);
   registerOnboardSandboxTool(mcpServer);
   registerBrandScrapeTools(mcpServer);
+  registerGenerateProfileFromBrandScrapeTools(mcpServer);
+  registerPrepareDemoFromBrandScrapeTool(mcpServer);
+  registerCreateJourneyFromBrandScrapeTool(mcpServer);
 }

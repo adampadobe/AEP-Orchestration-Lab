@@ -261,6 +261,32 @@ Same MCP key as all other tools.
 
 Portal: [Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html) history and [Image hosting](https://aep-orchestration-lab.web.app/profile-viewer/image-hosting.html) read the same Firestore/GCS records.
 
+## Workflow 8 — Brand scrape → golden profiles → events → journey asset
+
+End-to-end chain for customer-specific demo prep.
+
+1. **Scrape with personas**
+
+   > lab_brand_scrape: sandbox apalmer, url `https://example-brand.com`, include `{ "personas": true, "segments": true, "campaigns": true }`, wait_for_complete true.
+
+2. **Golden profiles**
+
+   > lab_generate_profile_from_brand_scrape: sandbox apalmer, scrape_id `<id>`, persona_index 0 — or **lab_generate_profiles_from_brand_scrape** / `all_personas:true` for every persona.
+
+3. **One-shot orchestration (optional)**
+
+   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, scrape_id `<id>`, steps `{ "profiles": true, "events": true, "journey": true }`.
+
+4. **Client Journey v2 HTML (~60–180s, optional)**
+
+   > lab_create_journey_from_brand_scrape: sandbox apalmer, scrape_id `<id>`. Uses campaigns/personas/segments from scrape via CJv2 import mapping.
+
+5. **Verify events**
+
+   > lab_send_profile_event + lab_profile_activity. Scrape segments are narrative only — not RTCDP audience memberships.
+
+**AJO platform gap:** CJv2 tools produce a **sales presentation journey** (HTML/PPTX), not a live AJO journey. Lab only browses existing AJO journeys; no create API.
+
 ## Tips
 
 - Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning. ≥ **540s** for **lab_brand_scrape** with `wait_for_complete:true`.

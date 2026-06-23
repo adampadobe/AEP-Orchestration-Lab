@@ -264,6 +264,24 @@ export function getExecutionFramework() {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],
         limits: { maxCount: 100, rateLimit: '3 batch jobs/hour per MCP key' },
       },
+      brand_scrape_to_profile: {
+        tools: [
+          'lab_brand_scrape',
+          'lab_get_brand_scrape',
+          'lab_generate_profile_from_brand_scrape',
+          'lab_send_profile_event',
+          'lab_profile_activity',
+        ],
+        steps: [
+          'lab_brand_scrape with include.personas:true (default MCP scrape omits personas — enable explicitly)',
+          'lab_generate_profile_from_brand_scrape scrape_id + persona_index (or all_personas:true)',
+          'lab_send_profile_event with email + ecid from generate response',
+          'lab_profile_activity verify',
+        ],
+        note:
+          'Scrape personas are marketing narrative; golden profiles overlay identity onto personaBuilder industry randomize. ' +
+          'Scrape segments[] are demo copy, not UPS audiences — use lab segment_hint or RTCDP APIs separately.',
+      },
     },
     when_to_use: {
       lab_generate_profile:

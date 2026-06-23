@@ -420,6 +420,29 @@ async function run() {
   assert(typeof registerSendEdgeEventTool === 'function', 'registerSendEdgeEventTool');
   assert(typeof registerPreflightProfileEventTool === 'function', 'registerPreflightProfileEventTool');
   assert(typeof registerBrandScrapeTools === 'function', 'registerBrandScrapeTools');
+  const { registerGenerateProfileFromBrandScrapeTools } = await import('../src/tools/generateProfileFromBrandScrape.mjs');
+  assert(typeof registerGenerateProfileFromBrandScrapeTools === 'function', 'registerGenerateProfileFromBrandScrapeTools');
+  const { registerPrepareDemoFromBrandScrapeTool } = await import('../src/tools/prepareDemoFromBrandScrape.mjs');
+  const { registerCreateJourneyFromBrandScrapeTool } = await import('../src/tools/createJourneyFromBrandScrape.mjs');
+  assert(typeof registerPrepareDemoFromBrandScrapeTool === 'function', 'registerPrepareDemoFromBrandScrapeTool');
+  assert(typeof registerCreateJourneyFromBrandScrapeTool === 'function', 'registerCreateJourneyFromBrandScrapeTool');
+
+  const { summarizeScrapeForDemoPrep } = await import('../src/brandScrapeDemoPrep.mjs');
+  const demoSummary = summarizeScrapeForDemoPrep({
+    scrapeId: 'sc1',
+    brandName: 'Acme',
+    industry: 'Travel & Hospitality',
+    scrapeStatus: 'complete',
+    personas: { personas: [{ name: 'A' }, { name: 'B' }] },
+    campaigns: { campaigns: [{ name: 'Summer sale' }] },
+    segments: { segments: [{ name: 'VIP' }] },
+  });
+  assert(demoSummary.industry === 'travel' && demoSummary.personasCount === 2, 'summarizeScrapeForDemoPrep');
+
+  const { getBrandScraperCfOrigin, getLabCloudFunctionsOrigin } = await import('../src/labApiClient.mjs');
+  const cfOrigin = getBrandScraperCfOrigin();
+  assert(cfOrigin.includes('cloudfunctions.net'), 'brand scraper CF origin default');
+  assert(getLabCloudFunctionsOrigin() === cfOrigin, 'lab CF origin alias');
 
   const {
     summarizeBrandScrape,
@@ -444,9 +467,39 @@ async function run() {
   assert(isBrandScrapeTerminal('complete') && isBrandScrapeTerminal('failed'), 'terminal statuses');
   assert(!isBrandScrapeTerminal('running'), 'running not terminal');
 
-  const { getBrandScraperCfOrigin } = await import('../src/labApiClient.mjs');
-  const cfOrigin = getBrandScraperCfOrigin();
-  assert(cfOrigin.includes('cloudfunctions.net'), 'brand scraper CF origin default');
+  const {
+    inferLabIndustryFromScrape,
+    parsePersonaName,
+    buildAttributesFromBrandScrapePersona,
+    inferSegmentHintFromScrape,
+    suggestEmailForScrapePersona,
+  } = await import('../src/brandScrapePersonaMap.mjs');
+  assert(inferLabIndustryFromScrape('Travel & Hospitality').industry === 'travel', 'scrape industry travel');
+  assert(inferLabIndustryFromScrape('Financial services').industry === 'fsi', 'scrape industry fsi');
+  const parsed = parsePersonaName('Sarah Chen');
+  assert(parsed.firstName === 'Sarah' && parsed.lastName === 'Chen', 'parsePersonaName');
+  const emailSuggest = suggestEmailForScrapePersona({
+    persona: { name: 'Sarah Chen' },
+    brandName: 'Acme Hotels',
+    personaIndex: 0,
+  });
+  assert(emailSuggest.includes('@adobetest.com'), 'suggestEmail domain');
+  assert(inferSegmentHintFromScrape('travel', ['High value hotel guest']) === 'hotel_high_value', 'segment infer hv');
+  const built = buildAttributesFromBrandScrapePersona({
+    persona: {
+      name: 'Sarah Chen',
+      age: 34,
+      location: 'London, UK',
+      occupation: 'Product Manager',
+      preferred_channels: ['Email', 'Web'],
+      suggested_segments: ['Lapsed hotel guest'],
+    },
+    email: 'sarah.chen+1@adobetest.com',
+    industry: 'travel',
+  });
+  assert(built.attributes['person.name.firstName'] === 'Sarah', 'overlay firstName');
+  assert(built.segmentHint === 'hotel_reactivation', 'overlay segment hotel_reactivation');
+  assert(built.overlays.includes('person.name'), 'overlays tracked');
 
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');

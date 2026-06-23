@@ -136,6 +136,7 @@ async function run() {
     'lab_brand_scrape',
     'lab_list_brand_scrapes',
     'lab_get_brand_scrape',
+    'lab_generate_profile_from_brand_scrape',
   ];
   for (const name of expected) {
     if (!names.includes(name)) {

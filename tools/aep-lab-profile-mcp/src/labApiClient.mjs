@@ -524,3 +524,73 @@ export async function getBrandScrape({ sandbox, scrapeId, version }) {
     timeoutMs: 120_000,
   });
 }
+
+/**
+ * Direct Cloud Function origin (bypasses Hosting 60s cap for long Vertex calls).
+ */
+export function getLabCloudFunctionsOrigin() {
+  return getBrandScraperCfOrigin();
+}
+
+/**
+ * GET /api/client-journey-v2/import/profile — CJv2 form prefill from scrape.
+ * @param {object} params
+ */
+export async function clientJourneyV2ImportProfile({ sandbox, scrapeId }) {
+  return labApiRequest('/api/client-journey-v2/import/profile', {
+    query: { sandbox, scrapeId },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST …/clientJourneyV2Generate — 60–180s typical; direct CF URL.
+ * @param {object} body — client, brandColor, journeyType, personaName, tier, …
+ */
+export async function clientJourneyV2Generate(body) {
+  const origin = getLabCloudFunctionsOrigin();
+  const url = `${origin}/clientJourneyV2Generate`;
+  const timeoutMs = 540_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    const msg =
+      err && err.name === 'AbortError'
+        ? `Client Journey v2 generate timeout after ${timeoutMs}ms`
+        : String(err.message || err);
+    return { ok: false, status: 0, url, error: msg, data: null };
+  }
+  clearTimeout(timer);
+
+  const contentType = response.headers.get('Content-Type') || '';
+  let data;
+  if (contentType.toLowerCase().includes('json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = { raw: await response.text() };
+    }
+  } else {
+    data = { raw: (await response.text()).slice(0, 50_000) };
+  }
+
+  if (!response.ok) {
+    const detail =
+      (data && typeof data === 'object' && (data.error || data.detail || data.message)) ||
+      response.statusText ||
+      `HTTP ${response.status}`;
+    return { ok: false, status: response.status, url, error: String(detail), data };
+  }
+
+  return { ok: true, status: response.status, url, data };
+}
