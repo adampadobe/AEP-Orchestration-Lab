@@ -326,6 +326,34 @@
 }
 [data-aep-theme="dark"] .et-my-triggers-delete:hover { background: #3a2020; color: #e74c3c; }
 
+/* ── Primary setup + advanced steps ── */
+.et-config-step--primary {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+.et-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.et-config-advanced {
+  margin: 0.75rem 0 1rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+.et-config-advanced__summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.65rem 0.85rem;
+  color: var(--dash-text-secondary);
+}
+.et-config-advanced__body {
+  padding: 0 0.85rem 0.85rem;
+}
+
 /* ── IdentityMap / Profile hint (Step 1 follow-up) ── */
 .et-identity-map-hint {
   margin: 0.75rem 0 1rem;

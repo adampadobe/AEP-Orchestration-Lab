@@ -2287,7 +2287,7 @@ exports.eventInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** POST /api/events/infra/step — body.step: createSchema | attachRecommendedFieldGroups | ensureBookerStayerFieldGroup | createDataset | createDatastream | probeTagsApi (+ schemaTitle?, schemaId?, …) */
+/** POST /api/events/infra/step — body.step: setupEventInfra | createSchema | attachRecommendedFieldGroups | ensureBookerStayerFieldGroup | createDataset | createDatastream | probeTagsApi (+ schemaTitle?, schemaId?, …) */
 exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
