@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.7.0** — 27 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.8.4** — 28 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -44,6 +44,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_list_event_targets` | `GET /api/events/generator-targets` | Static + Firestore Edge presets for Event tool |
 | `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
 | `lab_send_profile_event` | `POST /api/events/generator` | Send experience event; auto-fetch ecid; email+ecid stitching |
+| `lab_send_retail_journey_events` | `POST /api/events/generator` (×4) | Portal-aligned retail commerce journey pack; preflight + staggered timestamps |
 | `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |
 | `lab_batch_job_status` | *(job store)* | Poll `profile_batch` or `onboard_all` jobs |
@@ -58,7 +59,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_get_brand_scrape` | `GET /api/brand-scraper/scrapes/{id}` | Full record + Coworker summary (colours, fonts, personas) |
 | `lab_generate_profile_from_brand_scrape` | `GET` scrape + `POST /api/profile/generate` + `POST /api/lab/generation-prefs/next-email` | Map scrape persona → golden UPS profile; **default** reserves scaled email + static mobile from Firestore generation prefs (Portal parity) |
 | `lab_generate_profiles_from_brand_scrape` | same (all personas) | Batch alias — one profile per scrape persona; each reserves next prefs email |
-| `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep from scrape_id or url (auto-resolve); profiles use stored generation prefs by default |
+| `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep; events step sends retail commerce journey when lab_industry=retail |
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.

@@ -126,6 +126,7 @@ async function run() {
     'lab_list_event_targets',
     'lab_preflight_profile_event',
     'lab_send_profile_event',
+    'lab_send_retail_journey_events',
     'lab_send_edge_event',
     'lab_sandbox_profile_config',
     'lab_onboard_sandbox',

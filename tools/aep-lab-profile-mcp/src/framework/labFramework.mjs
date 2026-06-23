@@ -116,6 +116,17 @@ export const CRITICAL_RULES = [
       'lab_send_profile_event auto-fetches ecid from UPS when email-only; warns when ecid missing on profile. Prefer explicit ecid from generate.',
     ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
   },
+  {
+    id: 'portal_event_types_only',
+    rule:
+      'Never invent custom eventType strings (e.g. starbucks.page.view). Use schema-valid types from Event Generator datalist ' +
+      'or lab_list_event_targets — commerce.productViews, commerce.productListAdds, transaction, web.webPageDetails.pageViews, etc.',
+    retail_journey:
+      'lab_send_retail_journey_events or lab_prepare_demo_from_brand_scrape steps.events — retail lab_industry defaults ' +
+      'commerce.productViews → commerce.productListAdds → commerce.productListViews → transaction with email+ecid from generate.',
+    ui: 'web/profile-viewer/event-generator.html eventType datalist + GET /api/schema/event-types.',
+    verify: 'lab_profile_activity after send — allow 30–60s UPS lag; retry if ecid was missing on first attempt.',
+  },
 ];
 
 /** Shared language documentation for playbooks. */
@@ -292,18 +303,20 @@ export function getExecutionFramework() {
           'lab_resolve_brand_scrape',
           'lab_brand_scrape',
           'lab_prepare_demo_from_brand_scrape',
+          'lab_send_retail_journey_events',
           'lab_get_profile',
           'lab_profile_activity',
         ],
         steps: [
           'lab_resolve_brand_scrape sandbox + customer url (require_complete + require_personas default true)',
           'If need_new_scrape: lab_brand_scrape same url with include { personas: true, segments: true, campaigns: true }',
-          'lab_prepare_demo_from_brand_scrape scrape_id (or url to auto-resolve) steps { profiles: true, events: true, journey: true }',
-          'lab_get_profile / lab_profile_activity verify (allow UPS lag after events)',
+          'lab_prepare_demo_from_brand_scrape scrape_id (or url) steps { profiles: true, events: true } — retail scrape sends commerce journey pack',
+          'Or lab_send_retail_journey_events per profile with email + ecid from generate',
+          'lab_get_profile / lab_profile_activity verify (allow UPS lag 30–60s after events)',
         ],
         note:
-          'One-shot orchestration chains golden profiles, optional events, optional Client Journey v2 HTML. ' +
-          'Does not create RTCDP audiences or AJO platform journeys.',
+          'One-shot orchestration chains golden profiles, Portal-aligned event sequences (not generic web.webPageViews), optional CJv2 HTML. ' +
+          'Event types MUST match Event tool datalist — never custom starbucks.* strings. Does not create RTCDP audiences or AJO platform journeys.',
       },
     },
     when_to_use: {

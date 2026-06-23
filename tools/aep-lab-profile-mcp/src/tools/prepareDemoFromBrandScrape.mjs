@@ -47,7 +47,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         steps: z
           .object({
             profiles: z.boolean().optional().describe('Generate golden profiles (default true)'),
-            events: z.boolean().optional().describe('Send one web page view event per profile (default false)'),
+            events: z.boolean().optional().describe('Send Portal-aligned journey events per profile (default false; retail → commerce pack)'),
             journey: z.boolean().optional().describe('Create Client Journey v2 asset (default false; ~60–180s)'),
           })
           .optional(),
@@ -55,8 +55,23 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         journey_persona_name: z.string().optional().describe('Persona for CJv2 when steps.journey true'),
         journey_type: z.string().optional().describe('Journey type override for CJv2'),
         journey_tier: z.enum(['Foundation', 'Advanced']).optional(),
-        event_type: z.string().optional().describe('Event type when steps.events true'),
-        event_view_name: z.string().optional().describe('Page view name for events step'),
+        event_type: z.string().optional().describe('Legacy: single schema-valid event type override (omit for retail journey pack)'),
+        event_view_name: z.string().optional().describe('Product or page name for events step'),
+        event_sequence: z
+          .enum(['retail_journey', 'single_page_view'])
+          .optional()
+          .describe('Event pack when steps.events true — retail industry defaults retail_journey'),
+        realistic_events: z
+          .boolean()
+          .optional()
+          .describe('When true with retail lab_industry, sends commerce journey (same as retail_journey)'),
+        event_delay_ms: z
+          .number()
+          .int()
+          .min(0)
+          .max(5000)
+          .optional()
+          .describe('Delay between events per profile (default 800)'),
         append_if_existing: z.boolean().optional(),
         test_profile: z.boolean().optional(),
         use_stored_prefs: z
@@ -79,6 +94,9 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       journey_tier,
       event_type,
       event_view_name,
+      event_sequence,
+      realistic_events,
+      event_delay_ms,
       append_if_existing,
       test_profile,
       use_stored_prefs,
@@ -207,8 +225,13 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         const eventOutcome = await sendDemoEventsForProfiles({
           sandbox: allowed.sandbox,
           profileResults: profileRows,
+          industry: profileOutcome?.industry || profileOutcome?.lab_industry || loaded.summary?.lab_industry,
+          event_sequence: realistic_events === false ? 'single_page_view' : event_sequence,
           event_type,
           view_name: event_view_name,
+          brand_name: loaded.summary?.brandName || undefined,
+          base_url: loaded.summary?.url || undefined,
+          delay_ms: event_delay_ms ?? 800,
         });
         pipeline.stepsRun.push('events');
         pipeline.events = eventOutcome;

@@ -18,8 +18,9 @@ import {
   clientJourneyV2Generate,
   clientJourneyV2ImportProfile,
   getBrandScrape,
-  sendProfileEvent,
 } from './labApiClient.mjs';
+import { resolveDemoEventSequence } from './framework/demoEventPacks.mjs';
+import { sendProfileEventSequence } from './framework/sendProfileEventSequence.mjs';
 import { executeGeneratePlan, planDualStreamGenerate } from './framework/dualStreamGenerate.mjs';
 import {
   ensurePreferredLanguageOnAttributes,
@@ -367,32 +368,98 @@ export async function createClientJourneyFromScrape({
 }
 
 /**
+ * Send Portal Event tool–aligned experience events for golden profiles from brand scrape prep.
+ *
  * @param {object} params
+ * @param {string} params.sandbox
+ * @param {Array<Record<string, unknown>>} [params.profileResults]
+ * @param {string} [params.industry] — lab industry; retail defaults to retail_journey sequence
+ * @param {string} [params.event_sequence] — retail_journey | single_page_view
+ * @param {string} [params.event_type] — legacy single-event override (must be schema-valid portal type)
+ * @param {string} [params.view_name]
+ * @param {string} [params.brand_name]
+ * @param {string} [params.base_url]
+ * @param {string} [params.target_id]
+ * @param {number} [params.delay_ms] — delay between events per profile (default 800)
+ * @param {number} [params.profile_delay_ms] — delay between profiles (default 400)
+ * @param {boolean} [params.preflight] — lab_preflight_profile_event logic before first send per profile
  */
-export async function sendDemoEventsForProfiles({ sandbox, profileResults, event_type, view_name }) {
+export async function sendDemoEventsForProfiles({
+  sandbox,
+  profileResults,
+  industry,
+  event_sequence,
+  event_type,
+  view_name,
+  brand_name,
+  base_url,
+  target_id,
+  delay_ms = 800,
+  profile_delay_ms = 400,
+  preflight = true,
+}) {
+  const resolvedSequence = resolveDemoEventSequence({
+    event_sequence,
+    industry,
+    event_type,
+    view_name,
+    brandName: brand_name,
+    baseUrl: base_url,
+  });
+
   /** @type {Array<Record<string, unknown>>} */
   const eventResults = [];
+  let totalSent = 0;
+  let totalFailed = 0;
+  let profileIndex = 0;
+
   for (const row of profileResults || []) {
     if (!row.ok || !row.email) continue;
-    const apiResult = await sendProfileEvent({
+    if (profileIndex > 0 && profile_delay_ms > 0) {
+      await new Promise((r) => setTimeout(r, profile_delay_ms));
+    }
+    profileIndex += 1;
+
+    const outcome = await sendProfileEventSequence({
       sandbox,
       email: String(row.email),
       ecid: row.ecid ? String(row.ecid) : undefined,
-      event_type: event_type || 'web.webPageViews',
-      view_name: view_name || 'Brand demo landing',
-      channel: 'web',
+      events: resolvedSequence.events,
+      target_id,
+      delay_ms,
+      preflight,
     });
+
+    totalSent += outcome.sent || 0;
+    totalFailed += outcome.failed || 0;
+
     eventResults.push({
       email: row.email,
-      ok: apiResult.ok,
-      error: apiResult.ok ? undefined : apiResult.error,
+      personaName: row.personaName || null,
+      ecid: outcome.ecid || row.ecid || null,
+      ok: outcome.ok,
+      sent: outcome.sent,
+      failed: outcome.failed,
+      sequence: resolvedSequence.sequence,
+      warnings: outcome.warnings,
+      preflight: outcome.preflight,
+      step_results: outcome.results,
+      error: outcome.ok ? undefined : outcome.error || 'One or more events failed',
     });
   }
-  const okCount = eventResults.filter((r) => r.ok).length;
+
+  const profilesOk = eventResults.filter((r) => r.ok).length;
   return {
-    ok: okCount === eventResults.length,
-    sent: okCount,
-    failed: eventResults.length - okCount,
+    ok: profilesOk === eventResults.length && totalFailed === 0,
+    sequence: resolvedSequence.sequence,
+    event_types: resolvedSequence.events.map((e) => e.event_type),
+    profiles_processed: eventResults.length,
+    profiles_succeeded: profilesOk,
+    sent: totalSent,
+    failed: totalFailed,
     results: eventResults,
+    verify_hint: 'lab_profile_activity per email — allow 30–60s UPS lag after last event.',
+    event_type_policy:
+      'Use schema-valid types from lab_list_event_targets / Event tool datalist only. Never invent custom eventType strings.',
   };
 }

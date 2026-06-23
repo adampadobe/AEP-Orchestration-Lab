@@ -603,6 +603,34 @@ async function run() {
   assert(shouldUseStoredGenerationPrefs(true, 'a@b.com') === true, 'explicit true with email');
   assert(STORED_PREFS_MISSING_HINT.includes('Profile Generation'), 'prefs missing hint mentions portal');
 
+  const {
+    PORTAL_EVENT_TYPES,
+    buildRetailJourneyEventPack,
+    resolveDemoEventSequence,
+    toGeneratorPostBody,
+  } = await import('../src/framework/demoEventPacks.mjs');
+  const starbucksPack = buildRetailJourneyEventPack({ brandName: 'Starbucks', baseUrl: 'https://www.starbucks.ae' });
+  assert(starbucksPack.length === 4, 'retail journey pack has 4 events');
+  assert(starbucksPack[0].event_type === PORTAL_EVENT_TYPES.productViews, 'step1 productViews');
+  assert(starbucksPack[3].event_type === PORTAL_EVENT_TYPES.transaction, 'step4 transaction');
+  assert(starbucksPack[0].view_name.includes('Pike Place'), 'Starbucks default product');
+  const retailResolved = resolveDemoEventSequence({ industry: 'retail' });
+  assert(retailResolved.sequence === 'retail_journey', 'retail industry defaults retail_journey');
+  assert(retailResolved.events.length === 4, 'retail resolved 4 events');
+  const travelResolved = resolveDemoEventSequence({ industry: 'travel' });
+  assert(travelResolved.sequence === 'single_page_view', 'travel defaults single page view');
+  assert(travelResolved.events[0].event_type === PORTAL_EVENT_TYPES.pageViews, 'single page view type');
+  const genBody = toGeneratorPostBody(starbucksPack[0], {
+    email: 'demo+001@adobetest.com',
+    ecid: '62722406001178632594092146103219305888',
+    target_id: 'lab-event-tool-edge',
+  });
+  assert(genBody.eventType === 'commerce.productViews', 'generator body eventType camelCase');
+  assert(genBody.viewName && genBody.ecid && genBody.email, 'generator body identity fields');
+
+  const { registerSendRetailJourneyEventsTool } = await import('../src/tools/sendRetailJourneyEvents.mjs');
+  assert(typeof registerSendRetailJourneyEventsTool === 'function', 'registerSendRetailJourneyEventsTool');
+
   const oauthOff = validateOAuthBearer(mockReq());
   assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');
 
