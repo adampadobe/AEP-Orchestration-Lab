@@ -77,8 +77,9 @@ function generateStableKeyId() {
 /**
  * Sandboxes a lab user may scope MCP keys to (workspace slug candidates).
  * @param {object | null} profile from labUserSandboxStore.getWorkspaceProfile
+ * @param {{ email?: string, displayName?: string }} [authContext] Firebase Auth email when profile incomplete
  */
-function workspaceSandboxCandidates(profile) {
+function workspaceSandboxCandidates(profile, authContext) {
   const candidates = new Set();
   if (profile && profile.workspaceSlug) {
     const slug = normalizeLdapSlug(profile.workspaceSlug);
@@ -92,15 +93,21 @@ function workspaceSandboxCandidates(profile) {
     );
     if (fromEmail) candidates.add(fromEmail);
   }
+  const authEmail = authContext && authContext.email ? String(authContext.email).trim().toLowerCase() : '';
+  if (authEmail) {
+    const fromAuthEmail = ldapSlugFromEmail(authEmail, '', '');
+    if (fromAuthEmail) candidates.add(fromAuthEmail);
+  }
   return Array.from(candidates);
 }
 
 /**
  * @param {string[]} requested
  * @param {string[]} userCandidates workspace slug(s)
- * @param {string[]} [activeSandboxNames] optional Adobe active sandbox names
+ * @param {string[] | null | undefined} [activeSandboxNames] optional Adobe active sandbox names
+ * @param {{ trustedLabUser?: boolean }} [options]
  */
-function validateRequestedSandboxes(requested, userCandidates, activeSandboxNames) {
+function validateRequestedSandboxes(requested, userCandidates, activeSandboxNames, options) {
   const sandboxes = normalizeSandboxList(requested);
   if (sandboxes.length === 0) {
     throw Object.assign(new Error('At least one sandbox is required.'), { status: 400 });
@@ -122,18 +129,24 @@ function validateRequestedSandboxes(requested, userCandidates, activeSandboxName
     return sandboxes;
   }
 
+  if (options && options.trustedLabUser) {
+    return sandboxes;
+  }
+
   const candidateSet = new Set(userCandidates.map((s) => String(s).toLowerCase()));
   if (candidateSet.size === 0) {
     throw Object.assign(
-      new Error('Complete lab workspace profile (workspace slug) before generating an MCP key.'),
-      { status: 400 },
+      new Error(
+        'Could not derive workspace scope from your profile. Generate a key anyway after selecting your sandbox — Coworker can run lab_mcp_first_run_setup on first connect.',
+      ),
+      { status: 400, code: 'workspace_profile_incomplete' },
     );
   }
 
   for (const sb of sandboxes) {
     if (!candidateSet.has(sb)) {
       throw Object.assign(
-        new Error(`Sandbox "${sb}" is not in your lab workspace. Allowed: ${Array.from(candidateSet).join(', ')}.`),
+        new Error(`Sandbox "${sb}" is not in your lab workspace. Allowed: ${Array.from(candidateSet).join(', ')}. Coworker can align scope via lab_mcp_first_run_setup.`),
         { status: 403 },
       );
     }
@@ -147,12 +160,12 @@ function validateRequestedSandboxes(requested, userCandidates, activeSandboxName
  * @param {string[]} userCandidates
  * @param {string[]} [activeSandboxNames]
  */
-function validateSingleSandbox(sandbox, userCandidates, activeSandboxNames) {
+function validateSingleSandbox(sandbox, userCandidates, activeSandboxNames, options) {
   const name = normalizeSandboxName(sandbox);
   if (!name) {
     throw Object.assign(new Error('sandbox is required.'), { status: 400 });
   }
-  const validated = validateRequestedSandboxes([name], userCandidates, activeSandboxNames);
+  const validated = validateRequestedSandboxes([name], userCandidates, activeSandboxNames, options);
   return validated[0];
 }
 
@@ -261,11 +274,15 @@ async function createKey(input) {
   const uid = String(input.uid || '').trim().slice(0, 128);
   if (!uid) throw Object.assign(new Error('uid is required'), { status: 400 });
 
-  const userCandidates = workspaceSandboxCandidates(input.profile || null);
+  const userCandidates = workspaceSandboxCandidates(input.profile || null, {
+    email: input.email,
+    displayName: input.displayName,
+  });
   const sandbox = validateSingleSandbox(
     input.sandbox,
     userCandidates,
     input.activeSandboxNames,
+    { trustedLabUser: input.trustedLabUser === true },
   );
 
   const existing = await findActiveKeyDocForSandbox(uid, sandbox);

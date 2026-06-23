@@ -28,6 +28,7 @@ import { registerPrepareDemoFromBrandScrapeTool } from './prepareDemoFromBrandSc
 import { registerCreateJourneyFromBrandScrapeTool } from './createJourneyFromBrandScrape.mjs';
 import { registerSendRetailJourneyEventsTool } from './sendRetailJourneyEvents.mjs';
 import { registerSendProfileEventsBatchTool } from './sendProfileEventsBatch.mjs';
+import { registerMcpFirstRunSetupTool } from './mcpFirstRunSetup.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -42,6 +43,7 @@ export function registerProfileTools(mcpServer) {
   registerListIndustriesTool(mcpServer);
   registerListSandboxesTool(mcpServer);
   registerMcpAccessInfoTool(mcpServer);
+  registerMcpFirstRunSetupTool(mcpServer);
   registerProfileInfraStatusTool(mcpServer);
   registerGenerateProfileTool(mcpServer);
   registerLookupProfileTool(mcpServer);

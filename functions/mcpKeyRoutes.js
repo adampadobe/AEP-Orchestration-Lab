@@ -72,7 +72,7 @@ function registerMcpKeyRoutes(deps) {
   }
 
   async function fetchActiveSandboxNames() {
-    if (!getAdobeAccessToken || !sandboxesList) return [];
+    if (!getAdobeAccessToken || !sandboxesList) return null;
     try {
       const token = await getAdobeAccessToken();
       const clientId = ADOBE_CLIENT_ID && typeof ADOBE_CLIENT_ID.value === 'function'
@@ -81,11 +81,12 @@ function registerMcpKeyRoutes(deps) {
       const orgId = ADOBE_IMS_ORG && typeof ADOBE_IMS_ORG.value === 'function'
         ? ADOBE_IMS_ORG.value()
         : '';
-      if (!token || !clientId || !orgId) return [];
+      if (!token || !clientId || !orgId) return null;
       const list = await sandboxesList.listActiveSandboxes(token, clientId, orgId);
-      return list.map((s) => String(s.name || '').toLowerCase()).filter(Boolean);
+      const names = list.map((s) => String(s.name || '').toLowerCase()).filter(Boolean);
+      return names.length > 0 ? names : null;
     } catch (_e) {
-      return [];
+      return null;
     }
   }
 
@@ -123,8 +124,10 @@ function registerMcpKeyRoutes(deps) {
           keys,
           currentKey,
           sandbox: sandbox || null,
-          activeSandboxNames,
-          workspaceSandboxes: mcpApiKeyStore.workspaceSandboxCandidates(profile),
+          activeSandboxNames: activeSandboxNames || [],
+          workspaceSandboxes: mcpApiKeyStore.workspaceSandboxCandidates(profile, { email }),
+          workspaceProfileComplete: !!(profile && profile.workspaceSlug),
+          firstRunHint: 'After connecting Coworker, run lab_mcp_first_run_setup to configure workspace slug and RTDB foundations.',
         });
       } catch (e) {
         res.status(500).json({ ok: false, error: String(e.message || e) });
@@ -182,7 +185,8 @@ function registerMcpKeyRoutes(deps) {
           displayName,
           sandbox,
           profile,
-          activeSandboxNames,
+          activeSandboxNames: activeSandboxNames || undefined,
+          trustedLabUser: true,
         });
         res.status(201).json({
           ok: true,

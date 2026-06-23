@@ -11,7 +11,7 @@ const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
  * @param {import('firebase-functions/v2/https').Request} req
  * @param {object} deps
  * @param {import('./labWorkspaceAuthService')} deps.labWorkspaceAuthService
- * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key' } | { ok: false, status: number, body: object }>}
+ * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key', principalEmail?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
  */
 async function resolveGenerationPrefsPrincipal(req, deps) {
   const { labWorkspaceAuthService } = deps;
@@ -26,7 +26,13 @@ async function resolveGenerationPrefsPrincipal(req, deps) {
         body: { ok: false, error: 'Invalid or revoked MCP API key.' },
       };
     }
-    return { ok: true, uid: keyAuth.principalUid, authSource: 'mcp_key' };
+    return {
+      ok: true,
+      uid: keyAuth.principalUid,
+      authSource: 'mcp_key',
+      principalEmail: keyAuth.principalEmail || null,
+      keySandbox: keyAuth.sandbox || null,
+    };
   }
 
   const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);

@@ -210,13 +210,25 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.4.0',
+    version: '3.9.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
       'Generate creates/streams a profile; update re-streams a full writable snapshot (not deltas); ' +
       'events add ExperienceEvent rows via Edge or DCS generator targets.',
     workflows: {
+      mcp_first_run: {
+        tools: ['lab_mcp_access_info', 'lab_mcp_first_run_setup', 'lab_sandbox_profile_config', 'lab_onboard_sandbox'],
+        when: 'Immediately after Coworker connects with a new MCP key — before first lab_generate_profile.',
+        order: [
+          'lab_mcp_access_info — confirm sandbox on allowlist',
+          'lab_mcp_first_run_setup sandbox {sandbox} workspace_slug {slug} — Firestore profile + RTDB ajoLookups/{slug}',
+          'lab_sandbox_profile_config — industry connections ready vs notReadyIndustries',
+          'lab_onboard_sandbox mode=plan or execute_all if infra missing',
+        ],
+        note:
+          'Portal MCP key generation no longer requires workspace slug first. workspace_slug (ldapSlug) may equal or differ from AEP sandbox name.',
+      },
       check_access: {
         tools: ['lab_mcp_access_info'],
         when: 'Start of every Coworker session or after sandbox switch.',

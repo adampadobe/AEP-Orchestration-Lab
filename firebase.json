@@ -728,6 +728,13 @@
         }
       },
       {
+        "source": "/api/lab/mcp-first-run-setup",
+        "function": {
+          "functionId": "labMcpFirstRunSetup",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/env-bar-preferences",
         "function": {
           "functionId": "labEnvBarPreferences",

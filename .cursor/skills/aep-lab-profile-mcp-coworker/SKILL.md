@@ -2,19 +2,21 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.8.5). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.9.0). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, brand scraping,
-  access info, getting/updating profiles (full-snapshot stitch), profile activity,
+  access info, MCP first-run onboarding, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.8)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.9)
 
-MCP server: **AEP Orchestration Lab MCP v3.8.5** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.9.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
 - `X-AEP-Lab-Mcp-Key` — required for all tools (including provisioning)
+
+**Portal:** generate an MCP key per sandbox **without** completing workspace slug first. Coworker completes foundations via **`lab_mcp_first_run_setup`** on first connect.
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
 
@@ -66,6 +68,16 @@ Coworker should call these **before** improvising lab conventions:
 ## Workflow 0 — Check MCP access
 
 > Call **lab_mcp_access_info**. Report keyId, allowed sandboxes, principal label, and allowlist source.
+
+## Workflow 0b — First-run foundations (new sandbox / new key)
+
+Run **once** after connecting Coworker — replaces Portal workspace-slug gate before key generation.
+
+> Call **lab_mcp_access_info**, then **lab_mcp_first_run_setup** with sandbox `prisacar`, workspace_slug `prisacar`, first_name, last_name, and adobe_email if not already on the MCP key principal. Summarize checklist (workspace profile, RTDB ldapSlug, sandbox infra, event targets). If `notReadyIndustries` is non-empty, run **lab_onboard_sandbox** mode=plan.
+
+Example (user on sandbox **prisacar**):
+
+> After connecting MCP, call **lab_mcp_first_run_setup** for sandbox **prisacar** with **workspace_slug** **prisacar**, **first_name** Priya, **last_name** Sacar, **adobe_email** prisacar@adobe.com. Report what is ready vs needs Portal or **lab_onboard_sandbox**.
 
 ## Workflow 1 — Check infra → generate travel profile → lookup
 

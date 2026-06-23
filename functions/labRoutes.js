@@ -26,6 +26,8 @@ function registerLabRoutes(deps) {
     labProfileGenerationPrefsStore,
     labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
+    labMcpFirstRunService,
+    mcpApiKeyStore,
   } = deps;
 
   const routes = {};
@@ -801,6 +803,55 @@ function registerLabRoutes(deps) {
     }
 
     res.status(405).json({ error: 'Method not allowed' });
+  });
+
+  /** POST /api/lab/mcp-first-run-setup — Coworker first-run foundations (MCP key or Firebase Auth) */
+  routes.labMcpFirstRunSetup = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ ok: false, error: 'Method not allowed' });
+      return;
+    }
+
+    const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, {
+      labWorkspaceAuthService,
+    });
+    if (!principal.ok) {
+      res.status(principal.status).json(principal.body);
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || (req.query && req.query.sandbox) || principal.keySandbox || '').trim().toLowerCase();
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required (body, query, or MCP key scope)' });
+      return;
+    }
+
+    if (principal.authSource === 'mcp_key' && principal.keySandbox && principal.keySandbox !== sandbox) {
+      res.status(403).json({
+        ok: false,
+        error: `MCP key is scoped to sandbox "${principal.keySandbox}" — cannot run first-run for "${sandbox}".`,
+      });
+      return;
+    }
+
+    try {
+      const result = await labMcpFirstRunService.runFirstRunSetup({
+        uid: principal.uid,
+        principalEmail: principal.principalEmail || body.adobe_email || body.adobeEmail,
+        sandbox,
+        body,
+      });
+      res.status(200).json({ ...result, authSource: principal.authSource });
+    } catch (e) {
+      const status = Number(e && e.status) || 500;
+      res.status(status).json({ ok: false, error: String(e.message || e), sandbox });
+    }
   });
 
   /** GET /api/lab/workspace-auth/approve?uid=...&token=... — one-click account approval. */

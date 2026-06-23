@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.7)
+# AEP Orchestration Lab MCP (Phase 3.9)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.8.5** — 29 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.9.0** — 30 tools + 6 framework resources. All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -35,6 +35,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_list_industries` | *(static)* | Canonical keys + alias notes |
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
+| `lab_mcp_first_run_setup` | `POST /api/lab/mcp-first-run-setup` + readiness | **First Coworker session** — workspace profile, RTDB ldapSlug, infra/event checklist |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** (default when email omitted) reserves shared Firestore counter via `POST /api/lab/generation-prefs/next-email` |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |

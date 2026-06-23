@@ -76,7 +76,7 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.8.5</span>
+                <span class="mcp-lab-version">v3.9.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
                 Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor. Calls the hosted lab API to generate golden test profiles, scrape brands for demos, send experience events, and check sandbox config — the same flows as Profile Viewer, driven from conversation.
@@ -100,9 +100,10 @@
                   <h4 class="mcp-lab-overview-block-title">Getting started</h4>
                   <ol class="mcp-lab-overview-list mcp-lab-overview-list--ordered">
                     <li>Select your sandbox in the Profile Viewer nav</li>
-                    <li>Sign in and <strong>Generate key</strong> below — copy the secret when shown</li>
+                    <li>Sign in and <strong>Generate key</strong> below — workspace slug is <em>not</em> required first</li>
                     <li>Add to Coworker or Cursor: endpoint in the table, header <code>X-AEP-Lab-Mcp-Key</code> — or use <strong>Copy Coworker config</strong></li>
-                    <li>Let Coworker read server-side conventions via <code>lab_get_execution_framework</code> before lab tasks</li>
+                    <li>First Coworker session: call <code>lab_mcp_first_run_setup</code> for your sandbox (pass <code>workspace_slug</code> when prompted)</li>
+                    <li>Then <code>lab_get_execution_framework</code> before other lab tasks</li>
                   </ol>
                 </div>
               </div>

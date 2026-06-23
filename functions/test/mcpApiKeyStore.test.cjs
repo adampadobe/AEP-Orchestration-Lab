@@ -94,6 +94,16 @@ describe('mcpApiKeyStore', () => {
     assert.equal(pickKeyForSandbox(keys, 'other'), null);
   });
 
+  it('validateRequestedSandboxes accepts any sandbox for trusted lab user when no Adobe list', () => {
+    const out = validateRequestedSandboxes(['prisacar'], [], null, { trustedLabUser: true });
+    assert.deepEqual(out, ['prisacar']);
+  });
+
+  it('workspaceSandboxCandidates falls back to auth email', () => {
+    const list = workspaceSandboxCandidates(null, { email: 'prisacar@adobe.com' });
+    assert.ok(list.includes('prisacar'));
+  });
+
   it('pickKeyForSandbox matches legacy allowedSandboxes', () => {
     const keys = [
       { keyId: 'legacy', revoked: false, allowedSandboxes: ['apalmer'], createdAt: '2026-01-01T00:00:00.000Z' },
