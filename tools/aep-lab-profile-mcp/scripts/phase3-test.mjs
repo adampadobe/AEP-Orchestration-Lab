@@ -46,15 +46,38 @@ function mockReq(headers = {}) {
 
 const INDUSTRY_REQUIRED_PATHS = {
   travel: [
-    'individualCharacteristics.travel.favouriteAirlineCompany',
-    ['individualCharacteristics.travel.recentStay', 'hotelName'],
+    'travelReservations.flightReservations.departureAirportCode',
+    'travelPreferences.meal',
+    'hotel.bookingDetails.hotelName',
+    'hotel.checkIn.checkInMethod',
   ],
-  fsi: ['individualCharacteristics.fsi.financialDetails.creditScore', 'personalFinances.creditScores'],
-  retail: ['individualCharacteristics.retail.favoriteStore', 'orderProfile.lifetimeValue'],
-  telecom: ['telecomSubscription.bundleName', 'telecomSubscription.mobileSubscription'],
-  media: ['media.accountType', 'subscriptions'],
-  sports: ['industrySports.favouriteSport', 'scoring.product.affinity'],
-  generic: ['individualCharacteristics.core.favouriteCategory'],
+  fsi: [
+    'industryFsi.householdIncomeBand',
+    'industryFsi.financialProducts.checking',
+    'personalFinances.creditScores',
+    'personalFinances.personalTaxProfile.householdIncome.amount',
+  ],
+  retail: [
+    'individualCharacteristics.retail.favoriteStore',
+    'orderProfile.lifetimeValue',
+    'scoring.retail.loyaltyProgramSignUp',
+  ],
+  telecom: [
+    'industryTelecom.planTier',
+    'telecomSubscription.bundleName',
+    'telecomSubscription.mobileSubscription',
+  ],
+  media: [
+    'industryMedia.subscriptionTier',
+    'industryMedia.engagementFlags.bingeWatcher',
+    'subscriptions',
+  ],
+  sports: [
+    'industrySports.favouriteSport',
+    'industrySports.fanFlags.streamLive',
+    'scoring.product.affinity',
+  ],
+  generic: ['individualCharacteristics.core.favouriteCategory', 'homeAddress.city'],
 };
 
 function getPathValue(attrs, path) {
@@ -173,13 +196,13 @@ function testIndustryPersonas() {
 function testFsiIncomeCreditCorrelation() {
   const samples = Array.from({ length: 30 }, () => buildPersonaAttributes('fsi', 'fsi@test.com', 'high_net_worth'));
   for (const attrs of samples) {
-    const score = Number(attrs['individualCharacteristics.fsi.financialDetails.creditScore']);
+    const score = Number(attrs['individualCharacteristics.core.creditScore']);
     assert(score >= 780, 'high_net_worth credit score >= 780');
     assert(attrs['industryFsi.householdIncomeBand'] === '500k_plus', 'high_net_worth income band');
   }
 
   const rebuild = buildPersonaAttributes('fsi', 'rebuild@test.com', 'credit_rebuild');
-  const rebuildScore = Number(rebuild['individualCharacteristics.fsi.financialDetails.creditScore']);
+  const rebuildScore = Number(rebuild['individualCharacteristics.core.creditScore']);
   assert(rebuildScore <= 579, 'credit_rebuild score <= 579');
   assert(rebuild['industryFsi.creditScoreBand'] === 'poor', 'credit_rebuild poor band');
 }
@@ -232,6 +255,69 @@ function testSegmentHints() {
   assert(String(badGeneric).includes('not supported'), 'retail hint rejected for generic');
 }
 
+function testTravelPortalParity() {
+  const attrs = buildPersonaAttributes('travel', 'travel@test.com');
+  assert(attrs['travelReservations.flightReservations.departureAirportCode'], 'flight departureAirportCode');
+  assert(attrs['travelReservations.flightReservations.arrivalAirportCode'], 'flight arrivalAirportCode');
+  assert(attrs['travelReservations.flightReservations.flightNumber'], 'flight flightNumber');
+  assert(attrs['travelReservations.flightReservations.multiLeg.multiLeg'] != null, 'flight multiLeg');
+  assert(attrs['travelPreferences.meal'], 'travelPreferences.meal');
+  assert(attrs['travelPreferences.seat'], 'travelPreferences.seat');
+  assert(attrs['hotel.bookingDetails.hotelName'], 'hotel.bookingDetails.hotelName');
+  assert(attrs['hotel.checkIn.checkInMethod'], 'hotel.checkIn.checkInMethod');
+  assert(attrs['hotel.checkOut.checkOutMethod'], 'hotel.checkOut.checkOutMethod');
+  assert(
+    !attrs['individualCharacteristics.travel.recentStay'],
+    'no UI-only individualCharacteristics.travel.recentStay',
+  );
+  assert(!attrs['identification.core.loyaltyId'], 'travel default: no loyalty');
+
+  const withLoyalty = buildPersonaAttributes('travel', 'loyal@test.com', null, { loyalty_member: true });
+  const loyaltyId = String(withLoyalty['identification.core.loyaltyId'] || '');
+  assert(loyaltyId.startsWith('LYL-'), 'loyalty_member uses LYL- prefix');
+  assert(withLoyalty['loyalty.tier'], 'loyalty_member sets tier');
+  assert(withLoyalty['loyaltyDetails.points'] != null, 'loyalty_member sets points');
+}
+
+function testIndustryPortalParity() {
+  const fsi = buildPersonaAttributes('fsi', 'fsi@test.com');
+  assert(fsi['industryFsi.creditScoreBand'], 'fsi creditScoreBand');
+  assert(fsi['personalFinances.creditScores'], 'fsi creditScores array');
+  assert(!fsi['individualCharacteristics.fsi.financialDetails.creditScore'], 'fsi: no tenant fsi subtree');
+
+  const retail = buildPersonaAttributes('retail', 'retail@test.com');
+  assert(retail['individualCharacteristics.retail.cobrandedCreditCardHolder'] != null, 'retail cobranded flag');
+  assert(retail['orderProfile.lastOrderSku'], 'retail lastOrderSku');
+  assert(retail['scoring.retail.loyaltyProgramSignUp'] != null, 'retail propensity');
+
+  const retailNoOrder = buildPersonaAttributes('retail', 'r2@test.com', null, { last_order_details: false });
+  assert(retailNoOrder['orderProfile.lastOrderDate'], 'retail recency lastOrderDate');
+  assert(!retailNoOrder['orderProfile.lastOrderSku'], 'retail last_order_details:false skips SKU block');
+
+  const telecom = buildPersonaAttributes('telecom', 'tel@test.com');
+  assert(telecom['industryTelecom.serviceFlags.hasMobile'] != null, 'telecom serviceFlags');
+  assert(telecom['telecomSubscription.bundleName'], 'telecom bundleName');
+
+  const media = buildPersonaAttributes('media', 'media@test.com');
+  assert(media['industryMedia.primaryGenre'], 'media primaryGenre');
+  assert(Array.isArray(media.subscriptions) && media.subscriptions.length, 'media subscriptions array');
+  assert(!media['media.accountType'], 'media: no UI-only media.* subtree');
+
+  const sports = buildPersonaAttributes('sports', 'sports@test.com');
+  assert(sports['individualCharacteristics.core.favouriteCategory'] === 'sports', 'sports favouriteCategory');
+  assert(sports['scoring.product.affinity'], 'sports product affinity');
+  assert(!sports['gym.ptSession'], 'sports: no gym.ptSession');
+
+  const generic = buildPersonaAttributes('generic', 'gen@test.com');
+  assert(generic['homeAddress.street1'], 'generic homeAddress');
+  assert(!generic['identification.core.loyaltyId'], 'generic default: no loyalty');
+
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    const loyal = buildPersonaAttributes(industry, `${industry}@test.com`, null, { loyalty_member: true });
+    assert(String(loyal['identification.core.loyaltyId'] || '').startsWith('LYL-'), `${industry} loyalty_member LYL-`);
+  }
+}
+
 function testDualStreamGeneratePlan() {
   const email = 'travel.demo+001@adobetest.com';
   const attrs = buildPersonaAttributes('travel', email, 'hotel_reactivation');
@@ -241,16 +327,24 @@ function testDualStreamGeneratePlan() {
     'travel persona keeps person.* on generic stream',
   );
   assert(
-    split.industryAttrs['individualCharacteristics.travel.favouriteAirlineCompany'] != null,
-    'travel persona keeps travel.* on industry stream',
+    split.industryAttrs['travelReservations.flightReservations.departureAirportCode'] != null,
+    'travel persona keeps flight reservations on industry stream',
+  );
+  assert(
+    split.industryAttrs['travelPreferences.meal'] != null,
+    'travel persona keeps travelPreferences on industry stream',
   );
   assert(
     split.genericAttrs['scoring.churn.churnPrediction'] != null,
     'scoring.* routes to generic stream',
   );
   assert(
+    split.genericAttrs['identification.core.loyaltyId'] == null,
+    'travel default loyalty omitted from generic stream',
+  );
+  assert(
     split.industryAttrs['hotel.bookingDetails.hotelName'] != null,
-    'hotel segment overlay routes to travel stream',
+    'hotel subtree routes to travel stream',
   );
 
   const plan = planDualStreamGenerate({ industry: 'travel', attributes: attrs, email });
@@ -281,6 +375,8 @@ async function run() {
   testTestProfileDefaults();
   testPreferredLanguageOnPersona();
   testIndustryPersonas();
+  testTravelPortalParity();
+  testIndustryPortalParity();
   testFsiIncomeCreditCorrelation();
   testSegmentHints();
   testDualStreamGeneratePlan();
@@ -336,7 +432,7 @@ async function run() {
 
   console.log(JSON.stringify({
     ok: true,
-    tests: 'phase3.4 event identity + critical rules + testProfile/language + persona + ACL + rate limits',
+    tests: 'phase3.4 event identity + critical rules + testProfile/language + persona + all-industry portal parity + ACL + rate limits',
     industries: LAB_INDUSTRY_KEYS.length,
     segmentPacks: { travel: TRAVEL_SEGMENT_HINTS, fsi: FSI_SEGMENT_HINTS, retail: RETAIL_SEGMENT_HINTS },
   }));

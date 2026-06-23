@@ -5,7 +5,6 @@ import {
   randomBetween,
   randomBirthDateIso,
   randomPick,
-  weightedBool,
 } from './utils.mjs';
 
 const MALE_FIRST = [
@@ -24,28 +23,11 @@ const LAST_NAMES = [
 const GENDERS = ['male', 'female', 'non_specific'];
 const PREFERRED_CHANNELS = ['email', 'sms', 'phone', 'direct_mail'];
 const LANGUAGES = ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'ja-JP'];
-const LOYALTY_TIERS = ['bronze', 'silver', 'gold', 'platinum'];
-
 function randomFirstNameForGender(gender) {
   const g = String(gender || '').toLowerCase();
   if (g === 'male') return randomPick(MALE_FIRST);
   if (g === 'female') return randomPick(FEMALE_FIRST);
   return randomPick(NEUTRAL_FIRST);
-}
-
-function randomLoyaltyPointsForTier(tier) {
-  switch (String(tier || '').toLowerCase()) {
-    case 'platinum':
-      return randomBetween(50_000, 200_000);
-    case 'gold':
-      return randomBetween(20_000, 60_000);
-    case 'silver':
-      return randomBetween(5_000, 25_000);
-    case 'bronze':
-      return randomBetween(500, 7_500);
-    default:
-      return randomBetween(500, 50_000);
-  }
 }
 
 /** Lab UI + bulk scripts use a fixed UK test MSISDN by default. */
@@ -56,9 +38,10 @@ function labDefaultMobilePhone() {
 /**
  * Shared demographics + analytics used across industries.
  * @param {string} email
+ * @param {{ skipLoyalty?: boolean }} [options]
  * @returns {Record<string, unknown>}
  */
-export function buildCommonPersonaAttributes(email) {
+export function buildCommonPersonaAttributes(email, options = {}) {
   const attrs = {};
   const gender = randomPick(GENDERS);
   const firstName = randomFirstNameForGender(gender);
@@ -67,9 +50,6 @@ export function buildCommonPersonaAttributes(email) {
   const age = computeAgeFromBirthDate(birthDate);
   const preferredChannel = randomPick(PREFERRED_CHANNELS);
   const language = randomPick(LANGUAGES);
-  const loyaltyTier = randomPick(LOYALTY_TIERS);
-  const loyaltyId = `LY-${randomBetween(100000, 999999)}`;
-  const loyaltyPoints = randomLoyaltyPointsForTier(loyaltyTier);
 
   assign(attrs, 'personalEmail.address', email);
   assign(attrs, 'person.name.firstName', firstName);
@@ -87,14 +67,7 @@ export function buildCommonPersonaAttributes(email) {
   assign(attrs, 'scoring.npsScore', randomBetween(0, 10));
   assign(attrs, 'orderProfile.avgOrderSize', randomBetween(25, 500));
 
-  if (weightedBool(0.7)) {
-    assign(attrs, 'identification.core.loyaltyId', loyaltyId);
-    assign(attrs, 'loyalty.loyaltyID', [loyaltyId]);
-    assign(attrs, 'loyalty.tier', loyaltyTier);
-    assign(attrs, 'loyaltyDetails.level', loyaltyTier);
-    assign(attrs, 'loyalty.points', loyaltyPoints);
-    assign(attrs, 'loyaltyDetails.points', loyaltyPoints);
-  }
+  // Loyalty is opt-in via loyalty_member on buildPersonaAttributes (portal toggles default off).
 
   return attrs;
 }

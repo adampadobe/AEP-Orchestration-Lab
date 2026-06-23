@@ -1,6 +1,5 @@
 import {
   assign,
-  randomBetween,
   randomPick,
   weightedBool,
 } from './utils.mjs';
@@ -23,7 +22,7 @@ const MERCH_BANDS = ['under_50', '50_200', '200_500', '500_plus'];
 const LAST_ATTENDED = ['this_season', 'last_season', '2_plus_years', 'never'];
 
 /**
- * Fan/venue-coherent sports persona (mirrors profile-generation-sports.js).
+ * Portal-equivalent sports persona — industrySports.* + Profile Core fan-out paths only.
  * @returns {Record<string, unknown>}
  */
 export function buildSportsPersonaAttributes() {
@@ -54,11 +53,9 @@ export function buildSportsPersonaAttributes() {
   assign(attrs, 'industrySports.fanFlags.streamLive', streamLive);
   assign(attrs, 'industrySports.fanFlags.newsletterSub', newsletterSub);
   assign(attrs, 'industrySports.fanFlags.childFan', weightedBool(0.30));
-  assign(attrs, 'individualCharacteristics.favouriteTeam', team);
   assign(attrs, 'individualCharacteristics.core.favouriteCategory', 'sports');
   assign(attrs, 'individualCharacteristics.core.favouriteSubCategory', sport);
   assign(attrs, 'scoring.product.affinity', team);
-  assign(attrs, 'gym.ptSession', randomPick(['weekly', 'monthly', 'none']));
 
   return attrs;
 }

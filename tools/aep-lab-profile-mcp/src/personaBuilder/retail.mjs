@@ -50,9 +50,11 @@ function randomSku() {
 
 /**
  * Correlated retail persona (mirrors profile-generation-retail.js randomizePersona).
+ * @param {{ last_order_details?: boolean }} [options] - Portal #retailLastOrderEnabled (default true on randomize)
  * @returns {Record<string, unknown>}
  */
-export function buildRetailPersonaAttributes() {
+export function buildRetailPersonaAttributes(options = {}) {
+  const includeLastOrder = options.last_order_details !== false;
   const attrs = {};
   const favCategory = randomPick(FAV_CATEGORIES);
   const ltvBand = randomPick(LTV_BANDS);
@@ -82,15 +84,18 @@ export function buildRetailPersonaAttributes() {
   assign(attrs, 'individualCharacteristics.retail.shoeSize', randomShoeSize());
   assign(attrs, 'orderProfile.lifetimeValue', lifetimeValue);
   assign(attrs, 'orderProfile.lastOrderDate', isoDateAgo(randomBetween(1, 90)));
-  assign(attrs, 'orderProfile.lastOrderSize', lastOrderSize);
-  assign(attrs, 'orderProfile.lastOrderValue', lastOrderValue);
-  assign(attrs, 'orderProfile.lastOrderPaymentMethod', paymentMethod);
-  const skus = [];
-  for (let i = 0; i < randomBetween(1, 4); i += 1) skus.push(randomSku());
-  assign(attrs, 'orderProfile.lastOrderSku', skus);
-  assign(attrs, 'orderProfile.lastOrderStore', randomPickN(STORE_POOL, randomBetween(1, 2)));
-  assign(attrs, 'orderProfile.lastOrderType', randomPickN(ORDER_TYPE_POOL, randomBetween(1, 2)));
-  assign(attrs, 'orderProfile.ordersYTD', ordersYTD);
+
+  if (includeLastOrder) {
+    assign(attrs, 'orderProfile.lastOrderSize', lastOrderSize);
+    assign(attrs, 'orderProfile.lastOrderValue', lastOrderValue);
+    assign(attrs, 'orderProfile.lastOrderPaymentMethod', paymentMethod);
+    const skus = [];
+    for (let i = 0; i < randomBetween(1, 4); i += 1) skus.push(randomSku());
+    assign(attrs, 'orderProfile.lastOrderSku', skus);
+    assign(attrs, 'orderProfile.lastOrderStore', randomPickN(STORE_POOL, randomBetween(1, 2)));
+    assign(attrs, 'orderProfile.lastOrderType', randomPickN(ORDER_TYPE_POOL, randomBetween(1, 2)));
+    assign(attrs, 'orderProfile.ordersYTD', ordersYTD);
+  }
   assign(attrs, 'scoring.retail.cobrandedCreditCardSignUp', randomBetween(0, 100));
   assign(attrs, 'scoring.retail.loyaltyProgramSignUp', randomBetween(0, 100));
   assign(attrs, 'scoring.retail.loyaltyStatusUpgrade', randomBetween(0, 100));

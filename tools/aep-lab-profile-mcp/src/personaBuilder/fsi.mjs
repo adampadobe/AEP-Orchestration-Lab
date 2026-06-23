@@ -67,8 +67,6 @@ const EMPLOYMENT_BIAS_BY_LIFE_STAGE = {
 const INCOME_BANDS = Object.keys(CREDIT_BAND_DISTRIBUTION_BY_INCOME);
 const LIFE_STAGES = ['student', 'young_professional', 'family', 'pre_retirement', 'retired'];
 const PRIMARY_BANKING = ['branch', 'mobile', 'online', 'phone'];
-const PRODUCT_INTERESTS = ['mortgages', 'investments', 'savings', 'credit_cards'];
-const INVESTING_STYLES = ['conservative', 'moderate', 'aggressive'];
 const CREDIT_BUREAU_POOL = ['Equifax', 'Experian', 'TransUnion', 'FICO'];
 const EMPLOYER_POOL = [
   'Adobe', 'Apple', 'JPMorgan', 'HSBC', 'Barclays', 'Goldman Sachs',
@@ -78,7 +76,6 @@ const OCCUPATION_POOL = [
   'Software engineer', 'Product manager', 'Doctor', 'Lawyer', 'Accountant',
   'Financial analyst', 'Consultant', 'Operations manager', 'Data scientist',
 ];
-const TIER_LABELS = ['Bronze', 'Silver', 'Gold', 'Platinum'];
 
 function creditBandRange(creditBand) {
   switch (creditBand) {
@@ -103,21 +100,19 @@ function pickEmploymentForLifeStage(lifeStage) {
   return randomPick(pool);
 }
 
-function balancesForIncome(incomeBand, creditBand) {
-  const incomeMid = HOUSEHOLD_INCOME_BAND_MIDPOINT[incomeBand] || 75000;
-  const creditFactor = creditBand === 'excellent' || creditBand === 'very_good' ? 1.4 : 1;
-  return {
-    checkingTotal: randomBetween(Math.round(incomeMid * 0.05), Math.round(incomeMid * 0.25)),
-    creditCardsTotal: randomBetween(0, creditBand === 'poor' ? 2000 : 15000),
-    savingsTotal: randomBetween(
-      Math.round(incomeMid * 0.1 * creditFactor),
-      Math.round(incomeMid * 1.5 * creditFactor),
-    ),
-  };
+function assignTaxFilingStatus(attrs) {
+  const filingPick = Math.random();
+  if (filingPick < 0.50) {
+    assign(attrs, 'personalFinances.personalTaxProfile.filingJointly', true);
+  } else if (filingPick < 0.65) {
+    assign(attrs, 'personalFinances.personalTaxProfile.filingSeparately', true);
+  } else {
+    assign(attrs, 'personalFinances.personalTaxProfile.singleFiler', true);
+  }
 }
 
 /**
- * Correlated FSI persona (mirrors profile-generation-fsi.js randomizePersona).
+ * Portal-equivalent FSI persona — only paths streamed by profile-generation-fsi.js buildUpdates.
  * @returns {Record<string, unknown>}
  */
 export function buildFsiPersonaAttributes() {
@@ -130,38 +125,23 @@ export function buildFsiPersonaAttributes() {
   const bandMid = Math.round((bandRange.min + bandRange.max) / 2);
   const creditScore = randomBellBetween(bandRange.min, bandRange.max, bandMid);
   const cardsRange = ACCOUNT_CARDS_RANGE_BY_CREDIT_BAND[creditBand] || { min: 1, max: 5 };
-  const accountCardsTotal = randomBellBetween(cardsRange.min, cardsRange.max, Math.round((cardsRange.min + cardsRange.max) / 2));
+  const accountCardsTotal = randomBellBetween(
+    cardsRange.min,
+    cardsRange.max,
+    Math.round((cardsRange.min + cardsRange.max) / 2),
+  );
   const incomeAmount = HOUSEHOLD_INCOME_BAND_MIDPOINT[incomeBand] || randomBetween(35000, 250000);
-  const balances = balancesForIncome(incomeBand, creditBand);
-
-  const tierIdx = ['poor', 'fair', 'good', 'very_good', 'excellent'].indexOf(creditBand);
-  const tierLabel = TIER_LABELS[Math.min(Math.max(tierIdx, 0), 3)];
 
   assign(attrs, 'industryFsi.householdIncomeBand', incomeBand);
   assign(attrs, 'industryFsi.creditScoreBand', creditBand);
   assign(attrs, 'industryFsi.lifeStage', lifeStage);
   assign(attrs, 'industryFsi.employment', employment);
   assign(attrs, 'industryFsi.primaryBankingChannel', randomPick(PRIMARY_BANKING));
-  assign(attrs, 'industryFsi.customerRelationship.currentTier', tierLabel);
-  assign(attrs, 'industryFsi.financialDetails.creditClassification', creditBand.replace('_', ' '));
-  assign(attrs, 'industryFsi.financialDetails.customerBehavior.productInterest', randomPick(PRODUCT_INTERESTS));
-  assign(attrs, 'industryFsi.financialDetails.customerBehavior.investingStyle', randomPick(INVESTING_STYLES));
-  assign(attrs, 'individualCharacteristics.fsi.customerRelationship.currentTier', tierLabel);
-  assign(attrs, 'individualCharacteristics.fsi.financialDetails.creditClassification', creditBand === 'excellent' ? 'excellent' : creditBand === 'poor' ? 'fair' : 'good');
-  assign(attrs, 'individualCharacteristics.fsi.financialDetails.customerBehavior.productInterest', randomPick(PRODUCT_INTERESTS));
-  assign(attrs, 'individualCharacteristics.fsi.financialDetails.customerBehavior.investingStyle', randomPick(INVESTING_STYLES));
-  assign(attrs, 'individualCharacteristics.fsi.financialAdvisor', randomPick(['Demo Advisor', 'Jane Smith', 'Alex Rivera']));
-  assign(attrs, 'individualCharacteristics.fsi.linkedBranch', randomPick(['Demo Branch', 'Downtown', 'Suburban']));
-  assign(attrs, 'individualCharacteristics.fsi.hasAssignedBeneficiary', weightedBool(0.55));
-  assign(attrs, 'individualCharacteristics.fsi.customerRelationship.csat', randomBetween(60, 99));
-  assign(attrs, 'individualCharacteristics.fsi.customerRelationship.membershipStartDate', isoDateAgo(randomBetween(365, 3650)));
-  assign(attrs, 'individualCharacteristics.fsi.financialDetails.balance', balances);
-  assign(attrs, 'individualCharacteristics.fsi.financialDetails.creditScore', creditScore);
-  assign(attrs, 'individualCharacteristics.fsi.productOverview.checkingAcct', weightedBool(0.95));
-  assign(attrs, 'individualCharacteristics.fsi.productOverview.savingsAcct', weightedBool(0.85));
-  assign(attrs, 'individualCharacteristics.core.creditScore', CREDIT_SCORE_BAND_MIDPOINT[creditBand] ?? creditScore);
+
+  assign(attrs, 'individualCharacteristics.core.creditScore', creditScore);
   assign(attrs, 'individualCharacteristics.core.employer', randomPick(EMPLOYER_POOL));
   assign(attrs, 'individualCharacteristics.core.occupation', randomPick(OCCUPATION_POOL));
+
   assign(attrs, 'personalFinances.employmentStatus', EMPLOYMENT_TO_OOTB[employment] || 'Employed');
   assign(attrs, 'personalFinances.personalTaxProfile.householdIncome.amount', incomeAmount);
   assign(attrs, 'personalFinances.personalTaxProfile.householdIncome.currencyCode', 'USD');
@@ -172,14 +152,18 @@ export function buildFsiPersonaAttributes() {
   assign(attrs, 'personalFinances.creditScores', [{
     score: creditScore,
     provider: randomPick(CREDIT_BUREAU_POOL),
-    scoreDate: new Date().toISOString(),
+    scoreDate: `${isoDateAgo(randomBetween(1, 90))}T00:00:00Z`,
   }]);
 
-  assign(attrs, 'industryFsi.financialProducts.checking', attrs['individualCharacteristics.fsi.productOverview.checkingAcct']);
-  assign(attrs, 'industryFsi.financialProducts.savings', attrs['individualCharacteristics.fsi.productOverview.savingsAcct']);
+  assignTaxFilingStatus(attrs);
+
+  assign(attrs, 'industryFsi.financialProducts.checking', weightedBool(0.95));
+  assign(attrs, 'industryFsi.financialProducts.savings', weightedBool(0.85));
   assign(attrs, 'industryFsi.financialProducts.creditCard', weightedBool(0.55));
   assign(attrs, 'industryFsi.financialProducts.mortgage', weightedBool(0.30));
-  assign(attrs, 'industryFsi.financialProducts.investment', weightedBool(incomeBand === '500k_plus' || incomeBand === '200k_500k' ? 0.65 : 0.30));
+  assign(attrs, 'industryFsi.financialProducts.investment', weightedBool(
+    incomeBand === '500k_plus' || incomeBand === '200k_500k' ? 0.65 : 0.30,
+  ));
   assign(attrs, 'industryFsi.financialProducts.loan', weightedBool(0.25));
 
   return attrs;

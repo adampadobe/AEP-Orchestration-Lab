@@ -22,7 +22,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
     {
       title: 'Batch generate test profiles (async)',
       description:
-        'Queue an async batch job that generates 1–100 profiles via POST /api/profile/generate. Returns job_id immediately; poll with lab_batch_job_status. Optional segment_hint: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
+        'Queue an async batch job that generates 1–100 profiles via POST /api/profile/generate. Returns job_id immediately; poll with lab_batch_job_status. Optional segment_hint: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). Travel loyalty_member (default false): LYL-* when true. Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
@@ -55,6 +55,10 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .string()
           .optional()
           .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
+        loyalty_member: z
+          .boolean()
+          .optional()
+          .describe('Travel only: when true (default false), emit LYL-* loyalty on randomized profiles'),
         delay_ms: z
           .number()
           .int()
@@ -90,6 +94,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       randomize,
       fill_sample_data,
       segment_hint,
+      loyalty_member,
       delay_ms,
       attributes,
       append_if_existing,
@@ -141,6 +146,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           email_pattern,
           randomize: useRandomize,
           segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
+          loyalty_member: loyalty_member === true,
           delay_ms,
           attributes,
           append_if_existing,

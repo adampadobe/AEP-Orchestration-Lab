@@ -36,6 +36,9 @@ export function registerGenerateProfileTool(mcpServer) {
         'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
         'Non-generic industries dual-stream automatically: generic-owned paths first (POST industry generic), then industry-owned paths (POST industry travel|fsi|… with appendIfExisting). ' +
         'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
+        'Travel randomize emits portal-parity paths: travelReservations.flightReservations.*, travelPreferences.*, hotel.*. ' +
+        'loyalty_member (all industries, default false — matches Portal loyalty toggles): when true, adds LYL-{6 digits} + loyalty.* / loyaltyDetails.*. ' +
+        'Retail last_order_details (default true): when false, skips orderProfile last-order SKU/store block (Portal #retailLastOrderEnabled). ' +
         'See lab_get_execution_framework criticalRules and lab_get_industry_playbook.',
       inputSchema: {
         email: z.string().email().optional().describe('Profile email address (omit to use shared Firestore scaler via use_stored_prefs)'),
@@ -60,6 +63,14 @@ export function registerGenerateProfileTool(mcpServer) {
           .string()
           .optional()
           .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
+        loyalty_member: z
+          .boolean()
+          .optional()
+          .describe('When true (default false, matching Portal loyalty toggles), emit LYL-* loyalty ID and loyalty.* paths'),
+        last_order_details: z
+          .boolean()
+          .optional()
+          .describe('Retail only: when false, omit orderProfile last-order SKU/store/YTD block (Portal #retailLastOrderEnabled; default true on randomize)'),
         append_if_existing: z
           .boolean()
           .optional()
@@ -86,6 +97,8 @@ export function registerGenerateProfileTool(mcpServer) {
       randomize,
       fill_sample_data,
       segment_hint,
+      loyalty_member,
+      last_order_details,
       append_if_existing,
       test_profile,
       test_profile_override_reason,
@@ -161,6 +174,7 @@ export function registerGenerateProfileTool(mcpServer) {
           norm.industry,
           resolvedEmail,
           typeof segmentNorm === 'string' ? segmentNorm : null,
+          { loyalty_member: loyalty_member === true, last_order_details },
         );
       }
 

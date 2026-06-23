@@ -18,16 +18,23 @@ const SUBSCRIPTION_TIERS = Object.keys(TIER_TO_PLAN_NAME);
 const DEVICES = ['mobile', 'tablet', 'tv', 'web', 'console'];
 const VIEWING_BANDS = ['under_60', '60_300', '300_600', '600_plus'];
 const GENRES = ['drama', 'comedy', 'documentary', 'sports', 'kids', 'news'];
-const SKU_POOL = ['SUB-STD-MO', 'SUB-PREM-MO', 'SUB-FAM-YR', 'SUB-PREM-YR'];
+const SKU_POOL = ['SUB-STD-MO', 'SUB-PREM-MO', 'SUB-FAM-YR', 'SUB-PREM-YR', 'SUB-LITE-MO'];
 const BILLING_PERIODS = ['monthly', 'quarterly', 'annual'];
 const TERM_POOL_BY_BILLING = {
-  monthly: [1, 3, 6, 12, 24],
-  quarterly: [3, 6, 12],
-  annual: [1, 2, 3],
+  monthly: [1, 3, 6, 12, 24, 36],
+  quarterly: [3, 6, 12, 24],
+  annual: [1, 2, 3, 5],
+};
+const RECENCY_DAYS = {
+  today: 0,
+  this_week: 3,
+  this_month: 15,
+  this_quarter: 45,
+  lapsed: 180,
 };
 
 /**
- * Subscription/viewing-coherent media persona (mirrors profile-generation-media.js).
+ * Portal-equivalent media persona — industryMedia.*, engagementFlags, favouriteSubCategory, subscriptions[0].
  * @returns {Record<string, unknown>}
  */
 export function buildMediaPersonaAttributes() {
@@ -40,7 +47,8 @@ export function buildMediaPersonaAttributes() {
   const termPool = TERM_POOL_BY_BILLING[billingPeriod] || [12];
   const term = randomPick(termPool);
   const termUnit = billingPeriod === 'annual' ? 'years' : 'months';
-  const startDays = randomBetween(30, 365);
+  const recency = randomPick(Object.keys(RECENCY_DAYS));
+  const startDays = RECENCY_DAYS[recency] != null ? RECENCY_DAYS[recency] + 30 : randomBetween(30, 365);
 
   let status;
   if (bingeWatcher && weightedBool(0.90)) {
@@ -53,7 +61,7 @@ export function buildMediaPersonaAttributes() {
   assign(attrs, 'industryMedia.preferredDevice', randomPick(DEVICES));
   assign(attrs, 'industryMedia.viewingMinutesBand', randomPick(VIEWING_BANDS));
   assign(attrs, 'industryMedia.primaryGenre', genre);
-  assign(attrs, 'industryMedia.lastViewedRecency', randomPick(['today', 'this_week', 'this_month', 'lapsed']));
+  assign(attrs, 'industryMedia.lastViewedRecency', recency);
   assign(attrs, 'industryMedia.accountSharingBand', randomPick(['solo', 'couple', 'family', 'extended']));
   assign(attrs, 'industryMedia.engagementFlags.adSupported', weightedBool(0.30));
   assign(attrs, 'industryMedia.engagementFlags.downloadsEnabled', weightedBool(0.70));
@@ -62,12 +70,6 @@ export function buildMediaPersonaAttributes() {
   assign(attrs, 'industryMedia.engagementFlags.liveTv', weightedBool(0.40));
   assign(attrs, 'industryMedia.engagementFlags.bingeWatcher', bingeWatcher);
   assign(attrs, 'individualCharacteristics.core.favouriteSubCategory', genre);
-  assign(attrs, 'media.accountType', tier === 'free' ? 'basic' : tier);
-  assign(attrs, 'media.contractStatus', 'active');
-  assign(attrs, 'media.debtStatus', 'current');
-  assign(attrs, 'media.productHolding', randomPick(['TV + broadband', 'Streaming only', 'TV + mobile']));
-  assign(attrs, 'media.serviceRAGStatus', randomPick(['green', 'amber', 'green']));
-  assign(attrs, 'media.packages', randomPick([['Entertainment'], ['Entertainment', 'Sports'], ['Kids', 'Sports']]));
 
   const subStart = isoDateAgo(startDays);
   let subEnd;
@@ -84,10 +86,10 @@ export function buildMediaPersonaAttributes() {
     planName,
     billingPeriod,
     status,
-    type: randomPick(['streaming', 'cable', 'hybrid']),
-    category: randomPick(['video_streaming', 'live_tv', 'kids']),
-    paymentMethod: randomPick(['credit_card', 'paypal', 'apple_pay']),
-    country: randomPick(['US', 'UK', 'FR', 'DE']),
+    type: randomPick(['streaming', 'cable', 'satellite', 'hybrid']),
+    category: randomPick(['video_streaming', 'audio_streaming', 'live_tv', 'news', 'kids']),
+    paymentMethod: randomPick(['credit_card', 'debit_card', 'paypal', 'apple_pay', 'google_pay', 'gift_card']),
+    country: randomPick(['US', 'UK', 'FR', 'DE', 'CA', 'AU', 'JP', 'BR', 'IN']),
     startDate: subStart,
     endDate: subEnd,
     term,

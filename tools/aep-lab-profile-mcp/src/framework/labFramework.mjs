@@ -387,8 +387,9 @@ const INDUSTRY_PLAYBOOKS = {
     persona_fields: [
       'individualCharacteristics.core.favouriteCategory',
       'homeAddress.*',
-      'individualCharacteristics.public.* (donation demos)',
-      'person.*, personalEmail.*, loyalty.*, scoring.* (shared common persona)',
+      'individualCharacteristics.public.* (donation demos when favouriteCategory=public_sector)',
+      'person.*, personalEmail.*, scoring.* (shared common persona)',
+      'loyalty.* when loyalty_member:true (LYL-{6 digits}; Portal #genLoyaltyEnabled)',
     ],
     tenant_paths: ['_<tenant>.individualCharacteristics.core.*', 'scoring.* (shared)'],
     field_groups: ['Profile Core v2 (tenant)', 'Profile preferences-details', 'Consent and Preference Details'],
@@ -423,15 +424,14 @@ const INDUSTRY_PLAYBOOKS = {
       mcp: 'lab_generate_profile industry travel — dual_stream:true in response; generate_plan lists both steps.',
     },
     persona_fields: [
-      'individualCharacteristics.travel.* (airline, class, recentStay)',
-      'hotel.bookingDetails.* (segment overlays)',
-      'travelReservations.flightReservations.*',
-      'travelPreferences.* (OOTB root mixin — NOT tenant-prefixed)',
+      'travelReservations.flightReservations.* (airports, IATA, dates, class, passengers, layovers)',
+      'travelPreferences.* (OOTB root mixin — meal/seat/room/vehicle enums, amenity booleans)',
+      'hotel.* (bookingDetails, checkIn, housekeeping, amenities, roomService, checkOut)',
+      'loyalty.* when loyalty_member:true (LYL-{6 digits}; Portal #travelLoyaltyEnabled)',
     ],
     tenant_paths: [
       'travelReservations.*',
-      'hotel.bookingDetails.*',
-      'individualCharacteristics.travel.*',
+      'hotel.*',
     ],
     field_groups: ['Profile Travel v1', 'Hotel Experience', 'Travel Preferences (root)', 'Profile Core v2 top-up: travelReservations + hotel'],
     segment_hints: TRAVEL_SEGMENT_HINTS,
@@ -458,6 +458,7 @@ const INDUSTRY_PLAYBOOKS = {
     ],
     example_prompt_chain: [
       'lab_generate_profile sandbox apalmer industry travel email hotel.reactivation+001@adobetest.com randomize true segment_hint hotel_reactivation',
+      'lab_generate_profile sandbox apalmer industry travel email travel.demo+001@adobetest.com randomize true loyalty_member true',
       'lab_send_profile_event sandbox apalmer email hotel.reactivation+001@adobetest.com ecid <from-generate> event_type transaction channel web',
       'lab_profile_activity sandbox apalmer identifier hotel.reactivation+001@adobetest.com',
     ],
@@ -465,11 +466,14 @@ const INDUSTRY_PLAYBOOKS = {
   fsi: {
     label: 'FSI · banking & wealth',
     persona_fields: [
-      'industryFsi.* (income/credit bands, products)',
-      'individualCharacteristics.fsi.*',
-      'personalFinances.* (OOTB root — NOT tenant-prefixed)',
+      'industryFsi.* (householdIncomeBand, creditScoreBand, lifeStage, employment, primaryBankingChannel)',
+      'industryFsi.financialProducts.* (checking, savings, creditCard, mortgage, investment, loan)',
+      'individualCharacteristics.core.creditScore, employer, occupation',
+      'personalFinances.* (OOTB root — employmentStatus, creditScores[], accountCardsTotal, personalTaxProfile.*)',
+      'loyalty.* when loyalty_member:true (Portal #fsiLoyaltyEnabled)',
     ],
-    tenant_paths: ['industryFsi.*', 'individualCharacteristics.fsi.*'],
+    tenant_paths: ['industryFsi.*'],
+    root_paths: ['personalFinances.*', 'individualCharacteristics.core.creditScore'],
     field_groups: ['Profile FSI v2', 'Personal Finance Details (root personalFinances.*)'],
     segment_hints: FSI_SEGMENT_HINTS,
     segment_semantics: {
@@ -489,9 +493,11 @@ const INDUSTRY_PLAYBOOKS = {
   retail: {
     label: 'Retail',
     persona_fields: [
-      'individualCharacteristics.retail.*',
-      'scoring.retail.*',
-      'orderProfile.* (generic-owned LTV/orders)',
+      'individualCharacteristics.core.favouriteCategory, childrenInHouseHold',
+      'individualCharacteristics.retail.* (sizes, favorites, linkedStore, cobrandedCreditCardHolder)',
+      'scoring.retail.* (cobrandedCreditCardSignUp, loyaltyProgramSignUp, loyaltyStatusUpgrade)',
+      'orderProfile.* (LTV, lastOrderDate; full last-order block when last_order_details:true — Portal #retailLastOrderEnabled)',
+      'loyalty.* when loyalty_member:true (Portal #retailLoyaltyEnabled)',
     ],
     tenant_paths: ['individualCharacteristics.retail.*', 'scoring.retail.*', 'industryRetail.*'],
     field_groups: ['Profile Retail v2'],
@@ -512,7 +518,12 @@ const INDUSTRY_PLAYBOOKS = {
   },
   telecom: {
     label: 'Telecommunications',
-    persona_fields: ['industryTelecom.*', 'telecomSubscription.* (OOTB root)', 'bundle-coherent plan tiers'],
+    persona_fields: [
+      'industryTelecom.* (planTier, monthlySpendBand, dataAllowance, contractEndBand, deviceTier, networkNps)',
+      'industryTelecom.serviceFlags.* (hasMobile, hasBroadband, hasTv, hasFamilyPlan, recentNetworkIssue, upgradeEligible)',
+      'telecomSubscription.* (bundleName, mobileSubscription[], internetSubscription[], mediaSubscription[], landlineSubscription[])',
+      'loyalty.* when loyalty_member:true (Portal #telecomLoyaltyEnabled)',
+    ],
     tenant_paths: ['industryTelecom.*'],
     root_paths: ['telecomSubscription.*'],
     field_groups: ['Profile Telecom v1'],
@@ -527,7 +538,13 @@ const INDUSTRY_PLAYBOOKS = {
   },
   media: {
     label: 'Media & entertainment',
-    persona_fields: ['industryMedia.*', 'subscriptions.* (OOTB root)', 'viewing/binge coherence'],
+    persona_fields: [
+      'industryMedia.* (subscriptionTier, preferredDevice, viewingMinutesBand, primaryGenre, lastViewedRecency, accountSharingBand)',
+      'industryMedia.engagementFlags.* (adSupported, downloadsEnabled, sportsPackage, hasKidsProfile, liveTv, bingeWatcher)',
+      'individualCharacteristics.core.favouriteSubCategory (genre fan-out)',
+      'subscriptions[0].* (OOTB root — planName, SKU, billingPeriod, status, term, dates)',
+      'loyalty.* when loyalty_member:true (Portal #mediaLoyaltyEnabled)',
+    ],
     tenant_paths: ['industryMedia.*'],
     root_paths: ['subscriptions.*'],
     field_groups: ['Profile Media v1/v2', 'Subscription Details (root subscriptions.*)'],
@@ -541,7 +558,13 @@ const INDUSTRY_PLAYBOOKS = {
   },
   sports: {
     label: 'Sports & venues',
-    persona_fields: ['industrySports.* (favouriteSport, team, fanSegment, merch)'],
+    persona_fields: [
+      'industrySports.* (favouriteSport, favouriteTeam, fanSegment, jerseySize, merchSpendBand, lastAttendedEvent)',
+      'industrySports.fanFlags.* (seasonTicket, fantasyPlayer, betsRegularly, streamLive, newsletterSub, childFan)',
+      'individualCharacteristics.core.favouriteCategory=sports, favouriteSubCategory',
+      'scoring.product.affinity (team name fan-out)',
+      'loyalty.* when loyalty_member:true (Portal #sportsLoyaltyEnabled)',
+    ],
     tenant_paths: ['industrySports.*'],
     field_groups: ['Profile Sports v1'],
     segment_hints: [],

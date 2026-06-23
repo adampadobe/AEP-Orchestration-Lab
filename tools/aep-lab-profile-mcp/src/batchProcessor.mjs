@@ -76,7 +76,9 @@ export async function processBatchJob(jobId, { keyId }) {
 
     let attributes = params.attributes;
     if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {
-      attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null);
+      attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null, {
+        loyalty_member: params.loyalty_member === true,
+      });
     }
     if (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
       attributes = ensurePreferredLanguageOnAttributes(attributes).attributes;

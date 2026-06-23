@@ -26,7 +26,7 @@ export const SEGMENT_HINTS_BY_INDUSTRY = {
 };
 
 /**
- * Apply FSI segment overlays.
+ * Apply FSI segment overlays (portal-streamed paths only).
  * @param {Record<string, unknown>} attrs
  * @param {string} segmentHint
  */
@@ -47,16 +47,6 @@ export function applyFsiSegmentHint(attrs, segmentHint) {
     assign(attrs, 'industryFsi.financialProducts.mortgage', weightedBool(0.70));
     assign(attrs, 'industryFsi.financialProducts.savings', true);
     assign(attrs, 'industryFsi.financialProducts.checking', true);
-    assign(attrs, 'individualCharacteristics.fsi.customerRelationship.currentTier', 'Platinum');
-    assign(attrs, 'individualCharacteristics.fsi.financialDetails.creditClassification', 'excellent');
-    assign(attrs, 'individualCharacteristics.fsi.financialDetails.creditScore', creditScore);
-    assign(attrs, 'individualCharacteristics.fsi.financialDetails.balance', {
-      checkingTotal: randomBetween(50_000, 150_000),
-      creditCardsTotal: randomBetween(0, 5000),
-      savingsTotal: randomBetween(250_000, 1_500_000),
-    });
-    assign(attrs, 'individualCharacteristics.fsi.productOverview.savingsAcct', true);
-    assign(attrs, 'individualCharacteristics.fsi.productOverview.checkingAcct', true);
     assign(attrs, 'individualCharacteristics.core.creditScore', creditScore);
     assign(attrs, 'personalFinances.personalTaxProfile.householdIncome.amount', incomeAmount);
     assign(attrs, 'personalFinances.personalTaxProfile.householdIncome.currencyCode', 'USD');
@@ -88,14 +78,6 @@ export function applyFsiSegmentHint(attrs, segmentHint) {
     assign(attrs, 'industryFsi.financialProducts.loan', weightedBool(0.35));
     assign(attrs, 'industryFsi.financialProducts.investment', false);
     assign(attrs, 'industryFsi.financialProducts.mortgage', false);
-    assign(attrs, 'individualCharacteristics.fsi.customerRelationship.currentTier', 'Bronze');
-    assign(attrs, 'individualCharacteristics.fsi.financialDetails.creditClassification', 'fair');
-    assign(attrs, 'individualCharacteristics.fsi.financialDetails.creditScore', creditScore);
-    assign(attrs, 'individualCharacteristics.fsi.financialDetails.balance', {
-      checkingTotal: randomBetween(500, 3000),
-      creditCardsTotal: randomBetween(2000, 8000),
-      savingsTotal: randomBetween(0, 2000),
-    });
     assign(attrs, 'individualCharacteristics.core.creditScore', creditScore);
     assign(attrs, 'personalFinances.personalTaxProfile.householdIncome.amount', HOUSEHOLD_INCOME_BAND_MIDPOINT[incomeBand]);
     assign(attrs, 'personalFinances.personalTaxProfile.householdIncome.currencyCode', 'USD');
