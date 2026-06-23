@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260623-modal-copy">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260623-docs-slim">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Reference for lab-hosted, Adobe-hosted, and third-party MCP servers with documented HTTPS endpoints. Each row notes how it is usually enabled in Cursor or Adobe AI Coworker. This page does not store credentials and is not Adobe-sandbox-dependent.
+                Catalog of lab-hosted, Adobe-hosted, and third-party MCP servers — endpoints and setup notes for Cursor and Adobe AI Coworker. Lab MCP keys are managed per sandbox below; Adobe servers use OAuth on connect.
               </p>
               <p class="mcp-claude-hint" id="mcpClaudeHint">
                 <span class="mcp-claude-hint-label" aria-hidden="true">Tip</span>
@@ -71,7 +71,48 @@
 
           <div class="mcp-section" data-mcp-section="lab" aria-labelledby="mcpSectionLabHeading">
             <h2 id="mcpSectionLabHeading" class="mcp-section-heading">AEP Orchestration Lab</h2>
-            <p class="mcp-section-lead">Lab-hosted MCP servers on Cloud Run — custom tools for profile generation, infra checks, and sandbox workflows (not Adobe product MCPs).</p>
+            <p class="mcp-section-lead">Lab-hosted MCP on Cloud Run — automates Profile Viewer workflows for Coworker and Cursor. Not an Adobe product MCP.</p>
+
+            <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
+              <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
+                AEP Orchestration Lab MCP
+                <span class="mcp-lab-version">v3.8.5</span>
+              </h3>
+              <p class="mcp-lab-overview-lead">
+                Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor. Calls the hosted lab API to generate golden test profiles, scrape brands for demos, send experience events, and check sandbox config — the same flows as Profile Viewer, driven from conversation.
+              </p>
+
+              <div class="mcp-lab-overview-cols">
+                <div class="mcp-lab-overview-block">
+                  <h4 class="mcp-lab-overview-block-title">Your API key</h4>
+                  <p>One personal key per Adobe sandbox. Keys follow your <strong>global sandbox</strong> in the nav — switch sandbox to manage another. Authenticate with header <code>X-AEP-Lab-Mcp-Key</code>.</p>
+                </div>
+                <div class="mcp-lab-overview-block">
+                  <h4 class="mcp-lab-overview-block-title">Main workflows</h4>
+                  <ul class="mcp-lab-overview-list">
+                    <li><strong>Profiles</strong> — generate golden test profiles, batch seed, lookup and update UPS</li>
+                    <li><strong>Brand scrape → demo prep</strong> — crawl a site, map personas to profiles, optional events and Client Journey asset</li>
+                    <li><strong>Events</strong> — send any experience event type (same as Event tool), verify on profile activity</li>
+                    <li><strong>Sandbox config</strong> — infra readiness, onboard industries, verify MCP access</li>
+                  </ul>
+                </div>
+                <div class="mcp-lab-overview-block">
+                  <h4 class="mcp-lab-overview-block-title">Getting started</h4>
+                  <ol class="mcp-lab-overview-list mcp-lab-overview-list--ordered">
+                    <li>Select your sandbox in the Profile Viewer nav</li>
+                    <li>Sign in and <strong>Generate key</strong> below — copy the secret when shown</li>
+                    <li>Add to Coworker or Cursor: endpoint in the table, header <code>X-AEP-Lab-Mcp-Key</code> — or use <strong>Copy Coworker config</strong></li>
+                    <li>Let Coworker read server-side conventions via <code>lab_get_execution_framework</code> before lab tasks</li>
+                  </ol>
+                </div>
+              </div>
+              <p class="mcp-lab-overview-foot">
+                Tool reference:
+                <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md" target="_blank" rel="noopener noreferrer">README</a>.
+                Brand scrape with wait needs MCP client timeout ≥ 540s; most other tools ≥ 300s.
+              </p>
+            </div>
+
             <div class="mcp-table-wrap">
               <table class="mcp-table" aria-describedby="mcpSectionLabHeading">
                 <thead>
@@ -142,14 +183,14 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="profile-generation-shared.js?v=20260623prefs2"></script>
   <script src="profile-generation-prefs-sync.js?v=20260623prefs2"></script>
-  <script src="mcp-servers.js?v=20260623"></script>
+  <script src="mcp-servers.js?v=20260623-docs-slim"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
   <script src="aep-access-onboarding.js?v=20260527b"></script>
-  <script src="mcp-servers-keys.js?v=20260623-per-sandbox"></script>
+  <script src="mcp-servers-keys.js?v=20260623-docs-slim"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260602-mcp-servers"></script>

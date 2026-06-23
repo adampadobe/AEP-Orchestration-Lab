@@ -626,9 +626,9 @@
     if (!panel) return;
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
-      '<p class="mcp-key-lead">Sign in with lab access to generate a personal <code>X-AEP-Lab-Mcp-Key</code> per sandbox for <strong>AEP Orchestration Lab MCP</strong> (<code>' +
+      '<p class="mcp-key-lead">Sign in to generate a personal <code>X-AEP-Lab-Mcp-Key</code> for the lab MCP (<code>' +
       escapeHtml(MCP_SERVER_ID) +
-      '</code>).</p>' +
+      '</code>) — one key per sandbox.</p>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeySignInBtn">Sign in to lab</button>';
     var btn = document.getElementById('mcpLabKeySignInBtn');
     if (btn) {
@@ -645,13 +645,11 @@
     if (!panel) return;
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
-      '<p class="mcp-key-lead">One personal key per Adobe sandbox — tied to your global sandbox selection in the nav. Each key is allowlisted for that sandbox only when calling <strong>AEP Orchestration Lab MCP</strong> (<code>' +
-      escapeHtml(MCP_SERVER_ID) +
-      '</code>).</p>' +
+      '<p class="mcp-key-lead">Personal key for the sandbox selected in the nav. Scoped to that sandbox only — use <strong>Copy Coworker config</strong> after generate or rotate.</p>' +
       '<div id="mcpLabKeySandboxBanner" class="mcp-key-sandbox-banner-wrap" aria-live="polite"></div>' +
       '<div class="mcp-gen-prefs-sync">' +
       '<h4 class="mcp-gen-prefs-sync-title">Profile generation sync</h4>' +
-      '<p class="mcp-gen-prefs-sync-lead">Base email for <code>lab_get_generation_prefs</code> / <code>lab_confirm_generation_plan</code> — same Firestore doc as Profile generation when signed in as this user.</p>' +
+      '<p class="mcp-gen-prefs-sync-lead">Shared base email with Profile generation — Coworker uses the same prefs when generating without an explicit email.</p>' +
       '<p class="profile-gen-prefs-sync-status" id="mcpLabGenPrefsSyncStatus" data-profile-gen-prefs-sync aria-live="polite" hidden></p>' +
       '</div>' +
       '<div id="mcpLabKeyCurrentSection" class="mcp-key-section mcp-key-current-section" aria-live="polite"></div>' +

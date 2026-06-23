@@ -103,6 +103,96 @@
   color: var(--dash-text-secondary, #6e6e6e);
 }
 
+.mcp-lab-overview {
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--dash-border, #e2e2e2);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface, #fff);
+}
+
+.mcp-lab-overview-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-lab-version {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-muted, #888);
+  margin-left: 0.35rem;
+}
+
+.mcp-lab-overview-lead {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-lab-overview-lead strong {
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-lab-overview-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 1rem 1.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.mcp-lab-overview-block-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-lab-overview-block p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-lab-overview-block code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.mcp-lab-overview-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-lab-overview-list li + li {
+  margin-top: 0.35rem;
+}
+
+.mcp-lab-overview-list--ordered {
+  padding-left: 1.25rem;
+}
+
+.mcp-lab-overview-list strong {
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-lab-overview-foot {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--dash-muted, #888);
+}
+
 .mcp-section-empty {
   margin: 0.75rem 0 0;
 }
@@ -366,6 +456,7 @@
   border-radius: 999px;
 }
 
+.mcp-key-panel {
   margin: 1.25rem 0 0;
   padding: 1.25rem 1.35rem;
   border: 1px solid var(--dash-border, #e2e2e2);
