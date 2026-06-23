@@ -10,6 +10,35 @@
   var MODAL_ID = 'mcpLabKeyModal';
   var KEY_PLACEHOLDER = '<paste your key — shown only at generate/rotate>';
   var selectedCurrentKeyId = null;
+  var SESSION_KEY_PREFIX = 'aepLabMcpKeySecret:';
+
+  function sessionKeyFor(keyId) {
+    return SESSION_KEY_PREFIX + String(keyId || '');
+  }
+
+  function storeKeyInSession(keyId, apiKey) {
+    if (!keyId || !apiKey) return;
+    try {
+      sessionStorage.setItem(sessionKeyFor(keyId), String(apiKey));
+    } catch (_e) {}
+  }
+
+  function readKeyFromSession(keyId) {
+    if (!keyId) return '';
+    try {
+      return String(sessionStorage.getItem(sessionKeyFor(keyId)) || '');
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  function clearKeyFromSession(keyId) {
+    if (!keyId) return;
+    try {
+      sessionStorage.removeItem(sessionKeyFor(keyId));
+    } catch (_e) {}
+  }
+
 
   function escapeHtml(str) {
     return String(str)
@@ -196,8 +225,10 @@
           '</dd></div>'
         : '') +
       '</dl>' +
-      '<p class="mcp-key-current-note">Full key is only shown once when you <strong>Generate key</strong> or <strong>Rotate key</strong>. If you lost it, use <strong>Rotate key</strong> below to issue a new secret.</p>' +
+      '<p class="mcp-key-current-note">The full secret is shown once at generate/rotate. Use <strong>Reveal key</strong> while this browser tab is open, or <strong>Generate new key</strong> / <strong>Rotate key</strong> to issue a new secret.</p>' +
       '<div class="mcp-key-actions-row">' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyRevealBtn">Reveal key</button>' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyGenerateNewBtn">Generate new key</button>' +
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyCoworkerBtn">Copy Coworker config</button>' +
       '</div>';
 
@@ -209,10 +240,52 @@
       });
     }
 
+    var revealBtn = document.getElementById('mcpLabKeyRevealBtn');
+    var sessionSecret = readKeyFromSession(current.keyId);
+    if (revealBtn) {
+      revealBtn.disabled = !sessionSecret;
+      revealBtn.title = sessionSecret
+        ? 'Show the key saved in this browser session'
+        : 'Generate or rotate a key in this tab to enable reveal';
+      revealBtn.addEventListener('click', function () {
+        var secret = readKeyFromSession(current.keyId);
+        if (!secret) {
+          setStatus('Key not in this session. Generate or rotate to reveal.', true);
+          return;
+        }
+        showKeyModal(
+          'Your MCP API key',
+          secret,
+          'Stored for this browser tab only (sessionStorage). Copy before closing the tab.',
+        );
+      });
+    }
+
+    var genNewBtn = document.getElementById('mcpLabKeyGenerateNewBtn');
+    if (genNewBtn) {
+      genNewBtn.addEventListener('click', function () {
+        var sandboxes = Array.isArray(current.allowedSandboxes) ? current.allowedSandboxes : [];
+        if (!sandboxes.length) {
+          generateKey();
+          return;
+        }
+        var boxes = document.querySelectorAll('input[name="mcpLabKeySandbox"]');
+        boxes.forEach(function (el) {
+          el.checked = sandboxes.indexOf(el.value) !== -1;
+        });
+        generateKey();
+      });
+    }
+
     var copyBtn = document.getElementById('mcpLabKeyCopyCoworkerBtn');
     if (copyBtn) {
       copyBtn.addEventListener('click', function () {
-        copyTextToClipboard(coworkerSnippetPlaceholder(), copyBtn, 'Copy Coworker config');
+        var secret = readKeyFromSession(current.keyId);
+        copyTextToClipboard(
+          secret ? coworkerSnippet(secret) : coworkerSnippetPlaceholder(),
+          copyBtn,
+          'Copy Coworker config',
+        );
       });
     }
   }
@@ -256,6 +329,12 @@
 
     document.body.appendChild(wrap);
     document.body.classList.add('mcp-key-modal-open');
+
+    if (apiKey && selectedCurrentKeyId) {
+      storeKeyInSession(selectedCurrentKeyId, apiKey);
+    } else if (apiKey) {
+      storeKeyInSession('latest', apiKey);
+    }
 
     wrap.querySelectorAll('.mcp-key-copy-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -373,7 +452,7 @@
     var list = Array.isArray(allowedSandboxes) ? allowedSandboxes : [];
     if (!list.length) {
       wrap.innerHTML =
-        '<p class="mcp-key-hint">Complete your lab workspace profile to see allowed sandboxes.</p>';
+        '<p class="mcp-key-hint">No active Adobe sandboxes returned. Complete your lab workspace profile or retry after lab API access is available.</p>';
       return;
     }
     wrap.innerHTML = list
@@ -449,6 +528,8 @@
         if (!pair.res.ok) {
           throw new Error((pair.data && pair.data.error) || 'Generate failed');
         }
+        selectedCurrentKeyId = pair.data.keyId || selectedCurrentKeyId;
+        storeKeyInSession(pair.data.keyId, pair.data.key);
         showKeyModal('Your new MCP API key', pair.data.key, pair.data.warning);
         return refreshKeys();
       })
@@ -472,6 +553,8 @@
         if (!pair.res.ok) {
           throw new Error((pair.data && pair.data.error) || 'Rotate failed');
         }
+        selectedCurrentKeyId = pair.data.keyId || keyId;
+        storeKeyInSession(pair.data.keyId || keyId, pair.data.key);
         showKeyModal(
           'Rotated MCP API key',
           pair.data.key,

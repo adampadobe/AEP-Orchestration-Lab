@@ -34,7 +34,7 @@ function envFallbackAccess() {
  * Resolve sandbox allowlist for an API key id.
  * @param {string} keyId
  */
-export async function resolvePrincipalAccess(keyId) {
+export async function resolvePrincipalAccess(keyId, options = {}) {
   const id = String(keyId || '').trim() || 'unknown';
   const cached = cache.get(id);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
@@ -71,6 +71,18 @@ export async function resolvePrincipalAccess(keyId) {
     } catch (err) {
       console.warn('[aep-lab-profile-mcp] sandbox allowlist Firestore read failed:', err?.message || err);
     }
+  }
+
+  if (options.source === 'user') {
+    const empty = {
+      allowedSandboxes: [],
+      allowedSet: new Set(),
+      principalLabel: null,
+      source: 'user-missing-allowlist',
+      fetchedAt: Date.now(),
+    };
+    cache.set(id, empty);
+    return { keyId: id, ...empty };
   }
 
   const fallback = envFallbackAccess();

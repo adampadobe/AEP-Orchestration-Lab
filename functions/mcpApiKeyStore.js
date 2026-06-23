@@ -92,6 +92,23 @@ function validateRequestedSandboxes(requested, userCandidates, activeSandboxName
   if (sandboxes.length === 0) {
     throw Object.assign(new Error('At least one sandbox is required.'), { status: 400 });
   }
+
+  const activeSet = Array.isArray(activeSandboxNames) && activeSandboxNames.length > 0
+    ? new Set(activeSandboxNames.map((s) => String(s).toLowerCase()))
+    : null;
+
+  if (activeSet) {
+    for (const sb of sandboxes) {
+      if (!activeSet.has(sb)) {
+        throw Object.assign(
+          new Error(`Sandbox "${sb}" is not an active Adobe sandbox.`),
+          { status: 400 },
+        );
+      }
+    }
+    return sandboxes;
+  }
+
   const candidateSet = new Set(userCandidates.map((s) => String(s).toLowerCase()));
   if (candidateSet.size === 0) {
     throw Object.assign(
@@ -100,21 +117,11 @@ function validateRequestedSandboxes(requested, userCandidates, activeSandboxName
     );
   }
 
-  const activeSet = Array.isArray(activeSandboxNames) && activeSandboxNames.length > 0
-    ? new Set(activeSandboxNames.map((s) => String(s).toLowerCase()))
-    : null;
-
   for (const sb of sandboxes) {
     if (!candidateSet.has(sb)) {
       throw Object.assign(
         new Error(`Sandbox "${sb}" is not in your lab workspace. Allowed: ${Array.from(candidateSet).join(', ')}.`),
         { status: 403 },
-      );
-    }
-    if (activeSet && !activeSet.has(sb)) {
-      throw Object.assign(
-        new Error(`Sandbox "${sb}" is not an active Adobe sandbox.`),
-        { status: 400 },
       );
     }
   }

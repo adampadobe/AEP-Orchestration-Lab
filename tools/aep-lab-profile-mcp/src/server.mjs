@@ -78,7 +78,7 @@ async function main() {
       return;
     }
 
-    const principalAccess = await resolvePrincipalAccess(auth.keyId);
+    const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
 
     await requestContext.run({ keyId: auth.keyId, principalAccess }, async () => {
       try {

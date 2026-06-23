@@ -26,15 +26,24 @@ describe('mcpApiKeyStore', () => {
     assert.ok(list.includes('kirkham'));
   });
 
-  it('validateRequestedSandboxes rejects sandboxes outside workspace', () => {
+  it('validateRequestedSandboxes rejects sandboxes outside active Adobe list', () => {
     assert.throws(
-      () => validateRequestedSandboxes(['other'], ['apalmer'], ['apalmer', 'other']),
-      /not in your lab workspace/,
+      () => validateRequestedSandboxes(['other'], ['apalmer'], ['apalmer', 'kirkham']),
+      /not an active Adobe sandbox/,
     );
   });
 
-  it('validateRequestedSandboxes accepts workspace sandbox', () => {
-    const out = validateRequestedSandboxes(['apalmer'], ['apalmer'], ['apalmer', 'kirkham']);
+  it('validateRequestedSandboxes accepts any active sandbox when Adobe list present', () => {
+    const out = validateRequestedSandboxes(['kirkham'], ['apalmer'], ['apalmer', 'kirkham']);
+    assert.deepEqual(out, ['kirkham']);
+  });
+
+  it('validateRequestedSandboxes falls back to workspace when Adobe list empty', () => {
+    assert.throws(
+      () => validateRequestedSandboxes(['other'], ['apalmer'], []),
+      /not in your lab workspace/,
+    );
+    const out = validateRequestedSandboxes(['apalmer'], ['apalmer'], []);
     assert.deepEqual(out, ['apalmer']);
   });
 
