@@ -155,6 +155,82 @@ export async function lookupProfile(params) {
   });
 }
 
+export async function getAttributeOwnership() {
+  return labApiRequest('/api/profile/attribute-ownership', {
+    timeoutMs: 30_000,
+  });
+}
+
+/**
+ * @param {object} params
+ * @param {string} params.industry
+ * @param {object} params.body
+ */
+export async function updateProfile({ industry, body }) {
+  const industryKey = String(industry || 'generic').trim().toLowerCase();
+  return labApiRequest(`/api/profile/update`, {
+    method: 'POST',
+    query: { industry: industryKey },
+    body,
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * @param {object} params
+ */
+export async function getProfileEvents(params) {
+  return labApiRequest('/api/profile/events', {
+    query: {
+      sandbox: params.sandbox,
+      namespace: params.namespace,
+      identifier: params.identifier,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * @param {object} params
+ */
+export async function getProfileConsent(params) {
+  return labApiRequest('/api/profile/consent', {
+    query: {
+      sandbox: params.sandbox,
+      namespace: params.namespace,
+      identifier: params.identifier,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * @param {object} params
+ */
+export async function getProfileAudiences(params) {
+  return labApiRequest('/api/profile/audiences', {
+    query: {
+      sandbox: params.sandbox,
+      namespace: params.namespace,
+      identifier: params.identifier,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * GET /api/{industry}-profile-connection?sandbox=
+ * @param {object} params
+ * @param {string} params.path - e.g. /api/travel-profile-connection
+ * @param {string} params.sandbox
+ */
+export async function getProfileConnection({ path, sandbox }) {
+  return labApiRequest(path, {
+    query: { sandbox },
+    timeoutMs: 60_000,
+  });
+}
+
 /**
  * POST /api/{industry-route-prefix}-infra/step
  * @param {object} params

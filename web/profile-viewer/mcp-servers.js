@@ -26,16 +26,20 @@
       product: 'AEP Orchestration Lab (Cloud Run)',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
-        'Lab-hosted Streamable HTTP MCP (Phase 2) for Adobe AI Coworker and Cursor: list industries and sandboxes, check profile infra status, generate stream test profiles (with persona randomization), batch seed up to 100 profiles, look up UPS profile tables, and run infra provisioning via the hosted lab APIs — all with a single X-AEP-Lab-Mcp-Key.',
+        'Lab-hosted Streamable HTTP MCP (Phase 2) for Adobe AI Coworker and Cursor: list industries and sandboxes, check profile infra status, generate stream test profiles (with persona randomization), batch seed up to 100 profiles, get/lookup/update UPS profiles (full-snapshot stitch), profile activity (events + channels), and run infra provisioning via the hosted lab APIs — all with a single X-AEP-Lab-Mcp-Key.',
       useCases: [
         'Generate industry-specific test profiles in allowed sandboxes (apalmer, kirkham) with randomize/fill_sample_data',
         'Batch seed N profiles asynchronously and poll job status',
+        'Get profile with writability hints, update with full-snapshot stitch (not minimal deltas)',
+        'Check sandbox profile config (infra + Firestore connection manifest) when switching sandboxes',
+        'Onboard a new sandbox: lab_sandbox_profile_config → lab_onboard_sandbox plan/execute',
+        'Summarize profile activity: event counts, channels, consent for Coworker narration',
         'Check profile infrastructure readiness across industries before demos',
         'Run provisioning steps (all_core) and enable profile on industry infra',
         'Look up profile table data by namespace and identifier from conversation',
       ],
       configNotes:
-        'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http" (or "http"), url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <API key> — request the key from the lab team or GCP Secret Manager (aep-lab-profile-mcp-api-key); never commit secrets. Single key for all tools including provisioning. Tools: lab_list_industries, lab_list_sandboxes, lab_profile_infra_status, lab_generate_profile, lab_lookup_profile, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools (infra status, lookup, provisioning) — set MCP client tool timeout ≥ 300s. Batch max 100. Sandbox allowlist: apalmer, kirkham.',
+        'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http" (or "http"), url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <API key> — request the key from the lab team or GCP Secret Manager (aep-lab-profile-mcp-api-key); never commit secrets. Single key for all tools including provisioning. Tools: lab_list_industries, lab_list_sandboxes, lab_profile_infra_status, lab_generate_profile, lab_lookup_profile, lab_get_profile, lab_update_profile, lab_profile_activity, lab_sandbox_profile_config, lab_onboard_sandbox, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools (infra status, get/lookup/update/activity/onboarding, provisioning) — set MCP client tool timeout ≥ 300s. Batch max 100. Sandbox allowlist: apalmer, kirkham (ops adds new sandboxes via Cloud Run AEP_LAB_MCP_ALLOWED_SANDBOXES).',
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Lab Profile MCP README',
