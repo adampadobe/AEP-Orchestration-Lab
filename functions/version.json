@@ -1,14 +1,14 @@
 {
-  "gitSha": "028452b6811c92d752986166807d87c32b804561",
-  "gitShortSha": "028452b6",
+  "gitSha": "99c88acaa4bf06c86343ab94f7c3fa453e3c2bf5",
+  "gitShortSha": "99c88aca",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Bidirectional profile generation prefs sync (Portal + MCP v3.5)",
+  "gitCommitSubject": "[apalmer] MCP key modal: split copy actions for config vs secret",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T09:14:01+01:00",
-  "deployedAt": "2026-06-23T08:14:31.264Z",
+  "gitCommitDate": "2026-06-23T09:26:15+01:00",
+  "deployedAt": "2026-06-23T08:26:28.130Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/028452b6811c92d752986166807d87c32b804561"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/99c88acaa4bf06c86343ab94f7c3fa453e3c2bf5"
 }
