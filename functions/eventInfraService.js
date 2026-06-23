@@ -62,9 +62,29 @@ function normalizeFgTitleKey(title) {
   return String(title || '').toLowerCase().replace(/\s+/g, '');
 }
 
+/** Debug / investigation FGs must never be resolved or attached (e.g. "AEP Lab Test … DEBUG"). */
+function isExcludedDebugFieldGroupTitle(title) {
+  const t = String(title || '');
+  return /\bdebug\b/i.test(t) || /aep\s*lab\s*test/i.test(t);
+}
+
+function isGlobalAdobeFieldGroup(row) {
+  return /^https:\/\/ns\.adobe\.com\/xdm\//.test(String(row && row.$id ? row.$id : ''));
+}
+
 function matchesInteractionDetailsLiteTitle(title) {
+  if (isExcludedDebugFieldGroupTitle(title)) return false;
   const key = normalizeFgTitleKey(title);
   return key === 'interactiondetailslite' || /interactiondetailslite$/.test(key);
+}
+
+function isInteractionDetailsLiteCandidate(row) {
+  if (!row || typeof row.$id !== 'string' || !row.$id) return false;
+  if (isExcludedDebugFieldGroupTitle(row.title)) return false;
+  if (matchesInteractionDetailsLiteTitle(row.title)) return true;
+  if (!mixinExtendsExperienceEventClass(row)) return false;
+  const t = String(row.title || '').toLowerCase().replace(/\s+/g, ' ');
+  return /interaction\s*details\s*lite/.test(t);
 }
 
 function matchesTravelHotelExperienceV1Title(title) {
@@ -269,17 +289,17 @@ function findExperienceEventCoreV21Mixin(rows) {
   return hit || null;
 }
 
-/** Adobe standard ExperienceEvent field group — channel on tenant `interactionDetails.core.channel`. */
+/** Adobe standard ExperienceEvent field group — tenant `interactionDetails.core.{channel,deviceType,source}`. */
 function findInteractionDetailsLiteMixin(rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  return (
-    list.find((m) => {
-      if (matchesInteractionDetailsLiteTitle(m.title)) return true;
-      if (!mixinExtendsExperienceEventClass(m)) return false;
-      const t = String(m.title || '').toLowerCase().replace(/\s+/g, ' ');
-      return /interaction\s*details\s*lite/.test(t);
-    }) || null
-  );
+  const candidates = (Array.isArray(rows) ? rows : []).filter(isInteractionDetailsLiteCandidate);
+  if (!candidates.length) return null;
+  const exactTitle = candidates.filter((m) => normalizeFgTitleKey(m.title) === 'interactiondetailslite');
+  if (exactTitle.length) {
+    const globalExact = exactTitle.find(isGlobalAdobeFieldGroup);
+    return globalExact || exactTitle[0];
+  }
+  const global = candidates.find(isGlobalAdobeFieldGroup);
+  return global || candidates[0];
 }
 
 /** Adobe / lab "Travel - Hotel Experience v1" (ExperienceEvent) — hotel stay lifecycle fields. */
@@ -331,7 +351,7 @@ function xdmBoolField(title) {
   return { type: 'boolean', title, 'meta:xdmType': 'boolean' };
 }
 
-/** Root-level `interactionDetails.core.channel` — matches Event Tool + generator payloads. */
+/** Tenant `interactionDetails.core.*` — matches apalmer Event Tool reference + generator payloads. */
 const INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES = {
   interactionDetails: {
     type: 'object',
@@ -357,6 +377,8 @@ const INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES = {
             },
             'meta:xdmType': 'string',
           },
+          deviceType: xdmStringField('Device type'),
+          source: xdmStringField('Source'),
         },
         'meta:xdmType': 'object',
       },
@@ -476,7 +498,7 @@ function buildInteractionDetailsLiteExperienceEventFieldGroup(tenantId) {
   return buildExperienceEventTenantFieldGroup(
     tenantId,
     INTERACTION_DETAILS_LITE_FG_TITLE,
-    'AEP Orchestration Lab — auto-created ExperienceEvent field group for tenant interactionDetails.core.channel (Interaction Details Lite).',
+    'AEP Orchestration Lab — auto-created ExperienceEvent field group for tenant interactionDetails.core (channel, deviceType, source).',
     INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES
   );
 }
@@ -835,6 +857,65 @@ function buildAddFieldGroupPatchOps(fullSchema, mixinId) {
   ];
 }
 
+/** JSON Patch ops to detach a field group mixin from a schema (highest index first). */
+function buildRemoveFieldGroupPatchOps(fullSchema, mixinId) {
+  const ref = String(mixinId);
+  const ops = [];
+  const allOf = fullSchema.allOf || [];
+  for (let i = allOf.length - 1; i >= 0; i--) {
+    if (allOf[i] && allOf[i].$ref === ref) {
+      ops.push({ op: 'remove', path: `/allOf/${i}` });
+    }
+  }
+  const extendsList = fullSchema['meta:extends'] || [];
+  for (let i = extendsList.length - 1; i >= 0; i--) {
+    if (extendsList[i] === ref) {
+      ops.push({ op: 'remove', path: `/meta:extends/${i}` });
+    }
+  }
+  return ops;
+}
+
+/**
+ * Field group $refs on a schema that look like Interaction Details Lite but are debug/test artifacts.
+ * @param {object} schema
+ * @param {object[]} mergedRows
+ * @returns {string[]}
+ */
+function findWrongInteractionDetailsLiteRefsOnSchema(schema, mergedRows) {
+  const byId = new Map((mergedRows || []).filter((r) => r && r.$id).map((r) => [String(r.$id), r]));
+  const wrong = [];
+  for (const ref of collectSchemaRefUris(schema)) {
+    const row = byId.get(ref);
+    if (!row) continue;
+    if (isExcludedDebugFieldGroupTitle(row.title)) wrong.push(ref);
+  }
+  return wrong;
+}
+
+async function detachWrongInteractionDetailsLiteFromSchema(token, clientId, orgId, sandbox, metaAltId, schema, mergedRows) {
+  const wrongRefs = findWrongInteractionDetailsLiteRefsOnSchema(schema, mergedRows);
+  if (!wrongRefs.length) return { schema, removed: [], warnings: [] };
+  const removeOps = [];
+  for (const ref of wrongRefs) {
+    removeOps.push(...buildRemoveFieldGroupPatchOps(schema, ref));
+  }
+  if (!removeOps.length) return { schema, removed: [], warnings: [] };
+  await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, removeOps);
+  const refreshed = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || schema;
+  const titles = wrongRefs.map((ref) => {
+    const row = (mergedRows || []).find((r) => String(r.$id) === ref);
+    return row && row.title ? String(row.title) : ref;
+  });
+  return {
+    schema: refreshed,
+    removed: wrongRefs,
+    warnings: [
+      `Detached debug Interaction Details field group(s) from schema: ${titles.join(', ')}. Attaching correct Interaction Details Lite mixin.`,
+    ],
+  };
+}
+
 async function getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId) {
   const enc = encodeURIComponent(metaAltId);
   const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
@@ -1001,6 +1082,22 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     experienceEventCoreV21Attached = true;
   }
 
+  let interactionRepairWarnings = [];
+  const repair = await detachWrongInteractionDetailsLiteFromSchema(
+    token,
+    clientId,
+    orgId,
+    sandbox,
+    metaAltId,
+    full,
+    merged
+  );
+  full = repair.schema;
+  interactionRepairWarnings = repair.warnings || [];
+  if ((repair.removed || []).length) {
+    log(sandbox, 'eventInfra.interactionLite.repair', { removed: repair.removed });
+  }
+
   const interactionLite = findInteractionDetailsLiteMixin(merged);
   const travelHotel = findTravelHotelExperienceV1Mixin(merged);
   const b2cEventIdentity = findB2cEventIdentityV1Mixin(merged);
@@ -1054,7 +1151,7 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
   let travelHotelExperienceV1Attached = false;
   let b2cEventIdentityV1Attached = false;
   let bookerStayerAttached = false;
-  const hospitalityFieldGroupWarnings = [...hospitalityEnsureWarnings];
+  const hospitalityFieldGroupWarnings = [...hospitalityEnsureWarnings, ...interactionRepairWarnings];
   for (const c of hospitalityCreated) {
     if (c && c.title) hospitalityFieldGroupWarnings.push(`Auto-created field group "${c.title}" in this sandbox.`);
   }
@@ -1961,6 +2058,8 @@ module.exports = {
   findTravelHotelExperienceV1Mixin,
   findB2cEventIdentityV1Mixin,
   mixinExtendsExperienceEventClass,
+  isExcludedDebugFieldGroupTitle,
+  isGlobalAdobeFieldGroup,
   matchesInteractionDetailsLiteTitle,
   matchesTravelHotelExperienceV1Title,
   matchesB2cEventIdentityV1Title,
@@ -1968,5 +2067,7 @@ module.exports = {
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
   buildB2cEventIdentityV1ExperienceEventFieldGroup,
   buildEventSchemaIdentityDescriptorPairs,
+  buildRemoveFieldGroupPatchOps,
+  findWrongInteractionDetailsLiteRefsOnSchema,
   ensureRecommendedExperienceEventFieldGroups,
 };

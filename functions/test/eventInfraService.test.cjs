@@ -7,6 +7,7 @@ const {
   findTravelHotelExperienceV1Mixin,
   findB2cEventIdentityV1Mixin,
   mixinExtendsExperienceEventClass,
+  isExcludedDebugFieldGroupTitle,
   matchesInteractionDetailsLiteTitle,
   matchesTravelHotelExperienceV1Title,
   matchesB2cEventIdentityV1Title,
@@ -14,6 +15,8 @@ const {
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
   buildB2cEventIdentityV1ExperienceEventFieldGroup,
   buildEventSchemaIdentityDescriptorPairs,
+  buildRemoveFieldGroupPatchOps,
+  findWrongInteractionDetailsLiteRefsOnSchema,
   REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES,
   SETUP_EVENT_INFRA_SUBSTEPS,
   runEventInfraStep,
@@ -32,6 +35,47 @@ test('findInteractionDetailsLiteMixin matches by title without meta:intendedToEx
   const hit = findInteractionDetailsLiteMixin(rows);
   assert.ok(hit);
   assert.equal(hit.$id, rows[0].$id);
+});
+
+test('findInteractionDetailsLiteMixin excludes AEP Lab Test DEBUG field groups', () => {
+  const rows = [
+    {
+      title: 'AEP Lab Test Interaction Details Lite DEBUG',
+      $id: 'https://ns.adobe.com/prisacar/mixins/interaction-details-lite-debug',
+      'meta:intendedToExtend': [EE_CLASS],
+    },
+    {
+      title: 'Interaction Details Lite',
+      $id: 'https://ns.adobe.com/prisacar/mixins/interaction-details-lite',
+      'meta:intendedToExtend': [EE_CLASS],
+    },
+  ];
+  const hit = findInteractionDetailsLiteMixin(rows);
+  assert.ok(hit);
+  assert.equal(hit.title, 'Interaction Details Lite');
+});
+
+test('findInteractionDetailsLiteMixin prefers global OOTB over tenant copy', () => {
+  const rows = [
+    {
+      title: 'Interaction Details Lite',
+      $id: 'https://ns.adobe.com/prisacar/mixins/interaction-details-lite',
+      'meta:intendedToExtend': [EE_CLASS],
+    },
+    {
+      title: 'Interaction Details Lite',
+      $id: 'https://ns.adobe.com/xdm/mixins/experienceevent-interaction-details-lite',
+      'meta:intendedToExtend': [EE_CLASS],
+    },
+  ];
+  const hit = findInteractionDetailsLiteMixin(rows);
+  assert.ok(hit);
+  assert.equal(hit.$id, 'https://ns.adobe.com/xdm/mixins/experienceevent-interaction-details-lite');
+});
+
+test('isExcludedDebugFieldGroupTitle flags lab test and DEBUG titles', () => {
+  assert.equal(isExcludedDebugFieldGroupTitle('AEP Lab Test Interaction Details Lite DEBUG'), true);
+  assert.equal(isExcludedDebugFieldGroupTitle('Interaction Details Lite'), false);
 });
 
 test('findTravelHotelExperienceV1Mixin matches title variants without EE class metadata', () => {
@@ -59,9 +103,35 @@ test('buildInteractionDetailsLiteExperienceEventFieldGroup wraps fields under te
   assert.equal(body.title, 'Interaction Details Lite');
   assert.deepEqual(body['meta:intendedToExtend'], [EE_CLASS]);
   assert.ok(body.properties._prisacar);
-  assert.ok(body.properties._prisacar.properties.interactionDetails);
-  assert.ok(body.properties._prisacar.properties.interactionDetails.properties.core.properties.channel);
+  const core = body.properties._prisacar.properties.interactionDetails.properties.core.properties;
+  assert.ok(core.channel);
+  assert.ok(core.deviceType);
+  assert.ok(core.source);
+  assert.equal(core.channel.type, 'string');
+  assert.equal(core.deviceType.type, 'string');
+  assert.equal(core.source.type, 'string');
   assert.equal(body.properties.interactionDetails, undefined);
+});
+
+test('findWrongInteractionDetailsLiteRefsOnSchema detects debug mixin on schema', () => {
+  const merged = [
+    {
+      title: 'AEP Lab Test Interaction Details Lite DEBUG',
+      $id: 'https://ns.adobe.com/prisacar/mixins/debug-lite',
+    },
+    {
+      title: 'Interaction Details Lite',
+      $id: 'https://ns.adobe.com/prisacar/mixins/interaction-details-lite',
+    },
+  ];
+  const schema = {
+    allOf: [{ $ref: 'https://ns.adobe.com/prisacar/mixins/debug-lite' }],
+    'meta:extends': ['https://ns.adobe.com/prisacar/mixins/debug-lite'],
+  };
+  const wrong = findWrongInteractionDetailsLiteRefsOnSchema(schema, merged);
+  assert.deepEqual(wrong, ['https://ns.adobe.com/prisacar/mixins/debug-lite']);
+  const ops = buildRemoveFieldGroupPatchOps(schema, wrong[0]);
+  assert.equal(ops.length, 2);
 });
 
 test('buildTravelHotelExperienceV1ExperienceEventFieldGroup wraps hotel under tenant namespace', () => {
