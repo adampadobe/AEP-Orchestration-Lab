@@ -1,16 +1,16 @@
 ---
 name: aep-lab-profile-mcp-coworker
 description: >-
-  Workflows and example prompts for the AEP Orchestration Lab Profile MCP
+  Workflows and example prompts for the AEP Orchestration Lab MCP
   (Streamable HTTP on Cloud Run v3). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, access info,
   getting/updating profiles (full-snapshot stitch), profile activity, or provisioning
   profile pipelines.
 ---
 
-# AEP Lab Profile MCP — Coworker workflows (Phase 3.2)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.2)
 
-MCP server: **AEP Orchestration Lab — Profile MCP v3.2.0** (see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.2.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 

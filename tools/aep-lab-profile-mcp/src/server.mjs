@@ -33,7 +33,7 @@ const transports = {};
 
 function createMcpServer() {
   const server = new McpServer({
-    name: 'aep-lab-profile',
+    name: 'aep-orchestration-lab-mcp',
     version: MCP_VERSION,
   });
   registerProfileTools(server);

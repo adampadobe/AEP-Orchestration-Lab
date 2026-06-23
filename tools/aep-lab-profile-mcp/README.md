@@ -1,4 +1,4 @@
-# AEP Orchestration Lab — Profile MCP (Phase 3.2)
+# AEP Orchestration Lab MCP (Phase 3.2)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
@@ -168,7 +168,7 @@ AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=
 ## Adobe AI Coworker setup
 
 ```json
-"aep-lab-profile": {
+"aep-orchestration-lab-mcp": {
   "type": "streamable-http",
   "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
   "headers": {

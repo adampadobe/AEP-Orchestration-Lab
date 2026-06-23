@@ -1,10 +1,11 @@
 /**
- * Self-service MCP API keys on mcp-servers.html (lab Profile MCP row).
+ * Self-service MCP API keys on mcp-servers.html (AEP Orchestration Lab MCP row).
  */
 (function (global) {
   'use strict';
 
   var MCP_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp';
+  var MCP_SERVER_ID = 'aep-orchestration-lab-mcp';
   var PANEL_ID = 'mcpLabKeyPanel';
   var MODAL_ID = 'mcpLabKeyModal';
   var KEY_PLACEHOLDER = '<paste your key — shown only at generate/rotate>';
@@ -51,7 +52,7 @@
   function coworkerSnippet(apiKey) {
     return JSON.stringify(
       {
-        'aep-lab-profile': {
+        [MCP_SERVER_ID]: {
           type: 'streamable-http',
           url: MCP_URL,
           headers: {
@@ -510,7 +511,9 @@
     if (!panel) return;
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
-      '<p class="mcp-key-lead">Sign in with lab access to generate a personal <code>X-AEP-Lab-Mcp-Key</code> for the Profile MCP (scoped to your workspace sandbox).</p>' +
+      '<p class="mcp-key-lead">Sign in with lab access to generate a personal <code>X-AEP-Lab-Mcp-Key</code> for <strong>AEP Orchestration Lab MCP</strong> (<code>' +
+      escapeHtml(MCP_SERVER_ID) +
+      '</code>).</p>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeySignInBtn">Sign in to lab</button>';
     var btn = document.getElementById('mcpLabKeySignInBtn');
     if (btn) {
@@ -527,7 +530,9 @@
     if (!panel) return;
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
-      '<p class="mcp-key-lead">Generate a personal key for <strong>AEP Orchestration Lab — Profile MCP</strong>. Keys are scoped to your workspace sandbox. Max 3 active keys per user.</p>' +
+      '<p class="mcp-key-lead">Generate a personal key for <strong>AEP Orchestration Lab MCP</strong> (<code>' +
+      escapeHtml(MCP_SERVER_ID) +
+      '</code>). Keys are scoped to sandboxes you select. Max 3 active keys per user.</p>' +
       '<div id="mcpLabKeyCurrentSection" class="mcp-key-section mcp-key-current-section" aria-live="polite"></div>' +
       '<div class="mcp-key-section">' +
       '<p class="mcp-key-label">Allowed sandboxes</p>' +

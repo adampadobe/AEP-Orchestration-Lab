@@ -20,9 +20,9 @@
    */
   const MCP_SERVERS = [
     {
-      id: 'aep-lab-profile',
+      id: 'aep-orchestration-lab-mcp',
       section: 'lab',
-      name: 'AEP Orchestration Lab — Profile MCP',
+      name: 'AEP Orchestration Lab MCP',
       product: 'AEP Orchestration Lab (Cloud Run)',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
@@ -43,7 +43,7 @@
         'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http", url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <your key>. Sign in on MCP servers page (Profile Viewer → MCP servers) to generate, rotate, or revoke a personal key scoped to your workspace sandbox — or use the shared ops key from GCP Secret Manager. Never commit secrets. Tools: lab_list_industries, lab_list_sandboxes, lab_mcp_access_info, lab_profile_infra_status, lab_generate_profile, lab_lookup_profile, lab_get_profile, lab_update_profile, lab_profile_activity, lab_list_event_targets, lab_send_profile_event, lab_send_edge_event, lab_sandbox_profile_config, lab_onboard_sandbox, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools — MCP client timeout ≥ 300s. Verify allowlist with lab_mcp_access_info.',
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
-      docLabel: 'Lab Profile MCP README',
+      docLabel: 'AEP Orchestration Lab MCP README',
     },
     {
       id: 'aep',
