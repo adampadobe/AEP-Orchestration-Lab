@@ -468,6 +468,44 @@ async function run() {
   assert(!isBrandScrapeTerminal('running'), 'running not terminal');
 
   const {
+    normalizeBrandScrapeUrl,
+    brandScrapeUrlsMatch,
+    resolveBrandScrapeFromList,
+  } = await import('../src/brandScrapeResolve.mjs');
+  const norm = normalizeBrandScrapeUrl('https://www.Nike.com/');
+  assert(norm && norm.key === 'nike.com/', 'normalizeBrandScrapeUrl strips www');
+  assert(brandScrapeUrlsMatch('https://nike.com', norm), 'url match nike');
+  const resolved = resolveBrandScrapeFromList(
+    [
+      {
+        scrapeId: 'old1',
+        url: 'https://www.nike.com',
+        scrapeStatus: 'complete',
+        personasPresent: true,
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        scrapeId: 'new1',
+        url: 'https://nike.com/',
+        scrapeStatus: 'complete',
+        personasPresent: true,
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+      {
+        scrapeId: 'run1',
+        url: 'https://nike.com',
+        scrapeStatus: 'running',
+        personasPresent: false,
+        updatedAt: '2026-06-20T00:00:00.000Z',
+      },
+    ],
+    { url: 'https://www.nike.com/', require_personas: true, require_complete: true },
+  );
+  assert(!resolved.need_new_scrape && resolved.scrape_id === 'new1', 'resolve picks newest complete nike scrape');
+  const needNew = resolveBrandScrapeFromList([], { url: 'https://acme.example', prefer_existing: true });
+  assert(needNew.need_new_scrape, 'empty list needs new scrape');
+
+  const {
     inferLabIndustryFromScrape,
     parsePersonaName,
     buildAttributesFromBrandScrapePersona,

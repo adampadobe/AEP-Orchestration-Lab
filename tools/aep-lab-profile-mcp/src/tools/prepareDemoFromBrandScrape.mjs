@@ -3,13 +3,15 @@ import { assertSandboxAllowed } from '../auth.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
+import { resolveBrandScrapeFromList } from '../brandScrapeResolve.mjs';
+import { listBrandScrapes } from '../labApiClient.mjs';
 import {
   createClientJourneyFromScrape,
   generateProfilesFromScrapePersonas,
   loadBrandScrapeRecord,
   sendDemoEventsForProfiles,
 } from '../brandScrapeDemoPrep.mjs';
-import { jsonResult, toolError } from './helpers.mjs';
+import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -22,11 +24,20 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       description:
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
         'optional experience events per profile, optional Client Journey v2 HTML asset. ' +
-        'Prerequisite: lab_brand_scrape with include.personas:true (and include.segments for richer CJv2 context). ' +
+        'Provide scrape_id OR url — when url is given, resolves an existing complete scrape via lab_resolve_brand_scrape logic. ' +
+        'Prerequisite: complete scrape with personas (lab_resolve_brand_scrape → lab_brand_scrape if need_new_scrape). ' +
         'Does not create RTCDP audiences or AJO platform journeys — see lab_create_journey_from_brand_scrape ajoPlatformGap.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
-        scrape_id: z.string().describe('Brand scrape id'),
+        scrape_id: z.string().optional().describe('Brand scrape id (or pass url to auto-resolve)'),
+        url: z
+          .string()
+          .optional()
+          .describe('Brand URL — auto-resolve existing scrape when scrape_id omitted'),
+        prefer_existing: z
+          .boolean()
+          .optional()
+          .describe('When resolving url, reuse existing scrape (default true)'),
         industry: z.string().optional().describe('Override inferred industry for profile generation'),
         steps: z
           .object({
@@ -49,6 +60,8 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
     async ({
       sandbox,
       scrape_id,
+      url,
+      prefer_existing,
       industry,
       steps,
       persona_indices,
@@ -69,9 +82,41 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
-      const scrapeId = String(scrape_id || '').trim();
+      let scrapeId = String(scrape_id || '').trim();
+      let resolveMeta = null;
+
       if (!scrapeId) {
-        return toolError('scrape_id is required.');
+        const brandUrl = String(url || '').trim();
+        if (!brandUrl) {
+          return toolError('scrape_id or url is required.');
+        }
+
+        const listResult = await listBrandScrapes({ sandbox: allowed.sandbox });
+        if (!listResult.ok) {
+          return fromLabApi(listResult, { sandbox: allowed.sandbox });
+        }
+
+        const items = Array.isArray(listResult.data?.items) ? listResult.data.items : [];
+        resolveMeta = resolveBrandScrapeFromList(items, {
+          url: brandUrl,
+          prefer_existing: prefer_existing !== false,
+          require_personas: true,
+          require_complete: true,
+        });
+
+        if (resolveMeta.need_new_scrape) {
+          return toolError(resolveMeta.reason || 'No suitable scrape found for url.', {
+            url: brandUrl,
+            resolve: resolveMeta,
+            nextStep:
+              'Call lab_brand_scrape with include.personas:true (and include.segments for CJv2), then re-run lab_prepare_demo_from_brand_scrape.',
+          });
+        }
+
+        scrapeId = String(resolveMeta.scrape_id || '').trim();
+        if (!scrapeId) {
+          return toolError('Resolve succeeded but no scrape_id returned.', { resolve: resolveMeta });
+        }
       }
 
       const stepFlags = {
@@ -190,6 +235,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         ok: true,
         sandbox: allowed.sandbox,
         scrapeId,
+        ...(resolveMeta ? { resolvedFromUrl: resolveMeta } : {}),
         pipeline,
         coworkerHints: {
           next:

@@ -266,6 +266,7 @@ export function getExecutionFramework() {
       },
       brand_scrape_to_profile: {
         tools: [
+          'lab_resolve_brand_scrape',
           'lab_brand_scrape',
           'lab_get_brand_scrape',
           'lab_generate_profile_from_brand_scrape',
@@ -273,14 +274,34 @@ export function getExecutionFramework() {
           'lab_profile_activity',
         ],
         steps: [
-          'lab_brand_scrape with include.personas:true (default MCP scrape omits personas — enable explicitly)',
+          'lab_resolve_brand_scrape for sandbox + url — reuse scrape_id when a complete scrape with personas exists',
+          'If need_new_scrape: lab_brand_scrape with include.personas:true (default MCP scrape omits personas — enable explicitly)',
           'lab_generate_profile_from_brand_scrape scrape_id + persona_index (or all_personas:true)',
           'lab_send_profile_event with email + ecid from generate response',
           'lab_profile_activity verify',
         ],
         note:
+          'Before scraping, check existing history — Coworker should call lab_resolve_brand_scrape first. ' +
           'Scrape personas are marketing narrative; golden profiles overlay identity onto personaBuilder industry randomize. ' +
           'Scrape segments[] are demo copy, not UPS audiences — use lab segment_hint or RTCDP APIs separately.',
+      },
+      brand_scrape_demo_prep: {
+        tools: [
+          'lab_resolve_brand_scrape',
+          'lab_brand_scrape',
+          'lab_prepare_demo_from_brand_scrape',
+          'lab_get_profile',
+          'lab_profile_activity',
+        ],
+        steps: [
+          'lab_resolve_brand_scrape sandbox + customer url (require_complete + require_personas default true)',
+          'If need_new_scrape: lab_brand_scrape same url with include { personas: true, segments: true, campaigns: true }',
+          'lab_prepare_demo_from_brand_scrape scrape_id (or url to auto-resolve) steps { profiles: true, events: true, journey: true }',
+          'lab_get_profile / lab_profile_activity verify (allow UPS lag after events)',
+        ],
+        note:
+          'One-shot orchestration chains golden profiles, optional events, optional Client Journey v2 HTML. ' +
+          'Does not create RTCDP audiences or AJO platform journeys.',
       },
     },
     when_to_use: {

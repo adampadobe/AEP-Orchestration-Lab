@@ -8,6 +8,7 @@ import {
   getBrandScrape,
   listBrandScrapes,
 } from '../labApiClient.mjs';
+import { resolveBrandScrapeFromList } from '../brandScrapeResolve.mjs';
 import {
   isBrandScrapeTerminal,
   summarizeBrandScrape,
@@ -242,6 +243,79 @@ export function registerBrandScrapeTools(mcpServer) {
             ? `Poll again with lab_get_brand_scrape scrape_id=${scrapeId}.`
             : undefined,
         },
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_resolve_brand_scrape',
+    {
+      title: 'Resolve existing brand scrape for URL',
+      description:
+        'List sandbox scrape history and pick the best existing match for a brand URL before running lab_brand_scrape. ' +
+        'Returns scrape_id + summary when a suitable complete scrape exists, or need_new_scrape:true with reason. ' +
+        'Coworker: call this first — "Before scraping, check if we already have a complete scrape for this URL on this sandbox."',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        url: z
+          .string()
+          .optional()
+          .describe('Brand website URL to match (host/path normalized). Omit to pick newest suitable scrape on sandbox.'),
+        prefer_existing: z
+          .boolean()
+          .optional()
+          .describe('When true (default), return existing match when found; when false, always need_new_scrape'),
+        max_age_hours: z
+          .number()
+          .positive()
+          .optional()
+          .describe('Ignore scrapes older than this many hours (by updatedAt)'),
+        require_personas: z
+          .boolean()
+          .optional()
+          .describe('Require personasPresent on index row (default true — needed for demo prep)'),
+        require_complete: z
+          .boolean()
+          .optional()
+          .describe('Require scrapeStatus complete (default true)'),
+      },
+    },
+    async ({
+      sandbox,
+      url,
+      prefer_existing,
+      max_age_hours,
+      require_personas,
+      require_complete,
+    }) => {
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await listBrandScrapes({ sandbox: allowed.sandbox });
+      if (!apiResult.ok) {
+        return fromLabApi(apiResult, { sandbox: allowed.sandbox });
+      }
+
+      const items = Array.isArray(apiResult.data?.items) ? apiResult.data.items : [];
+      const resolved = resolveBrandScrapeFromList(items, {
+        url: url ? String(url).trim() : undefined,
+        prefer_existing: prefer_existing !== false,
+        max_age_hours,
+        require_personas: require_personas !== false,
+        require_complete: require_complete !== false,
+      });
+
+      return jsonResult({
+        ok: true,
+        sandbox: allowed.sandbox,
+        ...resolved,
+        historyCount: items.length,
+        nextStep: resolved.need_new_scrape
+          ? 'Call lab_brand_scrape with the same sandbox and url (include.personas:true for demo prep).'
+          : `Reuse scrape_id ${resolved.scrape_id} — lab_prepare_demo_from_brand_scrape or lab_generate_profile_from_brand_scrape.`,
+        portalUrl: 'https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html',
       });
     },
   );

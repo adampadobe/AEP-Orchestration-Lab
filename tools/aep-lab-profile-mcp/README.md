@@ -52,23 +52,25 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_sandbox_profile_config` | status-all + connection APIs | `ready`, `missing_steps`, `next_action` |
 | `lab_onboard_sandbox` | *(orchestrates provisioning)* | `plan`, `execute`, or `execute_all` (async) |
 | `lab_brand_scrape` | `POST …/brandScraperAnalyze` (direct CF) + poll `GET …/scrapes/{id}` | Crawl brand URL; same Firestore/GCS as Portal Brand scraper; default waits for complete |
+| `lab_resolve_brand_scrape` | `GET /api/brand-scraper/scrapes` | Find reusable scrape for URL before crawling; returns scrape_id or need_new_scrape |
 | `lab_list_brand_scrapes` | `GET /api/brand-scraper/scrapes` | History list for sandbox |
 | `lab_get_brand_scrape` | `GET /api/brand-scraper/scrapes/{id}` | Full record + Coworker summary (colours, fonts, personas) |
 | `lab_generate_profile_from_brand_scrape` | `GET` scrape + `POST /api/profile/generate` | Map scrape persona → golden UPS profile (identity overlay + industry randomize) |
 | `lab_generate_profiles_from_brand_scrape` | same (all personas) | Batch alias — one profile per scrape persona |
-| `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep from scrape id |
+| `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep from scrape_id or url (auto-resolve) |
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
 
-### Brand scrape (Phase 3.7)
+### Brand scrape (Phase 3.8)
 
 Mirrors Profile Viewer **[Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html)**:
 
+0. **`lab_resolve_brand_scrape`** — list history for sandbox, match normalized URL host/path, return existing `scrape_id` when `scrapeStatus=complete` and `personasPresent` (configurable). Coworker should call this **before** `lab_brand_scrape`.
 1. **`lab_brand_scrape`** — `url` + `sandbox`; hits direct Cloud Function `brandScraperAnalyze` (540s, bypasses Hosting 60s cap). Default **`wait_for_complete:true`** polls until `scrapeStatus` is `complete` or `failed`.
 2. **`lab_list_brand_scrapes`** — same Firestore index `brandScrapes/{sandbox}__{scrapeId}` the portal history uses.
 3. **`lab_get_brand_scrape`** — hydrates GCS `record.json` + summary for Coworker (colours, fonts, about, persona counts).
-4. **`lab_generate_profile_from_brand_scrape`** — maps a scrape marketing persona to a streamed AEP test profile (overlay name/age/location from scrape + randomized industry paths). Use **`lab_generate_profiles_from_brand_scrape`** for all personas, or **`lab_prepare_demo_from_brand_scrape`** to chain profiles + events + Client Journey v2.
+4. **`lab_generate_profile_from_brand_scrape`** — maps a scrape marketing persona to a streamed AEP test profile (overlay name/age/location from scrape + randomized industry paths). Use **`lab_generate_profiles_from_brand_scrape`** for all personas, or **`lab_prepare_demo_from_brand_scrape`** to chain profiles + events + Client Journey v2 (accepts `scrape_id` or `url`).
 5. **`lab_create_journey_from_brand_scrape`** — Client Journey Asset v2 (presentation HTML). **Not** an AJO platform journey create; lab has read-only `journeysBrowse` only.
 
 Storage: Firestore index + GCS bucket `aep-orchestration-lab-brand-scrapes` (see `functions/brandScrapeStore.js`). Scrapes also surface in **Image hosting** and **Client Journey Asset v2** import pickers.

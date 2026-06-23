@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.7). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.8). Use when generating test profiles, sending
   experience events, checking infra, batch seeding, segment personas, brand scraping,
   access info, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.7)
 
-MCP server: **AEP Orchestration Lab MCP v3.7.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.8.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -245,19 +245,21 @@ Same MCP key as all other tools.
 
 ## Workflow 6 — Brand scrape (Portal parity)
 
-> Call **lab_mcp_access_info** first. Then **lab_brand_scrape** with sandbox apalmer and url `https://www.adobe.com` (or the customer's site). Default waits until complete. Summarize colours, fonts, about, and persona counts from the `summary` block.
+> Before scraping, check if we already have a complete scrape for this URL on this sandbox.
 
-1. **List existing scrapes**
+> Call **lab_mcp_access_info** first. Then **lab_resolve_brand_scrape** with sandbox apalmer and the customer url. If `need_new_scrape`, run **lab_brand_scrape**; otherwise reuse `scrape_id` from the resolve response.
 
-   > lab_list_brand_scrapes for sandbox apalmer. Show brandName, scrapeStatus, updatedAt.
+1. **Resolve or list existing scrapes**
 
-2. **Run a new scrape**
+   > lab_resolve_brand_scrape for sandbox apalmer, url `https://www.adobe.com` (or customer site). If `need_new_scrape:false`, note scrape_id, brandName, personasPresent. Else lab_list_brand_scrapes to show history.
 
-   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, wait_for_complete true.
+2. **Run a new scrape (only when needed)**
+
+   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, include `{ "personas": true, "segments": true }`, wait_for_complete true.
 
 3. **Fetch one scrape for demos**
 
-   > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id from step 2>`. Use summary in conversation; full `lab` payload for CJv2 / LLM Demo import.
+   > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id>`. Use summary in conversation; full `lab` payload for CJv2 / LLM Demo import.
 
 Portal: [Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html) history and [Image hosting](https://aep-orchestration-lab.web.app/profile-viewer/image-hosting.html) read the same Firestore/GCS records.
 
@@ -265,9 +267,9 @@ Portal: [Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/bra
 
 End-to-end chain for customer-specific demo prep.
 
-1. **Scrape with personas**
+1. **Resolve existing scrape or scrape with personas**
 
-   > lab_brand_scrape: sandbox apalmer, url `https://example-brand.com`, include `{ "personas": true, "segments": true, "campaigns": true }`, wait_for_complete true.
+   > lab_resolve_brand_scrape: sandbox apalmer, url `https://example-brand.com`. If need_new_scrape, lab_brand_scrape same url with include `{ "personas": true, "segments": true, "campaigns": true }`, wait_for_complete true.
 
 2. **Golden profiles**
 
@@ -275,7 +277,7 @@ End-to-end chain for customer-specific demo prep.
 
 3. **One-shot orchestration (optional)**
 
-   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, scrape_id `<id>`, steps `{ "profiles": true, "events": true, "journey": true }`.
+   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, url `https://example-brand.com` (or scrape_id), steps `{ "profiles": true, "events": true, "journey": true }`.
 
 4. **Client Journey v2 HTML (~60–180s, optional)**
 
