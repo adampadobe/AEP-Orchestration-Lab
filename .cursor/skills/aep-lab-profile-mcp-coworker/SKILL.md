@@ -45,7 +45,7 @@ Coworker should call these **before** improvising lab conventions:
 
 ### How the lab executes
 
-1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset.
+1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset. **HTTP API dataflows:** lab MCP creates schema/FGs/dataset; Coworker **dx-api** creates Flow Service connections + dataflow (see Workflow 4b).
 2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via per-industry HTTP API connections. **Non-generic industries dual-stream automatically:** step 1 `industry generic` (generic-owned paths), step 2 `industry travel|fsi|…` with `appendIfExisting` (industry-owned paths, same email/ECID). `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
 4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator` (same POST body as Profile Viewer **Event Generator** and mobile lab shells). **`event_type` is free text** — any string (e.g. `transaction`, `donation.made`, `starbucks.mobile.page.view`, `ferrariworld.pageView`). Event tool datalist / `lab_send_retail_journey_events` commerce pack are **suggestions only**. **Identity**: pass email **and** ecid from `lab_generate_profile`; `identityMap` uses ECID primary + Email secondary; `_demoemea.identification.core` mirrors both. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event` (returns `generatorPostBody`). Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`. Auto-fetches ecid from UPS when email-only.
@@ -171,6 +171,14 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Use lab_onboard_sandbox with sandbox apalmer, mode execute, industry travel. Wait for completion, then repeat for other not-ready industries.
 
+3b. **HTTP streaming dataflow (Coworker dx-api — when connection missing)**
+
+   Lab MCP creates **schema, field groups, and dataset** (`lab_provision_profile_infra_step` steps `createSchema`, `attachFieldGroups`, `createDataset`) and can **enable Profile** (`lab_enable_profile`). It does **not** create Flow Service entities — use Coworker **dx-api** for that gap.
+
+   > Call **lab_profile_infra_status** for sandbox **apalmer** industry **travel**. If schema/dataset exist but `missing_steps` includes `save_http_streaming_connection`, use **dx-api** (Flow Service) to create: (1) base connection, (2) source connection mapped to schema **`schemaId`**, (3) target connection to dataset **`datasetId`**, (4) dataflow named **`AEP Lab - Travel Profile - Dataflow`**. Header **`x-sandbox-name: apalmer`**. After the flow exists, Profile Viewer → Travel profile generation → **Fetch URL & Flow ID** → **Save connection**. Verify with **lab_sandbox_profile_config**.
+
+   Full reference: `docs/COWORKER_HTTP_STREAMING_FLOWS.md` and **`lab_get_execution_framework`** → `workflows.http_streaming_dx_api`.
+
 4. **Execute all industries (async, Phase 3)**
 
    > lab_onboard_sandbox: sandbox apalmer, mode execute_all. Poll lab_batch_job_status with job_id every 15s until completed. Report per-industry results.
@@ -178,6 +186,32 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 5. **Ops note for new colleague sandboxes**
 
    > Ops seeds Firestore mcpSandboxAllowlist/{keyId} or updates AEP_LAB_MCP_ALLOWED_SANDBOXES — see README. Coworker verifies with lab_mcp_access_info.
+
+## Workflow 4b — HTTP streaming via dx-api (profile generation)
+
+Use when **`lab_sandbox_profile_config`** shows infra ready (schema + dataset) but **`save_http_streaming_connection`** or missing `streaming.flowId` / `streaming.url`.
+
+**Lab MCP handles:** schema shell, field groups, Profile-enabled dataset, Profile union (`lab_enable_profile`).
+
+**Coworker dx-api handles:** Flow Service HTTP API ingestion (no dedicated lab MCP tool).
+
+1. **Provision catalog objects**
+
+   > lab_provision_profile_infra_step sandbox prisacar industry travel step createSchema — then attachFieldGroups, createDataset. lab_enable_profile sandbox prisacar industry travel.
+
+2. **Collect IDs for dx-api**
+
+   > lab_profile_infra_status sandbox prisacar industry travel — note schemaId, datasetId, xdmKey, naming.httpDataflow (e.g. AEP Lab - Travel Profile - Dataflow).
+
+3. **Create flow (dx-api prompt — paste into Coworker)**
+
+   > Using **dx-api** and sandbox **prisacar**, create an HTTP API streaming dataflow for profile ingestion: resolve HTTP API connectionSpec, POST base connection, POST source connection (schema **{schemaId}**), POST target connection (dataset **{datasetId}**), POST flow named **AEP Lab - Travel Profile - Dataflow**. Return flowId and DCS inlet URL.
+
+4. **Save connection + verify**
+
+   > Profile Viewer Travel profile generation → Fetch URL & Flow ID → Save connection. Then lab_sandbox_profile_config sandbox prisacar — travel should be ready. lab_preflight_profile_generate → lab_generate_profile.
+
+Per-industry dataflow names: `AEP Lab - {Industry} Profile - Dataflow`. See `docs/COWORKER_HTTP_STREAMING_FLOWS.md`.
 
 ## Workflow 5 — Profile activity narration
 
@@ -231,25 +265,25 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 
    > lab_setup_event_infra for sandbox prisacar. Default schema **AEP Lab - Event Generic - Schema**; dataset name auto-derives **AEP Lab - Event Generic - Dataset**.
 
-2. **Enable Profile in AEP UI**
+2. **Enable Profile (identityMap alternate primary)**
 
-   > Enable the ExperienceEvent schema and dataset for Profile with **alternate primary identity** (identityMap per event). See response `identity_map_hint`.
+   > lab_enable_event_profile sandbox prisacar — or `lab_setup_event_infra` with `enable_for_profile:true`. Required before UPS reflects events on known profiles.
 
-3. **Create Edge datastream (manual in Data Collection)**
+3. **Create Edge datastream (Coworker dx-api)**
 
-   > In Tags / Data Collection, create an Edge datastream mapped to the event schema and dataset. Copy the datastream / Edge configuration ID.
+   > Using **dx-api** (Edge Configuration API, `x-sandbox-name: prisacar`): `GET https://edge.adobe.io/ee/v2/datastreamConfigs` then `POST` with `mappingSchemaId` = schema_id from step 1 and **Adobe Experience Platform** service `datasets: [{ id: dataset_id, schema: schema_id }]`. Suggested title: **AEP Lab - Event Generic - Datastream**. Enable Identity + Profile services for Web SDK demos. See `docs/COWORKER_EDGE_DATASTREAMS.md`.
 
 4. **Save datastream ID**
 
-   > lab_save_event_datastream sandbox prisacar datastream_id `<edge-id>` schema_id from step 1 response. Or Portal [Event tool](https://aep-orchestration-lab.web.app/profile-viewer/event-tool.html).
+   > lab_save_event_datastream sandbox prisacar datastream_id `<edge-uuid>` schema_id from step 1 schema_title "AEP Lab - Event Generic - Schema" dataset_name "AEP Lab - Event Generic - Dataset". Or Portal [Event tool](https://aep-orchestration-lab.web.app/profile-viewer/event-tool.html).
 
 5. **Verify**
 
    > lab_list_event_targets for sandbox prisacar — preset **lab-event-tool-edge** should include `dataStreamId`. Then chain **Workflow 5b** to send events.
 
-**One-shot Coworker prompt:**
+**One-shot Coworker prompt (schema + dataset + datastream + save):**
 
-> Set up event schema and dataset for sandbox **prisacar**, then tell me how to save the datastream ID after I create it in Data Collection.
+> For sandbox **prisacar**: (1) **lab_setup_event_infra** with **enable_for_profile** true — save schema_id and dataset_id. (2) **dx-api**: create Edge datastream with AEP service mapped to that schema/dataset (see `docs/COWORKER_EDGE_DATASTREAMS.md`). (3) **lab_save_event_datastream** with the new datastream_id. (4) **lab_list_event_targets** to confirm **lab-event-tool-edge**.
 
 ## Workflow 6 — Batch seed N profiles
 
@@ -275,7 +309,11 @@ Same MCP key as all other tools.
 
 2. **Run all core steps**
 
-   > lab_provision_profile_infra_step: sandbox apalmer, industry fsi, step all_core.
+   > lab_provision_profile_infra_step: sandbox apalmer, industry fsi, step createSchema — then attachFieldGroups, createDataset (or run each step idempotently).
+
+2b. **If httpFlow / connection still missing — dx-api**
+
+   > lab_profile_infra_status sandbox apalmer industry fsi — then Coworker **dx-api** Flow Service for HTTP dataflow (base → source → target → flow) using datasetId, schemaId, and naming.httpDataflow from status. Save inlet URL + flowId in Profile Viewer, verify lab_sandbox_profile_config.
 
 3. **Enable profile**
 
@@ -348,3 +386,4 @@ End-to-end chain for customer-specific demo prep.
 - Batch jobs max **100** profiles; use `email_pattern` for custom addressing (`{n}`, `{industry}`).
 - Industry aliases: `telco` → `telecom`, `public` → `generic`.
 - Provisioning is sandbox-allowlist gated like every other tool.
+- **HTTP streaming flows:** no lab MCP Flow Service tool — after schema/dataset provision, use Coworker **dx-api** (see Workflow 4b, `docs/COWORKER_HTTP_STREAMING_FLOWS.md`, `lab_get_execution_framework` → `workflows.http_streaming_dx_api`).

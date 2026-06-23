@@ -6,6 +6,7 @@
  *   functions/profileGenerateService.js, profileStreamingCore.js
  *   functions/industryAttributeMap.js, profileCoreV2Manifest.js
  *   docs/PROFILE_CORE_V2_TOPUP.md, docs/ANONYMOUS_EDGE_DEMO_PATTERN.md
+ *   docs/COWORKER_HTTP_STREAMING_FLOWS.md, docs/COWORKER_EDGE_DATASTREAMS.md
  */
 
 import { LAB_INDUSTRY_KEYS, INDUSTRY_ALIASES } from '../industries.mjs';
@@ -153,9 +154,116 @@ const TEST_PROFILE_PLAYBOOK = {
   opt_out: 'test_profile:false + test_profile_override_reason only for non-demo exceptions',
 };
 
+/** Catalog names for HTTP streaming — mirrors functions/*ProfileInfraService.js. */
+const INDUSTRY_HTTP_CATALOG_NAMING = {
+  generic: {
+    schemaTitle: 'AEP Lab - Generic Profile - Schema',
+    datasetName: 'AEP Lab - Generic Profile - Dataset',
+    httpDataflowName: 'AEP Lab - Generic Profile - Dataflow',
+  },
+  travel: {
+    schemaTitle: 'AEP Lab - Travel Profile - Schema',
+    datasetName: 'AEP Lab - Travel Profile - Dataset',
+    httpDataflowName: 'AEP Lab - Travel Profile - Dataflow',
+  },
+  fsi: {
+    schemaTitle: 'AEP Lab - FSI Profile - Schema',
+    datasetName: 'AEP Lab - FSI Profile - Dataset',
+    httpDataflowName: 'AEP Lab - FSI Profile - Dataflow',
+  },
+  retail: {
+    schemaTitle: 'AEP Lab - Retail Profile - Schema',
+    datasetName: 'AEP Lab - Retail Profile - Dataset',
+    httpDataflowName: 'AEP Lab - Retail Profile - Dataflow',
+  },
+  telecom: {
+    schemaTitle: 'AEP Lab - Telecom Profile - Schema',
+    datasetName: 'AEP Lab - Telecom Profile - Dataset',
+    httpDataflowName: 'AEP Lab - Telecom Profile - Dataflow',
+  },
+  media: {
+    schemaTitle: 'AEP Lab - Media Profile - Schema',
+    datasetName: 'AEP Lab - Media Profile - Dataset',
+    httpDataflowName: 'AEP Lab - Media Profile - Dataflow',
+  },
+  sports: {
+    schemaTitle: 'AEP Lab - Sports Profile - Schema',
+    datasetName: 'AEP Lab - Sports Profile - Dataset',
+    httpDataflowName: 'AEP Lab - Sports Profile - Dataflow',
+  },
+};
+
+/** Coworker dx-api guidance — no lab MCP Flow Service tool; use Adobe Flow Service skill. */
+const HTTP_STREAMING_DX_API_GUIDANCE = {
+  when:
+    'After lab_provision_profile_infra_step createSchema/attachFieldGroups/createDataset (+ lab_enable_profile) when missing_steps includes save_http_streaming_connection or httpFlow step returns manual:true.',
+  coworker_skill: 'dx-api (Flow Service API)',
+  flow_service_base: 'https://platform.adobe.io/data/foundation/flowservice',
+  headers: ['Authorization', 'x-api-key', 'x-gw-ims-org-id', 'x-sandbox-name'],
+  steps: [
+    'Resolve HTTP API streaming connectionSpec (GET /connectionSpecs)',
+    'POST /connections — base connection',
+    'POST /sourceConnections — link base + schema',
+    'POST /targetConnections — link dataset (datasetId from MCP)',
+    'POST /flows — dataflow (name from naming.httpDataflow); list-by-name first for idempotency',
+  ],
+  ids_from_mcp: {
+    sandbox: 'MCP sandbox argument → x-sandbox-name',
+    schemaId: 'lab_provision_profile_infra_step or lab_profile_infra_status → schemaId',
+    datasetId: 'lab_provision_profile_infra_step or lab_profile_infra_status → datasetId',
+    xdmKey: 'lab_provision response xdmKey → streaming.xdmKey on save',
+    httpDataflowName: 'status naming.httpDataflow (e.g. AEP Lab - Travel Profile - Dataflow)',
+    schemaTitle: 'status naming.schema',
+    datasetName: 'status naming.dataset',
+  },
+  after_flow_created:
+    'Profile Viewer Profile generation → Fetch URL & Flow ID from AEP → Save connection. Verify lab_sandbox_profile_config ready for industry.',
+  doc: 'docs/COWORKER_HTTP_STREAMING_FLOWS.md',
+};
+
+/** Coworker dx-api guidance for Event tool Edge datastreams — not automated in lab MCP. */
+const EDGE_DATASTREAM_DX_API_GUIDANCE = {
+  when:
+    'After lab_setup_event_infra (+ lab_enable_event_profile) when Firestore eventEdgeConfig has no datastreamId and lab-event-tool-edge is unavailable.',
+  coworker_skill: 'dx-api (Edge Configuration / Datastream API)',
+  edge_api_base: 'https://edge.adobe.io/ee/v2/datastreamConfigs',
+  headers: ['Authorization', 'x-api-key', 'x-gw-ims-org-id', 'x-sandbox-name'],
+  steps: [
+    'lab_setup_event_infra (+ lab_enable_event_profile or enable_for_profile:true)',
+    'GET /ee/v2/datastreamConfigs — list; reuse by title if present',
+    'POST /ee/v2/datastreamConfigs — mappingSchemaId + Adobe Experience Platform service datasets[{id,schema}]',
+    'lab_save_event_datastream datastream_id {uuid} (+ schema_id, dataset_name metadata)',
+    'lab_list_event_targets — lab-event-tool-edge should include dataStreamId',
+  ],
+  ids_from_mcp: {
+    sandbox: 'MCP sandbox argument → x-sandbox-name',
+    schemaId: 'lab_setup_event_infra → schema_id',
+    datasetId: 'lab_setup_event_infra → dataset_id',
+    schemaTitle: 'default AEP Lab - Event Generic - Schema',
+    datasetName: 'default AEP Lab - Event Generic - Dataset',
+    suggestedDatastreamTitle: 'AEP Lab - Event Generic - Datastream',
+  },
+  aep_service_payload: {
+    name: 'Adobe Experience Platform',
+    enabled: true,
+    settings: {
+      datasets: [{ id: '<dataset_id>', schema: '<schema_id>' }],
+    },
+  },
+  optional_services: [
+    'Experience Cloud ID Service (Identity) — Web SDK ECID demos',
+    'Real-time Customer Profile — when lab_enable_event_profile ran',
+  ],
+  lab_mcp_does_not_create: ['Edge datastream / datastreamConfigs POST'],
+  after_save: 'lab_send_profile_event target_id lab-event-tool-edge (Edge interact, not Flow Service DCS)',
+  doc: 'docs/COWORKER_EDGE_DATASTREAMS.md',
+  reference_impl: 'functions/eventEdgeService.js createDatastreamConfig',
+};
+
 /** Shared dataflow / connection shape per industry. */
 function dataflowPlaybook(industry) {
   const collection = INDUSTRY_CONNECTION_COLLECTION[industry];
+  const catalogNaming = INDUSTRY_HTTP_CATALOG_NAMING[industry] || null;
   return {
     firestoreCollection: collection,
     firestoreDocPattern: '{sanitizedSandboxName}',
@@ -163,14 +271,23 @@ function dataflowPlaybook(industry) {
     manifestFields: ['streaming.url', 'streaming.flowId', 'streaming.datasetId', 'streaming.schemaId', 'streaming.xdmKey'],
     prerequisite: 'lab_sandbox_profile_config ready:true for this industry before lab_generate_profile',
     flowPattern: 'HTTP API connection → Adobe DCS collection URL + flowId; envelope uses datasetId + schemaId',
+    catalogNaming,
+    http_streaming_via_dx_api: HTTP_STREAMING_DX_API_GUIDANCE,
   };
 }
 
 const COMMON_FAILURE_MODES = [
   {
     symptom: '400 missing streaming.datasetId/schemaId',
-    cause: 'Firestore connection incomplete — save HTTP dataflow from Profile Viewer wizard or lab_provision_profile_infra_step all_core',
-    fix: 'lab_sandbox_profile_config → lab_onboard_sandbox or lab_provision_profile_infra_step step all_core',
+    cause: 'Firestore connection incomplete — HTTP API dataflow not saved after schema/dataset provision',
+    fix:
+      'lab_sandbox_profile_config → if infra ready but connection missing: use Coworker **dx-api** skill for Flow Service (base → source → target → dataflow) with datasetId/schemaId from lab_profile_infra_status, then Profile Viewer Fetch URL & Flow ID + Save connection. See workflows.http_streaming_dx_api.',
+  },
+  {
+    symptom: 'httpFlow step returns manual:true / save_http_streaming_connection missing',
+    cause: 'Lab MCP creates schema+FGs+dataset only; Flow Service entities are not automated in lab MCP',
+    fix:
+      'Use Coworker **dx-api** with naming.httpDataflow + datasetId + schemaId from MCP status. After flow exists, save inlet URL + flowId via Profile Viewer or verify with lab_sandbox_profile_config.',
   },
   {
     symptom: 'Profile streams but industry attributes missing in UPS',
@@ -201,7 +318,8 @@ const COMMON_FAILURE_MODES = [
   {
     symptom: 'Event generator target missing / no datastream',
     cause: `Firestore eventConfig has no datastreamId for sandbox — ${LAB_EVENT_TOOL_TARGET_ID} unavailable`,
-    fix: 'Profile Viewer Event tool → save Edge config for sandbox, or lab_list_event_targets to pick another preset',
+    fix:
+      'lab_setup_event_infra + lab_enable_event_profile, then Coworker **dx-api** Edge datastream (see workflows.edge_datastream_dx_api), then lab_save_event_datastream. Or Event tool Step 2 save.',
   },
 ];
 
@@ -239,10 +357,37 @@ export function getExecutionFramework() {
           'lab_mcp_access_info — confirm sandbox on allowlist',
           'lab_sandbox_profile_config — list ready vs notReadyIndustries',
           'lab_onboard_sandbox mode=plan — ordered checklist',
+          'lab_provision_profile_infra_step steps createSchema, attachFieldGroups, createDataset (+ lab_enable_profile)',
+          'If connection still missing: Coworker dx-api Flow Service for HTTP dataflow (see http_streaming_dx_api)',
           'lab_onboard_sandbox mode=execute industry=<key> — one industry per call (sync)',
           'lab_onboard_sandbox mode=execute_all — async all industries; poll lab_batch_job_status',
         ],
         note: 'Generate/update fail until Firestore connection has streaming.url, flowId, datasetId, schemaId, xdmKey.',
+      },
+      http_streaming_dx_api: {
+        tools: [
+          'lab_provision_profile_infra_step',
+          'lab_enable_profile',
+          'lab_profile_infra_status',
+          'lab_sandbox_profile_config',
+        ],
+        coworker_skill: 'dx-api (Flow Service API — not a lab MCP tool)',
+        when:
+          'Schema + field groups + dataset exist (lab MCP) but HTTP API streaming dataflow + Firestore connection manifest are missing.',
+        lab_mcp_creates: ['schema', 'field groups', 'Profile-enabled dataset'],
+        lab_mcp_does_not_create: ['Flow Service base/source/target connections', 'HTTP API dataflow', 'DCS inlet URL'],
+        order: [
+          'lab_provision_profile_infra_step sandbox {sandbox} industry {industry} step createSchema (skip if exists)',
+          'lab_provision_profile_infra_step step attachFieldGroups',
+          'lab_provision_profile_infra_step step createDataset',
+          'lab_enable_profile sandbox {sandbox} industry {industry}',
+          'lab_profile_infra_status — copy schemaId, datasetId, naming.httpDataflow, xdmKey',
+          'Coworker dx-api: connectionSpec → POST /connections → POST /sourceConnections → POST /targetConnections → POST /flows',
+          'Profile Viewer Profile generation → Fetch URL & Flow ID → Save connection (or POST /api/{industry}-profile-connection)',
+          'lab_sandbox_profile_config — confirm industry ready:true',
+        ],
+        flow_service: HTTP_STREAMING_DX_API_GUIDANCE,
+        doc: 'docs/COWORKER_HTTP_STREAMING_FLOWS.md',
       },
       generate_profile: {
         tools: ['lab_profile_infra_status', 'lab_generate_profile', 'lab_lookup_profile', 'lab_get_profile'],
@@ -287,23 +432,50 @@ export function getExecutionFramework() {
       event_infra_setup: {
         tools: [
           'lab_setup_event_infra',
+          'lab_enable_event_profile',
           'lab_get_event_config',
           'lab_save_event_datastream',
           'lab_list_event_targets',
         ],
-        when: 'Sandbox needs ExperienceEvent schema + dataset before Edge event sends (Event tool step 1).',
+        when: 'Sandbox needs ExperienceEvent schema + dataset + Edge datastream before Event tool / lab_send_profile_event.',
         order: [
-          'lab_setup_event_infra sandbox {sandbox} — POST setupEventInfra (schema + field groups + dataset)',
-          'Enable schema + dataset for Profile in AEP UI (alternate primary from identityMap)',
-          'Create Edge datastream in Adobe Data Collection targeting the event schema/dataset',
-          'lab_save_event_datastream datastream_id {id} (+ schema_id from setup response) OR Event tool Save',
+          'lab_setup_event_infra sandbox {sandbox} — schema + field groups + dataset',
+          'lab_enable_event_profile (or enable_for_profile:true on setup) — identityMap alternate primary',
+          'Coworker dx-api: POST edge.adobe.io/ee/v2/datastreamConfigs with AEP service → schema_id + dataset_id',
+          'lab_save_event_datastream datastream_id {id} (+ schema_id, schema_title, dataset_name)',
           'lab_list_event_targets — confirm lab-event-tool-edge has dataStreamId',
         ],
         naming: {
           default_schema_title: 'AEP Lab - Event Generic - Schema',
+          default_dataset_name: 'AEP Lab - Event Generic - Dataset',
+          suggested_datastream_title: 'AEP Lab - Event Generic - Datastream',
           dataset_derive: 'Replace word Schema with Dataset in schema title unless dataset_name set',
         },
+        edge_datastream: EDGE_DATASTREAM_DX_API_GUIDANCE,
         api: 'POST /api/events/infra/step step=setupEventInfra',
+        doc: 'docs/COWORKER_EDGE_DATASTREAMS.md',
+      },
+      edge_datastream_dx_api: {
+        tools: [
+          'lab_setup_event_infra',
+          'lab_enable_event_profile',
+          'lab_get_event_config',
+          'lab_save_event_datastream',
+          'lab_list_event_targets',
+        ],
+        coworker_skill: 'dx-api (Edge Configuration API — not a lab MCP tool)',
+        when: 'Event schema + dataset exist but no datastreamId in Firestore eventEdgeConfig.',
+        lab_mcp_creates: ['ExperienceEvent schema', 'field groups', 'dataset', 'Profile enable (optional step)'],
+        lab_mcp_does_not_create: ['Edge datastream / datastreamConfigs'],
+        order: [
+          'lab_setup_event_infra sandbox {sandbox}',
+          'lab_enable_event_profile sandbox {sandbox}',
+          'Coworker dx-api: GET then POST /ee/v2/datastreamConfigs (see edge_datastream payload)',
+          'lab_save_event_datastream sandbox {sandbox} datastream_id {uuid}',
+          'lab_list_event_targets — lab-event-tool-edge',
+        ],
+        edge_configuration: EDGE_DATASTREAM_DX_API_GUIDANCE,
+        doc: 'docs/COWORKER_EDGE_DATASTREAMS.md',
       },
       batch_seed: {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],
@@ -367,14 +539,15 @@ export function getExecutionFramework() {
       lab_onboard_sandbox:
         'New colleague sandbox missing Firestore connection docs or profile not enabled on dataset.',
       lab_setup_event_infra:
-        'Create ExperienceEvent schema, attach recommended field groups, and catalog dataset (Event tool Set up event infrastructure). Follow with datastream save.',
+        'Create ExperienceEvent schema, attach recommended field groups, and catalog dataset (Event tool Set up event infrastructure). Follow with dx-api Edge datastream + lab_save_event_datastream.',
       lab_save_event_datastream:
-        'After manual Edge datastream creation in Data Collection — persist datastreamId to Firestore so lab-event-tool-edge works.',
+        'After Coworker dx-api or Data Collection creates the Edge datastream — persist datastreamId to Firestore so lab-event-tool-edge works.',
     },
     dataflow_pattern: {
-      description: 'Per industry: schema → dataset → HTTP API streaming flow → Firestore connection doc.',
+      description: 'Per industry: schema → dataset → HTTP API streaming flow (dx-api) → Firestore connection doc.',
       firestoreCollections: INDUSTRY_CONNECTION_COLLECTION,
       connectionFields: ['streaming.url', 'streaming.flowId', 'streaming.datasetId', 'streaming.schemaId', 'streaming.xdmKey'],
+      http_streaming_dx_api: HTTP_STREAMING_DX_API_GUIDANCE,
       profileCoreV2TopUp:
         'During infra step attachFieldGroups, profileCoreV2TopUp adds missing tenant leaves from functions/profileCoreV2Manifest.js (ADD-only). ' +
         'Critical for travel (travelReservations.*, hotel.*) in sandboxes that drift from apalmer canonical mixin.',
@@ -406,6 +579,8 @@ export function getExecutionFramework() {
       'functions/profileCoreV2Manifest.js',
       'docs/PROFILE_CORE_V2_TOPUP.md',
       'docs/ANONYMOUS_EDGE_DEMO_PATTERN.md',
+      'docs/COWORKER_HTTP_STREAMING_FLOWS.md',
+      'docs/COWORKER_EDGE_DATASTREAMS.md',
     ],
   };
 }

@@ -178,7 +178,8 @@ export function assessIndustrySandboxConfig({ industry, sandbox, infraStatus, co
     nextAction = `Run lab_enable_profile with sandbox ${sandbox}, industry ${industry} (schema not in Profile union).`;
   } else if (infra.infraReady && !connection.connectionReady) {
     missingSteps.push('save_http_streaming_connection');
-    nextAction = `Run lab_provision_profile_infra_step with sandbox ${sandbox}, industry ${industry}, step all_core (includes saveConnection), or complete HTTP API dataflow in Profile Viewer wizard.`;
+    nextAction =
+      `Schema/dataset ready — create HTTP API dataflow via Coworker dx-api (Flow Service: base → source → target → flow) using datasetId/schemaId from lab_profile_infra_status, then Profile Viewer Fetch URL & Flow ID + Save connection. Or complete manually in Profile Viewer wizard. See docs/COWORKER_HTTP_STREAMING_FLOWS.md.`;
   } else if (infra.infraReady && connection.connectionReady && connection.missingStreaming.length) {
     missingSteps.push('complete_connection_manifest');
     nextAction = `Re-run lab_provision_profile_infra_step step all_core or save missing fields: ${connection.missingStreaming.join(', ')}.`;

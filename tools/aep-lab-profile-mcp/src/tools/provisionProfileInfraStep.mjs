@@ -25,7 +25,8 @@ export function registerProvisionProfileInfraStepTool(mcpServer) {
     {
       title: 'Run profile infra provisioning step',
       description:
-        'POST /api/{industry}-profile-infra/step — runs one wizard step (e.g. all_core, createSchema). Same X-AEP-Lab-Mcp-Key auth and sandbox allowlist as other tools.',
+        'POST /api/{industry}-profile-infra/step — runs one wizard step (createSchema, attachFieldGroups, createDataset, httpFlow). ' +
+        'Steps 1–3 create catalog objects; httpFlow returns manual Flow Service instructions — use Coworker dx-api for HTTP dataflow creation (see lab_get_execution_framework workflows.http_streaming_dx_api).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z.string().describe('Industry key (generic, travel, fsi, telecom, retail, media, sports)'),

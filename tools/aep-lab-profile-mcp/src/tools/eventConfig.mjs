@@ -84,10 +84,10 @@ export function registerEventConfigTools(mcpServer) {
       description:
         'Writes datastreamId (+ optional schema/dataset metadata) to Firestore eventEdgeConfig shared doc — ' +
         'enables lab-event-tool-edge preset for lab_send_profile_event. ' +
-        'Create the datastream in Adobe Data Collection first; this does not create the datastream in AEP.',
+        'Create the datastream via Coworker dx-api (Edge Configuration) or Data Collection UI first; this tool only persists the ID.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
-        datastream_id: z.string().describe('Edge configuration / datastream ID from Data Collection'),
+        datastream_id: z.string().describe('Edge configuration / datastream ID from dx-api or Data Collection'),
         schema_title: z.string().optional().describe('Optional schema title to persist with config'),
         schema_id: z.string().optional().describe('Optional schema $id to persist with config'),
         dataset_name: z.string().optional().describe('Optional dataset name to persist with config'),

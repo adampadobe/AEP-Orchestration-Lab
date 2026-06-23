@@ -21,7 +21,7 @@ export function registerSetupEventInfraTool(mcpServer) {
       description:
         'POST /api/events/infra/step step=setupEventInfra — creates ExperienceEvent schema, attaches Experience Event Core v2.1 + Interaction Details Lite + B2C Event Identity v1 (auto-creates tenant FGs when missing), registers ECID/Email identity descriptors, and creates dataset (same as Profile Viewer Event tool **Set up event infrastructure**). ' +
         'Default schema: AEP Lab - Event Generic - Schema; dataset name derives Schema→Dataset unless dataset_name is set. ' +
-        'After success: create Edge datastream in Data Collection, then lab_save_event_datastream or Event tool save.',
+        'After success: Coworker dx-api creates Edge datastream (see docs/COWORKER_EDGE_DATASTREAMS.md), then lab_save_event_datastream or Event tool save.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         schema_title: z

@@ -47,7 +47,7 @@ export function buildEventInfraNextSteps({ sandbox, schemaId, datasetId }) {
     enable_profile_in_aep:
       'Click Enable schema & dataset for Profile (identityMap) in Event tool, or MCP lab_enable_event_profile / lab_setup_event_infra with enable_for_profile:true (PATCH schema meta:immutableTags union + dataset tags.unifiedProfile).',
     create_datastream:
-      'In Adobe Data Collection: create an Edge datastream (AEP Web SDK extension) mapped to the event schema and dataset. Copy the datastream / Edge configuration ID.',
+      'Coworker dx-api: POST https://edge.adobe.io/ee/v2/datastreamConfigs with mappingSchemaId + Adobe Experience Platform service datasets[{id,schema}]. Or Data Collection UI. See docs/COWORKER_EDGE_DATASTREAMS.md.',
     save_datastream_id:
       `Save the datastream ID in Firestore via Profile Viewer Event tool (${eventToolUrl}) or MCP lab_save_event_datastream.`,
     verify_targets: 'Call lab_list_event_targets — preset lab-event-tool-edge should include dataStreamId when config is saved.',

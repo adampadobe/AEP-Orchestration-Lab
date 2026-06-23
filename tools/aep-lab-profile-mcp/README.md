@@ -45,7 +45,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_list_event_targets` | `GET /api/events/generator-targets` | Static + Firestore Edge presets for Event tool |
 | `lab_setup_event_infra` | `POST /api/events/infra/step` (`setupEventInfra`) | ExperienceEvent schema + field groups + dataset (Event tool step 1) |
 | `lab_get_event_config` | `GET /api/events/config` | Read saved datastream/schema/dataset Firestore config |
-| `lab_save_event_datastream` | Firestore `eventEdgeConfig` (Admin) | Save Edge datastream ID after Data Collection setup |
+| `lab_save_event_datastream` | Firestore `eventEdgeConfig` (Admin) | Save Edge datastream ID after Coworker **dx-api** or Data Collection setup |
 | `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
 | `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (any `event_type` string); portal-identical POST body |
 | `lab_send_profile_events_batch` | `POST /api/events/generator` × N | Multiple events, one profile; `events[]` or `event_types[]` |
@@ -188,6 +188,38 @@ Connection stores per industry in Firestore (see Phase 2 README section). **`lab
 - `mode=plan` — Coworker checklist
 - `mode=execute` + `industry` — one industry (sync, avoids timeout)
 - `mode=execute_all` — async all industries (**poll `lab_batch_job_status`**)
+
+### HTTP streaming dataflows — Lab MCP + Coworker dx-api
+
+Lab MCP **creates schema, field groups, and Profile-enabled dataset** (`lab_provision_profile_infra_step`: `createSchema`, `attachFieldGroups`, `createDataset`; then `lab_enable_profile`). It does **not** create Flow Service HTTP API dataflows.
+
+For **profile generation** streaming, use Coworker **dx-api** (Flow Service API) after MCP provision:
+
+1. **Base connection** — `POST /connections` (HTTP API streaming connectionSpec)
+2. **Source connection** — `POST /sourceConnections` (map to schema `$id` from MCP)
+3. **Target connection** — `POST /targetConnections` (dataset id from MCP)
+4. **Dataflow** — `POST /flows` (name from status `naming.httpDataflow`, e.g. `AEP Lab - Travel Profile - Dataflow`)
+
+Pass from MCP output: **`sandbox`** (`x-sandbox-name`), **`schemaId`**, **`datasetId`**, **`xdmKey`**, catalog names from `lab_profile_infra_status` / `lab_sandbox_profile_config`.
+
+After the flow exists: Profile Viewer Profile generation → **Fetch URL & Flow ID from AEP** → **Save connection**. Verify with **`lab_sandbox_profile_config`**.
+
+Coworker skill: `.cursor/skills/aep-lab-profile-mcp-coworker/SKILL.md` (Workflow 4b). MCP framework: **`lab_get_execution_framework`** → `workflows.http_streaming_dx_api`. Human doc: [`docs/COWORKER_HTTP_STREAMING_FLOWS.md`](../docs/COWORKER_HTTP_STREAMING_FLOWS.md).
+
+**Experience events** use Edge datastreams (`lab_setup_event_infra` + `lab_save_event_datastream`), not HTTP profile-style flows, unless your demo explicitly needs DCS event streaming.
+
+### Edge datastreams — Event tool + Coworker dx-api
+
+Lab MCP **creates ExperienceEvent schema, field groups, and dataset** (`lab_setup_event_infra`) and can **enable Profile** (`lab_enable_event_profile`). It does **not** create Edge datastreams.
+
+For **Event tool** / `lab_send_profile_event` (target `lab-event-tool-edge`), use Coworker **dx-api** (Edge Configuration API):
+
+1. `GET https://edge.adobe.io/ee/v2/datastreamConfigs` — list existing
+2. `POST /ee/v2/datastreamConfigs` — `mappingSchemaId` + **Adobe Experience Platform** service `datasets: [{ id, schema }]` from `lab_setup_event_infra` response
+3. **`lab_save_event_datastream`** — persist `datastream_id` to Firestore `eventEdgeConfig`
+4. **`lab_list_event_targets`** — confirm `lab-event-tool-edge` has `dataStreamId`
+
+Coworker skill: `.cursor/skills/aep-lab-profile-mcp-coworker/SKILL.md` (Workflow 5c). MCP framework: **`lab_get_execution_framework`** → `workflows.edge_datastream_dx_api`. Human doc: [`docs/COWORKER_EDGE_DATASTREAMS.md`](../docs/COWORKER_EDGE_DATASTREAMS.md).
 
 ## Environment
 
