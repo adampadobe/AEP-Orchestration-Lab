@@ -1,14 +1,14 @@
 {
-  "gitSha": "07560737cd302bb8e5a046afbc23d14ffc86636d",
-  "gitShortSha": "07560737",
+  "gitSha": "af47af17c0642167a930f27826fa34c3f70e8087",
+  "gitShortSha": "af47af17",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Fix baseEmail portal→Firestore sync for MCP generation prefs",
+  "gitCommitSubject": "[apalmer] Stamp deploy version metadata for 07560737",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T09:32:39+01:00",
-  "deployedAt": "2026-06-23T08:32:53.613Z",
+  "gitCommitDate": "2026-06-23T09:34:05+01:00",
+  "deployedAt": "2026-06-23T08:34:16.518Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/07560737cd302bb8e5a046afbc23d14ffc86636d"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/af47af17c0642167a930f27826fa34c3f70e8087"
 }
