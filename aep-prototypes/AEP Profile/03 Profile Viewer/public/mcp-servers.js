@@ -26,16 +26,16 @@
       product: 'AEP Orchestration Lab (Cloud Run)',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
-        'Lab-hosted Streamable HTTP MCP (Phase 2) for Adobe AI Coworker and Cursor: list industries and sandboxes, check profile infra status, generate stream test profiles (with persona randomization), batch seed up to 100 profiles, look up UPS profile tables, and admin-gated infra provisioning via the hosted lab APIs.',
+        'Lab-hosted Streamable HTTP MCP (Phase 2) for Adobe AI Coworker and Cursor: list industries and sandboxes, check profile infra status, generate stream test profiles (with persona randomization), batch seed up to 100 profiles, look up UPS profile tables, and run infra provisioning via the hosted lab APIs — all with a single X-AEP-Lab-Mcp-Key.',
       useCases: [
         'Generate industry-specific test profiles in allowed sandboxes (apalmer, kirkham) with randomize/fill_sample_data',
         'Batch seed N profiles asynchronously and poll job status',
         'Check profile infrastructure readiness across industries before demos',
-        'Admin: run provisioning steps (all_core) and enable profile on industry infra',
+        'Run provisioning steps (all_core) and enable profile on industry infra',
         'Look up profile table data by namespace and identifier from conversation',
       ],
       configNotes:
-        'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http" (or "http"), url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <API key> — request the key from the lab team or GCP Secret Manager (aep-lab-profile-mcp-api-key); never commit secrets. Admin provisioning tools also need X-AEP-Lab-Mcp-Admin-Key (Secret Manager: aep-lab-profile-mcp-admin-api-key). Tools: lab_list_industries, lab_list_sandboxes, lab_profile_infra_status, lab_generate_profile, lab_lookup_profile, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools (infra status, lookup, provisioning) — set MCP client tool timeout ≥ 300s. Batch max 100. Sandbox allowlist: apalmer, kirkham.',
+        'Cursor or Coworker ~/.cursor/mcp.json: "type": "streamable-http" (or "http"), url https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp, headers X-AEP-Lab-Mcp-Key: <API key> — request the key from the lab team or GCP Secret Manager (aep-lab-profile-mcp-api-key); never commit secrets. Single key for all tools including provisioning. Tools: lab_list_industries, lab_list_sandboxes, lab_profile_infra_status, lab_generate_profile, lab_lookup_profile, lab_generate_profiles_batch, lab_batch_job_status, lab_provision_profile_infra_step, lab_enable_profile. Long-running tools (infra status, lookup, provisioning) — set MCP client tool timeout ≥ 300s. Batch max 100. Sandbox allowlist: apalmer, kirkham.',
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Lab Profile MCP README',
