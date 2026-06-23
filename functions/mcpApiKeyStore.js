@@ -144,9 +144,12 @@ async function countActiveKeysForUser(uid) {
   const snap = await getDb()
     .collection(KEYS_COLLECTION)
     .where('principalUid', '==', userId)
-    .where('revoked', '==', false)
     .get();
-  return snap.size;
+  let count = 0;
+  for (const doc of snap.docs) {
+    if (!doc.data()?.revoked) count += 1;
+  }
+  return count;
 }
 
 async function listKeysForUser(uid) {
@@ -155,10 +158,14 @@ async function listKeysForUser(uid) {
   const snap = await getDb()
     .collection(KEYS_COLLECTION)
     .where('principalUid', '==', userId)
-    .orderBy('createdAt', 'desc')
-    .limit(20)
     .get();
-  return snap.docs.map((doc) => serializeKeyDoc({ keyId: doc.id, ...doc.data() }));
+  const keys = snap.docs.map((doc) => serializeKeyDoc({ keyId: doc.id, ...doc.data() }));
+  keys.sort((a, b) => {
+    const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+    return tb - ta;
+  });
+  return keys.slice(0, 20);
 }
 
 /**
@@ -334,13 +341,13 @@ async function validateUserApiKey(apiKey) {
   const snap = await getDb()
     .collection(KEYS_COLLECTION)
     .where('keyHash', '==', keyHash)
-    .where('revoked', '==', false)
     .limit(1)
     .get();
   if (snap.empty) return { ok: false };
 
   const doc = snap.docs[0];
   const data = doc.data() || {};
+  if (data.revoked) return { ok: false };
   if (!timingSafeEqual(data.keyHash, keyHash)) return { ok: false };
 
   doc.ref.update({ lastUsedAt: admin.firestore.FieldValue.serverTimestamp() }).catch(() => {});
