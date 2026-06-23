@@ -1,14 +1,14 @@
 {
-  "gitSha": "ba54ab4190619b536bedaa99c68b54d79a1c4c75",
-  "gitShortSha": "ba54ab41",
+  "gitSha": "35e06a9a92158ce79d45e4739eee53aee7250710",
+  "gitShortSha": "35e06a9a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: Profile MCP profile workflows and sandbox onboarding",
+  "gitCommitSubject": "[apalmer] Profile MCP Phase 3 — audit log, per-key ACL, segment hints, rate limits",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-23T01:11:32+01:00",
-  "deployedAt": "2026-06-23T00:14:18.303Z",
+  "gitCommitDate": "2026-06-23T01:17:31+01:00",
+  "deployedAt": "2026-06-23T00:20:03.783Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ba54ab4190619b536bedaa99c68b54d79a1c4c75"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/35e06a9a92158ce79d45e4739eee53aee7250710"
 }
