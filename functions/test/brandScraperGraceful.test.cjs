@@ -142,3 +142,45 @@ describe('brandScraperDemoWebsite', () => {
     assert.equal(demoWebsite.logicalDemoPath('sky-news'), '/demos/sky-news/web');
   });
 });
+
+describe('brandScrapeStore buildFullRecord', () => {
+  const { buildFullRecord } = require('../brandScrapeStore');
+
+  it('persists graceful scrape metadata fields', () => {
+    const rec = buildFullRecord('kirkham', 'abc123', {
+      url: 'https://news.sky.com/uk',
+      brandName: 'Sky News',
+      blockedPages: [{ url: 'https://news.sky.com/about', status: 403 }],
+      scrapeConfidence: { level: 'medium', score: 62 },
+      sourceBadges: ['Live URL', 'Blocked'],
+      warnings: ['Some pages returned 403.'],
+      demoWebsite: { path: '/demos/sky-news/web', publicUrl: '/demos/sky-news/web/index.html' },
+      demoGenerationStatus: 'created',
+    });
+    assert.equal(rec.scrapeId, 'abc123');
+    assert.equal(rec.blockedPages.length, 1);
+    assert.equal(rec.scrapeConfidence.level, 'medium');
+    assert.deepEqual(rec.sourceBadges, ['Live URL', 'Blocked']);
+    assert.equal(rec.demoGenerationStatus, 'created');
+    assert.equal(rec.demoWebsite.path, '/demos/sky-news/web');
+  });
+});
+
+describe('brandScraperDemoHost', () => {
+  const demoHost = require('../brandScraperDemoHost');
+
+  it('parses demo hosting paths', () => {
+    const parsed = demoHost.parseDemoRequestPath('/demos/sky-news/web/index.html');
+    assert.equal(parsed.slug, 'sky-news');
+    assert.equal(parsed.relFile, 'index.html');
+    assert.equal(
+      demoHost.gcsObjectKey('sky-news', 'styles.css'),
+      'demo-websites/sky-news/web/styles.css',
+    );
+  });
+
+  it('rejects path traversal in file segment', () => {
+    const parsed = demoHost.parseDemoRequestPath('/demos/acme/web/../secret.txt');
+    assert.equal(parsed.relFile, 'secret.txt');
+  });
+});

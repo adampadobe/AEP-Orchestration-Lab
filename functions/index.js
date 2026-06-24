@@ -113,6 +113,7 @@ const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const profileGenerateService = lazyRequireMod('./profileGenerateService');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
+const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
@@ -2733,6 +2734,26 @@ exports.brandScraperAnalyze = onRequest(
       }
     }
   }
+);
+
+/** GET /demos/<slug>/web/** — serve brand-scraper generated demo sites from GCS. */
+exports.brandScraperDemoHost = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, HEAD, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    try {
+      await brandScraperDemoHost.handleDemoHostRequest(req, res);
+    } catch (e) {
+      console.error('[brandScraperDemoHost]', String(e && e.message || e));
+      if (!res.headersSent) res.status(500).send('internal error');
+    }
+  },
 );
 
 /** Fail stale running scrape index rows (interrupted runs). */

@@ -1636,6 +1636,7 @@
     const label = status === 'reused' ? 'REUSED' : (status === 'created' ? 'CREATED' : (status === 'regenerated' ? 'REGEN' : (status === 'partial' ? 'PARTIAL' : (status === 'failed' ? 'FAIL' : status.toUpperCase()))));
     const notes = Array.isArray(demo.notes) ? demo.notes : [];
     const files = Array.isArray(demo.generatedFiles) ? demo.generatedFiles : [];
+    const openUrl = demo.publicUrl || (demo.path ? (demo.path.replace(/\/$/, '') + '/index.html') : '');
     return (
       '<details class="brand-scraper-history-fail-details brand-scraper-demo-details" open>' +
         '<summary class="brand-scraper-history-fail-summary">Demo website generation</summary>' +
@@ -1646,6 +1647,7 @@
             (demo.path ? 'Path: <code>' + esc(demo.path) + '</code>. ' : '') +
             esc(notes[0] || ('Status: ' + status)) +
           '</p>' +
+          (openUrl ? '<p class="brand-scraper-run-step-detail"><a href="' + esc(openUrl) + '" target="_blank" rel="noopener noreferrer">Open demo website</a></p>' : '') +
           (files.length ? '<p class="brand-scraper-result-muted">Files: ' + esc(files.join(', ')) + '</p>' : '') +
           (demo.requiredModules && demo.requiredModules.profileEnvironmentPanel
             ? '<p class="brand-scraper-result-muted">Profile environment panel and profile viewer module included.</p>' : '') +
@@ -1884,6 +1886,8 @@
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
             (it.llmDemoConfigPresent ? ' · competitor analysis' : '') +
+            (it.demoGenerationStatus && it.demoGenerationStatus !== 'not_requested'
+              ? ' · demo ' + esc(it.demoGenerationStatus) : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             runAgeMeta +

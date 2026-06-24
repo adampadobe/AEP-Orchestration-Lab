@@ -388,11 +388,14 @@ async function generateDemoWebsite(record, opts = {}) {
   const overwrite = !!(opts.overwrite || opts.regenerate);
   const existing = await detectExistingDemo(slug);
   if (existing && !overwrite) {
+    const reusedPath = existing.path || logicalDemoPath(slug);
     return {
       enabled: true,
       status: 'reused',
       demoGenerationStatus: 'reused',
-      path: existing.path,
+      path: reusedPath,
+      publicUrl: `${reusedPath}/index.html`,
+      gcsPrefix: existing.prefix || gcsDemoPrefix(slug),
       alreadyExisted: true,
       regenerated: false,
       generatedFiles: ['index.html', 'styles.css', 'script.js', 'demo-metadata.json'],
@@ -400,6 +403,7 @@ async function generateDemoWebsite(record, opts = {}) {
       notes: [
         'Demo website already existed, so re-analyse did not recreate it.',
         'Scrape metadata was updated from the latest analyse run.',
+        `Open at ${reusedPath}/index.html (hosted from GCS when not committed under web/demos/).`,
       ],
     };
   }
@@ -463,6 +467,7 @@ async function generateDemoWebsite(record, opts = {}) {
     status: partial ? 'partial' : status,
     demoGenerationStatus: partial ? 'partial' : (existing && overwrite ? 'regenerated' : (versionSuffix ? 'versioned' : 'created')),
     path: logicalPath,
+    publicUrl: `${logicalPath}/index.html`,
     alreadyExisted: !!existing,
     regenerated: !!(existing && overwrite),
     generatedFiles: files.map((f) => f.name),
@@ -474,7 +479,9 @@ async function generateDemoWebsite(record, opts = {}) {
       'Profile environment panel added to generated demo page.',
       'Profile viewer module added to generated demo page.',
       partial ? 'Generated partial demo website from limited source content.' : 'Demo website generated from scrape content.',
-    ],
+      `Open at ${logicalPath}/index.html (served from GCS via /demos/ hosting rewrite).`,
+      localDemoDirs(slug) ? `Also written under web/demos/${slug}/web/ for local hosting.` : null,
+    ].filter(Boolean),
     gcsPrefix,
   };
 }
