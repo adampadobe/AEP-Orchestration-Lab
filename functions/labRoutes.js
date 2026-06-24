@@ -887,6 +887,49 @@ function registerLabRoutes(deps) {
   }
 });
 
+  /** GET /api/lab/adobe-stock — ADBE quote for home-new greeting bar (Yahoo Finance chart API). */
+  routes.labAdobeStock = onRequest(profileFnOpts, async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    try {
+      const chartRes = await fetch(
+        'https://query1.finance.yahoo.com/v8/finance/chart/ADBE?interval=1d&range=1d',
+        { headers: { 'User-Agent': 'AEP-Orchestration-Lab/1.0' } }
+      );
+      if (!chartRes.ok) throw new Error('Upstream HTTP ' + chartRes.status);
+      const chart = await chartRes.json();
+      const result = chart.chart && chart.chart.result && chart.chart.result[0];
+      const meta = result && result.meta;
+      if (!meta || meta.regularMarketPrice == null) {
+        throw new Error('Invalid upstream response');
+      }
+      const price = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
+      const change = prev != null ? price - prev : null;
+      const changePct = prev ? (change / prev) * 100 : null;
+      res.status(200).json({
+        ok: true,
+        symbol: 'ADBE',
+        price,
+        currency: meta.currency || 'USD',
+        change,
+        changePct,
+        asOf: meta.regularMarketTime
+          ? new Date(meta.regularMarketTime * 1000).toISOString()
+          : null,
+      });
+    } catch (e) {
+      res.status(502).json({ ok: false, error: String(e.message || e) });
+    }
+  });
+
   return routes;
 }
 

@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home New – AEP Profile Viewer</title>
+  <title>Home – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
-  <link rel="stylesheet" href="home-new.css?v=20260624b">
+  <link rel="stylesheet" href="home-new.css?v=20260624c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
@@ -30,56 +30,25 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Spectrum home pilot">Home New</span>
+          <span class="dashboard-env-pill" title="Spectrum home pilot">Home</span>
           <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
         </div>
       </header>
 
       <main class="dashboard-main">
-        <section class="dashboard-hero" aria-labelledby="dashboardHeroHeading">
-          <div class="dashboard-hero-inner">
-            <header class="dashboard-hero-header">
-              <h2 id="dashboardHeroHeading" class="dashboard-hero-title">Let’s bring your profile workspace to life.</h2>
-              <p class="dashboard-hero-subtitle">Experience Cloud home pilot — monthly release highlights styled like the June 2026 summary deck.</p>
-            </header>
-            <div class="dashboard-hero-split">
-              <ol class="dashboard-stepper" aria-label="Getting started steps">
-                <li class="dashboard-step dashboard-step--done">
-                  <span class="dashboard-step-badge" aria-hidden="true">✓</span>
-                  <div class="dashboard-step-body">
-                    <strong class="dashboard-step-label">Connect to Platform</strong>
-                    <span class="dashboard-step-desc">Run this app with your sandbox credentials.</span>
-                  </div>
-                </li>
-                <li class="dashboard-step dashboard-step--current">
-                  <span class="dashboard-step-badge">2</span>
-                  <div class="dashboard-step-body">
-                    <strong class="dashboard-step-label">Explore profiles</strong>
-                    <span class="dashboard-step-desc">Open Profile Viewer to inspect attributes, events, and audiences.</span>
-                  </div>
-                </li>
-                <li class="dashboard-step">
-                  <span class="dashboard-step-badge">3</span>
-                  <div class="dashboard-step-body">
-                    <strong class="dashboard-step-label">Act on your data</strong>
-                    <span class="dashboard-step-desc">Generate test profiles, send events, and validate journeys.</span>
-                  </div>
-                </li>
-              </ol>
-              <div class="dashboard-hero-cards">
-                <article class="dashboard-action-card">
-                  <div class="dashboard-action-card-icon dashboard-action-card-icon--violet" aria-hidden="true">◇</div>
-                  <h3 class="dashboard-action-card-title">Look up a profile</h3>
-                  <p class="dashboard-action-card-desc">Fetch unified profile attributes by email with full path editing.</p>
-                  <a href="index.html" class="dashboard-btn-primary">Get started</a>
-                </article>
-                <article class="dashboard-action-card">
-                  <div class="dashboard-action-card-icon dashboard-action-card-icon--sky" aria-hidden="true">✦</div>
-                  <h3 class="dashboard-action-card-title">Generate test data</h3>
-                  <p class="dashboard-action-card-desc">Create sandbox-friendly payloads aligned with your schema and data prep.</p>
-                  <a href="profile-generation.html" class="dashboard-btn-primary">Get started</a>
-                </article>
-              </div>
+        <section class="home-greeting-bar" id="homeGreetingBar" aria-label="Welcome">
+          <div class="home-greeting-bar__main">
+            <h2 class="home-greeting-bar__title">Hello <span id="homeGreetingName">there</span></h2>
+            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab — your profile workspace</p>
+          </div>
+          <div class="home-greeting-bar__stats">
+            <div class="home-greeting-stat">
+              <span class="home-greeting-stat__label">Sandbox</span>
+              <span class="home-greeting-stat__value" id="homeGreetingSandbox">—</span>
+            </div>
+            <div class="home-greeting-stat home-greeting-stat--stock">
+              <span class="home-greeting-stat__label">Adobe stock</span>
+              <span class="home-greeting-stat__value" id="homeGreetingStock">ADBE — loading…</span>
             </div>
           </div>
         </section>
@@ -92,10 +61,14 @@
                 Experience Cloud — <span class="home-release-panel__title-accent">Latest releases</span>
               </h3>
               <p class="home-release-panel__meta">
-                CDP · AJO · CJA · Campaign · Brand Concierge · Brand Visibility · Target
+                CDP · AJO-J · AJO-C · Decisioning · AJO · CJA · Campaign v8 Web UI · Concierge · Visibility · Target
               </p>
             </div>
             <div class="home-release-panel__actions">
+              <label class="home-release-period-select-wrap">
+                <span class="home-release-period-select-label">Release</span>
+                <select id="homeReleasePeriodSelect" class="home-release-period-select" aria-label="Release period"></select>
+              </label>
               <span class="home-release-timestamp" id="homeReleaseTimestamp"></span>
               <button type="button" class="home-release-sp-btn home-release-sp-btn--secondary" id="homeReleaseRefresh" title="Refresh from Experience League">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/><path d="M13.5 2.5v3h-3"/></svg>
@@ -139,26 +112,24 @@
           </div>
         </section>
 
-        <div class="dashboard-lower-grid">
-          <div class="dashboard-lower-col">
-            <section class="dashboard-panel">
-              <div class="dashboard-panel-head">
-                <h3 class="dashboard-panel-title">Workspace overview</h3>
-                <a href="index.html" class="dashboard-btn-quiet">
-                  <span aria-hidden="true">✎</span> Open viewer
-                </a>
+        <section class="home-lab-updates" id="homeLabUpdates" aria-labelledby="homeLabUpdatesHeading">
+          <header class="home-lab-updates__head">
+            <h3 class="home-lab-updates__title" id="homeLabUpdatesHeading">Latest in the lab</h3>
+            <p class="home-lab-updates__subtitle">Recent demo pages and brand scrapes for your sandbox</p>
+          </header>
+          <div class="home-lab-updates__grid">
+            <div class="home-lab-updates__col">
+              <h4 class="home-lab-updates__col-title">Demo pages</h4>
+              <div class="home-lab-updates__list" id="homeLabDemosList"></div>
+            </div>
+            <div class="home-lab-updates__col">
+              <h4 class="home-lab-updates__col-title">Recent scrapes</h4>
+              <div class="home-lab-updates__list" id="homeLabScrapesList">
+                <p class="home-lab-updates-loading" role="status">Loading…</p>
               </div>
-              <p class="dashboard-panel-lead">AEP Profile Viewer — companion for Real-Time CDP profile inspection, consent, and journey tooling.</p>
-              <p class="dashboard-panel-text">This page is the Spectrum-themed home pilot. The classic home remains at <a href="home.html">home.html</a>.</p>
-            </section>
-          </div>
-          <div class="dashboard-lower-col">
-            <div class="dashboard-info-banner" role="note">
-              <span class="dashboard-info-icon" aria-hidden="true">ⓘ</span>
-              <p>Release notes refresh will call <code class="dashboard-code">/api/release-notes/summary</code> once the Cloud Function is wired. Until then, bundled sample data is shown.</p>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   </template>
@@ -276,7 +247,10 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="home-release-summary.js?v=20260624b"></script>
-  <script defer src="aep-lab-nav.js?v=20260624a-home-new"></script>
+  <script defer src="home-release-summary-catalog.js?v=20260624c"></script>
+  <script defer src="home-release-summary.js?v=20260624c"></script>
+  <script defer src="home-new-greeting.js?v=20260624c"></script>
+  <script defer src="home-new-lab-updates.js?v=20260624c"></script>
+  <script defer src="aep-lab-nav.js?v=20260624c-home-new"></script>
 </body>
 </html>
