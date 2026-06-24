@@ -3,21 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
-  <!-- Bump BUILD below when gate or deferred shell changes (one-shot cache-bust for stale home.html). -->
-  <script>(function(){var BUILD='20260520b';try{window.__AEP_HOME_HTML_BUILD=BUILD;}catch(e0){}try{var s=window.sessionStorage,k='aepHomeHtmlBuild',rK='aepHomeHtmlBuildReloading',prev=s.getItem(k);if(prev==null||prev===''){s.setItem(k,BUILD);return;}if(prev===BUILD)return;var href=String(window.location.href||'');if(href.indexOf('_aepcb=')!==-1){if(s.getItem(rK)==='1'){try{s.removeItem(rK);}catch(e1){}s.setItem(k,BUILD);return;}s.setItem(k,BUILD);s.setItem(rK,'1');window.location.reload();return;}s.setItem(k,BUILD);var path=window.location.pathname||'',q=window.location.search||'';window.location.replace(path+q+(q?'&':'?')+'_aepcb='+Date.now());}catch(e2){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home – AEP Profile Viewer</title>
+  <title>Home New – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
+  <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
+  <link rel="stylesheet" href="home-new.css?v=20260624a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
 </head>
-<body class="home-page home-dashboard-concierge home-dashboard-ajo">
+<body class="home-page home-dashboard-concierge home-dashboard-ajo home-new-page" data-aep-theme="dark">
   <div class="dashboard-shell" id="aepDashboardShell">
     <div id="aepDashboardMount" class="aep-dashboard-mount aep-dashboard-mount--pending" aria-live="polite">
       <p class="aep-dashboard-mount-placeholder dashboard-muted">Loading…</p>
@@ -28,72 +27,11 @@
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
     <div class="dashboard-main-wrap dashboard-main-wrap--layout">
-      <button
-        type="button"
-        class="home-ajo-layout-edit"
-        id="homeLayoutEditBtn"
-        aria-expanded="false"
-        aria-controls="homeLayoutDrawer"
-        title="Layout"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-        </svg>
-      </button>
-      <div class="home-ajo-layout-backdrop" id="homeLayoutBackdrop" hidden aria-hidden="true"></div>
-      <aside
-        class="home-ajo-layout-drawer"
-        id="homeLayoutDrawer"
-        aria-hidden="true"
-        aria-labelledby="homeLayoutDrawerTitle"
-      >
-        <div class="home-ajo-layout-drawer-head">
-          <h2 class="home-ajo-layout-drawer-title" id="homeLayoutDrawerTitle">Layout</h2>
-          <button type="button" class="home-ajo-layout-drawer-close" id="homeLayoutDrawerClose" aria-label="Close layout panel">
-            ×
-          </button>
-        </div>
-        <p class="home-ajo-layout-hint">Choose background, sidebar, and image options.</p>
-        <div class="home-ajo-layout-section">
-          <p class="home-ajo-layout-section-title">Sidebar</p>
-          <div class="home-ajo-swatch-grid home-ajo-swatch-grid--sidebar">
-            <button type="button" class="home-ajo-swatch" data-sidebar-theme="dark"></button>
-            <button type="button" class="home-ajo-swatch" data-sidebar-theme="light"></button>
-          </div>
-          <p class="home-ajo-layout-section-title">Colors</p>
-          <div class="home-ajo-swatch-grid">
-            <button type="button" class="home-ajo-swatch home-ajo-swatch--none" data-layout-color="none">×</button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="peach"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="mint"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="lavender"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="rose"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="grad-blue"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="grad-sun"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="grad-sea"></button>
-            <button type="button" class="home-ajo-swatch" data-layout-color="grad-forest"></button>
-          </div>
-          <p class="home-ajo-layout-section-title">Images</p>
-          <div class="home-ajo-thumb-grid">
-            <button type="button" class="home-ajo-thumb" data-layout-image="beach"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="abstract-pink"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="mountains-red"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="mountains-blue"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="forest"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="galaxy"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="sand"></button>
-            <button type="button" class="home-ajo-thumb" data-layout-image="city-dusk"></button>
-          </div>
-        </div>
-      </aside>
-
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <span class="dashboard-env-pill" title="Spectrum home pilot">Home New</span>
           <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
-          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
-          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
         </div>
       </header>
 
@@ -102,7 +40,7 @@
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="dashboardHeroHeading" class="dashboard-hero-title">Let’s bring your profile workspace to life.</h2>
-              <p class="dashboard-hero-subtitle">Look up Real-Time Customer Profile, manage consent, stream events, and validate journeys in one place.</p>
+              <p class="dashboard-hero-subtitle">Spectrum-themed home pilot with live Experience Cloud release highlights for lab-relevant products.</p>
             </header>
             <div class="dashboard-hero-split">
               <ol class="dashboard-stepper" aria-label="Getting started steps">
@@ -110,7 +48,7 @@
                   <span class="dashboard-step-badge" aria-hidden="true">✓</span>
                   <div class="dashboard-step-body">
                     <strong class="dashboard-step-label">Connect to Platform</strong>
-                    <span class="dashboard-step-desc">Run this app on localhost with your sandbox credentials.</span>
+                    <span class="dashboard-step-desc">Run this app with your sandbox credentials.</span>
                   </div>
                 </li>
                 <li class="dashboard-step dashboard-step--current">
@@ -124,7 +62,7 @@
                   <span class="dashboard-step-badge">3</span>
                   <div class="dashboard-step-body">
                     <strong class="dashboard-step-label">Act on your data</strong>
-                    <span class="dashboard-step-desc">Generate test profiles, send events, and trigger journey actions.</span>
+                    <span class="dashboard-step-desc">Generate test profiles, send events, and validate journeys.</span>
                   </div>
                 </li>
               </ol>
@@ -144,6 +82,42 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <section class="home-release-panel" id="homeReleasePanel" aria-labelledby="homeReleaseHeading">
+          <header class="home-release-panel__head">
+            <div>
+              <h3 class="home-release-panel__title" id="homeReleaseHeading">
+                Latest releases
+                <span class="home-release-period-label" id="homeReleasePeriod">June 2026</span>
+              </h3>
+              <p class="home-release-panel__meta">
+                CDP · AJO · CJA · Campaign · Brand Concierge · Brand Visibility · Target
+              </p>
+            </div>
+            <div class="home-release-panel__actions">
+              <span class="home-release-timestamp" id="homeReleaseTimestamp"></span>
+              <button type="button" class="home-release-sp-btn home-release-sp-btn--secondary" id="homeReleaseRefresh" title="Refresh from Experience League">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/><path d="M13.5 2.5v3h-3"/></svg>
+                Refresh
+              </button>
+              <a class="home-release-sp-btn home-release-sp-btn--quiet" href="https://experienceleague.adobe.com/en/docs/release-notes/experience-cloud/current" target="_blank" rel="noopener">Experience League</a>
+              <button type="button" class="home-release-sp-btn home-release-sp-btn--accent" id="homeReleaseExpand">View all</button>
+            </div>
+          </header>
+
+          <div class="home-release-inline-alert" id="homeReleaseAlert" hidden role="alert"></div>
+
+          <div class="home-release-sp-tabs" id="homeReleaseTabs" role="tablist" aria-label="Product release notes"></div>
+
+          <div class="home-release-panel__body" id="homeReleasePanelBody">
+            <div class="home-release-card-grid" id="homeReleaseGrid" aria-live="polite"></div>
+          </div>
+
+          <footer class="home-release-panel__foot">
+            <span id="homeReleaseFootNote">Loading highlights…</span>
+            <button type="button" class="home-release-sp-btn home-release-sp-btn--quiet" id="homeReleaseExpandFoot">Expand in drawer →</button>
+          </footer>
         </section>
 
         <section class="dashboard-panel" id="aepAccessModePanel" aria-labelledby="aepAccessModeHeading">
@@ -174,29 +148,32 @@
                   <span aria-hidden="true">✎</span> Open viewer
                 </a>
               </div>
-              <p class="dashboard-panel-lead">AEP Profile Viewer — local companion for Real-Time CDP profile inspection, consent, and journey tooling.</p>
-              <p class="dashboard-panel-text">Use the sidebar to jump between tools. Your server <code class="dashboard-code">localhost:3333</code> proxies AEP APIs using environment credentials.<button type="button" class="map-egg-speck" data-map-egg-flavor="home" title="" aria-label="A stray ink dot on the margin"></button></p>
+              <p class="dashboard-panel-lead">AEP Profile Viewer — companion for Real-Time CDP profile inspection, consent, and journey tooling.</p>
+              <p class="dashboard-panel-text">This page is the Spectrum-themed home pilot. The classic home remains at <a href="home.html">home.html</a>.</p>
             </section>
           </div>
           <div class="dashboard-lower-col">
             <div class="dashboard-info-banner" role="note">
               <span class="dashboard-info-icon" aria-hidden="true">ⓘ</span>
-              <p>Configure <strong>IMS credentials</strong>, sandbox name, and optional dataset IDs in your <code class="dashboard-code">.env</code> for full API access.</p>
+              <p>Release notes refresh will call <code class="dashboard-code">/api/release-notes/summary</code> once the Cloud Function is wired. Until then, bundled sample data is shown.</p>
             </div>
-            <section class="dashboard-panel dashboard-dashed">
-              <div class="dashboard-dashed-row">
-                <div>
-                  <h3 class="dashboard-panel-title dashboard-panel-title--sm">Experience League</h3>
-                  <p class="dashboard-muted">Profile UI and API reference on Adobe’s docs.</p>
-                </div>
-                <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-btn-outline" target="_blank" rel="noopener">Open</a>
-              </div>
-            </section>
           </div>
         </div>
       </main>
     </div>
   </template>
+
+  <div class="home-release-drawer-backdrop" id="homeReleaseBackdrop" hidden></div>
+  <aside class="home-release-drawer" id="homeReleaseDrawer" aria-hidden="true" aria-labelledby="homeReleaseDrawerTitle">
+    <header class="home-release-drawer__head">
+      <div>
+        <h2 class="home-release-drawer__title" id="homeReleaseDrawerTitle">Product releases</h2>
+        <p class="home-release-drawer__desc" id="homeReleaseDrawerDesc">Experience League</p>
+      </div>
+      <button type="button" class="home-release-drawer__close" id="homeReleaseDrawerClose" aria-label="Close">×</button>
+    </header>
+    <div class="home-release-drawer__sections" id="homeReleaseDrawerSections"></div>
+  </aside>
 
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
@@ -246,9 +223,7 @@
           }
           var slug = window.AepAccessScope.getWorkspaceSlug();
           if (!slug) {
-            try {
-              window.__aepOnboardingPreferWorkspace = true;
-            } catch (_e) {}
+            try { window.__aepOnboardingPreferWorkspace = true; } catch (_e) {}
             if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
               window.AepAccessOnboarding.open();
             }
@@ -277,16 +252,8 @@
             statusEl.textContent = '';
           }
         }
-        if (btnSandbox) {
-          btnSandbox.addEventListener('click', function () {
-            trySwitchAccessMode('sandbox');
-          });
-        }
-        if (btnWorkspace) {
-          btnWorkspace.addEventListener('click', function () {
-            trySwitchAccessMode('workspace');
-          });
-        }
+        if (btnSandbox) btnSandbox.addEventListener('click', function () { trySwitchAccessMode('sandbox'); });
+        if (btnWorkspace) btnWorkspace.addEventListener('click', function () { trySwitchAccessMode('workspace'); });
         if (openBtn) {
           openBtn.addEventListener('click', function () {
             if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
@@ -309,8 +276,7 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="home-layout.js?v=20260519a"></script>
+  <script defer src="home-release-summary.js?v=20260624a"></script>
   <script defer src="aep-lab-nav.js?v=20260624a-home-new"></script>
-  <script defer src="marauders-map-egg.js?v=20260519a"></script>
 </body>
 </html>
