@@ -7,11 +7,11 @@
   <title>Home – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
-  <link rel="stylesheet" href="home-new.css?v=20260624c">
+  <link rel="stylesheet" href="home-new.css?v=20260625a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
@@ -39,16 +39,20 @@
         <section class="home-greeting-bar" id="homeGreetingBar" aria-label="Welcome">
           <div class="home-greeting-bar__main">
             <h2 class="home-greeting-bar__title">Hello <span id="homeGreetingName">there</span></h2>
-            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab — your profile workspace</p>
+            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab — Solutions Consultant Command Centre</p>
           </div>
           <div class="home-greeting-bar__stats">
             <div class="home-greeting-stat">
               <span class="home-greeting-stat__label">Sandbox</span>
               <span class="home-greeting-stat__value" id="homeGreetingSandbox">—</span>
             </div>
-            <div class="home-greeting-stat home-greeting-stat--stock">
-              <span class="home-greeting-stat__label">Adobe stock</span>
+            <div class="home-greeting-stat home-greeting-stat--stock" id="homeGreetingStockWrap">
+              <span class="home-greeting-stat__label">Adobe Stock</span>
               <span class="home-greeting-stat__value" id="homeGreetingStock">ADBE — loading…</span>
+            </div>
+            <div class="home-greeting-stat">
+              <span class="home-greeting-stat__label">Open Engagements</span>
+              <span class="home-greeting-stat__value home-greeting-stat__value--accent" id="homeGreetingEngagements">0</span>
             </div>
           </div>
         </section>
@@ -93,46 +97,175 @@
           </footer>
         </section>
 
-        <section class="dashboard-panel" id="aepAccessModePanel" aria-labelledby="aepAccessModeHeading">
-          <div class="dashboard-panel-head">
-            <h3 class="dashboard-panel-title" id="aepAccessModeHeading">Access mode</h3>
-            <span id="aepAccessModeSummary" class="dashboard-muted">Detecting mode…</span>
-          </div>
-          <p class="dashboard-panel-text">First-time visitors open <strong>Configure access mode</strong> and use <strong>Create account</strong> with your <strong>@adobe.com</strong> email and password; an administrator is notified immediately and must approve the account before you can sign in and choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong>. Returning visitors use <strong>Login</strong> in that dialog, the quick switch, or reopen setup anytime.</p>
-          <div id="aepAccessModeToggleWrap" class="aep-access-mode-toggle-wrap" hidden>
-            <p class="aep-access-mode-toggle-hint">Quick switch — same Adobe lab account; confirm when changing paths.</p>
-            <div class="aep-access-mode-toggle-row" role="group" aria-label="Lab access mode">
-              <button type="button" class="dashboard-btn-outline" id="aepAccessToggleSandbox" aria-pressed="false">Adobe sandbox</button>
-              <button type="button" class="dashboard-btn-outline" id="aepAccessToggleWorkspace" aria-pressed="false">No Adobe sandbox</button>
-            </div>
-          </div>
-          <div class="aep-access-mode-actions-row">
-            <button type="button" class="dashboard-btn-outline" id="aepAccessModeOpenBtn">Configure access mode</button>
-            <span id="aepAccessModeStatus" class="dashboard-muted" aria-live="polite"></span>
-          </div>
-        </section>
+        <div id="ccCommandCentre" class="cc-command-centre">
+          <div class="cc-metrics-row" id="ccMetricsRow" aria-label="Engagement metrics"></div>
 
-        <section class="home-lab-updates" id="homeLabUpdates" aria-labelledby="homeLabUpdatesHeading">
-          <header class="home-lab-updates__head">
-            <h3 class="home-lab-updates__title" id="homeLabUpdatesHeading">Latest in the lab</h3>
-            <p class="home-lab-updates__subtitle">Recent demo pages and brand scrapes for your sandbox</p>
-          </header>
-          <div class="home-lab-updates__grid">
-            <div class="home-lab-updates__col">
-              <h4 class="home-lab-updates__col-title">Demo pages</h4>
-              <div class="home-lab-updates__list" id="homeLabDemosList"></div>
+          <div class="cc-grid-main">
+            <div class="cc-grid-main__left">
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>Customer Engagements</div>
+                <button type="button" class="cc-section-action" id="ccAddCustomerBtn">+ Add customer</button>
+              </div>
+              <div class="cc-card cc-card--flush">
+                <div class="cc-table-scroll">
+                  <table class="cc-customer-table">
+                    <thead>
+                      <tr>
+                        <th class="cc-th-customer">Customer</th>
+                        <th>Notes</th>
+                        <th>DR Link</th>
+                        <th>Status</th>
+                        <th>ETA</th>
+                        <th>Last Meeting</th>
+                        <th class="cc-th-action">Next Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ccCustomerTableBody"></tbody>
+                  </table>
+                  <button type="button" class="cc-add-row" id="ccAddCustomerRow">+ Add new customer engagement</button>
+                </div>
+                <div class="cc-table-footer">
+                  <span id="ccCustomerTableFoot">Showing 0 engagements</span>
+                </div>
+              </div>
             </div>
-            <div class="home-lab-updates__col">
-              <h4 class="home-lab-updates__col-title">Recent scrapes</h4>
-              <div class="home-lab-updates__list" id="homeLabScrapesList">
-                <p class="home-lab-updates-loading" role="status">Loading…</p>
+
+            <aside class="cc-sidebar" aria-label="Daily execution">
+              <div>
+                <div class="cc-section-header">
+                  <div class="cc-section-title"><span class="cc-section-dot"></span>Upcoming Meetings</div>
+                </div>
+                <div class="cc-card cc-card--compact" id="ccMeetingsList"></div>
+              </div>
+              <div>
+                <div class="cc-section-header">
+                  <div class="cc-section-title"><span class="cc-section-dot"></span>My Actions</div>
+                  <span class="cc-section-meta" id="ccTasksOverdueLabel">—</span>
+                </div>
+                <div class="cc-card cc-card--compact" id="ccTasksList"></div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="cc-grid-bottom">
+            <div>
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>Recent Activity</div>
+              </div>
+              <div class="cc-card cc-card--compact" id="ccActivityFeed"></div>
+            </div>
+
+            <section class="home-lab-updates home-lab-updates--compact" id="homeLabUpdates" aria-labelledby="homeLabUpdatesHeading">
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeLabUpdatesHeading">Latest in the Lab</span></div>
+                <a class="cc-section-action" href="brand-scraper.html">Open scraper</a>
+              </div>
+              <div class="cc-card cc-card--flush home-lab-updates__card">
+                <div class="home-lab-updates__section">
+                  <h4 class="home-lab-updates__col-title">Demo Pages</h4>
+                  <div class="home-lab-updates__list" id="homeLabDemosList"></div>
+                </div>
+                <div class="home-lab-updates__section home-lab-updates__section--border">
+                  <h4 class="home-lab-updates__col-title">Recent Scrapes</h4>
+                  <div class="home-lab-updates__list" id="homeLabScrapesList">
+                    <p class="home-lab-updates-loading" role="status">Loading…</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div class="cc-bottom-access">
+              <section class="dashboard-panel cc-access-panel" id="aepAccessModePanel" aria-labelledby="aepAccessModeHeading">
+                <div class="cc-section-header">
+                  <div class="cc-section-title"><span class="cc-section-dot"></span><span id="aepAccessModeHeading">Access Mode</span></div>
+                  <span id="aepAccessModeSummary" class="cc-section-meta">Detecting mode…</span>
+                </div>
+                <div class="cc-card">
+                  <p class="dashboard-panel-text cc-access-text">First-time visitors open <strong>Configure access mode</strong> and use <strong>Create account</strong> with your <strong>@adobe.com</strong> email and password; an administrator is notified immediately and must approve the account before you can sign in and choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong>. Returning visitors use <strong>Login</strong> in that dialog, the quick switch, or reopen setup anytime.</p>
+                  <div id="aepAccessModeToggleWrap" class="aep-access-mode-toggle-wrap" hidden>
+                    <p class="aep-access-mode-toggle-hint">Quick switch — same Adobe lab account; confirm when changing paths.</p>
+                    <div class="aep-access-mode-toggle-row" role="group" aria-label="Lab access mode">
+                      <button type="button" class="dashboard-btn-outline" id="aepAccessToggleSandbox" aria-pressed="false">Adobe sandbox</button>
+                      <button type="button" class="dashboard-btn-outline" id="aepAccessToggleWorkspace" aria-pressed="false">No Adobe sandbox</button>
+                    </div>
+                  </div>
+                  <div class="aep-access-mode-actions-row">
+                    <button type="button" class="dashboard-btn-outline" id="aepAccessModeOpenBtn">Configure access mode</button>
+                    <span id="aepAccessModeStatus" class="dashboard-muted" aria-live="polite"></span>
+                  </div>
+                </div>
+              </section>
+
+              <div class="cc-quick-links">
+                <div class="cc-section-header">
+                  <div class="cc-section-title"><span class="cc-section-dot"></span>Quick Links</div>
+                </div>
+                <div class="cc-card cc-card--compact">
+                  <nav class="cc-quick-links__nav" aria-label="Quick links">
+                    <a href="index.html">Profile Viewer</a>
+                    <a href="https://experienceleague.adobe.com/en/docs/experience-platform/release-notes/latest" target="_blank" rel="noopener">Experience League docs</a>
+                    <a href="brand-scraper.html">Brand Scraper</a>
+                    <a href="profile-generation.html">Profile generation</a>
+                    <a href="journey-arbitration-v3.html">Journey arbitration v3</a>
+                  </nav>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </main>
     </div>
   </template>
+
+  <div class="cc-modal-backdrop" id="ccCustomerModal" hidden aria-hidden="true" role="dialog" aria-labelledby="ccCustomerModalTitle">
+    <div class="cc-modal">
+      <header class="cc-modal__head">
+        <h2 id="ccCustomerModalTitle">Add customer engagement</h2>
+        <button type="button" class="cc-modal__close" id="ccCustomerModalClose" aria-label="Close">×</button>
+      </header>
+      <form id="ccCustomerForm" class="cc-modal__body">
+        <input type="hidden" name="customerId" value="">
+        <label class="cc-field">Customer name<input name="name" required autocomplete="organization"></label>
+        <label class="cc-field">Products<input name="products" placeholder="AJO · Real-Time CDP"></label>
+        <label class="cc-field">Tags (comma-separated)<input name="tags" placeholder="Journey Arbitration, UAT"></label>
+        <label class="cc-field">Notes<textarea name="notes" rows="3"></textarea></label>
+        <div class="cc-field-row">
+          <label class="cc-field">DR reference<input name="drLink" placeholder="DR-2024-0441"></label>
+          <label class="cc-field">DR URL<input name="drUrl" type="url" placeholder="https://…"></label>
+        </div>
+        <label class="cc-field">Status
+          <select name="status">
+            <option>On track</option>
+            <option>At risk</option>
+            <option>Delayed</option>
+            <option>Discovery</option>
+            <option>UAT</option>
+            <option>Stalled</option>
+            <option>Onboarding</option>
+          </select>
+        </label>
+        <div class="cc-field-row">
+          <label class="cc-field">ETA<input name="eta" type="date"></label>
+          <label class="cc-field">Last meeting<input name="lastMeeting" type="date"></label>
+        </div>
+        <label class="cc-field">Next action<input name="nextAction"></label>
+        <label class="cc-field">Demo link<input name="demoLink" type="url" placeholder="profile-viewer/…"></label>
+        <footer class="cc-modal__foot">
+          <button type="button" class="cc-btn cc-btn-ghost" id="ccCustomerModalCancel">Cancel</button>
+          <button type="submit" class="cc-btn cc-btn-primary">Save</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div class="cc-customer-backdrop" id="ccCustomerBackdrop" hidden></div>
+  <aside class="cc-customer-drawer" id="ccCustomerDrawer" aria-hidden="true" aria-label="Customer detail">
+    <header class="cc-customer-drawer__head">
+      <h2>Customer detail</h2>
+      <button type="button" class="cc-modal__close" id="ccCustomerDrawerClose" aria-label="Close">×</button>
+    </header>
+    <div class="cc-customer-drawer__body" id="ccCustomerDrawerBody"></div>
+  </aside>
 
   <div class="home-release-drawer-backdrop" id="homeReleaseBackdrop" hidden></div>
   <aside class="home-release-drawer" id="homeReleaseDrawer" aria-hidden="true" aria-labelledby="homeReleaseDrawerTitle">
@@ -249,8 +382,11 @@
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="home-release-summary-catalog.js?v=20260624c"></script>
   <script defer src="home-release-summary.js?v=20260624c"></script>
-  <script defer src="home-new-greeting.js?v=20260624d"></script>
-  <script defer src="home-new-lab-updates.js?v=20260624c"></script>
+  <script defer src="home-command-store.js?v=20260625a"></script>
+  <script defer src="home-command-data.js?v=20260625a"></script>
+  <script defer src="home-command-centre.js?v=20260625a"></script>
+  <script defer src="home-new-greeting.js?v=20260625a"></script>
+  <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260624c-home-new"></script>
 </body>
 </html>

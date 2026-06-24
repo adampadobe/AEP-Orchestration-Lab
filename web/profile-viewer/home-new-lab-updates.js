@@ -74,18 +74,17 @@
 
   function renderDemos(container) {
     if (!container) return;
-    container.innerHTML = DEMO_PAGES.map(function (page) {
+    container.innerHTML = DEMO_PAGES.slice(0, 3).map(function (page) {
       return (
-        '<article class="home-lab-update-card">' +
-        '<h4 class="home-lab-update-card__title"><a href="' +
+        '<div class="home-lab-compact-item">' +
+        '<div class="home-lab-compact-item__title"><a href="' +
         esc(page.href) +
         '">' +
         esc(page.title) +
-        '</a></h4>' +
-        '<p class="home-lab-update-card__body">' +
+        '</a></div>' +
+        '<div class="home-lab-compact-item__desc">' +
         esc(page.desc) +
-        '</p>' +
-        '</article>'
+        '</div></div>'
       );
     }).join('');
   }
@@ -99,10 +98,10 @@
     }
     if (!items || !items.length) {
       container.innerHTML =
-        '<p class="home-lab-updates-empty">No brand scrapes yet for this sandbox. Start one in <a href="brand-scraper.html">Brand Scraper</a>.</p>';
+        '<p class="home-lab-updates-empty">No scrapes for this sandbox. <a href="brand-scraper.html">Open scraper</a></p>';
       return;
     }
-    var recent = items.slice(0, 6);
+    var recent = items.slice(0, 3);
     container.innerHTML = recent
       .map(function (it) {
         var label = it.brandName || it.baseUrl || it.url || it.scrapeId || 'Scrape';
@@ -112,15 +111,14 @@
           (typeof it.pagesScraped === 'number' ? ' · ' + it.pagesScraped + ' pages' : '') +
           (it.analysisPresent ? ' · analysed' : '');
         return (
-          '<article class="home-lab-update-card home-lab-update-card--scrape">' +
-          '<h4 class="home-lab-update-card__title">' +
+          '<div class="home-lab-compact-item home-lab-compact-item--scrape">' +
+          '<div class="home-lab-compact-item__title">' +
           esc(label) +
-          '</h4>' +
-          (sub ? '<p class="home-lab-update-card__url">' + esc(sub) + '</p>' : '') +
-          '<p class="home-lab-update-card__meta">' +
+          '</div>' +
+          (sub ? '<div class="home-lab-compact-item__url">' + esc(sub) + '</div>' : '') +
+          '<div class="home-lab-compact-item__meta">' +
           esc(meta) +
-          ' · <a href="brand-scraper.html">Open scraper</a></p>' +
-          '</article>'
+          ' · <a href="brand-scraper.html">Open scraper</a></div></div>'
         );
       })
       .join('');

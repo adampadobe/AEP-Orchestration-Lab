@@ -106,13 +106,49 @@
     }
   }
 
+  function parseYahooChart(json) {
+    var result = json && json.chart && json.chart.result && json.chart.result[0];
+    var meta = result && result.meta;
+    if (!meta || meta.regularMarketPrice == null) return null;
+    var price = meta.regularMarketPrice;
+    var prev = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
+    var change = prev != null ? price - prev : null;
+    var changePct = prev ? (change / prev) * 100 : null;
+    return {
+      ok: true,
+      symbol: 'ADBE',
+      price: price,
+      currency: meta.currency || 'USD',
+      change: change,
+      changePct: changePct,
+    };
+  }
+
+  function fetchYahooFallback() {
+    var yahooUrl =
+      'https://query1.finance.yahoo.com/v8/finance/chart/ADBE?interval=1d&range=1d';
+    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooUrl);
+    return fetch(proxyUrl)
+      .then(function (res) {
+        if (!res.ok) throw new Error('yahoo HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        var parsed = parseYahooChart(json);
+        if (!parsed) throw new Error('yahoo parse failed');
+        return parsed;
+      });
+  }
+
   function renderStock(el, payload) {
     if (!el) return;
+    var wrap = document.getElementById('homeGreetingStockWrap');
     if (!payload || !payload.ok || payload.price == null) {
       el.textContent = 'ADBE — unavailable';
-      el.classList.add('home-greeting-stat--muted');
+      if (wrap) wrap.classList.add('home-greeting-stat--unavail');
       return;
     }
+    if (wrap) wrap.classList.remove('home-greeting-stat--unavail');
     var change = Number(payload.change) || 0;
     var sign = change >= 0 ? '+' : '';
     var pct = payload.changePct != null ? sign + Number(payload.changePct).toFixed(2) + '%' : '';
@@ -181,12 +217,19 @@
           renderStock(el, json);
           return;
         }
-        return fetchStockFallback().then(function (fallback) {
-          renderStock(el, fallback);
-        });
+        return fetchYahooFallback()
+          .catch(function () {
+            return fetchStockFallback();
+          })
+          .then(function (fallback) {
+            renderStock(el, fallback);
+          });
       })
       .catch(function () {
-        fetchStockFallback()
+        fetchYahooFallback()
+          .catch(function () {
+            return fetchStockFallback();
+          })
           .then(function (fallback) {
             renderStock(el, fallback);
           })
