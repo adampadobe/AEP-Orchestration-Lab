@@ -756,13 +756,6 @@
         }
       },
       {
-        "source": "/api/lab/adobe-stock",
-        "function": {
-          "functionId": "labAdobeStock",
-          "region": "us-central1"
-        }
-      },
-      {
         "source": "/api/lab/provision-rtdb",
         "function": {
           "functionId": "labProvisionRtdb",
