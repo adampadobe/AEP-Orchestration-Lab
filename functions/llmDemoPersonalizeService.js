@@ -478,26 +478,36 @@ async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, u
  * Resolve industry competitors for brand scraper — grounded research first, no Sky padding.
  * @returns {{ competitors: string[], researchUsed: boolean, industryHint: string }}
  */
-async function resolveCompetitorsForScrape({ brand, industry, about, crawlText, url, siteHost }) {
+async function resolveCompetitorsForScrape({ brand, industry, about, crawlText, url, siteHost, partialMode = false }) {
   let competitors = [];
   let researchUsed = false;
   let industryHint = String(industry || '').trim();
+  let rationale = '';
 
-  try {
-    const research = await researchBrand({
-      url,
-      siteHost,
-      brandName: brand,
-      crawlText,
-    });
-    researchUsed = true;
-    if (research.industry && !industryHint) industryHint = String(research.industry).trim();
-    competitors = normalizeCompetitorList(research.competitors, {
-      industry: industryHint || research.industry,
-      brand,
-    });
-  } catch (e) {
-    console.warn('[llmDemoPersonalize] competitor research failed', String(e && e.message || e));
+  if (!String(crawlText || '').trim() && !String(about || '').trim()) {
+    return { competitors: [], researchUsed: false, industryHint, rationale: 'No usable brand content.' };
+  }
+
+  if (!partialMode) {
+    try {
+      const research = await researchBrand({
+        url,
+        siteHost,
+        brandName: brand,
+        crawlText,
+      });
+      researchUsed = true;
+      if (research.industry && !industryHint) industryHint = String(research.industry).trim();
+      competitors = normalizeCompetitorList(research.competitors, {
+        industry: industryHint || research.industry,
+        brand,
+      });
+      rationale = 'Grounded in live research and crawled content.';
+    } catch (e) {
+      console.warn('[llmDemoPersonalize] competitor research failed', String(e && e.message || e));
+    }
+  } else {
+    rationale = 'Partial mode — competitors inferred from available crawl/uploaded content only.';
   }
 
   if (competitors.length < 4) {
@@ -513,12 +523,15 @@ async function resolveCompetitorsForScrape({ brand, industry, about, crawlText, 
         [...competitors, ...inferred],
         { industry: industryHint, brand },
       );
+      if (partialMode && inferred.length) {
+        rationale = (rationale ? rationale + ' ' : '') + 'Some competitors marked inferred from partial context.';
+      }
     } catch (e) {
       console.warn('[llmDemoPersonalize] competitor inference failed', String(e && e.message || e));
     }
   }
 
-  return { competitors, researchUsed, industryHint };
+  return { competitors, researchUsed, industryHint, rationale };
 }
 
 /**
@@ -550,10 +563,22 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
     (pages[0] && pages[0].description) ||
     '';
   let industry = String(record.industry || '').trim();
+  const partialMode = opts.partialMode === true
+    || record.scrapeConfidence?.level === 'low'
+    || record.scrapeConfidence?.level === 'medium'
+    || (Array.isArray(record.blockedPages) && record.blockedPages.length > 0);
 
   let competitors = [];
   let competitorResearchUsed = false;
+  let competitorRationale = '';
   if (opts.skipCompetitorInference !== true) {
+    if (!crawlText.trim() && pages.length === 0) {
+      return {
+        skipped: true,
+        reason: 'Competitor analysis needs either accessible website content or uploaded HTML.',
+        competitorMode: 'skipped',
+      };
+    }
     const resolved = await resolveCompetitorsForScrape({
       brand: brandFallback,
       industry,
@@ -561,9 +586,11 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
       crawlText,
       url,
       siteHost,
+      partialMode,
     });
     competitors = resolved.competitors;
     competitorResearchUsed = resolved.researchUsed;
+    competitorRationale = resolved.rationale || '';
     if (resolved.industryHint && !industry) industry = resolved.industryHint;
   }
 
@@ -582,7 +609,7 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
     }
   }
 
-  return buildClientConfig({
+  return Object.assign(buildClientConfig({
     sourceUrl: url,
     siteUrl,
     siteHost,
@@ -598,6 +625,13 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
     researchUsed: competitorResearchUsed,
     crawlPages: pages.length,
     padCompetitors: false,
+  }), {
+    partial: partialMode,
+    competitorMode: partialMode ? 'partial' : 'full',
+    competitorRationale: competitorRationale || (partialMode
+      ? 'Inferred from partial crawl or uploaded HTML content — verify before external use.'
+      : ''),
+    competitorsInferred: partialMode,
   });
 }
 

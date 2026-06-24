@@ -103,11 +103,10 @@
   }
 
   const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
-  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit', 'llmDemoConfig'];
+  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit', 'llmDemoConfig', 'demoWebsite'];
 
   function loadRunOptions() {
-    // Light first pass: brand core + on-site signals + assets; add personas/segments/stakeholders when you need depth (or append).
-    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true, llmDemoConfig: true };
+    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true, llmDemoConfig: true, demoWebsite: false };
     try {
       const raw = localStorage.getItem(LS_RUN_OPTIONS);
       if (!raw) return defaults;
@@ -294,8 +293,79 @@
   }
 
   const LS_CRAWLER = 'aepBrandScraperCrawler';
-  /** Includes AI/run flags plus JS-rendered crawl (Playwright) — seven checkboxes in the Options menu. */
-  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 1;
+  const LS_UPLOAD_FALLBACK = 'aepBrandScraperUploadFallback';
+  const LS_UPLOAD_ONLY = 'aepBrandScraperUploadOnly';
+  /** Includes AI/run flags plus JS-rendered crawl, upload options — ten checkboxes in the Options menu. */
+  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 3;
+
+  const uploadFallbackCb = document.getElementById('brandScraperUploadFallback');
+  const uploadOnlyCb = document.getElementById('brandScraperUploadOnly');
+  const htmlUploadInput = document.getElementById('brandScraperHtmlUpload');
+  const uploadSummaryEl = document.getElementById('brandScraperUploadSummary');
+  let pendingUploadFiles = [];
+
+  try {
+    if (uploadFallbackCb) uploadFallbackCb.checked = localStorage.getItem(LS_UPLOAD_FALLBACK) !== '0';
+    if (uploadOnlyCb) uploadOnlyCb.checked = localStorage.getItem(LS_UPLOAD_ONLY) === '1';
+  } catch (_e) {}
+  if (uploadFallbackCb) {
+    uploadFallbackCb.addEventListener('change', function () {
+      try { localStorage.setItem(LS_UPLOAD_FALLBACK, uploadFallbackCb.checked ? '1' : '0'); } catch (_e) {}
+      applyRunOptionsToUI();
+    });
+  }
+  if (uploadOnlyCb) {
+    uploadOnlyCb.addEventListener('change', function () {
+      try { localStorage.setItem(LS_UPLOAD_ONLY, uploadOnlyCb.checked ? '1' : '0'); } catch (_e) {}
+      applyRunOptionsToUI();
+    });
+  }
+
+  function updateUploadSummary() {
+    if (!uploadSummaryEl) return;
+    if (!pendingUploadFiles.length) {
+      uploadSummaryEl.textContent = 'No files selected. Upload .html files or a .zip containing HTML and asset folders.';
+      return;
+    }
+    const names = pendingUploadFiles.map(function (f) { return f.name; }).slice(0, 4);
+    uploadSummaryEl.textContent = pendingUploadFiles.length + ' file(s): ' + names.join(', ') +
+      (pendingUploadFiles.length > 4 ? '…' : '');
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function buildUploadedHtmlPayload() {
+    if (!pendingUploadFiles.length) return null;
+    const files = [];
+    let zipBase64 = null;
+    for (const f of pendingUploadFiles) {
+      if (/\.zip$/i.test(f.name)) {
+        zipBase64 = await readFileAsBase64(f);
+      } else if (/\.html?$/i.test(f.name)) {
+        files.push({ name: f.name, contentBase64: await readFileAsBase64(f) });
+      }
+    }
+    return {
+      files: files,
+      zipBase64: zipBase64,
+      useAsFallback: !!(uploadFallbackCb && uploadFallbackCb.checked),
+      uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
+    };
+  }
+
+  if (htmlUploadInput) {
+    htmlUploadInput.addEventListener('change', function () {
+      pendingUploadFiles = Array.from(htmlUploadInput.files || []);
+      updateUploadSummary();
+    });
+  }
 
   try {
     const stored = localStorage.getItem(LS_CRAWLER);
@@ -318,6 +388,8 @@
       if (runOptions[key]) on++;
     });
     if (crawlerJsCb && crawlerJsCb.checked) on++;
+    if (uploadFallbackCb && uploadFallbackCb.checked) on++;
+    if (uploadOnlyCb && uploadOnlyCb.checked) on++;
     if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTIONS_MENU_TOTAL;
     if (optionsBtn) optionsBtn.classList.toggle('is-reduced', on < RUN_OPTIONS_MENU_TOTAL);
   }
@@ -1506,9 +1578,94 @@
     );
   }
 
+  function renderSourceBadges(data) {
+    const badges = Array.isArray(data.sourceBadges) ? data.sourceBadges : [];
+    if (!badges.length) return '';
+    return '<div class="brand-scraper-source-badges" aria-label="Content sources">' +
+      badges.map(function (b) {
+        const cls = b === 'Blocked' ? 'blocked' : (b === 'Partial' ? 'partial' : (b === 'Uploaded HTML' ? 'upload' : (b === 'AI inferred' ? 'inferred' : 'live')));
+        return '<span class="brand-scraper-source-badge brand-scraper-source-badge--' + cls + '">' + esc(b) + '</span>';
+      }).join('') +
+    '</div>';
+  }
+
+  function renderScrapeConfidence(data) {
+    const conf = data.scrapeConfidence;
+    if (!conf || !conf.level) return '';
+    const reasons = Array.isArray(conf.reasons) ? conf.reasons : [];
+    return (
+      '<section class="brand-scraper-confidence brand-scraper-confidence--' + esc(conf.level) + '">' +
+        '<h4>Scrape confidence: <span class="brand-scraper-confidence-level">' + esc(conf.level) + '</span></h4>' +
+        (reasons.length ? '<ul class="brand-scraper-confidence-reasons">' +
+          reasons.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') +
+        '</ul>' : '') +
+      '</section>'
+    );
+  }
+
+  function renderWarningsBlock(data) {
+    const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+    const blocked = Array.isArray(data.blockedPages) ? data.blockedPages : [];
+    if (!warnings.length && !blocked.length) return '';
+    let inner = '';
+    if (blocked.length) {
+      inner += '<details class="brand-scraper-history-fail-details" open>' +
+        '<summary class="brand-scraper-history-fail-summary">Blocked pages</summary>' +
+        '<ol class="brand-scraper-run-step-list">' +
+        blocked.map(function (b) {
+          return '<li class="brand-scraper-run-step brand-scraper-step--fail">' +
+            '<span class="brand-scraper-run-step-pill">BLOCK</span>' +
+            '<span class="brand-scraper-run-step-label">' + esc(b.url || '') + '</span>' +
+            '<p class="brand-scraper-run-step-detail">HTTP ' + esc(String(b.status || '')) + ' · ' + esc(b.reason || '') +
+              (b.fallbackUsed ? ' · fallback used' : '') + '</p></li>';
+        }).join('') +
+        '</ol></details>';
+    }
+    if (warnings.length) {
+      inner += '<p class="brand-scraper-warning-banner" role="status">' + esc(warnings.join(' ')) + '</p>';
+    }
+    return '<section class="brand-scraper-warnings-block">' + inner + '</section>';
+  }
+
+  function renderDemoWebsiteSection(data) {
+    const demo = data.demoWebsite;
+    const status = data.demoGenerationStatus || (demo && demo.status) || 'not_requested';
+    if (!demo || status === 'not_requested') return '';
+    const pill = status === 'created' || status === 'regenerated' ? 'ok'
+      : (status === 'reused' || status === 'skipped_existing' ? 'skip' : (status === 'failed' ? 'fail' : 'ok'));
+    const label = status === 'reused' ? 'REUSED' : (status === 'created' ? 'CREATED' : (status === 'regenerated' ? 'REGEN' : (status === 'partial' ? 'PARTIAL' : (status === 'failed' ? 'FAIL' : status.toUpperCase()))));
+    const notes = Array.isArray(demo.notes) ? demo.notes : [];
+    const files = Array.isArray(demo.generatedFiles) ? demo.generatedFiles : [];
+    return (
+      '<details class="brand-scraper-history-fail-details brand-scraper-demo-details" open>' +
+        '<summary class="brand-scraper-history-fail-summary">Demo website generation</summary>' +
+        '<div class="brand-scraper-run-step brand-scraper-step--' + (pill === 'fail' ? 'fail' : (pill === 'skip' ? 'skipped' : 'ok')) + '">' +
+          '<span class="brand-scraper-run-step-pill">' + esc(label) + '</span>' +
+          '<span class="brand-scraper-run-step-label">Generate demo site</span>' +
+          '<p class="brand-scraper-run-step-detail">' +
+            (demo.path ? 'Path: <code>' + esc(demo.path) + '</code>. ' : '') +
+            esc(notes[0] || ('Status: ' + status)) +
+          '</p>' +
+          (files.length ? '<p class="brand-scraper-result-muted">Files: ' + esc(files.join(', ')) + '</p>' : '') +
+          (demo.requiredModules && demo.requiredModules.profileEnvironmentPanel
+            ? '<p class="brand-scraper-result-muted">Profile environment panel and profile viewer module included.</p>' : '') +
+        '</div>' +
+        (notes.length > 1 ? '<p class="brand-scraper-result-muted">' + esc(notes.slice(1).join(' ')) + '</p>' : '') +
+        (status === 'reused' && data.scrapeId
+          ? '<button type="button" class="dashboard-btn-outline brand-scraper-regen-demo" data-scrape-id="' + esc(data.scrapeId) + '">Regenerate demo website</button>'
+          : '') +
+      '</details>'
+    );
+  }
+
   function renderCompetitorAnalysisSection(data) {
     const cfg = data.llmDemoConfig;
     if (!cfg || typeof cfg !== 'object') return '';
+    if (cfg.skipped) {
+      return '<section class="brand-scraper-result-block brand-scraper-competitor-block">' +
+        '<h4>Competitor analysis</h4>' +
+        '<p class="brand-scraper-result-muted">' + esc(cfg.reason || 'Competitor analysis skipped.') + '</p></section>';
+    }
     const comps = Array.isArray(cfg.competitors) ? cfg.competitors.slice(0, 6) : [];
     const paths = Array.isArray(cfg.samplePaths) ? cfg.samplePaths.slice(0, 6) : [];
     const prompts = Array.isArray(cfg.samplePrompts) ? cfg.samplePrompts.slice(0, 3) : [];
@@ -1516,6 +1673,7 @@
       '<section class="brand-scraper-result-block brand-scraper-competitor-block">' +
         '<h4>Competitor analysis</h4>' +
         '<p class="brand-scraper-result-muted">Direct competitors, sample site paths, and consumer comparison prompts — inferred from this scrape and saved with the result.</p>' +
+        (cfg.partial ? '<p class="brand-scraper-result-muted"><strong>Partial mode:</strong> ' + esc(cfg.competitorRationale || 'Grounded in partial crawl or uploaded HTML.') + '</p>' : '') +
         (comps.length ? '<p class="brand-scraper-result-muted"><strong>Competitors:</strong> ' + esc(comps.join(', ')) + '</p>' : '') +
         (paths.length ? '<p class="brand-scraper-result-muted"><strong>Sample paths:</strong> ' + esc(paths.join(', ')) + (cfg.samplePaths && cfg.samplePaths.length > 6 ? '…' : '') + '</p>' : '') +
         (prompts.length ? '<details class="brand-scraper-tag-opps"><summary>Sample comparison prompts (' + (cfg.samplePrompts ? cfg.samplePrompts.length : 0) + ')</summary><ul>' +
@@ -1573,6 +1731,10 @@
         '</div>' +
       '</header>' +
       renderFailTraceSection(data) +
+      renderWarningsBlock(data) +
+      renderSourceBadges(data) +
+      renderScrapeConfidence(data) +
+      renderDemoWebsiteSection(data) +
       (lastExport && lastExport.signedUrl ? (
         '<div class="brand-scraper-export-link">' +
           '<span>Latest export ready:</span> ' +
@@ -2457,6 +2619,40 @@
     }
   });
 
+  resultsEl.addEventListener('click', async function (evt) {
+    const regenBtn = evt.target.closest('.brand-scraper-regen-demo');
+    if (!regenBtn || !currentScrapeData) return;
+    if (!confirm('Regenerate the demo website? This will overwrite the existing demo folder.')) return;
+    const scrapeId = currentScrapeData.scrapeId;
+    const detail = currentScrapeData;
+    try {
+      setStatus('Regenerating demo website…', 'info');
+      const resp = await scopedFetch(directCfAnalyzeUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: detail.url || detail.baseUrl,
+          businessType: detail.businessType || 'b2c',
+          country: detail.country || '',
+          include: Object.assign({}, runOptions, { demoWebsite: true }),
+          analysisOnly: true,
+          existingScrapeId: scrapeId,
+          regenerateDemoWebsite: true,
+          customerName: detail.brandName || '',
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok && resp.status !== 202) {
+        setStatus('Demo regeneration failed: ' + (data.error || resp.statusText), 'error');
+        return;
+      }
+      const sid = data.scrapeId || scrapeId;
+      finishAnalyzeWithDetail(sid, getScopeLabel(getScope()), function () {});
+    } catch (e) {
+      setStatus('Network error: ' + (e && e.message || e), 'error');
+    }
+  });
+
   resultsEl.addEventListener('change', (evt) => {
     const sel = evt.target && evt.target.id === 'brandScraperVersionSelect' ? evt.target : null;
     if (!sel || !currentScrapeData || !currentScrapeData.scrapeId) return;
@@ -2484,11 +2680,16 @@
 
   form.addEventListener('submit', async function (evt) {
     evt.preventDefault();
-    const url = normaliseUrl(urlInput.value);
-    if (!url) { setStatus('Enter a brand URL to continue.', 'error'); urlInput.focus(); return; }
-    try { new URL(url); } catch (_e) {
-      setStatus('That URL doesn\u2019t look valid. Try something like nike.com.', 'error');
-      urlInput.focus(); return;
+    const uploadOnly = !!(uploadOnlyCb && uploadOnlyCb.checked);
+    let url = normaliseUrl(urlInput.value);
+    if (!uploadOnly) {
+      if (!url) { setStatus('Enter a brand URL to continue.', 'error'); urlInput.focus(); return; }
+      try { new URL(url); } catch (_e) {
+        setStatus('That URL doesn\u2019t look valid. Try something like nike.com.', 'error');
+        urlInput.focus(); return;
+      }
+    } else if (!url) {
+      url = 'https://uploaded-brand.local/';
     }
 
     const scope = getScope();
@@ -2514,6 +2715,13 @@
       }
     }
 
+    if (uploadOnlyCb && uploadOnlyCb.checked && !pendingUploadFiles.length) {
+      setStatus('Uploaded HTML only is enabled — select one or more .html or .zip files.', 'error');
+      return;
+    }
+
+    const uploadedHtml = await buildUploadedHtmlPayload();
+
     if (runBtn) runBtn.disabled = true;
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
     setStatus('Crawling ' + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
@@ -2529,6 +2737,7 @@
       runOptions.analysis ? 'Brand core (about, tone, imagery, channels)' : null,
       runOptions.campaigns || runOptions.personas || runOptions.stakeholders ? 'Audiences (campaigns, personas, stakeholders)' : null,
       runOptions.segments ? 'Segments and industry' : (runOptions.analysis ? 'Industry classification' : null),
+      runOptions.demoWebsite ? 'Demo website generation' : null,
       'Saving',
     ].filter(Boolean);
     startProgress(estMs, phases, { bottomDock: true });
@@ -2552,6 +2761,12 @@
           maxPages: pagesInput ? clampPages(pagesInput.value) : 3,
           crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
           include: { ...runOptions },
+          useUploadedHtmlFallback: !!(uploadFallbackCb && uploadFallbackCb.checked),
+          uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
+          uploadedHtml: uploadedHtml,
+          customerName: (function () {
+            try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]; } catch (_e) { return ''; }
+          })(),
         }),
       }, {
         retries: 2,
