@@ -104,7 +104,8 @@
     var recent = items.slice(0, 3);
     container.innerHTML = recent
       .map(function (it) {
-        var label = it.brandName || it.baseUrl || it.url || it.scrapeId || 'Scrape';
+        var label = it.customerName || it.brandName || it.baseUrl || it.url || it.scrapeId || 'Scrape';
+        var logoSrc = it.customerLogoUrl || '';
         var sub = it.baseUrl || it.url || '';
         var meta =
           fmtDate(it.updatedAt || it.createdAt) +
@@ -112,6 +113,9 @@
           (it.analysisPresent ? ' · analysed' : '');
         return (
           '<div class="home-lab-compact-item home-lab-compact-item--scrape">' +
+          (logoSrc
+            ? '<img class="home-lab-scrape-logo" src="' + esc(logoSrc) + '" alt="" loading="lazy" />'
+            : '') +
           '<div class="home-lab-compact-item__title">' +
           esc(label) +
           '</div>' +

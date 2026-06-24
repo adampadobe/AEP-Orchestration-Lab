@@ -55,6 +55,9 @@
     if (!Array.isArray(row.stakeholders)) row.stakeholders = [];
     if (!Array.isArray(row.milestones)) row.milestones = [];
     if (!Array.isArray(row.meetingHistory)) row.meetingHistory = [];
+    row.scrapeId = row.scrapeId || '';
+    row.scrapeLogoUrl = row.scrapeLogoUrl || '';
+    row.scrapeBrand = row.scrapeBrand || '';
     return row;
   }
 
@@ -288,6 +291,37 @@
       getAll: function () {
         return (state.pocs || []).slice();
       },
+      getById: function (id) {
+        return (state.pocs || []).find(function (p) {
+          return p.id === id;
+        });
+      },
+      add: function (poc) {
+        var row = Object.assign(
+          {
+            id: store.generateId('poc'),
+            statusStrip: 'blue',
+            progress: 0,
+          },
+          poc
+        );
+        state.pocs = (state.pocs || []).concat([row]);
+        persist();
+        return row;
+      },
+      update: function (id, patch) {
+        state.pocs = (state.pocs || []).map(function (p) {
+          return p.id === id ? Object.assign({}, p, patch) : p;
+        });
+        persist();
+        return usePocs().getById(id);
+      },
+      remove: function (id) {
+        state.pocs = (state.pocs || []).filter(function (p) {
+          return p.id !== id;
+        });
+        persist();
+      },
     };
   }
 
@@ -449,6 +483,13 @@
         seedIfEmpty();
         initDone = true;
         return state;
+      })
+      .then(function (s) {
+        var scrapesMod = global.HomeCommandScrapes;
+        if (!scrapesMod || typeof scrapesMod.loadCatalog !== 'function') return s;
+        return scrapesMod.loadCatalog().then(function () {
+          return s;
+        });
       });
 
     if (!global.__aepCommandCentreScopeBound) {

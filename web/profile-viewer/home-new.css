@@ -1502,6 +1502,61 @@ body.home-new-page {
 .cc-cust-row-inner { padding: 11px 10px; }
 
 .cc-cust-name { font-weight: 600; font-size: 12.5px; color: var(--rs-text); }
+.cc-cust-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.cc-cust-name-row--compact { justify-content: flex-start; font-size: 11px; }
+.cc-cust-name-block { flex: 1; min-width: 0; }
+.cc-cust-scrape-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--cc-bg-raised);
+  border: 1px solid var(--cc-border-lit);
+  flex-shrink: 0;
+}
+.cc-detail-title-row { margin-bottom: 4px; }
+.cc-detail-title-row .cc-detail-title { margin: 0; }
+
+.cc-scrape-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-top: 6px;
+  border-radius: var(--dash-radius-sm, 8px);
+  background: var(--cc-bg-raised);
+  border: 1px solid var(--cc-border-lit);
+}
+.cc-scrape-preview__img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.cc-scrape-preview__label { font-size: 11px; color: var(--cc-text-sec); }
+
+.cc-poc-table .cc-poc-bar-wrap--inline { margin-top: 0; max-width: 100px; }
+.cc-poc-meta-inline { font-size: 10px; color: var(--cc-text-sec); margin-top: 3px; }
+.cc-empty--pad { padding: 14px 16px; }
+
+.cc-comp-account-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cc-comp-scrape-link {
+  margin-top: 8px;
+  font-size: 11px;
+}
+.cc-comp-scrape-link a { color: var(--cc-blue); text-decoration: none; }
+.cc-comp-scrape-link a:hover { text-decoration: underline; }
+.cc-comp-loading { font-size: 11px; color: var(--cc-text-sec); padding: 10px 0; }
+
 .cc-cust-product { font-size: 10px; color: var(--cc-text-sec); margin-top: 2px; }
 .cc-cust-notes { font-size: 11px; color: var(--cc-text-sec); line-height: 1.4; max-width: 220px; }
 
@@ -1717,6 +1772,22 @@ body.home-new-page {
 }
 
 .home-lab-compact-item { margin-bottom: 8px; }
+.home-lab-compact-item--scrape {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.home-lab-scrape-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--cc-border);
+  background: var(--cc-bg-raised);
+  flex-shrink: 0;
+}
+
 .home-lab-compact-item:last-child { margin-bottom: 0; }
 
 .home-lab-compact-item__title {

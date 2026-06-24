@@ -103,6 +103,63 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   white-space: nowrap;
 }
 
+.brand-scraper-customer-row {
+  margin-top: 10px;
+}
+
+.brand-scraper-customer-row .brand-scraper-input {
+  max-width: 420px;
+}
+
+.brand-scraper-customer-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  flex-shrink: 0;
+}
+
+.brand-scraper-customer-logo--header {
+  width: 52px;
+  height: 52px;
+}
+
+.brand-scraper-customer-logo--card {
+  width: 36px;
+  height: 36px;
+}
+
+.brand-scraper-customer-logo--asset {
+  width: 72px;
+  height: 72px;
+}
+
+.brand-scraper-result-title-row,
+.brand-scraper-history-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.brand-scraper-result-industry {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-blue);
+}
+
+.brand-scraper-customer-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .brand-scraper-url-row {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }

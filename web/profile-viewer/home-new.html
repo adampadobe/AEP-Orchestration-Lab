@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
-  <link rel="stylesheet" href="home-new.css?v=20260625d">
+  <link rel="stylesheet" href="home-new.css?v=20260625f">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
@@ -165,8 +165,9 @@
             <div>
               <div class="cc-section-header">
                 <div class="cc-section-title"><span class="cc-section-dot"></span>PoC / Demo Tracker</div>
+                <button type="button" class="cc-section-action" id="ccAddPocBtn">+ Add PoC</button>
               </div>
-              <div class="cc-card cc-card--compact" id="ccPocTracker"></div>
+              <div class="cc-card cc-card--flush" id="ccPocTracker"></div>
             </div>
             <div>
               <div class="cc-section-header">
@@ -275,6 +276,18 @@
       <form id="ccCustomerForm" class="cc-modal__body">
         <input type="hidden" name="customerId" value="">
         <label class="cc-field">Customer name<input name="name" required autocomplete="organization"></label>
+        <label class="cc-field">Brand scrape
+          <select name="scrapeId" id="ccCustomerScrapeSelect">
+            <option value="">— None —</option>
+          </select>
+          <span class="cc-field__hint">Links a scrape for logo and competitive intel on this engagement</span>
+        </label>
+        <input type="hidden" name="scrapeBrand" value="">
+        <input type="hidden" name="scrapeLogoUrl" value="">
+        <div class="cc-scrape-preview" id="ccCustomerScrapePreview" hidden>
+          <img id="ccCustomerScrapePreviewImg" alt="" class="cc-scrape-preview__img">
+          <span id="ccCustomerScrapePreviewLabel" class="cc-scrape-preview__label"></span>
+        </div>
         <div class="cc-field">
           <span class="cc-field__label">Products</span>
           <p class="cc-field__hint">Same product names as release notes — select all that apply</p>
@@ -305,6 +318,40 @@
         <label class="cc-field">Demo link<input name="demoLink" type="url" placeholder="profile-viewer/…"></label>
         <footer class="cc-modal__foot">
           <button type="button" class="cc-btn cc-btn-ghost" id="ccCustomerModalCancel">Cancel</button>
+          <button type="submit" class="cc-btn cc-btn-primary">Save</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div class="cc-modal-backdrop" id="ccPocModal" hidden aria-hidden="true" role="dialog" aria-labelledby="ccPocModalTitle">
+    <div class="cc-modal">
+      <header class="cc-modal__head">
+        <h2 id="ccPocModalTitle">Edit PoC / demo</h2>
+        <button type="button" class="cc-modal__close" id="ccPocModalClose" aria-label="Close">×</button>
+      </header>
+      <form id="ccPocForm" class="cc-modal__body">
+        <input type="hidden" name="pocId" value="">
+        <label class="cc-field">PoC / demo name<input name="name" required></label>
+        <label class="cc-field">Customer engagement
+          <select name="customerId" id="ccPocCustomerSelect">
+            <option value="">— None —</option>
+          </select>
+        </label>
+        <label class="cc-field">Product / org<input name="org" placeholder="AJO Decisioning"></label>
+        <label class="cc-field">Target date<input name="target" placeholder="2026-07-14"></label>
+        <label class="cc-field">Status
+          <select name="status">
+            <option>In build</option>
+            <option>Scoping</option>
+            <option>UAT</option>
+            <option>Blocked</option>
+            <option>Complete</option>
+          </select>
+        </label>
+        <label class="cc-field">Progress %<input name="progress" type="number" min="0" max="100" value="0"></label>
+        <footer class="cc-modal__foot">
+          <button type="button" class="cc-btn cc-btn-ghost" id="ccPocModalCancel">Cancel</button>
           <button type="submit" class="cc-btn cc-btn-primary">Save</button>
         </footer>
       </form>
@@ -437,13 +484,14 @@
   <script defer src="aep-ldap-slug.js"></script>
   <script defer src="home-release-summary-catalog.js?v=20260625d"></script>
   <script defer src="home-release-summary.js?v=20260625d"></script>
-  <script defer src="home-command-products.js?v=20260625d"></script>
-  <script defer src="home-command-rtdb.js?v=20260625d"></script>
-  <script defer src="home-command-store.js?v=20260625d"></script>
-  <script defer src="home-command-seed-data.js?v=20260625d"></script>
-  <script defer src="home-command-data.js?v=20260625d"></script>
-  <script defer src="home-command-centre.js?v=20260625d"></script>
-  <script defer src="home-new-greeting.js?v=20260625d"></script>
+  <script defer src="home-command-products.js?v=20260625f"></script>
+  <script defer src="home-command-scrapes.js?v=20260625f"></script>
+  <script defer src="home-command-rtdb.js?v=20260625f"></script>
+  <script defer src="home-command-store.js?v=20260625f"></script>
+  <script defer src="home-command-seed-data.js?v=20260625f"></script>
+  <script defer src="home-command-data.js?v=20260625f"></script>
+  <script defer src="home-command-centre.js?v=20260625f"></script>
+  <script defer src="home-new-greeting.js?v=20260625f"></script>
   <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260624c-home-new"></script>
 </body>

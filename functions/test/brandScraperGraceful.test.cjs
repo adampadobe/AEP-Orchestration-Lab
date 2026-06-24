@@ -149,7 +149,9 @@ describe('brandScrapeStore buildFullRecord', () => {
   it('persists graceful scrape metadata fields', () => {
     const rec = buildFullRecord('kirkham', 'abc123', {
       url: 'https://news.sky.com/uk',
-      brandName: 'Sky News',
+      brandName: 'News',
+      customerName: 'Sky News',
+      customerLogo: { source: 'wikipedia', url: 'https://example.com/logo.jpg', wikipediaTitle: 'Sky News' },
       blockedPages: [{ url: 'https://news.sky.com/about', status: 403 }],
       scrapeConfidence: { level: 'medium', score: 62 },
       sourceBadges: ['Live URL', 'Blocked'],
@@ -158,6 +160,8 @@ describe('brandScrapeStore buildFullRecord', () => {
       demoGenerationStatus: 'created',
     });
     assert.equal(rec.scrapeId, 'abc123');
+    assert.equal(rec.customerName, 'Sky News');
+    assert.equal(rec.customerLogo.wikipediaTitle, 'Sky News');
     assert.equal(rec.blockedPages.length, 1);
     assert.equal(rec.scrapeConfidence.level, 'medium');
     assert.deepEqual(rec.sourceBadges, ['Live URL', 'Blocked']);

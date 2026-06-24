@@ -27,6 +27,7 @@
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
+  const customerNameInput = document.getElementById('brandScraperCustomerName');
   const btypeSel = document.getElementById('brandScraperBusinessType');
   const countrySel = document.getElementById('brandScraperCountry');
   const pagesInput = document.getElementById('brandScraperPages');
@@ -815,6 +816,31 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function displayCustomerName(data) {
+    return String((data && (data.customerName || data.brandName)) || '').trim();
+  }
+
+  function resolveCustomerLogo(data) {
+    if (!data) return null;
+    if (data.customerLogo) return data.customerLogo;
+    var crawl = data.crawl || data.crawlSummary;
+    var assets = crawl && crawl.assets;
+    return (assets && assets.customerLogo) || null;
+  }
+
+  function customerLogoSrc(data) {
+    if (!data) return '';
+    if (data.customerLogoUrl) return data.customerLogoUrl;
+    var logo = resolveCustomerLogo(data);
+    return logo && (logo.url || logo.thumbnailUrl) || '';
+  }
+
+  function renderCustomerLogoHtml(data, className) {
+    var src = customerLogoSrc(data);
+    if (!src) return '';
+    return '<img class="' + esc(className || 'brand-scraper-customer-logo') + '" src="' + esc(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />';
+  }
+
   function tagAuditVendorTags(v) {
     if (!v || typeof v !== 'object') return [];
     return Object.keys(v).filter(function (k) { return v[k]; }).sort();
@@ -1230,6 +1256,20 @@
   function renderAssets(a) {
     if (!a) return '';
     const blocks = [];
+
+    if (a.customerLogo && (a.customerLogo.url || a.customerLogo.thumbnailUrl)) {
+      const logo = a.customerLogo;
+      const src = logo.url || logo.thumbnailUrl;
+      blocks.push(
+        '<div class="brand-scraper-asset-row brand-scraper-asset-row--logo">' +
+          '<h5>Customer logo <span class="brand-scraper-asset-hint">Wikipedia · ' + esc(logo.wikipediaTitle || logo.query || '') + '</span></h5>' +
+          '<div class="brand-scraper-customer-logo-wrap">' +
+            '<img class="brand-scraper-customer-logo brand-scraper-customer-logo--asset" src="' + esc(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />' +
+            (logo.wikipediaUrl ? '<p class="brand-scraper-result-muted"><a href="' + esc(logo.wikipediaUrl) + '" target="_blank" rel="noopener noreferrer">View on Wikipedia</a></p>' : '') +
+          '</div>' +
+        '</div>'
+      );
+    }
 
     if (Array.isArray(a.favicons) && a.favicons.length) {
       blocks.push(
@@ -1717,7 +1757,13 @@
     resultsEl.innerHTML = (
       '<header class="brand-scraper-result-header">' +
         '<div class="brand-scraper-result-header-main">' +
-          '<h3>' + esc(data.brandName || 'Results') + '</h3>' +
+          '<div class="brand-scraper-result-title-row">' +
+            renderCustomerLogoHtml(data, 'brand-scraper-customer-logo brand-scraper-customer-logo--header') +
+            '<div class="brand-scraper-result-title-text">' +
+              '<h3>' + esc(displayCustomerName(data) || 'Results') + '</h3>' +
+              (data.industry ? '<p class="brand-scraper-result-industry">' + esc(data.industry) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
           '<p class="brand-scraper-result-muted">' + esc(data.baseUrl || data.url || '') + ' · ' +
             esc((data.businessType || '').toUpperCase()) + (data.country ? ' · ' + esc(data.country) : '') +
             (data.elapsedMs ? ' · ' + (data.elapsedMs / 1000).toFixed(1) + 's' : '') +
@@ -1873,8 +1919,13 @@
           '</label>'
         ) : '') +
         '<div class="brand-scraper-history-card-main">' +
-          '<h4>' + esc(it.brandName || it.baseUrl || it.url) + runPill + '</h4>' +
-          (it.industry ? '<p class="brand-scraper-history-industry">' + esc(it.industry) + '</p>' : '') +
+          '<div class="brand-scraper-history-card-title-row">' +
+            renderCustomerLogoHtml(it, 'brand-scraper-customer-logo brand-scraper-customer-logo--card') +
+            '<div class="brand-scraper-history-card-title-text">' +
+              '<h4>' + esc(displayCustomerName(it) || it.baseUrl || it.url) + runPill + '</h4>' +
+              (it.industry ? '<p class="brand-scraper-history-industry">' + esc(it.industry) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
           '<p class="brand-scraper-result-muted">' + esc(it.baseUrl || it.url || '') + '</p>' +
           '<p class="brand-scraper-result-muted">' +
             fmtDate(it.updatedAt || it.createdAt) +
@@ -2184,6 +2235,8 @@
         ...data,
         crawl: data.crawlSummary,
       });
+      if (customerNameInput) customerNameInput.value = data.customerName || '';
+      if (urlInput && (data.url || data.baseUrl)) urlInput.value = data.url || data.baseUrl;
       if (data.scrapeStatus !== 'crawl_complete') {
         setStatus('Loaded scrape from ' + fmtDate(data.updatedAt || data.createdAt) + '.', 'info');
       }
@@ -2642,7 +2695,7 @@
           analysisOnly: true,
           existingScrapeId: scrapeId,
           regenerateDemoWebsite: true,
-          customerName: detail.brandName || '',
+          customerName: detail.customerName || detail.brandName || '',
         }),
       });
       const data = await resp.json().catch(() => ({}));
@@ -2768,9 +2821,7 @@
           useUploadedHtmlFallback: !!(uploadFallbackCb && uploadFallbackCb.checked),
           uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
           uploadedHtml: uploadedHtml,
-          customerName: (function () {
-            try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]; } catch (_e) { return ''; }
-          })(),
+          customerName: (customerNameInput && customerNameInput.value.trim()) || '',
         }),
       }, {
         retries: 2,

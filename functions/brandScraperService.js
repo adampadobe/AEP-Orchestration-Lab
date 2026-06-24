@@ -18,6 +18,7 @@ const labUserSandboxStore = require('./labUserSandboxStore');
 const uploadedHtml = require('./brandScraperUploadedHtml');
 const scrapeConfidence = require('./brandScraperConfidence');
 const demoWebsite = require('./brandScraperDemoWebsite');
+const wikipediaLogo = require('./brandScraperWikipediaLogo');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
@@ -703,6 +704,70 @@ function inferBrandNameFromUrl(rawUrl) {
   }
 }
 
+function resolveCustomerName(body, ...baselines) {
+  const explicit = String((body && body.customerName) || '').trim();
+  if (explicit) return explicit;
+  for (const b of baselines) {
+    if (b && b.customerName) return String(b.customerName).trim();
+  }
+  return '';
+}
+
+async function enrichCustomerIdentity({
+  body,
+  crawl,
+  crawlSummary,
+  storedBaseline,
+  appendBaseline,
+  sandbox,
+  scrapeId,
+  runSteps,
+}) {
+  const resolvedCustomerName = resolveCustomerName(body, storedBaseline, appendBaseline);
+  let customerLogo = (storedBaseline && storedBaseline.customerLogo)
+    || (appendBaseline && appendBaseline.customerLogo)
+    || null;
+  const logoQuery = resolvedCustomerName || (crawl && crawl.brandName) || '';
+  const nameChanged = resolvedCustomerName
+    && storedBaseline
+    && storedBaseline.customerName
+    && storedBaseline.customerName !== resolvedCustomerName;
+
+  if (logoQuery && (!customerLogo || nameChanged)) {
+    try {
+      const fetched = await wikipediaLogo.fetchCustomerLogo(logoQuery, { sandbox, scrapeId });
+      if (fetched) {
+        customerLogo = fetched;
+        runSteps.push(runStepOk(
+          'customerLogo',
+          'Customer logo (Wikipedia)',
+          fetched.wikipediaTitle || logoQuery,
+        ));
+      } else {
+        runSteps.push(runStepSkipped(
+          'customerLogo',
+          'Customer logo (Wikipedia)',
+          `No Wikipedia image found for "${logoQuery}"`,
+        ));
+      }
+    } catch (e) {
+      runSteps.push(runStepFailed(
+        'customerLogo',
+        'Customer logo (Wikipedia)',
+        String((e && e.message) || e).slice(0, 200),
+      ));
+    }
+  } else if (customerLogo) {
+    runSteps.push(runStepOk('customerLogo', 'Customer logo (Wikipedia)', 'Reused from prior scrape'));
+  }
+
+  if (customerLogo) {
+    crawlSummary.assets = { ...(crawlSummary.assets || {}), customerLogo };
+  }
+
+  return { resolvedCustomerName, customerLogo };
+}
+
 const INDUSTRY_TAXONOMY = [
   'Technology & Software',
   'Financial services',
@@ -1297,6 +1362,12 @@ function mergeScrapeRecords(existing, fresh) {
     out.industryInfo = f.industryInfo || e.industryInfo || null;
   }
 
+  if (f.customerName) out.customerName = f.customerName;
+  else if (e.customerName) out.customerName = e.customerName;
+
+  if (f.customerLogo) out.customerLogo = f.customerLogo;
+  else if (e.customerLogo) out.customerLogo = e.customerLogo;
+
   // Personas: union by name. Growing library across appends.
   const personaMap = new Map();
   const ePs = (e.personas && Array.isArray(e.personas.personas)) ? e.personas.personas : [];
@@ -1783,6 +1854,19 @@ async function executeAnalyzePipeline({
     assets: crawl.assets,
   };
 
+  const identity = await enrichCustomerIdentity({
+    body,
+    crawl,
+    crawlSummary,
+    storedBaseline,
+    appendBaseline,
+    sandbox,
+    scrapeId: runScrapeId,
+    runSteps,
+  });
+  if (identity.resolvedCustomerName) crawlSummary.customerName = identity.resolvedCustomerName;
+  if (identity.customerLogo) crawlSummary.customerLogo = identity.customerLogo;
+
   const checkpointElapsed = Date.now() - started;
   let checkpointRecord = analysisOnly && storedBaseline
     ? {
@@ -1821,6 +1905,8 @@ async function executeAnalyzePipeline({
     stakeholdersError: null,
     elapsedMs: checkpointElapsed,
   };
+  if (identity.resolvedCustomerName) checkpointRecord.customerName = identity.resolvedCustomerName;
+  if (identity.customerLogo) checkpointRecord.customerLogo = identity.customerLogo;
   if (!analysisOnly && appendMode && appendBaseline) {
     checkpointRecord = mergeScrapeRecords(appendBaseline, checkpointRecord);
     checkpointRecord.scrapeId = appendBaseline.scrapeId;
@@ -2274,6 +2360,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       url,
       baseUrl: normaliseUrl(url),
       brandName: inferBrandNameFromUrl(url),
+      customerName: String(body.customerName || '').trim() || null,
       businessType: body.businessType || 'b2c',
       country: body.country || '',
       crawlEngine: wantJs ? 'js' : 'fetch',

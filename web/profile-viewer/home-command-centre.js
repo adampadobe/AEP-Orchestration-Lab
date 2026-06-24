@@ -6,9 +6,95 @@
 
   var data = global.HomeCommandData;
   var productCatalog = global.HomeCommandProducts;
+  var scrapes = global.HomeCommandScrapes;
   if (!data) return;
 
+  function customerById(id) {
+    return data.useCustomers().getById(id);
+  }
+
+  function customerLogoHtml(c) {
+    if (!c || !c.scrapeLogoUrl) return '';
+    return (
+      '<img class="cc-cust-scrape-logo" src="' +
+      esc(c.scrapeLogoUrl) +
+      '" alt="' +
+      esc(c.scrapeBrand || c.name) +
+      ' logo" loading="lazy">'
+    );
+  }
+
+  function enrichCustomerLogos(customers, done) {
+    if (!scrapes || !customers.length) {
+      if (done) done();
+      return;
+    }
+    var pending = 0;
+    var changed = false;
+    customers.forEach(function (c) {
+      if (!c.scrapeId || c.scrapeLogoUrl) return;
+      pending += 1;
+      scrapes.loadDetail(c.scrapeId).then(function (record) {
+        if (!record) return;
+        var logo = scrapes.pickLogoFromRecord(record);
+        if (!logo) return;
+        changed = true;
+        data.useCustomers().update(c.id, {
+          scrapeLogoUrl: logo,
+          scrapeBrand: c.scrapeBrand || record.brandName || scrapes.scrapeLabel(scrapes.getById(c.scrapeId)),
+        });
+      }).finally(function () {
+        pending -= 1;
+        if (pending <= 0 && changed && done) done();
+        else if (pending <= 0 && done) done();
+      });
+    });
+    if (pending === 0 && done) done();
+  }
+
+  function updateScrapePreview(form, scrapeId) {
+    var preview = document.getElementById('ccCustomerScrapePreview');
+    var img = document.getElementById('ccCustomerScrapePreviewImg');
+    var label = document.getElementById('ccCustomerScrapePreviewLabel');
+    if (!form || !preview) return;
+    if (!scrapeId || !scrapes) {
+      preview.hidden = true;
+      form.scrapeBrand.value = '';
+      form.scrapeLogoUrl.value = '';
+      return;
+    }
+    var item = scrapes.getById(scrapeId);
+    form.scrapeBrand.value = item ? scrapes.scrapeLabel(item) : '';
+    scrapes.loadDetail(scrapeId).then(function (record) {
+      var logo = scrapes.pickLogoFromRecord(record);
+      form.scrapeLogoUrl.value = logo || '';
+      if (logo && img) {
+        img.src = logo;
+        if (label) label.textContent = form.scrapeBrand.value || 'Linked scrape';
+        preview.hidden = false;
+      } else {
+        preview.hidden = true;
+      }
+    });
+  }
+
+  function bindScrapeSelect(form) {
+    if (!form || !scrapes) return;
+    var select = form.querySelector('[name="scrapeId"]');
+    if (!select || select.getAttribute('data-cc-bound') === '1') return;
+    select.setAttribute('data-cc-bound', '1');
+    select.addEventListener('change', function () {
+      updateScrapePreview(form, select.value);
+    });
+  }
+
+  function populateScrapeSelect(select, selectedId) {
+    if (!select || !scrapes) return;
+    select.innerHTML = scrapes.renderSelectOptions(selectedId || '');
+  }
+
   var activeCustomerId = null;
+  var activePocId = null;
 
   var STATUS_STRIP_MAP = {
     'On track': 'green',
@@ -22,6 +108,7 @@
     'In build': 'amber',
     Scoping: 'blue',
     Blocked: 'red',
+    Complete: 'green',
   };
 
   function esc(s) {
@@ -276,13 +363,16 @@
     }
 
     var scrapeLink = '';
-    if (c.scrapeBrand) {
+    if (c.scrapeId && scrapes) {
       scrapeLink =
-        '<p class="cc-drawer-scrape">🔗 Linked scrape: <a href="brand-scraper.html?brand=' +
-        encodeURIComponent(c.scrapeBrand) +
+        '<p class="cc-drawer-scrape">🔗 Brand scrape: <a href="' +
+        esc(scrapes.scrapePageUrl(c.scrapeId)) +
         '">' +
-        esc(c.scrapeBrand) +
+        esc(c.scrapeBrand || scrapes.scrapeLabel(scrapes.getById(c.scrapeId))) +
         '</a></p>';
+    } else if (c.scrapeBrand) {
+      scrapeLink =
+        '<p class="cc-drawer-scrape">🔗 Linked brand: ' + esc(c.scrapeBrand) + '</p>';
     }
 
     return (
@@ -290,9 +380,12 @@
       '<div class="' +
       stripClass(c.statusStrip) +
       ' cc-detail-strip"></div>' +
-      '<div><h3 class="cc-detail-title">' +
+      '<div><div class="cc-cust-name-row cc-detail-title-row">' +
+      '<div class="cc-cust-name-block"><h3 class="cc-detail-title">' +
       esc(c.name) +
-      '</h3>' +
+      '</h3></div>' +
+      customerLogoHtml(c) +
+      '</div>' +
       '<p class="cc-detail-products">' +
       esc(productLabel(c)) +
       '</p>' +
@@ -451,11 +544,16 @@
       stripClass(c.statusStrip) +
       '"></div>' +
       '<div class="cc-cust-name-inner">' +
+      '<div class="cc-cust-name-row">' +
+      '<div class="cc-cust-name-block">' +
       '<div class="cc-cust-name">' +
       esc(c.name) +
       '</div>' +
       '<div class="cc-cust-product">' +
       esc(productLabel(c)) +
+      '</div>' +
+      '</div>' +
+      customerLogoHtml(c) +
       '</div>' +
       (tags ? '<div class="cc-meeting-tags">' + tags + '</div>' : '') +
       '</div></div></td>' +
@@ -671,40 +769,82 @@
     if (!el) return;
     var pocs = data.usePocs().getAll();
     if (!pocs.length) {
-      el.innerHTML = '<p class="cc-empty">No PoCs tracked yet.</p>';
+      el.innerHTML = '<p class="cc-empty cc-empty--pad">No PoCs tracked yet.</p>';
       return;
     }
-    el.innerHTML = pocs
-      .map(function (p, i) {
-        var last = i === pocs.length - 1;
-        return (
-          '<div class="cc-poc-item' +
-          (last ? ' cc-poc-item--last' : '') +
-          '">' +
-          '<div class="cc-poc-header">' +
-          '<div><div class="cc-poc-name">' +
-          esc(p.name) +
-          '</div><div class="cc-poc-org">' +
-          esc(p.org) +
-          ' · Target: ' +
-          esc(p.target) +
-          '</div></div>' +
-          '<span class="' +
-          statusPillClass(p.status) +
-          '">' +
-          esc(p.status) +
-          '</span></div>' +
-          '<div class="cc-poc-bar-wrap"><div class="cc-poc-bar" style="width:' +
-          (p.progress || 0) +
-          '%;background:' +
-          pocBarColor(p.statusStrip) +
-          '"></div></div>' +
-          '<div class="cc-poc-meta"><span>' +
-          (p.progress || 0) +
-          '% complete</span></div></div>'
-        );
-      })
-      .join('');
+    el.innerHTML =
+      '<div class="cc-table-scroll">' +
+      '<table class="cc-poc-table cc-customer-table">' +
+      '<thead><tr>' +
+      '<th class="cc-th-customer">PoC / Demo</th>' +
+      '<th>Customer</th>' +
+      '<th>Status</th>' +
+      '<th>Progress</th>' +
+      '<th>Target</th>' +
+      '<th class="cc-th-chevron" aria-label="Edit"></th>' +
+      '</tr></thead><tbody>' +
+      pocs
+        .map(function (p) {
+          var cust = p.customerId ? customerById(p.customerId) : null;
+          var custName = cust ? cust.name : '—';
+          var logo = cust ? customerLogoHtml(cust) : '';
+          return (
+            '<tr class="cc-poc-row' +
+            (activePocId === p.id ? ' cc-customer-row--active' : '') +
+            '" data-poc-id="' +
+            esc(p.id) +
+            '" tabindex="0" role="button">' +
+            '<td class="cc-customer-cell-name"><div class="cc-cust-name-cell">' +
+            '<div class="' +
+            stripClass(p.statusStrip) +
+            '"></div>' +
+            '<div class="cc-cust-name-inner"><div class="cc-cust-name-row">' +
+            '<div class="cc-cust-name-block"><div class="cc-cust-name">' +
+            esc(p.name) +
+            '</div><div class="cc-cust-product">' +
+            esc(p.org || '') +
+            '</div></div></div></div></td>' +
+            '<td><div class="cc-cust-row-inner"><div class="cc-cust-name-row cc-cust-name-row--compact">' +
+            '<span>' +
+            esc(custName) +
+            '</span>' +
+            logo +
+            '</div></div></td>' +
+            '<td><div class="cc-cust-row-inner"><span class="' +
+            statusPillClass(p.status) +
+            '">' +
+            esc(p.status) +
+            '</span></div></td>' +
+            '<td><div class="cc-cust-row-inner"><div class="cc-poc-bar-wrap cc-poc-bar-wrap--inline">' +
+            '<div class="cc-poc-bar" style="width:' +
+            (p.progress || 0) +
+            '%;background:' +
+            pocBarColor(p.statusStrip) +
+            '"></div></div>' +
+            '<div class="cc-poc-meta-inline">' +
+            (p.progress || 0) +
+            '%</div></div></td>' +
+            '<td><div class="cc-cust-row-inner"><div class="cc-date-cell">' +
+            esc(p.target || '—') +
+            '</div></div></td>' +
+            '<td><div class="cc-cust-row-inner"><span class="cc-chevron" aria-hidden="true">›</span></div></td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table></div>';
+    el.querySelectorAll('.cc-poc-row').forEach(function (row) {
+      var id = row.getAttribute('data-poc-id');
+      row.addEventListener('click', function () {
+        openPocForm(id);
+      });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openPocForm(id);
+        }
+      });
+    });
   }
 
   function riskColor(risk) {
@@ -757,39 +897,92 @@
     var el = document.getElementById('ccCompetitiveIntel');
     if (!el) return;
     var customers = data.useCustomers().getAll().filter(function (c) {
-      return c.competitiveThreat;
+      return c.competitiveThreat || c.scrapeId;
     });
     if (!customers.length) {
-      el.innerHTML = '<p class="cc-empty">No competitive intel logged.</p>';
+      el.innerHTML =
+        '<p class="cc-empty">No competitive intel yet. Link a <a href="brand-scraper.html">brand scrape</a> on a customer or log a threat in SC notes.</p>';
       return;
     }
-    el.innerHTML = customers
-      .map(function (c, i) {
-        var ct = c.competitiveThreat;
-        var threatCls = ct.level === 'High' ? 'cc-sp-red' : ct.level === 'Watch' ? 'cc-sp-amber' : 'cc-sp-green';
-        var last = i === customers.length - 1;
-        return (
-          '<div class="cc-comp-item' +
-          (last ? ' cc-comp-item--last' : '') +
-          '">' +
-          '<div class="cc-comp-header"><div class="cc-comp-account">' +
-          esc(c.name) +
-          '</div><span class="cc-status-pill ' +
-          threatCls +
-          '">' +
-          esc(ct.level === 'High' ? 'High threat' : ct.level + ' threat') +
-          '</span></div>' +
-          '<div class="cc-comp-detail"><strong>' +
-          esc(ct.vendor) +
-          '</strong> — ' +
-          esc(ct.detail) +
-          '</div>' +
-          '<div class="cc-comp-action">→ Counter: ' +
-          esc(ct.counter) +
-          '</div></div>'
-        );
-      })
-      .join('');
+    el.innerHTML = '<p class="cc-comp-loading">Loading scrape intel…</p>';
+    var rows = customers.map(function (c) {
+      return scrapes && c.scrapeId
+        ? scrapes.loadDetail(c.scrapeId).then(function (record) {
+            return { customer: c, record: record, competitors: scrapes.getCompetitorsFromRecord(record) };
+          })
+        : Promise.resolve({ customer: c, record: null, competitors: [] });
+    });
+    Promise.all(rows).then(function (items) {
+      if (!el.isConnected) return;
+      el.innerHTML = items
+        .map(function (item, i) {
+          var c = item.customer;
+          var ct = c.competitiveThreat;
+          var threatCls = ct
+            ? ct.level === 'High'
+              ? 'cc-sp-red'
+              : ct.level === 'Watch'
+                ? 'cc-sp-amber'
+                : 'cc-sp-green'
+            : 'cc-sp-amber';
+          var threatLabel = ct
+            ? ct.level === 'High'
+              ? 'High threat'
+              : ct.level + ' threat'
+            : item.competitors.length
+              ? 'From scrape'
+              : 'Linked scrape';
+          var last = i === items.length - 1;
+          var scrapeLink = '';
+          if (c.scrapeId && scrapes) {
+            scrapeLink =
+              '<div class="cc-comp-scrape-link"><a href="' +
+              esc(scrapes.scrapePageUrl(c.scrapeId)) +
+              '">Open brand scrape · ' +
+              esc(c.scrapeBrand || scrapes.scrapeLabel(scrapes.getById(c.scrapeId))) +
+              '</a></div>';
+          }
+          var detail = '';
+          if (ct) {
+            detail =
+              '<div class="cc-comp-detail"><strong>' +
+              esc(ct.vendor) +
+              '</strong> — ' +
+              esc(ct.detail) +
+              '</div>' +
+              '<div class="cc-comp-action">→ Counter: ' +
+              esc(ct.counter) +
+              '</div>';
+          } else if (item.competitors.length) {
+            detail =
+              '<div class="cc-comp-detail">Competitors from scrape: <strong>' +
+              esc(item.competitors.slice(0, 5).join(', ')) +
+              '</strong></div>';
+          } else {
+            detail = '<div class="cc-comp-detail">Scrape linked — open for competitor analysis.</div>';
+          }
+          return (
+            '<div class="cc-comp-item' +
+            (last ? ' cc-comp-item--last' : '') +
+            '">' +
+            '<div class="cc-comp-header">' +
+            '<div class="cc-comp-account-row">' +
+            customerLogoHtml(c) +
+            '<div class="cc-comp-account">' +
+            esc(c.name) +
+            '</div></div>' +
+            '<span class="cc-status-pill ' +
+            threatCls +
+            '">' +
+            esc(threatLabel) +
+            '</span></div>' +
+            detail +
+            scrapeLink +
+            '</div>'
+          );
+        })
+        .join('');
+    });
   }
 
   function capBarColor(color) {
@@ -941,7 +1134,85 @@
       lastMeeting: (form.lastMeeting && form.lastMeeting.value) || '',
       nextAction: (form.nextAction && form.nextAction.value.trim()) || '',
       demoLink: (form.demoLink && form.demoLink.value.trim()) || '',
+      scrapeId: (form.scrapeId && form.scrapeId.value) || '',
+      scrapeBrand: (form.scrapeBrand && form.scrapeBrand.value) || '',
+      scrapeLogoUrl: (form.scrapeLogoUrl && form.scrapeLogoUrl.value) || '',
     };
+  }
+
+  function populatePocCustomerSelect(select, selectedId) {
+    if (!select) return;
+    var customers = data.useCustomers().getAll();
+    select.innerHTML =
+      '<option value="">— None —</option>' +
+      customers
+        .map(function (c) {
+          return (
+            '<option value="' +
+            esc(c.id) +
+            '"' +
+            (selectedId === c.id ? ' selected' : '') +
+            '>' +
+            esc(c.name) +
+            '</option>'
+          );
+        })
+        .join('');
+  }
+
+  function getPocFormValues(form) {
+    var status = (form.status && form.status.value) || 'Scoping';
+    var progress = parseInt(form.progress && form.progress.value, 10);
+    if (isNaN(progress)) progress = 0;
+    progress = Math.max(0, Math.min(100, progress));
+    return {
+      name: (form.name && form.name.value.trim()) || 'New PoC',
+      customerId: (form.customerId && form.customerId.value) || '',
+      org: (form.org && form.org.value.trim()) || '',
+      target: (form.target && form.target.value.trim()) || '',
+      status: status,
+      statusStrip: STATUS_STRIP_MAP[status] || 'blue',
+      progress: progress,
+    };
+  }
+
+  function openPocForm(pocId) {
+    var modal = document.getElementById('ccPocModal');
+    var form = document.getElementById('ccPocForm');
+    if (!modal || !form) return;
+    form.reset();
+    form.pocId.value = pocId || '';
+    activePocId = pocId || null;
+    var title = document.getElementById('ccPocModalTitle');
+    var customerSelect = document.getElementById('ccPocCustomerSelect');
+    if (pocId) {
+      var p = data.usePocs().getById(pocId);
+      if (!p) return;
+      if (title) title.textContent = 'Edit PoC / demo';
+      form.name.value = p.name || '';
+      form.org.value = p.org || '';
+      form.target.value = p.target || '';
+      form.status.value = p.status || 'Scoping';
+      form.progress.value = p.progress != null ? p.progress : 0;
+      populatePocCustomerSelect(customerSelect, p.customerId || '');
+    } else {
+      if (title) title.textContent = 'Add PoC / demo';
+      populatePocCustomerSelect(customerSelect, '');
+    }
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    modal.classList.add('cc-modal-backdrop--open');
+    renderPocTracker();
+  }
+
+  function closePocForm() {
+    var modal = document.getElementById('ccPocModal');
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    modal.classList.remove('cc-modal-backdrop--open');
+    activePocId = null;
+    renderPocTracker();
   }
 
   function openCustomerForm(customerId) {
@@ -952,6 +1223,8 @@
     form.customerId.value = customerId || '';
     var title = document.getElementById('ccCustomerModalTitle');
     var picker = document.getElementById('ccProductPickerGrid');
+    var scrapeSelect = document.getElementById('ccCustomerScrapeSelect');
+    var preview = document.getElementById('ccCustomerScrapePreview');
     if (customerId) {
       var c = data.useCustomers().getById(customerId);
       if (!c) return;
@@ -969,11 +1242,23 @@
       form.lastMeeting.value = c.lastMeeting || '';
       form.nextAction.value = c.nextAction || '';
       form.demoLink.value = c.demoLink || '';
+      form.scrapeBrand.value = c.scrapeBrand || '';
+      form.scrapeLogoUrl.value = c.scrapeLogoUrl || '';
+      populateScrapeSelect(scrapeSelect, c.scrapeId || '');
+      bindScrapeSelect(form);
+      if (c.scrapeId) {
+        updateScrapePreview(form, c.scrapeId);
+      } else if (preview) {
+        preview.hidden = true;
+      }
     } else {
       if (title) title.textContent = 'Add customer engagement';
       if (productCatalog && picker) {
         productCatalog.renderPickerGrid(picker, []);
       }
+      populateScrapeSelect(scrapeSelect, '');
+      bindScrapeSelect(form);
+      if (preview) preview.hidden = true;
     }
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
@@ -1035,6 +1320,42 @@
         if (e.target === modal) closeCustomerForm();
       });
     }
+
+    var pocModal = document.getElementById('ccPocModal');
+    if (pocModal) {
+      pocModal.hidden = true;
+      pocModal.setAttribute('aria-hidden', 'true');
+      pocModal.classList.remove('cc-modal-backdrop--open');
+    }
+
+    var pocForm = document.getElementById('ccPocForm');
+    if (pocForm) {
+      pocForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!data) return;
+        var values = getPocFormValues(pocForm);
+        var id = pocForm.pocId && pocForm.pocId.value;
+        var pocs = data.usePocs();
+        if (id) {
+          pocs.update(id, values);
+        } else {
+          pocs.add(values);
+        }
+        closePocForm();
+        renderAll();
+      });
+    }
+
+    ['ccPocModalClose', 'ccPocModalCancel'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', closePocForm);
+    });
+
+    if (pocModal) {
+      pocModal.addEventListener('click', function (e) {
+        if (e.target === pocModal) closePocForm();
+      });
+    }
   }
 
   function bindEvents() {
@@ -1050,6 +1371,11 @@
       openCustomerForm(null);
     });
 
+    var addPocBtn = document.getElementById('ccAddPocBtn');
+    if (addPocBtn) addPocBtn.addEventListener('click', function () {
+      openPocForm(null);
+    });
+
     var drawerClose = document.getElementById('ccCustomerDrawerClose');
     if (drawerClose) drawerClose.addEventListener('click', closeCustomerDetail);
     var backdrop = document.getElementById('ccCustomerBackdrop');
@@ -1058,6 +1384,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         closeCustomerForm();
+        closePocForm();
         closeCustomerDetail();
       }
     });
@@ -1069,6 +1396,16 @@
     root.setAttribute('data-cc-init', '1');
     bindEvents();
     data.init().then(function () {
+      var afterLogoEnrich = function () {
+        renderAll();
+      };
+      if (scrapes) {
+        scrapes.loadCatalog().then(function () {
+          enrichCustomerLogos(data.useCustomers().getAll(), afterLogoEnrich);
+        });
+      } else {
+        afterLogoEnrich();
+      }
       data.subscribe(function () {
         renderAll();
         if (activeCustomerId) {
@@ -1086,7 +1423,16 @@
           }
         }
       });
-      renderAll();
+    });
+    global.addEventListener('aep-command-scrapes-loaded', function () {
+      var scrapeSelect = document.getElementById('ccCustomerScrapeSelect');
+      var form = document.getElementById('ccCustomerForm');
+      if (scrapeSelect && form && form.customerId) {
+        var cid = form.customerId.value;
+        var selected = cid ? (data.useCustomers().getById(cid) || {}).scrapeId : '';
+        populateScrapeSelect(scrapeSelect, selected || '');
+      }
+      renderCompetitive();
     });
     global.addEventListener('aep-command-centre-sync', function () {
       renderSyncStatus();
