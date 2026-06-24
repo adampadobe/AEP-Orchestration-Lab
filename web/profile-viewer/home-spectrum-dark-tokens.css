@@ -1,41 +1,51 @@
 /**
- * Adobe Spectrum dark theme tokens (hand-translated for lab home-new page).
- * @see spectrum.adobe.com / adobe-spectrum-release-dashboard.html reference
+ * June 2026 release-summary palette for home-new.html
+ * Source: AEP & Adobe Campaign — Monthly Release Summary · June 2026
  */
 :root {
-  --s-gray-50: #1e1e1e;
-  --s-gray-75: #2c2c2c;
-  --s-gray-100: #393939;
-  --s-gray-200: #494949;
-  --s-gray-300: #5c5c5c;
-  --s-gray-400: #717171;
-  --s-gray-500: #8e8e8e;
-  --s-gray-600: #adadad;
-  --s-gray-700: #c8c8c8;
-  --s-gray-800: #e3e3e3;
-  --s-gray-900: #ffffff;
+  --rs-red: #eb1000;
+  --rs-red-dim: #991000;
+  --rs-bg: #0a0a0a;
+  --rs-surface: #141414;
+  --rs-card: #1c1c1c;
+  --rs-border: #2a2a2a;
+  --rs-text: #f0f0f0;
+  --rs-text-body: #cccccc;
+  --rs-muted: #888888;
+  --rs-dim: #555555;
 
-  --s-blue-400: #96cefd;
-  --s-blue-500: #78bbfa;
-  --s-blue-600: #59a7f6;
-  --s-blue-700: #3892f3;
-  --s-blue-800: #147af3;
-  --s-blue-900: #0265dc;
+  /* Map legacy token aliases used by home-new.css */
+  --s-gray-50: var(--rs-bg);
+  --s-gray-75: var(--rs-surface);
+  --s-gray-100: var(--rs-card);
+  --s-gray-200: var(--rs-border);
+  --s-gray-300: #3a3a3a;
+  --s-gray-400: var(--rs-dim);
+  --s-gray-500: var(--rs-muted);
+  --s-gray-600: #aaaaaa;
+  --s-gray-700: var(--rs-text-body);
+  --s-gray-800: #e8e8e8;
+  --s-gray-900: var(--rs-text);
 
-  --s-positive-700: #2fb880;
-  --s-notice-700: #f68511;
-  --s-negative-700: #d31510;
-  --s-informative: #3892f3;
-  --adobe-red: #eb1000;
+  --adobe-red: var(--rs-red);
+  --s-accent: var(--rs-red);
+  --s-accent-dim: var(--rs-red-dim);
+  --s-accent-soft: rgba(235, 16, 0, 0.08);
+  --s-accent-border: rgba(235, 16, 0, 0.2);
 
-  --s-bg-base: var(--s-gray-50);
-  --s-bg-layer1: var(--s-gray-75);
-  --s-bg-layer2: var(--s-gray-100);
-  --s-border: var(--s-gray-200);
-  --s-border-strong: var(--s-gray-300);
-  --s-text-primary: var(--s-gray-900);
-  --s-text-secondary: var(--s-gray-700);
-  --s-text-tertiary: var(--s-gray-500);
+  --s-positive-700: #00dc78;
+  --s-notice-700: #ffb400;
+  --s-negative-700: var(--rs-red);
+  --s-informative: #a87eff;
+
+  --s-bg-base: var(--rs-bg);
+  --s-bg-layer1: var(--rs-surface);
+  --s-bg-layer2: var(--rs-card);
+  --s-border: var(--rs-border);
+  --s-border-strong: #333333;
+  --s-text-primary: var(--rs-text);
+  --s-text-secondary: var(--rs-text-body);
+  --s-text-tertiary: var(--rs-muted);
 
   --s-sp-50: 4px;
   --s-sp-75: 6px;
@@ -48,7 +58,7 @@
   --s-sp-500: 40px;
   --s-sp-600: 48px;
 
-  --s-font-body: 'Source Sans 3', adobe-clean, 'Source Sans Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --s-font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --s-font-mono: 'Source Code Pro', ui-monospace, monospace;
 
   --s-text-size-50: 11px;
@@ -60,7 +70,7 @@
   --s-text-size-500: 22px;
 
   --s-control-height-m: 32px;
-  --s-radius-s: 2px;
+  --s-radius-s: 3px;
   --s-radius-m: 4px;
-  --s-radius-l: 8px;
+  --s-radius-l: 4px;
 }

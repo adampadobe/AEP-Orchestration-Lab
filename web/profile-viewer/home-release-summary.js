@@ -387,12 +387,16 @@
   function renderDrawer() {
     var p = getProduct(state.activeProduct);
     if (!p) return;
-    setText('homeReleaseDrawerTitle', p.name);
-    setText(
-      'homeReleaseDrawerDesc',
-      (state.data.period || '') + ' · Experience League'
-    );
+    var drawerTitle = document.getElementById('homeReleaseDrawerTitle');
     var sectionsEl = document.getElementById('homeReleaseDrawerSections');
+    if (drawerTitle) {
+      drawerTitle.innerHTML =
+        esc(p.name) +
+        ' — <span class="home-release-drawer__title-accent">' +
+        esc(state.data.period || '') +
+        '</span>';
+    }
+    setText('homeReleaseDrawerDesc', 'Sourced from Experience League');
     if (!sectionsEl) return;
     sectionsEl.innerHTML = (p.sections || [])
       .map(function (sec) {
