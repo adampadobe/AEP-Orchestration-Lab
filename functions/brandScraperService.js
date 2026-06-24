@@ -14,6 +14,9 @@ const llmDemoPersonalizeService = require('./llmDemoPersonalizeService');
 const modelConfigStore = require('./brandScraperModelConfigStore');
 const tagAudit = require('./brandScraperTagAudit');
 const labUserSandboxStore = require('./labUserSandboxStore');
+const uploadedHtml = require('./brandScraperUploadedHtml');
+const scrapeConfidence = require('./brandScraperConfidence');
+const demoWebsite = require('./brandScraperDemoWebsite');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
@@ -1435,6 +1438,110 @@ function runStepFromLlm(id, label, result) {
 }
 
 /** Reconstruct a crawl-shaped object from a persisted scrape record (for analyse-only re-runs). */
+/**
+ * Live crawl + optional uploaded HTML fallback/primary merge.
+ * 403 / blocked pages are warnings — fatal only when no usable content exists.
+ */
+async function resolveCrawlWithFallbacks({
+  url,
+  body,
+  wantJs,
+  maxPages,
+  wantTagAudit,
+  crawlDeadlineMs,
+  runSteps,
+}) {
+  const uploadPayload = body.uploadedHtml || body.uploadedFiles || null;
+  const useUploadFallback = body.useUploadedHtmlFallback === true
+    || body.useUploadedHtmlFallback === 'true'
+    || (uploadPayload && uploadPayload.useAsFallback !== false);
+  const uploadOnly = body.uploadOnly === true
+    || body.crawlMode === 'upload_only'
+    || (uploadPayload && uploadPayload.uploadOnly === true);
+
+  let liveCrawl = uploadedHtml.emptyCrawl(url, inferBrandNameFromUrl(url));
+  let uploadedResult = { pages: [], summary: null, fallbackSources: [], assetPaths: [] };
+
+  if (!uploadOnly) {
+    runSteps.push(runStepOk('crawl_live', 'Live crawl started', wantJs ? 'JS renderer' : 'fetch'));
+    try {
+      liveCrawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, crawlDeadlineMs });
+    } catch (e) {
+      const msg = 'Crawler failed: ' + String((e && e.message) || e);
+      liveCrawl = uploadedHtml.emptyCrawl(url, inferBrandNameFromUrl(url));
+      liveCrawl.failures.push({
+        url,
+        status: 0,
+        reason: 'network',
+        error: msg,
+      });
+    }
+    const liveCount = (liveCrawl.pages && liveCrawl.pages.length) || 0;
+    const blockedLive = uploadedHtml.buildBlockedPages(liveCrawl.failures || []);
+    if (liveCount > 0) {
+      runSteps.push(runStepOk('crawl', 'Pages successfully scraped', `${liveCount} page(s)`));
+    }
+    if (blockedLive.length > 0) {
+      runSteps.push(runStepOk(
+        'crawl_blocked',
+        'Pages blocked',
+        `Live scrape returned 403/blocked for ${blockedLive.length} page(s). Continuing with accessible content.`,
+      ));
+    }
+  } else {
+    runSteps.push(runStepSkipped('crawl_live', 'Live crawl', 'Uploaded HTML only — live URL not crawled'));
+  }
+
+  if (uploadPayload) {
+    uploadedResult = await uploadedHtml.parseUploadedPayload(uploadPayload, {
+      baseUrl: normaliseUrl(url),
+      runTagAudit: wantTagAudit,
+    });
+    if (uploadedResult.summary && uploadedResult.summary.validHtmlFiles > 0) {
+      runSteps.push(runStepOk(
+        'upload_html',
+        uploadOnly ? 'Uploaded-only scrape' : 'Fallback HTML used',
+        `${uploadedResult.summary.validHtmlFiles} HTML file(s) parsed`,
+      ));
+    } else if (uploadPayload) {
+      runSteps.push(runStepSkipped('upload_html', 'Uploaded HTML', 'No valid HTML files in upload'));
+    }
+  }
+
+  const shouldUseUpload = uploadOnly
+    || (useUploadFallback && uploadedResult.pages.length > 0
+      && (!(liveCrawl.pages && liveCrawl.pages.length) || (liveCrawl.failures && liveCrawl.failures.length)));
+
+  const merged = uploadedHtml.mergeCrawlSources(
+    liveCrawl,
+    shouldUseUpload ? uploadedResult.pages : [],
+    { aggregateAssets },
+  );
+
+  if (merged.pages.length) {
+    merged.assets = aggregateAssets(merged.pages);
+    if (wantTagAudit) merged.tagAuditSummary = tagAudit.summarizeAcrossPages(merged.pages);
+    for (const p of merged.pages) {
+      if (!p.sourceType) p.sourceType = 'live_url';
+    }
+    runSteps.push(runStepOk('dedupe', 'Source deduplication complete', `${merged.pages.length} unique page(s)`));
+  }
+
+  const fallbackUsed = shouldUseUpload && uploadedResult.pages.length > 0;
+  const blockedPages = uploadedHtml.buildBlockedPages(liveCrawl.failures || [], { fallbackUsed });
+
+  return {
+    crawl: merged,
+    blockedPages,
+    fallbackSources: uploadedResult.fallbackSources || [],
+    uploadedHtmlSummary: uploadedResult.summary,
+    uploadOnly,
+    fallbackUsed,
+    livePageCount: merged._livePageCount || 0,
+    uploadedPageCount: merged._uploadedPageCount || 0,
+  };
+}
+
 function crawlObjectFromStoredRecord(record) {
   const cs = record.crawlSummary || {};
   const pages = (cs.pages || []).map((p) => ({
@@ -1484,6 +1591,11 @@ async function executeAnalyzePipeline({
   const runSteps = [];
 
   let crawl;
+  let crawlMeta = null;
+  let blockedPages = [];
+  let fallbackSources = [];
+  let uploadedHtmlSummary = null;
+  let warnings = [];
   let appendBaseline = null;
   let storedBaseline = null;
 
@@ -1512,6 +1624,10 @@ async function executeAnalyzePipeline({
     }
     crawl = crawlObjectFromStoredRecord(storedBaseline);
     body.url = storedBaseline.url || storedBaseline.baseUrl;
+    blockedPages = storedBaseline.blockedPages || [];
+    fallbackSources = storedBaseline.fallbackSources || [];
+    uploadedHtmlSummary = storedBaseline.uploadedHtmlSummary || null;
+    warnings = storedBaseline.warnings || [];
     runSteps.push(runStepOk(
       'crawl',
       'Use stored crawl',
@@ -1527,7 +1643,16 @@ async function executeAnalyzePipeline({
       .catch(() => {});
   }, crawlHeartbeatMs);
   try {
-    crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, crawlDeadlineMs });
+    crawlMeta = await resolveCrawlWithFallbacks({
+      url,
+      body,
+      wantJs,
+      maxPages,
+      wantTagAudit,
+      crawlDeadlineMs,
+      runSteps,
+    });
+    crawl = crawlMeta.crawl;
   } catch (e) {
     const msg = 'Crawler failed: ' + String((e && e.message) || e);
     try {
@@ -1541,11 +1666,27 @@ async function executeAnalyzePipeline({
   } finally {
     clearInterval(crawlHeartbeatTimer);
   }
+
+  const warningsLocal = [];
+  if (crawlMeta && crawlMeta.blockedPages && crawlMeta.blockedPages.length) {
+    warningsLocal.push('Some pages were blocked with 403. We generated this scrape from the content that was accessible.');
+  }
+  if (crawlMeta && crawlMeta.fallbackUsed) {
+    warningsLocal.push('Using uploaded HTML fallback.');
+  }
+
   if (!crawl.pages || !crawl.pages.length) {
     const fails = (crawl && crawl.failures) || [];
     const failureSummary = summariseFailures(fails);
     const friendly = friendlyFailureMessage(url, fails);
+    const hasUpload = crawlMeta && crawlMeta.uploadedHtmlSummary
+      && crawlMeta.uploadedHtmlSummary.filesUploaded > 0;
     const detailBits = [friendly];
+    if (hasUpload && !crawlMeta.uploadedHtmlSummary.validHtmlFiles) {
+      detailBits.push('Uploaded files were present but none contained valid HTML.');
+    } else if (!hasUpload) {
+      detailBits.push('Provide uploaded HTML files as fallback, or enable JS-rendered crawl and retry.');
+    }
     if (failureSummary && failureSummary.byReason) {
       detailBits.push('Attempts: ' + JSON.stringify(failureSummary.byReason).slice(0, 320));
     }
@@ -1553,7 +1694,9 @@ async function executeAnalyzePipeline({
     try {
       await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
         error: friendly.slice(0, 800),
-        steps: [runStepFailed('crawl', 'Crawl pages', crawlDetail)],
+        steps: [...runSteps, runStepFailed('crawl', 'Crawl pages', crawlDetail)],
+        warnings: warningsLocal,
+        blockedPages: (crawlMeta && crawlMeta.blockedPages) || [],
       });
     } catch (_e) { /* ignore */ }
     analyzePipelineLog(runScrapeId, 'crawl_empty', { sandbox, ms: Date.now() - started });
@@ -1563,6 +1706,7 @@ async function executeAnalyzePipeline({
         error: friendly,
         scrapeId: runScrapeId,
         details: failureSummary,
+        warnings: warningsLocal,
         engine: (crawl && crawl._crawlEngineUsed) || (crawl && crawl.engine) || 'fetch',
         crawlAttemptsUsed: (crawl && crawl._crawlAttemptsUsed) || 1,
         crawlSeedUrl: (crawl && crawl._crawlSeedUrl) || url,
@@ -1571,6 +1715,8 @@ async function executeAnalyzePipeline({
           url,
           baseUrl: (crawl && crawl.baseUrl) || normaliseUrl(url),
           brandName: (crawl && crawl.brandName) || inferBrandNameFromUrl(url),
+          blockedPages: (crawlMeta && crawlMeta.blockedPages) || [],
+          uploadedHtmlSummary: (crawlMeta && crawlMeta.uploadedHtmlSummary) || null,
           crawl: {
             pagesScraped: 0,
             totalDiscovered: (crawl && crawl.totalDiscovered) || 0,
@@ -1590,11 +1736,21 @@ async function executeAnalyzePipeline({
   }
 
   analyzePipelineLog(runScrapeId, 'crawl_ok', { sandbox, ms: Date.now() - started });
-  runSteps.push(runStepOk(
-    'crawl',
-    'Crawl pages',
-    `${crawl.pages.length} page(s) · engine ${crawl._crawlEngineUsed || crawl.engine || 'fetch'}`,
-  ));
+  const crawlDetailParts = [`${crawl.pages.length} page(s) · engine ${crawl._crawlEngineUsed || crawl.engine || 'fetch'}`];
+  if (crawlMeta && crawlMeta.uploadedPageCount) crawlDetailParts.push(`${crawlMeta.uploadedPageCount} from upload`);
+  if (crawlMeta && crawlMeta.blockedPages && crawlMeta.blockedPages.length) {
+    crawlDetailParts.push(`${crawlMeta.blockedPages.length} blocked`);
+  }
+  runSteps.push(runStepOk('crawl', 'Crawl pages', crawlDetailParts.join(' · ')));
+  if (warningsLocal.length) {
+    runSteps.push(runStepOk('warnings', 'Partial scrape generated', warningsLocal[0]));
+  }
+  if (crawlMeta) {
+    blockedPages = crawlMeta.blockedPages || [];
+    fallbackSources = crawlMeta.fallbackSources || [];
+    uploadedHtmlSummary = crawlMeta.uploadedHtmlSummary || null;
+    warnings = warningsLocal.slice();
+  }
   } // end !analysisOnly crawl
 
   if (!analysisOnly) {
@@ -1620,6 +1776,7 @@ async function executeAnalyzePipeline({
     failureSummary: summariseFailures(crawl.failures || []),
     pages: crawl.pages.map(p => ({
       url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
+      sourceType: p.sourceType || 'live_url',
       tagAudit: p.tagAudit || null,
     })),
     assets: crawl.assets,
@@ -1833,20 +1990,111 @@ async function executeAnalyzePipeline({
 
   const inferredIndustry = String(working.industry || '').trim();
 
+  const competitorMode = (() => {
+    const pageCount = (crawl && crawl.pages && crawl.pages.length) || 0;
+    const textLen = (crawl.pages || []).reduce((s, p) => s + (p.textLength || 0), 0);
+    if (pageCount === 0 || textLen < 200) return 'skipped';
+    if (blockedPages.length > 0 || (uploadedHtmlSummary && uploadedHtmlSummary.validHtmlFiles > 0) || pageCount < 2) {
+      return 'partial';
+    }
+    return 'full';
+  })();
+
+  const confidence = scrapeConfidence.computeScrapeConfidence({
+    pages: crawl.pages || [],
+    blockedPages,
+    uploadedHtmlSummary,
+    assets: crawl.assets || crawlSummary.assets,
+    competitorMode,
+    livePageCount: crawlMeta && crawlMeta.livePageCount,
+    uploadedPageCount: crawlMeta && crawlMeta.uploadedPageCount,
+  });
+  runSteps.push(runStepOk('confidence', 'Scrape confidence calculated', `${confidence.level} (${confidence.score})`));
+
+  const sourceBadges = scrapeConfidence.computeSourceBadges({
+    pages: crawl.pages || [],
+    blockedPages,
+    uploadedHtmlSummary,
+    scrapeConfidence: confidence,
+    competitorMode,
+  });
+
   let recordToPersist = persistPayload(working);
   if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
+  recordToPersist.blockedPages = blockedPages;
+  recordToPersist.fallbackSources = fallbackSources;
+  recordToPersist.uploadedHtmlSummary = uploadedHtmlSummary;
+  recordToPersist.scrapeConfidence = confidence;
+  recordToPersist.sourceBadges = sourceBadges;
+  recordToPersist.warnings = warnings;
+
   if (inc('llmDemoConfig')) {
     try {
-      const llmDemoPersonalizeService = require('./llmDemoPersonalizeService');
-      recordToPersist.llmDemoConfig = await llmDemoPersonalizeService.buildLlmDemoConfigForRecord(recordToPersist);
+      if (competitorMode === 'skipped') {
+        recordToPersist.llmDemoConfig = {
+          skipped: true,
+          reason: 'Competitor analysis needs either accessible website content or uploaded HTML.',
+          competitorMode: 'skipped',
+        };
+        runSteps.push(runStepSkipped('llmDemoConfig', 'Competitor analysis', recordToPersist.llmDemoConfig.reason));
+      } else {
+        recordToPersist.llmDemoConfig = await llmDemoPersonalizeService.buildLlmDemoConfigForRecord(recordToPersist, {
+          partialMode: competitorMode === 'partial',
+        });
+        recordToPersist.llmDemoConfig.competitorMode = competitorMode;
+        if (competitorMode === 'partial') {
+          recordToPersist.llmDemoConfig.partial = true;
+          runSteps.push(runStepOk('llmDemoConfig', 'Competitor analysis (partial)', 'Grounded in partial crawl/upload content'));
+        } else {
+          runSteps.push(runStepOk('llmDemoConfig', 'Competitor analysis', 'Completed'));
+        }
+      }
     } catch (e) {
       console.warn('[brandScraperAnalyze] llmDemoConfig build failed', {
         sandbox,
         scrapeId: recordToPersist.scrapeId,
         error: String((e && e.message) || e),
       });
+      runSteps.push(runStepFailed('llmDemoConfig', 'Competitor analysis', String((e && e.message) || e).slice(0, 300)));
     }
+  }
+
+  const wantDemoWebsite = inc('demoWebsite') || body.createDemoWebsite === true || body.regenerateDemoWebsite === true;
+  if (wantDemoWebsite) {
+    runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Checking for existing demo folder'));
+    try {
+      const existingDemo = await demoWebsite.detectExistingDemo(
+        demoWebsite.normalizeCustomerFolder(body.customerName || recordToPersist.brandName || url),
+      );
+      if (existingDemo && !body.regenerateDemoWebsite && !body.overwriteDemoWebsite) {
+        runSteps.push(runStepOk('demo_reuse', 'Existing demo website detected', 'Reusing existing version'));
+      }
+      const demoResult = await demoWebsite.generateDemoWebsite(recordToPersist, {
+        enabled: true,
+        customerName: body.customerName || recordToPersist.brandName || url,
+        overwrite: body.regenerateDemoWebsite === true || body.overwriteDemoWebsite === true,
+        regenerate: body.regenerateDemoWebsite === true,
+      });
+      recordToPersist.demoWebsite = demoResult;
+      recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';
+      if (demoResult.status === 'reused' || demoResult.demoGenerationStatus === 'reused') {
+        runSteps.push(runStepOk('demo_status', 'Demo website reused', demoResult.path || ''));
+      } else if (demoResult.demoGenerationStatus === 'created' || demoResult.demoGenerationStatus === 'regenerated') {
+        runSteps.push(runStepOk('demo_status', 'Demo website generated', demoResult.path || ''));
+        runSteps.push(runStepOk('demo_modules', 'Profile modules added', 'Environment panel + profile viewer'));
+      } else if (demoResult.demoGenerationStatus === 'partial') {
+        runSteps.push(runStepOk('demo_status', 'Partial demo website generated', demoResult.path || ''));
+      } else if (demoResult.demoGenerationStatus === 'failed') {
+        runSteps.push(runStepFailed('demo_status', 'Demo website generation', demoResult.error || 'failed'));
+      }
+    } catch (e) {
+      recordToPersist.demoWebsite = { enabled: true, status: 'failed', demoGenerationStatus: 'failed', error: String((e && e.message) || e) };
+      recordToPersist.demoGenerationStatus = 'failed';
+      runSteps.push(runStepFailed('demo_status', 'Demo website generation', String((e && e.message) || e).slice(0, 300)));
+    }
+  } else {
+    recordToPersist.demoGenerationStatus = 'not_requested';
   }
 
   let saved = null;
@@ -1902,6 +2150,14 @@ async function executeAnalyzePipeline({
       appended: !!appendMode,
       analysisOnly: !!analysisOnly,
       elapsedMs,
+      blockedPages: (saved && saved.blockedPages) || blockedPages,
+      fallbackSources: (saved && saved.fallbackSources) || fallbackSources,
+      uploadedHtmlSummary: (saved && saved.uploadedHtmlSummary) || uploadedHtmlSummary,
+      scrapeConfidence: (saved && saved.scrapeConfidence) || confidence,
+      sourceBadges: (saved && saved.sourceBadges) || sourceBadges,
+      warnings: (saved && saved.warnings) || warnings,
+      demoWebsite: (saved && saved.demoWebsite) || recordToPersist.demoWebsite || null,
+      demoGenerationStatus: (saved && saved.demoGenerationStatus) || recordToPersist.demoGenerationStatus || 'not_requested',
     },
   };
 }
@@ -1939,9 +2195,13 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         return;
       }
     }
-  } else if (!url) {
-    res.status(400).json({ error: 'url is required' });
+  } else if (!url && !body.uploadOnly && !body.uploadedHtml && !(body.uploadedHtml && body.uploadedHtml.files)) {
+    res.status(400).json({ error: 'url is required unless running uploaded HTML only' });
     return;
+  }
+  if (!url && (body.uploadOnly || body.uploadedHtml)) {
+    url = body.fallbackUrl || 'https://uploaded-brand.local/';
+    body.url = url;
   }
 
   const started = Date.now();
@@ -2332,4 +2592,7 @@ module.exports = {
   handleClassifyAssets,
   handleExport,
   handleModelConfig,
+  resolveCrawlWithFallbacks,
+  runCrawlWithRetries,
+  summariseFailures,
 };
