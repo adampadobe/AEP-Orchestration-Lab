@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
-  <link rel="stylesheet" href="home-new.css?v=20260625a">
+  <link rel="stylesheet" href="home-new.css?v=20260625b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
@@ -48,7 +48,7 @@
             </div>
             <div class="home-greeting-stat home-greeting-stat--stock" id="homeGreetingStockWrap">
               <span class="home-greeting-stat__label">Adobe Stock</span>
-              <span class="home-greeting-stat__value" id="homeGreetingStock">ADBE — loading…</span>
+              <a class="home-greeting-stat__value home-greeting-stock-link" id="homeGreetingStock" href="https://www.google.com/finance/beta/quote/ADBE:NASDAQ" target="_blank" rel="noopener">ADBE — loading…</a>
             </div>
             <div class="home-greeting-stat">
               <span class="home-greeting-stat__label">Open Engagements</span>
@@ -57,9 +57,15 @@
           </div>
         </section>
 
+        <div class="cc-metrics-row cc-metrics-row--top" id="ccMetricsRow" aria-label="Engagement metrics"></div>
+
         <section class="home-release-panel" id="homeReleasePanel" aria-labelledby="homeReleaseHeading">
           <header class="home-release-panel__head">
-            <div>
+            <div class="home-release-panel__head-main">
+              <button type="button" class="home-release-collapse-btn" id="homeReleaseCollapseBtn" aria-expanded="true" aria-controls="homeReleaseCollapsible" title="Collapse release highlights">
+                <svg class="home-release-collapse-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+              </button>
+              <div>
               <p class="home-release-panel__eyebrow">Adobe Experience Cloud · <span id="homeReleasePeriod">June 2026</span></p>
               <h3 class="home-release-panel__title" id="homeReleaseHeading">
                 Experience Cloud — <span class="home-release-panel__title-accent">Latest releases</span>
@@ -67,6 +73,7 @@
               <p class="home-release-panel__meta">
                 CDP · AJO-J · AJO-C · Decisioning · AJO · CJA · Campaign v8 Web UI · Concierge · Visibility · Target
               </p>
+              </div>
             </div>
             <div class="home-release-panel__actions">
               <label class="home-release-period-select-wrap">
@@ -83,6 +90,7 @@
             </div>
           </header>
 
+          <div id="homeReleaseCollapsible" class="home-release-collapsible">
           <div class="home-release-inline-alert" id="homeReleaseAlert" hidden role="alert"></div>
 
           <div class="home-release-sp-tabs" id="homeReleaseTabs" role="tablist" aria-label="Product release notes"></div>
@@ -95,11 +103,10 @@
             <span id="homeReleaseFootNote">Loading highlights…</span>
             <button type="button" class="home-release-sp-btn home-release-sp-btn--quiet" id="homeReleaseExpandFoot">Expand in drawer →</button>
           </footer>
+          </div>
         </section>
 
         <div id="ccCommandCentre" class="cc-command-centre">
-          <div class="cc-metrics-row" id="ccMetricsRow" aria-label="Engagement metrics"></div>
-
           <div class="cc-grid-main">
             <div class="cc-grid-main__left">
               <div class="cc-section-header">
@@ -212,6 +219,22 @@
               </div>
             </div>
           </div>
+
+          <section class="cc-next-steps" aria-labelledby="ccNextStepsHeading">
+            <div class="cc-section-header">
+              <div class="cc-section-title"><span class="cc-section-dot"></span><span id="ccNextStepsHeading">Suggested next steps</span></div>
+            </div>
+            <div class="cc-card cc-next-steps__card">
+              <ul class="cc-next-steps__list">
+                <li><strong>Customer health score</strong> — sentiment / ETA risk score per engagement row</li>
+                <li><strong>Commercial visibility</strong> — pipeline value and ARR-at-risk column on the engagements table</li>
+                <li><strong>Scrape ↔ customer linkage</strong> — attach brand scrapes to customer records from Latest in the Lab</li>
+                <li><strong>Activity integrations</strong> — pull Slack / email updates into Recent Activity</li>
+                <li><strong>Meeting history</strong> — expand customer row into full notes + meeting timeline</li>
+                <li><strong>Server-side ADBE quote</strong> — deploy <code class="cc-inline-code">labAdobeStock</code> Cloud Function (Google Finance as canonical link)</li>
+              </ul>
+            </div>
+          </section>
         </div>
       </main>
     </div>
@@ -380,12 +403,12 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="home-release-summary-catalog.js?v=20260624c"></script>
-  <script defer src="home-release-summary.js?v=20260624c"></script>
-  <script defer src="home-command-store.js?v=20260625a"></script>
-  <script defer src="home-command-data.js?v=20260625a"></script>
-  <script defer src="home-command-centre.js?v=20260625a"></script>
-  <script defer src="home-new-greeting.js?v=20260625a"></script>
+  <script defer src="home-release-summary-catalog.js?v=20260625b"></script>
+  <script defer src="home-release-summary.js?v=20260625b"></script>
+  <script defer src="home-command-store.js?v=20260625b"></script>
+  <script defer src="home-command-data.js?v=20260625b"></script>
+  <script defer src="home-command-centre.js?v=20260625b"></script>
+  <script defer src="home-new-greeting.js?v=20260625b"></script>
   <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260624c-home-new"></script>
 </body>

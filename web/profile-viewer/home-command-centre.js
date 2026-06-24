@@ -404,6 +404,7 @@
     }
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
+    modal.classList.add('cc-modal-backdrop--open');
   }
 
   function closeCustomerForm() {
@@ -411,6 +412,58 @@
     if (!modal) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
+    modal.classList.remove('cc-modal-backdrop--open');
+  }
+
+  function bindModalEvents() {
+    if (bindModalEvents.done) return;
+    bindModalEvents.done = true;
+
+    var modal = document.getElementById('ccCustomerModal');
+    if (modal) {
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+      modal.classList.remove('cc-modal-backdrop--open');
+    }
+
+    var form = document.getElementById('ccCustomerForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!data) return;
+        var values = getFormValues(form);
+        var id = form.customerId && form.customerId.value;
+        var customers = data.useCustomers();
+        if (id) {
+          customers.update(id, values);
+        } else {
+          var row = customers.add(values);
+          if (values.nextAction) {
+            data.useTasks().add({
+              title: values.nextAction,
+              customerId: row.id,
+              customerName: row.name,
+              due: values.eta || '',
+            });
+          }
+        }
+        closeCustomerForm();
+        if (global.HomeCommandCentre && typeof global.HomeCommandCentre.renderAll === 'function') {
+          global.HomeCommandCentre.renderAll();
+        }
+      });
+    }
+
+    ['ccCustomerModalClose', 'ccCustomerModalCancel'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', closeCustomerForm);
+    });
+
+    if (modal) {
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeCustomerForm();
+      });
+    }
   }
 
   function openCustomerDetail(customerId) {
@@ -510,48 +563,13 @@
   }
 
   function bindEvents() {
+    bindModalEvents();
+
     var addBtn = document.getElementById('ccAddCustomerBtn');
     if (addBtn) addBtn.addEventListener('click', function () { openCustomerForm(null); });
 
     var addRow = document.getElementById('ccAddCustomerRow');
     if (addRow) addRow.addEventListener('click', function () { openCustomerForm(null); });
-
-    var form = document.getElementById('ccCustomerForm');
-    if (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var values = getFormValues(form);
-        var id = form.customerId.value;
-        var customers = data.useCustomers();
-        if (id) {
-          customers.update(id, values);
-        } else {
-          var row = customers.add(values);
-          if (values.nextAction) {
-            data.useTasks().add({
-              title: values.nextAction,
-              customerId: row.id,
-              customerName: row.name,
-              due: values.eta || '',
-            });
-          }
-        }
-        closeCustomerForm();
-        renderAll();
-      });
-    }
-
-    ['ccCustomerModalClose', 'ccCustomerModalCancel'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('click', closeCustomerForm);
-    });
-
-    var modal = document.getElementById('ccCustomerModal');
-    if (modal) {
-      modal.addEventListener('click', function (e) {
-        if (e.target === modal) closeCustomerForm();
-      });
-    }
 
     var drawerClose = document.getElementById('ccCustomerDrawerClose');
     if (drawerClose) drawerClose.addEventListener('click', closeCustomerDetail);
@@ -589,8 +607,12 @@
   global.HomeCommandCentre = { init: init, renderAll: renderAll, boot: boot };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
+    document.addEventListener('DOMContentLoaded', function () {
+      bindModalEvents();
+      boot();
+    });
   } else {
+    bindModalEvents();
     boot();
   }
 })(window);

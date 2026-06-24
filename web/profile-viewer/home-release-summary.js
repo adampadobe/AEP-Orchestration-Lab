@@ -411,6 +411,37 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeDrawer();
     });
+
+    initReleaseCollapse();
+  }
+
+  function initReleaseCollapse() {
+    var panel = document.getElementById('homeReleasePanel');
+    var btn = document.getElementById('homeReleaseCollapseBtn');
+    if (!panel || !btn || btn.getAttribute('data-bound') === '1') return;
+    btn.setAttribute('data-bound', '1');
+
+    var storageKey = 'aepHomeReleaseCollapsed';
+    var collapsed = false;
+    try {
+      collapsed = localStorage.getItem(storageKey) === '1';
+    } catch (_e) {}
+
+    function apply(collapsedState) {
+      panel.classList.toggle('home-release-panel--collapsed', collapsedState);
+      btn.setAttribute('aria-expanded', collapsedState ? 'false' : 'true');
+      btn.title = collapsedState ? 'Expand release highlights' : 'Collapse release highlights';
+    }
+
+    apply(collapsed);
+
+    btn.addEventListener('click', function () {
+      collapsed = !collapsed;
+      apply(collapsed);
+      try {
+        localStorage.setItem(storageKey, collapsed ? '1' : '0');
+      } catch (_e) {}
+    });
   }
 
   function boot() {

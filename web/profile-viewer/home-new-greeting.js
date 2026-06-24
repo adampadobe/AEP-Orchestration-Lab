@@ -1,8 +1,11 @@
 /**
- * Greeting bar for home-new.html — first name, sandbox, Adobe (ADBE) stock quote.
+ * Greeting bar for home-new.html — first name, sandbox, Adobe (ADBE) stock via Google Finance.
  */
 (function attachHomeNewGreeting(global) {
   'use strict';
+
+  var GOOGLE_FINANCE_URL = 'https://www.google.com/finance/beta/quote/ADBE:NASDAQ';
+  var GOOGLE_FINANCE_FETCH = 'https://www.google.com/finance/quote/ADBE:NASDAQ';
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -93,17 +96,66 @@
     });
   }
 
-  function formatPrice(n, currency) {
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency || 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(n);
-    } catch (_e) {
-      return '$' + Number(n).toFixed(2);
+  function formatPrice(n) {
+    var num = Number(n);
+    if (!isFinite(num)) return '—';
+    return '$' + num.toFixed(2);
+  }
+
+  function parseGoogleFinanceHtml(html) {
+    var text = String(html || '');
+    var price = null;
+    var change = null;
+    var changePct = null;
+
+    var priceMatch =
+      text.match(/data-last-price="([0-9.]+)"/) ||
+      text.match(/"ADBE"[^[]*\[[^\]]*?,([0-9]+\.[0-9]+)/) ||
+      text.match(/\[\[\["ADBE"[^\]]*?,([0-9]+\.[0-9]+)/) ||
+      text.match(/"YMlKec","\\?\$?([0-9]+\.[0-9]+)"/);
+    if (priceMatch) price = parseFloat(priceMatch[1]);
+
+    var changeMatch =
+      text.match(/"P6mm"[^,]*,([0-9.+-]+)/) ||
+      text.match(/data-last-change="([0-9.+-]+)"/);
+    if (changeMatch) change = parseFloat(changeMatch[1]);
+
+    var pctMatch =
+      text.match(/"Nydb"[^,]*,([0-9.+-]+)/) ||
+      text.match(/data-last-change-percent="([0-9.+-]+)"/);
+    if (pctMatch) changePct = parseFloat(pctMatch[1]);
+
+    if (price != null && isFinite(price)) {
+      if (change == null && changePct != null && isFinite(changePct)) {
+        var prev = price / (1 + changePct / 100);
+        change = price - prev;
+      }
+      return {
+        ok: true,
+        symbol: 'ADBE',
+        price: price,
+        currency: 'USD',
+        change: change,
+        changePct: changePct,
+        source: 'google',
+      };
     }
+    return null;
+  }
+
+  function fetchGoogleFinanceQuote() {
+    var proxyUrl =
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(GOOGLE_FINANCE_FETCH);
+    return fetch(proxyUrl)
+      .then(function (res) {
+        if (!res.ok) throw new Error('google HTTP ' + res.status);
+        return res.text();
+      })
+      .then(function (html) {
+        var parsed = parseGoogleFinanceHtml(html);
+        if (!parsed) throw new Error('google parse failed');
+        return parsed;
+      });
   }
 
   function parseYahooChart(json) {
@@ -121,6 +173,7 @@
       currency: meta.currency || 'USD',
       change: change,
       changePct: changePct,
+      source: 'yahoo',
     };
   }
 
@@ -133,37 +186,7 @@
         if (!res.ok) throw new Error('yahoo HTTP ' + res.status);
         return res.json();
       })
-      .then(function (json) {
-        var parsed = parseYahooChart(json);
-        if (!parsed) throw new Error('yahoo parse failed');
-        return parsed;
-      });
-  }
-
-  function renderStock(el, payload) {
-    if (!el) return;
-    var wrap = document.getElementById('homeGreetingStockWrap');
-    if (!payload || !payload.ok || payload.price == null) {
-      el.textContent = 'ADBE — unavailable';
-      if (wrap) wrap.classList.add('home-greeting-stat--unavail');
-      return;
-    }
-    if (wrap) wrap.classList.remove('home-greeting-stat--unavail');
-    var change = Number(payload.change) || 0;
-    var sign = change >= 0 ? '+' : '';
-    var pct = payload.changePct != null ? sign + Number(payload.changePct).toFixed(2) + '%' : '';
-    el.innerHTML =
-      '<span class="home-greeting-stock-symbol">ADBE</span> ' +
-      '<span class="home-greeting-stock-price">' +
-      esc(formatPrice(payload.price, payload.currency)) +
-      '</span>' +
-      (pct
-        ? ' <span class="home-greeting-stock-change' +
-          (change >= 0 ? ' home-greeting-stock-change--up' : ' home-greeting-stock-change--down') +
-          '">' +
-          esc(pct) +
-          '</span>'
-        : '');
+      .then(parseYahooChart);
   }
 
   function parseStooqCsv(text) {
@@ -183,59 +206,108 @@
       currency: 'USD',
       change: change,
       changePct: changePct,
+      source: 'stooq',
     };
   }
 
-  function fetchStockFallback() {
+  function fetchStooqFallback() {
     var stooqUrl = 'https://stooq.com/q/l/?s=adbe.us&i=d';
     var proxyUrl =
       'https://api.allorigins.win/raw?url=' + encodeURIComponent(stooqUrl);
     return fetch(proxyUrl)
       .then(function (res) {
-        if (!res.ok) throw new Error('fallback HTTP ' + res.status);
+        if (!res.ok) throw new Error('stooq HTTP ' + res.status);
         return res.text();
       })
       .then(function (text) {
         var parsed = parseStooqCsv(text);
-        if (!parsed) throw new Error('Could not parse quote');
+        if (!parsed) throw new Error('stooq parse failed');
         return parsed;
+      });
+  }
+
+  function fetchLabStockApi() {
+    return fetch('/api/lab/adobe-stock', { credentials: 'same-origin' }).then(function (res) {
+      return res.json().catch(function () {
+        return { ok: false };
+      });
+    });
+  }
+
+  function renderStock(el, payload) {
+    if (!el) return;
+    var wrap = document.getElementById('homeGreetingStockWrap');
+    el.href = GOOGLE_FINANCE_URL;
+
+    if (!payload || !payload.ok || payload.price == null) {
+      el.innerHTML = '<span class="home-greeting-stock-symbol">ADBE</span> unavailable';
+      if (wrap) wrap.classList.add('home-greeting-stat--unavail');
+      return;
+    }
+
+    if (wrap) wrap.classList.remove('home-greeting-stat--unavail');
+    var change = Number(payload.change);
+    var hasChange = isFinite(change);
+    var pct = payload.changePct != null ? Number(payload.changePct) : null;
+    var isUp = hasChange ? change >= 0 : pct != null ? pct >= 0 : true;
+    var arrow = isUp ? '▲' : '▼';
+    var changeCls = isUp
+      ? 'home-greeting-stock-change--up'
+      : 'home-greeting-stock-change--down';
+
+    var changeLine = '';
+    if (pct != null && isFinite(pct)) {
+      var sign = pct >= 0 ? '+' : '';
+      changeLine =
+        '<span class="home-greeting-stock-change ' +
+        changeCls +
+        '"><span class="home-greeting-stock-arrow" aria-hidden="true">' +
+        arrow +
+        '</span>' +
+        sign +
+        pct.toFixed(2) +
+        '%';
+      if (hasChange) {
+        changeLine += ' (' + (change >= 0 ? '+' : '') + change.toFixed(2) + ')';
+      }
+      changeLine += '</span>';
+    }
+
+    el.innerHTML =
+      '<span class="home-greeting-stock-price">' +
+      esc(formatPrice(payload.price)) +
+      '</span>' +
+      changeLine;
+    el.title = 'ADBE on Google Finance — click to open';
+  }
+
+  function loadStockChain() {
+    return fetchLabStockApi()
+      .then(function (json) {
+        if (json && json.ok) return json;
+        return fetchGoogleFinanceQuote();
+      })
+      .catch(function () {
+        return fetchGoogleFinanceQuote();
+      })
+      .catch(function () {
+        return fetchYahooFallback();
+      })
+      .catch(function () {
+        return fetchStooqFallback();
       });
   }
 
   function loadStock() {
     var el = document.getElementById('homeGreetingStock');
     if (!el) return;
-    el.textContent = 'ADBE — loading…';
-    fetch('/api/lab/adobe-stock', { credentials: 'same-origin' })
-      .then(function (res) {
-        return res.json().catch(function () {
-          return { ok: false };
-        });
-      })
-      .then(function (json) {
-        if (json && json.ok) {
-          renderStock(el, json);
-          return;
-        }
-        return fetchYahooFallback()
-          .catch(function () {
-            return fetchStockFallback();
-          })
-          .then(function (fallback) {
-            renderStock(el, fallback);
-          });
+    el.innerHTML = '<span class="home-greeting-stock-symbol">ADBE</span> loading…';
+    loadStockChain()
+      .then(function (payload) {
+        renderStock(el, payload);
       })
       .catch(function () {
-        fetchYahooFallback()
-          .catch(function () {
-            return fetchStockFallback();
-          })
-          .then(function (fallback) {
-            renderStock(el, fallback);
-          })
-          .catch(function () {
-            renderStock(el, null);
-          });
+        renderStock(el, null);
       });
   }
 
@@ -278,7 +350,7 @@
     global.addEventListener('aep-deferred-dashboard-mounted', init, { once: true });
   }
 
-  global.HomeNewGreeting = { init: init, boot: boot };
+  global.HomeNewGreeting = { init: init, boot: boot, loadStock: loadStock };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

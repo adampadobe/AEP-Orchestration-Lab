@@ -220,30 +220,129 @@
       id: 'brandConcierge',
       name: 'Brand Concierge',
       shortName: 'Concierge',
-      releaseNotesUrl: 'https://experienceleague.adobe.com/en/docs/brand-concierge/using/release-notes',
+      releaseNotesUrl:
+        'https://experienceleague.adobe.com/en/docs/brand-concierge/content/release-notes/current',
       highlights: [
-        { title: 'Real-Time CDP Integration', body: 'Connect Brand Concierge with Real-Time CDP for profile-aware conversations.', badge: 'GA' },
-        { title: 'Self-Serve Tuning Enhancement', body: 'Fine-tune concierge responses without engineering support.', badge: 'GA' },
-        { title: 'Context-Aware Product Recommendation', body: 'Recommend products using live session and profile context.', badge: 'GA' },
-        { title: 'CX Enterprise Coworker', body: 'Agentic workflows for audiences and campaigns with built-in governance.', badge: 'New' },
-        { title: 'AI Monitoring Dashboards', body: 'Track adoption, conversations, feedback, and AI credit consumption.', badge: 'GA' },
-        { title: 'Side-by-Side Comparison', body: 'Compare product options within the concierge experience.', badge: 'GA' },
-        { title: 'Support Agent', body: 'Troubleshooting and how-to guidance surfaced in chat.', badge: 'GA' },
-        { title: 'Agentic AI Capability Catalog', body: 'Discover agentic AI jobs available in licensed CX Enterprise apps.', badge: 'New' },
+        {
+          title: 'Real-Time CDP Integration',
+          body: 'Incorporate RTCDP context — attributes, behavioural signals, and prior interactions — into conversational responses.',
+          badge: 'LA',
+        },
+        {
+          title: 'Self-Serve Tuning Enhancement',
+          body: 'Composer evaluates conversation performance and updates prompt configurations automatically from eval results.',
+          badge: 'GA',
+        },
+        {
+          title: 'Context-Aware Product Recommendation',
+          body: 'Recommendations from inferred intent, product catalog data, and integration with search systems of record.',
+          badge: 'GA',
+        },
+        {
+          title: 'Side-by-Side Comparison',
+          body: 'Compare multiple products in-conversation via a structured table highlighting key attributes and differences.',
+          badge: 'GA',
+        },
+        {
+          title: 'Support Agent',
+          body: 'Troubleshooting and how-to guidance within the conversation without escalation.',
+          badge: 'GA',
+        },
+        {
+          title: 'Site Advisor AEM Configuration',
+          body: 'Set up AEM website knowledge source ingestion directly in Composer.',
+          badge: 'GA',
+        },
+        {
+          title: 'Full-Site Ingestion',
+          body: 'Ingest an entire website from a single sitemap without manual URL uploads.',
+          badge: 'GA',
+        },
+        {
+          title: 'Mobile SDK',
+          body: 'Embed Brand Concierge in mobile apps with text, voice, and image interactions.',
+          badge: 'GA',
+        },
       ],
       sections: [
         {
-          title: 'Product & Integrations',
+          title: 'April 2026',
           items: [
-            { title: 'Real-Time CDP Integration', body: 'Unified personalization with Real-Time CDP profiles.', badge: 'GA' },
-            { title: 'Self-Serve Tuning Enhancement', body: 'Operators tune concierge behaviour without code.', badge: 'GA' },
+            {
+              title: 'Real-Time CDP Integration',
+              body: 'RTCDP context in conversational responses for better intent alignment.',
+              badge: 'LA',
+            },
+            {
+              title: 'Self-Serve Tuning Enhancement',
+              body: 'Automated prompt configuration updates from conversation eval results.',
+              badge: 'GA',
+            },
+            {
+              title: 'Context-Aware Product Recommendation',
+              body: 'Product cards from inferred intent and catalog integrations.',
+              badge: 'GA',
+            },
+            {
+              title: 'Side-by-Side Comparison',
+              body: 'Structured multi-product comparison table in chat.',
+              badge: 'GA',
+            },
+            {
+              title: 'Support Agent',
+              body: 'In-conversation troubleshooting and how-to guidance.',
+              badge: 'GA',
+            },
           ],
         },
         {
-          title: 'Agentic AI',
+          title: 'March 2026',
           items: [
-            { title: 'CX Enterprise Coworker', body: 'Automates end-to-end CX workflows with governance.', badge: 'New' },
-            { title: 'AI Monitoring', body: 'Dashboards for agentic AI usage and AI credits.', badge: 'GA' },
+            {
+              title: 'Site Advisor AEM Configuration in Composer',
+              body: 'AEM website content as primary knowledge source with low-friction setup.',
+              badge: 'GA',
+            },
+            {
+              title: 'Full-Site Ingestion',
+              body: 'Single-sitemap ingestion for complete website coverage.',
+              badge: 'GA',
+            },
+            {
+              title: 'Automated Prompt Creation',
+              body: 'Self-serve concierge prompt generation from minimal inputs.',
+              badge: 'LA',
+            },
+            {
+              title: 'BYOA — Firefly Agent',
+              body: 'Firefly image generation integrated into Adobe.com Brand Concierge.',
+              badge: 'GA',
+            },
+          ],
+        },
+        {
+          title: 'February 2026',
+          items: [
+            {
+              title: 'Automated Eval Dataset Generation',
+              body: 'Evaluation datasets grounded in the brand knowledge base.',
+              badge: 'GA',
+            },
+            {
+              title: 'Automated Evaluation & LLM Quality Loop',
+              body: 'One-click LLM-based scoring across correctness, helpfulness, and brand adherence.',
+              badge: 'GA',
+            },
+            {
+              title: 'Knowledge Source Enhancement',
+              body: 'Incremental URL refresh and PDF/DOCX file upload support.',
+              badge: 'GA',
+            },
+            {
+              title: 'Custom Product Schema Support',
+              body: 'Upload product catalogs with custom data structures.',
+              badge: 'GA',
+            },
           ],
         },
       ],
