@@ -128,7 +128,7 @@
       {
         "source": "/demos/**",
         "function": {
-          "functionId": "brandScraperDemoHost",
+          "functionId": "imageHostingAsset",
           "region": "us-central1"
         }
       },

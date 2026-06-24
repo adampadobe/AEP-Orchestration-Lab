@@ -2736,26 +2736,6 @@ exports.brandScraperAnalyze = onRequest(
   }
 );
 
-/** GET /demos/<slug>/web/** — serve brand-scraper generated demo sites from GCS. */
-exports.brandScraperDemoHost = onRequest(
-  {
-    region: REGION,
-    invoker: 'public',
-    timeoutSeconds: 30,
-    memory: '256MiB',
-  },
-  async (req, res) => {
-    setCors(res, 'GET, HEAD, OPTIONS');
-    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
-    try {
-      await brandScraperDemoHost.handleDemoHostRequest(req, res);
-    } catch (e) {
-      console.error('[brandScraperDemoHost]', String(e && e.message || e));
-      if (!res.headersSent) res.status(500).send('internal error');
-    }
-  },
-);
-
 /** Fail stale running scrape index rows (interrupted runs). */
 exports.brandScraperStaleCleanup = onSchedule(
   {
@@ -3353,15 +3333,20 @@ exports.imageHostingAsset = onRequest(
     memory: '256MiB',
   },
   async (req, res) => {
-    setCors(res, 'GET, OPTIONS');
+    setCors(res, 'GET, HEAD, OPTIONS');
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.status(405).send('GET only'); return;
     }
     try {
+      const reqPath = String(req.path || '');
+      if (/^\/demos\/[^/]+\/web(?:\/|$)/i.test(reqPath)) {
+        await brandScraperDemoHost.handleDemoHostRequest(req, res);
+        return;
+      }
       // Hosting rewrites /cdn/** to this function, so req.path is the
       // full /cdn/<sandbox>/<relPath...> the client requested.
-      const p = String(req.path || '').replace(/^\/cdn\//, '');
+      const p = reqPath.replace(/^\/cdn\//, '');
       const parts = p.split('/').filter(Boolean);
       if (parts.length < 2) { res.status(400).send('bad path'); return; }
       const sandbox = parts.shift();

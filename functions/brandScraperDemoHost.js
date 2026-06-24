@@ -1,7 +1,7 @@
 /**
  * Serve brand-scraper generated demo sites from GCS at /demos/<slug>/web/**.
- * Firebase Hosting serves committed files under web/demos/ first; this function
- * fills in demos generated at runtime and stored in the brand-scraper bucket.
+ * Firebase Hosting rewrites /demos/** to imageHostingAsset, which delegates here.
+ * Committed files under web/demos/ are served as static assets first.
  */
 'use strict';
 
