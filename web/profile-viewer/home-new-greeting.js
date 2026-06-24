@@ -130,6 +130,42 @@
         : '');
   }
 
+  function parseStooqCsv(text) {
+    var line = String(text || '').trim().split('\n').pop();
+    if (!line) return null;
+    var parts = line.split(',');
+    if (parts.length < 5) return null;
+    var price = parseFloat(parts[4]);
+    if (!isFinite(price)) return null;
+    var prev = parseFloat(parts[5]);
+    var change = isFinite(prev) ? price - prev : null;
+    var changePct = change != null && prev ? (change / prev) * 100 : null;
+    return {
+      ok: true,
+      symbol: 'ADBE',
+      price: price,
+      currency: 'USD',
+      change: change,
+      changePct: changePct,
+    };
+  }
+
+  function fetchStockFallback() {
+    var stooqUrl = 'https://stooq.com/q/l/?s=adbe.us&i=d';
+    var proxyUrl =
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(stooqUrl);
+    return fetch(proxyUrl)
+      .then(function (res) {
+        if (!res.ok) throw new Error('fallback HTTP ' + res.status);
+        return res.text();
+      })
+      .then(function (text) {
+        var parsed = parseStooqCsv(text);
+        if (!parsed) throw new Error('Could not parse quote');
+        return parsed;
+      });
+  }
+
   function loadStock() {
     var el = document.getElementById('homeGreetingStock');
     if (!el) return;
@@ -141,10 +177,22 @@
         });
       })
       .then(function (json) {
-        renderStock(el, json);
+        if (json && json.ok) {
+          renderStock(el, json);
+          return;
+        }
+        return fetchStockFallback().then(function (fallback) {
+          renderStock(el, fallback);
+        });
       })
       .catch(function () {
-        renderStock(el, null);
+        fetchStockFallback()
+          .then(function (fallback) {
+            renderStock(el, fallback);
+          })
+          .catch(function () {
+            renderStock(el, null);
+          });
       });
   }
 
