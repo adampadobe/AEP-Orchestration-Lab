@@ -1427,7 +1427,53 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 
 .brand-scraper-table td a {
   color: var(--dash-blue);
-  word-break: break-all;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-block {
+  min-width: 0;
+}
+
+.brand-scraper-crawl-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-table--crawl {
+  min-width: 880px;
+  margin: 0;
+}
+
+.brand-scraper-table--crawl th,
+.brand-scraper-table--crawl td {
+  white-space: normal;
+}
+
+.brand-scraper-crawl-url {
+  min-width: 200px;
+  max-width: 320px;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-title {
+  min-width: 140px;
+  max-width: 220px;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-tag {
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.brand-scraper-crawl-num {
+  white-space: nowrap;
+  width: 1%;
 }
 
 .brand-scraper-num {

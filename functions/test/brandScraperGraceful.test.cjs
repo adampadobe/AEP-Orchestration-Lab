@@ -170,6 +170,25 @@ describe('brandScrapeStore buildFullRecord', () => {
   });
 });
 
+describe('brandScraperWikipediaLogo', () => {
+  const wikiLogo = require('../brandScraperWikipediaLogo');
+
+  it('scores logo filenames on page image lists', () => {
+    assert.ok(wikiLogo.scoreLogoFilename('File:Sky News 2026.svg') > wikiLogo.scoreLogoFilename('File:Commons-logo.svg'));
+    assert.equal(wikiLogo.pickLogoFileFromImages([
+      { title: 'File:Commons-logo.svg' },
+      { title: 'File:Sky News 2015 (logo).svg' },
+      { title: 'File:Sky News 2026.svg' },
+    ]), 'File:Sky News 2026.svg');
+  });
+
+  it('builds UK disambiguation queries', () => {
+    const q = wikiLogo.buildLogoQueries('Sky', 'United Kingdom');
+    assert.equal(q[0], 'Sky UK');
+    assert.ok(q.includes('Sky'));
+  });
+});
+
 describe('brandScraperDemoHost', () => {
   const demoHost = require('../brandScraperDemoHost');
 

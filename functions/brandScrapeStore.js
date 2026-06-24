@@ -544,7 +544,7 @@ async function saveScrape(sandbox, payload, options = {}) {
     baseUrl: fullRecord.baseUrl,
     brandName: fullRecord.brandName,
     customerName: fullRecord.customerName || null,
-    customerLogoUrl: (fullRecord.customerLogo && fullRecord.customerLogo.url) || null,
+    customerLogoUrl: (fullRecord.customerLogo && (fullRecord.customerLogo.thumbnailUrl || fullRecord.customerLogo.url)) || null,
     businessType: fullRecord.businessType,
     country: fullRecord.country,
     industry: fullRecord.industry,

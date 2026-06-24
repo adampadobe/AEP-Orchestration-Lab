@@ -816,8 +816,28 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function decodeHtmlEntities(s) {
+    return String(s || '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
   function displayCustomerName(data) {
-    return String((data && (data.customerName || data.brandName)) || '').trim();
+    if (data && data.customerName) return decodeHtmlEntities(String(data.customerName).trim());
+    const bn = decodeHtmlEntities(String((data && data.brandName) || '').trim());
+    if (bn && bn.length <= 48 && !/[|]/.test(bn)) return bn;
+    try {
+      const host = new URL(data.baseUrl || data.url).hostname.replace(/^www\./, '');
+      const parts = host.split('.');
+      const part = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+      if (!part) return bn;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    } catch (_e) {
+      return bn;
+    }
   }
 
   function resolveCustomerLogo(data) {
@@ -830,9 +850,12 @@
 
   function customerLogoSrc(data) {
     if (!data) return '';
-    if (data.customerLogoUrl) return data.customerLogoUrl;
     var logo = resolveCustomerLogo(data);
-    return logo && (logo.url || logo.thumbnailUrl) || '';
+    if (logo && (logo.thumbnailUrl || logo.url)) {
+      return logo.thumbnailUrl || logo.url;
+    }
+    if (data.customerLogoUrl) return data.customerLogoUrl;
+    return '';
   }
 
   function renderCustomerLogoHtml(data, className) {
@@ -1536,6 +1559,11 @@
       const failN = ta && ta.networkBeaconSummary ? (ta.networkBeaconSummary.failedBeaconRequests || 0) : 0;
       const hint = ta && ta.consentOrderHint ? ta.consentOrderHint.state : '';
       const tagCellExtra = (dupN ? ' · dup ' + dupN : '') + (failN ? ' · HTTP ' + failN : '') + (hint === 'analytics_before_cmp' ? ' · consent?' : '');
+      let urlLabel = p.url || '';
+      try {
+        const u = new URL(p.url);
+        urlLabel = u.hostname + u.pathname + (u.search || '');
+      } catch (_e) { /* keep full */ }
       const detailRow = tagAnalyticsForScrape
         ? (
           '<tr class="brand-scraper-crawl-detail"><td colspan="6">' +
@@ -1548,21 +1576,23 @@
         : '';
       return (
         '<tr>' +
-          '<td><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.url) + '</a></td>' +
-          '<td>' + esc(p.title || '—') + '</td>' +
-          '<td class="brand-scraper-num">' + esc(p.status) + '</td>' +
-          '<td class="brand-scraper-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
-          '<td><code>' + esc(mode) + '</code>' + (tagCellExtra ? '<span class="brand-scraper-result-muted">' + esc(tagCellExtra) + '</span>' : '') + '</td>' +
-          '<td class="brand-scraper-num">' + errCell + '</td>' +
+          '<td class="brand-scraper-crawl-url"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" title="' + esc(p.url) + '">' + esc(urlLabel) + '</a></td>' +
+          '<td class="brand-scraper-crawl-title">' + esc(p.title || '—') + '</td>' +
+          '<td class="brand-scraper-num brand-scraper-crawl-num">' + esc(p.status) + '</td>' +
+          '<td class="brand-scraper-num brand-scraper-crawl-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
+          '<td class="brand-scraper-crawl-tag"><code>' + esc(mode) + '</code>' + (tagCellExtra ? '<span class="brand-scraper-result-muted">' + esc(tagCellExtra) + '</span>' : '') + '</td>' +
+          '<td class="brand-scraper-num brand-scraper-crawl-num">' + errCell + '</td>' +
         '</tr>' +
         detailRow
       );
     }).join('');
-    return '<section class="brand-scraper-result-block">' +
+    return '<section class="brand-scraper-result-block brand-scraper-crawl-block">' +
       '<h4>Crawl summary</h4>' +
       '<p class="brand-scraper-result-muted">' + (c.pagesScraped || 0) + ' pages scraped, ' + (c.totalDiscovered || 0) + ' URLs discovered.</p>' +
       (failureParts ? '<p class="brand-scraper-result-muted"><strong>Failures observed:</strong> ' + esc(failureParts) + '.</p>' : '') +
-      '<table class="brand-scraper-table"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th><th>Tag audit</th><th>JS errors</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="brand-scraper-crawl-table-wrap">' +
+      '<table class="brand-scraper-table brand-scraper-table--crawl"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th><th>Tag audit</th><th>JS errors</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
     '</section>';
   }
 

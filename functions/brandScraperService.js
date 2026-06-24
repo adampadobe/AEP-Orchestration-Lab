@@ -735,7 +735,11 @@ async function enrichCustomerIdentity({
 
   if (logoQuery && (!customerLogo || nameChanged)) {
     try {
-      const fetched = await wikipediaLogo.fetchCustomerLogo(logoQuery, { sandbox, scrapeId });
+      const fetched = await wikipediaLogo.fetchCustomerLogo(logoQuery, {
+        sandbox,
+        scrapeId,
+        country: body.country || (storedBaseline && storedBaseline.country) || '',
+      });
       if (fetched) {
         customerLogo = fetched;
         runSteps.push(runStepOk(
