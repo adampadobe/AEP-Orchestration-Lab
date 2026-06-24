@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
-  <link rel="stylesheet" href="home-new.css?v=20260625c">
+  <link rel="stylesheet" href="home-new.css?v=20260625d">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
@@ -115,6 +115,7 @@
             <div class="cc-grid-main__left">
               <div class="cc-section-header">
                 <div class="cc-section-title"><span class="cc-section-dot"></span>Customer Engagements</div>
+                <span class="cc-section-meta" id="ccSyncStatus" title="Persistence">Loading…</span>
                 <button type="button" class="cc-section-action" id="ccAddCustomerBtn">+ Add customer</button>
               </div>
               <div class="cc-card cc-card--flush">
@@ -310,6 +311,15 @@
     </div>
   </div>
 
+  <div class="cc-customer-backdrop" id="ccCustomerBackdrop" hidden></div>
+  <aside class="cc-customer-drawer" id="ccCustomerDrawer" aria-hidden="true" aria-label="Customer detail">
+    <header class="cc-customer-drawer__head">
+      <h2>Customer detail</h2>
+      <button type="button" class="cc-modal__close" id="ccCustomerDrawerClose" aria-label="Close">×</button>
+    </header>
+    <div class="cc-customer-drawer__body" id="ccCustomerDrawerBody"></div>
+  </aside>
+
   <div class="home-release-drawer-backdrop" id="homeReleaseBackdrop" hidden></div>
   <aside class="home-release-drawer" id="homeReleaseDrawer" aria-hidden="true" aria-labelledby="homeReleaseDrawerTitle">
     <header class="home-release-drawer__head">
@@ -326,6 +336,7 @@
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
   <script src="aep-access-onboarding.js?v=20260527b"></script>
   <script>
@@ -423,14 +434,16 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="home-release-summary-catalog.js?v=20260625c"></script>
-  <script defer src="home-release-summary.js?v=20260625c"></script>
-  <script defer src="home-command-products.js?v=20260625c"></script>
-  <script defer src="home-command-store.js?v=20260625c"></script>
-  <script defer src="home-command-seed-data.js?v=20260625c"></script>
-  <script defer src="home-command-data.js?v=20260625c"></script>
-  <script defer src="home-command-centre.js?v=20260625c"></script>
-  <script defer src="home-new-greeting.js?v=20260625c"></script>
+  <script defer src="aep-ldap-slug.js"></script>
+  <script defer src="home-release-summary-catalog.js?v=20260625d"></script>
+  <script defer src="home-release-summary.js?v=20260625d"></script>
+  <script defer src="home-command-products.js?v=20260625d"></script>
+  <script defer src="home-command-rtdb.js?v=20260625d"></script>
+  <script defer src="home-command-store.js?v=20260625d"></script>
+  <script defer src="home-command-seed-data.js?v=20260625d"></script>
+  <script defer src="home-command-data.js?v=20260625d"></script>
+  <script defer src="home-command-centre.js?v=20260625d"></script>
+  <script defer src="home-new-greeting.js?v=20260625d"></script>
   <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260624c-home-new"></script>
 </body>

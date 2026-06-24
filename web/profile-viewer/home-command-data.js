@@ -1,25 +1,50 @@
 /**
- * Command Centre data layer — customers, tasks, calendar, activity (localStorage-backed).
+ * Command Centre data layer — RTDB-backed with localStorage cache.
  */
 (function attachHomeCommandData(global) {
   'use strict';
 
   var store = global.HomeCommandStore;
   var products = global.HomeCommandProducts;
+  var rtdb = global.HomeCommandRtdb;
   if (!store) return;
 
   var state = store.loadState();
   var seeded = false;
+  var initPromise = null;
+  var initDone = false;
+  var dataListeners = [];
+
+  function notifyListeners() {
+    dataListeners.forEach(function (fn) {
+      try {
+        fn(state);
+      } catch (_e) {}
+    });
+  }
 
   function persist() {
     state = store.saveState(state);
+    if (rtdb) rtdb.scheduleSave(state);
+    notifyListeners();
+  }
+
+  function applyRemoteState(remote) {
+    if (!remote || typeof remote !== 'object') return;
+    state = Object.assign({}, remote);
+    state.customers = normalizeCustomers(state.customers);
+    seeded = !!(state.customers && state.customers.length);
+    store.saveLocalCache(state);
+    notifyListeners();
   }
 
   function subscribe(fn) {
-    return store.subscribe(function (next) {
-      state = next;
-      fn(state);
-    });
+    if (typeof fn === 'function') dataListeners.push(fn);
+    return function unsubscribe() {
+      dataListeners = dataListeners.filter(function (f) {
+        return f !== fn;
+      });
+    };
   }
 
   function normalizeCustomer(c) {
@@ -71,6 +96,44 @@
     state.capacity = seed.capacity || [];
     seeded = true;
     persist();
+  }
+
+  function waitForAuth(timeoutMs) {
+    return new Promise(function (resolve) {
+      if (rtdb && rtdb.isAuthenticated()) {
+        resolve(true);
+        return;
+      }
+      var settled = false;
+      function finish(ok) {
+        if (settled) return;
+        settled = true;
+        resolve(!!ok);
+      }
+      function check() {
+        if (rtdb && rtdb.isAuthenticated()) finish(true);
+      }
+      global.addEventListener('aep-lab-email-session-updated', check);
+      global.addEventListener('aep-lab-google-session-updated', check);
+      setTimeout(function () {
+        finish(rtdb && rtdb.isAuthenticated());
+      }, timeoutMs || 6000);
+    });
+  }
+
+  function connectRtdb() {
+    if (!rtdb) return Promise.resolve();
+    return waitForAuth().then(function () {
+      if (!rtdb.isAuthenticated()) return null;
+      return rtdb.connect(function (remote) {
+        if (!remote) return;
+        var localUpdated = state.updatedAt || '';
+        var remoteUpdated = remote.updatedAt || '';
+        if (!localUpdated || remoteUpdated >= localUpdated) {
+          applyRemoteState(remote);
+        }
+      });
+    });
   }
 
   function useCustomers() {
@@ -126,8 +189,9 @@
             customerId: id,
             customerName: prev.name,
           });
+        } else {
+          persist();
         }
-        persist();
         return useCustomers().getById(id);
       },
       remove: function (id) {
@@ -168,8 +232,9 @@
             text: 'Task completed: <strong>' + task.title + '</strong>',
             customerName: task.customerName || '',
           });
+        } else {
+          persist();
         }
-        persist();
         return task;
       },
       update: function (id, patch) {
@@ -204,7 +269,6 @@
           icon: '🗓️',
           text: '<strong>' + (row.customerName || row.title) + '</strong> meeting scheduled',
         });
-        persist();
         return row;
       },
     };
@@ -349,21 +413,51 @@
   }
 
   function reloadForScope() {
-    state = store.loadState();
-    seeded = !!(state.customers && state.customers.length);
-    if (!seeded) {
-      seedIfEmpty();
-    } else {
-      state.customers = normalizeCustomers(state.customers);
-      store.saveState(state);
-    }
+    if (rtdb) rtdb.resetScope();
+    initPromise = null;
+    initDone = false;
+    init().then(notifyListeners);
   }
 
   function init() {
-    seedIfEmpty();
-    state.customers = normalizeCustomers(state.customers);
-    global.addEventListener('aep-global-sandbox-change', reloadForScope);
-    global.addEventListener('aep-lab-email-session-updated', reloadForScope);
+    if (initDone) return Promise.resolve(state);
+    if (initPromise) return initPromise;
+
+    initPromise = connectRtdb()
+      .then(function (remote) {
+        var local = store.loadState();
+        if (remote && remote.customers && remote.customers.length) {
+          state = remote;
+          state.customers = normalizeCustomers(state.customers);
+          seeded = true;
+          store.saveLocalCache(state);
+        } else if (local.customers && local.customers.length) {
+          state = local;
+          state.customers = normalizeCustomers(state.customers);
+          seeded = true;
+          if (rtdb && rtdb.isAuthenticated()) rtdb.saveState(state);
+        } else {
+          state = local;
+          seedIfEmpty();
+        }
+        initDone = true;
+        return state;
+      })
+      .catch(function () {
+        state = store.loadState();
+        state.customers = normalizeCustomers(state.customers);
+        seedIfEmpty();
+        initDone = true;
+        return state;
+      });
+
+    if (!global.__aepCommandCentreScopeBound) {
+      global.__aepCommandCentreScopeBound = true;
+      global.addEventListener('aep-global-sandbox-change', reloadForScope);
+      global.addEventListener('aep-lab-email-session-updated', reloadForScope);
+    }
+
+    return initPromise;
   }
 
   global.HomeCommandData = {
@@ -385,7 +479,8 @@
     getState: function () {
       return state;
     },
+    getSyncStatus: function () {
+      return rtdb ? rtdb.getSyncStatus() : 'local-only';
+    },
   };
-
-  init();
 })(window);

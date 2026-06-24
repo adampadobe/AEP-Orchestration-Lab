@@ -8,7 +8,7 @@
   var productCatalog = global.HomeCommandProducts;
   if (!data) return;
 
-  var expandedDrawerId = null;
+  var activeCustomerId = null;
 
   var STATUS_STRIP_MAP = {
     'On track': 'green',
@@ -194,7 +194,16 @@
     );
   }
 
-  function renderCustomerDrawer(c) {
+  function buildCustomerDetailBody(c) {
+    var tags = (c.tags || [])
+      .map(function (t) {
+        return '<span class="cc-tag-pill">' + esc(t) + '</span>';
+      })
+      .join(' ');
+    var tasks = data.useTasks().getOpen().filter(function (t) {
+      return t.customerId === c.id;
+    });
+
     var stakeholders = (c.stakeholders || [])
       .map(function (sh) {
         return (
@@ -277,15 +286,32 @@
     }
 
     return (
-      '<tr class="cc-drawer-row' +
-      (expandedDrawerId === c.id ? ' cc-drawer-row--open' : '') +
-      '" id="cc-drawer-' +
-      esc(c.id) +
-      '" data-customer-id="' +
-      esc(c.id) +
+      '<div class="cc-detail-head">' +
+      '<div class="' +
+      stripClass(c.statusStrip) +
+      ' cc-detail-strip"></div>' +
+      '<div><h3 class="cc-detail-title">' +
+      esc(c.name) +
+      '</h3>' +
+      '<p class="cc-detail-products">' +
+      esc(productLabel(c)) +
+      '</p>' +
+      (tags ? '<div class="cc-meeting-tags">' + tags + '</div>' : '') +
+      '<span class="' +
+      statusPillClass(c.status) +
       '">' +
-      '<td colspan="9"><div class="cc-drawer-content">' +
-      '<div class="cc-drawer-grid">' +
+      esc(c.status) +
+      '</span>' +
+      (c.arr
+        ? '<p class="cc-drawer-arr cc-drawer-arr--head">ARR ' +
+          esc(data.formatArr(c.arr)) +
+          ' · ' +
+          esc(c.pipelineStage || '') +
+          '</p>'
+        : '') +
+      '</div></div>' +
+      '<div class="cc-drawer-content cc-drawer-content--panel">' +
+      '<div class="cc-drawer-grid cc-drawer-grid--panel">' +
       '<div class="cc-drawer-section">' +
       '<h4 class="cc-drawer-section-title">Full notes</h4>' +
       '<p class="cc-drawer-notes">' +
@@ -302,31 +328,87 @@
         ? '<div class="cc-drawer-section"><h4 class="cc-drawer-section-title">Stakeholders</h4><div class="cc-stakeholder-list">' +
           stakeholders +
           '</div></div>'
-        : '<div></div>') +
+        : '') +
       (milestones
         ? '<div class="cc-drawer-section"><h4 class="cc-drawer-section-title">Milestones</h4><div class="cc-milestone-list">' +
           milestones +
           '</div></div>'
-        : '<div></div>') +
+        : '') +
       '<div class="cc-drawer-section">' +
       '<h4 class="cc-drawer-section-title">SC notes &amp; risks</h4>' +
       '<p class="cc-drawer-notes">' +
       (c.scNotes ? c.scNotes.replace(/\n/g, '<br>') : '—') +
       '</p>' +
       competitive +
-      '<div class="cc-drawer-actions">' +
-      '<button type="button" class="cc-btn cc-btn-ghost cc-drawer-edit-btn" data-customer-id="' +
-      esc(c.id) +
-      '">Edit customer</button>' +
-      (c.arr
-        ? '<span class="cc-drawer-arr">ARR ' +
-          esc(data.formatArr(c.arr)) +
-          ' · ' +
-          esc(c.pipelineStage || '') +
-          '</span>'
+      '</div></div></div>' +
+      '<div class="cc-detail-grid">' +
+      '<div><span class="cc-detail-label">ETA</span><div class="' +
+      etaClass(c.eta) +
+      '">' +
+      fmtDate(c.eta) +
+      '</div></div>' +
+      '<div><span class="cc-detail-label">Last meeting</span><div>' +
+      fmtDate(c.lastMeeting) +
+      '</div></div></div>' +
+      '<div class="cc-detail-section"><h4>Next action</h4><p>' +
+      esc(c.nextAction || '—') +
+      '</p></div>' +
+      (c.demoLink
+        ? '<div class="cc-detail-section"><h4>Demo</h4><p><a href="' +
+          esc(c.demoLink) +
+          '">Open demo</a></p></div>'
         : '') +
-      '</div></div></div></div></td></tr>'
+      '<div class="cc-detail-section"><h4>Linked tasks</h4>' +
+      (tasks.length
+        ? '<ul class="cc-detail-tasks">' +
+          tasks
+            .map(function (t) {
+              return '<li>' + esc(t.title) + ' <span class="cc-detail-due">(' + fmtDate(t.due) + ')</span></li>';
+            })
+            .join('') +
+          '</ul>'
+        : '<p class="cc-empty">No open tasks.</p>') +
+      '</div>' +
+      '<div class="cc-detail-actions">' +
+      '<button type="button" class="cc-btn cc-btn-ghost" id="ccDetailEditBtn">Edit customer</button>' +
+      '</div>'
     );
+  }
+
+  function openCustomerDetail(customerId) {
+    var drawer = document.getElementById('ccCustomerDrawer');
+    var body = document.getElementById('ccCustomerDrawerBody');
+    var backdrop = document.getElementById('ccCustomerBackdrop');
+    if (!drawer || !body) return;
+    var c = data.useCustomers().getById(customerId);
+    if (!c) return;
+    activeCustomerId = customerId;
+    body.innerHTML = buildCustomerDetailBody(c);
+    var editBtn = body.querySelector('#ccDetailEditBtn');
+    if (editBtn) {
+      editBtn.addEventListener('click', function () {
+        closeCustomerDetail();
+        openCustomerForm(customerId);
+      });
+    }
+    drawer.classList.add('cc-customer-drawer--open');
+    drawer.setAttribute('aria-hidden', 'false');
+    if (backdrop) backdrop.hidden = false;
+    document.body.style.overflow = 'hidden';
+    renderCustomers();
+  }
+
+  function closeCustomerDetail() {
+    var drawer = document.getElementById('ccCustomerDrawer');
+    var backdrop = document.getElementById('ccCustomerBackdrop');
+    activeCustomerId = null;
+    if (drawer) {
+      drawer.classList.remove('cc-customer-drawer--open');
+      drawer.setAttribute('aria-hidden', 'true');
+    }
+    if (backdrop) backdrop.hidden = true;
+    document.body.style.overflow = '';
+    renderCustomers();
   }
 
   function renderCustomerRow(c) {
@@ -352,17 +434,14 @@
     } else if (data.isDueSoon(c.eta, 1)) {
       actionDue = '<div class="cc-action-due-hint cc-date-soon">Due today</div>';
     }
-    var chevronOpen = expandedDrawerId === c.id ? ' cc-chevron--open' : '';
-    return (
-      renderCustomerRowOnly(c, tags, drInner, etaSuffix, actionDue, chevronOpen) +
-      renderCustomerDrawer(c)
-    );
+    var chevronOpen = activeCustomerId === c.id ? ' cc-chevron--open' : '';
+    return renderCustomerRowOnly(c, tags, drInner, etaSuffix, actionDue, chevronOpen);
   }
 
   function renderCustomerRowOnly(c, tags, drInner, etaSuffix, actionDue, chevronOpen) {
     return (
       '<tr class="cc-customer-row' +
-      (expandedDrawerId === c.id ? ' cc-customer-row--expanded' : '') +
+      (activeCustomerId === c.id ? ' cc-customer-row--active' : '') +
       '" data-customer-id="' +
       esc(c.id) +
       '" tabindex="0" role="button">' +
@@ -414,11 +493,6 @@
     );
   }
 
-  function toggleDrawer(customerId) {
-    expandedDrawerId = expandedDrawerId === customerId ? null : customerId;
-    renderCustomers();
-  }
-
   function renderCustomers() {
     var tbody = document.getElementById('ccCustomerTableBody');
     var foot = document.getElementById('ccCustomerTableFoot');
@@ -431,24 +505,18 @@
         customers.length +
         ' of ' +
         customers.length +
-        ' active engagements · Click any row to expand details';
+        ' active engagements · Click any row for full details';
     }
     tbody.querySelectorAll('.cc-customer-row').forEach(function (row) {
       var id = row.getAttribute('data-customer-id');
       row.addEventListener('click', function () {
-        toggleDrawer(id);
+        openCustomerDetail(id);
       });
       row.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          toggleDrawer(id);
+          openCustomerDetail(id);
         }
-      });
-    });
-    tbody.querySelectorAll('.cc-drawer-edit-btn').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        openCustomerForm(btn.getAttribute('data-customer-id'));
       });
     });
   }
@@ -820,7 +888,25 @@
         .join('');
   }
 
+  function renderSyncStatus() {
+    var el = document.getElementById('ccSyncStatus');
+    if (!el || !data) return;
+    var status = data.getSyncStatus ? data.getSyncStatus() : 'local-only';
+    var labels = {
+      idle: 'Local cache',
+      loading: 'Syncing…',
+      ready: 'Saved to RTDB',
+      saving: 'Saving…',
+      error: 'Sync error',
+      offline: 'Sign in to sync',
+      'local-only': 'Local only',
+    };
+    el.textContent = labels[status] || status;
+    el.classList.toggle('cc-section-meta--alert', status === 'error' || status === 'offline');
+  }
+
   function renderAll() {
+    renderSyncStatus();
     renderMetrics();
     renderCustomers();
     renderMeetings();
@@ -964,8 +1050,16 @@
       openCustomerForm(null);
     });
 
+    var drawerClose = document.getElementById('ccCustomerDrawerClose');
+    if (drawerClose) drawerClose.addEventListener('click', closeCustomerDetail);
+    var backdrop = document.getElementById('ccCustomerBackdrop');
+    if (backdrop) backdrop.addEventListener('click', closeCustomerDetail);
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeCustomerForm();
+      if (e.key === 'Escape') {
+        closeCustomerForm();
+        closeCustomerDetail();
+      }
     });
   }
 
@@ -973,12 +1067,30 @@
     var root = document.getElementById('ccCommandCentre');
     if (!root || root.getAttribute('data-cc-init') === '1') return;
     root.setAttribute('data-cc-init', '1');
-    data.init();
     bindEvents();
-    data.subscribe(function () {
+    data.init().then(function () {
+      data.subscribe(function () {
+        renderAll();
+        if (activeCustomerId) {
+          var c = data.useCustomers().getById(activeCustomerId);
+          var body = document.getElementById('ccCustomerDrawerBody');
+          if (c && body && document.getElementById('ccCustomerDrawer').classList.contains('cc-customer-drawer--open')) {
+            body.innerHTML = buildCustomerDetailBody(c);
+            var editBtn = body.querySelector('#ccDetailEditBtn');
+            if (editBtn) {
+              editBtn.addEventListener('click', function () {
+                closeCustomerDetail();
+                openCustomerForm(activeCustomerId);
+              });
+            }
+          }
+        }
+      });
       renderAll();
     });
-    renderAll();
+    global.addEventListener('aep-command-centre-sync', function () {
+      renderSyncStatus();
+    });
   }
 
   function boot() {

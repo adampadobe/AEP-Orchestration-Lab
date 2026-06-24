@@ -110,6 +110,14 @@
     return next;
   }
 
+  function saveLocalCache(state) {
+    var next = Object.assign({}, state, { updatedAt: new Date().toISOString() });
+    try {
+      localStorage.setItem(storageKey(), JSON.stringify(next));
+    } catch (_e) {}
+    return next;
+  }
+
   function subscribe(fn) {
     if (typeof fn === 'function') listeners.push(fn);
     return function unsubscribe() {
@@ -130,6 +138,7 @@
   global.HomeCommandStore = {
     loadState: loadState,
     saveState: saveState,
+    saveLocalCache: saveLocalCache,
     subscribe: subscribe,
     generateId: generateId,
     getScope: getScope,
