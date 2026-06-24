@@ -5,6 +5,7 @@
   'use strict';
 
   var store = global.HomeCommandStore;
+  var products = global.HomeCommandProducts;
   if (!store) return;
 
   var state = store.loadState();
@@ -19,6 +20,21 @@
       state = next;
       fn(state);
     });
+  }
+
+  function normalizeCustomer(c) {
+    if (!c) return c;
+    var row = Object.assign({}, c);
+    row.productIds = products ? products.normalizeProductIds(row) : row.productIds || [];
+    if (!Array.isArray(row.nextSteps)) row.nextSteps = [];
+    if (!Array.isArray(row.stakeholders)) row.stakeholders = [];
+    if (!Array.isArray(row.milestones)) row.milestones = [];
+    if (!Array.isArray(row.meetingHistory)) row.meetingHistory = [];
+    return row;
+  }
+
+  function normalizeCustomers(list) {
+    return (list || []).map(normalizeCustomer);
   }
 
   function logActivity(entry) {
@@ -40,142 +56,19 @@
       seeded = true;
       return;
     }
-    var now = new Date();
-    function daysFromNow(n) {
-      var d = new Date(now);
-      d.setDate(d.getDate() + n);
-      return d.toISOString().slice(0, 10);
+    var seedBuilder = global.HomeCommandSeedData;
+    if (!seedBuilder || typeof seedBuilder.buildSeed !== 'function') {
+      seeded = true;
+      return;
     }
-    function daysAgo(n) {
-      return daysFromNow(-n);
-    }
-
-    state.customers = [
-      {
-        id: store.generateId('cust'),
-        name: 'Aviva',
-        products: 'AJO · Real-Time CDP',
-        tags: ['Journey Arbitration', 'Phase 2'],
-        notes: 'Profile merge strategy under review. Edge decisioning scope confirmed.',
-        drLink: 'DR-2024-0441',
-        drUrl: '',
-        status: 'On track',
-        statusStrip: 'green',
-        eta: daysFromNow(20),
-        lastMeeting: daysAgo(7),
-        nextAction: 'Share updated journey schema with Aviva dev team',
-        demoLink: '',
-      },
-      {
-        id: store.generateId('cust'),
-        name: 'Sky',
-        products: 'AJO · Campaign v8',
-        tags: ['Broadband Upsell', 'At Risk'],
-        notes: 'Blockers on data governance sign-off. Stakeholder alignment needed.',
-        drLink: 'DR-2024-0388',
-        status: 'At risk',
-        statusStrip: 'red',
-        eta: daysAgo(2),
-        lastMeeting: daysAgo(14),
-        nextAction: 'Escalate governance blocker — book exec call',
-      },
-      {
-        id: store.generateId('cust'),
-        name: 'Lloyds Banking',
-        products: 'Real-Time CDP · CJA',
-        tags: ['Audience Activation'],
-        notes: 'Awaiting IT environment provisioning. Analytics dashboard review scheduled.',
-        drLink: 'DR-2025-0112',
-        status: 'Delayed',
-        statusStrip: 'amber',
-        eta: daysFromNow(37),
-        lastMeeting: daysAgo(4),
-        nextAction: 'Chase IT provisioning ETA with Lloyds PM',
-      },
-      {
-        id: store.generateId('cust'),
-        name: 'BT Group',
-        products: 'AJO · Decisioning',
-        tags: ['Next Best Offer', 'Discovery'],
-        notes: 'Early discovery phase. Use case mapping workshop booked for July.',
-        drLink: 'DR-2025-0219',
-        status: 'Discovery',
-        statusStrip: 'blue',
-        eta: daysFromNow(90),
-        lastMeeting: daysAgo(6),
-        nextAction: 'Prepare use case canvas for workshop',
-      },
-    ];
-
-    state.tasks = [
-      {
-        id: store.generateId('task'),
-        title: 'Send Sky exec escalation email',
-        customerId: state.customers[1].id,
-        customerName: 'Sky',
-        due: daysAgo(4),
-        completed: false,
-      },
-      {
-        id: store.generateId('task'),
-        title: 'Share Aviva journey schema',
-        customerId: state.customers[0].id,
-        customerName: 'Aviva',
-        due: daysFromNow(0),
-        completed: false,
-      },
-      {
-        id: store.generateId('task'),
-        title: 'Chase Lloyds IT provisioning ETA',
-        customerId: state.customers[2].id,
-        customerName: 'Lloyds Banking',
-        due: daysFromNow(2),
-        completed: false,
-      },
-    ];
-
-    state.meetings = [
-      {
-        id: store.generateId('mtg'),
-        at: daysFromNow(0) + 'T14:00:00',
-        title: 'Barclays — Kick-off',
-        context: 'CJA onboarding sync',
-        tags: ['CJA', 'New'],
-        customerName: 'Barclays',
-      },
-      {
-        id: store.generateId('mtg'),
-        at: daysFromNow(1) + 'T10:30:00',
-        title: 'Sky — Governance Review',
-        context: 'Stakeholder alignment',
-        tags: ['At Risk'],
-        customerName: 'Sky',
-      },
-      {
-        id: store.generateId('mtg'),
-        at: daysFromNow(2) + 'T09:00:00',
-        title: 'M&S — UAT Debrief',
-        context: 'AJO go-live readiness',
-        tags: ['UAT'],
-        customerName: 'M&S',
-      },
-    ];
-
-    state.activity = [
-      {
-        id: store.generateId('act'),
-        icon: '📋',
-        text: '<strong>Aviva</strong> schema v3.2 doc linked to DR-2024-0441',
-        at: new Date(now.getTime() - 86400000 * 2).toISOString(),
-      },
-      {
-        id: store.generateId('act'),
-        icon: '⚠️',
-        text: '<strong>Sky</strong> ETA flagged as at-risk by PM',
-        at: new Date(now.getTime() - 86400000 * 4).toISOString(),
-      },
-    ];
-
+    var seed = seedBuilder.buildSeed(store, new Date());
+    state.customers = seed.customers || [];
+    state.tasks = seed.tasks || [];
+    state.meetings = seed.meetings || [];
+    state.activity = seed.activity || [];
+    state.pocs = seed.pocs || [];
+    state.knowledgeBase = seed.knowledgeBase || [];
+    state.capacity = seed.capacity || [];
     seeded = true;
     persist();
   }
@@ -183,22 +76,26 @@
   function useCustomers() {
     return {
       getAll: function () {
-        return (state.customers || []).slice();
+        return normalizeCustomers(state.customers);
       },
       getById: function (id) {
-        return (state.customers || []).find(function (c) {
-          return c.id === id;
+        var c = (state.customers || []).find(function (row) {
+          return row.id === id;
         });
+        return c ? normalizeCustomer(c) : null;
       },
       add: function (customer) {
-        var row = Object.assign(
-          {
-            id: store.generateId('cust'),
-            tags: [],
-            statusStrip: 'blue',
-            status: 'Discovery',
-          },
-          customer
+        var row = normalizeCustomer(
+          Object.assign(
+            {
+              id: store.generateId('cust'),
+              tags: [],
+              productIds: [],
+              statusStrip: 'blue',
+              status: 'Discovery',
+            },
+            customer
+          )
         );
         state.customers = (state.customers || []).concat([row]);
         logActivity({
@@ -215,7 +112,7 @@
         state.customers = (state.customers || []).map(function (c) {
           if (c.id !== id) return c;
           prev = c;
-          return Object.assign({}, c, patch);
+          return normalizeCustomer(Object.assign({}, c, patch));
         });
         if (prev && patch.status && patch.status !== prev.status) {
           logActivity({
@@ -322,6 +219,26 @@
     };
   }
 
+  function usePocs() {
+    return {
+      getAll: function () {
+        return (state.pocs || []).slice();
+      },
+    };
+  }
+
+  function useKnowledgeBase() {
+    return {
+      getAll: function () {
+        return (state.knowledgeBase || []).slice();
+      },
+    };
+  }
+
+  function getCapacity() {
+    return (state.capacity || []).slice();
+  }
+
   function parseDateOnly(iso) {
     if (!iso) return null;
     var d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso);
@@ -347,6 +264,13 @@
     return diff >= 0 && diff <= (days || 7);
   }
 
+  function formatArr(amount) {
+    var n = Number(amount) || 0;
+    if (n >= 1000000) return '£' + (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1000) return '£' + Math.round(n / 1000) + 'k';
+    return '£' + n;
+  }
+
   function computeMetrics() {
     var customers = useCustomers().getAll();
     var openTasks = useTasks().getOpen();
@@ -354,6 +278,7 @@
       return isOverdue(t.due);
     });
     var meetings = useCalendar().getAll();
+    var pocs = usePocs().getAll();
     var now = new Date();
     var weekEnd = new Date(now);
     weekEnd.setDate(weekEnd.getDate() + 7);
@@ -374,13 +299,39 @@
       return 70;
     });
     var avgHealth = healthScores.length
-      ? Math.round(healthScores.reduce(function (a, b) {
-          return a + b;
-        }, 0) / healthScores.length)
+      ? Math.round(
+          healthScores.reduce(function (a, b) {
+            return a + b;
+          }, 0) / healthScores.length
+        )
       : 0;
     var atRisk = customers.filter(function (c) {
       return c.statusStrip === 'red' || c.statusStrip === 'amber';
     }).length;
+
+    var pocsInFlight = pocs.filter(function (p) {
+      return p.status !== 'Complete';
+    }).length;
+
+    var totalPipeline = customers.reduce(function (sum, c) {
+      return sum + (Number(c.arr) || 0);
+    }, 0);
+    var arrAtRisk = customers
+      .filter(function (c) {
+        return c.pipelineRisk === 'High' || c.statusStrip === 'red';
+      })
+      .reduce(function (sum, c) {
+        return sum + (Number(c.arr) || 0);
+      }, 0);
+    var atRiskNames = customers
+      .filter(function (c) {
+        return c.pipelineRisk === 'High' || c.statusStrip === 'red';
+      })
+      .map(function (c) {
+        return c.name.split(' ')[0];
+      })
+      .slice(0, 2)
+      .join(' + ');
 
     return {
       activeCustomers: customers.length,
@@ -390,6 +341,10 @@
       avgEtaHealth: avgHealth,
       atRiskCount: atRisk,
       openEngagements: customers.length,
+      pocsInFlight: pocsInFlight,
+      totalPipeline: totalPipeline,
+      arrAtRisk: arrAtRisk,
+      arrAtRiskLabel: atRiskNames || 'None',
     };
   }
 
@@ -399,12 +354,14 @@
     if (!seeded) {
       seedIfEmpty();
     } else {
+      state.customers = normalizeCustomers(state.customers);
       store.saveState(state);
     }
   }
 
   function init() {
     seedIfEmpty();
+    state.customers = normalizeCustomers(state.customers);
     global.addEventListener('aep-global-sandbox-change', reloadForScope);
     global.addEventListener('aep-lab-email-session-updated', reloadForScope);
   }
@@ -416,7 +373,11 @@
     useTasks: useTasks,
     useCalendar: useCalendar,
     useActivity: useActivity,
+    usePocs: usePocs,
+    useKnowledgeBase: useKnowledgeBase,
+    getCapacity: getCapacity,
     computeMetrics: computeMetrics,
+    formatArr: formatArr,
     isOverdue: isOverdue,
     isDueSoon: isDueSoon,
     parseDateOnly: parseDateOnly,

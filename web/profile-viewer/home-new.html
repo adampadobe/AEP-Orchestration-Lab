@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css">
-  <link rel="stylesheet" href="home-new.css?v=20260625b">
+  <link rel="stylesheet" href="home-new.css?v=20260625c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
@@ -53,6 +53,10 @@
             <div class="home-greeting-stat">
               <span class="home-greeting-stat__label">Open Engagements</span>
               <span class="home-greeting-stat__value home-greeting-stat__value--accent" id="homeGreetingEngagements">0</span>
+            </div>
+            <div class="home-greeting-stat home-greeting-stat--alert" id="homeGreetingOverdueWrap">
+              <span class="home-greeting-stat__label">Overdue Actions</span>
+              <span class="home-greeting-stat__value" id="homeGreetingOverdue">0</span>
             </div>
           </div>
         </section>
@@ -124,7 +128,9 @@
                         <th>Status</th>
                         <th>ETA</th>
                         <th>Last Meeting</th>
+                        <th class="cc-th-steps">Next Steps</th>
                         <th class="cc-th-action">Next Action</th>
+                        <th class="cc-th-chevron" aria-label="Expand"></th>
                       </tr>
                     </thead>
                     <tbody id="ccCustomerTableBody"></tbody>
@@ -154,14 +160,49 @@
             </aside>
           </div>
 
-          <div class="cc-grid-bottom">
+          <div class="cc-grid-three">
+            <div>
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>PoC / Demo Tracker</div>
+              </div>
+              <div class="cc-card cc-card--compact" id="ccPocTracker"></div>
+            </div>
+            <div>
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>Pipeline &amp; ARR Health</div>
+              </div>
+              <div class="cc-card cc-card--compact" id="ccPipelineHealth"></div>
+            </div>
+            <div>
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>Competitive Intelligence</div>
+              </div>
+              <div class="cc-card cc-card--compact" id="ccCompetitiveIntel"></div>
+            </div>
+          </div>
+
+          <div class="cc-grid-three cc-grid-three--mid">
+            <div>
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>My Capacity This Week</div>
+              </div>
+              <div class="cc-card cc-card--compact" id="ccCapacityPlanner"></div>
+            </div>
             <div>
               <div class="cc-section-header">
                 <div class="cc-section-title"><span class="cc-section-dot"></span>Recent Activity</div>
               </div>
               <div class="cc-card cc-card--compact" id="ccActivityFeed"></div>
             </div>
+            <div>
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>SC Knowledge Base</div>
+              </div>
+              <div class="cc-card cc-card--compact" id="ccKnowledgeBase"></div>
+            </div>
+          </div>
 
+          <div class="cc-grid-bottom">
             <section class="home-lab-updates home-lab-updates--compact" id="homeLabUpdates" aria-labelledby="homeLabUpdatesHeading">
               <div class="cc-section-header">
                 <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeLabUpdatesHeading">Latest in the Lab</span></div>
@@ -219,22 +260,6 @@
               </div>
             </div>
           </div>
-
-          <section class="cc-next-steps" aria-labelledby="ccNextStepsHeading">
-            <div class="cc-section-header">
-              <div class="cc-section-title"><span class="cc-section-dot"></span><span id="ccNextStepsHeading">Suggested next steps</span></div>
-            </div>
-            <div class="cc-card cc-next-steps__card">
-              <ul class="cc-next-steps__list">
-                <li><strong>Customer health score</strong> — sentiment / ETA risk score per engagement row</li>
-                <li><strong>Commercial visibility</strong> — pipeline value and ARR-at-risk column on the engagements table</li>
-                <li><strong>Scrape ↔ customer linkage</strong> — attach brand scrapes to customer records from Latest in the Lab</li>
-                <li><strong>Activity integrations</strong> — pull Slack / email updates into Recent Activity</li>
-                <li><strong>Meeting history</strong> — expand customer row into full notes + meeting timeline</li>
-                <li><strong>Server-side ADBE quote</strong> — deploy <code class="cc-inline-code">labAdobeStock</code> Cloud Function (Google Finance as canonical link)</li>
-              </ul>
-            </div>
-          </section>
         </div>
       </main>
     </div>
@@ -249,7 +274,11 @@
       <form id="ccCustomerForm" class="cc-modal__body">
         <input type="hidden" name="customerId" value="">
         <label class="cc-field">Customer name<input name="name" required autocomplete="organization"></label>
-        <label class="cc-field">Products<input name="products" placeholder="AJO · Real-Time CDP"></label>
+        <div class="cc-field">
+          <span class="cc-field__label">Products</span>
+          <p class="cc-field__hint">Same product names as release notes — select all that apply</p>
+          <div class="cc-product-picker" id="ccProductPickerGrid" role="group" aria-label="Products"></div>
+        </div>
         <label class="cc-field">Tags (comma-separated)<input name="tags" placeholder="Journey Arbitration, UAT"></label>
         <label class="cc-field">Notes<textarea name="notes" rows="3"></textarea></label>
         <div class="cc-field-row">
@@ -280,15 +309,6 @@
       </form>
     </div>
   </div>
-
-  <div class="cc-customer-backdrop" id="ccCustomerBackdrop" hidden></div>
-  <aside class="cc-customer-drawer" id="ccCustomerDrawer" aria-hidden="true" aria-label="Customer detail">
-    <header class="cc-customer-drawer__head">
-      <h2>Customer detail</h2>
-      <button type="button" class="cc-modal__close" id="ccCustomerDrawerClose" aria-label="Close">×</button>
-    </header>
-    <div class="cc-customer-drawer__body" id="ccCustomerDrawerBody"></div>
-  </aside>
 
   <div class="home-release-drawer-backdrop" id="homeReleaseBackdrop" hidden></div>
   <aside class="home-release-drawer" id="homeReleaseDrawer" aria-hidden="true" aria-labelledby="homeReleaseDrawerTitle">
@@ -403,12 +423,14 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="home-release-summary-catalog.js?v=20260625b"></script>
-  <script defer src="home-release-summary.js?v=20260625b"></script>
-  <script defer src="home-command-store.js?v=20260625b"></script>
-  <script defer src="home-command-data.js?v=20260625b"></script>
-  <script defer src="home-command-centre.js?v=20260625b"></script>
-  <script defer src="home-new-greeting.js?v=20260625b"></script>
+  <script defer src="home-release-summary-catalog.js?v=20260625c"></script>
+  <script defer src="home-release-summary.js?v=20260625c"></script>
+  <script defer src="home-command-products.js?v=20260625c"></script>
+  <script defer src="home-command-store.js?v=20260625c"></script>
+  <script defer src="home-command-seed-data.js?v=20260625c"></script>
+  <script defer src="home-command-data.js?v=20260625c"></script>
+  <script defer src="home-command-centre.js?v=20260625c"></script>
+  <script defer src="home-new-greeting.js?v=20260625c"></script>
   <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260624c-home-new"></script>
 </body>

@@ -70,6 +70,9 @@
       tasks: [],
       meetings: [],
       activity: [],
+      pocs: [],
+      knowledgeBase: [],
+      capacity: [],
       updatedAt: new Date().toISOString(),
     };
   }
@@ -84,6 +87,9 @@
         tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
         meetings: Array.isArray(parsed.meetings) ? parsed.meetings : [],
         activity: Array.isArray(parsed.activity) ? parsed.activity : [],
+        pocs: Array.isArray(parsed.pocs) ? parsed.pocs : [],
+        knowledgeBase: Array.isArray(parsed.knowledgeBase) ? parsed.knowledgeBase : [],
+        capacity: Array.isArray(parsed.capacity) ? parsed.capacity : [],
         updatedAt: parsed.updatedAt || new Date().toISOString(),
       };
     } catch (_e) {
