@@ -14,8 +14,8 @@
       description:
         "In the heart of London's elegant Mayfair, Brown's Hotel is an iconic luxury hotel where history and 21st-century sophistication come together.",
       image: 'https://d1t1qzzb2zwrre.cloudfront.net/master/upload/64/648ce746a8762427713548.jpg',
-      mapTop: '42%',
-      mapLeft: '28%',
+      mapTop: '36.5%',
+      mapLeft: '44.2%',
     },
     {
       id: 'balmoral',
@@ -26,8 +26,8 @@
       description:
         'The Balmoral, 1 Princes Street, where Old Town meets New, a legendary hotel and landmark clock tower: a symbol of its city.',
       image: 'https://d1t1qzzb2zwrre.cloudfront.net/master/upload/64/64887242ece56026022320.jpg',
-      mapTop: '22%',
-      mapLeft: '24%',
+      mapTop: '28%',
+      mapLeft: '42.8%',
     },
     {
       id: 'charles',
@@ -38,8 +38,8 @@
       description:
         'Set within the verdant Lenbachgärten quarter, the effortlessly elegant Charles Hotel in Munich is where contemporary style meets traditional Bavarian hospitality.',
       image: 'https://d1t1qzzb2zwrre.cloudfront.net/master/upload/64/6488731d13a0e539669644.jpeg',
-      mapTop: '48%',
-      mapLeft: '52%',
+      mapTop: '40%',
+      mapLeft: '52.5%',
     },
     {
       id: 'savoy',
@@ -50,8 +50,8 @@
       description:
         "In pride of place on the Piazza della Repubblica, amongst the city's leading landmarks, an iconic Florentine hotel.",
       image: 'https://d1t1qzzb2zwrre.cloudfront.net/master/upload/64/648872ce61473213807990.jpg',
-      mapTop: '58%',
-      mapLeft: '50%',
+      mapTop: '47%',
+      mapLeft: '53%',
     },
     {
       id: 'de-russie',
@@ -62,8 +62,8 @@
       description:
         'A true Roman luminary between Piazza del Popolo and the Spanish Steps, the classical and cosmopolitan come together at Hotel de Russie.',
       image: 'https://d1t1qzzb2zwrre.cloudfront.net/master/upload/64/6488db44d06ae879250731.jpg',
-      mapTop: '62%',
-      mapLeft: '54%',
+      mapTop: '50%',
+      mapLeft: '54.2%',
     },
     {
       id: 'verdura',
@@ -74,14 +74,19 @@
       description:
         'Welcome to Verdura Resort: 230 hectares of sun-kissed Mediterranean coastline, countryside, spa and golf.',
       image: 'https://d1t1qzzb2zwrre.cloudfront.net/master/upload/64/648b73892ad6f265951230.JPG',
-      mapTop: '72%',
-      mapLeft: '52%',
+      mapTop: '57.5%',
+      mapLeft: '55.5%',
     },
   ];
 
+  var MAP_PIN_SVG =
+    '<svg viewBox="0 0 24 32" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0zm0 16.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/>' +
+    '</svg>';
+
   var els = {
     list: document.getElementById('rfHotelsList'),
-    map: document.getElementById('rfHotelsMap'),
+    mapMarkers: document.getElementById('rfHotelsMapMarkers'),
     tabDates: document.getElementById('rfHotelsTabDates'),
     modifyBtn: document.getElementById('rfHotelsModifyDates'),
     empty: document.getElementById('rfHotelsEmpty'),
@@ -151,18 +156,16 @@
   }
 
   function renderMapMarkers(hotels) {
-    if (!els.map) return;
-    els.map.querySelectorAll('.rf-hotels-map-marker').forEach(function (m) {
-      m.remove();
-    });
+    if (!els.mapMarkers) return;
+    els.mapMarkers.innerHTML = '';
     hotels.forEach(function (hotel) {
       var pin = document.createElement('div');
-      pin.className = 'rf-hotels-map-marker';
-      pin.textContent = hotel.price;
+      pin.className = 'rf-hotels-map-pin';
       pin.style.top = hotel.mapTop;
       pin.style.left = hotel.mapLeft;
-      pin.setAttribute('aria-hidden', 'true');
-      els.map.appendChild(pin);
+      pin.title = hotel.name;
+      pin.innerHTML = MAP_PIN_SVG;
+      els.mapMarkers.appendChild(pin);
     });
   }
 

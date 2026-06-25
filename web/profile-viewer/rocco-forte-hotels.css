@@ -14,8 +14,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 100%;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   background: var(--rf-white, #fff);
 }
 
@@ -160,29 +161,31 @@
 
 .rf-hotels-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 42%);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   flex: 1;
-  min-height: 0;
+  min-height: calc(100vh - 200px);
+  width: 100%;
 }
 
 .rf-hotels-list {
   overflow-y: auto;
-  max-height: calc(100vh - 220px);
+  min-height: 0;
+  height: 100%;
   border-right: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .rf-hotel-card {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
   gap: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  min-height: 160px;
+  min-height: 180px;
 }
 
 .rf-hotel-card__image {
   background-size: cover;
   background-position: center;
-  min-height: 160px;
+  min-height: 180px;
 }
 
 .rf-hotel-card__body {
@@ -276,43 +279,56 @@
 
 .rf-hotel-card__select:hover {
   background: var(--rf-red, #e20714);
+  color: var(--rf-white, #fff);
 }
 
 .rf-hotels-map-panel {
   position: relative;
-  min-height: 400px;
-  background: #e8eef2;
+  min-height: 0;
+  height: 100%;
+  background: #dce6ec;
   overflow: hidden;
 }
 
-.rf-hotels-map-panel__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.85;
+.rf-hotels-map-panel__viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
-.rf-hotels-map-marker {
+/* Zoomed crop: UK through Italy/Sicily (hotel cluster only) */
+.rf-hotels-map-panel__scene {
+  position: absolute;
+  width: 265%;
+  left: -38%;
+  top: -16%;
+}
+
+.rf-hotels-map-panel__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+
+.rf-hotels-map-panel__markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rf-hotels-map-pin {
   position: absolute;
   transform: translate(-50%, -100%);
-  padding: 0.25rem 0.45rem;
-  background: var(--rf-white, #fff);
-  border: 1px solid var(--rf-black, #000);
-  font-size: 10px;
-  white-space: nowrap;
+  width: 22px;
+  height: 30px;
   color: var(--rf-black, #000);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.rf-hotels-map-marker::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  transform: translateX(-50%);
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid var(--rf-black, #000);
+.rf-hotels-map-pin svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .rf-hotels-footer {
@@ -339,7 +355,6 @@
   color: var(--rf-black, #000);
 }
 
-.rocco-forte-demo-page .rf-hotels-page button,
 .rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__name,
 .rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__desc,
 .rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__price,
@@ -347,18 +362,31 @@
   color: inherit;
 }
 
-.rocco-forte-demo-page .rf-hotel-card__select {
+.rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__select,
+html[data-aep-theme='dark'] body.rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__select,
+html:not([data-aep-theme='dark']) body.rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__select {
+  color: var(--rf-white, #fff);
+}
+
+.rocco-forte-demo-page .rf-hotels-page .rf-hotel-card__select:hover {
   color: var(--rf-white, #fff);
 }
 
 @media (max-width: 960px) {
   .rf-hotels-split {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .rf-hotels-map-panel {
-    min-height: 280px;
+    min-height: 320px;
     order: -1;
+  }
+
+  .rf-hotels-map-panel__scene {
+    width: 320%;
+    left: -48%;
+    top: -14%;
   }
 
   .rf-hotel-card {
@@ -366,7 +394,7 @@
   }
 
   .rf-hotel-card__image {
-    min-height: 140px;
+    min-height: 160px;
   }
 
   .rf-hotel-card__desc-row {

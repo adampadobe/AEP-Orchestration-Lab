@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="mod-demo.css?v=20260625-rocco-forte">
   <link rel="stylesheet" href="rocco-forte-demo.css?v=20260625-rocco-forte">
   <link rel="stylesheet" href="rocco-forte-site.css?v=20260625-rocco-forte">
-  <link rel="stylesheet" href="rocco-forte-hotels.css?v=20260625-rocco-forte-hotels">
+  <link rel="stylesheet" href="rocco-forte-hotels.css?v=20260625-rocco-forte-hotels-v2">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260617-iframe-midrail-stack">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -100,13 +100,18 @@
 
       <div class="rf-hotels-split" id="rfHotelsSplit">
         <div class="rf-hotels-list" id="rfHotelsList" role="list"></div>
-        <div class="rf-hotels-map-panel" id="rfHotelsMap" aria-hidden="true">
-          <img
-            class="rf-hotels-map-panel__img"
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Europe_orthographic_Caucasus_Urals_boundary_%28grey%29.svg/1280px-Europe_orthographic_Caucasus_Urals_boundary_%28grey%29.svg.png"
-            alt=""
-            decoding="async"
-          >
+        <div class="rf-hotels-map-panel" id="rfHotelsMap" aria-label="Hotel locations map">
+          <div class="rf-hotels-map-panel__viewport">
+            <div class="rf-hotels-map-panel__scene" id="rfHotelsMapScene">
+              <img
+                class="rf-hotels-map-panel__img"
+                src="rocco-forte-demo-assets/europe-map.png"
+                alt="Map of Europe showing Rocco Forte hotel locations"
+                decoding="async"
+              >
+              <div class="rf-hotels-map-panel__markers" id="rfHotelsMapMarkers" aria-hidden="true"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -203,7 +208,7 @@
   </script>
   <script src="rocco-forte-booking-state.js?v=20260625-rocco-forte-hotels"></script>
   <script src="rocco-forte-demo.js?v=20260625-rocco-forte"></script>
-  <script src="rocco-forte-hotels.js?v=20260625-rocco-forte-hotels"></script>
+  <script src="rocco-forte-hotels.js?v=20260625-rocco-forte-hotels-v2"></script>
   <script src="site-clone-bc.js?v=20260625-bc-aep-events-ecid"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
