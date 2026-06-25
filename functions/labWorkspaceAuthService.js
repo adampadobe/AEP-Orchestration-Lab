@@ -148,6 +148,20 @@ function badRequest(message) {
   return err;
 }
 
+function parseApprovalNotifyEmails(notifyEmailRaw) {
+  const raw = String(notifyEmailRaw || '').trim();
+  if (!raw) return [];
+  const seen = new Set();
+  const recipients = [];
+  raw.split(/[,;]+/).forEach((part) => {
+    const email = sanitizeEmail(part);
+    if (!email || !isValidEmail(email) || seen.has(email)) return;
+    seen.add(email);
+    recipients.push(email);
+  });
+  return recipients;
+}
+
 async function sendApprovalNotification({
   uid,
   firstName,
@@ -192,6 +206,10 @@ async function sendApprovalNotification({
           '',
           'If this request is unexpected, ignore this email.',
         ].join('\n');
+  const recipients = parseApprovalNotifyEmails(notifyEmail);
+  if (!recipients.length) {
+    return { skipped: true, reason: 'no_recipients' };
+  }
   return sendMailgunEmail({
     apiKey: mailgunKey,
     domain: mailgunDomain,
@@ -199,7 +217,7 @@ async function sendApprovalNotification({
     fromEmail: mailFrom,
     subject,
     text,
-    recipients: [notifyEmail],
+    recipients,
   });
 }
 
