@@ -23,6 +23,9 @@
   let abandonBasketTimerId = null;
   let abandonBasketSentForRange = '';
 
+  /** Debounce after range complete — avoids firing while user adjusts checkout date. */
+  const ABANDON_BASKET_DELAY_MS = 1500;
+
   function clearAbandonBasketTimer() {
     if (abandonBasketTimerId != null) {
       global.clearTimeout(abandonBasketTimerId);
@@ -106,7 +109,7 @@
     }
   }
 
-  /** Fires abandon.basket 5s after a complete date range is selected (timer resets on change). */
+  /** Fires abandon.basket shortly after a complete date range is selected (timer resets on change). */
   function scheduleAbandonBasketAfterDates() {
     clearAbandonBasketTimer();
     if (!state.checkIn || !state.checkOut) return;
@@ -121,7 +124,7 @@
       if (abandonBasketSentForRange === rangeKey) return;
       abandonBasketSentForRange = rangeKey;
       void sendBookingEvent('abandon.basket');
-    }, 5000);
+    }, ABANDON_BASKET_DELAY_MS);
   }
 
   function startOfMonth(d) {
@@ -476,6 +479,7 @@
   restoreFromSession();
   render();
   updateCalendarNavState();
+  scheduleAbandonBasketAfterDates();
 
   global.RoccoForteBooking = {
     getState: function () {
