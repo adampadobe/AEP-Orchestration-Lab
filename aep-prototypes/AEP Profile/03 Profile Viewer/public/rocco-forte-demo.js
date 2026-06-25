@@ -6,8 +6,56 @@
     const cfg = global.roccoForteDemoConfig || {};
     const viewName = cfg.viewName || 'Rocco Forte Hotels';
     const customerEmail = document.getElementById('customerEmail');
-    if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+    const roccoForteNs = document.getElementById('roccoForteNs');
+
+    function getIdentityNamespace() {
+      let ns = 'email';
+      try {
+        if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+          ns = AepIdentityPicker.getNamespace('customerEmail') || 'email';
+        } else if (roccoForteNs && roccoForteNs.value) {
+          ns = String(roccoForteNs.value).trim().toLowerCase();
+        }
+      } catch {
+        /* noop */
+      }
+      return ns;
+    }
+
+    function rememberRoccoForteSessionIdentifier(value) {
+      if (typeof setSessionIdentifier !== 'function') return;
+      setSessionIdentifier(value, getIdentityNamespace());
+    }
+
+    function hydrateNamespaceFromSession() {
+      try {
+        const raw = global.sessionStorage.getItem('aep-demo-session-identifier-v1');
+        if (!raw || !roccoForteNs) return;
+        const o = JSON.parse(raw);
+        if (!o || typeof o.ns !== 'string' || !o.ns.trim()) return;
+        roccoForteNs.value = o.ns.trim().toLowerCase();
+      } catch {
+        /* noop */
+      }
+    }
+
+    if (typeof attachEmailDatalist === 'function') {
+      attachEmailDatalist('customerEmail', 'recentEmails', 'roccoForteNs');
+    }
     if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'roccoForteNs');
+    hydrateNamespaceFromSession();
+    if (typeof hydrateIdentifierFromSession === 'function') {
+      hydrateIdentifierFromSession('customerEmail', 'roccoForteNs');
+    }
+    if (roccoForteNs) {
+      roccoForteNs.addEventListener('change', function () {
+        global.requestAnimationFrame(function () {
+          if (typeof hydrateIdentifierFromSession === 'function') {
+            hydrateIdentifierFromSession('customerEmail', 'roccoForteNs');
+          }
+        });
+      });
+    }
 
     const queryProfileBtn = document.getElementById('queryProfileBtn');
     const generatorTargetSelect = document.getElementById('generatorTarget');
@@ -142,22 +190,35 @@
       }
     }
 
-    queryProfileBtn &&
-      queryProfileBtn.addEventListener('click', async () => {
-        const email = getEmail().trim();
-        if (!email) {
-          setRoccoForteMessage('Enter a customer identifier first.', 'error');
-          return;
-        }
-        setRoccoForteMessage('Looking up profile...', '');
-        const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
-        if (!ok || !roccoForteTagsInjection || typeof roccoForteTagsInjection.stitchAfterProfileLookup !== 'function') return;
+    async function performProfileLookup(options) {
+      const opts = options || {};
+      const idVal = getEmail().trim();
+      if (!idVal) return false;
+      if (opts.remember !== false) rememberRoccoForteSessionIdentifier(idVal);
+      if (opts.showMessage) setRoccoForteMessage('Looking up profile...', '');
+      const ok = await DemoProfileDrawer.loadProfileDataForDrawer(idVal, { updateMessage: !!opts.showMessage });
+      if (!ok) return false;
+      if (roccoForteTagsInjection && typeof roccoForteTagsInjection.stitchAfterProfileLookup === 'function') {
         const profile =
           global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
             ? global.DemoProfileDrawer.getLastLookedUpProfile()
             : null;
-        const stitched = await roccoForteTagsInjection.stitchAfterProfileLookup(profile, email);
-        if (stitched) setRoccoForteMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+        const stitched = await roccoForteTagsInjection.stitchAfterProfileLookup(profile, idVal);
+        if (stitched && opts.showMessage) {
+          setRoccoForteMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+        }
+      }
+      return true;
+    }
+
+    queryProfileBtn &&
+      queryProfileBtn.addEventListener('click', async () => {
+        const idVal = getEmail().trim();
+        if (!idVal) {
+          setRoccoForteMessage('Enter a customer identifier first.', 'error');
+          return;
+        }
+        await performProfileLookup({ showMessage: true });
       });
 
     void loadGeneratorTargets();
@@ -249,6 +310,8 @@
       getSelectedGeneratorTarget: getSelectedGeneratorTarget,
       fetchBrowserEcidOnInit: true,
     });
+
+    void performProfileLookup({ showMessage: false, remember: false });
 
     if (typeof cfg.onReady === 'function') {
       cfg.onReady({ setMessage: setRoccoForteMessage });
