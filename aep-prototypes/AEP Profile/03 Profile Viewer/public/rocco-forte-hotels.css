@@ -288,6 +288,7 @@
   height: 100%;
   background: #dce6ec;
   overflow: hidden;
+  touch-action: none;
 }
 
 .rf-hotels-map-panel__viewport {

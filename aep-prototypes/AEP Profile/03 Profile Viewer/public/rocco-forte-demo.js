@@ -313,6 +313,37 @@
 
     void performProfileLookup({ showMessage: false, remember: false });
 
+    const LAB_SOURCE = 'rocco-forte-lab';
+    const SHELL_SOURCE = 'rocco-forte-demo-shell';
+
+    async function handleRoccoForteLabMessage(data) {
+      if (!data || data.source !== LAB_SOURCE) return;
+      if (data.type !== 'login-request') return;
+      const email = String(data.email || '').trim();
+      if (!email) return;
+      if (customerEmail) customerEmail.value = email;
+      setRoccoForteMessage('Looking up profile...', '');
+      const ok = await performProfileLookup({ showMessage: true, remember: true });
+      const profile =
+        global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+          ? global.DemoProfileDrawer.getLastLookedUpProfile()
+          : null;
+      global.postMessage(
+        {
+          source: SHELL_SOURCE,
+          type: 'login-complete',
+          found: !!ok,
+          email: email,
+          firstName: profile && profile.firstName ? profile.firstName : null,
+        },
+        '*',
+      );
+    }
+
+    global.addEventListener('message', function (ev) {
+      void handleRoccoForteLabMessage(ev.data);
+    });
+
     if (typeof cfg.onReady === 'function') {
       cfg.onReady({ setMessage: setRoccoForteMessage });
     }

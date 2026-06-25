@@ -235,6 +235,7 @@
       viewport: els.mapViewport,
       scene: els.mapScene,
       image: els.mapImage,
+      panel: document.getElementById('rfHotelsMap'),
     });
   }
 

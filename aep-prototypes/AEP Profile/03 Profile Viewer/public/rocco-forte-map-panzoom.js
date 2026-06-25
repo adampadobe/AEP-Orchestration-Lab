@@ -1,10 +1,8 @@
 /**
- * Rocco Forte Hotels — sharp pan/zoom for static map image (native pixel scale cap).
+ * Rocco Forte Hotels — viewport pan/zoom over a fixed-size map (cover fill, wheel zoom).
  */
 (function roccoForteMapPanZoom(global) {
   'use strict';
-
-  var HOTEL_BOUNDS = { minX: 0.395, minY: 0.22, maxX: 0.58, maxY: 0.62 };
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -15,20 +13,20 @@
    *   viewport: HTMLElement,
    *   scene: HTMLElement,
    *   image: HTMLImageElement,
-   *   bounds?: { minX: number, minY: number, maxX: number, maxY: number },
+   *   panel?: HTMLElement,
    * }} config
    */
   function init(config) {
     var viewport = config.viewport;
     var scene = config.scene;
     var image = config.image;
-    var bounds = config.bounds || HOTEL_BOUNDS;
+    var panel = config.panel || viewport;
     if (!viewport || !scene || !image) return null;
 
     var scale = 1;
     var tx = 0;
     var ty = 0;
-    var minScale = 0.2;
+    var minScale = 1;
     var maxScale = 1;
     var imgW = 0;
     var imgH = 0;
@@ -38,42 +36,43 @@
     var dragOriginTx = 0;
     var dragOriginTy = 0;
 
-    function applyTransform() {
-      scene.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + scale + ')';
-    }
-
     function viewportSize() {
       return { w: viewport.clientWidth, h: viewport.clientHeight };
     }
 
-    function computeScaleLimits() {
-      if (!imgW || !imgH) return;
+    function coverScale() {
       var vp = viewportSize();
-      minScale = Math.min(vp.w / imgW, vp.h / imgH) * 0.92;
-      maxScale = 1;
-      scale = clamp(scale, minScale, maxScale);
+      if (!imgW || !imgH || !vp.w || !vp.h) return 1;
+      return Math.max(vp.w / imgW, vp.h / imgH);
     }
 
-    function fitToBounds(targetBounds, paddingFactor) {
-      if (!imgW || !imgH) return;
+    function applyTransform() {
+      scene.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + scale + ')';
+    }
+
+    function constrainPan() {
       var vp = viewportSize();
-      if (!vp.w || !vp.h) return;
-      var pad = typeof paddingFactor === 'number' ? paddingFactor : 0.06;
-      var bx = targetBounds.minX * imgW;
-      var by = targetBounds.minY * imgH;
-      var bw = (targetBounds.maxX - targetBounds.minX) * imgW;
-      var bh = (targetBounds.maxY - targetBounds.minY) * imgH;
-      var padX = bw * pad;
-      var padY = bh * pad;
-      bx -= padX;
-      by -= padY;
-      bw += padX * 2;
-      bh += padY * 2;
-      var nextScale = Math.min(vp.w / bw, vp.h / bh);
-      nextScale = clamp(nextScale, minScale, maxScale);
-      scale = nextScale;
-      tx = (vp.w - bw * scale) / 2 - bx * scale;
-      ty = (vp.h - bh * scale) / 2 - by * scale;
+      var scaledW = imgW * scale;
+      var scaledH = imgH * scale;
+      if (scaledW <= vp.w) tx = (vp.w - scaledW) / 2;
+      else tx = clamp(tx, vp.w - scaledW, 0);
+      if (scaledH <= vp.h) ty = (vp.h - scaledH) / 2;
+      else ty = clamp(ty, vp.h - scaledH, 0);
+    }
+
+    function computeScaleLimits() {
+      minScale = coverScale();
+      maxScale = Math.max(minScale * 2.75, minScale + 0.35);
+      maxScale = Math.min(maxScale, 1);
+      scale = clamp(scale, minScale, maxScale);
+      constrainPan();
+    }
+
+    function fitCover() {
+      if (!imgW || !imgH) return;
+      scale = coverScale();
+      computeScaleLimits();
+      constrainPan();
       applyTransform();
     }
 
@@ -88,12 +87,20 @@
       scale = nextScale;
       tx = mx - sceneX * scale;
       ty = my - sceneY * scale;
+      constrainPan();
       applyTransform();
     }
 
     function onWheel(e) {
+      if (!panel.contains(e.target) && e.target !== panel && e.target !== viewport) {
+        var rect = panel.getBoundingClientRect();
+        if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+          return;
+        }
+      }
       e.preventDefault();
-      var factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      e.stopPropagation();
+      var factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
       zoomAt(e.clientX, e.clientY, factor);
     }
 
@@ -112,10 +119,11 @@
       if (!dragging) return;
       tx = dragOriginTx + (e.clientX - dragStartX);
       ty = dragOriginTy + (e.clientY - dragStartY);
+      constrainPan();
       applyTransform();
     }
 
-    function onPointerUp(e) {
+    function endDrag(e) {
       if (!dragging) return;
       dragging = false;
       viewport.classList.remove('is-dragging');
@@ -135,21 +143,29 @@
       image.style.height = imgH + 'px';
       scene.style.width = imgW + 'px';
       scene.style.height = imgH + 'px';
-      computeScaleLimits();
-      fitToBounds(bounds);
+      fitCover();
     }
 
     function onResize() {
+      var prevCenterX = (viewport.clientWidth / 2 - tx) / scale;
+      var prevCenterY = (viewport.clientHeight / 2 - ty) / scale;
       computeScaleLimits();
+      tx = viewport.clientWidth / 2 - prevCenterX * scale;
+      ty = viewport.clientHeight / 2 - prevCenterY * scale;
+      constrainPan();
       applyTransform();
     }
 
+    panel.addEventListener('wheel', onWheel, { passive: false, capture: true });
     viewport.addEventListener('wheel', onWheel, { passive: false });
     viewport.addEventListener('pointerdown', onPointerDown);
     viewport.addEventListener('pointermove', onPointerMove);
-    viewport.addEventListener('pointerup', onPointerUp);
-    viewport.addEventListener('pointercancel', onPointerUp);
-    viewport.addEventListener('pointerleave', onPointerUp);
+    viewport.addEventListener('pointerup', endDrag);
+    viewport.addEventListener('pointercancel', endDrag);
+    viewport.addEventListener('pointerleave', endDrag);
+    viewport.setAttribute('tabindex', '0');
+    viewport.setAttribute('role', 'application');
+    viewport.setAttribute('aria-label', 'Interactive hotel map. Scroll to zoom, drag to pan.');
 
     if (typeof global.ResizeObserver !== 'undefined') {
       var ro = new global.ResizeObserver(onResize);
@@ -164,21 +180,8 @@
       image.addEventListener('load', onImageReady, { once: true });
     }
 
-    return {
-      fitToBounds: fitToBounds,
-      fitHotels: function () {
-        fitToBounds(bounds);
-      },
-      fitFullMap: function () {
-        if (!imgW || !imgH) return;
-        var vp = viewportSize();
-        scale = clamp(Math.min(vp.w / imgW, vp.h / imgH) * 0.98, minScale, maxScale);
-        tx = (vp.w - imgW * scale) / 2;
-        ty = (vp.h - imgH * scale) / 2;
-        applyTransform();
-      },
-    };
+    return { fitCover: fitCover, zoomAt: zoomAt };
   }
 
-  global.RoccoForteMapPanZoom = { init: init, HOTEL_BOUNDS: HOTEL_BOUNDS };
+  global.RoccoForteMapPanZoom = { init: init };
 })(typeof window !== 'undefined' ? window : globalThis);
