@@ -3,21 +3,24 @@
  */
 
 .rf-booking-page {
+  --rf-booking-shell-max: min(1280px, calc(100vw - 2.5rem));
   min-height: 100%;
   background: var(--rf-white, #fff);
   color: var(--rf-black, #000);
-  padding: 2.5rem 1rem 3rem;
+  padding: 2rem clamp(0.75rem, 2vw, 1.5rem) 3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 .rf-booking-shell {
   width: 100%;
-  max-width: 960px;
+  max-width: var(--rf-booking-shell-max);
   margin: 0 auto;
   border: 1px solid var(--rf-black, #000);
   background: var(--rf-white, #fff);
+  overflow: hidden;
 }
 
 .rf-booking-topbar {
@@ -75,7 +78,7 @@
 
 .rf-booking-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 73fr) minmax(0, 27fr);
 }
 
 .rf-booking-calendar-panel {
@@ -205,6 +208,7 @@
 .rf-booking-summary {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .rf-booking-dates-row {
@@ -342,20 +346,27 @@
 
 .rf-booking-codes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   border-bottom: 1px solid var(--rf-black, #000);
+  min-width: 0;
 }
 
 .rf-booking-codes input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0.85rem 0.75rem;
   border: none;
   border-right: 1px solid var(--rf-black, #000);
+  border-radius: 0;
   background: var(--rf-white, #fff);
   color: var(--rf-black, #000);
   font-family: var(--rf-sans);
   font-size: 12px;
   letter-spacing: 0.06em;
+  flex: none;
+  box-shadow: none;
 }
 
 .rf-booking-codes input:last-child {
@@ -395,7 +406,7 @@
 
 .rf-booking-footer-actions {
   width: 100%;
-  max-width: 960px;
+  max-width: var(--rf-booking-shell-max, min(1280px, calc(100vw - 2.5rem)));
   margin: 1.5rem auto 0;
   text-align: center;
 }
@@ -416,7 +427,7 @@
 .rf-booking-modify {
   display: block;
   margin: 1rem 0 0 auto;
-  max-width: 960px;
+  max-width: var(--rf-booking-shell-max, min(1280px, calc(100vw - 2.5rem)));
   width: 100%;
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -443,6 +454,33 @@
 .rocco-forte-demo-page .rf-booking-codes input,
 .rocco-forte-demo-page .rf-booking-range-bar:not(.is-empty),
 .rocco-forte-demo-page .rf-booking-multi-hotel {
+  color: var(--rf-black, #000);
+}
+
+/* Override lab dashboard input defaults (min-width 160px breaks promo/group row) */
+.rocco-forte-demo-page .rf-booking-page input[type='text'] {
+  min-width: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html:not([data-aep-theme='dark']) body.rocco-forte-demo-page .rf-booking-page input[type='text'] {
+  border: none;
+  background: var(--rf-white, #fff);
+  color: var(--rf-black, #000);
+  padding: 0.85rem 0.75rem;
+  font-size: 12px;
+}
+
+html:not([data-aep-theme='dark']) body.rocco-forte-demo-page .rf-booking-page input[type='text']:focus {
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+
+html[data-aep-theme='dark'] body.rocco-forte-demo-page .rf-booking-page input[type='text'] {
+  border: none;
+  background: var(--rf-white, #fff);
   color: var(--rf-black, #000);
 }
 
