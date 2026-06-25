@@ -1,0 +1,66 @@
+/**
+ * Rocco Forte Hotels demo — lab chrome (Sky / MOD site-clone overlay pattern).
+ */
+
+.rocco-forte-demo-page .mod-demo-id-inner--spectrum {
+  width: 100%;
+}
+
+.rocco-forte-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.rocco-forte-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: none !important;
+}
+
+.rocco-forte-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
+  display: flex !important;
+}
+
+.rocco-forte-demo-page.aep-bc-modal-open .rocco-forte-site {
+  visibility: visible;
+}
+
+.rocco-forte-demo-page.aep-bc-modal-open #brand-concierge-mount-host,
+.rocco-forte-demo-page.aep-bc-modal-open .site-clone-bc-frame-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.rocco-forte-demo-page .mod-demo-id-inner .roccoForte-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.85rem;
+}
+
+.rocco-forte-demo-page .mod-demo-id-inner .aep-demo-web-push-row,
+.rocco-forte-demo-page .mod-demo-id-inner .aep-bc-toggle-row,
+.rocco-forte-demo-page .mod-demo-id-inner .aep-bc-launcher-row {
+  flex: 0 0 auto;
+  padding-top: 0;
+}
+
+.rocco-forte-demo-page .mod-demo-id-inner .aep-demo-web-push-retry {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.rocco-forte-demo-page .mod-demo-id-inner .aep-demo-web-push-retry-hint,
+.rocco-forte-demo-page .mod-demo-id-inner .aep-demo-web-push-hint {
+  display: none;
+}
+
+/* Full-viewport local site shell (replaces iframe in Sky demo) */
+.rocco-forte-site {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: auto;
+  background: var(--rf-white, #fff);
+  -webkit-overflow-scrolling: touch;
+}
+
+.rocco-forte-demo-page .rocco-forte-site {
+  transition: padding-bottom 0.2s ease;
+}

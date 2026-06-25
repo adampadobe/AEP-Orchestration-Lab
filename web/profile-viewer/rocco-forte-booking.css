@@ -1,0 +1,395 @@
+/**
+ * Rocco Forte Hotels — booking date selection page.
+ */
+
+.rf-booking-page {
+  min-height: 100%;
+  background: var(--rf-white, #fff);
+  padding: calc(var(--rf-header-height, 72px) + 1.5rem) 1rem 3rem;
+}
+
+.rf-booking-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  border: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-topbar__logo img {
+  height: 38px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.rf-booking-topbar__utilities {
+  display: flex;
+  gap: 1rem;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.rf-booking-range-bar {
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--rf-black, #000);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  min-height: 2.25rem;
+}
+
+.rf-booking-range-bar.is-empty {
+  color: var(--rf-gray, #767676);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.rf-booking-main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+}
+
+.rf-booking-calendar-panel {
+  padding: 1.5rem 1.25rem 2rem;
+  border-right: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-calendar-title {
+  margin: 0 0 1.5rem;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.rf-booking-calendars {
+  position: relative;
+}
+
+.rf-booking-calendars__nav {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.rf-booking-calendars__nav button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rf-black, #000);
+  background: var(--rf-white, #fff);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.rf-booking-months {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.rf-booking-month__title {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.rf-booking-weekdays,
+.rf-booking-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.rf-booking-weekday {
+  padding: 0.35rem 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rf-gray, #767676);
+}
+
+.rf-booking-day {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--rf-sans);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--rf-black, #000);
+  cursor: pointer;
+  padding: 0;
+}
+
+.rf-booking-day.is-outside {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.rf-booking-day.is-disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+}
+
+.rf-booking-day:not(.is-disabled):not(.is-selected):hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.rf-booking-day.is-selected {
+  background: var(--rf-red, #e20714);
+  color: var(--rf-white, #fff);
+}
+
+.rf-booking-day.is-range-middle {
+  background: var(--rf-red, #e20714);
+  color: var(--rf-white, #fff);
+}
+
+.rf-booking-day.is-range-start {
+  background: var(--rf-red, #e20714);
+  color: var(--rf-white, #fff);
+}
+
+.rf-booking-day.is-range-end {
+  background: var(--rf-red, #e20714);
+  color: var(--rf-white, #fff);
+}
+
+/* Summary panel */
+.rf-booking-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.rf-booking-dates-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-date-col {
+  border-right: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-date-col:last-child {
+  border-right: none;
+}
+
+.rf-booking-date-col__label {
+  padding: 0.45rem 0.75rem;
+  background: var(--rf-black, #000);
+  color: var(--rf-white, #fff);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.rf-booking-date-col__value {
+  min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+.rf-booking-date-col__day {
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.rf-booking-date-col__month {
+  margin-top: 0.35rem;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rf-booking-date-col__empty {
+  font-size: 11px;
+  color: var(--rf-gray, #767676);
+}
+
+.rf-booking-field {
+  border-bottom: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-dropdown {
+  position: relative;
+}
+
+.rf-booking-dropdown__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border: none;
+  background: var(--rf-white, #fff);
+  font-family: var(--rf-sans);
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rf-booking-dropdown__caret {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--rf-black, #000);
+  transition: transform 0.15s ease;
+}
+
+.rf-booking-dropdown.is-open .rf-booking-dropdown__caret {
+  transform: rotate(180deg);
+}
+
+.rf-booking-dropdown__menu {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  z-index: 5;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--rf-black, #000);
+  border-top: none;
+  background: var(--rf-white, #fff);
+}
+
+.rf-booking-dropdown__menu[hidden] {
+  display: none;
+}
+
+.rf-booking-dropdown__option {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: none;
+  background: transparent;
+  font-family: var(--rf-sans);
+  font-size: 13px;
+  font-weight: 300;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rf-booking-dropdown__option:hover,
+.rf-booking-dropdown__option.is-active {
+  background: var(--rf-gray-light, #e8e8e8);
+}
+
+.rf-booking-codes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--rf-black, #000);
+}
+
+.rf-booking-codes input {
+  width: 100%;
+  padding: 0.85rem 0.75rem;
+  border: none;
+  border-right: 1px solid var(--rf-black, #000);
+  font-family: var(--rf-sans);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.rf-booking-codes input:last-child {
+  border-right: none;
+}
+
+.rf-booking-codes input::placeholder {
+  color: var(--rf-gray, #767676);
+  text-transform: capitalize;
+}
+
+.rf-booking-check-btn {
+  margin-top: auto;
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  background: var(--rf-gray-light, #e8e8e8);
+  color: rgba(0, 0, 0, 0.45);
+  font-family: var(--rf-sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: not-allowed;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.rf-booking-check-btn.is-ready {
+  background: var(--rf-black, #000);
+  color: var(--rf-white, #fff);
+  cursor: pointer;
+}
+
+.rf-booking-check-btn.is-ready:hover {
+  background: var(--rf-red, #e20714);
+}
+
+.rf-booking-footer-actions {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.rf-booking-multi-hotel {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--rf-black, #000);
+  background: transparent;
+  font-family: var(--rf-sans);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.rf-booking-modify {
+  display: block;
+  margin: 1rem 0 0 auto;
+  max-width: 1100px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  color: var(--rf-gray, #767676);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .rf-booking-main {
+    grid-template-columns: 1fr;
+  }
+
+  .rf-booking-calendar-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--rf-black, #000);
+  }
+
+  .rf-booking-months {
+    grid-template-columns: 1fr;
+  }
+}
