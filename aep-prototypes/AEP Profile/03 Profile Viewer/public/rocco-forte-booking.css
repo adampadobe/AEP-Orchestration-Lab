@@ -5,44 +5,65 @@
 .rf-booking-page {
   min-height: 100%;
   background: var(--rf-white, #fff);
-  padding: calc(var(--rf-header-height, 72px) + 1.5rem) 1rem 3rem;
+  color: var(--rf-black, #000);
+  padding: 2.5rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .rf-booking-shell {
-  max-width: 1100px;
+  width: 100%;
+  max-width: 960px;
   margin: 0 auto;
   border: 1px solid var(--rf-black, #000);
+  background: var(--rf-white, #fff);
 }
 
 .rf-booking-topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--rf-black, #000);
 }
 
+.rf-booking-topbar__logo {
+  justify-self: center;
+  text-align: center;
+}
+
 .rf-booking-topbar__logo img {
-  height: 38px;
+  height: 42px;
   width: auto;
   margin: 0 auto;
 }
 
 .rf-booking-topbar__utilities {
   display: flex;
-  gap: 1rem;
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  gap: 1.25rem;
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--rf-black, #000);
+}
+
+.rf-booking-topbar__utilities--spacer {
+  visibility: hidden;
+}
+
+.rf-booking-topbar__utilities:last-child {
+  justify-self: end;
 }
 
 .rf-booking-range-bar {
-  padding: 0.65rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   border-bottom: 1px solid var(--rf-black, #000);
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-align: center;
-  min-height: 2.25rem;
+  min-height: 2.5rem;
+  color: var(--rf-black, #000);
 }
 
 .rf-booking-range-bar.is-empty {
@@ -54,11 +75,11 @@
 
 .rf-booking-main {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: minmax(0, 1fr) 280px;
 }
 
 .rf-booking-calendar-panel {
-  padding: 1.5rem 1.25rem 2rem;
+  padding: 1.75rem 2rem 2.25rem;
   border-right: 1px solid var(--rf-black, #000);
 }
 
@@ -83,19 +104,31 @@
 }
 
 .rf-booking-calendars__nav button {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--rf-black, #000);
   background: var(--rf-white, #fff);
+  color: var(--rf-black, #000);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
+  padding: 0;
+}
+
+.rf-booking-calendars__nav button[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rf-booking-calendars__nav #rfCalendarPrev {
+  display: none;
 }
 
 .rf-booking-months {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 2rem;
+  padding-right: 2.5rem;
 }
 
 .rf-booking-month__title {
@@ -208,9 +241,10 @@
 }
 
 .rf-booking-date-col__day {
-  font-size: 2rem;
+  font-size: 2.25rem;
   line-height: 1;
   font-weight: 300;
+  color: var(--rf-black, #000);
 }
 
 .rf-booking-date-col__month {
@@ -218,6 +252,7 @@
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--rf-black, #000);
 }
 
 .rf-booking-date-col__empty {
@@ -238,15 +273,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   padding: 0.9rem 1rem;
   border: none;
   background: var(--rf-white, #fff);
+  color: var(--rf-black, #000);
   font-family: var(--rf-sans);
   font-size: 13px;
   font-weight: 300;
   letter-spacing: 0.04em;
   text-align: left;
   cursor: pointer;
+}
+
+.rf-booking-dropdown__label {
+  flex: 1;
+  color: var(--rf-black, #000);
 }
 
 .rf-booking-dropdown__caret {
@@ -285,6 +327,7 @@
   padding: 0.65rem 1rem;
   border: none;
   background: transparent;
+  color: var(--rf-black, #000);
   font-family: var(--rf-sans);
   font-size: 13px;
   font-weight: 300;
@@ -308,6 +351,8 @@
   padding: 0.85rem 0.75rem;
   border: none;
   border-right: 1px solid var(--rf-black, #000);
+  background: var(--rf-white, #fff);
+  color: var(--rf-black, #000);
   font-family: var(--rf-sans);
   font-size: 12px;
   letter-spacing: 0.06em;
@@ -349,7 +394,9 @@
 }
 
 .rf-booking-footer-actions {
-  margin-top: 1.5rem;
+  width: 100%;
+  max-width: 960px;
+  margin: 1.5rem auto 0;
   text-align: center;
 }
 
@@ -358,6 +405,7 @@
   padding: 0.75rem 1.5rem;
   border: 1px solid var(--rf-black, #000);
   background: transparent;
+  color: var(--rf-black, #000);
   font-family: var(--rf-sans);
   font-size: 10px;
   letter-spacing: 0.16em;
@@ -368,7 +416,8 @@
 .rf-booking-modify {
   display: block;
   margin: 1rem 0 0 auto;
-  max-width: 1100px;
+  max-width: 960px;
+  width: 100%;
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -377,6 +426,28 @@
   background: none;
   border: none;
   cursor: pointer;
+  text-align: right;
+}
+
+/* Isolate booking UI from lab dark-theme button/input inheritance */
+.rocco-forte-demo-page .rf-booking-page,
+.rocco-forte-demo-page .rf-booking-page button,
+.rocco-forte-demo-page .rf-booking-page input {
+  color: inherit;
+}
+
+.rocco-forte-demo-page .rf-booking-dropdown__trigger,
+.rocco-forte-demo-page .rf-booking-dropdown__option,
+.rocco-forte-demo-page .rf-booking-date-col__day,
+.rocco-forte-demo-page .rf-booking-date-col__month,
+.rocco-forte-demo-page .rf-booking-codes input,
+.rocco-forte-demo-page .rf-booking-range-bar:not(.is-empty),
+.rocco-forte-demo-page .rf-booking-multi-hotel {
+  color: var(--rf-black, #000);
+}
+
+.rocco-forte-demo-page .rf-booking-check-btn.is-ready {
+  color: var(--rf-white, #fff);
 }
 
 @media (max-width: 900px) {

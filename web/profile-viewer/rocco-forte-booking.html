@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="mod-demo.css?v=20260625-rocco-forte">
   <link rel="stylesheet" href="rocco-forte-demo.css?v=20260625-rocco-forte">
   <link rel="stylesheet" href="rocco-forte-site.css?v=20260625-rocco-forte">
-  <link rel="stylesheet" href="rocco-forte-booking.css?v=20260625-rocco-forte">
+  <link rel="stylesheet" href="rocco-forte-booking.css?v=20260625-rocco-forte-v2">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260617-iframe-midrail-stack">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -66,8 +66,11 @@
     <div class="rf-booking-page">
       <div class="rf-booking-shell">
         <div class="rf-booking-topbar">
+          <div class="rf-booking-topbar__utilities rf-booking-topbar__utilities--spacer" aria-hidden="true">
+            <span>English</span>
+          </div>
           <a href="rocco-forte-demo.html" class="rf-booking-topbar__logo" aria-label="Rocco Forte Hotels home">
-            <img src="rocco-forte-demo-assets/logo.png" width="120" height="38" alt="Rocco Forte Hotels">
+            <img src="rocco-forte-demo-assets/logo.png" width="120" height="42" alt="Rocco Forte Hotels">
           </a>
           <div class="rf-booking-topbar__utilities">
             <span>English</span>
@@ -137,7 +140,7 @@
             <div class="rf-booking-field">
               <div class="rf-booking-dropdown">
                 <button type="button" class="rf-booking-dropdown__trigger" id="rfAdultsTrigger" aria-haspopup="listbox" aria-expanded="false">
-                  2 Adults
+                  <span class="rf-booking-dropdown__label">2 Adults</span>
                   <span class="rf-booking-dropdown__caret" aria-hidden="true"></span>
                 </button>
                 <ul class="rf-booking-dropdown__menu" id="rfAdultsMenu" role="listbox" hidden></ul>
@@ -147,7 +150,7 @@
             <div class="rf-booking-field">
               <div class="rf-booking-dropdown">
                 <button type="button" class="rf-booking-dropdown__trigger" id="rfChildrenTrigger" aria-haspopup="listbox" aria-expanded="false">
-                  0 Children
+                  <span class="rf-booking-dropdown__label">0 Children</span>
                   <span class="rf-booking-dropdown__caret" aria-hidden="true"></span>
                 </button>
                 <ul class="rf-booking-dropdown__menu" id="rfChildrenMenu" role="listbox" hidden></ul>
@@ -257,7 +260,7 @@
     };
   </script>
   <script src="rocco-forte-demo.js?v=20260625-rocco-forte"></script>
-  <script src="rocco-forte-booking.js?v=20260625-rocco-forte"></script>
+  <script src="rocco-forte-booking.js?v=20260625-rocco-forte-v2"></script>
   <script src="site-clone-bc.js?v=20260625-bc-aep-events-ecid"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>

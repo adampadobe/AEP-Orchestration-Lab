@@ -20,6 +20,110 @@
     viewMonth: startOfMonth(new Date()),
   };
 
+  let abandonBasketTimerId = null;
+  let abandonBasketSentForRange = '';
+
+  function clearAbandonBasketTimer() {
+    if (abandonBasketTimerId != null) {
+      global.clearTimeout(abandonBasketTimerId);
+      abandonBasketTimerId = null;
+    }
+  }
+
+  function bookingRangeKey() {
+    if (!state.checkIn || !state.checkOut) return '';
+    return state.checkIn.toISOString().slice(0, 10) + '|' + state.checkOut.toISOString().slice(0, 10);
+  }
+
+  function getEmailForEvent() {
+    const el = document.getElementById('customerEmail');
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  function getSelectedGeneratorTarget() {
+    const select = document.getElementById('generatorTarget');
+    if (!select) return null;
+    const id = select.value || '';
+    const opt = select.selectedOptions && select.selectedOptions[0];
+    if (!id || !opt) return null;
+    return { id: id, label: opt.textContent || id, transport: opt.dataset.transport || '' };
+  }
+
+  function augmentGeneratorPostBody(body) {
+    if (
+      typeof global.AepDemoGeneratorTargets !== 'undefined' &&
+      typeof global.AepDemoGeneratorTargets.augmentGeneratorPostBody === 'function'
+    ) {
+      return global.AepDemoGeneratorTargets.augmentGeneratorPostBody(body);
+    }
+    return body;
+  }
+
+  async function sendBookingEvent(eventType) {
+    const email = getEmailForEvent();
+    const target = getSelectedGeneratorTarget();
+    const infoEcid = document.getElementById('infoEcid');
+    const ecidText = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+    const ecid =
+      ecidText && ecidText !== '-' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
+
+    const body = augmentGeneratorPostBody({
+      targetId: target ? target.id : undefined,
+      email: email || undefined,
+      eventType: eventType,
+      viewName: 'Rocco Forte Hotels — Booking',
+      viewUrl: global.location ? global.location.href.split('?')[0] : '',
+      channel: 'Web',
+      public: {
+        checkIn: state.checkIn ? state.checkIn.toISOString().slice(0, 10) : null,
+        checkOut: state.checkOut ? state.checkOut.toISOString().slice(0, 10) : null,
+        adults: state.adults,
+        children: state.children,
+        promoCode: state.promoCode || null,
+        groupCode: state.groupCode || null,
+      },
+    });
+    if (ecid) body.ecid = ecid;
+
+    try {
+      const res = await fetch('/api/events/generator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.warn('[Rocco Forte demo] Event failed:', data.error || data.message || res.status);
+        return false;
+      }
+      if (typeof global.roccoForteDemoConfig !== 'undefined' && typeof global.roccoForteDemoConfig.setMessage === 'function') {
+        global.roccoForteDemoConfig.setMessage(data.message || 'abandon.basket event sent.', 'success');
+      }
+      return true;
+    } catch (err) {
+      console.warn('[Rocco Forte demo] Event network error:', err);
+      return false;
+    }
+  }
+
+  /** Fires abandon.basket 5s after a complete date range is selected (timer resets on change). */
+  function scheduleAbandonBasketAfterDates() {
+    clearAbandonBasketTimer();
+    if (!state.checkIn || !state.checkOut) return;
+
+    const rangeKey = bookingRangeKey();
+    if (abandonBasketSentForRange === rangeKey) return;
+
+    abandonBasketTimerId = global.setTimeout(function () {
+      abandonBasketTimerId = null;
+      if (!state.checkIn || !state.checkOut) return;
+      if (bookingRangeKey() !== rangeKey) return;
+      if (abandonBasketSentForRange === rangeKey) return;
+      abandonBasketSentForRange = rangeKey;
+      void sendBookingEvent('abandon.basket');
+    }, 5000);
+  }
+
   function startOfMonth(d) {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   }
@@ -162,6 +266,7 @@
 
   function onDayClick(day) {
     const d = startOfDay(day);
+    clearAbandonBasketTimer();
     if (!state.checkIn || (state.checkIn && state.checkOut)) {
       state.checkIn = d;
       state.checkOut = null;
@@ -174,6 +279,7 @@
       state.checkOut = d;
     }
     render();
+    scheduleAbandonBasketAfterDates();
   }
 
   function renderCalendars() {
@@ -206,10 +312,14 @@
     if (els.departureMonth) els.departureMonth.textContent = departure.month || '';
 
     if (els.adultsTrigger) {
-      els.adultsTrigger.textContent = state.adults + (state.adults === 1 ? ' Adult' : ' Adults');
+      const label = els.adultsTrigger.querySelector('.rf-booking-dropdown__label');
+      const text = state.adults + (state.adults === 1 ? ' Adult' : ' Adults');
+      if (label) label.textContent = text;
     }
     if (els.childrenTrigger) {
-      els.childrenTrigger.textContent = state.children + (state.children === 1 ? ' Child' : ' Children');
+      const label = els.childrenTrigger.querySelector('.rf-booking-dropdown__label');
+      const text = state.children + (state.children === 1 ? ' Child' : ' Children');
+      if (label) label.textContent = text;
     }
 
     const ready = !!(state.checkIn && state.checkOut);
@@ -276,6 +386,7 @@
       if (next.getTime() < todayMonth.getTime()) return;
       state.viewMonth = next;
       renderCalendars();
+      updateCalendarNavState();
     });
   }
 
@@ -283,7 +394,14 @@
     els.nextBtn.addEventListener('click', function () {
       state.viewMonth = addMonths(state.viewMonth, 1);
       renderCalendars();
+      updateCalendarNavState();
     });
+  }
+
+  function updateCalendarNavState() {
+    if (!els.prevBtn) return;
+    const todayMonth = startOfMonth(new Date());
+    els.prevBtn.disabled = state.viewMonth.getTime() <= todayMonth.getTime();
   }
 
   initDropdown(
@@ -319,6 +437,7 @@
   if (els.checkBtn) {
     els.checkBtn.addEventListener('click', function () {
       if (!state.checkIn || !state.checkOut) return;
+      clearAbandonBasketTimer();
       const payload = {
         checkIn: state.checkIn.toISOString().slice(0, 10),
         checkOut: state.checkOut.toISOString().slice(0, 10),
@@ -338,6 +457,7 @@
   }
 
   render();
+  updateCalendarNavState();
 
   global.RoccoForteBooking = {
     getState: function () {
