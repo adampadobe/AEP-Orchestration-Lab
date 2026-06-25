@@ -86,6 +86,9 @@
 
   var els = {
     list: document.getElementById('rfHotelsList'),
+    mapViewport: document.getElementById('rfHotelsMapViewport'),
+    mapScene: document.getElementById('rfHotelsMapScene'),
+    mapImage: document.getElementById('rfHotelsMapImg'),
     mapMarkers: document.getElementById('rfHotelsMapMarkers'),
     tabDates: document.getElementById('rfHotelsTabDates'),
     modifyBtn: document.getElementById('rfHotelsModifyDates'),
@@ -216,6 +219,23 @@
     }
 
     renderMapMarkers(HOTELS);
+    initMapPanZoom();
+  }
+
+  function initMapPanZoom() {
+    if (
+      typeof global.RoccoForteMapPanZoom === 'undefined' ||
+      !els.mapViewport ||
+      !els.mapScene ||
+      !els.mapImage
+    ) {
+      return;
+    }
+    global.RoccoForteMapPanZoom.init({
+      viewport: els.mapViewport,
+      scene: els.mapScene,
+      image: els.mapImage,
+    });
   }
 
   if (document.readyState === 'loading') {

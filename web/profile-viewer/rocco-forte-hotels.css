@@ -294,21 +294,30 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
-/* Zoomed crop: UK through Italy/Sicily (hotel cluster only) */
+.rf-hotels-map-panel__viewport.is-dragging {
+  cursor: grabbing;
+}
+
 .rf-hotels-map-panel__scene {
   position: absolute;
-  width: 265%;
-  left: -38%;
-  top: -16%;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 .rf-hotels-map-panel__img {
   display: block;
-  width: 100%;
-  height: auto;
   max-width: none;
+  image-rendering: auto;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .rf-hotels-map-panel__markers {
@@ -381,12 +390,6 @@ html:not([data-aep-theme='dark']) body.rocco-forte-demo-page .rf-hotels-page .rf
   .rf-hotels-map-panel {
     min-height: 320px;
     order: -1;
-  }
-
-  .rf-hotels-map-panel__scene {
-    width: 320%;
-    left: -48%;
-    top: -14%;
   }
 
   .rf-hotel-card {
