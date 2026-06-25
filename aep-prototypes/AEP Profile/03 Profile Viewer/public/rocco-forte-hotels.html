@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rocco Forte Hotels — Reservations (demo) – AEP Profile Viewer</title>
+  <title>Rocco Forte Hotels — Select Hotel (demo) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="mod-demo.css?v=20260625-rocco-forte">
   <link rel="stylesheet" href="rocco-forte-demo.css?v=20260625-rocco-forte">
   <link rel="stylesheet" href="rocco-forte-site.css?v=20260625-rocco-forte">
-  <link rel="stylesheet" href="rocco-forte-booking.css?v=20260625-rocco-forte-v2">
+  <link rel="stylesheet" href="rocco-forte-hotels.css?v=20260625-rocco-forte-hotels">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260617-iframe-midrail-stack">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -46,7 +46,7 @@
       <div class="mod-demo-id-inner aep-demo-id-inner"
         data-demo-env-strip-mount="site-clone-shell"
         data-demo-env-strip-variant="spectrum"
-        data-demo-env-strip-title="Rocco Forte Hotels (booking)"
+        data-demo-env-strip-title="Rocco Forte Hotels (select hotel)"
         data-demo-env-strip-subtitle="Active Configuration"
         data-demo-env-strip-prefix="roccoForte"
         data-demo-env-strip-selected-script-id="roccoForteSelectedScript"
@@ -54,7 +54,7 @@
         data-demo-env-strip-message-id="roccoForteMessage"
         data-demo-env-strip-profile-btn-label="Look up profile"
         data-demo-env-strip-bc-bottom="1"
-        data-demo-env-strip-disclaimer="Locally implemented Rocco Forte booking date selection. Not affiliated with Rocco Forte Hotels."></div>
+        data-demo-env-strip-disclaimer="Step 1 — Select Hotel. Not affiliated with Rocco Forte Hotels."></div>
     </div>
   </div>
 
@@ -62,117 +62,59 @@
     <div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div>
   </div>
 
-  <main class="rocco-forte-site" id="roccoForteSite" aria-label="Rocco Forte Hotels booking">
-    <div class="rf-booking-page">
-      <div class="rf-booking-shell">
-        <div class="rf-booking-topbar">
-          <div class="rf-booking-topbar__utilities rf-booking-topbar__utilities--spacer" aria-hidden="true">
-            <span>English</span>
-          </div>
-          <a href="rocco-forte-demo.html" class="rf-booking-topbar__logo" aria-label="Rocco Forte Hotels home">
-            <img src="rocco-forte-demo-assets/logo.png" width="120" height="42" alt="Rocco Forte Hotels">
-          </a>
-          <div class="rf-booking-topbar__utilities">
-            <span>English</span>
-            <span>Currency</span>
-          </div>
-        </div>
-
-        <div class="rf-booking-range-bar is-empty" id="rfBookingRangeBar">Select dates</div>
-
-        <div class="rf-booking-main">
-          <section class="rf-booking-calendar-panel" aria-label="Select your dates">
-            <p class="rf-booking-calendar-title">Select your dates</p>
-            <div class="rf-booking-calendars">
-              <div class="rf-booking-calendars__nav">
-                <button type="button" id="rfCalendarPrev" aria-label="Previous months">&#8592;</button>
-                <button type="button" id="rfCalendarNext" aria-label="Next months">&#8594;</button>
-              </div>
-              <div class="rf-booking-months">
-                <div class="rf-booking-month" id="rfCalendarMonthLeft">
-                  <h2 class="rf-booking-month__title" id="rfCalendarTitleLeft"></h2>
-                  <div class="rf-booking-weekdays" aria-hidden="true">
-                    <span class="rf-booking-weekday">Sun</span>
-                    <span class="rf-booking-weekday">Mon</span>
-                    <span class="rf-booking-weekday">Tue</span>
-                    <span class="rf-booking-weekday">Wed</span>
-                    <span class="rf-booking-weekday">Thu</span>
-                    <span class="rf-booking-weekday">Fri</span>
-                    <span class="rf-booking-weekday">Sat</span>
-                  </div>
-                  <div class="rf-booking-days" id="rfCalendarDaysLeft" role="grid"></div>
-                </div>
-                <div class="rf-booking-month" id="rfCalendarMonthRight">
-                  <h2 class="rf-booking-month__title" id="rfCalendarTitleRight"></h2>
-                  <div class="rf-booking-weekdays" aria-hidden="true">
-                    <span class="rf-booking-weekday">Sun</span>
-                    <span class="rf-booking-weekday">Mon</span>
-                    <span class="rf-booking-weekday">Tue</span>
-                    <span class="rf-booking-weekday">Wed</span>
-                    <span class="rf-booking-weekday">Thu</span>
-                    <span class="rf-booking-weekday">Fri</span>
-                    <span class="rf-booking-weekday">Sat</span>
-                  </div>
-                  <div class="rf-booking-days" id="rfCalendarDaysRight" role="grid"></div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <aside class="rf-booking-summary" aria-label="Booking summary">
-            <div class="rf-booking-dates-row">
-              <div class="rf-booking-date-col">
-                <div class="rf-booking-date-col__label">Arrival</div>
-                <div class="rf-booking-date-col__value">
-                  <span class="rf-booking-date-col__day" id="rfArrivalDay"></span>
-                  <span class="rf-booking-date-col__month" id="rfArrivalMonth"></span>
-                </div>
-              </div>
-              <div class="rf-booking-date-col">
-                <div class="rf-booking-date-col__label">Departure</div>
-                <div class="rf-booking-date-col__value">
-                  <span class="rf-booking-date-col__day" id="rfDepartureDay"></span>
-                  <span class="rf-booking-date-col__month" id="rfDepartureMonth"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="rf-booking-field">
-              <div class="rf-booking-dropdown">
-                <button type="button" class="rf-booking-dropdown__trigger" id="rfAdultsTrigger" aria-haspopup="listbox" aria-expanded="false">
-                  <span class="rf-booking-dropdown__label">2 Adults</span>
-                  <span class="rf-booking-dropdown__caret" aria-hidden="true"></span>
-                </button>
-                <ul class="rf-booking-dropdown__menu" id="rfAdultsMenu" role="listbox" hidden></ul>
-              </div>
-            </div>
-
-            <div class="rf-booking-field">
-              <div class="rf-booking-dropdown">
-                <button type="button" class="rf-booking-dropdown__trigger" id="rfChildrenTrigger" aria-haspopup="listbox" aria-expanded="false">
-                  <span class="rf-booking-dropdown__label">0 Children</span>
-                  <span class="rf-booking-dropdown__caret" aria-hidden="true"></span>
-                </button>
-                <ul class="rf-booking-dropdown__menu" id="rfChildrenMenu" role="listbox" hidden></ul>
-              </div>
-            </div>
-
-            <div class="rf-booking-codes">
-              <input type="text" id="rfPromoCode" placeholder="Promo code" aria-label="Promo code" autocomplete="off">
-              <input type="text" id="rfGroupCode" placeholder="Group code" aria-label="Group code" autocomplete="off">
-            </div>
-
-            <button type="button" class="rf-booking-check-btn" id="rfCheckAvailability" disabled>
-              Check availability
-            </button>
-          </aside>
+  <main class="rocco-forte-site rf-hotels-page" id="roccoForteSite" aria-label="Rocco Forte Hotels — select hotel">
+    <div class="rf-hotels-shell">
+      <div class="rf-hotels-topbar">
+        <div class="rf-hotels-topbar__utilities rf-hotels-topbar__utilities--spacer" aria-hidden="true"></div>
+        <a href="rocco-forte-demo.html" class="rf-hotels-topbar__logo" aria-label="Rocco Forte Hotels home">
+          <img src="rocco-forte-demo-assets/logo.png" width="120" height="42" alt="Rocco Forte Hotels">
+        </a>
+        <div class="rf-hotels-topbar__utilities">
+          <span>English</span>
+          <span>Currency</span>
+          <a href="rocco-forte-demo.html" class="rf-hotels-topbar__close" aria-label="Close booking">&times;</a>
         </div>
       </div>
 
-      <div class="rf-booking-footer-actions">
-        <button type="button" class="rf-booking-multi-hotel">Build a trip with multiple hotels</button>
+      <div class="rf-hotels-step-header">
+        <button type="button" class="rf-hotels-step-header__modify" id="rfHotelsModifyDates">Modify Dates</button>
+        <h1 class="rf-hotels-step-header__title">
+          <span>Step 1</span>
+          <span>Select Hotel</span>
+        </h1>
+        <span aria-hidden="true"></span>
       </div>
-      <button type="button" class="rf-booking-modify">modify reservation</button>
+
+      <div class="rf-hotels-tabs">
+        <div class="rf-hotels-tab" aria-current="step">
+          <p class="rf-hotels-tab__name">Select hotel</p>
+          <div class="rf-hotels-tab__dates" id="rfHotelsTabDates"></div>
+          <span class="rf-hotels-tab__hotel-num">Hotel: 1</span>
+        </div>
+        <button type="button" class="rf-hotels-tab-add">add hotel +</button>
+      </div>
+
+      <div class="rf-hotels-empty" id="rfHotelsEmpty" hidden>
+        <p>No booking dates found. <a href="rocco-forte-booking.html">Select dates</a> first.</p>
+      </div>
+
+      <div class="rf-hotels-split" id="rfHotelsSplit">
+        <div class="rf-hotels-list" id="rfHotelsList" role="list"></div>
+        <div class="rf-hotels-map-panel" id="rfHotelsMap" aria-hidden="true">
+          <img
+            class="rf-hotels-map-panel__img"
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Europe_orthographic_Caucasus_Urals_boundary_%28grey%29.svg/1280px-Europe_orthographic_Caucasus_Urals_boundary_%28grey%29.svg.png"
+            alt=""
+            decoding="async"
+          >
+        </div>
+      </div>
+
+      <footer class="rf-hotels-footer">
+        <a href="tel:+442073212626">+44 (0)20 7321 2626</a>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <a href="mailto:enquiries@roccofortehotels.com">enquiries@roccofortehotels.com</a>
+      </footer>
     </div>
   </main>
 
@@ -240,7 +182,7 @@
       features: { webPush: true, bc: true },
     };
     window.roccoForteDemoConfig = {
-      viewName: 'Rocco Forte Hotels — Booking',
+      viewName: 'Rocco Forte Hotels — Select Hotel',
       onReady: function (ctx) {
         window.roccoForteDemoConfig.setMessage = ctx.setMessage;
       },
@@ -261,7 +203,7 @@
   </script>
   <script src="rocco-forte-booking-state.js?v=20260625-rocco-forte-hotels"></script>
   <script src="rocco-forte-demo.js?v=20260625-rocco-forte"></script>
-  <script src="rocco-forte-booking.js?v=20260625-rocco-forte-v3"></script>
+  <script src="rocco-forte-hotels.js?v=20260625-rocco-forte-hotels"></script>
   <script src="site-clone-bc.js?v=20260625-bc-aep-events-ecid"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>

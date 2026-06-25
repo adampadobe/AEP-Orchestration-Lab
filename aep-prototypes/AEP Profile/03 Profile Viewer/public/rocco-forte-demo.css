@@ -61,6 +61,10 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.rocco-forte-demo-page .rocco-forte-site {
+.rocco-forte-demo-page .rocco-forte-site:not(.rf-hotels-page) {
   transition: padding-bottom 0.2s ease;
+}
+
+.rocco-forte-demo-page .rocco-forte-site.rf-hotels-page {
+  overflow: hidden;
 }

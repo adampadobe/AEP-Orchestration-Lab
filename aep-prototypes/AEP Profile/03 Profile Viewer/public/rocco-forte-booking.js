@@ -446,16 +446,34 @@
         promoCode: state.promoCode,
         groupCode: state.groupCode,
       };
-      console.info('[Rocco Forte demo] Check availability — booking state:', payload);
-      if (typeof global.roccoForteDemoConfig !== 'undefined' && typeof global.roccoForteDemoConfig.setMessage === 'function') {
-        global.roccoForteDemoConfig.setMessage(
-          'Availability check is a demo placeholder. Next booking step is not implemented yet.',
-          'success',
-        );
+      if (typeof global.RoccoForteBookingState !== 'undefined') {
+        global.RoccoForteBookingState.save(payload);
       }
+      global.location.href = 'rocco-forte-hotels.html';
     });
   }
 
+  function restoreFromSession() {
+    if (typeof global.RoccoForteBookingState === 'undefined') return;
+    const saved = global.RoccoForteBookingState.load();
+    if (!saved || !saved.checkIn) return;
+    const checkIn = new Date(saved.checkIn + 'T12:00:00');
+    if (Number.isNaN(checkIn.getTime())) return;
+    state.checkIn = startOfDay(checkIn);
+    if (saved.checkOut) {
+      const checkOut = new Date(saved.checkOut + 'T12:00:00');
+      if (!Number.isNaN(checkOut.getTime())) state.checkOut = startOfDay(checkOut);
+    }
+    if (typeof saved.adults === 'number') state.adults = saved.adults;
+    if (typeof saved.children === 'number') state.children = saved.children;
+    if (typeof saved.promoCode === 'string') state.promoCode = saved.promoCode;
+    if (typeof saved.groupCode === 'string') state.groupCode = saved.groupCode;
+    if (els.promoInput) els.promoInput.value = state.promoCode;
+    if (els.groupInput) els.groupInput.value = state.groupCode;
+    state.viewMonth = startOfMonth(state.checkIn);
+  }
+
+  restoreFromSession();
   render();
   updateCalendarNavState();
 
