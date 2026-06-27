@@ -53,7 +53,7 @@
                   required>
                 <div class="brand-scraper-run-options">
                     <button type="button" class="dashboard-btn-outline brand-scraper-run-options-btn" id="brandScraperOptionsBtn" aria-haspopup="true" aria-expanded="false" title="Choose which AI steps to run">
-                    Options <span id="brandScraperOptionsCount">4/7</span> ▾
+                    Options <span id="brandScraperOptionsCount">4/10</span> ▾
                   </button>
                   <div class="brand-scraper-run-options-menu" id="brandScraperOptionsMenu" hidden>
                     <h6>What to run on Analyse</h6>
@@ -64,12 +64,31 @@
                     <label><input type="checkbox" data-run-option="stakeholders" /> <span><strong>Business stakeholders</strong><em>leadership org chart</em></span></label>
                     <label><input type="checkbox" data-run-option="tagAudit" checked /> <span><strong>Tag &amp; analytics audit</strong><em>Adobe / Google / CMP signals; JS crawl adds timings &amp; console errors</em></span></label>
                     <label><input type="checkbox" data-run-option="llmDemoConfig" checked /> <span><strong>Competitor analysis</strong><em>direct competitors, sample site paths, and consumer comparison prompts (no extra crawl)</em></span></label>
+                    <label><input type="checkbox" data-run-option="demoWebsite" /> <span><strong>Create demo website</strong><em>generates a demo-ready web experience under /demos/&lt;customer&gt;/web using scraped or uploaded brand content</em></span></label>
+                    <hr class="brand-scraper-run-options-divider" />
+                    <label><input type="checkbox" id="brandScraperUploadFallback" checked /> <span><strong>Use uploaded HTML files as fallback</strong><em>when live scrape returns 403 or is blocked</em></span></label>
+                    <label><input type="checkbox" id="brandScraperUploadOnly" /> <span><strong>Uploaded HTML only</strong><em>skip live URL crawl — parse uploaded files as the scrape source</em></span></label>
+                    <div class="brand-scraper-upload-row">
+                      <label class="brand-scraper-label" for="brandScraperHtmlUpload">HTML upload</label>
+                      <input type="file" id="brandScraperHtmlUpload" class="brand-scraper-input" accept=".html,.htm,.zip,application/zip" multiple />
+                      <p class="brand-scraper-result-muted" id="brandScraperUploadSummary">No files selected. Upload .html files or a .zip containing HTML and asset folders.</p>
+                    </div>
                     <hr class="brand-scraper-run-options-divider" />
                     <label><input type="checkbox" id="brandScraperCrawlerJs" /> <span><strong>JS-rendered crawl</strong><em>Playwright in Cloud Run; slower but handles bot protection + SPAs</em></span></label>
                     <p class="brand-scraper-result-muted">Defaults favour a <strong>light first pass</strong> (fewer pages, smaller brand JSON, phased saves). Re-run with more pages or use <strong>append</strong> to deepen. Turning off AI steps saves tokens; turning off the tag audit skips vendor/network instrumentation only.</p>
                   </div>
                 </div>
                 <button type="submit" class="dashboard-btn-primary" id="brandScraperRun">Analyse</button>
+              </div>
+
+              <div class="brand-scraper-customer-row">
+                <label class="brand-scraper-label" for="brandScraperCustomerName">Customer name</label>
+                <input
+                  type="text"
+                  id="brandScraperCustomerName"
+                  class="brand-scraper-input"
+                  placeholder="e.g. Sky News"
+                  autocomplete="organization">
               </div>
 
               <div class="brand-scraper-options">
@@ -235,6 +254,16 @@
               </header>
               <h3 class="brand-scraper-card-title">Competitor analysis</h3>
               <p class="brand-scraper-card-body">Identifies six direct competitors in the same industry and region, sample SEO and agentic-traffic URL paths on the brand site, and realistic consumer comparison prompts — grounded in the crawled pages. Toggle under <strong>Options</strong>; results appear after <strong>Analyse</strong>.</p>
+            </article>
+            <article class="brand-scraper-card" data-healthcheck="analyze">
+              <header class="brand-scraper-card-head">
+                <span class="brand-scraper-card-ico" aria-hidden="true">🌐</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking demo website generation health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
+              </header>
+              <h3 class="brand-scraper-card-title">Demo website generation</h3>
+              <p class="brand-scraper-card-body">Generates a demo-ready web experience under <code>/demos/&lt;customer&gt;/web</code> using the scraped or uploaded brand content. Includes a profile environment panel and profile viewer module. Re-analyse preserves existing files unless overwrite is requested.</p>
             </article>
             <article class="brand-scraper-card" data-healthcheck="export">
               <header class="brand-scraper-card-head">

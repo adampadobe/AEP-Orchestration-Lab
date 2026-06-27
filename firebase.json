@@ -126,6 +126,13 @@
         }
       },
       {
+        "source": "/demos/**",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/demo-use-case/generate",
         "function": {
           "functionId": "demoUseCaseGenerate",

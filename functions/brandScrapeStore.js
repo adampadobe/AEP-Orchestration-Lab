@@ -425,30 +425,16 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
   return out;
 }
 
-/**
- * Persist a scrape.
- * Strategy: the full payload goes to Cloud Storage; a slim searchable
- * index doc goes to Firestore with a pointer (storagePath) to the blob.
- */
-async function saveScrape(sandbox, payload, options = {}) {
-  const name = String(sandbox || '').trim();
-  if (!name) throw new Error('sandbox is required');
-  const scrapeId = String((payload && payload.scrapeId) || '').trim() || genId();
-  const isCheckpoint = options.checkpoint === true;
-  const archiveSnapshotOf = options.archiveSnapshotOf || null;
-
-  if (!isCheckpoint && archiveSnapshotOf) {
-    await writeArchiveSnapshotIfWorthy(name, scrapeId, archiveSnapshotOf);
-  }
-
-  // 1. Write the full payload to GCS first. If this fails, we abort —
-  //    we refuse to create a dangling Firestore index that can't hydrate.
-  const fullRecord = {
-    sandbox: name,
+/** Build the GCS JSON payload from an analyse/checkpoint record (testable). */
+function buildFullRecord(sandbox, scrapeId, payload) {
+  return {
+    sandbox,
     scrapeId,
     url: payload.url || '',
     baseUrl: payload.baseUrl || '',
     brandName: payload.brandName || '',
+    customerName: payload.customerName || null,
+    customerLogo: payload.customerLogo || null,
     businessType: payload.businessType || '',
     country: payload.country || '',
     industry: payload.industry || '',
@@ -467,9 +453,38 @@ async function saveScrape(sandbox, payload, options = {}) {
     llmDemoConfig: payload.llmDemoConfig || null,
     lastExport: payload.lastExport || null,
     elapsedMs: typeof payload.elapsedMs === 'number' ? payload.elapsedMs : null,
-    schemaVersion: 2, // hybrid storage
+    blockedPages: Array.isArray(payload.blockedPages) ? payload.blockedPages : (payload.blockedPages || null),
+    fallbackSources: payload.fallbackSources || null,
+    uploadedHtmlSummary: payload.uploadedHtmlSummary || null,
+    scrapeConfidence: payload.scrapeConfidence || null,
+    sourceBadges: Array.isArray(payload.sourceBadges) ? payload.sourceBadges : (payload.sourceBadges || null),
+    warnings: Array.isArray(payload.warnings) ? payload.warnings : (payload.warnings || null),
+    demoWebsite: payload.demoWebsite || null,
+    demoGenerationStatus: payload.demoGenerationStatus || null,
+    schemaVersion: 2,
     savedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Persist a scrape.
+ * Strategy: the full payload goes to Cloud Storage; a slim searchable
+ * index doc goes to Firestore with a pointer (storagePath) to the blob.
+ */
+async function saveScrape(sandbox, payload, options = {}) {
+  const name = String(sandbox || '').trim();
+  if (!name) throw new Error('sandbox is required');
+  const scrapeId = String((payload && payload.scrapeId) || '').trim() || genId();
+  const isCheckpoint = options.checkpoint === true;
+  const archiveSnapshotOf = options.archiveSnapshotOf || null;
+
+  if (!isCheckpoint && archiveSnapshotOf) {
+    await writeArchiveSnapshotIfWorthy(name, scrapeId, archiveSnapshotOf);
+  }
+
+  // 1. Write the full payload to GCS first. If this fails, we abort —
+  //    we refuse to create a dangling Firestore index that can't hydrate.
+  const fullRecord = buildFullRecord(name, scrapeId, payload);
 
   const path = storageKey(name, scrapeId);
   const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
@@ -528,6 +543,8 @@ async function saveScrape(sandbox, payload, options = {}) {
     url: fullRecord.url,
     baseUrl: fullRecord.baseUrl,
     brandName: fullRecord.brandName,
+    customerName: fullRecord.customerName || null,
+    customerLogoUrl: (fullRecord.customerLogo && (fullRecord.customerLogo.thumbnailUrl || fullRecord.customerLogo.url)) || null,
     businessType: fullRecord.businessType,
     country: fullRecord.country,
     industry: fullRecord.industry,
@@ -540,6 +557,10 @@ async function saveScrape(sandbox, payload, options = {}) {
     segmentsPresent: hasRealPayload(fullRecord.segments, 'segments'),
     stakeholdersPresent: hasRealPayload(fullRecord.stakeholders, 'people'),
     llmDemoConfigPresent: !!(fullRecord.llmDemoConfig && fullRecord.llmDemoConfig.siteHost),
+    demoGenerationStatus: fullRecord.demoGenerationStatus || null,
+    demoWebsitePath: (fullRecord.demoWebsite && fullRecord.demoWebsite.path) || null,
+    scrapeConfidenceLevel: (fullRecord.scrapeConfidence && fullRecord.scrapeConfidence.level) || null,
+    blockedPageCount: Array.isArray(fullRecord.blockedPages) ? fullRecord.blockedPages.length : 0,
     pagesScraped: fullRecord.crawlSummary ? fullRecord.crawlSummary.pagesScraped : null,
     lastExport: fullRecord.lastExport,
     storagePath: path,
@@ -943,6 +964,7 @@ async function deleteScrape(sandbox, id) {
 }
 
 module.exports = {
+  buildFullRecord,
   saveScrape,
   listScrapes,
   getScrape,

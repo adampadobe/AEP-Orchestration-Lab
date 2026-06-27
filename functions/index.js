@@ -113,6 +113,7 @@ const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const profileGenerateService = lazyRequireMod('./profileGenerateService');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
+const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
@@ -3332,15 +3333,20 @@ exports.imageHostingAsset = onRequest(
     memory: '256MiB',
   },
   async (req, res) => {
-    setCors(res, 'GET, OPTIONS');
+    setCors(res, 'GET, HEAD, OPTIONS');
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.status(405).send('GET only'); return;
     }
     try {
+      const reqPath = String(req.path || '');
+      if (/^\/demos\/[^/]+\/web(?:\/|$)/i.test(reqPath)) {
+        await brandScraperDemoHost.handleDemoHostRequest(req, res);
+        return;
+      }
       // Hosting rewrites /cdn/** to this function, so req.path is the
       // full /cdn/<sandbox>/<relPath...> the client requested.
-      const p = String(req.path || '').replace(/^\/cdn\//, '');
+      const p = reqPath.replace(/^\/cdn\//, '');
       const parts = p.split('/').filter(Boolean);
       if (parts.length < 2) { res.status(400).send('bad path'); return; }
       const sandbox = parts.shift();
