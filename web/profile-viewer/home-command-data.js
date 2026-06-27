@@ -261,21 +261,102 @@
     };
   }
 
+  function normalizeMeetingAt(raw) {
+    var at = String(raw || '').trim();
+    if (!at) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(at)) return at + 'T10:00:00';
+    return at;
+  }
+
+  function meetingDateKey(at) {
+    var day = String(at || '').slice(0, 10);
+    return parseDateOnly(day) ? day : '';
+  }
+
+  function truncateText(text, max) {
+    var s = String(text || '').trim();
+    if (!s) return '';
+    if (s.length <= max) return s;
+    return s.slice(0, Math.max(0, max - 1)) + '…';
+  }
+
+  function buildMeetingFromCustomer(c) {
+    if (!c || !c.eta) return null;
+    var at = normalizeMeetingAt(c.eta);
+    if (!at) return null;
+    var tags = Array.isArray(c.tags) ? c.tags.slice(0, 4) : [];
+    if (c.status && tags.indexOf(c.status) === -1) tags.unshift(c.status);
+    var productLine = products ? products.formatProductIds(c.productIds) : '';
+    var contextParts = [];
+    if (productLine) contextParts.push(productLine);
+    if (c.status) contextParts.push(c.status);
+    if (c.drLink) contextParts.push(c.drLink);
+    var nextAction = String(c.nextAction || '').trim();
+    var titleSuffix = nextAction || c.status || 'Engagement check-in';
+    return {
+      id: 'customer-eta-' + c.id,
+      source: 'customer',
+      customerId: c.id,
+      customerName: c.name,
+      at: at,
+      title: c.name + ' — ' + truncateText(titleSuffix, 52),
+      context: contextParts.join(' · '),
+      prep: nextAction ? 'Next action: ' + nextAction : '',
+      tags: tags,
+    };
+  }
+
+  function mergeMeetings(explicit, fromCustomers) {
+    var out = explicit.slice();
+    var seen = {};
+    explicit.forEach(function (m) {
+      if (m.customerId) seen[m.customerId + '|' + meetingDateKey(m.at)] = true;
+    });
+    fromCustomers.forEach(function (m) {
+      var key = m.customerId + '|' + meetingDateKey(m.at);
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(m);
+    });
+    return out;
+  }
+
+  function isUpcomingMeeting(m, nowMs) {
+    var atMs = new Date(m.at).getTime();
+    if (m.source === 'customer') {
+      var etaDay = String(m.at).slice(0, 10);
+      if (isOverdue(etaDay)) return true;
+    }
+    return atMs >= nowMs - 3600000;
+  }
+
+  function sortMeetings(list) {
+    return list.slice().sort(function (a, b) {
+      return new Date(a.at) - new Date(b.at);
+    });
+  }
+
+  function getMergedMeetings() {
+    var explicit = (state.meetings || []).slice();
+    var fromCustomers = useCustomers()
+      .getAll()
+      .map(buildMeetingFromCustomer)
+      .filter(Boolean);
+    return mergeMeetings(explicit, fromCustomers);
+  }
+
   function useCalendar() {
     return {
       getAll: function () {
-        return (state.meetings || []).slice();
+        return getMergedMeetings();
       },
       getUpcoming: function (limit) {
         var now = Date.now();
-        return (state.meetings || [])
-          .filter(function (m) {
-            return new Date(m.at).getTime() >= now - 3600000;
+        return sortMeetings(
+          getMergedMeetings().filter(function (m) {
+            return isUpcomingMeeting(m, now);
           })
-          .sort(function (a, b) {
-            return new Date(a.at) - new Date(b.at);
-          })
-          .slice(0, limit || 4);
+        ).slice(0, limit || 4);
       },
       add: function (meeting) {
         var row = Object.assign({ id: store.generateId('mtg'), tags: [] }, meeting);

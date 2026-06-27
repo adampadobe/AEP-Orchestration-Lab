@@ -1664,6 +1664,23 @@ body.home-new-page {
   border-bottom: 1px solid var(--cc-border);
 }
 
+.cc-meeting-item--linked {
+  cursor: pointer;
+  border-radius: var(--cc-radius);
+  margin: 0 -8px;
+  padding: 10px 8px;
+  transition: background 0.15s ease;
+}
+
+.cc-meeting-item--linked:hover {
+  background: var(--cc-bg-raised);
+}
+
+.cc-meeting-item--linked:focus-visible {
+  outline: 2px solid var(--rs-red);
+  outline-offset: 2px;
+}
+
 .cc-meeting-item:last-child { border-bottom: none; padding-bottom: 0; }
 
 .cc-meeting-time {
@@ -1672,6 +1689,8 @@ body.home-new-page {
   color: var(--cc-red);
   font-family: var(--cc-mono);
 }
+
+.cc-meeting-time--overdue { color: var(--cc-red); }
 
 .cc-meeting-name { font-size: 12px; font-weight: 600; margin-top: 2px; color: var(--rs-text); }
 .cc-meeting-org { font-size: 11px; color: var(--cc-text-sec); }

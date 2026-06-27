@@ -699,7 +699,8 @@
     if (!el) return;
     var meetings = data.useCalendar().getUpcoming(4);
     if (!meetings.length) {
-      el.innerHTML = '<p class="cc-empty">No upcoming meetings.</p>';
+      el.innerHTML =
+        '<p class="cc-empty">No upcoming meetings. Add an ETA on a customer engagement to schedule one here.</p>';
       return;
     }
     el.innerHTML = meetings
@@ -711,16 +712,29 @@
             return '<span class="' + cls + '">' + esc(t) + '</span>';
           })
           .join('');
+        var cust = m.customerId ? customerById(m.customerId) : findCustomerByName(m.customerName);
+        var etaDay = String(m.at || '').slice(0, 10);
+        var timeCls = data.isOverdue(etaDay) ? ' cc-meeting-time--overdue' : '';
+        var linked =
+          m.customerId
+            ? ' cc-meeting-item--linked" data-customer-id="' +
+              esc(m.customerId) +
+              '" tabindex="0" role="button"'
+            : '"';
         return (
-          '<div class="cc-meeting-item">' +
-          '<div class="cc-meeting-time">' +
-          esc(fmtDateTime(m.at)) +
+          '<div class="cc-meeting-item' +
+          linked +
+          '>' +
+          '<div class="cc-meeting-time' +
+          timeCls +
+          '">' +
+          esc(data.isOverdue(etaDay) ? 'Overdue · ' + fmtDate(etaDay) : fmtDateTime(m.at)) +
           '</div>' +
           '<div class="cc-meeting-name cc-cust-mention-row cc-cust-mention-row--meeting">' +
           '<span class="cc-cust-mention-name">' +
           esc(m.title) +
           '</span>' +
-          customerLogoHtml(findCustomerByName(m.customerName)) +
+          customerLogoHtml(cust) +
           '</div>' +
           '<div class="cc-meeting-org">' +
           esc(m.context || '') +
@@ -731,6 +745,18 @@
         );
       })
       .join('');
+    el.querySelectorAll('.cc-meeting-item--linked').forEach(function (item) {
+      var id = item.getAttribute('data-customer-id');
+      item.addEventListener('click', function () {
+        openCustomerDetail(id);
+      });
+      item.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openCustomerDetail(id);
+        }
+      });
+    });
   }
 
   function renderTasks() {
