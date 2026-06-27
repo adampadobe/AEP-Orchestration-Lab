@@ -13,14 +13,20 @@
     return data.useCustomers().getById(id);
   }
 
+  var runtimeLogos = {};
+
   function customerLogoHtml(c) {
-    if (!c || !c.scrapeLogoUrl) return '';
+    if (!c) return '';
+    var url = runtimeLogos[c.id] || c.scrapeLogoUrl;
+    if (!url) return '';
     return (
       '<img class="cc-cust-scrape-logo" src="' +
-      esc(c.scrapeLogoUrl) +
+      esc(url) +
       '" alt="' +
       esc(c.scrapeBrand || c.name) +
-      ' logo" loading="lazy">'
+      ' logo" loading="lazy" data-cc-customer-id="' +
+      esc(c.id) +
+      '" onerror="this.hidden=true">'
     );
   }
 
@@ -30,26 +36,28 @@
       return;
     }
     var pending = 0;
-    var changed = false;
+    var needsRender = false;
     customers.forEach(function (c) {
-      if (!c.scrapeId || c.scrapeLogoUrl) return;
+      if (!c.scrapeId) return;
       pending += 1;
       scrapes.loadDetail(c.scrapeId).then(function (record) {
         if (!record) return;
         var logo = scrapes.pickLogoFromRecord(record);
         if (!logo) return;
-        changed = true;
-        data.useCustomers().update(c.id, {
-          scrapeLogoUrl: logo,
-          scrapeBrand: c.scrapeBrand || record.brandName || scrapes.scrapeLabel(scrapes.getById(c.scrapeId)),
-        });
+        runtimeLogos[c.id] = logo;
+        needsRender = true;
+        if (logo !== c.scrapeLogoUrl) {
+          data.useCustomers().update(c.id, {
+            scrapeLogoUrl: logo,
+            scrapeBrand: c.scrapeBrand || record.brandName || scrapes.scrapeLabel(scrapes.getById(c.scrapeId)),
+          });
+        }
       }).finally(function () {
         pending -= 1;
-        if (pending <= 0 && changed && done) done();
-        else if (pending <= 0 && done) done();
+        if (pending <= 0 && done) done(needsRender);
       });
     });
-    if (pending === 0 && done) done();
+    if (pending === 0 && done) done(false);
   }
 
   function updateScrapePreview(form, scrapeId) {

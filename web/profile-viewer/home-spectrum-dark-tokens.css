@@ -1,0 +1,76 @@
+/**
+ * June 2026 release-summary palette for home-new.html
+ * Source: AEP & Adobe Campaign — Monthly Release Summary · June 2026
+ */
+:root {
+  --rs-red: #eb1000;
+  --rs-red-dim: #991000;
+  --rs-bg: #0a0a0a;
+  --rs-surface: #141414;
+  --rs-card: #1c1c1c;
+  --rs-border: #2a2a2a;
+  --rs-text: #f0f0f0;
+  --rs-text-body: #cccccc;
+  --rs-muted: #888888;
+  --rs-dim: #555555;
+
+  /* Map legacy token aliases used by home-new.css */
+  --s-gray-50: var(--rs-bg);
+  --s-gray-75: var(--rs-surface);
+  --s-gray-100: var(--rs-card);
+  --s-gray-200: var(--rs-border);
+  --s-gray-300: #3a3a3a;
+  --s-gray-400: var(--rs-dim);
+  --s-gray-500: var(--rs-muted);
+  --s-gray-600: #aaaaaa;
+  --s-gray-700: var(--rs-text-body);
+  --s-gray-800: #e8e8e8;
+  --s-gray-900: var(--rs-text);
+
+  --adobe-red: var(--rs-red);
+  --s-accent: var(--rs-red);
+  --s-accent-dim: var(--rs-red-dim);
+  --s-accent-soft: rgba(235, 16, 0, 0.08);
+  --s-accent-border: rgba(235, 16, 0, 0.2);
+
+  --s-positive-700: #00dc78;
+  --s-notice-700: #ffb400;
+  --s-negative-700: var(--rs-red);
+  --s-informative: #a87eff;
+
+  --s-bg-base: var(--rs-bg);
+  --s-bg-layer1: var(--rs-surface);
+  --s-bg-layer2: var(--rs-card);
+  --s-border: var(--rs-border);
+  --s-border-strong: #333333;
+  --s-text-primary: var(--rs-text);
+  --s-text-secondary: var(--rs-text-body);
+  --s-text-tertiary: var(--rs-muted);
+
+  --s-sp-50: 4px;
+  --s-sp-75: 6px;
+  --s-sp-100: 8px;
+  --s-sp-150: 12px;
+  --s-sp-200: 16px;
+  --s-sp-250: 20px;
+  --s-sp-300: 24px;
+  --s-sp-400: 32px;
+  --s-sp-500: 40px;
+  --s-sp-600: 48px;
+
+  --s-font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --s-font-mono: 'Source Code Pro', ui-monospace, monospace;
+
+  --s-text-size-50: 11px;
+  --s-text-size-75: 12px;
+  --s-text-size-100: 14px;
+  --s-text-size-200: 16px;
+  --s-text-size-300: 18px;
+  --s-text-size-400: 20px;
+  --s-text-size-500: 22px;
+
+  --s-control-height-m: 32px;
+  --s-radius-s: 3px;
+  --s-radius-m: 4px;
+  --s-radius-l: 4px;
+}
