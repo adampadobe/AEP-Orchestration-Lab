@@ -88,12 +88,17 @@
   function pickLogoFromRecord(record) {
     if (!record || typeof record !== 'object') return '';
     if (record.customerLogo) {
-      var wiki = record.customerLogo.url || record.customerLogo.thumbnailUrl;
+      var wiki = record.customerLogo.thumbnailUrl || record.customerLogo.url;
       if (wiki) return wiki;
     }
-    var crawlAssets = record.crawlSummary && record.crawlSummary.assets;
+    var crawlSummary = record.crawlSummary;
+    if (crawlSummary && crawlSummary.customerLogo) {
+      var crawlLogo = crawlSummary.customerLogo.thumbnailUrl || crawlSummary.customerLogo.url;
+      if (crawlLogo) return crawlLogo;
+    }
+    var crawlAssets = crawlSummary && crawlSummary.assets;
     if (crawlAssets && crawlAssets.customerLogo) {
-      var fromCrawl = crawlAssets.customerLogo.url || crawlAssets.customerLogo.thumbnailUrl;
+      var fromCrawl = crawlAssets.customerLogo.thumbnailUrl || crawlAssets.customerLogo.url;
       if (fromCrawl) return fromCrawl;
     }
     if (record.customerLogoUrl) return record.customerLogoUrl;

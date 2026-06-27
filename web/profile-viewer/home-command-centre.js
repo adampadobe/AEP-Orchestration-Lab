@@ -13,21 +13,87 @@
     return data.useCustomers().getById(id);
   }
 
+  function findCustomerByName(name) {
+    var key = String(name || '').trim().toLowerCase();
+    if (!key) return null;
+    var all = data.useCustomers().getAll();
+    for (var i = 0; i < all.length; i++) {
+      var c = all[i];
+      var cn = String(c.name || '').trim().toLowerCase();
+      if (!cn) continue;
+      if (cn === key || key.indexOf(cn) !== -1 || cn.indexOf(key) !== -1) return c;
+    }
+    return null;
+  }
+
   var runtimeLogos = {};
+
+  function resolveCustomerLogoUrl(c) {
+    if (!c) return '';
+    if (runtimeLogos[c.id]) return runtimeLogos[c.id];
+    if (c.scrapeLogoUrl) return c.scrapeLogoUrl;
+    if (c.scrapeId && scrapes) {
+      var item = scrapes.getById(c.scrapeId);
+      if (item && item.customerLogoUrl) return item.customerLogoUrl;
+    }
+    return '';
+  }
 
   function customerLogoHtml(c) {
     if (!c) return '';
-    var url = runtimeLogos[c.id] || c.scrapeLogoUrl;
+    var url = resolveCustomerLogoUrl(c);
     if (!url) return '';
     return (
       '<img class="cc-cust-scrape-logo" src="' +
       esc(url) +
       '" alt="' +
       esc(c.scrapeBrand || c.name) +
-      ' logo" loading="lazy" data-cc-customer-id="' +
+      ' logo" loading="lazy" referrerpolicy="no-referrer" data-cc-customer-id="' +
       esc(c.id) +
       '" onerror="this.hidden=true">'
     );
+  }
+
+  function customerMentionRowHtml(name, customerOrId, rowClass) {
+    var c =
+      customerOrId && typeof customerOrId === 'object'
+        ? customerOrId
+        : customerOrId
+          ? customerById(customerOrId)
+          : findCustomerByName(name);
+    var displayName = name || (c && c.name) || '';
+    return (
+      '<div class="' +
+      esc(rowClass || 'cc-cust-mention-row') +
+      '"><span class="cc-cust-mention-name">' +
+      esc(displayName) +
+      '</span>' +
+      customerLogoHtml(c) +
+      '</div>'
+    );
+  }
+
+  function customerMentionInlineHtml(name, customerOrId) {
+    var c =
+      customerOrId && typeof customerOrId === 'object'
+        ? customerOrId
+        : customerOrId
+          ? customerById(customerOrId)
+          : findCustomerByName(name);
+    return (
+      '<span class="cc-cust-mention-inline">' +
+      esc(name || (c && c.name) || '') +
+      customerLogoHtml(c) +
+      '</span>'
+    );
+  }
+
+  function seedLogoFromCatalog(c) {
+    if (!c || !c.scrapeId || !scrapes) return false;
+    var item = scrapes.getById(c.scrapeId);
+    if (!item || !item.customerLogoUrl) return false;
+    runtimeLogos[c.id] = item.customerLogoUrl;
+    return true;
   }
 
   function enrichCustomerLogos(customers, done) {
@@ -39,6 +105,7 @@
     var needsRender = false;
     customers.forEach(function (c) {
       if (!c.scrapeId) return;
+      if (seedLogoFromCatalog(c)) needsRender = true;
       pending += 1;
       scrapes.loadDetail(c.scrapeId).then(function (record) {
         if (!record) return;
@@ -649,8 +716,11 @@
           '<div class="cc-meeting-time">' +
           esc(fmtDateTime(m.at)) +
           '</div>' +
-          '<div class="cc-meeting-name">' +
+          '<div class="cc-meeting-name cc-cust-mention-row cc-cust-mention-row--meeting">' +
+          '<span class="cc-cust-mention-name">' +
           esc(m.title) +
+          '</span>' +
+          customerLogoHtml(findCustomerByName(m.customerName)) +
           '</div>' +
           '<div class="cc-meeting-org">' +
           esc(m.context || '') +
@@ -722,7 +792,7 @@
           '">' +
           esc(dueLabel) +
           '</span>' +
-          (t.customerName ? ' · ' + esc(t.customerName) : '') +
+          (t.customerName ? ' · ' + customerMentionInlineHtml(t.customerName, t.customerId) : '') +
           '</div></div></div>'
         );
       })
@@ -873,8 +943,11 @@
           '<div class="cc-ph-row' +
           (last ? ' cc-ph-row--last' : '') +
           '">' +
-          '<div class="cc-ph-name">' +
+          '<div class="cc-ph-name cc-cust-mention-row">' +
+          '<span class="cc-cust-mention-name">' +
           esc(c.name) +
+          '</span>' +
+          customerLogoHtml(c) +
           '</div>' +
           '<div class="cc-ph-stage">' +
           esc(c.pipelineStage || '—') +
@@ -925,6 +998,10 @@
       el.innerHTML = items
         .map(function (item, i) {
           var c = item.customer;
+          if (item.record && scrapes) {
+            var recordLogo = scrapes.pickLogoFromRecord(item.record);
+            if (recordLogo) runtimeLogos[c.id] = recordLogo;
+          }
           var ct = c.competitiveThreat;
           var threatCls = ct
             ? ct.level === 'High'
@@ -975,10 +1052,8 @@
             '">' +
             '<div class="cc-comp-header">' +
             '<div class="cc-comp-account-row">' +
-            customerLogoHtml(c) +
-            '<div class="cc-comp-account">' +
-            esc(c.name) +
-            '</div></div>' +
+            customerMentionRowHtml(c.name, c, 'cc-cust-mention-row cc-cust-mention-row--compact') +
+            '</div>' +
             '<span class="cc-status-pill ' +
             threatCls +
             '">' +
@@ -1440,7 +1515,9 @@
         var selected = cid ? (data.useCustomers().getById(cid) || {}).scrapeId : '';
         populateScrapeSelect(scrapeSelect, selected || '');
       }
-      renderCompetitive();
+      enrichCustomerLogos(data.useCustomers().getAll(), function () {
+        renderAll();
+      });
     });
     global.addEventListener('aep-command-centre-sync', function () {
       renderSyncStatus();

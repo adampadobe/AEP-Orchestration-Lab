@@ -1510,6 +1510,22 @@ body.home-new-page {
 }
 .cc-cust-name-row--compact { justify-content: flex-start; font-size: 11px; }
 .cc-cust-name-block { flex: 1; min-width: 0; }
+.cc-cust-mention-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.cc-cust-mention-row--compact { justify-content: flex-start; }
+.cc-cust-mention-row--meeting { font-weight: 600; font-size: 12px; }
+.cc-cust-mention-name { min-width: 0; flex: 1; }
+.cc-cust-mention-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
 .cc-cust-scrape-logo {
   width: 28px;
   height: 28px;
