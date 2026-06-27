@@ -2013,6 +2013,83 @@ body.home-new-page {
 
 .cc-detail-due { color: var(--cc-text-dim); font-size: 10px; }
 
+/* ── Canvas toggle: light surround, dark content blocks ── */
+body.home-new-page .dashboard-main--home-new {
+  position: relative;
+}
+
+.home-new-canvas-toggle {
+  position: absolute;
+  top: 12px;
+  right: 24px;
+  z-index: 12;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--s-font-body);
+  line-height: 1.2;
+  border-radius: var(--cc-radius);
+  border: 1px solid var(--cc-border-lit);
+  background: var(--cc-bg-card);
+  color: var(--rs-text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.home-new-canvas-toggle:hover {
+  border-color: var(--rs-red);
+  color: var(--rs-text);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page.home-dashboard-concierge {
+  background: var(--cc-canvas-bg);
+  color: var(--cc-canvas-text);
+  --dash-bg: var(--cc-canvas-bg);
+  --home-layout-bg-color: var(--cc-canvas-bg);
+  --app-bg: var(--cc-canvas-bg);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page {
+  --cc-canvas-bg: #e8e8e8;
+  --cc-canvas-text: #1a1a1a;
+  --cc-canvas-muted: #5c5c5c;
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-main-wrap--layout {
+  background-color: var(--cc-canvas-bg);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-new-canvas-toggle {
+  background: #ffffff;
+  color: var(--cc-canvas-text);
+  border-color: #c8c8c8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-new-canvas-toggle:hover {
+  border-color: var(--rs-red);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-section-title {
+  color: #4a4a4a;
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-section-meta,
+html[data-home-new-canvas="light"] body.home-new-page .cc-section-action,
+html[data-home-new-canvas="light"] body.home-new-page .home-lab-updates__title,
+html[data-home-new-canvas="light"] body.home-new-page .home-lab-updates__subtitle {
+  color: var(--cc-canvas-muted);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-release-panel {
+  background: var(--cc-bg-card);
+  border-color: var(--cc-border);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-release-panel__head {
+  background: var(--cc-bg-card);
+}
+
 @media (max-width: 1100px) {
   .cc-grid-main { grid-template-columns: 1fr; }
   .cc-grid-bottom,

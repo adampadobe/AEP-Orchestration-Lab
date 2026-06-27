@@ -324,11 +324,46 @@
     el.classList.toggle('home-greeting-stat--muted', !name);
   }
 
+  var CANVAS_STORAGE_KEY = 'aepHomeNewCanvas';
+
+  function isLightCanvas() {
+    try {
+      return localStorage.getItem(CANVAS_STORAGE_KEY) === 'light';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function applyCanvasMode(light) {
+    var root = document.documentElement;
+    if (light) root.setAttribute('data-home-new-canvas', 'light');
+    else root.removeAttribute('data-home-new-canvas');
+    try {
+      localStorage.setItem(CANVAS_STORAGE_KEY, light ? 'light' : 'dark');
+    } catch (_e) {}
+    var btn = document.getElementById('homeNewCanvasToggle');
+    if (btn) {
+      btn.textContent = light ? 'Dark mode' : 'Light mode';
+      btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+    }
+  }
+
+  function bindCanvasToggle() {
+    var btn = document.getElementById('homeNewCanvasToggle');
+    if (!btn || btn.getAttribute('data-canvas-bound') === '1') return;
+    btn.setAttribute('data-canvas-bound', '1');
+    applyCanvasMode(isLightCanvas());
+    btn.addEventListener('click', function () {
+      applyCanvasMode(!isLightCanvas());
+    });
+  }
+
   function init() {
     var bar = document.getElementById('homeGreetingBar');
     if (!bar || bar.getAttribute('data-home-greeting-init') === '1') return;
     bar.setAttribute('data-home-greeting-init', '1');
 
+    bindCanvasToggle();
     resolveFirstName().then(renderGreeting);
     renderSandbox();
     loadStock();
