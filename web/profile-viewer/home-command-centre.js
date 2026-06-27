@@ -195,8 +195,8 @@
   }
 
   function productLabel(c) {
-    if (!productCatalog) return c.products || '';
-    return productCatalog.formatProductIds(c.productIds);
+    if (!productCatalog) return c.products || c.org || '';
+    return productCatalog.formatProductIds(c.productIds) || c.products || c.org || '';
   }
 
   function fmtDate(iso) {
@@ -880,7 +880,7 @@
             '<div class="cc-cust-name-block"><div class="cc-cust-name">' +
             esc(p.name) +
             '</div><div class="cc-cust-product">' +
-            esc(p.org || '') +
+            esc(productLabel(p)) +
             '</div></div></div></div></td>' +
             '<td><div class="cc-cust-row-inner"><div class="cc-cust-name-row cc-cust-name-row--compact">' +
             '<span>' +
@@ -1248,15 +1248,30 @@
     var progress = parseInt(form.progress && form.progress.value, 10);
     if (isNaN(progress)) progress = 0;
     progress = Math.max(0, Math.min(100, progress));
+    var productIds = productCatalog ? productCatalog.readPickerValues(form) : [];
     return {
       name: (form.name && form.name.value.trim()) || 'New PoC',
       customerId: (form.customerId && form.customerId.value) || '',
-      org: (form.org && form.org.value.trim()) || '',
+      productIds: productIds,
       target: (form.target && form.target.value.trim()) || '',
       status: status,
       statusStrip: STATUS_STRIP_MAP[status] || 'blue',
       progress: progress,
     };
+  }
+
+  function bindPocCustomerSelect(form) {
+    if (!form || !productCatalog) return;
+    var select = form.customerId || document.getElementById('ccPocCustomerSelect');
+    var picker = document.getElementById('ccPocProductPickerGrid');
+    if (!select || !picker || select.getAttribute('data-cc-poc-bound') === '1') return;
+    select.setAttribute('data-cc-poc-bound', '1');
+    select.addEventListener('change', function () {
+      var checked = form.querySelectorAll('input[name="productIds"]:checked');
+      if (checked.length) return;
+      var cust = customerById(select.value);
+      if (cust) productCatalog.renderPickerGrid(picker, cust.productIds || []);
+    });
   }
 
   function openPocForm(pocId) {
@@ -1268,19 +1283,27 @@
     activePocId = pocId || null;
     var title = document.getElementById('ccPocModalTitle');
     var customerSelect = document.getElementById('ccPocCustomerSelect');
+    var picker = document.getElementById('ccPocProductPickerGrid');
     if (pocId) {
       var p = data.usePocs().getById(pocId);
       if (!p) return;
       if (title) title.textContent = 'Edit PoC / demo';
       form.name.value = p.name || '';
-      form.org.value = p.org || '';
       form.target.value = p.target || '';
       form.status.value = p.status || 'Scoping';
       form.progress.value = p.progress != null ? p.progress : 0;
       populatePocCustomerSelect(customerSelect, p.customerId || '');
+      if (productCatalog && picker) {
+        productCatalog.renderPickerGrid(picker, p.productIds || []);
+      }
+      bindPocCustomerSelect(form);
     } else {
       if (title) title.textContent = 'Add PoC / demo';
       populatePocCustomerSelect(customerSelect, '');
+      if (productCatalog && picker) {
+        productCatalog.renderPickerGrid(picker, []);
+      }
+      bindPocCustomerSelect(form);
     }
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');

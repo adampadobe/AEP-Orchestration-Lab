@@ -59,13 +59,16 @@
     return ids;
   }
 
-  function normalizeProductIds(customer) {
-    if (!customer) return [];
-    if (Array.isArray(customer.productIds) && customer.productIds.length) {
-      return customer.productIds.slice();
+  function normalizeProductIds(row) {
+    if (!row) return [];
+    if (Array.isArray(row.productIds) && row.productIds.length) {
+      return row.productIds.slice();
     }
-    if (customer.products && typeof customer.products === 'string') {
-      return mapLegacyProductsString(customer.products);
+    if (row.products && typeof row.products === 'string') {
+      return mapLegacyProductsString(row.products);
+    }
+    if (row.org && typeof row.org === 'string') {
+      return mapLegacyProductsString(row.org);
     }
     return [];
   }

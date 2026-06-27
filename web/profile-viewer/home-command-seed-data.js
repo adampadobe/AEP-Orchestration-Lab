@@ -150,10 +150,10 @@
     });
 
     var pocs = [
-      { customerId: customers[0].id, name: 'Aviva · Edge Decisioning PoC', org: 'AJO Decisioning', target: customers[0].eta, status: 'In build', statusStrip: 'amber', progress: 65 },
-      { customerId: customers[3].id, name: 'BT Group · NBO Sandbox Demo', org: 'Decisioning', target: '15 Aug', status: 'Scoping', statusStrip: 'blue', progress: 15 },
-      { customerId: customers[4].id, name: 'M&S · Personalisation Go-live', org: 'AJO + Target', target: customers[4].eta, status: 'UAT', statusStrip: 'green', progress: 90 },
-      { customerId: customers[2].id, name: 'Lloyds · Audience Activation Demo', org: 'RT-CDP', target: 'Blocked on IT', status: 'Blocked', statusStrip: 'red', progress: 40 },
+      { customerId: customers[0].id, name: 'Aviva · Edge Decisioning PoC', productIds: ['ajoJ', 'ajoDecisioning'], target: customers[0].eta, status: 'In build', statusStrip: 'amber', progress: 65 },
+      { customerId: customers[3].id, name: 'BT Group · NBO Sandbox Demo', productIds: ['ajoDecisioning'], target: '15 Aug', status: 'Scoping', statusStrip: 'blue', progress: 15 },
+      { customerId: customers[4].id, name: 'M&S · Personalisation Go-live', productIds: ['ajoJ', 'target'], target: customers[4].eta, status: 'UAT', statusStrip: 'green', progress: 90 },
+      { customerId: customers[2].id, name: 'Lloyds · Audience Activation Demo', productIds: ['cdp'], target: 'Blocked on IT', status: 'Blocked', statusStrip: 'red', progress: 40 },
     ].map(function (p) {
       return Object.assign({ id: store.generateId('poc') }, p);
     });

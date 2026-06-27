@@ -33,6 +33,7 @@
     if (!remote || typeof remote !== 'object') return;
     state = Object.assign({}, remote);
     state.customers = normalizeCustomers(state.customers);
+    state.pocs = normalizePocs(state.pocs);
     seeded = !!(state.customers && state.customers.length);
     store.saveLocalCache(state);
     notifyListeners();
@@ -63,6 +64,17 @@
 
   function normalizeCustomers(list) {
     return (list || []).map(normalizeCustomer);
+  }
+
+  function normalizePoc(p) {
+    if (!p) return p;
+    var row = Object.assign({}, p);
+    row.productIds = products ? products.normalizeProductIds(row) : row.productIds || [];
+    return row;
+  }
+
+  function normalizePocs(list) {
+    return (list || []).map(normalizePoc);
   }
 
   function logActivity(entry) {
@@ -289,21 +301,25 @@
   function usePocs() {
     return {
       getAll: function () {
-        return (state.pocs || []).slice();
+        return normalizePocs(state.pocs || []);
       },
       getById: function (id) {
-        return (state.pocs || []).find(function (p) {
-          return p.id === id;
+        var p = (state.pocs || []).find(function (row) {
+          return row.id === id;
         });
+        return p ? normalizePoc(p) : null;
       },
       add: function (poc) {
-        var row = Object.assign(
-          {
-            id: store.generateId('poc'),
-            statusStrip: 'blue',
-            progress: 0,
-          },
-          poc
+        var row = normalizePoc(
+          Object.assign(
+            {
+              id: store.generateId('poc'),
+              statusStrip: 'blue',
+              progress: 0,
+              productIds: [],
+            },
+            poc
+          )
         );
         state.pocs = (state.pocs || []).concat([row]);
         persist();
@@ -311,7 +327,7 @@
       },
       update: function (id, patch) {
         state.pocs = (state.pocs || []).map(function (p) {
-          return p.id === id ? Object.assign({}, p, patch) : p;
+          return p.id === id ? normalizePoc(Object.assign({}, p, patch)) : p;
         });
         persist();
         return usePocs().getById(id);
@@ -463,11 +479,13 @@
         if (remote && remote.customers && remote.customers.length) {
           state = remote;
           state.customers = normalizeCustomers(state.customers);
+          state.pocs = normalizePocs(state.pocs);
           seeded = true;
           store.saveLocalCache(state);
         } else if (local.customers && local.customers.length) {
           state = local;
           state.customers = normalizeCustomers(state.customers);
+          state.pocs = normalizePocs(state.pocs);
           seeded = true;
           if (rtdb && rtdb.isAuthenticated()) rtdb.saveState(state);
         } else {
@@ -480,6 +498,7 @@
       .catch(function () {
         state = store.loadState();
         state.customers = normalizeCustomers(state.customers);
+        state.pocs = normalizePocs(state.pocs);
         seedIfEmpty();
         initDone = true;
         return state;
