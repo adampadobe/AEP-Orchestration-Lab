@@ -104,7 +104,7 @@ body.home-new-page .dashboard-info-banner {
 /* ── Release panel ── */
 .home-release-panel {
   position: relative;
-  margin-bottom: var(--s-sp-300);
+  margin: 0 var(--s-sp-300) var(--s-sp-300);
   background: var(--rs-bg);
   border: 1px solid var(--rs-border);
   border-left: 4px solid var(--rs-red);
@@ -2059,6 +2059,13 @@ html[data-home-new-canvas="light"] body.home-new-page.home-dashboard-concierge {
   --panel-bg-alt: var(--rs-card);
   --app-bg: var(--rs-bg);
   --home-layout-bg-color: var(--rs-bg);
+  --menu-bg: var(--rs-surface);
+  --menu-fg: var(--rs-text);
+  --menu-fg-muted: var(--rs-muted);
+  --menu-accent: var(--rs-red);
+  --menu-nav-active-bg: var(--rs-red);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(0, 0, 0, 0.05);
 }
 
 html[data-home-new-canvas="light"] body.home-new-page {
@@ -2237,4 +2244,39 @@ html[data-home-new-canvas="light"] body.home-new-page .cc-mono-sm a {
     padding-left: var(--s-sp-200);
     padding-right: var(--s-sp-200);
   }
+}
+
+/* Menu palette tokens load in aep-theme-palettes.css — win on cascade unless specificity beats them */
+html[data-home-new-canvas="light"][data-ajo-sidebar="dark"] body.home-new-page.home-dashboard-concierge,
+html[data-home-new-canvas="light"][data-aep-theme="dark"] body.home-new-page.home-dashboard-concierge,
+html[data-home-new-canvas="light"][data-aep-theme="dark"][data-ajo-sidebar="dark"] body.home-new-page.home-dashboard-concierge,
+html[data-home-new-canvas="light"][data-aep-menu-palette] body.home-new-page.home-dashboard-concierge {
+  --dash-sidebar: var(--rs-surface);
+  --menu-bg: var(--rs-surface);
+  --menu-fg: var(--rs-text);
+  --menu-fg-muted: var(--rs-muted);
+  --menu-accent: var(--rs-red);
+  --menu-nav-active-bg: var(--rs-red);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(0, 0, 0, 0.05);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-item,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-label,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-group-label,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-subgroup-label,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-channel-label,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-sidebar-name {
+  color: var(--menu-fg);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-sidebar-sub,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-group-toggle,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-nav-subgroup-toggle,
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-sidebar .dashboard-sidebar-toggle {
+  color: var(--menu-fg-muted);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-sidebar .cc-section-title {
+  color: var(--rs-text);
 }
