@@ -2013,7 +2013,7 @@ body.home-new-page {
 
 .cc-detail-due { color: var(--cc-text-dim); font-size: 10px; }
 
-/* ── Canvas toggle: light surround, dark content blocks ── */
+/* ── Canvas toggle + full light theme (no dark blocks) ── */
 body.home-new-page .dashboard-main--home-new {
   position: relative;
 }
@@ -2038,56 +2038,164 @@ body.home-new-page .dashboard-main--home-new {
 
 .home-new-canvas-toggle:hover {
   border-color: var(--rs-red);
-  color: var(--rs-text);
 }
 
 html[data-home-new-canvas="light"] body.home-new-page.home-dashboard-concierge {
-  background: var(--cc-canvas-bg);
-  color: var(--cc-canvas-text);
-  --dash-bg: var(--cc-canvas-bg);
-  --home-layout-bg-color: var(--cc-canvas-bg);
-  --app-bg: var(--cc-canvas-bg);
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  --dash-bg: var(--rs-bg);
+  --dash-surface: var(--rs-surface);
+  --dash-surface-alt: var(--rs-card);
+  --dash-sidebar: var(--rs-surface);
+  --dash-border: var(--rs-border);
+  --dash-text: var(--rs-text);
+  --dash-text-secondary: var(--rs-text-body);
+  --dash-muted: var(--rs-muted);
+  --dash-blue: var(--rs-red);
+  --dash-hover: rgba(0, 0, 0, 0.04);
+  --dash-input-bg: var(--rs-surface);
+  --dash-input-border: var(--rs-border);
+  --panel-bg: var(--rs-surface);
+  --panel-bg-alt: var(--rs-card);
+  --app-bg: var(--rs-bg);
+  --home-layout-bg-color: var(--rs-bg);
 }
 
 html[data-home-new-canvas="light"] body.home-new-page {
-  --cc-canvas-bg: #e8e8e8;
-  --cc-canvas-text: #1a1a1a;
-  --cc-canvas-muted: #5c5c5c;
+  /* Page + release-summary palette */
+  --rs-bg: #f0f0f0;
+  --rs-surface: #ffffff;
+  --rs-card: #fafafa;
+  --rs-border: #d0d0d0;
+  --rs-text: #1a1a1a;
+  --rs-text-body: #333333;
+  --rs-muted: #666666;
+  --rs-dim: #888888;
+  /* --rs-red and --rs-red-dim unchanged */
+
+  --s-gray-50: var(--rs-bg);
+  --s-gray-75: var(--rs-surface);
+  --s-gray-100: var(--rs-card);
+  --s-gray-200: var(--rs-border);
+  --s-gray-300: #c4c4c4;
+  --s-gray-400: var(--rs-dim);
+  --s-gray-500: var(--rs-muted);
+  --s-gray-600: #555555;
+  --s-gray-700: var(--rs-text-body);
+  --s-gray-800: #222222;
+  --s-gray-900: var(--rs-text);
+  --s-accent-soft: rgba(235, 16, 0, 0.08);
+  --s-accent-border: rgba(235, 16, 0, 0.22);
+
+  /* Command centre blocks */
+  --cc-bg-base: var(--rs-bg);
+  --cc-bg-card: #ffffff;
+  --cc-bg-raised: #f5f5f5;
+  --cc-border: #cfcfcf;
+  --cc-border-lit: #c0c0c0;
+  --cc-text-sec: #444444;
+  --cc-text-dim: #777777;
+  --cc-red: var(--rs-red);
+  --cc-green-dim: rgba(34, 197, 94, 0.14);
+  --cc-amber-dim: rgba(245, 158, 11, 0.16);
+  --cc-blue-dim: rgba(59, 130, 246, 0.12);
+  --cc-purple-dim: rgba(168, 85, 247, 0.12);
+  --cc-red-dim: rgba(235, 16, 0, 0.1);
 }
 
 html[data-home-new-canvas="light"] body.home-new-page .dashboard-main-wrap--layout {
-  background-color: var(--cc-canvas-bg);
+  background-color: var(--rs-bg);
 }
 
 html[data-home-new-canvas="light"] body.home-new-page .home-new-canvas-toggle {
   background: #ffffff;
-  color: var(--cc-canvas-text);
-  border-color: #c8c8c8;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: var(--rs-text);
+  border-color: var(--cc-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 html[data-home-new-canvas="light"] body.home-new-page .home-new-canvas-toggle:hover {
   border-color: var(--rs-red);
+  color: var(--rs-text);
 }
 
-html[data-home-new-canvas="light"] body.home-new-page .cc-section-title {
-  color: #4a4a4a;
+html[data-home-new-canvas="light"] body.home-new-page .dashboard-btn-outline:hover {
+  background: var(--cc-bg-raised);
+  border-color: var(--rs-red);
+  color: var(--rs-text);
 }
 
-html[data-home-new-canvas="light"] body.home-new-page .cc-section-meta,
-html[data-home-new-canvas="light"] body.home-new-page .cc-section-action,
-html[data-home-new-canvas="light"] body.home-new-page .home-lab-updates__title,
-html[data-home-new-canvas="light"] body.home-new-page .home-lab-updates__subtitle {
-  color: var(--cc-canvas-muted);
+html[data-home-new-canvas="light"] body.home-new-page .home-release-sp-tab:hover {
+  border-color: #aaaaaa;
+  color: var(--rs-text);
 }
 
-html[data-home-new-canvas="light"] body.home-new-page .home-release-panel {
-  background: var(--cc-bg-card);
-  border-color: var(--cc-border);
+html[data-home-new-canvas="light"] body.home-new-page .home-release-sp-tab-count {
+  background: rgba(0, 0, 0, 0.06);
 }
 
-html[data-home-new-canvas="light"] body.home-new-page .home-release-panel__head {
-  background: var(--cc-bg-card);
+html[data-home-new-canvas="light"] body.home-new-page .home-release-sp-card:hover {
+  border-color: var(--rs-red);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-release-panel,
+html[data-home-new-canvas="light"] body.home-new-page .home-release-panel__head,
+html[data-home-new-canvas="light"] body.home-new-page .home-release-panel__body,
+html[data-home-new-canvas="light"] body.home-new-page .home-release-sp-tabs {
+  background: var(--rs-surface);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-greeting-bar {
+  background: var(--rs-surface);
+  border-color: var(--rs-border);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-greeting-stat {
+  background: var(--rs-card);
+  border-color: var(--rs-border);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-card,
+html[data-home-new-canvas="light"] body.home-new-page .cc-metric-card,
+html[data-home-new-canvas="light"] body.home-new-page .cc-modal,
+html[data-home-new-canvas="light"] body.home-new-page .cc-customer-drawer {
+  background: var(--rs-surface);
+  border-color: var(--rs-border);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-customer-row:hover td {
+  background: var(--cc-bg-raised);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-tag-pill {
+  background: var(--rs-card);
+  border-color: var(--rs-border);
+  color: var(--cc-text-sec);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-btn-ghost {
+  background: var(--rs-card);
+  border-color: var(--rs-border);
+  color: var(--rs-text);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-field input,
+html[data-home-new-canvas="light"] body.home-new-page .cc-field textarea,
+html[data-home-new-canvas="light"] body.home-new-page .cc-field select {
+  background: var(--rs-surface);
+  border-color: var(--rs-border);
+  color: var(--rs-text);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .home-release-drawer {
+  background: var(--rs-surface);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+}
+
+html[data-home-new-canvas="light"] body.home-new-page .cc-comp-scrape-link a,
+html[data-home-new-canvas="light"] body.home-new-page .cc-mono-sm,
+html[data-home-new-canvas="light"] body.home-new-page .cc-mono-sm a {
+  color: var(--rs-red);
 }
 
 @media (max-width: 1100px) {
