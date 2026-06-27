@@ -747,6 +747,28 @@
           ],
         },
         {
+          id: 'demoRoccoForte',
+          label: 'Rocco Forte Hotels',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'roccoForteWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Rocco Forte Hotels (in development)',
+                  href: 'rocco-forte-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'roccoForteDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" d="M4 10h16v8H4z"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 10V7a4 4 0 0 1 8 0v3"/><path stroke="currentColor" stroke-width="1.5" d="M12 14v2" opacity="0.6"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoJlr',
           label: 'JLR',
           demoCustomer: true,

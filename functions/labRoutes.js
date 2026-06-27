@@ -31,6 +31,7 @@ function registerLabRoutes(deps) {
   } = deps;
 
   const routes = {};
+  const LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT = 'apalmer@adobe.com,kirkham@adobe.com';
 
   /** GET /api/env-bar-config?demoId=ksia — remote env bar defaults (Firestore envBarConfigs/{demoId}) */
   routes.envBarConfig = onRequest(profileFnOpts, async (req, res) => {
@@ -344,7 +345,7 @@ function registerLabRoutes(deps) {
     ...CONSENT_STORE_FN_OPTS,
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
     environmentVariables: {
-      LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
+      LAB_APPROVAL_NOTIFY_EMAIL: LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT,
       LAB_APPROVAL_MAILGUN_REGION: '',
       LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
@@ -374,7 +375,7 @@ function registerLabRoutes(deps) {
           origin: req.get('origin') || req.get('referer') || '',
         },
         {
-          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
+          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT).trim(),
           approvalBaseUrl: String(process.env.LAB_APPROVAL_BASE_URL || '').trim(),
           mailgunKey: EASTER_EGG_MAILGUN_API_KEY.value(),
           mailgunDomain,
@@ -396,7 +397,7 @@ function registerLabRoutes(deps) {
     ...CONSENT_STORE_FN_OPTS,
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
     environmentVariables: {
-      LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
+      LAB_APPROVAL_NOTIFY_EMAIL: LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT,
       LAB_APPROVAL_MAILGUN_REGION: '',
       LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
@@ -429,7 +430,7 @@ function registerLabRoutes(deps) {
           origin: req.get('origin') || req.get('referer') || '',
         },
         {
-          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
+          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT).trim(),
           approvalBaseUrl: String(process.env.LAB_APPROVAL_BASE_URL || '').trim(),
           mailgunKey: EASTER_EGG_MAILGUN_API_KEY.value(),
           mailgunDomain,
@@ -451,7 +452,7 @@ function registerLabRoutes(deps) {
     ...CONSENT_STORE_FN_OPTS,
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
     environmentVariables: {
-      LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
+      LAB_APPROVAL_NOTIFY_EMAIL: LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT,
       LAB_APPROVAL_MAILGUN_REGION: '',
       LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
@@ -482,7 +483,7 @@ function registerLabRoutes(deps) {
           origin: req.get('origin') || req.get('referer') || '',
         },
         {
-          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
+          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT).trim(),
           approvalBaseUrl: String(process.env.LAB_APPROVAL_BASE_URL || '').trim(),
           mailgunKey: EASTER_EGG_MAILGUN_API_KEY.value(),
           mailgunDomain,
@@ -528,7 +529,7 @@ function registerLabRoutes(deps) {
     ...CONSENT_STORE_FN_OPTS,
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
     environmentVariables: {
-      LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
+      LAB_APPROVAL_NOTIFY_EMAIL: LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT,
       LAB_APPROVAL_MAILGUN_REGION: '',
       LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
@@ -557,7 +558,7 @@ function registerLabRoutes(deps) {
           origin: req.get('origin') || req.get('referer') || '',
         },
         {
-          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
+          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT).trim(),
           approvalBaseUrl: String(process.env.LAB_APPROVAL_BASE_URL || '').trim(),
           mailgunKey: EASTER_EGG_MAILGUN_API_KEY.value(),
           mailgunDomain,
@@ -579,7 +580,7 @@ function registerLabRoutes(deps) {
     ...CONSENT_STORE_FN_OPTS,
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
     environmentVariables: {
-      LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
+      LAB_APPROVAL_NOTIFY_EMAIL: LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT,
       LAB_APPROVAL_MAILGUN_REGION: '',
       LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
@@ -608,7 +609,7 @@ function registerLabRoutes(deps) {
           origin: req.get('origin') || req.get('referer') || '',
         },
         {
-          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
+          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT).trim(),
           approvalBaseUrl: String(process.env.LAB_APPROVAL_BASE_URL || '').trim(),
           mailgunKey: EASTER_EGG_MAILGUN_API_KEY.value(),
           mailgunDomain,

@@ -1,0 +1,647 @@
+/**
+ * Rocco Forte Hotels — local site chrome (homepage + shared header/footer).
+ */
+
+:root {
+  --rf-red: #e20714;
+  --rf-black: #000;
+  --rf-white: #fff;
+  --rf-gray: #767676;
+  --rf-gray-light: #e8e8e8;
+  --rf-border: #000;
+  --rf-serif: 'Cormorant Garamond', 'Times New Roman', serif;
+  --rf-sans: 'Work Sans', 'Helvetica Neue', Arial, sans-serif;
+  --rf-header-height: 72px;
+}
+
+.rocco-forte-site {
+  color: var(--rf-black);
+  font-family: var(--rf-sans);
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.rocco-forte-site *,
+.rocco-forte-site *::before,
+.rocco-forte-site *::after {
+  box-sizing: border-box;
+}
+
+.rocco-forte-site a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.rocco-forte-site img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Header */
+.rf-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: var(--rf-header-height);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.rf-header--transparent {
+  background: transparent;
+}
+
+.rf-header--solid,
+.rocco-forte-site.is-scrolled .rf-header--transparent {
+  background: var(--rf-white);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.rf-header__inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 40px);
+  height: 100%;
+}
+
+.rf-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rf-header__nav a {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rf-header__nav--left {
+  justify-self: start;
+}
+
+.rf-header__logo {
+  justify-self: center;
+  text-align: center;
+}
+
+.rf-header__logo img {
+  height: 42px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.rf-header__logo-text {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.rf-header__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rf-header__actions a {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rf-btn-book {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 0.55rem 1.25rem;
+  border: 1px solid var(--rf-black);
+  background: transparent;
+  color: var(--rf-black);
+  font-family: var(--rf-sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.rf-header--transparent:not(.rf-header--solid) .rf-btn-book {
+  border-color: var(--rf-white);
+  color: var(--rf-white);
+}
+
+.rocco-forte-site.is-scrolled .rf-header--transparent .rf-btn-book {
+  border-color: var(--rf-black);
+  color: var(--rf-black);
+}
+
+.rf-btn-book:hover {
+  background: var(--rf-black);
+  color: var(--rf-white);
+}
+
+.rf-header--transparent:not(.rf-header--solid) .rf-btn-book:hover {
+  background: var(--rf-white);
+  color: var(--rf-black);
+}
+
+.rocco-forte-site.is-scrolled .rf-header--transparent .rf-btn-book:hover {
+  background: var(--rf-black);
+  color: var(--rf-white);
+}
+
+/* Hero */
+.rf-hero {
+  position: relative;
+  min-height: 88vh;
+  display: flex;
+  align-items: flex-end;
+  color: var(--rf-white);
+}
+
+.rf-hero__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.rf-hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rf-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.rf-hero__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 6rem clamp(16px, 3vw, 40px) 4rem;
+}
+
+.rf-hero__eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.rf-hero__title {
+  margin: 0;
+  max-width: 14ch;
+  font-family: var(--rf-serif);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+}
+
+.rf-hero__lead {
+  margin: 1.25rem 0 0;
+  max-width: 42rem;
+  font-size: 15px;
+  line-height: 1.7;
+  opacity: 0.92;
+}
+
+/* Intro */
+.rf-intro {
+  padding: 5rem clamp(16px, 3vw, 40px);
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.rf-intro__title {
+  margin: 0 0 1.5rem;
+  font-family: var(--rf-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.rf-intro__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--rf-gray);
+}
+
+/* Hotel grid */
+.rf-hotels {
+  padding: 0 clamp(16px, 3vw, 40px) 5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.rf-section-title {
+  margin: 0 0 2rem;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.rf-hotel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.rf-hotel-card {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.rf-hotel-card__media {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+.rf-hotel-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.rf-hotel-card:hover .rf-hotel-card__media img {
+  transform: scale(1.03);
+}
+
+.rf-hotel-card__body {
+  padding: 1.25rem 1rem 1.5rem;
+}
+
+.rf-hotel-card__country {
+  margin: 0 0 0.35rem;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rf-gray);
+}
+
+.rf-hotel-card__name {
+  margin: 0;
+  font-family: var(--rf-serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+
+/* CTA band */
+.rf-cta-band {
+  padding: 4rem clamp(16px, 3vw, 40px);
+  background: var(--rf-black);
+  color: var(--rf-white);
+  text-align: center;
+}
+
+.rf-cta-band__title {
+  margin: 0 0 1rem;
+  font-family: var(--rf-serif);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 400;
+}
+
+.rf-cta-band__text {
+  margin: 0 auto 1.75rem;
+  max-width: 36rem;
+  font-size: 14px;
+  line-height: 1.7;
+  opacity: 0.85;
+}
+
+.rf-cta-band .rf-btn-book {
+  border-color: var(--rf-white);
+  color: var(--rf-white);
+}
+
+.rf-cta-band .rf-btn-book:hover {
+  background: var(--rf-white);
+  color: var(--rf-black);
+}
+
+/* Footer */
+.rf-footer {
+  padding: 3rem clamp(16px, 3vw, 40px) 2rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.rf-footer__inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: space-between;
+}
+
+.rf-footer__brand img {
+  height: 36px;
+  width: auto;
+}
+
+.rf-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rf-footer__links a {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rf-footer__legal {
+  width: 100%;
+  margin: 2rem 0 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  color: var(--rf-gray);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .rf-header__nav--left {
+    display: none;
+  }
+
+  .rf-header__inner {
+    grid-template-columns: auto 1fr auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .rf-header__actions .rf-header__link-text {
+    display: none;
+  }
+}
+
+/* ── Login / sign-up (KSIA lab pairing pattern) ── */
+.rf-top-utils {
+  position: fixed;
+  top: 86px;
+  right: clamp(16px, 3vw, 40px);
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rf-login-btn {
+  font-family: var(--rf-sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.42);
+  color: var(--rf-white);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.rf-login-btn:hover {
+  background: var(--rf-black);
+  border-color: var(--rf-white);
+}
+
+.rf-login-btn.is-signed-in {
+  border-color: var(--rf-red);
+}
+
+body.rf-home-scrolled .rf-login-btn {
+  border-color: var(--rf-black);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--rf-black);
+}
+
+body.rf-home-scrolled .rf-login-btn:hover {
+  background: var(--rf-black);
+  color: var(--rf-white);
+}
+
+.rf-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.rf-login-overlay[hidden] {
+  display: none;
+}
+
+.rf-login-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.rf-login-card {
+  position: relative;
+  z-index: 1;
+  background: var(--rf-white);
+  color: var(--rf-black);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  padding: 2rem 2rem 1.75rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.rf-login-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rf-login-close:hover {
+  background: var(--rf-gray-light);
+}
+
+.rf-login-logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.rf-login-logo img {
+  height: 42px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.rf-login-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--rf-serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  text-align: center;
+  color: var(--rf-black);
+}
+
+.rf-login-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 300;
+  color: var(--rf-gray);
+  text-align: center;
+}
+
+.rf-login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.rf-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rf-login-field label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rf-gray);
+}
+
+.rf-login-field input {
+  font-family: var(--rf-sans);
+  font-size: 14px;
+  font-weight: 300;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0;
+  background: var(--rf-white);
+  color: var(--rf-black);
+  min-width: 0;
+}
+
+.rf-login-field input:focus {
+  outline: none;
+  border-color: var(--rf-black);
+}
+
+.rf-login-error {
+  margin: 0 0 0.85rem;
+  font-size: 12px;
+  color: var(--rf-red);
+  text-align: center;
+}
+
+.rf-login-submit {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: none;
+  background: var(--rf-black);
+  color: var(--rf-white);
+  font-family: var(--rf-sans);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.rf-login-submit:hover:not(:disabled) {
+  background: var(--rf-red);
+}
+
+.rf-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.rf-login-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--rf-white);
+  border-radius: 50%;
+  animation: rfLoginSpin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes rfLoginSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rf-login-guest-link {
+  margin: 0.85rem 0 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.rf-login-guest-link a {
+  color: var(--rf-black);
+  text-decoration: underline;
+}
+
+body.rf-login-modal-open .rocco-forte-site {
+  overflow: hidden;
+}
+
+.rocco-forte-demo-page .rf-login-field input[type='text'],
+.rocco-forte-demo-page .rf-login-field input[type='password'] {
+  min-width: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--rf-white);
+  color: var(--rf-black);
+}
