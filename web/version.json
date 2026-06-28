@@ -1,14 +1,14 @@
 {
-  "gitSha": "908d732c4216e2c8d90f782da67499717ccc4da8",
-  "gitShortSha": "908d732c",
+  "gitSha": "1962e9d4f641ee563379537dd4d53a611cffec9f",
+  "gitShortSha": "1962e9d4",
   "gitBranch": "main",
-  "gitCommitSubject": "[kirkham] fix: pick browser save-page root HTML over _files ad iframes for upload demos",
+  "gitCommitSubject": "[kirkham] fix: route profile-viewer demo delete via brandScraperScrapes",
   "gitCommitAuthor": "Alan Kirkham",
-  "gitCommitDate": "2026-06-28T20:29:39+01:00",
-  "deployedAt": "2026-06-28T19:30:05.857Z",
+  "gitCommitDate": "2026-06-28T21:01:39+01:00",
+  "deployedAt": "2026-06-28T20:02:04.353Z",
   "deployedBy": "unknown",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/908d732c4216e2c8d90f782da67499717ccc4da8"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1962e9d4f641ee563379537dd4d53a611cffec9f"
 }
