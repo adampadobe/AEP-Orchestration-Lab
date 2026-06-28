@@ -758,7 +758,7 @@
       {
         "source": "/api/lab/adobe-stock",
         "function": {
-          "functionId": "labAdobeStock",
+          "functionId": "envBarConfig",
           "region": "us-central1"
         }
       },

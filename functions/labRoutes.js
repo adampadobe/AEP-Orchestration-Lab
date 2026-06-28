@@ -33,8 +33,64 @@ function registerLabRoutes(deps) {
   const routes = {};
   const LAB_APPROVAL_NOTIFY_EMAIL_DEFAULT = 'apalmer@adobe.com,kirkham@adobe.com';
 
+  function requestTargetsAdobeStock(req) {
+    const raw = String(req.originalUrl || req.url || req.path || '');
+    return raw.indexOf('adobe-stock') !== -1;
+  }
+
+  async function respondAdobeStockQuote(req, res) {
+    setCors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    try {
+      const chartRes = await fetch(
+        'https://query1.finance.yahoo.com/v8/finance/chart/ADBE?interval=1d&range=1d',
+        { headers: { 'User-Agent': 'AEP-Orchestration-Lab/1.0' } }
+      );
+      if (!chartRes.ok) throw new Error('Upstream HTTP ' + chartRes.status);
+      const chart = await chartRes.json();
+      const result = chart.chart && chart.chart.result && chart.chart.result[0];
+      const meta = result && result.meta;
+      if (!meta || meta.regularMarketPrice == null) {
+        throw new Error('Invalid upstream response');
+      }
+      const price = Number(meta.regularMarketPrice);
+      const prev = meta.chartPreviousClose != null ? Number(meta.chartPreviousClose) : Number(meta.previousClose);
+      const change = prev != null && Number.isFinite(prev) ? price - prev : null;
+      const changePct = change != null && prev ? (change / prev) * 100 : null;
+      if (!Number.isFinite(price) || price < 80 || price > 2000) {
+        throw new Error('Price out of expected range');
+      }
+      res.set('Cache-Control', 'public, max-age=120');
+      res.status(200).json({
+        ok: true,
+        symbol: 'ADBE',
+        price,
+        currency: meta.currency || 'USD',
+        change,
+        changePct,
+        source: 'yahoo',
+        asOf: meta.regularMarketTime
+          ? new Date(meta.regularMarketTime * 1000).toISOString()
+          : null,
+      });
+    } catch (e) {
+      res.status(502).json({ ok: false, error: String(e.message || e) });
+    }
+  }
+
   /** GET /api/env-bar-config?demoId=ksia — remote env bar defaults (Firestore envBarConfigs/{demoId}) */
   routes.envBarConfig = onRequest(profileFnOpts, async (req, res) => {
+  if (requestTargetsAdobeStock(req)) {
+    await respondAdobeStockQuote(req, res);
+    return;
+  }
   setCors(res, 'GET, OPTIONS');
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -887,54 +943,6 @@ function registerLabRoutes(deps) {
     res.status(code).send(htmlPage('Approval failed', String(e && e.message ? e.message : e), false));
   }
 });
-
-  /** GET /api/lab/adobe-stock — ADBE quote for home-new greeting bar (Yahoo Finance chart API). */
-  routes.labAdobeStock = onRequest(profileFnOpts, async (req, res) => {
-    setCors(res, 'GET, OPTIONS');
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
-    if (req.method !== 'GET') {
-      res.status(405).json({ error: 'Method not allowed' });
-      return;
-    }
-    try {
-      const chartRes = await fetch(
-        'https://query1.finance.yahoo.com/v8/finance/chart/ADBE?interval=1d&range=1d',
-        { headers: { 'User-Agent': 'AEP-Orchestration-Lab/1.0' } }
-      );
-      if (!chartRes.ok) throw new Error('Upstream HTTP ' + chartRes.status);
-      const chart = await chartRes.json();
-      const result = chart.chart && chart.chart.result && chart.chart.result[0];
-      const meta = result && result.meta;
-      if (!meta || meta.regularMarketPrice == null) {
-        throw new Error('Invalid upstream response');
-      }
-      const price = Number(meta.regularMarketPrice);
-      const prev = meta.chartPreviousClose != null ? Number(meta.chartPreviousClose) : Number(meta.previousClose);
-      const change = prev != null && Number.isFinite(prev) ? price - prev : null;
-      const changePct = change != null && prev ? (change / prev) * 100 : null;
-      if (!Number.isFinite(price) || price < 80 || price > 2000) {
-        throw new Error('Price out of expected range');
-      }
-      res.set('Cache-Control', 'public, max-age=120');
-      res.status(200).json({
-        ok: true,
-        symbol: 'ADBE',
-        price,
-        currency: meta.currency || 'USD',
-        change,
-        changePct,
-        source: 'yahoo',
-        asOf: meta.regularMarketTime
-          ? new Date(meta.regularMarketTime * 1000).toISOString()
-          : null,
-      });
-    } catch (e) {
-      res.status(502).json({ ok: false, error: String(e.message || e) });
-    }
-  });
 
   return routes;
 }
