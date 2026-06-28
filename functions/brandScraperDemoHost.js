@@ -10,6 +10,7 @@ const admin = require('firebase-admin');
 
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const DEMO_GCS_PREFIX = 'demo-websites';
+const PV_DEMO_GCS_PREFIX = 'profile-viewer-demos';
 
 /** Retired /demos/<slug>/web/* — always 404 (legacy GCS copies may still exist). */
 const RETIRED_DEMO_SLUGS = new Set(['news']);
@@ -76,6 +77,70 @@ function gcsObjectKey(slug, relFile) {
   return `${DEMO_GCS_PREFIX}/${slug}/web/${relFile}`;
 }
 
+function gcsProfileViewerDemoKey(fileSlug, relFile) {
+  return `${PV_DEMO_GCS_PREFIX}/${fileSlug}/${relFile}`;
+}
+
+/**
+ * Parse /profile-viewer/<slug>-demo.html or …/<slug>-demo-assets/**
+ * @returns {{ fileSlug: string, relFile: string } | null}
+ */
+function parseProfileViewerDemoPath(reqPath) {
+  const p = String(reqPath || '').replace(/\/+$/, '');
+  let m = p.match(/^\/profile-viewer\/([a-z0-9-]+)-demo\.html$/i);
+  if (m) {
+    const fileSlug = safeSlugPart(m[1]);
+    if (!fileSlug) return null;
+    return { fileSlug, relFile: `${fileSlug}-demo.html` };
+  }
+  m = p.match(/^\/profile-viewer\/([a-z0-9-]+)-demo-assets\/(.*)$/i);
+  if (m) {
+    const fileSlug = safeSlugPart(m[1]);
+    if (!fileSlug) return null;
+    const rel = safeRelFile(m[2] || 'index.html');
+    return { fileSlug, relFile: `${fileSlug}-demo-assets/${rel}` };
+  }
+  if (p === '/profile-viewer/brand-scraper-demo-nav.json') {
+    return { fileSlug: '__nav__', relFile: 'brand-scraper-demo-nav.json' };
+  }
+  return null;
+}
+
+async function handleProfileViewerDemoRequest(req, res) {
+  const parsed = parseProfileViewerDemoPath(req.path);
+  if (!parsed) {
+    res.status(404).send('not found');
+    return;
+  }
+
+  const relPath = parsed.fileSlug === '__nav__'
+    ? 'profile-viewer-demos/brand-scraper-demo-nav.json'
+    : gcsProfileViewerDemoKey(parsed.fileSlug, parsed.relFile);
+  const file = getBucket().file(relPath);
+  const [exists] = await file.exists();
+  if (!exists) {
+    res.status(404).send('not found');
+    return;
+  }
+
+  const [md] = await file.getMetadata().catch(() => [null]);
+  const ct = contentTypeFor(parsed.relFile, md && md.contentType);
+  res.setHeader('Content-Type', ct);
+  res.setHeader('Cache-Control', parsed.fileSlug === '__nav__' ? 'public, max-age=60' : 'public, max-age=300, must-revalidate');
+  if (md && md.size) res.setHeader('Content-Length', String(md.size));
+  if (md && md.etag) res.setHeader('ETag', md.etag);
+
+  if (req.method === 'HEAD') {
+    res.status(200).end();
+    return;
+  }
+
+  file.createReadStream().on('error', (e) => {
+    console.error('[brandScraperDemoHost] profile-viewer stream', String((e && e.message) || e));
+    if (!res.headersSent) res.status(500).send('read error');
+  }).pipe(res);
+}
+
 async function handleDemoHostRequest(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.status(405).send('GET only');
@@ -121,7 +186,10 @@ async function handleDemoHostRequest(req, res) {
 
 module.exports = {
   parseDemoRequestPath,
+  parseProfileViewerDemoPath,
   gcsObjectKey,
+  gcsProfileViewerDemoKey,
   RETIRED_DEMO_SLUGS,
   handleDemoHostRequest,
+  handleProfileViewerDemoRequest,
 };
