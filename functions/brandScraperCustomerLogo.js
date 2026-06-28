@@ -1,5 +1,5 @@
 /**
- * Customer logo resolution — crawl assets, Wikipedia, then domain fallbacks:
+ * Customer logo resolution — og:image, crawl assets, Wikipedia, then domain fallbacks:
  * Clearbit → Brandfetch → Wikidata P154 → Google favicon. SVG → PNG via Sharp.
  * Successful domain lookups are cached in GCS by domain.
  */
@@ -13,6 +13,11 @@ const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-b
 const SIGNED_URL_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const USER_AGENT = 'AEP-Orchestration-Lab/1.0 (Adobe internal brand scraper)';
 const LOGO_CACHE_PREFIX = 'logo-cache';
+const OG_LOGO_MIN_SCORE = 12;
+const OG_LOGO_HIGH_CONFIDENCE_SCORE = 25;
+
+const OG_LOGO_SKIP_RE = /hero|banner|campaign|social-share|placeholder|default-og|featured-image|photograph|stock-photo|getty/i;
+const OG_LOGO_BOOST_RE = /lockup|wordmark|brandmark|logotype|brand.?mark/i;
 
 function getBucket() {
   if (!admin.apps.length) admin.initializeApp();
@@ -221,6 +226,88 @@ async function tryCrawlAssetsLogo(assets) {
   };
 }
 
+function ogImageUrlFromEntry(entry) {
+  if (!entry) return '';
+  if (typeof entry === 'string') return entry.trim();
+  return String(entry.url || entry.href || entry.src || '').trim();
+}
+
+/**
+ * Score an og:image / twitter:image URL for logo-likeness (path/filename heuristics).
+ * @param {string} url
+ * @returns {number}
+ */
+function scoreOgImageLogoUrl(url) {
+  const hay = String(url || '').toLowerCase();
+  if (!hay || !/^https?:\/\//i.test(hay)) return -99;
+  if (OG_LOGO_SKIP_RE.test(hay)) return -50;
+
+  let score = 0;
+  if (/lockup/.test(hay)) score += 35;
+  if (/logo/.test(hay)) score += 28;
+  if (OG_LOGO_BOOST_RE.test(hay)) score += 18;
+  if (/\bbrand\b/.test(hay) && !/rebrand/.test(hay)) score += 8;
+  if (/\.svg($|\?|#)/i.test(hay)) score += 6;
+  if (/\.png($|\?|#)/i.test(hay)) score += 4;
+  if (/favicon|icon-/.test(hay)) score -= 8;
+
+  // Generic OG social card dimensions — deprioritise unless filename looks like a logo
+  if (/width=1200.*height=630|1200x630|og-image/.test(hay) && score < 20) score -= 6;
+
+  return score;
+}
+
+/**
+ * Rank og:image URLs from crawl assets by logo-likeness.
+ * @param {object} assets
+ * @param {number} limit
+ * @returns {Array<{ url: string, score: number }>}
+ */
+function rankOgImageLogoUrls(assets, limit = 6) {
+  const raw = (assets && assets.ogImages) || [];
+  const seen = new Set();
+  const ranked = [];
+
+  for (const entry of raw) {
+    const url = ogImageUrlFromEntry(entry);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    const score = scoreOgImageLogoUrl(url);
+    if (score > 0) ranked.push({ url, score });
+  }
+
+  ranked.sort((a, b) => b.score - a.score);
+  return ranked.slice(0, limit);
+}
+
+function pickOgImageLogoUrl(assets) {
+  const ranked = rankOgImageLogoUrls(assets, 1);
+  const best = ranked[0];
+  if (!best || best.score < OG_LOGO_MIN_SCORE) return null;
+  return best.url;
+}
+
+async function tryOgImageLogo(assets) {
+  const ranked = rankOgImageLogoUrls(assets);
+  if (!ranked.length) return null;
+
+  for (const { url, score } of ranked) {
+    if (score < OG_LOGO_MIN_SCORE) break;
+    const fetched = await fetchImageBytes(url);
+    if (!fetched) continue;
+    return {
+      source: score >= OG_LOGO_HIGH_CONFIDENCE_SCORE ? 'og-image-logo' : 'og-image',
+      thumbnailUrl: url,
+      originalUrl: url,
+      sourceUrl: url,
+      buffer: fetched.buffer,
+      contentType: fetched.contentType,
+      ogImageScore: score,
+    };
+  }
+  return null;
+}
+
 async function tryWikipediaLogo(customerName, country) {
   const wiki = await wikipediaLogo.searchWikipediaPage(customerName, { country });
   if (!wiki || !wiki.thumbnailUrl) return null;
@@ -342,6 +429,8 @@ async function tryGoogleFavicon(domain) {
 }
 
 const SOURCE_LABELS = {
+  'og-image': 'Customer logo (Open Graph)',
+  'og-image-logo': 'Customer logo (Open Graph lockup)',
   'crawl-assets': 'Customer logo (crawl assets)',
   wikipedia: 'Customer logo (Wikipedia)',
   'wikipedia-title': 'Customer logo (Wikipedia)',
@@ -360,6 +449,12 @@ function sourceStepLabel(source) {
 }
 
 function sourceStepDetail(result, fallbackQuery) {
+  if (result.ogImageScore && (result.sourceUrl || result.thumbnailUrl)) {
+    try {
+      const path = new URL(result.sourceUrl || result.thumbnailUrl).pathname.split('/').pop();
+      if (path) return decodeURIComponent(path);
+    } catch (_e) { /* ignore */ }
+  }
   if (result.wikipediaTitle) return result.wikipediaTitle;
   if (result.domain) return result.domain;
   if (result.cachedSource) return `${result.domain || fallbackQuery} (${result.cachedSource})`;
@@ -390,6 +485,7 @@ async function resolveCustomerLogo(customerName, opts = {}) {
   const attempts = [];
 
   if (opts.crawlAssets) {
+    attempts.push(() => tryOgImageLogo(opts.crawlAssets));
     attempts.push(() => tryCrawlAssetsLogo(opts.crawlAssets));
   }
   if (query) {
@@ -456,9 +552,13 @@ module.exports = {
   extractDomain,
   normaliseLogoBytes,
   pickBrandfetchLogoUrl,
+  scoreOgImageLogoUrl,
+  rankOgImageLogoUrls,
+  pickOgImageLogoUrl,
   sourceStepLabel,
   sourceStepDetail,
   resolveCustomerLogo,
+  tryOgImageLogo,
   tryClearbitLogo,
   tryBrandfetchLogo,
   tryGoogleFavicon,

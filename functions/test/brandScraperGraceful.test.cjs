@@ -261,6 +261,30 @@ describe('brandScraperCustomerLogo', () => {
   it('maps source keys to run-step labels', () => {
     assert.match(logoResolver.sourceStepLabel('clearbit'), /Clearbit/);
     assert.match(logoResolver.sourceStepLabel('google-favicon'), /Google favicon/);
+    assert.match(logoResolver.sourceStepLabel('og-image-logo'), /Open Graph lockup/);
+  });
+
+  it('scores og:image lockup URLs above generic hero images', () => {
+    const lockup = 'https://www.army.mod.uk/media/21615/army-lockup-whitetext-blackback.png?width=1200';
+    const hero = 'https://www.army.mod.uk/media/hero-campaign-banner.jpg?width=1200&height=630';
+    assert.ok(logoResolver.scoreOgImageLogoUrl(lockup) > logoResolver.scoreOgImageLogoUrl(hero));
+    assert.equal(
+      logoResolver.pickOgImageLogoUrl({
+        ogImages: [hero, lockup],
+      }),
+      lockup,
+    );
+  });
+
+  it('ranks logo-like og:image before wikipedia in resolver order', () => {
+    const ranked = logoResolver.rankOgImageLogoUrls({
+      ogImages: [
+        'https://example.com/hero-banner.jpg',
+        'https://example.com/assets/brand-logo.png',
+      ],
+    });
+    assert.match(ranked[0].url, /brand-logo/);
+    assert.ok(ranked[0].score >= 12);
   });
 });
 
