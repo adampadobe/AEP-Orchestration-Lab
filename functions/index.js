@@ -114,7 +114,6 @@ const profileGenerateService = lazyRequireMod('./profileGenerateService');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
 const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
-const brandScraperProfileViewerDemo = lazyRequireMod('./brandScraperProfileViewerDemo');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
@@ -2755,7 +2754,7 @@ exports.brandScraperScrapes = onRequest(
   {
     region: REGION,
     invoker: 'public',
-    timeoutSeconds: 30,
+    timeoutSeconds: 120,
     memory: '256MiB',
   },
   async (req, res) => {
@@ -2804,39 +2803,6 @@ exports.brandScraperExport = onRequest(
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');
     await brandScraperService.handleExport(req, res);
-  }
-);
-
-/** POST/DELETE /api/brand-scraper/delete-profile-viewer-demo?slug=… — remove GCS demo + nav entry. */
-exports.brandScraperDeleteProfileViewerDemo = onRequest(
-  {
-    region: REGION,
-    invoker: 'public',
-    timeoutSeconds: 120,
-    memory: '256MiB',
-  },
-  async (req, res) => {
-    setCors(res, 'POST, DELETE, OPTIONS');
-    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
-    if (req.method === 'OPTIONS') {
-      res.status(204).end();
-      return;
-    }
-    if (req.method !== 'POST' && req.method !== 'DELETE') {
-      res.status(405).json({ error: 'POST or DELETE only' });
-      return;
-    }
-    const slug = String((req.query && req.query.slug) || (req.body && req.body.slug) || '').trim();
-    if (!slug) {
-      res.status(400).json({ error: 'slug query parameter required' });
-      return;
-    }
-    try {
-      const result = await brandScraperProfileViewerDemo.deleteProfileViewerDemo(slug);
-      res.status(result.deleted ? 200 : 404).json({ ok: result.deleted, ...result });
-    } catch (e) {
-      res.status(500).json({ error: String((e && e.message) || e) });
-    }
   }
 );
 

@@ -119,13 +119,6 @@
         }
       },
       {
-        "source": "/api/brand-scraper/delete-profile-viewer-demo",
-        "function": {
-          "functionId": "brandScraperDeleteProfileViewerDemo",
-          "region": "us-central1"
-        }
-      },
-      {
         "source": "/api/brand-scraper/model-config",
         "function": {
           "functionId": "brandScraperModelConfig",

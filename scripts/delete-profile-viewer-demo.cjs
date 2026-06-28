@@ -14,7 +14,7 @@ const pvDemo = require('../functions/brandScraperProfileViewerDemo');
 const LAB_ORIGIN = String(process.env.LAB_ORIGIN || 'https://aep-orchestration-lab.web.app').replace(/\/+$/, '');
 
 async function deleteViaApi(slug) {
-  const url = `${LAB_ORIGIN}/api/brand-scraper/delete-profile-viewer-demo?slug=${encodeURIComponent(slug)}`;
+  const url = `${LAB_ORIGIN}/api/brand-scraper/scrapes/demo/${encodeURIComponent(slug)}`;
   const res = await fetch(url, { method: 'POST' });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {

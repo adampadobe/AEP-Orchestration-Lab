@@ -19,6 +19,7 @@ const uploadedHtml = require('./brandScraperUploadedHtml');
 const scrapeConfidence = require('./brandScraperConfidence');
 const demoWebsite = require('./brandScraperDemoWebsite');
 const customerLogoResolver = require('./brandScraperCustomerLogo');
+const profileViewerDemo = require('./brandScraperProfileViewerDemo');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
@@ -2477,6 +2478,19 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 async function handleScrapes(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
 
+  const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
+  const mDemoDel = /\/scrapes\/demo\/([^/]+)$/.exec(path);
+  if (mDemoDel && (req.method === 'POST' || req.method === 'DELETE')) {
+    const slug = decodeURIComponent(mDemoDel[1]);
+    try {
+      const result = await profileViewerDemo.deleteProfileViewerDemo(slug);
+      res.status(result.deleted ? 200 : 404).json({ ok: result.deleted, ...result });
+    } catch (e) {
+      res.status(500).json({ error: String((e && e.message) || e) });
+    }
+    return;
+  }
+
   const scope = await resolveScope(req);
   if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   const sandbox = scope.storageScope;
@@ -2484,7 +2498,6 @@ async function handleScrapes(req, res) {
   // Hosting rewrites sometimes forward only the trailing segment (e.g. `/moew4…`)
   // without `/api/brand-scraper/scrapes/`. Prefer full URL parts, then fall back
   // to a lone path segment that looks like a generated scrape id.
-  const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
   let scrapeId = '';
   let isExtend = false;
   let isCancel = false;
