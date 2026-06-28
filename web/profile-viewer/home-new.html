@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css?v=20260625g">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="home-new.css?v=20260625p">
+  <link rel="stylesheet" href="home-new.css?v=20260625q">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
 </head>
 <body class="home-page home-dashboard-concierge home-dashboard-ajo home-new-page" data-aep-theme="dark">
@@ -114,7 +114,7 @@
 
         <div id="ccCommandCentre" class="cc-command-centre">
           <div class="cc-grid-main">
-            <div class="cc-grid-main__left">
+            <div class="cc-engagements-block">
               <div class="cc-section-header">
                 <div class="cc-section-title"><span class="cc-section-dot"></span>Customer Engagements</div>
                 <span class="cc-section-meta" id="ccSyncStatus" title="Persistence">Loading…</span>
@@ -146,21 +146,20 @@
               </div>
             </div>
 
-            <aside class="cc-sidebar" aria-label="Daily execution">
-              <div>
-                <div class="cc-section-header">
-                  <div class="cc-section-title"><span class="cc-section-dot"></span>Upcoming Meetings</div>
-                </div>
-                <div class="cc-card cc-card--compact" id="ccMeetingsList"></div>
+            <div class="cc-execution-block cc-meetings-panel">
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>Upcoming Meetings</div>
               </div>
-              <div>
-                <div class="cc-section-header">
-                  <div class="cc-section-title"><span class="cc-section-dot"></span>My Actions</div>
-                  <span class="cc-section-meta" id="ccTasksOverdueLabel">—</span>
-                </div>
-                <div class="cc-card cc-card--compact" id="ccTasksList"></div>
+              <div class="cc-card cc-card--compact" id="ccMeetingsList"></div>
+            </div>
+
+            <div class="cc-execution-block cc-actions-panel">
+              <div class="cc-section-header">
+                <div class="cc-section-title"><span class="cc-section-dot"></span>My Actions</div>
+                <span class="cc-section-meta" id="ccTasksOverdueLabel">—</span>
               </div>
-            </aside>
+              <div class="cc-card cc-card--compact" id="ccTasksList"></div>
+            </div>
           </div>
 
           <div class="cc-grid-three">
