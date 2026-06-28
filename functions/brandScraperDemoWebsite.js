@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
+const demoFromUpload = require('./brandScraperDemoFromUpload');
 
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const DEMO_GCS_PREFIX = 'demo-websites';
@@ -368,7 +369,7 @@ function writeLocalFiles(dirs, files) {
 
 /**
  * @param {object} record — scrape record with crawlSummary, analysis, etc.
- * @param {{ customerName?: string, overwrite?: boolean, regenerate?: boolean, versionOnCollision?: boolean }} opts
+ * @param {{ customerName?: string, overwrite?: boolean, regenerate?: boolean, versionOnCollision?: boolean, uploadEntries?: Array }} opts
  */
 async function generateDemoWebsite(record, opts = {}) {
   const slug = normalizeCustomerFolder(
@@ -413,6 +414,81 @@ async function generateDemoWebsite(record, opts = {}) {
   if (existing && !overwrite && opts.versionOnCollision) {
     versionSuffix = '-v2';
     status = 'versioned';
+  }
+
+  const uploadEntries = opts.uploadEntries || [];
+  const hasUploadHtml = uploadEntries.some((e) => e && e.isHtml !== false && /\.html?$/i.test(e.name));
+  if (hasUploadHtml) {
+    const uploadBuilt = await demoFromUpload.buildDemoFromUpload({
+      entries: uploadEntries,
+      baseUrl: record.baseUrl || record.url,
+      record,
+      slug,
+      prefix,
+    });
+    if (uploadBuilt && uploadBuilt.files && uploadBuilt.files.length) {
+      const meta = buildDemoMetadata(record, slug, status, {
+        slug,
+        prefix,
+        versionSuffix,
+        source: 'uploaded_html',
+        sourceHtmlPath: uploadBuilt.sourceHtmlPath,
+      });
+      uploadBuilt.files.push({
+        name: 'demo-metadata.json',
+        content: Buffer.from(JSON.stringify(meta, null, 2), 'utf8'),
+        contentType: 'application/json',
+      });
+
+      const gcsPrefix = gcsDemoPrefix(slug, versionSuffix);
+      try {
+        await uploadFilesToGcs(gcsPrefix, uploadBuilt.files);
+        const local = localDemoDirs(slug);
+        if (local) {
+          const targetDirs = versionSuffix
+            ? [path.join(path.dirname(local.demos), slug + versionSuffix, 'web')]
+            : [local.demos, local.hosted];
+          writeLocalFiles(targetDirs.filter(Boolean), uploadBuilt.files);
+        }
+      } catch (e) {
+        return {
+          enabled: true,
+          status: 'failed',
+          demoGenerationStatus: 'failed',
+          path: logicalDemoPath(slug),
+          error: String((e && e.message) || e).slice(0, 400),
+          requiredModules: { profileEnvironmentPanel: false, profileViewerModule: false },
+        };
+      }
+
+      const logicalPath = versionSuffix
+        ? `/demos/${slug}${versionSuffix}/web`
+        : logicalDemoPath(slug);
+
+      return {
+        enabled: true,
+        status: 'created',
+        demoGenerationStatus: existing && overwrite ? 'regenerated' : (versionSuffix ? 'versioned' : 'created'),
+        path: logicalPath,
+        publicUrl: `${logicalPath}/index.html`,
+        alreadyExisted: !!existing,
+        regenerated: !!(existing && overwrite),
+        generatedFiles: uploadBuilt.files.map((f) => f.name),
+        source: 'uploaded_html',
+        sourceHtmlPath: uploadBuilt.sourceHtmlPath,
+        requiredModules: {
+          profileEnvironmentPanel: true,
+          profileViewerModule: true,
+        },
+        notes: [
+          `Demo built from uploaded HTML (${uploadBuilt.sourceHtmlPath}) — not the generated template.`,
+          'Linked stylesheets from the upload were inlined; relative assets use zip files or the brand domain.',
+          'Profile environment panel and profile viewer scripts were appended before </body>.',
+          `Open at ${logicalPath}/index.html (served from GCS via /demos/ hosting rewrite).`,
+        ],
+        gcsPrefix,
+      };
+    }
   }
 
   const pages = (record.crawlSummary && record.crawlSummary.pages) || [];

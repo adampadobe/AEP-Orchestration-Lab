@@ -47,7 +47,7 @@ async function parseUploadedPayload(payload, { baseUrl, runTagAudit = true } = {
   const entries = [];
 
   if (!payload || typeof payload !== 'object') {
-    return { pages, summary, fallbackSources, assetPaths };
+    return { pages, summary, fallbackSources, assetPaths, uploadEntries: entries };
   }
 
   if (payload.zipBase64) {
@@ -55,7 +55,7 @@ async function parseUploadedPayload(payload, { baseUrl, runTagAudit = true } = {
       const buf = decodeBase64Payload(payload.zipBase64);
       if (buf.length > MAX_UPLOAD_BYTES) {
         summary.errors.push('ZIP exceeds maximum upload size.');
-        return { pages, summary, fallbackSources, assetPaths };
+        return { pages, summary, fallbackSources, assetPaths, uploadEntries: entries };
       }
       summary.filesUploaded += 1;
       const directory = await unzipper.Open.buffer(buf);
@@ -76,7 +76,7 @@ async function parseUploadedPayload(payload, { baseUrl, runTagAudit = true } = {
       }
     } catch (e) {
       summary.errors.push('ZIP validation failed: ' + String((e && e.message) || e).slice(0, 200));
-      return { pages, summary, fallbackSources, assetPaths };
+      return { pages, summary, fallbackSources, assetPaths, uploadEntries: entries };
     }
   }
 
@@ -144,7 +144,7 @@ async function parseUploadedPayload(payload, { baseUrl, runTagAudit = true } = {
     }
   }
 
-  return { pages, summary, fallbackSources, assetPaths };
+  return { pages, summary, fallbackSources, assetPaths, uploadEntries: entries };
 }
 
 function pageDedupeKey(page) {

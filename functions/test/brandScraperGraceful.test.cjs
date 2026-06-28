@@ -132,6 +132,45 @@ describe('brandScraperConfidence', () => {
   });
 });
 
+describe('brandScraperDemoFromUpload', () => {
+  const demoUpload = require('../brandScraperDemoFromUpload');
+
+  it('prefers index.html as primary page', () => {
+    const picked = demoUpload.pickPrimaryHtml([
+      { name: 'pages/about.html', content: Buffer.from('<html></html>'), isHtml: true },
+      { name: 'index.html', content: Buffer.from('<html></html>'), isHtml: true },
+    ]);
+    assert.equal(picked.name, 'index.html');
+  });
+
+  it('inlines linked stylesheets from zip entries', () => {
+    const html = '<html><head><link rel="stylesheet" href="css/site.css"></head><body></body></html>';
+    const map = demoUpload.buildEntryMap([
+      { name: 'css/site.css', content: Buffer.from('body { color: red; }') },
+    ]);
+    const out = demoUpload.inlineStylesheets(html, 'index.html', map, 'https://example.com/');
+    assert.match(out, /<style[^>]*data-inlined-from="css\/site\.css"/);
+    assert.match(out, /color: red/);
+    assert.doesNotMatch(out, /href="css\/site\.css"/);
+  });
+
+  it('rewrites zip asset paths to demo-relative URLs', () => {
+    const html = '<img src="assets/logo.png">';
+    const map = demoUpload.buildEntryMap([
+      { name: 'assets/logo.png', content: Buffer.from('png') },
+    ]);
+    const out = demoUpload.rewriteAttrUrls(html, 'index.html', map, 'https://example.com/');
+    assert.match(out, /src="assets\/logo\.png"/);
+  });
+
+  it('rewrites missing assets to absolute brand URLs', () => {
+    const html = '<img src="/missing.png">';
+    const map = demoUpload.buildEntryMap([]);
+    const out = demoUpload.rewriteAttrUrls(html, 'index.html', map, 'https://example.com/');
+    assert.match(out, /src="https:\/\/example\.com\/missing\.png"/);
+  });
+});
+
 describe('brandScraperDemoWebsite', () => {
   it('normalizes customer folder names', () => {
     assert.equal(demoWebsite.normalizeCustomerFolder('Sky News UK'), 'sky-news-uk');

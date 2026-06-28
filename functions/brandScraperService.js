@@ -1545,7 +1545,7 @@ async function resolveCrawlWithFallbacks({
     || (uploadPayload && uploadPayload.uploadOnly === true);
 
   let liveCrawl = uploadedHtml.emptyCrawl(url, inferBrandNameFromUrl(url));
-  let uploadedResult = { pages: [], summary: null, fallbackSources: [], assetPaths: [] };
+  let uploadedResult = { pages: [], summary: null, fallbackSources: [], assetPaths: [], uploadEntries: [] };
 
   if (!uploadOnly) {
     runSteps.push(runStepOk('crawl_live', 'Live crawl started', wantJs ? 'JS renderer' : 'fetch'));
@@ -1620,6 +1620,7 @@ async function resolveCrawlWithFallbacks({
     blockedPages,
     fallbackSources: uploadedResult.fallbackSources || [],
     uploadedHtmlSummary: uploadedResult.summary,
+    uploadEntries: uploadedResult.uploadEntries || [],
     uploadOnly,
     fallbackUsed,
     livePageCount: merged._livePageCount || 0,
@@ -1680,6 +1681,7 @@ async function executeAnalyzePipeline({
   let blockedPages = [];
   let fallbackSources = [];
   let uploadedHtmlSummary = null;
+  let uploadEntries = [];
   let warnings = [];
   let appendBaseline = null;
   let storedBaseline = null;
@@ -1834,6 +1836,7 @@ async function executeAnalyzePipeline({
     blockedPages = crawlMeta.blockedPages || [];
     fallbackSources = crawlMeta.fallbackSources || [];
     uploadedHtmlSummary = crawlMeta.uploadedHtmlSummary || null;
+    uploadEntries = crawlMeta.uploadEntries || [];
     warnings = warningsLocal.slice();
   }
   } // end !analysisOnly crawl
@@ -2175,6 +2178,7 @@ async function executeAnalyzePipeline({
         customerName: body.customerName || recordToPersist.brandName || url,
         overwrite: body.regenerateDemoWebsite === true || body.overwriteDemoWebsite === true,
         regenerate: body.regenerateDemoWebsite === true,
+        uploadEntries,
       });
       recordToPersist.demoWebsite = demoResult;
       recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';
