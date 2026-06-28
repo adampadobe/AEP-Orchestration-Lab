@@ -316,12 +316,23 @@ async function deleteProfileViewerDemo(fileSlug) {
   const bucket = getBucket();
   const prefix = `${PV_DEMO_GCS_PREFIX}/${slug}/`;
   let gcsObjects = 0;
+  let gcsDeleteFailed = false;
   try {
     const [files] = await bucket.getFiles({ prefix });
     gcsObjects = files.length;
-    await Promise.all(files.map((f) => f.delete().catch(() => {})));
-  } catch (_e) {
-    gcsObjects = 0;
+    if (gcsObjects) {
+      await bucket.deleteFiles({ prefix, force: true });
+      const [remaining] = await bucket.getFiles({ prefix });
+      if (remaining.length) {
+        gcsDeleteFailed = true;
+        gcsObjects = remaining.length;
+      } else {
+        gcsObjects = files.length;
+      }
+    }
+  } catch (e) {
+    gcsDeleteFailed = true;
+    console.error('[deleteProfileViewerDemo] GCS delete failed', slug, String((e && e.message) || e));
   }
 
   let navRemoved = false;
@@ -340,8 +351,9 @@ async function deleteProfileViewerDemo(fileSlug) {
         metadata: { cacheControl: 'public, max-age=60' },
       });
     }
-  } catch (_e) {
+  } catch (e) {
     navRemoved = false;
+    console.error('[deleteProfileViewerDemo] nav manifest update failed', slug, String((e && e.message) || e));
   }
 
   let localRemoved = false;
@@ -356,17 +368,21 @@ async function deleteProfileViewerDemo(fileSlug) {
         fs.rmSync(local.assetsDir, { recursive: true, force: true });
         localRemoved = true;
       }
-    } catch (_e) {
+    } catch (e) {
       localRemoved = false;
+      console.error('[deleteProfileViewerDemo] local remove failed', slug, String((e && e.message) || e));
     }
   }
 
+  const stillExists = await gcsDemoExists(slug);
   return {
-    deleted: gcsObjects > 0 || localRemoved,
+    deleted: !stillExists && !gcsDeleteFailed,
     fileSlug: slug,
     gcsObjects,
     navRemoved,
     localRemoved,
+    stillExists,
+    gcsDeleteFailed,
   };
 }
 

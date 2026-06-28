@@ -574,6 +574,9 @@ async function generateDemoWebsite(record, opts = {}) {
     || (record.warnings && record.warnings.length > 0);
 
   try {
+    if (existing && overwrite) {
+      await pvDemo.deleteProfileViewerDemo(fileSlug);
+    }
     const innerResult = await buildInnerSnapshotFiles(
       record,
       fileSlug,
