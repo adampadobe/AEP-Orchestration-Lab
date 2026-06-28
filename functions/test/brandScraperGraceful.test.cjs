@@ -143,6 +143,25 @@ describe('brandScraperDemoFromUpload', () => {
     assert.equal(picked.name, 'index.html');
   });
 
+  it('prefers browser save-page root HTML over _files/index.html ad iframe', () => {
+    const mainHtml = '<!DOCTYPE html><html><head><title>Sky News</title></head><body><img src="./Page_files/logo.svg"></body></html>';
+    const adIframe = '<!DOCTYPE html><!-- saved from url=(0133)https://s0.2mdn.net/sadbundle/123/index.html --><html><body>Renault ad</body></html>';
+    const picked = demoUpload.pickPrimaryHtml([
+      { name: 'Page_files/index.html', content: Buffer.from(adIframe), isHtml: true },
+      { name: 'Page_files/style.css', content: Buffer.from('body{}'), isHtml: false },
+      { name: 'Page.html', content: Buffer.from(mainHtml.repeat(200)), isHtml: true },
+    ]);
+    assert.equal(picked.name, 'Page.html');
+  });
+
+  it('detects browser save-page bundle root', () => {
+    const root = demoUpload.findBrowserSavePageRoot([
+      { name: 'My Site.html', content: Buffer.from('<html></html>'), isHtml: true },
+      { name: 'My Site_files/logo.png', content: Buffer.from('x'), isHtml: false },
+    ]);
+    assert.equal(root.name, 'My Site.html');
+  });
+
   it('inlines linked stylesheets from zip entries', () => {
     const html = '<html><head><link rel="stylesheet" href="css/site.css"></head><body></body></html>';
     const map = demoUpload.buildEntryMap([

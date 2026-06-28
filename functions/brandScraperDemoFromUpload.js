@@ -18,6 +18,88 @@ const PRIMARY_HTML_SCORES = [
   { pattern: /(^|\/)main\.html?$/i, score: 80 },
 ];
 
+/** Saved ad / tracking iframes often land as small HTML under *_files/ (e.g. DoubleClick sadbundle). */
+const AD_IFRAME_HTML_HEAD_RE = /2mdn\.net|sadbundle|doubleclick|Template_H5|Enabler_01/i;
+const SAVE_PAGE_FILES_DIR_RE = /_files\//i;
+
+function htmlEntryHead(entry) {
+  if (!entry || !entry.content || !entry.content.length) return '';
+  return entry.content.toString('utf8', 0, Math.min(entry.content.length, 4096));
+}
+
+/**
+ * Browser "Web Page, Complete" saves: `{Title}.html` + `{Title}_files/` asset folder.
+ * @param {Array<{ name: string }>} entries
+ * @returns {{ entry: object, name: string } | null}
+ */
+function findBrowserSavePageRoot(entries) {
+  for (const e of entries || []) {
+    if (!e || !e.name || !e.content || !e.content.length) continue;
+    if (e.isHtml === false || !/\.html?$/i.test(e.name)) continue;
+    const name = posixNorm(e.name);
+    if (name.includes('/')) continue;
+    const m = /^(.+)\.html?$/i.exec(name);
+    if (!m) continue;
+    const companionPrefix = `${m[1]}_files/`;
+    const hasCompanion = (entries || []).some((x) => {
+      const p = posixNorm(x && x.name);
+      return p && p.startsWith(companionPrefix);
+    });
+    if (hasCompanion) return { entry: e, name };
+  }
+  return null;
+}
+
+/**
+ * @param {object} entry
+ * @param {Array} entries
+ * @returns {number}
+ */
+function scoreHtmlCandidate(entry, entries) {
+  const name = posixNorm(entry.name);
+  let score = 0;
+
+  const saveRoot = findBrowserSavePageRoot(entries);
+  if (saveRoot && name === saveRoot.name) {
+    score += 150;
+    score += Math.min(entry.content.length / 5000, 40);
+  }
+
+  if (SAVE_PAGE_FILES_DIR_RE.test(name)) {
+    if (/(^|\/)index\.html?$/i.test(name)) score -= 80;
+    else score -= 35;
+    if (saveRoot) score -= 25;
+  }
+
+  for (const rule of PRIMARY_HTML_SCORES) {
+    if (rule.pattern.test(name)) score = Math.max(score, rule.score);
+  }
+
+  const head = htmlEntryHead(entry);
+  if (AD_IFRAME_HTML_HEAD_RE.test(head)) score -= 100;
+
+  if (!name.includes('/')) score += 15;
+  score -= (name.split('/').length - 1) * 3;
+  score -= Math.min(name.length, 80) * 0.01;
+
+  return score;
+}
+
+/**
+ * @param {Array<{ name: string, content: Buffer, isHtml?: boolean }>} entries
+ */
+function pickPrimaryHtml(entries) {
+  const htmlFiles = (entries || []).filter((e) => e && e.isHtml !== false && /\.html?$/i.test(e.name));
+  if (!htmlFiles.length) return null;
+
+  const ranked = htmlFiles.map((e) => {
+    const name = posixNorm(e.name);
+    return { entry: e, name, score: scoreHtmlCandidate(e, entries) };
+  }).sort((a, b) => b.score - a.score);
+
+  return ranked[0] || null;
+}
+
 function posixNorm(p) {
   return String(p || '').replace(/\\/g, '/').replace(/^\/+/, '');
 }
@@ -60,29 +142,6 @@ function lookupEntry(map, zipPath) {
     if (k.toLowerCase() === lower) return { path: k, content: v };
   }
   return null;
-}
-
-/**
- * @param {Array<{ name: string, content: Buffer, isHtml?: boolean }>} entries
- */
-function pickPrimaryHtml(entries) {
-  const htmlFiles = (entries || []).filter((e) => e && e.isHtml !== false && /\.html?$/i.test(e.name));
-  if (!htmlFiles.length) return null;
-
-  const ranked = htmlFiles.map((e) => {
-    const name = posixNorm(e.name);
-    let score = 0;
-    for (const rule of PRIMARY_HTML_SCORES) {
-      if (rule.pattern.test(name)) score = Math.max(score, rule.score);
-    }
-    if (!name.includes('/')) score += 15;
-    const depth = name.split('/').length - 1;
-    score -= depth * 3;
-    score -= Math.min(name.length, 80) * 0.01;
-    return { entry: e, name, score };
-  }).sort((a, b) => b.score - a.score);
-
-  return ranked[0] || null;
 }
 
 function documentBaseUrl(baseUrl, htmlPath) {
@@ -436,6 +495,8 @@ async function buildDemoFromUpload(opts) {
 
 module.exports = {
   pickPrimaryHtml,
+  findBrowserSavePageRoot,
+  scoreHtmlCandidate,
   buildEntryMap,
   resolveAbsoluteAssetUrl,
   resolveHrefToZipPath,

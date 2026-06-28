@@ -302,6 +302,74 @@ async function detectExistingProfileViewerDemo(fileSlug) {
   return null;
 }
 
+/**
+ * Remove a scraper-generated Profile Viewer demo from GCS, nav manifest, and local repo paths.
+ * @param {string} fileSlug
+ * @returns {Promise<{ deleted: boolean, fileSlug: string, gcsObjects: number, navRemoved: boolean, localRemoved: boolean }>}
+ */
+async function deleteProfileViewerDemo(fileSlug) {
+  const slug = normalizeFileSlug(fileSlug);
+  if (!slug || RESERVED_DEMO_SLUGS.has(slug)) {
+    return { deleted: false, fileSlug: slug, gcsObjects: 0, navRemoved: false, localRemoved: false };
+  }
+
+  const bucket = getBucket();
+  const prefix = `${PV_DEMO_GCS_PREFIX}/${slug}/`;
+  let gcsObjects = 0;
+  try {
+    const [files] = await bucket.getFiles({ prefix });
+    gcsObjects = files.length;
+    await Promise.all(files.map((f) => f.delete().catch(() => {})));
+  } catch (_e) {
+    gcsObjects = 0;
+  }
+
+  let navRemoved = false;
+  try {
+    const manifest = await readNavManifest();
+    const before = manifest.entries.length;
+    const entries = manifest.entries.filter((e) => e.fileSlug !== slug && e.href !== profileViewerDemoHref(slug));
+    if (entries.length !== before) {
+      navRemoved = true;
+      await getBucket().file(NAV_MANIFEST_PATH).save(JSON.stringify({
+        updatedAt: new Date().toISOString(),
+        entries: entries.slice(0, 120),
+      }, null, 2), {
+        contentType: 'application/json; charset=utf-8',
+        resumable: false,
+        metadata: { cacheControl: 'public, max-age=60' },
+      });
+    }
+  } catch (_e) {
+    navRemoved = false;
+  }
+
+  let localRemoved = false;
+  const local = localProfileViewerPaths(slug);
+  if (local) {
+    try {
+      if (fs.existsSync(local.html)) {
+        fs.unlinkSync(local.html);
+        localRemoved = true;
+      }
+      if (fs.existsSync(local.assetsDir)) {
+        fs.rmSync(local.assetsDir, { recursive: true, force: true });
+        localRemoved = true;
+      }
+    } catch (_e) {
+      localRemoved = false;
+    }
+  }
+
+  return {
+    deleted: gcsObjects > 0 || localRemoved,
+    fileSlug: slug,
+    gcsObjects,
+    navRemoved,
+    localRemoved,
+  };
+}
+
 async function uploadProfileViewerDemoFiles(fileSlug, files) {
   const bucket = getBucket();
   for (const f of files) {
@@ -355,6 +423,7 @@ module.exports = {
   readNavManifest,
   upsertNavManifestEntry,
   detectExistingProfileViewerDemo,
+  deleteProfileViewerDemo,
   uploadProfileViewerDemoFiles,
   writeLocalProfileViewerDemoFiles,
   mapInnerFilesToAssetPaths,
