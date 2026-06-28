@@ -911,10 +911,14 @@ function registerLabRoutes(deps) {
       if (!meta || meta.regularMarketPrice == null) {
         throw new Error('Invalid upstream response');
       }
-      const price = meta.regularMarketPrice;
-      const prev = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
-      const change = prev != null ? price - prev : null;
-      const changePct = prev ? (change / prev) * 100 : null;
+      const price = Number(meta.regularMarketPrice);
+      const prev = meta.chartPreviousClose != null ? Number(meta.chartPreviousClose) : Number(meta.previousClose);
+      const change = prev != null && Number.isFinite(prev) ? price - prev : null;
+      const changePct = change != null && prev ? (change / prev) * 100 : null;
+      if (!Number.isFinite(price) || price < 80 || price > 2000) {
+        throw new Error('Price out of expected range');
+      }
+      res.set('Cache-Control', 'public, max-age=120');
       res.status(200).json({
         ok: true,
         symbol: 'ADBE',
@@ -922,6 +926,7 @@ function registerLabRoutes(deps) {
         currency: meta.currency || 'USD',
         change,
         changePct,
+        source: 'yahoo',
         asOf: meta.regularMarketTime
           ? new Date(meta.regularMarketTime * 1000).toISOString()
           : null,

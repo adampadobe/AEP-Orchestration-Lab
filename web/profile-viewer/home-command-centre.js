@@ -479,36 +479,41 @@
         : '') +
       '</div></div>' +
       '<div class="cc-drawer-content cc-drawer-content--panel">' +
-      '<div class="cc-drawer-grid cc-drawer-grid--panel">' +
-      '<div class="cc-drawer-section">' +
+      '<div class="cc-drawer-notes-stack">' +
+      '<div class="cc-drawer-section cc-drawer-section--full">' +
       '<h4 class="cc-drawer-section-title">Full notes</h4>' +
       '<p class="cc-drawer-notes">' +
       esc(c.notes || '—') +
       '</p>' +
       scrapeLink +
       (history
-        ? '<div style="margin-top:10px"><h4 class="cc-drawer-section-title">Meeting history</h4><div class="cc-history-list">' +
+        ? '<div class="cc-drawer-subsection"><h4 class="cc-drawer-section-title">Meeting history</h4><div class="cc-history-list">' +
           history +
           '</div></div>'
         : '') +
       '</div>' +
-      (stakeholders
-        ? '<div class="cc-drawer-section"><h4 class="cc-drawer-section-title">Stakeholders</h4><div class="cc-stakeholder-list">' +
-          stakeholders +
-          '</div></div>'
-        : '') +
-      (milestones
-        ? '<div class="cc-drawer-section"><h4 class="cc-drawer-section-title">Milestones</h4><div class="cc-milestone-list">' +
-          milestones +
-          '</div></div>'
-        : '') +
-      '<div class="cc-drawer-section">' +
+      '<div class="cc-drawer-section cc-drawer-section--full">' +
       '<h4 class="cc-drawer-section-title">SC notes &amp; risks</h4>' +
       '<p class="cc-drawer-notes">' +
       (c.scNotes ? c.scNotes.replace(/\n/g, '<br>') : '—') +
       '</p>' +
       competitive +
-      '</div></div></div>' +
+      '</div>' +
+      (stakeholders || milestones
+        ? '<div class="cc-drawer-grid cc-drawer-grid--aux">' +
+          (stakeholders
+            ? '<div class="cc-drawer-section"><h4 class="cc-drawer-section-title">Stakeholders</h4><div class="cc-stakeholder-list">' +
+              stakeholders +
+              '</div></div>'
+            : '') +
+          (milestones
+            ? '<div class="cc-drawer-section"><h4 class="cc-drawer-section-title">Milestones</h4><div class="cc-milestone-list">' +
+              milestones +
+              '</div></div>'
+            : '') +
+          '</div>'
+        : '') +
+      '</div></div>' +
       '<div class="cc-detail-grid">' +
       '<div><span class="cc-detail-label">ETA</span><div class="' +
       etaClass(c.eta) +

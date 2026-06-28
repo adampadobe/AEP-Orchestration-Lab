@@ -4,8 +4,63 @@
 (function attachHomeNewGreeting(global) {
   'use strict';
 
-  var GOOGLE_FINANCE_URL = 'https://www.google.com/finance/beta/quote/ADBE:NASDAQ';
-  var GOOGLE_FINANCE_FETCH = 'https://www.google.com/finance/quote/ADBE:NASDAQ';
+  var GOOGLE_FINANCE_URL = 'https://www.google.com/finance/quote/ADBE:NASDAQ';
+  var STOCK_FETCH_TIMEOUT_MS = 8000;
+  var ADBE_MIN_PRICE = 80;
+  var ADBE_MAX_PRICE = 2000;
+
+  function fetchWithTimeout(url, opts, timeoutMs) {
+    var ms = timeoutMs || STOCK_FETCH_TIMEOUT_MS;
+    return Promise.race([
+      fetch(url, opts),
+      new Promise(function (_resolve, reject) {
+        setTimeout(function () {
+          reject(new Error('timeout'));
+        }, ms);
+      }),
+    ]);
+  }
+
+  function isValidAdobePrice(n) {
+    return Number.isFinite(n) && n >= ADBE_MIN_PRICE && n <= ADBE_MAX_PRICE;
+  }
+
+  function normalizeChangePct(pct, change, price) {
+    var p = pct != null ? Number(pct) : null;
+    var c = change != null ? Number(change) : null;
+    var px = Number(price);
+    if (p != null && Number.isFinite(p)) {
+      if (Math.abs(p) > 0 && Math.abs(p) < 1) return p * 100;
+      return p;
+    }
+    if (c != null && Number.isFinite(c) && Number.isFinite(px)) {
+      var prev = px - c;
+      if (prev) return (c / prev) * 100;
+    }
+    return null;
+  }
+
+  function normalizeQuote(raw) {
+    if (!raw || raw.ok === false) return null;
+    var price = Number(raw.price);
+    if (!isValidAdobePrice(price)) return null;
+    var change = raw.change != null ? Number(raw.change) : null;
+    if (change != null && !Number.isFinite(change)) change = null;
+    var changePct = normalizeChangePct(raw.changePct, change, price);
+    if (change == null && changePct != null && Number.isFinite(changePct)) {
+      var previous = price / (1 + changePct / 100);
+      change = price - previous;
+    }
+    return {
+      ok: true,
+      symbol: 'ADBE',
+      price: price,
+      currency: raw.currency || 'USD',
+      change: change,
+      changePct: changePct,
+      source: raw.source || 'unknown',
+    };
+  }
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -110,43 +165,33 @@
 
     var priceMatch =
       text.match(/data-last-price="([0-9.]+)"/) ||
-      text.match(/"ADBE"[^[]*\[[^\]]*?,([0-9]+\.[0-9]+)/) ||
-      text.match(/\[\[\["ADBE"[^\]]*?,([0-9]+\.[0-9]+)/) ||
-      text.match(/"YMlKec","\\?\$?([0-9]+\.[0-9]+)"/);
+      text.match(/"regularMarketPrice"\s*:\s*([0-9.]+)/);
     if (priceMatch) price = parseFloat(priceMatch[1]);
 
     var changeMatch =
-      text.match(/"P6mm"[^,]*,([0-9.+-]+)/) ||
-      text.match(/data-last-change="([0-9.+-]+)"/);
+      text.match(/data-last-change="([0-9.+-]+)"/) ||
+      text.match(/"regularMarketChange"\s*:\s*([0-9.+-]+)/);
     if (changeMatch) change = parseFloat(changeMatch[1]);
 
     var pctMatch =
-      text.match(/"Nydb"[^,]*,([0-9.+-]+)/) ||
-      text.match(/data-last-change-percent="([0-9.+-]+)"/);
+      text.match(/data-last-change-percent="([0-9.+-]+)"/) ||
+      text.match(/"regularMarketChangePercent"\s*:\s*([0-9.+-]+)/);
     if (pctMatch) changePct = parseFloat(pctMatch[1]);
 
-    if (price != null && isFinite(price)) {
-      if (change == null && changePct != null && isFinite(changePct)) {
-        var prev = price / (1 + changePct / 100);
-        change = price - prev;
-      }
-      return {
-        ok: true,
-        symbol: 'ADBE',
-        price: price,
-        currency: 'USD',
-        change: change,
-        changePct: changePct,
-        source: 'google',
-      };
-    }
-    return null;
+    return normalizeQuote({
+      ok: true,
+      price: price,
+      change: change,
+      changePct: changePct,
+      currency: 'USD',
+      source: 'google',
+    });
   }
 
   function fetchGoogleFinanceQuote() {
     var proxyUrl =
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(GOOGLE_FINANCE_FETCH);
-    return fetch(proxyUrl)
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(GOOGLE_FINANCE_URL);
+    return fetchWithTimeout(proxyUrl)
       .then(function (res) {
         if (!res.ok) throw new Error('google HTTP ' + res.status);
         return res.text();
@@ -166,27 +211,30 @@
     var prev = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
     var change = prev != null ? price - prev : null;
     var changePct = prev ? (change / prev) * 100 : null;
-    return {
+    return normalizeQuote({
       ok: true,
-      symbol: 'ADBE',
       price: price,
-      currency: meta.currency || 'USD',
       change: change,
       changePct: changePct,
+      currency: meta.currency || 'USD',
       source: 'yahoo',
-    };
+    });
   }
 
   function fetchYahooFallback() {
     var yahooUrl =
       'https://query1.finance.yahoo.com/v8/finance/chart/ADBE?interval=1d&range=1d';
     var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooUrl);
-    return fetch(proxyUrl)
+    return fetchWithTimeout(proxyUrl)
       .then(function (res) {
         if (!res.ok) throw new Error('yahoo HTTP ' + res.status);
         return res.json();
       })
-      .then(parseYahooChart);
+      .then(function (json) {
+        var parsed = parseYahooChart(json);
+        if (!parsed) throw new Error('yahoo parse failed');
+        return parsed;
+      });
   }
 
   function parseStooqCsv(text) {
@@ -199,22 +247,21 @@
     var prev = parseFloat(parts[5]);
     var change = isFinite(prev) ? price - prev : null;
     var changePct = change != null && prev ? (change / prev) * 100 : null;
-    return {
+    return normalizeQuote({
       ok: true,
-      symbol: 'ADBE',
       price: price,
-      currency: 'USD',
       change: change,
       changePct: changePct,
+      currency: 'USD',
       source: 'stooq',
-    };
+    });
   }
 
   function fetchStooqFallback() {
     var stooqUrl = 'https://stooq.com/q/l/?s=adbe.us&i=d';
     var proxyUrl =
       'https://api.allorigins.win/raw?url=' + encodeURIComponent(stooqUrl);
-    return fetch(proxyUrl)
+    return fetchWithTimeout(proxyUrl)
       .then(function (res) {
         if (!res.ok) throw new Error('stooq HTTP ' + res.status);
         return res.text();
@@ -227,7 +274,7 @@
   }
 
   function fetchLabStockApi() {
-    return fetch('/api/lab/adobe-stock', { credentials: 'same-origin' }).then(function (res) {
+    return fetchWithTimeout('/api/lab/adobe-stock', { credentials: 'same-origin' }).then(function (res) {
       return res.json().catch(function () {
         return { ok: false };
       });
@@ -258,19 +305,31 @@
     var changeLine = '';
     if (pct != null && isFinite(pct)) {
       var sign = pct >= 0 ? '+' : '';
+      var changeAbs =
+        hasChange && isFinite(change)
+          ? ' (' + (change >= 0 ? '+' : '') + change.toFixed(2) + ')'
+          : '';
       changeLine =
         '<span class="home-greeting-stock-change ' +
         changeCls +
         '"><span class="home-greeting-stock-arrow" aria-hidden="true">' +
         arrow +
-        '</span>' +
+        '</span> ' +
         sign +
         pct.toFixed(2) +
-        '%';
-      if (hasChange) {
-        changeLine += ' (' + (change >= 0 ? '+' : '') + change.toFixed(2) + ')';
-      }
-      changeLine += '</span>';
+        '%' +
+        changeAbs +
+        ' <span class="home-greeting-stock-today">Today</span></span>';
+    } else if (hasChange) {
+      changeLine =
+        '<span class="home-greeting-stock-change ' +
+        changeCls +
+        '"><span class="home-greeting-stock-arrow" aria-hidden="true">' +
+        arrow +
+        '</span> ' +
+        (change >= 0 ? '+' : '') +
+        change.toFixed(2) +
+        ' <span class="home-greeting-stock-today">Today</span></span>';
     }
 
     el.innerHTML =
@@ -284,14 +343,15 @@
   function loadStockChain() {
     return fetchLabStockApi()
       .then(function (json) {
-        if (json && json.ok) return json;
-        return fetchGoogleFinanceQuote();
-      })
-      .catch(function () {
-        return fetchGoogleFinanceQuote();
+        var quote = normalizeQuote(json);
+        if (quote) return quote;
+        return fetchYahooFallback();
       })
       .catch(function () {
         return fetchYahooFallback();
+      })
+      .catch(function () {
+        return fetchGoogleFinanceQuote();
       })
       .catch(function () {
         return fetchStooqFallback();
@@ -304,7 +364,7 @@
     el.innerHTML = '<span class="home-greeting-stock-symbol">ADBE</span> loading…';
     loadStockChain()
       .then(function (payload) {
-        renderStock(el, payload);
+        renderStock(el, normalizeQuote(payload) || payload);
       })
       .catch(function () {
         renderStock(el, null);
