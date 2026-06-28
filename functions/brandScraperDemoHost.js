@@ -11,6 +11,9 @@ const admin = require('firebase-admin');
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const DEMO_GCS_PREFIX = 'demo-websites';
 
+/** Retired /demos/<slug>/web/* — always 404 (legacy GCS copies may still exist). */
+const RETIRED_DEMO_SLUGS = new Set(['news']);
+
 const MIME_BY_EXT = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -86,6 +89,11 @@ async function handleDemoHostRequest(req, res) {
   }
 
   const { slug, relFile } = parsed;
+  if (RETIRED_DEMO_SLUGS.has(slug)) {
+    res.status(404).send('not found');
+    return;
+  }
+
   const file = getBucket().file(gcsObjectKey(slug, relFile));
   const [exists] = await file.exists();
   if (!exists) {
@@ -114,5 +122,6 @@ async function handleDemoHostRequest(req, res) {
 module.exports = {
   parseDemoRequestPath,
   gcsObjectKey,
+  RETIRED_DEMO_SLUGS,
   handleDemoHostRequest,
 };

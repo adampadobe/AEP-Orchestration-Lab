@@ -23,6 +23,8 @@
   var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
   /** Demos sidebar: mine | mine_sandbox | all */
   var LS_DEMO_NAV_VISIBILITY = 'aepDemoNavVisibility';
+  /** Brand-scraper generated Profile Viewer demos (brand-scraper-demo-nav.json). */
+  var brandScraperDemoNavEntries = null;
 
   function sandboxSlugForInDev() {
     try {
@@ -1304,6 +1306,88 @@
     });
   }
 
+  /* ── Brand-scraper demo nav (dynamic) ── */
+
+  function collectStaticDemoHrefs(def) {
+    var hrefs = {};
+    function addItem(item) {
+      if (item && item.href) hrefs[String(item.href).split('?')[0].split('#')[0]] = true;
+    }
+    (def.items || []).forEach(addItem);
+    (def.subgroups || []).forEach(function (sg) {
+      (sg.items || []).forEach(addItem);
+      (sg.channels || []).forEach(function (ch) {
+        (ch.items || []).forEach(addItem);
+      });
+    });
+    return hrefs;
+  }
+
+  function brandScraperDemoSubgroups(demosDef) {
+    if (!brandScraperDemoNavEntries || !brandScraperDemoNavEntries.length) return [];
+    var staticHrefs = collectStaticDemoHrefs(demosDef || {});
+    return brandScraperDemoNavEntries
+      .filter(function (entry) {
+        return entry && entry.href && !staticHrefs[entry.href];
+      })
+      .map(function (entry) {
+        var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
+        var slug = String(entry.fileSlug || 'brand').trim();
+        return {
+          id: entry.id || ('demoScrape' + slug.replace(/(^|-)([a-z])/g, function (_m, _p, c) { return c.toUpperCase(); }).replace(/-/g, '')),
+          label: label,
+          demoCustomer: true,
+          channels: [
+            {
+              id: (entry.id || slug) + 'Web',
+              label: 'Web',
+              items: [
+                {
+                  label: label + ' (brand scrape demo)',
+                  href: entry.href,
+                  inDevelopment: true,
+                  navHideKey: 'bsDemo_' + slug.replace(/[^a-z0-9]+/gi, '_'),
+                  demoMeta: entry.demoMeta || { owners: ['kirkham'], source: 'brand_scraper' },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+                },
+              ],
+            },
+          ],
+        };
+      });
+  }
+
+  function navEntryForBuild(entry) {
+    if (entry.id !== 'demos') return entry;
+    var scraperSubs = brandScraperDemoSubgroups(entry);
+    if (!scraperSubs.length) return entry;
+    return {
+      group: entry.group,
+      id: entry.id,
+      items: entry.items || [],
+      subgroups: (entry.subgroups || []).concat(scraperSubs),
+    };
+  }
+
+  function fetchBrandScraperDemoNav(done) {
+    if (brandScraperDemoNavEntries !== null) {
+      done();
+      return;
+    }
+    var url = navHrefPrefix() + 'brand-scraper-demo-nav.json';
+    fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : { entries: [] }; })
+      .then(function (data) {
+        brandScraperDemoNavEntries = Array.isArray(data.entries) ? data.entries : [];
+        done();
+      })
+      .catch(function () {
+        brandScraperDemoNavEntries = [];
+        done();
+      });
+  }
+
   /* ── Main build ── */
 
   function buildSidebar(sidebar) {
@@ -1353,11 +1437,12 @@
     var nav = mk('nav', 'dashboard-sidebar-nav');
     NAV.forEach(function (entry) {
       if (entry.id === 'demos' && !isDemosNavVisible()) return;
-      if (entry.group) {
-        var grp = buildGroup(entry, filename, gStates);
+      var navEntry = navEntryForBuild(entry);
+      if (navEntry.group) {
+        var grp = buildGroup(navEntry, filename, gStates);
         if (grp) nav.appendChild(grp);
       } else {
-        nav.appendChild(buildItem(entry, filename));
+        nav.appendChild(buildItem(navEntry, filename));
       }
     });
     sidebar.appendChild(nav);
@@ -1395,7 +1480,9 @@
   /* ── Init ── */
 
   function init() {
-    document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+    fetchBrandScraperDemoNav(function () {
+      document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+    });
   }
 
   if (document.readyState === 'loading') {

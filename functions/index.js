@@ -3340,6 +3340,11 @@ exports.imageHostingAsset = onRequest(
     }
     try {
       const reqPath = String(req.path || '');
+      if (/^\/profile-viewer\/[^/]+-demo(?:\.html|-assets\/)/i.test(reqPath)
+        || reqPath === '/profile-viewer/brand-scraper-demo-nav.json') {
+        await brandScraperDemoHost.handleProfileViewerDemoRequest(req, res);
+        return;
+      }
       if (/^\/demos\/[^/]+\/web(?:\/|$)/i.test(reqPath)) {
         await brandScraperDemoHost.handleDemoHostRequest(req, res);
         return;

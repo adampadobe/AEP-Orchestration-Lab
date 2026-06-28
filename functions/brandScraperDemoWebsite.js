@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 const demoFromUpload = require('./brandScraperDemoFromUpload');
+const pvDemo = require('./brandScraperProfileViewerDemo');
 
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const DEMO_GCS_PREFIX = 'demo-websites';
@@ -367,126 +368,48 @@ function writeLocalFiles(dirs, files) {
   }
 }
 
-/**
- * @param {object} record — scrape record with crawlSummary, analysis, etc.
- * @param {{ customerName?: string, overwrite?: boolean, regenerate?: boolean, versionOnCollision?: boolean, uploadEntries?: Array }} opts
- */
-async function generateDemoWebsite(record, opts = {}) {
-  const slug = normalizeCustomerFolder(
-    opts.customerName || record.brandName || record.url || 'brand-demo',
-  );
-  const prefix = slug.replace(/-/g, '').slice(0, 12) || 'brand';
-  const enabled = opts.enabled !== false;
-  if (!enabled) {
-    return {
-      enabled: false,
-      status: 'not_requested',
-      path: logicalDemoPath(slug),
-      demoGenerationStatus: 'not_requested',
-    };
-  }
+function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial) {
+  const brand = record.brandName || 'Brand';
+  const navHtml = nav.map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join('\n      ');
+  const campHtml = campaigns.length
+    ? campaigns.map((c) => (
+      `<article class="${slug}-card"><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.body)}</p><a class="${slug}-cta" href="#">${escapeHtml(c.cta)}</a></article>`
+    )).join('\n        ')
+    : `<article class="${slug}-card"><h3>Products &amp; services</h3><p>Representative content from the brand scrape.</p><a class="${slug}-cta" href="#">Explore</a></article>`;
 
-  const overwrite = !!(opts.overwrite || opts.regenerate);
-  const existing = await detectExistingDemo(slug);
-  if (existing && !overwrite) {
-    const reusedPath = existing.path || logicalDemoPath(slug);
-    return {
-      enabled: true,
-      status: 'reused',
-      demoGenerationStatus: 'reused',
-      path: reusedPath,
-      publicUrl: `${reusedPath}/index.html`,
-      gcsPrefix: existing.prefix || gcsDemoPrefix(slug),
-      alreadyExisted: true,
-      regenerated: false,
-      generatedFiles: ['index.html', 'styles.css', 'script.js', 'demo-metadata.json'],
-      requiredModules: { profileEnvironmentPanel: true, profileViewerModule: true },
-      notes: [
-        'Demo website already existed, so re-analyse did not recreate it.',
-        'Scrape metadata was updated from the latest analyse run.',
-        `Open at ${reusedPath}/index.html (hosted from GCS when not committed under web/demos/).`,
-      ],
-    };
-  }
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(brand)}</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="${slug}-snapshot">
+  <nav class="${slug}-nav" aria-label="Primary">${navHtml}</nav>
+  <section class="${slug}-hero"><h1>${escapeHtml(hero.headline)}</h1><p>${escapeHtml(hero.subhead)}</p></section>
+  <section class="${slug}-grid">${campHtml}</section>
+  ${partial ? `<p class="${slug}-partial-tag">Partial demo — limited source content</p>` : ''}
+</body>
+</html>`;
+}
 
-  let versionSuffix = '';
-  let status = existing && overwrite ? 'regenerated' : 'created';
-  if (existing && !overwrite && opts.versionOnCollision) {
-    versionSuffix = '-v2';
-    status = 'versioned';
-  }
-
-  const uploadEntries = opts.uploadEntries || [];
-  const hasUploadHtml = uploadEntries.some((e) => e && e.isHtml !== false && /\.html?$/i.test(e.name));
+async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries) {
+  const hasUploadHtml = (uploadEntries || []).some((e) => e && e.isHtml !== false && /\.html?$/i.test(e.name));
   if (hasUploadHtml) {
     const uploadBuilt = await demoFromUpload.buildDemoFromUpload({
       entries: uploadEntries,
       baseUrl: record.baseUrl || record.url,
       record,
-      slug,
+      slug: fileSlug,
       prefix,
+      skipLabChrome: true,
     });
     if (uploadBuilt && uploadBuilt.files && uploadBuilt.files.length) {
-      const meta = buildDemoMetadata(record, slug, status, {
-        slug,
-        prefix,
-        versionSuffix,
-        source: 'uploaded_html',
-        sourceHtmlPath: uploadBuilt.sourceHtmlPath,
-      });
-      uploadBuilt.files.push({
-        name: 'demo-metadata.json',
-        content: Buffer.from(JSON.stringify(meta, null, 2), 'utf8'),
-        contentType: 'application/json',
-      });
-
-      const gcsPrefix = gcsDemoPrefix(slug, versionSuffix);
-      try {
-        await uploadFilesToGcs(gcsPrefix, uploadBuilt.files);
-        const local = localDemoDirs(slug);
-        if (local) {
-          const targetDirs = versionSuffix
-            ? [path.join(path.dirname(local.demos), slug + versionSuffix, 'web')]
-            : [local.demos, local.hosted];
-          writeLocalFiles(targetDirs.filter(Boolean), uploadBuilt.files);
-        }
-      } catch (e) {
-        return {
-          enabled: true,
-          status: 'failed',
-          demoGenerationStatus: 'failed',
-          path: logicalDemoPath(slug),
-          error: String((e && e.message) || e).slice(0, 400),
-          requiredModules: { profileEnvironmentPanel: false, profileViewerModule: false },
-        };
-      }
-
-      const logicalPath = versionSuffix
-        ? `/demos/${slug}${versionSuffix}/web`
-        : logicalDemoPath(slug);
-
       return {
-        enabled: true,
-        status: 'created',
-        demoGenerationStatus: existing && overwrite ? 'regenerated' : (versionSuffix ? 'versioned' : 'created'),
-        path: logicalPath,
-        publicUrl: `${logicalPath}/index.html`,
-        alreadyExisted: !!existing,
-        regenerated: !!(existing && overwrite),
-        generatedFiles: uploadBuilt.files.map((f) => f.name),
+        files: pvDemo.mapInnerFilesToAssetPaths(fileSlug, uploadBuilt.files),
         source: 'uploaded_html',
         sourceHtmlPath: uploadBuilt.sourceHtmlPath,
-        requiredModules: {
-          profileEnvironmentPanel: true,
-          profileViewerModule: true,
-        },
-        notes: [
-          `Demo built from uploaded HTML (${uploadBuilt.sourceHtmlPath}) — not the generated template.`,
-          'Linked stylesheets from the upload were inlined; relative assets use zip files or the brand domain.',
-          'Profile environment panel and profile viewer scripts were appended before </body>.',
-          `Open at ${logicalPath}/index.html (served from GCS via /demos/ hosting rewrite).`,
-        ],
-        gcsPrefix,
       };
     }
   }
@@ -500,66 +423,181 @@ async function generateDemoWebsite(record, opts = {}) {
   const campaigns = campaignBlocks(record);
   const partial = (record.scrapeConfidence && record.scrapeConfidence.level === 'low')
     || (record.warnings && record.warnings.length > 0);
-
-  const files = [
-    { name: 'index.html', content: Buffer.from(buildIndexHtml(record, slug, prefix, nav, hero, campaigns, partial), 'utf8'), contentType: 'text/html' },
-    { name: 'styles.css', content: Buffer.from(buildStylesCss(record, colours, fontFamily, slug), 'utf8'), contentType: 'text/css' },
-    { name: 'script.js', content: Buffer.from(buildScriptJs(slug, prefix), 'utf8'), contentType: 'application/javascript' },
-    { name: 'demo-metadata.json', content: Buffer.from(JSON.stringify(buildDemoMetadata(record, slug, status, {
-      slug,
-      prefix,
-      versionSuffix,
-    }), null, 2), 'utf8'), contentType: 'application/json' },
-  ];
-
-  const gcsPrefix = gcsDemoPrefix(slug, versionSuffix);
-  try {
-    await uploadFilesToGcs(gcsPrefix, files);
-    const local = localDemoDirs(slug);
-    if (local) {
-      const targetDirs = versionSuffix
-        ? [path.join(path.dirname(local.demos), slug + versionSuffix, 'web')]
-        : [local.demos, local.hosted];
-      writeLocalFiles(targetDirs.filter(Boolean), files);
-      fs.mkdirSync(path.join(targetDirs[0], 'assets'), { recursive: true });
-    }
-  } catch (e) {
-    return {
-      enabled: true,
-      status: 'failed',
-      demoGenerationStatus: 'failed',
-      path: logicalDemoPath(slug),
-      error: String((e && e.message) || e).slice(0, 400),
-      requiredModules: { profileEnvironmentPanel: false, profileViewerModule: false },
-    };
-  }
-
-  const logicalPath = versionSuffix
-    ? `/demos/${slug}${versionSuffix}/web`
-    : logicalDemoPath(slug);
+  const assetsDir = pvDemo.demoAssetsDirName(fileSlug);
 
   return {
+    files: [
+      {
+        name: `${assetsDir}/index.html`,
+        content: Buffer.from(buildIframeSnapshotHtml(record, fileSlug, nav, hero, campaigns, partial), 'utf8'),
+        contentType: 'text/html; charset=utf-8',
+      },
+      {
+        name: `${assetsDir}/styles.css`,
+        content: Buffer.from(buildStylesCss(record, colours, fontFamily, fileSlug), 'utf8'),
+        contentType: 'text/css; charset=utf-8',
+      },
+    ],
+    source: 'scrape_template',
+    sourceHtmlPath: `${assetsDir}/index.html`,
+  };
+}
+
+async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags) {
+  const fileSlug = statusFlags.fileSlug;
+  const sandbox = opts.sandbox || null;
+  const scrapeId = record.scrapeId || opts.scrapeId || null;
+  const shellHtml = pvDemo.buildShellHtml({
+    fileSlug,
+    record,
+    snapshotRelPath: `${pvDemo.demoAssetsDirName(fileSlug)}/index.html`,
+  });
+
+  const files = [
+    {
+      name: pvDemo.demoHtmlName(fileSlug),
+      content: Buffer.from(shellHtml, 'utf8'),
+      contentType: 'text/html; charset=utf-8',
+    },
+    ...(innerResult.files || []),
+    {
+      name: 'demo-metadata.json',
+      content: Buffer.from(JSON.stringify(buildDemoMetadata(record, fileSlug, statusFlags.status, {
+        fileSlug,
+        source: innerResult.source,
+        sourceHtmlPath: innerResult.sourceHtmlPath,
+        profileViewerDemo: true,
+      }), null, 2), 'utf8'),
+      contentType: 'application/json',
+    },
+  ];
+
+  await pvDemo.uploadProfileViewerDemoFiles(fileSlug, files);
+  const wroteLocal = pvDemo.writeLocalProfileViewerDemoFiles(fileSlug, files);
+
+  const navEntry = pvDemo.buildNavEntry({ fileSlug, record, sandbox, scrapeId });
+  await pvDemo.upsertNavManifestEntry(navEntry);
+
+  const publicPath = pvDemo.profileViewerDemoUrl(fileSlug);
+  return {
     enabled: true,
-    status: partial ? 'partial' : status,
-    demoGenerationStatus: partial ? 'partial' : (existing && overwrite ? 'regenerated' : (versionSuffix ? 'versioned' : 'created')),
-    path: logicalPath,
-    publicUrl: `${logicalPath}/index.html`,
-    alreadyExisted: !!existing,
-    regenerated: !!(existing && overwrite),
+    status: statusFlags.partial ? 'partial' : statusFlags.status,
+    demoGenerationStatus: statusFlags.partial ? 'partial' : statusFlags.demoGenerationStatus,
+    path: publicPath,
+    publicUrl: publicPath,
+    profileViewerDemoHref: pvDemo.profileViewerDemoHref(fileSlug),
+    fileSlug,
+    navEntry,
+    alreadyExisted: !!statusFlags.existing,
+    regenerated: !!statusFlags.regenerated,
     generatedFiles: files.map((f) => f.name),
+    source: innerResult.source,
+    sourceHtmlPath: innerResult.sourceHtmlPath,
     requiredModules: {
       profileEnvironmentPanel: true,
       profileViewerModule: true,
     },
     notes: [
-      'Profile environment panel added to generated demo page.',
-      'Profile viewer module added to generated demo page.',
-      partial ? 'Generated partial demo website from limited source content.' : 'Demo website generated from scrape content.',
-      `Open at ${logicalPath}/index.html (served from GCS via /demos/ hosting rewrite).`,
-      localDemoDirs(slug) ? `Also written under web/demos/${slug}/web/ for local hosting.` : null,
-    ].filter(Boolean),
-    gcsPrefix,
+      `Profile Viewer demo at ${publicPath} (same pattern as sky-demo.html).`,
+      innerResult.source === 'uploaded_html'
+        ? `Iframe snapshot from uploaded HTML (${innerResult.sourceHtmlPath}).`
+        : 'Iframe snapshot generated from scrape content.',
+      'Demos sidebar entry added via brand-scraper demo nav manifest.',
+      wroteLocal
+        ? `Also written under web/profile-viewer/${pvDemo.demoHtmlName(fileSlug)} when LAB_REPO_ROOT is set.`
+        : 'Served from GCS when not committed under web/profile-viewer/.',
+    ],
+    gcsPrefix: `profile-viewer-demos/${fileSlug}`,
   };
+}
+
+/**
+ * @param {object} record — scrape record with crawlSummary, analysis, etc.
+ * @param {{ customerName?: string, overwrite?: boolean, regenerate?: boolean, versionOnCollision?: boolean, uploadEntries?: Array, sandbox?: string, scrapeId?: string }} opts
+ */
+async function generateDemoWebsite(record, opts = {}) {
+  const fileSlug = pvDemo.normalizeFileSlug(
+    opts.customerName || record.customerName || record.brandName || record.url || 'brand',
+  );
+  const prefix = fileSlug.replace(/-/g, '').slice(0, 12) || 'brand';
+  const enabled = opts.enabled !== false;
+  if (!enabled) {
+    return {
+      enabled: false,
+      status: 'not_requested',
+      path: pvDemo.profileViewerDemoUrl(fileSlug),
+      demoGenerationStatus: 'not_requested',
+    };
+  }
+
+  if (pvDemo.RESERVED_DEMO_SLUGS.has(fileSlug)) {
+    const reservedHref = `${fileSlug}-demo.html`;
+    return {
+      enabled: true,
+      status: 'reused',
+      demoGenerationStatus: 'reused',
+      path: `/profile-viewer/${reservedHref}`,
+      publicUrl: `/profile-viewer/${reservedHref}`,
+      profileViewerDemoHref: reservedHref,
+      fileSlug,
+      alreadyExisted: true,
+      regenerated: false,
+      notes: [`Reserved lab demo slug "${fileSlug}" — using committed ${reservedHref} instead of generating a scraper copy.`],
+    };
+  }
+
+  const overwrite = !!(opts.overwrite || opts.regenerate);
+  const existing = await pvDemo.detectExistingProfileViewerDemo(fileSlug);
+  if (existing && !overwrite) {
+    const href = pvDemo.profileViewerDemoHref(fileSlug);
+    return {
+      enabled: true,
+      status: 'reused',
+      demoGenerationStatus: 'reused',
+      path: pvDemo.profileViewerDemoUrl(fileSlug),
+      publicUrl: pvDemo.profileViewerDemoUrl(fileSlug),
+      profileViewerDemoHref: href,
+      fileSlug,
+      alreadyExisted: true,
+      regenerated: false,
+      generatedFiles: [href, `${pvDemo.demoAssetsDirName(fileSlug)}/index.html`],
+      requiredModules: { profileEnvironmentPanel: true, profileViewerModule: true },
+      notes: [
+        'Profile Viewer demo already existed, so re-analyse did not recreate it.',
+        `Open at /profile-viewer/${href}`,
+      ],
+    };
+  }
+
+  const status = existing && overwrite ? 'regenerated' : 'created';
+  const partial = (record.scrapeConfidence && record.scrapeConfidence.level === 'low')
+    || (record.warnings && record.warnings.length > 0);
+
+  try {
+    const innerResult = await buildInnerSnapshotFiles(
+      record,
+      fileSlug,
+      prefix,
+      opts.uploadEntries || [],
+    );
+    return await finalizeProfileViewerDemo(record, opts, innerResult, {
+      fileSlug,
+      status,
+      partial,
+      existing: !!existing,
+      regenerated: !!(existing && overwrite),
+      demoGenerationStatus: existing && overwrite ? 'regenerated' : 'created',
+    });
+  } catch (e) {
+    return {
+      enabled: true,
+      status: 'failed',
+      demoGenerationStatus: 'failed',
+      path: pvDemo.profileViewerDemoUrl(fileSlug),
+      error: String((e && e.message) || e).slice(0, 400),
+      requiredModules: { profileEnvironmentPanel: false, profileViewerModule: false },
+    };
+  }
 }
 
 module.exports = {
@@ -567,4 +605,5 @@ module.exports = {
   logicalDemoPath,
   detectExistingDemo,
   generateDemoWebsite,
+  buildInnerSnapshotFiles,
 };

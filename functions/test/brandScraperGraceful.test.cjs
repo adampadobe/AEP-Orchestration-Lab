@@ -171,6 +171,37 @@ describe('brandScraperDemoFromUpload', () => {
   });
 });
 
+describe('brandScraperProfileViewerDemo', () => {
+  const pvDemo = require('../brandScraperProfileViewerDemo');
+
+  it('builds profile-viewer demo href from customer slug', () => {
+    assert.equal(pvDemo.normalizeFileSlug('British Army'), 'british-army');
+    assert.equal(pvDemo.profileViewerDemoHref('british-army'), 'british-army-demo.html');
+    assert.equal(pvDemo.profileViewerDemoUrl('sky'), '/profile-viewer/sky-demo.html');
+  });
+
+  it('builds shell html with iframe snapshot path', () => {
+    const html = pvDemo.buildShellHtml({
+      fileSlug: 'acme',
+      record: { customerName: 'Acme Corp', url: 'https://acme.example/' },
+    });
+    assert.match(html, /acme-demo-assets\/index\.html/);
+    assert.match(html, /Acme Corp \(web\)/);
+  });
+});
+
+describe('brandScraperDemoHost profile-viewer paths', () => {
+  const demoHost = require('../brandScraperDemoHost');
+
+  it('parses profile-viewer demo html and asset paths', () => {
+    const page = demoHost.parseProfileViewerDemoPath('/profile-viewer/british-army-demo.html');
+    assert.equal(page.fileSlug, 'british-army');
+    assert.equal(page.relFile, 'british-army-demo.html');
+    const asset = demoHost.parseProfileViewerDemoPath('/profile-viewer/british-army-demo-assets/index.html');
+    assert.equal(asset.relFile, 'british-army-demo-assets/index.html');
+  });
+});
+
 describe('brandScraperDemoWebsite', () => {
   it('normalizes customer folder names', () => {
     assert.equal(demoWebsite.normalizeCustomerFolder('Sky News UK'), 'sky-news-uk');
@@ -195,7 +226,7 @@ describe('brandScrapeStore buildFullRecord', () => {
       scrapeConfidence: { level: 'medium', score: 62 },
       sourceBadges: ['Live URL', 'Blocked'],
       warnings: ['Some pages returned 403.'],
-      demoWebsite: { path: '/demos/sky-news/web', publicUrl: '/demos/sky-news/web/index.html' },
+      demoWebsite: { path: '/profile-viewer/sky-news-demo.html', publicUrl: '/profile-viewer/sky-news-demo.html', profileViewerDemoHref: 'sky-news-demo.html' },
       demoGenerationStatus: 'created',
     });
     assert.equal(rec.scrapeId, 'abc123');
@@ -205,7 +236,7 @@ describe('brandScrapeStore buildFullRecord', () => {
     assert.equal(rec.scrapeConfidence.level, 'medium');
     assert.deepEqual(rec.sourceBadges, ['Live URL', 'Blocked']);
     assert.equal(rec.demoGenerationStatus, 'created');
-    assert.equal(rec.demoWebsite.path, '/demos/sky-news/web');
+    assert.equal(rec.demoWebsite.path, '/profile-viewer/sky-news-demo.html');
   });
 });
 
@@ -268,5 +299,9 @@ describe('brandScraperDemoHost', () => {
   it('rejects path traversal in file segment', () => {
     const parsed = demoHost.parseDemoRequestPath('/demos/acme/web/../secret.txt');
     assert.equal(parsed.relFile, 'secret.txt');
+  });
+
+  it('lists retired legacy demo slugs', () => {
+    assert.ok(demoHost.RETIRED_DEMO_SLUGS.has('news'));
   });
 });

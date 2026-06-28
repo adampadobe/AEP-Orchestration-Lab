@@ -126,6 +126,27 @@
         }
       },
       {
+        "source": "/profile-viewer/brand-scraper-demo-nav.json",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/profile-viewer/*-demo.html",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/profile-viewer/*-demo-assets/**",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/demos/**",
         "function": {
           "functionId": "imageHostingAsset",

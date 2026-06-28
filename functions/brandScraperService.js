@@ -2167,11 +2167,13 @@ async function executeAnalyzePipeline({
   if (wantDemoWebsite) {
     runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Checking for existing demo folder'));
     try {
-      const existingDemo = await demoWebsite.detectExistingDemo(
-        demoWebsite.normalizeCustomerFolder(body.customerName || recordToPersist.brandName || url),
+      const pvDemoMod = require('./brandScraperProfileViewerDemo');
+      const fileSlug = pvDemoMod.normalizeFileSlug(
+        body.customerName || recordToPersist.brandName || url,
       );
-      if (existingDemo && !body.regenerateDemoWebsite && !body.overwriteDemoWebsite) {
-        runSteps.push(runStepOk('demo_reuse', 'Existing demo website detected', 'Reusing existing version'));
+      const existingDemoPv = await pvDemoMod.detectExistingProfileViewerDemo(fileSlug);
+      if (existingDemoPv && !body.regenerateDemoWebsite && !body.overwriteDemoWebsite) {
+        runSteps.push(runStepOk('demo_reuse', 'Existing demo website detected', `Reusing /profile-viewer/${fileSlug}-demo.html`));
       }
       const demoResult = await demoWebsite.generateDemoWebsite(recordToPersist, {
         enabled: true,
@@ -2179,6 +2181,8 @@ async function executeAnalyzePipeline({
         overwrite: body.regenerateDemoWebsite === true || body.overwriteDemoWebsite === true,
         regenerate: body.regenerateDemoWebsite === true,
         uploadEntries,
+        sandbox,
+        scrapeId: recordToPersist.scrapeId || runScrapeId,
       });
       recordToPersist.demoWebsite = demoResult;
       recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';

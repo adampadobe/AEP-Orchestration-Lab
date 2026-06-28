@@ -393,7 +393,9 @@ async function buildDemoFromUpload(opts) {
   const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl);
   html = external.html;
   html = fillMissingMetadata(html, opts.record || {});
-  html = injectLabChrome(html, opts.slug, opts.prefix);
+  if (!opts.skipLabChrome) {
+    html = injectLabChrome(html, opts.slug, opts.prefix);
+  }
 
   const files = [];
   files.push({
@@ -401,11 +403,13 @@ async function buildDemoFromUpload(opts) {
     content: Buffer.from(html, 'utf8'),
     contentType: 'text/html; charset=utf-8',
   });
-  files.push({
-    name: 'demo-lab.js',
-    content: Buffer.from(buildDemoLabScript(opts.slug, opts.prefix), 'utf8'),
-    contentType: 'application/javascript; charset=utf-8',
-  });
+  if (!opts.skipLabChrome) {
+    files.push({
+      name: 'demo-lab.js',
+      content: Buffer.from(buildDemoLabScript(opts.slug, opts.prefix), 'utf8'),
+      contentType: 'application/javascript; charset=utf-8',
+    });
+  }
 
   for (const e of entries) {
     if (!e || !e.name || !e.content || !e.content.length) continue;
