@@ -170,6 +170,30 @@ describe('brandScrapeStore buildFullRecord', () => {
   });
 });
 
+describe('brandScraperCustomerLogo', () => {
+  const logoResolver = require('../brandScraperCustomerLogo');
+
+  it('extracts registrable domain from URLs', () => {
+    assert.equal(logoResolver.extractDomain('https://www.sky.com/'), 'sky.com');
+    assert.equal(logoResolver.extractDomain('news.sky.com'), 'news.sky.com');
+  });
+
+  it('ranks Brandfetch logo formats', () => {
+    const url = logoResolver.pickBrandfetchLogoUrl({
+      logos: [
+        { type: 'icon', formats: [{ format: 'png', src: 'https://example.com/icon.png' }] },
+        { type: 'logo', formats: [{ format: 'svg', src: 'https://example.com/logo.svg' }] },
+      ],
+    });
+    assert.equal(url, 'https://example.com/logo.svg');
+  });
+
+  it('maps source keys to run-step labels', () => {
+    assert.match(logoResolver.sourceStepLabel('clearbit'), /Clearbit/);
+    assert.match(logoResolver.sourceStepLabel('google-favicon'), /Google favicon/);
+  });
+});
+
 describe('brandScraperWikipediaLogo', () => {
   const wikiLogo = require('../brandScraperWikipediaLogo');
 

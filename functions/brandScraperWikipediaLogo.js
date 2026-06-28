@@ -150,6 +150,31 @@ async function resolveFileToImageUrls(fileTitle) {
   };
 }
 
+async function wikidataEntityLogo(entityId) {
+  const api = new URL('https://www.wikidata.org/w/api.php');
+  api.searchParams.set('action', 'wbgetentities');
+  api.searchParams.set('format', 'json');
+  api.searchParams.set('ids', entityId);
+  api.searchParams.set('props', 'claims|labels');
+
+  const data = await fetchJson(api.toString());
+  const entity = data.entities && data.entities[entityId];
+  const p154 = entity && entity.claims && entity.claims.P154;
+  const filename = p154 && p154[0] && p154[0].mainsnak && p154[0].mainsnak.datavalue
+    && p154[0].mainsnak.datavalue.value;
+  if (!filename) return null;
+  const fileTitle = filename.startsWith('File:') ? filename : `File:${filename}`;
+  const urls = await resolveFileToImageUrls(fileTitle);
+  if (!urls) return null;
+  const label = entity.labels && entity.labels.en && entity.labels.en.value;
+  return {
+    title: label || entityId,
+    pageUrl: `https://www.wikidata.org/wiki/${entityId}`,
+    ...urls,
+    source: 'wikidata-p154',
+  };
+}
+
 async function wikidataLogoFromTitle(enwikiTitle) {
   const api = new URL('https://www.wikidata.org/w/api.php');
   api.searchParams.set('action', 'wbgetentities');
@@ -247,6 +272,42 @@ async function searchWikipediaPage(query, opts = {}) {
   return null;
 }
 
+/**
+ * Search Wikidata by label and resolve P154 (logo image) when Wikipedia lookup fails.
+ * @param {string} query
+ */
+async function searchWikidataLogoByName(query) {
+  const q = String(query || '').trim();
+  if (!q) return null;
+
+  const api = new URL('https://www.wikidata.org/w/api.php');
+  api.searchParams.set('action', 'wbsearchentities');
+  api.searchParams.set('format', 'json');
+  api.searchParams.set('language', 'en');
+  api.searchParams.set('search', q);
+  api.searchParams.set('limit', '8');
+
+  const data = await fetchJson(api.toString());
+  const hits = data.search || [];
+  const ranked = hits
+    .map((item) => {
+      const label = String(item.label || '').toLowerCase();
+      let score = 0;
+      if (label === q.toLowerCase()) score += 30;
+      if (label.startsWith(q.toLowerCase())) score += 12;
+      if (/company|corporation|brand|news|media|group|plc|ltd|inc/.test(String(item.description || '').toLowerCase())) score += 8;
+      return { item, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  for (const { item } of ranked) {
+    if (!item || !item.id) continue;
+    const logo = await wikidataEntityLogo(item.id);
+    if (logo && logoUrlLooksValid(logo.thumbnailUrl)) return logo;
+  }
+  return null;
+}
+
 async function signedUrlFor(path) {
   const [url] = await getBucket().file(path).getSignedUrl({
     action: 'read',
@@ -314,5 +375,6 @@ module.exports = {
   pickLogoFileFromImages,
   buildLogoQueries,
   searchWikipediaPage,
+  searchWikidataLogoByName,
   fetchCustomerLogo,
 };

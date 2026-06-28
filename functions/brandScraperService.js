@@ -18,7 +18,7 @@ const labUserSandboxStore = require('./labUserSandboxStore');
 const uploadedHtml = require('./brandScraperUploadedHtml');
 const scrapeConfidence = require('./brandScraperConfidence');
 const demoWebsite = require('./brandScraperDemoWebsite');
-const wikipediaLogo = require('./brandScraperWikipediaLogo');
+const customerLogoResolver = require('./brandScraperCustomerLogo');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
@@ -733,9 +733,18 @@ async function enrichCustomerIdentity({
     && storedBaseline.customerName
     && storedBaseline.customerName !== resolvedCustomerName;
 
+  const logoUrl = (body && body.url)
+    || (crawl && crawl.baseUrl)
+    || (storedBaseline && storedBaseline.url)
+    || '';
+  const logoDomain = customerLogoResolver.extractDomain(logoUrl);
+
   if (logoQuery && (!customerLogo || nameChanged)) {
     try {
-      const fetched = await wikipediaLogo.fetchCustomerLogo(logoQuery, {
+      const fetched = await customerLogoResolver.resolveCustomerLogo(logoQuery, {
+        url: logoUrl,
+        domain: logoDomain,
+        crawlAssets: crawlSummary && crawlSummary.assets,
         sandbox,
         scrapeId,
         country: body.country || (storedBaseline && storedBaseline.country) || '',
@@ -744,25 +753,25 @@ async function enrichCustomerIdentity({
         customerLogo = fetched;
         runSteps.push(runStepOk(
           'customerLogo',
-          'Customer logo (Wikipedia)',
-          fetched.wikipediaTitle || logoQuery,
+          customerLogoResolver.sourceStepLabel(fetched.source),
+          customerLogoResolver.sourceStepDetail(fetched, logoQuery),
         ));
       } else {
         runSteps.push(runStepSkipped(
           'customerLogo',
-          'Customer logo (Wikipedia)',
-          `No Wikipedia image found for "${logoQuery}"`,
+          'Customer logo',
+          `No logo found for "${logoQuery}"${logoDomain ? ` (${logoDomain})` : ''}`,
         ));
       }
     } catch (e) {
       runSteps.push(runStepFailed(
         'customerLogo',
-        'Customer logo (Wikipedia)',
+        'Customer logo',
         String((e && e.message) || e).slice(0, 200),
       ));
     }
   } else if (customerLogo) {
-    runSteps.push(runStepOk('customerLogo', 'Customer logo (Wikipedia)', 'Reused from prior scrape'));
+    runSteps.push(runStepOk('customerLogo', 'Customer logo', 'Reused from prior scrape'));
   }
 
   if (customerLogo) {
