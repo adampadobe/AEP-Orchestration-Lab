@@ -206,6 +206,8 @@ describe('brandScraperProfileViewerDemo', () => {
     });
     assert.match(html, /acme-demo-assets\/index\.html/);
     assert.match(html, /Acme Corp \(web\)/);
+    assert.match(html, /labCoreScript: 'brand-scraper-site-clone-lab-core\.js/);
+    assert.match(html, /brand-scraper-site-clone-lab-core\.js/);
   });
 });
 

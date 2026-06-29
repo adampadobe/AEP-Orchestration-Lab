@@ -201,7 +201,7 @@ function buildShellHtml({ fileSlug, record, snapshotRelPath }) {
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
   <script src="shared/env-bar.js?v=20260625-datastream-paste-row-ensure"></script>
   <script>
-    window.envBarConfig = { prefix: '${prefix}', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true } };
+    window.envBarConfig = { prefix: '${prefix}', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true }, labCoreScript: 'brand-scraper-site-clone-lab-core.js?v=20260629-tags-inject' };
     window.SiteCloneDemoEnv = {
       storagePrefix: '${prefix}Demo',
       webPushBySandboxKey: '${prefix}DemoWebPushOnInjectBySandbox',

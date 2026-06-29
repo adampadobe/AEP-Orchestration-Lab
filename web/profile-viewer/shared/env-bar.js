@@ -914,6 +914,23 @@
   }
 
   /**
+   * Legacy brand-scraper shells shipped before labCoreScript — load Tags injection wiring.
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBrandScraperLabCoreFallback(cfg) {
+    if (!isFullShellMode(cfg)) return Promise.resolve();
+    if (cfg.labCoreScript) return Promise.resolve();
+    if (state.tagsInjection) return Promise.resolve();
+    if (global.__brandScraperLabCoreRan) return Promise.resolve();
+    var mount = document.querySelector('[data-demo-env-strip-mount="site-clone-shell"]');
+    if (!mount) return Promise.resolve();
+    var disclaimer = String(mount.getAttribute('data-demo-env-strip-disclaimer') || '');
+    if (disclaimer.indexOf('Brand scrape demo') === -1) return Promise.resolve();
+    log('load brand scraper lab core (legacy shell fallback)');
+    return loadScript((state.basePath || '') + 'brand-scraper-site-clone-lab-core.js?v=20260629-tags-inject');
+  }
+
+  /**
    * Initialize env bar: load manifest, CSS, scripts, mount strip, bootstrap env editor.
    * Demo-specific DemoTagsInjection.init remains in per-demo lab-core JS.
    *
@@ -973,6 +990,8 @@
         notifyChange({ type: 'init', config: getConfig(), bootstrap: result });
         log('initialized', result);
         return loadLabCoreIfConfigured(state.config).then(function () {
+          return loadBrandScraperLabCoreFallback(state.config);
+        }).then(function () {
           return Object.assign({ config: getConfig() }, result);
         });
       })
