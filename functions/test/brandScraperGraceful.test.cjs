@@ -222,6 +222,8 @@ describe('brandScraperDemoHost profile-viewer paths', () => {
 });
 
 describe('brandScraperDemoWebsite', () => {
+  const uploadAssetsMod = require('../brandScraperUploadAssets');
+
   it('normalizes customer folder names', () => {
     assert.equal(demoWebsite.normalizeCustomerFolder('Sky News UK'), 'sky-news-uk');
     assert.equal(demoWebsite.normalizeCustomerFolder('Acme Corp!!!'), 'acme-corp');
@@ -229,6 +231,15 @@ describe('brandScraperDemoWebsite', () => {
 
   it('logical demo path uses normalized slug', () => {
     assert.equal(demoWebsite.logicalDemoPath('sky-news'), '/demos/sky-news/web');
+  });
+
+  it('detects html entries for upload-based demos', () => {
+    assert.equal(uploadAssetsMod.hasHtmlEntries([
+      { name: 'assets/logo.png', content: Buffer.from('x'), isHtml: false },
+    ]), false);
+    assert.equal(uploadAssetsMod.hasHtmlEntries([
+      { name: 'Page.html', content: Buffer.from('<html></html>'), isHtml: true },
+    ]), true);
   });
 });
 
@@ -247,6 +258,7 @@ describe('brandScrapeStore buildFullRecord', () => {
       warnings: ['Some pages returned 403.'],
       demoWebsite: { path: '/profile-viewer/sky-news-demo.html', publicUrl: '/profile-viewer/sky-news-demo.html', profileViewerDemoHref: 'sky-news-demo.html' },
       demoGenerationStatus: 'created',
+      uploadAssetsPrefix: 'scrapes/kirkham/abc123/upload-assets/',
     });
     assert.equal(rec.scrapeId, 'abc123');
     assert.equal(rec.customerName, 'Sky News');
@@ -256,6 +268,7 @@ describe('brandScrapeStore buildFullRecord', () => {
     assert.deepEqual(rec.sourceBadges, ['Live URL', 'Blocked']);
     assert.equal(rec.demoGenerationStatus, 'created');
     assert.equal(rec.demoWebsite.path, '/profile-viewer/sky-news-demo.html');
+    assert.equal(rec.uploadAssetsPrefix, 'scrapes/kirkham/abc123/upload-assets/');
   });
 });
 

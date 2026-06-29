@@ -18,6 +18,7 @@ const labUserSandboxStore = require('./labUserSandboxStore');
 const uploadedHtml = require('./brandScraperUploadedHtml');
 const scrapeConfidence = require('./brandScraperConfidence');
 const demoWebsite = require('./brandScraperDemoWebsite');
+const uploadAssets = require('./brandScraperUploadAssets');
 const customerLogoResolver = require('./brandScraperCustomerLogo');
 const profileViewerDemo = require('./brandScraperProfileViewerDemo');
 
@@ -1683,6 +1684,7 @@ async function executeAnalyzePipeline({
   let fallbackSources = [];
   let uploadedHtmlSummary = null;
   let uploadEntries = [];
+  let uploadAssetsPrefixPath = null;
   let warnings = [];
   let appendBaseline = null;
   let storedBaseline = null;
@@ -1715,6 +1717,7 @@ async function executeAnalyzePipeline({
     blockedPages = storedBaseline.blockedPages || [];
     fallbackSources = storedBaseline.fallbackSources || [];
     uploadedHtmlSummary = storedBaseline.uploadedHtmlSummary || null;
+    uploadAssetsPrefixPath = storedBaseline.uploadAssetsPrefix || null;
     warnings = storedBaseline.warnings || [];
     runSteps.push(runStepOk(
       'crawl',
@@ -1839,6 +1842,16 @@ async function executeAnalyzePipeline({
     uploadedHtmlSummary = crawlMeta.uploadedHtmlSummary || null;
     uploadEntries = crawlMeta.uploadEntries || [];
     warnings = warningsLocal.slice();
+    if (uploadEntries.length) {
+      try {
+        uploadAssetsPrefixPath = await uploadAssets.persistUploadAssets(sandbox, runScrapeId, {
+          uploadPayload: body.uploadedHtml || body.uploadedFiles || null,
+          entries: uploadEntries,
+        });
+      } catch (e) {
+        console.warn('[brandScraperAnalyze] upload assets persist failed', runScrapeId, String((e && e.message) || e));
+      }
+    }
   }
   } // end !analysisOnly crawl
 
@@ -2129,6 +2142,7 @@ async function executeAnalyzePipeline({
   recordToPersist.blockedPages = blockedPages;
   recordToPersist.fallbackSources = fallbackSources;
   recordToPersist.uploadedHtmlSummary = uploadedHtmlSummary;
+  recordToPersist.uploadAssetsPrefix = uploadAssetsPrefixPath || (storedBaseline && storedBaseline.uploadAssetsPrefix) || null;
   recordToPersist.scrapeConfidence = confidence;
   recordToPersist.sourceBadges = sourceBadges;
   recordToPersist.warnings = warnings;

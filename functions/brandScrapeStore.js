@@ -457,6 +457,7 @@ function buildFullRecord(sandbox, scrapeId, payload) {
     blockedPages: Array.isArray(payload.blockedPages) ? payload.blockedPages : (payload.blockedPages || null),
     fallbackSources: payload.fallbackSources || null,
     uploadedHtmlSummary: payload.uploadedHtmlSummary || null,
+    uploadAssetsPrefix: payload.uploadAssetsPrefix || null,
     scrapeConfidence: payload.scrapeConfidence || null,
     sourceBadges: Array.isArray(payload.sourceBadges) ? payload.sourceBadges : (payload.sourceBadges || null),
     warnings: Array.isArray(payload.warnings) ? payload.warnings : (payload.warnings || null),

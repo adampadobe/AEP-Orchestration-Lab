@@ -9,6 +9,7 @@ const path = require('path');
 const admin = require('firebase-admin');
 const demoFromUpload = require('./brandScraperDemoFromUpload');
 const pvDemo = require('./brandScraperProfileViewerDemo');
+const uploadAssets = require('./brandScraperUploadAssets');
 
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const DEMO_GCS_PREFIX = 'demo-websites';
@@ -394,11 +395,20 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial) {
 </html>`;
 }
 
-async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries) {
-  const hasUploadHtml = (uploadEntries || []).some((e) => e && e.isHtml !== false && /\.html?$/i.test(e.name));
+async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, opts = {}) {
+  let entries = uploadEntries || [];
+  if (!uploadAssets.hasHtmlEntries(entries)) {
+    entries = await uploadAssets.resolveDemoUploadEntries(record, opts);
+  }
+
+  const hadUploadedHtml = !!(record.uploadedHtmlSummary && record.uploadedHtmlSummary.validHtmlFiles > 0)
+    || !!(record.uploadAssetsPrefix)
+    || (Array.isArray(record.fallbackSources) && record.fallbackSources.some((s) => s && s.type === 'uploaded_html'));
+
+  const hasUploadHtml = uploadAssets.hasHtmlEntries(entries);
   if (hasUploadHtml) {
     const uploadBuilt = await demoFromUpload.buildDemoFromUpload({
-      entries: uploadEntries,
+      entries,
       baseUrl: record.baseUrl || record.url,
       record,
       slug: fileSlug,
@@ -412,6 +422,13 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries) 
         sourceHtmlPath: uploadBuilt.sourceHtmlPath,
       };
     }
+    if (hadUploadedHtml) {
+      throw new Error('Uploaded HTML was saved for this scrape but the demo builder could not produce a snapshot from it.');
+    }
+  }
+
+  if (hadUploadedHtml && opts.enabled !== false) {
+    throw new Error('This scrape included uploaded HTML for site clone, but no upload bundle was found in storage. Re-run the scrape with the same ZIP attached, or use Regenerate demo after a fresh scrape with uploads.');
   }
 
   const pages = (record.crawlSummary && record.crawlSummary.pages) || [];
@@ -577,11 +594,21 @@ async function generateDemoWebsite(record, opts = {}) {
     if (existing && overwrite) {
       await pvDemo.deleteProfileViewerDemo(fileSlug);
     }
+    const resolvedUploadEntries = await uploadAssets.resolveDemoUploadEntries(record, {
+      uploadEntries: opts.uploadEntries || [],
+      sandbox: opts.sandbox,
+      scrapeId: opts.scrapeId || record.scrapeId,
+    });
     const innerResult = await buildInnerSnapshotFiles(
       record,
       fileSlug,
       prefix,
-      opts.uploadEntries || [],
+      resolvedUploadEntries,
+      {
+        enabled: opts.enabled,
+        sandbox: opts.sandbox,
+        scrapeId: opts.scrapeId || record.scrapeId,
+      },
     );
     return await finalizeProfileViewerDemo(record, opts, innerResult, {
       fileSlug,

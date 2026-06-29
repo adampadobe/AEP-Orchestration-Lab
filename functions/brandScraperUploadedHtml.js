@@ -8,7 +8,7 @@ const path = require('path');
 const unzipper = require('unzipper');
 const htmlParse = require('./brandScraperHtmlParse');
 
-const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 30 * 1024 * 1024;
 const MAX_FILES = 40;
 
 function isSafeZipEntry(name) {
@@ -248,5 +248,6 @@ module.exports = {
   mergeCrawlSources,
   buildBlockedPages,
   emptyCrawl,
+  decodeBase64Payload,
   MAX_UPLOAD_BYTES,
 };
