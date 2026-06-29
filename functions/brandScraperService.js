@@ -87,6 +87,14 @@ function resolvePostCrawlReserveMs(body, inc) {
   }
   return Math.min(reserve, ANALYZE_FN_TIMEOUT_MS - ANALYZE_MIN_CRAWL_BUDGET_MS);
 }
+
+function needsLlmAnalysisSteps(body, inc) {
+  const incFn = typeof inc === 'function'
+    ? inc
+    : (key) => !body.include || body.include[key] !== false;
+  return incFn('analysis') || incFn('personas') || incFn('campaigns')
+    || incFn('stakeholders') || incFn('segments') || incFn('llmDemoConfig');
+}
 const PRIORITY_PATHS = ['/', '/about', '/about-us', '/products', '/services', '/solutions', '/brand', '/company'];
 
 function normaliseUrl(raw) {
@@ -2022,7 +2030,9 @@ async function executeAnalyzePipeline({
     return working;
   }
 
-  analyzePipelineLog(runScrapeId, 'llm_start', { sandbox });
+  const wantDemoWebsite = inc('demoWebsite') || body.createDemoWebsite === true || body.regenerateDemoWebsite === true;
+  const needLlm = needsLlmAnalysisSteps(body, inc);
+
   let working = { ...checkpointRecord };
   let analysis = null;
   let analysisError = null;
@@ -2035,6 +2045,35 @@ async function executeAnalyzePipeline({
   let stakeholders = null;
   let stakeholdersError = null;
   let recordClassification = null;
+
+  if (!needLlm) {
+    analyzePipelineLog(runScrapeId, 'llm_skipped', { sandbox, demoOnly: wantDemoWebsite });
+    const skipReason = 'Disabled in Options';
+    analysis = skipped(skipReason);
+    personas = skipped(skipReason);
+    campaigns = skipped(skipReason);
+    stakeholders = skipped(skipReason);
+    segments = skipped(skipReason);
+    recordClassification = skipped('Brand guidelines disabled in Options');
+    working.analysis = analysis;
+    working.personas = personas;
+    working.campaigns = campaigns;
+    working.stakeholders = stakeholders;
+    working.segments = segments;
+    working.industryInfo = recordClassification;
+    working.industry = '';
+    working.elapsedMs = Date.now() - started;
+    runSteps.push(runStepSkipped('analysis', 'Brand guidelines', skipReason));
+    runSteps.push(runStepSkipped('personas', 'Customer personas', skipReason));
+    runSteps.push(runStepSkipped('campaigns', 'Campaigns', skipReason));
+    runSteps.push(runStepSkipped('stakeholders', 'Stakeholders', skipReason));
+    runSteps.push(runStepSkipped('segments', 'Audience segments', skipReason));
+    runSteps.push(runStepSkipped('industry', 'Industry classification', recordClassification.reason));
+    if (wantDemoWebsite) {
+      await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Crawl saved — building demo website from upload');
+    }
+  } else {
+  analyzePipelineLog(runScrapeId, 'llm_start', { sandbox });
 
   try {
     // Phase 1 — brand core (about, tone, editorial, image + channel samples) so UI can render guidelines first.
@@ -2114,7 +2153,9 @@ async function executeAnalyzePipeline({
         ? generateSegments(crawl, personas, campaigns, providerOpts)
           .catch(e => ({ error: String(e && e.message || e) }))
         : Promise.resolve(skipped('Segments disabled in Options')),
-      classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) })),
+      inc('analysis')
+        ? classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) }))
+        : Promise.resolve(skipped('Industry classification skipped (brand guidelines disabled)')),
     ]);
     segments = segmentsResult;
     recordClassification = industryClassification;
@@ -2150,6 +2191,7 @@ async function executeAnalyzePipeline({
   }
   runSteps.push(runStepFromLlm('segments', 'Audience segments', segments));
   runSteps.push(runStepFromLlm('industry', 'Industry classification', recordClassification));
+  }
 
   const elapsedMs = Date.now() - started;
   working.elapsedMs = elapsedMs;
@@ -2195,8 +2237,6 @@ async function executeAnalyzePipeline({
   recordToPersist.scrapeConfidence = confidence;
   recordToPersist.sourceBadges = sourceBadges;
   recordToPersist.warnings = warnings;
-
-  const wantDemoWebsite = inc('demoWebsite') || body.createDemoWebsite === true || body.regenerateDemoWebsite === true;
 
   if (wantDemoWebsite) {
     await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Building Profile Viewer site clone from upload');

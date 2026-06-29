@@ -339,6 +339,22 @@ describe('brandScraperWikipediaLogo', () => {
   });
 });
 
+describe('brandScraperDemoFromUpload', () => {
+  const demoFromUpload = require('../brandScraperDemoFromUpload');
+
+  it('filterSavePageEntries keeps browser save root and _files companion only', () => {
+    const entries = [
+      { name: 'Sky News.html', content: Buffer.from('<html></html>'), isHtml: true },
+      { name: 'Sky News_files/a.css', content: Buffer.from('body{}') },
+      { name: 'other/junk.bin', content: Buffer.from('x') },
+    ];
+    const filtered = demoFromUpload.filterSavePageEntries(entries, { name: 'Sky News.html' });
+    assert.equal(filtered.length, 2);
+    assert.ok(filtered.some((e) => e.name === 'Sky News.html'));
+    assert.ok(filtered.some((e) => e.name === 'Sky News_files/a.css'));
+  });
+});
+
 describe('brandScraperDemoHost', () => {
   const demoHost = require('../brandScraperDemoHost');
 

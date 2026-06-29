@@ -584,8 +584,8 @@
     if (st === 'running' && !phase) return 'Crawling pages';
     if (phase === 'crawl') return 'Building brand guidelines';
     if (phase === 'brand') return 'Generating audiences';
-    if (phase === 'audiences') return 'Running segments & industry';
-    if (phase === 'segments') return 'Segments saved — post-processing';
+    if (phase === 'audiences') return detail || 'Generating audiences';
+    if (phase === 'segments') return detail || 'Finishing analysis prep';
     if (phase === 'demo') return detail || 'Building demo website';
     if (phase === 'competitor') return detail || 'Competitor analysis';
     if (phase === 'persist') return detail || 'Saving scrape';
@@ -2847,9 +2847,9 @@
       (crawlerJsCb && crawlerJsCb.checked) ? 'Rendering JS (Playwright)' : 'Extracting page content',
       runOptions.analysis ? 'Brand core (about, tone, imagery, channels)' : null,
       runOptions.campaigns || runOptions.personas || runOptions.stakeholders ? 'Audiences (campaigns, personas, stakeholders)' : null,
-      runOptions.segments ? 'Segments and industry' : (runOptions.analysis ? 'Industry classification' : null),
+      runOptions.segments ? 'Audience segments' : (runOptions.analysis ? 'Industry classification' : null),
       runOptions.demoWebsite ? 'Demo website (upload → site clone)' : null,
-      runOptions.llmDemoConfig !== false ? 'Competitor analysis' : null,
+      runOptions.llmDemoConfig ? 'Competitor analysis' : null,
       'Saving',
     ].filter(Boolean);
     startProgress(estMs, phases, { bottomDock: true });

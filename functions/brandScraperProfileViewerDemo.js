@@ -388,12 +388,15 @@ async function deleteProfileViewerDemo(fileSlug) {
 
 async function uploadProfileViewerDemoFiles(fileSlug, files) {
   const bucket = getBucket();
-  for (const f of files) {
-    await bucket.file(gcsObjectKey(fileSlug, f.name)).save(f.content, {
+  const list = files || [];
+  const CONCURRENCY = 12;
+  for (let i = 0; i < list.length; i += CONCURRENCY) {
+    const batch = list.slice(i, i + CONCURRENCY);
+    await Promise.all(batch.map((f) => bucket.file(gcsObjectKey(fileSlug, f.name)).save(f.content, {
       contentType: f.contentType || 'application/octet-stream',
       resumable: false,
       metadata: { cacheControl: 'public, max-age=300' },
-    });
+    })));
   }
 }
 

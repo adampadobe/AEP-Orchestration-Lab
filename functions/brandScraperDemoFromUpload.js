@@ -8,7 +8,9 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PV_REL = '../../../profile-viewer';
-const FETCH_TIMEOUT_MS = 12000;
+const FETCH_TIMEOUT_MS = 6000;
+const MAX_EXTERNAL_FETCHES = 20;
+const EXTERNAL_FETCH_WALL_MS = 45000;
 const USER_AGENT = 'AEP-Orchestration-Lab/1.0 (Adobe internal brand scraper demo)';
 
 const PRIMARY_HTML_SCORES = [
@@ -322,8 +324,19 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl) {
     if (abs && !resolveHrefToZipPath(m[1], htmlPath, entryMap)) candidates.add(abs);
   }
 
+  const list = [...candidates];
+  if (!list.length) return { html, extraFiles };
+
+  // News sites reference hundreds of CDN assets — sequential fetch blocked workers for 30+ minutes.
+  // Keep absolute URLs in markup when the candidate set is large; the iframe loads them live.
+  if (list.length > MAX_EXTERNAL_FETCHES) {
+    return { html, extraFiles, skippedExternalCount: list.length };
+  }
+
   let rewritten = html;
-  for (const absUrl of candidates) {
+  const started = Date.now();
+  for (const absUrl of list) {
+    if (Date.now() - started > EXTERNAL_FETCH_WALL_MS) break;
     const fetched = await fetchRemoteAsset(absUrl);
     if (!fetched) continue;
     const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, fetched.contentType)}`;
@@ -336,6 +349,29 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl) {
     rewritten = rewritten.replace(new RegExp(esc, 'g'), rel);
   }
   return { html: rewritten, extraFiles };
+}
+
+/**
+ * Chrome "save complete" bundles may include extra paths — keep the root HTML + its _files/ folder only.
+ * @param {Array} entries
+ * @param {{ name: string }} picked
+ */
+function filterSavePageEntries(entries, picked) {
+  if (!picked || !picked.name) return entries || [];
+  const rootName = posixNorm(picked.name);
+  if (rootName.includes('/')) return entries || [];
+  const base = rootName.replace(/\.html?$/i, '');
+  const filesPrefix = `${base}_files/`;
+  const hasCompanion = (entries || []).some((e) => {
+    const n = posixNorm(e && e.name);
+    return n && n.startsWith(filesPrefix);
+  });
+  if (!hasCompanion) return entries || [];
+  return (entries || []).filter((e) => {
+    if (!e || !e.name) return false;
+    const n = posixNorm(e.name);
+    return n === rootName || n.startsWith(filesPrefix);
+  });
 }
 
 function fillMissingMetadata(html, record) {
@@ -438,11 +474,12 @@ function contentTypeForPath(name) {
  * @returns {Promise<{ files: Array, primaryHtmlPath: string, sourceHtmlPath: string }|null>}
  */
 async function buildDemoFromUpload(opts) {
-  const entries = opts.entries || [];
-  const entryMap = buildEntryMap(entries);
-  const picked = pickPrimaryHtml(entries);
+  const allEntries = opts.entries || [];
+  const picked = pickPrimaryHtml(allEntries);
   if (!picked) return null;
 
+  const entries = filterSavePageEntries(allEntries, picked);
+  const entryMap = buildEntryMap(entries);
   const baseUrl = normaliseBaseUrl(opts.baseUrl || opts.record && (opts.record.baseUrl || opts.record.url));
   const htmlPath = picked.name;
   let html = picked.entry.content.toString('utf8');
@@ -450,6 +487,12 @@ async function buildDemoFromUpload(opts) {
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
   const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl);
+  if (external.skippedExternalCount) {
+    console.log('[brandScraperDemoFromUpload] skipped external asset fetch', {
+      count: external.skippedExternalCount,
+      htmlPath,
+    });
+  }
   html = external.html;
   html = fillMissingMetadata(html, opts.record || {});
   if (!opts.skipLabChrome) {
@@ -502,6 +545,7 @@ module.exports = {
   resolveHrefToZipPath,
   inlineStylesheets,
   rewriteAttrUrls,
+  filterSavePageEntries,
   buildDemoFromUpload,
   demoRelativeUrl,
 };
