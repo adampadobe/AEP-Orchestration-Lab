@@ -953,6 +953,12 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   word-break: break-all;
 }
 
+.brand-scraper-regen-demo-option {
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 2px solid var(--dash-border);
+}
+
 .brand-scraper-history-card-actions {
   display: flex;
   flex-wrap: wrap;

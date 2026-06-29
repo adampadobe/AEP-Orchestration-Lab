@@ -296,11 +296,13 @@
   const LS_CRAWLER = 'aepBrandScraperCrawler';
   const LS_UPLOAD_FALLBACK = 'aepBrandScraperUploadFallback';
   const LS_UPLOAD_ONLY = 'aepBrandScraperUploadOnly';
-  /** Includes AI/run flags plus JS-rendered crawl, upload options — ten checkboxes in the Options menu. */
-  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 3;
+  /** Includes AI/run flags plus JS-rendered crawl, upload options, and optional demo regenerate. */
+  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 4;
 
   const uploadFallbackCb = document.getElementById('brandScraperUploadFallback');
   const uploadOnlyCb = document.getElementById('brandScraperUploadOnly');
+  const regenerateDemoCb = document.getElementById('brandScraperRegenerateDemo');
+  const regenerateDemoRow = document.getElementById('brandScraperRegenerateDemoRow');
   const htmlUploadInput = document.getElementById('brandScraperHtmlUpload');
   const uploadSummaryEl = document.getElementById('brandScraperUploadSummary');
   let pendingUploadFiles = [];
@@ -379,6 +381,13 @@
     });
   }
 
+  function syncRegenerateDemoOption() {
+    const demoCb = optionsMenu && optionsMenu.querySelector('input[data-run-option="demoWebsite"]');
+    const show = !!(demoCb && demoCb.checked);
+    if (regenerateDemoRow) regenerateDemoRow.hidden = !show;
+    if (!show && regenerateDemoCb) regenerateDemoCb.checked = false;
+  }
+
   function applyRunOptionsToUI() {
     if (!optionsMenu) return;
     const checks = optionsMenu.querySelectorAll('input[data-run-option]');
@@ -391,8 +400,14 @@
     if (crawlerJsCb && crawlerJsCb.checked) on++;
     if (uploadFallbackCb && uploadFallbackCb.checked) on++;
     if (uploadOnlyCb && uploadOnlyCb.checked) on++;
+    if (regenerateDemoCb && regenerateDemoCb.checked) on++;
+    syncRegenerateDemoOption();
     if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTIONS_MENU_TOTAL;
     if (optionsBtn) optionsBtn.classList.toggle('is-reduced', on < RUN_OPTIONS_MENU_TOTAL);
+  }
+
+  if (regenerateDemoCb) {
+    regenerateDemoCb.addEventListener('change', () => applyRunOptionsToUI());
   }
 
   if (optionsMenu) {
@@ -1708,6 +1723,13 @@
     return '<section class="brand-scraper-warnings-block">' + inner + '</section>';
   }
 
+  function scrapeHasDemo(it) {
+    if (!it) return false;
+    if (it.profileViewerDemoHref || it.demoWebsitePath) return true;
+    const st = it.demoGenerationStatus;
+    return !!st && st !== 'not_requested';
+  }
+
   function renderDemoWebsiteSection(data) {
     const demo = data.demoWebsite;
     const status = data.demoGenerationStatus || (demo && demo.status) || 'not_requested';
@@ -1734,8 +1756,8 @@
             ? '<p class="brand-scraper-result-muted">Profile environment panel and profile viewer module included.</p>' : '') +
         '</div>' +
         (notes.length > 1 ? '<p class="brand-scraper-result-muted">' + esc(notes.slice(1).join(' ')) + '</p>' : '') +
-        (status === 'reused' && data.scrapeId
-          ? '<button type="button" class="dashboard-btn-outline brand-scraper-regen-demo" data-scrape-id="' + esc(data.scrapeId) + '">Regenerate demo website</button>'
+        (scrapeHasDemo({ demoGenerationStatus: status }) && data.scrapeId
+          ? '<button type="button" class="dashboard-btn-outline" data-action="regen-demo" data-scrape-id="' + esc(data.scrapeId) + '">Regenerate demo website</button>'
           : '') +
       '</details>'
     );
@@ -1954,6 +1976,7 @@
     const viewDisabled = runState === 'running';
     const canReAnalyse = !activeRow && runState !== 'running' && (it.pagesScraped > 0 || runState === 'complete' || runState === 'crawl_complete');
     const canReScrape = !activeRow && runState !== 'running';
+    const canRegenDemo = !activeRow && runState !== 'running' && scrapeHasDemo(it);
     const progressPct = cardProgressPercent(it);
     const progressLabel = cardProgressLabel(it);
     return (
@@ -2014,6 +2037,7 @@
           '<button type="button" class="dashboard-btn-outline" data-action="view"' + (viewDisabled ? ' disabled' : '') + '>View</button>' +
           (activeRow ? '<button type="button" class="dashboard-btn-outline" data-action="cancel">Cancel</button>' : '') +
           (canReAnalyse ? '<button type="button" class="dashboard-btn-outline" data-action="re-analyse" title="Re-run AI analysis on saved crawl data (no re-crawl)">Re-analyse</button>' : '') +
+          (canRegenDemo ? '<button type="button" class="dashboard-btn-outline" data-action="regen-demo" title="Rebuild Profile Viewer demo from saved scrape/upload (overwrites existing)">Regenerate demo</button>' : '') +
           ((activeRow || runState === 'failed' || canReScrape) ? '<button type="button" class="dashboard-btn-outline" data-action="re-scrape" title="Crawl the site again and merge results">Re-scrape</button>' : '') +
           '<button type="button" class="dashboard-btn-outline" data-action="delete">Delete</button>' +
         '</div>' +
@@ -2333,6 +2357,54 @@
     }
   }
 
+  async function regenerateDemoScrape(scrapeId) {
+    const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
+    if (row && rowIndicatesActiveScrape(row)) {
+      setStatus('Wait for the current run to finish or cancel it first.', 'error');
+      return;
+    }
+    if (!confirm('Regenerate the demo website?\n\nThis rebuilds the Profile Viewer site clone (logo, nav, env bar) and overwrites the existing demo folder. No new crawl or AI analysis runs.')) return;
+    try {
+      const detailResp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
+      const detail = await detailResp.json().catch(() => ({}));
+      if (!detailResp.ok) {
+        setStatus('Regenerate demo failed: could not load scrape details (' + (detail.error || detailResp.statusText) + ').', 'error');
+        return;
+      }
+      setStatus('Regenerating demo website…', 'info');
+      const retryResp = await scopedFetch(directCfAnalyzeUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: detail.url || detail.baseUrl,
+          businessType: detail.businessType || (btypeSel && btypeSel.value) || 'b2c',
+          country: detail.country || (countrySel && countrySel.value) || '',
+          include: { demoWebsite: true },
+          analysisOnly: true,
+          existingScrapeId: scrapeId,
+          regenerateDemoWebsite: true,
+          customerName: detail.customerName || detail.brandName || '',
+        }),
+      });
+      const data = await retryResp.json().catch(() => ({}));
+      const sid = data.scrapeId || retryResp.headers.get('x-brand-scrape-id') || scrapeId;
+      if (!retryResp.ok && retryResp.status !== 202) {
+        setStatus('Regenerate demo failed: ' + (data.error || retryResp.statusText), 'error');
+        return;
+      }
+      setStatus('Demo regeneration started. Watching progress…', 'info');
+      await loadHistory();
+      if (sid) {
+        startScrapePoll(String(sid), {});
+        if (currentScrapeData && currentScrapeData.scrapeId === sid) {
+          finishAnalyzeWithDetail(sid, getScopeLabel(getScope()), function () {});
+        }
+      }
+    } catch (e) {
+      setStatus('Network error regenerating demo: ' + (e && e.message || e), 'error');
+    }
+  }
+
   async function reAnalyseScrape(scrapeId) {
     const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
     if (row && rowIndicatesActiveScrape(row)) {
@@ -2489,6 +2561,7 @@
       if (btn.dataset.action === 'view') viewScrape(id);
       else if (btn.dataset.action === 'cancel') cancelScrape(id);
       else if (btn.dataset.action === 're-analyse') reAnalyseScrape(id);
+      else if (btn.dataset.action === 'regen-demo') regenerateDemoScrape(id);
       else if (btn.dataset.action === 're-scrape') reScrapeScrape(id);
       else if (btn.dataset.action === 'delete') deleteScrape(id);
       else if (btn.dataset.action === 'extend-from-card') extendRetentionForScrapeId(id);
@@ -2726,40 +2799,9 @@
     else if (btn.dataset.action === 'export-kit') runExport();
     else if (btn.dataset.action === 'extend-retention' && currentScrapeData && currentScrapeData.scrapeId) {
       extendRetentionForScrapeId(currentScrapeData.scrapeId);
-    }
-  });
-
-  resultsEl.addEventListener('click', async function (evt) {
-    const regenBtn = evt.target.closest('.brand-scraper-regen-demo');
-    if (!regenBtn || !currentScrapeData) return;
-    if (!confirm('Regenerate the demo website? This will overwrite the existing demo folder.')) return;
-    const scrapeId = currentScrapeData.scrapeId;
-    const detail = currentScrapeData;
-    try {
-      setStatus('Regenerating demo website…', 'info');
-      const resp = await scopedFetch(directCfAnalyzeUrl(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: detail.url || detail.baseUrl,
-          businessType: detail.businessType || 'b2c',
-          country: detail.country || '',
-          include: Object.assign({}, runOptions, { demoWebsite: true }),
-          analysisOnly: true,
-          existingScrapeId: scrapeId,
-          regenerateDemoWebsite: true,
-          customerName: detail.customerName || detail.brandName || '',
-        }),
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok && resp.status !== 202) {
-        setStatus('Demo regeneration failed: ' + (data.error || resp.statusText), 'error');
-        return;
-      }
-      const sid = data.scrapeId || scrapeId;
-      finishAnalyzeWithDetail(sid, getScopeLabel(getScope()), function () {});
-    } catch (e) {
-      setStatus('Network error: ' + (e && e.message || e), 'error');
+    } else if (btn.dataset.action === 'regen-demo') {
+      const scrapeId = btn.getAttribute('data-scrape-id') || (currentScrapeData && currentScrapeData.scrapeId);
+      if (scrapeId) regenerateDemoScrape(scrapeId);
     }
   });
 
@@ -2877,6 +2919,8 @@
           uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
           uploadedHtml: uploadedHtml,
           customerName: (customerNameInput && customerNameInput.value.trim()) || '',
+          regenerateDemoWebsite: !!(runOptions.demoWebsite && regenerateDemoCb && regenerateDemoCb.checked),
+          overwriteDemoWebsite: !!(runOptions.demoWebsite && regenerateDemoCb && regenerateDemoCb.checked),
         }),
       }, {
         retries: 2,
