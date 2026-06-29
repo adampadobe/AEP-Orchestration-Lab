@@ -2716,8 +2716,8 @@ exports.brandScraperAnalyze = onRequest(
   {
     region: REGION,
     invoker: 'public',
-    timeoutSeconds: 540,
-    memory: '512MiB',
+    timeoutSeconds: 900,
+    memory: '1GiB',
   },
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');

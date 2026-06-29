@@ -9,7 +9,8 @@
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
  *       lastExport, createdAt, updatedAt,
  *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
- *       buildPhase ('crawl' | 'brand' | 'audiences' | 'complete') — progressive build; optional on legacy rows,
+ *       buildPhase ('crawl' | 'brand' | 'audiences' | 'segments' | 'demo' | 'competitor' | 'persist' | 'complete') — progressive build; optional on legacy rows,
+ *       buildPhaseDetail (string, optional) — human-readable sub-step for list/poll UI,
  *       runSteps: [{ id, label, status: 'ok'|'failed'|'skipped', detail? }] — last-fail trace,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
  *       crawlHeartbeatDetail (string, optional) — short note from periodic crawl heartbeat so list/poll see fresh updatedAt,
@@ -426,6 +427,28 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
   return out;
 }
 
+/**
+ * Lightweight Firestore-only progress update (no GCS rewrite) during long post-LLM steps.
+ */
+async function patchScrapeBuildPhase(sandbox, scrapeId, { buildPhase, buildPhaseDetail } = {}) {
+  const name = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !sid) return false;
+  const patch = {
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  if (buildPhase != null) patch.buildPhase = String(buildPhase);
+  if (buildPhaseDetail != null) {
+    patch.buildPhaseDetail = String(buildPhaseDetail).trim().slice(0, 200);
+  }
+  if (buildPhase === 'complete') {
+    patch.buildPhaseDetail = admin.firestore.FieldValue.delete();
+  }
+  const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
+  await ref.set(patch, { merge: true });
+  return true;
+}
+
 /** Build the GCS JSON payload from an analyse/checkpoint record (testable). */
 function buildFullRecord(sandbox, scrapeId, payload) {
   return {
@@ -709,6 +732,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       archiveVersionCount: Array.isArray(data.scrapeVersions) ? data.scrapeVersions.length : 0,
       runSteps: Array.isArray(data.runSteps) ? data.runSteps : [],
       buildPhase: data.buildPhase || null,
+      buildPhaseDetail: data.buildPhaseDetail != null ? String(data.buildPhaseDetail).slice(0, 160) : null,
       crawlHeartbeatDetail: data.crawlHeartbeatDetail != null ? String(data.crawlHeartbeatDetail).slice(0, 160) : null,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
@@ -979,6 +1003,7 @@ module.exports = {
   markScrapeFailed,
   touchScrapeRunningHeartbeat,
   cancelScrapeRun,
+  patchScrapeBuildPhase,
   reapStaleRunningForSandbox,
   runBrandScrapeStaleMaintenance,
   extendScrapeRetention,

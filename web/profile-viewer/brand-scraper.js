@@ -562,10 +562,14 @@
     const phase = String(row.buildPhase || '');
     if (st === 'failed') return 100;
     if (!rowIndicatesActiveScrape(row)) return 100;
-    if (st === 'running' && !phase) return 14;
-    if (phase === 'crawl') return 38;
-    if (phase === 'brand') return 68;
-    if (phase === 'audiences') return 88;
+    if (st === 'running' && !phase) return 12;
+    if (phase === 'crawl') return 32;
+    if (phase === 'brand') return 52;
+    if (phase === 'audiences') return 68;
+    if (phase === 'segments') return 78;
+    if (phase === 'demo') return 88;
+    if (phase === 'competitor') return 93;
+    if (phase === 'persist') return 97;
     if (st === 'crawl_complete') return 94;
     return 96;
   }
@@ -574,12 +578,17 @@
     if (!row || typeof row !== 'object') return '';
     const st = String(row.scrapeStatus || '');
     const phase = String(row.buildPhase || '');
+    const detail = row.buildPhaseDetail ? String(row.buildPhaseDetail) : '';
     if (st === 'failed') return 'Failed';
     if (!rowIndicatesActiveScrape(row)) return 'Complete';
     if (st === 'running' && !phase) return 'Crawling pages';
     if (phase === 'crawl') return 'Building brand guidelines';
     if (phase === 'brand') return 'Generating audiences';
-    if (phase === 'audiences') return 'Finishing segments';
+    if (phase === 'audiences') return 'Running segments & industry';
+    if (phase === 'segments') return 'Segments saved — post-processing';
+    if (phase === 'demo') return detail || 'Building demo website';
+    if (phase === 'competitor') return detail || 'Competitor analysis';
+    if (phase === 'persist') return detail || 'Saving scrape';
     if (st === 'crawl_complete') return 'Finalizing';
     return 'Running';
   }
@@ -638,16 +647,18 @@
   }
 
   function estimateAnalyzeDurationMs(opts) {
-    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry.
+    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry → demo → competitor.
     let crawl = opts.crawler === 'js' ? 18 : 6;
     const inc = opts.include || {};
     if (inc.tagAudit !== false && opts.crawler === 'js') crawl += 3;
     const brandWall = inc.analysis !== false ? 35 : 0;
     const trio = [inc.personas, inc.campaigns, inc.stakeholders].filter(Boolean).length;
     const trioWall = trio === 0 ? 0 : 32 + (trio - 1) * 2;
-    const segmentsWall = inc.segments ? 28 : 0;
+    const segmentsWall = inc.segments ? 28 : 8;
     const industryWall = inc.analysis !== false ? 4 : 0;
-    return (crawl + brandWall + trioWall + segmentsWall + industryWall) * 1000;
+    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 180 : 120) : 0;
+    const competitorWall = inc.llmDemoConfig !== false ? 90 : 0;
+    return (crawl + brandWall + trioWall + segmentsWall + industryWall + demoWall + competitorWall) * 1000;
   }
 
   function startProgress(totalMs, phases, startOpts) {
@@ -1825,8 +1836,12 @@
         ? '<p class="brand-scraper-result-muted brand-scraper-build-hint">Building in phases \u2014 ' + esc(
           buildPhase === 'crawl' ? 'crawl saved; starting brand core.' :
             buildPhase === 'brand' ? 'brand guidelines saved; running audiences.' :
-              buildPhase === 'audiences' ? 'audiences saved; finishing segments & industry.' :
-                'saving\u2026',
+              buildPhase === 'audiences' ? 'audiences saved; running segments & industry.' :
+                buildPhase === 'segments' ? 'segments saved; demo website & competitor analysis may follow.' :
+                  buildPhase === 'demo' ? (data.buildPhaseDetail || 'building demo website from upload.') :
+                    buildPhase === 'competitor' ? (data.buildPhaseDetail || 'running competitor analysis.') :
+                      buildPhase === 'persist' ? (data.buildPhaseDetail || 'saving final scrape record.') :
+                        'saving\u2026',
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
         : '') +
       renderSummarySection(data, crawl) +
@@ -1871,7 +1886,7 @@
         'Audience segments',
         renderSegments(data.segments),
         !!(data.segments && !data.segments.skipped && !data.segments.error && Array.isArray(data.segments.segments) && data.segments.segments.length),
-        inProgress && buildPhase === 'audiences',
+        inProgress && (buildPhase === 'audiences' || buildPhase === 'segments'),
       ) +
       renderTileSection(
         'Business stakeholders',
@@ -2168,6 +2183,14 @@
           setProgressPhaseBoth('Brand core saved — personas & campaigns…');
         } else if (bp === 'audiences') {
           setProgressPhaseBoth('Audiences saved — segments & industry…');
+        } else if (bp === 'segments') {
+          setProgressPhaseBoth('Segments saved — preparing demo & exports…');
+        } else if (bp === 'demo') {
+          setProgressPhaseBoth((row && row.buildPhaseDetail) || 'Building demo website from upload…');
+        } else if (bp === 'competitor') {
+          setProgressPhaseBoth((row && row.buildPhaseDetail) || 'Competitor analysis…');
+        } else if (bp === 'persist') {
+          setProgressPhaseBoth((row && row.buildPhaseDetail) || 'Saving final scrape record…');
         } else if (st === 'crawl_complete') {
           setProgressPhaseBoth(progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…');
         }
@@ -2817,6 +2840,7 @@
     const estMs = estimateAnalyzeDurationMs({
       crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
       include: runOptions,
+      hasUpload: pendingUploadFiles.length > 0,
     });
     const phases = [
       'Crawling (light sample)',
@@ -2824,7 +2848,8 @@
       runOptions.analysis ? 'Brand core (about, tone, imagery, channels)' : null,
       runOptions.campaigns || runOptions.personas || runOptions.stakeholders ? 'Audiences (campaigns, personas, stakeholders)' : null,
       runOptions.segments ? 'Segments and industry' : (runOptions.analysis ? 'Industry classification' : null),
-      runOptions.demoWebsite ? 'Demo website generation' : null,
+      runOptions.demoWebsite ? 'Demo website (upload → site clone)' : null,
+      runOptions.llmDemoConfig !== false ? 'Competitor analysis' : null,
       'Saving',
     ].filter(Boolean);
     startProgress(estMs, phases, { bottomDock: true });
