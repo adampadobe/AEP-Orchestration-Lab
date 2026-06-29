@@ -1,14 +1,14 @@
 {
-  "gitSha": "a374e8a861c3a94900946dd10f2fb26fe3d8451a",
-  "gitShortSha": "a374e8a8",
+  "gitSha": "49e7b68cc10197aaba2cb594fb877d9d1b59cf08",
+  "gitShortSha": "49e7b68c",
   "gitBranch": "main",
-  "gitCommitSubject": "[kirkham] fix: build demo websites from persisted upload ZIP, not scrape template",
+  "gitCommitSubject": "[kirkham] feat: brand scraper demo progress phases and 15min analyze timeout",
   "gitCommitAuthor": "Alan Kirkham",
-  "gitCommitDate": "2026-06-29T09:17:38+01:00",
-  "deployedAt": "2026-06-29T08:18:20.277Z",
+  "gitCommitDate": "2026-06-29T10:29:22+01:00",
+  "deployedAt": "2026-06-29T09:30:16.316Z",
   "deployedBy": "unknown",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a374e8a861c3a94900946dd10f2fb26fe3d8451a"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/49e7b68cc10197aaba2cb594fb877d9d1b59cf08"
 }
