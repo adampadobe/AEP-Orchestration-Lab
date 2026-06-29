@@ -38,6 +38,36 @@ function extFromContentType(contentType, fallbackUrl) {
   return '.png';
 }
 
+function contentTypeFromExt(ext) {
+  const e = String(ext || '').toLowerCase();
+  if (e === '.svg') return 'image/svg+xml';
+  if (e === '.webp') return 'image/webp';
+  if (e === '.jpg' || e === '.jpeg') return 'image/jpeg';
+  if (e === '.gif') return 'image/gif';
+  return 'image/png';
+}
+
+/**
+ * Root-absolute URL for assets inside a Profile Viewer demo iframe (immune to saved <base href>).
+ * @param {string} fileSlug
+ * @param {string} relPath — path under {slug}-demo-assets/, e.g. _brand/customer-logo.png
+ */
+function profileViewerDemoAssetUrl(fileSlug, relPath) {
+  const slug = String(fileSlug || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '');
+  const rel = posixNorm(relPath);
+  if (!slug || !rel) return relPath || '';
+  return `/profile-viewer/${slug}-demo-assets/${rel.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+/**
+ * Chrome "save complete" pages often ship <base href="https://original-site/"> which breaks
+ * demo-relative asset paths (e.g. _brand/customer-logo.png resolves on the live site).
+ * @param {string} html
+ */
+function stripDocumentBaseTags(html) {
+  return String(html || '').replace(/<base\b[^>]*\/?>/gi, '');
+}
+
 async function fetchRemoteBytes(url) {
   try {
     const res = await fetch(url, {
@@ -66,10 +96,11 @@ async function resolveCustomerLogoAsset(record, opts = {}) {
     try {
       const [buf] = await getBucket().file(String(logo.storedPath)).download();
       if (buf && buf.length) {
+        const ext = extFromContentType(null, logo.storedPath);
         return {
           buffer: buf,
-          contentType: 'image/png',
-          ext: extFromContentType('image/png', logo.storedPath),
+          contentType: contentTypeFromExt(ext),
+          ext,
         };
       }
     } catch (_e) { /* fall through */ }
@@ -237,6 +268,8 @@ function applyCustomerLogoFallback(html, htmlPath, entryMap, logoRelPath, resolv
 
 module.exports = {
   stripAdvertBlocks,
+  stripDocumentBaseTags,
+  profileViewerDemoAssetUrl,
   isAdBundleEntry,
   resolveCustomerLogoAsset,
   applyCustomerLogoFallback,

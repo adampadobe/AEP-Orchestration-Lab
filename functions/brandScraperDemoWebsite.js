@@ -453,7 +453,9 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
     sandbox: opts.sandbox,
     scrapeId: opts.scrapeId || record.scrapeId,
   });
-  const logoRelPath = logoAsset ? `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}` : null;
+  const logoRelPath = logoAsset
+    ? demoPolish.profileViewerDemoAssetUrl(fileSlug, `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`)
+    : null;
   const templateFiles = [
     {
       name: `${assetsDir}/index.html`,

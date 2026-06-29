@@ -206,11 +206,24 @@ describe('brandScraperDemoHtmlPolish', () => {
       html,
       'Page.html',
       new Map(),
-      '_brand/customer-logo.png',
+      '/profile-viewer/sky-news-demo-assets/_brand/customer-logo.png',
       () => null,
     );
-    assert.match(out, /src="_brand\/customer-logo\.png"/);
+    assert.match(out, /src="\/profile-viewer\/sky-news-demo-assets\/_brand\/customer-logo\.png"/);
     assert.ok(polish.imgLooksLikeLogo('<img alt="Sky News logo" />'));
+  });
+
+  it('strips base tags that break demo-relative asset paths', () => {
+    const html = '<head><base href="https://news.sky.com/uk"><title>Sky</title></head><body></body>';
+    const out = polish.stripDocumentBaseTags(html);
+    assert.doesNotMatch(out, /<base\b/i);
+  });
+
+  it('builds root-absolute profile-viewer demo asset URLs', () => {
+    assert.equal(
+      polish.profileViewerDemoAssetUrl('sky-news', '_brand/customer-logo.png'),
+      '/profile-viewer/sky-news-demo-assets/_brand/customer-logo.png',
+    );
   });
 
   it('flags ad bundle entries for exclusion', () => {

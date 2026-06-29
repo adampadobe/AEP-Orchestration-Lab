@@ -486,6 +486,7 @@ async function buildDemoFromUpload(opts) {
   const htmlPath = picked.name;
   let html = picked.entry.content.toString('utf8');
 
+  html = demoPolish.stripDocumentBaseTags(html);
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
   const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl);
@@ -504,6 +505,9 @@ async function buildDemoFromUpload(opts) {
   });
   if (logoAsset) {
     const logoRel = `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`;
+    const logoSrc = opts.slug
+      ? demoPolish.profileViewerDemoAssetUrl(opts.slug, logoRel)
+      : demoRelativeUrl(logoRel);
     external.extraFiles.push({
       name: logoRel,
       content: logoAsset.buffer,
@@ -513,7 +517,7 @@ async function buildDemoFromUpload(opts) {
       html,
       htmlPath,
       entryMap,
-      demoRelativeUrl(logoRel),
+      logoSrc,
       resolveHrefToZipPath,
     );
   }
