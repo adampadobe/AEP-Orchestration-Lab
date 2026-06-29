@@ -7,6 +7,8 @@
 const path = require('path');
 const crypto = require('crypto');
 
+const demoPolish = require('./brandScraperDemoHtmlPolish');
+
 const PV_REL = '../../../profile-viewer';
 const FETCH_TIMEOUT_MS = 6000;
 const MAX_EXTERNAL_FETCHES = 20;
@@ -494,6 +496,28 @@ async function buildDemoFromUpload(opts) {
     });
   }
   html = external.html;
+  html = demoPolish.stripAdvertBlocks(html);
+
+  const logoAsset = await demoPolish.resolveCustomerLogoAsset(opts.record || {}, {
+    sandbox: opts.sandbox,
+    scrapeId: opts.scrapeId,
+  });
+  if (logoAsset) {
+    const logoRel = `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`;
+    external.extraFiles.push({
+      name: logoRel,
+      content: logoAsset.buffer,
+      contentType: logoAsset.contentType,
+    });
+    html = demoPolish.applyCustomerLogoFallback(
+      html,
+      htmlPath,
+      entryMap,
+      demoRelativeUrl(logoRel),
+      resolveHrefToZipPath,
+    );
+  }
+
   html = fillMissingMetadata(html, opts.record || {});
   if (!opts.skipLabChrome) {
     html = injectLabChrome(html, opts.slug, opts.prefix);
@@ -516,6 +540,7 @@ async function buildDemoFromUpload(opts) {
   for (const e of entries) {
     if (!e || !e.name || !e.content || !e.content.length) continue;
     if (/\.html?$/i.test(e.name)) continue;
+    if (demoPolish.isAdBundleEntry(e.name, e.content)) continue;
     const name = posixNorm(e.name);
     if (!name || name === 'index.html') continue;
     files.push({

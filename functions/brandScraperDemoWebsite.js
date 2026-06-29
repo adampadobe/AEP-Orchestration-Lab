@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 const demoFromUpload = require('./brandScraperDemoFromUpload');
+const demoPolish = require('./brandScraperDemoHtmlPolish');
 const pvDemo = require('./brandScraperProfileViewerDemo');
 const uploadAssets = require('./brandScraperUploadAssets');
 
@@ -369,7 +370,7 @@ function writeLocalFiles(dirs, files) {
   }
 }
 
-function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial) {
+function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial, logoRelPath) {
   const brand = record.brandName || 'Brand';
   const navHtml = nav.map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join('\n      ');
   const campHtml = campaigns.length
@@ -377,6 +378,9 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial) {
       `<article class="${slug}-card"><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.body)}</p><a class="${slug}-cta" href="#">${escapeHtml(c.cta)}</a></article>`
     )).join('\n        ')
     : `<article class="${slug}-card"><h3>Products &amp; services</h3><p>Representative content from the brand scrape.</p><a class="${slug}-cta" href="#">Explore</a></article>`;
+  const logoHtml = logoRelPath
+    ? `<header class="${slug}-header"><img class="${slug}-logo aep-demo-customer-logo-fallback" src="${escapeHtml(logoRelPath)}" alt="${escapeHtml(brand)} logo" decoding="async" /></header>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -387,6 +391,7 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial) {
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="${slug}-snapshot">
+  ${logoHtml}
   <nav class="${slug}-nav" aria-label="Primary">${navHtml}</nav>
   <section class="${slug}-hero"><h1>${escapeHtml(hero.headline)}</h1><p>${escapeHtml(hero.subhead)}</p></section>
   <section class="${slug}-grid">${campHtml}</section>
@@ -414,6 +419,8 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
       slug: fileSlug,
       prefix,
       skipLabChrome: true,
+      sandbox: opts.sandbox,
+      scrapeId: opts.scrapeId || record.scrapeId,
     });
     if (uploadBuilt && uploadBuilt.files && uploadBuilt.files.length) {
       return {
@@ -442,19 +449,33 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
     || (record.warnings && record.warnings.length > 0);
   const assetsDir = pvDemo.demoAssetsDirName(fileSlug);
 
+  const logoAsset = await demoPolish.resolveCustomerLogoAsset(record, {
+    sandbox: opts.sandbox,
+    scrapeId: opts.scrapeId || record.scrapeId,
+  });
+  const logoRelPath = logoAsset ? `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}` : null;
+  const templateFiles = [
+    {
+      name: `${assetsDir}/index.html`,
+      content: Buffer.from(buildIframeSnapshotHtml(record, fileSlug, nav, hero, campaigns, partial, logoRelPath), 'utf8'),
+      contentType: 'text/html; charset=utf-8',
+    },
+    {
+      name: `${assetsDir}/styles.css`,
+      content: Buffer.from(buildStylesCss(record, colours, fontFamily, fileSlug), 'utf8'),
+      contentType: 'text/css; charset=utf-8',
+    },
+  ];
+  if (logoAsset && logoRelPath) {
+    templateFiles.push({
+      name: `${assetsDir}/${logoRelPath}`,
+      content: logoAsset.buffer,
+      contentType: logoAsset.contentType,
+    });
+  }
+
   return {
-    files: [
-      {
-        name: `${assetsDir}/index.html`,
-        content: Buffer.from(buildIframeSnapshotHtml(record, fileSlug, nav, hero, campaigns, partial), 'utf8'),
-        contentType: 'text/html; charset=utf-8',
-      },
-      {
-        name: `${assetsDir}/styles.css`,
-        content: Buffer.from(buildStylesCss(record, colours, fontFamily, fileSlug), 'utf8'),
-        contentType: 'text/css; charset=utf-8',
-      },
-    ],
+    files: templateFiles,
     source: 'scrape_template',
     sourceHtmlPath: `${assetsDir}/index.html`,
   };
@@ -567,6 +588,16 @@ async function generateDemoWebsite(record, opts = {}) {
   const existing = await pvDemo.detectExistingProfileViewerDemo(fileSlug);
   if (existing && !overwrite) {
     const href = pvDemo.profileViewerDemoHref(fileSlug);
+    try {
+      await pvDemo.upsertNavManifestEntry(pvDemo.buildNavEntry({
+        fileSlug,
+        record,
+        sandbox: opts.sandbox || null,
+        scrapeId: opts.scrapeId || record.scrapeId || null,
+      }));
+    } catch (e) {
+      console.warn('[generateDemoWebsite] nav manifest upsert on reuse failed', fileSlug, String((e && e.message) || e));
+    }
     return {
       enabled: true,
       status: 'reused',

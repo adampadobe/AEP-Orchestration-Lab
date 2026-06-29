@@ -190,6 +190,36 @@ describe('brandScraperDemoFromUpload', () => {
   });
 });
 
+describe('brandScraperDemoHtmlPolish', () => {
+  const polish = require('../brandScraperDemoHtmlPolish');
+
+  it('strips doubleclick ad iframes', () => {
+    const html = '<body><iframe src="https://s0.2mdn.net/sadbundle/abc/index.html"></iframe><p>News</p></body>';
+    const out = polish.stripAdvertBlocks(html);
+    assert.doesNotMatch(out, /<iframe/i);
+    assert.match(out, /News/);
+  });
+
+  it('replaces logo-like broken images with customer logo asset path', () => {
+    const html = '<header><img src="./Page_files/missing.svg" alt="Sky News logo" /></header>';
+    const out = polish.applyCustomerLogoFallback(
+      html,
+      'Page.html',
+      new Map(),
+      '_brand/customer-logo.png',
+      () => null,
+    );
+    assert.match(out, /src="_brand\/customer-logo\.png"/);
+    assert.ok(polish.imgLooksLikeLogo('<img alt="Sky News logo" />'));
+  });
+
+  it('flags ad bundle entries for exclusion', () => {
+    const adHtml = Buffer.from('<!DOCTYPE html><!-- saved from url=(0133)https://s0.2mdn.net/sadbundle/123/index.html -->');
+    assert.ok(polish.isAdBundleEntry('Page_files/index.html', adHtml));
+    assert.ok(!polish.isAdBundleEntry('Page_files/logo.png', Buffer.from('png')));
+  });
+});
+
 describe('brandScraperProfileViewerDemo', () => {
   const pvDemo = require('../brandScraperProfileViewerDemo');
 
