@@ -1,14 +1,14 @@
 {
-  "gitSha": "e81daa2a086be4895e532a24a57fa9cceb540bd5",
-  "gitShortSha": "e81daa2a",
+  "gitSha": "a374e8a861c3a94900946dd10f2fb26fe3d8451a",
+  "gitShortSha": "a374e8a8",
   "gitBranch": "main",
-  "gitCommitSubject": "[kirkham] fix: show Customer Name on recent scrape cards",
+  "gitCommitSubject": "[kirkham] fix: build demo websites from persisted upload ZIP, not scrape template",
   "gitCommitAuthor": "Alan Kirkham",
-  "gitCommitDate": "2026-06-29T08:33:26+01:00",
-  "deployedAt": "2026-06-29T07:34:03.590Z",
+  "gitCommitDate": "2026-06-29T09:17:38+01:00",
+  "deployedAt": "2026-06-29T08:18:20.277Z",
   "deployedBy": "unknown",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e81daa2a086be4895e532a24a57fa9cceb540bd5"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a374e8a861c3a94900946dd10f2fb26fe3d8451a"
 }
