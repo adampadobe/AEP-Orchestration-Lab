@@ -2258,6 +2258,7 @@ async function executeAnalyzePipeline({
         uploadEntries,
         sandbox,
         scrapeId: recordToPersist.scrapeId || runScrapeId,
+        labOwnerHandle: body.labOwnerHandle || body.demoNavOwnerHandle || null,
       });
       recordToPersist.demoWebsite = demoResult;
       recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';

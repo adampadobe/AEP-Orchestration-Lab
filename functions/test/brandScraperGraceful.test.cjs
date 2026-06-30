@@ -410,6 +410,33 @@ describe('brandScraperDemoFromUpload', () => {
   });
 });
 
+describe('brandScraperProfileViewerDemo nav ownership', () => {
+  const pvDemo = require('../brandScraperProfileViewerDemo');
+
+  it('resolveDemoNavOwnerHandle prefers explicit lab owner handle', () => {
+    assert.equal(pvDemo.resolveDemoNavOwnerHandle({ labOwnerHandle: 'Kirkham' }), 'kirkham');
+    assert.equal(pvDemo.resolveDemoNavOwnerHandle({ demoNavOwnerHandle: 'apalmer' }), 'apalmer');
+  });
+
+  it('resolveDemoNavOwnerHandle falls back to known sandbox presets', () => {
+    assert.equal(pvDemo.resolveDemoNavOwnerHandle({ sandbox: 'kirkham' }), 'kirkham');
+    assert.equal(pvDemo.resolveDemoNavOwnerHandle({ sandbox: 'demoemea' }), 'apalmer');
+  });
+
+  it('buildNavEntry stamps owners and sandboxes for sidebar Mine filter', () => {
+    const entry = pvDemo.buildNavEntry({
+      fileSlug: 'acme-corp',
+      record: { customerName: 'Acme Corp', scrapeId: 'abc123' },
+      sandbox: 'kirkham',
+      scrapeId: 'abc123',
+      labOwnerHandle: 'kirkham',
+    });
+    assert.deepEqual(entry.demoMeta.owners, ['kirkham']);
+    assert.deepEqual(entry.demoMeta.sandboxes, ['kirkham']);
+    assert.equal(entry.href, 'acme-corp-demo.html');
+  });
+});
+
 describe('brandScraperDemoHost', () => {
   const demoHost = require('../brandScraperDemoHost');
 

@@ -27,6 +27,7 @@
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
+  const customerNameInput = document.getElementById('brandScraperCustomerName');
   const btypeSel = document.getElementById('brandScraperBusinessType');
   const countrySel = document.getElementById('brandScraperCountry');
   const pagesInput = document.getElementById('brandScraperPages');
@@ -82,6 +83,27 @@
     return scope.scopeType === 'sandbox' ? String(scope.scopeId || '').trim() : '';
   }
 
+  /** Matches Global values → Demos sidebar lab owner handle (aepDemoNavOwnerHandle). */
+  function getLabOwnerHandle() {
+    try {
+      if (window.AepNavInDev && typeof window.AepNavInDev.getDemoNavOwnerHandle === 'function') {
+        return String(window.AepNavInDev.getDemoNavOwnerHandle() || '').trim().toLowerCase();
+      }
+    } catch (_e) {}
+    try {
+      if (localStorage.getItem('aepDemoNavOwnerHandle') === null) return 'apalmer';
+      return String(localStorage.getItem('aepDemoNavOwnerHandle') || '').trim().toLowerCase();
+    } catch (_e2) {
+      return 'apalmer';
+    }
+  }
+
+  function notifyBrandScraperDemoNavChanged() {
+    try {
+      window.dispatchEvent(new CustomEvent('aep-brand-scraper-demo-nav-changed'));
+    } catch (_e) {}
+  }
+
   const LS_PAGES = 'aepBrandScraperPages';
   const PAGES_MIN = 1;
   const PAGES_MAX = 25;
@@ -103,11 +125,10 @@
   }
 
   const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
-  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit', 'llmDemoConfig'];
+  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit', 'llmDemoConfig', 'demoWebsite'];
 
   function loadRunOptions() {
-    // Light first pass: brand core + on-site signals + assets; add personas/segments/stakeholders when you need depth (or append).
-    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true, llmDemoConfig: true };
+    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true, llmDemoConfig: true, demoWebsite: false };
     try {
       const raw = localStorage.getItem(LS_RUN_OPTIONS);
       if (!raw) return defaults;
@@ -294,8 +315,81 @@
   }
 
   const LS_CRAWLER = 'aepBrandScraperCrawler';
-  /** Includes AI/run flags plus JS-rendered crawl (Playwright) — seven checkboxes in the Options menu. */
-  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 1;
+  const LS_UPLOAD_FALLBACK = 'aepBrandScraperUploadFallback';
+  const LS_UPLOAD_ONLY = 'aepBrandScraperUploadOnly';
+  /** Includes AI/run flags plus JS-rendered crawl, upload options, and optional demo regenerate. */
+  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 4;
+
+  const uploadFallbackCb = document.getElementById('brandScraperUploadFallback');
+  const uploadOnlyCb = document.getElementById('brandScraperUploadOnly');
+  const regenerateDemoCb = document.getElementById('brandScraperRegenerateDemo');
+  const regenerateDemoRow = document.getElementById('brandScraperRegenerateDemoRow');
+  const htmlUploadInput = document.getElementById('brandScraperHtmlUpload');
+  const uploadSummaryEl = document.getElementById('brandScraperUploadSummary');
+  let pendingUploadFiles = [];
+
+  try {
+    if (uploadFallbackCb) uploadFallbackCb.checked = localStorage.getItem(LS_UPLOAD_FALLBACK) !== '0';
+    if (uploadOnlyCb) uploadOnlyCb.checked = localStorage.getItem(LS_UPLOAD_ONLY) === '1';
+  } catch (_e) {}
+  if (uploadFallbackCb) {
+    uploadFallbackCb.addEventListener('change', function () {
+      try { localStorage.setItem(LS_UPLOAD_FALLBACK, uploadFallbackCb.checked ? '1' : '0'); } catch (_e) {}
+      applyRunOptionsToUI();
+    });
+  }
+  if (uploadOnlyCb) {
+    uploadOnlyCb.addEventListener('change', function () {
+      try { localStorage.setItem(LS_UPLOAD_ONLY, uploadOnlyCb.checked ? '1' : '0'); } catch (_e) {}
+      applyRunOptionsToUI();
+    });
+  }
+
+  function updateUploadSummary() {
+    if (!uploadSummaryEl) return;
+    if (!pendingUploadFiles.length) {
+      uploadSummaryEl.textContent = 'No files selected. Upload .html files or a .zip containing HTML and asset folders.';
+      return;
+    }
+    const names = pendingUploadFiles.map(function (f) { return f.name; }).slice(0, 4);
+    uploadSummaryEl.textContent = pendingUploadFiles.length + ' file(s): ' + names.join(', ') +
+      (pendingUploadFiles.length > 4 ? '…' : '');
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function buildUploadedHtmlPayload() {
+    if (!pendingUploadFiles.length) return null;
+    const files = [];
+    let zipBase64 = null;
+    for (const f of pendingUploadFiles) {
+      if (/\.zip$/i.test(f.name)) {
+        zipBase64 = await readFileAsBase64(f);
+      } else if (/\.html?$/i.test(f.name)) {
+        files.push({ name: f.name, contentBase64: await readFileAsBase64(f) });
+      }
+    }
+    return {
+      files: files,
+      zipBase64: zipBase64,
+      useAsFallback: !!(uploadFallbackCb && uploadFallbackCb.checked),
+      uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
+    };
+  }
+
+  if (htmlUploadInput) {
+    htmlUploadInput.addEventListener('change', function () {
+      pendingUploadFiles = Array.from(htmlUploadInput.files || []);
+      updateUploadSummary();
+    });
+  }
 
   try {
     const stored = localStorage.getItem(LS_CRAWLER);
@@ -308,6 +402,13 @@
     });
   }
 
+  function syncRegenerateDemoOption() {
+    const demoCb = optionsMenu && optionsMenu.querySelector('input[data-run-option="demoWebsite"]');
+    const show = !!(demoCb && demoCb.checked);
+    if (regenerateDemoRow) regenerateDemoRow.hidden = !show;
+    if (!show && regenerateDemoCb) regenerateDemoCb.checked = false;
+  }
+
   function applyRunOptionsToUI() {
     if (!optionsMenu) return;
     const checks = optionsMenu.querySelectorAll('input[data-run-option]');
@@ -318,8 +419,16 @@
       if (runOptions[key]) on++;
     });
     if (crawlerJsCb && crawlerJsCb.checked) on++;
+    if (uploadFallbackCb && uploadFallbackCb.checked) on++;
+    if (uploadOnlyCb && uploadOnlyCb.checked) on++;
+    if (regenerateDemoCb && regenerateDemoCb.checked) on++;
+    syncRegenerateDemoOption();
     if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTIONS_MENU_TOTAL;
     if (optionsBtn) optionsBtn.classList.toggle('is-reduced', on < RUN_OPTIONS_MENU_TOTAL);
+  }
+
+  if (regenerateDemoCb) {
+    regenerateDemoCb.addEventListener('change', () => applyRunOptionsToUI());
   }
 
   if (optionsMenu) {
@@ -489,10 +598,14 @@
     const phase = String(row.buildPhase || '');
     if (st === 'failed') return 100;
     if (!rowIndicatesActiveScrape(row)) return 100;
-    if (st === 'running' && !phase) return 14;
-    if (phase === 'crawl') return 38;
-    if (phase === 'brand') return 68;
-    if (phase === 'audiences') return 88;
+    if (st === 'running' && !phase) return 12;
+    if (phase === 'crawl') return 32;
+    if (phase === 'brand') return 52;
+    if (phase === 'audiences') return 68;
+    if (phase === 'segments') return 78;
+    if (phase === 'demo') return 88;
+    if (phase === 'competitor') return 93;
+    if (phase === 'persist') return 97;
     if (st === 'crawl_complete') return 94;
     return 96;
   }
@@ -501,12 +614,17 @@
     if (!row || typeof row !== 'object') return '';
     const st = String(row.scrapeStatus || '');
     const phase = String(row.buildPhase || '');
+    const detail = row.buildPhaseDetail ? String(row.buildPhaseDetail) : '';
     if (st === 'failed') return 'Failed';
     if (!rowIndicatesActiveScrape(row)) return 'Complete';
     if (st === 'running' && !phase) return 'Crawling pages';
     if (phase === 'crawl') return 'Building brand guidelines';
     if (phase === 'brand') return 'Generating audiences';
-    if (phase === 'audiences') return 'Finishing segments';
+    if (phase === 'audiences') return detail || 'Generating audiences';
+    if (phase === 'segments') return detail || 'Finishing analysis prep';
+    if (phase === 'demo') return detail || 'Building demo website';
+    if (phase === 'competitor') return detail || 'Competitor analysis';
+    if (phase === 'persist') return detail || 'Saving scrape';
     if (st === 'crawl_complete') return 'Finalizing';
     return 'Running';
   }
@@ -565,16 +683,18 @@
   }
 
   function estimateAnalyzeDurationMs(opts) {
-    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry.
+    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry → demo → competitor.
     let crawl = opts.crawler === 'js' ? 18 : 6;
     const inc = opts.include || {};
     if (inc.tagAudit !== false && opts.crawler === 'js') crawl += 3;
     const brandWall = inc.analysis !== false ? 35 : 0;
     const trio = [inc.personas, inc.campaigns, inc.stakeholders].filter(Boolean).length;
     const trioWall = trio === 0 ? 0 : 32 + (trio - 1) * 2;
-    const segmentsWall = inc.segments ? 28 : 0;
+    const segmentsWall = inc.segments ? 28 : 8;
     const industryWall = inc.analysis !== false ? 4 : 0;
-    return (crawl + brandWall + trioWall + segmentsWall + industryWall) * 1000;
+    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 180 : 120) : 0;
+    const competitorWall = inc.llmDemoConfig !== false ? 90 : 0;
+    return (crawl + brandWall + trioWall + segmentsWall + industryWall + demoWall + competitorWall) * 1000;
   }
 
   function startProgress(totalMs, phases, startOpts) {
@@ -663,6 +783,9 @@
             setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in ' + (label || 'selected scope') + '.', 'info');
             stopProgress({ success: true });
             loadHistory();
+            if (o.j.demoWebsite && (o.j.demoWebsite.path || o.j.demoWebsite.profileViewerDemoHref)) {
+              notifyBrandScraperDemoNavChanged();
+            }
             done(true);
             return;
           }
@@ -741,6 +864,54 @@
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function decodeHtmlEntities(s) {
+    return String(s || '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
+  function displayCustomerName(data) {
+    if (data && data.customerName) return decodeHtmlEntities(String(data.customerName).trim());
+    const bn = decodeHtmlEntities(String((data && data.brandName) || '').trim());
+    if (bn && bn.length <= 48 && !/[|]/.test(bn)) return bn;
+    try {
+      const host = new URL(data.baseUrl || data.url).hostname.replace(/^www\./, '');
+      const parts = host.split('.');
+      const part = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+      if (!part) return bn;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    } catch (_e) {
+      return bn;
+    }
+  }
+
+  function resolveCustomerLogo(data) {
+    if (!data) return null;
+    if (data.customerLogo) return data.customerLogo;
+    var crawl = data.crawl || data.crawlSummary;
+    var assets = crawl && crawl.assets;
+    return (assets && assets.customerLogo) || null;
+  }
+
+  function customerLogoSrc(data) {
+    if (!data) return '';
+    var logo = resolveCustomerLogo(data);
+    if (logo && (logo.thumbnailUrl || logo.url)) {
+      return logo.thumbnailUrl || logo.url;
+    }
+    if (data.customerLogoUrl) return data.customerLogoUrl;
+    return '';
+  }
+
+  function renderCustomerLogoHtml(data, className) {
+    var src = customerLogoSrc(data);
+    if (!src) return '';
+    return '<img class="' + esc(className || 'brand-scraper-customer-logo') + '" src="' + esc(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />';
   }
 
   function tagAuditVendorTags(v) {
@@ -1159,6 +1330,20 @@
     if (!a) return '';
     const blocks = [];
 
+    if (a.customerLogo && (a.customerLogo.url || a.customerLogo.thumbnailUrl)) {
+      const logo = a.customerLogo;
+      const src = logo.url || logo.thumbnailUrl;
+      blocks.push(
+        '<div class="brand-scraper-asset-row brand-scraper-asset-row--logo">' +
+          '<h5>Customer logo <span class="brand-scraper-asset-hint">Wikipedia · ' + esc(logo.wikipediaTitle || logo.query || '') + '</span></h5>' +
+          '<div class="brand-scraper-customer-logo-wrap">' +
+            '<img class="brand-scraper-customer-logo brand-scraper-customer-logo--asset" src="' + esc(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />' +
+            (logo.wikipediaUrl ? '<p class="brand-scraper-result-muted"><a href="' + esc(logo.wikipediaUrl) + '" target="_blank" rel="noopener noreferrer">View on Wikipedia</a></p>' : '') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
     if (Array.isArray(a.favicons) && a.favicons.length) {
       blocks.push(
         '<div class="brand-scraper-asset-row">' +
@@ -1424,6 +1609,11 @@
       const failN = ta && ta.networkBeaconSummary ? (ta.networkBeaconSummary.failedBeaconRequests || 0) : 0;
       const hint = ta && ta.consentOrderHint ? ta.consentOrderHint.state : '';
       const tagCellExtra = (dupN ? ' · dup ' + dupN : '') + (failN ? ' · HTTP ' + failN : '') + (hint === 'analytics_before_cmp' ? ' · consent?' : '');
+      let urlLabel = p.url || '';
+      try {
+        const u = new URL(p.url);
+        urlLabel = u.hostname + u.pathname + (u.search || '');
+      } catch (_e) { /* keep full */ }
       const detailRow = tagAnalyticsForScrape
         ? (
           '<tr class="brand-scraper-crawl-detail"><td colspan="6">' +
@@ -1436,21 +1626,23 @@
         : '';
       return (
         '<tr>' +
-          '<td><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.url) + '</a></td>' +
-          '<td>' + esc(p.title || '—') + '</td>' +
-          '<td class="brand-scraper-num">' + esc(p.status) + '</td>' +
-          '<td class="brand-scraper-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
-          '<td><code>' + esc(mode) + '</code>' + (tagCellExtra ? '<span class="brand-scraper-result-muted">' + esc(tagCellExtra) + '</span>' : '') + '</td>' +
-          '<td class="brand-scraper-num">' + errCell + '</td>' +
+          '<td class="brand-scraper-crawl-url"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" title="' + esc(p.url) + '">' + esc(urlLabel) + '</a></td>' +
+          '<td class="brand-scraper-crawl-title">' + esc(p.title || '—') + '</td>' +
+          '<td class="brand-scraper-num brand-scraper-crawl-num">' + esc(p.status) + '</td>' +
+          '<td class="brand-scraper-num brand-scraper-crawl-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
+          '<td class="brand-scraper-crawl-tag"><code>' + esc(mode) + '</code>' + (tagCellExtra ? '<span class="brand-scraper-result-muted">' + esc(tagCellExtra) + '</span>' : '') + '</td>' +
+          '<td class="brand-scraper-num brand-scraper-crawl-num">' + errCell + '</td>' +
         '</tr>' +
         detailRow
       );
     }).join('');
-    return '<section class="brand-scraper-result-block">' +
+    return '<section class="brand-scraper-result-block brand-scraper-crawl-block">' +
       '<h4>Crawl summary</h4>' +
       '<p class="brand-scraper-result-muted">' + (c.pagesScraped || 0) + ' pages scraped, ' + (c.totalDiscovered || 0) + ' URLs discovered.</p>' +
       (failureParts ? '<p class="brand-scraper-result-muted"><strong>Failures observed:</strong> ' + esc(failureParts) + '.</p>' : '') +
-      '<table class="brand-scraper-table"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th><th>Tag audit</th><th>JS errors</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="brand-scraper-crawl-table-wrap">' +
+      '<table class="brand-scraper-table brand-scraper-table--crawl"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th><th>Tag audit</th><th>JS errors</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
     '</section>';
   }
 
@@ -1506,9 +1698,103 @@
     );
   }
 
+  function renderSourceBadges(data) {
+    const badges = Array.isArray(data.sourceBadges) ? data.sourceBadges : [];
+    if (!badges.length) return '';
+    return '<div class="brand-scraper-source-badges" aria-label="Content sources">' +
+      badges.map(function (b) {
+        const cls = b === 'Blocked' ? 'blocked' : (b === 'Partial' ? 'partial' : (b === 'Uploaded HTML' ? 'upload' : (b === 'AI inferred' ? 'inferred' : 'live')));
+        return '<span class="brand-scraper-source-badge brand-scraper-source-badge--' + cls + '">' + esc(b) + '</span>';
+      }).join('') +
+    '</div>';
+  }
+
+  function renderScrapeConfidence(data) {
+    const conf = data.scrapeConfidence;
+    if (!conf || !conf.level) return '';
+    const reasons = Array.isArray(conf.reasons) ? conf.reasons : [];
+    return (
+      '<section class="brand-scraper-confidence brand-scraper-confidence--' + esc(conf.level) + '">' +
+        '<h4>Scrape confidence: <span class="brand-scraper-confidence-level">' + esc(conf.level) + '</span></h4>' +
+        (reasons.length ? '<ul class="brand-scraper-confidence-reasons">' +
+          reasons.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') +
+        '</ul>' : '') +
+      '</section>'
+    );
+  }
+
+  function renderWarningsBlock(data) {
+    const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+    const blocked = Array.isArray(data.blockedPages) ? data.blockedPages : [];
+    if (!warnings.length && !blocked.length) return '';
+    let inner = '';
+    if (blocked.length) {
+      inner += '<details class="brand-scraper-history-fail-details" open>' +
+        '<summary class="brand-scraper-history-fail-summary">Blocked pages</summary>' +
+        '<ol class="brand-scraper-run-step-list">' +
+        blocked.map(function (b) {
+          return '<li class="brand-scraper-run-step brand-scraper-step--fail">' +
+            '<span class="brand-scraper-run-step-pill">BLOCK</span>' +
+            '<span class="brand-scraper-run-step-label">' + esc(b.url || '') + '</span>' +
+            '<p class="brand-scraper-run-step-detail">HTTP ' + esc(String(b.status || '')) + ' · ' + esc(b.reason || '') +
+              (b.fallbackUsed ? ' · fallback used' : '') + '</p></li>';
+        }).join('') +
+        '</ol></details>';
+    }
+    if (warnings.length) {
+      inner += '<p class="brand-scraper-warning-banner" role="status">' + esc(warnings.join(' ')) + '</p>';
+    }
+    return '<section class="brand-scraper-warnings-block">' + inner + '</section>';
+  }
+
+  function scrapeHasDemo(it) {
+    if (!it) return false;
+    if (it.profileViewerDemoHref || it.demoWebsitePath) return true;
+    const st = it.demoGenerationStatus;
+    return !!st && st !== 'not_requested';
+  }
+
+  function renderDemoWebsiteSection(data) {
+    const demo = data.demoWebsite;
+    const status = data.demoGenerationStatus || (demo && demo.status) || 'not_requested';
+    if (!demo || status === 'not_requested') return '';
+    const pill = status === 'created' || status === 'regenerated' ? 'ok'
+      : (status === 'reused' || status === 'skipped_existing' ? 'skip' : (status === 'failed' ? 'fail' : 'ok'));
+    const label = status === 'reused' ? 'REUSED' : (status === 'created' ? 'CREATED' : (status === 'regenerated' ? 'REGEN' : (status === 'partial' ? 'PARTIAL' : (status === 'failed' ? 'FAIL' : status.toUpperCase()))));
+    const notes = Array.isArray(demo.notes) ? demo.notes : [];
+    const files = Array.isArray(demo.generatedFiles) ? demo.generatedFiles : [];
+    const openUrl = demo.publicUrl || (demo.path ? (demo.path.replace(/\/$/, '') + '/index.html') : '');
+    return (
+      '<details class="brand-scraper-history-fail-details brand-scraper-demo-details" open>' +
+        '<summary class="brand-scraper-history-fail-summary">Demo website generation</summary>' +
+        '<div class="brand-scraper-run-step brand-scraper-step--' + (pill === 'fail' ? 'fail' : (pill === 'skip' ? 'skipped' : 'ok')) + '">' +
+          '<span class="brand-scraper-run-step-pill">' + esc(label) + '</span>' +
+          '<span class="brand-scraper-run-step-label">Generate demo site</span>' +
+          '<p class="brand-scraper-run-step-detail">' +
+            (demo.path ? 'Path: <code>' + esc(demo.path) + '</code>. ' : '') +
+            esc(notes[0] || ('Status: ' + status)) +
+          '</p>' +
+          (openUrl ? '<p class="brand-scraper-run-step-detail"><a href="' + esc(openUrl) + '" target="_blank" rel="noopener noreferrer">Open demo website</a></p>' : '') +
+          (files.length ? '<p class="brand-scraper-result-muted">Files: ' + esc(files.join(', ')) + '</p>' : '') +
+          (demo.requiredModules && demo.requiredModules.profileEnvironmentPanel
+            ? '<p class="brand-scraper-result-muted">Profile environment panel and profile viewer module included.</p>' : '') +
+        '</div>' +
+        (notes.length > 1 ? '<p class="brand-scraper-result-muted">' + esc(notes.slice(1).join(' ')) + '</p>' : '') +
+        (scrapeHasDemo({ demoGenerationStatus: status }) && data.scrapeId
+          ? '<button type="button" class="dashboard-btn-outline" data-action="regen-demo" data-scrape-id="' + esc(data.scrapeId) + '">Regenerate demo website</button>'
+          : '') +
+      '</details>'
+    );
+  }
+
   function renderCompetitorAnalysisSection(data) {
     const cfg = data.llmDemoConfig;
     if (!cfg || typeof cfg !== 'object') return '';
+    if (cfg.skipped) {
+      return '<section class="brand-scraper-result-block brand-scraper-competitor-block">' +
+        '<h4>Competitor analysis</h4>' +
+        '<p class="brand-scraper-result-muted">' + esc(cfg.reason || 'Competitor analysis skipped.') + '</p></section>';
+    }
     const comps = Array.isArray(cfg.competitors) ? cfg.competitors.slice(0, 6) : [];
     const paths = Array.isArray(cfg.samplePaths) ? cfg.samplePaths.slice(0, 6) : [];
     const prompts = Array.isArray(cfg.samplePrompts) ? cfg.samplePrompts.slice(0, 3) : [];
@@ -1516,6 +1802,7 @@
       '<section class="brand-scraper-result-block brand-scraper-competitor-block">' +
         '<h4>Competitor analysis</h4>' +
         '<p class="brand-scraper-result-muted">Direct competitors, sample site paths, and consumer comparison prompts — inferred from this scrape and saved with the result.</p>' +
+        (cfg.partial ? '<p class="brand-scraper-result-muted"><strong>Partial mode:</strong> ' + esc(cfg.competitorRationale || 'Grounded in partial crawl or uploaded HTML.') + '</p>' : '') +
         (comps.length ? '<p class="brand-scraper-result-muted"><strong>Competitors:</strong> ' + esc(comps.join(', ')) + '</p>' : '') +
         (paths.length ? '<p class="brand-scraper-result-muted"><strong>Sample paths:</strong> ' + esc(paths.join(', ')) + (cfg.samplePaths && cfg.samplePaths.length > 6 ? '…' : '') + '</p>' : '') +
         (prompts.length ? '<details class="brand-scraper-tag-opps"><summary>Sample comparison prompts (' + (cfg.samplePrompts ? cfg.samplePrompts.length : 0) + ')</summary><ul>' +
@@ -1557,7 +1844,13 @@
     resultsEl.innerHTML = (
       '<header class="brand-scraper-result-header">' +
         '<div class="brand-scraper-result-header-main">' +
-          '<h3>' + esc(data.brandName || 'Results') + '</h3>' +
+          '<div class="brand-scraper-result-title-row">' +
+            renderCustomerLogoHtml(data, 'brand-scraper-customer-logo brand-scraper-customer-logo--header') +
+            '<div class="brand-scraper-result-title-text">' +
+              '<h3>' + esc(displayCustomerName(data) || 'Results') + '</h3>' +
+              (data.industry ? '<p class="brand-scraper-result-industry">' + esc(data.industry) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
           '<p class="brand-scraper-result-muted">' + esc(data.baseUrl || data.url || '') + ' · ' +
             esc((data.businessType || '').toUpperCase()) + (data.country ? ' · ' + esc(data.country) : '') +
             (data.elapsedMs ? ' · ' + (data.elapsedMs / 1000).toFixed(1) + 's' : '') +
@@ -1573,6 +1866,10 @@
         '</div>' +
       '</header>' +
       renderFailTraceSection(data) +
+      renderWarningsBlock(data) +
+      renderSourceBadges(data) +
+      renderScrapeConfidence(data) +
+      renderDemoWebsiteSection(data) +
       (lastExport && lastExport.signedUrl ? (
         '<div class="brand-scraper-export-link">' +
           '<span>Latest export ready:</span> ' +
@@ -1585,8 +1882,12 @@
         ? '<p class="brand-scraper-result-muted brand-scraper-build-hint">Building in phases \u2014 ' + esc(
           buildPhase === 'crawl' ? 'crawl saved; starting brand core.' :
             buildPhase === 'brand' ? 'brand guidelines saved; running audiences.' :
-              buildPhase === 'audiences' ? 'audiences saved; finishing segments & industry.' :
-                'saving\u2026',
+              buildPhase === 'audiences' ? 'audiences saved; running segments & industry.' :
+                buildPhase === 'segments' ? 'segments saved; demo website & competitor analysis may follow.' :
+                  buildPhase === 'demo' ? (data.buildPhaseDetail || 'building demo website from upload.') :
+                    buildPhase === 'competitor' ? (data.buildPhaseDetail || 'running competitor analysis.') :
+                      buildPhase === 'persist' ? (data.buildPhaseDetail || 'saving final scrape record.') :
+                        'saving\u2026',
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
         : '') +
       renderSummarySection(data, crawl) +
@@ -1631,7 +1932,7 @@
         'Audience segments',
         renderSegments(data.segments),
         !!(data.segments && !data.segments.skipped && !data.segments.error && Array.isArray(data.segments.segments) && data.segments.segments.length),
-        inProgress && buildPhase === 'audiences',
+        inProgress && (buildPhase === 'audiences' || buildPhase === 'segments'),
       ) +
       renderTileSection(
         'Business stakeholders',
@@ -1699,6 +2000,7 @@
     const viewDisabled = runState === 'running';
     const canReAnalyse = !activeRow && runState !== 'running' && (it.pagesScraped > 0 || runState === 'complete' || runState === 'crawl_complete');
     const canReScrape = !activeRow && runState !== 'running';
+    const canRegenDemo = !activeRow && runState !== 'running' && scrapeHasDemo(it);
     const progressPct = cardProgressPercent(it);
     const progressLabel = cardProgressLabel(it);
     return (
@@ -1709,8 +2011,13 @@
           '</label>'
         ) : '') +
         '<div class="brand-scraper-history-card-main">' +
-          '<h4>' + esc(it.brandName || it.baseUrl || it.url) + runPill + '</h4>' +
-          (it.industry ? '<p class="brand-scraper-history-industry">' + esc(it.industry) + '</p>' : '') +
+          '<div class="brand-scraper-history-card-title-row">' +
+            renderCustomerLogoHtml(it, 'brand-scraper-customer-logo brand-scraper-customer-logo--card') +
+            '<div class="brand-scraper-history-card-title-text">' +
+              '<h4>' + esc(displayCustomerName(it) || it.baseUrl || it.url) + runPill + '</h4>' +
+              (it.industry ? '<p class="brand-scraper-history-industry">' + esc(it.industry) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
           '<p class="brand-scraper-result-muted">' + esc(it.baseUrl || it.url || '') + '</p>' +
           '<p class="brand-scraper-result-muted">' +
             fmtDate(it.updatedAt || it.createdAt) +
@@ -1722,6 +2029,8 @@
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
             (it.llmDemoConfigPresent ? ' · competitor analysis' : '') +
+            (it.demoGenerationStatus && it.demoGenerationStatus !== 'not_requested'
+              ? ' · demo ' + esc(it.demoGenerationStatus) : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             runAgeMeta +
@@ -1752,6 +2061,7 @@
           '<button type="button" class="dashboard-btn-outline" data-action="view"' + (viewDisabled ? ' disabled' : '') + '>View</button>' +
           (activeRow ? '<button type="button" class="dashboard-btn-outline" data-action="cancel">Cancel</button>' : '') +
           (canReAnalyse ? '<button type="button" class="dashboard-btn-outline" data-action="re-analyse" title="Re-run AI analysis on saved crawl data (no re-crawl)">Re-analyse</button>' : '') +
+          (canRegenDemo ? '<button type="button" class="dashboard-btn-outline" data-action="regen-demo" title="Rebuild Profile Viewer demo from saved scrape/upload (overwrites existing)">Regenerate demo</button>' : '') +
           ((activeRow || runState === 'failed' || canReScrape) ? '<button type="button" class="dashboard-btn-outline" data-action="re-scrape" title="Crawl the site again and merge results">Re-scrape</button>' : '') +
           '<button type="button" class="dashboard-btn-outline" data-action="delete">Delete</button>' +
         '</div>' +
@@ -1921,6 +2231,14 @@
           setProgressPhaseBoth('Brand core saved — personas & campaigns…');
         } else if (bp === 'audiences') {
           setProgressPhaseBoth('Audiences saved — segments & industry…');
+        } else if (bp === 'segments') {
+          setProgressPhaseBoth('Segments saved — preparing demo & exports…');
+        } else if (bp === 'demo') {
+          setProgressPhaseBoth((row && row.buildPhaseDetail) || 'Building demo website from upload…');
+        } else if (bp === 'competitor') {
+          setProgressPhaseBoth((row && row.buildPhaseDetail) || 'Competitor analysis…');
+        } else if (bp === 'persist') {
+          setProgressPhaseBoth((row && row.buildPhaseDetail) || 'Saving final scrape record…');
         } else if (st === 'crawl_complete') {
           setProgressPhaseBoth(progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…');
         }
@@ -2018,6 +2336,8 @@
         ...data,
         crawl: data.crawlSummary,
       });
+      if (customerNameInput) customerNameInput.value = data.customerName || '';
+      if (urlInput && (data.url || data.baseUrl)) urlInput.value = data.url || data.baseUrl;
       if (data.scrapeStatus !== 'crawl_complete') {
         setStatus('Loaded scrape from ' + fmtDate(data.updatedAt || data.createdAt) + '.', 'info');
       }
@@ -2061,6 +2381,57 @@
     }
   }
 
+  async function regenerateDemoScrape(scrapeId) {
+    const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
+    if (row && rowIndicatesActiveScrape(row)) {
+      setStatus('Wait for the current run to finish or cancel it first.', 'error');
+      return;
+    }
+    if (!confirm('Regenerate the demo website?\n\nThis rebuilds the Profile Viewer site clone (logo, nav, env bar) and overwrites the existing demo folder. No new crawl or AI analysis runs.')) return;
+    try {
+      const detailResp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
+      const detail = await detailResp.json().catch(() => ({}));
+      if (!detailResp.ok) {
+        setStatus('Regenerate demo failed: could not load scrape details (' + (detail.error || detailResp.statusText) + ').', 'error');
+        return;
+      }
+      setStatus('Regenerating demo website…', 'info');
+      const retryResp = await scopedFetch(directCfAnalyzeUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: detail.url || detail.baseUrl,
+          businessType: detail.businessType || (btypeSel && btypeSel.value) || 'b2c',
+          country: detail.country || (countrySel && countrySel.value) || '',
+          include: { demoWebsite: true },
+          analysisOnly: true,
+          existingScrapeId: scrapeId,
+          regenerateDemoWebsite: true,
+          overwriteDemoWebsite: true,
+          customerName: detail.customerName || detail.brandName || '',
+          sandbox: detail.sandbox || (getScope().scopeType === 'sandbox' ? getScope().scopeId : ''),
+          labOwnerHandle: getLabOwnerHandle(),
+        }),
+      });
+      const data = await retryResp.json().catch(() => ({}));
+      const sid = data.scrapeId || retryResp.headers.get('x-brand-scrape-id') || scrapeId;
+      if (!retryResp.ok && retryResp.status !== 202) {
+        setStatus('Regenerate demo failed: ' + (data.error || retryResp.statusText), 'error');
+        return;
+      }
+      setStatus('Demo regeneration started. Watching progress…', 'info');
+      await loadHistory();
+      if (sid) {
+        startScrapePoll(String(sid), {});
+        if (currentScrapeData && currentScrapeData.scrapeId === sid) {
+          finishAnalyzeWithDetail(sid, getScopeLabel(getScope()), function () {});
+        }
+      }
+    } catch (e) {
+      setStatus('Network error regenerating demo: ' + (e && e.message || e), 'error');
+    }
+  }
+
   async function reAnalyseScrape(scrapeId) {
     const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
     if (row && rowIndicatesActiveScrape(row)) {
@@ -2094,6 +2465,7 @@
           include: include,
           analysisOnly: true,
           existingScrapeId: scrapeId,
+          labOwnerHandle: getLabOwnerHandle(),
         }),
       });
       const data = await retryResp.json().catch(() => ({}));
@@ -2217,6 +2589,7 @@
       if (btn.dataset.action === 'view') viewScrape(id);
       else if (btn.dataset.action === 'cancel') cancelScrape(id);
       else if (btn.dataset.action === 're-analyse') reAnalyseScrape(id);
+      else if (btn.dataset.action === 'regen-demo') regenerateDemoScrape(id);
       else if (btn.dataset.action === 're-scrape') reScrapeScrape(id);
       else if (btn.dataset.action === 'delete') deleteScrape(id);
       else if (btn.dataset.action === 'extend-from-card') extendRetentionForScrapeId(id);
@@ -2454,6 +2827,9 @@
     else if (btn.dataset.action === 'export-kit') runExport();
     else if (btn.dataset.action === 'extend-retention' && currentScrapeData && currentScrapeData.scrapeId) {
       extendRetentionForScrapeId(currentScrapeData.scrapeId);
+    } else if (btn.dataset.action === 'regen-demo') {
+      const scrapeId = btn.getAttribute('data-scrape-id') || (currentScrapeData && currentScrapeData.scrapeId);
+      if (scrapeId) regenerateDemoScrape(scrapeId);
     }
   });
 
@@ -2484,11 +2860,16 @@
 
   form.addEventListener('submit', async function (evt) {
     evt.preventDefault();
-    const url = normaliseUrl(urlInput.value);
-    if (!url) { setStatus('Enter a brand URL to continue.', 'error'); urlInput.focus(); return; }
-    try { new URL(url); } catch (_e) {
-      setStatus('That URL doesn\u2019t look valid. Try something like nike.com.', 'error');
-      urlInput.focus(); return;
+    const uploadOnly = !!(uploadOnlyCb && uploadOnlyCb.checked);
+    let url = normaliseUrl(urlInput.value);
+    if (!uploadOnly) {
+      if (!url) { setStatus('Enter a brand URL to continue.', 'error'); urlInput.focus(); return; }
+      try { new URL(url); } catch (_e) {
+        setStatus('That URL doesn\u2019t look valid. Try something like nike.com.', 'error');
+        urlInput.focus(); return;
+      }
+    } else if (!url) {
+      url = 'https://uploaded-brand.local/';
     }
 
     const scope = getScope();
@@ -2514,6 +2895,13 @@
       }
     }
 
+    if (uploadOnlyCb && uploadOnlyCb.checked && !pendingUploadFiles.length) {
+      setStatus('Uploaded HTML only is enabled — select one or more .html or .zip files.', 'error');
+      return;
+    }
+
+    const uploadedHtml = await buildUploadedHtmlPayload();
+
     if (runBtn) runBtn.disabled = true;
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
     setStatus('Crawling ' + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
@@ -2522,13 +2910,16 @@
     const estMs = estimateAnalyzeDurationMs({
       crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
       include: runOptions,
+      hasUpload: pendingUploadFiles.length > 0,
     });
     const phases = [
       'Crawling (light sample)',
       (crawlerJsCb && crawlerJsCb.checked) ? 'Rendering JS (Playwright)' : 'Extracting page content',
       runOptions.analysis ? 'Brand core (about, tone, imagery, channels)' : null,
       runOptions.campaigns || runOptions.personas || runOptions.stakeholders ? 'Audiences (campaigns, personas, stakeholders)' : null,
-      runOptions.segments ? 'Segments and industry' : (runOptions.analysis ? 'Industry classification' : null),
+      runOptions.segments ? 'Audience segments' : (runOptions.analysis ? 'Industry classification' : null),
+      runOptions.demoWebsite ? 'Demo website (upload → site clone)' : null,
+      runOptions.llmDemoConfig ? 'Competitor analysis' : null,
       'Saving',
     ].filter(Boolean);
     startProgress(estMs, phases, { bottomDock: true });
@@ -2552,6 +2943,13 @@
           maxPages: pagesInput ? clampPages(pagesInput.value) : 3,
           crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
           include: { ...runOptions },
+          useUploadedHtmlFallback: !!(uploadFallbackCb && uploadFallbackCb.checked),
+          uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
+          uploadedHtml: uploadedHtml,
+          customerName: (customerNameInput && customerNameInput.value.trim()) || '',
+          regenerateDemoWebsite: !!(runOptions.demoWebsite && regenerateDemoCb && regenerateDemoCb.checked),
+          overwriteDemoWebsite: !!(runOptions.demoWebsite && regenerateDemoCb && regenerateDemoCb.checked),
+          labOwnerHandle: getLabOwnerHandle(),
         }),
       }, {
         retries: 2,

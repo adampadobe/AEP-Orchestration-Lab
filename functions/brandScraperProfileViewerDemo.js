@@ -18,6 +18,29 @@ const RESERVED_DEMO_SLUGS = new Set([
   'navigator', 'aviva', 'premier-inn', 'premierinn',
 ]);
 
+/** Matches Global values → Demos sidebar lab owner presets. */
+const LAB_OWNER_PRESETS = new Set(['apalmer', 'sburch', 'kirkham']);
+
+function normalizeLabOwnerHandle(raw) {
+  return String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '')
+    .slice(0, 64);
+}
+
+/**
+ * Resolve sidebar owner for brand-scraper demos (Global values → Mine filter).
+ * Prefers explicit labOwnerHandle from the client; else sandbox when it is a known preset.
+ */
+function resolveDemoNavOwnerHandle(opts = {}) {
+  const explicit = normalizeLabOwnerHandle(opts.labOwnerHandle || opts.demoNavOwnerHandle);
+  if (explicit) return explicit;
+  const sb = normalizeLabOwnerHandle(opts.sandbox);
+  if (sb && LAB_OWNER_PRESETS.has(sb)) return sb;
+  return 'apalmer';
+}
+
 function getBucket() {
   if (!admin.apps.length) admin.initializeApp();
   return admin.storage().bucket(BUCKET_NAME);
@@ -226,9 +249,16 @@ function buildShellHtml({ fileSlug, record, snapshotRelPath }) {
 </html>`;
 }
 
-function buildNavEntry({ fileSlug, record, sandbox, scrapeId }) {
+function buildNavEntry({ fileSlug, record, sandbox, scrapeId, labOwnerHandle }) {
   const brand = displayBrandName(record, fileSlug);
   const navId = `demoScrape${fileSlug.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase()).replace(/-/g, '')}`;
+  const owner = resolveDemoNavOwnerHandle({ labOwnerHandle, sandbox });
+  const sb = String(sandbox || '').trim() || null;
+  const demoMeta = {
+    owners: [owner],
+    source: 'brand_scraper',
+  };
+  if (sb) demoMeta.sandboxes = [sb];
   return {
     id: navId,
     label: brand,
@@ -236,9 +266,9 @@ function buildNavEntry({ fileSlug, record, sandbox, scrapeId }) {
     href: profileViewerDemoHref(fileSlug),
     customerName: brand,
     scrapeId: scrapeId || (record && record.scrapeId) || null,
-    sandbox: sandbox || null,
+    sandbox: sb,
     inDevelopment: true,
-    demoMeta: { owners: ['kirkham'], source: 'brand_scraper' },
+    demoMeta,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -431,7 +461,10 @@ function mapInnerFilesToAssetPaths(fileSlug, innerFiles) {
 
 module.exports = {
   RESERVED_DEMO_SLUGS,
+  LAB_OWNER_PRESETS,
   NAV_MANIFEST_PATH,
+  normalizeLabOwnerHandle,
+  resolveDemoNavOwnerHandle,
   normalizeFileSlug,
   demoHtmlName,
   demoAssetsDirName,

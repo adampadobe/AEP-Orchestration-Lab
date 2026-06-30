@@ -83,6 +83,27 @@
     return scope.scopeType === 'sandbox' ? String(scope.scopeId || '').trim() : '';
   }
 
+  /** Matches Global values → Demos sidebar lab owner handle (aepDemoNavOwnerHandle). */
+  function getLabOwnerHandle() {
+    try {
+      if (window.AepNavInDev && typeof window.AepNavInDev.getDemoNavOwnerHandle === 'function') {
+        return String(window.AepNavInDev.getDemoNavOwnerHandle() || '').trim().toLowerCase();
+      }
+    } catch (_e) {}
+    try {
+      if (localStorage.getItem('aepDemoNavOwnerHandle') === null) return 'apalmer';
+      return String(localStorage.getItem('aepDemoNavOwnerHandle') || '').trim().toLowerCase();
+    } catch (_e2) {
+      return 'apalmer';
+    }
+  }
+
+  function notifyBrandScraperDemoNavChanged() {
+    try {
+      window.dispatchEvent(new CustomEvent('aep-brand-scraper-demo-nav-changed'));
+    } catch (_e) {}
+  }
+
   const LS_PAGES = 'aepBrandScraperPages';
   const PAGES_MIN = 1;
   const PAGES_MAX = 25;
@@ -762,6 +783,9 @@
             setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in ' + (label || 'selected scope') + '.', 'info');
             stopProgress({ success: true });
             loadHistory();
+            if (o.j.demoWebsite && (o.j.demoWebsite.path || o.j.demoWebsite.profileViewerDemoHref)) {
+              notifyBrandScraperDemoNavChanged();
+            }
             done(true);
             return;
           }
@@ -2386,6 +2410,7 @@
           overwriteDemoWebsite: true,
           customerName: detail.customerName || detail.brandName || '',
           sandbox: detail.sandbox || (getScope().scopeType === 'sandbox' ? getScope().scopeId : ''),
+          labOwnerHandle: getLabOwnerHandle(),
         }),
       });
       const data = await retryResp.json().catch(() => ({}));
@@ -2440,6 +2465,7 @@
           include: include,
           analysisOnly: true,
           existingScrapeId: scrapeId,
+          labOwnerHandle: getLabOwnerHandle(),
         }),
       });
       const data = await retryResp.json().catch(() => ({}));
@@ -2923,6 +2949,7 @@
           customerName: (customerNameInput && customerNameInput.value.trim()) || '',
           regenerateDemoWebsite: !!(runOptions.demoWebsite && regenerateDemoCb && regenerateDemoCb.checked),
           overwriteDemoWebsite: !!(runOptions.demoWebsite && regenerateDemoCb && regenerateDemoCb.checked),
+          labOwnerHandle: getLabOwnerHandle(),
         }),
       }, {
         retries: 2,

@@ -23,6 +23,8 @@
   var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
   /** Demos sidebar: mine | mine_sandbox | all */
   var LS_DEMO_NAV_VISIBILITY = 'aepDemoNavVisibility';
+  /** Brand-scraper generated Profile Viewer demos (brand-scraper-demo-nav.json). */
+  var brandScraperDemoNavEntries = null;
 
   function sandboxSlugForInDev() {
     try {
@@ -192,6 +194,7 @@
 
   var NAV = [
     { label: 'Home', href: 'home.html', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
+    { label: 'Home', href: 'home-new.html', allowWorkspace: true, navPill: 'New', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
     { label: 'Global values', href: 'global-settings.html?v=20260512-demo-nav', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
     {
       group: 'Profiles', id: 'profiles',
@@ -952,7 +955,7 @@
     var base = String(href || '').split('#')[0].trim();
     if (!base || /^https?:\/\//i.test(base) || !/\.html$/i.test(base)) return '';
     // Keep Home + Global values always available so users can recover settings.
-    if (base === 'home.html' || base === 'global-settings.html') return '';
+    if (base === 'home.html' || base === 'home-new.html' || base === 'global-settings.html') return '';
     return 'menu_' + base
       .replace(/\.html$/i, '')
       .replace(/[^a-zA-Z0-9]+/g, '_')
@@ -1069,7 +1072,15 @@
     var ico = mk('span', 'dashboard-nav-ico', { 'aria-hidden': 'true' });
     if (def.ico && def.ico.charAt(0) === '<') { ico.innerHTML = def.ico; } else { ico.textContent = def.ico; }
     var lbl = mk('span', 'dashboard-nav-label');
-    if (useStacked) {
+    if (def.navPill) {
+      lbl.className += ' dashboard-nav-label--with-pill';
+      var pillPrimary = mk('span', 'dashboard-nav-label-primary');
+      pillPrimary.textContent = raw;
+      var pill = mk('span', 'dashboard-nav-pill');
+      pill.textContent = def.navPill;
+      lbl.appendChild(pillPrimary);
+      lbl.appendChild(pill);
+    } else if (useStacked) {
       lbl.className += ' dashboard-nav-label--stacked';
       var primary = mk('span', 'dashboard-nav-label-primary');
       primary.textContent = stacked[1].trim();
@@ -1295,6 +1306,88 @@
     });
   }
 
+  /* ── Brand-scraper demo nav (dynamic) ── */
+
+  function collectStaticDemoHrefs(def) {
+    var hrefs = {};
+    function addItem(item) {
+      if (item && item.href) hrefs[String(item.href).split('?')[0].split('#')[0]] = true;
+    }
+    (def.items || []).forEach(addItem);
+    (def.subgroups || []).forEach(function (sg) {
+      (sg.items || []).forEach(addItem);
+      (sg.channels || []).forEach(function (ch) {
+        (ch.items || []).forEach(addItem);
+      });
+    });
+    return hrefs;
+  }
+
+  function brandScraperDemoSubgroups(demosDef) {
+    if (!brandScraperDemoNavEntries || !brandScraperDemoNavEntries.length) return [];
+    var staticHrefs = collectStaticDemoHrefs(demosDef || {});
+    return brandScraperDemoNavEntries
+      .filter(function (entry) {
+        return entry && entry.href && !staticHrefs[entry.href];
+      })
+      .map(function (entry) {
+        var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
+        var slug = String(entry.fileSlug || 'brand').trim();
+        return {
+          id: entry.id || ('demoScrape' + slug.replace(/(^|-)([a-z])/g, function (_m, _p, c) { return c.toUpperCase(); }).replace(/-/g, '')),
+          label: label,
+          demoCustomer: true,
+          channels: [
+            {
+              id: (entry.id || slug) + 'Web',
+              label: 'Web',
+              items: [
+                {
+                  label: label + ' (brand scrape demo)',
+                  href: entry.href,
+                  inDevelopment: true,
+                  navHideKey: 'bsDemo_' + slug.replace(/[^a-z0-9]+/gi, '_'),
+                  demoMeta: entry.demoMeta || { source: 'brand_scraper' },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+                },
+              ],
+            },
+          ],
+        };
+      });
+  }
+
+  function navEntryForBuild(entry) {
+    if (entry.id !== 'demos') return entry;
+    var scraperSubs = brandScraperDemoSubgroups(entry);
+    if (!scraperSubs.length) return entry;
+    return {
+      group: entry.group,
+      id: entry.id,
+      items: entry.items || [],
+      subgroups: (entry.subgroups || []).concat(scraperSubs),
+    };
+  }
+
+  function fetchBrandScraperDemoNav(done) {
+    if (brandScraperDemoNavEntries !== null) {
+      done();
+      return;
+    }
+    var url = navHrefPrefix() + 'brand-scraper-demo-nav.json';
+    fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : { entries: [] }; })
+      .then(function (data) {
+        brandScraperDemoNavEntries = Array.isArray(data.entries) ? data.entries : [];
+        done();
+      })
+      .catch(function () {
+        brandScraperDemoNavEntries = [];
+        done();
+      });
+  }
+
   /* ── Main build ── */
 
   function buildSidebar(sidebar) {
@@ -1344,11 +1437,12 @@
     var nav = mk('nav', 'dashboard-sidebar-nav');
     NAV.forEach(function (entry) {
       if (entry.id === 'demos' && !isDemosNavVisible()) return;
-      if (entry.group) {
-        var grp = buildGroup(entry, filename, gStates);
+      var navEntry = navEntryForBuild(entry);
+      if (navEntry.group) {
+        var grp = buildGroup(navEntry, filename, gStates);
         if (grp) nav.appendChild(grp);
       } else {
-        nav.appendChild(buildItem(entry, filename));
+        nav.appendChild(buildItem(navEntry, filename));
       }
     });
     sidebar.appendChild(nav);
@@ -1386,7 +1480,9 @@
   /* ── Init ── */
 
   function init() {
-    document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+    fetchBrandScraperDemoNav(function () {
+      document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+    });
   }
 
   if (document.readyState === 'loading') {
@@ -1417,6 +1513,13 @@
 
   window.addEventListener('aep-demo-nav-filter-change', function () {
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+  });
+
+  window.addEventListener('aep-brand-scraper-demo-nav-changed', function () {
+    brandScraperDemoNavEntries = null;
+    fetchBrandScraperDemoNav(function () {
+      document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+    });
   });
 
   try {

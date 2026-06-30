@@ -529,7 +529,13 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
   await pvDemo.uploadProfileViewerDemoFiles(fileSlug, files);
   const wroteLocal = pvDemo.writeLocalProfileViewerDemoFiles(fileSlug, files);
 
-  const navEntry = pvDemo.buildNavEntry({ fileSlug, record, sandbox, scrapeId });
+  const navEntry = pvDemo.buildNavEntry({
+    fileSlug,
+    record,
+    sandbox,
+    scrapeId,
+    labOwnerHandle: opts.labOwnerHandle,
+  });
   await pvDemo.upsertNavManifestEntry(navEntry);
 
   const publicPath = pvDemo.profileViewerDemoUrl(fileSlug);
@@ -616,6 +622,7 @@ async function generateDemoWebsite(record, opts = {}) {
         record,
         sandbox: opts.sandbox || null,
         scrapeId: opts.scrapeId || record.scrapeId || null,
+        labOwnerHandle: opts.labOwnerHandle,
       }));
     } catch (e) {
       console.warn('[generateDemoWebsite] nav/logo sync on reuse failed', fileSlug, String((e && e.message) || e));
