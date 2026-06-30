@@ -1345,7 +1345,7 @@
                 {
                   label: label + ' (brand scrape demo)',
                   href: entry.href,
-                  inDevelopment: true,
+                  inDevelopment: false,
                   navHideKey: 'bsDemo_' + slug.replace(/[^a-z0-9]+/gi, '_'),
                   demoMeta: entry.demoMeta || { source: 'brand_scraper' },
                   ico:

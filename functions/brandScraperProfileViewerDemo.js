@@ -267,7 +267,7 @@ function buildNavEntry({ fileSlug, record, sandbox, scrapeId, labOwnerHandle }) 
     customerName: brand,
     scrapeId: scrapeId || (record && record.scrapeId) || null,
     sandbox: sb,
-    inDevelopment: true,
+    inDevelopment: false,
     demoMeta,
     updatedAt: new Date().toISOString(),
   };

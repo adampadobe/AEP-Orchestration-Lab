@@ -296,7 +296,6 @@ function isBrokenLocalImgSrc(src, htmlPath, entryMap, resolveZipPath) {
  */
 function applyCustomerLogoFallback(html, htmlPath, entryMap, logoRelPath, resolveZipPath) {
   if (!logoRelPath) return html;
-  let replaced = false;
 
   const out = String(html || '').replace(/<img\b[^>]*>/gi, (tag) => {
     if (!imgLooksLikeLogo(tag)) return tag;
@@ -304,26 +303,36 @@ function applyCustomerLogoFallback(html, htmlPath, entryMap, logoRelPath, resolv
     const brokenLocal = isBrokenLocalImgSrc(src, htmlPath, entryMap, resolveZipPath);
     const useFallback = !src || brokenLocal || /^https?:\/\//i.test(src);
     if (!useFallback) return tag;
-    replaced = true;
-    if (/src\s*=\s*["'][^"']*["']/i.test(tag)) {
-      return tag.replace(/src\s*=\s*["'][^"']*["']/i, `src="${logoRelPath}"`);
+    let next = tag;
+    if (/src\s*=\s*["'][^"']*["']/i.test(next)) {
+      next = next.replace(/src\s*=\s*["'][^"']*["']/i, `src="${logoRelPath}"`);
+    } else {
+      next = next.replace(/<img\b/i, `<img src="${logoRelPath}"`);
     }
-    return tag.replace(/<img\b/i, `<img src="${logoRelPath}"`);
+    if (!/class\s*=/i.test(next)) {
+      return next.replace(/<img\b/i, '<img class="aep-demo-customer-logo-fallback"');
+    }
+    if (!/aep-demo-customer-logo-fallback/i.test(next)) {
+      return next.replace(/class\s*=\s*["']([^"']*)["']/i, 'class="$1 aep-demo-customer-logo-fallback"');
+    }
+    return next;
   });
 
-  if (replaced) return out;
+  return injectDemoLogoStyles(out);
+}
 
-  const headerRe = /<header\b[^>]*>[\s\S]*?<\/header>/i;
-  const headerMatch = headerRe.exec(out);
-  if (headerMatch) {
-    const injected = headerMatch[0].replace(
-      /(<header\b[^>]*>)/i,
-      `$1\n<img class="aep-demo-customer-logo-fallback" src="${logoRelPath}" alt="logo" decoding="async" />`,
-    );
-    return out.replace(headerMatch[0], injected);
-  }
-
-  return out;
+function injectDemoLogoStyles(html) {
+  const css = [
+    'img.aep-demo-customer-logo-fallback,',
+    'img[src*="/_brand/customer-logo"]{',
+    'max-height:48px;max-width:min(200px,40vw);width:auto;height:auto;',
+    'object-fit:contain;vertical-align:middle;',
+    '}',
+  ].join('');
+  const block = `<style id="aep-demo-logo-polish">${css}</style>`;
+  const h = String(html || '');
+  if (/<\/head>/i.test(h)) return h.replace(/<\/head>/i, `${block}\n</head>`);
+  return block + h;
 }
 
 /**
@@ -381,6 +390,7 @@ module.exports = {
   ensureCustomerLogoDemoFile,
   syncCustomerLogoToExistingDemo,
   applyCustomerLogoFallback,
+  injectDemoLogoStyles,
   imgLooksLikeLogo,
   LOGO_REL_PREFIX,
 };
