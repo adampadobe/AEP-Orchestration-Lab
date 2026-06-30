@@ -14,6 +14,13 @@ const LOGO_REL_PREFIX = '_brand/customer-logo';
 const LOGO_IMG_RE = /logo|brandmark|wordmark|site-logo|header-logo|nav-logo|brand-logo/i;
 const AD_SRC_RE = /2mdn\.net|doubleclick|googlesyndication|googletagservices|adservice|safeframe|taboola|outbrain|pubmatic|rubiconproject|adform|criteo|amazon-adsystem|googleadservices|facebook\.com\/tr|sadbundle|Template_H5|Enabler_01|\/ad[s]?\//i;
 const AD_CONTAINER_RE = /adsbygoogle|ad-slot|advertisement|dfp-ad|gpt-ad|ad-container|ad__slot|commercial/i;
+const OVERLAY_MARKUP_RE = /sp_message|sourcepoint|onetrust|didomi|cookiebot|quantcast|consent-message|paywall|subscription-modal|newsletter-modal|tp-modal|piano-|evidon|trustarc|iubenda|usercentrics|sp_consent|cmp-/i;
+const IFRAME_EMBED_ALLOW_RE = /youtube\.com|youtu\.be|youtube-nocookie|vimeo\.com|dailymotion\.com|player\.brightcove/i;
+const OVERLAY_SCRIPT_SRC_RE = /sourcepoint|spmsg|onetrust|didomi|cookiebot|quantcast|trustarc|evidon|iubenda|usercentrics|piano\.io|tinypass|paywall|consent/i;
+
+/** 1×1 transparent GIF — served for missing demo image assets instead of plain-text 404. */
+const TRANSPARENT_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+const EMPTY_HTML_BODY = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head><body></body></html>';
 
 function getBucket() {
   if (!admin.apps.length) admin.initializeApp();
@@ -200,17 +207,26 @@ function entryHead(content) {
 }
 
 /**
- * Skip ad iframe HTML saved inside Chrome _files/ bundles.
+ * Skip ad / consent iframe HTML saved inside Chrome _files/ bundles.
  * @param {string} name
  * @param {Buffer} [content]
  */
-function isAdBundleEntry(name, content) {
+function isOverlayBundleEntry(name, content) {
   const n = posixNorm(name);
   if (!n) return false;
   if (AD_IFRAME_HTML_HEAD_RE.test(n)) return true;
   if (/doubleclick|googlesyndication|adservice|ad-doubleclick|sadbundle/i.test(n)) return true;
-  if (content && /\.html?$/i.test(n) && AD_IFRAME_HTML_HEAD_RE.test(entryHead(content))) return true;
+  if (content && /\.html?$/i.test(n)) {
+    const head = entryHead(content);
+    if (AD_IFRAME_HTML_HEAD_RE.test(head)) return true;
+    if (OVERLAY_MARKUP_RE.test(head) || OVERLAY_SCRIPT_SRC_RE.test(head)) return true;
+    if (/SP Consent Message|consent message|privacy manager/i.test(head)) return true;
+  }
   return false;
+}
+
+function isAdBundleEntry(name, content) {
+  return isOverlayBundleEntry(name, content);
 }
 
 function isAdIframeSrc(src) {
@@ -228,6 +244,78 @@ function isAdElementMarkup(tag) {
   return isAdIframeSrc(src);
 }
 
+function isOverlayOrConsentMarkup(tag) {
+  const hay = String(tag || '');
+  if (OVERLAY_MARKUP_RE.test(hay)) return true;
+  if (/\brole\s*=\s*["']dialog["']/i.test(hay) && /\baria-modal\s*=\s*["']true["']/i.test(hay)) return true;
+  return false;
+}
+
+/**
+ * Strip iframes that break demos (ads, consent CMP, paywall modals, saved ad bundles).
+ * Keeps a small allowlist (YouTube/Vimeo embeds).
+ */
+function shouldStripIframe(tag) {
+  const hay = String(tag || '');
+  if (isAdElementMarkup(hay)) return true;
+  if (isOverlayOrConsentMarkup(hay)) return true;
+  const src = (/src\s*=\s*["']([^"']*)["']/i.exec(hay) || [])[1] || '';
+  if (!src || /^about:blank/i.test(src)) return true;
+  if (IFRAME_EMBED_ALLOW_RE.test(src)) return false;
+  if (/page-files\/|_files\/|index\.html|consent|message|modal|paywall|subscription|cmp/i.test(src)) return true;
+  if (AD_SRC_RE.test(src)) return true;
+  // Default: drop third-party iframes — they often 404 in the demo host and render "not found".
+  if (/^https?:\/\//i.test(src)) return true;
+  return false;
+}
+
+function stripOverlayAndConsentBlocks(html) {
+  let out = String(html || '');
+
+  out = out.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, (tag) => (shouldStripIframe(tag) ? '' : tag));
+  out = out.replace(/<iframe\b[^>]*\/>/gi, (tag) => (shouldStripIframe(tag) ? '' : tag));
+
+  out = out.replace(
+    /<script\b[^>]*src\s*=\s*["'][^"']*(?:sourcepoint|spmsg|onetrust|didomi|cookiebot|quantcast|trustarc|evidon|piano|tinypass|paywall)[^"']*["'][^>]*>\s*<\/script>/gi,
+    '',
+  );
+
+  out = out.replace(
+    /<div\b[^>]*\bid\s*=\s*["'][^"']*(?:sp_message|onetrust|didomi|cookie|consent|paywall|subscription|newsletter|tp-modal)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
+    (block) => (block.length > 50000 ? block : ''),
+  );
+
+  out = out.replace(
+    /<aside\b[^>]*>[\s\S]*?<\/aside>/gi,
+    (block) => (OVERLAY_MARKUP_RE.test(block) && block.length < 20000 ? '' : block),
+  );
+
+  return out;
+}
+
+function injectDemoFailsafeStyles(html) {
+  const css = [
+    '#sp_message_container,[id^="sp_message_"],[id*="sp_message"]{display:none!important;visibility:hidden!important;pointer-events:none!important;height:0!important;overflow:hidden!important;}',
+    '#onetrust-banner-sdk,#onetrust-consent-sdk,#didomi-host,.tp-modal,[class*="paywall"],[class*="subscription-modal"]{display:none!important;visibility:hidden!important;}',
+    'body.modal-open,html.modal-open{overflow:auto!important;position:static!important;}',
+  ].join('');
+  const block = `<style id="aep-demo-overlay-failsafe">${css}</style>`;
+  const h = String(html || '');
+  if (/<\/head>/i.test(h)) return h.replace(/<\/head>/i, `${block}\n</head>`);
+  return block + h;
+}
+
+/**
+ * Full HTML polish pass for brand-scraper demo snapshots.
+ * @param {string} html
+ */
+function polishDemoHtml(html) {
+  let out = stripAdvertBlocks(html);
+  out = stripOverlayAndConsentBlocks(out);
+  out = injectDemoFailsafeStyles(out);
+  return out;
+}
+
 /**
  * Remove ad iframes, ad network scripts, and common ad containers from saved HTML.
  * @param {string} html
@@ -235,8 +323,8 @@ function isAdElementMarkup(tag) {
 function stripAdvertBlocks(html) {
   let out = String(html || '');
 
-  out = out.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, (tag) => (isAdElementMarkup(tag) ? '' : tag));
-  out = out.replace(/<iframe\b[^>]*\/>/gi, (tag) => (isAdElementMarkup(tag) ? '' : tag));
+  out = out.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, (tag) => (shouldStripIframe(tag) ? '' : tag));
+  out = out.replace(/<iframe\b[^>]*\/>/gi, (tag) => (shouldStripIframe(tag) ? '' : tag));
 
   out = out.replace(/<ins\b[^>]*>[\s\S]*?<\/ins>/gi, (tag) => (isAdElementMarkup(tag) ? '' : tag));
   out = out.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, (tag) => (
@@ -382,10 +470,14 @@ async function syncCustomerLogoToExistingDemo({ fileSlug, record, sandbox, scrap
 
 module.exports = {
   stripAdvertBlocks,
+  stripOverlayAndConsentBlocks,
+  polishDemoHtml,
   stripDocumentBaseTags,
   profileViewerDemoAssetUrl,
   downloadScrapeCustomerLogo,
   isAdBundleEntry,
+  isOverlayBundleEntry,
+  shouldStripIframe,
   resolveCustomerLogoAsset,
   ensureCustomerLogoDemoFile,
   syncCustomerLogoToExistingDemo,
@@ -393,4 +485,6 @@ module.exports = {
   injectDemoLogoStyles,
   imgLooksLikeLogo,
   LOGO_REL_PREFIX,
+  TRANSPARENT_GIF,
+  EMPTY_HTML_BODY,
 };

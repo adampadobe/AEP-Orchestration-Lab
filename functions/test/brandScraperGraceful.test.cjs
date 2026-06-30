@@ -200,6 +200,31 @@ describe('brandScraperDemoHtmlPolish', () => {
     assert.match(out, /News/);
   });
 
+  it('strips Sourcepoint consent iframes and hides overlay roots', () => {
+    const html = [
+      '<html><head></head><body>',
+      '<div id="sp_message_container_123" role="dialog" aria-modal="true">',
+      '<iframe id="sp_message_iframe_123" title="SP Consent Message" src="page-files/consent/index.html"></iframe>',
+      '</div>',
+      '<p>Headline</p></body></html>',
+    ].join('');
+    const out = polish.polishDemoHtml(html);
+    assert.doesNotMatch(out, /sp_message_iframe/i);
+    assert.match(out, /aep-demo-overlay-failsafe/);
+    assert.match(out, /Headline/);
+  });
+
+  it('shouldStripIframe keeps YouTube embeds', () => {
+    const tag = '<iframe src="https://www.youtube.com/embed/abc123"></iframe>';
+    assert.equal(polish.shouldStripIframe(tag), false);
+    assert.equal(polish.shouldStripIframe('<iframe src="page-files/ad/index.html"></iframe>'), true);
+  });
+
+  it('flags consent bundle entries for exclusion', () => {
+    const consentHtml = Buffer.from('<!DOCTYPE html><html><head><title>SP Consent Message</title></head><body></body></html>');
+    assert.ok(polish.isOverlayBundleEntry('page-files/consent/index.html', consentHtml));
+  });
+
   it('replaces logo-like broken images with customer logo asset path', () => {
     const html = '<header><img src="./Page_files/missing.svg" alt="Sky News logo" /></header>';
     const out = polish.applyCustomerLogoFallback(
@@ -229,6 +254,8 @@ describe('brandScraperDemoHtmlPolish', () => {
   it('detects customer logo asset paths in demo host', () => {
     const demoHost = require('../brandScraperDemoHost');
     assert.ok(demoHost.CUSTOMER_LOGO_ASSET_RE.test('sky-news-demo-assets/_brand/customer-logo.png'));
+    assert.ok(demoHost.isImageAssetPath('the-telegraph-demo-assets/page-files/photo.jpg'));
+    assert.ok(demoHost.isHtmlAssetPath('the-telegraph-demo-assets/page-files/consent/index.html'));
   });
 
   it('resolves demo logo context from nav when metadata is absent', async () => {

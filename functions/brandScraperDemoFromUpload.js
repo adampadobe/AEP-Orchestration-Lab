@@ -12,7 +12,9 @@ const demoPolish = require('./brandScraperDemoHtmlPolish');
 const PV_REL = '../../../profile-viewer';
 const FETCH_TIMEOUT_MS = 6000;
 const MAX_EXTERNAL_FETCHES = 20;
+const MAX_EXTERNAL_IMAGE_FETCHES = 100;
 const EXTERNAL_FETCH_WALL_MS = 45000;
+const EXTERNAL_IMAGE_FETCH_WALL_MS = 90000;
 const USER_AGENT = 'AEP-Orchestration-Lab/1.0 (Adobe internal brand scraper demo)';
 
 const PRIMARY_HTML_SCORES = [
@@ -246,7 +248,7 @@ function inlineStylesheets(html, htmlPath, entryMap, baseUrl) {
 }
 
 function rewriteAttrUrls(html, htmlPath, entryMap, baseUrl) {
-  const attrNames = ['src', 'href', 'poster', 'data-src', 'data-href'];
+  const attrNames = ['src', 'href', 'poster', 'data-src', 'data-href', 'data-original', 'data-lazy-src'];
   let out = html;
 
   for (const attr of attrNames) {
@@ -261,6 +263,36 @@ function rewriteAttrUrls(html, htmlPath, entryMap, baseUrl) {
       return full;
     });
   }
+
+  out = out.replace(/\bsrcset\s*=\s*(["'])([^"']*)\1/gi, (full, quote, val) => {
+    const parts = String(val || '').split(',').map((p) => p.trim()).filter(Boolean);
+    const rewritten = parts.map((part) => {
+      const bits = part.split(/\s+/);
+      const url = bits[0];
+      const descriptor = bits.slice(1).join(' ');
+      const zipPath = resolveHrefToZipPath(url, htmlPath, entryMap);
+      if (zipPath) return `${demoRelativeUrl(zipPath)}${descriptor ? ` ${descriptor}` : ''}`;
+      const abs = resolveAbsoluteAssetUrl(url, htmlPath, baseUrl);
+      if (abs && abs !== url) return `${abs}${descriptor ? ` ${descriptor}` : ''}`;
+      return part;
+    });
+    return `srcset=${quote}${rewritten.join(', ')}${quote}`;
+  });
+
+  out = out.replace(/\bdata-srcset\s*=\s*(["'])([^"']*)\1/gi, (full, quote, val) => {
+    const parts = String(val || '').split(',').map((p) => p.trim()).filter(Boolean);
+    const rewritten = parts.map((part) => {
+      const bits = part.split(/\s+/);
+      const url = bits[0];
+      const descriptor = bits.slice(1).join(' ');
+      const zipPath = resolveHrefToZipPath(url, htmlPath, entryMap);
+      if (zipPath) return `${demoRelativeUrl(zipPath)}${descriptor ? ` ${descriptor}` : ''}`;
+      const abs = resolveAbsoluteAssetUrl(url, htmlPath, baseUrl);
+      if (abs && abs !== url) return `${abs}${descriptor ? ` ${descriptor}` : ''}`;
+      return part;
+    });
+    return `data-srcset=${quote}${rewritten.join(', ')}${quote}`;
+  });
 
   out = out.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (full, quote, inner) => {
     const ref = String(inner || '').trim();
@@ -312,47 +344,111 @@ function extFromUrl(url, contentType) {
   return '.bin';
 }
 
-async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl) {
-  const extraFiles = [];
-  const urlRe = /(?:src|href|poster|data-src)\s*=\s*["']([^"']+)["']/gi;
-  const cssUrlRe = /url\(\s*['"]?([^'")]+)['"]?\s*\)/gi;
-  const candidates = new Set();
+function isLikelyImageUrl(url) {
+  return /\.(png|jpe?g|gif|webp|svg|avif|ico)(\?|#|$)/i.test(String(url || ''))
+    || /\/images?\//i.test(String(url || ''))
+    || /imgix|cloudinary|akamai|fastly|telegraph\.co\.uk.*\/images/i.test(String(url || ''));
+}
+
+function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
+  const images = new Set();
+  const other = new Set();
+
+  function consider(raw, forceImage) {
+    const val = String(raw || '').trim();
+    if (!val || val.startsWith('#') || /^data:/i.test(val) || /^javascript:/i.test(val)) return;
+    const zipPath = resolveHrefToZipPath(val, htmlPath, entryMap);
+    if (zipPath) return;
+    const abs = resolveAbsoluteAssetUrl(val, htmlPath, baseUrl);
+    if (!abs || !/^https?:\/\//i.test(abs)) return;
+    if (forceImage || isLikelyImageUrl(abs)) images.add(abs);
+    else other.add(abs);
+  }
+
+  function considerSrcset(val) {
+    String(val || '').split(',').forEach((part) => {
+      const url = part.trim().split(/\s+/)[0];
+      consider(url, true);
+    });
+  }
 
   let m;
-  while ((m = urlRe.exec(html)) !== null) {
-    const abs = resolveAbsoluteAssetUrl(m[1], htmlPath, baseUrl);
-    if (abs && !resolveHrefToZipPath(m[1], htmlPath, entryMap)) candidates.add(abs);
-  }
-  while ((m = cssUrlRe.exec(html)) !== null) {
-    const abs = resolveAbsoluteAssetUrl(m[1], htmlPath, baseUrl);
-    if (abs && !resolveHrefToZipPath(m[1], htmlPath, entryMap)) candidates.add(abs);
-  }
+  const urlRe = /(?:src|href|poster|data-src|data-lazy-src|data-original|content)\s*=\s*["']([^"']+)["']/gi;
+  while ((m = urlRe.exec(html)) !== null) consider(m[1], false);
 
-  const list = [...candidates];
-  if (!list.length) return { html, extraFiles };
+  const srcsetRe = /\b(?:srcset|data-srcset)\s*=\s*["']([^"']+)["']/gi;
+  while ((m = srcsetRe.exec(html)) !== null) considerSrcset(m[1]);
 
-  // News sites reference hundreds of CDN assets — sequential fetch blocked workers for 30+ minutes.
-  // Keep absolute URLs in markup when the candidate set is large; the iframe loads them live.
-  if (list.length > MAX_EXTERNAL_FETCHES) {
-    return { html, extraFiles, skippedExternalCount: list.length };
-  }
+  const cssUrlRe = /url\(\s*['"]?([^'")]+)['"]?\s*\)/gi;
+  while ((m = cssUrlRe.exec(html)) !== null) consider(m[1], false);
 
+  return { images: [...images], other: [...other] };
+}
+
+async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
+  const extraFiles = [];
   let rewritten = html;
+  const max = opts.max || MAX_EXTERNAL_FETCHES;
+  const wallMs = opts.wallMs || EXTERNAL_FETCH_WALL_MS;
   const started = Date.now();
-  for (const absUrl of list) {
-    if (Date.now() - started > EXTERNAL_FETCH_WALL_MS) break;
-    const fetched = await fetchRemoteAsset(absUrl);
-    if (!fetched) continue;
-    const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, fetched.contentType)}`;
+  let fetched = 0;
+
+  for (const absUrl of candidates) {
+    if (fetched >= max) break;
+    if (Date.now() - started > wallMs) break;
+    const hit = await fetchRemoteAsset(absUrl);
+    if (!hit) continue;
+    fetched += 1;
+    const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, hit.contentType)}`;
     extraFiles.push({
       name: rel,
-      content: fetched.buffer,
-      contentType: fetched.contentType,
+      content: hit.buffer,
+      contentType: hit.contentType,
     });
     const esc = absUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     rewritten = rewritten.replace(new RegExp(esc, 'g'), rel);
   }
-  return { html: rewritten, extraFiles };
+
+  return { html: rewritten, extraFiles, fetched, skipped: Math.max(0, candidates.length - fetched) };
+}
+
+async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl) {
+  const { images, other } = collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl);
+  if (!images.length && !other.length) return { html, extraFiles: [] };
+
+  const extraFiles = [];
+  let rewritten = html;
+
+  const imagePass = await fetchAndRewriteCandidates(rewritten, images, {
+    max: MAX_EXTERNAL_IMAGE_FETCHES,
+    wallMs: EXTERNAL_IMAGE_FETCH_WALL_MS,
+  });
+  rewritten = imagePass.html;
+  extraFiles.push(...imagePass.extraFiles);
+
+  const remainingOther = other.filter((url) => !rewritten.includes(url));
+  if (remainingOther.length > MAX_EXTERNAL_FETCHES) {
+    return {
+      html: rewritten,
+      extraFiles,
+      skippedExternalCount: remainingOther.length,
+      fetchedImageCount: imagePass.fetched,
+    };
+  }
+
+  const otherPass = await fetchAndRewriteCandidates(rewritten, remainingOther, {
+    max: MAX_EXTERNAL_FETCHES,
+    wallMs: EXTERNAL_FETCH_WALL_MS,
+  });
+  rewritten = otherPass.html;
+  extraFiles.push(...otherPass.extraFiles);
+
+  return {
+    html: rewritten,
+    extraFiles,
+    fetchedImageCount: imagePass.fetched,
+    skippedExternalCount: otherPass.skipped,
+  };
 }
 
 /**
@@ -578,7 +674,7 @@ async function buildDemoFromUpload(opts) {
     });
   }
   html = external.html;
-  html = demoPolish.stripAdvertBlocks(html);
+  html = demoPolish.polishDemoHtml(html);
 
   const logoAsset = await demoPolish.resolveCustomerLogoAsset(opts.record || {}, {
     sandbox: opts.sandbox,

@@ -74,6 +74,39 @@ function contentTypeFor(relFile, metadataType) {
   return MIME_BY_EXT[ext] || 'application/octet-stream';
 }
 
+function isImageAssetPath(relFile) {
+  return /\.(png|jpe?g|gif|webp|svg|ico|avif)(\?|#|$)/i.test(String(relFile || ''));
+}
+
+function isHtmlAssetPath(relFile) {
+  return /\.html?(\?|#|$)/i.test(String(relFile || ''));
+}
+
+/** Avoid plain-text "not found" in demo iframes / broken img slots. */
+function sendMissingDemoAssetFallback(req, res, relFile) {
+  if (isImageAssetPath(relFile)) {
+    res.setHeader('Content-Type', 'image/gif');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    if (req.method === 'HEAD') {
+      res.status(200).end();
+      return true;
+    }
+    res.status(200).end(demoPolish.TRANSPARENT_GIF);
+    return true;
+  }
+  if (isHtmlAssetPath(relFile)) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    if (req.method === 'HEAD') {
+      res.status(200).end();
+      return true;
+    }
+    res.status(200).send(demoPolish.EMPTY_HTML_BODY);
+    return true;
+  }
+  return false;
+}
+
 function gcsObjectKey(slug, relFile) {
   return `${DEMO_GCS_PREFIX}/${slug}/web/${relFile}`;
 }
@@ -204,6 +237,7 @@ async function handleProfileViewerDemoRequest(req, res) {
       const served = await tryServeCustomerLogoFallback(req, parsed.fileSlug, res);
       if (served) return;
     }
+    if (sendMissingDemoAssetFallback(req, res, parsed.relFile)) return;
     res.status(404).send('not found');
     return;
   }
@@ -247,6 +281,7 @@ async function handleDemoHostRequest(req, res) {
   const file = getBucket().file(gcsObjectKey(slug, relFile));
   const [exists] = await file.exists();
   if (!exists) {
+    if (sendMissingDemoAssetFallback(req, res, relFile)) return;
     res.status(404).send('not found');
     return;
   }
@@ -276,6 +311,9 @@ module.exports = {
   gcsProfileViewerDemoKey,
   CUSTOMER_LOGO_ASSET_RE,
   RETIRED_DEMO_SLUGS,
+  isImageAssetPath,
+  isHtmlAssetPath,
+  sendMissingDemoAssetFallback,
   resolveDemoLogoContext,
   readNavEntryForDemo,
   handleDemoHostRequest,
