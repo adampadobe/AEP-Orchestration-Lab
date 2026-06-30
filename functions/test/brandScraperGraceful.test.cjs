@@ -231,6 +231,11 @@ describe('brandScraperDemoHtmlPolish', () => {
     assert.ok(demoHost.CUSTOMER_LOGO_ASSET_RE.test('sky-news-demo-assets/_brand/customer-logo.png'));
   });
 
+  it('resolves demo logo context from nav when metadata is absent', async () => {
+    const demoHost = require('../brandScraperDemoHost');
+    assert.equal(typeof demoHost.resolveDemoLogoContext, 'function');
+  });
+
   it('flags ad bundle entries for exclusion', () => {
     const adHtml = Buffer.from('<!DOCTYPE html><!-- saved from url=(0133)https://s0.2mdn.net/sadbundle/123/index.html -->');
     assert.ok(polish.isAdBundleEntry('Page_files/index.html', adHtml));

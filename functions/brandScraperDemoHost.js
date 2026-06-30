@@ -96,11 +96,47 @@ async function readDemoMetadata(fileSlug) {
   }
 }
 
-async function tryServeCustomerLogoFallback(req, fileSlug, res) {
+async function readNavEntryForDemo(fileSlug) {
+  try {
+    const file = getBucket().file(`${PV_DEMO_GCS_PREFIX}/brand-scraper-demo-nav.json`);
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    const [buf] = await file.download();
+    const data = JSON.parse(buf.toString('utf8'));
+    const slug = safeSlugPart(fileSlug);
+    const href = `${slug}-demo.html`;
+    return (data.entries || []).find((e) => (
+      safeSlugPart(e && e.fileSlug) === slug
+      || String((e && e.href) || '').replace(/^\/profile-viewer\//, '') === href
+    )) || null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+async function resolveDemoLogoContext(fileSlug) {
   const meta = await readDemoMetadata(fileSlug);
-  const sandbox = meta && meta.sandbox;
-  const scrapeId = meta && meta.scrapeId;
-  const storedPath = meta && meta.customerLogoStoredPath;
+  let sandbox = meta && meta.sandbox;
+  let scrapeId = meta && meta.scrapeId;
+  let storedPath = meta && meta.customerLogoStoredPath;
+
+  if (!sandbox || !scrapeId) {
+    const navEntry = await readNavEntryForDemo(fileSlug);
+    if (navEntry) {
+      sandbox = sandbox || navEntry.sandbox || null;
+      scrapeId = scrapeId || navEntry.scrapeId || null;
+    }
+  }
+
+  if (!storedPath && sandbox && scrapeId) {
+    storedPath = `scrapes/${safeSlugPart(sandbox)}/${safeSlugPart(scrapeId)}/customer-logo.png`;
+  }
+
+  return { sandbox, scrapeId, storedPath };
+}
+
+async function tryServeCustomerLogoFallback(req, fileSlug, res) {
+  const { sandbox, scrapeId, storedPath } = await resolveDemoLogoContext(fileSlug);
   if (!sandbox && !scrapeId && !storedPath) return false;
 
   const asset = await demoPolish.downloadScrapeCustomerLogo(sandbox, scrapeId, storedPath);
@@ -240,6 +276,8 @@ module.exports = {
   gcsProfileViewerDemoKey,
   CUSTOMER_LOGO_ASSET_RE,
   RETIRED_DEMO_SLUGS,
+  resolveDemoLogoContext,
+  readNavEntryForDemo,
   handleDemoHostRequest,
   handleProfileViewerDemoRequest,
 };
