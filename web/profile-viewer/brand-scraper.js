@@ -2383,7 +2383,9 @@
           analysisOnly: true,
           existingScrapeId: scrapeId,
           regenerateDemoWebsite: true,
+          overwriteDemoWebsite: true,
           customerName: detail.customerName || detail.brandName || '',
+          sandbox: detail.sandbox || (getScope().scopeType === 'sandbox' ? getScope().scopeId : ''),
         }),
       });
       const data = await retryResp.json().catch(() => ({}));

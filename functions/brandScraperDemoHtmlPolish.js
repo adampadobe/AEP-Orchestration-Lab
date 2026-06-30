@@ -68,6 +68,58 @@ function stripDocumentBaseTags(html) {
   return String(html || '').replace(/<base\b[^>]*\/?>/gi, '');
 }
 
+function safeSlugPart(raw) {
+  return String(raw || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+}
+
+async function downloadScrapeCustomerLogo(sandbox, scrapeId, storedPathHint) {
+  const bucket = getBucket();
+  const candidates = [];
+  if (storedPathHint) candidates.push(String(storedPathHint).replace(/^\/+/, ''));
+  const sb = safeSlugPart(sandbox);
+  const sid = safeSlugPart(scrapeId);
+  if (sb && sid) {
+    for (const ext of ['.png', '.svg', '.webp', '.jpg', '.jpeg']) {
+      candidates.push(`scrapes/${sb}/${sid}/customer-logo${ext}`);
+    }
+  }
+  for (const objectPath of candidates) {
+    try {
+      const file = bucket.file(objectPath);
+      const [exists] = await file.exists();
+      if (!exists) continue;
+      const [buf] = await file.download();
+      if (!buf || !buf.length) continue;
+      const ext = extFromContentType(null, objectPath);
+      return { buffer: buf, contentType: contentTypeFromExt(ext), ext, objectPath };
+    } catch (_e) { /* try next */ }
+  }
+
+  const sidOnly = safeSlugPart(scrapeId);
+  if (sidOnly && !sb) {
+    try {
+      const [files] = await bucket.getFiles({ matchGlob: `scrapes/*/${sidOnly}/customer-logo.*` });
+      const hit = (files || []).find((f) => f && f.name && /customer-logo\./i.test(f.name));
+      if (hit) {
+        const [buf] = await hit.download();
+        if (buf && buf.length) {
+          const ext = extFromContentType(null, hit.name);
+          return { buffer: buf, contentType: contentTypeFromExt(ext), ext, objectPath: hit.name };
+        }
+      }
+    } catch (e) {
+      console.warn('[downloadScrapeCustomerLogo] glob lookup failed', sidOnly, String((e && e.message) || e));
+    }
+  }
+
+  return null;
+}
+
 async function fetchRemoteBytes(url) {
   try {
     const res = await fetch(url, {
@@ -101,10 +153,18 @@ async function resolveCustomerLogoAsset(record, opts = {}) {
           buffer: buf,
           contentType: contentTypeFromExt(ext),
           ext,
+          objectPath: logo.storedPath,
         };
       }
     } catch (_e) { /* fall through */ }
   }
+
+  const scrapeHit = await downloadScrapeCustomerLogo(
+    opts.sandbox || record.sandbox,
+    opts.scrapeId || record.scrapeId,
+    logo && logo.storedPath,
+  );
+  if (scrapeHit) return scrapeHit;
 
   const url = (logo && (logo.url || logo.thumbnailUrl || logo.originalUrl)) || '';
   if (url) {
@@ -266,12 +326,60 @@ function applyCustomerLogoFallback(html, htmlPath, entryMap, logoRelPath, resolv
   return out;
 }
 
+/**
+ * Ensure customer logo bytes are present in the demo upload file list.
+ * @returns {string|null} root-absolute Profile Viewer URL for the logo
+ */
+function ensureCustomerLogoDemoFile({ record, fileSlug, sandbox, scrapeId, files }) {
+  return resolveCustomerLogoAsset(record, { sandbox, scrapeId }).then((asset) => {
+    if (!asset || !asset.buffer || !asset.buffer.length) return null;
+    const rel = `${LOGO_REL_PREFIX}${asset.ext}`;
+    const name = `${fileSlug}-demo-assets/${rel}`;
+    const entry = { name, content: asset.buffer, contentType: asset.contentType };
+    const idx = (files || []).findIndex((f) => f && (
+      f.name === name || /-demo-assets\/_brand\/customer-logo\./i.test(String(f.name))
+    ));
+    if (idx >= 0) files[idx] = entry;
+    else files.push(entry);
+    return profileViewerDemoAssetUrl(fileSlug, rel);
+  });
+}
+
+/**
+ * Copy scrape customer logo into an existing demo folder when the asset file is missing.
+ */
+async function syncCustomerLogoToExistingDemo({ fileSlug, record, sandbox, scrapeId }) {
+  const bucket = getBucket();
+  const slug = safeSlugPart(fileSlug);
+  if (!slug) return false;
+  const asset = await resolveCustomerLogoAsset(record, { sandbox, scrapeId });
+  if (!asset || !asset.buffer || !asset.buffer.length) return false;
+  const rel = `${LOGO_REL_PREFIX}${asset.ext}`;
+  const objectPath = `profile-viewer-demos/${slug}/${slug}-demo-assets/${rel}`;
+  try {
+    const [exists] = await bucket.file(objectPath).exists();
+    if (exists) return true;
+    await bucket.file(objectPath).save(asset.buffer, {
+      contentType: asset.contentType,
+      resumable: false,
+      metadata: { cacheControl: 'public, max-age=300' },
+    });
+    return true;
+  } catch (e) {
+    console.warn('[syncCustomerLogoToExistingDemo] failed', slug, String((e && e.message) || e));
+    return false;
+  }
+}
+
 module.exports = {
   stripAdvertBlocks,
   stripDocumentBaseTags,
   profileViewerDemoAssetUrl,
+  downloadScrapeCustomerLogo,
   isAdBundleEntry,
   resolveCustomerLogoAsset,
+  ensureCustomerLogoDemoFile,
+  syncCustomerLogoToExistingDemo,
   applyCustomerLogoFallback,
   imgLooksLikeLogo,
   LOGO_REL_PREFIX,

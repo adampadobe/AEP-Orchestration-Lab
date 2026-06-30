@@ -326,10 +326,13 @@ function buildScriptJs(slug, prefix) {
 }
 
 function buildDemoMetadata(record, slug, status, extra = {}) {
+  const logo = record && record.customerLogo;
   return {
     scrapeId: record.scrapeId || null,
+    sandbox: extra.sandbox || record.sandbox || null,
     brandName: record.brandName || null,
     url: record.url || record.baseUrl || null,
+    customerLogoStoredPath: (logo && logo.storedPath) || null,
     logicalPath: logicalDemoPath(slug),
     generatedAt: new Date().toISOString(),
     status,
@@ -453,8 +456,9 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
     sandbox: opts.sandbox,
     scrapeId: opts.scrapeId || record.scrapeId,
   });
-  const logoRelPath = logoAsset
-    ? demoPolish.profileViewerDemoAssetUrl(fileSlug, `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`)
+  const logoFileRel = logoAsset ? `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}` : null;
+  const logoRelPath = logoFileRel
+    ? demoPolish.profileViewerDemoAssetUrl(fileSlug, logoFileRel)
     : null;
   const templateFiles = [
     {
@@ -468,9 +472,9 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
       contentType: 'text/css; charset=utf-8',
     },
   ];
-  if (logoAsset && logoRelPath) {
+  if (logoAsset && logoFileRel) {
     templateFiles.push({
-      name: `${assetsDir}/${logoRelPath}`,
+      name: `${assetsDir}/${logoFileRel}`,
       content: logoAsset.buffer,
       contentType: logoAsset.contentType,
     });
@@ -507,10 +511,20 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
         source: innerResult.source,
         sourceHtmlPath: innerResult.sourceHtmlPath,
         profileViewerDemo: true,
+        sandbox,
+        scrapeId,
       }), null, 2), 'utf8'),
       contentType: 'application/json',
     },
   ];
+
+  await demoPolish.ensureCustomerLogoDemoFile({
+    record,
+    fileSlug,
+    sandbox,
+    scrapeId,
+    files,
+  });
 
   await pvDemo.uploadProfileViewerDemoFiles(fileSlug, files);
   const wroteLocal = pvDemo.writeLocalProfileViewerDemoFiles(fileSlug, files);
@@ -591,6 +605,12 @@ async function generateDemoWebsite(record, opts = {}) {
   if (existing && !overwrite) {
     const href = pvDemo.profileViewerDemoHref(fileSlug);
     try {
+      await demoPolish.syncCustomerLogoToExistingDemo({
+        fileSlug,
+        record,
+        sandbox: opts.sandbox || null,
+        scrapeId: opts.scrapeId || record.scrapeId || null,
+      });
       await pvDemo.upsertNavManifestEntry(pvDemo.buildNavEntry({
         fileSlug,
         record,
@@ -598,7 +618,7 @@ async function generateDemoWebsite(record, opts = {}) {
         scrapeId: opts.scrapeId || record.scrapeId || null,
       }));
     } catch (e) {
-      console.warn('[generateDemoWebsite] nav manifest upsert on reuse failed', fileSlug, String((e && e.message) || e));
+      console.warn('[generateDemoWebsite] nav/logo sync on reuse failed', fileSlug, String((e && e.message) || e));
     }
     return {
       enabled: true,

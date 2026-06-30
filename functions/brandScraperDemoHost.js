@@ -7,6 +7,7 @@
 
 const path = require('path');
 const admin = require('firebase-admin');
+const demoPolish = require('./brandScraperDemoHtmlPolish');
 
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const DEMO_GCS_PREFIX = 'demo-websites';
@@ -81,6 +82,50 @@ function gcsProfileViewerDemoKey(fileSlug, relFile) {
   return `${PV_DEMO_GCS_PREFIX}/${fileSlug}/${relFile}`;
 }
 
+const CUSTOMER_LOGO_ASSET_RE = /-demo-assets\/_brand\/customer-logo\.(png|svg|webp|jpe?g)$/i;
+
+async function readDemoMetadata(fileSlug) {
+  try {
+    const file = getBucket().file(gcsProfileViewerDemoKey(fileSlug, 'demo-metadata.json'));
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    const [buf] = await file.download();
+    return JSON.parse(buf.toString('utf8'));
+  } catch (_e) {
+    return null;
+  }
+}
+
+async function tryServeCustomerLogoFallback(req, fileSlug, res) {
+  const meta = await readDemoMetadata(fileSlug);
+  const sandbox = meta && meta.sandbox;
+  const scrapeId = meta && meta.scrapeId;
+  const storedPath = meta && meta.customerLogoStoredPath;
+  if (!sandbox && !scrapeId && !storedPath) return false;
+
+  const asset = await demoPolish.downloadScrapeCustomerLogo(sandbox, scrapeId, storedPath);
+  if (!asset || !asset.buffer || !asset.buffer.length) return false;
+
+  const ct = contentTypeFor(`logo${asset.ext}`, asset.contentType);
+  res.setHeader('Content-Type', ct);
+  res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+  res.setHeader('Content-Length', String(asset.buffer.length));
+  if (req.method === 'HEAD') {
+    res.status(200).end();
+    return true;
+  }
+  res.status(200).end(asset.buffer);
+
+  void demoPolish.syncCustomerLogoToExistingDemo({
+    fileSlug,
+    record: { customerLogo: { storedPath: asset.objectPath }, scrapeId, sandbox },
+    sandbox,
+    scrapeId,
+  }).catch(() => {});
+
+  return true;
+}
+
 /**
  * Parse /profile-viewer/<slug>-demo.html or …/<slug>-demo-assets/**
  * @returns {{ fileSlug: string, relFile: string } | null}
@@ -119,6 +164,10 @@ async function handleProfileViewerDemoRequest(req, res) {
   const file = getBucket().file(relPath);
   const [exists] = await file.exists();
   if (!exists) {
+    if (CUSTOMER_LOGO_ASSET_RE.test(parsed.relFile)) {
+      const served = await tryServeCustomerLogoFallback(req, parsed.fileSlug, res);
+      if (served) return;
+    }
     res.status(404).send('not found');
     return;
   }
@@ -189,6 +238,7 @@ module.exports = {
   parseProfileViewerDemoPath,
   gcsObjectKey,
   gcsProfileViewerDemoKey,
+  CUSTOMER_LOGO_ASSET_RE,
   RETIRED_DEMO_SLUGS,
   handleDemoHostRequest,
   handleProfileViewerDemoRequest,
