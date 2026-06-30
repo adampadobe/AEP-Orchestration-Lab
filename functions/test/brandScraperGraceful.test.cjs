@@ -408,6 +408,26 @@ describe('brandScraperDemoFromUpload', () => {
     assert.ok(filtered.some((e) => e.name === 'Sky News.html'));
     assert.ok(filtered.some((e) => e.name === 'Sky News_files/a.css'));
   });
+
+  it('canonicalizeSavePageAssetEntries shortens long _files paths for GCS', () => {
+    const longPrefix = 'UK News - The latest headlines from the UK _ Sky News_files/';
+    const entries = [
+      { name: 'UK News - The latest headlines from the UK _ Sky News.html', content: Buffer.from('<html></html>'), isHtml: true },
+      { name: `${longPrefix}4.js.download`, content: Buffer.from('js') },
+      { name: `${longPrefix}style.css`, content: Buffer.from('body{}') },
+    ];
+    const picked = { name: 'UK News - The latest headlines from the UK _ Sky News.html' };
+    const { entries: canon, htmlRewrites } = demoFromUpload.canonicalizeSavePageAssetEntries(entries, picked);
+    assert.ok(canon.some((e) => e.name === 'page-files/4.js.download'));
+    assert.ok(canon.some((e) => e.name === 'page-files/style.css'));
+    assert.ok(!canon.some((e) => /_files\//.test(e.name)));
+    assert.ok(htmlRewrites.some((r) => r.from === longPrefix && r.to === 'page-files/'));
+    const html = demoFromUpload.applyHtmlPathRewrites(
+      `<script src="${longPrefix}4.js.download"></script>`,
+      htmlRewrites,
+    );
+    assert.match(html, /page-files\/4\.js\.download/);
+  });
 });
 
 describe('brandScraperProfileViewerDemo nav ownership', () => {

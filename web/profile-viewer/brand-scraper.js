@@ -1774,6 +1774,7 @@
             (demo.path ? 'Path: <code>' + esc(demo.path) + '</code>. ' : '') +
             esc(notes[0] || ('Status: ' + status)) +
           '</p>' +
+          (demo.error ? '<p class="brand-scraper-run-step-detail brand-scraper-demo-error">' + esc(demo.error) + '</p>' : '') +
           (openUrl ? '<p class="brand-scraper-run-step-detail"><a href="' + esc(openUrl) + '" target="_blank" rel="noopener noreferrer">Open demo website</a></p>' : '') +
           (files.length ? '<p class="brand-scraper-result-muted">Files: ' + esc(files.join(', ')) + '</p>' : '') +
           (demo.requiredModules && demo.requiredModules.profileEnvironmentPanel

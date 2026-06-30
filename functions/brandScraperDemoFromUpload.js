@@ -25,6 +25,8 @@ const PRIMARY_HTML_SCORES = [
 /** Saved ad / tracking iframes often land as small HTML under *_files/ (e.g. DoubleClick sadbundle). */
 const AD_IFRAME_HTML_HEAD_RE = /2mdn\.net|sadbundle|doubleclick|Template_H5|Enabler_01/i;
 const SAVE_PAGE_FILES_DIR_RE = /_files\//i;
+/** Short GCS-safe folder for browser "Web Page, Complete" companion assets. */
+const SAVE_PAGE_CANON_DIR = 'page-files';
 
 function htmlEntryHead(entry) {
   if (!entry || !entry.content || !entry.content.length) return '';
@@ -376,6 +378,83 @@ function filterSavePageEntries(entries, picked) {
   });
 }
 
+function sanitizeAssetPathSegment(seg) {
+  let s = String(seg || '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  if (!s) s = 'asset';
+  if (s.length > 100) {
+    const hash = crypto.createHash('sha1').update(String(seg)).digest('hex').slice(0, 8);
+    const ext = path.posix.extname(s);
+    const stem = ext ? s.slice(0, -ext.length) : s;
+    s = `${stem.slice(0, 48)}-${hash}${ext}`;
+  }
+  return s;
+}
+
+function sanitizeAssetRelPath(rel) {
+  const parts = String(rel || '').replace(/\\/g, '/').split('/').filter(Boolean);
+  if (!parts.length) return 'asset';
+  return parts.map(sanitizeAssetPathSegment).join('/');
+}
+
+/**
+ * Rename `{Title}_files/…` paths to short `page-files/…` keys for GCS + iframe URLs.
+ * @returns {{ entries: Array, htmlRewrites: Array<{ from: string, to: string }> }}
+ */
+function canonicalizeSavePageAssetEntries(entries, picked) {
+  if (!picked || !picked.name) return { entries: entries || [], htmlRewrites: [] };
+  const rootName = posixNorm(picked.name);
+  if (rootName.includes('/')) return { entries: entries || [], htmlRewrites: [] };
+  const base = rootName.replace(/\.html?$/i, '');
+  const filesPrefix = `${base}_files/`;
+  const hasCompanion = (entries || []).some((e) => {
+    const n = posixNorm(e && e.name);
+    return n && n.startsWith(filesPrefix);
+  });
+  if (!hasCompanion) return { entries: entries || [], htmlRewrites: [] };
+
+  const used = new Set();
+  const nameForRel = (rel) => {
+    let safe = sanitizeAssetRelPath(rel);
+    if (used.has(safe)) {
+      const hash = crypto.createHash('sha1').update(rel).digest('hex').slice(0, 6);
+      const ext = path.posix.extname(safe);
+      const stem = ext ? safe.slice(0, -ext.length) : safe;
+      safe = `${stem}-${hash}${ext}`;
+    }
+    used.add(safe);
+    return safe;
+  };
+
+  const newEntries = (entries || []).map((e) => {
+    if (!e || !e.name) return e;
+    const n = posixNorm(e.name);
+    if (!n.startsWith(filesPrefix)) return e;
+    const rel = n.slice(filesPrefix.length);
+    return { ...e, name: `${SAVE_PAGE_CANON_DIR}/${nameForRel(rel)}` };
+  });
+
+  const to = `${SAVE_PAGE_CANON_DIR}/`;
+  const htmlRewrites = [
+    { from: filesPrefix, to },
+    { from: encodeURI(filesPrefix), to },
+    { from: filesPrefix.replace(/ /g, '%20'), to },
+  ];
+  return { entries: newEntries, htmlRewrites };
+}
+
+function applyHtmlPathRewrites(html, rewrites) {
+  let out = String(html || '');
+  for (const rule of rewrites || []) {
+    if (!rule || !rule.from || rule.from === rule.to) continue;
+    out = out.split(rule.from).join(rule.to);
+  }
+  return out;
+}
+
 function fillMissingMetadata(html, record) {
   let out = html;
   const brand = record.brandName || record.customerName || 'Brand';
@@ -480,12 +559,14 @@ async function buildDemoFromUpload(opts) {
   const picked = pickPrimaryHtml(allEntries);
   if (!picked) return null;
 
-  const entries = filterSavePageEntries(allEntries, picked);
+  const filtered = filterSavePageEntries(allEntries, picked);
+  const { entries, htmlRewrites } = canonicalizeSavePageAssetEntries(filtered, picked);
   const entryMap = buildEntryMap(entries);
   const baseUrl = normaliseBaseUrl(opts.baseUrl || opts.record && (opts.record.baseUrl || opts.record.url));
   const htmlPath = picked.name;
   let html = picked.entry.content.toString('utf8');
 
+  html = applyHtmlPathRewrites(html, htmlRewrites);
   html = demoPolish.stripDocumentBaseTags(html);
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
@@ -575,6 +656,9 @@ module.exports = {
   inlineStylesheets,
   rewriteAttrUrls,
   filterSavePageEntries,
+  canonicalizeSavePageAssetEntries,
+  applyHtmlPathRewrites,
+  sanitizeAssetRelPath,
   buildDemoFromUpload,
   demoRelativeUrl,
 };

@@ -416,17 +416,41 @@ async function deleteProfileViewerDemo(fileSlug) {
   };
 }
 
+function isRetryableGcsUploadError(err) {
+  const msg = String((err && err.message) || err);
+  return /EPIPE|ECONNRESET|ETIMEDOUT|socket hang up|\b429\b|\b503\b|network/i.test(msg);
+}
+
+async function saveGcsObjectWithRetry(file, content, options, maxAttempts = 4) {
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await file.save(content, options);
+      return;
+    } catch (e) {
+      lastErr = e;
+      if (!isRetryableGcsUploadError(e) || attempt >= maxAttempts) throw e;
+      await new Promise((resolve) => { setTimeout(resolve, 300 * attempt * attempt); });
+    }
+  }
+  throw lastErr;
+}
+
 async function uploadProfileViewerDemoFiles(fileSlug, files) {
   const bucket = getBucket();
   const list = files || [];
-  const CONCURRENCY = 12;
+  const CONCURRENCY = 4;
   for (let i = 0; i < list.length; i += CONCURRENCY) {
     const batch = list.slice(i, i + CONCURRENCY);
-    await Promise.all(batch.map((f) => bucket.file(gcsObjectKey(fileSlug, f.name)).save(f.content, {
-      contentType: f.contentType || 'application/octet-stream',
-      resumable: false,
-      metadata: { cacheControl: 'public, max-age=300' },
-    })));
+    await Promise.all(batch.map(async (f) => {
+      const size = f.content && f.content.length ? f.content.length : 0;
+      const resumable = size > 256 * 1024;
+      await saveGcsObjectWithRetry(bucket.file(gcsObjectKey(fileSlug, f.name)), f.content, {
+        contentType: f.contentType || 'application/octet-stream',
+        resumable,
+        metadata: { cacheControl: 'public, max-age=300' },
+      });
+    }));
   }
 }
 
