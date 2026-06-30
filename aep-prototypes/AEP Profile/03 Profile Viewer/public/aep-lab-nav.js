@@ -1324,26 +1324,15 @@
     return hrefs;
   }
 
-  function resolveScraperOwnerHandle(entry) {
-    var meta = entry && entry.demoMeta;
-    if (meta && Array.isArray(meta.owners) && meta.owners.length) {
-      return String(meta.owners[0] || '').trim().toLowerCase() || 'lab';
-    }
-    return 'lab';
-  }
-
-  function ownerHandleSubgroupLabel(handle) {
-    return String(handle || 'lab').trim().toUpperCase();
-  }
-
-  function ownerSubgroupId(handle) {
-    var h = String(handle || 'lab').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
-    return 'demoScrapeOwner' + h.replace(/(^|-)([a-z])/g, function (_m, _p, c) { return c.toUpperCase(); });
-  }
-
   function brandScraperNavHideKey(fileSlug) {
     var slug = String(fileSlug || 'brand').trim();
     return 'bsDemo_' + slug.replace(/[^a-z0-9]+/gi, '_');
+  }
+
+  function brandScraperSubgroupId(entry) {
+    if (entry && entry.id) return entry.id;
+    var slug = String(entry.fileSlug || 'brand').trim();
+    return 'demoScrape' + slug.replace(/(^|-)([a-z])/g, function (_m, _p, c) { return c.toUpperCase(); }).replace(/-/g, '');
   }
 
   var BRAND_SCRAPER_NAV_ICO =
@@ -1361,7 +1350,7 @@
     };
   }
 
-  /** Global values: brand-scraper demos grouped under Demos · {owner handle}. */
+  /** Global values: brand-scraper demos listed under Demos (owner filter is via Mine + demoMeta.owners). */
   function brandScraperVisibilityOptions(seen) {
     if (!brandScraperDemoNavEntries || !brandScraperDemoNavEntries.length) return [];
     var dedupe = seen || {};
@@ -1372,10 +1361,9 @@
       if (dedupe[key]) return;
       dedupe[key] = true;
       var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
-      var owner = resolveScraperOwnerHandle(entry);
       out.push({
         navHideKey: key,
-        group: 'Demos · ' + owner,
+        group: 'Demos',
         label: label + ' (brand scrape demo)',
         inDevelopment: false,
         href: entry.href,
@@ -1387,32 +1375,30 @@
   function brandScraperDemoSubgroups(demosDef) {
     if (!brandScraperDemoNavEntries || !brandScraperDemoNavEntries.length) return [];
     var staticHrefs = collectStaticDemoHrefs(demosDef || {});
-    var byOwner = {};
-    brandScraperDemoNavEntries.forEach(function (entry) {
-      if (!entry || !entry.href || staticHrefs[entry.href]) return;
-      var owner = resolveScraperOwnerHandle(entry);
-      if (!byOwner[owner]) byOwner[owner] = [];
-      byOwner[owner].push(brandScraperNavItemFromEntry(entry));
-    });
-    return Object.keys(byOwner).sort().map(function (owner) {
-      var items = byOwner[owner].slice().sort(function (a, b) {
+    return brandScraperDemoNavEntries
+      .filter(function (entry) {
+        return entry && entry.href && !staticHrefs[entry.href];
+      })
+      .map(function (entry) {
+        var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
+        var slug = String(entry.fileSlug || 'brand').trim();
+        var sgId = brandScraperSubgroupId(entry);
+        return {
+          id: sgId,
+          label: label,
+          demoCustomer: true,
+          channels: [
+            {
+              id: sgId + 'Web',
+              label: 'Web',
+              items: [brandScraperNavItemFromEntry(entry)],
+            },
+          ],
+        };
+      })
+      .sort(function (a, b) {
         return String(a.label).localeCompare(String(b.label));
       });
-      var sgId = ownerSubgroupId(owner);
-      return {
-        id: sgId,
-        label: ownerHandleSubgroupLabel(owner),
-        demoCustomer: true,
-        brandScraperOwnerGroup: true,
-        channels: [
-          {
-            id: sgId + 'Web',
-            label: 'Web',
-            items: items,
-          },
-        ],
-      };
-    });
   }
 
   function navEntryForBuild(entry) {
