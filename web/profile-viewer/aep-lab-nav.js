@@ -1016,6 +1016,7 @@
         href: '',
       });
     }
+    brandScraperVisibilityOptions(seen).forEach(function (opt) { out.push(opt); });
     return out;
   }
 
@@ -1323,39 +1324,95 @@
     return hrefs;
   }
 
+  function resolveScraperOwnerHandle(entry) {
+    var meta = entry && entry.demoMeta;
+    if (meta && Array.isArray(meta.owners) && meta.owners.length) {
+      return String(meta.owners[0] || '').trim().toLowerCase() || 'lab';
+    }
+    return 'lab';
+  }
+
+  function ownerHandleSubgroupLabel(handle) {
+    return String(handle || 'lab').trim().toUpperCase();
+  }
+
+  function ownerSubgroupId(handle) {
+    var h = String(handle || 'lab').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return 'demoScrapeOwner' + h.replace(/(^|-)([a-z])/g, function (_m, _p, c) { return c.toUpperCase(); });
+  }
+
+  function brandScraperNavHideKey(fileSlug) {
+    var slug = String(fileSlug || 'brand').trim();
+    return 'bsDemo_' + slug.replace(/[^a-z0-9]+/gi, '_');
+  }
+
+  var BRAND_SCRAPER_NAV_ICO =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>';
+
+  function brandScraperNavItemFromEntry(entry) {
+    var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
+    return {
+      label: label + ' (brand scrape demo)',
+      href: entry.href,
+      inDevelopment: false,
+      navHideKey: brandScraperNavHideKey(entry.fileSlug),
+      demoMeta: entry.demoMeta || { source: 'brand_scraper' },
+      ico: BRAND_SCRAPER_NAV_ICO,
+    };
+  }
+
+  /** Global values: brand-scraper demos grouped under Demos · {owner handle}. */
+  function brandScraperVisibilityOptions(seen) {
+    if (!brandScraperDemoNavEntries || !brandScraperDemoNavEntries.length) return [];
+    var dedupe = seen || {};
+    var out = [];
+    brandScraperDemoNavEntries.forEach(function (entry) {
+      if (!entry || !entry.href) return;
+      var key = brandScraperNavHideKey(entry.fileSlug);
+      if (dedupe[key]) return;
+      dedupe[key] = true;
+      var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
+      var owner = resolveScraperOwnerHandle(entry);
+      out.push({
+        navHideKey: key,
+        group: 'Demos · ' + owner,
+        label: label + ' (brand scrape demo)',
+        inDevelopment: false,
+        href: entry.href,
+      });
+    });
+    return out;
+  }
+
   function brandScraperDemoSubgroups(demosDef) {
     if (!brandScraperDemoNavEntries || !brandScraperDemoNavEntries.length) return [];
     var staticHrefs = collectStaticDemoHrefs(demosDef || {});
-    return brandScraperDemoNavEntries
-      .filter(function (entry) {
-        return entry && entry.href && !staticHrefs[entry.href];
-      })
-      .map(function (entry) {
-        var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
-        var slug = String(entry.fileSlug || 'brand').trim();
-        return {
-          id: entry.id || ('demoScrape' + slug.replace(/(^|-)([a-z])/g, function (_m, _p, c) { return c.toUpperCase(); }).replace(/-/g, '')),
-          label: label,
-          demoCustomer: true,
-          channels: [
-            {
-              id: (entry.id || slug) + 'Web',
-              label: 'Web',
-              items: [
-                {
-                  label: label + ' (brand scrape demo)',
-                  href: entry.href,
-                  inDevelopment: false,
-                  navHideKey: 'bsDemo_' + slug.replace(/[^a-z0-9]+/gi, '_'),
-                  demoMeta: entry.demoMeta || { source: 'brand_scraper' },
-                  ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
-                },
-              ],
-            },
-          ],
-        };
+    var byOwner = {};
+    brandScraperDemoNavEntries.forEach(function (entry) {
+      if (!entry || !entry.href || staticHrefs[entry.href]) return;
+      var owner = resolveScraperOwnerHandle(entry);
+      if (!byOwner[owner]) byOwner[owner] = [];
+      byOwner[owner].push(brandScraperNavItemFromEntry(entry));
+    });
+    return Object.keys(byOwner).sort().map(function (owner) {
+      var items = byOwner[owner].slice().sort(function (a, b) {
+        return String(a.label).localeCompare(String(b.label));
       });
+      var sgId = ownerSubgroupId(owner);
+      return {
+        id: sgId,
+        label: ownerHandleSubgroupLabel(owner),
+        demoCustomer: true,
+        brandScraperOwnerGroup: true,
+        channels: [
+          {
+            id: sgId + 'Web',
+            label: 'Web',
+            items: items,
+          },
+        ],
+      };
+    });
   }
 
   function navEntryForBuild(entry) {
@@ -1565,6 +1622,8 @@
       shouldShowDemoNavItem: shouldShowDemoNavItem,
       /** Global values helper: all nav items that support independent hide/show */
       getMenuVisibilityOptions: getMenuVisibilityOptions,
+      /** Loads brand-scraper demo nav manifest (GCS) before building sidebar / Global values lists */
+      fetchBrandScraperDemoNav: fetchBrandScraperDemoNav,
     };
   } catch (e3) {}
 })();

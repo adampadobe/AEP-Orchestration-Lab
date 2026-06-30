@@ -411,6 +411,9 @@
             if (group === 'Demos' && item.navHideKey !== 'demos') {
               row.className = 'aep-global-nav-hide-item--demos-child';
             }
+            if (group.indexOf('Demos ·') === 0 && item.navHideKey !== 'demos') {
+              row.className = 'aep-global-nav-hide-item--demos-child';
+            }
 
             var cb = document.createElement('input');
             cb.type = 'checkbox';
@@ -519,9 +522,18 @@
       }
 
       function init() {
-        renderNavVisibilityChecklists();
-        syncMasterToggle();
-        syncCheckboxes();
+        function refreshNavChecklists() {
+          renderNavVisibilityChecklists();
+          syncMasterToggle();
+          syncCheckboxes();
+        }
+        var navApi = window.AepNavInDev;
+        if (navApi && typeof navApi.fetchBrandScraperDemoNav === 'function') {
+          navApi.fetchBrandScraperDemoNav(refreshNavChecklists);
+        } else {
+          refreshNavChecklists();
+        }
+        window.addEventListener('aep-brand-scraper-demo-nav-changed', refreshNavChecklists);
         var master = document.getElementById('aepShowInDevCapabilitiesToggle');
         if (master) {
           master.addEventListener('change', function () {
