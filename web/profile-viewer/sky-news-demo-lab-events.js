@@ -166,16 +166,18 @@
                   profileResult.data &&
                   (profileResult.data.error || profileResult.data.message)) ||
                 'Profile update failed.';
-          setMessage(profileErr, 'error');
+          setMessage(profileErr + ' Sending experience event anyway…', 'warning');
+          var eventAfterProfileFail = await sendSkyNewsExperienceEvent(eventPayload || {});
           postToFrame('sky-news-registration-result', {
-            ok: false,
-            step: 'profile',
-            error: profileErr,
+            ok: !!eventAfterProfileFail,
+            step: 'event',
+            profileError: profileErr,
             profileResponse: profileResult && profileResult.data ? profileResult.data : undefined,
+            eventSent: !!eventAfterProfileFail,
           });
           return;
         }
-        refreshDrawerEvents(ecid, emailForUpdate);
+        refreshDrawerEvents();
         setMessage((profileResult.data && profileResult.data.message) || 'Profile updated. Sending event…', 'success');
         var eventOk = await sendSkyNewsExperienceEvent(eventPayload || {});
         postToFrame('sky-news-registration-result', {
@@ -191,11 +193,23 @@
       }
     }
 
-    function refreshDrawerEvents(ecid, email) {
-      var id = ecid || email;
-      var ns = ecid ? 'ecid' : email ? 'email' : '';
-      if (!id || typeof global.DemoProfileDrawer === 'undefined') return;
-      if (typeof global.DemoProfileDrawer.refreshDrawerEventsForIdentity !== 'function') return;
+    function refreshDrawerEvents() {
+      if (typeof global.DemoProfileDrawer === 'undefined') return;
+      if (typeof global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile === 'function') {
+        void global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        global.setTimeout(function () {
+          void global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        }, 2500);
+        global.setTimeout(function () {
+          void global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        }, 8000);
+        return;
+      }
+      var ecid = getEcidFromStrip();
+      var email = String(getEmail() || '').trim();
+      var id = email || ecid;
+      var ns = email ? 'email' : ecid ? 'ecid' : '';
+      if (!id || typeof global.DemoProfileDrawer.refreshDrawerEventsForIdentity !== 'function') return;
       void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(id, ns);
       global.setTimeout(function () {
         void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(id, ns);
@@ -252,7 +266,7 @@
         if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
         else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
         setMessage((data.message || 'Sky News event sent to AEP.') + idPart, 'success');
-        refreshDrawerEvents(ecid, emailForEvent);
+        refreshDrawerEvents();
         return true;
       } catch (err) {
         setMessage((err && err.message) || 'Network error', 'error');

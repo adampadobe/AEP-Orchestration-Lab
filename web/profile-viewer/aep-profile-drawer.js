@@ -211,6 +211,10 @@ let lastLookedUpProfile = null;
 /** Last identifier (email or ECID) used to load the drawer — used by the refresh button */
 let _lastLoadedIdentifier = null;
 
+/** Stable identity for event polling — set on profile load; not overwritten by ad-hoc ECID refreshes */
+let _lastEventsPollIdentifier = null;
+let _lastEventsPollNamespace = null;
+
 /** Auto-poll handle — polls events every 1 s while a profile is loaded */
 let _eventsPollInterval = null;
 const EVENTS_POLL_MS = 1000;
@@ -218,10 +222,12 @@ const EVENTS_POLL_MS = 1000;
 function startEventsPoll() {
   stopEventsPoll();
   _eventsPollInterval = setInterval(function () {
-    const ecid = lastLookedUpProfile && lastLookedUpProfile.ecid ? String(lastLookedUpProfile.ecid) : '';
-    const id = ecid || _lastLoadedIdentifier || '';
+    const id = _lastEventsPollIdentifier || _lastLoadedIdentifier || '';
     if (!id) return;
-    const ns = ecid ? 'ecid' : undefined;
+    const ns =
+      _lastEventsPollNamespace != null && String(_lastEventsPollNamespace).trim()
+        ? String(_lastEventsPollNamespace).trim().toLowerCase()
+        : getNamespaceForDrawer(id);
     void refreshDrawerEventsForIdentity(id, ns);
   }, EVENTS_POLL_MS);
 }
@@ -3234,6 +3240,8 @@ async function loadProfileDataForDrawer(email, options) {
       : messageFn;
 
   const ns = getNamespaceForDrawer(emailTrim);
+  _lastEventsPollIdentifier = emailTrim;
+  _lastEventsPollNamespace = ns;
   try {
     const res = await fetch(
       '/api/profile/consent?identifier=' +
@@ -3302,7 +3310,7 @@ async function loadProfileDataForDrawer(email, options) {
 
     const [audiences, eventsAll] = await Promise.all([
       fetchAudienceMembership(emailTrim),
-      fetchProfileEventsList(emailTrim),
+      fetchProfileEventsList(emailTrim, ns),
     ]);
     const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
     const events = eventsForTimeline.slice(0, 5);
@@ -3427,11 +3435,44 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
   const id = String(identifier || '').trim();
   if (!id) return;
   cacheDomRefs();
-  const eventsAll = await fetchProfileEventsList(id, namespaceOverride);
+  const ns =
+    namespaceOverride != null && String(namespaceOverride).trim()
+      ? String(namespaceOverride).trim().toLowerCase()
+      : getNamespaceForDrawer(id);
+  let eventsAll = await fetchProfileEventsList(id, ns);
+  if (
+    !eventsAll.length &&
+    lastLookedUpProfile &&
+    Array.isArray(lastLookedUpProfile.events) &&
+    lastLookedUpProfile.events.length > 0
+  ) {
+    const altId =
+      ns === 'ecid' && _lastEventsPollIdentifier && _lastEventsPollNamespace === 'email'
+        ? _lastEventsPollIdentifier
+        : ns === 'email' && lastLookedUpProfile.ecid
+          ? String(lastLookedUpProfile.ecid)
+          : '';
+    const altNs = altId && altId.indexOf('@') !== -1 ? 'email' : altId ? 'ecid' : '';
+    if (altId && altNs && (altId !== id || altNs !== ns)) {
+      const retry = await fetchProfileEventsList(altId, altNs);
+      if (retry.length) eventsAll = retry;
+    }
+  }
   const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
   const events = eventsForTimeline.slice(0, 5);
   const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
   patchLastProfileOrUpdate({ events, eventsStory });
+}
+
+/** Re-fetch events using the same identity as the last profile load (avoids ECID/email poll drift). */
+async function refreshDrawerEventsForLoadedProfile() {
+  const id = _lastEventsPollIdentifier || _lastLoadedIdentifier || '';
+  if (!id) return;
+  const ns =
+    _lastEventsPollNamespace != null && String(_lastEventsPollNamespace).trim()
+      ? String(_lastEventsPollNamespace).trim().toLowerCase()
+      : getNamespaceForDrawer(id);
+  return refreshDrawerEventsForIdentity(id, ns);
 }
 
 /** Parse ECID from Web SDK `getIdentity` result (shape varies by SDK version). */
@@ -3507,6 +3548,8 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
     identities: [{ namespace: 'ECID', value: ecid }],
   });
   _lastLoadedIdentifier = ecid;
+  _lastEventsPollIdentifier = ecid;
+  _lastEventsPollNamespace = 'ecid';
   void refreshDrawerEventsForIdentity(ecid, 'ecid');
   startEventsPoll();
 
@@ -3640,6 +3683,7 @@ const api = {
   getLastProfile: () => lastLookedUpProfile,
   patchLastProfileOrUpdate,
   refreshDrawerEventsForIdentity,
+  refreshDrawerEventsForLoadedProfile,
   initHover: initAepProfileDrawerHover,
 };
 
