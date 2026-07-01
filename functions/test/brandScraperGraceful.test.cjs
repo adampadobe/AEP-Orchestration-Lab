@@ -256,6 +256,50 @@ describe('brandScraperDemoHtmlPolish', () => {
     assert.match(out, /thumb\.jpg/);
   });
 
+  it('strips Telegraph top advert slot and removes height gap', () => {
+    const html = [
+      '<body>',
+      '<div id="advert_top_ban" class="advert js-advert-banner advert--banner advert--header" style="opacity: 1; height: 250px;">',
+      '<iframe src="https://ads.example.com/slot"></iframe>',
+      '</div>',
+      '<p>News below</p>',
+      '</body>',
+    ].join('');
+    const out = polish.polishDemoHtml(html);
+    assert.doesNotMatch(out, /advert_top_ban/i);
+    assert.doesNotMatch(out, /height:\s*250px/i);
+    assert.match(out, /News below/);
+    assert.match(out, /aep-demo-overlay-failsafe/);
+  });
+
+  it('promotes empty e-utility__image from picture srcset', () => {
+    const html = [
+      '<article class="e-utility">',
+      '<div class="e-utility__image u-order-first"></div>',
+      '<div class="e-utility__content">',
+      '<picture><source srcset="https://cdn.example.com/iran-latest-800.jpg 800w" />',
+      '<img src="/spacer.gif" alt="Iran" /></picture>',
+      '<a href="/iran-the-latest/">IRAN: THE LATEST</a>',
+      '</div>',
+      '</article>',
+    ].join('');
+    const out = polish.polishDemoHtml(html);
+    assert.match(out, /class="aep-demo-bg-promoted"/);
+    assert.match(out, /iran-latest-800\.jpg/);
+  });
+
+  it('replaces empty autoplay video shell with poster or removes gap', () => {
+    const html = [
+      '<div class="part-wrp part-wrp-autoplay-video frame--loaded" style="background: transparent; min-height: 375px;" data-poster="https://cdn.example.com/video-poster.jpg">',
+      '<script src="/embed.js"></script>',
+      '</div>',
+    ].join('');
+    const out = polish.polishDemoHtml(html);
+    assert.doesNotMatch(out, /min-height:\s*375px/i);
+    assert.match(out, /aep-demo-video-poster|aep-demo-autoplay-shell/);
+    assert.match(out, /video-poster\.jpg/);
+  });
+
   it('replaces logo-like broken images with customer logo asset path', () => {
     const html = '<header><img src="./Page_files/missing.svg" alt="Sky News logo" /></header>';
     const out = polish.applyCustomerLogoFallback(

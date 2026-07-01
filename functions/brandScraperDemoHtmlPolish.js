@@ -13,7 +13,10 @@ const AD_IFRAME_HTML_HEAD_RE = /2mdn\.net|sadbundle|doubleclick|Template_H5|Enab
 const LOGO_REL_PREFIX = '_brand/customer-logo';
 const LOGO_IMG_RE = /logo|brandmark|wordmark|site-logo|header-logo|nav-logo|brand-logo/i;
 const AD_SRC_RE = /2mdn\.net|doubleclick|googlesyndication|googletagservices|adservice|safeframe|taboola|outbrain|pubmatic|rubiconproject|adform|criteo|amazon-adsystem|googleadservices|facebook\.com\/tr|sadbundle|Template_H5|Enabler_01|\/ad[s]?\//i;
-const AD_CONTAINER_RE = /adsbygoogle|ad-slot|advertisement|dfp-ad|gpt-ad|ad-container|ad__slot|commercial/i;
+const AD_CONTAINER_RE = /adsbygoogle|ad-slot|advertisement|dfp-ad|gpt-ad|ad-container|ad__slot|commercial|\badvert\b|js-advert|advert--|advert_top|advert_|ad-banner|top-ban/i;
+const AD_SLOT_ID_CLASS_RE = /\b(id|class)\s*=\s*["'][^"']*(?:\badvert\b|js-advert|advert--|advert_top|advert_|gpt-ad|dfp-ad|ad-slot|ad-container)/i;
+const UTILITY_IMAGE_CLASS_RE = /e-utility__image|utility__image|utility-image|story-image__|package__media|hero-media|banner-image|promo-image/i;
+const VIDEO_SHELL_CLASS_RE = /part-wrp-autoplay|autoplay-video|video-content-container|video-player-wrapper/i;
 const OVERLAY_MARKUP_RE = /sp_message|sourcepoint|onetrust|didomi|cookiebot|quantcast|consent-message|paywall|subscription-modal|newsletter-modal|tp-modal|piano-|evidon|trustarc|iubenda|usercentrics|sp_consent|cmp-/i;
 const IFRAME_EMBED_ALLOW_RE = /youtube\.com|youtu\.be|youtube-nocookie|vimeo\.com|dailymotion\.com|player\.brightcove/i;
 const OVERLAY_SCRIPT_SRC_RE = /sourcepoint|spmsg|onetrust|didomi|cookiebot|quantcast|trustarc|evidon|iubenda|usercentrics|piano\.io|tinypass|paywall|consent/i;
@@ -239,9 +242,130 @@ function isAdIframeSrc(src) {
 function isAdElementMarkup(tag) {
   const hay = String(tag || '').toLowerCase();
   if (/\badsbygoogle\b/.test(hay)) return true;
-  if (/\b(id|class)\s*=\s*["'][^"']*\b(ad-slot|dfp-ad|gpt-ad|advertisement|ad-container)\b/i.test(hay)) return true;
+  if (AD_SLOT_ID_CLASS_RE.test(hay)) return true;
+  if (/\bstyle\s*=\s*["'][^"']*\bheight\s*:\s*\d+px/i.test(hay) && /\badvert\b/.test(hay)) return true;
   const src = (/src\s*=\s*["']([^"']*)["']/i.exec(tag) || [])[1] || '';
   return isAdIframeSrc(src);
+}
+
+function escapeAttrValue(val) {
+  return String(val || '').replace(/"/g, '&quot;');
+}
+
+function extractImageUrlFromMarkup(fragment) {
+  const hay = String(fragment || '');
+  const style = attrValue(hay, 'style');
+  const fromStyle = (/background(?:-image)?\s*:\s*url\(\s*['"]?([^'")]+)/i.exec(style) || [])[1];
+  if (fromStyle && !isLazyPlaceholderSrc(fromStyle)) return fromStyle.trim();
+
+  const dataKeys = ['data-src', 'data-image', 'data-background', 'data-bg', 'data-poster', 'data-thumbnail', 'data-video-poster'];
+  for (const key of dataKeys) {
+    const v = attrValue(hay, key);
+    if (v && !isLazyPlaceholderSrc(v)) return v.trim();
+  }
+
+  const pictureBlock = (/<picture\b[\s\S]*?<\/picture>/i.exec(hay) || [])[0];
+  if (pictureBlock) {
+    const promoted = promotePictureSources(pictureBlock);
+    const imgTag = (/<img\b[^>]*>/i.exec(promoted) || [])[0];
+    if (imgTag) {
+      const src = attrValue(imgTag, 'src');
+      if (src && !isLazyPlaceholderSrc(src)) return src;
+    }
+  }
+
+  const imgTag = (/<img\b[^>]*>/i.exec(hay) || [])[0];
+  if (imgTag) {
+    const src = attrValue(imgTag, 'src')
+      || attrValue(imgTag, 'data-src')
+      || firstUrlFromSrcset(attrValue(imgTag, 'srcset'));
+    if (src && !isLazyPlaceholderSrc(src)) return src;
+  }
+
+  return '';
+}
+
+/**
+ * Empty utility/banner shells (Telegraph e-utility__image, etc.) — promote background/data/picture to <img>.
+ * @param {string} html
+ */
+function promoteUtilityAndBannerImages(html) {
+  let out = String(html || '');
+
+  out = out.replace(
+    /<article\b[^>]*\be-utility\b[^>]*>[\s\S]*?<\/article>/gi,
+    (article) => {
+      if (!UTILITY_IMAGE_CLASS_RE.test(article)) return article;
+      const imageShellMatch = /<div\b([^>]*\be-utility__image\b[^>]*)>[\s\S]*?<\/div>/i.exec(article);
+      if (!imageShellMatch) return article;
+      const imgInShell = (/<img\b[^>]*>/i.exec(imageShellMatch[0]) || [])[0];
+      if (imgInShell) {
+        const src = attrValue(imgInShell, 'src');
+        if (src && !isLazyPlaceholderSrc(src)) return article;
+      }
+      const url = extractImageUrlFromMarkup(article);
+      if (!url) return article;
+      return article.replace(
+        /<div\b([^>]*\be-utility__image\b[^>]*)>[\s\S]*?<\/div>/i,
+        `<div$1><img class="aep-demo-bg-promoted" src="${escapeAttrValue(url)}" alt="" loading="lazy" decoding="async" /></div>`,
+      );
+    },
+  );
+
+  out = out.replace(
+    /<div\b([^>]*(?:e-utility__image|utility-image|banner-image|promo-image)[^>]*)>([\s\S]*?)<\/div>/gi,
+    (full, attrs, inner) => {
+      const innerTrim = String(inner || '').replace(/<!--[\s\S]*?-->/g, '').trim();
+      if (innerTrim && /<img\b/i.test(innerTrim)) return full;
+      if (innerTrim && !/^(\s|&nbsp;)*$/.test(innerTrim)) return full;
+      const url = extractImageUrlFromMarkup(full);
+      if (!url) return full;
+      return `<div${attrs}><img class="aep-demo-bg-promoted" src="${escapeAttrValue(url)}" alt="" loading="lazy" decoding="async" /></div>`;
+    },
+  );
+
+  return out;
+}
+
+/**
+ * Remove top ad slots and empty autoplay video shells that leave large min-height gaps.
+ * @param {string} html
+ */
+function stripEmptyAdAndVideoShells(html) {
+  let out = String(html || '');
+
+  out = out.replace(
+    /<div\b[^>]*(?:\bid\s*=\s*["'][^"']*advert[^"']*["']|\bclass\s*=\s*["'][^"']*(?:\badvert\b|js-advert|advert--)[^"']*["'])[^>]*>[\s\S]*?<\/div>/gi,
+    (block) => (block.length > 25000 ? block : ''),
+  );
+
+  out = out.replace(
+    /<div\b([^>]*\bpart-wrp-autoplay-video\b[^>]*)>[\s\S]*?<\/div>/gi,
+    (block, attrs) => {
+      if (/aep-demo-video-poster|<video\b[^>]*\ssrc\s*=\s*["'][^"']+\.(mp4|webm|ogg)/i.test(block)) return block;
+      if (/<img\b[^>]*\ssrc\s*=\s*["'][^"']+["']/i.test(block)) return block;
+      const poster = extractImageUrlFromMarkup(block);
+      if (poster) {
+        return `<img class="aep-demo-video-poster aep-demo-autoplay-shell" src="${escapeAttrValue(poster)}" alt="" loading="lazy" decoding="async" />`;
+      }
+      return '';
+    },
+  );
+
+  out = out.replace(
+    /<div\b([^>]*\b(?:video-content-container|video-player-wrapper)\b[^>]*)>[\s\S]*?<\/div>/gi,
+    (block) => {
+      if (/aep-demo-video-poster|<video\b/i.test(block)) return block;
+      if (/<img\b[^>]*\ssrc\s*=\s*["'][^"']+["']/i.test(block)) return block;
+      const poster = extractImageUrlFromMarkup(block);
+      if (poster) {
+        return `<img class="aep-demo-video-poster" src="${escapeAttrValue(poster)}" alt="" loading="lazy" decoding="async" />`;
+      }
+      return '';
+    },
+  );
+
+  return out;
 }
 
 function isOverlayOrConsentMarkup(tag) {
@@ -298,7 +422,10 @@ function injectDemoFailsafeStyles(html) {
     '#sp_message_container,[id^="sp_message_"],[id*="sp_message"]{display:none!important;visibility:hidden!important;pointer-events:none!important;height:0!important;overflow:hidden!important;}',
     '#onetrust-banner-sdk,#onetrust-consent-sdk,#didomi-host,.tp-modal,[class*="paywall"],[class*="subscription-modal"]{display:none!important;visibility:hidden!important;}',
     'body.modal-open,html.modal-open{overflow:auto!important;position:static!important;}',
-    'img.aep-demo-video-poster{max-width:100%;height:auto;display:block;object-fit:cover;}',
+    '[id*="advert"],.advert,.advert--banner,.advert--header,.js-advert-banner,[class*="advert--"]{display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;}',
+    '.part-wrp-autoplay-video:not(:has(img,video,.aep-demo-video-poster)),.part-wrp-autoplay-video:empty{display:none!important;height:0!important;min-height:0!important;}',
+    'img.aep-demo-video-poster,img.aep-demo-bg-promoted{max-width:100%;height:auto;display:block;object-fit:cover;}',
+    '.e-utility__image img.aep-demo-bg-promoted,.utility-image img.aep-demo-bg-promoted{width:100%;aspect-ratio:16/9;object-fit:cover;}',
     '.video-content-container:has(img.aep-demo-video-poster){min-height:0!important;aspect-ratio:auto!important;}',
     '.video-content-container:has(img.aep-demo-video-poster) video{display:none!important;}',
     'video:not([src]):not([poster]){display:none!important;height:0!important;min-height:0!important;}',
@@ -315,8 +442,11 @@ function injectDemoFailsafeStyles(html) {
  */
 function polishDemoHtml(html) {
   let out = stripAdvertBlocks(html);
+  out = stripEmptyAdAndVideoShells(out);
   out = stripOverlayAndConsentBlocks(out);
+  out = promoteUtilityAndBannerImages(out);
   out = replaceBrokenVideosWithPoster(out);
+  out = stripEmptyAdAndVideoShells(out);
   out = injectDemoFailsafeStyles(out);
   return out;
 }
@@ -446,7 +576,7 @@ function stripAdvertBlocks(html) {
   out = out.replace(
     /<(aside|div|section)\b[^>]*>[\s\S]*?<\/\1>/gi,
     (block) => {
-      if (!AD_CONTAINER_RE.test(block)) return block;
+      if (!AD_CONTAINER_RE.test(block) && !AD_SLOT_ID_CLASS_RE.test(block)) return block;
       if (block.length > 12000) return block;
       return '';
     },
@@ -577,10 +707,12 @@ async function syncCustomerLogoToExistingDemo({ fileSlug, record, sandbox, scrap
 
 module.exports = {
   stripAdvertBlocks,
+  stripEmptyAdAndVideoShells,
   stripOverlayAndConsentBlocks,
   polishDemoHtml,
   promoteLazyImages,
   promotePictureSources,
+  promoteUtilityAndBannerImages,
   replaceBrokenVideosWithPoster,
   stripDocumentBaseTags,
   profileViewerDemoAssetUrl,

@@ -249,7 +249,7 @@ function inlineStylesheets(html, htmlPath, entryMap, baseUrl) {
 }
 
 function rewriteAttrUrls(html, htmlPath, entryMap, baseUrl) {
-  const attrNames = ['src', 'href', 'poster', 'data-src', 'data-href', 'data-original', 'data-lazy-src'];
+  const attrNames = ['src', 'href', 'poster', 'data-src', 'data-href', 'data-original', 'data-lazy-src', 'data-image', 'data-background', 'data-bg', 'data-poster', 'data-thumbnail'];
   let out = html;
 
   for (const attr of attrNames) {
@@ -350,8 +350,8 @@ function extFromUrl(url, contentType) {
 function isLikelyImageUrl(url) {
   return /\.(png|jpe?g|gif|webp|svg|avif|ico)(\?|#|$)/i.test(String(url || ''))
     || /\/images?\//i.test(String(url || ''))
-    || /thumbnail|poster|vid-media|\/thumb/i.test(String(url || ''))
-    || /imgix|cloudinary|akamai|fastly|cip\.telegraph|telegraph\.co\.uk.*\/(images|store)/i.test(String(url || ''));
+    || /thumbnail|poster|vid-media|\/thumb|utility|banner|promo/i.test(String(url || ''))
+    || /imgix|cloudinary|akamai|fastly|cip\.telegraph|telegraph\.co\.uk.*\/(images|store|content)/i.test(String(url || ''));
 }
 
 function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
@@ -377,8 +377,12 @@ function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
   }
 
   let m;
-  const urlRe = /(?:src|href|poster|data-src|data-lazy-src|data-original|data-image|content)\s*=\s*["']([^"']+)["']/gi;
-  while ((m = urlRe.exec(html)) !== null) consider(m[1], false);
+  const urlRe = /(?:src|href|poster|data-src|data-lazy-src|data-original|data-image|data-background|data-bg|data-poster|data-thumbnail|data-video-poster|content)\s*=\s*["']([^"']+)["']/gi;
+  while ((m = urlRe.exec(html)) !== null) {
+    const key = String(m[0].split('=')[0] || '').toLowerCase();
+    const forceImage = /data-(?:src|image|background|bg|poster|thumbnail|video-poster)/.test(key);
+    consider(m[1], forceImage);
+  }
 
   const srcsetRe = /\b(?:srcset|data-srcset)\s*=\s*["']([^"']+)["']/gi;
   while ((m = srcsetRe.exec(html)) !== null) considerSrcset(m[1]);
