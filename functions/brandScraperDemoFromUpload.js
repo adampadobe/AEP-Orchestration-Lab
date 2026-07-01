@@ -8,6 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const demoPolish = require('./brandScraperDemoHtmlPolish');
+const siteCloneLogin = require('./brandScraperSiteCloneLogin');
 
 const PV_REL = '../../../profile-viewer';
 const FETCH_TIMEOUT_MS = 6000;
@@ -710,6 +711,22 @@ async function buildDemoFromUpload(opts) {
   html = fillMissingMetadata(html, opts.record || {});
   if (!opts.skipLabChrome) {
     html = injectLabChrome(html, opts.slug, opts.prefix);
+  } else {
+    let logoSrcForLogin = '';
+    if (logoAsset) {
+      const logoRelPath = `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`;
+      logoSrcForLogin = opts.slug
+        ? demoPolish.profileViewerDemoAssetUrl(opts.slug, logoRelPath)
+        : demoRelativeUrl(logoRelPath);
+    }
+    html = siteCloneLogin.injectSiteCloneLogin(
+      html,
+      siteCloneLogin.buildSiteCloneLoginConfig({
+        fileSlug: opts.slug,
+        record: opts.record || {},
+        logoSrc: logoSrcForLogin,
+      }),
+    );
   }
 
   const files = [];

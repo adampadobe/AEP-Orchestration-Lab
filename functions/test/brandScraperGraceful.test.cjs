@@ -319,6 +319,35 @@ describe('brandScraperProfileViewerDemo', () => {
     assert.match(html, /Acme Corp \(web\)/);
     assert.match(html, /labCoreScript: 'brand-scraper-site-clone-lab-core\.js/);
     assert.match(html, /brand-scraper-site-clone-lab-core\.js/);
+    assert.match(html, /site-clone-login-shell\.js/);
+    assert.match(html, /fileSlug: 'acme'/);
+  });
+});
+
+describe('brandScraperSiteCloneLogin', () => {
+  const siteCloneLogin = require('../brandScraperSiteCloneLogin');
+
+  it('builds branded login config from slug', () => {
+    const cfg = siteCloneLogin.buildSiteCloneLoginConfig({
+      fileSlug: 'sky-news',
+      record: { customerName: 'Sky News' },
+      logoSrc: '/profile-viewer/sky-news-demo-assets/_brand/logo.png',
+    });
+    assert.equal(cfg.labSource, 'sky-news-lab');
+    assert.equal(cfg.shellSource, 'sky-news-demo-shell');
+    assert.match(cfg.title, /Sky News/);
+    assert.equal(cfg.logoSrc, '/profile-viewer/sky-news-demo-assets/_brand/logo.png');
+  });
+
+  it('injects login assets before closing body', () => {
+    const html = siteCloneLogin.injectSiteCloneLogin(
+      '<html><body><p>Hi</p></body></html>',
+      siteCloneLogin.buildSiteCloneLoginConfig({ fileSlug: 'acme', record: { brandName: 'Acme' } }),
+    );
+    assert.match(html, /site-clone-login\.css/);
+    assert.match(html, /site-clone-login\.js/);
+    assert.match(html, /acme-lab/);
+    assert.match(html, /acme-demo-shell/);
   });
 });
 

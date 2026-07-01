@@ -10,6 +10,7 @@ const admin = require('firebase-admin');
 const demoFromUpload = require('./brandScraperDemoFromUpload');
 const demoPolish = require('./brandScraperDemoHtmlPolish');
 const pvDemo = require('./brandScraperProfileViewerDemo');
+const siteCloneLogin = require('./brandScraperSiteCloneLogin');
 const uploadAssets = require('./brandScraperUploadAssets');
 
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
@@ -384,6 +385,13 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial, lo
   const logoHtml = logoRelPath
     ? `<header class="${slug}-header"><img class="${slug}-logo aep-demo-customer-logo-fallback" src="${escapeHtml(logoRelPath)}" alt="${escapeHtml(brand)} logo" decoding="async" /></header>`
     : '';
+  const loginConfig = siteCloneLogin.buildSiteCloneLoginConfig({
+    fileSlug: slug,
+    record,
+    logoSrc: logoRelPath || '',
+    accentColor: pickBrandColours((record && record.assets) || {}).primary,
+  });
+  const loginSnippet = siteCloneLogin.buildLoginInjectionSnippet(loginConfig);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -399,6 +407,7 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial, lo
   <section class="${slug}-hero"><h1>${escapeHtml(hero.headline)}</h1><p>${escapeHtml(hero.subhead)}</p></section>
   <section class="${slug}-grid">${campHtml}</section>
   ${partial ? `<p class="${slug}-partial-tag">Partial demo — limited source content</p>` : ''}
+  ${loginSnippet}
 </body>
 </html>`;
 }

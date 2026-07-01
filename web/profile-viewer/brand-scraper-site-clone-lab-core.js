@@ -198,6 +198,16 @@
         fetchBrowserEcidOnInit: true,
       });
     }
+
+    if (typeof global.SiteCloneLoginShell !== 'undefined' && typeof global.SiteCloneLoginShell.init === 'function') {
+      global.SiteCloneLoginShell.init({
+        fileSlug: (global.SiteCloneDemoEnv && global.SiteCloneDemoEnv.fileSlug) || prefix,
+        getEmail: getEmail,
+        setMessage: setMessage,
+        customerEmailEl: customerEmail,
+        tagsInjection: tagsInjection,
+      });
+    }
   }
 
   if (global.envBar && typeof global.envBar.ready === 'function') {

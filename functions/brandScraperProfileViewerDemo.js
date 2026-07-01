@@ -224,8 +224,9 @@ function buildShellHtml({ fileSlug, record, snapshotRelPath }) {
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
   <script src="shared/env-bar.js?v=20260625-datastream-paste-row-ensure"></script>
   <script>
-    window.envBarConfig = { prefix: '${prefix}', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true }, labCoreScript: 'brand-scraper-site-clone-lab-core.js?v=20260629-tags-inject' };
+    window.envBarConfig = { prefix: '${prefix}', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true }, labCoreScript: 'brand-scraper-site-clone-lab-core.js?v=20260701-site-clone-login' };
     window.SiteCloneDemoEnv = {
+      fileSlug: '${escapeJsString(fileSlug)}',
       storagePrefix: '${prefix}Demo',
       webPushBySandboxKey: '${prefix}DemoWebPushOnInjectBySandbox',
       webPushLegacyKey: '${prefix}DemoWebPushOnInjectToggle',
@@ -235,6 +236,7 @@ function buildShellHtml({ fileSlug, record, snapshotRelPath }) {
     };
   </script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="site-clone-login-shell.js?v=20260701-site-clone-login"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260625-bc-aep-events-ecid"></script>
   <script src="site-clone-bc.js?v=20260614-modal-dock-parity"></script>

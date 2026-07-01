@@ -355,6 +355,16 @@
     });
 
     void performProfileLookup({ showMessage: false, remember: false });
+
+    if (typeof global.SiteCloneLoginShell !== 'undefined' && typeof global.SiteCloneLoginShell.init === 'function') {
+      global.SiteCloneLoginShell.init({
+        fileSlug: 'sky',
+        getEmail: getEmail,
+        setMessage: setSkyMessage,
+        customerEmailEl: customerEmail,
+        tagsInjection: skyTagsInjection,
+      });
+    }
   }
 
   if (global.envBar && typeof global.envBar.ready === 'function') {
