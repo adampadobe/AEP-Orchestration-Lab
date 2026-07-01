@@ -2,9 +2,6 @@
   'use strict';
 
   var form = document.getElementById('insiderForm');
-  var preview = document.getElementById('preview');
-  var previewJson = document.getElementById('previewJson');
-  var previewTime = document.getElementById('previewTime');
 
   var CONTRACT_STATUS = 'Insider Subscription';
 
@@ -130,14 +127,8 @@
     return doc;
   }
 
-  /** Slide the fixed preview dock in without touching document scroll. */
-  function showPreview(doc) {
-    if (!preview || !previewJson || !previewTime) return;
-    previewTime.textContent = new Date().toLocaleTimeString();
-    previewJson.textContent = JSON.stringify(doc, null, 2);
-    preview.hidden = false;
-    preview.classList.add('show');
-  }
+  /** Lab payload preview is hidden on this demo page; shell status uses the env strip message. */
+  function showPreview() {}
 
   window.addEventListener('message', function (ev) {
     if (!ev.data || ev.data.source !== 'sky-news-demo-shell') return;
