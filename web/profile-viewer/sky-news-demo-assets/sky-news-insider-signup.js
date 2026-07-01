@@ -59,8 +59,13 @@
         }),
       });
     }
-    if (plan) updates.push({ path: 'media.accountType', value: plan });
-    updates.push({ path: 'media.contractStatus', value: CONTRACT_STATUS });
+    /** @type {{ accountType?: string, contractStatus: string, productHolding: string }} */
+    var media = {
+      contractStatus: CONTRACT_STATUS,
+      productHolding: 'Sky News Insider',
+    };
+    if (plan) media.accountType = plan;
+    updates.push({ path: 'media', value: media });
     return updates;
   }
 

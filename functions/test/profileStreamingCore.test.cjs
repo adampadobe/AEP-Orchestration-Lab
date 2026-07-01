@@ -32,4 +32,28 @@ describe('profileStreamingCore digit-string schema leaves', () => {
     assert.equal(tenant.scoring.npsScore, 9);
     assert.equal(typeof tenant.scoring.npsScore, 'number');
   });
+
+  it('buildProfileStreamPayload includes _demoemea.media in envelope xdmEntity', () => {
+    const demoemea = {
+      identification: { core: { email: 'test@example.com' } },
+      media: { accountType: 'monthly', contractStatus: 'Insider Subscription', productHolding: 'Sky News Insider' },
+      interestTypes: [{ interests: 'sport' }],
+    };
+    const built = profileStreamingCore.buildProfileStreamPayload(
+      demoemea,
+      'test@example.com',
+      '',
+      '_demoemea',
+      'org@test',
+      'test',
+      { person: { name: { firstName: 'Ada' } } },
+      { useEnvelope: true, datasetId: 'ds1', schemaId: 'https://ns.adobe.com/demoemea/schemas/test' },
+    );
+    assert.equal(built.format, 'envelope');
+    const tenant = built.payload.body.xdmEntity._demoemea;
+    assert.equal(tenant.media.accountType, 'monthly');
+    assert.equal(tenant.media.contractStatus, 'Insider Subscription');
+    assert.equal(tenant.media.productHolding, 'Sky News Insider');
+    assert.equal(tenant.interestTypes[0].interests, 'sport');
+  });
 });

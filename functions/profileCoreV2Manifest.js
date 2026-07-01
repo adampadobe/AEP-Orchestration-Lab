@@ -307,8 +307,27 @@ const SHARED_TENANT_LEAVES = {
   'loyaltyDetails.level': STRING_LEAF('level'),
   'loyaltyDetails.points': NUMBER_LEAF('points'),
   // Sky News Insider signup (generic profile stream via /api/profile/update).
-  'media.accountType': STRING_LEAF('accountType'),
-  'media.contractStatus': STRING_LEAF('contractStatus'),
+  // Whole `media` object — matches operational-profile-schema-sample.json
+  // (`_demoemea.media.*`). Dot-path leaves alone did not top-up reliably when
+  // a $ref parent already existed in some sandboxes.
+  media: {
+    type: 'object',
+    title: 'media',
+    properties: {
+      accountType: STRING_LEAF('accountType'),
+      contractStatus: STRING_LEAF('contractStatus'),
+      accountData: STRING_LEAF('accountData'),
+      accountDetails: STRING_LEAF('accountDetails'),
+      debtStatus: STRING_LEAF('debtStatus'),
+      productHolding: STRING_LEAF('productHolding'),
+      serviceRAGStatus: STRING_LEAF('serviceRAGStatus'),
+      packages: {
+        type: 'array',
+        title: 'packages',
+        items: STRING_LEAF('package'),
+      },
+    },
+  },
   interestTypes: {
     type: 'array',
     title: 'interestTypes',
