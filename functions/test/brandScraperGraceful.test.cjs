@@ -225,6 +225,37 @@ describe('brandScraperDemoHtmlPolish', () => {
     assert.ok(polish.isOverlayBundleEntry('page-files/consent/index.html', consentHtml));
   });
 
+  it('promotes lazy data-src onto img src', () => {
+    const html = '<img src="/blank.gif" data-src="https://cdn.example.com/hero.jpg" alt="Hero" />';
+    const out = polish.promoteLazyImages(html);
+    assert.match(out, /src="https:\/\/cdn\.example\.com\/hero\.jpg"/);
+  });
+
+  it('promotes picture source srcset onto img src', () => {
+    const html = [
+      '<picture>',
+      '<source srcset="https://cdn.example.com/utility-800.jpg 800w" />',
+      '<img src="/spacer.png" alt="Utility" />',
+      '</picture>',
+    ].join('');
+    const out = polish.promotePictureSources(html);
+    assert.match(out, /src="https:\/\/cdn\.example\.com\/utility-800\.jpg"/);
+  });
+
+  it('replaces non-playable video with poster image', () => {
+    const html = [
+      '<div class="video-content-container">',
+      '<video id="videoPlayer" poster="https://cf.example.com/thumb.jpg" playsinline>',
+      '<img id="videoPoster" src="https://cf.example.com/thumb.jpg" style="display:none" />',
+      '</video>',
+      '</div>',
+    ].join('');
+    const out = polish.replaceBrokenVideosWithPoster(html);
+    assert.doesNotMatch(out, /<video\b/i);
+    assert.match(out, /class="aep-demo-video-poster"/);
+    assert.match(out, /thumb\.jpg/);
+  });
+
   it('replaces logo-like broken images with customer logo asset path', () => {
     const html = '<header><img src="./Page_files/missing.svg" alt="Sky News logo" /></header>';
     const out = polish.applyCustomerLogoFallback(

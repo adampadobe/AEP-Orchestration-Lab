@@ -298,6 +298,10 @@ function injectDemoFailsafeStyles(html) {
     '#sp_message_container,[id^="sp_message_"],[id*="sp_message"]{display:none!important;visibility:hidden!important;pointer-events:none!important;height:0!important;overflow:hidden!important;}',
     '#onetrust-banner-sdk,#onetrust-consent-sdk,#didomi-host,.tp-modal,[class*="paywall"],[class*="subscription-modal"]{display:none!important;visibility:hidden!important;}',
     'body.modal-open,html.modal-open{overflow:auto!important;position:static!important;}',
+    'img.aep-demo-video-poster{max-width:100%;height:auto;display:block;object-fit:cover;}',
+    '.video-content-container:has(img.aep-demo-video-poster){min-height:0!important;aspect-ratio:auto!important;}',
+    '.video-content-container:has(img.aep-demo-video-poster) video{display:none!important;}',
+    'video:not([src]):not([poster]){display:none!important;height:0!important;min-height:0!important;}',
   ].join('');
   const block = `<style id="aep-demo-overlay-failsafe">${css}</style>`;
   const h = String(html || '');
@@ -312,8 +316,111 @@ function injectDemoFailsafeStyles(html) {
 function polishDemoHtml(html) {
   let out = stripAdvertBlocks(html);
   out = stripOverlayAndConsentBlocks(out);
+  out = replaceBrokenVideosWithPoster(out);
   out = injectDemoFailsafeStyles(out);
   return out;
+}
+
+const LAZY_PLACEHOLDER_SRC_RE = /^(data:image\/|about:blank)/i;
+const LAZY_PLACEHOLDER_SRC_PATH_RE = /blank\.(gif|png)|placeholder|1x1|spacer|pixel|transparent/i;
+
+function attrValue(tag, name) {
+  const m = new RegExp(`\\b${name}\\s*=\\s*(["'])([^"']*)\\1`, 'i').exec(String(tag || ''));
+  return m ? m[2] : '';
+}
+
+function setAttr(tag, name, value) {
+  const re = new RegExp(`\\b${name}\\s*=\\s*(["'])[^"']*\\1`, 'i');
+  const safe = String(value || '').replace(/"/g, '&quot;');
+  if (re.test(tag)) return tag.replace(re, `${name}="${safe}"`);
+  return tag.replace(/<img\b/i, `<img ${name}="${safe}"`);
+}
+
+function isLazyPlaceholderSrc(src) {
+  const s = String(src || '').trim();
+  if (!s) return true;
+  if (LAZY_PLACEHOLDER_SRC_RE.test(s)) return true;
+  if (LAZY_PLACEHOLDER_SRC_PATH_RE.test(s)) return true;
+  if (/^data:image\/svg/i.test(s)) return true;
+  return false;
+}
+
+function firstUrlFromSrcset(srcset) {
+  const part = String(srcset || '').split(',')[0].trim();
+  if (!part) return '';
+  return part.split(/\s+/)[0] || '';
+}
+
+/**
+ * Copy data-src / lazy placeholders onto src so fetch + rewrite can reach real image URLs.
+ * @param {string} html
+ */
+function promoteLazyImages(html) {
+  return String(html || '').replace(/<img\b[^>]*>/gi, (tag) => {
+    const src = attrValue(tag, 'src');
+    const lazy = attrValue(tag, 'data-src')
+      || attrValue(tag, 'data-lazy-src')
+      || attrValue(tag, 'data-original')
+      || attrValue(tag, 'data-image');
+    if (!lazy) return tag;
+    if (!isLazyPlaceholderSrc(src)) return tag;
+    return setAttr(tag, 'src', lazy);
+  });
+}
+
+/**
+ * When <picture> uses <source srcset> only, ensure <img> has a concrete src for static demos.
+ * @param {string} html
+ */
+function promotePictureSources(html) {
+  return String(html || '').replace(/<picture\b[^>]*>[\s\S]*?<\/picture>/gi, (block) => {
+    const imgTag = (/<img\b[^>]*>/i.exec(block) || [])[0];
+    if (!imgTag) return block;
+    const src = attrValue(imgTag, 'src');
+    if (src && !isLazyPlaceholderSrc(src)) return block;
+
+    let pick = '';
+    const sourceTag = (/<source\b[^>]*>/i.exec(block) || [])[0];
+    if (sourceTag) {
+      pick = firstUrlFromSrcset(attrValue(sourceTag, 'srcset'))
+        || firstUrlFromSrcset(attrValue(sourceTag, 'data-srcset'))
+        || attrValue(sourceTag, 'src');
+    }
+    if (!pick) {
+      pick = firstUrlFromSrcset(attrValue(imgTag, 'srcset'))
+        || firstUrlFromSrcset(attrValue(imgTag, 'data-srcset'));
+    }
+    if (!pick) return block;
+
+    const nextImg = setAttr(imgTag, 'src', pick);
+    return block.replace(imgTag, nextImg);
+  });
+}
+
+function videoBlockIsPlayable(block) {
+  const openTag = (/<video\b[^>]*>/i.exec(block) || [])[0] || '';
+  const src = attrValue(openTag, 'src');
+  if (src && !/^blob:/i.test(src) && !/\.m3u8|\.mpd/i.test(src)) return true;
+  if (/<source\b[^>]*\ssrc\s*=\s*["'][^"']*\.(mp4|webm|ogg)/i.test(block)) return true;
+  return false;
+}
+
+/**
+ * HLS/DRM video players leave large empty boxes in static demos — show poster frame instead.
+ * @param {string} html
+ */
+function replaceBrokenVideosWithPoster(html) {
+  return String(html || '').replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, (block) => {
+    if (videoBlockIsPlayable(block)) return block;
+    const openTag = (/<video\b[^>]*>/i.exec(block) || [])[0] || '';
+    const poster = attrValue(openTag, 'poster');
+    if (!poster) return '';
+    const hiddenPosterImg = (/<img\b[^>]*\bid\s*=\s*["'][^"']*poster[^"']*["'][^>]*>/i.exec(block) || [])[0];
+    const posterFromImg = hiddenPosterImg ? attrValue(hiddenPosterImg, 'src') : '';
+    const usePoster = poster || posterFromImg;
+    if (!usePoster) return '';
+    return `<img class="aep-demo-video-poster" src="${String(usePoster).replace(/"/g, '&quot;')}" alt="" loading="lazy" decoding="async" />`;
+  });
 }
 
 /**
@@ -472,6 +579,9 @@ module.exports = {
   stripAdvertBlocks,
   stripOverlayAndConsentBlocks,
   polishDemoHtml,
+  promoteLazyImages,
+  promotePictureSources,
+  replaceBrokenVideosWithPoster,
   stripDocumentBaseTags,
   profileViewerDemoAssetUrl,
   downloadScrapeCustomerLogo,

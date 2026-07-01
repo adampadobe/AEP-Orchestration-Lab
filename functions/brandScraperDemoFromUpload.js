@@ -306,12 +306,14 @@ function rewriteAttrUrls(html, htmlPath, entryMap, baseUrl) {
   return out;
 }
 
-async function fetchRemoteAsset(url) {
+async function fetchRemoteAsset(url, opts = {}) {
   try {
+    const headers = { 'User-Agent': USER_AGENT, Accept: 'image/*,*/*;q=0.8' };
+    if (opts.referer) headers.Referer = String(opts.referer);
     const res = await fetch(url, {
       redirect: 'follow',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: { 'User-Agent': USER_AGENT, Accept: '*/*' },
+      headers,
     });
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
@@ -347,7 +349,8 @@ function extFromUrl(url, contentType) {
 function isLikelyImageUrl(url) {
   return /\.(png|jpe?g|gif|webp|svg|avif|ico)(\?|#|$)/i.test(String(url || ''))
     || /\/images?\//i.test(String(url || ''))
-    || /imgix|cloudinary|akamai|fastly|telegraph\.co\.uk.*\/images/i.test(String(url || ''));
+    || /thumbnail|poster|vid-media|\/thumb/i.test(String(url || ''))
+    || /imgix|cloudinary|akamai|fastly|cip\.telegraph|telegraph\.co\.uk.*\/(images|store)/i.test(String(url || ''));
 }
 
 function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
@@ -373,7 +376,7 @@ function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
   }
 
   let m;
-  const urlRe = /(?:src|href|poster|data-src|data-lazy-src|data-original|content)\s*=\s*["']([^"']+)["']/gi;
+  const urlRe = /(?:src|href|poster|data-src|data-lazy-src|data-original|data-image|content)\s*=\s*["']([^"']+)["']/gi;
   while ((m = urlRe.exec(html)) !== null) consider(m[1], false);
 
   const srcsetRe = /\b(?:srcset|data-srcset)\s*=\s*["']([^"']+)["']/gi;
@@ -396,7 +399,7 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
   for (const absUrl of candidates) {
     if (fetched >= max) break;
     if (Date.now() - started > wallMs) break;
-    const hit = await fetchRemoteAsset(absUrl);
+    const hit = await fetchRemoteAsset(absUrl, { referer: opts.referer });
     if (!hit) continue;
     fetched += 1;
     const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, hit.contentType)}`;
@@ -412,16 +415,18 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
   return { html: rewritten, extraFiles, fetched, skipped: Math.max(0, candidates.length - fetched) };
 }
 
-async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl) {
+async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opts = {}) {
   const { images, other } = collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl);
   if (!images.length && !other.length) return { html, extraFiles: [] };
 
   const extraFiles = [];
   let rewritten = html;
+  const fetchOpts = { referer: opts.referer || baseUrl };
 
   const imagePass = await fetchAndRewriteCandidates(rewritten, images, {
     max: MAX_EXTERNAL_IMAGE_FETCHES,
     wallMs: EXTERNAL_IMAGE_FETCH_WALL_MS,
+    referer: fetchOpts.referer,
   });
   rewritten = imagePass.html;
   extraFiles.push(...imagePass.extraFiles);
@@ -439,6 +444,7 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl) {
   const otherPass = await fetchAndRewriteCandidates(rewritten, remainingOther, {
     max: MAX_EXTERNAL_FETCHES,
     wallMs: EXTERNAL_FETCH_WALL_MS,
+    referer: fetchOpts.referer,
   });
   rewritten = otherPass.html;
   extraFiles.push(...otherPass.extraFiles);
@@ -664,9 +670,11 @@ async function buildDemoFromUpload(opts) {
 
   html = applyHtmlPathRewrites(html, htmlRewrites);
   html = demoPolish.stripDocumentBaseTags(html);
+  html = demoPolish.promoteLazyImages(html);
+  html = demoPolish.promotePictureSources(html);
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
-  const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl);
+  const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, { referer: baseUrl });
   if (external.skippedExternalCount) {
     console.log('[brandScraperDemoFromUpload] skipped external asset fetch', {
       count: external.skippedExternalCount,
