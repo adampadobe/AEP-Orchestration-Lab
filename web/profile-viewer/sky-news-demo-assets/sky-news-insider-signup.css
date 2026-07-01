@@ -56,7 +56,7 @@
   }
   .ticker-track span{opacity:.95;}
   .ticker-track span::after{
-    content:"â€”";
+    content:"\2014";
     margin-left:2.5rem;
     opacity:.6;
   }
