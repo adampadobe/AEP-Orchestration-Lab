@@ -40,8 +40,9 @@
     const meta = resolveProfileStreamingUiFields(data);
     if (meta) {
       const lines = ['--- Profile streaming target ---'];
+      lines.push('Transport: AEP HTTP API (DCS collection) — uses Dataset ID, not Edge datastream');
       if (meta.url) lines.push(`URL: ${meta.url}`);
-      if (meta.flowId) lines.push(`Flow ID: ${meta.flowId}`);
+      if (meta.flowId) lines.push(`Flow ID (x-adobe-flow-id): ${meta.flowId}`);
       if (meta.datasetId) lines.push(`Dataset ID: ${meta.datasetId}`);
       if (meta.datasetName) lines.push(`Dataset (qualified name): ${meta.datasetName}`);
       if (meta.schemaId) lines.push(`Schema ID: ${meta.schemaId}`);
@@ -49,6 +50,9 @@
         lines.push('(Bare payload — dataset/schema IDs are not in the POST body; matches Postman raw JSON.)');
       }
       chunks.push(lines.join('\n'));
+    }
+    if (data.streamingTarget && typeof data.streamingTarget === 'object') {
+      chunks.push(`--- Streaming target (API) ---\n${JSON.stringify(data.streamingTarget, null, 2)}`);
     }
     if (data.payloadFormat) {
       chunks.push(

@@ -152,6 +152,7 @@
         ecid: ecid || undefined,
         sandbox: sandbox || undefined,
         industry: 'generic',
+        streamPayloadProfile: 'operationalProfile',
         updates: list,
         streaming: streamingResolved.streaming,
       };

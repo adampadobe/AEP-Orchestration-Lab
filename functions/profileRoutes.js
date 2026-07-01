@@ -548,21 +548,51 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   )
     .toLowerCase()
     .replace(/[-_\s]/g, '');
-  const useOperational =
+  const useOperationalConsent =
     normPayloadProfile === 'operational' ||
-    normPayloadProfile === 'dcsoperational' ||
-    normPayloadProfile === 'operationalprofile';
+    normPayloadProfile === 'dcsoperational';
+  const useOperationalProfileUnion =
+    normPayloadProfile === 'operationalprofile' ||
+    normPayloadProfile === 'operationalprofileunion';
 
   const envelopeSourceName =
     String(streaming.flowName || streaming.sourceName || '').trim() || sourceLabel;
 
+  const streamingTarget = {
+    transport: 'aep-http-api-dcs',
+    idType: 'datasetId',
+    collectionUrl: streamUrl || null,
+    flowId: flowId || null,
+    datasetId: datasetId || null,
+    schemaId: schemaId || null,
+    xdmKey: xdmKey || '_demoemea',
+    industry: industryKey,
+    note:
+      'Profile updates POST to the Adobe DCS HTTP API collection URL with x-adobe-flow-id (dataflow/inlet). ' +
+      'The envelope header carries an AEP Dataset ID and Schema $id — not an Adobe Experience Platform Edge datastream ID. ' +
+      'Experience events from this demo use a separate Edge datastream via POST /api/events/generator.',
+  };
+
   /** @type {object} */
   let payload;
   let payloadFormat;
-  if (useOperational && useEnvelope) {
+  let streamPayloadProfileLabel = 'standard';
+  if (useOperationalConsent && useEnvelope) {
     const xdmEntity = profileStreamingCore.buildOperationalConsentXdmEntity(demoemea, email, ecidForPayload, rootExtras);
     payload = profileStreamingCore.buildProfileStreamingEnvelope(xdmEntity, orgId, envelopeSourceName, datasetId, schemaId);
     payloadFormat = 'envelope';
+    streamPayloadProfileLabel = 'operational-consent';
+  } else if (useOperationalProfileUnion && useEnvelope) {
+    const xdmEntity = profileStreamingCore.buildOperationalProfileUnionXdmEntity(
+      demoemea,
+      email,
+      ecidForPayload,
+      xdmKey,
+      rootExtras,
+    );
+    payload = profileStreamingCore.buildProfileStreamingEnvelope(xdmEntity, orgId, envelopeSourceName, datasetId, schemaId);
+    payloadFormat = 'envelope';
+    streamPayloadProfileLabel = 'operational-profile-union';
   } else {
     const built = profileStreamingCore.buildProfileStreamPayload(
       demoemea,
@@ -583,15 +613,19 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       ok: true,
       dryRun: true,
       payloadFormat,
-      streamPayloadProfile: useOperational ? 'operational' : 'standard',
+      streamPayloadProfile: streamPayloadProfileLabel,
+      streamingTarget,
       envelope: payload,
       imsOrgId: orgId,
       industry: industryKey,
-      note: useOperational
-        ? 'Operational payload (explicit streamPayloadProfile only).'
-        : payloadFormat === 'envelope'
-          ? 'Standard streaming: identityMap (Email primary; ECID when body.ecid set), root consents/optInOut from merged tenant, _demoemea + demoemea mirror, root person.* from form.'
-          : undefined,
+      note:
+        streamPayloadProfileLabel === 'operational-consent'
+          ? 'Operational consent payload (explicit streamPayloadProfile only).'
+          : streamPayloadProfileLabel === 'operational-profile-union'
+            ? 'Operational Profile union payload (root person/address + _demoemea tenant leaves, identityMap retained).'
+            : payloadFormat === 'envelope'
+              ? 'Standard streaming: identityMap (Email primary; ECID when body.ecid set), root consents/optInOut from merged tenant, _demoemea + demoemea mirror, root person.* from form.'
+              : undefined,
     });
     return;
   }
@@ -621,6 +655,8 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       streamingResponse: data,
       sentToAep: payload,
       payloadFormat,
+      streamPayloadProfile: streamPayloadProfileLabel,
+      streamingTarget,
       requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
       industry: industryKey,
     });
@@ -632,6 +668,8 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     message: successMessage,
     sentToAep: payload,
     payloadFormat,
+    streamPayloadProfile: streamPayloadProfileLabel,
+    streamingTarget,
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
     requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),

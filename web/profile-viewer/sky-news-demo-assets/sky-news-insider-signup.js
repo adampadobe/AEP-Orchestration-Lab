@@ -125,15 +125,19 @@
       },
     };
     if (shellResult) doc.shellResult = shellResult;
+    if (shellResult && shellResult.streamingTarget) doc.streamingTarget = shellResult.streamingTarget;
+    if (shellResult && shellResult.streamPayloadProfile) doc.streamPayloadProfile = shellResult.streamPayloadProfile;
     return doc;
   }
 
-  function showPreview(doc) {
+  function showPreview(doc, scrollToPreview) {
     if (!preview || !previewJson || !previewTime) return;
     previewTime.textContent = new Date().toLocaleTimeString();
     previewJson.textContent = JSON.stringify(doc, null, 2);
     preview.classList.add('show');
-    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (scrollToPreview) {
+      preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   window.addEventListener('message', function (ev) {
@@ -153,6 +157,7 @@
             ev.data.detail.ok ? 'complete' : 'error',
             ev.data.detail,
           ),
+          ev.data.detail.ok || !!ev.data.detail.profileError,
         );
         window.__skyNewsPendingPreview = null;
       }
@@ -201,7 +206,7 @@
       window.SkyNewsLabEvents &&
       typeof window.SkyNewsLabEvents.submitRegistration === 'function'
     ) {
-      showPreview(buildPreviewDoc(profileUpdates, eventPayload, interests, 'sending'));
+      showPreview(buildPreviewDoc(profileUpdates, eventPayload, interests, 'sending'), false);
       window.SkyNewsLabEvents.submitRegistration(profileUpdates, eventPayload);
       return;
     }

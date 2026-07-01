@@ -33,27 +33,23 @@ describe('profileStreamingCore digit-string schema leaves', () => {
     assert.equal(typeof tenant.scoring.npsScore, 'number');
   });
 
-  it('buildProfileStreamPayload includes _demoemea.media in envelope xdmEntity', () => {
+  it('buildOperationalProfileUnionXdmEntity keeps media under _demoemea without root consents', () => {
     const demoemea = {
       identification: { core: { email: 'test@example.com' } },
-      media: { accountType: 'monthly', contractStatus: 'Insider Subscription', productHolding: 'Sky News Insider' },
-      interestTypes: [{ interests: 'sport' }],
+      media: { accountType: 'annual', contractStatus: 'Insider Subscription' },
     };
-    const built = profileStreamingCore.buildProfileStreamPayload(
+    const entity = profileStreamingCore.buildOperationalProfileUnionXdmEntity(
       demoemea,
       'test@example.com',
       '',
       '_demoemea',
-      'org@test',
-      'test',
-      { person: { name: { firstName: 'Ada' } } },
-      { useEnvelope: true, datasetId: 'ds1', schemaId: 'https://ns.adobe.com/demoemea/schemas/test' },
+      { homeAddress: { city: 'London', postalCode: 'SW1A 1AA' } },
     );
-    assert.equal(built.format, 'envelope');
-    const tenant = built.payload.body.xdmEntity._demoemea;
-    assert.equal(tenant.media.accountType, 'monthly');
-    assert.equal(tenant.media.contractStatus, 'Insider Subscription');
-    assert.equal(tenant.media.productHolding, 'Sky News Insider');
-    assert.equal(tenant.interestTypes[0].interests, 'sport');
+    assert.equal(entity._demoemea.media.accountType, 'annual');
+    assert.equal(entity._demoemea.media.contractStatus, 'Insider Subscription');
+    assert.equal(entity.homeAddress.city, 'London');
+    assert.ok(entity.identityMap.Email);
+    assert.equal(entity.consents, undefined);
+    assert.equal(entity.optInOut, undefined);
   });
 });

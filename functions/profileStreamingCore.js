@@ -658,6 +658,36 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
   return entity;
 }
 
+/**
+ * Operational Profile schema union (person/homeAddress at XDM root; tenant
+ * leaves under `_demoemea` such as media, interestTypes). Keeps identityMap
+ * for Profile stitch — unlike buildOperationalConsentXdmEntity (consent wizard).
+ * Omits synthetic root consents/optInOut so they do not compete with tenant
+ * profile fragments on Operational Profile datasets.
+ */
+function buildOperationalProfileUnionXdmEntity(tenantPayload, email, ecid, xdmKey, rootProfileFields) {
+  const key = (xdmKey && String(xdmKey).trim()) || '_demoemea';
+  const roots = rootProfileFields && typeof rootProfileFields === 'object' ? rootProfileFields : {};
+  const tenant = tenantPayload && typeof tenantPayload === 'object' ? tenantPayload : {};
+  const hasEcid = ecid != null && String(ecid).trim().length >= 10;
+  const em = String(email || '').trim();
+  const entity = {
+    identityMap: {
+      Email: [{ id: em, primary: true }],
+      ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
+    },
+    [key]: tenant,
+  };
+  if (key === '_demoemea') {
+    entity.demoemea = tenant;
+  }
+  if (roots.person && typeof roots.person === 'object') entity.person = roots.person;
+  if (roots.homeAddress && typeof roots.homeAddress === 'object') entity.homeAddress = roots.homeAddress;
+  if (roots.personalEmail && typeof roots.personalEmail === 'object') entity.personalEmail = roots.personalEmail;
+  mirrorRootTestProfileFields(entity);
+  return entity;
+}
+
 module.exports = {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   mirrorPreferredLanguageDemoSchema,
@@ -672,6 +702,7 @@ module.exports = {
   buildProfileStreamPayload,
   buildProfileStreamingEnvelope,
   buildOperationalConsentXdmEntity,
+  buildOperationalProfileUnionXdmEntity,
   buildProfileDcsStreamingHeaders,
   redactedProfileDcsRequestHeaders,
   parseStreamingCollectionResponse,
