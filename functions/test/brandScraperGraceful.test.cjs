@@ -344,8 +344,8 @@ describe('brandScraperSiteCloneLogin', () => {
       '<html><body><p>Hi</p></body></html>',
       siteCloneLogin.buildSiteCloneLoginConfig({ fileSlug: 'acme', record: { brandName: 'Acme' } }),
     );
-    assert.match(html, /site-clone-login\.css/);
-    assert.match(html, /site-clone-login\.js/);
+    assert.match(html, /\/profile-viewer\/site-clone-login\.css/);
+    assert.match(html, /\/profile-viewer\/site-clone-login\.js/);
     assert.match(html, /acme-lab/);
     assert.match(html, /acme-demo-shell/);
   });

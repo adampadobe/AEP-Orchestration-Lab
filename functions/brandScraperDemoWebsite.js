@@ -391,7 +391,7 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial, lo
     logoSrc: logoRelPath || '',
     accentColor: pickBrandColours((record && record.assets) || {}).primary,
   });
-  const loginSnippet = siteCloneLogin.buildLoginInjectionSnippet(loginConfig);
+  const loginParts = siteCloneLogin.buildLoginInjectionSnippet(loginConfig);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -400,6 +400,7 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial, lo
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(brand)}</title>
   <link rel="stylesheet" href="styles.css">
+  ${loginParts.headLink}
 </head>
 <body class="${slug}-snapshot">
   ${logoHtml}
@@ -407,7 +408,7 @@ function buildIframeSnapshotHtml(record, slug, nav, hero, campaigns, partial, lo
   <section class="${slug}-hero"><h1>${escapeHtml(hero.headline)}</h1><p>${escapeHtml(hero.subhead)}</p></section>
   <section class="${slug}-grid">${campHtml}</section>
   ${partial ? `<p class="${slug}-partial-tag">Partial demo — limited source content</p>` : ''}
-  ${loginSnippet}
+  ${loginParts.bodyScripts}
 </body>
 </html>`;
 }

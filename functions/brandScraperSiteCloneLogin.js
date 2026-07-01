@@ -3,9 +3,8 @@
  */
 'use strict';
 
-const PV_REL = '../';
-const LOGIN_CSS = `${PV_REL}site-clone-login.css?v=20260701-site-clone-login`;
-const LOGIN_JS = `${PV_REL}site-clone-login.js?v=20260701-site-clone-login`;
+const LOGIN_CSS = '/profile-viewer/site-clone-login.css?v=20260702-site-clone-login';
+const LOGIN_JS = '/profile-viewer/site-clone-login.js?v=20260702-site-clone-login';
 
 function escapeHtml(s) {
   return String(s || '')
@@ -76,11 +75,19 @@ function buildLoginInjectionSnippet(config) {
   const cfgJson = JSON.stringify(config)
     .replace(/</g, '\\u003c')
     .replace(/-->/g, '--\\u003e');
-  return [
-    `<link rel="stylesheet" href="${LOGIN_CSS}">`,
+  const headLink = `<link rel="stylesheet" href="${LOGIN_CSS}">`;
+  const bodyScripts = [
     `<script>window.SiteCloneLoginConfig=${cfgJson};</script>`,
     `<script src="${LOGIN_JS}"></script>`,
   ].join('\n');
+  return { headLink, bodyScripts };
+}
+
+function stripExistingSiteCloneLogin(html) {
+  return String(html || '')
+    .replace(/<link[^>]+site-clone-login\.css[^>]*>\s*/gi, '')
+    .replace(/<script>window\.SiteCloneLoginConfig=[\s\S]*?<\/script>\s*/gi, '')
+    .replace(/<script[^>]+site-clone-login\.js[^>]*>\s*<\/script>\s*/gi, '');
 }
 
 function alreadyInjected(html) {
@@ -88,18 +95,23 @@ function alreadyInjected(html) {
 }
 
 /**
- * Inject login chrome into iframe snapshot HTML (before </body>).
+ * Inject login chrome into iframe snapshot HTML (head link + body scripts).
  * @param {string} html
  * @param {ReturnType<typeof buildSiteCloneLoginConfig>} config
  */
 function injectSiteCloneLogin(html, config) {
-  let out = String(html || '');
-  if (!out || alreadyInjected(out)) return out;
-  const snippet = buildLoginInjectionSnippet(config);
-  if (/<\/body>/i.test(out)) {
-    return out.replace(/<\/body>/i, `${snippet}\n</body>`);
+  let out = stripExistingSiteCloneLogin(String(html || ''));
+  if (!out) return out;
+  const { headLink, bodyScripts } = buildLoginInjectionSnippet(config);
+  if (/<\/head>/i.test(out)) {
+    out = out.replace(/<\/head>/i, `${headLink}\n</head>`);
+  } else {
+    out = `${headLink}\n${out}`;
   }
-  return `${out}\n${snippet}`;
+  if (/<\/body>/i.test(out)) {
+    return out.replace(/<\/body>/i, `${bodyScripts}\n</body>`);
+  }
+  return `${out}\n${bodyScripts}`;
 }
 
 module.exports = {

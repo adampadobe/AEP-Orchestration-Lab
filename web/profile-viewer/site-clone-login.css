@@ -20,7 +20,7 @@
   position: fixed;
   top: var(--scl-btn-top);
   right: clamp(16px, 3vw, 40px);
-  z-index: 2147482000;
+  z-index: 2147483647;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -60,7 +60,7 @@
 .scl-login-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2147483000;
+  z-index: 2147483647;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -241,4 +241,9 @@
 
 body.scl-login-modal-open {
   overflow: hidden;
+}
+
+/* Saved-page Walnut overlay sits above most chrome; keep login clickable */
+#walnut-root-popin-element.walnut_ignore {
+  pointer-events: none !important;
 }
