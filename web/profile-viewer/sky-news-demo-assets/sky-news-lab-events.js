@@ -27,8 +27,32 @@
     postToShell('sky-news-profile-prefill-request', {});
   }
 
+  /**
+   * Profile stream update (shell → /api/profile/update) then insider.registered experience event.
+   * @param {Array<{ path: string, value: unknown }>} profileUpdates
+   * @param {Record<string, unknown>} eventPayload
+   */
+  function submitInsiderRegistration(profileUpdates, eventPayload) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            source: MSG_SOURCE,
+            type: 'sky-news-insider-registration',
+            updates: Array.isArray(profileUpdates) ? profileUpdates : [],
+            payload: eventPayload && typeof eventPayload === 'object' ? eventPayload : {},
+          },
+          '*',
+        );
+      }
+    } catch (e) {
+      /* noop */
+    }
+  }
+
   window.SkyNewsLabEvents = {
     emit: emitExperienceEvent,
+    submitRegistration: submitInsiderRegistration,
     requestProfilePrefill: requestProfilePrefill,
     SOURCE: MSG_SOURCE,
   };

@@ -6,6 +6,8 @@
   var previewJson = document.getElementById('previewJson');
   var previewTime = document.getElementById('previewTime');
 
+  var CONTRACT_STATUS = 'Insider Subscription';
+
   function applyProfilePrefill(profile) {
     if (!profile || typeof profile !== 'object') return;
     var map = {
@@ -23,6 +25,36 @@
       var val = profile[key];
       if (val != null && String(val).trim()) el.value = String(val).trim();
     });
+  }
+
+  /**
+   * Paths match Profile Generation /api/profile/update (OOTB roots + _demoemea tenant leaves).
+   * @param {FormData} data
+   * @param {string[]} interests
+   * @returns {Array<{ path: string, value: unknown }>}
+   */
+  function buildProfileUpdates(data, interests) {
+    var email = String(data.get('email') || '').trim();
+    var firstName = String(data.get('firstName') || '').trim();
+    var lastName = String(data.get('lastName') || '').trim();
+    var addressLine = String(data.get('addressLine') || '').trim();
+    var city = String(data.get('city') || '').trim();
+    var postcode = String(data.get('postcode') || '').trim();
+    /** @type {Array<{ path: string, value: unknown }>} */
+    var updates = [];
+
+    if (firstName) updates.push({ path: 'person.name.firstName', value: firstName });
+    if (lastName) updates.push({ path: 'person.name.lastName', value: lastName });
+    if (email) updates.push({ path: 'personalEmail.address', value: email });
+    if (addressLine) updates.push({ path: 'homeAddress.street1', value: addressLine });
+    if (city) updates.push({ path: 'homeAddress.city', value: city });
+    if (postcode) updates.push({ path: 'homeAddress.postalCode', value: postcode });
+    updates.push({ path: 'homeAddress.countryCode', value: 'GB' });
+    if (interests.length) {
+      updates.push({ path: 'interestTypes.interests', value: interests });
+    }
+    updates.push({ path: 'media.contractStatus', value: CONTRACT_STATUS });
+    return updates;
   }
 
   window.addEventListener('message', function (ev) {
@@ -62,6 +94,7 @@
     var email = String(data.get('email') || '').trim();
     var firstName = String(data.get('firstName') || '').trim();
     var lastName = String(data.get('lastName') || '').trim();
+    var profileUpdates = buildProfileUpdates(data, interests);
 
     var payload = {
       eventType: 'insider.registered',
@@ -85,6 +118,9 @@
         interestTypes: {
           interests: interests,
         },
+        media: {
+          contractStatus: CONTRACT_STATUS,
+        },
       },
       public: {
         insider: {
@@ -96,7 +132,12 @@
       },
     };
 
-    if (window.SkyNewsLabEvents && typeof window.SkyNewsLabEvents.emit === 'function') {
+    if (
+      window.SkyNewsLabEvents &&
+      typeof window.SkyNewsLabEvents.submitRegistration === 'function'
+    ) {
+      window.SkyNewsLabEvents.submitRegistration(profileUpdates, payload);
+    } else if (window.SkyNewsLabEvents && typeof window.SkyNewsLabEvents.emit === 'function') {
       window.SkyNewsLabEvents.emit(payload);
     }
 
@@ -104,13 +145,23 @@
       previewTime.textContent = new Date().toLocaleTimeString();
       previewJson.textContent = JSON.stringify(
         {
-          eventType: payload.eventType,
-          person: payload.person,
-          personalEmail: payload.personalEmail,
-          homeAddress: payload.homeAddress,
-          _demoemea: {
-            interestTypes: payload.tenant.interestTypes,
-            public: payload.public,
+          profileUpdate: {
+            updates: profileUpdates,
+            _demoemea: {
+              interestTypes: { interests: interests },
+              media: { contractStatus: CONTRACT_STATUS },
+            },
+          },
+          experienceEvent: {
+            eventType: payload.eventType,
+            person: payload.person,
+            personalEmail: payload.personalEmail,
+            homeAddress: payload.homeAddress,
+            _demoemea: {
+              interestTypes: payload.tenant.interestTypes,
+              media: payload.tenant.media,
+              public: payload.public,
+            },
           },
         },
         null,

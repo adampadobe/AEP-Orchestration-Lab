@@ -6,6 +6,7 @@
 
   var XDM_TENANT_KEY = '_demoemea';
   var MSG_SOURCE = 'sky-news-lab';
+  var streamingCache = Object.create(null);
 
   function run() {
     var siteFrame = document.getElementById('skynewsDemoSiteFrame');
@@ -39,6 +40,121 @@
       var v = String(raw || '').trim();
       if (!v || v === '\u2014' || v === '-') return '';
       return /^\d+$/.test(v) && v.length >= 10 ? v : '';
+    }
+
+    function getSandboxName() {
+      if (
+        typeof global.AepGlobalSandbox !== 'undefined' &&
+        typeof global.AepGlobalSandbox.getSandboxName === 'function'
+      ) {
+        return String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+      return '';
+    }
+
+    function getEcidFromStrip() {
+      var ecidEl = document.getElementById('infoEcid');
+      var ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
+      return normaliseEcidDigits(ecidText);
+    }
+
+    async function fetchStreamingForSandbox(sandbox) {
+      var key = sandbox || '__default__';
+      if (Object.prototype.hasOwnProperty.call(streamingCache, key)) return streamingCache[key];
+      var qs = sandbox ? '?sandbox=' + encodeURIComponent(sandbox) : '';
+      var res;
+      var data;
+      try {
+        res = await fetch('/api/generic-profile-connection' + qs);
+        data = await res.json().catch(function () {
+          return {};
+        });
+      } catch (e) {
+        streamingCache[key] = {
+          error: 'Network error loading streaming connection: ' + ((e && e.message) || e),
+        };
+        return streamingCache[key];
+      }
+      if (!res.ok || data.ok === false) {
+        streamingCache[key] = {
+          error: data.error || 'Streaming connection lookup failed (HTTP ' + res.status + ').',
+        };
+        return streamingCache[key];
+      }
+      var rec = data.record;
+      var streaming = rec && rec.streaming && typeof rec.streaming === 'object' ? rec.streaming : null;
+      if (!streaming || !streaming.url || !streaming.flowId) {
+        streamingCache[key] = {
+          error:
+            'No saved streaming connection for sandbox "' +
+            (sandbox || 'default') +
+            '". Configure it on the Profile Generation page first.',
+        };
+        return streamingCache[key];
+      }
+      streamingCache[key] = { streaming: streaming };
+      return streamingCache[key];
+    }
+
+    /**
+     * @param {Array<{ path: string, value: unknown }>} updates
+     * @param {Record<string, unknown>} eventPayload
+     */
+    async function handleInsiderRegistration(updates, eventPayload) {
+      var list = Array.isArray(updates) ? updates : [];
+      if (!list.length) {
+        setMessage('No profile fields to update.', 'error');
+        return;
+      }
+      var emailForUpdate = String(
+        (eventPayload && eventPayload.email) || getEmail() || '',
+      ).trim();
+      if (!emailForUpdate) {
+        setMessage('Enter a customer email in the lab strip before registering.', 'error');
+        return;
+      }
+      if (typeof global.postProfileUpdate !== 'function') {
+        setMessage('Profile streaming helper not loaded.', 'error');
+        return;
+      }
+
+      var sandbox = getSandboxName();
+      var ecid = getEcidFromStrip();
+      setMessage('Updating profile…', '');
+
+      var streamingResolved = await fetchStreamingForSandbox(sandbox);
+      if (streamingResolved.error) {
+        setMessage(streamingResolved.error, 'error');
+        return;
+      }
+
+      var profileBody = {
+        email: emailForUpdate,
+        ecid: ecid || undefined,
+        sandbox: sandbox || undefined,
+        industry: 'generic',
+        updates: list,
+        streaming: streamingResolved.streaming,
+      };
+
+      try {
+        var profileResult = await global.postProfileUpdate(profileBody);
+        if (!profileResult || !profileResult.ok) {
+          var profileErr =
+            typeof global.formatProfileUpdateError === 'function' && profileResult && profileResult.data
+              ? global.formatProfileUpdateError(profileResult.data)
+              : (profileResult &&
+                  profileResult.data &&
+                  (profileResult.data.error || profileResult.data.message)) ||
+                'Profile update failed.';
+          setMessage(profileErr, 'error');
+          return;
+        }
+        setMessage((profileResult.data && profileResult.data.message) || 'Profile updated. Sending event…', 'success');
+        await sendSkyNewsExperienceEvent(eventPayload || {});
+      } catch (err) {
+        setMessage((err && err.message) || 'Network error', 'error');
+      }
     }
 
     function refreshDrawerEvents(ecid, email) {
@@ -153,6 +269,11 @@
 
       if (ev.data.type === 'sky-news-experience-event') {
         void sendSkyNewsExperienceEvent(ev.data.payload);
+        return;
+      }
+
+      if (ev.data.type === 'sky-news-insider-registration') {
+        void handleInsiderRegistration(ev.data.updates, ev.data.payload);
         return;
       }
 
