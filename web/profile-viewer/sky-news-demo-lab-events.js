@@ -96,6 +96,18 @@
       return streamingCache[key];
     }
 
+    function postToFrame(type, detail) {
+      if (!siteFrame || !siteFrame.contentWindow) return;
+      siteFrame.contentWindow.postMessage(
+        {
+          source: 'sky-news-demo-shell',
+          type: type,
+          detail: detail || {},
+        },
+        '*',
+      );
+    }
+
     /**
      * @param {Array<{ path: string, value: unknown }>} updates
      * @param {Record<string, unknown>} eventPayload
@@ -104,6 +116,7 @@
       var list = Array.isArray(updates) ? updates : [];
       if (!list.length) {
         setMessage('No profile fields to update.', 'error');
+        postToFrame('sky-news-registration-result', { ok: false, error: 'No profile fields to update.' });
         return;
       }
       var emailForUpdate = String(
@@ -111,10 +124,15 @@
       ).trim();
       if (!emailForUpdate) {
         setMessage('Enter a customer email in the lab strip before registering.', 'error');
+        postToFrame('sky-news-registration-result', {
+          ok: false,
+          error: 'Enter a customer email in the lab strip before registering.',
+        });
         return;
       }
       if (typeof global.postProfileUpdate !== 'function') {
         setMessage('Profile streaming helper not loaded.', 'error');
+        postToFrame('sky-news-registration-result', { ok: false, error: 'Profile streaming helper not loaded.' });
         return;
       }
 
@@ -125,6 +143,7 @@
       var streamingResolved = await fetchStreamingForSandbox(sandbox);
       if (streamingResolved.error) {
         setMessage(streamingResolved.error, 'error');
+        postToFrame('sky-news-registration-result', { ok: false, error: streamingResolved.error });
         return;
       }
 
@@ -148,12 +167,27 @@
                   (profileResult.data.error || profileResult.data.message)) ||
                 'Profile update failed.';
           setMessage(profileErr, 'error');
+          postToFrame('sky-news-registration-result', {
+            ok: false,
+            step: 'profile',
+            error: profileErr,
+            profileResponse: profileResult && profileResult.data ? profileResult.data : undefined,
+          });
           return;
         }
+        refreshDrawerEvents(ecid, emailForUpdate);
         setMessage((profileResult.data && profileResult.data.message) || 'Profile updated. Sending event…', 'success');
-        await sendSkyNewsExperienceEvent(eventPayload || {});
+        var eventOk = await sendSkyNewsExperienceEvent(eventPayload || {});
+        postToFrame('sky-news-registration-result', {
+          ok: !!eventOk,
+          step: eventOk ? 'complete' : 'event',
+          profileResponse: profileResult.data,
+          eventSent: !!eventOk,
+        });
       } catch (err) {
-        setMessage((err && err.message) || 'Network error', 'error');
+        var netErr = (err && err.message) || 'Network error';
+        setMessage(netErr, 'error');
+        postToFrame('sky-news-registration-result', { ok: false, error: netErr });
       }
     }
 
@@ -190,10 +224,6 @@
           (typeof global.location !== 'undefined' ? global.location.href.split('?')[0] : ''),
         channel: 'Web',
         public: p.public && typeof p.public === 'object' ? p.public : {},
-        tenant: p.tenant && typeof p.tenant === 'object' ? p.tenant : undefined,
-        person: p.person && typeof p.person === 'object' ? p.person : undefined,
-        homeAddress: p.homeAddress && typeof p.homeAddress === 'object' ? p.homeAddress : undefined,
-        personalEmail: p.personalEmail && typeof p.personalEmail === 'object' ? p.personalEmail : undefined,
         xdmTenantKey: XDM_TENANT_KEY,
         identityMapEcidKey: 'ECID',
       };

@@ -141,7 +141,7 @@
 
       <div class="preview" id="preview">
         <div class="preview-head">
-          <span><span class="preview-dot"></span>XDM event sent to Adobe Experience Platform</span>
+          <span><span class="preview-dot"></span>Profile stream + experience event (lab shell)</span>
           <span id="previewTime"></span>
         </div>
         <pre id="previewJson"></pre>
@@ -151,111 +151,11 @@
 
     <footer>
       Available to Sky and non-Sky customers in the UK. Prices include applicable offers at time of sign-up.<br>
-      This is a demo form &mdash; submissions are sent as an XDM event via the Adobe Web SDK for AJO/AEP profile testing.
+      This demo streams person, address, interests and contract status to your operational profile via the lab shell, then sends a slim <code>insider.registered</code> experience event.
     </footer>
   </div>
 
-  <!--
-    ================================================================
-    ADOBE EXPERIENCE PLATFORM WIRING
-    ================================================================
-    1. Load the Web SDK (Alloy) tag on the host page, e.g.:
-       <script src="https://cdn1.adoberesources.net/alloy/2.x/alloy.min.js"></script>
-       <script>
-         !function(n,o){o.forEach(function(o){n[o]||((n.__alloyNS=n.__alloyNS||[]).push(o),
-         n[o]=function(){var u=arguments;return new Promise(function(i,l){n[o].q.push([i,l,u])})},
-         n[o].q=[])})}(window,["alloy"]);
-       </script>
-       <script>
-         alloy("configure", {
-           "datastreamId": "YOUR_DATASTREAM_ID",
-           "orgId": "YOUR_IMS_ORG_ID@AdobeOrg"
-         });
-       </script>
-
-    2. This form calls alloy("sendEvent", { xdm }) on submit if `alloy` is present.
-       Replace the console-preview block below with your real datastream once configured
-       â€” it will write to the AEP profile via identityMap (email) and update the
-       Sky News Insider signup fields for use as audiences/personalisation in AJO.
-    ================================================================
-  -->
-
-  <script>
-    const form = document.getElementById('insiderForm');
-    const preview = document.getElementById('preview');
-    const previewJson = document.getElementById('previewJson');
-    const previewTime = document.getElementById('previewTime');
-
-    // Plan card selection styling
-    document.querySelectorAll('.plan').forEach(plan => {
-      plan.addEventListener('click', () => {
-        document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'));
-        plan.classList.add('selected');
-        plan.querySelector('input').checked = true;
-      });
-    });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-
-      const data = new FormData(form);
-      const interests = data.getAll('interests');
-      const plan = data.get('plan');
-
-      const xdm = {
-        eventType: 'web.formFilledOut',
-        web: { webPageDetails: { name: 'Sky News Insider Signup' } },
-        identityMap: {
-          Email: [{ id: data.get('email'), primary: true, authenticatedState: 'ambiguous' }]
-        },
-        personalEmail: { address: data.get('email') },
-        person: {
-          name: {
-            firstName: data.get('firstName'),
-            lastName: data.get('lastName')
-          }
-        },
-        homeAddress: {
-          street1: data.get('addressLine'),
-          city: data.get('city'),
-          postalCode: data.get('postcode'),
-          country: 'GB'
-        },
-        consents: {
-          collect: { val: data.get('termsAccepted') ? 'y' : 'n' },
-          marketing: {
-            preferred: 'email',
-            val: data.get('marketingOptIn') ? 'y' : 'n'
-          }
-        },
-        _skynews: {
-          insider: {
-            plan: plan,
-            interests: interests,
-            signupDate: new Date().toISOString()
-          }
-        }
-      };
-
-      // Send to AEP via Adobe Web SDK (Alloy) if it's configured on the page
-      if (window.alloy) {
-        window.alloy('sendEvent', { xdm: xdm })
-          .then(() => console.log('Sky News Insider signup sent to AEP.'))
-          .catch(err => console.error('AEP sendEvent failed:', err));
-      } else {
-        console.warn('Alloy (Web SDK) not found on this page â€” showing payload preview only.');
-      }
-
-      // Demo preview so the payload is visible on the Sky News page during the AJO walkthrough
-      previewTime.textContent = new Date().toLocaleTimeString();
-      previewJson.textContent = JSON.stringify(xdm, null, 2);
-      preview.classList.add('show');
-      preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  </script>
-
-
-<script src="sky-news-lab-events.js?v=20260701-insider"></script>
-<script src="sky-news-insider-signup.js?v=20260701-insider"></script>
+<script src="sky-news-lab-events.js?v=20260701-insider-flow"></script>
+<script src="sky-news-insider-signup.js?v=20260701-insider-flow"></script>
 </body>
 </html>

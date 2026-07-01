@@ -57,10 +57,88 @@
     return updates;
   }
 
+  /**
+   * Experience event only — webPageDetails + insider.registered + public.insider metadata.
+   * Person, address, interests and contract status belong on the profile stream, not the event schema.
+   * @param {FormData} data
+   * @param {string} email
+   */
+  function buildExperienceEventPayload(data, email) {
+    return {
+      eventType: 'insider.registered',
+      viewName: 'Sky News Insider Signup',
+      viewUrl: typeof location !== 'undefined' ? location.href.split('?')[0] : '',
+      email: email,
+      public: {
+        insider: {
+          plan: data.get('plan'),
+          marketingOptIn: !!data.get('marketingOptIn'),
+          termsAccepted: !!data.get('termsAccepted'),
+          signupDate: new Date().toISOString(),
+        },
+      },
+    };
+  }
+
+  function buildPreviewDoc(profileUpdates, eventPayload, interests, status, shellResult) {
+    var doc = {
+      status: status || 'pending',
+      note:
+        'Person, address, interests and contract status are written to the operational profile via POST /api/profile/update. The experience event is a slim insider.registered with webPageDetails and _demoemea.public.insider only.',
+      profileStream: {
+        endpoint: '/api/profile/update',
+        updates: profileUpdates,
+        _demoemea: {
+          interestTypes: { interests: interests },
+          media: { contractStatus: CONTRACT_STATUS },
+        },
+      },
+      experienceEvent: {
+        eventType: eventPayload.eventType,
+        web: {
+          webPageDetails: {
+            name: eventPayload.viewName,
+            URL: eventPayload.viewUrl,
+            viewName: eventPayload.viewName,
+          },
+        },
+        _demoemea: {
+          public: eventPayload.public,
+        },
+      },
+    };
+    if (shellResult) doc.shellResult = shellResult;
+    return doc;
+  }
+
+  function showPreview(doc) {
+    if (!preview || !previewJson || !previewTime) return;
+    previewTime.textContent = new Date().toLocaleTimeString();
+    previewJson.textContent = JSON.stringify(doc, null, 2);
+    preview.classList.add('show');
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   window.addEventListener('message', function (ev) {
     if (!ev.data || ev.data.source !== 'sky-news-demo-shell') return;
     if (ev.data.type === 'sky-news-profile-prefill') {
       applyProfilePrefill(ev.data.profile);
+      return;
+    }
+    if (ev.data.type === 'sky-news-registration-result' && ev.data.detail) {
+      var pending = window.__skyNewsPendingPreview;
+      if (pending) {
+        showPreview(
+          buildPreviewDoc(
+            pending.profileUpdates,
+            pending.eventPayload,
+            pending.interests,
+            ev.data.detail.ok ? 'complete' : 'error',
+            ev.data.detail,
+          ),
+        );
+        window.__skyNewsPendingPreview = null;
+      }
     }
   });
 
@@ -90,85 +168,33 @@
 
     var data = new FormData(form);
     var interests = data.getAll('interests');
-    var plan = data.get('plan');
     var email = String(data.get('email') || '').trim();
-    var firstName = String(data.get('firstName') || '').trim();
-    var lastName = String(data.get('lastName') || '').trim();
     var profileUpdates = buildProfileUpdates(data, interests);
+    var eventPayload = buildExperienceEventPayload(data, email);
 
-    var payload = {
-      eventType: 'insider.registered',
-      viewName: 'Sky News Insider Signup',
-      viewUrl: typeof location !== 'undefined' ? location.href.split('?')[0] : '',
-      email: email,
-      person: {
-        name: {
-          firstName: firstName,
-          lastName: lastName,
-        },
-      },
-      personalEmail: { address: email },
-      homeAddress: {
-        street1: String(data.get('addressLine') || '').trim(),
-        city: String(data.get('city') || '').trim(),
-        postalCode: String(data.get('postcode') || '').trim(),
-        country: 'GB',
-      },
-      tenant: {
-        interestTypes: {
-          interests: interests,
-        },
-        media: {
-          contractStatus: CONTRACT_STATUS,
-        },
-      },
-      public: {
-        insider: {
-          plan: plan,
-          marketingOptIn: !!data.get('marketingOptIn'),
-          termsAccepted: !!data.get('termsAccepted'),
-          signupDate: new Date().toISOString(),
-        },
-      },
+    window.__skyNewsPendingPreview = {
+      profileUpdates: profileUpdates,
+      eventPayload: eventPayload,
+      interests: interests,
     };
 
+    var inLabShell = window.parent && window.parent !== window;
     if (
+      inLabShell &&
       window.SkyNewsLabEvents &&
       typeof window.SkyNewsLabEvents.submitRegistration === 'function'
     ) {
-      window.SkyNewsLabEvents.submitRegistration(profileUpdates, payload);
-    } else if (window.SkyNewsLabEvents && typeof window.SkyNewsLabEvents.emit === 'function') {
-      window.SkyNewsLabEvents.emit(payload);
+      showPreview(buildPreviewDoc(profileUpdates, eventPayload, interests, 'sending'));
+      window.SkyNewsLabEvents.submitRegistration(profileUpdates, eventPayload);
+      return;
     }
 
-    if (preview && previewJson && previewTime) {
-      previewTime.textContent = new Date().toLocaleTimeString();
-      previewJson.textContent = JSON.stringify(
-        {
-          profileUpdate: {
-            updates: profileUpdates,
-            _demoemea: {
-              interestTypes: { interests: interests },
-              media: { contractStatus: CONTRACT_STATUS },
-            },
-          },
-          experienceEvent: {
-            eventType: payload.eventType,
-            person: payload.person,
-            personalEmail: payload.personalEmail,
-            homeAddress: payload.homeAddress,
-            _demoemea: {
-              interestTypes: payload.tenant.interestTypes,
-              media: payload.tenant.media,
-              public: payload.public,
-            },
-          },
-        },
-        null,
-        2,
-      );
-      preview.classList.add('show');
-      preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    showPreview(
+      buildPreviewDoc(profileUpdates, eventPayload, interests, 'error', {
+        ok: false,
+        error:
+          'Open this form from the Sky News demo shell (sky-news-demo.html) so profile streaming and events can reach AEP.',
+      }),
+    );
   });
 })();
