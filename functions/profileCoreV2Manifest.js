@@ -306,6 +306,19 @@ const SHARED_TENANT_LEAVES = {
   // the loyalty toggle is enabled.
   'loyaltyDetails.level': STRING_LEAF('level'),
   'loyaltyDetails.points': NUMBER_LEAF('points'),
+  // Sky News Insider signup (generic profile stream via /api/profile/update).
+  'media.accountType': STRING_LEAF('accountType'),
+  'media.contractStatus': STRING_LEAF('contractStatus'),
+  interestTypes: {
+    type: 'array',
+    title: 'interestTypes',
+    items: {
+      type: 'object',
+      properties: {
+        interests: STRING_LEAF('interests'),
+      },
+    },
+  },
   // `identification.core.loyaltyId` lives under a `$ref` to the shared
   // identification.core datatype. Add-only via FG PATCH wouldn't apply —
   // the top-up treats ref-blocked leaves as `alreadyPresent` when resolved

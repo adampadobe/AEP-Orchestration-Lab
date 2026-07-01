@@ -177,9 +177,11 @@
           });
           return;
         }
+        scheduleDrawerProfileReload(emailForUpdate);
         refreshDrawerEvents();
         setMessage((profileResult.data && profileResult.data.message) || 'Profile updated. Sending event…', 'success');
         var eventOk = await sendSkyNewsExperienceEvent(eventPayload || {});
+        if (eventOk) scheduleDrawerProfileReload(emailForUpdate);
         postToFrame('sky-news-registration-result', {
           ok: !!eventOk,
           step: eventOk ? 'complete' : 'event',
@@ -191,6 +193,26 @@
         setMessage(netErr, 'error');
         postToFrame('sky-news-registration-result', { ok: false, error: netErr });
       }
+    }
+
+    function reloadDrawerProfile(email) {
+      var em = String(email || getEmail() || '').trim();
+      if (!em || typeof global.DemoProfileDrawer === 'undefined') return;
+      if (typeof global.DemoProfileDrawer.loadProfileDataForDrawer !== 'function') return;
+      void global.DemoProfileDrawer.loadProfileDataForDrawer(em, {
+        updateMessage: false,
+        sendApplicationLogin: false,
+      });
+    }
+
+    function scheduleDrawerProfileReload(email) {
+      reloadDrawerProfile(email);
+      global.setTimeout(function () {
+        reloadDrawerProfile(email);
+      }, 4000);
+      global.setTimeout(function () {
+        reloadDrawerProfile(email);
+      }, 12000);
     }
 
     function refreshDrawerEvents() {

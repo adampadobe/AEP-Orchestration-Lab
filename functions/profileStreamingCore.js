@@ -633,6 +633,13 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
       tenantBlock.optInOut = { _channels: { ...ch } };
     }
   }
+  if (demoemea && typeof demoemea === 'object' && !Array.isArray(demoemea)) {
+    for (const key of ['interestTypes', 'media', 'scoring', 'loyaltyDetails', 'orderProfile']) {
+      if (demoemea[key] != null) tenantBlock[key] = demoemea[key];
+    }
+  }
+
+  const roots = rootExtras && typeof rootExtras === 'object' ? rootExtras : {};
 
   /** @type {Record<string, unknown>} */
   const entity = {
@@ -641,10 +648,12 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
     _repo: { createDate: now, modifyDate: now },
     preferredLanguage,
     consents: consentsOut,
-    person: buildOperationalPersonFromRootExtras(rootExtras),
+    person: buildOperationalPersonFromRootExtras(roots),
     personID: em,
     metadata: { time: now },
   };
+  if (roots.homeAddress && typeof roots.homeAddress === 'object') entity.homeAddress = roots.homeAddress;
+  if (roots.personalEmail && typeof roots.personalEmail === 'object') entity.personalEmail = roots.personalEmail;
 
   return entity;
 }

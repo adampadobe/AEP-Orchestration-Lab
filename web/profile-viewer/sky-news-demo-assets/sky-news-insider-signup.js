@@ -52,7 +52,12 @@
     if (postcode) updates.push({ path: 'homeAddress.postalCode', value: postcode });
     updates.push({ path: 'homeAddress.countryCode', value: 'GB' });
     if (interests.length) {
-      updates.push({ path: 'interestTypes.interests', value: interests });
+      updates.push({
+        path: 'interestTypes',
+        value: interests.map(function (topic) {
+          return { interests: String(topic) };
+        }),
+      });
     }
     if (plan) updates.push({ path: 'media.accountType', value: plan });
     updates.push({ path: 'media.contractStatus', value: CONTRACT_STATUS });
@@ -91,7 +96,9 @@
         endpoint: '/api/profile/update',
         updates: profileUpdates,
         _demoemea: {
-          interestTypes: { interests: interests },
+          interestTypes: interests.map(function (topic) {
+            return { interests: String(topic) };
+          }),
           media: {
             accountType: eventPayload.public && eventPayload.public.insider ? eventPayload.public.insider.plan : '',
             contractStatus: CONTRACT_STATUS,
