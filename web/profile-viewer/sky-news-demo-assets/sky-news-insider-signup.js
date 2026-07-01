@@ -40,6 +40,7 @@
     var addressLine = String(data.get('addressLine') || '').trim();
     var city = String(data.get('city') || '').trim();
     var postcode = String(data.get('postcode') || '').trim();
+    var plan = String(data.get('plan') || '').trim();
     /** @type {Array<{ path: string, value: unknown }>} */
     var updates = [];
 
@@ -53,6 +54,7 @@
     if (interests.length) {
       updates.push({ path: 'interestTypes.interests', value: interests });
     }
+    if (plan) updates.push({ path: 'media.accountType', value: plan });
     updates.push({ path: 'media.contractStatus', value: CONTRACT_STATUS });
     return updates;
   }
@@ -84,13 +86,16 @@
     var doc = {
       status: status || 'pending',
       note:
-        'Person, address, interests and contract status are written to the operational profile via POST /api/profile/update. The experience event is a slim insider.registered with webPageDetails and _demoemea.public.insider only.',
+        'Person, address, interests, plan (media.accountType) and contract status are written to the operational profile via POST /api/profile/update. The experience event is a slim insider.registered with webPageDetails and _demoemea.public.insider only.',
       profileStream: {
         endpoint: '/api/profile/update',
         updates: profileUpdates,
         _demoemea: {
           interestTypes: { interests: interests },
-          media: { contractStatus: CONTRACT_STATUS },
+          media: {
+            accountType: eventPayload.public && eventPayload.public.insider ? eventPayload.public.insider.plan : '',
+            contractStatus: CONTRACT_STATUS,
+          },
         },
       },
       experienceEvent: {
