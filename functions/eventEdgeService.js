@@ -33,6 +33,8 @@ function bodySnippet(text, max) {
 
 const {
   mergeGeneratorPublicIntoTenant,
+  mergeGeneratorTenantExtras,
+  mergeGeneratorProfileRoots,
   alignExperienceEventFieldGroupPayloads,
   normalizeInteractionDetailsChannel,
   resolveEffectiveGeneratorChannel,
@@ -74,6 +76,13 @@ function shouldUseRichEdgeXdm(body) {
   if (b.message && typeof b.message === 'object' && !Array.isArray(b.message) && Object.keys(b.message).length > 0) {
     return true;
   }
+
+  if (b.tenant && typeof b.tenant === 'object' && !Array.isArray(b.tenant) && Object.keys(b.tenant).length > 0) {
+    return true;
+  }
+  if (b.person && typeof b.person === 'object' && !Array.isArray(b.person)) return true;
+  if (b.homeAddress && typeof b.homeAddress === 'object' && !Array.isArray(b.homeAddress)) return true;
+  if (b.personalEmail && typeof b.personalEmail === 'object' && !Array.isArray(b.personalEmail)) return true;
 
   const pub = b.public && typeof b.public === 'object' && !Array.isArray(b.public) ? b.public : null;
   if (pub && Object.keys(pub).length > 0) return true;
@@ -128,6 +137,7 @@ function buildRichEdgeXdm(body) {
 
   const tenantNode = { identification: { core: { ecid: ecid || '', email: email || '' } } };
   mergeGeneratorPublicIntoTenant(tenantNode, b.public);
+  mergeGeneratorTenantExtras(tenantNode, b.tenant);
   const ch = normalizeInteractionDetailsChannel(effectiveCh);
   if (ch) {
     if (!tenantNode.interactionDetails) tenantNode.interactionDetails = {};
@@ -165,6 +175,7 @@ function buildRichEdgeXdm(body) {
     xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName } };
   }
 
+  mergeGeneratorProfileRoots(xdm, b);
   alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveCh);
   if (tenantKey === '_demoemea') syncXdmDemoemeaLowercaseAlias(xdm);
   else if (tenantKey.startsWith('_')) syncXdmTenantLowercaseAlias(xdm, tenantKey);

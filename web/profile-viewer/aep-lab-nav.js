@@ -746,6 +746,21 @@
                 },
               ],
             },
+            {
+              id: 'skyNewsWeb',
+              label: 'Sky News',
+              items: [
+                {
+                  label: 'Sky News (in development)',
+                  href: 'sky-news-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'skyNewsDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" d="M4 6h16v12H4z"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 20h8"/><path stroke="currentColor" stroke-width="1.5" d="M12 6v14" opacity="0.55"/></svg>',
+                },
+              ],
+            },
           ],
         },
         {

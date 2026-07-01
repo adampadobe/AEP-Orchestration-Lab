@@ -162,6 +162,7 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
     'policyInfo',
     'dashboard',
     'bookingParty',
+    'insider',
   ];
   for (const ek of extraPublicKeys) {
     if (!Object.prototype.hasOwnProperty.call(pubIn, ek)) continue;
@@ -186,6 +187,36 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
       tenant.omnichannelCdpUseCasePack = {};
     }
     tenant.omnichannelCdpUseCasePack.donatedAmount = donationAmountNumber;
+  }
+}
+
+/** Shallow-merge lab tenant extras (e.g. interestTypes) onto the tenant node — not under public. */
+function mergeGeneratorTenantExtras(tenant, extrasIn) {
+  if (!tenant || !extrasIn || typeof extrasIn !== 'object' || Array.isArray(extrasIn)) return;
+  for (const key of Object.keys(extrasIn)) {
+    const val = extrasIn[key];
+    if (val == null) continue;
+    if (typeof val === 'object' && !Array.isArray(val)) {
+      const prev = tenant[key];
+      tenant[key] =
+        prev && typeof prev === 'object' && !Array.isArray(prev) ? { ...prev, ...val } : { ...val };
+    } else {
+      tenant[key] = val;
+    }
+  }
+}
+
+/** Optional Experience Event root profile mixins from generator POST body. */
+function mergeGeneratorProfileRoots(xdm, body) {
+  if (!xdm || !body || typeof body !== 'object') return;
+  if (body.person && typeof body.person === 'object' && !Array.isArray(body.person)) {
+    xdm.person = body.person;
+  }
+  if (body.homeAddress && typeof body.homeAddress === 'object' && !Array.isArray(body.homeAddress)) {
+    xdm.homeAddress = body.homeAddress;
+  }
+  if (body.personalEmail && typeof body.personalEmail === 'object' && !Array.isArray(body.personalEmail)) {
+    xdm.personalEmail = body.personalEmail;
   }
 }
 
@@ -454,6 +485,7 @@ function buildEventGeneratorXdm(reqBody, options) {
       tenantNode.identification = { core: { ecid, email: email || '' } };
     }
     mergeGeneratorPublicIntoTenant(tenantNode, body.public);
+    mergeGeneratorTenantExtras(tenantNode, body.tenant);
     mergeGeneratorInteractionDetailsChannel(tenantNode, effectiveChannel);
 
     if (shouldUseEmailPrimaryIdentity(body, tenantKey)) {
@@ -477,6 +509,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (det.name || det.URL) {
       xdm.web = { webPageDetails: { URL: det.URL, name: det.name, viewName: det.viewName || det.name } };
     }
+    mergeGeneratorProfileRoots(xdm, body);
     alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveChannel);
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
@@ -574,7 +607,9 @@ function buildEventGeneratorXdm(reqBody, options) {
     delete xdm.web;
   }
   mergeGeneratorPublicIntoTenant(xdm._demoemea, body.public);
+  mergeGeneratorTenantExtras(xdm._demoemea, body.tenant);
   mergeGeneratorInteractionDetailsChannel(xdm._demoemea, effectiveChannel);
+  mergeGeneratorProfileRoots(xdm, body);
   // Allow callers to pass arbitrary _demoemea.message.* fields (e.g. contactCentre events).
   if (body.message && typeof body.message === 'object' && !Array.isArray(body.message)) {
     if (!xdm._demoemea) xdm._demoemea = {};
@@ -645,6 +680,8 @@ module.exports = {
   buildLabFirestoreGeneratorPresets,
   alignExperienceEventFieldGroupPayloads,
   mergeGeneratorPublicIntoTenant,
+  mergeGeneratorTenantExtras,
+  mergeGeneratorProfileRoots,
   normalizeInteractionDetailsChannel,
   resolveEffectiveGeneratorChannel,
   getXdmTenantKey,

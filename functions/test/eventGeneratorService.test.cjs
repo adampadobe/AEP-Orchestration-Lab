@@ -154,3 +154,25 @@ test('buildEventGeneratorXdm fills default web page title for page view when bod
   assert.ok(xdm.web && xdm.web.webPageDetails);
   assert.equal(xdm.web.webPageDetails.name, 'AEP lab demo');
 });
+
+test('buildEventGeneratorXdm merges Sky News Insider tenant interestTypes and profile roots', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'insider.registered',
+    ecid,
+    email: 'kirkham+public-1@adobetest.com',
+    channel: 'Web',
+    tenant: {
+      interestTypes: { interests: ['sport', 'politics'] },
+    },
+    person: { name: { firstName: 'Alex', lastName: 'Kim' } },
+    homeAddress: { street1: '1 High St', city: 'London', postalCode: 'SW1A 1AA', country: 'GB' },
+    personalEmail: { address: 'kirkham+public-1@adobetest.com' },
+    public: { insider: { plan: 'monthly' } },
+  });
+  assert.deepEqual(xdm._demoemea.interestTypes.interests, ['sport', 'politics']);
+  assert.equal(xdm.person.name.firstName, 'Alex');
+  assert.equal(xdm.homeAddress.postalCode, 'SW1A 1AA');
+  assert.equal(xdm.personalEmail.address, 'kirkham+public-1@adobetest.com');
+  assert.equal(xdm._demoemea.public.insider.plan, 'monthly');
+});
