@@ -130,25 +130,13 @@
     return doc;
   }
 
-  function readScrollY() {
-    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-  }
-
-  function restoreScrollY(y) {
-    window.scrollTo(0, y);
-    requestAnimationFrame(function () {
-      window.scrollTo(0, y);
-    });
-  }
-
-  /** Update preview without moving the viewport (avoids jump-to-top in the iframe). */
+  /** Slide the fixed preview dock in without touching document scroll. */
   function showPreview(doc) {
     if (!preview || !previewJson || !previewTime) return;
-    var scrollY = readScrollY();
     previewTime.textContent = new Date().toLocaleTimeString();
     previewJson.textContent = JSON.stringify(doc, null, 2);
+    preview.hidden = false;
     preview.classList.add('show');
-    restoreScrollY(scrollY);
   }
 
   window.addEventListener('message', function (ev) {

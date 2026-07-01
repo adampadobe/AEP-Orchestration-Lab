@@ -376,23 +376,32 @@
     padding:0 2rem 2.2rem;
   }
 
-  /* ---------- Payload preview (for demo purposes) ---------- */
-  #insiderForm,
-  .shell,
+  /* ---------- Payload preview (fixed dock — does not reflow the page) ---------- */
   .preview{
-    overflow-anchor:none;
-  }
-  .preview{
-    margin:1.6rem 2rem 2.4rem;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:1000;
+    margin:0;
     background:var(--navy-deep);
-    border-radius:var(--radius);
+    border-radius:var(--radius) var(--radius) 0 0;
     color:#CFE0FF;
-    display:none;
-    max-height:min(52vh, 28rem);
+    max-height:min(46vh, 30rem);
     overflow:auto;
     overscroll-behavior:contain;
+    box-shadow:0 -10px 40px rgba(11,30,77,.28);
+    transform:translateY(110%);
+    opacity:0;
+    pointer-events:none;
+    transition:transform .22s ease, opacity .22s ease;
   }
-  .preview.show{display:block;}
+  .preview.show{
+    transform:translateY(0);
+    opacity:1;
+    pointer-events:auto;
+  }
+  .preview[hidden]{display:block !important;}
   .preview-head{
     display:flex;
     align-items:center;
