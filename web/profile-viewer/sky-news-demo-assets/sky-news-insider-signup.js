@@ -59,13 +59,8 @@
         }),
       });
     }
-    /** @type {{ accountType?: string, contractStatus: string, productHolding: string }} */
-    var media = {
-      contractStatus: CONTRACT_STATUS,
-      productHolding: 'Sky News Insider',
-    };
-    if (plan) media.accountType = plan;
-    updates.push({ path: 'media', value: media });
+    if (plan) updates.push({ path: 'media.accountType', value: plan });
+    updates.push({ path: 'media.contractStatus', value: CONTRACT_STATUS });
     return updates;
   }
 
@@ -105,7 +100,12 @@
             return { interests: String(topic) };
           }),
           media: {
-            accountType: eventPayload.public && eventPayload.public.insider ? eventPayload.public.insider.plan : '',
+            accountType: (function () {
+              var row = profileUpdates.find(function (u) {
+                return u.path === 'media.accountType';
+              });
+              return row && row.value != null ? row.value : '';
+            })(),
             contractStatus: CONTRACT_STATUS,
           },
         },

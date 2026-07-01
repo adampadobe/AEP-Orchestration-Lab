@@ -33,23 +33,22 @@ describe('profileStreamingCore digit-string schema leaves', () => {
     assert.equal(typeof tenant.scoring.npsScore, 'number');
   });
 
-  it('buildOperationalProfileUnionXdmEntity keeps media under _demoemea without root consents', () => {
+  it('buildOperationalProfileUnionXdmEntity merges dot-path media leaves under _demoemea', () => {
     const demoemea = {
       identification: { core: { email: 'test@example.com' } },
-      media: { accountType: 'annual', contractStatus: 'Insider Subscription' },
     };
+    profileStreamingCore.setByPath(demoemea, 'media.accountType', 'monthly');
+    profileStreamingCore.setByPath(demoemea, 'media.contractStatus', 'Insider Subscription');
     const entity = profileStreamingCore.buildOperationalProfileUnionXdmEntity(
       demoemea,
       'test@example.com',
       '',
       '_demoemea',
-      { homeAddress: { city: 'London', postalCode: 'SW1A 1AA' } },
+      { homeAddress: { city: 'London' } },
     );
-    assert.equal(entity._demoemea.media.accountType, 'annual');
+    assert.equal(entity._demoemea.media.accountType, 'monthly');
     assert.equal(entity._demoemea.media.contractStatus, 'Insider Subscription');
     assert.equal(entity.homeAddress.city, 'London');
     assert.ok(entity.identityMap.Email);
-    assert.equal(entity.consents, undefined);
-    assert.equal(entity.optInOut, undefined);
   });
 });

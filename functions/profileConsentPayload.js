@@ -775,6 +775,53 @@ function getProfileAgeAndHomeCityForConsent(entity, response) {
   return { age, city, addressLine, postcode };
 }
 
+function getDemoemeaMediaForConsent(entity, response) {
+  let accountType = null;
+  let contractStatus = null;
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    const tenant = root._demoemea || root.demoemea;
+    if (tenant && typeof tenant === 'object' && tenant.media && typeof tenant.media === 'object') {
+      if (accountType == null && tenant.media.accountType != null && tenant.media.accountType !== '') {
+        accountType = stringifyConsentScalar(tenant.media.accountType);
+      }
+      if (contractStatus == null && tenant.media.contractStatus != null && tenant.media.contractStatus !== '') {
+        contractStatus = stringifyConsentScalar(tenant.media.contractStatus);
+      }
+    }
+    if (accountType == null) {
+      const v = get(root, '_demoemea.media.accountType') ?? get(root, 'demoemea.media.accountType');
+      const s = stringifyConsentScalar(v);
+      if (s) accountType = s;
+    }
+    if (contractStatus == null) {
+      const v = get(root, '_demoemea.media.contractStatus') ?? get(root, 'demoemea.media.contractStatus');
+      const s = stringifyConsentScalar(v);
+      if (s) contractStatus = s;
+    }
+    if (accountType != null && contractStatus != null) break;
+  }
+  if (accountType == null || contractStatus == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const p = String(row.path || '').toLowerCase();
+        if (accountType == null && p.includes('media') && p.endsWith('.accounttype')) {
+          accountType = stringifyConsentScalar(row.value);
+        }
+        if (contractStatus == null && p.includes('media') && p.endsWith('.contractstatus')) {
+          contractStatus = stringifyConsentScalar(row.value);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return { accountType, contractStatus };
+}
+
 /**
  * @param {string} email
  * @param {object} response - raw UPS profile response
@@ -829,6 +876,10 @@ function buildConsentGetPayload(email, response) {
     addressLine: homeAddressLine,
     postcode: homePostcode,
   } = getProfileAgeAndHomeCityForConsent(entity, response);
+  const { accountType: mediaAccountType, contractStatus: mediaContractStatus } = getDemoemeaMediaForConsent(
+    entity,
+    response,
+  );
   const lastModifiedAt = entity?.lastModifiedAt ?? payload?.lastModifiedAt ?? response?.lastModifiedAt ?? null;
   const profileEmailTrim = profileEmail && String(profileEmail).trim() ? String(profileEmail).trim() : null;
   return {
@@ -841,6 +892,8 @@ function buildConsentGetPayload(email, response) {
     city: homeCity ?? null,
     addressLine: homeAddressLine ?? null,
     postcode: homePostcode ?? null,
+    mediaAccountType: mediaAccountType ?? null,
+    mediaContractStatus: mediaContractStatus ?? null,
     phone: phone ?? null,
     propensityScore: propensityScore ?? null,
     churnPrediction: churnPrediction ?? null,
