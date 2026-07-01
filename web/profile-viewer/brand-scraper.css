@@ -1007,8 +1007,42 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 }
 
 .brand-scraper-history-progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 11px;
   color: var(--dash-text-secondary);
+}
+
+.brand-scraper-activity {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.brand-scraper-activity--live {
+  color: var(--dash-success);
+  background: color-mix(in srgb, var(--dash-success) 14%, transparent);
+}
+
+.brand-scraper-activity--slow {
+  color: var(--dash-warning, #b45309);
+  background: color-mix(in srgb, var(--dash-warning, #b45309) 14%, transparent);
+}
+
+.brand-scraper-activity--stuck {
+  color: var(--dash-error);
+  background: color-mix(in srgb, var(--dash-error) 14%, transparent);
+}
+
+.brand-scraper-history-progress-fill.is-stalled {
+  background: linear-gradient(90deg, var(--dash-warning, #b45309), color-mix(in srgb, var(--dash-warning, #b45309) 60%, var(--dash-error)));
 }
 
 .brand-scraper-history-retention {

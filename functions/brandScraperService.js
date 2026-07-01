@@ -2241,7 +2241,16 @@ async function executeAnalyzePipeline({
   if (wantDemoWebsite) {
     await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Building Profile Viewer site clone from upload');
     runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Checking for existing demo folder'));
+    const demoHeartbeatMs = 22000;
+    let demoHeartbeatTimer = null;
+    const reportDemoProgress = (detail) => {
+      touchBuildPhase(sandbox, runScrapeId, 'demo', detail || 'Building Profile Viewer site clone from upload')
+        .catch(() => {});
+    };
     try {
+      demoHeartbeatTimer = setInterval(() => {
+        reportDemoProgress('Still building demo website…');
+      }, demoHeartbeatMs);
       const pvDemoMod = require('./brandScraperProfileViewerDemo');
       const fileSlug = pvDemoMod.normalizeFileSlug(
         body.customerName || recordToPersist.brandName || url,
@@ -2259,6 +2268,7 @@ async function executeAnalyzePipeline({
         sandbox,
         scrapeId: recordToPersist.scrapeId || runScrapeId,
         labOwnerHandle: body.labOwnerHandle || body.demoNavOwnerHandle || null,
+        onProgress: reportDemoProgress,
       });
       recordToPersist.demoWebsite = demoResult;
       recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';
@@ -2276,6 +2286,8 @@ async function executeAnalyzePipeline({
       recordToPersist.demoWebsite = { enabled: true, status: 'failed', demoGenerationStatus: 'failed', error: String((e && e.message) || e) };
       recordToPersist.demoGenerationStatus = 'failed';
       runSteps.push(runStepFailed('demo_status', 'Demo website generation', String((e && e.message) || e).slice(0, 300)));
+    } finally {
+      if (demoHeartbeatTimer) clearInterval(demoHeartbeatTimer);
     }
   } else {
     recordToPersist.demoGenerationStatus = 'not_requested';

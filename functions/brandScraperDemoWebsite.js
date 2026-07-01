@@ -434,6 +434,7 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
       skipLabChrome: true,
       sandbox: opts.sandbox,
       scrapeId: opts.scrapeId || record.scrapeId,
+      onProgress: opts.onProgress,
     });
     if (uploadBuilt && uploadBuilt.files && uploadBuilt.files.length) {
       return {
@@ -678,8 +679,12 @@ async function generateDemoWebsite(record, opts = {}) {
         enabled: opts.enabled,
         sandbox: opts.sandbox,
         scrapeId: opts.scrapeId || record.scrapeId,
+        onProgress: opts.onProgress,
       },
     );
+    if (typeof opts.onProgress === 'function') {
+      opts.onProgress('Uploading demo files to storage…');
+    }
     return await finalizeProfileViewerDemo(record, opts, innerResult, {
       fileSlug,
       status,

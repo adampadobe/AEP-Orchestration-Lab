@@ -824,6 +824,18 @@ async function getScrape(sandbox, id, opts = {}) {
 }
 
 const STALE_RUNNING_SCRAPE_MS = 35 * 60 * 1000;
+/** Active index row with no `updatedAt` advance — worker likely died mid-phase (demo upload, etc.). */
+const STALE_NO_HEARTBEAT_MS = 20 * 60 * 1000;
+
+function isActiveScrapeIndex(data) {
+  if (!data || typeof data !== 'object') return false;
+  const status = String(data.scrapeStatus || '');
+  if (status === 'running' || status === 'crawl_complete') return true;
+  if (data.analysisPending === true) return true;
+  const bp = data.buildPhase != null ? String(data.buildPhase) : '';
+  if (bp && bp !== 'complete' && bp !== 'cancelled') return true;
+  return false;
+}
 
 async function refreshGcsPayloadCustomTime(sandbox, scrapeId) {
   const prefix = `scrapes/${safeSlug(sandbox)}/${safeSlug(scrapeId)}/`;
@@ -957,6 +969,35 @@ async function runBrandScrapeStaleMaintenance() {
         failedStaleRunning += 1;
       }
     }
+  }
+
+  const activePhaseSnap = await db.collection(COLLECTION)
+    .where('buildPhase', 'in', ['crawl', 'brand', 'audiences', 'segments', 'demo', 'competitor', 'persist'])
+    .limit(300)
+    .get();
+  for (const doc of activePhaseSnap.docs) {
+    const d = doc.data() || {};
+    if (!isActiveScrapeIndex(d) || !d.scrapeId || !d.sandbox) continue;
+    const started = firestoreTimestampToMs(d.runStartedAt) || firestoreTimestampToMs(d.createdAt) || 0;
+    const updated = firestoreTimestampToMs(d.updatedAt) || started;
+    const phase = String(d.buildPhase || '');
+    const noHeartbeat = updated && nowMs - updated > STALE_NO_HEARTBEAT_MS;
+    const tooLong = started && nowMs - started > STALE_RUNNING_SCRAPE_MS;
+    if (!noHeartbeat && !tooLong) continue;
+    await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
+      error: noHeartbeat
+        ? `Run stalled during “${phase}” — no server heartbeat for 20+ minutes. Cancel/retry from the card.`
+        : 'Run timed out (stale). The worker did not finish within 35 minutes; cancel/retry from the card.',
+      steps: [{
+        id: 'runtime',
+        label: 'Run did not finish',
+        status: 'failed',
+        detail: noHeartbeat
+          ? `buildPhase "${phase}" with no index update since ${new Date(updated).toISOString()} (worker timeout or crash).`
+          : `Active build phase "${phase}" exceeded the wall-clock limit.`,
+      }],
+    });
+    failedStaleRunning += 1;
   }
 
   console.log(JSON.stringify({

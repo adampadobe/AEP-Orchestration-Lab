@@ -403,6 +403,9 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
     const hit = await fetchRemoteAsset(absUrl, { referer: opts.referer });
     if (!hit) continue;
     fetched += 1;
+    if (typeof opts.onProgress === 'function' && (fetched === 1 || fetched % 4 === 0)) {
+      opts.onProgress(`Fetching missing assets (${fetched}/${candidates.length})…`);
+    }
     const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, hit.contentType)}`;
     extraFiles.push({
       name: rel,
@@ -428,6 +431,7 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opt
     max: MAX_EXTERNAL_IMAGE_FETCHES,
     wallMs: EXTERNAL_IMAGE_FETCH_WALL_MS,
     referer: fetchOpts.referer,
+    onProgress: opts.onProgress,
   });
   rewritten = imagePass.html;
   extraFiles.push(...imagePass.extraFiles);
@@ -446,6 +450,7 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opt
     max: MAX_EXTERNAL_FETCHES,
     wallMs: EXTERNAL_FETCH_WALL_MS,
     referer: fetchOpts.referer,
+    onProgress: opts.onProgress,
   });
   rewritten = otherPass.html;
   extraFiles.push(...otherPass.extraFiles);
@@ -673,9 +678,14 @@ async function buildDemoFromUpload(opts) {
   html = demoPolish.stripDocumentBaseTags(html);
   html = demoPolish.promoteLazyImages(html);
   html = demoPolish.promotePictureSources(html);
+  if (typeof opts.onProgress === 'function') opts.onProgress('Inlining CSS and rewriting asset paths…');
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
-  const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, { referer: baseUrl });
+  if (typeof opts.onProgress === 'function') opts.onProgress('Fetching missing images from the live site…');
+  const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, {
+    referer: baseUrl,
+    onProgress: opts.onProgress,
+  });
   if (external.skippedExternalCount) {
     console.log('[brandScraperDemoFromUpload] skipped external asset fetch', {
       count: external.skippedExternalCount,
@@ -683,6 +693,7 @@ async function buildDemoFromUpload(opts) {
     });
   }
   html = external.html;
+  if (typeof opts.onProgress === 'function') opts.onProgress('Polishing HTML and injecting lab chrome…');
   html = demoPolish.polishDemoHtml(html);
 
   const logoAsset = await demoPolish.resolveCustomerLogoAsset(opts.record || {}, {
