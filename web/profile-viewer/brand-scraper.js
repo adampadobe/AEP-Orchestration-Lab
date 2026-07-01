@@ -555,7 +555,7 @@
   const RUN_WORKER_DEAD_MS = 16 * 60 * 1000;
 
   function scrapeRunAgeMs(row) {
-    const started = parseTimestampMs(row && row.runStartedAt) ?? parseTimestampMs(row && row.createdAt);
+    const started = effectiveRunStartedMs(row);
     return started != null ? Math.max(0, Date.now() - started) : null;
   }
 
@@ -616,13 +616,15 @@
 
   function runPillLabel(row, activeRow, runState) {
     const phase = String((row && row.buildPhase) || '');
+    if (phase === 'cancelled' || runState === 'failed') {
+      return { text: 'Cancelled', title: (row && row.scrapeError) || 'Run cancelled' };
+    }
     if (runState === 'running') return { text: 'Running…', title: 'Crawler in progress' };
     if (runState === 'crawl_complete') return { text: 'Analyzing…', title: 'Crawl saved; LLM analysis in progress' };
     if (activeRow && phase === 'demo') return { text: 'Building demo…', title: row.buildPhaseDetail || 'Building Profile Viewer site clone' };
     if (activeRow && phase === 'competitor') return { text: 'Competitor analysis…', title: row.buildPhaseDetail || 'Competitor analysis' };
     if (activeRow && phase === 'persist') return { text: 'Saving…', title: row.buildPhaseDetail || 'Saving final scrape record' };
     if (activeRow && runState === 'complete') return { text: 'Finalising…', title: 'Saving merged results' };
-    if (runState === 'failed') return { text: 'Failed', title: (row && row.scrapeError) || 'Run failed' };
     return null;
   }
 
@@ -658,9 +660,26 @@
     return null;
   }
 
+  /** Prefer runStartedAt; if index updated much later (retry after cancel), use updatedAt for this session. */
+  function effectiveRunStartedMs(row) {
+    if (!row || typeof row !== 'object') return null;
+    const runStarted = parseTimestampMs(row.runStartedAt);
+    const updated = parseTimestampMs(row.updatedAt);
+    const created = parseTimestampMs(row.createdAt);
+    const st = String(row.scrapeStatus || '');
+    if (st === 'running' || st === 'crawl_complete') {
+      if (runStarted == null && updated != null) return updated;
+      if (runStarted != null && updated != null && updated > runStarted + 120000) return updated;
+    }
+    return runStarted ?? created;
+  }
+
   function rowIndicatesActiveScrape(row) {
     if (!row || typeof row !== 'object') return false;
     const st = row.scrapeStatus;
+    const phase = row.buildPhase != null ? String(row.buildPhase) : '';
+    if (phase === 'cancelled') return false;
+    if (st === 'failed') return false;
     if (st === 'running' || st === 'crawl_complete') return true;
     if (st === 'complete') {
       if (row.analysisPending === true) return true;
@@ -2060,8 +2079,8 @@
         '</details>'
       )
       : '';
-    const runStartedMs = parseTimestampMs(it.runStartedAt) ?? parseTimestampMs(it.createdAt);
-    const runAgeMs = runStartedMs != null ? Math.max(0, Date.now() - runStartedMs) : scrapeRunAgeMs(it);
+    const runStartedMs = effectiveRunStartedMs(it);
+    const runAgeMs = runStartedMs != null ? Math.max(0, Date.now() - runStartedMs) : null;
     const noServerUpdateMs = scrapeLastServerUpdateMs(it);
     const activity = cardActivityState(it, activeRow);
     const longCrawlHint = activeRow && runAgeMs != null && runAgeMs >= RUN_LONG_CRAWL_HINT_MS &&

@@ -315,6 +315,7 @@ async function markScrapeRunning(sandbox, meta) {
       includeSummary: meta.includeSummary || null,
       scrapeStatus: 'running',
       scrapeError: null,
+      analysisPending: false,
       runStartedAt: now,
       updatedAt: now,
       hasFullRecord: hadFull,
@@ -323,6 +324,9 @@ async function markScrapeRunning(sandbox, meta) {
     tx.set(ref, {
       ...patch,
       createdAt,
+      buildPhase: admin.firestore.FieldValue.delete(),
+      buildPhaseDetail: admin.firestore.FieldValue.delete(),
+      crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
       runSteps: admin.firestore.FieldValue.delete(),
     }, { merge: true });
   });
@@ -412,7 +416,9 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
     tx.set(ref, {
       scrapeStatus: 'failed',
       scrapeError: 'Run cancelled by user. You can retry this scrape from the card.',
+      analysisPending: false,
       buildPhase: 'cancelled',
+      buildPhaseDetail: admin.firestore.FieldValue.delete(),
       crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
       runSteps: [{
         id: 'cancelled',
