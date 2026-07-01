@@ -10,6 +10,7 @@
   var NEXT_EMAIL_API = '/api/lab/generation-prefs/next-email';
   var saveTimer = null;
   var pullInFlight = null;
+  var AUTH_READY_CAP_MS = 2500;
   var syncState = {
     status: 'idle',
     lastSavedAt: null,
@@ -18,6 +19,33 @@
     error: null,
   };
   var statusTargets = [];
+
+  function capAuthWait(promise) {
+    return Promise.race([
+      promise,
+      new Promise(function (resolve) {
+        global.setTimeout(function () {
+          resolve(null);
+        }, AUTH_READY_CAP_MS);
+      }),
+    ]);
+  }
+
+  function whenAuthReady() {
+    var base;
+    if (global.AepLabSandboxSync && global.AepLabSandboxSync.whenReady) {
+      base = global.AepLabSandboxSync.whenReady.catch(function () {
+        return null;
+      });
+    } else if (global.__aepLabSyncReady && typeof global.__aepLabSyncReady.then === 'function') {
+      base = global.__aepLabSyncReady.catch(function () {
+        return null;
+      });
+    } else {
+      base = Promise.resolve(null);
+    }
+    return capAuthWait(base);
+  }
 
   function authHeaders() {
     if (global.AepLabSandboxSync && typeof global.AepLabSandboxSync.getAuthHeaders === 'function') {
@@ -70,6 +98,9 @@
     if (syncState.status === 'error') {
       return 'Server sync failed: ' + String(syncState.error || 'unknown error');
     }
+    if (syncState.status === 'local-only') {
+      return 'Using local prefs for ' + sb + ' — open Home and sign in to sync with MCP and other devices.';
+    }
     if (syncState.status === 'pulled') {
       var pulled = String(syncState.serverBaseEmail || '').trim();
       if (pulled) {
@@ -90,12 +121,14 @@
       'profile-gen-prefs-sync--saved',
       'profile-gen-prefs-sync--error',
       'profile-gen-prefs-sync--pulled',
+      'profile-gen-prefs-sync--local-only',
     );
     if (!text) return;
     if (syncState.status === 'saving') el.classList.add('profile-gen-prefs-sync--saving');
     else if (syncState.status === 'saved') el.classList.add('profile-gen-prefs-sync--saved');
     else if (syncState.status === 'error') el.classList.add('profile-gen-prefs-sync--error');
     else if (syncState.status === 'pulled') el.classList.add('profile-gen-prefs-sync--pulled');
+    else if (syncState.status === 'local-only') el.classList.add('profile-gen-prefs-sync--local-only');
   }
 
   function renderAllStatusTargets() {
@@ -173,24 +206,36 @@
 
     notifySyncState({ status: 'saving', sandbox: sb, error: null });
 
-    pullInFlight = authHeaders()
+    pullInFlight = whenAuthReady()
+      .then(function () {
+        return authHeaders();
+      })
       .then(function (headers) {
+        if (!headers || !headers.Authorization) {
+          notifySyncState({ status: 'local-only', sandbox: sb, error: null });
+          return null;
+        }
         return fetch(API + '?sandbox=' + encodeURIComponent(sb), {
           method: 'GET',
           headers: Object.assign({ Accept: 'application/json' }, headers || {}),
-        });
-      })
-      .then(function (res) {
-        return res.json().then(function (data) {
-          return { res: res, data: data };
+        }).then(function (res) {
+          return res.json().then(function (data) {
+            return { res: res, data: data };
+          });
         });
       })
       .then(function (out) {
+        if (!out) return null;
         if (!out.res.ok || !out.data || out.data.ok === false) {
+          var apiErr = (out.data && out.data.error) || ('HTTP ' + out.res.status);
+          if (out.res.status === 401 && /firebase auth or x-aep-lab-mcp-key required/i.test(String(apiErr))) {
+            notifySyncState({ status: 'local-only', sandbox: sb, error: null });
+            return null;
+          }
           notifySyncState({
             status: 'error',
             sandbox: sb,
-            error: (out.data && out.data.error) || ('HTTP ' + out.res.status),
+            error: apiErr,
           });
           return null;
         }
@@ -231,24 +276,34 @@
     var sb = String(sandbox || getSandboxName() || '').trim();
     if (!sb || !patch || typeof patch !== 'object') return Promise.resolve({ ok: false, error: 'invalid patch' });
 
-    notifySyncState({ status: 'saving', sandbox: sb, error: null });
-
-    return authHeaders()
+    return whenAuthReady()
+      .then(function () {
+        return authHeaders();
+      })
       .then(function (headers) {
+        if (!headers || !headers.Authorization) {
+          notifySyncState({ status: 'local-only', sandbox: sb, error: null });
+          return { ok: false, error: 'no-auth', localOnly: true };
+        }
+        notifySyncState({ status: 'saving', sandbox: sb, error: null });
         return fetch(API, {
           method: 'PUT',
           headers: Object.assign({ Accept: 'application/json', 'Content-Type': 'application/json' }, headers || {}),
           body: JSON.stringify(Object.assign({ sandbox: sb }, patch)),
-        });
-      })
-      .then(function (res) {
-        return res.json().then(function (data) {
-          return { res: res, data: data };
+        }).then(function (res) {
+          return res.json().then(function (data) {
+            return { res: res, data: data };
+          });
         });
       })
       .then(function (out) {
+        if (!out || out.localOnly) return out || { ok: false, error: 'no-auth', localOnly: true };
         if (!out.res.ok || !out.data || out.data.ok === false) {
           var err = (out.data && out.data.error) || ('HTTP ' + out.res.status);
+          if (out.res.status === 401 && /firebase auth or x-aep-lab-mcp-key required/i.test(String(err))) {
+            notifySyncState({ status: 'local-only', sandbox: sb, error: null });
+            return { ok: false, error: err, localOnly: true, status: out.res.status };
+          }
           notifySyncState({ status: 'error', sandbox: sb, error: err });
           return { ok: false, error: err, status: out.res.status };
         }
@@ -346,10 +401,7 @@
   }
 
   function bootPull() {
-    var authReady = global.AepLabSandboxSync && global.AepLabSandboxSync.whenReady
-      ? global.AepLabSandboxSync.whenReady.catch(function () {})
-      : Promise.resolve();
-    authReady.then(function () {
+    whenAuthReady().then(function () {
       pull(getSandboxName());
     });
   }
