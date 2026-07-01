@@ -696,6 +696,8 @@ function getDemoemeaLoyaltyLevelForConsent(entity, response) {
 function getProfileAgeAndHomeCityForConsent(entity, response) {
   let age = null;
   let city = null;
+  let addressLine = null;
+  let postcode = null;
   const roots = [];
   if (entity && typeof entity === 'object') roots.push(entity);
   for (const r of collectProfileRootCandidates(response)) {
@@ -718,9 +720,23 @@ function getProfileAgeAndHomeCityForConsent(entity, response) {
       const s = stringifyConsentScalar(v);
       if (s) city = s;
     }
-    if (age != null && city != null) break;
+    if (addressLine == null) {
+      const v =
+        get(root, 'homeAddress.street1') ??
+        root?.homeAddress?.street1 ??
+        get(root, 'homeAddress.street2') ??
+        root?.homeAddress?.street2;
+      const s = stringifyConsentScalar(v);
+      if (s) addressLine = s;
+    }
+    if (postcode == null) {
+      const v = get(root, 'homeAddress.postalCode') ?? root?.homeAddress?.postalCode;
+      const s = stringifyConsentScalar(v);
+      if (s) postcode = s;
+    }
+    if (age != null && city != null && addressLine != null && postcode != null) break;
   }
-  if (age == null || city == null) {
+  if (age == null || city == null || addressLine == null || postcode == null) {
     try {
       const rows = flattenEntityToTableRows(entity);
       for (const row of rows || []) {
@@ -739,10 +755,24 @@ function getProfileAgeAndHomeCityForConsent(entity, response) {
         if (city == null && p.includes('homeaddress') && p.endsWith('.city')) {
           city = stringifyConsentScalar(row.value);
         }
+        if (
+          addressLine == null &&
+          p.includes('homeaddress') &&
+          (p.endsWith('.street1') || p.endsWith('.street2') || p.endsWith('.addressline1'))
+        ) {
+          addressLine = stringifyConsentScalar(row.value);
+        }
+        if (
+          postcode == null &&
+          p.includes('homeaddress') &&
+          (p.endsWith('.postalcode') || p.endsWith('.postcode') || p.endsWith('.zip'))
+        ) {
+          postcode = stringifyConsentScalar(row.value);
+        }
       }
     } catch { /* ignore */ }
   }
-  return { age, city };
+  return { age, city, addressLine, postcode };
 }
 
 /**
@@ -793,7 +823,12 @@ function buildConsentGetPayload(email, response) {
   const npsScore = getNpsScoreForConsent(entity, response);
   const loyaltyStatus = getDemoemeaLoyaltyLevelForConsent(entity, response);
   const customerLifetimeValue = getCustomerLifetimeValueForConsent(entity, response);
-  const { age: profileAge, city: homeCity } = getProfileAgeAndHomeCityForConsent(entity, response);
+  const {
+    age: profileAge,
+    city: homeCity,
+    addressLine: homeAddressLine,
+    postcode: homePostcode,
+  } = getProfileAgeAndHomeCityForConsent(entity, response);
   const lastModifiedAt = entity?.lastModifiedAt ?? payload?.lastModifiedAt ?? response?.lastModifiedAt ?? null;
   const profileEmailTrim = profileEmail && String(profileEmail).trim() ? String(profileEmail).trim() : null;
   return {
@@ -804,6 +839,8 @@ function buildConsentGetPayload(email, response) {
     gender: gender || null,
     age: profileAge ?? null,
     city: homeCity ?? null,
+    addressLine: homeAddressLine ?? null,
+    postcode: homePostcode ?? null,
     phone: phone ?? null,
     propensityScore: propensityScore ?? null,
     churnPrediction: churnPrediction ?? null,

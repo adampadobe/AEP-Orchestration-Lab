@@ -3357,6 +3357,8 @@ async function loadProfileDataForDrawer(email, options) {
       gender: data.gender != null && data.gender !== '' ? data.gender : null,
       age: data.age != null && data.age !== '' ? data.age : null,
       city: data.city != null && data.city !== '' ? data.city : null,
+      addressLine: data.addressLine != null && data.addressLine !== '' ? data.addressLine : null,
+      postcode: data.postcode != null && data.postcode !== '' ? data.postcode : null,
       propensityScore: data.propensityScore != null && data.propensityScore !== '' ? data.propensityScore : null,
       churnPrediction: data.churnPrediction != null && data.churnPrediction !== '' ? data.churnPrediction : null,
       npsScore: normalizeDrawerNpsScore(data.npsScore),

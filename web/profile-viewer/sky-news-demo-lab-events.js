@@ -307,8 +307,8 @@
         lastName: profile.lastName || '',
         email: profile.email || getEmail().trim() || '',
         city: profile.city || '',
-        addressLine: '',
-        postcode: '',
+        addressLine: profile.addressLine || '',
+        postcode: profile.postcode || '',
       };
     }
 
@@ -353,6 +353,10 @@
         global.setTimeout(postProfilePrefillToFrame, 300);
       });
     }
+
+    global.addEventListener('aep-profile-drawer-loaded', function () {
+      postProfilePrefillToFrame();
+    });
 
     async function loadGeneratorTargets() {
       if (!generatorTargetSelect) return;
