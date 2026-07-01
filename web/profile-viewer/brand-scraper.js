@@ -2191,6 +2191,35 @@
    * opts.onTerminal(row, st, timedOut)
    * opts.progressPhases — optional; syncs progress bar label with Firestore status during async runs.
    */
+  function findFirstActiveScrapeRow() {
+    return historyItemsCache.find(rowIndicatesActiveScrape) || null;
+  }
+
+  /** After refresh or when returning to the page, keep watching in-flight scrapes. */
+  function maybeResumeActiveScrapePoll() {
+    if (scrapePollTimer || pendingAsyncScrapeId) return;
+    const active = findFirstActiveScrapeRow();
+    if (!active || !active.scrapeId) return;
+    if (!progressBottomDockEnabled) {
+      progressBottomDockEnabled = true;
+      setBottomDockVisible(true);
+      if (progressEl) progressEl.hidden = true;
+      applyProgressWidthsPct(cardProgressPercent(active) + '%');
+      setProgressPhaseBoth(cardProgressLabel(active));
+    }
+    startScrapePoll(active.scrapeId, {
+      onTerminal: function (row, st, timedOut) {
+        pendingAsyncScrapeId = null;
+        if (st === 'complete' && row && !timedOut) {
+          stopProgress({ success: true });
+        } else {
+          stopProgress();
+        }
+        loadHistory();
+      },
+    });
+  }
+
   function startScrapePoll(expectedId, opts) {
     opts = opts || {};
     if (!expectedId) return;
@@ -2221,7 +2250,10 @@
       }
       const st = row && row.scrapeStatus;
       const bp = row && row.buildPhase ? String(row.buildPhase) : '';
-      if (progressPhases) {
+      if (row && rowIndicatesActiveScrape(row)) {
+        applyProgressWidthsPct(cardProgressPercent(row) + '%');
+        setProgressPhaseBoth(cardProgressLabel(row));
+      } else if (progressPhases) {
         if (st === 'running' && !bp) {
           const base = progressPhases[0] || 'Crawling pages…';
           const hb = row && row.crawlHeartbeatDetail ? (' ' + String(row.crawlHeartbeatDetail)) : '';
@@ -2285,6 +2317,7 @@
       }
       historyItemsCache = Array.isArray(data.items) ? data.items : [];
       renderHistory(historyItemsCache);
+      if (!quiet) maybeResumeActiveScrapePoll();
     } catch (e) {
       if (!quiet) historyEmptyEl.textContent = 'Network error: ' + (e && e.message || e);
       historyItemsCache = [];
