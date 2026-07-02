@@ -551,8 +551,8 @@
   /** Demo / upload build can run several minutes; warn if index stops advancing. */
   const RUN_DEMO_SLOW_MS = 3 * 60 * 1000;
   const RUN_DEMO_STUCK_MS = 8 * 60 * 1000;
-  /** Cloud Function analyse timeout is 30m — no heartbeat past this means the worker is gone. */
-  const RUN_WORKER_DEAD_MS = 31 * 60 * 1000;
+  /** Cloud Function analyse timeout is 60m — no heartbeat past this means the worker is gone. */
+  const RUN_WORKER_DEAD_MS = 62 * 60 * 1000;
 
   function scrapeRunAgeMs(row) {
     const started = effectiveRunStartedMs(row);
@@ -660,9 +660,15 @@
     return null;
   }
 
-  /** Prefer runStartedAt; if index updated much later (retry after cancel), use updatedAt for this session. */
+  /** Prefer runStartedAt; demo build uses buildPhaseStartedAt after analysis checkpoint. */
   function effectiveRunStartedMs(row) {
     if (!row || typeof row !== 'object') return null;
+    const phase = String(row.buildPhase || '');
+    if (phase === 'demo' || phase === 'prep') {
+      const demoStarted = parseTimestampMs(row.demoBuildStartedAt)
+        || parseTimestampMs(row.buildPhaseStartedAt);
+      if (demoStarted != null) return demoStarted;
+    }
     const runStarted = parseTimestampMs(row.runStartedAt);
     const updated = parseTimestampMs(row.updatedAt);
     const created = parseTimestampMs(row.createdAt);
@@ -699,8 +705,9 @@
     if (phase === 'brand') return 52;
     if (phase === 'audiences') return 68;
     if (phase === 'segments') return 78;
-    if (phase === 'demo') return 88;
-    if (phase === 'competitor') return 93;
+    if (phase === 'prep') return 82;
+    if (phase === 'competitor') return 86;
+    if (phase === 'demo') return 92;
     if (phase === 'persist') return 97;
     if (st === 'crawl_complete') return 94;
     return 96;
@@ -718,8 +725,9 @@
     if (phase === 'brand') return 'Generating audiences';
     if (phase === 'audiences') return detail || 'Generating audiences';
     if (phase === 'segments') return detail || 'Finishing analysis prep';
-    if (phase === 'demo') return detail || 'Building demo website';
+    if (phase === 'prep') return detail || 'Analysis complete — starting demo build';
     if (phase === 'competitor') return detail || 'Competitor analysis';
+    if (phase === 'demo') return detail || 'Building demo website';
     if (phase === 'persist') return detail || 'Saving scrape';
     if (st === 'crawl_complete') return 'Finalizing';
     return 'Running';
@@ -779,7 +787,7 @@
   }
 
   function estimateAnalyzeDurationMs(opts) {
-    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry → demo → competitor.
+    // Server runs phases sequentially: brand → audiences → segments → (competitor if demo) → demo → persist.
     let crawl = opts.crawler === 'js' ? 18 : 6;
     const inc = opts.include || {};
     if (inc.tagAudit !== false && opts.crawler === 'js') crawl += 3;
@@ -788,9 +796,12 @@
     const trioWall = trio === 0 ? 0 : 32 + (trio - 1) * 2;
     const segmentsWall = inc.segments ? 28 : 8;
     const industryWall = inc.analysis !== false ? 4 : 0;
-    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 300 : 120) : 0;
     const competitorWall = inc.llmDemoConfig !== false ? 90 : 0;
-    return (crawl + brandWall + trioWall + segmentsWall + industryWall + demoWall + competitorWall) * 1000;
+    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 300 : 120) : 0;
+    const orderWall = inc.demoWebsite && inc.llmDemoConfig !== false
+      ? competitorWall + demoWall
+      : demoWall + competitorWall;
+    return (crawl + brandWall + trioWall + segmentsWall + industryWall + orderWall) * 1000;
   }
 
   function startProgress(totalMs, phases, startOpts) {
@@ -1980,9 +1991,10 @@
           buildPhase === 'crawl' ? 'crawl saved; starting brand core.' :
             buildPhase === 'brand' ? 'brand guidelines saved; running audiences.' :
               buildPhase === 'audiences' ? 'audiences saved; running segments & industry.' :
-                buildPhase === 'segments' ? 'segments saved; demo website & competitor analysis may follow.' :
-                  buildPhase === 'demo' ? (data.buildPhaseDetail || 'building demo website from upload.') :
-                    buildPhase === 'competitor' ? (data.buildPhaseDetail || 'running competitor analysis.') :
+                buildPhase === 'segments' ? 'segments saved; competitor analysis and demo build may follow.' :
+                buildPhase === 'prep' ? (data.buildPhaseDetail || 'analysis complete — starting demo build session.') :
+                  buildPhase === 'competitor' ? (data.buildPhaseDetail || 'running competitor analysis before demo build.') :
+                    buildPhase === 'demo' ? (data.buildPhaseDetail || 'demo build session — using saved upload files.') :
                       buildPhase === 'persist' ? (data.buildPhaseDetail || 'saving final scrape record.') :
                         'saving\u2026',
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'

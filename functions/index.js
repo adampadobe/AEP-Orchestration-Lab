@@ -2716,7 +2716,7 @@ exports.brandScraperAnalyze = onRequest(
   {
     region: REGION,
     invoker: 'public',
-    timeoutSeconds: 1800,
+    timeoutSeconds: 3600,
     memory: '2GiB',
   },
   async (req, res) => {

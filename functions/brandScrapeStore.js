@@ -9,7 +9,7 @@
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
  *       lastExport, createdAt, updatedAt,
  *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
- *       buildPhase ('crawl' | 'brand' | 'audiences' | 'segments' | 'demo' | 'competitor' | 'persist' | 'complete') — progressive build; optional on legacy rows,
+ *       buildPhase ('crawl' | 'brand' | 'audiences' | 'segments' | 'prep' | 'demo' | 'competitor' | 'persist' | 'complete') — progressive build; optional on legacy rows,
  *       buildPhaseDetail (string, optional) — human-readable sub-step for list/poll UI,
  *       runSteps: [{ id, label, status: 'ok'|'failed'|'skipped', detail? }] — last-fail trace,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
@@ -436,7 +436,7 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
 /**
  * Lightweight Firestore-only progress update (no GCS rewrite) during long post-LLM steps.
  */
-async function patchScrapeBuildPhase(sandbox, scrapeId, { buildPhase, buildPhaseDetail, resetRunClock } = {}) {
+async function patchScrapeBuildPhase(sandbox, scrapeId, { buildPhase, buildPhaseDetail, resetRunClock, demoSession } = {}) {
   const name = String(sandbox || '').trim();
   const sid = String(scrapeId || '').trim();
   if (!name || !sid) return false;
@@ -451,12 +451,17 @@ async function patchScrapeBuildPhase(sandbox, scrapeId, { buildPhase, buildPhase
   if (resetRunClock === true) {
     patch.runStartedAt = now;
   }
+  if (demoSession === true || (resetRunClock === true && buildPhase === 'demo')) {
+    patch.demoBuildStartedAt = now;
+    patch.crawlHeartbeatDetail = admin.firestore.FieldValue.delete();
+  }
   if (buildPhaseDetail != null) {
     patch.buildPhaseDetail = String(buildPhaseDetail).trim().slice(0, 200);
   }
   if (buildPhase === 'complete') {
     patch.buildPhaseDetail = admin.firestore.FieldValue.delete();
     patch.buildPhaseStartedAt = admin.firestore.FieldValue.delete();
+    patch.demoBuildStartedAt = admin.firestore.FieldValue.delete();
   }
   const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
   await ref.set(patch, { merge: true });
@@ -842,6 +847,35 @@ const STALE_RUNNING_SCRAPE_MS = 45 * 60 * 1000;
 const STALE_NO_HEARTBEAT_MS = 20 * 60 * 1000;
 /** Per build-phase wall clock when `buildPhaseStartedAt` is set (demo upload, etc.). */
 const STALE_BUILD_PHASE_MS = 32 * 60 * 1000;
+/** Demo build session (after analysis checkpoint + run clock reset) — longer for large save-page ZIP uploads. */
+const STALE_DEMO_PHASE_MS = 38 * 60 * 1000;
+
+/**
+ * @param {object} data Firestore index row
+ * @param {number} nowMs
+ * @returns {{ noHeartbeat: boolean, tooLong: boolean, tooLongRun: boolean, tooLongPhase: boolean, phase: string }}
+ */
+function evaluateStaleActivePhase(data, nowMs) {
+  const started = firestoreTimestampToMs(data.runStartedAt) || firestoreTimestampToMs(data.createdAt) || 0;
+  const phaseStarted = firestoreTimestampToMs(data.buildPhaseStartedAt)
+    || firestoreTimestampToMs(data.demoBuildStartedAt)
+    || started;
+  const updated = firestoreTimestampToMs(data.updatedAt) || started;
+  const phase = String(data.buildPhase || '');
+  const isDemoPhase = phase === 'demo' || phase === 'prep';
+  const phaseLimitMs = isDemoPhase ? STALE_DEMO_PHASE_MS : STALE_BUILD_PHASE_MS;
+  const noHeartbeat = !!(updated && nowMs - updated > STALE_NO_HEARTBEAT_MS);
+  const tooLongRun = !isDemoPhase && !!(started && nowMs - started > STALE_RUNNING_SCRAPE_MS);
+  const tooLongPhase = !!(phaseStarted && nowMs - phaseStarted > phaseLimitMs);
+  return {
+    noHeartbeat,
+    tooLong: noHeartbeat || tooLongRun || tooLongPhase,
+    tooLongRun,
+    tooLongPhase,
+    phase,
+    isDemoPhase,
+  };
+}
 
 function isActiveScrapeIndex(data) {
   if (!data || typeof data !== 'object') return false;
@@ -988,34 +1022,28 @@ async function runBrandScrapeStaleMaintenance() {
   }
 
   const activePhaseSnap = await db.collection(COLLECTION)
-    .where('buildPhase', 'in', ['crawl', 'brand', 'audiences', 'segments', 'demo', 'competitor', 'persist'])
+    .where('buildPhase', 'in', ['crawl', 'brand', 'audiences', 'segments', 'prep', 'demo', 'competitor', 'persist'])
     .limit(300)
     .get();
   for (const doc of activePhaseSnap.docs) {
     const d = doc.data() || {};
     if (!isActiveScrapeIndex(d) || !d.scrapeId || !d.sandbox) continue;
-    const started = firestoreTimestampToMs(d.runStartedAt) || firestoreTimestampToMs(d.createdAt) || 0;
-    const phaseStarted = firestoreTimestampToMs(d.buildPhaseStartedAt) || started;
-    const updated = firestoreTimestampToMs(d.updatedAt) || started;
-    const phase = String(d.buildPhase || '');
-    const noHeartbeat = updated && nowMs - updated > STALE_NO_HEARTBEAT_MS;
-    const tooLongRun = started && nowMs - started > STALE_RUNNING_SCRAPE_MS;
-    const tooLongPhase = phaseStarted && nowMs - phaseStarted > STALE_BUILD_PHASE_MS;
-    const tooLong = tooLongRun || tooLongPhase;
-    if (!noHeartbeat && !tooLong) continue;
+    const stale = evaluateStaleActivePhase(d, nowMs);
+    if (!stale.tooLong) continue;
+    const updated = firestoreTimestampToMs(d.updatedAt) || 0;
     await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
-      error: noHeartbeat
-        ? `Run stalled during “${phase}” — no server heartbeat for 20+ minutes. Cancel/retry from the card.`
+      error: stale.noHeartbeat
+        ? `Run stalled during “${stale.phase}” — no server heartbeat for 20+ minutes. Cancel/retry from the card.`
         : 'Run timed out (stale). The worker did not finish within 45 minutes; cancel/retry from the card.',
       steps: [{
         id: 'runtime',
         label: 'Run did not finish',
         status: 'failed',
-        detail: noHeartbeat
-          ? `buildPhase "${phase}" with no index update since ${new Date(updated).toISOString()} (worker timeout or crash).`
-          : tooLongPhase && !tooLongRun
-            ? `Active build phase "${phase}" exceeded the phase time limit.`
-            : `Active build phase "${phase}" exceeded the wall-clock limit.`,
+        detail: stale.noHeartbeat
+          ? `buildPhase "${stale.phase}" with no index update since ${new Date(updated).toISOString()} (worker timeout or crash).`
+          : stale.tooLongPhase && !stale.tooLongRun
+            ? `Active build phase "${stale.phase}" exceeded the phase time limit.`
+            : `Active build phase "${stale.phase}" exceeded the wall-clock limit.`,
       }],
     });
     failedStaleRunning += 1;
@@ -1072,6 +1100,8 @@ module.exports = {
   hasRealPayload,
   computeInitialPayloadRetentionExpiresAtMs,
   derivePayloadRetentionExpiresAtMsFromIndex,
+  evaluateStaleActivePhase,
+  STALE_DEMO_PHASE_MS,
   DEFAULT_PAYLOAD_RETENTION_MS,
   IMAGE_ARTIFACT_MAX_AGE_MS,
 };

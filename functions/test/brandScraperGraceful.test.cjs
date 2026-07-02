@@ -676,6 +676,37 @@ describe('brandScraperDemoFromUpload', () => {
   });
 });
 
+describe('brandScrapeStore demo session stale checks', () => {
+  const store = require('../brandScrapeStore');
+
+  it('demo phase ignores old global runStartedAt after session reset', () => {
+    const now = Date.now();
+    const row = {
+      buildPhase: 'demo',
+      runStartedAt: new Date(now - 50 * 60 * 1000).toISOString(),
+      buildPhaseStartedAt: new Date(now - 5 * 60 * 1000).toISOString(),
+      updatedAt: new Date(now - 30 * 1000).toISOString(),
+    };
+    const stale = store.evaluateStaleActivePhase(row, now);
+    assert.equal(stale.tooLongRun, false);
+    assert.equal(stale.tooLongPhase, false);
+    assert.equal(stale.tooLong, false);
+  });
+
+  it('demo phase fails when demo session exceeds phase limit', () => {
+    const now = Date.now();
+    const row = {
+      buildPhase: 'demo',
+      runStartedAt: new Date(now - 10 * 60 * 1000).toISOString(),
+      buildPhaseStartedAt: new Date(now - (store.STALE_DEMO_PHASE_MS + 60000)).toISOString(),
+      updatedAt: new Date(now - 30 * 1000).toISOString(),
+    };
+    const stale = store.evaluateStaleActivePhase(row, now);
+    assert.equal(stale.tooLongPhase, true);
+    assert.equal(stale.tooLong, true);
+  });
+});
+
 describe('brandScraperProfileViewerDemo nav ownership', () => {
   const pvDemo = require('../brandScraperProfileViewerDemo');
 

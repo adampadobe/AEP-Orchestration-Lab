@@ -59,11 +59,11 @@ const MAX_QUEUE_URLS = 120;
 /** Hard stop for fetch crawl wall time so the function can reach LLM phases within CF budget. */
 const MAX_CRAWL_WALL_MS = 240000;
 /**
- * Must stay aligned with `exports.brandScraperAnalyze` timeoutSeconds in functions/index.js (1800).
+ * Must stay aligned with `exports.brandScraperAnalyze` timeoutSeconds in functions/index.js (3600).
  * Crawl retries used to run many sequential 240s passes and exceed the CF hard kill — Firestore stayed
  * `running` until stale cleanup (~45m). Reserve wall time for checkpoints + LLM + demo after crawl.
  */
-const ANALYZE_FN_TIMEOUT_MS = 1800000;
+const ANALYZE_FN_TIMEOUT_MS = 3600000;
 const ANALYZE_POST_CRAWL_RESERVE_BASE_MS = 200000;
 const ANALYZE_MIN_CRAWL_BUDGET_MS = 120000;
 
@@ -1541,14 +1541,86 @@ async function touchBuildPhase(sandbox, scrapeId, buildPhase, buildPhaseDetail, 
     buildPhase,
     buildPhaseDetail: buildPhaseDetail ? String(buildPhaseDetail).slice(0, 120) : undefined,
     resetRunClock: opts.resetRunClock === true,
+    demoSession: opts.demoSession === true,
   });
   await brandScrapeStore.patchScrapeBuildPhase(sandbox, scrapeId, {
     buildPhase,
     buildPhaseDetail,
     resetRunClock: opts.resetRunClock === true,
+    demoSession: opts.demoSession === true,
   }).catch((e) => {
     console.warn('[brandScraper] patch buildPhase failed', scrapeId, buildPhase, String((e && e.message) || e));
   });
+}
+
+/**
+ * When demo website is requested, run all analysis steps first, checkpoint, then start a fresh
+ * demo-build session (run clock reset) so stale cleanup and UI timers treat upload build separately.
+ */
+async function beginDemoBuildSession(sandbox, scrapeId, recordToPersist, { runSteps } = {}) {
+  recordToPersist.demoGenerationStatus = 'pending';
+  try {
+    await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
+      checkpoint: true,
+      buildPhase: 'prep',
+      buildPhaseDetail: 'Analysis complete — starting demo build session',
+    });
+    if (runSteps) {
+      runSteps.push(runStepOk('checkpoint_prep', 'Analysis checkpoint saved', 'Guidelines and uploads preserved before demo build'));
+    }
+  } catch (e) {
+    console.warn('[brandScraper] pre-demo checkpoint failed', scrapeId, String((e && e.message) || e));
+    if (runSteps) {
+      runSteps.push(runStepFailed('checkpoint_prep', 'Pre-demo checkpoint', String((e && e.message) || e).slice(0, 300)));
+    }
+  }
+  await touchBuildPhase(
+    sandbox,
+    scrapeId,
+    'demo',
+    'Demo build session started — using saved upload files',
+    { resetRunClock: true, demoSession: true },
+  );
+  analyzePipelineLog(scrapeId, 'demo_session_start', { sandbox });
+}
+
+async function runCompetitorAnalysisPhase({
+  sandbox,
+  scrapeId,
+  recordToPersist,
+  competitorMode,
+  runSteps,
+}) {
+  await touchBuildPhase(sandbox, scrapeId, 'competitor', 'Competitor analysis & LLM demo config');
+  try {
+    if (competitorMode === 'skipped') {
+      recordToPersist.llmDemoConfig = {
+        skipped: true,
+        reason: 'Competitor analysis needs either accessible website content or uploaded HTML.',
+        competitorMode: 'skipped',
+      };
+      runSteps.push(runStepSkipped('llmDemoConfig', 'Competitor analysis', recordToPersist.llmDemoConfig.reason));
+    } else {
+      recordToPersist.llmDemoConfig = await llmDemoPersonalizeService.buildLlmDemoConfigForRecord(recordToPersist, {
+        partialMode: competitorMode === 'partial',
+      });
+      recordToPersist.llmDemoConfig.competitorMode = competitorMode;
+      if (competitorMode === 'partial') {
+        recordToPersist.llmDemoConfig.partial = true;
+        runSteps.push(runStepOk('llmDemoConfig', 'Competitor analysis (partial)', 'Grounded in partial crawl/upload content'));
+      } else {
+        runSteps.push(runStepOk('llmDemoConfig', 'Competitor analysis', 'Completed'));
+      }
+    }
+  } catch (e) {
+    console.warn('[brandScraperAnalyze] llmDemoConfig build failed', {
+      sandbox,
+      scrapeId: recordToPersist.scrapeId || scrapeId,
+      error: String((e && e.message) || e),
+    });
+    runSteps.push(runStepFailed('llmDemoConfig', 'Competitor analysis', String((e && e.message) || e).slice(0, 300)));
+  }
+  return recordToPersist;
 }
 
 function runStepOk(id, label, detail) {
@@ -2071,9 +2143,6 @@ async function executeAnalyzePipeline({
     runSteps.push(runStepSkipped('stakeholders', 'Stakeholders', skipReason));
     runSteps.push(runStepSkipped('segments', 'Audience segments', skipReason));
     runSteps.push(runStepSkipped('industry', 'Industry classification', recordClassification.reason));
-    if (wantDemoWebsite) {
-      await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Crawl saved — building demo website from upload', { resetRunClock: true });
-    }
   } else {
   analyzePipelineLog(runScrapeId, 'llm_start', { sandbox });
 
@@ -2240,9 +2309,20 @@ async function executeAnalyzePipeline({
   recordToPersist.sourceBadges = sourceBadges;
   recordToPersist.warnings = warnings;
 
+  const wantCompetitor = inc('llmDemoConfig');
+  if (wantCompetitor && wantDemoWebsite) {
+    recordToPersist = await runCompetitorAnalysisPhase({
+      sandbox,
+      scrapeId: runScrapeId,
+      recordToPersist,
+      competitorMode,
+      runSteps,
+    });
+  }
+
   if (wantDemoWebsite) {
-    await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Building Profile Viewer site clone from upload', { resetRunClock: true });
-    runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Checking for existing demo folder'));
+    await beginDemoBuildSession(sandbox, runScrapeId, recordToPersist, { runSteps });
+    runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Fresh demo build session after analysis'));
     const demoHeartbeatMs = 15000;
     let demoHeartbeatTimer = null;
     let lastDemoProgressDetail = 'Building Profile Viewer site clone from upload';
@@ -2297,36 +2377,14 @@ async function executeAnalyzePipeline({
     recordToPersist.demoGenerationStatus = 'not_requested';
   }
 
-  if (inc('llmDemoConfig')) {
-    await touchBuildPhase(sandbox, runScrapeId, 'competitor', 'Competitor analysis & LLM demo config');
-    try {
-      if (competitorMode === 'skipped') {
-        recordToPersist.llmDemoConfig = {
-          skipped: true,
-          reason: 'Competitor analysis needs either accessible website content or uploaded HTML.',
-          competitorMode: 'skipped',
-        };
-        runSteps.push(runStepSkipped('llmDemoConfig', 'Competitor analysis', recordToPersist.llmDemoConfig.reason));
-      } else {
-        recordToPersist.llmDemoConfig = await llmDemoPersonalizeService.buildLlmDemoConfigForRecord(recordToPersist, {
-          partialMode: competitorMode === 'partial',
-        });
-        recordToPersist.llmDemoConfig.competitorMode = competitorMode;
-        if (competitorMode === 'partial') {
-          recordToPersist.llmDemoConfig.partial = true;
-          runSteps.push(runStepOk('llmDemoConfig', 'Competitor analysis (partial)', 'Grounded in partial crawl/upload content'));
-        } else {
-          runSteps.push(runStepOk('llmDemoConfig', 'Competitor analysis', 'Completed'));
-        }
-      }
-    } catch (e) {
-      console.warn('[brandScraperAnalyze] llmDemoConfig build failed', {
-        sandbox,
-        scrapeId: recordToPersist.scrapeId,
-        error: String((e && e.message) || e),
-      });
-      runSteps.push(runStepFailed('llmDemoConfig', 'Competitor analysis', String((e && e.message) || e).slice(0, 300)));
-    }
+  if (wantCompetitor && !wantDemoWebsite) {
+    recordToPersist = await runCompetitorAnalysisPhase({
+      sandbox,
+      scrapeId: runScrapeId,
+      recordToPersist,
+      competitorMode,
+      runSteps,
+    });
   }
 
   await touchBuildPhase(sandbox, runScrapeId, 'persist', 'Saving final scrape record');
