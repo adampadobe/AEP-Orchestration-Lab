@@ -22,7 +22,7 @@
     return 'https://us-central1-' + pid + '.cloudfunctions.net';
   }
   function directCfAnalyzeUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
-  function directCfDemoBuildUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperDemoBuild'; }
+  function directCfDemoBuildUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
   function directCfClassifyUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperClassify'; }
   function directCfExportUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperExport'; }
 

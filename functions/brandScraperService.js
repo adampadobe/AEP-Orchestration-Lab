@@ -2767,6 +2767,12 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     return;
   }
 
+  /** Dedicated demo build worker — same CF export, separate HTTP invocation (fresh 60 min budget). */
+  if (body.mode === 'demo_build' || body.demoBuildOnly === true) {
+    await handleDemoBuild(req, res);
+    return;
+  }
+
   const scope = await resolveScope(req);
   if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   const sandbox = scope.storageScope;

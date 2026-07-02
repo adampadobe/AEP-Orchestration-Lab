@@ -107,7 +107,7 @@
       {
         "source": "/api/brand-scraper/demo-build",
         "function": {
-          "functionId": "brandScraperDemoBuild",
+          "functionId": "brandScraperAnalyze",
           "region": "us-central1"
         }
       },
