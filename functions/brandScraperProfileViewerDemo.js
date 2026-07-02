@@ -438,11 +438,15 @@ async function saveGcsObjectWithRetry(file, content, options, maxAttempts = 4) {
   throw lastErr;
 }
 
-async function uploadProfileViewerDemoFiles(fileSlug, files) {
+async function uploadProfileViewerDemoFiles(fileSlug, files, opts = {}) {
   const bucket = getBucket();
   const list = files || [];
   const CONCURRENCY = 4;
   for (let i = 0; i < list.length; i += CONCURRENCY) {
+    const done = Math.min(i + CONCURRENCY, list.length);
+    if (typeof opts.onProgress === 'function') {
+      opts.onProgress(`Uploading demo files (${done}/${list.length})…`);
+    }
     const batch = list.slice(i, i + CONCURRENCY);
     await Promise.all(batch.map(async (f) => {
       const size = f.content && f.content.length ? f.content.length : 0;

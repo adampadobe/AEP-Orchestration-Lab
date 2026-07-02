@@ -537,7 +537,9 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
     files,
   });
 
-  await pvDemo.uploadProfileViewerDemoFiles(fileSlug, files);
+  await pvDemo.uploadProfileViewerDemoFiles(fileSlug, files, {
+    onProgress: opts.onProgress,
+  });
   const wroteLocal = pvDemo.writeLocalProfileViewerDemoFiles(fileSlug, files);
 
   const navEntry = pvDemo.buildNavEntry({
@@ -682,9 +684,6 @@ async function generateDemoWebsite(record, opts = {}) {
         onProgress: opts.onProgress,
       },
     );
-    if (typeof opts.onProgress === 'function') {
-      opts.onProgress('Uploading demo files to storage…');
-    }
     return await finalizeProfileViewerDemo(record, opts, innerResult, {
       fileSlug,
       status,

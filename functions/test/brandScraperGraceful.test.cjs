@@ -593,6 +593,58 @@ describe('brandScraperDemoFromUpload', () => {
     assert.equal(resolved, 'page-files/Iran_-Utility-Bar.jpg');
   });
 
+  it('shouldSkipExternalAssetFetch for save-page ZIP bundles', () => {
+    const prefix = 'The Telegraph_files/';
+    const entries = [{ name: 'The Telegraph.html', content: Buffer.from('<html></html>'), isHtml: true }];
+    for (let i = 0; i < 20; i += 1) {
+      entries.push({ name: `${prefix}asset-${i}.jpg`, content: Buffer.from('x') });
+    }
+    const picked = { name: 'The Telegraph.html', entry: entries[0] };
+    assert.equal(demoFromUpload.shouldSkipExternalAssetFetch(entries, picked), true);
+    assert.equal(demoFromUpload.shouldSkipExternalAssetFetch([entries[0]], picked), false);
+  });
+
+  it('fetchAndRewriteCandidates reports attempt progress not just successes', async () => {
+    const originalFetch = global.fetch;
+    let calls = 0;
+    global.fetch = async () => {
+      calls += 1;
+      if (calls <= 3) {
+        return {
+          ok: false,
+          status: 404,
+          arrayBuffer: async () => new ArrayBuffer(0),
+          headers: { get: () => '' },
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Buffer.from('img'),
+        headers: { get: () => 'image/png' },
+      };
+    };
+    const progress = [];
+    try {
+      const result = await demoFromUpload.fetchAndRewriteCandidates('<html></html>', [
+        'https://example.com/1.png',
+        'https://example.com/2.png',
+        'https://example.com/3.png',
+        'https://example.com/4.png',
+      ], {
+        max: 10,
+        wallMs: 60000,
+        onProgress: (msg) => progress.push(msg),
+      });
+      assert.equal(result.attempted, 4);
+      assert.equal(result.fetched, 1);
+      assert.ok(progress.some((m) => /\(4\/4/.test(m)));
+      assert.ok(progress.some((m) => /1 fetched/.test(m)));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it('promoteParticleVideoPosters replaces particle iframe shells with bundled poster images', () => {
     const particleName = 'page-files/particle-1.html';
     const posterName = 'page-files/video-thumb.jpg';

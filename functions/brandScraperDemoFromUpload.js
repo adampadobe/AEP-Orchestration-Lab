@@ -30,6 +30,8 @@ const AD_IFRAME_HTML_HEAD_RE = /2mdn\.net|sadbundle|doubleclick|Template_H5|Enab
 const SAVE_PAGE_FILES_DIR_RE = /_files\//i;
 /** Short GCS-safe folder for browser "Web Page, Complete" companion assets. */
 const SAVE_PAGE_CANON_DIR = 'page-files';
+/** Save-page ZIPs already include a local asset folder — skip slow live-site fetches. */
+const MIN_SAVE_PAGE_ASSETS_TO_SKIP_EXTERNAL = 15;
 
 function htmlEntryHead(entry) {
   if (!entry || !entry.content || !entry.content.length) return '';
@@ -403,6 +405,29 @@ function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
   return { images: [...images], other: [...other] };
 }
 
+/**
+ * Browser "Web Page, Complete" uploads ship hundreds of local assets — fetching
+ * remaining live-site URLs is slow and causes demo-phase timeouts.
+ */
+function shouldSkipExternalAssetFetch(entries, picked) {
+  if (!picked || !picked.name) return false;
+  const filtered = filterSavePageEntries(entries || [], picked);
+  const rootName = posixNorm(picked.name);
+  if (!rootName || rootName.includes('/')) return false;
+  const hasLocalAssetFolder = filtered.some((e) => {
+    const n = posixNorm(e && e.name);
+    return n && (n.includes('_files/') || n.startsWith(`${SAVE_PAGE_CANON_DIR}/`));
+  });
+  if (!hasLocalAssetFolder) return false;
+  const localAssets = filtered.filter((e) => {
+    if (!e || !e.name || !e.content || !e.content.length) return false;
+    const n = posixNorm(e.name);
+    if (n === rootName) return false;
+    return n.includes('_files/') || n.startsWith(`${SAVE_PAGE_CANON_DIR}/`);
+  });
+  return localAssets.length >= MIN_SAVE_PAGE_ASSETS_TO_SKIP_EXTERNAL;
+}
+
 async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
   const extraFiles = [];
   let rewritten = html;
@@ -410,16 +435,30 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
   const wallMs = opts.wallMs || EXTERNAL_FETCH_WALL_MS;
   const started = Date.now();
   let fetched = 0;
+  let attempted = 0;
+  const total = candidates.length;
+  let lastProgressAt = 0;
+
+  const reportProgress = (force) => {
+    if (typeof opts.onProgress !== 'function' || !total) return;
+    const now = Date.now();
+    if (!force && attempted > 0 && now - lastProgressAt < 2000) return;
+    lastProgressAt = now;
+    const fetchedNote = fetched > 0 ? `, ${fetched} fetched` : '';
+    opts.onProgress(`Fetching missing assets (${attempted}/${total}${fetchedNote})…`);
+  };
+
+  reportProgress(true);
 
   for (const absUrl of candidates) {
     if (fetched >= max) break;
     if (Date.now() - started > wallMs) break;
+    attempted += 1;
+    reportProgress(false);
     const hit = await fetchRemoteAsset(absUrl, { referer: opts.referer });
     if (!hit) continue;
     fetched += 1;
-    if (typeof opts.onProgress === 'function' && (fetched === 1 || fetched % 4 === 0)) {
-      opts.onProgress(`Fetching missing assets (${fetched}/${candidates.length})…`);
-    }
+    reportProgress(true);
     const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, hit.contentType)}`;
     extraFiles.push({
       name: rel,
@@ -430,16 +469,32 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
     rewritten = rewritten.replace(new RegExp(esc, 'g'), rel);
   }
 
-  return { html: rewritten, extraFiles, fetched, skipped: Math.max(0, candidates.length - fetched) };
+  reportProgress(true);
+
+  return {
+    html: rewritten,
+    extraFiles,
+    fetched,
+    attempted,
+    skipped: Math.max(0, total - attempted),
+    remaining: Math.max(0, total - attempted),
+  };
 }
 
 async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opts = {}) {
+  if (opts.skipExternalFetch) {
+    return { html, extraFiles: [], skippedExternalCount: 0, fetchedImageCount: 0, externalFetchSkipped: true };
+  }
   const { images, other } = collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl);
   if (!images.length && !other.length) return { html, extraFiles: [] };
 
   const extraFiles = [];
   let rewritten = html;
   const fetchOpts = { referer: opts.referer || baseUrl };
+
+  if (images.length && typeof opts.onProgress === 'function') {
+    opts.onProgress(`Checking ${images.length} external image URLs…`);
+  }
 
   const imagePass = await fetchAndRewriteCandidates(rewritten, images, {
     max: MAX_EXTERNAL_IMAGE_FETCHES,
@@ -468,6 +523,12 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opt
   });
   rewritten = otherPass.html;
   extraFiles.push(...otherPass.extraFiles);
+
+  if (typeof opts.onProgress === 'function' && (imagePass.fetched || otherPass.fetched)) {
+    const checked = (imagePass.attempted || 0) + (otherPass.attempted || 0);
+    const got = (imagePass.fetched || 0) + (otherPass.fetched || 0);
+    opts.onProgress(`Live-site fetch done (${got} fetched, ${checked} URLs checked)…`);
+  }
 
   return {
     html: rewritten,
@@ -821,10 +882,16 @@ async function buildDemoFromUpload(opts) {
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
   html = promoteParticleVideoPosters(html, htmlPath, entryMap, baseUrl);
-  if (typeof opts.onProgress === 'function') opts.onProgress('Fetching missing images from the live site…');
+  const skipExternalFetch = shouldSkipExternalAssetFetch(allEntries, picked);
+  if (typeof opts.onProgress === 'function') {
+    opts.onProgress(skipExternalFetch
+      ? 'Using bundled upload assets (skipping live-site fetch)…'
+      : 'Fetching missing images from the live site…');
+  }
   const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, {
     referer: baseUrl,
     onProgress: opts.onProgress,
+    skipExternalFetch,
   });
   if (external.skippedExternalCount) {
     console.log('[brandScraperDemoFromUpload] skipped external asset fetch', {
@@ -933,6 +1000,9 @@ module.exports = {
   sanitizeAssetRelPath,
   promoteParticleVideoPosters,
   pickParticlePosterUrl,
+  shouldSkipExternalAssetFetch,
+  collectExternalAssetCandidates,
+  fetchAndRewriteCandidates,
   buildDemoFromUpload,
   demoRelativeUrl,
 };

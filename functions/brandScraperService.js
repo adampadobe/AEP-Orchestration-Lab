@@ -2243,13 +2243,15 @@ async function executeAnalyzePipeline({
     runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Checking for existing demo folder'));
     const demoHeartbeatMs = 22000;
     let demoHeartbeatTimer = null;
+    let lastDemoProgressDetail = 'Building Profile Viewer site clone from upload';
     const reportDemoProgress = (detail) => {
-      touchBuildPhase(sandbox, runScrapeId, 'demo', detail || 'Building Profile Viewer site clone from upload')
+      if (detail) lastDemoProgressDetail = String(detail);
+      touchBuildPhase(sandbox, runScrapeId, 'demo', lastDemoProgressDetail)
         .catch(() => {});
     };
     try {
       demoHeartbeatTimer = setInterval(() => {
-        reportDemoProgress('Still building demo website…');
+        reportDemoProgress(lastDemoProgressDetail);
       }, demoHeartbeatMs);
       const pvDemoMod = require('./brandScraperProfileViewerDemo');
       const fileSlug = pvDemoMod.normalizeFileSlug(
