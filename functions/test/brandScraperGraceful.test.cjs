@@ -756,3 +756,27 @@ describe('brandScraperDemoHost', () => {
     assert.ok(demoHost.RETIRED_DEMO_SLUGS.has('news'));
   });
 });
+
+describe('brandScraper demo build dispatch', () => {
+  const brandScraper = require('../brandScraperService');
+
+  it('builds async demo-build dispatch body', () => {
+    const body = brandScraper.buildDemoBuildDispatchBody({
+      sandbox: 'kirkham',
+      scrapeId: 'scrape-abc',
+      body: {
+        regenerateDemoWebsite: true,
+        overwriteDemoWebsite: true,
+        customerName: 'The Telegraph',
+        labOwnerHandle: 'kirkham',
+      },
+    });
+    assert.equal(body.mode, 'demo_build');
+    assert.equal(body.existingScrapeId, 'scrape-abc');
+    assert.equal(body.sandbox, 'kirkham');
+    assert.equal(body.async, true);
+    assert.equal(body.regenerateDemoWebsite, true);
+    assert.equal(body.customerName, 'The Telegraph');
+    assert.equal(body.labOwnerHandle, 'kirkham');
+  });
+});

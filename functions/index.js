@@ -2736,6 +2736,30 @@ exports.brandScraperAnalyze = onRequest(
   }
 );
 
+/** POST /api/brand-scraper/demo-build — dedicated demo website worker (separate CF budget from analyse). */
+exports.brandScraperDemoBuild = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 3600,
+    memory: '2GiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    res.set('Access-Control-Expose-Headers', 'X-Brand-Scrape-Id');
+    try {
+      await brandScraperService.handleDemoBuild(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ error: String(e && e.message || e) });
+      } else {
+        console.error('[brandScraperDemoBuild] error after response started', String((e && e.message) || e));
+      }
+    }
+  }
+);
+
 /** Fail stale running scrape index rows (interrupted runs). */
 exports.brandScraperStaleCleanup = onSchedule(
   {

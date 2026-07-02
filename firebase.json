@@ -105,6 +105,13 @@
         }
       },
       {
+        "source": "/api/brand-scraper/demo-build",
+        "function": {
+          "functionId": "brandScraperDemoBuild",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/scrapes/**",
         "function": {
           "functionId": "brandScraperScrapes",

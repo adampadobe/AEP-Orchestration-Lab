@@ -64,6 +64,8 @@ const MAX_CRAWL_WALL_MS = 240000;
  * `running` until stale cleanup (~45m). Reserve wall time for checkpoints + LLM + demo after crawl.
  */
 const ANALYZE_FN_TIMEOUT_MS = 3600000;
+const ANALYZE_DEMO_BUILD_TIMEOUT_MS = 3600000;
+const BRAND_SCRAPER_LAB_ORIGIN = String(process.env.BRAND_SCRAPER_LAB_ORIGIN || 'https://aep-orchestration-lab.web.app').replace(/\/+$/, '');
 const ANALYZE_POST_CRAWL_RESERVE_BASE_MS = 200000;
 const ANALYZE_MIN_CRAWL_BUDGET_MS = 120000;
 
@@ -1557,21 +1559,23 @@ async function touchBuildPhase(sandbox, scrapeId, buildPhase, buildPhaseDetail, 
  * When demo website is requested, run all analysis steps first, checkpoint, then start a fresh
  * demo-build session (run clock reset) so stale cleanup and UI timers treat upload build separately.
  */
-async function beginDemoBuildSession(sandbox, scrapeId, recordToPersist, { runSteps } = {}) {
+async function beginDemoBuildSession(sandbox, scrapeId, recordToPersist, { runSteps, skipCheckpoint = false } = {}) {
   recordToPersist.demoGenerationStatus = 'pending';
-  try {
-    await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
-      checkpoint: true,
-      buildPhase: 'prep',
-      buildPhaseDetail: 'Analysis complete — starting demo build session',
-    });
-    if (runSteps) {
-      runSteps.push(runStepOk('checkpoint_prep', 'Analysis checkpoint saved', 'Guidelines and uploads preserved before demo build'));
-    }
-  } catch (e) {
-    console.warn('[brandScraper] pre-demo checkpoint failed', scrapeId, String((e && e.message) || e));
-    if (runSteps) {
-      runSteps.push(runStepFailed('checkpoint_prep', 'Pre-demo checkpoint', String((e && e.message) || e).slice(0, 300)));
+  if (!skipCheckpoint) {
+    try {
+      await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
+        checkpoint: true,
+        buildPhase: 'prep',
+        buildPhaseDetail: 'Analysis complete — starting demo build session',
+      });
+      if (runSteps) {
+        runSteps.push(runStepOk('checkpoint_prep', 'Analysis checkpoint saved', 'Guidelines and uploads preserved before demo build'));
+      }
+    } catch (e) {
+      console.warn('[brandScraper] pre-demo checkpoint failed', scrapeId, String((e && e.message) || e));
+      if (runSteps) {
+        runSteps.push(runStepFailed('checkpoint_prep', 'Pre-demo checkpoint', String((e && e.message) || e).slice(0, 300)));
+      }
     }
   }
   await touchBuildPhase(
@@ -1582,6 +1586,257 @@ async function beginDemoBuildSession(sandbox, scrapeId, recordToPersist, { runSt
     { resetRunClock: true, demoSession: true },
   );
   analyzePipelineLog(scrapeId, 'demo_session_start', { sandbox });
+}
+
+function demoBuildDispatchUrl() {
+  return `${BRAND_SCRAPER_LAB_ORIGIN}/api/brand-scraper/demo-build`;
+}
+
+function buildDemoBuildDispatchBody({ sandbox, scrapeId, body }) {
+  return {
+    mode: 'demo_build',
+    existingScrapeId: scrapeId,
+    sandbox,
+    async: true,
+    regenerateDemoWebsite: body.regenerateDemoWebsite === true,
+    overwriteDemoWebsite: body.overwriteDemoWebsite === true,
+    customerName: body.customerName || null,
+    labOwnerHandle: body.labOwnerHandle || body.demoNavOwnerHandle || null,
+  };
+}
+
+async function dispatchAsyncDemoBuild({ sandbox, scrapeId, body }) {
+  const url = demoBuildDispatchUrl();
+  const payload = buildDemoBuildDispatchBody({ sandbox, scrapeId, body });
+  analyzePipelineLog(scrapeId, 'demo_dispatch', { sandbox, url });
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(45000),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status !== 202 && !res.ok) {
+    throw new Error(data.error || `Demo build dispatch failed (HTTP ${res.status})`);
+  }
+  return data;
+}
+
+async function runDemoWebsitePhase({
+  sandbox,
+  scrapeId,
+  recordToPersist,
+  body,
+  url,
+  uploadEntries,
+  runSteps,
+  skipDemoCheckpoint = false,
+}) {
+  await beginDemoBuildSession(sandbox, scrapeId, recordToPersist, { runSteps, skipCheckpoint: skipDemoCheckpoint });
+  runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Dedicated demo build worker'));
+  const demoHeartbeatMs = 15000;
+  let demoHeartbeatTimer = null;
+  let lastDemoProgressDetail = 'Building Profile Viewer site clone from upload';
+  const reportDemoProgress = (detail) => {
+    if (detail) lastDemoProgressDetail = String(detail);
+    touchBuildPhase(sandbox, scrapeId, 'demo', lastDemoProgressDetail)
+      .catch(() => {});
+  };
+  try {
+    demoHeartbeatTimer = setInterval(() => {
+      reportDemoProgress(lastDemoProgressDetail);
+    }, demoHeartbeatMs);
+    const pvDemoMod = require('./brandScraperProfileViewerDemo');
+    const fileSlug = pvDemoMod.normalizeFileSlug(
+      body.customerName || recordToPersist.customerName || recordToPersist.brandName || url,
+    );
+    const existingDemoPv = await pvDemoMod.detectExistingProfileViewerDemo(fileSlug);
+    if (existingDemoPv && !body.regenerateDemoWebsite && !body.overwriteDemoWebsite) {
+      runSteps.push(runStepOk('demo_reuse', 'Existing demo website detected', `Reusing /profile-viewer/${fileSlug}-demo.html`));
+    }
+    const demoResult = await demoWebsite.generateDemoWebsite(recordToPersist, {
+      enabled: true,
+      customerName: body.customerName || recordToPersist.customerName || recordToPersist.brandName || url,
+      overwrite: body.regenerateDemoWebsite === true || body.overwriteDemoWebsite === true,
+      regenerate: body.regenerateDemoWebsite === true,
+      uploadEntries: uploadEntries || [],
+      sandbox,
+      scrapeId: recordToPersist.scrapeId || scrapeId,
+      labOwnerHandle: body.labOwnerHandle || body.demoNavOwnerHandle || null,
+      onProgress: reportDemoProgress,
+    });
+    recordToPersist.demoWebsite = demoResult;
+    recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';
+    if (demoResult.status === 'reused' || demoResult.demoGenerationStatus === 'reused') {
+      runSteps.push(runStepOk('demo_status', 'Demo website reused', demoResult.path || ''));
+    } else if (demoResult.demoGenerationStatus === 'created' || demoResult.demoGenerationStatus === 'regenerated') {
+      runSteps.push(runStepOk('demo_status', 'Demo website generated', demoResult.path || ''));
+      runSteps.push(runStepOk('demo_modules', 'Profile modules added', 'Environment panel + profile viewer'));
+    } else if (demoResult.demoGenerationStatus === 'partial') {
+      runSteps.push(runStepOk('demo_status', 'Partial demo website generated', demoResult.path || ''));
+    } else if (demoResult.demoGenerationStatus === 'failed') {
+      runSteps.push(runStepFailed('demo_status', 'Demo website generation', demoResult.error || 'failed'));
+    }
+  } catch (e) {
+    recordToPersist.demoWebsite = {
+      enabled: true,
+      status: 'failed',
+      demoGenerationStatus: 'failed',
+      error: String((e && e.message) || e),
+    };
+    recordToPersist.demoGenerationStatus = 'failed';
+    runSteps.push(runStepFailed('demo_status', 'Demo website generation', String((e && e.message) || e).slice(0, 300)));
+  } finally {
+    if (demoHeartbeatTimer) clearInterval(demoHeartbeatTimer);
+  }
+  return recordToPersist;
+}
+
+async function executeDemoBuildPipeline({
+  sandbox,
+  body,
+  runScrapeId,
+  started,
+}) {
+  const scrapeId = String(runScrapeId || body.existingScrapeId || '').trim();
+  if (!scrapeId) {
+    return { status: 400, payload: { error: 'existingScrapeId is required for demo build' } };
+  }
+  analyzePipelineLog(scrapeId, 'demo_build_start', { sandbox });
+  let record = null;
+  try {
+    record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+  } catch (e) {
+    const msg = 'Could not load scrape: ' + String((e && e.message) || e);
+    await brandScrapeStore.markScrapeFailed(sandbox, scrapeId, {
+      error: msg,
+      steps: [runStepFailed('load', 'Load scrape for demo build', msg)],
+    }).catch(() => {});
+    return { status: 404, payload: { error: msg, scrapeId } };
+  }
+  if (!record) {
+    const msg = 'Scrape not found for demo build';
+    await brandScrapeStore.markScrapeFailed(sandbox, scrapeId, {
+      error: msg,
+      steps: [runStepFailed('load', 'Load scrape for demo build', msg)],
+    }).catch(() => {});
+    return { status: 404, payload: { error: msg, scrapeId } };
+  }
+
+  const url = body.url || record.url || record.baseUrl || '';
+  const runSteps = Array.isArray(record.runSteps) ? [...record.runSteps] : [];
+  let recordToPersist = { ...record, scrapeId };
+
+  await touchBuildPhase(
+    sandbox,
+    scrapeId,
+    'demo',
+    'Demo build worker started — using saved analysis and upload bundle',
+    { resetRunClock: true, demoSession: true },
+  );
+
+  recordToPersist = await runDemoWebsitePhase({
+    sandbox,
+    scrapeId,
+    recordToPersist,
+    body,
+    url,
+    uploadEntries: [],
+    runSteps,
+    skipDemoCheckpoint: true,
+  });
+
+  await touchBuildPhase(sandbox, scrapeId, 'persist', 'Saving demo build result');
+  let saved = null;
+  let persistError = null;
+  try {
+    saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
+      buildPhase: 'complete',
+      runSteps,
+    });
+  } catch (e) {
+    persistError = String((e && e.message) || e);
+    await brandScrapeStore.markScrapeFailed(sandbox, scrapeId, {
+      error: persistError,
+      steps: [...runSteps, runStepFailed('persist', 'Save demo build result', persistError)],
+    }).catch(() => {});
+    return { status: 500, payload: { error: persistError, scrapeId } };
+  }
+
+  analyzePipelineLog(scrapeId, 'demo_build_done', { sandbox, ms: Date.now() - started });
+  return {
+    status: 200,
+    payload: {
+      scrapeId,
+      sandbox,
+      demoBuild: true,
+      persistError,
+      demoWebsite: (saved && saved.demoWebsite) || recordToPersist.demoWebsite || null,
+      demoGenerationStatus: (saved && saved.demoGenerationStatus) || recordToPersist.demoGenerationStatus || 'not_requested',
+      elapsedMs: Date.now() - started,
+    },
+  };
+}
+
+async function handleDemoBuild(req, res) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = body.sandbox || scope.storageScope;
+  const scrapeId = String(body.existingScrapeId || '').trim();
+  if (!scrapeId) {
+    res.status(400).json({ error: 'existingScrapeId is required' });
+    return;
+  }
+
+  const started = Date.now();
+  res.set('X-Brand-Scrape-Id', scrapeId);
+
+  const useAsync = body.async !== false && body.sync !== true;
+  if (useAsync) {
+    res.status(202).json({
+      accepted: true,
+      async: true,
+      mode: 'demo_build',
+      scrapeId,
+      sandbox: scope.scopeId,
+    });
+    try {
+      const out = await executeDemoBuildPipeline({
+        sandbox,
+        body,
+        runScrapeId: scrapeId,
+        started,
+      });
+      if (out.status !== 200) {
+        analyzePipelineLog(scrapeId, 'demo_build_terminal', { sandbox, httpStatus: out.status });
+      }
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      analyzePipelineLog(scrapeId, 'demo_build_throw', { sandbox });
+      await brandScrapeStore.markScrapeFailed(sandbox, scrapeId, {
+        error: msg,
+        steps: [{ id: 'demo_build', label: 'Demo build worker', status: 'failed', detail: msg.slice(0, 500) }],
+      }).catch(() => {});
+    }
+    return;
+  }
+
+  try {
+    const out = await executeDemoBuildPipeline({
+      sandbox,
+      body,
+      runScrapeId: scrapeId,
+      started,
+    });
+    out.payload.sandbox = scope.scopeId;
+    res.status(out.status).json(out.payload);
+  } catch (e) {
+    res.status(500).json({ error: String((e && e.message) || e) });
+  }
 }
 
 async function runCompetitorAnalysisPhase({
@@ -1796,6 +2051,10 @@ async function executeAnalyzePipeline({
   const analyseOnlySid = analysisOnly ? String(body.existingScrapeId || '').trim() : '';
   const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
   const runSteps = [];
+
+  if (body.mode === 'demo_build' || body.demoBuildOnly === true) {
+    return executeDemoBuildPipeline({ sandbox, body, runScrapeId, started });
+  }
 
   let crawl;
   let crawlMeta = null;
@@ -2320,61 +2579,101 @@ async function executeAnalyzePipeline({
     });
   }
 
+  let demoBuildDeferred = false;
   if (wantDemoWebsite) {
-    await beginDemoBuildSession(sandbox, runScrapeId, recordToPersist, { runSteps });
-    runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Fresh demo build session after analysis'));
-    const demoHeartbeatMs = 15000;
-    let demoHeartbeatTimer = null;
-    let lastDemoProgressDetail = 'Building Profile Viewer site clone from upload';
-    const reportDemoProgress = (detail) => {
-      if (detail) lastDemoProgressDetail = String(detail);
-      touchBuildPhase(sandbox, runScrapeId, 'demo', lastDemoProgressDetail)
-        .catch(() => {});
-    };
-    try {
-      demoHeartbeatTimer = setInterval(() => {
-        reportDemoProgress(lastDemoProgressDetail);
-      }, demoHeartbeatMs);
-      const pvDemoMod = require('./brandScraperProfileViewerDemo');
-      const fileSlug = pvDemoMod.normalizeFileSlug(
-        body.customerName || recordToPersist.brandName || url,
-      );
-      const existingDemoPv = await pvDemoMod.detectExistingProfileViewerDemo(fileSlug);
-      if (existingDemoPv && !body.regenerateDemoWebsite && !body.overwriteDemoWebsite) {
-        runSteps.push(runStepOk('demo_reuse', 'Existing demo website detected', `Reusing /profile-viewer/${fileSlug}-demo.html`));
+    const deferDemoBuild = body.inlineDemoBuild !== true;
+    if (deferDemoBuild) {
+      recordToPersist.demoGenerationStatus = 'queued';
+      runSteps.push(runStepOk('demo_queue', 'Demo build queued', 'Analysis saved — separate demo worker will build the site clone'));
+      try {
+        await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
+          awaitingDemoBuild: true,
+          buildPhase: 'prep',
+          runSteps,
+        });
+        await dispatchAsyncDemoBuild({ sandbox, scrapeId: runScrapeId, body });
+        runSteps.push(runStepOk('demo_dispatch', 'Demo build worker dispatched', demoBuildDispatchUrl()));
+        await touchBuildPhase(
+          sandbox,
+          runScrapeId,
+          'demo',
+          'Demo build worker starting — analysis complete',
+          { resetRunClock: true, demoSession: true },
+        );
+        await brandScrapeStore.saveScrape(sandbox, {
+          ...recordToPersist,
+          demoGenerationStatus: 'queued',
+        }, {
+          awaitingDemoBuild: true,
+          buildPhase: 'demo',
+          runSteps,
+        });
+        demoBuildDeferred = true;
+      } catch (e) {
+        const dispatchErr = String((e && e.message) || e);
+        recordToPersist.demoGenerationStatus = 'failed';
+        runSteps.push(runStepFailed('demo_dispatch', 'Demo build dispatch', dispatchErr.slice(0, 300)));
+        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+          error: 'Demo build dispatch failed: ' + dispatchErr,
+          steps: runSteps,
+        }).catch(() => {});
+        return {
+          status: 502,
+          payload: {
+            scrapeId: runScrapeId,
+            sandbox,
+            error: dispatchErr,
+            demoGenerationStatus: 'failed',
+          },
+        };
       }
-      const demoResult = await demoWebsite.generateDemoWebsite(recordToPersist, {
-        enabled: true,
-        customerName: body.customerName || recordToPersist.brandName || url,
-        overwrite: body.regenerateDemoWebsite === true || body.overwriteDemoWebsite === true,
-        regenerate: body.regenerateDemoWebsite === true,
-        uploadEntries,
+    } else {
+      recordToPersist = await runDemoWebsitePhase({
         sandbox,
-        scrapeId: recordToPersist.scrapeId || runScrapeId,
-        labOwnerHandle: body.labOwnerHandle || body.demoNavOwnerHandle || null,
-        onProgress: reportDemoProgress,
+        scrapeId: runScrapeId,
+        recordToPersist,
+        body,
+        url,
+        uploadEntries,
+        runSteps,
       });
-      recordToPersist.demoWebsite = demoResult;
-      recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';
-      if (demoResult.status === 'reused' || demoResult.demoGenerationStatus === 'reused') {
-        runSteps.push(runStepOk('demo_status', 'Demo website reused', demoResult.path || ''));
-      } else if (demoResult.demoGenerationStatus === 'created' || demoResult.demoGenerationStatus === 'regenerated') {
-        runSteps.push(runStepOk('demo_status', 'Demo website generated', demoResult.path || ''));
-        runSteps.push(runStepOk('demo_modules', 'Profile modules added', 'Environment panel + profile viewer'));
-      } else if (demoResult.demoGenerationStatus === 'partial') {
-        runSteps.push(runStepOk('demo_status', 'Partial demo website generated', demoResult.path || ''));
-      } else if (demoResult.demoGenerationStatus === 'failed') {
-        runSteps.push(runStepFailed('demo_status', 'Demo website generation', demoResult.error || 'failed'));
-      }
-    } catch (e) {
-      recordToPersist.demoWebsite = { enabled: true, status: 'failed', demoGenerationStatus: 'failed', error: String((e && e.message) || e) };
-      recordToPersist.demoGenerationStatus = 'failed';
-      runSteps.push(runStepFailed('demo_status', 'Demo website generation', String((e && e.message) || e).slice(0, 300)));
-    } finally {
-      if (demoHeartbeatTimer) clearInterval(demoHeartbeatTimer);
     }
   } else {
     recordToPersist.demoGenerationStatus = 'not_requested';
+  }
+
+  if (demoBuildDeferred) {
+    analyzePipelineLog(runScrapeId, 'analyze_deferred_demo', { sandbox, ms: Date.now() - started });
+    return {
+      status: 200,
+      payload: {
+        scrapeId: runScrapeId,
+        sandbox,
+        deferredDemoBuild: true,
+        brandName: recordToPersist.brandName || crawl.brandName,
+        baseUrl: recordToPersist.baseUrl || crawl.baseUrl,
+        businessType: recordToPersist.businessType || body.businessType || 'b2c',
+        country: recordToPersist.country || body.country || '',
+        industry: recordToPersist.industry || inferredIndustry,
+        analysis: recordToPersist.analysis || analysis,
+        analysisError,
+        personas: recordToPersist.personas || personas,
+        campaigns: recordToPersist.campaigns || campaigns,
+        segments: recordToPersist.segments || segments,
+        stakeholders: recordToPersist.stakeholders || stakeholders,
+        appended: !!appendMode,
+        analysisOnly: !!analysisOnly,
+        elapsedMs,
+        blockedPages,
+        fallbackSources,
+        uploadedHtmlSummary,
+        scrapeConfidence: confidence,
+        sourceBadges,
+        warnings,
+        demoWebsite: null,
+        demoGenerationStatus: 'queued',
+      },
+    };
   }
 
   if (wantCompetitor && !wantDemoWebsite) {
@@ -2946,6 +3245,7 @@ module.exports = {
   crawlSite,
   analyseBrand,
   handleAnalyse,
+  handleDemoBuild,
   handleScrapes,
   handleClassifyAssets,
   handleExport,
@@ -2953,4 +3253,5 @@ module.exports = {
   resolveCrawlWithFallbacks,
   runCrawlWithRetries,
   summariseFailures,
+  buildDemoBuildDispatchBody,
 };

@@ -520,6 +520,7 @@ async function saveScrape(sandbox, payload, options = {}) {
   if (!name) throw new Error('sandbox is required');
   const scrapeId = String((payload && payload.scrapeId) || '').trim() || genId();
   const isCheckpoint = options.checkpoint === true;
+  const awaitingDemoBuild = options.awaitingDemoBuild === true;
   const archiveSnapshotOf = options.archiveSnapshotOf || null;
 
   if (!isCheckpoint && archiveSnapshotOf) {
@@ -612,11 +613,18 @@ async function saveScrape(sandbox, payload, options = {}) {
     storageSize: blob.length,
     hasFullRecord: true,
     schemaVersion: 2,
-    scrapeStatus: isCheckpoint ? 'crawl_complete' : 'complete',
+    scrapeStatus: awaitingDemoBuild
+      ? 'running'
+      : (isCheckpoint ? 'crawl_complete' : 'complete'),
     scrapeError: null,
-    analysisPending: !!isCheckpoint,
+    analysisPending: awaitingDemoBuild ? false : !!isCheckpoint,
     buildPhase: resolvedBuildPhase,
   };
+
+  if (options.runSteps) {
+    const normalizedSteps = normalizeRunSteps(options.runSteps);
+    if (normalizedSteps) indexDoc.runSteps = normalizedSteps;
+  }
 
   const safeIndexDoc = stripUndefined(indexDoc);
   await getDb().runTransaction(async (tx) => {
@@ -639,7 +647,9 @@ async function saveScrape(sandbox, payload, options = {}) {
       createdAt: base.createdAt || now,
       updatedAt: now,
       payloadRetentionExpiresAt,
-      runSteps: admin.firestore.FieldValue.delete(),
+      runSteps: options.runSteps
+        ? normalizeRunSteps(options.runSteps)
+        : admin.firestore.FieldValue.delete(),
       crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
     }, { merge: true });
   });

@@ -22,6 +22,7 @@
     return 'https://us-central1-' + pid + '.cloudfunctions.net';
   }
   function directCfAnalyzeUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
+  function directCfDemoBuildUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperDemoBuild'; }
   function directCfClassifyUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperClassify'; }
   function directCfExportUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperExport'; }
 
@@ -687,6 +688,7 @@
     if (phase === 'cancelled') return false;
     if (st === 'failed') return false;
     if (st === 'running' || st === 'crawl_complete') return true;
+    if (row.demoGenerationStatus === 'queued') return true;
     if (st === 'complete') {
       if (row.analysisPending === true) return true;
       if (row.buildPhase && row.buildPhase !== 'complete') return true;
@@ -2544,15 +2546,11 @@
         return;
       }
       setStatus('Regenerating demo website…', 'info');
-      const retryResp = await scopedFetch(directCfAnalyzeUrl(), {
+      const retryResp = await scopedFetch(withScopeQuery(directCfDemoBuildUrl()), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: detail.url || detail.baseUrl,
-          businessType: detail.businessType || (btypeSel && btypeSel.value) || 'b2c',
-          country: detail.country || (countrySel && countrySel.value) || '',
-          include: { demoWebsite: true },
-          analysisOnly: true,
+          mode: 'demo_build',
           existingScrapeId: scrapeId,
           regenerateDemoWebsite: true,
           overwriteDemoWebsite: true,
