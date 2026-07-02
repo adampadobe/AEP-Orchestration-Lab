@@ -59,11 +59,11 @@ const MAX_QUEUE_URLS = 120;
 /** Hard stop for fetch crawl wall time so the function can reach LLM phases within CF budget. */
 const MAX_CRAWL_WALL_MS = 240000;
 /**
- * Must stay aligned with `exports.brandScraperAnalyze` timeoutSeconds in functions/index.js (900).
+ * Must stay aligned with `exports.brandScraperAnalyze` timeoutSeconds in functions/index.js (1800).
  * Crawl retries used to run many sequential 240s passes and exceed the CF hard kill — Firestore stayed
- * `running` until stale cleanup (~35m). Reserve wall time for checkpoints + LLM + demo after crawl.
+ * `running` until stale cleanup (~45m). Reserve wall time for checkpoints + LLM + demo after crawl.
  */
-const ANALYZE_FN_TIMEOUT_MS = 900000;
+const ANALYZE_FN_TIMEOUT_MS = 1800000;
 const ANALYZE_POST_CRAWL_RESERVE_BASE_MS = 200000;
 const ANALYZE_MIN_CRAWL_BUDGET_MS = 120000;
 
@@ -78,7 +78,7 @@ function resolvePostCrawlReserveMs(body, inc) {
   const hasUpload = !!(body.uploadedHtml || body.uploadedFiles);
   let reserve = ANALYZE_POST_CRAWL_RESERVE_BASE_MS;
   if (wantDemo) {
-    reserve += hasUpload ? 300000 : 180000;
+    reserve += hasUpload ? 480000 : 240000;
   }
   if (incFn('llmDemoConfig')) {
     reserve += 90000;
@@ -1535,15 +1535,17 @@ function analyzePipelineLog(scrapeId, phase, extra = {}) {
   }));
 }
 
-async function touchBuildPhase(sandbox, scrapeId, buildPhase, buildPhaseDetail) {
+async function touchBuildPhase(sandbox, scrapeId, buildPhase, buildPhaseDetail, opts = {}) {
   analyzePipelineLog(scrapeId, 'build_phase', {
     sandbox,
     buildPhase,
     buildPhaseDetail: buildPhaseDetail ? String(buildPhaseDetail).slice(0, 120) : undefined,
+    resetRunClock: opts.resetRunClock === true,
   });
   await brandScrapeStore.patchScrapeBuildPhase(sandbox, scrapeId, {
     buildPhase,
     buildPhaseDetail,
+    resetRunClock: opts.resetRunClock === true,
   }).catch((e) => {
     console.warn('[brandScraper] patch buildPhase failed', scrapeId, buildPhase, String((e && e.message) || e));
   });
@@ -2070,7 +2072,7 @@ async function executeAnalyzePipeline({
     runSteps.push(runStepSkipped('segments', 'Audience segments', skipReason));
     runSteps.push(runStepSkipped('industry', 'Industry classification', recordClassification.reason));
     if (wantDemoWebsite) {
-      await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Crawl saved — building demo website from upload');
+      await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Crawl saved — building demo website from upload', { resetRunClock: true });
     }
   } else {
   analyzePipelineLog(runScrapeId, 'llm_start', { sandbox });
@@ -2239,9 +2241,9 @@ async function executeAnalyzePipeline({
   recordToPersist.warnings = warnings;
 
   if (wantDemoWebsite) {
-    await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Building Profile Viewer site clone from upload');
+    await touchBuildPhase(sandbox, runScrapeId, 'demo', 'Building Profile Viewer site clone from upload', { resetRunClock: true });
     runSteps.push(runStepOk('demo_request', 'Demo website requested', 'Checking for existing demo folder'));
-    const demoHeartbeatMs = 22000;
+    const demoHeartbeatMs = 15000;
     let demoHeartbeatTimer = null;
     let lastDemoProgressDetail = 'Building Profile Viewer site clone from upload';
     const reportDemoProgress = (detail) => {

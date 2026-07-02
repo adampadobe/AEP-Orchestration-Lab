@@ -436,19 +436,27 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
 /**
  * Lightweight Firestore-only progress update (no GCS rewrite) during long post-LLM steps.
  */
-async function patchScrapeBuildPhase(sandbox, scrapeId, { buildPhase, buildPhaseDetail } = {}) {
+async function patchScrapeBuildPhase(sandbox, scrapeId, { buildPhase, buildPhaseDetail, resetRunClock } = {}) {
   const name = String(sandbox || '').trim();
   const sid = String(scrapeId || '').trim();
   if (!name || !sid) return false;
+  const now = admin.firestore.FieldValue.serverTimestamp();
   const patch = {
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: now,
   };
-  if (buildPhase != null) patch.buildPhase = String(buildPhase);
+  if (buildPhase != null) {
+    patch.buildPhase = String(buildPhase);
+    patch.buildPhaseStartedAt = now;
+  }
+  if (resetRunClock === true) {
+    patch.runStartedAt = now;
+  }
   if (buildPhaseDetail != null) {
     patch.buildPhaseDetail = String(buildPhaseDetail).trim().slice(0, 200);
   }
   if (buildPhase === 'complete') {
     patch.buildPhaseDetail = admin.firestore.FieldValue.delete();
+    patch.buildPhaseStartedAt = admin.firestore.FieldValue.delete();
   }
   const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
   await ref.set(patch, { merge: true });
@@ -665,7 +673,7 @@ async function reapStaleRunningForSandbox(sandbox) {
       const t = firestoreTimestampToMs(d.runStartedAt) || 0;
       if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId) {
         await markScrapeFailed(name, String(d.scrapeId), {
-          error: 'Run timed out (stale). The worker did not finish within 35 minutes; cancel/retry from the card.',
+          error: 'Run timed out (stale). The worker did not finish within 45 minutes; cancel/retry from the card.',
           steps: [{
             id: 'runtime',
             label: 'Run did not finish',
@@ -829,9 +837,11 @@ async function getScrape(sandbox, id, opts = {}) {
     : null;
 }
 
-const STALE_RUNNING_SCRAPE_MS = 35 * 60 * 1000;
+const STALE_RUNNING_SCRAPE_MS = 45 * 60 * 1000;
 /** Active index row with no `updatedAt` advance — worker likely died mid-phase (demo upload, etc.). */
 const STALE_NO_HEARTBEAT_MS = 20 * 60 * 1000;
+/** Per build-phase wall clock when `buildPhaseStartedAt` is set (demo upload, etc.). */
+const STALE_BUILD_PHASE_MS = 32 * 60 * 1000;
 
 function isActiveScrapeIndex(data) {
   if (!data || typeof data !== 'object') return false;
@@ -964,7 +974,7 @@ async function runBrandScrapeStaleMaintenance() {
       const t = firestoreTimestampToMs(rs) || 0;
       if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId && d.sandbox) {
         await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
-          error: 'Run timed out (stale). The worker did not finish within 35 minutes; cancel/retry from the card.',
+          error: 'Run timed out (stale). The worker did not finish within 45 minutes; cancel/retry from the card.',
           steps: [{
             id: 'runtime',
             label: 'Run did not finish',
@@ -985,22 +995,27 @@ async function runBrandScrapeStaleMaintenance() {
     const d = doc.data() || {};
     if (!isActiveScrapeIndex(d) || !d.scrapeId || !d.sandbox) continue;
     const started = firestoreTimestampToMs(d.runStartedAt) || firestoreTimestampToMs(d.createdAt) || 0;
+    const phaseStarted = firestoreTimestampToMs(d.buildPhaseStartedAt) || started;
     const updated = firestoreTimestampToMs(d.updatedAt) || started;
     const phase = String(d.buildPhase || '');
     const noHeartbeat = updated && nowMs - updated > STALE_NO_HEARTBEAT_MS;
-    const tooLong = started && nowMs - started > STALE_RUNNING_SCRAPE_MS;
+    const tooLongRun = started && nowMs - started > STALE_RUNNING_SCRAPE_MS;
+    const tooLongPhase = phaseStarted && nowMs - phaseStarted > STALE_BUILD_PHASE_MS;
+    const tooLong = tooLongRun || tooLongPhase;
     if (!noHeartbeat && !tooLong) continue;
     await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
       error: noHeartbeat
         ? `Run stalled during “${phase}” — no server heartbeat for 20+ minutes. Cancel/retry from the card.`
-        : 'Run timed out (stale). The worker did not finish within 35 minutes; cancel/retry from the card.',
+        : 'Run timed out (stale). The worker did not finish within 45 minutes; cancel/retry from the card.',
       steps: [{
         id: 'runtime',
         label: 'Run did not finish',
         status: 'failed',
         detail: noHeartbeat
           ? `buildPhase "${phase}" with no index update since ${new Date(updated).toISOString()} (worker timeout or crash).`
-          : `Active build phase "${phase}" exceeded the wall-clock limit.`,
+          : tooLongPhase && !tooLongRun
+            ? `Active build phase "${phase}" exceeded the phase time limit.`
+            : `Active build phase "${phase}" exceeded the wall-clock limit.`,
       }],
     });
     failedStaleRunning += 1;

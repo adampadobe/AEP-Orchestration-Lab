@@ -98,18 +98,25 @@ async function persistUploadAssets(sandbox, scrapeId, opts = {}) {
  * @param {string} [knownPrefix]
  * @returns {Promise<Array<{ name: string, content: Buffer, isHtml?: boolean }>>}
  */
-async function loadUploadAssets(sandbox, scrapeId, knownPrefix) {
+async function loadUploadAssets(sandbox, scrapeId, knownPrefix, opts = {}) {
   const prefix = knownPrefix || uploadAssetsPrefix(sandbox, scrapeId);
   const bucket = getBucket();
+  const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
+  const LOAD_CONCURRENCY = 10;
 
   try {
     const [zipExists] = await bucket.file(`${prefix}${BUNDLE_NAME}`).exists();
     if (zipExists) {
+      if (onProgress) onProgress('Loading upload bundle from storage…');
       const [buf] = await bucket.file(`${prefix}${BUNDLE_NAME}`).download();
       const parsed = await uploadedHtml.parseUploadedPayload({
         zipBase64: buf.toString('base64'),
       });
-      return parsed.uploadEntries || [];
+      const entries = parsed.uploadEntries || [];
+      if (onProgress && entries.length) {
+        onProgress(`Loaded upload bundle (${entries.length} files)…`);
+      }
+      return entries;
     }
   } catch (e) {
     console.warn('[brandScraperUploadAssets] zip load failed', scrapeId, String((e && e.message) || e));
@@ -117,19 +124,28 @@ async function loadUploadAssets(sandbox, scrapeId, knownPrefix) {
 
   try {
     const [files] = await bucket.getFiles({ prefix, maxResults: 500 });
-    const entries = [];
-    for (const f of files || []) {
+    const toLoad = (files || []).filter((f) => {
       const name = f.name || '';
-      if (!name.startsWith(prefix)) continue;
+      if (!name.startsWith(prefix)) return false;
       const rel = name.slice(prefix.length);
-      if (!rel || rel === MANIFEST_NAME || rel === BUNDLE_NAME) continue;
-      if (!isSafeRelPath(rel)) continue;
-      const [buf] = await f.download();
-      entries.push({
-        name: rel,
-        content: buf,
-        isHtml: /\.html?$/i.test(rel),
-      });
+      return rel && rel !== MANIFEST_NAME && rel !== BUNDLE_NAME && isSafeRelPath(rel);
+    });
+    const entries = [];
+    for (let i = 0; i < toLoad.length; i += LOAD_CONCURRENCY) {
+      const batch = toLoad.slice(i, i + LOAD_CONCURRENCY);
+      const done = Math.min(i + LOAD_CONCURRENCY, toLoad.length);
+      if (onProgress) onProgress(`Loading upload assets (${done}/${toLoad.length})…`);
+      const batchEntries = await Promise.all(batch.map(async (f) => {
+        const name = f.name || '';
+        const rel = name.slice(prefix.length);
+        const [buf] = await f.download();
+        return {
+          name: rel,
+          content: buf,
+          isHtml: /\.html?$/i.test(rel),
+        };
+      }));
+      entries.push(...batchEntries);
     }
     return entries;
   } catch (e) {
@@ -155,7 +171,9 @@ async function resolveDemoUploadEntries(record, opts = {}) {
   const scrapeId = opts.scrapeId || (record && record.scrapeId);
   if (!sandbox || !scrapeId) return [];
 
-  const stored = await loadUploadAssets(sandbox, scrapeId, record && record.uploadAssetsPrefix);
+  const stored = await loadUploadAssets(sandbox, scrapeId, record && record.uploadAssetsPrefix, {
+    onProgress: opts.onProgress,
+  });
   return hasHtmlEntries(stored) ? stored : stored;
 }
 

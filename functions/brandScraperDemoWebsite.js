@@ -671,6 +671,7 @@ async function generateDemoWebsite(record, opts = {}) {
       uploadEntries: opts.uploadEntries || [],
       sandbox: opts.sandbox,
       scrapeId: opts.scrapeId || record.scrapeId,
+      onProgress: opts.onProgress,
     });
     const innerResult = await buildInnerSnapshotFiles(
       record,

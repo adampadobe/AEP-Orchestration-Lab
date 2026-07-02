@@ -542,7 +542,7 @@
   let progressHandle = null;
   /** When true, bottom dock mirrors Analyse progress; classify/export keep in-card only. */
   let progressBottomDockEnabled = false;
-  /** Total wall clock — warn before server stale job cleanup (35m), but well above normal crawl+LLM. */
+  /** Total wall clock — warn before server stale job cleanup (45m), but well above normal crawl+LLM. */
   const RUN_STALE_WARN_MS = 12 * 60 * 1000;
   /** If index `updatedAt` stalls this long while crawl still running, worker likely died. */
   const RUN_STALE_NO_SERVER_UPDATE_MS = 4 * 60 * 1000;
@@ -551,8 +551,8 @@
   /** Demo / upload build can run several minutes; warn if index stops advancing. */
   const RUN_DEMO_SLOW_MS = 3 * 60 * 1000;
   const RUN_DEMO_STUCK_MS = 8 * 60 * 1000;
-  /** Cloud Function analyse timeout is 15m — no heartbeat past this means the worker is gone. */
-  const RUN_WORKER_DEAD_MS = 16 * 60 * 1000;
+  /** Cloud Function analyse timeout is 30m — no heartbeat past this means the worker is gone. */
+  const RUN_WORKER_DEAD_MS = 31 * 60 * 1000;
 
   function scrapeRunAgeMs(row) {
     const started = effectiveRunStartedMs(row);
@@ -788,7 +788,7 @@
     const trioWall = trio === 0 ? 0 : 32 + (trio - 1) * 2;
     const segmentsWall = inc.segments ? 28 : 8;
     const industryWall = inc.analysis !== false ? 4 : 0;
-    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 180 : 120) : 0;
+    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 300 : 120) : 0;
     const competitorWall = inc.llmDemoConfig !== false ? 90 : 0;
     return (crawl + brandWall + trioWall + segmentsWall + industryWall + demoWall + competitorWall) * 1000;
   }
