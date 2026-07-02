@@ -300,6 +300,13 @@ describe('brandScraperDemoHtmlPolish', () => {
     assert.match(out, /video-poster\.jpg/);
   });
 
+  it('strips broken image onerror handlers that point at live-site placeholders', () => {
+    const html = '<img src="broken.jpg" onerror="this.src=\'/etc.clientlibs/placeholder.svg\'" />';
+    const out = polish.polishDemoHtml(html);
+    assert.doesNotMatch(out, /onerror=/i);
+    assert.match(out, /broken\.jpg/);
+  });
+
   it('replaces logo-like broken images with customer logo asset path', () => {
     const html = '<header><img src="./Page_files/missing.svg" alt="Sky News logo" /></header>';
     const out = polish.applyCustomerLogoFallback(
@@ -558,6 +565,62 @@ describe('brandScraperDemoFromUpload', () => {
       htmlRewrites,
     );
     assert.match(html, /page-files\/4\.js\.download/);
+  });
+
+  it('canonicalizeSavePageAssetEntries rewrites filenames that contain spaces', () => {
+    const prefix = 'The Telegraph_files/';
+    const entries = [
+      { name: 'The Telegraph.html', content: Buffer.from('<html></html>'), isHtml: true },
+      { name: `${prefix}Iran_ Utility Bar.jpg`, content: Buffer.from('jpg') },
+      { name: `${prefix}2113-POSHCAST-UTILITY BAR.jpg`, content: Buffer.from('jpg') },
+    ];
+    const picked = { name: 'The Telegraph.html' };
+    const { entries: canon, htmlRewrites } = demoFromUpload.canonicalizeSavePageAssetEntries(entries, picked);
+    assert.ok(canon.some((e) => e.name === 'page-files/Iran_-Utility-Bar.jpg'));
+    assert.ok(canon.some((e) => e.name === 'page-files/2113-POSHCAST-UTILITY-BAR.jpg'));
+    const html = demoFromUpload.applyHtmlPathRewrites(
+      `<img src="${prefix}Iran_ Utility Bar.jpg" /><img src="./${prefix}2113-POSHCAST-UTILITY BAR.jpg" />`,
+      htmlRewrites,
+    );
+    assert.match(html, /page-files\/Iran_-Utility-Bar\.jpg/);
+    assert.match(html, /page-files\/2113-POSHCAST-UTILITY-BAR\.jpg/);
+    const map = demoFromUpload.buildEntryMap(canon);
+    const resolved = demoFromUpload.resolveHrefToZipPath(
+      'page-files/Iran_ Utility Bar.jpg',
+      'The Telegraph.html',
+      map,
+    );
+    assert.equal(resolved, 'page-files/Iran_-Utility-Bar.jpg');
+  });
+
+  it('promoteParticleVideoPosters replaces particle iframe shells with bundled poster images', () => {
+    const particleName = 'page-files/particle-1.html';
+    const posterName = 'page-files/video-thumb.jpg';
+    const particleHtml = [
+      '<html><body>',
+      '<video poster="https://cf.example.com/thumb.jpg"></video>',
+      '<img id="videoPoster" src="./video-thumb.jpg" />',
+      '</body></html>',
+    ].join('');
+    const entries = [
+      { name: particleName, content: Buffer.from(particleHtml) },
+      { name: posterName, content: Buffer.from('jpg') },
+    ];
+    const map = demoFromUpload.buildEntryMap(entries);
+    const html = [
+      '<div class="part-wrp part-wrp-autoplay-video" style="min-height:348px">',
+      `<iframe src="${particleName}" class="tmg-particle-autoplay-video"></iframe>`,
+      '</div>',
+    ].join('');
+    const out = demoFromUpload.promoteParticleVideoPosters(
+      html,
+      'index.html',
+      map,
+      'https://www.telegraph.co.uk/',
+    );
+    assert.doesNotMatch(out, /<iframe\b/i);
+    assert.match(out, /aep-demo-particle-poster|aep-demo-particle-shell/);
+    assert.match(out, /video-thumb\.jpg/);
   });
 });
 

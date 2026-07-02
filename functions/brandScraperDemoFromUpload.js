@@ -179,7 +179,17 @@ function resolveHrefToZipPath(href, htmlPath, entryMap) {
   const htmlDir = posixDirname(htmlPath);
   const combined = posixJoin(htmlDir, raw.split('?')[0].split('#')[0]);
   const hit = lookupEntry(entryMap, combined);
-  return hit ? hit.path : null;
+  if (hit) return hit.path;
+
+  const dir = posixDirname(combined);
+  const base = path.posix.basename(combined);
+  const sanitizedBase = sanitizeAssetPathSegment(base);
+  if (sanitizedBase !== base) {
+    const sanitized = posixJoin(dir, sanitizedBase);
+    const sanitizedHit = lookupEntry(entryMap, sanitized);
+    if (sanitizedHit) return sanitizedHit.path;
+  }
+  return null;
 }
 
 function resolveAbsoluteAssetUrl(href, htmlPath, baseUrl) {
@@ -512,6 +522,15 @@ function sanitizeAssetRelPath(rel) {
   return parts.map(sanitizeAssetPathSegment).join('/');
 }
 
+function pushPathRewrite(rewrites, from, to) {
+  if (!from || !to || from === to) return;
+  rewrites.push({ from, to });
+  const encoded = encodeURI(from);
+  if (encoded !== from) rewrites.push({ from: encoded, to });
+  const pct20 = from.replace(/ /g, '%20');
+  if (pct20 !== from && pct20 !== encoded) rewrites.push({ from: pct20, to });
+}
+
 /**
  * Rename `{Title}_files/…` paths to short `page-files/…` keys for GCS + iframe URLs.
  * @returns {{ entries: Array, htmlRewrites: Array<{ from: string, to: string }> }}
@@ -529,6 +548,7 @@ function canonicalizeSavePageAssetEntries(entries, picked) {
   if (!hasCompanion) return { entries: entries || [], htmlRewrites: [] };
 
   const used = new Set();
+  const relToCanon = new Map();
   const nameForRel = (rel) => {
     let safe = sanitizeAssetRelPath(rel);
     if (used.has(safe)) {
@@ -546,15 +566,18 @@ function canonicalizeSavePageAssetEntries(entries, picked) {
     const n = posixNorm(e.name);
     if (!n.startsWith(filesPrefix)) return e;
     const rel = n.slice(filesPrefix.length);
-    return { ...e, name: `${SAVE_PAGE_CANON_DIR}/${nameForRel(rel)}` };
+    const canonName = `${SAVE_PAGE_CANON_DIR}/${nameForRel(rel)}`;
+    relToCanon.set(rel, canonName);
+    return { ...e, name: canonName };
   });
 
   const to = `${SAVE_PAGE_CANON_DIR}/`;
-  const htmlRewrites = [
-    { from: filesPrefix, to },
-    { from: encodeURI(filesPrefix), to },
-    { from: filesPrefix.replace(/ /g, '%20'), to },
-  ];
+  const htmlRewrites = [];
+  for (const [rel, canonPath] of relToCanon) {
+    pushPathRewrite(htmlRewrites, `${filesPrefix}${rel}`, canonPath);
+    pushPathRewrite(htmlRewrites, `./${filesPrefix}${rel}`, canonPath);
+  }
+  pushPathRewrite(htmlRewrites, filesPrefix, to);
   return { entries: newEntries, htmlRewrites };
 }
 
@@ -565,6 +588,118 @@ function applyHtmlPathRewrites(html, rewrites) {
     out = out.split(rule.from).join(rule.to);
   }
   return out;
+}
+
+function attrValue(tag, name) {
+  const m = new RegExp(`\\b${name}\\s*=\\s*(["'])([^"']*)\\1`, 'i').exec(String(tag || ''));
+  return m ? m[2] : '';
+}
+
+function escapeAttrValue(val) {
+  return String(val || '').replace(/"/g, '&quot;');
+}
+
+function resolveDemoAssetRef(href, sourcePath, entryMap, baseUrl) {
+  const zipPath = resolveHrefToZipPath(href, sourcePath, entryMap);
+  if (zipPath) return demoRelativeUrl(zipPath);
+  const abs = resolveAbsoluteAssetUrl(href, sourcePath, baseUrl);
+  return abs || '';
+}
+
+function parseParticleVideosJson(particleHtml) {
+  const m = /window\.videos\s*=\s*(\[[\s\S]*?\])\s*;/i.exec(String(particleHtml || ''));
+  if (!m) return [];
+  try {
+    const parsed = JSON.parse(m[1]);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_e) {
+    return [];
+  }
+}
+
+function pickParticlePosterUrl(particleHtml, particlePath, entryMap, baseUrl) {
+  const hay = String(particleHtml || '');
+
+  const posterImg = (/<img\b[^>]*\bid\s*=\s*["']videoPoster["'][^>]*>/i.exec(hay) || [])[0];
+  if (posterImg) {
+    const src = attrValue(posterImg, 'src');
+    const resolved = resolveDemoAssetRef(src, particlePath, entryMap, baseUrl);
+    if (resolved) return resolved;
+  }
+
+  const videoOpen = (/<video\b[^>]*>/i.exec(hay) || [])[0];
+  if (videoOpen) {
+    const poster = attrValue(videoOpen, 'poster');
+    const resolved = resolveDemoAssetRef(poster, particlePath, entryMap, baseUrl);
+    if (resolved) return resolved;
+  }
+
+  for (const rendition of parseParticleVideosJson(hay)) {
+    const candidates = [
+      rendition.poster,
+      rendition.thumbnail,
+      rendition.posters && rendition.posters.high,
+      rendition.posters && rendition.posters.low,
+    ].filter(Boolean);
+    for (const url of candidates) {
+      const resolved = resolveDemoAssetRef(url, particlePath, entryMap, baseUrl);
+      if (resolved) return resolved;
+    }
+  }
+  return '';
+}
+
+function pickParticleMp4Url(particleHtml, particlePath, entryMap, baseUrl) {
+  for (const rendition of parseParticleVideosJson(particleHtml)) {
+    const candidates = [rendition.url, rendition.fallback].filter(Boolean);
+    for (const url of candidates) {
+      if (!/\.mp4(\?|#|$)/i.test(String(url))) continue;
+      const zipPath = resolveHrefToZipPath(url, particlePath, entryMap);
+      if (zipPath) return demoRelativeUrl(zipPath);
+      if (/^https?:\/\//i.test(url)) return url;
+      const abs = resolveAbsoluteAssetUrl(url, particlePath, baseUrl);
+      if (abs) return abs;
+    }
+  }
+  return '';
+}
+
+function buildParticleVideoShell(posterUrl, mp4Url) {
+  const poster = escapeAttrValue(posterUrl);
+  if (mp4Url) {
+    const src = escapeAttrValue(mp4Url);
+    return [
+      '<figure class="aep-demo-video-shell aep-demo-particle-shell">',
+      `<video class="aep-demo-particle-video" controls playsinline preload="metadata" poster="${poster}" src="${src}"></video>`,
+      '</figure>',
+    ].join('');
+  }
+  return `<img class="aep-demo-video-poster aep-demo-particle-poster" src="${poster}" alt="" loading="lazy" decoding="async" />`;
+}
+
+/**
+ * Saved Telegraph particle videos ship as local iframe HTML + poster JPG in the bundle.
+ * Replace autoplay iframe shells with poster (or bundled mp4 when present) before polish strips iframes.
+ */
+function promoteParticleVideoPosters(html, htmlPath, entryMap, baseUrl) {
+  return String(html || '').replace(
+    /<div\b[^>]*\bpart-wrp-autoplay-video\b[^>]*>[\s\S]*?<\/div>/gi,
+    (block) => {
+      if (/aep-demo-video-poster|aep-demo-particle-shell/i.test(block)) return block;
+      const iframe = (/<iframe\b[^>]*>/i.exec(block) || [])[0];
+      if (!iframe) return block;
+      const src = attrValue(iframe, 'src');
+      const particlePath = resolveHrefToZipPath(src, htmlPath, entryMap);
+      if (!particlePath) return block;
+      const hit = lookupEntry(entryMap, particlePath);
+      if (!hit || !hit.content) return block;
+      const particleHtml = hit.content.toString('utf8');
+      const posterUrl = pickParticlePosterUrl(particleHtml, particlePath, entryMap, baseUrl);
+      if (!posterUrl) return block;
+      const mp4Url = pickParticleMp4Url(particleHtml, particlePath, entryMap, baseUrl);
+      return buildParticleVideoShell(posterUrl, mp4Url);
+    },
+  );
 }
 
 function fillMissingMetadata(html, record) {
@@ -685,6 +820,7 @@ async function buildDemoFromUpload(opts) {
   if (typeof opts.onProgress === 'function') opts.onProgress('Inlining CSS and rewriting asset paths…');
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
+  html = promoteParticleVideoPosters(html, htmlPath, entryMap, baseUrl);
   if (typeof opts.onProgress === 'function') opts.onProgress('Fetching missing images from the live site…');
   const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, {
     referer: baseUrl,
@@ -795,6 +931,8 @@ module.exports = {
   canonicalizeSavePageAssetEntries,
   applyHtmlPathRewrites,
   sanitizeAssetRelPath,
+  promoteParticleVideoPosters,
+  pickParticlePosterUrl,
   buildDemoFromUpload,
   demoRelativeUrl,
 };

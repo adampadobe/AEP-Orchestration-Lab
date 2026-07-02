@@ -425,6 +425,8 @@ function injectDemoFailsafeStyles(html) {
     '[id*="advert"],.advert,.advert--banner,.advert--header,.js-advert-banner,[class*="advert--"]{display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;}',
     '.part-wrp-autoplay-video:not(:has(img,video,.aep-demo-video-poster)),.part-wrp-autoplay-video:empty{display:none!important;height:0!important;min-height:0!important;}',
     'img.aep-demo-video-poster,img.aep-demo-bg-promoted{max-width:100%;height:auto;display:block;object-fit:cover;}',
+    '.aep-demo-video-shell,.aep-demo-particle-shell{margin:0;padding:0;max-width:100%;}',
+    'video.aep-demo-particle-video{width:100%;height:auto;display:block;object-fit:cover;background:var(--dash-surface-alt,#222);}',
     '.e-utility__image img.aep-demo-bg-promoted,.utility-image img.aep-demo-bg-promoted{width:100%;aspect-ratio:16/9;object-fit:cover;}',
     '.video-content-container:has(img.aep-demo-video-poster){min-height:0!important;aspect-ratio:auto!important;}',
     '.video-content-container:has(img.aep-demo-video-poster) video{display:none!important;}',
@@ -440,6 +442,10 @@ function injectDemoFailsafeStyles(html) {
  * Full HTML polish pass for brand-scraper demo snapshots.
  * @param {string} html
  */
+function stripBrokenImageFallbackHandlers(html) {
+  return String(html || '').replace(/\s+onerror\s*=\s*(["'])(?:\\.|(?!\1).)*\1/gi, '');
+}
+
 function polishDemoHtml(html) {
   let out = stripAdvertBlocks(html);
   out = stripEmptyAdAndVideoShells(out);
@@ -447,6 +453,7 @@ function polishDemoHtml(html) {
   out = promoteUtilityAndBannerImages(out);
   out = replaceBrokenVideosWithPoster(out);
   out = stripEmptyAdAndVideoShells(out);
+  out = stripBrokenImageFallbackHandlers(out);
   out = injectDemoFailsafeStyles(out);
   return out;
 }
@@ -530,7 +537,7 @@ function promotePictureSources(html) {
 function videoBlockIsPlayable(block) {
   const openTag = (/<video\b[^>]*>/i.exec(block) || [])[0] || '';
   const src = attrValue(openTag, 'src');
-  if (src && !/^blob:/i.test(src) && !/\.m3u8|\.mpd/i.test(src)) return true;
+  if (src && !/^blob:/i.test(src) && !/\.m3u8|\.mpd|\.ts(\?|#|$)/i.test(src)) return true;
   if (/<source\b[^>]*\ssrc\s*=\s*["'][^"']*\.(mp4|webm|ogg)/i.test(block)) return true;
   return false;
 }
