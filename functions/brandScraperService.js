@@ -2107,7 +2107,13 @@ async function executeAnalyzePipeline({
   const postCrawlReserveMs = resolvePostCrawlReserveMs(body, inc);
   const crawlDeadlineMs = started + (ANALYZE_FN_TIMEOUT_MS - postCrawlReserveMs);
   const crawlHeartbeatMs = 22000;
-  const crawlHeartbeatDetail = wantJs ? 'Still crawling (JS renderer)…' : 'Still crawling (fetch)…';
+  const uploadOnlyRun = body.uploadOnly === true
+    || body.crawlMode === 'upload_only'
+    || (body.uploadedHtml && body.uploadedHtml.uploadOnly === true)
+    || (body.uploadedFiles && body.uploadedFiles.uploadOnly === true);
+  const crawlHeartbeatDetail = uploadOnlyRun
+    ? 'Processing uploaded HTML/ZIP…'
+    : (wantJs ? 'Still crawling (JS renderer)…' : 'Still crawling (fetch)…');
   const crawlHeartbeatTimer = setInterval(() => {
     brandScrapeStore.touchScrapeRunningHeartbeat(sandbox, runScrapeId, { detail: crawlHeartbeatDetail })
       .catch(() => {});

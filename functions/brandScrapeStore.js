@@ -1015,8 +1015,11 @@ async function runBrandScrapeStaleMaintenance() {
     for (const doc of runSnap.docs) {
       const d = doc.data() || {};
       const rs = d.runStartedAt;
-      const t = firestoreTimestampToMs(rs) || 0;
-      if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId && d.sandbox) {
+      const updated = firestoreTimestampToMs(d.updatedAt) || 0;
+      const started = firestoreTimestampToMs(rs) || updated || firestoreTimestampToMs(d.createdAt) || 0;
+      const staleByStart = started && nowMs - started > STALE_RUNNING_SCRAPE_MS;
+      const staleByHeartbeat = updated && nowMs - updated > STALE_NO_HEARTBEAT_MS;
+      if ((staleByStart || staleByHeartbeat) && d.scrapeId && d.sandbox) {
         await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
           error: 'Run timed out (stale). The worker did not finish within 45 minutes; cancel/retry from the card.',
           steps: [{

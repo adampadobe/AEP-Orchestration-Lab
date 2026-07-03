@@ -585,7 +585,7 @@
         noUpdateMs,
         runAgeMs,
         label: 'Likely stuck',
-        message: 'No server activity for ' + fmtDuration(noUpdateMs) + ' during “' + phase + '”. The worker probably timed out (15 minute limit). Use <strong>Cancel</strong>, then re-run — or wait for automatic cleanup.',
+        message: 'No server activity for ' + fmtDuration(noUpdateMs) + ' during “' + phase + '”. The worker probably timed out or crashed (60 minute Cloud Function limit). Use <strong>Cancel</strong>, then re-run — or wait for automatic cleanup.',
       };
     }
     if (noUpdateMs != null && noUpdateMs >= thresholdMs) {
@@ -3050,7 +3050,7 @@
 
     if (runBtn) runBtn.disabled = true;
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
-    setStatus('Crawling ' + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
+    setStatus((uploadOnly ? 'Processing upload for ' : 'Crawling ') + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
     resultsEl.hidden = true;
 
     const estMs = estimateAnalyzeDurationMs({
