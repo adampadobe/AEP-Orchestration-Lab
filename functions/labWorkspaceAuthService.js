@@ -108,6 +108,11 @@ function approvalUrl(baseUrl, uid, token) {
   return u.toString();
 }
 
+function labLoginUrl(baseUrl) {
+  const root = String(baseUrl || '').replace(/\/+$/, '');
+  return `${root}/profile-viewer/home.html`;
+}
+
 async function sendMailgunEmail({ apiKey, domain, region, fromEmail, subject, text, recipients }) {
   if (!apiKey || apiKey === 'disabled' || apiKey === 'skip' || apiKey.length < 8) {
     return { skipped: true };
@@ -218,6 +223,37 @@ async function sendApprovalNotification({
     subject,
     text,
     recipients,
+  });
+}
+
+async function sendAccessGrantedNotification({
+  firstName,
+  adobeEmail,
+  loginUrl,
+  mailgunKey,
+  mailgunDomain,
+  mailFrom,
+  mailgunRegion,
+}) {
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+  const subject = 'Your AEP Orchestration Lab access is approved';
+  const text = [
+    greeting,
+    '',
+    'Your AEP Orchestration Lab access has been approved. You can now sign in:',
+    '',
+    loginUrl,
+    '',
+    'If you did not request lab access, please ignore this email.',
+  ].join('\n');
+  return sendMailgunEmail({
+    apiKey: mailgunKey,
+    domain: mailgunDomain,
+    region: mailgunRegion,
+    fromEmail: mailFrom,
+    subject,
+    text,
+    recipients: [adobeEmail],
   });
 }
 
@@ -704,7 +740,7 @@ async function getLabAccessStatusFromIdTokenRequest(input) {
   return { ok: true, status: 'missing' };
 }
 
-async function approveWorkspaceAuthRequest(input) {
+async function approveWorkspaceAuthRequest(input, deps = {}) {
   const uid = String(input.uid || '').trim().slice(0, 128);
   const token = String(input.token || '').trim();
   if (!uid || !token) throw badRequest('uid and token are required');
@@ -782,12 +818,48 @@ async function approveWorkspaceAuthRequest(input) {
     console.error('[labWorkspaceAuthService] workspace profile upsert on approve failed', profileErr.message || profileErr);
   }
 
+  let requesterEmailSent = false;
+  let requesterEmailResult = { skipped: true };
+  if (!data.requesterNotifiedAt) {
+    if (process.env.FUNCTIONS_EMULATOR === 'true') {
+      requesterEmailResult = { skipped: true, reason: 'emulator' };
+    } else {
+      try {
+        const baseUrl = resolveBaseUrl(input.origin, deps.approvalBaseUrl);
+        const loginUrl = labLoginUrl(baseUrl);
+        requesterEmailResult = await sendAccessGrantedNotification({
+          firstName,
+          adobeEmail,
+          loginUrl,
+          mailgunKey: deps.mailgunKey,
+          mailgunDomain: deps.mailgunDomain,
+          mailFrom: deps.mailFrom,
+          mailgunRegion: deps.mailgunRegion,
+        });
+        if (requesterEmailResult.sent) {
+          requesterEmailSent = true;
+          await ref.set(
+            { requesterNotifiedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true },
+          );
+        }
+      } catch (e) {
+        console.error('[labWorkspaceAuthService] access granted email failed', e.message || e);
+        requesterEmailResult = { sent: false, error: String(e.message || e) };
+      }
+    }
+  } else {
+    requesterEmailResult = { skipped: true, reason: 'already_notified' };
+  }
+
   return {
     ok: true,
     status: 'approved',
     adobeEmail,
     workspaceSlug,
     rtdbProvision,
+    requesterEmailSent,
+    requesterEmailResult,
   };
 }
 
