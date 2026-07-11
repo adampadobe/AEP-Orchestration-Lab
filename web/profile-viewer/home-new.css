@@ -28,6 +28,12 @@ body.home-new-page.home-dashboard-concierge {
   --home-layout-bg-color: var(--rs-bg);
 }
 
+/* Sidebar active item uses global dash-blue, not page accent red (--dash-blue remap). */
+html[data-aep-theme='dark'] body.home-new-page.home-dashboard-concierge {
+  --menu-nav-active-bg: #4b9fff;
+  --menu-nav-active-fg: #ffffff;
+}
+
 body.home-new-page .dashboard-main-wrap--layout {
   background-color: var(--rs-bg);
 }
@@ -2146,7 +2152,7 @@ html:not([data-aep-theme='dark']) body.home-new-page.home-dashboard-concierge {
   --menu-fg: var(--rs-text);
   --menu-fg-muted: var(--rs-muted);
   --menu-accent: var(--rs-red);
-  --menu-nav-active-bg: var(--rs-red);
+  --menu-nav-active-bg: var(--dash-text);
   --menu-nav-active-fg: #ffffff;
   --menu-hover: rgba(0, 0, 0, 0.05);
 }
@@ -2325,8 +2331,8 @@ html:not([data-aep-theme='dark']) body.home-new-page .cc-mono-sm a {
   }
 }
 
-html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-item,
-html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-label,
+html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-item:not(.dashboard-nav-item--active),
+html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-item:not(.dashboard-nav-item--active) .dashboard-nav-label,
 html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-group-label,
 html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-subgroup-label,
 html:not([data-aep-theme='dark']) body.home-new-page .dashboard-sidebar .dashboard-nav-channel-label,
