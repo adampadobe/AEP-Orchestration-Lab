@@ -1,14 +1,14 @@
 {
-  "gitSha": "4ac2bf87a7edf9bd42f050d9ada2e67315146891",
-  "gitShortSha": "4ac2bf87",
+  "gitSha": "760b852ac2d3c560d18ca58bb5daa4062c0ecae7",
+  "gitShortSha": "760b852a",
   "gitBranch": "main",
-  "gitCommitSubject": "[kirkham] fix: unstick demo build — cap external fetches, demo-only fast path, label fixes",
-  "gitCommitAuthor": "Alan Kirkham",
-  "gitCommitDate": "2026-06-29T11:28:06+01:00",
-  "deployedAt": "2026-06-29T10:28:39.106Z",
-  "deployedBy": "unknown",
+  "gitCommitSubject": "[apalmer] fix: MCP brand scrape dedupe and progress polling",
+  "gitCommitAuthor": "adampadobe",
+  "gitCommitDate": "2026-07-13T14:53:52+01:00",
+  "deployedAt": "2026-07-13T14:00:23.001Z",
+  "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4ac2bf87a7edf9bd42f050d9ada2e67315146891"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/760b852ac2d3c560d18ca58bb5daa4062c0ecae7"
 }
