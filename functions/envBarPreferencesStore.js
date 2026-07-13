@@ -12,6 +12,11 @@ const MAX_SANDBOX_KEYS = 40;
 const MAX_STRING_LEN = 8000;
 const MAX_NESTED_KEYS = 24;
 
+/** Client localStorage uses __default__ when no sandbox is set. */
+const CLIENT_DEFAULT_SANDBOX_KEY = '__default__';
+/** Firestore rejects map field names matching __*__ (reserved). */
+const FIRESTORE_DEFAULT_SANDBOX_KEY = '_default';
+
 let db;
 function getDb() {
   if (!db) {
@@ -30,6 +35,51 @@ function sanitizeSandboxKey(raw) {
   const v = String(raw || '').trim().toLowerCase();
   if (!v) return '';
   return v.replace(/[^a-z0-9_-]/g, '_').slice(0, MAX_SANDBOX_LEN);
+}
+
+function isFirestoreReservedFieldName(name) {
+  const field = String(name || '').trim();
+  return field.startsWith('__');
+}
+
+function encodeSandboxMapKey(key) {
+  const sk = sanitizeSandboxKey(key);
+  if (!sk) return '';
+  if (sk === CLIENT_DEFAULT_SANDBOX_KEY) {
+    return FIRESTORE_DEFAULT_SANDBOX_KEY;
+  }
+  if (isFirestoreReservedFieldName(sk)) {
+    return '_fs_' + sk.slice(2);
+  }
+  return sk;
+}
+
+function decodeSandboxMapKey(key) {
+  const k = String(key || '').trim();
+  if (!k) return '';
+  if (k === FIRESTORE_DEFAULT_SANDBOX_KEY) return CLIENT_DEFAULT_SANDBOX_KEY;
+  if (k.startsWith('_fs_')) return '__' + k.slice(4);
+  return k;
+}
+
+function encodeSandboxKeyedMap(map) {
+  const out = {};
+  for (const k of Object.keys(map || {})) {
+    const encoded = encodeSandboxMapKey(k);
+    if (!encoded) continue;
+    out[encoded] = map[k];
+  }
+  return out;
+}
+
+function decodeSandboxKeyedMap(map) {
+  const out = {};
+  for (const k of Object.keys(map || {})) {
+    const decoded = decodeSandboxMapKey(k);
+    if (!decoded) continue;
+    out[decoded] = map[k];
+  }
+  return out;
 }
 
 function sanitizeNestedMap(incoming, maxKeys) {
@@ -92,14 +142,24 @@ function sanitizePreferences(body) {
   };
 }
 
-/** Firestore rejects undefined; strip invalid nested values before write. */
+function decodePreferencesFromFirestore(prefs) {
+  const clean = sanitizePreferences(prefs);
+  return {
+    selectedSandbox: clean.selectedSandbox || '',
+    tagsBySandbox: decodeSandboxKeyedMap(clean.tagsBySandbox),
+    bcBySandbox: decodeSandboxKeyedMap(clean.bcBySandbox),
+    generatorTargetBySandbox: decodeSandboxKeyedMap(clean.generatorTargetBySandbox),
+  };
+}
+
+/** Firestore rejects undefined and reserved __*__ map keys; encode before write. */
 function firestoreSafePreferences(prefs) {
   const clean = sanitizePreferences(prefs);
   return {
     selectedSandbox: clean.selectedSandbox || '',
-    tagsBySandbox: clean.tagsBySandbox || {},
-    bcBySandbox: clean.bcBySandbox || {},
-    generatorTargetBySandbox: clean.generatorTargetBySandbox || {},
+    tagsBySandbox: encodeSandboxKeyedMap(clean.tagsBySandbox || {}),
+    bcBySandbox: encodeSandboxKeyedMap(clean.bcBySandbox || {}),
+    generatorTargetBySandbox: encodeSandboxKeyedMap(clean.generatorTargetBySandbox || {}),
   };
 }
 
@@ -125,7 +185,7 @@ async function getPreferences(uid) {
   const ref = getDb().collection(COLLECTION).doc(userId);
   const snap = await ref.get();
   if (!snap.exists) return emptyPreferences();
-  return sanitizePreferences(snap.data() || {});
+  return decodePreferencesFromFirestore(snap.data() || {});
 }
 
 async function mergePreferences(uid, patch) {
@@ -136,7 +196,7 @@ async function mergePreferences(uid, patch) {
 
   await getDb().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const prev = snap.exists ? sanitizePreferences(snap.data() || {}) : emptyPreferences();
+    const prev = snap.exists ? decodePreferencesFromFirestore(snap.data() || {}) : emptyPreferences();
 
     if (clean.selectedSandbox) prev.selectedSandbox = clean.selectedSandbox;
 
@@ -173,9 +233,14 @@ async function mergePreferences(uid, patch) {
 
 module.exports = {
   COLLECTION,
+  CLIENT_DEFAULT_SANDBOX_KEY,
+  FIRESTORE_DEFAULT_SANDBOX_KEY,
   emptyPreferences,
   sanitizePreferences,
   firestoreSafePreferences,
+  decodePreferencesFromFirestore,
+  encodeSandboxMapKey,
+  decodeSandboxMapKey,
   getPreferences,
   mergePreferences,
   verifyIdTokenFromRequest,
