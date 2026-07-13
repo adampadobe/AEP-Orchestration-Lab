@@ -1,17 +1,10 @@
 /* Arm site-clone shell — iframe + compact env bar (shared/env-bar-compact.css) */
 
-body.armcom-demo-page {
-  overflow: hidden;
-}
-
 .armcom-demo-site-frame {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   border: 0;
   z-index: 1;
   background: var(--dash-bg);
@@ -22,13 +15,10 @@ body.armcom-demo-page {
   max-width: none;
 }
 
-/* Fixed shell: lab nav sidebar only; do not participate in document flow over iframe */
 .armcom-demo-page .dashboard-shell {
-  position: fixed;
-  inset: 0;
+  position: relative;
   z-index: 2;
   pointer-events: none;
-  min-height: 0;
 }
 
 .armcom-demo-page .dashboard-sidebar {
@@ -38,7 +28,7 @@ body.armcom-demo-page {
 .armcom-demo-page .dashboard-main-wrap {
   flex: 1;
   min-width: 0;
-  min-height: 0;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: transparent;
