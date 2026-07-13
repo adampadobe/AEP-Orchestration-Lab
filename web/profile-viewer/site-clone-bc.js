@@ -33,8 +33,12 @@
     return snapshotLayout() === 'ksia-home';
   }
 
+  function isArmcomHomeLayout() {
+    return snapshotLayout() === 'armcom-home';
+  }
+
   function isModernSiteCloneLayout() {
-    return isSkyHomeLayout() || isJlrHomeLayout() || isSagaHomeLayout() || isKsiaHomeLayout();
+    return isSkyHomeLayout() || isJlrHomeLayout() || isSagaHomeLayout() || isKsiaHomeLayout() || isArmcomHomeLayout();
   }
 
   function getInjectedLayoutAnchor(doc) {
@@ -61,6 +65,13 @@
     if (isJlrHomeLayout()) {
       return doc.querySelector('.block.hero') || doc.querySelector('nav.nav-2024') || doc.querySelector('main');
     }
+    if (isArmcomHomeLayout()) {
+      return (
+        doc.querySelector('[data-hero-mount]') ||
+        doc.querySelector('.armcom-hero') ||
+        doc.querySelector('main')
+      );
+    }
     return doc.querySelector('.exp-hero-banner');
   }
 
@@ -77,6 +88,9 @@
     }
     if (isJlrHomeLayout()) {
       return doc.querySelector('nav.nav-2024');
+    }
+    if (isArmcomHomeLayout()) {
+      return doc.querySelector('#armcom-chrome-mount') || doc.querySelector('.armcom-header');
     }
     return doc.querySelector('.main-page-layout__header');
   }
@@ -732,6 +746,10 @@
       if (!fullscreen && isKsiaHomeLayout()) {
         var ksiaHero = doc.querySelector('[data-hero-mount]') || doc.querySelector('.ksia-hero');
         if (ksiaHero) anchor = ksiaHero;
+      }
+      if (!fullscreen && isArmcomHomeLayout()) {
+        var armcomHero = doc.querySelector('[data-hero-mount]') || doc.querySelector('.armcom-hero');
+        if (armcomHero) anchor = armcomHero;
       }
       if (anchor) {
         var anchorRect = anchor.getBoundingClientRect();

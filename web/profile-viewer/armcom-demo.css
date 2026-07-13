@@ -1,8 +1,17 @@
+/* Arm site-clone shell — iframe + compact env bar (shared/env-bar-compact.css) */
+
+body.armcom-demo-page {
+  overflow: hidden;
+}
+
 .armcom-demo-site-frame {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   border: 0;
   z-index: 1;
   background: var(--dash-bg);
@@ -13,10 +22,13 @@
   max-width: none;
 }
 
+/* Fixed shell: lab nav sidebar only; do not participate in document flow over iframe */
 .armcom-demo-page .dashboard-shell {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
+  min-height: 0;
 }
 
 .armcom-demo-page .dashboard-sidebar {
@@ -26,7 +38,7 @@
 .armcom-demo-page .dashboard-main-wrap {
   flex: 1;
   min-width: 0;
-  min-height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -41,6 +53,8 @@
   visibility: hidden;
   pointer-events: none;
 }
+
+/* Top env strip dropdown: shared/env-bar-compact.css */
 
 .armcom-demo-script-preview {
   max-width: 1280px;
@@ -90,6 +104,7 @@
   }
 }
 
+/* Full screen BC: parent-page overlay above the site iframe (KSIA / Starbucks parity) */
 .armcom-demo-page.site-clone-bc-fullscreen-armed .armcom-demo-site-frame {
   z-index: 1;
 }
@@ -119,6 +134,18 @@
   pointer-events: none !important;
 }
 
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  pointer-events: none;
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount {
+  pointer-events: auto;
+}
+
 .armcom-demo-page .site-clone-bc-frame-mount {
   width: 100%;
   max-width: 920px;
@@ -126,6 +153,55 @@
   flex: 1 1 auto;
   margin: 0 auto;
   pointer-events: auto;
+}
+
+.armcom-demo-page .site-clone-bc-frame-host #siteCloneBcFrameMount.brand-concierge-mount,
+.armcom-demo-page .site-clone-bc-frame-host .site-clone-bc-frame-mount {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  min-height: 540px;
+}
+
+/* Injected: span iframe width below hero */
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Full screen BC: fill iframe viewport below Arm scroll header */
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen .site-clone-bc-frame-mount,
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  min-height: min(540px, 100%);
+}
+
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount > *,
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='concierge'],
+.armcom-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='bc-'] {
+  max-width: none;
+}
+
+.armcom-demo-page.aep-bc-modal-open .site-clone-bc-frame-host {
+  z-index: 5;
 }
 
 .armcom-demo-page .aep-bc-park-launcher {
