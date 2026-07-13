@@ -44,7 +44,7 @@
   pointer-events: none;
 }
 
-/* Top env strip: shared/env-bar-compact.css (+ demo-env-bar-spectrum.css preloaded in HTML) */
+/* Top env strip: shared/env-bar-compact.css preloaded in HTML; bundle/spectrum via env-bar.js */
 .armcom-demo-top-anchor.lab-env-top-anchor:has(.lab-env-overlay-panel) .armcom-demo-id-banner {
   transform: none !important;
   max-height: none !important;

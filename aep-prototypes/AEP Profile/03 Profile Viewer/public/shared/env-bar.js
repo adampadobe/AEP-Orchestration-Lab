@@ -15,42 +15,48 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20260614-env-bar-prefs',
+    manifestVersion: '20260713b-armcom-env-bar',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260625-datastream-paste-row-ensure',
       spectrumCss: '20260617-overlay-inset',
-      demoEnvStripSpectrum: '20260616-datastream-bc-services-tooltip',
+      demoEnvStripSpectrum: '20260625-datastream-uuid-tooltip',
       demoEnvStrip: '20260616-hide-lab-debug-ui',
-      spectrumSync: '20260614-sdk-compact-status',
+      spectrumSync: '20260617-sdk-live-status',
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
-      compactJs: '20260617-overlay-inset',
-      compactCss: '20260617-overlay-inset',
+      compactCss: '20260713b-armcom-env-bar',
+      compactJs: '20260713b-armcom-env-bar',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260622-bc-enabled-persist',
       prefsSync: '20260616-tags-incognito-load',
-      tagsInjection: '20260625-lab-debug-messages',
-      aepDemoEnvBar: '20260625-datastream-paste-row-ensure',
+      tagsInjection: '20260617-env-bar-collapsed-resume',
+      aepDemoEnvBar: '20260713b-armcom-env-bar',
       siteCloneBcEnv: '20260622-bc-enabled-persist',
-      decisioningModuleCss: '20260617-surface-expand',
-      decisioningPanelCss: '20260617-surface-expand',
+      siteCloneBcChrome: '20260614-modal-dock-parity',
+      siteCloneBc: '20260625-bc-incognito-sync-skip',
+      bottomDockCss: '20260614-modal-dock-parity',
+      bottomDockJs: '20260614-modal-dock-parity',
+      bottomDockBoot: '20260614-modal-dock-parity',
+      modalBarCss: '20260617-modal-bar-v8',
+      modalBarJs: '20260617-modal-bar-v7',
+      modalBarBoot: '20260617-modal-bar-v7',
+      envBarJs: '20260625-datastream-paste-row-ensure',
+      decisioningModuleCss: '20260618-reset-apply-spacing',
+      decisioningPanelCss: '20260618-midrail-dynamic-stack',
       profileStreamingShared: '20260615',
       contentDecisionSurfaceStylesCore: '20260616',
       contentDecisionLabConfig: '20260615',
       contentDecisionEdgeMounts: '20260615-edge-mounts-syntax',
-      decisioningEdgeInject: '20260617-top-ribbon',
-      decisioningProfileRuntime: '20260616-surface-styles-panel',
-      decisioningProfileModule: '20260616-surface-styles',
-      decisioningSurfaceStylesPanel: '20260617-surface-expand',
-      decisioningProfilePanel: '20260617-surface-expand',
-      siteCloneDecisioningBoot: '20260624-target-page-url',
-      bcMidrailPanelCss: '20260617-bc-midrail',
-      bcMidrailPanel: '20260617-bc-midrail',
-      bcMidrailBoot: '20260617-bc-midrail',
-      modalBarCss: '20260617-modal-bar-v7',
-      modalBarJs: '20260617-modal-bar-v7',
-      modalBarBoot: '20260617-modal-bar-v7',
+      decisioningEdgeInject: '20260617-mount-reset',
+      decisioningProfileRuntime: '20260617-mount-reset',
+      decisioningProfileModule: '20260617-reset-icon-toolbar',
+      decisioningSurfaceStylesPanel: '20260617-live-preview',
+      decisioningProfilePanel: '20260617-panel-editing-guard',
+      siteCloneDecisioningBoot: '20260617-alloy-ready',
+      bcMidrailPanelCss: '20260618-midrail-dynamic-stack',
+      bcMidrailPanel: '20260618-midrail-dynamic-stack',
+      bcMidrailBoot: '20260617-sparkle-icon',
     },
   };
 
@@ -914,6 +920,23 @@
   }
 
   /**
+   * Legacy brand-scraper shells shipped before labCoreScript — load Tags injection wiring.
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBrandScraperLabCoreFallback(cfg) {
+    if (!isFullShellMode(cfg)) return Promise.resolve();
+    if (cfg.labCoreScript) return Promise.resolve();
+    if (state.tagsInjection) return Promise.resolve();
+    if (global.__brandScraperLabCoreRan) return Promise.resolve();
+    var mount = document.querySelector('[data-demo-env-strip-mount="site-clone-shell"]');
+    if (!mount) return Promise.resolve();
+    var disclaimer = String(mount.getAttribute('data-demo-env-strip-disclaimer') || '');
+    if (disclaimer.indexOf('Brand scrape demo') === -1) return Promise.resolve();
+    log('load brand scraper lab core (legacy shell fallback)');
+    return loadScript((state.basePath || '') + 'brand-scraper-site-clone-lab-core.js?v=20260629-tags-inject');
+  }
+
+  /**
    * Initialize env bar: load manifest, CSS, scripts, mount strip, bootstrap env editor.
    * Demo-specific DemoTagsInjection.init remains in per-demo lab-core JS.
    *
@@ -973,6 +996,8 @@
         notifyChange({ type: 'init', config: getConfig(), bootstrap: result });
         log('initialized', result);
         return loadLabCoreIfConfigured(state.config).then(function () {
+          return loadBrandScraperLabCoreFallback(state.config);
+        }).then(function () {
           return Object.assign({ config: getConfig() }, result);
         });
       })
