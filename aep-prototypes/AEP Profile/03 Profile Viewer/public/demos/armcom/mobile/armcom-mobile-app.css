@@ -3,7 +3,7 @@
   --armcom-m-surface: #ffffff;
   --armcom-m-text: #000000;
   --armcom-m-muted: #6b6b6b;
-  --armcom-m-accent: #0091bd;
+  --armcom-m-accent: #7233f7;
   --armcom-m-tab-h: 56px;
 }
 
@@ -59,7 +59,7 @@ body.armcom-mobile-app {
 }
 
 .armcom-mobile-hero-card {
-  background: linear-gradient(135deg, #1a1a1a, #003d52);
+  background: linear-gradient(135deg, #0a0a12, #1a0a3e);
   color: var(--armcom-m-surface);
   border-radius: 16px;
   padding: 1.25rem;

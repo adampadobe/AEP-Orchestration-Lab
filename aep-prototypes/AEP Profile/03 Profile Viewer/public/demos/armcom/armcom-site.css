@@ -1,116 +1,285 @@
 /**
- * Arm site — scoped design tokens mimicking arm.com.
+ * Arm.com site mock — design tokens and layout (lab demo).
  */
 :root {
   --armcom-black: #000000;
+  --armcom-navy: #0a0a12;
+  --armcom-navy-deep: #050508;
   --armcom-white: #ffffff;
-  --armcom-grey-100: #f5f5f5;
-  --armcom-grey-200: #e8e8e8;
-  --armcom-grey-400: #9a9a9a;
-  --armcom-grey-700: #4a4a4a;
-  --armcom-accent: #0091bd;
-  --armcom-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --armcom-max: 1200px;
-  --armcom-header-h: 64px;
+  --armcom-grey-50: #fafafa;
+  --armcom-grey-100: #f2f2f4;
+  --armcom-grey-200: #e4e4e8;
+  --armcom-grey-400: #9a9aa8;
+  --armcom-grey-600: #5c5c6e;
+  --armcom-grey-700: #3d3d4a;
+  --armcom-purple: #7233f7;
+  --armcom-purple-hover: #5e22e0;
+  --armcom-blue: #0066ff;
+  --armcom-teal: #00c2b2;
+  --armcom-gold: #e8a020;
+  --armcom-font: "Aeonik", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --armcom-max: 1280px;
+  --armcom-header-h: 72px;
+  --armcom-radius-pill: 999px;
+  --armcom-radius-card: 12px;
+}
+
+@font-face {
+  font-family: "Aeonik";
+  src: local("Aeonik"), local("Aeonik Regular");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aeonik";
+  src: local("Aeonik Medium"), local("Aeonik");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aeonik";
+  src: local("Aeonik Bold"), local("Aeonik");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
-button, input, select, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; cursor: pointer; border: none; background: none; }
 
 body.armcom-site {
   font-family: var(--armcom-font);
   background: var(--armcom-white);
   color: var(--armcom-black);
   min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-.armcom-site-header {
+/* ── Header ─────────────────────────────────────────────── */
+.armcom-header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200;
+  height: var(--armcom-header-h);
+}
+
+.armcom-header--dark {
   background: var(--armcom-black);
   color: var(--armcom-white);
-  height: var(--armcom-header-h);
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.armcom-site-header-inner {
+.armcom-header--light {
+  background: var(--armcom-white);
+  color: var(--armcom-black);
+  border-bottom: 1px solid var(--armcom-grey-200);
+}
+
+.armcom-header-inner {
   width: min(var(--armcom-max), 100%);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 32px;
+  height: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 2rem;
 }
 
-.armcom-logo {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  text-transform: lowercase;
+.armcom-header-logo img {
+  height: 28px;
+  width: auto;
 }
 
-.armcom-logo span {
-  font-size: 0.55rem;
-  vertical-align: super;
-  margin-left: 1px;
-}
-
-.armcom-nav {
+.armcom-header-nav {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  font-size: 0.875rem;
+  gap: 1.5rem;
+  flex: 1;
+  justify-content: center;
 }
 
-.armcom-nav a {
-  opacity: 0.9;
+.armcom-nav-item {
+  color: inherit;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  padding: 0.25rem 0;
+  opacity: 0.92;
   transition: opacity 0.15s;
 }
 
-.armcom-nav a:hover,
-.armcom-nav a.active {
-  opacity: 1;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
+.armcom-nav-item:hover { opacity: 1; }
 
-.armcom-nav-cta {
-  background: var(--armcom-white);
-  color: var(--armcom-black);
-  padding: 0.45rem 1rem;
-  border-radius: 999px;
-  font-weight: 600;
-  text-decoration: none !important;
-}
-
-.armcom-main {
-  min-height: calc(100vh - var(--armcom-header-h) - 120px);
-}
-
-.armcom-hero {
-  position: relative;
-  min-height: 420px;
+.armcom-header-utils {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.armcom-header-icon {
+  color: inherit;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.armcom-header--dark .armcom-header-icon:hover { background: rgba(255, 255, 255, 0.08); }
+.armcom-header--light .armcom-header-icon:hover { background: var(--armcom-grey-100); }
+
+/* ── Main ───────────────────────────────────────────────── */
+.armcom-main { min-height: 60vh; }
+
+/* ── Buttons ────────────────────────────────────────────── */
+.armcom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.75rem;
+  border-radius: var(--armcom-radius-pill);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.armcom-btn-purple {
+  background: var(--armcom-purple);
+  color: var(--armcom-white);
+}
+
+.armcom-btn-purple:hover { background: var(--armcom-purple-hover); }
+
+.armcom-btn-blue {
+  background: var(--armcom-blue);
+  color: var(--armcom-white);
+}
+
+.armcom-btn-blue:hover { filter: brightness(1.08); }
+
+.armcom-btn-sm {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.875rem;
+}
+
+.armcom-btn-primary {
+  background: var(--armcom-purple);
+  color: var(--armcom-white);
+}
+
+.armcom-btn-outline {
+  border: 1.5px solid var(--armcom-white);
+  color: var(--armcom-white);
+  background: transparent;
+}
+
+.armcom-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.armcom-link-chevron::after {
+  content: " ›";
+  font-weight: 600;
+}
+
+/* ── Hero (homepage AGI) ────────────────────────────────── */
+.armcom-hero--agi {
   background: var(--armcom-black);
   color: var(--armcom-white);
+  position: relative;
   overflow: hidden;
+  min-height: 560px;
+}
+
+.armcom-hero--agi::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(114, 51, 247, 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.armcom-hero-mount-inner {
+  position: relative;
+  z-index: 1;
+  width: min(var(--armcom-max), 100%);
+  margin: 0 auto;
+  padding: 3rem 32px 4rem;
+}
+
+.armcom-hero-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.armcom-hero-kicker {
+  color: var(--armcom-purple);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.armcom-hero-copy h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.armcom-hero-lead {
+  font-size: 1.0625rem;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0 0 1.75rem;
+  max-width: 32rem;
+  line-height: 1.55;
+}
+
+.armcom-hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.armcom-hero-product {
+  max-height: 480px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ── Subpage hero ───────────────────────────────────────── */
+.armcom-hero:not(.armcom-hero--agi) {
+  background: var(--armcom-black);
+  color: var(--armcom-white);
+  position: relative;
+  min-height: 380px;
+  display: flex;
+  align-items: center;
 }
 
 .armcom-hero-bg {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(135deg, rgba(0, 145, 189, 0.35) 0%, transparent 55%),
-    linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.85) 100%),
-    radial-gradient(ellipse at 70% 20%, rgba(0, 145, 189, 0.25), transparent 50%);
+  background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(114, 51, 247, 0.25), transparent 60%);
 }
 
 .armcom-hero-content {
@@ -118,235 +287,719 @@ body.armcom-site {
   z-index: 1;
   width: min(var(--armcom-max), 100%);
   margin: 0 auto;
-  padding: 3rem 24px 2.5rem;
+  padding: 4rem 32px;
 }
 
-.armcom-hero-kicker {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  opacity: 0.75;
-  margin: 0 0 0.75rem;
-}
-
-.armcom-hero h1 {
-  font-size: clamp(2rem, 5vw, 3.25rem);
+.armcom-hero-content h1 {
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.15;
   margin: 0 0 1rem;
-  max-width: 16ch;
+  max-width: 40rem;
 }
 
-.armcom-hero-lead {
-  font-size: 1.05rem;
-  line-height: 1.5;
-  max-width: 52ch;
-  opacity: 0.9;
-  margin: 0 0 1.5rem;
-}
+/* ── Sections ───────────────────────────────────────────── */
+.armcom-section { padding: 4.5rem 0; }
 
-.armcom-btn-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
+.armcom-section--white { background: var(--armcom-white); }
 
-.armcom-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.65rem 1.25rem;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.armcom-btn-primary {
-  background: var(--armcom-white);
-  color: var(--armcom-black);
-}
-
-.armcom-btn-primary:hover {
-  background: var(--armcom-grey-200);
-}
-
-.armcom-btn-outline {
-  background: transparent;
+.armcom-section--dark {
+  background: var(--armcom-navy);
   color: var(--armcom-white);
-  border-color: rgba(255, 255, 255, 0.5);
 }
 
-.armcom-btn-outline:hover {
-  border-color: var(--armcom-white);
-}
-
-.armcom-section {
-  padding: 3.5rem 24px;
+.armcom-section--innovation {
+  background: var(--armcom-navy-deep);
+  color: var(--armcom-white);
+  padding-bottom: 5rem;
 }
 
 .armcom-section-inner {
   width: min(var(--armcom-max), 100%);
   margin: 0 auto;
+  padding: 0 32px;
 }
 
+.armcom-section-title {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  margin: 0 0 2.5rem;
+  letter-spacing: -0.02em;
+}
+
+.armcom-section-title--center { text-align: center; }
+
+.armcom-section-title--light { color: var(--armcom-white); }
+
+.armcom-section-lead {
+  font-size: 1.0625rem;
+  margin: -1.5rem auto 2.5rem;
+  max-width: 52rem;
+  line-height: 1.6;
+}
+
+.armcom-section-lead--light { color: rgba(255, 255, 255, 0.78); }
+.armcom-section-lead--center { text-align: center; }
+
 .armcom-section-kicker {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--armcom-grey-400);
+  color: var(--armcom-purple);
+  font-size: 0.875rem;
+  font-weight: 500;
   margin: 0 0 0.5rem;
 }
 
-.armcom-section h2 {
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
+/* ── Highlights carousel ──────────────────────────────────── */
+.armcom-highlights { padding: 4rem 0 3.5rem; }
+
+.armcom-highlights-carousel {
+  position: relative;
+}
+
+.armcom-highlights-track {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem;
+}
+
+.armcom-highlights-track::-webkit-scrollbar { display: none; }
+
+.armcom-highlight-card {
+  flex: 0 0 calc(33.333% - 0.85rem);
+  min-width: 280px;
+  scroll-snap-align: start;
+  background: var(--armcom-navy-deep);
+  color: var(--armcom-white);
+  border-radius: var(--armcom-radius-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.armcom-highlight-img-wrap {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.armcom-highlight-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.armcom-highlight-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.75rem;
+}
+
+.armcom-highlight-body h3 {
+  font-size: 1.125rem;
   font-weight: 700;
-  margin: 0 0 1rem;
-  line-height: 1.15;
+  margin: 0;
+  line-height: 1.3;
 }
 
-.armcom-section p {
-  line-height: 1.6;
-  color: var(--armcom-grey-700);
-  margin: 0 0 1rem;
+.armcom-highlight-body p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  flex: 1;
+  line-height: 1.5;
 }
 
-.armcom-stats {
+.armcom-highlight-body .armcom-btn { align-self: flex-start; margin-top: 0.5rem; }
+
+.armcom-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--armcom-white);
+  color: var(--armcom-black);
+  font-size: 1.5rem;
+  line-height: 1;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.armcom-carousel-arrow--next { right: -12px; }
+
+.armcom-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
+}
+
+.armcom-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--armcom-grey-200);
+  padding: 0;
+}
+
+.armcom-carousel-dot.is-active { background: var(--armcom-blue); }
+
+/* ── Stats band ───────────────────────────────────────────── */
+.armcom-section--stats {
+  position: relative;
+  background: var(--armcom-navy);
+  color: var(--armcom-white);
+  padding: 5rem 0;
+  overflow: hidden;
+}
+
+.armcom-stats-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, transparent 40%, rgba(114, 51, 247, 0.5) 50%, rgba(0, 102, 255, 0.4) 55%, transparent 65%),
+    var(--armcom-navy);
+  pointer-events: none;
+}
+
+.armcom-stats-inner { position: relative; z-index: 1; }
+
+.armcom-stats-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
   margin-top: 2rem;
 }
 
-.armcom-stat {
-  padding: 1.5rem;
-  background: var(--armcom-grey-100);
-  border-radius: 12px;
-}
+.armcom-stat-block { text-align: center; }
 
 .armcom-stat-value {
-  font-size: 2rem;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.03em;
+}
+
+.armcom-stat-label {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 18rem;
+  margin-inline: auto;
+}
+
+/* ── Compute grid ─────────────────────────────────────────── */
+.armcom-compute-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.armcom-compute-card {
+  position: relative;
+  border-radius: var(--armcom-radius-card);
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  display: block;
+}
+
+.armcom-compute-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.armcom-compute-card:hover .armcom-compute-card-img { transform: scale(1.04); }
+
+.armcom-compute-tag {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: var(--armcom-teal);
+  color: var(--armcom-black);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--armcom-radius-pill);
+  z-index: 2;
+}
+
+.armcom-compute-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 55%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  color: var(--armcom-white);
+}
+
+.armcom-compute-card-overlay h3 {
+  font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 0.35rem;
 }
 
-.armcom-stat-label {
-  font-size: 0.9rem;
-  color: var(--armcom-grey-700);
+.armcom-compute-card-overlay p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 0.5rem;
+  line-height: 1.45;
+}
+
+.armcom-compute-card-overlay .armcom-link-chevron {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--armcom-white);
+}
+
+/* ── Innovation tabs ──────────────────────────────────────── */
+.armcom-innovation-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.armcom-innovation-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  border-radius: var(--armcom-radius-card);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+.armcom-innovation-tab.is-active {
+  background: rgba(232, 160, 32, 0.15);
+  color: var(--armcom-white);
+  box-shadow: inset 0 0 0 2px var(--armcom-gold);
+}
+
+.armcom-innovation-tab-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.armcom-innovation-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--armcom-radius-card);
+  overflow: hidden;
+}
+
+.armcom-innovation-panel-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  padding: 2rem;
+}
+
+.armcom-innovation-panel-copy h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.armcom-innovation-panel-copy p {
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0 0 1.25rem;
+  line-height: 1.55;
+}
+
+.armcom-innovation-bullets {
+  margin: 0 0 1.5rem;
+  padding-left: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+
+.armcom-innovation-panel-visual img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+/* ── Partner stories ──────────────────────────────────────── */
+.armcom-partners {
+  background: var(--armcom-grey-100);
+  padding: 4.5rem 0;
+}
+
+.armcom-partner-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.armcom-partner-card {
+  border-radius: var(--armcom-radius-card);
+  padding: 2rem;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.armcom-partner-card--dark {
+  background: var(--armcom-navy-deep);
+  color: var(--armcom-white);
+}
+
+.armcom-partner-card--gradient-a {
+  background: linear-gradient(135deg, #1a0a3e 0%, #2d1b69 50%, #0a2040 100%);
+  color: var(--armcom-white);
+}
+
+.armcom-partner-card--gradient-b {
+  background: linear-gradient(135deg, #0a3060 0%, #1a5080 50%, #0a2040 100%);
+  color: var(--armcom-white);
+}
+
+.armcom-partner-brand {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--armcom-purple);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.armcom-partner-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
   margin: 0;
 }
 
+.armcom-partner-sub {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  margin: 0;
+}
+
+.armcom-partner-copy {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.85;
+  margin: 0.5rem 0 1rem;
+  flex: 1;
+}
+
+/* ── Leadership ───────────────────────────────────────────── */
+.armcom-leadership-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.armcom-leadership-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--armcom-radius-card);
+  margin-bottom: 1.25rem;
+}
+
+.armcom-leadership-kicker {
+  font-size: 0.8125rem;
+  color: var(--armcom-purple);
+  font-weight: 500;
+  margin: 0 0 0.35rem;
+}
+
+.armcom-leadership-card h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.armcom-leadership-card p {
+  font-size: 0.9rem;
+  color: var(--armcom-grey-600);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.armcom-leadership-card .armcom-link-chevron {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--armcom-purple);
+}
+
+/* ── Subscribe ────────────────────────────────────────────── */
+.armcom-section--subscribe {
+  background: var(--armcom-white);
+  position: relative;
+  overflow: hidden;
+  padding: 5rem 0;
+}
+
+.armcom-section--subscribe::before,
+.armcom-section--subscribe::after {
+  content: "";
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.armcom-section--subscribe::before {
+  top: -100px;
+  left: -100px;
+  background: var(--armcom-blue);
+}
+
+.armcom-section--subscribe::after {
+  bottom: -100px;
+  right: -100px;
+  background: var(--armcom-purple);
+}
+
+.armcom-subscribe-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.armcom-subscribe-inner .armcom-btn { margin-top: 1rem; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+.armcom-footer {
+  background: var(--armcom-navy-deep);
+  color: var(--armcom-white);
+  padding: 3.5rem 0 2rem;
+}
+
+.armcom-footer-inner {
+  width: min(var(--armcom-max), 100%);
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.armcom-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.armcom-footer-col h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+}
+
+.armcom-footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.armcom-footer-col li { margin-bottom: 0.5rem; }
+
+.armcom-footer-col a {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.65);
+  transition: color 0.15s;
+}
+
+.armcom-footer-col a:hover { color: var(--armcom-white); }
+
+.armcom-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.armcom-footer-legal {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.armcom-footer-legal a {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.armcom-footer-logo { opacity: 0.9; }
+
+.armcom-footer-disclaimer {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 1.5rem 0 0;
+  text-align: center;
+}
+
+/* ── Subpage article layout ───────────────────────────────── */
+.armcom-article-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 3rem;
+  align-items: start;
+}
+
+.armcom-article-body h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 2rem 0 0.75rem;
+}
+
+.armcom-article-body h2:first-of-type { margin-top: 0; }
+
+.armcom-article-body p {
+  color: var(--armcom-grey-700);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.armcom-article-body ul {
+  color: var(--armcom-grey-700);
+  line-height: 1.7;
+  padding-left: 1.25rem;
+}
+
+.armcom-article-body a { color: var(--armcom-purple); }
+
+.armcom-sidebar-card {
+  background: var(--armcom-grey-100);
+  border-radius: var(--armcom-radius-card);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.armcom-sidebar-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.armcom-sidebar-card a {
+  color: var(--armcom-purple);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.armcom-partner-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.armcom-partner-chips span {
+  background: var(--armcom-grey-100);
+  padding: 0.5rem 1rem;
+  border-radius: var(--armcom-radius-pill);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ── Marketo subscribe form ───────────────────────────────── */
+.armcom-subscribe-form-wrap {
+  max-width: 480px;
+  margin: 2rem auto 0;
+}
+
+.armcom-form-field {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.armcom-form-field label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
+.armcom-form-field input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--armcom-grey-200);
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.armcom-form-field input:focus {
+  outline: 2px solid var(--armcom-purple);
+  outline-offset: 1px;
+}
+
+/* ── Developer pillar cards ───────────────────────────────── */
 .armcom-pillar-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
   margin-top: 2rem;
 }
 
 .armcom-pillar-card {
+  background: var(--armcom-grey-100);
+  border-radius: var(--armcom-radius-card);
   padding: 1.5rem;
-  border: 1px solid var(--armcom-grey-200);
-  border-radius: 12px;
-  transition: box-shadow 0.15s, border-color 0.15s;
 }
 
-.armcom-pillar-card:hover {
-  border-color: var(--armcom-black);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+.armcom-pillar-card--highlight {
+  background: var(--armcom-navy);
+  color: var(--armcom-white);
 }
 
 .armcom-pillar-card h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
 }
 
 .armcom-pillar-card p {
   font-size: 0.9rem;
-  margin: 0 0 1rem;
+  color: var(--armcom-grey-600);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
 }
+
+.armcom-pillar-card--highlight p { color: rgba(255, 255, 255, 0.75); }
 
 .armcom-pillar-card a {
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--armcom-purple);
 }
 
-.armcom-pillar-card--highlight {
-  border-color: var(--armcom-accent);
-  background: linear-gradient(180deg, rgba(0, 145, 189, 0.06), transparent);
-}
+.armcom-pillar-card--highlight a { color: var(--armcom-white); }
 
-.armcom-partners {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem 2.5rem;
-  align-items: center;
-  margin-top: 1.5rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--armcom-grey-700);
-}
-
-.armcom-article-layout {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 2.5rem;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .armcom-article-layout {
-    grid-template-columns: 1fr;
-  }
-  .armcom-nav {
-    display: none;
-  }
-}
-
-.armcom-article-body h2 {
-  margin-top: 2rem;
-}
-
-.armcom-article-body ul {
-  padding-left: 1.25rem;
-  line-height: 1.7;
-  color: var(--armcom-grey-700);
-}
-
-.armcom-sidebar-card {
-  padding: 1.25rem;
-  background: var(--armcom-grey-100);
-  border-radius: 12px;
-  margin-bottom: 1rem;
-}
-
-.armcom-sidebar-card h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-}
-
-.armcom-dev-banner {
-  background: var(--armcom-grey-100);
-  border-bottom: 1px solid var(--armcom-grey-200);
-  padding: 0.5rem 24px;
-  font-size: 0.8rem;
-  text-align: center;
-}
-
-.armcom-dev-banner strong {
-  color: var(--armcom-accent);
-}
-
+/* ── Subscribe form card ──────────────────────────────────── */
 .armcom-form-card {
-  max-width: 480px;
+  max-width: 440px;
   margin: 0 auto;
+  background: var(--armcom-grey-100);
+  border-radius: var(--armcom-radius-card);
   padding: 2rem;
-  border: 1px solid var(--armcom-grey-200);
-  border-radius: 16px;
-  background: var(--armcom-white);
+  text-align: left;
 }
 
 .armcom-form-row {
@@ -355,96 +1008,62 @@ body.armcom-site {
 
 .armcom-form-row label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   margin-bottom: 0.35rem;
 }
 
 .armcom-form-row input,
 .armcom-form-row select {
   width: 100%;
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--armcom-grey-200);
   border-radius: 8px;
+  font-size: 1rem;
+  background: var(--armcom-white);
 }
 
 .armcom-form-row input:focus,
 .armcom-form-row select:focus {
-  outline: 2px solid var(--armcom-accent);
+  outline: 2px solid var(--armcom-purple);
   outline-offset: 1px;
 }
 
-.armcom-toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(120%);
-  z-index: 500;
-  background: var(--armcom-black);
-  color: var(--armcom-white);
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  max-width: min(520px, calc(100% - 32px));
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-  transition: transform 0.3s ease;
-  font-size: 0.9rem;
-  line-height: 1.45;
+.armcom-btn-outline-dark {
+  border: 1.5px solid var(--armcom-black);
+  color: var(--armcom-black);
+  background: transparent;
 }
 
-.armcom-toast.visible {
-  transform: translateX(-50%) translateY(0);
+/* ── Decisioning mount zones ──────────────────────────────── */
+.armcom-content-cards:empty { display: none; }
+
+#TopRibbon:empty { display: none; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .armcom-header-nav { display: none; }
+  .armcom-hero-split { grid-template-columns: 1fr; }
+  .armcom-hero-visual { order: -1; }
+  .armcom-hero-product { max-height: 320px; }
+  .armcom-highlight-card { flex: 0 0 calc(50% - 0.65rem); }
+  .armcom-stats-row { grid-template-columns: 1fr; gap: 2.5rem; }
+  .armcom-compute-grid { grid-template-columns: 1fr; }
+  .armcom-innovation-tabs { grid-template-columns: 1fr; }
+  .armcom-innovation-panel-inner { grid-template-columns: 1fr; }
+  .armcom-partner-row,
+  .armcom-leadership-row { grid-template-columns: 1fr; }
+  .armcom-footer-grid { grid-template-columns: repeat(2, 1fr); }
+  .armcom-pillar-grid { grid-template-columns: 1fr; }
 }
 
-.armcom-toast-logos {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.65rem;
-  font-size: 0.75rem;
-  opacity: 0.85;
-}
-
-.armcom-site-footer {
-  background: var(--armcom-black);
-  color: var(--armcom-white);
-  padding: 2.5rem 24px;
-  font-size: 0.85rem;
-}
-
-.armcom-site-footer-inner {
-  width: min(var(--armcom-max), 100%);
-  margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 1rem;
-  opacity: 0.8;
-}
-
-.ContentCardContainer {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-#TopRibbon:empty {
-  display: none;
-}
-
-#TopRibbon:not(:empty) {
-  margin: 0.75rem 0;
-}
-
-[data-hero-mount] {
-  position: relative;
-  min-height: 200px;
-}
-
-body.armcom-site--developer .armcom-site-header {
-  background: var(--armcom-grey-700);
-}
-
-body.armcom-site--developer .armcom-dev-banner {
-  background: var(--armcom-black);
-  color: var(--armcom-white);
+@media (max-width: 640px) {
+  .armcom-header-inner,
+  .armcom-section-inner,
+  .armcom-hero-mount-inner,
+  .armcom-hero-content,
+  .armcom-footer-inner { padding-inline: 20px; }
+  .armcom-highlight-card { flex: 0 0 85%; }
+  .armcom-footer-grid { grid-template-columns: 1fr; }
+  .armcom-footer-bottom { flex-direction: column; gap: 1rem; }
 }
