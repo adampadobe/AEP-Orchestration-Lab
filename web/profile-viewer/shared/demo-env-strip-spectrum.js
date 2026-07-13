@@ -346,6 +346,11 @@
     host.innerHTML = siteCloneSpectrumFullMarkup(shellCfg);
     host.setAttribute(MOUNTED_ATTR, '1');
 
+    var topAnchor = host.closest('[class*="-demo-top-anchor"]');
+    if (topAnchor && host.querySelector('.lab-env-overlay-panel')) {
+      topAnchor.classList.add('lab-env-spectrum-overlay');
+    }
+
     var fields = document.getElementById(shellCfg.prefix + 'SdkConfigFields');
     if (fields) fields.setAttribute(MOUNTED_ATTR, '1');
 

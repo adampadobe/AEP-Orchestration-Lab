@@ -44,7 +44,31 @@
   pointer-events: none;
 }
 
-/* Top env strip: shared/env-bar-compact.css (preloaded in HTML); spectrum/bundle via env-bar.js */
+/* Top env strip: preload bundle/spectrum/compact in HTML; env-bar.js loads same keys at runtime */
+
+.armcom-demo-top-anchor.lab-env-spectrum-overlay [class*='-demo-id-banner'] {
+  transform: none !important;
+}
+
+.armcom-demo-top-anchor.lab-env-spectrum-overlay:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only):not(.lab-env-top-anchor--configuring)
+  .armcom-demo-id-banner {
+  max-height: var(--env-bar-height, 3rem) !important;
+  overflow: hidden !important;
+}
+
+.armcom-demo-top-anchor.lab-env-spectrum-overlay.lab-env-top-anchor--expanded .armcom-demo-id-banner,
+.armcom-demo-top-anchor.lab-env-spectrum-overlay.lab-env-top-anchor--pinned .armcom-demo-id-banner {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.armcom-demo-top-anchor.lab-env-spectrum-overlay .lab-env-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 7602;
+  flex-shrink: 0;
+  background: var(--dash-surface);
+}
 
 .armcom-demo-script-preview {
   max-width: 1280px;

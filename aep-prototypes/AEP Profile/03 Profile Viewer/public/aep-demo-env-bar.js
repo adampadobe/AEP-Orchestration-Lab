@@ -265,16 +265,48 @@
       return false;
     }
 
+    function summaryShowsConfigured() {
+      if (!summaryEl) return false;
+      return !!(
+        !summaryEl.hidden &&
+        summaryEl.textContent &&
+        /SDK configured/i.test(String(summaryEl.textContent))
+      );
+    }
+
+    function resolveEnvTopAnchor() {
+      var mount = document.querySelector('[data-demo-env-strip-mount]');
+      if (!mount) return null;
+      return (
+        mount.closest('.lab-env-top-anchor') ||
+        mount.closest('.mobile-demo-shell-env-anchor') ||
+        mount.closest('[class*="-demo-top-anchor"]')
+      );
+    }
+
     scheduleRefresh();
-    if (hasCompactToolbarOverlay() && launchScriptNotSet() && !configuredThisSession() && !hasPersistedSdkConfigured()) {
+    if (
+      hasCompactToolbarOverlay() &&
+      launchScriptNotSet() &&
+      !configuredThisSession() &&
+      !hasPersistedSdkConfigured() &&
+      !summaryShowsConfigured()
+    ) {
       var overlayOpenAttempts = 0;
+      var envTopAnchor = resolveEnvTopAnchor();
       function openWhenToolbarReady() {
         overlayOpenAttempts += 1;
-        if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+        var toolbar = envTopAnchor && envTopAnchor.querySelector('.lab-env-toolbar');
+        if (
+          global.EnvBarCompact &&
+          typeof global.EnvBarCompact.openOverlay === 'function' &&
+          toolbar &&
+          toolbar.getBoundingClientRect().height > 0
+        ) {
           requestOverlayOpen();
           return;
         }
-        if (overlayOpenAttempts < 12 && typeof global.requestAnimationFrame === 'function') {
+        if (overlayOpenAttempts < 16 && typeof global.requestAnimationFrame === 'function') {
           global.requestAnimationFrame(openWhenToolbarReady);
           return;
         }

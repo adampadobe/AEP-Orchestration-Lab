@@ -161,9 +161,18 @@
     return 48;
   }
 
+  /** Mark spectrum overlay shells so CSS does not rely on :has() alone (FOUC / stale-cache safe). */
+  function markSpectrumOverlayAnchor(anchor) {
+    if (!anchor) return;
+    if (anchor.querySelector('.lab-env-overlay-panel')) {
+      anchor.classList.add('lab-env-spectrum-overlay');
+    }
+  }
+
   /** Spectrum shells mount a fixed overlay panel — never leave legacy peek transform on the banner. */
   function ensureSpectrumBannerPeekCleared(anchor) {
     if (!anchor) return;
+    markSpectrumOverlayAnchor(anchor);
     var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
     if (!panel) return;
     var banner = anchor.querySelector('[class*="-demo-id-banner"]') || anchor.querySelector('.mod-demo-id-banner');
@@ -541,10 +550,18 @@
 
     var banner = anchor.querySelector('[class*="-demo-id-banner"]') || anchor.querySelector('.mod-demo-id-banner');
     if (banner) banner.classList.add('lab-env-id-banner');
+    markSpectrumOverlayAnchor(anchor);
     ensureSpectrumBannerPeekCleared(anchor);
 
     if (readPinnedFromStorage()) openOverlay(anchor, true);
-    else syncToolbarOverlayInset(anchor, false);
+    else {
+      syncToolbarOverlayInset(anchor, false);
+      var toolbar = anchor.querySelector('.lab-env-toolbar');
+      if (toolbar) {
+        var toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || minToolbarInsetPx(anchor));
+        anchor.style.setProperty('--lab-env-toolbar-height', toolbarH + 'px');
+      }
+    }
 
     getOrCreateFloatingDockBtn();
     if (readDockedFromStorage()) applyDockState(anchor, true);

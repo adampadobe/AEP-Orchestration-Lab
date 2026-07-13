@@ -208,11 +208,15 @@
         sdkStatusVariant = 'positive';
         sdkStatusText = 'Connected';
         targetBadgeText = 'SDK Connected';
+      } else if (summaryConfiguredVisible) {
+        sdkStatusVariant = 'positive';
+        sdkStatusText = 'Configured';
+        targetBadgeText = 'SDK configured';
       } else if (injectInProgress) {
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Connecting…';
         targetBadgeText = 'SDK connecting…';
-      } else if (sdkConfiguredPersist || sdkConnectedFromUi || summaryConfiguredVisible) {
+      } else if (sdkConfiguredPersist || sdkConnectedFromUi) {
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Restoring…';
         targetBadgeText = 'SDK restoring…';
@@ -220,8 +224,9 @@
       setStatusLight(sdkChip, sdkDot, sdkStatus, sdkStatusVariant, sdkStatusText);
       if (targetBadge) {
         targetBadge.textContent = targetBadgeText;
-        targetBadge.classList.toggle('spectrum-env-badge--green', alloyLive);
-        targetBadge.classList.toggle('spectrum-env-badge--orange', !alloyLive);
+        var badgeGreen = alloyLive || summaryConfiguredVisible;
+        targetBadge.classList.toggle('spectrum-env-badge--green', badgeGreen);
+        targetBadge.classList.toggle('spectrum-env-badge--orange', !badgeGreen);
       }
 
       var script = scriptText();
