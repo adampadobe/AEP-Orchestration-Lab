@@ -1,14 +1,14 @@
 {
-  "gitSha": "9d7b195089afa21f4273306109d2af5e83a6fd05",
-  "gitShortSha": "9d7b1950",
+  "gitSha": "0c634cae9ee7ab112055b42aa928618af9060849",
+  "gitShortSha": "0c634cae",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp deploy for brand scrape dedupe (760b852a)",
+  "gitCommitSubject": "[apalmer] fix: brand scrape Firestore transaction read-before-write",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-13T15:04:02+01:00",
-  "deployedAt": "2026-07-13T14:04:14.880Z",
+  "gitCommitDate": "2026-07-13T16:53:57+01:00",
+  "deployedAt": "2026-07-13T15:54:08.134Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9d7b195089afa21f4273306109d2af5e83a6fd05"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0c634cae9ee7ab112055b42aa928618af9060849"
 }
