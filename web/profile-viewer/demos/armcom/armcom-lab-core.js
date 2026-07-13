@@ -249,18 +249,29 @@
         if (customerEmail) customerEmail.value = email;
         rememberArmcomSessionIdentifier(email);
 
-        setArmcomMessage('Looking up profile and stitching identity...', '');
+        var mode = String(data.mode || 'signin');
+        var lookupLabel =
+          mode === 'register'
+            ? 'Registering Arm ID and looking up profile...'
+            : 'Looking up profile and stitching identity...';
+        setArmcomMessage(lookupLabel, '');
         var ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
         var profile =
           global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
             ? global.DemoProfileDrawer.getLastLookedUpProfile()
             : null;
+        var firstName =
+          (profile && profile.firstName) ||
+          String(data.firstName || '').trim() ||
+          null;
 
         postToSiteFrame({
           source: 'armcom-demo-shell',
           type: 'login-complete',
           found: !!ok,
           email: email,
+          firstName: firstName,
+          mode: mode,
         });
 
         if (ok && armcomTagsInjection && typeof armcomTagsInjection.stitchAfterProfileLookup === 'function') {

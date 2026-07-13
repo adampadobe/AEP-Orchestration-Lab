@@ -94,9 +94,10 @@
       '<button type="button" class="armcom-header-icon" aria-label="Search">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
       '</button>' +
-      '<button type="button" class="armcom-header-icon" aria-label="Login">' +
+      '<div class="armcom-account-anchor">' +
+      '<button type="button" class="armcom-header-icon armcom-header-icon--account" id="armcomAccountBtn" aria-label="Arm Account" aria-haspopup="dialog" aria-expanded="false" aria-controls="armcomAccountPopout">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
-      '</button>' +
+      '</button></div>' +
       '</div></div></header>'
     );
   }
