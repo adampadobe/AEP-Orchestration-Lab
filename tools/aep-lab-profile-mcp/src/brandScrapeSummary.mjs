@@ -145,3 +145,12 @@ export function isBrandScrapeTerminal(status) {
   const s = String(status || '').toLowerCase();
   return s === 'complete' || s === 'failed';
 }
+
+/**
+ * @param {Record<string, unknown> | null | undefined} record
+ */
+export function brandScrapeProgressHint(record) {
+  const status = String(record?.scrapeStatus || '');
+  if (isBrandScrapeTerminal(status)) return null;
+  return 'Brand scrape still running — poll with lab_poll_brand_scrape or lab_get_brand_scrape every 10–30s. Typical runs take 3–8 minutes.';
+}

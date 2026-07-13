@@ -2820,28 +2820,6 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     if (!analysisOnly && !appendMode && !forceNew && preferExisting && url) {
       try {
         const history = await brandScrapeStore.listScrapes(sandbox, { limit: 80 });
-        const urlNorm = brandScrapeUrlMatch.normalizeBrandScrapeUrl(url);
-        if (urlNorm) {
-          const inFlight = history.find((row) => {
-            const st = String(row.scrapeStatus || '');
-            if (st !== 'running' && st !== 'crawl_complete') return false;
-            return brandScrapeUrlMatch.itemMatchesBrandScrapeUrl(row.url, row.baseUrl, urlNorm);
-          });
-          if (inFlight && inFlight.scrapeId) {
-            res.set('X-Brand-Scrape-Id', String(inFlight.scrapeId));
-            res.status(202).json({
-              accepted: true,
-              async: true,
-              reused: true,
-              reuseReason: 'in_flight',
-              scrapeId: inFlight.scrapeId,
-              sandbox: scope.scopeId,
-              scopeType: scope.scopeType,
-              scopeId: scope.scopeId,
-            });
-            return;
-          }
-        }
         const reusable = brandScrapeUrlMatch.resolveBrandScrapeFromList(history, {
           url,
           require_personas: body.requirePersonas !== false && body.require_personas !== false,
@@ -2883,6 +2861,36 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       includeSummary: includeSnap ? JSON.stringify(includeSnap).slice(0, 900) : null,
     };
 
+    const urlNorm = !analysisOnly && !appendMode && url
+      ? brandScrapeUrlMatch.normalizeBrandScrapeUrl(url)
+      : null;
+    let slotClaim = { claimed: true, scrapeId: runScrapeId };
+    if (urlNorm && urlNorm.key) {
+      slotClaim = await brandScrapeStore.claimUrlScrapeSlot(
+        sandbox,
+        urlNorm.key,
+        runScrapeId,
+        runningMeta,
+        { forceNew },
+      );
+      if (!slotClaim.claimed && slotClaim.scrapeId) {
+        res.set('X-Brand-Scrape-Id', String(slotClaim.scrapeId));
+        res.status(202).json({
+          accepted: true,
+          async: true,
+          reused: true,
+          reuseReason: slotClaim.reuseReason || 'in_flight',
+          scrapeId: slotClaim.scrapeId,
+          sandbox: scope.scopeId,
+          scopeType: scope.scopeType,
+          scopeId: scope.scopeId,
+        });
+        return;
+      }
+      runScrapeId = slotClaim.scrapeId || runScrapeId;
+      runningMeta.scrapeId = runScrapeId;
+    }
+
     res.set('X-Brand-Scrape-Id', runScrapeId);
 
     const useAsync = body.async !== false && body.sync !== true;
@@ -2900,7 +2908,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         scopeId: scope.scopeId,
       });
       try {
-        await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+        if (!urlNorm || !urlNorm.key) {
+          await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+        }
       } catch (e) {
         const msg = String((e && e.message) || e);
         analyzePipelineLog(runScrapeId, 'mark_running_failed', { sandbox });
@@ -2935,7 +2945,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       return;
     }
 
-    await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+    if (!urlNorm || !urlNorm.key) {
+      await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+    }
     if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
     const out = await executeAnalyzePipeline({

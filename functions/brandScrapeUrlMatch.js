@@ -55,6 +55,38 @@ function itemMatchesBrandScrapeUrl(itemUrl, itemBaseUrl, targetNorm) {
  * @param {boolean} [options.require_personas]
  * @param {boolean} [options.require_complete]
  */
+/**
+ * @param {string | null | undefined} status
+ */
+function isActiveBrandScrapeStatus(status) {
+  const s = String(status || '');
+  return s === 'running' || s === 'crawl_complete';
+}
+
+/**
+ * Pick the newest in-flight scrape for a URL (running / crawl_complete).
+ * @param {Array<Record<string, unknown>>} items
+ * @param {string} url
+ */
+function findInFlightBrandScrapeFromList(items, url) {
+  const urlNorm = url ? normalizeBrandScrapeUrl(url) : null;
+  if (!urlNorm) return null;
+  const list = Array.isArray(items) ? items : [];
+  const matches = list.filter((item) => {
+    const st = String(item.scrapeStatus || '');
+    const active = isActiveBrandScrapeStatus(st) || item.analysisPending === true;
+    if (!active) return false;
+    return itemMatchesBrandScrapeUrl(item.url, item.baseUrl, urlNorm);
+  });
+  if (!matches.length) return null;
+  matches.sort((a, b) => {
+    const at = Date.parse(String(a.updatedAt || a.createdAt || '')) || 0;
+    const bt = Date.parse(String(b.updatedAt || b.createdAt || '')) || 0;
+    return bt - at;
+  });
+  return matches[0];
+}
+
 function resolveBrandScrapeFromList(items, options = {}) {
   const {
     url,
@@ -94,5 +126,7 @@ module.exports = {
   normalizeBrandScrapeUrl,
   brandScrapeUrlsMatch,
   itemMatchesBrandScrapeUrl,
+  isActiveBrandScrapeStatus,
+  findInFlightBrandScrapeFromList,
   resolveBrandScrapeFromList,
 };

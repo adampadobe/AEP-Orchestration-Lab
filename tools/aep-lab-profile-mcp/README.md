@@ -57,8 +57,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_enable_profile` | enable-profile API | Enable profile on infra |
 | `lab_sandbox_profile_config` | status-all + connection APIs | `ready`, `missing_steps`, `next_action` |
 | `lab_onboard_sandbox` | *(orchestrates provisioning)* | `plan`, `execute`, or `execute_all` (async) |
-| `lab_brand_scrape` | `POST …/brandScraperAnalyze` (direct CF) + poll `GET …/scrapes/{id}` | Crawl brand URL; dedupes by default (`prefer_existing:true`); same Firestore/GCS as Portal |
-| `lab_resolve_brand_scrape` | `GET /api/brand-scraper/scrapes` | Find reusable scrape for URL before crawling; returns scrape_id or need_new_scrape |
+| `lab_brand_scrape` | `POST …/brandScraperAnalyze` (direct CF) + poll `GET …/scrapes/{id}` | Crawl brand URL; dedupes complete + in-flight scrapes per URL (`prefer_existing:true`); same Firestore/GCS as Portal |
+| `lab_poll_brand_scrape` | `GET …/scrapes/{id}` (poll loop) | Human-readable progress until complete/failed/timeout — use instead of parallel `lab_brand_scrape` retries |
+| `lab_resolve_brand_scrape` | `GET /api/brand-scraper/scrapes` | Find reusable or in-flight scrape for URL; returns scrape_id or need_new_scrape |
 | `lab_cancel_brand_scrape` | `POST …/scrapes/{id}/cancel` | Cancel stuck Running scrape (Portal parity) |
 | `lab_list_brand_scrapes` | `GET /api/brand-scraper/scrapes` | History list for sandbox |
 | `lab_get_brand_scrape` | `GET /api/brand-scraper/scrapes/{id}` | Full record + Coworker summary (colours, fonts, personas) |
@@ -73,8 +74,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 
 Mirrors Profile Viewer **[Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html)**:
 
-0. **`lab_resolve_brand_scrape`** — list history for sandbox, match normalized URL host/path, return existing `scrape_id` when `scrapeStatus=complete` and `personasPresent` (configurable). Optional explicit check before scraping.
-1. **`lab_brand_scrape`** — `url` + `sandbox`; hits direct Cloud Function `brandScraperAnalyze` (540s, bypasses Hosting 60s cap). Default **`prefer_existing:true`** reuses complete scrapes with personas for the same URL; **`force_new:true`** starts a fresh crawl. Default **`wait_for_complete:true`** polls until `scrapeStatus` is `complete` or `failed`.
+0. **`lab_resolve_brand_scrape`** — list history for sandbox, match normalized URL host/path, return existing `scrape_id` when complete (with personas) or **in-flight** when a crawl is already running.
+1. **`lab_brand_scrape`** — `url` + `sandbox`; hits direct Cloud Function `brandScraperAnalyze` (540s, bypasses Hosting 60s cap). Default **`prefer_existing:true`** reuses complete scrapes with personas **and** in-flight scrapes for the same URL; **`force_new:true`** starts a fresh crawl. Default **`wait_for_complete:true`** polls until `scrapeStatus` is `complete` or `failed`.
+1b. **`lab_poll_brand_scrape`** — poll with progress messages when Coworker needs to reassure the user or `lab_brand_scrape` timed out. **Do not** start another `lab_brand_scrape` for the same URL while one is running.
 2. **`lab_list_brand_scrapes`** — same Firestore index `brandScrapes/{sandbox}__{scrapeId}` the portal history uses.
 3. **`lab_get_brand_scrape`** — hydrates GCS `record.json` + summary for Coworker (colours, fonts, about, persona counts).
 4. **`lab_generate_profile_from_brand_scrape`** — maps a scrape marketing persona to a streamed AEP test profile (overlay name/age/location from scrape + randomized industry paths). **Omits persona-derived emails** — by default each profile calls `POST /api/lab/generation-prefs/next-email` (shared Portal counter + static mobile). Use **`lab_generate_profiles_from_brand_scrape`** for all personas, or **`lab_prepare_demo_from_brand_scrape`** to chain profiles + events + Client Journey v2 (accepts `scrape_id` or `url`).

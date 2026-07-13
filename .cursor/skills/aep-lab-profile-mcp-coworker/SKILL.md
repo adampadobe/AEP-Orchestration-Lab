@@ -8,9 +8,9 @@ description: >-
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.10)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.11)
 
-MCP server: **AEP Orchestration Lab MCP v3.10.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.11.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -325,17 +325,25 @@ Same MCP key as all other tools.
 
 ## Workflow 6 — Brand scrape (Portal parity)
 
-> **Dedupe:** `lab_brand_scrape` defaults **`prefer_existing:true`** — reuses a complete scrape with personas for the same URL. Call **`lab_resolve_brand_scrape`** first when you want an explicit check, or set **`force_new:true`** only when you need a fresh crawl. **Never** fire parallel `lab_brand_scrape` calls for the same URL.
+> **One scrape per URL:** `lab_brand_scrape` reuses **complete** scrapes (`prefer_existing:true`, default) and **in-flight** scrapes for the same URL+sandbox. **Never** fire parallel `lab_brand_scrape` calls — Coworker retries and parallel tool calls were creating duplicate history cards (most cancelled, one running).
+>
+> **Be patient:** Brand crawls typically take **3–8 minutes**. Use **`lab_poll_brand_scrape`** (or `wait_for_complete:true` on `lab_brand_scrape`) and tell the user progress is normal. Do **not** start a new scrape because the first is still running.
+>
+> Call **`lab_resolve_brand_scrape`** first — it returns `scrape_id` when a complete scrape exists, or `in_flight` + `scrape_id` when a crawl is already running. Set **`force_new:true`** only when the user explicitly wants a fresh crawl.
 
-> Call **lab_mcp_access_info** first. Then **lab_resolve_brand_scrape** with sandbox apalmer and the customer url. If `need_new_scrape`, run **lab_brand_scrape** (it will also dedupe by default); otherwise reuse `scrape_id` from the resolve response.
+> Call **lab_mcp_access_info** first. Then **lab_resolve_brand_scrape** with sandbox and customer url. If `need_new_scrape:false`, reuse `scrape_id` and poll if status is still running. If `need_new_scrape:true`, run **one** **lab_brand_scrape** with `include.personas:true` for demo prep.
 
 1. **Resolve or list existing scrapes**
 
-   > lab_resolve_brand_scrape for sandbox apalmer, url `https://www.adobe.com` (or customer site). If `need_new_scrape:false`, note scrape_id, brandName, personasPresent. Else lab_list_brand_scrapes to show history.
+   > lab_resolve_brand_scrape for sandbox apalmer, url `https://www.adobe.com` (or customer site). If `need_new_scrape:false`, note scrape_id and whether `in_flight` is set. Else lab_list_brand_scrapes to show history.
 
-2. **Run a new scrape (only when needed)**
+2. **Run a new scrape (only when needed — once)**
 
    > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, include `{ "personas": true, "segments": true }`, wait_for_complete true. Add `force_new: true` only to bypass dedupe.
+
+2b. **Poll progress (preferred when user is waiting)**
+
+   > lab_poll_brand_scrape: sandbox apalmer, scrape_id `<id>`, timeout_sec 480. Read `progress` / `progressMessages` back to the user. Repeat if `terminal:false` and `timedOut:true` — do not call lab_brand_scrape again for the same URL.
 
 3. **Cancel stuck scrapes**
 

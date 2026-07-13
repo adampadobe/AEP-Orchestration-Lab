@@ -68,6 +68,39 @@ function itemMatchesUrl(itemUrl, itemBaseUrl, targetNorm) {
 }
 
 /**
+ * @param {string | null | undefined} status
+ */
+export function isActiveBrandScrapeStatus(status) {
+  const s = String(status || '');
+  return s === 'running' || s === 'crawl_complete';
+}
+
+/**
+ * Pick the newest in-flight scrape for a URL (running / crawl_complete / analysis pending).
+ *
+ * @param {Array<Record<string, unknown>>} items
+ * @param {string} url
+ */
+export function findInFlightBrandScrapeFromList(items, url) {
+  const urlNorm = url ? normalizeBrandScrapeUrl(url) : null;
+  if (!urlNorm) return null;
+  const list = Array.isArray(items) ? items : [];
+  const matches = list.filter((item) => {
+    const st = String(item.scrapeStatus || '');
+    const active = isActiveBrandScrapeStatus(st) || item.analysisPending === true;
+    if (!active) return false;
+    return itemMatchesUrl(item.url, item.baseUrl, urlNorm);
+  });
+  if (!matches.length) return null;
+  matches.sort((a, b) => {
+    const at = Date.parse(String(a.updatedAt || a.createdAt || '')) || 0;
+    const bt = Date.parse(String(b.updatedAt || b.createdAt || '')) || 0;
+    return bt - at;
+  });
+  return matches[0];
+}
+
+/**
  * Pick the best existing scrape from a list response (already sorted by updatedAt desc).
  *
  * @param {Array<Record<string, unknown>>} items
@@ -118,12 +151,17 @@ export function resolveBrandScrapeFromList(items, options = {}) {
   }
 
   if (!matches.length) {
+    const inFlight = urlNorm ? findInFlightBrandScrapeFromList(list, url) : null;
     const reason = urlNorm
       ? `No complete scrape with personas for ${urlNorm.key} on this sandbox (checked ${list.length} history rows, ${filtered.length} passed filters).`
       : `No complete scrape with personas on this sandbox (checked ${list.length} history rows). Provide url to match a brand site, or call lab_brand_scrape.`;
     return {
-      need_new_scrape: true,
-      reason,
+      need_new_scrape: !inFlight,
+      reason: inFlight
+        ? `Scrape already in progress for ${urlNorm.key} — reuse scrape_id ${inFlight.scrapeId} and poll with lab_poll_brand_scrape (do not start another crawl).`
+        : reason,
+      scrape_id: inFlight ? inFlight.scrapeId : undefined,
+      in_flight: inFlight ? summarizeBrandScrapeListItem(inFlight) : undefined,
       candidatesChecked: list.length,
       filteredCount: filtered.length,
       normalized_url: urlNorm?.key || null,

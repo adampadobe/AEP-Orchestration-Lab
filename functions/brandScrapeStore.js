@@ -30,8 +30,10 @@
 'use strict';
 
 const admin = require('firebase-admin');
+const brandScrapeUrlMatch = require('./brandScrapeUrlMatch');
 
 const COLLECTION = 'brandScrapes';
+const URL_LOCK_COLLECTION = 'brandScrapeUrlLocks';
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const RECORD_OBJECT_NAME = 'record.json';
 
@@ -83,6 +85,19 @@ function safeSlug(s) {
 
 function docId(sandbox, id) {
   return `${safeSlug(sandbox || 'default')}__${safeSlug(id)}`.slice(0, 400);
+}
+
+function urlLockDocId(sandbox, urlKey) {
+  return `${safeSlug(sandbox || 'default')}__${safeSlug(urlKey)}`.slice(0, 400);
+}
+
+function urlKeyFromScrapeFields(url, baseUrl) {
+  const norm = brandScrapeUrlMatch.normalizeBrandScrapeUrl(url || baseUrl);
+  return norm ? norm.key : null;
+}
+
+function isActiveBrandScrapeStatus(status) {
+  return brandScrapeUrlMatch.isActiveBrandScrapeStatus(status);
 }
 
 function storageKey(sandbox, scrapeId) {
@@ -332,6 +347,119 @@ async function markScrapeRunning(sandbox, meta) {
   });
 }
 
+/**
+ * Release per-URL scrape lock when a run reaches a terminal state.
+ * @param {string} sandbox
+ * @param {string} urlKey
+ * @param {string} scrapeId
+ */
+async function releaseUrlScrapeLock(sandbox, urlKey, scrapeId) {
+  const name = String(sandbox || '').trim();
+  const key = String(urlKey || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !key || !sid) return;
+  const lockRef = getDb().collection(URL_LOCK_COLLECTION).doc(urlLockDocId(name, key));
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(lockRef);
+    if (!snap.exists) return;
+    const data = snap.data() || {};
+    if (String(data.scrapeId || '') === sid) {
+      tx.delete(lockRef);
+    }
+  });
+}
+
+/**
+ * Atomically reserve a URL scrape slot or return an existing in-flight scrape id.
+ * Prevents parallel analyze requests from creating duplicate history cards.
+ *
+ * @returns {Promise<{ claimed: boolean, scrapeId: string, reused?: boolean, reuseReason?: string }>}
+ */
+async function claimUrlScrapeSlot(sandbox, urlKey, scrapeId, meta, { forceNew = false } = {}) {
+  const name = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  const key = String(urlKey || '').trim();
+  if (!name || !sid) throw new Error('sandbox and scrapeId are required');
+  if (!key) {
+    await markScrapeRunning(sandbox, meta);
+    return { claimed: true, scrapeId: sid };
+  }
+
+  const lockRef = getDb().collection(URL_LOCK_COLLECTION).doc(urlLockDocId(name, key));
+  const scrapeRef = getDb().collection(COLLECTION).doc(docId(name, sid));
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  /** @type {{ claimed: boolean, scrapeId: string, reused?: boolean, reuseReason?: string }} */
+  let out = { claimed: true, scrapeId: sid };
+
+  await getDb().runTransaction(async (tx) => {
+    if (!forceNew) {
+      const lockSnap = await tx.get(lockRef);
+      if (lockSnap.exists) {
+        const lockData = lockSnap.data() || {};
+        const existingId = String(lockData.scrapeId || '').trim();
+        if (existingId && existingId !== sid) {
+          const existingRef = getDb().collection(COLLECTION).doc(docId(name, existingId));
+          const existingSnap = await tx.get(existingRef);
+          if (existingSnap.exists) {
+            const est = existingSnap.data() || {};
+            const active = isActiveBrandScrapeStatus(est.scrapeStatus)
+              || est.analysisPending === true
+              || (est.buildPhase && est.buildPhase !== 'complete' && est.buildPhase !== 'cancelled');
+            if (active) {
+              out = { claimed: false, scrapeId: existingId, reused: true, reuseReason: 'in_flight' };
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    const prevSnap = await tx.get(scrapeRef);
+    const prev = prevSnap.exists ? (prevSnap.data() || {}) : {};
+    const hadFull = !!(prev.storagePath && prev.hasFullRecord);
+    const createdAt = prev.createdAt || now;
+    const patch = stripUndefined({
+      sandbox: name,
+      scrapeId: sid,
+      url: meta.url != null ? String(meta.url) : '',
+      baseUrl: meta.baseUrl != null ? String(meta.baseUrl) : '',
+      brandName: meta.brandName != null ? String(meta.brandName) : '',
+      customerName: meta.customerName != null ? String(meta.customerName).trim() || null : null,
+      businessType: meta.businessType || 'b2c',
+      country: meta.country != null ? String(meta.country) : '',
+      crawlEngine: meta.crawlEngine || null,
+      includeSummary: meta.includeSummary || null,
+      scrapeStatus: 'running',
+      scrapeError: null,
+      analysisPending: false,
+      runStartedAt: now,
+      updatedAt: now,
+      hasFullRecord: hadFull,
+      storagePath: prev.storagePath || null,
+    });
+    tx.set(scrapeRef, {
+      ...patch,
+      createdAt,
+      buildPhase: admin.firestore.FieldValue.delete(),
+      buildPhaseDetail: admin.firestore.FieldValue.delete(),
+      crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
+      runSteps: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+
+    const lockSnap = await tx.get(lockRef);
+    tx.set(lockRef, stripUndefined({
+      sandbox: name,
+      urlKey: key,
+      scrapeId: sid,
+      updatedAt: now,
+      createdAt: (lockSnap.exists && lockSnap.data() && lockSnap.data().createdAt) || now,
+    }), { merge: true });
+    out = { claimed: true, scrapeId: sid };
+  });
+
+  return out;
+}
+
 function normalizeRunSteps(steps) {
   if (!Array.isArray(steps) || !steps.length) return null;
   const out = [];
@@ -355,6 +483,8 @@ async function markScrapeFailed(sandbox, scrapeId, { error, steps } = {}) {
   if (!name || !sid) return;
   const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
   const normalized = normalizeRunSteps(steps);
+  const snap = await ref.get();
+  const prev = snap.exists ? (snap.data() || {}) : {};
   await ref.set({
     scrapeStatus: 'failed',
     scrapeError: String(error || 'unknown error').slice(0, 800),
@@ -362,6 +492,10 @@ async function markScrapeFailed(sandbox, scrapeId, { error, steps } = {}) {
     crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
+  const urlKey = urlKeyFromScrapeFields(prev.url, prev.baseUrl);
+  if (urlKey) {
+    await releaseUrlScrapeLock(name, urlKey, sid).catch(() => {});
+  }
 }
 
 /**
@@ -430,6 +564,14 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
     }, { merge: true });
     out = { ok: true, status: 'cancelled' };
   });
+  if (out.ok) {
+    const snap = await ref.get();
+    const data = snap.exists ? (snap.data() || {}) : {};
+    const urlKey = urlKeyFromScrapeFields(data.url, data.baseUrl);
+    if (urlKey) {
+      await releaseUrlScrapeLock(name, urlKey, sid).catch(() => {});
+    }
+  }
   return out;
 }
 
@@ -658,6 +800,12 @@ async function saveScrape(sandbox, payload, options = {}) {
   //    endpoint) can relay it to the client without a round-trip.
   const after = await ref.get();
   const index = hydrate(after.exists ? after.data() : null);
+  if (!awaitingDemoBuild && !isCheckpoint && index && index.scrapeStatus === 'complete') {
+    const urlKey = urlKeyFromScrapeFields(index.url, index.baseUrl);
+    if (urlKey) {
+      await releaseUrlScrapeLock(name, urlKey, scrapeId).catch(() => {});
+    }
+  }
   return {
     ...fullRecord,
     ...index, // timestamps + storagePath from Firestore
@@ -1103,6 +1251,8 @@ module.exports = {
   deleteScrape,
   genId,
   markScrapeRunning,
+  claimUrlScrapeSlot,
+  releaseUrlScrapeLock,
   markScrapeFailed,
   touchScrapeRunningHeartbeat,
   cancelScrapeRun,

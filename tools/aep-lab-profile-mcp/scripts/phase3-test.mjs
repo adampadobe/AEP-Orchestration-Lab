@@ -500,6 +500,7 @@ async function run() {
     normalizeBrandScrapeUrl,
     brandScrapeUrlsMatch,
     resolveBrandScrapeFromList,
+    findInFlightBrandScrapeFromList,
   } = await import('../src/brandScrapeResolve.mjs');
   const norm = normalizeBrandScrapeUrl('https://www.Nike.com/');
   assert(norm && norm.key === 'nike.com/', 'normalizeBrandScrapeUrl strips www');
@@ -557,6 +558,33 @@ async function run() {
   assert(!resolved.need_new_scrape && resolved.scrape_id === 'new1', 'resolve picks newest complete nike scrape');
   const needNew = resolveBrandScrapeFromList([], { url: 'https://acme.example', prefer_existing: true });
   assert(needNew.need_new_scrape, 'empty list needs new scrape');
+  const inFlightOnly = resolveBrandScrapeFromList(
+    [
+      {
+        scrapeId: 'run-hotel',
+        url: 'https://www.roccofortehotels.com',
+        scrapeStatus: 'running',
+        personasPresent: false,
+        updatedAt: '2026-07-13T13:13:00.000Z',
+      },
+    ],
+    { url: 'https://roccofortehotels.com', require_personas: true, require_complete: true },
+  );
+  assert(!inFlightOnly.need_new_scrape && inFlightOnly.scrape_id === 'run-hotel', 'resolve returns in-flight scrape');
+  const inflight = findInFlightBrandScrapeFromList(
+    [{ scrapeId: 'a', url: 'https://nike.com', scrapeStatus: 'running', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    'https://www.nike.com/',
+  );
+  assert(inflight && inflight.scrapeId === 'a', 'findInFlightBrandScrapeFromList');
+
+  const { brandScrapeProgressMessage } = await import('../src/brandScrapePoll.mjs');
+  const progress = brandScrapeProgressMessage({
+    scrapeStatus: 'running',
+    buildPhase: 'crawl',
+    pagesScraped: 2,
+    crawlHeartbeatDetail: 'Fetching page 3',
+  });
+  assert(progress.includes('Crawling'), 'brandScrapeProgressMessage mentions crawl phase');
 
   const {
     inferLabIndustryFromScrape,

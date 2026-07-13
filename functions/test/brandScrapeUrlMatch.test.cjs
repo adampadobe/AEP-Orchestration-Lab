@@ -6,6 +6,7 @@ const {
   normalizeBrandScrapeUrl,
   brandScrapeUrlsMatch,
   resolveBrandScrapeFromList,
+  findInFlightBrandScrapeFromList,
 } = require('../brandScrapeUrlMatch');
 
 describe('brandScrapeUrlMatch', () => {
@@ -55,5 +56,34 @@ describe('brandScrapeUrlMatch', () => {
       { url: 'https://www.starbucks.ae/en' },
     );
     assert.equal(row.scrapeId, 'done1');
+  });
+
+  it('findInFlightBrandScrapeFromList picks newest running row for URL', () => {
+    const row = findInFlightBrandScrapeFromList(
+      [
+        {
+          scrapeId: 'run-old',
+          url: 'https://www.roccofortehotels.com',
+          scrapeStatus: 'running',
+          updatedAt: '2026-07-13T13:10:00.000Z',
+        },
+        {
+          scrapeId: 'run-new',
+          url: 'https://roccofortehotels.com/',
+          scrapeStatus: 'crawl_complete',
+          analysisPending: true,
+          updatedAt: '2026-07-13T13:13:00.000Z',
+        },
+        {
+          scrapeId: 'done1',
+          url: 'https://roccofortehotels.com',
+          scrapeStatus: 'complete',
+          personasPresent: true,
+          updatedAt: '2026-07-13T12:00:00.000Z',
+        },
+      ],
+      'https://www.roccofortehotels.com',
+    );
+    assert.equal(row.scrapeId, 'run-new');
   });
 });
