@@ -392,23 +392,22 @@ async function claimUrlScrapeSlot(sandbox, urlKey, scrapeId, meta, { forceNew = 
   let out = { claimed: true, scrapeId: sid };
 
   await getDb().runTransaction(async (tx) => {
-    if (!forceNew) {
-      const lockSnap = await tx.get(lockRef);
-      if (lockSnap.exists) {
-        const lockData = lockSnap.data() || {};
-        const existingId = String(lockData.scrapeId || '').trim();
-        if (existingId && existingId !== sid) {
-          const existingRef = getDb().collection(COLLECTION).doc(docId(name, existingId));
-          const existingSnap = await tx.get(existingRef);
-          if (existingSnap.exists) {
-            const est = existingSnap.data() || {};
-            const active = isActiveBrandScrapeStatus(est.scrapeStatus)
-              || est.analysisPending === true
-              || (est.buildPhase && est.buildPhase !== 'complete' && est.buildPhase !== 'cancelled');
-            if (active) {
-              out = { claimed: false, scrapeId: existingId, reused: true, reuseReason: 'in_flight' };
-              return;
-            }
+    // Firestore requires every tx.get before any tx.set/delete.
+    const lockSnap = await tx.get(lockRef);
+    if (!forceNew && lockSnap.exists) {
+      const lockData = lockSnap.data() || {};
+      const existingId = String(lockData.scrapeId || '').trim();
+      if (existingId && existingId !== sid) {
+        const existingRef = getDb().collection(COLLECTION).doc(docId(name, existingId));
+        const existingSnap = await tx.get(existingRef);
+        if (existingSnap.exists) {
+          const est = existingSnap.data() || {};
+          const active = isActiveBrandScrapeStatus(est.scrapeStatus)
+            || est.analysisPending === true
+            || (est.buildPhase && est.buildPhase !== 'complete' && est.buildPhase !== 'cancelled');
+          if (active) {
+            out = { claimed: false, scrapeId: existingId, reused: true, reuseReason: 'in_flight' };
+            return;
           }
         }
       }
@@ -446,7 +445,6 @@ async function claimUrlScrapeSlot(sandbox, urlKey, scrapeId, meta, { forceNew = 
       runSteps: admin.firestore.FieldValue.delete(),
     }, { merge: true });
 
-    const lockSnap = await tx.get(lockRef);
     tx.set(lockRef, stripUndefined({
       sandbox: name,
       urlKey: key,
