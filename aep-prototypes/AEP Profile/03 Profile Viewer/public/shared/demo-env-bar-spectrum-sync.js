@@ -192,6 +192,8 @@
       var storagePrefix = resolveStoragePrefix(prefix);
       var sdkConnectedFromUi = !!(fields && fields.hidden && summary && !summary.hidden);
       var sdkConfiguredPersist = isPersistedSdkConfigured(storagePrefix, sandboxSelect);
+      var summaryConfiguredVisible =
+        !!(summary && !summary.hidden && summary.textContent && /SDK configured/i.test(String(summary.textContent)));
       var alloyLive = typeof global.alloy === 'function';
       var injectInProgress = !!(
         storagePrefix &&
@@ -210,7 +212,7 @@
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Connecting…';
         targetBadgeText = 'SDK connecting…';
-      } else if (sdkConfiguredPersist || sdkConnectedFromUi) {
+      } else if (sdkConfiguredPersist || sdkConnectedFromUi || summaryConfiguredVisible) {
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Restoring…';
         targetBadgeText = 'SDK restoring…';

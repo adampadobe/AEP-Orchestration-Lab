@@ -211,7 +211,15 @@ function registerLabRoutes(deps) {
   }
 
   if (req.method === 'POST') {
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    }
+    body = body && typeof body === 'object' ? body : {};
     try {
       const preferences = await envBarPreferencesStore.mergePreferences(uid, body);
       res.status(200).json({ ok: true, preferences });

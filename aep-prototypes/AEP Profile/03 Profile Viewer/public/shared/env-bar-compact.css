@@ -171,8 +171,15 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 [class*='-demo-top-anchor']:has(.lab-env-overlay-panel) [class*='-demo-id-banner'],
 .mod-demo-top-anchor:has(.lab-env-overlay-panel) .mod-demo-id-banner {
   transform: none !important;
-  max-height: none !important;
-  overflow: visible !important;
+}
+
+/* Collapsed: clip banner to toolbar row only (fixed overlay panel is out of flow). */
+[class*='-demo-top-anchor']:has(.lab-env-overlay-panel):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only):not(.lab-env-top-anchor--configuring)
+  [class*='-demo-id-banner'],
+.mod-demo-top-anchor:has(.lab-env-overlay-panel):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only):not(.lab-env-top-anchor--configuring)
+  .mod-demo-id-banner {
+  max-height: var(--env-bar-height) !important;
+  overflow: hidden !important;
 }
 
 [class*='-demo-top-anchor'].lab-env-top-anchor:has(.lab-env-overlay-panel) .lab-env-toolbar,

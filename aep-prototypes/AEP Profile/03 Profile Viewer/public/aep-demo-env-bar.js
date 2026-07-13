@@ -223,8 +223,50 @@
       });
     }
 
+    function hasPersistedSdkConfigured() {
+      var prefix = String(c.prefix || '').trim();
+      if (!prefix) {
+        try {
+          if (global.envBarConfig && global.envBarConfig.prefix) {
+            prefix = String(global.envBarConfig.prefix).trim();
+          }
+        } catch (_e) {
+          /* noop */
+        }
+      }
+      if (!prefix) return false;
+      var sbKey = '';
+      try {
+        if (sandboxSelect && sandboxSelect.value) {
+          sbKey = String(sandboxSelect.value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        }
+      } catch (_e2) {
+        /* noop */
+      }
+      if (!sbKey) sbKey = '__default__';
+      try {
+        var configuredRaw = global.localStorage.getItem(prefix + 'SdkConfiguredBySandbox');
+        if (configuredRaw) {
+          var configuredMap = JSON.parse(configuredRaw);
+          if (configuredMap && configuredMap[sbKey] === 1) return true;
+        }
+      } catch (_e3) {
+        /* noop */
+      }
+      try {
+        if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getDoc === 'function') {
+          var doc = global.AepLabEnvBarPrefs.getDoc();
+          var tags = doc && doc.tagsBySandbox ? doc.tagsBySandbox[sbKey] : null;
+          if (tags && tags.selectedLaunchScript) return true;
+        }
+      } catch (_e4) {
+        /* noop */
+      }
+      return false;
+    }
+
     scheduleRefresh();
-    if (hasCompactToolbarOverlay() && launchScriptNotSet() && !configuredThisSession()) {
+    if (hasCompactToolbarOverlay() && launchScriptNotSet() && !configuredThisSession() && !hasPersistedSdkConfigured()) {
       var overlayOpenAttempts = 0;
       function openWhenToolbarReady() {
         overlayOpenAttempts += 1;

@@ -92,6 +92,17 @@ function sanitizePreferences(body) {
   };
 }
 
+/** Firestore rejects undefined; strip invalid nested values before write. */
+function firestoreSafePreferences(prefs) {
+  const clean = sanitizePreferences(prefs);
+  return {
+    selectedSandbox: clean.selectedSandbox || '',
+    tagsBySandbox: clean.tagsBySandbox || {},
+    bcBySandbox: clean.bcBySandbox || {},
+    generatorTargetBySandbox: clean.generatorTargetBySandbox || {},
+  };
+}
+
 /**
  * @param {import('firebase-admin').auth.Auth} [_auth]
  */
@@ -141,14 +152,16 @@ async function mergePreferences(uid, patch) {
       else delete prev.generatorTargetBySandbox[sk];
     }
 
+    const safe = firestoreSafePreferences(prev);
+
     tx.set(
       ref,
       {
         uid: userId,
-        selectedSandbox: prev.selectedSandbox,
-        tagsBySandbox: prev.tagsBySandbox,
-        bcBySandbox: prev.bcBySandbox,
-        generatorTargetBySandbox: prev.generatorTargetBySandbox,
+        selectedSandbox: safe.selectedSandbox,
+        tagsBySandbox: safe.tagsBySandbox,
+        bcBySandbox: safe.bcBySandbox,
+        generatorTargetBySandbox: safe.generatorTargetBySandbox,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -162,6 +175,7 @@ module.exports = {
   COLLECTION,
   emptyPreferences,
   sanitizePreferences,
+  firestoreSafePreferences,
   getPreferences,
   mergePreferences,
   verifyIdTokenFromRequest,

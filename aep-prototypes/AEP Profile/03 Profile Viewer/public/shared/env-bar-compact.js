@@ -172,10 +172,14 @@
     if (
       anchor.classList.contains('lab-env-top-anchor--expanded') ||
       anchor.classList.contains('lab-env-top-anchor--pinned') ||
-      anchor.classList.contains(PROFILE_ONLY_CLASS)
+      anchor.classList.contains(PROFILE_ONLY_CLASS) ||
+      anchor.classList.contains(CONFIGURING_CLASS)
     ) {
       banner.style.setProperty('max-height', 'none', 'important');
       banner.style.setProperty('overflow', 'visible', 'important');
+    } else {
+      banner.style.removeProperty('max-height');
+      banner.style.removeProperty('overflow');
     }
   }
 
@@ -293,6 +297,16 @@
     syncProfilePeekChrome(anchor, isProfileOnly);
     syncToolbarOverlayInset(anchor, isOpen);
     syncFullOpenBtn(anchor);
+
+    try {
+      global.dispatchEvent(
+        new CustomEvent('aep-lab-env-overlay-state', {
+          detail: { open: isOpen, expanded: !!expanded, pinned: !!pinned, profileOnly: isProfileOnly },
+        }),
+      );
+    } catch (_ev) {
+      /* noop */
+    }
 
     var toggleBtn = byId(TOGGLE_BTN_ID);
     if (toggleBtn) {

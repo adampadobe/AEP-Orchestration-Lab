@@ -1884,6 +1884,17 @@
       applyTagsPrefsAfterSync();
     });
 
+    global.addEventListener('aep-lab-env-overlay-state', function (ev) {
+      if (!tagsDomReady()) return;
+      if (!tagsListenersBound) bindTagsListenersOnce();
+      const detail = ev && ev.detail ? ev.detail : {};
+      if (detail.open) {
+        applySandboxConfigState({ preserveEditing: true });
+      } else {
+        applySandboxConfigState();
+      }
+    });
+
     if (!global[storagePrefix + 'EdgeDatastreamListener']) {
       global[storagePrefix + 'EdgeDatastreamListener'] = true;
       global.addEventListener('aep-lab-edge-datastream-changed', function () {
