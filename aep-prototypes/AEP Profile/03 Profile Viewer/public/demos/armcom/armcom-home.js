@@ -6,11 +6,14 @@
 
   var data = window.ArmcomMockData || {};
 
-  function el(tag, cls, html) {
-    var node = document.createElement(tag);
-    if (cls) node.className = cls;
-    if (html != null) node.innerHTML = html;
-    return node;
+  function tabIconSvg(name) {
+    if (name === 'leaf') {
+      return '<svg class="armcom-innovation-tab-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22c-4-3-8-8-8-13a8 8 0 0116 0c0 5-4 10-8 13z" stroke="currentColor" stroke-width="1.5"/><path d="M12 22V9M12 9C12 9 8 7 6 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    }
+    if (name === 'shield') {
+      return '<svg class="armcom-innovation-tab-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z" stroke="currentColor" stroke-width="1.5"/></svg>';
+    }
+    return '<svg class="armcom-innovation-tab-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 10-14h-7l0-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   }
 
   function renderHero() {
@@ -23,7 +26,7 @@
       '<p class="armcom-hero-kicker">' + h.kicker + '</p>' +
       '<h1>' + h.title + '</h1>' +
       '<p class="armcom-hero-lead">' + h.copy + '</p>' +
-      '<a href="' + h.ctaHref + '" class="armcom-btn armcom-btn-purple" data-armcom-track="Hero learn more">' + h.cta + '</a>' +
+      '<a href="' + h.ctaHref + '" class="armcom-btn armcom-btn-purple" data-armcom-track="Hero read more">' + h.cta + '</a>' +
       '</div>' +
       '<div class="armcom-hero-visual">' +
       '<img src="' + h.image + '" alt="' + h.imageAlt + '" class="armcom-hero-product" width="512" height="534" loading="eager">' +
@@ -49,7 +52,6 @@
 
     var cards = track.querySelectorAll('.armcom-highlight-card');
     var dots = document.getElementById('armcomHighlightsDots');
-    var prev = document.getElementById('armcomHighlightsPrev');
     var next = document.getElementById('armcomHighlightsNext');
     var idx = 0;
 
@@ -92,6 +94,25 @@
     scrollToIdx(0);
   }
 
+  function renderStats() {
+    var row = document.getElementById('armcomStatsRow');
+    if (!row || !Array.isArray(data.stats)) return;
+    row.innerHTML = data.stats
+      .map(function (stat) {
+        return (
+          '<div class="armcom-stat-block">' +
+          '<p class="armcom-stat-value">' + stat.value + '</p>' +
+          '<p class="armcom-stat-label">' + stat.label + '</p>' +
+          '</div>'
+        );
+      })
+      .join('');
+    var section = document.querySelector('.armcom-section--stats');
+    if (section && data.statsBg) {
+      section.style.setProperty('--armcom-stats-bg', 'url("' + data.statsBg + '")');
+    }
+  }
+
   function renderComputeGrid() {
     var grid = document.getElementById('armcomComputeGrid');
     if (!grid || !Array.isArray(data.computeCards)) return;
@@ -103,7 +124,6 @@
           '<span class="armcom-compute-tag">' + card.tag + '</span>' +
           '<div class="armcom-compute-card-overlay">' +
           '<h3>' + card.title + '</h3>' +
-          '<p>' + card.copy + '</p>' +
           '<span class="armcom-link-chevron">Learn more</span>' +
           '</div></a>'
         );
@@ -121,7 +141,7 @@
       .map(function (tab, i) {
         return (
           '<button type="button" class="armcom-innovation-tab' + (i === 0 ? ' is-active' : '') + '" data-tab="' + tab.id + '" data-idx="' + i + '">' +
-          '<img src="' + tab.icon + '" alt="" class="armcom-innovation-tab-icon" width="48" height="48">' +
+          tabIconSvg(tab.icon) +
           '<span>' + tab.label + '</span></button>'
         );
       })
@@ -157,6 +177,37 @@
     renderPanel(0);
   }
 
+  function renderPersonalAi() {
+    var section = document.getElementById('armcomPersonalAi');
+    if (!section || !data.personalAi) return;
+    var p = data.personalAi;
+    section.innerHTML =
+      '<div class="armcom-section-inner">' +
+      '<h2 class="armcom-section-title armcom-section-title--center">' + p.title + '</h2>' +
+      '<p class="armcom-section-lead armcom-section-lead--center armcom-personal-ai-sub">' + p.subtitle + '</p>' +
+      '<p class="armcom-personal-ai-copy">' + p.copy + '</p>' +
+      '<div class="armcom-personal-ai-carousel">' +
+      '<div class="armcom-personal-ai-track" id="armcomPersonalAiTrack">' +
+      p.slides.map(function (s) {
+        return '<div class="armcom-personal-ai-slide"><img src="' + s.image + '" alt="' + s.alt + '" loading="lazy"></div>';
+      }).join('') +
+      '</div></div>' +
+      '<div class="armcom-personal-ai-footer">' +
+      '<a href="' + p.ctaHref + '" class="armcom-btn armcom-btn-blue" data-armcom-track="Personal AI learn more">' + p.cta + '</a>' +
+      '<div class="armcom-personal-ai-progress" aria-hidden="true"><span class="armcom-personal-ai-progress-bar"></span></div>' +
+      '</div></div>';
+
+    var track = document.getElementById('armcomPersonalAiTrack');
+    var bar = section.querySelector('.armcom-personal-ai-progress-bar');
+    if (track && bar) {
+      track.addEventListener('scroll', function () {
+        var max = track.scrollWidth - track.clientWidth;
+        var pct = max > 0 ? (track.scrollLeft / max) * 100 : 0;
+        bar.style.width = Math.max(20, pct) + '%';
+      });
+    }
+  }
+
   function renderPartners() {
     var row = document.getElementById('armcomPartnerRow');
     if (!row || !Array.isArray(data.partnerStories)) return;
@@ -164,12 +215,15 @@
       .map(function (p) {
         return (
           '<article class="armcom-partner-card armcom-partner-card--' + p.theme + '">' +
+          '<div class="armcom-partner-card-bg" style="background-image:url(\'' + p.image + '\')"></div>' +
+          '<div class="armcom-partner-card-content">' +
+          '<p class="armcom-partner-label">' + p.label + '</p>' +
           '<p class="armcom-partner-brand">' + p.brand + '</p>' +
           '<h3>' + p.title + '</h3>' +
           '<p class="armcom-partner-sub">' + p.subtitle + '</p>' +
           '<p class="armcom-partner-copy">' + p.copy + '</p>' +
           '<button type="button" class="armcom-btn armcom-btn-purple armcom-btn-sm">' + p.cta + '</button>' +
-          '</article>'
+          '</div></article>'
         );
       })
       .join('');
@@ -186,7 +240,7 @@
           '<p class="armcom-leadership-kicker">' + item.kicker + '</p>' +
           '<h3>' + item.title + '</h3>' +
           '<p>' + item.copy + '</p>' +
-          '<a href="#" class="armcom-link-chevron">' + item.cta + '</a>' +
+          '<a href="#" class="armcom-link-chevron armcom-link-blue">' + item.cta + '</a>' +
           '</article>'
         );
       })
@@ -196,8 +250,10 @@
   function init() {
     renderHero();
     renderHighlights();
+    renderStats();
     renderComputeGrid();
     renderInnovationTabs();
+    renderPersonalAi();
     renderPartners();
     renderLeadership();
   }

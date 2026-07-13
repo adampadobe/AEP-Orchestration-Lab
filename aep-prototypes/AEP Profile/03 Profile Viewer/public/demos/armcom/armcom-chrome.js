@@ -15,25 +15,32 @@
 
   var FOOTER_COLS = [
     {
-      title: 'Products',
-      links: ['Arm AGI CPU', 'Compute Subsystems', 'CPUs', 'Development Tools'],
+      title: 'Markets',
+      links: ['Cloud AI', 'Edge AI', 'Physical AI', 'Automotive', 'IoT'],
     },
     {
-      title: 'Architecture',
-      links: ['Learn the Architecture', 'CPU Architecture', 'System Architecture'],
+      title: 'Partners',
+      links: ['Find a Partner', 'Partner Ecosystem', 'AI Partners', 'Approved Partners'],
     },
     {
-      title: 'Partner Ecosystem',
-      links: ['Join Partner Program', 'See All Partners', 'AI Partners'],
+      title: 'Developers',
+      links: ['Developer Hub', 'Documentation', 'Downloads', 'Training'],
     },
     {
-      title: 'Support & Training',
-      links: ['Documentation Hub', 'Downloads', 'Contact Support', 'Training'],
+      title: 'Support',
+      links: ['Contact Support', 'Resources', 'Community', 'Service Status'],
     },
     {
       title: 'Company',
-      links: ['Leadership', 'Investors', 'Newsroom', 'Careers'],
+      links: ['About Arm', 'Leadership', 'Newsroom', 'Careers', 'Sustainability'],
     },
+  ];
+
+  var SOCIAL = [
+    { label: 'X', href: '#' },
+    { label: 'Facebook', href: '#' },
+    { label: 'LinkedIn', href: '#' },
+    { label: 'YouTube', href: '#' },
   ];
 
   function assetPrefix() {
@@ -81,13 +88,13 @@
       '</a>' +
       '<nav class="armcom-header-nav" aria-label="Primary">' + nav + '</nav>' +
       '<div class="armcom-header-utils" aria-label="Utilities">' +
+      '<button type="button" class="armcom-header-icon" aria-label="Language">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M3 12h18M12 3c2.5 3 4 6 4 9s-1.5 6-4 9M12 3c-2.5 3-4 6-4 9s1.5 6 4 9" stroke="currentColor" stroke-width="1.5"/></svg>' +
+      '</button>' +
       '<button type="button" class="armcom-header-icon" aria-label="Search">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
       '</button>' +
-      '<button type="button" class="armcom-header-icon" aria-label="Contact">' +
-      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.5"/></svg>' +
-      '</button>' +
-      '<button type="button" class="armcom-header-icon" aria-label="Account">' +
+      '<button type="button" class="armcom-header-icon" aria-label="Login">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
       '</button>' +
       '</div></div></header>'
@@ -103,14 +110,26 @@
       );
     }).join('');
 
+    var social = SOCIAL.map(function (s) {
+      return '<a href="' + s.href + '" class="armcom-footer-social-link" aria-label="' + s.label + '">' + s.label + '</a>';
+    }).join('');
+
     return (
       '<footer class="armcom-footer">' +
       '<div class="armcom-footer-inner">' +
+      '<div class="armcom-footer-top">' +
       '<div class="armcom-footer-grid">' + cols + '</div>' +
-      '<div class="armcom-footer-bottom">' +
+      '<div class="armcom-footer-lang">' +
+      '<button type="button" class="armcom-footer-lang-btn" aria-label="Language">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M3 12h18M12 3c2.5 3 4 6 4 9s-1.5 6-4 9M12 3c-2.5 3-4 6-4 9s1.5 6 4 9" stroke="currentColor" stroke-width="1.5"/></svg>' +
+      ' English</button></div></div>' +
+      '<div class="armcom-footer-mid">' +
+      '<div class="armcom-footer-social">' + social + '</div>' +
       '<div class="armcom-footer-legal">' +
-      '<a href="#">Terms of Use</a><a href="#">Privacy Policy</a><a href="#">Accessibility</a>' +
-      '</div>' +
+      '<a href="#">Privacy Policy</a><a href="#">Terms of Use</a><a href="#">Cookies</a><a href="#">Accessibility</a>' +
+      '</div></div>' +
+      '<div class="armcom-footer-bottom">' +
+      '<p class="armcom-footer-copy">Copyright © 2024 Arm Limited (or its affiliates). All rights reserved.</p>' +
       '<img src="' + logoSrc(true) + '" alt="arm" class="armcom-footer-logo" width="72" height="22">' +
       '</div>' +
       '<p class="armcom-footer-disclaimer">Lab mockup for Adobe Experience Platform demo — not affiliated with Arm Ltd.</p>' +
