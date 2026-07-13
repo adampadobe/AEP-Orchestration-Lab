@@ -1,14 +1,14 @@
 {
-  "gitSha": "760b852ac2d3c560d18ca58bb5daa4062c0ecae7",
-  "gitShortSha": "760b852a",
+  "gitSha": "9d7b195089afa21f4273306109d2af5e83a6fd05",
+  "gitShortSha": "9d7b1950",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: MCP brand scrape dedupe and progress polling",
+  "gitCommitSubject": "[apalmer] chore: stamp deploy for brand scrape dedupe (760b852a)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-13T14:53:52+01:00",
-  "deployedAt": "2026-07-13T14:00:23.001Z",
+  "gitCommitDate": "2026-07-13T15:04:02+01:00",
+  "deployedAt": "2026-07-13T14:04:14.880Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/760b852ac2d3c560d18ca58bb5daa4062c0ecae7"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9d7b195089afa21f4273306109d2af5e83a6fd05"
 }
