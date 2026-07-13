@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stay connected – Arm®</title>
+  <link rel="stylesheet" href="../armcom-site.css?v=20260713">
+</head>
+<body class="armcom-site" data-armcom-page-id="subscribe" data-armcom-context="marketo form identity capture">
+  <div id="armcom-chrome-mount"></div>
+  <main class="armcom-main">
+    <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+
+    <section class="armcom-section">
+      <div class="armcom-section-inner" style="text-align:center;">
+        <p class="armcom-section-kicker">Marketo · Identity unification</p>
+        <h1>Stay connected on Cloud AI</h1>
+        <p style="max-width:48ch;margin:0 auto 2rem;">Subscribe to stay up to date on the latest Arm Cloud AI news, case studies, and insights. Your work email stitches anonymous browsing into a unified B2B profile.</p>
+
+        <div class="armcom-form-card">
+          <form id="armcomSubscribeForm">
+            <div class="armcom-form-row">
+              <label for="armcomEmail">Work email</label>
+              <input type="email" id="armcomEmail" name="email" required placeholder="you@company.com" autocomplete="email">
+            </div>
+            <div class="armcom-form-row">
+              <label for="armcomCompany">Company</label>
+              <input type="text" id="armcomCompany" name="company" required placeholder="Your organisation">
+            </div>
+            <div class="armcom-form-row">
+              <label for="armcomRole">Role</label>
+              <select id="armcomRole" name="role">
+                <option value="architect">Infrastructure architect</option>
+                <option value="cto">CTO / VP Engineering</option>
+                <option value="dev">Developer</option>
+                <option value="procurement">Procurement</option>
+              </select>
+            </div>
+            <button type="submit" class="armcom-btn armcom-btn-primary" style="width:100%;border:none;cursor:pointer;" data-armcom-track="Marketo submit">Subscribe</button>
+          </form>
+          <div id="armcomSubscribeSuccess" hidden style="text-align:left;">
+            <h2 style="font-size:1.25rem;margin:0 0 0.5rem;">Thank you</h2>
+            <p style="margin:0;color:var(--armcom-grey-700);">Your profile is now unified across arm.com, developer.arm.com, Marketo, Salesforce, and 6Sense. The Cloud AI ICP audience has been activated on LinkedIn and Meta.</p>
+          </div>
+        </div>
+
+        <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region" style="margin-top:2rem;"></section>
+      </div>
+    </section>
+  </main>
+
+  <script src="../armcom-chrome.js?v=20260713"></script>
+  <script src="../armcom-events.js?v=20260713"></script>
+</body>
+</html>

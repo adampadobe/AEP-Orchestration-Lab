@@ -444,6 +444,42 @@
           ],
         },
         {
+          id: 'demoArmcom',
+          label: 'Arm',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'armcomWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Arm Cloud AI journey (in development)',
+                  href: 'armcom-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'armcomDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 18V6l8-4 8 4v12l-8 4-8-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 22V10M4 6l8 4 8-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+                },
+              ],
+            },
+            {
+              id: 'armcomMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Arm Developer app (in development)',
+                  href: 'armcom-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'armcomMobileDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF1',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoAlshaya',
           label: 'Alshaya',
           demoCustomer: true,
@@ -743,6 +779,21 @@
                   demoMeta: { owners: ['kirkham'] },
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M4 18V6l8-3 8 3v12l-8 3-8-3z"/><path stroke="currentColor" stroke-width="1.5" d="M12 3v18" opacity="0.5"/></svg>',
+                },
+              ],
+            },
+            {
+              id: 'skyNewsWeb',
+              label: 'Sky News',
+              items: [
+                {
+                  label: 'Sky News (in development)',
+                  href: 'sky-news-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'skyNewsDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" d="M4 6h16v12H4z"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 20h8"/><path stroke="currentColor" stroke-width="1.5" d="M12 6v14" opacity="0.55"/></svg>',
                 },
               ],
             },
@@ -1381,7 +1432,6 @@
       })
       .map(function (entry) {
         var label = String(entry.label || entry.customerName || entry.fileSlug || 'Brand').trim();
-        var slug = String(entry.fileSlug || 'brand').trim();
         var sgId = brandScraperSubgroupId(entry);
         return {
           id: sgId,

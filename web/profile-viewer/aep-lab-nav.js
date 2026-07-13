@@ -444,6 +444,42 @@
           ],
         },
         {
+          id: 'demoArmcom',
+          label: 'Arm',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'armcomWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Arm Cloud AI journey (in development)',
+                  href: 'armcom-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'armcomDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 18V6l8-4 8 4v12l-8 4-8-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 22V10M4 6l8 4 8-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+                },
+              ],
+            },
+            {
+              id: 'armcomMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Arm Developer app (in development)',
+                  href: 'armcom-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'armcomMobileDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF1',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoAlshaya',
           label: 'Alshaya',
           demoCustomer: true,

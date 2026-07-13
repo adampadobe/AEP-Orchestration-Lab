@@ -1,0 +1,133 @@
+.armcom-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 1;
+  background: var(--dash-bg);
+}
+
+.armcom-demo-page .dashboard-main {
+  padding: 0;
+  max-width: none;
+}
+
+.armcom-demo-page .dashboard-shell {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.armcom-demo-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+.armcom-demo-page .dashboard-main-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  pointer-events: none;
+}
+
+.armcom-demo-page .dashboard-main.armcom-demo-empty-main {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.armcom-demo-script-preview {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.25rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
+.armcom-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.armcom-demo-message--success { color: var(--dash-success-text); }
+.armcom-demo-message--error { color: var(--dash-error-text); }
+
+@media (min-width: 769px) {
+  body.armcom-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.armcom-demo-page--nav-open .dashboard-sidebar,
+  body.armcom-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: var(--dash-shadow-hover);
+  }
+}
+
+@media (max-width: 768px) {
+  body.armcom-demo-page .dashboard-sidebar {
+    position: relative;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
+  }
+}
+
+.armcom-demo-page.site-clone-bc-fullscreen-armed .armcom-demo-site-frame {
+  z-index: 1;
+}
+
+.armcom-demo-page .site-clone-bc-frame-host {
+  position: fixed;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  pointer-events: auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  background: linear-gradient(
+    122.87deg,
+    var(--dash-surface-alt, #e1e9ff) 20.72%,
+    #efe3fa 34.96%,
+    #f5dff8 42.08%,
+    #fcdcf5 49.2%,
+    #ffdec3 91.6%
+  );
+}
+
+.armcom-demo-page .site-clone-bc-frame-host[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.armcom-demo-page .site-clone-bc-frame-mount {
+  width: 100%;
+  max-width: 920px;
+  min-height: min(540px, 100%);
+  flex: 1 1 auto;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.armcom-demo-page .aep-bc-park-launcher {
+  background: var(--dash-text);
+}
