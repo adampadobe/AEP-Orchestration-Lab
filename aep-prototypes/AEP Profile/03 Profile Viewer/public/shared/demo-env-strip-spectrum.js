@@ -349,6 +349,13 @@
     var topAnchor = host.closest('[class*="-demo-top-anchor"]');
     if (topAnchor && host.querySelector('.lab-env-overlay-panel')) {
       topAnchor.classList.add('lab-env-spectrum-overlay');
+      try {
+        if (global.sessionStorage.getItem('aepLabEnvBarDocked') === '1') {
+          topAnchor.classList.add('lab-env-top-anchor--docked-hidden');
+        }
+      } catch (_dockEarly) {
+        /* noop */
+      }
     }
 
     var fields = document.getElementById(shellCfg.prefix + 'SdkConfigFields');

@@ -60,6 +60,8 @@
     }
 
     if (global.AepDemoEnvStrip && typeof global.AepDemoEnvStrip.initStandardEnvBar === 'function') {
+      initCompactDropdown();
+
       var envBarExtra = opt.envBar && typeof opt.envBar === 'object' ? opt.envBar : {};
       var envBarCfg = Object.assign(
         {
@@ -91,8 +93,6 @@
       global.SiteCloneBcEnv.applyForCurrentSandbox();
       out.siteCloneBcRefreshed = true;
     }
-
-    initCompactDropdown();
 
     return out;
   }

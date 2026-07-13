@@ -77,7 +77,16 @@
       return !!(anchor && anchor.querySelector('.lab-env-overlay-panel'));
     }
 
+    function isEnvBarDocked() {
+      return !!(
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isDocked === 'function' &&
+        global.EnvBarCompact.isDocked()
+      );
+    }
+
     function requestOverlayOpen() {
+      if (isEnvBarDocked()) return;
       if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
         global.EnvBarCompact.openOverlay();
         return;
@@ -296,6 +305,7 @@
       var envTopAnchor = resolveEnvTopAnchor();
       function openWhenToolbarReady() {
         overlayOpenAttempts += 1;
+        if (isEnvBarDocked()) return;
         var toolbar = envTopAnchor && envTopAnchor.querySelector('.lab-env-toolbar');
         if (
           global.EnvBarCompact &&

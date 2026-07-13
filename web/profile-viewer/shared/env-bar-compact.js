@@ -289,6 +289,8 @@
 
   function setExpanded(anchor, expanded, pinned, profileOnly) {
     if (!anchor) return;
+    var wantsOpen = !!(expanded || pinned || (profileOnly && !expanded));
+    if (anchor.classList.contains('lab-env-top-anchor--docked-hidden') && wantsOpen) return;
     ensureSpectrumBannerPeekCleared(anchor);
     var isProfileOnly = !!profileOnly && !expanded;
     var isOpen = !!(expanded || pinned || isProfileOnly);
@@ -479,6 +481,7 @@
   }
 
   function openOverlay(anchor, pin) {
+    if (anchor && anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return;
     setExpanded(anchor, true, !!pin, false);
     if (pin) writePinnedToStorage(true);
     bindOverlayInteractionGuards(anchor);
@@ -513,6 +516,7 @@
   function openOverlayPublic(opts) {
     var anchor = resolveAnchor();
     if (!anchor) return false;
+    if (anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return false;
     var options = opts || {};
     var pin = options.pinned != null ? !!options.pinned : isOverlayPinned(anchor);
     openOverlay(anchor, pin);
@@ -548,13 +552,16 @@
     anchor.setAttribute('data-lab-env-compact-init', '1');
     anchor.setAttribute('aria-expanded', 'false');
 
+    var isDocked = readDockedFromStorage();
+    if (isDocked) anchor.classList.add('lab-env-top-anchor--docked-hidden');
+
     var banner = anchor.querySelector('[class*="-demo-id-banner"]') || anchor.querySelector('.mod-demo-id-banner');
     if (banner) banner.classList.add('lab-env-id-banner');
     markSpectrumOverlayAnchor(anchor);
     ensureSpectrumBannerPeekCleared(anchor);
 
-    if (readPinnedFromStorage()) openOverlay(anchor, true);
-    else {
+    if (!isDocked && readPinnedFromStorage()) openOverlay(anchor, true);
+    else if (!isDocked) {
       syncToolbarOverlayInset(anchor, false);
       var toolbar = anchor.querySelector('.lab-env-toolbar');
       if (toolbar) {
@@ -564,7 +571,7 @@
     }
 
     getOrCreateFloatingDockBtn();
-    if (readDockedFromStorage()) applyDockState(anchor, true);
+    if (isDocked) applyDockState(anchor, true);
     else updateFloatingDockBtn(false);
 
     var dockToolbarBtn = byId(DOCK_TOOLBAR_BTN_ID);
