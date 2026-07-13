@@ -155,6 +155,30 @@
     );
   }
 
+  function minToolbarInsetPx(anchor) {
+    var fromVar = parseFloat(getComputedStyle(anchor).getPropertyValue('--env-bar-height'));
+    if (!isNaN(fromVar) && fromVar > 0) return Math.ceil(fromVar);
+    return 48;
+  }
+
+  /** Spectrum shells mount a fixed overlay panel — never leave legacy peek transform on the banner. */
+  function ensureSpectrumBannerPeekCleared(anchor) {
+    if (!anchor) return;
+    var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
+    if (!panel) return;
+    var banner = anchor.querySelector('[class*="-demo-id-banner"]') || anchor.querySelector('.mod-demo-id-banner');
+    if (!banner) return;
+    banner.style.setProperty('transform', 'none', 'important');
+    if (
+      anchor.classList.contains('lab-env-top-anchor--expanded') ||
+      anchor.classList.contains('lab-env-top-anchor--pinned') ||
+      anchor.classList.contains(PROFILE_ONLY_CLASS)
+    ) {
+      banner.style.setProperty('max-height', 'none', 'important');
+      banner.style.setProperty('overflow', 'visible', 'important');
+    }
+  }
+
   function syncToolbarOverlayInset(anchor, isOpen) {
     if (!anchor) return;
     if (toolbarResizeObserver) {
@@ -165,17 +189,33 @@
       anchor.style.removeProperty('--lab-env-overlay-top');
       return;
     }
+    ensureSpectrumBannerPeekCleared(anchor);
     var toolbar = anchor.querySelector('.lab-env-toolbar');
     var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
     if (!toolbar) return;
 
+    var insetRetries = 0;
+    var minTopPx = minToolbarInsetPx(anchor);
+
     function applyInset() {
+      ensureSpectrumBannerPeekCleared(anchor);
       var rect = toolbar.getBoundingClientRect();
       var topPx = Math.max(0, Math.ceil(rect.bottom));
-      if (topPx < 1) {
-        topPx = Math.ceil(parseFloat(getComputedStyle(anchor).getPropertyValue('--env-bar-height')) || 48);
+      var measuredHeight = Math.ceil(rect.height || 0);
+      if (topPx < minTopPx) {
+        if (measuredHeight > 0) topPx = Math.max(topPx, measuredHeight);
+        else topPx = minTopPx;
       }
-      anchor.style.setProperty('--lab-env-overlay-top', topPx + 'px');
+      if (topPx < minTopPx && insetRetries < 8) {
+        insetRetries += 1;
+        if (typeof global.requestAnimationFrame === 'function') {
+          global.requestAnimationFrame(applyInset);
+        } else {
+          global.setTimeout(applyInset, 16);
+        }
+        return;
+      }
+      anchor.style.setProperty('--lab-env-overlay-top', Math.max(topPx, minTopPx) + 'px');
       if (panel) {
         panel.scrollTop = 0;
         var section = panel.querySelector('.aep-demo-env-section');
@@ -201,6 +241,18 @@
       });
       toolbarResizeObserver.observe(toolbar);
     }
+
+    if (!anchor.getAttribute('data-lab-env-inset-resync')) {
+      anchor.setAttribute('data-lab-env-inset-resync', '1');
+      global.addEventListener('load', function () {
+        if (isOverlayOpen(anchor)) applyInset();
+      });
+      if (global.document && global.document.fonts && typeof global.document.fonts.ready === 'object') {
+        void global.document.fonts.ready.then(function () {
+          if (isOverlayOpen(anchor)) applyInset();
+        });
+      }
+    }
   }
 
   function syncProfilePeekChrome(anchor, isProfileOnly) {
@@ -224,6 +276,7 @@
 
   function setExpanded(anchor, expanded, pinned, profileOnly) {
     if (!anchor) return;
+    ensureSpectrumBannerPeekCleared(anchor);
     var isProfileOnly = !!profileOnly && !expanded;
     var isOpen = !!(expanded || pinned || isProfileOnly);
     anchor.classList.toggle(PROFILE_ONLY_CLASS, isProfileOnly);
@@ -474,6 +527,7 @@
 
     var banner = anchor.querySelector('[class*="-demo-id-banner"]') || anchor.querySelector('.mod-demo-id-banner');
     if (banner) banner.classList.add('lab-env-id-banner');
+    ensureSpectrumBannerPeekCleared(anchor);
 
     if (readPinnedFromStorage()) openOverlay(anchor, true);
     else syncToolbarOverlayInset(anchor, false);

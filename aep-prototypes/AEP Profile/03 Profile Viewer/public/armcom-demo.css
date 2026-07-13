@@ -44,7 +44,12 @@
   pointer-events: none;
 }
 
-/* Top env strip dropdown: shared/env-bar-compact.css */
+/* Top env strip: shared/env-bar-compact.css (+ demo-env-bar-spectrum.css preloaded in HTML) */
+.armcom-demo-top-anchor.lab-env-top-anchor:has(.lab-env-overlay-panel) .armcom-demo-id-banner {
+  transform: none !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
 
 .armcom-demo-script-preview {
   max-width: 1280px;

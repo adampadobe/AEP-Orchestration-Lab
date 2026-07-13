@@ -225,9 +225,26 @@
 
     scheduleRefresh();
     if (hasCompactToolbarOverlay() && launchScriptNotSet() && !configuredThisSession()) {
-      global.requestAnimationFrame(function () {
+      var overlayOpenAttempts = 0;
+      function openWhenToolbarReady() {
+        overlayOpenAttempts += 1;
+        if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+          requestOverlayOpen();
+          return;
+        }
+        if (overlayOpenAttempts < 12 && typeof global.requestAnimationFrame === 'function') {
+          global.requestAnimationFrame(openWhenToolbarReady);
+          return;
+        }
         requestOverlayOpen();
-      });
+      }
+      if (typeof global.requestAnimationFrame === 'function') {
+        global.requestAnimationFrame(function () {
+          global.requestAnimationFrame(openWhenToolbarReady);
+        });
+      } else {
+        openWhenToolbarReady();
+      }
     }
   }
 

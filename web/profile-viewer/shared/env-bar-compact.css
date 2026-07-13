@@ -171,6 +171,14 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 [class*='-demo-top-anchor']:has(.lab-env-overlay-panel) [class*='-demo-id-banner'],
 .mod-demo-top-anchor:has(.lab-env-overlay-panel) .mod-demo-id-banner {
   transform: none !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+[class*='-demo-top-anchor'].lab-env-top-anchor:has(.lab-env-overlay-panel) .lab-env-toolbar,
+.mod-demo-top-anchor.lab-env-top-anchor:has(.lab-env-overlay-panel) .lab-env-toolbar {
+  position: relative;
+  z-index: 7602;
 }
 
 [class*='-demo-top-anchor'].lab-env-top-anchor--expanded [class*='-demo-id-banner'],
