@@ -63,7 +63,9 @@
     previewMeta:      document.getElementById('etPreviewMeta'),
     previewMinBtn:    document.getElementById('etPreviewMinBtn'),
     previewNote:      document.getElementById('etPreviewNote'),
-    previewPre:       document.getElementById('etPreviewPre'),
+    previewJson:      document.getElementById('etPreviewJson'),
+    previewBeautifyBtn: document.getElementById('etPreviewBeautifyBtn'),
+    previewEditHint:  document.getElementById('etPreviewEditHint'),
   };
 
   /* ── State ── */
@@ -75,6 +77,9 @@
   let resolvedEcid = '';
   let resolvedEmail = '';
   let activeMode = 'trigger';
+  let previewPayloadDirty = false;
+
+  var previewJsonOpts = { minHeight: 128, maxHeight: Math.min(720, Math.floor(window.innerHeight * 0.65)) };
 
   /** Default event schema title — mirrors profile-gen `AEP Lab - … - Schema` naming. */
   const DEFAULT_EVENT_SCHEMA_TITLE = 'AEP Lab - Event Generic - Schema';
@@ -1223,6 +1228,44 @@
 
   /* ═══════════ Preview payload ═══════════ */
 
+  function resetPreviewPanel() {
+    if (dom.previewPanel) dom.previewPanel.hidden = true;
+    if (dom.previewJson) {
+      dom.previewJson.value = '';
+      dom.previewJson.classList.remove('aep-json--invalid');
+    }
+    previewPayloadDirty = false;
+  }
+
+  function getPreviewJsonText() {
+    return dom.previewJson ? String(dom.previewJson.value || '') : '';
+  }
+
+  function getEditedPreviewPayload() {
+    var raw = getPreviewJsonText().trim();
+    if (!raw) return { payload: null, error: null };
+    if (typeof window.AepJsonEditor === 'undefined') {
+      return { payload: null, error: 'JSON editor is not loaded.' };
+    }
+    try {
+      var parsed = window.AepJsonEditor.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return { payload: null, error: 'Payload must be a JSON object.' };
+      }
+      if (!parsed.event || typeof parsed.event !== 'object') {
+        return { payload: null, error: 'Payload must include an "event" object (Edge interact shape).' };
+      }
+      return { payload: parsed, error: null };
+    } catch (e) {
+      return { payload: null, error: 'Invalid JSON — ' + (e.message || e) };
+    }
+  }
+
+  function setPreviewJsonInvalid(invalid) {
+    if (!dom.previewJson) return;
+    dom.previewJson.classList.toggle('aep-json--invalid', !!invalid);
+  }
+
   function setPreviewMinimized(min) {
     if (!dom.previewPanel) return;
     dom.previewPanel.classList.toggle('consent-preview-panel--minimized', min);
@@ -1235,7 +1278,7 @@
     if (dom.previewMeta) {
       dom.previewMeta.setAttribute('aria-hidden', min ? 'false' : 'true');
       if (min) {
-        var json = (dom.previewPre && dom.previewPre.textContent) || '';
+        var json = getPreviewJsonText();
         var bytes = json.length;
         try { bytes = new TextEncoder().encode(json).length; } catch {}
         dom.previewMeta.textContent = (bytes / 1024).toFixed(1) + ' KB';
@@ -1261,17 +1304,49 @@
   }
   if (dom.previewMinBtn) dom.previewMinBtn.addEventListener('click', function (e) { e.stopPropagation(); togglePreview(); });
 
+  if (dom.previewJson) {
+    dom.previewJson.addEventListener('input', function () {
+      previewPayloadDirty = true;
+      setPreviewJsonInvalid(false);
+    });
+  }
+
+  if (dom.previewBeautifyBtn && dom.previewJson) {
+    dom.previewBeautifyBtn.addEventListener('click', function () {
+      if (typeof window.AepJsonEditor === 'undefined') {
+        setMsg(dom.sendMsg, 'JSON editor is not loaded.', 'error');
+        return;
+      }
+      window.AepJsonEditor.beautify(dom.previewJson, function (err) {
+        setMsg(dom.sendMsg, err, 'error');
+        setPreviewJsonInvalid(true);
+      }, previewJsonOpts);
+      setPreviewJsonInvalid(false);
+    });
+  }
+
   dom.previewBtn.addEventListener('click', function () {
     var result = buildRequestBody();
     if (result.error) { setMsg(dom.sendMsg, result.error, 'error'); return; }
+    var hadEdits = previewPayloadDirty && getPreviewJsonText().trim();
     var preview = buildPreviewXdm(result.body);
-    if (dom.previewPanel && dom.previewNote && dom.previewPre) {
+    if (dom.previewPanel && dom.previewNote && dom.previewJson) {
       dom.previewPanel.hidden = false;
       setPreviewMinimized(false);
       dom.previewNote.textContent = preview.endpoint;
-      dom.previewPre.textContent = JSON.stringify(preview.payload, null, 2);
+      if (typeof window.AepJsonEditor !== 'undefined') {
+        dom.previewJson.value = window.AepJsonEditor.format(preview.payload);
+        window.AepJsonEditor.refresh(dom.previewJson, previewJsonOpts);
+      } else {
+        dom.previewJson.value = JSON.stringify(preview.payload, null, 2);
+      }
+      setPreviewJsonInvalid(false);
+      previewPayloadDirty = false;
     }
-    setMsg(dom.sendMsg, 'Payload preview loaded below — this is what will be sent to the Edge Network.', 'success');
+    var msg = hadEdits
+      ? 'Preview refreshed from form — previous edits were replaced.'
+      : 'Payload preview loaded below — edit JSON, then Send event.';
+    setMsg(dom.sendMsg, msg, 'success');
   });
 
   /* ═══════════ Send event ═══════════ */
@@ -1279,7 +1354,18 @@
   dom.sendBtn.addEventListener('click', async () => {
     var result = buildRequestBody();
     if (result.error) { setMsg(dom.sendMsg, result.error, 'error'); return; }
-    var body = result.body;
+    var postBody = result.body;
+    var useEditedPayload = dom.previewPanel && !dom.previewPanel.hidden && getPreviewJsonText().trim();
+    if (useEditedPayload) {
+      var edited = getEditedPreviewPayload();
+      if (edited.error) {
+        setMsg(dom.sendMsg, edited.error, 'error');
+        setPreviewJsonInvalid(true);
+        return;
+      }
+      postBody = Object.assign({}, result.body, { rawPayload: edited.payload });
+    }
+    setPreviewJsonInvalid(false);
 
     dom.sendBtn.disabled = true;
     setMsg(dom.sendMsg, 'Sending…', '');
@@ -1288,7 +1374,7 @@
       const res = await fetch('/api/events/edge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(postBody),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -1323,6 +1409,7 @@
     setMsg(dom.connectionMsg, '', '');
     setMsg(dom.infraMsg, '', '');
     setMsg(dom.sendMsg, '', '');
+    resetPreviewPanel();
     if (dom.configBadge) dom.configBadge.hidden = true;
     rebuildTriggerSelect();
     loadSavedConfig();
@@ -1337,6 +1424,9 @@
   async function init() {
     bindSchemaDatasetNameSync();
     restoreChannelSelection();
+    if (dom.previewJson && typeof window.AepJsonEditor !== 'undefined') {
+      window.AepJsonEditor.initTextarea(dom.previewJson, previewJsonOpts);
+    }
     await initSandboxSelect();
     loadTriggerTemplates();
     if (window.__aepLabSyncReady) {

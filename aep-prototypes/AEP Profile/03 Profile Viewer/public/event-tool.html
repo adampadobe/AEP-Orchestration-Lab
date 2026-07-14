@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260623-event-tool-channel">
+  <link rel="stylesheet" href="event-tool.css?v=20260714-event-tool-json">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -263,7 +263,13 @@
                   </div>
                   <div id="etPreviewCollapse" class="consent-preview-panel__collapse">
                     <p id="etPreviewNote" class="consent-preview-panel__note"></p>
-                    <pre id="etPreviewPre" class="consent-preview-panel__pre" spellcheck="false"></pre>
+                    <div class="et-preview-editor">
+                      <div class="et-preview-editor__toolbar">
+                        <button type="button" id="etPreviewBeautifyBtn" class="btn btn-secondary btn-sm">Beautify</button>
+                        <span id="etPreviewEditHint" class="et-preview-editor__hint">Edit JSON below, then Send event — edits are sent as-is.</span>
+                      </div>
+                      <textarea id="etPreviewJson" class="et-preview-json aep-json--panel" spellcheck="false" aria-label="Edge payload JSON editor"></textarea>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -281,7 +287,8 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="event-tool.js?v=20260623-event-tool-channel"></script>
+  <script src="aep-json-editor.js?v=20260714-event-tool-json"></script>
+  <script src="event-tool.js?v=20260714-event-tool-json"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>

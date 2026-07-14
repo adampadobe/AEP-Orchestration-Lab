@@ -362,3 +362,107 @@
 [data-aep-theme="dark"] .et-code-inline {
   background: var(--dash-surface);
 }
+
+/* ── Editable payload preview JSON editor ── */
+.et-preview-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 8rem;
+  background: var(--dash-code-bg, var(--dash-input-bg));
+}
+
+.et-preview-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.et-preview-editor__hint {
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+}
+
+.event-generator-page .aep-json-field-wrap {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-height: 8rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.event-generator-page .aep-json-backdrop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 0.85rem 1rem;
+  overflow: auto;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  tab-size: 2;
+}
+
+.event-generator-page .aep-json-tok.aep-json-str {
+  color: var(--dash-success-text);
+}
+
+.event-generator-page .aep-json-tok.aep-json-num {
+  color: var(--dash-warning-text);
+}
+
+.event-generator-page .aep-json-tok.aep-json-kw {
+  color: var(--dash-blue);
+}
+
+.event-generator-page .aep-json-tok.aep-json-punc {
+  color: var(--dash-text-secondary);
+}
+
+.event-generator-page textarea.aep-json--mirror-input,
+.event-generator-page textarea.et-preview-json {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 0.85rem 1rem;
+  border: none !important;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: var(--dash-text);
+  resize: vertical;
+  overflow: auto;
+  min-height: 8rem;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  tab-size: 2;
+}
+
+.event-generator-page textarea.aep-json--mirror-input::selection {
+  background: color-mix(in srgb, var(--dash-blue) 28%, transparent);
+}
+
+.event-generator-page textarea.et-preview-json.aep-json--invalid {
+  box-shadow: inset 0 0 0 2px var(--dash-error-border);
+}
