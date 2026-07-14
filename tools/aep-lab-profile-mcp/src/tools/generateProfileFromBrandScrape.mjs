@@ -17,7 +17,7 @@ import { checkGenerateRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 import {
-  resolveStoredPrefsEmail,
+  resolveProfileEmailForGenerate,
   shouldUseStoredGenerationPrefs,
   STORED_PREFS_MISSING_HINT,
 } from './generationPrefs.mjs';
@@ -41,37 +41,37 @@ async function generateOneFromScrapePersona({
   use_stored_prefs,
 }) {
   const useStored = shouldUseStoredGenerationPrefs(use_stored_prefs, email);
-  let resolvedEmail = email;
-  /** @type {Record<string, unknown>} */
-  let storedPrefsMeta = {};
-  /** @type {string | null} */
-  let storedMobile = null;
+  const emailResolved = await resolveProfileEmailForGenerate({
+    sandbox,
+    email,
+    use_stored_prefs: useStored,
+  });
 
-  if (useStored) {
-    const reserved = await resolveStoredPrefsEmail(sandbox);
-    if (!reserved.ok) {
-      return {
-        ok: false,
-        error: reserved.error,
-        hint: reserved.hint || STORED_PREFS_MISSING_HINT,
-      };
-    }
-    resolvedEmail = reserved.email;
-    storedMobile = reserved.mobilePhone ? String(reserved.mobilePhone) : null;
-    storedPrefsMeta = {
-      use_stored_prefs: true,
-      counterN: reserved.counterN,
-      nextCounterN: reserved.nextCounterN,
-      baseEmail: reserved.baseEmail,
-      mobilePhone: storedMobile,
-    };
-  } else if (!resolvedEmail) {
+  if (!emailResolved.ok) {
     return {
       ok: false,
-      error: 'email is required when use_stored_prefs is false.',
-      hint: STORED_PREFS_MISSING_HINT,
+      error: emailResolved.error,
+      hint: emailResolved.hint || STORED_PREFS_MISSING_HINT,
+      coworkerPrompt: emailResolved.coworkerPrompt,
+      expectedPattern: emailResolved.expectedPattern,
+      example: emailResolved.example,
+      formatRules: emailResolved.formatRules,
     };
   }
+
+  const resolvedEmail = emailResolved.email;
+  /** @type {Record<string, unknown>} */
+  const storedPrefsMeta = emailResolved.use_stored_prefs
+    ? {
+        use_stored_prefs: true,
+        counterN: emailResolved.counterN,
+        nextCounterN: emailResolved.nextCounterN,
+        baseEmail: emailResolved.baseEmail,
+        mobilePhone: emailResolved.mobilePhone,
+      }
+    : {};
+  /** @type {string | null} */
+  const storedMobile = emailResolved.mobilePhone ? String(emailResolved.mobilePhone) : null;
 
   const built = buildAttributesFromBrandScrapePersona({
     persona,
@@ -170,7 +170,8 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
         'Do NOT pass industry unless the user explicitly requests an override — wrong industry skips industry-owned XDM paths. ' +
         'Response includes scrape_industry, lab_industry, industry_source. Warns when lab_sandbox_profile_config is not ready. ' +
         'segment_hint can be explicit or inferred from persona.suggested_segments. ' +
-        'Email/mobile: omit email to atomically reserve next scaled email + static mobile from shared Firestore generation prefs (Portal Profile Generation; same uid as MCP API key). ' +
+        'Email/mobile FORMAT RULES: omit email to reserve <local>+DDMMYYYY-N@<domain> + static E.164 mobile from Firestore generation prefs (Portal parity). ' +
+        'Custom email must match scaled pattern. Call lab_confirm_profile_generation before first generate. ' +
         'Persona name/age/location still overlay on attributes; email never derived from persona slug. ' +
         'Chain: lab_brand_scrape → lab_generate_profile_from_brand_scrape → lab_send_profile_event.',
       inputSchema: {
@@ -341,6 +342,11 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
             personaName: persona.name,
             partialResults: results,
             hint: one.hint,
+            coworkerPrompt: one.coworkerPrompt,
+            expectedPattern: one.expectedPattern,
+            example: one.example,
+            formatRules: one.formatRules,
+            confirmTool: 'lab_confirm_profile_generation',
           });
         }
 

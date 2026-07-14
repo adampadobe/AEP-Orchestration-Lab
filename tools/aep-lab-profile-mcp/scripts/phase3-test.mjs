@@ -855,9 +855,25 @@ async function run() {
   const goodKey = await validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase3-test-key' }));
   assert(goodKey.ok, 'api key ok');
 
+  const {
+    validateScaledLabEmail,
+    validateE164MobilePhone,
+    buildEmailFormatRules,
+    formatExampleScaledEmail,
+  } = await import('../src/framework/emailFormatGuardrails.mjs');
+  const rules = buildEmailFormatRules();
+  assert(rules.example.includes('+') && rules.example.includes('@'), 'format rules example');
+  assert(validateScaledLabEmail('apalmer+23062026-2@adobetest.com').ok, 'valid scaled email');
+  assert(validateScaledLabEmail('adamp.adobedemo+demo-23062026-1@gmail.com').ok, 'valid scaled email with existing plus tag');
+  assert(!validateScaledLabEmail('travel.demo+001@adobetest.com').ok, 'reject legacy +001');
+  assert(!validateScaledLabEmail('homepage.jane@customer.com').ok, 'reject persona slug email');
+  assert(validateE164MobilePhone('+447425627462').ok, 'valid E164 mobile');
+  assert(!validateE164MobilePhone('07425627462').ok, 'reject non-E164 mobile');
+  assert(formatExampleScaledEmail(new Date('2026-07-14')).includes('14072026'), 'example uses DDMMYYYY');
+
   console.log(JSON.stringify({
     ok: true,
-    tests: 'phase3.4 event identity + critical rules + testProfile/language + persona + all-industry portal parity + ACL + rate limits',
+    tests: 'phase3.13 email format guardrails + event identity + critical rules + testProfile/language + persona + all-industry portal parity + ACL + rate limits',
     industries: LAB_INDUSTRY_KEYS.length,
     segmentPacks: { travel: TRAVEL_SEGMENT_HINTS, fsi: FSI_SEGMENT_HINTS, retail: RETAIL_SEGMENT_HINTS },
   }));

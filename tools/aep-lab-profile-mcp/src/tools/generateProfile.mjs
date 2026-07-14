@@ -11,7 +11,7 @@ import {
   normalizeGenerateProfileParams,
 } from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
-import { resolveStoredPrefsEmail } from './generationPrefs.mjs';
+import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
 import {
   personHintsFromAttributes,
   recordRecentProfileGenerated,
@@ -28,7 +28,10 @@ export function registerGenerateProfileTool(mcpServer) {
       description:
         'POST /api/profile/generate — streams a sample profile via the lab saved industry HTTP connection (Firestore manifest). ' +
         'Requires sandbox on MCP allowlist and industry connection ready (lab_sandbox_profile_config / lab_preflight_profile_generate). ' +
-        'Email: use @adobetest.com plus-addressing (e.g. travel.demo+001@adobetest.com). ' +
+        'FORMAT RULES — email: <local>+DDMMYYYY-N@<domain> via shared Firestore counter (labProfileGenerationPrefs). ' +
+        'Omit email (default) to atomically reserve next scaled email; custom email MUST match +DDMMYYYY-N or is rejected. ' +
+        'Call lab_confirm_profile_generation before first generate to prompt colleague for base email + domain. ' +
+        'Mobile: static E.164 from prefs (default +447425627462). ' +
         'CRITICAL: test_profile defaults true (AEP test profile); false requires test_profile_override_reason. ' +
         'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
         'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
@@ -41,7 +44,13 @@ export function registerGenerateProfileTool(mcpServer) {
         'Retail last_order_details (default true): when false, skips orderProfile last-order SKU/store block (Portal #retailLastOrderEnabled). ' +
         'See lab_get_execution_framework criticalRules and lab_get_industry_playbook.',
       inputSchema: {
-        email: z.string().email().optional().describe('Profile email address (omit to use shared Firestore scaler via use_stored_prefs)'),
+        email: z
+          .string()
+          .email()
+          .optional()
+          .describe(
+            'Scaled profile email (<local>+DDMMYYYY-N@domain). Omit to reserve next from Firestore prefs (recommended).',
+          ),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
           .string()
@@ -133,27 +142,42 @@ export function registerGenerateProfileTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
-      const useStored = use_stored_prefs ?? !email;
-      let resolvedEmail = email;
-      /** @type {Record<string, unknown>} */
-      let storedPrefsMeta = {};
-      if (useStored) {
-        const reserved = await resolveStoredPrefsEmail(allowed.sandbox);
-        if (!reserved.ok) {
-          return toolError(reserved.error, {
-            hint: 'Set base email via lab_set_generation_prefs or Profile Viewer, then retry.',
-          });
-        }
-        resolvedEmail = reserved.email;
-        storedPrefsMeta = {
-          use_stored_prefs: true,
-          counterN: reserved.counterN,
-          nextCounterN: reserved.nextCounterN,
-          baseEmail: reserved.baseEmail,
-        };
-      } else if (!resolvedEmail) {
-        return toolError('email is required when use_stored_prefs is false.');
+      const emailResolved = await resolveProfileEmailForGenerate({
+        sandbox: allowed.sandbox,
+        email,
+        use_stored_prefs,
+      });
+      if (!emailResolved.ok) {
+        writeAuditLog({
+          keyId,
+          tool: 'lab_generate_profile',
+          sandbox: allowed.sandbox,
+          email,
+          result: 'error',
+          durationMs: Date.now() - started,
+        });
+        return toolError(emailResolved.error, {
+          hint: emailResolved.hint,
+          coworkerPrompt: emailResolved.coworkerPrompt,
+          expectedPattern: emailResolved.expectedPattern,
+          example: emailResolved.example,
+          provided: emailResolved.provided,
+          formatRules: emailResolved.formatRules,
+          confirmTool: 'lab_confirm_profile_generation',
+        });
       }
+
+      const resolvedEmail = emailResolved.email;
+      /** @type {Record<string, unknown>} */
+      const storedPrefsMeta = emailResolved.use_stored_prefs
+        ? {
+            use_stored_prefs: true,
+            counterN: emailResolved.counterN,
+            nextCounterN: emailResolved.nextCounterN,
+            baseEmail: emailResolved.baseEmail,
+            mobilePhone: emailResolved.mobilePhone,
+          }
+        : {};
 
       const norm = normalizeIndustry(industry);
       if (!LAB_INDUSTRY_KEYS.includes(norm.industry)) {
@@ -180,6 +204,9 @@ export function registerGenerateProfileTool(mcpServer) {
 
       if (mergedAttributes && typeof mergedAttributes === 'object' && Object.keys(mergedAttributes).length > 0) {
         mergedAttributes = ensurePreferredLanguageOnAttributes(mergedAttributes).attributes;
+        if (emailResolved.mobilePhone) {
+          mergedAttributes = applyStoredPrefsMobileToAttributes(mergedAttributes, emailResolved.mobilePhone);
+        }
       }
 
       const normalized = normalizeGenerateProfileParams({

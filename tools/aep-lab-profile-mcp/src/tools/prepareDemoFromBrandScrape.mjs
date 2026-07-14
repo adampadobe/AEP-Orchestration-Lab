@@ -24,7 +24,8 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       description:
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
         'optional experience events per profile, optional Client Journey v2 HTML asset. ' +
-        'Profiles reserve scaled emails + static mobile from Firestore generation prefs (Portal Profile Generation; same uid as MCP key). ' +
+        'Profiles reserve scaled emails + static mobile from Firestore generation prefs (FORMAT: <local>+DDMMYYYY-N@<domain>). ' +
+        'Call lab_confirm_profile_generation before first generate. ' +
         'Provide scrape_id OR url — when url is given, resolves an existing complete scrape via lab_resolve_brand_scrape logic. ' +
         'Profile industry defaults from scrape taxonomy (lab_industry in summary) — do not override unless user asks. ' +
         'Prerequisite: complete scrape with personas (lab_resolve_brand_scrape → lab_brand_scrape if need_new_scrape). ' +

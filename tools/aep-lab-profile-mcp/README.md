@@ -29,6 +29,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
+| `lab_confirm_profile_generation` | `GET` + optional `PUT /api/lab/generation-prefs` | Ask colleague format questions; `confirmed:true` persists base email + mobile |
 | `lab_get_generation_prefs` | `GET /api/lab/generation-prefs` | Shared Portal/MCP base email, counter N, next scaled email |
 | `lab_set_generation_prefs` | `PUT /api/lab/generation-prefs` | Update base email, mobile, reset counter |
 | `lab_confirm_generation_plan` | `GET /api/lab/generation-prefs` | Read-only preview before generate |

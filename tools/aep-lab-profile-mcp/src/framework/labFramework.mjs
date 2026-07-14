@@ -87,7 +87,9 @@ export const CRITICAL_RULES = [
   },
   {
     id: 'test_email_domain',
-    rule: `Use @${LAB_TEST_EMAIL_DOMAIN} plus-addressing for test identities (e.g. travel.demo+001@${LAB_TEST_EMAIL_DOMAIN}).`,
+    rule:
+      'Profile emails use scaled plus-addressing: <local>+DDMMYYYY-N@<domain> (shared Firestore labProfileGenerationPrefs counter). ' +
+      'Omit email on lab_generate_profile to auto-reserve; legacy patterns like travel.demo+001@adobetest.com are rejected.',
   },
   {
     id: 'shared_generation_counter',

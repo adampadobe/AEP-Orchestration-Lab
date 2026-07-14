@@ -13,6 +13,8 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
+import { buildEmailFormatRules } from '../framework/emailFormatGuardrails.mjs';
+import { getGenerationPrefs } from '../labApiClient.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -25,7 +27,8 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
       description:
         'Dry-run before lab_generate_profile: checks lab_sandbox_profile_config readiness for sandbox+industry, ' +
         'lists connection manifest (url, flowId, datasetId, schemaId, xdmKey), and shows what would be sent ' +
-        '(testProfile:true, preferredLanguage paths, sample persona paths when randomize). Does NOT POST to AEP.',
+        '(testProfile:true, preferredLanguage paths, sample persona paths when randomize). Does NOT POST to AEP. ' +
+        'Includes email/mobile FORMAT RULES and Firestore generation prefs preview when available.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
@@ -36,7 +39,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
           .string()
           .email()
           .optional()
-          .describe('Sample email for persona preview (default preflight.demo+001@adobetest.com)'),
+          .describe('Sample scaled email for persona preview — omit to use nextScaledEmail from generation prefs'),
         randomize: z.boolean().optional().describe('Preview randomize persona attribute keys (default true)'),
         segment_hint: z.string().optional(),
         test_profile: z.boolean().optional(),
@@ -79,12 +82,20 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
       const sampleEmail = email || 'preflight.demo+001@adobetest.com';
       const useRandomize = randomize !== false;
 
+      const prefsResult = await getGenerationPrefs({ sandbox: allowed.sandbox });
+      const generationPrefs = prefsResult.ok ? prefsResult.data?.prefs : null;
+      const formatRules = buildEmailFormatRules();
+      const previewEmail =
+        email ||
+        (generationPrefs?.nextScaledEmail && String(generationPrefs.nextScaledEmail).trim()) ||
+        sampleEmail;
+
       writeAuditLog({
         keyId: getRequestKeyId(),
         tool: 'lab_preflight_profile_generate',
         sandbox: allowed.sandbox,
         industry: norm.industry,
-        email: sampleEmail,
+        email: previewEmail,
       });
 
       const statusResult = await profileInfraStatusAll({ sandbox: allowed.sandbox, refresh: true });
@@ -118,7 +129,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
       if (useRandomize) {
         sampleAttributes = buildPersonaAttributes(
           norm.industry,
-          sampleEmail,
+          previewEmail,
           typeof segmentNorm === 'string' ? segmentNorm : null,
         );
         sampleAttributes = ensurePreferredLanguageOnAttributes(sampleAttributes).attributes;
@@ -131,7 +142,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
 
       const summary = buildGeneratePreflightSummary({
         industry: norm.industry,
-        email: sampleEmail,
+        email: previewEmail,
         test_profile: normalizedTest.test_profile,
         language,
         randomize: useRandomize,
@@ -143,6 +154,10 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         },
       });
 
+      if (generationPrefs?.mobilePhone) {
+        summary.mobilePhone = generationPrefs.mobilePhone;
+      }
+
       return jsonResult({
         ok: assessment.ready,
         ready: assessment.ready,
@@ -152,6 +167,17 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         config: assessment,
         connectionError: connectionError || undefined,
         preflight: summary,
+        formatRules,
+        generationPrefs: generationPrefs
+          ? {
+              baseEmail: generationPrefs.baseEmail,
+              nextScaledEmail: generationPrefs.nextScaledEmail,
+              counterN: generationPrefs.counterN,
+              mobilePhone: generationPrefs.mobilePhone,
+              prefsReady: !!String(generationPrefs.baseEmail || '').trim(),
+            }
+          : null,
+        confirmTool: 'lab_confirm_profile_generation',
         samplePersona: useRandomize
           ? {
               attributeCount: attributeKeys.length,
@@ -161,7 +187,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
             }
           : null,
         nextAction: assessment.ready
-          ? `Ready — lab_generate_profile sandbox ${allowed.sandbox} industry ${norm.industry} email ${sampleEmail} randomize true`
+          ? `Ready — lab_generate_profile sandbox ${allowed.sandbox} industry ${norm.industry} (omit email for stored prefs) randomize true`
           : assessment.nextAction,
         blockedReason: assessment.ready
           ? null

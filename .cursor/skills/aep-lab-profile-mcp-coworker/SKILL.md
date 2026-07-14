@@ -8,9 +8,9 @@ description: >-
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.11)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.13)
 
-MCP server: **AEP Orchestration Lab MCP v3.11.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.13.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -28,7 +28,9 @@ Coworker should call these **before** improvising lab conventions:
 |-----------------|--------|
 | **`lab_get_execution_framework`** | **criticalRules** at top + workflows, dataflow pattern, when to use generate vs update vs event |
 | **`lab_get_industry_playbook`** | Per-industry persona paths, language/testProfile rules, dataflow manifest shape, failure_modes |
-| **`lab_preflight_profile_generate`** | Dry-run: sandbox config ready + what will be sent (testProfile, language, connection) without streaming |
+| **`lab_confirm_profile_generation`** | **Ask colleague first** — format rules, questions, prefs preview; `confirmed:true` persists base email + mobile |
+| **`lab_confirm_generation_plan`** | Read-only preview of next scaled email (does not consume counter) |
+| **`lab_preflight_profile_generate`** | Dry-run: sandbox config ready + what will be sent (testProfile, language, connection, format rules) without streaming |
 | `lab://framework/overview` | Markdown execution overview (MCP resource) |
 | `lab://framework/conventions` | Email, phone, testProfile, preferredLanguage, stitching rules |
 | `lab://framework/industries/{industry}` | JSON playbook for one industry |
@@ -40,7 +42,7 @@ Coworker should call these **before** improvising lab conventions:
 3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; `_demoemea.identification.core` mirrors both. Preflight: `lab_preflight_profile_event`.
 5. **Portal event types** — `event_type` is **free text** (any string, same as Event tool). Datalist / `lab_send_retail_journey_events` commerce pack are optional suggestions. Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`.
-6. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). Call `lab_confirm_generation_plan` before first generate; use `lab_generate_profile` without email (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. **Brand scrape profile tools** (`lab_generate_profile_from_brand_scrape`, `lab_generate_profiles_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}+N@adobetest.com`. Static **mobilePhone.number** comes from prefs too. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
+6. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 7. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
 
 ### How the lab executes
@@ -52,18 +54,32 @@ Coworker should call these **before** improvising lab conventions:
 
 ### Test data conventions
 
-- **Email domain**: `@adobetest.com` (plus-addressing: `travel.demo+001@adobetest.com`, batch `kirkham+retail-seed`).
-- **Profile Viewer UI scaler** (browser only): `apalmer@adobetest.com` → `apalmer+DDMMYYYY-N@adobetest.com` daily counter in localStorage.
-- **Mobile**: lab default **`+447425627462`** (Profile Viewer placeholder + bulk seed scripts; MCP randomize uses same).
+- **Email format (required)**: `<local>+DDMMYYYY-N@<domain>` — e.g. `apalmer+14072026-3@adobetest.com` (today's date + daily counter N). Legacy `travel.demo+001@adobetest.com` is **rejected** by MCP guardrails.
+- **Base email**: stored in Firestore `labProfileGenerationPrefs` (Profile Viewer Profile Generation field or `lab_set_generation_prefs`). MCP `lab_generate_profile` **omits email** to auto-reserve the next counter value.
+- **Mobile**: static E.164 from prefs — lab default **`+447425627462`** (visible in Portal + MCP responses).
 - **segment_hint** (with `randomize:true`): travel `hotel_high_value` \| `hotel_reactivation`; fsi `high_net_worth` \| `credit_rebuild`; retail `loyalty_vip` \| `cart_abandoner`.
 - **Industry aliases**: `telco` / `telecommunications` → `telecom`; `public` → `generic`.
 - **Known-profile events** (MCP / Event tool): after `lab_generate_profile`, capture **ecid** from response. Send with **both** email + ecid so `identityMap.ECID` is primary and `identityMap.Email` secondary; `_demoemea.identification.core` carries the same strings. See `lab_get_execution_framework` → `criticalRules.event_identity_stitch`.
 - **Anonymous Edge** (Web SDK demos): `getIdentity` then `sendEvent` with `identityMap.ECID` **and** `_<tenant>.identification.core.ecid` (same ECID string). See `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`.
 - **Profile Core v2 top-up**: travel sandboxes need `travelReservations.*` + `hotel.*` tenant leaves — provision step 2 runs ADD-only patch from `profileCoreV2Manifest.js`.
 
-### Example prompt that needs zero manual context (v3.4+)
+### Example prompt that needs zero manual context (v3.13+)
 
-> Call **lab_get_execution_framework** (read criticalRules). **lab_preflight_profile_generate** for sandbox apalmer industry travel. If ready, **lab_get_industry_playbook** travel, then **lab_generate_profile** with email `hotel.reactivation+001@adobetest.com`, randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile**.
+> Call **lab_get_execution_framework** (read criticalRules). **lab_confirm_profile_generation** for sandbox apalmer — show colleague format rules and next preview email. When confirmed, **lab_preflight_profile_generate** industry travel. If ready, **lab_generate_profile** sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should be `+DDMMYYYY-N` scaled form.
+
+## Workflow 0a — Confirm email format before first generate
+
+1. **Preview format + prefs**
+
+   > Call **lab_confirm_profile_generation** for sandbox `apalmer`. Read `questionsForColleague` and `formatRules` back to the user.
+
+2. **Colleague confirms base email**
+
+   > If prefs empty: ask "What base email should we use (e.g. apalmer@adobetest.com)?" Then **lab_confirm_profile_generation** with `confirmed:true`, `base_email` from colleague, optional `mobile_phone`.
+
+3. **Generate without email**
+
+   > **lab_generate_profile** sandbox apalmer industry travel, randomize true — **omit email** so MCP reserves `apalmer+DDMMYYYY-N@adobetest.com` from shared counter.
 
 ## Workflow 0 — Check MCP access
 
@@ -87,25 +103,25 @@ Example (user on sandbox **prisacar**):
 
 2. **Generate one randomized profile**
 
-   > Call lab_generate_profile with sandbox apalmer, industry travel, email travel.demo+001@adobetest.com, randomize true.
+   > Call lab_generate_profile with sandbox apalmer, industry travel, **omit email** (stored prefs), randomize true.
 
 3. **Lookup by email**
 
-   > Call lab_lookup_profile with sandbox apalmer, namespace email, identifier travel.demo+001@adobetest.com. Summarize key travel attributes.
+   > Use the scaled email returned from generate. Call lab_lookup_profile with sandbox apalmer, namespace email, identifier `<email from generate response>`. Summarize key travel attributes.
 
 ## Workflow 2 — Hotel segment personas (travel)
 
 1. **Reactivation segment**
 
-   > lab_generate_profile: sandbox apalmer, industry travel, email hotel.reactivation+001@adobetest.com, randomize true, segment_hint hotel_reactivation.
+   > lab_generate_profile: sandbox apalmer, industry travel, omit email, randomize true, segment_hint hotel_reactivation.
 
 2. **High-value segment**
 
-   > lab_generate_profile: sandbox apalmer, industry travel, email hotel.hv+001@adobetest.com, randomize true, segment_hint hotel_high_value.
+   > lab_generate_profile: sandbox apalmer, industry travel, omit email, randomize true, segment_hint hotel_high_value.
 
 3. **Batch seed for segments**
 
-   > lab_generate_profiles_batch: sandbox apalmer, industry travel, count 10, base_email kirkham+hotel-seed, randomize true, segment_hint hotel_reactivation, delay_ms 800. Poll lab_batch_job_status until complete.
+   > lab_generate_profiles_batch: sandbox apalmer, industry travel, count 10, use_stored_prefs true, randomize true, segment_hint hotel_reactivation, delay_ms 800. Poll lab_batch_job_status until complete.
 
 ## Workflow 2b — FSI segment personas (Phase 3.1)
 
@@ -289,7 +305,7 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 
 1. **Start batch job**
 
-   > Use lab_generate_profiles_batch: sandbox apalmer, industry retail, count 25, base_email kirkham+retail-seed, randomize true.
+   > Use lab_generate_profiles_batch: sandbox apalmer, industry retail, count 25, use_stored_prefs true, randomize true.
 
 2. **Poll until complete**
 

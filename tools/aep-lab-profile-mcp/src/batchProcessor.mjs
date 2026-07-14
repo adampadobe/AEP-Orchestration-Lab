@@ -5,6 +5,7 @@
 import { executeGeneratePlan, planDualStreamGenerate } from './framework/dualStreamGenerate.mjs';
 import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
 import { resolveStoredPrefsEmail } from './tools/generationPrefs.mjs';
+import { validateScaledLabEmail } from './framework/emailFormatGuardrails.mjs';
 import { ensurePreferredLanguageOnAttributes, resolveTestProfileParam } from './framework/generateProfileParams.mjs';
 import {
   personHintsFromAttributes,
@@ -72,6 +73,21 @@ export async function processBatchJob(jobId, { keyId }) {
         emailPattern: params.email_pattern,
         industry: params.industry,
       });
+      const emailCheck = validateScaledLabEmail(email);
+      if (!emailCheck.ok) {
+        failed += 1;
+        const errMsg = emailCheck.error || 'Batch email does not match lab scaled format';
+        errors.push({ index: i, email, error: errMsg });
+        results.push({
+          index: i,
+          email,
+          ok: false,
+          error: errMsg,
+          coworkerPrompt: emailCheck.coworkerPrompt,
+          confirmTool: 'lab_confirm_profile_generation',
+        });
+        continue;
+      }
     }
 
     let attributes = params.attributes;

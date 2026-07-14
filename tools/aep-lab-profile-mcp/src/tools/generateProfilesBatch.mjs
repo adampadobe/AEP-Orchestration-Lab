@@ -9,6 +9,8 @@ import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { normalizeGenerateProfileParams } from '../framework/generateProfileParams.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
+import { buildEmailFormatRules, validateScaledLabEmail } from '../framework/emailFormatGuardrails.mjs';
+import { resolveBatchEmail } from '../personaBuilder.mjs';
 
 const BATCH_MAX = 100;
 const MAX_DELAY_MS = 5000;
@@ -22,6 +24,9 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
     {
       title: 'Batch generate test profiles (async)',
       description:
+        'Batch generate 1–100 test profiles. FORMAT RULES: prefer use_stored_prefs:true (default when base_email omitted) — each profile reserves <local>+DDMMYYYY-N@<domain>. ' +
+        'Legacy base_email patterns (e.g. kirkham+retail-seed) are rejected unless email_pattern produces scaled addresses. ' +
+        'Call lab_confirm_profile_generation before first batch. ' +
         'Travel loyalty_member (all industries, default false): LYL-* when true. Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -86,7 +91,9 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         use_stored_prefs: z
           .boolean()
           .optional()
-          .describe('When true, each profile uses POST /api/lab/generation-prefs/next-email (shared Portal counter)'),
+          .describe(
+            'When true (default when base_email and email_pattern omitted), each profile uses POST /api/lab/generation-prefs/next-email',
+          ),
       },
     },
     async ({
@@ -140,6 +147,28 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         return toolError(normalizedTest.error);
       }
 
+      const useStoredPrefs = use_stored_prefs ?? (!base_email && !email_pattern);
+      if (!useStoredPrefs) {
+        const sampleEmail = resolveBatchEmail({
+          index: 1,
+          baseEmail: base_email,
+          emailPattern: email_pattern,
+          industry: norm.industry,
+        });
+        const sampleCheck = validateScaledLabEmail(sampleEmail);
+        if (!sampleCheck.ok) {
+          return toolError(sampleCheck.error, {
+            coworkerPrompt: sampleCheck.coworkerPrompt,
+            example: sampleCheck.example,
+            expectedPattern: sampleCheck.expectedPattern,
+            sampleEmail,
+            formatRules: buildEmailFormatRules(),
+            hint: 'Use use_stored_prefs:true (recommended) or email_pattern with +DDMMYYYY-N placeholders.',
+            confirmTool: 'lab_confirm_profile_generation',
+          });
+        }
+      }
+
       const job = await createBatchJob({
         jobType: 'profile_batch',
         count,
@@ -158,7 +187,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           append_if_existing,
           test_profile: normalizedTest.test_profile,
           test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
-          use_stored_prefs: !!use_stored_prefs,
+          use_stored_prefs: useStoredPrefs,
         },
       });
 
@@ -190,7 +219,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         randomize: useRandomize,
         segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
         delay_ms: delay_ms ?? null,
-        storeMode: getBatchStoreMode(),
+        use_stored_prefs: useStoredPrefs,
+        formatRules: buildEmailFormatRules(),
         pollTool: 'lab_batch_job_status',
         note: 'Job runs in background. Poll lab_batch_job_status with job_id.',
       });
