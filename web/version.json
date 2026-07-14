@@ -1,14 +1,14 @@
 {
-  "gitSha": "1ad5b0748af91202550af346f5fe6a5d83ad0930",
-  "gitShortSha": "1ad5b074",
+  "gitSha": "3ca35a76df45ce27235de646b8bd89f93096f108",
+  "gitShortSha": "3ca35a76",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp deploy for brand scrape transaction fix (0c634cae)",
+  "gitCommitSubject": "[apalmer] fix: Edge event XDM for lab-event-tool-edge MCP sends",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-13T17:10:38+01:00",
-  "deployedAt": "2026-07-13T16:10:52.528Z",
+  "gitCommitDate": "2026-07-14T15:58:18+01:00",
+  "deployedAt": "2026-07-14T15:12:26.356Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1ad5b0748af91202550af346f5fe6a5d83ad0930"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3ca35a76df45ce27235de646b8bd89f93096f108"
 }
