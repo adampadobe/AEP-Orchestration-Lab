@@ -247,9 +247,13 @@
       '<div class="spectrum-env-collapsible-fields__grid">' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="' +
       esc(prefix) +
-      'TagsProperty">Tags property</label><select id="' +
+      'TagsProperty">Tags property</label><input type="text" id="' +
       esc(prefix) +
-      'TagsProperty" class="spectrum-env-input" aria-label="Tags property"><option value="">Select property</option></select></div>' +
+      'TagsProperty" class="spectrum-env-input" aria-label="Tags property" placeholder="Select property" list="' +
+      esc(prefix) +
+      'TagsPropertyList" autocomplete="off" spellcheck="false" /><datalist id="' +
+      esc(prefix) +
+      'TagsPropertyList"></datalist></div>' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="' +
       esc(prefix) +
       'TagsEnvironment">Tags environment</label><select id="' +

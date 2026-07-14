@@ -110,9 +110,14 @@
       '<label for="' +
       esc(p) +
       'TagsProperty">Tags property</label>' +
-      '<select id="' +
+      '<input type="text" id="' +
       esc(p) +
-      'TagsProperty" aria-label="Tags property"><option value="">Select property</option></select>' +
+      'TagsProperty" aria-label="Tags property" placeholder="Select property" list="' +
+      esc(p) +
+      'TagsPropertyList" autocomplete="off" spellcheck="false" />' +
+      '<datalist id="' +
+      esc(p) +
+      'TagsPropertyList"></datalist>' +
       '</div>' +
       '<div class="site-clone-bc-env-strip__inject-actions mod-demo-id-actions">' +
       '<button type="button" id="' +

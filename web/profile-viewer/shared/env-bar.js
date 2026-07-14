@@ -15,13 +15,13 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20260713e-armcom-env-bar',
+    manifestVersion: '20260714-tags-property-typeahead',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260713e-armcom-env-bar',
       spectrumCss: '20260713e-armcom-env-bar',
-      demoEnvStripSpectrum: '20260713e-armcom-env-bar',
-      demoEnvStrip: '20260616-hide-lab-debug-ui',
+      demoEnvStripSpectrum: '20260714-tags-property-typeahead',
+      demoEnvStrip: '20260714-tags-property-typeahead',
       spectrumSync: '20260713e-armcom-env-bar',
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
