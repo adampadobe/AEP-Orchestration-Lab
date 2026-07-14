@@ -451,6 +451,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .lab-env-toggle-btn:focus-visible,
 .lab-env-pin-btn:focus-visible,
+.lab-env-minimize-btn:focus-visible,
 .lab-env-dock-toolbar-btn:focus-visible,
 .lab-env-chip:focus-visible,
 .lab-env-toolbar .spectrum-env-link-btn:focus-visible {

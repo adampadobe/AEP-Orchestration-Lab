@@ -193,7 +193,7 @@
       var sdkConnectedFromUi = !!(fields && fields.hidden && summary && !summary.hidden);
       var sdkConfiguredPersist = isPersistedSdkConfigured(storagePrefix, sandboxSelect);
       var summaryConfiguredVisible =
-        !!(summary && !summary.hidden && summary.textContent && /SDK configured/i.test(String(summary.textContent)));
+        !!(summary && !summary.hidden && summary.textContent && /SDK configured/i.test(String(summary.textContent)) && !/no script selected/i.test(String(summary.textContent)));
       var alloyLive = typeof global.alloy === 'function';
       var injectInProgress = !!(
         storagePrefix &&
@@ -216,7 +216,11 @@
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Connecting…';
         targetBadgeText = 'SDK connecting…';
-      } else if (sdkConfiguredPersist || sdkConnectedFromUi) {
+      } else if (sdkConfiguredPersist && !summaryConfiguredVisible) {
+        sdkStatusVariant = 'notice';
+        sdkStatusText = 'Re-configure';
+        targetBadgeText = 'SDK re-configure';
+      } else if (sdkConnectedFromUi) {
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Restoring…';
         targetBadgeText = 'SDK restoring…';

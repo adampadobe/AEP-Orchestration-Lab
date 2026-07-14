@@ -9,6 +9,7 @@
   var DOCK_STORAGE_KEY = 'aepLabEnvBarDocked';
   var PIN_BTN_ID = 'aepLabEnvPinBtn';
   var TOGGLE_BTN_ID = 'aepLabEnvToggleBtn';
+  var MINIMIZE_BTN_ID = 'aepLabEnvMinimizeBtn';
   var DOCK_TOOLBAR_BTN_ID = 'aepLabEnvDockToolbarBtn';
   var FLOATING_DOCK_BTN_ID = 'aepLabEnvFloatingDockBtn';
   var OVERLAY_PANEL_ID = 'aepLabEnvOverlayPanel';
@@ -91,6 +92,14 @@
     return '';
   }
 
+  function summaryShowsSdkConfigured() {
+    var summary = document.querySelector('[id$="SdkConfigSummary"]');
+    if (!summary || summary.hidden) return false;
+    var text = String(summary.textContent || '');
+    if (!/SDK configured/i.test(text)) return false;
+    return !/no script selected/i.test(text);
+  }
+
   function isLabEnvConfiguredForCollapse() {
     var prefix = resolveLabEnvConfiguredPrefix();
     var storageKey = prefix ? 'aepLabEnvConfigured:' + prefix : 'aepLabEnvConfigured';
@@ -99,10 +108,10 @@
     } catch (_e0) {
       /* noop */
     }
-    var summary = document.querySelector('[id$="SdkConfigSummary"]:not([hidden])');
-    if (summary && /SDK configured/i.test(String(summary.textContent || ''))) return true;
+    if (summaryShowsSdkConfigured()) return true;
     var fields = document.querySelector('[id$="SdkConfigFields"]');
-    if (fields && fields.hidden && summary && !summary.hidden) return true;
+    var summary = document.querySelector('[id$="SdkConfigSummary"]');
+    if (fields && fields.hidden && summary && !summary.hidden && summaryShowsSdkConfigured()) return true;
     return false;
   }
 
@@ -338,6 +347,7 @@
     syncProfilePeekChrome(anchor, isProfileOnly);
     syncToolbarOverlayInset(anchor, isOpen);
     syncFullOpenBtn(anchor);
+    syncMinimizeBtn(anchor);
 
     try {
       global.dispatchEvent(
@@ -389,6 +399,57 @@
     var show = !!(anchor && anchor.classList.contains(PROFILE_ONLY_CLASS));
     if (show) btn.removeAttribute('hidden');
     else btn.setAttribute('hidden', '');
+  }
+
+  var MINIMIZE_ICON_COLLAPSE =
+    '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7.4 15.4 12 10.8l4.6 4.6 1.4-1.4-6-6-6 6 1.4 1.4Z"/></svg>';
+  var MINIMIZE_ICON_EXPAND =
+    '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7 1.4-1.4Z"/></svg>';
+
+  function syncMinimizeBtn(anchor) {
+    var btn = byId(MINIMIZE_BTN_ID);
+    if (!btn) return;
+    var profileOnly = !!(anchor && anchor.classList.contains(PROFILE_ONLY_CLASS));
+    var expanded = !!(anchor && anchor.classList.contains('lab-env-top-anchor--expanded'));
+    btn.innerHTML = profileOnly ? MINIMIZE_ICON_EXPAND : MINIMIZE_ICON_COLLAPSE;
+    btn.setAttribute('aria-pressed', profileOnly ? 'true' : 'false');
+    if (profileOnly) {
+      btn.setAttribute('aria-label', 'Expand configuration panels');
+      btn.setAttribute('title', 'Expand configuration panels');
+    } else if (expanded) {
+      btn.setAttribute('aria-label', 'Minimize configuration panels');
+      btn.setAttribute('title', 'Minimize configuration panels (profile lookup stays visible)');
+    } else {
+      btn.setAttribute('aria-label', 'Show profile lookup');
+      btn.setAttribute('title', 'Show profile lookup');
+    }
+  }
+
+  function minimizeToProfileLookup(anchor) {
+    anchor = anchor || resolveAnchor();
+    if (!anchor || anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return false;
+    if (isOverlayPinned(anchor)) return false;
+    setConfiguring(anchor, false);
+    openProfilePeek(anchor);
+    return true;
+  }
+
+  function toggleMinimizePanels(anchor) {
+    anchor = anchor || resolveAnchor();
+    if (!anchor || anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return;
+    if (anchor.classList.contains(PROFILE_ONLY_CLASS)) {
+      openOverlay(anchor, false);
+      return;
+    }
+    if (anchor.classList.contains('lab-env-top-anchor--expanded')) {
+      minimizeToProfileLookup(anchor);
+      return;
+    }
+    if (!isOverlayOpen(anchor)) {
+      openProfilePeek(anchor);
+      return;
+    }
+    minimizeToProfileLookup(anchor);
   }
 
   function openProfilePeek(anchor) {
@@ -605,6 +666,15 @@
     if (isDocked) applyDockState(anchor, true);
     else updateFloatingDockBtn(false);
 
+    var minimizeBtn = byId(MINIMIZE_BTN_ID);
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        toggleMinimizePanels(anchor);
+      });
+    }
+
     var dockToolbarBtn = byId(DOCK_TOOLBAR_BTN_ID);
     if (dockToolbarBtn) {
       dockToolbarBtn.addEventListener('click', function (ev) {
@@ -665,6 +735,15 @@
     }
 
     bindOverlayInteractionGuards(anchor);
+    syncMinimizeBtn(anchor);
+
+    if (!isDocked && !readPinnedFromStorage() && isLabEnvConfiguredForCollapse()) {
+      global.setTimeout(function () {
+        if (!isOverlayOpen(anchor) || anchor.classList.contains('lab-env-top-anchor--expanded')) {
+          minimizeToProfileLookup(anchor);
+        }
+      }, 0);
+    }
 
     document.addEventListener(
       'click',
@@ -700,7 +779,8 @@
     if (global.AepLabTagsInjectGuard && global.AepLabTagsInjectGuard.isInProgress()) return;
     var anchor = resolveAnchor();
     if (!anchor || isOverlayPinned(anchor)) return;
-    closeOverlay(anchor, { force: true });
+    setConfiguring(anchor, false);
+    minimizeToProfileLookup(anchor);
   });
 
   global.addEventListener('aep-demo-env-overlay-open', function (ev) {
@@ -715,6 +795,12 @@
     isOpen: isOverlayOpenPublic,
     isPinned: isOverlayPinned,
     isConfiguredForCollapse: isLabEnvConfiguredForCollapse,
+    minimizeToProfileLookup: function () {
+      return minimizeToProfileLookup(resolveAnchor());
+    },
+    toggleMinimizePanels: function () {
+      toggleMinimizePanels(resolveAnchor());
+    },
     dock: dockPublic,
     undock: undockPublic,
     toggleDock: toggleDockPublic,

@@ -930,6 +930,15 @@
         }
         return;
       }
+      if (
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.minimizeToProfileLookup === 'function' &&
+        global.EnvBarCompact.isConfiguredForCollapse &&
+        global.EnvBarCompact.isConfiguredForCollapse()
+      ) {
+        global.EnvBarCompact.minimizeToProfileLookup();
+        return;
+      }
       requestEnvOverlayOpen();
     }
 
@@ -1655,8 +1664,7 @@
         if (silentResume) {
           setSdkConfigExpanded(false);
         } else {
-          /* Collapse Tags fields to summary; keep overlay open for BC / datastream follow-up. */
-          setSdkConfigExpanded(false, { skipConfiguredSignals: true });
+          setSdkConfigExpanded(false);
         }
         syncSiteCloneBcDisplayAfterInject();
         dtLog(
@@ -1732,15 +1740,18 @@
     function applySandboxConfigState(options) {
       const opts = options || {};
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      renderSelectedScript(persistedScript);
-      const configured = isSdkConfiguredForSandbox();
+      let configured = isSdkConfiguredForSandbox();
+      if (configured && !persistedScript) {
+        markSdkConfiguredForSandbox(false);
+        configured = false;
+      }
       const overlayOpen = isUserEnvPanelOpen();
-      const tagsFieldsVisible = !!(sdkConfigFields && !sdkConfigFields.hidden);
       const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
-      const preserveEditing = !!opts.preserveEditing || overlayOpen || tagsFieldsVisible;
+      const preserveEditing = !!opts.preserveEditing || overlayOpen;
       const expandFields = !configured || keepPanelOpen || preserveEditing || !persistedScript;
       setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
       if (configured && persistedScript) markLabEnvConfiguredSession();
+      renderSelectedScript(persistedScript);
       if (opts.announceSandboxChange) {
         if (configured) {
           setMessage('Sandbox changed. Existing SDK config found for this sandbox.', 'success');

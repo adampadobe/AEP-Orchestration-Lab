@@ -287,7 +287,8 @@
       return !!(
         !summaryEl.hidden &&
         summaryEl.textContent &&
-        /SDK configured/i.test(String(summaryEl.textContent))
+        /SDK configured/i.test(String(summaryEl.textContent)) &&
+        !/no script selected/i.test(String(summaryEl.textContent))
       );
     }
 
