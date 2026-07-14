@@ -63,6 +63,14 @@ body.armcom-site {
   -webkit-font-smoothing: antialiased;
 }
 
+body.armcom-site--home {
+  background: var(--armcom-black);
+}
+
+#armcom-chrome-mount {
+  background: var(--armcom-black);
+}
+
 /* ── Header ─────────────────────────────────────────────── */
 .armcom-header {
   position: sticky;
@@ -196,12 +204,28 @@ body.armcom-site {
 }
 
 /* ── Hero (homepage AGI) ────────────────────────────────── */
+.armcom-hero[data-hero-mount] {
+  position: relative;
+  width: 100%;
+}
+
 .armcom-hero--agi {
   background: var(--armcom-black);
   color: var(--armcom-white);
   position: relative;
   overflow: hidden;
-  min-height: 560px;
+  min-height: min(720px, 92vh);
+}
+
+.armcom-hero--agi::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 75% 35%, rgba(114, 51, 247, 0.35), transparent 60%),
+    url("assets/stats-nebula-overlay.png") center/cover no-repeat;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .armcom-hero--agi::after {
@@ -213,6 +237,7 @@ body.armcom-site {
   height: 50%;
   background: radial-gradient(ellipse 90% 100% at 50% 100%, rgba(114, 51, 247, 0.45), transparent 65%);
   pointer-events: none;
+  z-index: 0;
 }
 
 .armcom-hero-mount-inner {
@@ -360,11 +385,12 @@ body.armcom-site {
   display: flex;
   gap: 1.25rem;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 0.5rem;
+  overscroll-behavior-x: contain;
 }
 
 .armcom-highlights-track::-webkit-scrollbar { display: none; }
@@ -384,6 +410,8 @@ body.armcom-site {
 .armcom-highlight-img-wrap {
   aspect-ratio: 16 / 10;
   overflow: hidden;
+  min-height: 160px;
+  background: var(--armcom-navy-deep);
 }
 
 .armcom-highlight-img-wrap img {

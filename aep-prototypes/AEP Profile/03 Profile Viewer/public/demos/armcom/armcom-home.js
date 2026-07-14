@@ -40,7 +40,7 @@
       .map(function (card, i) {
         return (
           '<article class="armcom-highlight-card' + (i === 0 ? ' is-active' : '') + '" data-idx="' + i + '">' +
-          '<div class="armcom-highlight-img-wrap"><img src="' + card.image + '" alt="" loading="lazy"></div>' +
+          '<div class="armcom-highlight-img-wrap"><img src="' + card.image + '" alt="" loading="' + (i === 0 ? 'eager' : 'lazy') + '" decoding="async"></div>' +
           '<div class="armcom-highlight-body">' +
           '<h3>' + card.title + '</h3>' +
           '<p>' + card.copy + '</p>' +
@@ -66,8 +66,9 @@
     function scrollToIdx(i) {
       idx = (i + cards.length) % cards.length;
       var card = cards[idx];
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+      if (card && track) {
+        var targetLeft = card.offsetLeft - track.offsetLeft;
+        track.scrollTo({ left: targetLeft, behavior: 'smooth' });
       }
       cards.forEach(function (c, n) {
         c.classList.toggle('is-active', n === idx);
@@ -91,7 +92,6 @@
         });
       });
     }
-    scrollToIdx(0);
   }
 
   function renderStats() {

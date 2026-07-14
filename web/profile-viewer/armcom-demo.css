@@ -7,7 +7,7 @@
   height: 100%;
   border: 0;
   z-index: 1;
-  background: var(--dash-bg);
+  background: var(--armcom-black, #000000);
 }
 
 .armcom-demo-page .dashboard-main {

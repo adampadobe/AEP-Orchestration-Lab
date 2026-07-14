@@ -180,12 +180,27 @@
     'html.site-clone-bc-fs-active #ksiaScrollHeader{visibility:visible!important;pointer-events:auto!important;}',
     'html.site-clone-bc-fs-active .ksia-footer{visibility:hidden!important;pointer-events:none!important;}',
   ].join('');
+  var ARMCOM_INJECTED_LAYOUT_CSS = [
+    'html.site-clone-bc-injected-active,html.site-clone-bc-injected-active body{overflow-x:hidden!important;}',
+    'html.site-clone-bc-injected-active [data-hero-mount],html.site-clone-bc-injected-active .armcom-hero{position:relative!important;z-index:2!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:block!important;margin:0!important;padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,2rem)!important;background:' +
+      BC_SURFACE_GRADIENT +
+      '!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:none!important;min-height:540px!important;margin:0!important;border-radius:16px!important;overflow:visible!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
+  var ARMCOM_FS_LAYOUT_CSS = [
+    'html.site-clone-bc-fs-active,html.site-clone-bc-fs-active body{overflow:hidden!important;}',
+    'html.site-clone-bc-fs-active #armcom-chrome-mount,html.site-clone-bc-fs-active .armcom-header{position:relative!important;z-index:1200!important;pointer-events:auto!important;}',
+    'html.site-clone-bc-fs-active .armcom-main > *,html.site-clone-bc-fs-active .armcom-footer{display:none!important;pointer-events:none!important;}',
+  ].join('');
 
   function injectedLayoutCssForSnapshot() {
     if (isSkyHomeLayout()) return SKY_INJECTED_LAYOUT_CSS;
     if (isJlrHomeLayout()) return JLR_INJECTED_LAYOUT_CSS;
     if (isSagaHomeLayout()) return SAGA_INJECTED_LAYOUT_CSS;
     if (isKsiaHomeLayout()) return KSIA_INJECTED_LAYOUT_CSS;
+    if (isArmcomHomeLayout()) return ARMCOM_INJECTED_LAYOUT_CSS;
     return SNAPSHOT_INJECTED_LAYOUT_CSS;
   }
 
@@ -194,6 +209,7 @@
     if (isJlrHomeLayout()) return JLR_FS_LAYOUT_CSS;
     if (isSagaHomeLayout()) return SAGA_FS_LAYOUT_CSS;
     if (isKsiaHomeLayout()) return KSIA_FS_LAYOUT_CSS;
+    if (isArmcomHomeLayout()) return ARMCOM_FS_LAYOUT_CSS;
     return SNAPSHOT_FS_LAYOUT_CSS;
   }
   var SNAPSHOT_INJECTED_LAYOUT_CSS = [
@@ -1430,7 +1446,9 @@
               ? doc.querySelector('.saga-hero-banner')
               : isKsiaHomeLayout()
                 ? doc.querySelector('[data-hero-mount]') || doc.querySelector('.ksia-hero')
-                : doc.querySelector('.exp-hero-banner');
+                : isArmcomHomeLayout()
+                  ? doc.querySelector('[data-hero-mount]') || doc.querySelector('.armcom-hero')
+                  : doc.querySelector('.exp-hero-banner');
         if (scrollTarget && typeof scrollTarget.scrollIntoView === 'function') {
           scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
