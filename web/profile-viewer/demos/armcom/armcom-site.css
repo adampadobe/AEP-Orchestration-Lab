@@ -408,16 +408,18 @@ body.armcom-site--home {
 }
 
 .armcom-highlight-img-wrap {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 8 / 5;
   overflow: hidden;
-  min-height: 160px;
+  min-height: 180px;
   background: var(--armcom-navy-deep);
+  flex-shrink: 0;
 }
 
 .armcom-highlight-img-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
 }
 
 .armcom-highlight-body {

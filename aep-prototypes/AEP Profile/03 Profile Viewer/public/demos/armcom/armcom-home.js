@@ -40,7 +40,7 @@
       .map(function (card, i) {
         return (
           '<article class="armcom-highlight-card' + (i === 0 ? ' is-active' : '') + '" data-idx="' + i + '">' +
-          '<div class="armcom-highlight-img-wrap"><img src="' + card.image + '" alt="" loading="' + (i === 0 ? 'eager' : 'lazy') + '" decoding="async"></div>' +
+          '<div class="armcom-highlight-img-wrap"><img src="' + card.image + '" alt="' + (card.imageAlt || card.title) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '" decoding="async"></div>' +
           '<div class="armcom-highlight-body">' +
           '<h3>' + card.title + '</h3>' +
           '<p>' + card.copy + '</p>' +
