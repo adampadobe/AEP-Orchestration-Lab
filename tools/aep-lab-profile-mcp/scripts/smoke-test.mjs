@@ -143,6 +143,7 @@ async function run() {
     'lab_cancel_brand_scrape',
     'lab_list_brand_scrapes',
     'lab_get_brand_scrape',
+    'lab_build_demo_website',
     'lab_generate_profile_from_brand_scrape',
   ];
   for (const name of expected) {

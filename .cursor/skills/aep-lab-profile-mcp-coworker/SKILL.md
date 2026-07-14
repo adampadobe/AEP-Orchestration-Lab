@@ -339,9 +339,13 @@ Same MCP key as all other tools.
 
 2. **Run a new scrape (only when needed — once)**
 
-   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, include `{ "personas": true, "segments": true }`, wait_for_complete true. Add `force_new: true` only to bypass dedupe.
+   > lab_brand_scrape: sandbox apalmer, url https://nike.com, max_pages 3, include `{ "personas": true, "segments": true, "demoWebsite": true }`, wait_for_complete true. Add `force_new: true` only to bypass dedupe. Set MCP timeout ≥ **600s** when demoWebsite is on.
 
-2b. **Poll progress (preferred when user is waiting)**
+2b. **Build demo website on existing scrape**
+
+   > lab_build_demo_website: sandbox apalmer, scrape_id `<id>`, regenerate true. Portal **Regenerate demo** parity — no new crawl. Poll with lab_poll_brand_scrape if timed out.
+
+2c. **Poll progress (preferred when user is waiting)**
 
    > lab_poll_brand_scrape: sandbox apalmer, scrape_id `<id>`, timeout_sec 480. Read `progress` / `progressMessages` back to the user. Repeat if `terminal:false` and `timedOut:true` — do not call lab_brand_scrape again for the same URL.
 
@@ -351,7 +355,7 @@ Same MCP key as all other tools.
 
 4. **Fetch one scrape for demos**
 
-   > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id>`. Use summary in conversation; full `lab` payload for CJv2 / LLM Demo import.
+   > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id>`. Use summary in conversation; check `profileViewerDemoHref` / `demoWebsitePath` for the site clone URL; full `lab` payload for CJv2 / LLM Demo import.
 
 Portal: [Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html) history and [Image hosting](https://aep-orchestration-lab.web.app/profile-viewer/image-hosting.html) read the same Firestore/GCS records.
 
@@ -361,7 +365,7 @@ End-to-end chain for customer-specific demo prep.
 
 1. **Resolve existing scrape or scrape with personas**
 
-   > lab_resolve_brand_scrape: sandbox apalmer, url `https://example-brand.com`. If need_new_scrape, lab_brand_scrape same url with include `{ "personas": true, "segments": true, "campaigns": true }`, wait_for_complete true.
+   > lab_resolve_brand_scrape: sandbox apalmer, url `https://example-brand.com`. If need_new_scrape, lab_brand_scrape same url with include `{ "personas": true, "segments": true, "campaigns": true, "demoWebsite": true }`, wait_for_complete true. If scrape exists but summary has no profileViewerDemoHref, call lab_build_demo_website instead of re-scraping.
 
 2. **Golden profiles**
 
@@ -387,7 +391,7 @@ End-to-end chain for customer-specific demo prep.
 
 ## Tips
 
-- Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning. ≥ **540s** for **lab_brand_scrape** with `wait_for_complete:true`.
+- Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning. ≥ **540s** for **lab_brand_scrape** with `wait_for_complete:true`. ≥ **600s** when **`include.demoWebsite:true`** or **lab_build_demo_website**.
 - **lab_mcp_access_info** — check allowlist without secrets; use after ops adds Kirkham ACL.
 - **segment_hint** — travel: `hotel_high_value`, `hotel_reactivation`; fsi: `high_net_worth`, `credit_rebuild`; retail: `loyalty_vip`, `cart_abandoner`.
 - Rate limits (per instance): 30 generates/min, 30 event sends/min, 3 batch jobs/hr — backoff using retryAfterSec.

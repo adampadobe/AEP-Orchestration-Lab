@@ -53,6 +53,49 @@ function listCount(block, key) {
 }
 
 /**
+ * Demo website fields from a scrape record or history list row.
+ * @param {Record<string, unknown> | null | undefined} record
+ */
+export function demoWebsiteSummaryFields(record) {
+  if (!record || typeof record !== 'object') {
+    return {
+      demoWebsitePath: null,
+      profileViewerDemoHref: null,
+      demoGenerationStatus: null,
+    };
+  }
+  const demo = /** @type {Record<string, unknown>} */ (record.demoWebsite || {});
+  return {
+    demoWebsitePath:
+      record.demoWebsitePath
+      || demo.path
+      || demo.publicUrl
+      || null,
+    profileViewerDemoHref:
+      record.profileViewerDemoHref
+      || demo.profileViewerDemoHref
+      || null,
+    demoGenerationStatus:
+      record.demoGenerationStatus
+      || demo.demoGenerationStatus
+      || demo.status
+      || null,
+  };
+}
+
+/**
+ * Coworker hint when a demo website URL is available.
+ * @param {Record<string, unknown> | null | undefined} summary
+ */
+export function demoWebsiteCoworkerHint(summary) {
+  const href = summary?.profileViewerDemoHref || summary?.demoWebsitePath;
+  if (!href) return null;
+  const origin = 'https://aep-orchestration-lab.web.app';
+  const fullHref = String(href).startsWith('http') ? String(href) : `${origin}${href}`;
+  return `Demo website ready — open ${fullHref} (Profile Viewer site clone with env bar).`;
+}
+
+/**
  * @param {Record<string, unknown> | null | undefined} record
  */
 export function summarizeBrandScrape(record) {
@@ -70,6 +113,7 @@ export function summarizeBrandScrape(record) {
   const scrapeId = String(record.scrapeId || '');
   const sandbox = String(record.sandbox || record.scopeId || '');
   const industryFields = scrapeIndustryLabFields(record);
+  const demoFields = demoWebsiteSummaryFields(record);
 
   return {
     scrapeId,
@@ -103,6 +147,7 @@ export function summarizeBrandScrape(record) {
     campaignsPresent: record.campaignsPresent ?? listCount(campaignsBlock, 'campaigns') > 0,
     segmentsPresent: record.segmentsPresent ?? listCount(segmentsBlock, 'segments') > 0,
     stakeholdersPresent: record.stakeholdersPresent ?? listCount(stakeholdersBlock, 'people') > 0,
+    ...demoFields,
     updatedAt: record.updatedAt || null,
     createdAt: record.createdAt || null,
     portalUrl: PORTAL_BRAND_SCRAPER_URL,
@@ -119,6 +164,7 @@ export function summarizeBrandScrape(record) {
 export function summarizeBrandScrapeListItem(item) {
   if (!item || typeof item !== 'object') return null;
   const industryFields = scrapeIndustryLabFields(null, item.industry);
+  const demoFields = demoWebsiteSummaryFields(item);
   return {
     scrapeId: item.scrapeId,
     brandName: item.brandName,
@@ -133,6 +179,7 @@ export function summarizeBrandScrapeListItem(item) {
     campaignsPresent: item.campaignsPresent,
     segmentsPresent: item.segmentsPresent,
     stakeholdersPresent: item.stakeholdersPresent,
+    ...demoFields,
     updatedAt: item.updatedAt,
     createdAt: item.createdAt,
   };

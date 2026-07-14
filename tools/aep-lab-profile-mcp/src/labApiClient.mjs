@@ -466,14 +466,10 @@ export function getBrandScraperCfOrigin() {
 }
 
 /**
- * POST …/brandScraperAnalyze — async by default (202 + scrapeId). Same Firestore/GCS store as Portal.
+ * POST body for brandScraperAnalyze — exported for unit tests.
  * @param {object} params
  */
-export async function brandScrapeAnalyze(params) {
-  const origin = getBrandScraperCfOrigin();
-  const url = new URL('/brandScraperAnalyze', origin);
-  url.searchParams.set('sandbox', params.sandbox);
-
+export function buildBrandScrapeAnalyzePostBody(params) {
   /** @type {Record<string, unknown>} */
   const body = {
     url: params.url,
@@ -507,10 +503,49 @@ export async function brandScrapeAnalyze(params) {
   }
   if (params.require_personas === false) body.requirePersonas = false;
   if (params.require_complete === false) body.requireComplete = false;
+  if (params.regenerate_demo_website === true) body.regenerateDemoWebsite = true;
+  if (params.overwrite_demo_website === true) body.overwriteDemoWebsite = true;
+  if (params.customer_name) body.customerName = params.customer_name;
   if (params.sync === true) {
     body.sync = true;
     body.async = false;
   }
+  return body;
+}
+
+/**
+ * POST body for demo-build (regenerate site clone) — exported for unit tests.
+ * @param {object} params
+ */
+export function buildBrandScrapeDemoBuildPostBody(params) {
+  const scrapeId = String(params.scrape_id || params.scrapeId || '').trim();
+  const regenerate =
+    params.regenerate === true
+    || params.regenerate_demo_website === true;
+  const overwrite =
+    params.overwrite === true
+    || params.overwrite_demo_website === true
+    || regenerate;
+  return {
+    mode: 'demo_build',
+    existingScrapeId: scrapeId,
+    sandbox: params.sandbox,
+    regenerateDemoWebsite: regenerate,
+    overwriteDemoWebsite: overwrite,
+    ...(params.customer_name ? { customerName: params.customer_name } : {}),
+  };
+}
+
+/**
+ * POST …/brandScraperAnalyze — async by default (202 + scrapeId). Same Firestore/GCS store as Portal.
+ * @param {object} params
+ */
+export async function brandScrapeAnalyze(params) {
+  const origin = getBrandScraperCfOrigin();
+  const url = new URL('/brandScraperAnalyze', origin);
+  url.searchParams.set('sandbox', params.sandbox);
+
+  const body = buildBrandScrapeAnalyzePostBody(params);
 
   const timeoutMs = params.sync === true ? 540_000 : 120_000;
   const controller = new AbortController();
@@ -608,6 +643,79 @@ export async function cancelBrandScrape({ sandbox, scrapeId, reason }) {
     body: reason ? { reason } : {},
     timeoutMs: 30_000,
   });
+}
+
+/**
+ * POST …/brandScraperAnalyze with mode demo_build — regenerate Profile Viewer site clone (Portal parity).
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} params.scrape_id
+ * @param {boolean} [params.regenerate]
+ * @param {boolean} [params.overwrite]
+ * @param {string} [params.customer_name]
+ */
+export async function brandScrapeDemoBuild(params) {
+  const origin = getBrandScraperCfOrigin();
+  const url = new URL('/brandScraperAnalyze', origin);
+  url.searchParams.set('sandbox', params.sandbox);
+
+  const body = buildBrandScrapeDemoBuildPostBody(params);
+  const timeoutMs = 120_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    const msg =
+      err && err.name === 'AbortError'
+        ? `Brand scrape demo-build timeout after ${timeoutMs}ms`
+        : String(err.message || err);
+    return { ok: false, status: 0, url: url.toString(), error: msg, data: null };
+  }
+  clearTimeout(timer);
+
+  const contentType = response.headers.get('Content-Type') || '';
+  let data;
+  if (contentType.toLowerCase().includes('json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = { raw: await response.text() };
+    }
+  } else {
+    data = { raw: (await response.text()).slice(0, 50_000) };
+  }
+
+  const scrapeId =
+    response.headers.get('x-brand-scrape-id')
+    || (data && data.scrapeId)
+    || body.existingScrapeId
+    || null;
+
+  if (!response.ok && response.status !== 202) {
+    const detail =
+      (data && typeof data === 'object' && (data.error || data.detail || data.message))
+      || response.statusText
+      || `HTTP ${response.status}`;
+    return { ok: false, status: response.status, url: url.toString(), error: String(detail), data, scrapeId };
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    url: url.toString(),
+    data,
+    scrapeId,
+    asyncAccepted: response.status === 202,
+  };
 }
 
 /**

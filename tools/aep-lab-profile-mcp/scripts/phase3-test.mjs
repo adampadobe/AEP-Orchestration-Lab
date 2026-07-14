@@ -468,15 +468,44 @@ async function run() {
   });
   assert(demoSummary.industry === 'travel' && demoSummary.personasCount === 2, 'summarizeScrapeForDemoPrep');
 
-  const { getBrandScraperCfOrigin, getLabCloudFunctionsOrigin } = await import('../src/labApiClient.mjs');
+  const {
+    getBrandScraperCfOrigin,
+    getLabCloudFunctionsOrigin,
+    buildBrandScrapeAnalyzePostBody,
+    buildBrandScrapeDemoBuildPostBody,
+  } = await import('../src/labApiClient.mjs');
   const cfOrigin = getBrandScraperCfOrigin();
   assert(cfOrigin.includes('cloudfunctions.net'), 'brand scraper CF origin default');
   assert(getLabCloudFunctionsOrigin() === cfOrigin, 'lab CF origin alias');
+
+  const analyzeWithDemo = buildBrandScrapeAnalyzePostBody({
+    sandbox: 'apalmer',
+    url: 'https://nike.com',
+    include: { demoWebsite: true, personas: true },
+    regenerate_demo_website: true,
+    customer_name: 'Nike',
+  });
+  assert(analyzeWithDemo.include.demoWebsite === true, 'include.demoWebsite passthrough');
+  assert(analyzeWithDemo.regenerateDemoWebsite === true, 'regenerateDemoWebsite passthrough');
+  assert(analyzeWithDemo.customerName === 'Nike', 'customerName passthrough');
+
+  const demoBuildBody = buildBrandScrapeDemoBuildPostBody({
+    sandbox: 'apalmer',
+    scrape_id: 'scrape-abc',
+    regenerate: true,
+    customer_name: 'Acme',
+  });
+  assert(demoBuildBody.mode === 'demo_build', 'demo build mode');
+  assert(demoBuildBody.existingScrapeId === 'scrape-abc', 'demo build scrape id');
+  assert(demoBuildBody.regenerateDemoWebsite === true, 'demo build regenerate');
+  assert(demoBuildBody.overwriteDemoWebsite === true, 'demo build overwrite');
 
   const {
     summarizeBrandScrape,
     summarizeBrandScrapeListItem,
     isBrandScrapeTerminal,
+    demoWebsiteSummaryFields,
+    demoWebsiteCoworkerHint,
   } = await import('../src/brandScrapeSummary.mjs');
   const sampleSummary = summarizeBrandScrape({
     scrapeId: 'abc123',
@@ -491,6 +520,25 @@ async function run() {
   assert(sampleSummary && sampleSummary.scrapeId === 'abc123', 'summarizeBrandScrape scrapeId');
   assert(sampleSummary.colors[0] === '#112233', 'summarizeBrandScrape colors');
   assert(sampleSummary.personasCount === 1, 'summarizeBrandScrape personasCount');
+  const scrapeDemoSummary = summarizeBrandScrape({
+    scrapeId: 'demo1',
+    sandbox: 'apalmer',
+    scrapeStatus: 'complete',
+    demoWebsite: {
+      path: '/profile-viewer/acme-demo.html',
+      profileViewerDemoHref: '/profile-viewer/acme-demo.html',
+      demoGenerationStatus: 'created',
+    },
+  });
+  assert(scrapeDemoSummary.profileViewerDemoHref === '/profile-viewer/acme-demo.html', 'summary demo href');
+  assert(demoWebsiteCoworkerHint(scrapeDemoSummary)?.includes('acme-demo.html'), 'demo coworker hint');
+  const listDemo = summarizeBrandScrapeListItem({
+    scrapeId: 'y',
+    profileViewerDemoHref: '/profile-viewer/foo-demo.html',
+    demoGenerationStatus: 'created',
+  });
+  assert(listDemo.profileViewerDemoHref === '/profile-viewer/foo-demo.html', 'list item demo href');
+  assert(demoWebsiteSummaryFields(listDemo).demoGenerationStatus === 'created', 'demoWebsiteSummaryFields');
   const listItem = summarizeBrandScrapeListItem({ scrapeId: 'x', brandName: 'X', scrapeStatus: 'running' });
   assert(listItem && listItem.scrapeId === 'x', 'summarizeBrandScrapeListItem');
   assert(isBrandScrapeTerminal('complete') && isBrandScrapeTerminal('failed'), 'terminal statuses');

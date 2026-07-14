@@ -62,7 +62,8 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_resolve_brand_scrape` | `GET /api/brand-scraper/scrapes` | Find reusable or in-flight scrape for URL; returns scrape_id or need_new_scrape |
 | `lab_cancel_brand_scrape` | `POST …/scrapes/{id}/cancel` | Cancel stuck Running scrape (Portal parity) |
 | `lab_list_brand_scrapes` | `GET /api/brand-scraper/scrapes` | History list for sandbox |
-| `lab_get_brand_scrape` | `GET /api/brand-scraper/scrapes/{id}` | Full record + Coworker summary (colours, fonts, personas) |
+| `lab_get_brand_scrape` | `GET /api/brand-scraper/scrapes/{id}` | Full record + Coworker summary (colours, fonts, personas, demo website URL when present) |
+| `lab_build_demo_website` | `POST …/brandScraperAnalyze` (`mode: demo_build`, direct CF) | Regenerate Profile Viewer site clone from existing scrape — no new crawl |
 | `lab_generate_profile_from_brand_scrape` | `GET` scrape + `POST /api/profile/generate` + `POST /api/lab/generation-prefs/next-email` | Map scrape persona → golden UPS profile; **default** reserves scaled email + static mobile from Firestore generation prefs (Portal parity) |
 | `lab_generate_profiles_from_brand_scrape` | same (all personas) | Batch alias — one profile per scrape persona; each reserves next prefs email |
 | `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep; events step sends retail commerce journey when lab_industry=retail |
@@ -75,7 +76,8 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 Mirrors Profile Viewer **[Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html)**:
 
 0. **`lab_resolve_brand_scrape`** — list history for sandbox, match normalized URL host/path, return existing `scrape_id` when complete (with personas) or **in-flight** when a crawl is already running.
-1. **`lab_brand_scrape`** — `url` + `sandbox`; hits direct Cloud Function `brandScraperAnalyze` (540s, bypasses Hosting 60s cap). Default **`prefer_existing:true`** reuses complete scrapes with personas **and** in-flight scrapes for the same URL; **`force_new:true`** starts a fresh crawl. Default **`wait_for_complete:true`** polls until `scrapeStatus` is `complete` or `failed`.
+1. **`lab_brand_scrape`** — `url` + `sandbox`; hits direct Cloud Function `brandScraperAnalyze` (540s, bypasses Hosting 60s cap). Default **`prefer_existing:true`** reuses complete scrapes with personas **and** in-flight scrapes for the same URL; **`force_new:true`** starts a fresh crawl. Set **`include.demoWebsite:true`** to build a Profile Viewer site clone after analysis (same as Portal Options → Demo website). Default **`wait_for_complete:true`** polls until `scrapeStatus` is `complete` or `failed`.
+1a. **`lab_build_demo_website`** — `scrape_id` + `sandbox`; POST `mode: demo_build` to the same Cloud Function (Portal **Regenerate demo**). Use when the scrape exists but has no demo folder, or set **`regenerate:true`** to overwrite. Polls until complete by default.
 1b. **`lab_poll_brand_scrape`** — poll with progress messages when Coworker needs to reassure the user or `lab_brand_scrape` timed out. **Do not** start another `lab_brand_scrape` for the same URL while one is running.
 2. **`lab_list_brand_scrapes`** — same Firestore index `brandScrapes/{sandbox}__{scrapeId}` the portal history uses.
 3. **`lab_get_brand_scrape`** — hydrates GCS `record.json` + summary for Coworker (colours, fonts, about, persona counts).
@@ -88,7 +90,7 @@ Storage: Firestore index + GCS bucket `aep-orchestration-lab-brand-scrapes` (see
 
 Optional env: **`AEP_LAB_BRAND_SCRAPER_CF_ORIGIN`** (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`).
 
-**Tool timeouts:** set MCP client ≥ **540s** for `lab_brand_scrape` when `wait_for_complete:true`.
+**Tool timeouts:** set MCP client ≥ **540s** for `lab_brand_scrape` when `wait_for_complete:true`. ≥ **600s** when **`include.demoWebsite:true`** or **`lab_build_demo_website`** (demo build adds several minutes after crawl).
 
 ### Segment hints (Phase 3.1)
 

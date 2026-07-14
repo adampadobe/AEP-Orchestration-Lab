@@ -4,6 +4,7 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import {
   brandScrapeAnalyze,
+  brandScrapeDemoBuild,
   cancelBrandScrape,
   getBrandScrape,
   listBrandScrapes,
@@ -15,6 +16,7 @@ import {
   summarizeBrandScrape,
   summarizeBrandScrapeListItem,
   brandScrapeProgressHint,
+  demoWebsiteCoworkerHint,
 } from '../brandScrapeSummary.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 
@@ -26,6 +28,7 @@ const DEFAULT_INCLUDE = {
   stakeholders: false,
   tagAudit: true,
   llmDemoConfig: true,
+  demoWebsite: false,
 };
 
 const includeSchema = z
@@ -37,8 +40,17 @@ const includeSchema = z
     stakeholders: z.boolean().optional(),
     tagAudit: z.boolean().optional(),
     llmDemoConfig: z.boolean().optional(),
+    demoWebsite: z.boolean().optional(),
   })
   .optional();
+
+function scrapeCoworkerHints(summary, extra = {}) {
+  const demoHint = demoWebsiteCoworkerHint(summary);
+  return {
+    ...extra,
+    ...(demoHint ? { demoWebsite: demoHint } : {}),
+  };
+}
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -51,6 +63,7 @@ export function registerBrandScrapeTools(mcpServer) {
       description:
         'POST brandScraperAnalyze (direct Cloud Function, same store as Profile Viewer Brand scraper). ' +
         'Crawls the brand URL, extracts colours/fonts/assets, and runs optional Gemini brand analysis. ' +
+        'Set include.demoWebsite:true to build a Profile Viewer site clone (logo, nav, env bar) after analysis — same as Portal Options → Demo website. ' +
         'Default prefer_existing:true reuses a complete scrape with personas for the same URL — set force_new:true only when you need a fresh crawl. ' +
         'Reuses in-flight scrapes for the same URL automatically (never start parallel crawls). ' +
         'Default wait_for_complete:true polls until done — or call lab_poll_brand_scrape for progress messages. ' +
@@ -62,9 +75,18 @@ export function registerBrandScrapeTools(mcpServer) {
         country: z.string().optional().describe('Persona country code for audience steps (optional)'),
         max_pages: z.number().int().min(1).max(25).optional().describe('Pages to crawl (default 3, max 25)'),
         crawler: z.enum(['fetch', 'js']).optional().describe('fetch (default) or js (Playwright, slower)'),
-        include: includeSchema.describe('AI/crawl steps — defaults match Portal light first pass'),
+        include: includeSchema.describe('AI/crawl steps — defaults match Portal light first pass; demoWebsite builds site clone'),
         mode: z.enum(['new', 'append']).optional().describe('new scrape or append to existing_scrape_id'),
         existing_scrape_id: z.string().optional().describe('Required when mode=append'),
+        customer_name: z.string().optional().describe('Customer/brand label for demo website nav (Portal customer name field)'),
+        regenerate_demo_website: z
+          .boolean()
+          .optional()
+          .describe('When include.demoWebsite:true, overwrite an existing demo folder (Portal Regenerate demo checkbox)'),
+        overwrite_demo_website: z
+          .boolean()
+          .optional()
+          .describe('Alias for regenerate_demo_website — overwrite existing Profile Viewer demo HTML'),
         wait_for_complete: z
           .boolean()
           .optional()
@@ -106,6 +128,9 @@ export function registerBrandScrapeTools(mcpServer) {
       include,
       mode,
       existing_scrape_id,
+      customer_name,
+      regenerate_demo_website,
+      overwrite_demo_website,
       wait_for_complete,
       prefer_existing,
       force_new,
@@ -139,6 +164,7 @@ export function registerBrandScrapeTools(mcpServer) {
       const includeMerged = { ...DEFAULT_INCLUDE, ...(include && typeof include === 'object' ? include : {}) };
       const shouldWait = wait_for_complete !== false;
       const shouldPreferExisting = prefer_existing !== false && !force_new && scrapeMode !== 'append';
+      const demoPollTimeoutSec = includeMerged.demoWebsite ? (poll_timeout_sec ?? 600) : (poll_timeout_sec ?? 480);
 
       if (shouldPreferExisting) {
         const listResult = await listBrandScrapes({ sandbox: allowed.sandbox });
@@ -177,7 +203,7 @@ export function registerBrandScrapeTools(mcpServer) {
                 sandbox: allowed.sandbox,
                 scrapeId: reuseId,
                 pollIntervalMs: 5000,
-                timeoutMs: (poll_timeout_sec ?? 480) * 1000,
+                timeoutMs: demoPollTimeoutSec * 1000,
               });
               const summary = poll.summary || summarizeBrandScrape(poll.record);
               return jsonResult({
@@ -192,12 +218,12 @@ export function registerBrandScrapeTools(mcpServer) {
                 progressMessages: poll.progressMessages,
                 summary,
                 lab: poll.record || undefined,
-                coworkerHints: {
+                coworkerHints: scrapeCoworkerHints(summary, {
                   patience: 'Reused the existing in-flight scrape — only one crawl runs per URL per sandbox.',
                   poll: poll.timedOut
                     ? `Still running — call lab_poll_brand_scrape scrape_id=${reuseId}.`
                     : undefined,
-                },
+                }),
               });
             }
           }
@@ -227,10 +253,10 @@ export function registerBrandScrapeTools(mcpServer) {
                 reused: true,
                 resolve: resolved,
                 summary: resolved.summary,
-                coworkerHints: {
+                coworkerHints: scrapeCoworkerHints(resolved.summary, {
                   portalUrl: resolved.summary?.portalUrl,
                   reuse: 'Existing complete scrape reused — no new crawl started.',
-                },
+                }),
               });
             }
 
@@ -250,11 +276,14 @@ export function registerBrandScrapeTools(mcpServer) {
               waitedMs: poll.elapsedMs,
               summary,
               lab: poll.record || undefined,
-              coworkerHints: {
+              coworkerHints: scrapeCoworkerHints(summary, {
                 portalUrl: summary?.portalUrl,
                 reuse: 'Existing complete scrape reused — no new crawl started.',
                 refresh: 'Call force_new:true only when you need a fresh crawl.',
-              },
+                ...(includeMerged.demoWebsite && !summary?.profileViewerDemoHref
+                  ? { demoBuild: 'No demo website on reused scrape — call lab_build_demo_website with this scrape_id.' }
+                  : {}),
+              }),
             });
           }
         }
@@ -274,6 +303,9 @@ export function registerBrandScrapeTools(mcpServer) {
         force_new: force_new === true,
         require_personas: require_personas !== false,
         require_complete: require_complete !== false,
+        customer_name,
+        regenerate_demo_website,
+        overwrite_demo_website,
       });
 
       if (!analyzeResult.ok) {
@@ -331,7 +363,7 @@ export function registerBrandScrapeTools(mcpServer) {
           sandbox: allowed.sandbox,
           scrapeId,
           pollIntervalMs: 5000,
-          timeoutMs: (poll_timeout_sec ?? 480) * 1000,
+          timeoutMs: demoPollTimeoutSec * 1000,
         });
         const summary = poll.summary || summarizeBrandScrape(poll.record);
         writeAuditLog({
@@ -355,9 +387,9 @@ export function registerBrandScrapeTools(mcpServer) {
           progressMessages: poll.progressMessages,
           summary,
           lab: poll.record,
-          coworkerHints: {
+          coworkerHints: scrapeCoworkerHints(summary, {
             patience: 'Waited on existing in-flight scrape — do not fire parallel lab_brand_scrape calls.',
-          },
+          }),
         });
       }
 
@@ -385,7 +417,7 @@ export function registerBrandScrapeTools(mcpServer) {
         sandbox: allowed.sandbox,
         scrapeId,
         pollIntervalMs: 5000,
-        timeoutMs: (poll_timeout_sec ?? 480) * 1000,
+        timeoutMs: demoPollTimeoutSec * 1000,
       });
 
       if (!poll.ok) {
@@ -423,7 +455,7 @@ export function registerBrandScrapeTools(mcpServer) {
         progressMessages: poll.progressMessages,
         summary,
         lab: poll.record,
-        coworkerHints: {
+        coworkerHints: scrapeCoworkerHints(summary, {
           portalUrl: summary?.portalUrl,
           useInDemos:
             'Saved scrape is selectable in LLM Demo, Client Journey Asset v2 import, and Image hosting publish flows.',
@@ -431,9 +463,11 @@ export function registerBrandScrapeTools(mcpServer) {
             ? `Poll again with lab_poll_brand_scrape scrape_id=${scrapeId}.`
             : undefined,
           patience: poll.timedOut
-            ? 'Scrape may still be running — brand crawls often take several minutes.'
+            ? includeMerged.demoWebsite
+              ? 'Scrape or demo build may still be running — demo website adds several minutes after crawl.'
+              : 'Scrape may still be running — brand crawls often take several minutes.'
             : undefined,
-        },
+        }),
       });
     },
   );
@@ -643,11 +677,11 @@ export function registerBrandScrapeTools(mcpServer) {
         summary,
         progress: brandScrapeProgressMessage(record),
         ...(summary_only ? {} : { lab: record }),
-        coworkerHints: {
+        coworkerHints: scrapeCoworkerHints(summary, {
           terminal: isBrandScrapeTerminal(summary?.scrapeStatus),
           portalUrl: summary?.portalUrl,
           patience: brandScrapeProgressHint(record),
-        },
+        }),
       });
     },
   );
@@ -744,14 +778,162 @@ export function registerBrandScrapeTools(mcpServer) {
         progressMessages: poll.progressMessages,
         summary,
         lab: poll.record,
-        coworkerHints: {
+        coworkerHints: scrapeCoworkerHints(summary, {
           patience: terminal || poll.timedOut
             ? undefined
             : 'Still running — brand scrapes often take several minutes.',
           next: poll.timedOut && !terminal
             ? `Still in progress after ${Math.round(poll.elapsedMs / 1000)}s — poll again; do not start a new lab_brand_scrape for this URL.`
             : undefined,
-        },
+        }),
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_build_demo_website',
+    {
+      title: 'Build or regenerate demo website from scrape',
+      description:
+        'POST brandScraperAnalyze with mode demo_build (direct Cloud Function — same as Portal Regenerate demo). ' +
+        'Builds or overwrites the Profile Viewer site clone (logo, nav, env bar) from an existing scrape — no new crawl or AI analysis. ' +
+        'Use after lab_brand_scrape when include.demoWebsite was false, or set regenerate:true to overwrite an existing demo folder. ' +
+        'Default wait_for_complete:true polls lab_poll_brand_scrape until scrapeStatus is complete (buildPhase demo while running).',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        scrape_id: z.string().describe('Existing scrape id from lab_brand_scrape or lab_list_brand_scrapes'),
+        regenerate: z
+          .boolean()
+          .optional()
+          .describe('When true (default), overwrite existing demo folder (Portal Regenerate demo)'),
+        customer_name: z.string().optional().describe('Customer/brand label for demo nav (defaults to scrape brandName)'),
+        wait_for_complete: z
+          .boolean()
+          .optional()
+          .describe('When true, poll until demo build finishes (default true)'),
+        poll_timeout_sec: z
+          .number()
+          .int()
+          .min(30)
+          .max(900)
+          .optional()
+          .describe('Max wait when wait_for_complete (default 600s — demo build can take several minutes)'),
+      },
+    },
+    async ({ sandbox, scrape_id, regenerate, customer_name, wait_for_complete, poll_timeout_sec }) => {
+      const started = Date.now();
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const scrapeId = String(scrape_id || '').trim();
+      if (!scrapeId) {
+        return toolError('scrape_id is required.');
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_build_demo_website',
+        sandbox: allowed.sandbox,
+        identifier: scrapeId,
+      });
+
+      const shouldRegenerate = regenerate !== false;
+      const buildResult = await brandScrapeDemoBuild({
+        sandbox: allowed.sandbox,
+        scrape_id: scrapeId,
+        regenerate: shouldRegenerate,
+        overwrite: shouldRegenerate,
+        customer_name,
+      });
+
+      if (!buildResult.ok) {
+        writeAuditLog({
+          keyId: getRequestKeyId(),
+          tool: 'lab_build_demo_website',
+          sandbox: allowed.sandbox,
+          identifier: scrapeId,
+          result: 'error',
+          durationMs: Date.now() - started,
+        });
+        return toolError(buildResult.error || 'Demo website build failed', {
+          status: buildResult.status,
+          url: buildResult.url,
+          response: buildResult.data,
+        });
+      }
+
+      const shouldWait = wait_for_complete !== false;
+      if (!shouldWait) {
+        writeAuditLog({
+          keyId: getRequestKeyId(),
+          tool: 'lab_build_demo_website',
+          sandbox: allowed.sandbox,
+          identifier: scrapeId,
+          result: 'ok',
+          durationMs: Date.now() - started,
+        });
+        return jsonResult({
+          ok: true,
+          sandbox: allowed.sandbox,
+          scrapeId,
+          asyncAccepted: buildResult.asyncAccepted === true,
+          lab: buildResult.data,
+          nextStep: `Poll lab_poll_brand_scrape with scrape_id ${scrapeId} until scrapeStatus is complete.`,
+        });
+      }
+
+      const poll = await pollBrandScrapeUntilTerminal({
+        sandbox: allowed.sandbox,
+        scrapeId,
+        pollIntervalMs: 5000,
+        timeoutMs: (poll_timeout_sec ?? 600) * 1000,
+      });
+
+      if (!poll.ok) {
+        writeAuditLog({
+          keyId: getRequestKeyId(),
+          tool: 'lab_build_demo_website',
+          sandbox: allowed.sandbox,
+          identifier: scrapeId,
+          result: 'error',
+          durationMs: Date.now() - started,
+        });
+        return fromLabApi(poll.apiResult, { scrapeId, sandbox: allowed.sandbox });
+      }
+
+      const summary = poll.summary || summarizeBrandScrape(poll.record);
+      const terminalStatus = summary?.scrapeStatus || null;
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_build_demo_website',
+        sandbox: allowed.sandbox,
+        identifier: scrapeId,
+        result: terminalStatus === 'failed' ? 'error' : 'ok',
+        durationMs: Date.now() - started,
+      });
+
+      return jsonResult({
+        ok: terminalStatus !== 'failed',
+        sandbox: allowed.sandbox,
+        scrapeId,
+        asyncAccepted: buildResult.asyncAccepted === true,
+        waitedMs: poll.elapsedMs,
+        timedOut: poll.timedOut === true,
+        progress: poll.progress,
+        progressMessages: poll.progressMessages,
+        summary,
+        lab: poll.record,
+        coworkerHints: scrapeCoworkerHints(summary, {
+          patience: poll.timedOut
+            ? 'Demo build may still be running — poll lab_poll_brand_scrape again.'
+            : undefined,
+          refresh: poll.timedOut
+            ? `Poll lab_poll_brand_scrape scrape_id=${scrapeId}.`
+            : undefined,
+        }),
       });
     },
   );
