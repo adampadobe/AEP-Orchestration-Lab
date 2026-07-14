@@ -213,6 +213,14 @@
       scheduleRefresh();
     });
 
+    global.addEventListener('aep-lab-env-overlay-state', function () {
+      scheduleRefresh();
+    });
+
+    global.addEventListener('aep-demo-env-configured', function () {
+      scheduleRefresh();
+    });
+
     global.addEventListener('aep-global-sandbox-change', scheduleRefresh);
 
     if (summaryEl && typeof MutationObserver !== 'undefined') {

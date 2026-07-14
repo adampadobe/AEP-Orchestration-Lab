@@ -77,10 +77,40 @@
     anchor.classList.toggle(CONFIGURING_CLASS, !!configuring);
   }
 
+  function resolveLabEnvConfiguredPrefix() {
+    try {
+      if (global.envBarConfig && global.envBarConfig.prefix) {
+        return String(global.envBarConfig.prefix).trim();
+      }
+      if (global.envBarConfig && global.envBarConfig.storagePrefix) {
+        return String(global.envBarConfig.storagePrefix).trim();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function isLabEnvConfiguredForCollapse() {
+    var prefix = resolveLabEnvConfiguredPrefix();
+    var storageKey = prefix ? 'aepLabEnvConfigured:' + prefix : 'aepLabEnvConfigured';
+    try {
+      if (global.sessionStorage.getItem(storageKey) === '1') return true;
+    } catch (_e0) {
+      /* noop */
+    }
+    var summary = document.querySelector('[id$="SdkConfigSummary"]:not([hidden])');
+    if (summary && /SDK configured/i.test(String(summary.textContent || ''))) return true;
+    var fields = document.querySelector('[id$="SdkConfigFields"]');
+    if (fields && fields.hidden && summary && !summary.hidden) return true;
+    return false;
+  }
+
   function shouldBlockOverlayDismiss(anchor) {
     anchor = anchor || resolveAnchor();
     if (datastreamManualEntryOpen) return true;
     if (isOverlayPinned(anchor)) return true;
+    if (isLabEnvConfiguredForCollapse()) return false;
     if (isConfiguring(anchor)) return true;
     if (isNativeSelectEngaged()) return true;
     return false;
@@ -340,6 +370,7 @@
   }
 
   function shouldOpenProfilePeekFirst() {
+    if (isLabEnvConfiguredForCollapse()) return false;
     var sec = document.getElementById('aepDemoEnvSection');
     if (sec && sec.classList.contains('aep-demo-env-section--collapsed')) return true;
     var grid = document.getElementById('aepDemoEnvConfigGrid');
@@ -626,8 +657,9 @@
         if (isInteractiveToolbarTarget(ev.target)) return;
         ev.preventDefault();
         ev.stopPropagation();
-        if (isOverlayOpen(anchor)) closeOverlay(anchor);
-        else if (shouldOpenProfilePeekFirst()) openProfilePeek(anchor);
+        if (isOverlayOpen(anchor)) {
+          closeOverlay(anchor, { force: isLabEnvConfiguredForCollapse() });
+        } else if (shouldOpenProfilePeekFirst()) openProfilePeek(anchor);
         else openOverlay(anchor, anchor.classList.contains('lab-env-top-anchor--pinned'));
       });
     }
@@ -651,7 +683,7 @@
       if (datastreamManualEntryOpen) return;
       if (isOverlayPinned(anchor)) return;
       if (!isOverlayOpen(anchor)) return;
-      closeOverlay(anchor);
+      closeOverlay(anchor, { force: isLabEnvConfiguredForCollapse() });
     });
   }
 
@@ -666,8 +698,9 @@
 
   global.addEventListener('aep-demo-env-configured', function () {
     if (global.AepLabTagsInjectGuard && global.AepLabTagsInjectGuard.isInProgress()) return;
-    if (shouldBlockOverlayDismiss()) return;
-    closeOverlayPublic();
+    var anchor = resolveAnchor();
+    if (!anchor || isOverlayPinned(anchor)) return;
+    closeOverlay(anchor, { force: true });
   });
 
   global.addEventListener('aep-demo-env-overlay-open', function (ev) {
@@ -681,6 +714,7 @@
     closeOverlay: closeOverlayPublic,
     isOpen: isOverlayOpenPublic,
     isPinned: isOverlayPinned,
+    isConfiguredForCollapse: isLabEnvConfiguredForCollapse,
     dock: dockPublic,
     undock: undockPublic,
     toggleDock: toggleDockPublic,

@@ -866,7 +866,7 @@
           })
         );
         if (isSdkConfiguredForSandbox()) markLabEnvConfiguredSession();
-        if (!expanded && !options.skipConfiguredSignals && !isUserEnvPanelOpen()) {
+        if (!expanded && !options.skipConfiguredSignals) {
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         }
       } catch (e) {
@@ -1655,14 +1655,14 @@
         if (silentResume) {
           setSdkConfigExpanded(false);
         } else {
-          /* Keep Tags fields + env overlay open after manual inject (no collapse-to-summary). */
-          setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+          /* Collapse Tags fields to summary; keep overlay open for BC / datastream follow-up. */
+          setSdkConfigExpanded(false, { skipConfiguredSignals: true });
         }
         syncSiteCloneBcDisplayAfterInject();
         dtLog(
           silentResume
             ? 'injectSelectedScriptNow: complete (configured, collapsed toolbar)'
-            : 'injectSelectedScriptNow: complete (configured, env bar stays expanded)',
+            : 'injectSelectedScriptNow: complete (configured, summary shown — collapse overlay when done)',
         );
         return true;
       } catch (err) {
