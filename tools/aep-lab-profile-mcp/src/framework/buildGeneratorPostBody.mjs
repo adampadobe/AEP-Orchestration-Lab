@@ -9,6 +9,9 @@
 /** Default when event_type omitted — matches Event tool full Edge target (not minimal). */
 export const PORTAL_DEFAULT_EVENT_TYPE = 'transaction';
 
+/** Firestore-backed Edge preset (functions/eventGeneratorService.js). */
+export const LAB_EVENT_TOOL_TARGET_ID = 'lab-event-tool-edge';
+
 /** Datalist suggestions from event-generator.html (not restrictions). */
 export const EVENT_TYPE_SUGGESTIONS = Object.freeze([
   'form.formSubmit',
@@ -73,7 +76,7 @@ export function buildGeneratorPostBody(params = {}) {
   const ecidTrim = trimOrEmpty(params.ecid);
   const orchId = trimOrEmpty(params.event_id || params.orchestration_event_id);
   const tsIso = trimOrEmpty(params.timestamp);
-  const targetId = trimOrEmpty(params.target_id);
+  const targetId = trimOrEmpty(params.target_id) || LAB_EVENT_TOOL_TARGET_ID;
   const sandbox = trimOrEmpty(params.sandbox);
 
   const edgeMinimal = params.edge_minimal !== false;
@@ -89,7 +92,7 @@ export function buildGeneratorPostBody(params = {}) {
 
   if (sandbox) body.sandbox = sandbox;
   if (emailTrim) body.email = emailTrim;
-  if (targetId) body.targetId = targetId;
+  body.targetId = targetId;
   if (channelVal) body.channel = channelVal;
   if (isValidGeneratorEcid(ecidTrim)) body.ecid = ecidTrim;
   if (orchId) body.eventID = orchId;

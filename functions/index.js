@@ -1549,12 +1549,17 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
   const virtual = eventGeneratorService.buildLabFirestoreGeneratorPresets(sandbox, eventRec, decisionRec);
   const allTargets = [...virtual, ...staticTargets];
   const wantId = (body.targetId || '').trim();
-  let preset = allTargets.find((t) => t && typeof t === 'object' && t.id === wantId);
-  if (!preset && allTargets.length) preset = allTargets[0];
-  if (!preset) {
-    res.status(500).json({ error: 'No event-generator-targets.json presets found in functions copy.' });
-    return;
+  const presetResult = eventGeneratorService.resolveGeneratorPreset(allTargets, wantId, sandbox);
+  if (!presetResult.ok) {
+    return res.status(400).json({
+      error: presetResult.error,
+      hint: presetResult.hint,
+      requestedTargetId: presetResult.requestedId,
+      availableTargetIds: presetResult.availableTargetIds,
+      sandbox,
+    });
   }
+  const preset = presetResult.preset;
 
   let accessToken;
   try {

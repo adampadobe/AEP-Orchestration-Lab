@@ -4,10 +4,9 @@
  * Profile Viewer: web/profile-viewer/event-generator.js, event-tool.js
  */
 
-import { buildGeneratorPostBody } from './buildGeneratorPostBody.mjs';
+import { buildGeneratorPostBody, LAB_EVENT_TOOL_TARGET_ID } from './buildGeneratorPostBody.mjs';
 
-/** Default Firestore-backed Edge preset id (functions/eventGeneratorService.js). */
-export const LAB_EVENT_TOOL_TARGET_ID = 'lab-event-tool-edge';
+export { LAB_EVENT_TOOL_TARGET_ID };
 
 /** @param {string | undefined | null} ecid */
 export function isValidEcid(ecid) {
@@ -134,6 +133,45 @@ export function resolveEventIdentities({ email, ecid, profileEcid, autoFetchedEc
     ecid: resolvedEcid,
     warnings,
   };
+}
+
+/**
+ * Resolve Event generator target before send — fail when lab-event-tool-edge has no datastream.
+ *
+ * @param {object} opts
+ * @param {string} [opts.target_id]
+ * @param {Array<{ id?: string, transport?: string, dataStreamId?: string }>} [opts.targets]
+ */
+export function validateEventTarget({ target_id, targets }) {
+  const targetId = String(target_id || LAB_EVENT_TOOL_TARGET_ID).trim();
+  const targetList = Array.isArray(targets) ? targets : [];
+  const resolved = targetList.find((t) => String(t?.id || '') === targetId) || null;
+
+  if (!resolved) {
+    const available = targetList.map((t) => t?.id).filter(Boolean);
+    const isLabDefault = targetId === LAB_EVENT_TOOL_TARGET_ID;
+    return {
+      ok: false,
+      error: isLabDefault
+        ? `target_id "${LAB_EVENT_TOOL_TARGET_ID}" is not configured for this sandbox — save Edge datastream via Event tool Step 2 or lab_save_event_datastream.`
+        : `target_id "${targetId}" not found in lab_list_event_targets.`,
+      requested_id: targetId,
+      available_target_ids: available.length ? available : undefined,
+      next_tools: ['lab_list_event_targets', 'lab_get_event_config', 'lab_save_event_datastream'],
+    };
+  }
+
+  const transport = String(resolved.transport || '').toLowerCase();
+  if (transport === 'edge' && !String(resolved.dataStreamId || '').trim()) {
+    return {
+      ok: false,
+      error: `target_id "${targetId}" is missing dataStreamId — Event tool Edge config not saved for this sandbox.`,
+      requested_id: targetId,
+      next_tools: ['lab_save_event_datastream', 'lab_setup_event_infra'],
+    };
+  }
+
+  return { ok: true, target: resolved, requested_id: targetId };
 }
 
 /**

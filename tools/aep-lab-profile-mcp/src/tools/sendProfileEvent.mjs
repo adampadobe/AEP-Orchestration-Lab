@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
-import { lookupProfile, sendProfileEvent } from '../labApiClient.mjs';
+import { lookupProfile, listEventTargets, sendProfileEvent } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
@@ -9,6 +9,7 @@ import {
   buildEventIdentityMap,
   extractEcidFromProfileTable,
   resolveEventIdentities,
+  validateEventTarget,
 } from '../framework/eventIdentity.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 
@@ -154,10 +155,34 @@ export function registerSendProfileEventTool(mcpServer) {
         return toolError(resolved.error);
       }
 
+      const targetsResult = await listEventTargets({ sandbox: allowed.sandbox });
+      const targets = targetsResult.ok && Array.isArray(targetsResult.data?.targets)
+        ? targetsResult.data.targets
+        : [];
+      const targetCheck = validateEventTarget({
+        target_id: eventFields.target_id,
+        targets,
+      });
+      if (!targetCheck.ok) {
+        writeAuditLog({
+          keyId,
+          tool: 'lab_send_profile_event',
+          sandbox: allowed.sandbox,
+          email: resolved.email || null,
+          result: 'error',
+          durationMs: Date.now() - started,
+        });
+        return toolError(targetCheck.error, {
+          ...targetCheck,
+          targets_list_error: targetsResult.ok ? undefined : targetsResult.error,
+        });
+      }
+
       const apiResult = await sendProfileEvent({
         sandbox: allowed.sandbox,
         email: resolved.email || undefined,
         ecid: resolved.ecid || undefined,
+        target_id: targetCheck.requested_id,
         ...eventFields,
       });
 
@@ -189,11 +214,14 @@ export function registerSendProfileEventTool(mcpServer) {
         transport: lab.transport || null,
         requestId: lab.requestId || null,
         eventId: lab.eventId || null,
-        targetId: lab.targetId || eventFields.target_id || null,
+        targetId: lab.targetId || targetCheck.requested_id || null,
         message: lab.message || null,
         identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
         ecid: resolved.ecid || null,
         warnings: resolved.warnings.length ? resolved.warnings : undefined,
+        stitch_note:
+          'ok:true means Edge accepted the event — not that UPS already shows it on the profile. ' +
+          'Verify with lab_profile_activity after 30–60s; pass ecid from lab_generate_profile for reliable stitching.',
       });
     },
   );

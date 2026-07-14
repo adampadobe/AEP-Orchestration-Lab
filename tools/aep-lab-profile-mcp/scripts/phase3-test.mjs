@@ -35,6 +35,7 @@ import {
   isValidEcid,
   resolveEventIdentities,
   validateEventIdentity,
+  validateEventTarget,
 } from '../src/framework/eventIdentity.mjs';
 import {
   planDualStreamGenerate,
@@ -181,6 +182,18 @@ function testEventIdentityValidation() {
   });
   assert(preflight.identity.identityMap.ECID, 'preflight identityMap');
   assert(preflight.target.resolved?.dataStreamId === 'ds-abc', 'preflight target resolved');
+
+  const missingLabTarget = validateEventTarget({
+    target_id: 'lab-event-tool-edge',
+    targets: [{ id: 'edge-46677-donation', dataStreamId: 'x', transport: 'edge' }],
+  });
+  assert(!missingLabTarget.ok, 'reject send when lab-event-tool-edge missing');
+  assert(missingLabTarget.error.includes('lab_save_event_datastream'), 'missing lab target hints save');
+
+  const labTargetOk = validateEventTarget({
+    targets: [{ id: 'lab-event-tool-edge', dataStreamId: 'ds-abc', transport: 'edge' }],
+  });
+  assert(labTargetOk.ok && labTargetOk.requested_id === 'lab-event-tool-edge', 'default lab target validates');
 
   assert(isValidEcid('1234567890'), 'isValidEcid true');
   assert(!isValidEcid('abc'), 'isValidEcid false');
@@ -720,8 +733,11 @@ async function run() {
   } = await import('../src/framework/demoEventPacks.mjs');
   const {
     buildGeneratorPostBody,
+    LAB_EVENT_TOOL_TARGET_ID,
     portalEventGeneratorSendBody,
   } = await import('../src/framework/buildGeneratorPostBody.mjs');
+  const defaultTargetBody = buildGeneratorPostBody({ sandbox: 'apalmer', email: 'a@b.com', ecid: '1234567890123' });
+  assert(defaultTargetBody.targetId === LAB_EVENT_TOOL_TARGET_ID, 'buildGeneratorPostBody defaults targetId');
 
   const starbucksPack = buildRetailJourneyEventPack({ brandName: 'Starbucks', baseUrl: 'https://www.starbucks.ae' });
   assert(starbucksPack.length === 4, 'retail journey pack has 4 events');

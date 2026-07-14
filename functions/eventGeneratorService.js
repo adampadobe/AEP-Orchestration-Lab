@@ -636,6 +636,33 @@ function shortHexLabel(datastreamId) {
 }
 
 /**
+ * Resolve generator preset — never silently fall back to unrelated static presets.
+ * @param {Array<Record<string, unknown>>} allTargets
+ * @param {string} [wantId]
+ * @param {string} [sandbox]
+ */
+function resolveGeneratorPreset(allTargets, wantId, sandbox) {
+  const requested = String(wantId || '').trim() || LAB_EVENT_TOOL_TARGET_ID;
+  const list = Array.isArray(allTargets) ? allTargets : [];
+  const preset = list.find((t) => t && typeof t === 'object' && t.id === requested) || null;
+  if (preset) {
+    return { ok: true, preset, requestedId: requested };
+  }
+  const available = list.map((t) => t && t.id).filter(Boolean);
+  const sb = String(sandbox || '').trim() || 'default';
+  const isLabDefault = requested === LAB_EVENT_TOOL_TARGET_ID;
+  return {
+    ok: false,
+    requestedId: requested,
+    error: isLabDefault
+      ? `Event target "${LAB_EVENT_TOOL_TARGET_ID}" is not configured for sandbox "${sb}". Save the Edge datastream ID in Event tool (Step 2) or MCP lab_save_event_datastream.`
+      : `Unknown event target "${requested}".`,
+    hint: 'GET /api/events/generator-targets',
+    availableTargetIds: available,
+  };
+}
+
+/**
  * Virtual generator presets from Firestore (Event tool + Decision lab), merged ahead of static JSON.
  * @param {string} sandbox
  * @param {Record<string, unknown>|null|undefined} eventRec from getEffectiveEventConfig
@@ -678,6 +705,7 @@ module.exports = {
   loadEventGeneratorTargets,
   buildEventGeneratorXdm,
   buildLabFirestoreGeneratorPresets,
+  resolveGeneratorPreset,
   alignExperienceEventFieldGroupPayloads,
   mergeGeneratorPublicIntoTenant,
   mergeGeneratorTenantExtras,

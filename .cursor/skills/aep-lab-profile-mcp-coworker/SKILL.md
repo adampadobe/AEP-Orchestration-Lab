@@ -280,6 +280,23 @@ Mirrors Profile Viewer **Event tool** identity rules (`eventEdgeService.buildXdm
 
    > lab_profile_activity for sandbox apalmer, identifier event.demo+001@adobetest.com. Confirm event count increased (allow UPS lag 30–60s).
 
+### Troubleshooting — "event sent" but profile shows 0 events
+
+**`ok:true` from `lab_send_profile_event` only means Edge accepted the payload** — not that UPS already stitched the event onto the profile. Always verify with **`lab_profile_activity`** after 30–60s.
+
+Before sending, confirm Event tool wiring for the sandbox (not just that static demo targets exist):
+
+1. **`lab_list_event_targets`** — `lab-event-tool-edge` must include a **`dataStreamId`** for this sandbox.
+2. **`lab_get_event_config`** — Firestore `eventEdgeConfig` should show `datastreamId`, `schemaId`, `datasetName`.
+3. **`lab_setup_event_infra` + `lab_enable_event_profile`** — ExperienceEvent schema/dataset must be Profile-enabled (identityMap alternate primary).
+4. **`lab_preflight_profile_event`** — dry-run: check `identityMap`, `generatorPostBody.targetId`, and warnings (email-only / missing ecid).
+5. **Identity** — pass **email + ecid** from `lab_generate_profile`; email must match the profile exactly.
+6. **Sandbox** — MCP key allowlist sandbox must match the AEP sandbox where the profile and datastream live.
+
+**Coworker chain when colleague reports missing events:**
+
+> (1) `lab_mcp_first_run_setup` — check `readiness.event_targets.lab_event_tool_edge_configured`. (2) `lab_list_event_targets`. (3) Re-run generate, capture ecid. (4) `lab_preflight_profile_event` with email+ecid. (5) `lab_send_profile_event` with `target_id lab-event-tool-edge`. (6) Wait 60s, `lab_profile_activity`.
+
 **If ecid omitted:** MCP auto-fetches from UPS by email; response includes `warnings` when stitching may be weak.
 
 **Public-sector donation demo:**

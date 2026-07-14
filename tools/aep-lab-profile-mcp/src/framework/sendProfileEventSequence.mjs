@@ -8,6 +8,7 @@ import {
   buildEventPreflightSummary,
   extractEcidFromProfileTable,
   resolveEventIdentities,
+  validateEventTarget,
 } from './eventIdentity.mjs';
 
 /**
@@ -68,16 +69,21 @@ export async function sendProfileEventSequence({
 
   /** @type {Record<string, unknown> | null} */
   let preflightSummary = null;
+  const targetsResult = await listEventTargets({ sandbox });
+  const targets = targetsResult.ok && Array.isArray(targetsResult.data?.targets)
+    ? targetsResult.data.targets
+    : [];
+  const targetCheck = validateEventTarget({ target_id: target_id || LAB_EVENT_TOOL_TARGET_ID, targets });
+  if (!targetCheck.ok) {
+    return { ok: false, error: targetCheck.error, ...targetCheck };
+  }
+
   if (preflight) {
-    const targetsResult = await listEventTargets({ sandbox });
-    const targets = targetsResult.ok && Array.isArray(targetsResult.data?.targets)
-      ? targetsResult.data.targets
-      : [];
     preflightSummary = buildEventPreflightSummary({
       sandbox,
       email: resolved.email,
       ecid: resolved.ecid,
-      target_id: target_id || LAB_EVENT_TOOL_TARGET_ID,
+      target_id: targetCheck.requested_id,
       targets,
       warnings: resolved.warnings,
     });
@@ -98,7 +104,7 @@ export async function sendProfileEventSequence({
       sandbox,
       email: resolved.email,
       ecid: resolved.ecid || undefined,
-      target_id,
+      target_id: targetCheck.requested_id,
       event_type: step.event_type,
       view_name: step.view_name,
       view_url: step.view_url,

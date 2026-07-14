@@ -8,6 +8,7 @@ import {
   buildEventPreflightSummary,
   extractEcidFromProfileTable,
   resolveEventIdentities,
+  validateEventTarget,
 } from '../framework/eventIdentity.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
@@ -124,11 +125,19 @@ export function registerPreflightProfileEventTool(mcpServer) {
         },
       });
 
+      const targetCheck = validateEventTarget({ target_id, targets });
+      if (!targetCheck.ok) {
+        summary.target_error = targetCheck.error;
+        summary.warnings = [...(summary.warnings || []), targetCheck.error];
+      }
+
       if (!targetsResult.ok) {
         summary.warnings = [
           ...(summary.warnings || []),
           `Could not list event targets: ${targetsResult.error || 'unknown error'}. Run lab_list_event_targets or configure Firestore eventConfig.`,
         ];
+      } else if (!targetCheck.ok) {
+        // validateEventTarget already pushed warning
       } else if (!summary.target.resolved?.dataStreamId && !summary.target.resolved?.note) {
         summary.warnings.push(
           `target_id "${summary.target.requested_id}" not found for sandbox — Event send may fail until Event tool datastream is saved.`,

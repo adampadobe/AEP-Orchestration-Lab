@@ -147,13 +147,22 @@ export function registerMcpFirstRunSetupTool(mcpServer) {
         if (targetsResult.ok) {
           const targets = targetsResult.data?.targets || targetsResult.data?.items || [];
           const list = Array.isArray(targets) ? targets : [];
+          const labTarget = list.find((t) => t && t.id === 'lab-event-tool-edge') || null;
+          const hasLabDatastream = !!(labTarget && labTarget.dataStreamId);
           readiness.event_targets = {
-            ready: list.length > 0,
+            ready: hasLabDatastream,
             count: list.length,
-            defaultTargetId: list.find((t) => t && t.id === 'lab-event-tool-edge')
+            lab_event_tool_edge_configured: hasLabDatastream,
+            lab_event_tool_datastream_id: labTarget?.dataStreamId || null,
+            defaultTargetId: hasLabDatastream
               ? 'lab-event-tool-edge'
               : (list[0] && list[0].id) || null,
-            portal_action: list.length ? null : 'Profile Viewer Event tool → save Edge datastream for this sandbox',
+            portal_action: hasLabDatastream
+              ? null
+              : 'Profile Viewer Event tool → Step 2 save Edge datastream for this sandbox (or lab_save_event_datastream)',
+            warning: hasLabDatastream
+              ? undefined
+              : 'Static demo targets may exist but lab-event-tool-edge is not wired to this sandbox — MCP sends will fail until datastream is saved.',
           };
         } else {
           readiness.event_targets = {

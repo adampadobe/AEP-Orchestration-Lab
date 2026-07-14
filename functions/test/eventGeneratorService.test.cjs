@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   buildEventGeneratorXdm,
   buildLabFirestoreGeneratorPresets,
+  resolveGeneratorPreset,
   LAB_EVENT_TOOL_TARGET_ID,
   LAB_DECISION_LAB_TARGET_ID,
 } = require('../eventGeneratorService');
@@ -175,4 +176,23 @@ test('buildEventGeneratorXdm merges Sky News Insider tenant interestTypes and pr
   assert.equal(xdm.homeAddress.postalCode, 'SW1A 1AA');
   assert.equal(xdm.personalEmail.address, 'kirkham+public-1@adobetest.com');
   assert.equal(xdm._demoemea.public.insider.plan, 'monthly');
+});
+
+test('resolveGeneratorPreset defaults to lab-event-tool-edge and rejects silent static fallback', () => {
+  const staticOnly = [
+    { id: 'edge-46677-donation', transport: 'edge', dataStreamId: '46677fd7-9db0-4f16-898c-b424d0245c38' },
+  ];
+  const missing = resolveGeneratorPreset(staticOnly, '', 'prisacar');
+  assert.equal(missing.ok, false);
+  assert.equal(missing.requestedId, LAB_EVENT_TOOL_TARGET_ID);
+  assert.match(missing.error, /not configured/);
+
+  const virtual = buildLabFirestoreGeneratorPresets('prisacar', { datastreamId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }, null);
+  const resolved = resolveGeneratorPreset([...virtual, ...staticOnly], '', 'prisacar');
+  assert.equal(resolved.ok, true);
+  assert.equal(resolved.preset.id, LAB_EVENT_TOOL_TARGET_ID);
+
+  const explicit = resolveGeneratorPreset(staticOnly, 'edge-46677-donation', 'prisacar');
+  assert.equal(explicit.ok, true);
+  assert.equal(explicit.preset.id, 'edge-46677-donation');
 });
