@@ -102,6 +102,31 @@
     );
   }
 
+  function renderFooterNewsletter() {
+    return (
+      '<section class="armcom-footer-newsletter" aria-labelledby="armcom-footer-newsletter-heading">' +
+      '<div class="armcom-footer-newsletter-inner">' +
+      '<div class="armcom-footer-newsletter-copy">' +
+      '<h2 id="armcom-footer-newsletter-heading">Stay connected on Cloud AI</h2>' +
+      '<p>Subscribe for Arm Cloud AI news, case studies, and developer insights. Your work email stitches anonymous browsing into a unified B2B profile.</p>' +
+      '</div>' +
+      '<form id="armcomFooterNewsletterForm" class="armcom-footer-newsletter-form" novalidate>' +
+      '<div class="armcom-footer-newsletter-fields">' +
+      '<input type="email" name="email" required placeholder="Work email" autocomplete="email" aria-label="Work email">' +
+      '<input type="text" name="company" placeholder="Company" autocomplete="organization" aria-label="Company">' +
+      '<button type="submit" class="armcom-btn armcom-btn-primary" data-armcom-track="Footer newsletter">Subscribe</button>' +
+      '</div>' +
+      '<p class="armcom-footer-newsletter-note">Prefer the full form? <a href="' +
+      resolveHref('resources/subscribe.html') +
+      '">Open Marketo subscribe</a></p>' +
+      '</form>' +
+      '<div id="armcomFooterNewsletterSuccess" class="armcom-footer-newsletter-success" hidden role="status">' +
+      '<strong>Thank you</strong> — your profile is unified across arm.com, developer.arm.com, Marketo, Salesforce, and paid social.' +
+      '</div>' +
+      '</div></section>'
+    );
+  }
+
   function renderFooter() {
     var cols = FOOTER_COLS.map(function (col) {
       return (
@@ -124,6 +149,7 @@
       '<button type="button" class="armcom-footer-lang-btn" aria-label="Language">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M3 12h18M12 3c2.5 3 4 6 4 9s-1.5 6-4 9M12 3c-2.5 3-4 6-4 9s1.5 6 4 9" stroke="currentColor" stroke-width="1.5"/></svg>' +
       ' English</button></div></div>' +
+      renderFooterNewsletter() +
       '<div class="armcom-footer-mid">' +
       '<div class="armcom-footer-social">' + social + '</div>' +
       '<div class="armcom-footer-legal">' +

@@ -240,7 +240,7 @@
           '<p class="armcom-leadership-kicker">' + item.kicker + '</p>' +
           '<h3>' + item.title + '</h3>' +
           '<p>' + item.copy + '</p>' +
-          '<a href="#" class="armcom-link-chevron armcom-link-blue">' + item.cta + '</a>' +
+          '<a href="' + (item.href || '#') + '" class="armcom-link-chevron armcom-link-blue" data-armcom-track="' + item.title + '">' + item.cta + '</a>' +
           '</article>'
         );
       })

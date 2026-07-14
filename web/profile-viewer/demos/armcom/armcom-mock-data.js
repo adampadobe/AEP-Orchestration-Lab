@@ -25,7 +25,7 @@
         title: 'Identifying the AGI CPU',
         copy: 'Arm introduces the AGI CPU — purpose-built silicon for agentic AI workloads at scale.',
         cta: 'Read more',
-        href: 'cloud-ai/data-center-ai.html',
+        href: 'products/neoverse-n2.html',
       },
       {
         id: 'dev-foundations',
@@ -195,6 +195,7 @@
         title: 'The future of computing',
         copy: 'Rene Haas in conversation with industry leaders as they discuss AI, industry trends, and more.',
         cta: 'Read the blog',
+        href: 'resources/blog-future-computing.html',
       },
       {
         image: A + 'leadership-future.png',

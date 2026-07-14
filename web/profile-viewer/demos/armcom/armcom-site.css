@@ -1059,6 +1059,154 @@ body.armcom-site--home {
   text-align: center;
 }
 
+/* ── Footer newsletter (inline stitch) ───────────────────── */
+.armcom-footer-newsletter {
+  margin: 2.5rem 0 0;
+  padding: 2rem;
+  border-radius: var(--armcom-radius-card);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.armcom-footer-newsletter-inner {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.armcom-footer-newsletter-copy h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.armcom-footer-newsletter-copy p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.armcom-footer-newsletter-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.armcom-footer-newsletter-fields input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--armcom-white);
+  font-size: 0.9375rem;
+}
+
+.armcom-footer-newsletter-fields input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.armcom-footer-newsletter-fields input:focus {
+  outline: 2px solid var(--armcom-purple);
+  outline-offset: 1px;
+}
+
+.armcom-footer-newsletter-fields .armcom-btn {
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+.armcom-footer-newsletter-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.armcom-footer-newsletter-note a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+}
+
+.armcom-footer-newsletter-success {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* ── Activation toast ─────────────────────────────────────── */
+.armcom-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1200;
+  max-width: 22rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  background: var(--armcom-navy);
+  color: var(--armcom-white);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+
+.armcom-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.armcom-toast-logos {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ── Product detail hero ──────────────────────────────────── */
+.armcom-product-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2rem;
+  align-items: center;
+  margin: 1.5rem 0 2rem;
+}
+
+.armcom-product-hero img {
+  width: 100%;
+  border-radius: var(--armcom-radius-card);
+  background: var(--armcom-grey-100);
+}
+
+.armcom-product-specs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.armcom-product-spec {
+  background: var(--armcom-grey-100);
+  border-radius: var(--armcom-radius-card);
+  padding: 1.25rem;
+}
+
+.armcom-product-spec strong {
+  display: block;
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.armcom-product-spec span {
+  font-size: 0.875rem;
+  color: var(--armcom-grey-600);
+}
+
 /* ── Subpage article layout ───────────────────────────────── */
 .armcom-article-layout {
   display: grid;
@@ -1270,4 +1418,8 @@ body.armcom-site--home {
   .armcom-highlight-card { flex: 0 0 85%; }
   .armcom-footer-grid { grid-template-columns: 1fr; }
   .armcom-footer-bottom { flex-direction: column; gap: 1rem; }
+  .armcom-footer-newsletter-inner { grid-template-columns: 1fr; }
+  .armcom-footer-newsletter-fields { grid-template-columns: 1fr; }
+  .armcom-product-hero { grid-template-columns: 1fr; }
+  .armcom-product-specs { grid-template-columns: 1fr; }
 }

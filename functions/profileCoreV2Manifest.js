@@ -338,6 +338,24 @@ const SHARED_TENANT_LEAVES = {
       },
     },
   },
+  b2bContent: {
+    type: 'object',
+    title: 'b2bContent',
+    description: 'Arm B2B brand-awareness demo — Cloud AI intent and product interest',
+    required: [],
+    'meta:xdmType': 'object',
+    properties: {
+      topic: STRING_LEAF('topic'),
+      siteId: STRING_LEAF('siteId'),
+      intentLevel: STRING_LEAF('intentLevel'),
+      contentType: STRING_LEAF('contentType'),
+      contentId: STRING_LEAF('contentId'),
+      productName: STRING_LEAF('productName'),
+      productCategory: STRING_LEAF('productCategory'),
+      productId: STRING_LEAF('productId'),
+      leadSource: STRING_LEAF('leadSource'),
+    },
+  },
   // `identification.core.loyaltyId` lives under a `$ref` to the shared
   // identification.core datatype. Add-only via FG PATCH wouldn't apply —
   // the top-up treats ref-blocked leaves as `alreadyPresent` when resolved
