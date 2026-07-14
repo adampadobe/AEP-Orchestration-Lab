@@ -15,18 +15,18 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20260714-env-bar-profile-lookup-mode',
+    manifestVersion: '20260714-env-bar-config-fileconvert',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260713e-armcom-env-bar',
-      spectrumCss: '20260714-env-bar-profile-lookup-mode',
-      demoEnvStripSpectrum: '20260714-env-bar-profile-lookup-mode',
+      spectrumCss: '20260714-env-bar-config-fileconvert',
+      demoEnvStripSpectrum: '20260714-env-bar-config-fileconvert',
       demoEnvStrip: '20260714-tags-property-typeahead',
-      spectrumSync: '20260714-env-bar-profile-lookup-mode',
+      spectrumSync: '20260714-env-bar-config-fileconvert',
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
-      compactCss: '20260714-env-bar-profile-lookup-mode',
-      compactJs: '20260714-env-bar-profile-lookup-mode',
+      compactCss: '20260714-env-bar-config-fileconvert',
+      compactJs: '20260714-env-bar-config-fileconvert',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260622-bc-enabled-persist',
       prefsSync: '20260616-tags-incognito-load',
@@ -41,7 +41,7 @@
       modalBarCss: '20260617-modal-bar-v8',
       modalBarJs: '20260617-modal-bar-v7',
       modalBarBoot: '20260617-modal-bar-v7',
-      envBarJs: '20260714-env-bar-profile-lookup-mode',
+      envBarJs: '20260714-env-bar-config-fileconvert',
       decisioningModuleCss: '20260618-reset-apply-spacing',
       decisioningPanelCss: '20260618-midrail-dynamic-stack',
       profileStreamingShared: '20260615',

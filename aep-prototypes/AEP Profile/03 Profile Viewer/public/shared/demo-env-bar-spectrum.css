@@ -93,12 +93,12 @@
   display: none !important;
 }
 
-.lab-env-top-anchor--profile-only .lab-env-minimize-btn,
-.lab-env-top-anchor--expanded .lab-env-minimize-btn {
+.lab-env-top-anchor--profile-only .lab-env-config-btn,
+.lab-env-top-anchor--expanded .lab-env-config-btn {
   color: var(--dash-blue);
 }
 
-.lab-env-minimize-btn[aria-pressed='true'] {
+.lab-env-config-btn[aria-pressed='true'] {
   background: color-mix(in srgb, var(--dash-blue) 12%, var(--dash-surface));
 }
 

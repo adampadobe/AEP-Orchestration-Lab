@@ -423,7 +423,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   z-index: 2;
 }
 
-.lab-env-toggle-btn,
+.lab-env-config-btn,
 .lab-env-pin-btn,
 .lab-env-dock-toolbar-btn {
   flex-shrink: 0;
@@ -434,24 +434,14 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   padding: 0;
 }
 
-.lab-env-toggle-btn svg {
-  transition: transform 0.18s ease;
-}
-
-.lab-env-top-anchor--expanded .lab-env-toggle-btn svg,
-.lab-env-top-anchor--pinned .lab-env-toggle-btn svg {
-  transform: rotate(180deg);
-}
-
 .lab-env-pin-btn[aria-pressed='true'] {
   border-color: var(--dash-blue);
   color: var(--dash-blue);
   background: color-mix(in srgb, var(--dash-blue) 12%, var(--dash-surface));
 }
 
-.lab-env-toggle-btn:focus-visible,
+.lab-env-config-btn:focus-visible,
 .lab-env-pin-btn:focus-visible,
-.lab-env-minimize-btn:focus-visible,
 .lab-env-dock-toolbar-btn:focus-visible,
 .lab-env-chip:focus-visible,
 .lab-env-toolbar .spectrum-env-link-btn:focus-visible {
@@ -737,7 +727,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
     padding: 0.1rem 0.35rem;
   }
 
-  .lab-env-toggle-btn,
+  .lab-env-config-btn,
   .lab-env-pin-btn,
   .lab-env-dock-toolbar-btn {
     width: 2.5rem;

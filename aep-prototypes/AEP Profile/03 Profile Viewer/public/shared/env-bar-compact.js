@@ -8,8 +8,7 @@
   var PIN_STORAGE_KEY = 'aepLabEnvBarPinned';
   var DOCK_STORAGE_KEY = 'aepLabEnvBarDocked';
   var PIN_BTN_ID = 'aepLabEnvPinBtn';
-  var TOGGLE_BTN_ID = 'aepLabEnvToggleBtn';
-  var MINIMIZE_BTN_ID = 'aepLabEnvMinimizeBtn';
+  var CONFIG_BTN_ID = 'aepLabEnvMinimizeBtn';
   var DOCK_TOOLBAR_BTN_ID = 'aepLabEnvDockToolbarBtn';
   var FLOATING_DOCK_BTN_ID = 'aepLabEnvFloatingDockBtn';
   var OVERLAY_PANEL_ID = 'aepLabEnvOverlayPanel';
@@ -347,7 +346,7 @@
     syncProfilePeekChrome(anchor, isProfileOnly);
     syncToolbarOverlayInset(anchor, isOpen);
     syncFullOpenBtn(anchor);
-    syncMinimizeBtn(anchor);
+    syncConfigBtn(anchor);
 
     try {
       global.dispatchEvent(
@@ -359,15 +358,22 @@
       /* noop */
     }
 
-    var toggleBtn = byId(TOGGLE_BTN_ID);
-    if (toggleBtn) {
-      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    var configBtn = byId(CONFIG_BTN_ID);
+    if (configBtn) {
+      var isOpen = !!(expanded || pinned || isProfileOnly);
+      configBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       if (isProfileOnly) {
-        toggleBtn.setAttribute('aria-label', isOpen ? 'Hide profile lookup' : 'Show profile lookup');
-        toggleBtn.setAttribute('title', isOpen ? 'Collapse profile lookup' : 'Show profile lookup');
+        configBtn.setAttribute('aria-label', 'Expand configuration panels');
+        configBtn.setAttribute('title', 'Expand configuration panels');
+        configBtn.setAttribute('aria-pressed', 'true');
+      } else if (expanded) {
+        configBtn.setAttribute('aria-label', 'Minimize configuration panels');
+        configBtn.setAttribute('title', 'Minimize configuration panels (profile lookup stays visible)');
+        configBtn.setAttribute('aria-pressed', 'true');
       } else {
-        toggleBtn.setAttribute('aria-label', isOpen ? 'Hide environment controls' : 'Show environment controls');
-        toggleBtn.setAttribute('title', isOpen ? 'Collapse environment panel' : 'Expand environment panel');
+        configBtn.setAttribute('aria-label', 'Show environment configuration');
+        configBtn.setAttribute('title', 'Expand configuration panels');
+        configBtn.setAttribute('aria-pressed', 'false');
       }
     }
 
@@ -401,27 +407,30 @@
     else btn.setAttribute('hidden', '');
   }
 
-  var MINIMIZE_ICON_COLLAPSE =
-    '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7.4 15.4 12 10.8l4.6 4.6 1.4-1.4-6-6-6 6 1.4 1.4Z"/></svg>';
-  var MINIMIZE_ICON_EXPAND =
-    '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7 1.4-1.4Z"/></svg>';
+  /** Spectrum 2 workflow icon: File Convert (S2_Icon_FileConvert_20_N.svg) from vendor/spectrum-workflow-icons/. */
+  var CONFIG_ICON_FILE_CONVERT =
+    '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="m12.28027,12.53023l-1.75,1.75c-.14648.14648-.33838.21973-.53027.21973s-.38379-.07324-.53027-.21973l-1.75-1.75c-.29297-.29297-.29297-.76758,0-1.06055s.76758-.29297,1.06055,0l.42114.42114c-.03412-1.01489-.50116-1.99365-1.32837-2.64331-1.51855-1.19287-3.72217-.92627-4.91406.59082-.31494.40137-.53467.85449-.65186,1.34619-.0957.40283-.50244.65186-.90381.55518-.40283-.09619-.65137-.50098-.55518-.90381.16797-.70312.48096-1.35059.93115-1.92383,1.70166-2.16895,4.85156-2.54688,7.02051-.84424,1.21918.95776,1.89832,2.41553,1.9068,3.91504l.51312-.51318c.29297-.29297.76758-.29297,1.06055,0s.29297.76758,0,1.06055Zm4.71973-5.65918v8.87891c0,1.24072-1.00928,2.25-2.25,2.25H5.25c-1.24072,0-2.25-1.00928-2.25-2.25v-2c0-.41406.33594-.75.75-.75s.75.33594.75.75v2c0,.41357.33643.75.75.75h9.5c.41357,0,.75-.33643.75-.75v-7.75h-3.25c-1.24072,0-2.25-1.00928-2.25-2.25v-3.25h-4.75c-.41357,0-.75.33643-.75.75v1.5c0,.41406-.33594.75-.75.75s-.75-.33594-.75-.75v-1.5c0-1.24072,1.00928-2.25,2.25-2.25h5.87891c.6001,0,1.16455.23389,1.58984.6582l3.62256,3.62256c.4248.42578.65869.99023.65869,1.59033Zm-4.75-.37109h3.13623c-.03217-.0553-.06036-.1134-.10596-.15918l-3.62158-3.62158c-.04553-.04541-.10352-.07349-.15869-.10547v3.13623c0,.41357.33643.75.75.75Z"/></svg>';
 
-  function syncMinimizeBtn(anchor) {
-    var btn = byId(MINIMIZE_BTN_ID);
+  function syncConfigBtn(anchor) {
+    var btn = byId(CONFIG_BTN_ID);
     if (!btn) return;
+    btn.innerHTML = CONFIG_ICON_FILE_CONVERT;
     var profileOnly = !!(anchor && anchor.classList.contains(PROFILE_ONLY_CLASS));
     var expanded = !!(anchor && anchor.classList.contains('lab-env-top-anchor--expanded'));
-    btn.innerHTML = profileOnly ? MINIMIZE_ICON_EXPAND : MINIMIZE_ICON_COLLAPSE;
-    btn.setAttribute('aria-pressed', profileOnly ? 'true' : 'false');
+    var isOpen = !!(anchor && isOverlayOpen(anchor));
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     if (profileOnly) {
+      btn.setAttribute('aria-pressed', 'true');
       btn.setAttribute('aria-label', 'Expand configuration panels');
       btn.setAttribute('title', 'Expand configuration panels');
     } else if (expanded) {
+      btn.setAttribute('aria-pressed', 'true');
       btn.setAttribute('aria-label', 'Minimize configuration panels');
       btn.setAttribute('title', 'Minimize configuration panels (profile lookup stays visible)');
     } else {
-      btn.setAttribute('aria-label', 'Show profile lookup');
-      btn.setAttribute('title', 'Show profile lookup');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Show environment configuration');
+      btn.setAttribute('title', 'Expand configuration panels');
     }
   }
 
@@ -446,7 +455,7 @@
       return;
     }
     if (!isOverlayOpen(anchor)) {
-      openProfilePeek(anchor);
+      openOverlay(anchor, false);
       return;
     }
     minimizeToProfileLookup(anchor);
@@ -666,9 +675,9 @@
     if (isDocked) applyDockState(anchor, true);
     else updateFloatingDockBtn(false);
 
-    var minimizeBtn = byId(MINIMIZE_BTN_ID);
-    if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', function (ev) {
+    var configBtn = byId(CONFIG_BTN_ID);
+    if (configBtn) {
+      configBtn.addEventListener('click', function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
         toggleMinimizePanels(anchor);
@@ -681,15 +690,6 @@
         ev.preventDefault();
         ev.stopPropagation();
         dockPublic();
-      });
-    }
-
-    var toggleBtn = byId(TOGGLE_BTN_ID);
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', function (ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        toggleOverlay(anchor);
       });
     }
 
@@ -735,7 +735,7 @@
     }
 
     bindOverlayInteractionGuards(anchor);
-    syncMinimizeBtn(anchor);
+    syncConfigBtn(anchor);
 
     if (!isDocked && !readPinnedFromStorage() && isLabEnvConfiguredForCollapse()) {
       global.setTimeout(function () {
