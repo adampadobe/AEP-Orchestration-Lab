@@ -469,32 +469,35 @@ function buildEventGeneratorXdm(reqBody, options) {
       DEFAULT_MIN_ORCH_ID;
     const email = (body.email || '').trim();
     const ecidRaw = body.ecid != null ? String(body.ecid).trim() : '';
-    const ecid = ecidRaw || EDGE_INTERACT_ECID;
+    const ecidOk = /^\d{10,}$/.test(ecidRaw);
+    /** Anonymous Edge only — do not substitute when a known email profile is targeted without ecid. */
+    const ecid = ecidOk ? ecidRaw : email ? '' : EDGE_INTERACT_ECID;
 
     /** @type {Record<string, Array<{ id: string; primary: boolean }>>} */
     const identityMap = {};
-    identityMap[ecidImKey] = [{ id: ecid, primary: true }];
-    if (!useDemosystem5 && email) {
-      identityMap.Email = [{ id: email, primary: false }];
-    }
-
     const tenantNode = {};
-    if (useDemosystem5) {
-      tenantNode.identification = { core: { ecid } };
-    } else {
-      tenantNode.identification = { core: { ecid, email: email || '' } };
-    }
     mergeGeneratorPublicIntoTenant(tenantNode, body.public);
     mergeGeneratorTenantExtras(tenantNode, body.tenant);
     mergeGeneratorInteractionDetailsChannel(tenantNode, effectiveChannel);
 
     if (shouldUseEmailPrimaryIdentity(body, tenantKey)) {
       const em = String(body.email || '').trim();
-      delete identityMap[ecidImKey];
-      delete identityMap.ECID;
-      delete identityMap.ecid;
       identityMap.Email = [{ id: em, primary: true }];
       tenantNode.identification = { core: { email: em } };
+    } else if (email && !ecidOk) {
+      identityMap.Email = [{ id: email, primary: true }];
+      tenantNode.identification = { core: { email } };
+    } else {
+      const resolvedEcid = ecid || EDGE_INTERACT_ECID;
+      identityMap[ecidImKey] = [{ id: resolvedEcid, primary: true }];
+      if (!useDemosystem5 && email) {
+        identityMap.Email = [{ id: email, primary: false }];
+      }
+      if (useDemosystem5) {
+        tenantNode.identification = { core: { ecid: resolvedEcid } };
+      } else {
+        tenantNode.identification = { core: { ecid: resolvedEcid, email: email || '' } };
+      }
     }
 
     const xdm = {

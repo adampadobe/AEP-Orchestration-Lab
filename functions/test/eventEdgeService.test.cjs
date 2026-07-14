@@ -218,3 +218,28 @@ test('buildTriggerPayload keeps ECID primary when ecid is valid', () => {
   assert.equal(xdm.identityMap.Email[0].id, EMAIL);
   assert.equal(xdm.identityMap.Email[0].primary, false);
 });
+
+test('buildGeneratorEdgeInteractXdm minimal preset includes tenant identification.core', () => {
+  const { buildGeneratorEdgeInteractXdm } = require('../eventEdgeService');
+  const xdm = buildGeneratorEdgeInteractXdm(
+    { email: EMAIL, ecid: ECID, eventType: 'transaction' },
+    { id: 'lab-event-tool-edge', xdmStyle: 'minimal' },
+  );
+  assert.ok(xdm._demoemea);
+  assert.equal(xdm._demoemea.identification.core.ecid, ECID);
+  assert.equal(xdm._demoemea.identification.core.email, EMAIL);
+  assert.equal(xdm.identityMap.ECID[0].id, ECID);
+  assert.equal(xdm.identityMap.Email[0].id, EMAIL);
+});
+
+test('buildGeneratorEdgeInteractXdm email-only minimal avoids fake ECID fallback', () => {
+  const { buildGeneratorEdgeInteractXdm } = require('../eventEdgeService');
+  const xdm = buildGeneratorEdgeInteractXdm(
+    { email: EMAIL, eventType: 'transaction' },
+    { id: 'lab-event-tool-edge', xdmStyle: 'minimal' },
+  );
+  assert.equal(xdm.identityMap.ECID, undefined);
+  assert.equal(xdm.identityMap.Email[0].primary, true);
+  assert.equal(xdm._demoemea.identification.core.email, EMAIL);
+  assert.ok(!xdm._demoemea.identification.core.ecid);
+});

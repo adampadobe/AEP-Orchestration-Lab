@@ -43,6 +43,7 @@ const {
   syncXdmDemoemeaLowercaseAlias,
   syncXdmTenantLowercaseAlias,
   normalizeExperienceCloudIdNamespaceInIdentityMap,
+  buildEventGeneratorXdm,
 } = require('./eventGeneratorService');
 
 function readXdmStyle(body) {
@@ -189,6 +190,41 @@ function buildRichEdgeXdm(body) {
  */
 function buildXdm(body) {
   return shouldUseRichEdgeXdm(body) ? buildRichEdgeXdm(body) : buildMinimalEdgeXdm(body);
+}
+
+/**
+ * Resolve XDM style for Edge interact sends — mirrors send-aep-event.js + Event tool preset xdmStyle.
+ * @param {Record<string, unknown>} body
+ * @param {Record<string, unknown> | null | undefined} preset
+ */
+function resolveGeneratorEdgeXdmStyle(body, preset) {
+  const styleExplicit = readXdmStyle(body);
+  if (styleExplicit === 'full') return 'full';
+  if (styleExplicit === 'minimal') return 'minimal';
+  if (shouldUseRichEdgeXdm(body)) return 'full';
+  return preset && preset.xdmStyle === 'minimal' ? 'minimal' : 'full';
+}
+
+/**
+ * Build Edge interact XDM for generator presets (lab-event-tool-edge) and Event tool /api/events/edge.
+ * Uses buildEventGeneratorXdm so minimal style includes tenant identification.core (not identityMap-only).
+ *
+ * @param {Record<string, unknown>} body
+ * @param {Record<string, unknown> | null | undefined} [preset]
+ */
+function buildGeneratorEdgeInteractXdm(body, preset) {
+  const p = preset && typeof preset === 'object' ? preset : { xdmStyle: 'minimal' };
+  const style = resolveGeneratorEdgeXdmStyle(body, p);
+  let genBody = body && typeof body === 'object' ? body : {};
+  const defaultOrch = String(p.defaultOrchestrationEventID || '').trim();
+  if (style === 'minimal' && defaultOrch) {
+    const hasOrch = String(genBody.eventID || genBody.orchestrationEventID || '').trim();
+    if (!hasOrch) genBody = { ...genBody, eventID: defaultOrch };
+  }
+  return buildEventGeneratorXdm(genBody, {
+    style,
+    defaultOrchestrationEventID: defaultOrch,
+  });
 }
 
 /* ── Trigger template substitution ── */
@@ -598,6 +634,8 @@ module.exports = {
   buildMinimalEdgeXdm,
   buildRichEdgeXdm,
   shouldUseRichEdgeXdm,
+  resolveGeneratorEdgeXdmStyle,
+  buildGeneratorEdgeInteractXdm,
   buildTriggerPayload,
   sendEdgeEvent,
   listDatastreams,
