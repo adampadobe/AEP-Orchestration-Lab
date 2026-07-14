@@ -8,9 +8,9 @@ description: >-
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.13)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.14)
 
-MCP server: **AEP Orchestration Lab MCP v3.13.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.14.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -54,6 +54,19 @@ Coworker should call these **before** improvising lab conventions:
 
 ### Test data conventions
 
+#### Email scaler (Portal + MCP — shared Firestore counter)
+
+Profile Generation in Profile Viewer and all MCP generate tools share **`labProfileGenerationPrefs`** per uid+sandbox (keyed by MCP API key `principalUid`).
+
+| Concept | Example | Notes |
+|---------|---------|--------|
+| **Base email** (stored) | `apalmer@adobetest.com` | Set via Profile Viewer base email field, `lab_set_generation_prefs`, or **`lab_confirm_profile_generation`** with `confirmed:true` |
+| **Scaled profile email** (generated) | `apalmer+14072026-3@adobetest.com` | Pattern: **`<local>+DDMMYYYY-N@<domain>`** — today's date + daily counter **N** |
+| **Mobile** (static) | `+447425627462` | E.164 from prefs; applied to every generated profile |
+| **How to reserve** | Omit `email` on `lab_generate_profile` | Default `use_stored_prefs:true` atomically reserves next counter via `POST /api/lab/generation-prefs/next-email` |
+
+**Before first generate on a sandbox:** call **`lab_confirm_profile_generation`** — Coworker reads `questionsForColleague` + `formatRules`, asks the colleague, then persists with `confirmed:true` + `base_email`. **`lab_mcp_first_run_setup`** and **`lab_prepare_demo_from_brand_scrape`** block the profiles step when prefs are missing and return the same confirm hints.
+
 - **Email format (required)**: `<local>+DDMMYYYY-N@<domain>` — e.g. `apalmer+14072026-3@adobetest.com` (today's date + daily counter N). Legacy `travel.demo+001@adobetest.com` is **rejected** by MCP guardrails.
 - **Base email**: stored in Firestore `labProfileGenerationPrefs` (Profile Viewer Profile Generation field or `lab_set_generation_prefs`). MCP `lab_generate_profile` **omits email** to auto-reserve the next counter value.
 - **Mobile**: static E.164 from prefs — lab default **`+447425627462`** (visible in Portal + MCP responses).
@@ -66,6 +79,10 @@ Coworker should call these **before** improvising lab conventions:
 ### Example prompt that needs zero manual context (v3.13+)
 
 > Call **lab_get_execution_framework** (read criticalRules). **lab_confirm_profile_generation** for sandbox apalmer — show colleague format rules and next preview email. When confirmed, **lab_preflight_profile_generate** industry travel. If ready, **lab_generate_profile** sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should be `+DDMMYYYY-N` scaled form.
+
+### One-shot full demo prep (v3.14+ — confirm → scrape → profiles → events)
+
+> Sandbox **apalmer**, customer site **https://example-brand.com**. (1) **lab_mcp_access_info**. (2) **lab_mcp_first_run_setup** if new key — if `readiness.generation_prefs.ready` is false, **lab_confirm_profile_generation** and ask colleague for base email (e.g. apalmer@adobetest.com), then `confirmed:true`. (3) **lab_resolve_brand_scrape** url — if `need_new_scrape`, one **lab_brand_scrape** with `include: { personas: true, segments: true, demoWebsite: true }`, `wait_for_complete: true`. (4) **lab_prepare_demo_from_brand_scrape** with `steps: { profiles: true, events: true }` — omit industry and email (scrape-inferred industry + stored prefs). (5) Open demo URL from `profileViewerDemoHref` / `lab_list_brand_scrapes`. (6) **lab_get_profile** + **lab_profile_activity** per scaled email (allow 30–60s UPS lag).
 
 ## Workflow 0a — Confirm email format before first generate
 
@@ -87,9 +104,9 @@ Coworker should call these **before** improvising lab conventions:
 
 ## Workflow 0b — First-run foundations (new sandbox / new key)
 
-Run **once** after connecting Coworker — replaces Portal workspace-slug gate before key generation.
+Run **once** after connecting Coworker — replaces Portal workspace-slug gate before key generation. **`lab_mcp_first_run_setup`** reports `readiness.generation_prefs` — when `ready:false`, run **Workflow 0a** (`lab_confirm_profile_generation`) before any generate or **`lab_prepare_demo_from_brand_scrape`** profiles step.
 
-> Call **lab_mcp_access_info**, then **lab_mcp_first_run_setup** with sandbox `prisacar`, workspace_slug `prisacar`, first_name, last_name, and adobe_email if not already on the MCP key principal. Summarize checklist (workspace profile, RTDB ldapSlug, sandbox infra, event targets). If `notReadyIndustries` is non-empty, run **lab_onboard_sandbox** mode=plan.
+> Call **lab_mcp_access_info**, then **lab_mcp_first_run_setup** with sandbox `prisacar`, workspace_slug `prisacar`, first_name, last_name, and adobe_email if not already on the MCP key principal. Summarize checklist (workspace profile, RTDB ldapSlug, sandbox infra, event targets, **generation prefs**). If `generation_prefs.ready` is false, **lab_confirm_profile_generation** before generate. If `notReadyIndustries` is non-empty, run **lab_onboard_sandbox** mode=plan.
 
 Example (user on sandbox **prisacar**):
 

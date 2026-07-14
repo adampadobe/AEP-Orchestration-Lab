@@ -163,7 +163,11 @@ export function registerGenerateProfileTool(mcpServer) {
           example: emailResolved.example,
           provided: emailResolved.provided,
           formatRules: emailResolved.formatRules,
-          confirmTool: 'lab_confirm_profile_generation',
+          questionsForColleague: emailResolved.questionsForColleague,
+          recommendedAction: emailResolved.recommendedAction,
+          nextStep: emailResolved.nextStep,
+          confirmTool: emailResolved.confirmTool || 'lab_confirm_profile_generation',
+          blockedReason: emailResolved.use_stored_prefs === false ? undefined : 'generation_prefs_missing',
         });
       }
 

@@ -10,6 +10,7 @@ import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { normalizeGenerateProfileParams } from '../framework/generateProfileParams.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 import { buildEmailFormatRules, validateScaledLabEmail } from '../framework/emailFormatGuardrails.mjs';
+import { checkGenerationPrefsConfigured } from './generationPrefs.mjs';
 import { resolveBatchEmail } from '../personaBuilder.mjs';
 
 const BATCH_MAX = 100;
@@ -148,6 +149,26 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       }
 
       const useStoredPrefs = use_stored_prefs ?? (!base_email && !email_pattern);
+      if (useStoredPrefs) {
+        const prefsCheck = await checkGenerationPrefsConfigured(allowed.sandbox);
+        if (!prefsCheck.ok) {
+          writeAuditLog({
+            keyId,
+            tool: 'lab_generate_profiles_batch',
+            sandbox: allowed.sandbox,
+            result: 'error',
+          });
+          return toolError(prefsCheck.error, {
+            hint: prefsCheck.hint,
+            coworkerPrompt: prefsCheck.coworkerPrompt,
+            confirmTool: prefsCheck.confirmTool,
+            questionsForColleague: prefsCheck.questionsForColleague,
+            formatRules: prefsCheck.formatRules,
+            recommendedAction: prefsCheck.recommendedAction,
+            nextStep: prefsCheck.nextStep,
+          });
+        }
+      }
       if (!useStoredPrefs) {
         const sampleEmail = resolveBatchEmail({
           index: 1,

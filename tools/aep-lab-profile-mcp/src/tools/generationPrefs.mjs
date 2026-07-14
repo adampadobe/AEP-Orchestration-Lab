@@ -242,6 +242,59 @@ export function registerGenerationPrefsTools(mcpServer) {
 export const STORED_PREFS_MISSING_HINT =
   'Set base email in Profile Viewer → Profile Generation (or lab_set_generation_prefs), then retry.';
 
+export const GENERATION_PREFS_CONFIRM_TOOL = 'lab_confirm_profile_generation';
+
+/**
+ * Coworker-facing block payload when Firestore generation prefs are missing or incomplete.
+ * @param {object} [prefs]
+ * @param {string} [error]
+ */
+export function buildGenerationPrefsBlockedPayload(prefs = {}, error) {
+  const confirm = buildProfileGenerationConfirmQuestions(prefs);
+  return {
+    error:
+      error ||
+      'Profile generation prefs not configured — base email required before first generate.',
+    hint: STORED_PREFS_MISSING_HINT,
+    coworkerPrompt:
+      'Call lab_confirm_profile_generation for this sandbox (confirmed:false first), ask colleague for base email + domain, then confirmed:true with base_email before generating.',
+    confirmTool: GENERATION_PREFS_CONFIRM_TOOL,
+    questionsForColleague: confirm.questionsForColleague,
+    formatRules: confirm.formatRules,
+    recommendedAction: confirm.recommendedAction,
+    prefsReady: confirm.prefsReady,
+    nextStep:
+      'lab_confirm_profile_generation sandbox {sandbox} → confirmed:true base_email colleague@domain.com → retry generate.',
+  };
+}
+
+/**
+ * Preflight: shared Firestore labProfileGenerationPrefs must have baseEmail before stored-prefs generate.
+ * @param {string} sandbox
+ */
+export async function checkGenerationPrefsConfigured(sandbox) {
+  const apiResult = await getGenerationPrefs({ sandbox });
+  if (!apiResult.ok) {
+    return {
+      ok: false,
+      ...buildGenerationPrefsBlockedPayload({}, apiResult.error || 'Failed to read generation prefs'),
+    };
+  }
+  const prefs = apiResult.data?.prefs || {};
+  const confirm = buildProfileGenerationConfirmQuestions(prefs);
+  if (!confirm.prefsReady) {
+    return { ok: false, prefs, ...buildGenerationPrefsBlockedPayload(prefs) };
+  }
+  return {
+    ok: true,
+    prefs,
+    baseEmail: prefs.baseEmail,
+    nextScaledEmail: prefs.nextScaledEmail || null,
+    mobilePhone: prefs.mobilePhone || confirm.mobilePhone,
+    confirm,
+  };
+}
+
 /**
  * Default true when email omitted — matches lab_generate_profile.
  * @param {boolean | undefined} use_stored_prefs
@@ -280,12 +333,17 @@ export async function resolveProfileEmailForGenerate({ sandbox, email, use_store
   if (useStored) {
     const reserved = await resolveStoredPrefsEmail(sandbox);
     if (!reserved.ok) {
+      const blocked = buildGenerationPrefsBlockedPayload({}, reserved.error);
       return {
         ok: false,
         error: reserved.error,
-        hint: reserved.hint || STORED_PREFS_MISSING_HINT,
-        coworkerPrompt:
-          'Call lab_confirm_profile_generation and ask colleague to set base email + domain before generating.',
+        hint: reserved.hint || blocked.hint,
+        coworkerPrompt: blocked.coworkerPrompt,
+        confirmTool: blocked.confirmTool,
+        questionsForColleague: blocked.questionsForColleague,
+        formatRules: blocked.formatRules,
+        recommendedAction: blocked.recommendedAction,
+        nextStep: blocked.nextStep,
       };
     }
     return {
@@ -340,10 +398,23 @@ export async function resolveStoredPrefsEmail(sandbox) {
       String(err).includes('baseEmail') ||
       String(err).includes('Profile Viewer') ||
       String(err).includes('lab_set_generation_prefs');
+    if (needsBase) {
+      const blocked = buildGenerationPrefsBlockedPayload({}, err);
+      return {
+        ok: false,
+        error: err,
+        hint: blocked.hint,
+        coworkerPrompt: blocked.coworkerPrompt,
+        confirmTool: blocked.confirmTool,
+        questionsForColleague: blocked.questionsForColleague,
+        formatRules: blocked.formatRules,
+        recommendedAction: blocked.recommendedAction,
+        nextStep: blocked.nextStep,
+      };
+    }
     return {
       ok: false,
       error: err,
-      hint: needsBase ? STORED_PREFS_MISSING_HINT : undefined,
     };
   }
   return {

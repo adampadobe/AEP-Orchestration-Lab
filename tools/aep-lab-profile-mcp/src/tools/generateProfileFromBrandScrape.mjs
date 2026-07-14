@@ -53,6 +53,10 @@ async function generateOneFromScrapePersona({
       error: emailResolved.error,
       hint: emailResolved.hint || STORED_PREFS_MISSING_HINT,
       coworkerPrompt: emailResolved.coworkerPrompt,
+      confirmTool: emailResolved.confirmTool,
+      questionsForColleague: emailResolved.questionsForColleague,
+      recommendedAction: emailResolved.recommendedAction,
+      nextStep: emailResolved.nextStep,
       expectedPattern: emailResolved.expectedPattern,
       example: emailResolved.example,
       formatRules: emailResolved.formatRules,
@@ -343,10 +347,14 @@ export function registerGenerateProfileFromBrandScrapeTools(mcpServer) {
             partialResults: results,
             hint: one.hint,
             coworkerPrompt: one.coworkerPrompt,
+            confirmTool: one.confirmTool || 'lab_confirm_profile_generation',
+            questionsForColleague: one.questionsForColleague,
+            recommendedAction: one.recommendedAction,
+            nextStep: one.nextStep,
             expectedPattern: one.expectedPattern,
             example: one.example,
             formatRules: one.formatRules,
-            confirmTool: 'lab_confirm_profile_generation',
+            blockedReason: one.confirmTool ? 'generation_prefs_missing' : undefined,
           });
         }
 

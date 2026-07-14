@@ -626,7 +626,11 @@ export function registerBrandScrapeTools(mcpServer) {
         ok: true,
         sandbox: allowed.sandbox,
         count: items.length,
-        items: items.map((item) => summarizeBrandScrapeListItem(item)),
+        items: items.map((item) => {
+          const summary = summarizeBrandScrapeListItem(item);
+          const demoHint = demoWebsiteCoworkerHint(summary);
+          return demoHint ? { ...summary, demoWebsiteHint: demoHint } : summary;
+        }),
         portalUrl: 'https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html',
       });
     },

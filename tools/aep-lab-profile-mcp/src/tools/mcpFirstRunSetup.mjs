@@ -14,6 +14,8 @@ import {
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId, getRequestMcpApiKey } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS } from '../industries.mjs';
+import { buildProfileGenerationConfirmQuestions } from '../framework/emailFormatGuardrails.mjs';
+import { GENERATION_PREFS_CONFIRM_TOOL } from './generationPrefs.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 /**
@@ -163,11 +165,41 @@ export function registerMcpFirstRunSetupTool(mcpServer) {
 
         const prefsResult = await getGenerationPrefs({ sandbox: allowed.sandbox });
         if (prefsResult.ok && prefsResult.data) {
+          const prefs = prefsResult.data.prefs || {};
+          const baseEmail = prefsResult.data.baseEmail || prefs.baseEmail || null;
+          const confirm = buildProfileGenerationConfirmQuestions(prefs);
+          const prefsReady = !!(baseEmail || confirm.prefsReady);
           readiness.generation_prefs = {
-            ready: !!(prefsResult.data.baseEmail || prefsResult.data.prefs?.baseEmail),
-            baseEmail: prefsResult.data.baseEmail || prefsResult.data.prefs?.baseEmail || null,
+            ready: prefsReady,
+            baseEmail,
+            nextScaledEmail: prefs.nextScaledEmail || null,
+            mobilePhone: prefs.mobilePhone || confirm.mobilePhone,
+            confirmTool: GENERATION_PREFS_CONFIRM_TOOL,
+            ...(prefsReady
+              ? { nextStep: 'Omit email on lab_generate_profile to reserve next scaled address.' }
+              : {
+                  blockReason: 'Base email not configured — required before first profile generate.',
+                  questionsForColleague: confirm.questionsForColleague,
+                  recommendedAction: confirm.recommendedAction,
+                  nextStep: `Call ${GENERATION_PREFS_CONFIRM_TOOL} (confirmed:false), then confirmed:true with base_email.`,
+                }),
+          };
+        } else {
+          readiness.generation_prefs = {
+            ready: false,
+            error: prefsResult.error,
+            confirmTool: GENERATION_PREFS_CONFIRM_TOOL,
+            nextStep: `Call ${GENERATION_PREFS_CONFIRM_TOOL} before lab_generate_profile.`,
           };
         }
+      }
+
+      const prefsReady = readiness.generation_prefs?.ready !== false;
+      const mergedNextSteps = Array.isArray(setupData.next_steps) ? [...setupData.next_steps] : [];
+      if (includeReadiness && !prefsReady) {
+        mergedNextSteps.unshift(
+          `${GENERATION_PREFS_CONFIRM_TOOL} — confirm base email + mobile before first lab_generate_profile or brand-scrape profiles step.`,
+        );
       }
 
       return jsonResult({
@@ -178,8 +210,15 @@ export function registerMcpFirstRunSetupTool(mcpServer) {
         foundationsReady: setupData.foundationsReady,
         checklist: setupData.checklist,
         readiness: includeReadiness ? readiness : undefined,
-        next_steps: setupData.next_steps,
-        coworker_hint: setupData.coworker_hint,
+        next_steps: mergedNextSteps.length ? mergedNextSteps : setupData.next_steps,
+        coworker_hint: prefsReady
+          ? setupData.coworker_hint
+          : [
+              setupData.coworker_hint,
+              `Generation prefs missing — call ${GENERATION_PREFS_CONFIRM_TOOL} before generating profiles.`,
+            ]
+              .filter(Boolean)
+              .join(' '),
         portal_only: [
           'Event tool Edge datastream save (if event_targets not ready)',
           'Lab access approval (if sign-in blocked)',

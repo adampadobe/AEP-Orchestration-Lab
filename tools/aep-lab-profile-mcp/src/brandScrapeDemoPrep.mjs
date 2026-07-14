@@ -13,6 +13,7 @@ import {
   resolveStoredPrefsEmail,
   shouldUseStoredGenerationPrefs,
   STORED_PREFS_MISSING_HINT,
+  buildGenerationPrefsBlockedPayload,
 } from './tools/generationPrefs.mjs';
 import {
   clientJourneyV2Generate,
@@ -163,13 +164,17 @@ export async function generateProfilesFromScrapePersonas({
     if (useStored) {
       const reserved = await resolveStoredPrefsEmail(sandbox);
       if (!reserved.ok) {
+        const blocked = buildGenerationPrefsBlockedPayload({}, reserved.error);
         results.push({
           personaIndex: idx,
           personaName: persona.name || null,
           email: '',
           ok: false,
           error: reserved.error,
-          hint: reserved.hint || STORED_PREFS_MISSING_HINT,
+          hint: reserved.hint || blocked.hint,
+          confirmTool: blocked.confirmTool,
+          questionsForColleague: blocked.questionsForColleague,
+          nextStep: blocked.nextStep,
         });
         failed += 1;
         continue;

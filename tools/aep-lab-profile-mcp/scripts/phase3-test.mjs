@@ -701,12 +701,16 @@ async function run() {
   const {
     shouldUseStoredGenerationPrefs,
     STORED_PREFS_MISSING_HINT,
+    buildGenerationPrefsBlockedPayload,
   } = await import('../src/tools/generationPrefs.mjs');
   assert(shouldUseStoredGenerationPrefs(undefined, undefined) === true, 'default use stored when no email');
   assert(shouldUseStoredGenerationPrefs(undefined, 'a@b.com') === false, 'explicit email skips stored');
   assert(shouldUseStoredGenerationPrefs(false, undefined) === false, 'explicit false skips stored');
   assert(shouldUseStoredGenerationPrefs(true, 'a@b.com') === true, 'explicit true with email');
   assert(STORED_PREFS_MISSING_HINT.includes('Profile Generation'), 'prefs missing hint mentions portal');
+  const blockedPrefs = buildGenerationPrefsBlockedPayload({});
+  assert(blockedPrefs.confirmTool === 'lab_confirm_profile_generation', 'blocked payload confirm tool');
+  assert(Array.isArray(blockedPrefs.questionsForColleague) && blockedPrefs.questionsForColleague.length >= 3, 'blocked questions');
 
   const {
     EVENT_TYPE_SUGGESTIONS,
@@ -871,9 +875,17 @@ async function run() {
   assert(!validateE164MobilePhone('07425627462').ok, 'reject non-E164 mobile');
   assert(formatExampleScaledEmail(new Date('2026-07-14')).includes('14072026'), 'example uses DDMMYYYY');
 
+  const listDemoWithHint = summarizeBrandScrapeListItem({
+    scrapeId: 'z',
+    profileViewerDemoHref: '/profile-viewer/foo-demo.html',
+  });
+  const { demoWebsiteCoworkerHint: hintFn } = await import('../src/brandScrapeSummary.mjs');
+  const hint = hintFn(listDemoWithHint);
+  assert(hint && hint.includes('foo-demo.html'), 'demoWebsiteCoworkerHint for list item');
+
   console.log(JSON.stringify({
     ok: true,
-    tests: 'phase3.13 email format guardrails + event identity + critical rules + testProfile/language + persona + all-industry portal parity + ACL + rate limits',
+    tests: 'phase3.14 prefs onboarding gate + email format guardrails + event identity + critical rules + testProfile/language + persona + all-industry portal parity + ACL + rate limits',
     industries: LAB_INDUSTRY_KEYS.length,
     segmentPacks: { travel: TRAVEL_SEGMENT_HINTS, fsi: FSI_SEGMENT_HINTS, retail: RETAIL_SEGMENT_HINTS },
   }));

@@ -11,6 +11,10 @@ import {
   loadBrandScrapeRecord,
   sendDemoEventsForProfiles,
 } from '../brandScrapeDemoPrep.mjs';
+import {
+  checkGenerationPrefsConfigured,
+  shouldUseStoredGenerationPrefs,
+} from './generationPrefs.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 
 /**
@@ -163,6 +167,34 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         const rate = checkGenerateRate(keyId);
         if (!rate.ok) {
           return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+        }
+      }
+
+      if (stepFlags.profiles && shouldUseStoredGenerationPrefs(use_stored_prefs, undefined)) {
+        const prefsCheck = await checkGenerationPrefsConfigured(allowed.sandbox);
+        if (!prefsCheck.ok) {
+          writeAuditLog({
+            keyId,
+            tool: 'lab_prepare_demo_from_brand_scrape',
+            sandbox: allowed.sandbox,
+            identifier: scrapeId || String(url || '').trim(),
+            result: 'error',
+            durationMs: Date.now() - started,
+          });
+          return toolError(prefsCheck.error, {
+            blockedStep: 'profiles',
+            hint: prefsCheck.hint,
+            coworkerPrompt: prefsCheck.coworkerPrompt,
+            confirmTool: prefsCheck.confirmTool,
+            questionsForColleague: prefsCheck.questionsForColleague,
+            formatRules: prefsCheck.formatRules,
+            recommendedAction: prefsCheck.recommendedAction,
+            nextStep: prefsCheck.nextStep,
+            coworkerHints: {
+              confirm: `Call ${prefsCheck.confirmTool} for sandbox ${allowed.sandbox} — ask colleague base email, then confirmed:true.`,
+              retry: 'Re-run lab_prepare_demo_from_brand_scrape with the same scrape_id or url after prefs are saved.',
+            },
+          });
         }
       }
 
