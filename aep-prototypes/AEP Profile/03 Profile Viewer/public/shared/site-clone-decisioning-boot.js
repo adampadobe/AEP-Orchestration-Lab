@@ -213,9 +213,7 @@
     opts = opts || {};
     cfg = cfg || {};
     var explicitDecisioning = cfg.decisioning && typeof cfg.decisioning === 'object' ? cfg.decisioning : {};
-    if (explicitDecisioning.useFakeDecisioning === true) {
-      return null;
-    }
+    var autoRunDecisioning = explicitDecisioning.autoRunDecisioning !== false;
     installStitchSyncHook();
 
     var wiring = resolveDecisioningWiring(cfg);
@@ -281,6 +279,7 @@
       getNamespace: getNamespace,
       getSandboxName: getSandboxName,
       enabled: isDecisioningEnabled,
+      autoRunDecisioning: autoRunDecisioning,
     });
 
     var panelHandle = null;
@@ -325,11 +324,11 @@
         }
         return;
       }
-      if (runtimeApi && typeof runtimeApi.maybeAutoLookup === 'function') {
+      if (autoRunDecisioning && runtimeApi && typeof runtimeApi.maybeAutoLookup === 'function') {
         await runtimeApi.maybeAutoLookup('profile-lookup-sync');
         return;
       }
-      if (runtimeApi && typeof runtimeApi.runProfileLookup === 'function') {
+      if (autoRunDecisioning && runtimeApi && typeof runtimeApi.runProfileLookup === 'function') {
         await runtimeApi.runProfileLookup({ silent: true });
         return;
       }
@@ -348,7 +347,12 @@
     ) {
       global.DecisioningProfileRuntime.refreshEnabledState();
     }
-    if (isDecisioningEnabled() && runtimeApi && typeof runtimeApi.maybeAutoLookup === 'function') {
+    if (
+      autoRunDecisioning &&
+      isDecisioningEnabled() &&
+      runtimeApi &&
+      typeof runtimeApi.maybeAutoLookup === 'function'
+    ) {
       void runtimeApi.maybeAutoLookup('decisioning-boot');
     }
 

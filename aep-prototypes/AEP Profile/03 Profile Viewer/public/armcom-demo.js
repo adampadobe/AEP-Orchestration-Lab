@@ -55,7 +55,15 @@ function whenEnvBarReady(run) {
   }
 }
 
-whenEnvBarReady(bootArmcomDemoLab);
+whenEnvBarReady(function () {
+  bootArmcomDemoLab();
+  syncArmcomDecisioningStateToIframe();
+});
+
+document.addEventListener('change', function (ev) {
+  if (!ev || !ev.target || ev.target.id !== 'siteCloneDecisioningEnabledToggle') return;
+  syncArmcomDecisioningStateToIframe();
+});
 
 function setArmcomMessage(text, type) {
   if (armcomLab && typeof armcomLab.setMessage === 'function') {
@@ -120,7 +128,17 @@ function postArmcomBannerMessage(type, payload) {
   );
 }
 
+function isArmcomDecisioningEnabled() {
+  var toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
+  return !!(toggle && toggle.checked);
+}
+
+function syncArmcomDecisioningStateToIframe() {
+  postArmcomBannerMessage('armcom-decisioning-state', { enabled: isArmcomDecisioningEnabled() });
+}
+
 function triggerArmcomDecisioningRefresh(payload) {
+  if (!isArmcomDecisioningEnabled()) return;
   postArmcomBannerMessage('armcom-banner-refresh', payload || { contentTriggered: true });
 }
 

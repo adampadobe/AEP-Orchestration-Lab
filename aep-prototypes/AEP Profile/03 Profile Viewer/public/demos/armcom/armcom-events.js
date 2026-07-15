@@ -71,6 +71,12 @@
   }
 
   function requestDecisioningRefresh() {
+    if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.isEnabled === 'function') {
+      if (!window.ArmcomPersonalizedBanner.isEnabled()) {
+        postToParent('armcom-decisioning-refresh', {});
+        return;
+      }
+    }
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.refresh === 'function') {
       window.ArmcomPersonalizedBanner.refresh({ contentTriggered: true });
       return;
@@ -79,6 +85,14 @@
   }
 
   function notifyLeadCapture(email, company, source) {
+    if (
+      window.ArmcomPersonalizedBanner &&
+      typeof window.ArmcomPersonalizedBanner.isEnabled === 'function' &&
+      !window.ArmcomPersonalizedBanner.isEnabled()
+    ) {
+      postToParent('armcom-lead-capture', { email: email, company: company, source: source });
+      return;
+    }
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.onLeadCapture === 'function') {
       window.ArmcomPersonalizedBanner.onLeadCapture({ email: email, company: company, source: source });
     }
@@ -86,6 +100,13 @@
   }
 
   function notifyContentInterest(topic, label) {
+    if (
+      window.ArmcomPersonalizedBanner &&
+      typeof window.ArmcomPersonalizedBanner.isEnabled === 'function' &&
+      !window.ArmcomPersonalizedBanner.isEnabled()
+    ) {
+      return;
+    }
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.onContentInterest === 'function') {
       window.ArmcomPersonalizedBanner.onContentInterest(topic, label);
     }
@@ -309,6 +330,14 @@
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== 'armcom-demo-shell') return;
       if (ev.data.type === 'login-complete' && ev.data.found) {
+        if (
+          window.ArmcomPersonalizedBanner &&
+          typeof window.ArmcomPersonalizedBanner.isEnabled === 'function' &&
+          !window.ArmcomPersonalizedBanner.isEnabled()
+        ) {
+          showActivationToast();
+          return;
+        }
         if (
           window.ArmcomPersonalizedBanner &&
           typeof window.ArmcomPersonalizedBanner.onRegistrationComplete === 'function'

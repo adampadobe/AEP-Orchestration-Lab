@@ -7,6 +7,7 @@
 
   var STORAGE_KEY = 'armcomBannerState';
   var SHELL_SOURCE = 'armcom-demo-shell';
+  var decisioningEnabled = false;
 
   var TOPIC_LABELS = {
     'cloud-ai': 'Cloud AI',
@@ -214,6 +215,10 @@
 
   function refresh(opts) {
     opts = opts || {};
+    if (!decisioningEnabled) {
+      clearBanner();
+      return false;
+    }
     var state = readState();
     if (opts.contentTriggered) state.contentTriggered = true;
     if (opts.forceVariant) state.forceVariant = opts.forceVariant;
@@ -285,6 +290,12 @@
   function wireMessages() {
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== SHELL_SOURCE) return;
+      if (ev.data.type === 'armcom-decisioning-state') {
+        decisioningEnabled = !!(ev.data.payload && ev.data.payload.enabled);
+        if (!decisioningEnabled) clearBanner();
+        else refresh();
+        return;
+      }
       if (ev.data.type === 'login-complete') {
         onRegistrationComplete({
           email: ev.data.email,
@@ -313,11 +324,13 @@
       'blog-future-computing': 'cloud-ai',
     };
     onPageView(topicMap[pageId] || 'general');
-    refresh();
   }
 
   window.ArmcomPersonalizedBanner = {
     refresh: refresh,
+    isEnabled: function () {
+      return decisioningEnabled;
+    },
     onLeadCapture: onLeadCapture,
     onRegistrationComplete: onRegistrationComplete,
     onContentInterest: onContentInterest,

@@ -69,6 +69,10 @@
     return true;
   }
 
+  function isAutoRunDecisioning() {
+    return cfg('autoRunDecisioning') !== false;
+  }
+
   function mountLayout() {
     if (typeof cfg('mountLayout') !== 'undefined') return cfg('mountLayout');
     return cfg('mountLayoutPreset') || 'sky-home';
@@ -581,12 +585,12 @@
         labConfigRecord = null;
         labConfigLoadPromise = loadLabConfig().then(function () {
           applySavedSurfaceStyles();
-          if (isEnabled()) void maybeAutoLookup('sandbox-change');
+          if (isEnabled() && isAutoRunDecisioning()) void maybeAutoLookup('sandbox-change');
           return labConfigRecord;
         });
       });
     } catch (_e) {}
-    if (isEnabled()) void maybeAutoLookup('runtime-init');
+    if (isEnabled() && isAutoRunDecisioning()) void maybeAutoLookup('runtime-init');
     labConfigLoadPromise.then(function () {
       if (isEnabled()) {
         ensureMounts();
@@ -634,7 +638,7 @@
     if (isEnabled()) {
       ensureMounts();
       applySavedSurfaceStyles();
-      void maybeAutoLookup('enabled');
+      if (isAutoRunDecisioning()) void maybeAutoLookup('enabled');
     } else removeMounts();
   }
 
