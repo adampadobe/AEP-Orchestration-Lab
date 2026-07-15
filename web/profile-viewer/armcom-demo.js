@@ -134,8 +134,22 @@ function isArmcomDecisioningEnabled() {
 }
 
 function syncArmcomDecisioningStateToIframe() {
-  postArmcomBannerMessage('armcom-decisioning-state', { enabled: isArmcomDecisioningEnabled() });
+  var enabled = isArmcomDecisioningEnabled();
+  postArmcomBannerMessage('armcom-decisioning-state', { enabled: enabled });
+  if (enabled) {
+    triggerArmcomDecisioningRefresh();
+  }
 }
+
+function wireArmcomFakeDecisioningSync() {
+  window.addEventListener('site-clone-fake-decisioning-sync', function (ev) {
+    var detail = ev && ev.detail ? ev.detail : {};
+    if (detail.prefix && detail.prefix !== 'armcom') return;
+    syncArmcomDecisioningStateToIframe();
+  });
+}
+
+wireArmcomFakeDecisioningSync();
 
 function triggerArmcomDecisioningRefresh(payload) {
   if (!isArmcomDecisioningEnabled()) return;

@@ -1364,7 +1364,10 @@ function syncDecisioningFromPrefs() {
     } else if (
       global.DecisioningProfileRuntime &&
       typeof global.DecisioningProfileRuntime.maybeAutoLookup === 'function' &&
-      !(global.envBarConfig && global.envBarConfig.decisioning && global.envBarConfig.decisioning.autoRunDecisioning === false)
+      !(global.envBarConfig &&
+        global.envBarConfig.decisioning &&
+        (global.envBarConfig.decisioning.autoRunDecisioning === false ||
+          global.envBarConfig.decisioning.useFakeDecisioning === true))
     ) {
       void global.DecisioningProfileRuntime.maybeAutoLookup('decisioning-enabled');
     }

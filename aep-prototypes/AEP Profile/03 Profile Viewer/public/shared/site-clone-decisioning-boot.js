@@ -213,8 +213,11 @@
     opts = opts || {};
     cfg = cfg || {};
     var explicitDecisioning = cfg.decisioning && typeof cfg.decisioning === 'object' ? cfg.decisioning : {};
-    var autoRunDecisioning = explicitDecisioning.autoRunDecisioning !== false;
-    installStitchSyncHook();
+    var useFakeDecisioning = explicitDecisioning.useFakeDecisioning === true;
+    var autoRunDecisioning = !useFakeDecisioning && explicitDecisioning.autoRunDecisioning !== false;
+    if (!useFakeDecisioning) {
+      installStitchSyncHook();
+    }
 
     var wiring = resolveDecisioningWiring(cfg);
     if (!wiring.iframeId && !wiring.useParentDocument) {
@@ -223,11 +226,12 @@
     }
 
     if (bootResult && !opts.force) return bootResult;
+    if (!global.DecisioningProfilePanel || typeof global.DecisioningProfilePanel.init !== 'function') {
+      return null;
+    }
     if (
-      !global.DecisioningProfileRuntime ||
-      typeof global.DecisioningProfileRuntime.init !== 'function' ||
-      !global.DecisioningProfilePanel ||
-      typeof global.DecisioningProfilePanel.init !== 'function'
+      !useFakeDecisioning &&
+      (!global.DecisioningProfileRuntime || typeof global.DecisioningProfileRuntime.init !== 'function')
     ) {
       return null;
     }
@@ -262,25 +266,28 @@
       return String(wiring.viewName || prefix || 'Site clone demo').trim();
     }
 
-    var runtimeApi = global.DecisioningProfileRuntime.init({
-      iframeId: wiring.iframeId || '',
-      useParentDocument: !!wiring.useParentDocument,
-      tagsStoragePrefix: prefix,
-      mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
-      targetPageUrl: wiring.targetPageUrl || '',
-      getTargetPageUrl:
-        typeof wiring.getTargetPageUrl === 'function'
-          ? wiring.getTargetPageUrl
-          : wiring.iframeId && !wiring.useParentDocument
-            ? buildIframeTargetPageUrlResolver(wiring.iframeId)
-            : undefined,
-      getViewName: getViewName,
-      getIdentifierValue: getIdentifierValue,
-      getNamespace: getNamespace,
-      getSandboxName: getSandboxName,
-      enabled: isDecisioningEnabled,
-      autoRunDecisioning: autoRunDecisioning,
-    });
+    var runtimeApi = null;
+    if (!useFakeDecisioning) {
+      runtimeApi = global.DecisioningProfileRuntime.init({
+        iframeId: wiring.iframeId || '',
+        useParentDocument: !!wiring.useParentDocument,
+        tagsStoragePrefix: prefix,
+        mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
+        targetPageUrl: wiring.targetPageUrl || '',
+        getTargetPageUrl:
+          typeof wiring.getTargetPageUrl === 'function'
+            ? wiring.getTargetPageUrl
+            : wiring.iframeId && !wiring.useParentDocument
+              ? buildIframeTargetPageUrlResolver(wiring.iframeId)
+              : undefined,
+        getViewName: getViewName,
+        getIdentifierValue: getIdentifierValue,
+        getNamespace: getNamespace,
+        getSandboxName: getSandboxName,
+        enabled: isDecisioningEnabled,
+        autoRunDecisioning: autoRunDecisioning,
+      });
+    }
 
     var panelHandle = null;
     if (!document.getElementById('dpmPanelAnchor')) {
@@ -324,6 +331,14 @@
         }
         return;
       }
+      if (useFakeDecisioning) {
+        try {
+          global.dispatchEvent(new CustomEvent('site-clone-fake-decisioning-sync', { detail: { prefix: prefix } }));
+        } catch (_fakeSyncErr) {
+          /* noop */
+        }
+        return;
+      }
       if (autoRunDecisioning && runtimeApi && typeof runtimeApi.maybeAutoLookup === 'function') {
         await runtimeApi.maybeAutoLookup('profile-lookup-sync');
         return;
@@ -342,12 +357,14 @@
     global.__siteCloneSyncDecisioningProfile = syncFn;
 
     if (
+      !useFakeDecisioning &&
       global.DecisioningProfileRuntime &&
       typeof global.DecisioningProfileRuntime.refreshEnabledState === 'function'
     ) {
       global.DecisioningProfileRuntime.refreshEnabledState();
     }
     if (
+      !useFakeDecisioning &&
       autoRunDecisioning &&
       isDecisioningEnabled() &&
       runtimeApi &&
@@ -356,7 +373,13 @@
       void runtimeApi.maybeAutoLookup('decisioning-boot');
     }
 
-    bootResult = { runtimeApi: runtimeApi, panelHandle: panelHandle, syncKey: syncKey, wiring: wiring };
+    bootResult = {
+      runtimeApi: runtimeApi,
+      panelHandle: panelHandle,
+      syncKey: syncKey,
+      wiring: wiring,
+      useFakeDecisioning: useFakeDecisioning,
+    };
     wireIframeLoadRetry(cfg);
     return bootResult;
   }
