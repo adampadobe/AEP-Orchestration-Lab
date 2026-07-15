@@ -6,10 +6,10 @@
  * arbitrary eventType through to XDM.
  *
  * Coworker/agents: pass ONLY these camelCase fields — never raw XDM. Server builds minimal Edge
- * payload via eventEdgeService.buildGeneratorEdgeInteractXdm → eventGeneratorService.buildEventGeneratorXdm.
+ * payload via eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity).
  * Typical server-built shape (channel=web):
- *   { event: { xdm: { identityMap, eventType, _id, timestamp, interactionDetails.core.channel,
- *     _demoemea.identification.core (ecid+email mirror), _experience.campaign.orchestration.eventID } } }
+ *   { event: { xdm: { identityMap, eventType, _id, timestamp, interactionDetails.core.channel } } }
+ * Do NOT pass viewName/viewUrl — they upgrade to rich XDM with web.webPageDetails.
  */
 
 /** Default when event_type omitted — matches Event tool full Edge target (not minimal). */
@@ -56,8 +56,6 @@ export function isValidGeneratorEcid(ecid) {
  * @param {string} [params.ecid]
  * @param {string} [params.target_id]
  * @param {string} [params.event_type] — any custom string (portal free-text input)
- * @param {string} [params.view_name]
- * @param {string} [params.view_url]
  * @param {string} [params.channel]
  * @param {string} [params.event_id] — portal orchestrationEventID → eventID
  * @param {string} [params.orchestration_event_id] — alias for event_id
@@ -76,8 +74,6 @@ export function isValidGeneratorEcid(ecid) {
 export function buildGeneratorPostBody(params = {}) {
   const emailTrim = trimOrEmpty(params.email);
   const eventTypeTrim = trimOrEmpty(params.event_type);
-  const viewNameVal = trimOrEmpty(params.view_name);
-  const viewUrlVal = trimOrEmpty(params.view_url);
   const channelVal = trimOrEmpty(params.channel);
   const ecidTrim = trimOrEmpty(params.ecid);
   const orchId = trimOrEmpty(params.event_id || params.orchestration_event_id);
@@ -92,8 +88,6 @@ export function buildGeneratorPostBody(params = {}) {
   /** @type {Record<string, unknown>} */
   const body = {
     eventType: eventTypeTrim || defaultEventType,
-    viewName: viewNameVal,
-    viewUrl: viewUrlVal,
   };
 
   if (sandbox) body.sandbox = sandbox;
@@ -149,9 +143,11 @@ export function portalEventGeneratorSendBody(input = {}) {
     targetId: input.targetId || undefined,
     email: trimOrEmpty(input.email),
     eventType: trimOrEmpty(input.eventType) || (input.edgeMinimal ? 'donation.made' : PORTAL_DEFAULT_EVENT_TYPE),
-    viewName: trimOrEmpty(input.viewName),
-    viewUrl: trimOrEmpty(input.viewUrl),
   };
+  const viewName = trimOrEmpty(input.viewName);
+  const viewUrl = trimOrEmpty(input.viewUrl);
+  if (viewName) body.viewName = viewName;
+  if (viewUrl) body.viewUrl = viewUrl;
   const channelVal = trimOrEmpty(input.channel);
   if (channelVal) body.channel = channelVal;
   const ecid = trimOrEmpty(input.ecid);

@@ -761,8 +761,6 @@ async function run() {
     email: 'demo+001@adobetest.com',
     ecid: '62722406001178632594092146103219305888',
     eventType: 'donation.made',
-    viewName: 'Race for Life',
-    viewUrl: 'https://example.com/donate',
     channel: 'web',
     eventID: 'orch-abc',
     timestamp: '2026-06-23T12:00:00.000Z',
@@ -776,8 +774,6 @@ async function run() {
     email: 'demo+001@adobetest.com',
     ecid: '62722406001178632594092146103219305888',
     event_type: 'donation.made',
-    view_name: 'Race for Life',
-    view_url: 'https://example.com/donate',
     channel: 'web',
     event_id: 'orch-abc',
     timestamp: '2026-06-23T12:00:00.000Z',
@@ -789,8 +785,10 @@ async function run() {
   }
   assert(
     normalizeGeneratorBody(mcpBody) === normalizeGeneratorBody(portalRef),
-    'MCP generator body matches portal event-generator.js extract',
+    'MCP minimal generator body matches portal event-generator.js extract (no viewName)',
   );
+  assert(mcpBody.viewName === undefined, 'Coworker POST body omits viewName');
+  assert(mcpBody.viewUrl === undefined, 'Coworker POST body omits viewUrl');
 
   const mobileBody = buildGeneratorPostBody({
     email: 'demo+001@adobetest.com',
@@ -812,16 +810,17 @@ async function run() {
     ecid: '62722406001178632594092146103219305888',
     target_id: 'lab-event-tool-edge',
     event_type: starbucksPack[0].event_type,
-    view_name: starbucksPack[0].view_name,
-    view_url: starbucksPack[0].view_url,
     channel: starbucksPack[0].channel,
     timestamp: starbucksPack[0].timestamp,
   });
   assert(genBody.eventType === 'commerce.productViews', 'generator body eventType camelCase');
-  assert(genBody.viewName && genBody.ecid && genBody.email && genBody._id, 'generator body identity + timestamp _id');
+  assert(genBody.viewName === undefined, 'generator body omits viewName');
+  assert(genBody.ecid && genBody.email && genBody._id, 'generator body identity + timestamp _id');
 
-  const shorthand = buildEventsFromEventTypes(['ferrariworld.pageView', 'transaction'], { view_name: 'FW' });
+  const shorthand = buildEventsFromEventTypes(['ferrariworld.pageView', 'transaction'], { channel: 'web' });
   assert(shorthand.length === 2, 'buildEventsFromEventTypes length');
+  assert(shorthand[0].view_name === undefined, 'shorthand omits view_name');
+  assert(shorthand[1].view_name === undefined, 'shorthand step 2 omits view_name');
   assert(shorthand[0].timestamp && shorthand[1].timestamp, 'buildEventsFromEventTypes staggered timestamps');
   assert(shorthand[0].timestamp !== shorthand[1].timestamp, 'buildEventsFromEventTypes distinct timestamps');
   assert(shorthand[0].channel === 'web' && shorthand[1].channel === 'web', 'buildEventsFromEventTypes channel default');

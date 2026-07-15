@@ -5,6 +5,7 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { EVENT_TYPE_SUGGESTIONS } from '../framework/buildGeneratorPostBody.mjs';
+import { sanitizeCoworkerEventParams } from '../framework/sanitizeCoworkerEventParams.mjs';
 import {
   buildEventIdentityMap,
   extractEcidFromProfileTable,
@@ -27,9 +28,9 @@ export function registerSendProfileEventTool(mcpServer) {
       title: 'Send profile experience event',
       description:
         'POST /api/events/generator — server builds minimal Edge XDM from tool params (same as Profile Viewer Event tool). ' +
-        'Coworker/agents: pass ONLY sandbox, email, ecid, event_type, channel (optional view_name) — NEVER pass custom xdm, schema refs, mixin blobs, or tenant field groups. ' +
+        'Coworker/agents: pass ONLY sandbox, email, ecid, event_type, channel, timestamp — NEVER pass view_name, view_url, custom xdm, schema refs, mixin blobs, or tenant field groups. ' +
         'event_type accepts ANY string (datalist suggestions are optional). Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
-        'Server builds XDM via buildGeneratorEdgeInteractXdm (identityMap, eventType, _id, timestamp, interactionDetails when channel set). ' +
+        'Server builds XDM via buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (identityMap, eventType, _id, timestamp, interactionDetails when channel set). ' +
         'Omit public/message/xdm_style unless colleague explicitly needs rich tenant demo fields. Default target_id lab-event-tool-edge. ' +
         'Preflight: lab_preflight_profile_event. Multi-event: lab_send_profile_events_batch.',
       inputSchema: {
@@ -44,8 +45,6 @@ export function registerSendProfileEventTool(mcpServer) {
           .optional()
           .describe('Preset id from lab_list_event_targets (default lab-event-tool-edge)'),
         event_type: z.string().optional().describe(eventTypeDescribe),
-        view_name: z.string().optional().describe('Web page view name / title'),
-        view_url: z.string().optional().describe('Web page URL'),
         channel: z.string().optional().describe('Interaction channel (web, mobile, Mobile App, email, …)'),
         orchestration_event_id: z.string().optional().describe('AJO orchestration event ID (sent as eventID)'),
         event_id: z.string().optional().describe('Alias for orchestration_event_id (portal eventID field)'),
@@ -99,8 +98,10 @@ export function registerSendProfileEventTool(mcpServer) {
         email,
         ecid,
         auto_fetch_ecid,
-        ...eventFields
+        ...rawEventFields
       } = params;
+
+      const { params: eventFields, warnings: strippedWarnings } = sanitizeCoworkerEventParams(rawEventFields);
 
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -160,6 +161,8 @@ export function registerSendProfileEventTool(mcpServer) {
         return toolError(resolved.error);
       }
 
+      const allWarnings = [...resolved.warnings, ...strippedWarnings];
+
       const targetsResult = await listEventTargets({ sandbox: allowed.sandbox });
       const targets = targetsResult.ok && Array.isArray(targetsResult.data?.targets)
         ? targetsResult.data.targets
@@ -210,7 +213,7 @@ export function registerSendProfileEventTool(mcpServer) {
           response: apiResult.data,
           sandbox: allowed.sandbox,
           identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
-          warnings: resolved.warnings,
+          warnings: allWarnings.length ? allWarnings : undefined,
         });
       }
 
@@ -223,7 +226,7 @@ export function registerSendProfileEventTool(mcpServer) {
         message: lab.message || null,
         identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
         ecid: resolved.ecid || null,
-        warnings: resolved.warnings.length ? resolved.warnings : undefined,
+        warnings: allWarnings.length ? allWarnings : undefined,
         stitch_note:
           'ok:true means Edge accepted the event — not that UPS already shows it on the profile. ' +
           'Verify with lab_profile_activity after 30–60s; pass ecid from lab_generate_profile for reliable stitching.',

@@ -123,10 +123,11 @@ export const CRITICAL_RULES = [
     id: 'coworker_event_minimal_params',
     rule:
       'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, tenant field groups, or rich demo payloads to event tools. ' +
-      'Coworker/agents must use lab_send_profile_event or lab_send_profile_events_batch with tool params ONLY: sandbox, email, ecid, event_type, channel ' +
-      '(optional view_name for page views). The lab server builds minimal Edge XDM — do not construct event.xdm yourself.',
+      'Coworker/agents must use lab_send_profile_event or lab_send_profile_events_batch with tool params ONLY: sandbox, email, ecid, event_type, channel, timestamp. ' +
+      'NEVER pass view_name or view_url — they add web.webPageDetails and break Event tool UI minimal parity. The lab server builds minimal Edge XDM — do not construct event.xdm yourself.',
     never_pass: [
       'xdm / event.xdm JSON blobs',
+      'view_name / view_url / viewName / viewUrl',
       'schema $id / meta:altId / allOf mixin definitions',
       'descriptor payloads or field-group schema fragments',
       'public / message / tenant / xdm_tenant_key unless colleague explicitly requests rich tenant demo fields',
@@ -135,15 +136,17 @@ export const CRITICAL_RULES = [
     ],
     preferred_tools: ['lab_send_profile_event', 'lab_send_profile_events_batch', 'lab_preflight_profile_event'],
     server_build:
-      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm → eventGeneratorService.buildEventGeneratorXdm (style minimal). ' +
-      'MCP buildGeneratorPostBody sends camelCase fields only (eventType, email, ecid, channel) — never raw XDM.',
+      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity). ' +
+      'MCP buildGeneratorPostBody sends camelCase fields only (eventType, email, ecid, channel) — never viewName/viewUrl or raw XDM.',
     server_built_xdm_shape: {
       wrapper: '{ event: { xdm: { … } } }',
       required_fields: ['identityMap (ECID primary + Email secondary)', 'eventType', '_id', 'timestamp'],
-      server_adds_automatically: [
-        '_demoemea.identification.core.ecid + .email (tenant stitch mirror)',
-        '_experience.campaign.orchestration.eventID (default orchestration id)',
-        'interactionDetails.core.channel when channel param is set',
+      server_adds_automatically: ['interactionDetails.core.channel when channel param is set'],
+      never_in_minimal: [
+        'view_name / web.webPageDetails',
+        '_demoemea tenant mirror',
+        '_experience.campaign.orchestration.eventID',
+        'schema refs / mixin blobs',
       ],
       example:
         '{ "event": { "xdm": { "identityMap": { "ECID": [{"id":"…","primary":true}], "Email": [{"id":"…","primary":false}] }, "_id": "…", "eventType": "donation.made", "timestamp": "2026-07-15T18:41:26.946Z", "interactionDetails": { "core": { "channel": "web" } } } } }',
@@ -460,16 +463,17 @@ export function getExecutionFramework() {
         ],
         never_pass: [
           'Custom xdm / event.xdm JSON',
+          'view_name / view_url (adds web.webPageDetails)',
           'Schema refs, mixin definitions, descriptors, tenant field-group payloads',
           'public / message / xdm_tenant_key unless colleague explicitly asks for rich tenant fields',
         ],
         identity_rules: [
           'At least one of email or ecid required',
           'identityMap: ECID primary when both present; Email secondary',
-          '_demoemea.identification.core.ecid + email added by server for tenant stitching',
+          'Minimal XDM: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only',
         ],
         server_build:
-          'eventEdgeService.buildGeneratorEdgeInteractXdm → eventGeneratorService.buildEventGeneratorXdm (minimal). See criticalRules.coworker_event_minimal_params.',
+          'eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity). See criticalRules.coworker_event_minimal_params.',
         coworker_event_send_recipe: {
           summary: 'Profile + intent events — params only, server builds XDM',
           steps: [

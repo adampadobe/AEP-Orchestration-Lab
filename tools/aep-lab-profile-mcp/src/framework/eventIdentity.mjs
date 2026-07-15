@@ -5,6 +5,7 @@
  */
 
 import { buildGeneratorPostBody, LAB_EVENT_TOOL_TARGET_ID } from './buildGeneratorPostBody.mjs';
+import { sanitizeCoworkerEventParams } from './sanitizeCoworkerEventParams.mjs';
 
 export { LAB_EVENT_TOOL_TARGET_ID };
 
@@ -196,9 +197,13 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
       ? { id: LAB_EVENT_TOOL_TARGET_ID, note: 'Default Event tool preset when Firestore eventConfig has datastreamId' }
       : null);
 
+  const { params: sanitizedFields } = sanitizeCoworkerEventParams(
+    eventFields && typeof eventFields === 'object' ? eventFields : {},
+  );
+
   const generatorPostBody = buildGeneratorPostBody({
     sandbox,
-    ...(eventFields && typeof eventFields === 'object' ? eventFields : {}),
+    ...sanitizedFields,
     email,
     ecid,
     target_id: targetId,
@@ -210,17 +215,11 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
       email: email || null,
       ecid: ecid || null,
       identityMap,
-      tenant_identification_core: {
-        _demoemea: {
-          identification: {
-            core: buildDemoemeaIdentificationCore({ email, ecid }),
-          },
-        },
-      },
       rules: [
         'At least one of email or ecid (10+ digits) required — same as Event Generator UI strip.',
         'When both present: identityMap.ECID primary:true, identityMap.Email primary:false.',
-        '_demoemea.identification.core is added by the server — do NOT hand-build XDM for Coworker.',
+        'Minimal Edge XDM: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only.',
+        'Do NOT pass view_name/view_url — server matches Event tool UI minimal (no web.webPageDetails, no _demoemea).',
         'Prefer BOTH after lab_generate_profile — capture ecid from generate response.',
         'event_type is free text — pass as tool param only; never inject schema refs, mixin defs, or tenant FG blobs.',
         'generatorPostBody is camelCase POST fields — server converts to minimal Edge XDM automatically.',

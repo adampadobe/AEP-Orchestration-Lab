@@ -118,12 +118,8 @@ export async function sendProfileEventSequence({
       ecid: resolved.ecid || undefined,
       target_id: targetCheck.requested_id,
       event_type: step.event_type,
-      view_name: step.view_name,
-      view_url: step.view_url,
       channel: step.channel || 'web',
       timestamp,
-      public: step.public,
-      message: step.message,
     });
 
     const lab = apiResult.ok && apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : {};
@@ -131,7 +127,6 @@ export async function sendProfileEventSequence({
     stepResults.push({
       index: i,
       event_type: step.event_type,
-      view_name: step.view_name || null,
       channel: step.channel || 'web',
       timestamp,
       ok: apiResult.ok,

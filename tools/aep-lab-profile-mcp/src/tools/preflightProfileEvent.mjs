@@ -4,6 +4,7 @@ import { listEventTargets, lookupProfile } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { buildGeneratorPostBody } from '../framework/buildGeneratorPostBody.mjs';
+import { sanitizeCoworkerEventParams } from '../framework/sanitizeCoworkerEventParams.mjs';
 import {
   buildEventPreflightSummary,
   extractEcidFromProfileTable,
@@ -33,8 +34,6 @@ export function registerPreflightProfileEventTool(mcpServer) {
           .optional()
           .describe('Preset id from lab_list_event_targets (default lab-event-tool-edge)'),
         event_type: z.string().optional().describe('Any eventType string (portal free-text)'),
-        view_name: z.string().optional(),
-        view_url: z.string().optional(),
         channel: z.string().optional(),
         event_id: z.string().optional().describe('Orchestration eventID'),
         timestamp: z.string().optional(),
@@ -53,7 +52,8 @@ export function registerPreflightProfileEventTool(mcpServer) {
           .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
       },
     },
-    async ({ sandbox, email, ecid, target_id, auto_fetch_ecid, ...eventFields }) => {
+    async ({ sandbox, email, ecid, target_id, auto_fetch_ecid, ...rawEventFields }) => {
+      const { params: eventFields, warnings: strippedWarnings } = sanitizeCoworkerEventParams(rawEventFields);
       const started = Date.now();
       const keyId = getRequestKeyId();
 
@@ -117,7 +117,7 @@ export function registerPreflightProfileEventTool(mcpServer) {
         ecid: resolved.ecid,
         target_id,
         targets,
-        warnings: resolved.warnings,
+        warnings: [...(resolved.warnings || []), ...strippedWarnings],
         eventFields: {
           ...eventFields,
           target_id,

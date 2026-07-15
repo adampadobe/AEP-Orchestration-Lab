@@ -219,27 +219,47 @@ test('buildTriggerPayload keeps ECID primary when ecid is valid', () => {
   assert.equal(xdm.identityMap.Email[0].primary, false);
 });
 
-test('buildGeneratorEdgeInteractXdm minimal preset includes tenant identification.core', () => {
+test('buildGeneratorEdgeInteractXdm minimal preset matches Event tool UI (no tenant, no webPageDetails)', () => {
   const { buildGeneratorEdgeInteractXdm } = require('../eventEdgeService');
   const xdm = buildGeneratorEdgeInteractXdm(
-    { email: EMAIL, ecid: ECID, eventType: 'transaction' },
+    { email: EMAIL, ecid: ECID, eventType: 'commerce.search', channel: 'web' },
     { id: 'lab-event-tool-edge', xdmStyle: 'minimal' },
   );
-  assert.ok(xdm._demoemea);
-  assert.equal(xdm._demoemea.identification.core.ecid, ECID);
-  assert.equal(xdm._demoemea.identification.core.email, EMAIL);
+  assert.equal(xdm._demoemea, undefined);
+  assert.equal(xdm._experience, undefined);
+  assert.equal(xdm.web, undefined);
+  assert.equal(xdm.eventType, 'commerce.search');
+  assert.equal(xdm.interactionDetails.core.channel, 'web');
   assert.equal(xdm.identityMap.ECID[0].id, ECID);
   assert.equal(xdm.identityMap.Email[0].id, EMAIL);
+});
+
+test('buildGeneratorEdgeInteractXdm minimal ignores viewName and pageViews event type', () => {
+  const { buildGeneratorEdgeInteractXdm } = require('../eventEdgeService');
+  const xdm = buildGeneratorEdgeInteractXdm(
+    {
+      email: EMAIL,
+      ecid: ECID,
+      eventType: 'web.webPageDetails.pageViews',
+      viewName: 'Home',
+      viewUrl: 'https://example.com',
+      channel: 'web',
+    },
+    { id: 'lab-event-tool-edge', xdmStyle: 'minimal' },
+  );
+  assert.equal(xdm.web, undefined);
+  assert.equal(xdm._demoemea, undefined);
+  assert.equal(xdm.eventType, 'web.webPageDetails.pageViews');
 });
 
 test('buildGeneratorEdgeInteractXdm email-only minimal avoids fake ECID fallback', () => {
   const { buildGeneratorEdgeInteractXdm } = require('../eventEdgeService');
   const xdm = buildGeneratorEdgeInteractXdm(
-    { email: EMAIL, eventType: 'transaction' },
+    { email: EMAIL, eventType: 'transaction', channel: 'web' },
     { id: 'lab-event-tool-edge', xdmStyle: 'minimal' },
   );
   assert.equal(xdm.identityMap.ECID, undefined);
   assert.equal(xdm.identityMap.Email[0].primary, true);
-  assert.equal(xdm._demoemea.identification.core.email, EMAIL);
-  assert.ok(!xdm._demoemea.identification.core.ecid);
+  assert.equal(xdm._demoemea, undefined);
+  assert.equal(xdm.interactionDetails.core.channel, 'web');
 });

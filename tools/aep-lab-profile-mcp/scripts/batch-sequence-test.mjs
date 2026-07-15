@@ -22,8 +22,8 @@ async function run() {
     delay_ms: 0,
     preflight: false,
     events: [
-      { event_type: 'donation.made', view_name: 'Donate', channel: 'web' },
-      { event_type: 'web.webPageDetails.pageViews', view_name: 'Home', channel: 'web' },
+      { event_type: 'donation.made', channel: 'web' },
+      { event_type: 'web.webPageDetails.pageViews', channel: 'web' },
       { event_type: 'transaction', channel: 'web' },
     ],
     deps: {
@@ -62,9 +62,9 @@ async function run() {
   });
 
   assert.equal(sendCalls[0].event_type, 'donation.made');
-  assert.equal(sendCalls[0].view_name, 'Donate');
+  assert.equal(sendCalls[0].view_name, undefined, 'no view_name forwarded');
   assert.equal(sendCalls[1].event_type, 'web.webPageDetails.pageViews');
-  assert.equal(sendCalls[1].view_name, 'Home');
+  assert.equal(sendCalls[1].view_name, undefined, 'pageViews without view_name');
 
   const timestamps = sendCalls.map((c) => c.timestamp);
   assert.equal(new Set(timestamps).size, timestamps.length, 'distinct timestamps per step');

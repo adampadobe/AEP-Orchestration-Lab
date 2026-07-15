@@ -201,8 +201,10 @@ function resolveGeneratorEdgeXdmStyle(body, preset) {
   const styleExplicit = readXdmStyle(body);
   if (styleExplicit === 'full') return 'full';
   if (styleExplicit === 'minimal') return 'minimal';
+  // Event tool Edge preset (lab-event-tool-edge) is always minimal — ignore viewName/public in body.
+  if (preset && preset.xdmStyle === 'minimal') return 'minimal';
   if (shouldUseRichEdgeXdm(body)) return 'full';
-  return preset && preset.xdmStyle === 'minimal' ? 'minimal' : 'full';
+  return 'full';
 }
 
 /**
@@ -215,14 +217,15 @@ function resolveGeneratorEdgeXdmStyle(body, preset) {
 function buildGeneratorEdgeInteractXdm(body, preset) {
   const p = preset && typeof preset === 'object' ? preset : { xdmStyle: 'minimal' };
   const style = resolveGeneratorEdgeXdmStyle(body, p);
-  let genBody = body && typeof body === 'object' ? body : {};
-  const defaultOrch = String(p.defaultOrchestrationEventID || '').trim();
-  if (style === 'minimal' && defaultOrch) {
-    const hasOrch = String(genBody.eventID || genBody.orchestrationEventID || '').trim();
-    if (!hasOrch) genBody = { ...genBody, eventID: defaultOrch };
+  const genBody = body && typeof body === 'object' ? body : {};
+  // Event tool UI minimal: identityMap + eventType + _id + timestamp + interactionDetails only.
+  // No _demoemea, web.webPageDetails, orchestration, or tenant FG alignment unless style=full.
+  if (style === 'minimal') {
+    return buildMinimalEdgeXdm(genBody);
   }
+  const defaultOrch = String(p.defaultOrchestrationEventID || '').trim();
   return buildEventGeneratorXdm(genBody, {
-    style,
+    style: 'full',
     defaultOrchestrationEventID: defaultOrch,
   });
 }

@@ -5,22 +5,13 @@ import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { sendProfileEventSequence } from '../framework/sendProfileEventSequence.mjs';
 import { buildEventsFromEventTypes } from '../framework/demoEventPacks.mjs';
+import { sanitizeCoworkerEventSteps } from '../framework/sanitizeCoworkerEventParams.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 const eventStepSchema = z.object({
   event_type: z.string().describe('Any XDM eventType string — server builds XDM; do not pass xdm blobs'),
-  view_name: z.string().optional().describe('Optional page title for page-view event types'),
-  view_url: z.string().optional(),
   channel: z.string().optional().describe('Interaction channel (web, mobile, …) — server adds interactionDetails.core.channel'),
   timestamp: z.string().optional(),
-  public: z
-    .record(z.unknown())
-    .optional()
-    .describe('AVOID for Coworker intent demos — omit unless colleague explicitly needs tenant public fields'),
-  message: z
-    .record(z.unknown())
-    .optional()
-    .describe('AVOID unless call-centre demo explicitly requested'),
 });
 
 /**
@@ -34,8 +25,8 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
       description:
         'Convenience wrapper: sends multiple Experience Events for one profile via sequential POST /api/events/generator calls ' +
         '(one event per request, default 800ms delay — NOT one Edge bulk payload). Server builds minimal XDM per step from tool params only. ' +
-        'Coworker/agents: pass events[] with event_type (+ optional channel, view_name, timestamp per step) OR event_types[] shorthand. ' +
-        'NEVER pass custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
+        'Coworker/agents: pass events[] with event_type (+ optional channel, timestamp per step) OR event_types[] shorthand. ' +
+        'NEVER pass view_name, view_url, custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
         'Requires email + ecid from lab_generate_profile for reliable stitching. ' +
         'Results: requestId for Edge transport (eventId is null for lab-event-tool-edge). Verify with lab_profile_activity after 30–60s UPS lag.',
       inputSchema: {
@@ -47,7 +38,6 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
           .array(z.string())
           .optional()
           .describe('Shorthand: list of eventType strings only'),
-        view_name: z.string().optional().describe('Default view_name for event_types shorthand'),
         channel: z.string().optional().describe('Default channel (web, Mobile App, …)'),
         target_id: z.string().optional().describe('Generator target (default lab-event-tool-edge)'),
         delay_ms: z.number().int().min(0).max(10000).optional().describe('Delay between events ms (default 800)'),
@@ -61,7 +51,6 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
       ecid,
       events,
       event_types,
-      view_name,
       channel,
       target_id,
       delay_ms,
@@ -83,8 +72,10 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
 
       let resolvedEvents = Array.isArray(events) ? events : [];
       if (!resolvedEvents.length && Array.isArray(event_types) && event_types.length) {
-        resolvedEvents = buildEventsFromEventTypes(event_types, { view_name, channel });
+        resolvedEvents = buildEventsFromEventTypes(event_types, { channel });
       }
+      const { events: sanitizedEvents, warnings: strippedWarnings } = sanitizeCoworkerEventSteps(resolvedEvents);
+      resolvedEvents = sanitizedEvents;
       if (!resolvedEvents.length) {
         return toolError('Provide events[] or event_types[] with at least one event.');
       }
@@ -118,6 +109,7 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
         ok: outcome.ok,
         sandbox: allowed.sandbox,
         event_types: resolvedEvents.map((e) => e.event_type),
+        warnings: strippedWarnings.length ? strippedWarnings : undefined,
         ...outcome,
       });
     },

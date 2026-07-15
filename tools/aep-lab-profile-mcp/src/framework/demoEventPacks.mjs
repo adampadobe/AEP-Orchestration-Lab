@@ -113,21 +113,12 @@ export function buildEventsFromEventTypes(eventTypes, context = {}) {
     return [
       {
         event_type: EVENT_TYPE_SUGGESTIONS.pageViews,
-        view_name: context.view_name || 'Brand demo landing',
-        view_url: context.view_url,
         channel: context.channel || 'web',
       },
     ];
   }
   return types.map((event_type, index) => ({
     event_type,
-    view_name:
-      index === 0 && context.view_name
-        ? context.view_name
-        : context.view_name
-          ? `${context.view_name} — ${event_type}`
-          : event_type,
-    view_url: context.view_url,
     channel: context.channel || 'web',
     // Stagger timestamps (oldest first) so UPS timeline shows distinct events — same pattern as retail journey pack.
     timestamp: minutesAgoIso((types.length - index) * 2),
