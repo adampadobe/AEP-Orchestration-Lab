@@ -364,11 +364,16 @@
 }
 
 /* ── Editable payload preview JSON editor ── */
+.event-generator-page #etPreviewPanel .consent-preview-panel__collapse {
+  overflow: hidden;
+}
+
 .et-preview-editor {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 8rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   background: var(--dash-code-bg, var(--dash-input-bg));
 }
 
@@ -380,6 +385,7 @@
   padding: 0.45rem 0.75rem;
   border-bottom: 1px solid var(--dash-border);
   background: var(--dash-surface-alt);
+  flex-shrink: 0;
 }
 
 .et-preview-editor__hint {
@@ -388,37 +394,16 @@
   line-height: 1.35;
 }
 
-.event-generator-page .aep-json-field-wrap {
+.event-generator-page #etPreviewPanel .et-preview-editor .aep-json-field-wrap {
   position: relative;
   display: block;
-  flex: 1;
-  min-height: 8rem;
+  flex: 1 1 auto;
+  min-height: 10rem;
+  overflow: hidden;
   border: none;
   border-radius: 0;
   background: transparent;
   box-sizing: border-box;
-}
-
-.event-generator-page .aep-json-backdrop {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  box-sizing: border-box;
-  padding: 0.85rem 1rem;
-  overflow: auto;
-  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  word-break: break-word;
-  border: none;
-  background: transparent;
-  pointer-events: none;
-  tab-size: 2;
 }
 
 .event-generator-page .aep-json-tok.aep-json-str {
@@ -437,32 +422,49 @@
   color: var(--dash-text-secondary);
 }
 
-.event-generator-page textarea.aep-json--mirror-input,
-.event-generator-page textarea.et-preview-json {
-  position: relative;
+.event-generator-page #etPreviewPanel .aep-json-backdrop,
+.event-generator-page #etPreviewPanel textarea.et-preview-json.aep-json--mirror-input {
+  position: absolute;
+  inset: 0;
   z-index: 1;
   display: block;
   width: 100%;
+  height: 100%;
   margin: 0;
   box-sizing: border-box;
   padding: 0.85rem 1rem;
   border: none !important;
   background: transparent !important;
-  color: transparent !important;
-  caret-color: var(--dash-text);
-  resize: vertical;
-  overflow: auto;
-  min-height: 8rem;
   font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
   font-size: 11px;
   line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
   tab-size: 2;
+  min-height: 0;
+  max-height: none;
+  resize: none;
 }
 
-.event-generator-page textarea.aep-json--mirror-input::selection {
+.event-generator-page #etPreviewPanel .aep-json-backdrop {
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--dash-text);
+}
+
+.event-generator-page #etPreviewPanel textarea.et-preview-json.aep-json--mirror-input {
+  color: transparent !important;
+  caret-color: var(--dash-text);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.event-generator-page #etPreviewPanel textarea.et-preview-json.aep-json--mirror-input::selection {
   background: color-mix(in srgb, var(--dash-blue) 28%, transparent);
 }
 
-.event-generator-page textarea.et-preview-json.aep-json--invalid {
+.event-generator-page #etPreviewPanel textarea.et-preview-json.aep-json--invalid {
   box-shadow: inset 0 0 0 2px var(--dash-error-border);
 }

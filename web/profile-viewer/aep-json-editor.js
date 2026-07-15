@@ -126,6 +126,19 @@
 
   function autoSizeJsonTextarea(ta, opts) {
     if (!ta) return;
+    if (opts && opts.fixedScroll) {
+      ta.style.height = '';
+      ta.style.maxHeight = '';
+      var wrapFixed = ta.closest('.aep-json-field-wrap');
+      if (wrapFixed) {
+        var preFixed = wrapFixed.querySelector('.aep-json-backdrop');
+        if (preFixed) {
+          preFixed.style.height = '';
+          preFixed.style.maxHeight = '';
+        }
+      }
+      return;
+    }
     var minH = (opts && opts.minHeight) || 80;
     var maxH = (opts && opts.maxHeight) || Math.min(720, Math.floor(window.innerHeight * 0.65));
     ta.style.height = 'auto';
@@ -181,6 +194,9 @@
 
   function initTextarea(ta, opts) {
     if (!ta) return;
+    if (opts && opts.fixedScroll) {
+      ta.classList.add('aep-json--fixed-scroll');
+    }
     attachJsonMirror(ta, opts);
     bumpJsonMirror(ta, opts);
   }

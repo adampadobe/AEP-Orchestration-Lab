@@ -79,7 +79,7 @@
   let activeMode = 'trigger';
   let previewPayloadDirty = false;
 
-  var previewJsonOpts = { minHeight: 128, maxHeight: Math.min(720, Math.floor(window.innerHeight * 0.65)) };
+  var previewJsonOpts = { fixedScroll: true };
 
   /** Default event schema title — mirrors profile-gen `AEP Lab - … - Schema` naming. */
   const DEFAULT_EVENT_SCHEMA_TITLE = 'AEP Lab - Event Generic - Schema';
