@@ -120,6 +120,39 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
   },
   {
+    id: 'coworker_event_minimal_params',
+    rule:
+      'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, tenant field groups, or rich demo payloads to event tools. ' +
+      'Coworker/agents must use lab_send_profile_event or lab_send_profile_events_batch with tool params ONLY: sandbox, email, ecid, event_type, channel ' +
+      '(optional view_name for page views). The lab server builds minimal Edge XDM — do not construct event.xdm yourself.',
+    never_pass: [
+      'xdm / event.xdm JSON blobs',
+      'schema $id / meta:altId / allOf mixin definitions',
+      'descriptor payloads or field-group schema fragments',
+      'public / message / tenant / xdm_tenant_key unless colleague explicitly requests rich tenant demo fields',
+      'xdm_style=full or edge_minimal=false unless explicitly requested',
+      'lab_send_edge_event raw_payload (advanced Edge debugging only — breaks when schema refs are injected)',
+    ],
+    preferred_tools: ['lab_send_profile_event', 'lab_send_profile_events_batch', 'lab_preflight_profile_event'],
+    server_build:
+      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm → eventGeneratorService.buildEventGeneratorXdm (style minimal). ' +
+      'MCP buildGeneratorPostBody sends camelCase fields only (eventType, email, ecid, channel) — never raw XDM.',
+    server_built_xdm_shape: {
+      wrapper: '{ event: { xdm: { … } } }',
+      required_fields: ['identityMap (ECID primary + Email secondary)', 'eventType', '_id', 'timestamp'],
+      server_adds_automatically: [
+        '_demoemea.identification.core.ecid + .email (tenant stitch mirror)',
+        '_experience.campaign.orchestration.eventID (default orchestration id)',
+        'interactionDetails.core.channel when channel param is set',
+      ],
+      example:
+        '{ "event": { "xdm": { "identityMap": { "ECID": [{"id":"…","primary":true}], "Email": [{"id":"…","primary":false}] }, "_id": "…", "eventType": "donation.made", "timestamp": "2026-07-15T18:41:26.946Z", "interactionDetails": { "core": { "channel": "web" } } } } }',
+    },
+    intent_demo_flow:
+      'lab_generate_profile → capture email + ecid → lab_send_profile_events_batch with event_types [donation.made, web.webPageDetails.pageViews, transaction] and channel web → lab_profile_activity after 30–60s.',
+    mcp: 'Default edge_minimal:true — omit public/message/xdm overrides for intent demos.',
+  },
+  {
     id: 'portal_event_types_free_text',
     rule:
       'event_type accepts ANY string — same free-text field as Event tool / mobile lab senders (e.g. transaction, donation.made, ' +
@@ -414,21 +447,43 @@ export function getExecutionFramework() {
           'lab_list_event_targets',
           'lab_preflight_profile_event',
           'lab_send_profile_event',
+          'lab_send_profile_events_batch',
           'lab_profile_activity',
         ],
         steps: [
           'lab_generate_profile — capture ecid from response + email',
           'lab_list_event_targets — pick target_id (default lab-event-tool-edge)',
-          'Optional: lab_preflight_profile_event — shows identityMap + resolved target without sending',
-          'lab_send_profile_event with email AND ecid, event_type, view_name, channel',
+          'Optional: lab_preflight_profile_event — shows identityMap + generatorPostBody (NOT raw XDM to construct)',
+          'lab_send_profile_event with email AND ecid, event_type, channel only — server builds minimal XDM',
+          'Multi-event intent demos: lab_send_profile_events_batch with event_types[] — same identity, no XDM blobs',
           'lab_profile_activity — confirm event count (allow UPS lag)',
+        ],
+        never_pass: [
+          'Custom xdm / event.xdm JSON',
+          'Schema refs, mixin definitions, descriptors, tenant field-group payloads',
+          'public / message / xdm_tenant_key unless colleague explicitly asks for rich tenant fields',
         ],
         identity_rules: [
           'At least one of email or ecid required',
           'identityMap: ECID primary when both present; Email secondary',
-          '_demoemea.identification.core.ecid + email for tenant stitching',
+          '_demoemea.identification.core.ecid + email added by server for tenant stitching',
         ],
-        advanced: 'lab_send_edge_event when datastream_id is known (anonymous Edge / raw_payload).',
+        server_build:
+          'eventEdgeService.buildGeneratorEdgeInteractXdm → eventGeneratorService.buildEventGeneratorXdm (minimal). See criticalRules.coworker_event_minimal_params.',
+        coworker_event_send_recipe: {
+          summary: 'Profile + intent events — params only, server builds XDM',
+          steps: [
+            'lab_generate_profile sandbox {sandbox} industry {industry} — save email + ecid from response',
+            'lab_send_profile_events_batch sandbox {sandbox} email {email} ecid {ecid} channel web event_types ["donation.made","web.webPageDetails.pageViews","transaction"]',
+            'Wait 30–60s, then lab_profile_activity sandbox {sandbox} identifier {email}',
+          ],
+          single_event_example:
+            'lab_send_profile_event sandbox apalmer email {email} ecid {ecid} event_type donation.made channel web',
+          preflight:
+            'lab_preflight_profile_event with same params — inspect generatorPostBody (camelCase POST fields), not hand-built XDM',
+        },
+        advanced:
+          'lab_send_edge_event when datastream_id is known. Avoid raw_payload unless debugging — prefer lab_send_profile_event.',
         api: 'POST /api/events/generator or POST /api/events/edge',
       },
       event_infra_setup: {

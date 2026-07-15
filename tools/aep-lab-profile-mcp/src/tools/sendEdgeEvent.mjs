@@ -21,8 +21,9 @@ export function registerSendEdgeEventTool(mcpServer) {
       title: 'Send Edge experience event (advanced)',
       description:
         'POST /api/events/edge — direct Edge interact when you have datastream_id. Sandbox is audit-only. ' +
-        'Prefer lab_send_profile_event for preset targets. Same identity rules: email and/or ecid; when both present ECID is primary in identityMap. ' +
-        'Include matching _demoemea.identification.core.ecid + email for Demo Website stitching. Auto-fetches ecid from UPS when email-only.',
+        'Prefer lab_send_profile_event for preset targets — server builds minimal XDM from params. ' +
+        'Same identity rules: email and/or ecid; when both present ECID is primary in identityMap. ' +
+        'AVOID raw_payload unless debugging Edge directly — schema/mixin injection causes send failures.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist; audit only, not sent to Edge)'),
         datastream_id: z.string().describe('Adobe datastream / Edge configuration id'),
@@ -39,7 +40,10 @@ export function registerSendEdgeEventTool(mcpServer) {
         raw_payload: z
           .unknown()
           .optional()
-          .describe('Full Edge interact payload { event: { xdm } } — skips buildXdm when set'),
+          .describe(
+            'AVOID for Coworker — skips server XDM builder. Only for advanced Edge debugging. ' +
+              'Never include schema refs, mixin definitions, or descriptor blobs — use lab_send_profile_event params instead.',
+          ),
         auto_fetch_ecid: z
           .boolean()
           .optional()

@@ -26,11 +26,12 @@ export function registerSendProfileEventTool(mcpServer) {
     {
       title: 'Send profile experience event',
       description:
-        'POST /api/events/generator — identical payload to Profile Viewer Event tool / mobile lab senders. ' +
-        'event_type accepts ANY string (datalist suggestions are optional). ' +
-        'Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
-        'Default: minimal Edge XDM (identityMap + eventType + _id + timestamp). Rich tenant/channel/FG when public, message, channel, view_name, view_url, xdm_tenant_key, or xdm_style=full. ' +
-        'Default target_id lab-event-tool-edge. Preflight: lab_preflight_profile_event. Batch: lab_send_profile_events_batch.',
+        'POST /api/events/generator — server builds minimal Edge XDM from tool params (same as Profile Viewer Event tool). ' +
+        'Coworker/agents: pass ONLY sandbox, email, ecid, event_type, channel (optional view_name) — NEVER pass custom xdm, schema refs, mixin blobs, or tenant field groups. ' +
+        'event_type accepts ANY string (datalist suggestions are optional). Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
+        'Server builds XDM via buildGeneratorEdgeInteractXdm (identityMap, eventType, _id, timestamp, interactionDetails when channel set). ' +
+        'Omit public/message/xdm_style unless colleague explicitly needs rich tenant demo fields. Default target_id lab-event-tool-edge. ' +
+        'Preflight: lab_preflight_profile_event. Multi-event: lab_send_profile_events_batch.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email (at least one of email or ecid required)'),
@@ -52,11 +53,15 @@ export function registerSendProfileEventTool(mcpServer) {
         public: z
           .record(z.unknown())
           .optional()
-          .describe('Tenant public fields (donationAmount, hotel*, quoteForm, retail via public object, etc.)'),
+          .describe(
+            'AVOID for Coworker intent demos — triggers rich XDM. Only when colleague explicitly needs tenant public fields (donationAmount, hotel*, etc.). Prefer omitting.',
+          ),
         message: z
           .record(z.unknown())
           .optional()
-          .describe('_demoemea.message object (call centre / contact centre demos)'),
+          .describe(
+            'AVOID unless call-centre demo explicitly requested — triggers full tenant message merge. Prefer omitting.',
+          ),
         industry: z
           .string()
           .optional()
@@ -64,7 +69,7 @@ export function registerSendProfileEventTool(mcpServer) {
         xdm_tenant_key: z
           .string()
           .optional()
-          .describe('XDM tenant prefix e.g. _demoemea (mobile demos default _demoemea)'),
+          .describe('AVOID for Coworker — server defaults _demoemea. Only for mobile lab parity when explicitly requested.'),
         identity_map_ecid_key: z
           .string()
           .optional()
@@ -77,11 +82,11 @@ export function registerSendProfileEventTool(mcpServer) {
         edge_minimal: z
           .boolean()
           .optional()
-          .describe('When true (default), minimal Edge XDM unless rich fields (public, channel, message) are set'),
+          .describe('Default true — keep minimal server-built XDM. Do NOT set false unless colleague explicitly needs full tenant FG alignment.'),
         xdm_style: z
           .enum(['minimal', 'full'])
           .optional()
-          .describe('Force minimal or full XDM shape (full adds tenant mirror, channel FG, demoemea alias)'),
+          .describe('Default minimal (omit). NEVER set full for Coworker intent demos — triggers rich tenant/channel field-group payload.'),
         auto_fetch_ecid: z
           .boolean()
           .optional()

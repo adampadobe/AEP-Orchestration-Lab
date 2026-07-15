@@ -1,5 +1,5 @@
 ---
-name: aep-lab-profile-mcp-coworker
+name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
   (Streamable HTTP on Cloud Run v3.10.0). Use when generating test profiles, sending
@@ -8,21 +8,21 @@ description: >-
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.14)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.14)
 
 MCP server: **AEP Orchestration Lab MCP v3.14.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Configure in Coworker or Cursor with a **single** header:
+Configure in Codex or another MCP client with a **single** header:
 
 - `X-AEP-Lab-Mcp-Key` — required for all tools (including provisioning)
 
-**Portal:** generate an MCP key per sandbox **without** completing workspace slug first. Coworker completes foundations via **`lab_mcp_first_run_setup`** on first connect.
+**Portal:** generate an MCP key per sandbox **without** completing workspace slug first. The MCP client completes foundations via **`lab_mcp_first_run_setup`** on first connect.
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
 
 ## Framework knowledge (server-side — no manual retraining)
 
-Coworker should call these **before** improvising lab conventions:
+Codex should call these **before** improvising lab conventions:
 
 | Tool / resource | Purpose |
 |-----------------|--------|
@@ -66,7 +66,7 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 | **Mobile** (static) | `+447425627462` | E.164 from prefs; applied to every generated profile |
 | **How to reserve** | Omit `email` on `lab_generate_profile` | Default `use_stored_prefs:true` atomically reserves next counter via `POST /api/lab/generation-prefs/next-email` |
 
-**Before first generate on a sandbox:** call **`lab_confirm_profile_generation`** — Coworker reads `questionsForColleague` + `formatRules`, asks the colleague, then persists with `confirmed:true` + `base_email`. **`lab_mcp_first_run_setup`** and **`lab_prepare_demo_from_brand_scrape`** block the profiles step when prefs are missing and return the same confirm hints.
+**Before first generate on a sandbox:** call **`lab_confirm_profile_generation`** — Codex reads `questionsForColleague` + `formatRules`, asks the colleague, then persists with `confirmed:true` + `base_email`. **`lab_mcp_first_run_setup`** and **`lab_prepare_demo_from_brand_scrape`** block the profiles step when prefs are missing and return the same confirm hints.
 
 - **Email format (required)**: `<local>+DDMMYYYY-N@<domain>` — e.g. `apalmer+14072026-3@adobetest.com` (today's date + daily counter N). Legacy `travel.demo+001@adobetest.com` is **rejected** by MCP guardrails.
 - **Base email**: stored in Firestore `labProfileGenerationPrefs` (Profile Viewer Profile Generation field or `lab_set_generation_prefs`). MCP `lab_generate_profile` **omits email** to auto-reserve the next counter value.
@@ -105,7 +105,7 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 
 ## Workflow 0b — First-run foundations (new sandbox / new key)
 
-Run **once** after connecting Coworker — replaces Portal workspace-slug gate before key generation. **`lab_mcp_first_run_setup`** reports `readiness.generation_prefs` — when `ready:false`, run **Workflow 0a** (`lab_confirm_profile_generation`) before any generate or **`lab_prepare_demo_from_brand_scrape`** profiles step.
+Run **once** after connecting Codex — replaces Portal workspace-slug gate before key generation. **`lab_mcp_first_run_setup`** reports `readiness.generation_prefs` — when `ready:false`, run **Workflow 0a** (`lab_confirm_profile_generation`) before any generate or **`lab_prepare_demo_from_brand_scrape`** profiles step.
 
 > Call **lab_mcp_access_info**, then **lab_mcp_first_run_setup** with sandbox `prisacar`, workspace_slug `prisacar`, first_name, last_name, and adobe_email if not already on the MCP key principal. Summarize checklist (workspace profile, RTDB ldapSlug, sandbox infra, event targets, **generation prefs**). If `generation_prefs.ready` is false, **lab_confirm_profile_generation** before generate. If `notReadyIndustries` is non-empty, run **lab_onboard_sandbox** mode=plan.
 
@@ -191,7 +191,7 @@ Profile Viewer streams **full writable snapshots** per industry dataflow — not
 
 ## Workflow 4 — Switch sandbox / onboard new sandbox
 
-When Coworker switches to a sandbox that has no Firestore connection docs, generate/update will fail until infra is provisioned.
+When Codex switches to a sandbox that has no Firestore connection docs, generate/update will fail until infra is provisioned.
 
 1. **Assess config**
 
@@ -205,9 +205,9 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
    > Use lab_onboard_sandbox with sandbox apalmer, mode execute, industry travel. Wait for completion, then repeat for other not-ready industries.
 
-3b. **HTTP streaming dataflow (Coworker dx-api — when connection missing)**
+3b. **HTTP streaming dataflow (Adobe Coworker `dx-api` handoff — when connection missing)**
 
-   Lab MCP creates **schema, field groups, and dataset** (`lab_provision_profile_infra_step` steps `createSchema`, `attachFieldGroups`, `createDataset`) and can **enable Profile** (`lab_enable_profile`). It does **not** create Flow Service entities — use Coworker **dx-api** for that gap.
+   Lab MCP creates **schema, field groups, and dataset** (`lab_provision_profile_infra_step` steps `createSchema`, `attachFieldGroups`, `createDataset`) and can **enable Profile** (`lab_enable_profile`). It does **not** create Flow Service entities. This Codex setup has no `dx-api` connector, so hand this step to Adobe Coworker or perform the Flow Service API calls manually.
 
    > Call **lab_profile_infra_status** for sandbox **apalmer** industry **travel**. If schema/dataset exist but `missing_steps` includes `save_http_streaming_connection`, use **dx-api** (Flow Service) to create: (1) base connection, (2) source connection mapped to schema **`schemaId`**, (3) target connection to dataset **`datasetId`**, (4) dataflow named **`AEP Lab - Travel Profile - Dataflow`**. Header **`x-sandbox-name: apalmer`**. After the flow exists, Profile Viewer → Travel profile generation → **Fetch URL & Flow ID** → **Save connection**. Verify with **lab_sandbox_profile_config**.
 
@@ -219,7 +219,7 @@ When Coworker switches to a sandbox that has no Firestore connection docs, gener
 
 5. **Ops note for new colleague sandboxes**
 
-   > Ops seeds Firestore mcpSandboxAllowlist/{keyId} or updates AEP_LAB_MCP_ALLOWED_SANDBOXES — see README. Coworker verifies with lab_mcp_access_info.
+   > Ops seeds Firestore mcpSandboxAllowlist/{keyId} or updates AEP_LAB_MCP_ALLOWED_SANDBOXES — see README. Codex verifies with lab_mcp_access_info.
 
 ## Workflow 4b — HTTP streaming via dx-api (profile generation)
 
@@ -345,7 +345,7 @@ Before sending, confirm Event tool wiring for the sandbox (not just that static 
 5. **Identity** — pass **email + ecid** from `lab_generate_profile`; email must match the profile exactly.
 6. **Sandbox** — MCP key allowlist sandbox must match the AEP sandbox where the profile and datastream live.
 
-**Coworker chain when colleague reports missing events:**
+**Codex chain when a colleague reports missing events:**
 
 > (1) `lab_mcp_first_run_setup` — check `readiness.event_targets.lab_event_tool_edge_configured`. (2) `lab_list_event_targets`. (3) Re-run generate, capture ecid. (4) `lab_preflight_profile_event` with email+ecid. (5) `lab_send_profile_event` with `target_id lab-event-tool-edge`. (6) Wait 60s, `lab_profile_activity`.
 
@@ -427,7 +427,7 @@ Same MCP key as all other tools.
 
 ## Workflow 6 — Brand scrape (Portal parity)
 
-> **One scrape per URL:** `lab_brand_scrape` reuses **complete** scrapes (`prefer_existing:true`, default) and **in-flight** scrapes for the same URL+sandbox. **Never** fire parallel `lab_brand_scrape` calls — Coworker retries and parallel tool calls were creating duplicate history cards (most cancelled, one running).
+> **One scrape per URL:** `lab_brand_scrape` reuses **complete** scrapes (`prefer_existing:true`, default) and **in-flight** scrapes for the same URL+sandbox. **Never** fire parallel `lab_brand_scrape` calls — retries and parallel tool calls can create duplicate history cards (most cancelled, one running).
 >
 > **Be patient:** Brand crawls typically take **3–8 minutes**. Use **`lab_poll_brand_scrape`** (or `wait_for_complete:true` on `lab_brand_scrape`) and tell the user progress is normal. Do **not** start a new scrape because the first is still running.
 >

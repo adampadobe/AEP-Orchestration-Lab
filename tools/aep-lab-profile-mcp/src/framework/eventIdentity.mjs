@@ -220,9 +220,10 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
       rules: [
         'At least one of email or ecid (10+ digits) required — same as Event Generator UI strip.',
         'When both present: identityMap.ECID primary:true, identityMap.Email primary:false.',
-        '_demoemea.identification.core must carry the same ecid + email strings for Demo Website stitching.',
+        '_demoemea.identification.core is added by the server — do NOT hand-build XDM for Coworker.',
         'Prefer BOTH after lab_generate_profile — capture ecid from generate response.',
-        'event_type is free text — Event tool datalist entries are suggestions only.',
+        'event_type is free text — pass as tool param only; never inject schema refs, mixin defs, or tenant FG blobs.',
+        'generatorPostBody is camelCase POST fields — server converts to minimal Edge XDM automatically.',
       ],
     },
     generatorPostBody,

@@ -22,7 +22,8 @@ export function registerPreflightProfileEventTool(mcpServer) {
       title: 'Preflight profile experience event',
       description:
         'Dry-run event identity + target + POST body without sending. Shows identityMap, generatorPostBody ' +
-        '(same shape as Event tool), and resolved target_id. Auto-fetches ecid from UPS when email provided.',
+        '(camelCase fields the server sends to /api/events/generator — NOT raw XDM to construct). ' +
+        'Coworker: use to verify email+ecid+event_type+channel before send; never hand-build event.xdm. Auto-fetches ecid from UPS when email provided.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email'),
@@ -37,15 +38,15 @@ export function registerPreflightProfileEventTool(mcpServer) {
         channel: z.string().optional(),
         event_id: z.string().optional().describe('Orchestration eventID'),
         timestamp: z.string().optional(),
-        public: z.record(z.unknown()).optional(),
-        message: z.record(z.unknown()).optional(),
+        public: z.record(z.unknown()).optional().describe('AVOID for Coworker intent demos — triggers rich XDM'),
+        message: z.record(z.unknown()).optional().describe('AVOID unless call-centre demo explicitly requested'),
         industry: z.string().optional(),
-        xdm_tenant_key: z.string().optional(),
+        xdm_tenant_key: z.string().optional().describe('AVOID for Coworker — server defaults _demoemea'),
         identity_map_ecid_key: z.string().optional(),
         primary_identity: z.enum(['email']).optional(),
         email_primary_identity: z.boolean().optional(),
-        edge_minimal: z.boolean().optional().describe('Default true — minimal XDM unless rich fields set'),
-        xdm_style: z.enum(['minimal', 'full']).optional(),
+        edge_minimal: z.boolean().optional().describe('Default true — minimal server-built XDM'),
+        xdm_style: z.enum(['minimal', 'full']).optional().describe('Default minimal — do not set full for Coworker intent demos'),
         auto_fetch_ecid: z
           .boolean()
           .optional()

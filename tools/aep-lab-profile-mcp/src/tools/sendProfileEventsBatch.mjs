@@ -8,13 +8,19 @@ import { buildEventsFromEventTypes } from '../framework/demoEventPacks.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 const eventStepSchema = z.object({
-  event_type: z.string().describe('Any XDM eventType string'),
-  view_name: z.string().optional(),
+  event_type: z.string().describe('Any XDM eventType string — server builds XDM; do not pass xdm blobs'),
+  view_name: z.string().optional().describe('Optional page title for page-view event types'),
   view_url: z.string().optional(),
-  channel: z.string().optional(),
+  channel: z.string().optional().describe('Interaction channel (web, mobile, …) — server adds interactionDetails.core.channel'),
   timestamp: z.string().optional(),
-  public: z.record(z.unknown()).optional(),
-  message: z.record(z.unknown()).optional(),
+  public: z
+    .record(z.unknown())
+    .optional()
+    .describe('AVOID for Coworker intent demos — omit unless colleague explicitly needs tenant public fields'),
+  message: z
+    .record(z.unknown())
+    .optional()
+    .describe('AVOID unless call-centre demo explicitly requested'),
 });
 
 /**
@@ -26,8 +32,9 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
     {
       title: 'Send multiple profile experience events',
       description:
-        'Send one or more Experience Events for a single profile with Portal Event tool payloads. ' +
-        'Pass events[] with any event_type strings, or event_types[] shorthand. ' +
+        'Send multiple Experience Events for one profile — server builds minimal XDM per step from tool params only. ' +
+        'Coworker/agents: pass events[] with event_type (+ optional channel, view_name) OR event_types[] shorthand. ' +
+        'NEVER pass custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
         'Requires email + ecid from lab_generate_profile for reliable stitching. ' +
         'Verify with lab_profile_activity after 30–60s UPS lag.',
       inputSchema: {

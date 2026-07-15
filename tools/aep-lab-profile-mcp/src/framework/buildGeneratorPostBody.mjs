@@ -4,6 +4,12 @@
  *
  * Event type is free text (datalist suggestions only). Backend buildEventGeneratorXdm passes
  * arbitrary eventType through to XDM.
+ *
+ * Coworker/agents: pass ONLY these camelCase fields — never raw XDM. Server builds minimal Edge
+ * payload via eventEdgeService.buildGeneratorEdgeInteractXdm → eventGeneratorService.buildEventGeneratorXdm.
+ * Typical server-built shape (channel=web):
+ *   { event: { xdm: { identityMap, eventType, _id, timestamp, interactionDetails.core.channel,
+ *     _demoemea.identification.core (ecid+email mirror), _experience.campaign.orchestration.eventID } } }
  */
 
 /** Default when event_type omitted — matches Event tool full Edge target (not minimal). */
