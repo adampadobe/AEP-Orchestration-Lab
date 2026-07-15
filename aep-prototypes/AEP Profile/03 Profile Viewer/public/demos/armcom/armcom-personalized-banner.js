@@ -6,6 +6,7 @@
   'use strict';
 
   var STORAGE_KEY = 'armcomBannerState';
+  var DECISIONING_STORAGE_KEY = 'armcomDecisioningEnabled';
   var SHELL_SOURCE = 'armcom-demo-shell';
   var decisioningEnabled = false;
 
@@ -79,6 +80,26 @@
 
   function resolveHref(href) {
     return assetPrefix() + String(href || '').replace(/^\//, '');
+  }
+
+  function readDecisioningEnabledFromStorage() {
+    try {
+      var raw = sessionStorage.getItem(DECISIONING_STORAGE_KEY);
+      if (raw === '1') return true;
+      if (raw === '0') return false;
+    } catch (_e) {
+      /* ignore */
+    }
+    return false;
+  }
+
+  function setDecisioningEnabled(enabled) {
+    decisioningEnabled = !!enabled;
+    try {
+      sessionStorage.setItem(DECISIONING_STORAGE_KEY, decisioningEnabled ? '1' : '0');
+    } catch (_e) {
+      /* ignore */
+    }
   }
 
   function readState() {
@@ -299,7 +320,7 @@
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== SHELL_SOURCE) return;
       if (ev.data.type === 'armcom-decisioning-state') {
-        decisioningEnabled = !!(ev.data.payload && ev.data.payload.enabled);
+        setDecisioningEnabled(ev.data.payload && ev.data.payload.enabled);
         if (!decisioningEnabled) clearBanner();
         else refresh();
         return;
@@ -332,6 +353,7 @@
   }
 
   function init() {
+    decisioningEnabled = readDecisioningEnabledFromStorage();
     wireMessages();
     requestDecisioningStateFromShell();
     var body = document.body;
