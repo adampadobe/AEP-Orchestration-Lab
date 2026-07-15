@@ -71,12 +71,25 @@
     return pageId === 'home' || pageId === 'cloud-ai-hub' || pageId === 'data-center-ai';
   }
 
+  var MEGA_NAV = {
+    Products: 'products',
+    Markets: 'markets',
+    Partners: 'partners',
+    Developers: 'developers',
+  };
+
   function renderHeader() {
     var dark = isDarkHeader();
     var nav = PRIMARY_NAV.map(function (label) {
-      var href = '#';
-      if (label === 'Markets') href = resolveHref('cloud-ai/index.html');
-      if (label === 'Developers') href = resolveHref('developer/index.html');
+      var megaId = MEGA_NAV[label];
+      if (megaId) {
+        return (
+          '<button type="button" class="armcom-nav-item armcom-nav-item--mega" data-armcom-mega="' + megaId + '" aria-haspopup="true" aria-expanded="false">' +
+          '<span class="armcom-nav-item__label">' + label + '</span>' +
+          '<span class="armcom-nav-item__caret" aria-hidden="true"></span>' +
+          '</button>'
+        );
+      }
       return '<button type="button" class="armcom-nav-item">' + label + '</button>';
     }).join('');
 
