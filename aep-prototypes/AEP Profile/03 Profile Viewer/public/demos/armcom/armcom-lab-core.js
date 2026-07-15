@@ -198,6 +198,64 @@
       });
     }
 
+    function resolveProfileAfterLookup() {
+      return global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? global.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    }
+
+    async function stitchArmcomIdentity(profile, email) {
+      if (!armcomTagsInjection || typeof armcomTagsInjection.stitchAfterProfileLookup !== 'function') {
+        return false;
+      }
+      return armcomTagsInjection.stitchAfterProfileLookup(profile, email);
+    }
+
+    /**
+     * Same path as env bar "Look up profile": email namespace lookup, drawer update, ECID stitch.
+     * @param {string} email
+     * @param {{ lookupMessage?: string, successMessage?: string, notifyFrame?: boolean, company?: string, mode?: string, firstName?: string }} [opts]
+     */
+    async function performArmcomProfileLookup(email, opts) {
+      opts = opts || {};
+      var idVal = String(email || '').trim();
+      if (!idVal) return { ok: false, profile: null, stitched: false };
+
+      if (customerEmail) customerEmail.value = idVal;
+      rememberArmcomSessionIdentifier(idVal);
+
+      setArmcomMessage(opts.lookupMessage || 'Looking up profile...', '');
+      var ok = await DemoProfileDrawer.loadProfileDataForDrawer(idVal, { updateMessage: true });
+      var profile = resolveProfileAfterLookup();
+      var stitched = await stitchArmcomIdentity(profile, idVal);
+
+      if (stitched && opts.successMessage) {
+        setArmcomMessage(opts.successMessage, 'success');
+      } else if (stitched) {
+        setArmcomMessage('Profile loaded and identity linked to ECID.', 'success');
+      }
+
+      if (opts.notifyFrame) {
+        var firstName =
+          (profile && profile.firstName) || String(opts.firstName || '').trim() || null;
+        postToSiteFrame({
+          source: 'armcom-demo-shell',
+          type: 'login-complete',
+          found: !!ok,
+          email: idVal,
+          firstName: firstName,
+          company: String(opts.company || '').trim(),
+          mode: String(opts.mode || 'signin'),
+        });
+      }
+
+      if (typeof options.onProfileLookupComplete === 'function') {
+        options.onProfileLookupComplete({ ok: ok, profile: profile, stitched: stitched, email: idVal });
+      }
+
+      return { ok: ok, profile: profile, stitched: stitched };
+    }
+
     if (queryProfileBtn) {
       queryProfileBtn.addEventListener('click', async function () {
         var idVal = getEmail().trim();
@@ -205,19 +263,7 @@
           setArmcomMessage('Enter a customer identifier first.', 'error');
           return;
         }
-        setArmcomMessage('Looking up profile...', '');
-        if (typeof setSessionIdentifier === 'function') {
-          var ns = armcomNs && armcomNs.value ? armcomNs.value : 'email';
-          setSessionIdentifier(idVal, ns);
-        }
-        var ok = await DemoProfileDrawer.loadProfileDataForDrawer(idVal, { updateMessage: true });
-        if (!ok || !armcomTagsInjection || typeof armcomTagsInjection.stitchAfterProfileLookup !== 'function') return;
-        var profile =
-          global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
-            ? global.DemoProfileDrawer.getLastLookedUpProfile()
-            : null;
-        var stitched = await armcomTagsInjection.stitchAfterProfileLookup(profile, idVal);
-        if (stitched) setArmcomMessage('Profile loaded and identity linked to ECID.', 'success');
+        await performArmcomProfileLookup(idVal, { lookupMessage: 'Looking up profile...' });
       });
     }
 
@@ -242,46 +288,39 @@
     async function handleArmcomLabMessage(data) {
       if (!data || data.source !== 'armcom-lab') return;
 
+      if (data.type === 'armcom-lead-capture') {
+        var leadPayload = data.payload && typeof data.payload === 'object' ? data.payload : {};
+        var leadEmail = String(leadPayload.email || '').trim();
+        if (!leadEmail) return;
+        await performArmcomProfileLookup(leadEmail, {
+          lookupMessage: 'Newsletter signup — looking up profile and stitching identity...',
+          successMessage:
+            'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.',
+          notifyFrame: true,
+          company: leadPayload.company,
+          mode: 'lead-capture',
+        });
+        return;
+      }
+
       if (data.type === 'login-request') {
         var email = String(data.email || '').trim();
         if (!email) return;
         var company = String(data.company || '').trim();
-
-        if (customerEmail) customerEmail.value = email;
-        rememberArmcomSessionIdentifier(email);
-
         var mode = String(data.mode || 'signin');
         var lookupLabel =
           mode === 'register'
             ? 'Registering Arm ID and looking up profile...'
             : 'Looking up profile and stitching identity...';
-        setArmcomMessage(lookupLabel, '');
-        var ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
-        var profile =
-          global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
-            ? global.DemoProfileDrawer.getLastLookedUpProfile()
-            : null;
-        var firstName =
-          (profile && profile.firstName) ||
-          String(data.firstName || '').trim() ||
-          null;
-
-        postToSiteFrame({
-          source: 'armcom-demo-shell',
-          type: 'login-complete',
-          found: !!ok,
-          email: email,
-          firstName: firstName,
+        await performArmcomProfileLookup(email, {
+          lookupMessage: lookupLabel,
+          successMessage:
+            'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.',
+          notifyFrame: true,
           company: company,
           mode: mode,
+          firstName: data.firstName,
         });
-
-        if (ok && armcomTagsInjection && typeof armcomTagsInjection.stitchAfterProfileLookup === 'function') {
-          var stitched = await armcomTagsInjection.stitchAfterProfileLookup(profile, email);
-          if (stitched) {
-            setArmcomMessage('Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.', 'success');
-          }
-        }
       }
     }
 
@@ -296,6 +335,7 @@
       tagsInjection: armcomTagsInjection,
       setMessage: setArmcomMessage,
       getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+      performProfileLookup: performArmcomProfileLookup,
     };
   }
 

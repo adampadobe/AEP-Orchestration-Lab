@@ -30,18 +30,13 @@ var armcomLabBootStarted = false;
 function bootArmcomDemoLab() {
   if (armcomLabBootStarted && armcomLab) return;
   if (typeof window.initArmcomLab !== 'function') return;
-  if (typeof window.DemoTagsInjection === 'undefined') {
-    if (window.envBar && typeof window.envBar.onChange === 'function') {
-      window.envBar.onChange(function (detail) {
-        if (detail && detail.type === 'init' && typeof window.DemoTagsInjection !== 'undefined') {
-          bootArmcomDemoLab();
-        }
-      });
-    }
-    return;
-  }
   armcomLabBootStarted = true;
-  armcomLab = window.initArmcomLab({ iframeIds: ['armcomSiteFrame'] });
+  armcomLab = window.initArmcomLab({
+    iframeIds: ['armcomSiteFrame'],
+    onProfileLookupComplete: function () {
+      scheduleArmcomDrawerRefresh();
+    },
+  });
 }
 
 function whenEnvBarReady(run) {

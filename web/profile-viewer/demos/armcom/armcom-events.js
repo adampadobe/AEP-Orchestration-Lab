@@ -37,23 +37,6 @@
     return PAGE_META[pageId()] || PAGE_META.home;
   }
 
-  function postLoginRequest(email, company) {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            source: 'armcom-lab',
-            type: 'login-request',
-            email: email,
-            company: company,
-          },
-          '*',
-        );
-      }
-    } catch (_e) {
-      /* ignore */
-    }
-  }
 
   function postToParent(type, payload) {
     var msg = {
@@ -248,6 +231,8 @@
       var company = String(form.company && form.company.value ? form.company.value : '').trim();
       if (!email) return;
 
+      notifyLeadCapture(email, company, source);
+
       postToParent('armcom-experience-event', {
         eventType: 'armcom.lead.capture',
         viewName: source === 'footer-inline' ? 'Footer newsletter' : 'Marketo subscribe',
@@ -271,8 +256,6 @@
         },
       });
 
-      notifyLeadCapture(email, company, source);
-      postLoginRequest(email, company);
       showActivationToast();
 
       var success = document.getElementById(successId);
