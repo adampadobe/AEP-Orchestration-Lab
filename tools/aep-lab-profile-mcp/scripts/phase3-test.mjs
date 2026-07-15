@@ -822,6 +822,9 @@ async function run() {
 
   const shorthand = buildEventsFromEventTypes(['ferrariworld.pageView', 'transaction'], { view_name: 'FW' });
   assert(shorthand.length === 2, 'buildEventsFromEventTypes length');
+  assert(shorthand[0].timestamp && shorthand[1].timestamp, 'buildEventsFromEventTypes staggered timestamps');
+  assert(shorthand[0].timestamp !== shorthand[1].timestamp, 'buildEventsFromEventTypes distinct timestamps');
+  assert(shorthand[0].channel === 'web' && shorthand[1].channel === 'web', 'buildEventsFromEventTypes channel default');
 
   const { registerSendRetailJourneyEventsTool } = await import('../src/tools/sendRetailJourneyEvents.mjs');
   assert(typeof registerSendRetailJourneyEventsTool === 'function', 'registerSendRetailJourneyEventsTool');

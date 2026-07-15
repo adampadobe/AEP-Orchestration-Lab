@@ -32,6 +32,15 @@ export function hoursAgoIso(hoursAgo) {
 }
 
 /**
+ * ISO timestamp N minutes before now — spreads batch/journey events on the profile timeline.
+ * @param {number} minutesAgo
+ */
+export function minutesAgoIso(minutesAgo) {
+  const ms = Math.max(0, Number(minutesAgo) || 0) * 60 * 1000;
+  return new Date(Date.now() - ms).toISOString();
+}
+
+/**
  * @param {string | undefined | null} brandName
  */
 export function defaultRetailProductName(brandName) {
@@ -120,6 +129,8 @@ export function buildEventsFromEventTypes(eventTypes, context = {}) {
           : event_type,
     view_url: context.view_url,
     channel: context.channel || 'web',
+    // Stagger timestamps (oldest first) so UPS timeline shows distinct events — same pattern as retail journey pack.
+    timestamp: minutesAgoIso((types.length - index) * 2),
   }));
 }
 

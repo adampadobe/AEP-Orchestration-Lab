@@ -32,11 +32,12 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
     {
       title: 'Send multiple profile experience events',
       description:
-        'Send multiple Experience Events for one profile — server builds minimal XDM per step from tool params only. ' +
-        'Coworker/agents: pass events[] with event_type (+ optional channel, view_name) OR event_types[] shorthand. ' +
+        'Convenience wrapper: sends multiple Experience Events for one profile via sequential POST /api/events/generator calls ' +
+        '(one event per request, default 800ms delay — NOT one Edge bulk payload). Server builds minimal XDM per step from tool params only. ' +
+        'Coworker/agents: pass events[] with event_type (+ optional channel, view_name, timestamp per step) OR event_types[] shorthand. ' +
         'NEVER pass custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
         'Requires email + ecid from lab_generate_profile for reliable stitching. ' +
-        'Verify with lab_profile_activity after 30–60s UPS lag.',
+        'Results: requestId for Edge transport (eventId is null for lab-event-tool-edge). Verify with lab_profile_activity after 30–60s UPS lag.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().describe('Profile email'),

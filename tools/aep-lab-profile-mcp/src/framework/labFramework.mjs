@@ -160,7 +160,7 @@ export const CRITICAL_RULES = [
     retail_journey:
       'lab_send_retail_journey_events or lab_prepare_demo_from_brand_scrape steps.events — optional commerce pack when event_types omitted; ' +
       'retail lab_industry defaults commerce.productViews → … → transaction with email+ecid from generate.',
-    batch: 'lab_send_profile_events_batch or event_types[] on lab_prepare_demo_from_brand_scrape for arbitrary multi-event sequences.',
+    batch: 'lab_send_profile_events_batch (sequential POST /api/events/generator per event) or event_types[] on lab_prepare_demo_from_brand_scrape for arbitrary multi-event sequences.',
     ui: 'web/profile-viewer/event-generator.js + mobile lab shells — buildGeneratorPostBody parity in MCP.',
     verify: 'lab_profile_activity after send — allow 30–60s UPS lag; retry if ecid was missing on first attempt.',
   },

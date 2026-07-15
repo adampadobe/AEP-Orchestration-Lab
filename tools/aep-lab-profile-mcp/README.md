@@ -49,7 +49,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_save_event_datastream` | Firestore `eventEdgeConfig` (Admin) | Save Edge datastream ID after Coworker **dx-api** or Data Collection setup |
 | `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
 | `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (any `event_type` string); portal-identical POST body |
-| `lab_send_profile_events_batch` | `POST /api/events/generator` × N | Multiple events, one profile; `events[]` or `event_types[]` |
+| `lab_send_profile_events_batch` | `POST /api/events/generator` × N (sequential) | Convenience wrapper: one generator POST per event (800ms delay default); `events[]` or `event_types[]` |
 | `lab_send_retail_journey_events` | `POST /api/events/generator` (×4) | Portal-aligned retail commerce journey pack; preflight + staggered timestamps |
 | `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |
@@ -178,7 +178,7 @@ Mirrors Profile Viewer **Event tool** (`event-generator.html`):
 3. **`lab_send_profile_event`** — send with email/ecid + **any** `event_type` string + optional `channel`. **Coworker: pass tool params only** (`sandbox`, `email`, `ecid`, `event_type`, `channel`) — **never** custom XDM, schema refs, or mixin blobs. Server builds minimal Edge XDM via `buildGeneratorEdgeInteractXdm` (`identityMap`, `eventType`, `_id`, `timestamp`, `interactionDetails` when channel set). Omit `public`/`message`/`xdm_style=full` unless colleague explicitly needs rich tenant fields.
 4. **`lab_profile_activity`** or **`lab_get_profile`** — verify events landed on the profile.
 
-**Multi-event intent demos:** `lab_send_profile_events_batch` with `event_types: ["donation.made", "web.webPageDetails.pageViews", "transaction"]` — same identity, no XDM construction.
+**Multi-event intent demos:** `lab_send_profile_events_batch` with `event_types: ["donation.made", "web.webPageDetails.pageViews", "transaction"]` — sequential generator POSTs (not one Edge bulk payload), same identity, no XDM construction. Edge results use `requestId` (`eventId` is null for `lab-event-tool-edge`).
 
 Advanced: **`lab_send_edge_event`** when you have `datastream_id` directly. **Avoid `raw_payload`** — schema injection causes failures; prefer `lab_send_profile_event`.
 

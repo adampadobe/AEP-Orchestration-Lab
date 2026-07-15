@@ -1,8 +1,10 @@
 /**
  * Send a sequence of Experience Events with Portal Event tool identity rules.
+ * Each step is one POST /api/events/generator (sequential, not one Edge bulk payload).
  */
 
 import { listEventTargets, lookupProfile, sendProfileEvent } from '../labApiClient.mjs';
+import { minutesAgoIso } from './demoEventPacks.mjs';
 import {
   LAB_EVENT_TOOL_TARGET_ID,
   buildEventPreflightSummary,
@@ -21,6 +23,7 @@ import {
  * @param {number} [params.delay_ms]
  * @param {boolean} [params.preflight]
  * @param {boolean} [params.auto_fetch_ecid]
+ * @param {{ listEventTargets?: typeof listEventTargets, sendProfileEvent?: typeof sendProfileEvent }} [params.deps]
  */
 export async function sendProfileEventSequence({
   sandbox,
@@ -31,7 +34,11 @@ export async function sendProfileEventSequence({
   delay_ms = 800,
   preflight = true,
   auto_fetch_ecid = true,
+  deps,
 }) {
+  const listTargetsFn = deps?.listEventTargets ?? listEventTargets;
+  const sendEventFn = deps?.sendProfileEvent ?? sendProfileEvent;
+
   const emailTrim = String(email || '').trim();
   if (!emailTrim) {
     return { ok: false, error: 'email is required for event sequence send.' };
@@ -69,7 +76,7 @@ export async function sendProfileEventSequence({
 
   /** @type {Record<string, unknown> | null} */
   let preflightSummary = null;
-  const targetsResult = await listEventTargets({ sandbox });
+  const targetsResult = await listTargetsFn({ sandbox });
   const targets = targetsResult.ok && Array.isArray(targetsResult.data?.targets)
     ? targetsResult.data.targets
     : [];
@@ -100,7 +107,12 @@ export async function sendProfileEventSequence({
     }
 
     const step = events[i];
-    const apiResult = await sendProfileEvent({
+    const timestamp =
+      step.timestamp && String(step.timestamp).trim()
+        ? String(step.timestamp).trim()
+        : minutesAgoIso((events.length - i) * 2);
+
+    const apiResult = await sendEventFn({
       sandbox,
       email: resolved.email,
       ecid: resolved.ecid || undefined,
@@ -109,19 +121,24 @@ export async function sendProfileEventSequence({
       view_name: step.view_name,
       view_url: step.view_url,
       channel: step.channel || 'web',
-      timestamp: step.timestamp,
+      timestamp,
       public: step.public,
       message: step.message,
     });
+
+    const lab = apiResult.ok && apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : {};
 
     stepResults.push({
       index: i,
       event_type: step.event_type,
       view_name: step.view_name || null,
+      channel: step.channel || 'web',
+      timestamp,
       ok: apiResult.ok,
       error: apiResult.ok ? undefined : apiResult.error,
-      transport: apiResult.ok && apiResult.data?.transport ? apiResult.data.transport : null,
-      eventId: apiResult.ok && apiResult.data?.eventId ? apiResult.data.eventId : null,
+      transport: lab.transport || null,
+      requestId: lab.requestId || null,
+      eventId: lab.eventId || null,
     });
 
     if (apiResult.ok) sent += 1;
@@ -135,9 +152,14 @@ export async function sendProfileEventSequence({
     sent,
     failed,
     total: events.length,
+    send_mode: 'sequential_generator_posts',
     warnings: resolved.warnings.length ? resolved.warnings : undefined,
     preflight: preflightSummary,
     results: stepResults,
     verify_hint: 'Call lab_profile_activity after 30–60s UPS lag to confirm events landed.',
+    stitch_note:
+      'Each step is a separate POST /api/events/generator (same as clicking Send in Event tool once per event). ' +
+      'ok:true per step means Edge accepted the event — not that UPS already shows it. ' +
+      'For lab-event-tool-edge, eventId is null in results; use requestId instead (DCS streaming returns eventId).',
   };
 }

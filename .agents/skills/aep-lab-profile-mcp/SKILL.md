@@ -51,7 +51,7 @@ Codex should call these **before** improvising lab conventions:
 1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset. **HTTP API dataflows:** lab MCP creates schema/FGs/dataset; Coworker **dx-api** creates Flow Service connections + dataflow (see Workflow 4b).
 2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via per-industry HTTP API connections. **Non-generic industries dual-stream automatically:** step 1 `industry generic` (generic-owned paths), step 2 `industry travel|fsi|…` with `appendIfExisting` (industry-owned paths, same email/ECID). `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Fill random sample**). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
-4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator`. **Coworker: pass tool params only** — `sandbox`, `email`, `ecid`, `event_type`, `channel` (optional `view_name`). **Never** pass custom XDM, schema refs, mixin definitions, or tenant field groups. Server builds minimal Edge XDM (`buildGeneratorEdgeInteractXdm` → `buildEventGeneratorXdm` minimal). **`event_type` is free text**. **Identity**: pass email **and** ecid from `lab_generate_profile`. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event` (returns `generatorPostBody` camelCase fields — not XDM to construct). Multi-event: `lab_send_profile_events_batch`. Auto-fetches ecid from UPS when email-only.
+4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator`. **Coworker: pass tool params only** — `sandbox`, `email`, `ecid`, `event_type`, `channel` (optional `view_name`). **Never** pass custom XDM, schema refs, mixin definitions, or tenant field groups. Server builds minimal Edge XDM (`buildGeneratorEdgeInteractXdm` → `buildEventGeneratorXdm` minimal). **`event_type` is free text**. **Identity**: pass email **and** ecid from `lab_generate_profile`. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event` (returns `generatorPostBody` camelCase fields — not XDM to construct). Multi-event: `lab_send_profile_events_batch` (sequential POSTs — one generator call per event, not one Edge bulk payload). Auto-fetches ecid from UPS when email-only.
 
 ### Test data conventions
 
@@ -318,9 +318,11 @@ The server also adds `_demoemea.identification.core` (ecid + email mirror) and a
 
    > lab_preflight_profile_event sandbox apalmer email {email} ecid {ecid} event_type donation.made channel web — inspect `generatorPostBody`, not hand-built XDM.
 
-3. **Send multiple simple events** (params only):
+3. **Send multiple simple events** (params only; one `POST /api/events/generator` per event, ~800ms apart):
 
    > lab_send_profile_events_batch sandbox apalmer email {email} ecid {ecid} channel web event_types ["donation.made", "web.webPageDetails.pageViews", "transaction"]
+
+   Per-step `ok:true` means Edge accepted the event. For `lab-event-tool-edge`, `eventId` in results is **null** — use `requestId` instead. This is not a failure.
 
 4. **Verify** (30–60s UPS lag):
 
