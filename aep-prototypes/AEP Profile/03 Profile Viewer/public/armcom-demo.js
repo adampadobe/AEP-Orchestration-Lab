@@ -33,8 +33,19 @@ function bootArmcomDemoLab() {
   armcomLabBootStarted = true;
   armcomLab = window.initArmcomLab({
     iframeIds: ['armcomSiteFrame'],
-    onProfileLookupComplete: function () {
+    onProfileLookupComplete: function (detail) {
       scheduleArmcomDrawerRefresh();
+      var d = detail && typeof detail === 'object' ? detail : {};
+      if (d.mode === 'lead-capture' && d.email) {
+        triggerArmcomDecisioningRefresh({
+          forceVariant: 'brand-awareness',
+          email: d.email,
+          company: d.company,
+          firstName: d.firstName,
+          leadCaptured: true,
+          registered: true,
+        });
+      }
     },
   });
 }
@@ -222,9 +233,17 @@ window.addEventListener('message', function (ev) {
     return;
   }
   if (ev.data.type === 'armcom-decisioning-refresh' || ev.data.type === 'armcom-lead-capture') {
-    triggerArmcomDecisioningRefresh(
-      ev.data.type === 'armcom-lead-capture' ? { forceVariant: 'brand-awareness' } : { contentTriggered: true },
-    );
+    if (ev.data.type === 'armcom-lead-capture') {
+      var lead = ev.data.payload && typeof ev.data.payload === 'object' ? ev.data.payload : {};
+      triggerArmcomDecisioningRefresh({
+        forceVariant: 'brand-awareness',
+        email: lead.email,
+        company: lead.company,
+        leadCaptured: true,
+      });
+      return;
+    }
+    triggerArmcomDecisioningRefresh({ contentTriggered: true });
   }
 });
 

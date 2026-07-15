@@ -213,16 +213,25 @@
     mount.classList.remove('armcom-personalized-banner-mount');
   }
 
+  function applyRefreshOpts(state, opts) {
+    if (opts.contentTriggered) state.contentTriggered = true;
+    if (opts.forceVariant) state.forceVariant = opts.forceVariant;
+    if (opts.leadCaptured) state.leadCaptured = true;
+    if (opts.registered) state.registered = true;
+    if (opts.email) state.email = String(opts.email).trim();
+    if (opts.company) state.company = String(opts.company).trim();
+    if (opts.firstName) state.firstName = String(opts.firstName).trim() || null;
+    return state;
+  }
+
   function refresh(opts) {
     opts = opts || {};
+    var state = applyRefreshOpts(readState(), opts);
+    writeState(state);
     if (!decisioningEnabled) {
       clearBanner();
       return false;
     }
-    var state = readState();
-    if (opts.contentTriggered) state.contentTriggered = true;
-    if (opts.forceVariant) state.forceVariant = opts.forceVariant;
-    writeState(state);
 
     var variant = pickVariant(state);
     var mount = document.getElementById('TopRibbon');
@@ -239,28 +248,27 @@
     var email = String(p.email || '').trim();
     var company = String(p.company || '').trim();
     if (!email) return;
-    writeState({
+    refresh({
       email: email,
       company: company,
       leadCaptured: true,
       contentTriggered: false,
       forceVariant: null,
     });
-    refresh();
   }
 
   function onRegistrationComplete(payload) {
     var p = payload && typeof payload === 'object' ? payload : {};
-    writeState({
-      email: String(p.email || readState().email || '').trim(),
-      company: String(p.company || readState().company || '').trim(),
+    var prior = readState();
+    refresh({
+      email: String(p.email || prior.email || '').trim(),
+      company: String(p.company || prior.company || '').trim(),
       firstName: String(p.firstName || '').trim() || null,
       registered: true,
       leadCaptured: true,
       contentTriggered: false,
       forceVariant: null,
     });
-    refresh();
   }
 
   function onContentInterest(topic, label) {

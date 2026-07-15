@@ -250,7 +250,16 @@
       }
 
       if (typeof options.onProfileLookupComplete === 'function') {
-        options.onProfileLookupComplete({ ok: ok, profile: profile, stitched: stitched, email: idVal });
+        options.onProfileLookupComplete({
+          ok: ok,
+          profile: profile,
+          stitched: stitched,
+          email: idVal,
+          company: String(opts.company || '').trim(),
+          firstName:
+            (profile && profile.firstName) || String(opts.firstName || '').trim() || null,
+          mode: String(opts.mode || 'signin'),
+        });
       }
 
       return { ok: ok, profile: profile, stitched: stitched };

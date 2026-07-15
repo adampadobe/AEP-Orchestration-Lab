@@ -68,14 +68,6 @@
   }
 
   function notifyLeadCapture(email, company, source) {
-    if (
-      window.ArmcomPersonalizedBanner &&
-      typeof window.ArmcomPersonalizedBanner.isEnabled === 'function' &&
-      !window.ArmcomPersonalizedBanner.isEnabled()
-    ) {
-      postToParent('armcom-lead-capture', { email: email, company: company, source: source });
-      return;
-    }
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.onLeadCapture === 'function') {
       window.ArmcomPersonalizedBanner.onLeadCapture({ email: email, company: company, source: source });
     }
