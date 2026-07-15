@@ -121,8 +121,8 @@
       return renderRailItem(menu.id, cat, cat.id === activeId);
     }).join('');
     var panels = menu.categories.map(function (cat) {
-      var hidden = cat.id !== activeId ? ' hidden' : '';
-      return '<div class="armcom-mega-panels__item' + hidden + '" data-armcom-panel-wrap="' + escapeHtml(cat.id) + '">' + renderPanel(menu, cat) + '</div>';
+      var hiddenAttr = cat.id !== activeId ? ' hidden' : '';
+      return '<div class="armcom-mega-panels__item"' + hiddenAttr + ' data-armcom-panel-wrap="' + escapeHtml(cat.id) + '">' + renderPanel(menu, cat) + '</div>';
     }).join('');
     var footer = menu.footer
       ? '<div class="armcom-mega-menu__footer"><a href="' + escapeHtml(resolveHref(menu.footer.href)) + '" class="armcom-mega-footer-link" data-armcom-nav-href="' + escapeHtml(menu.footer.href) + '" data-armcom-nav-track="' + escapeHtml(menu.footer.track || menu.footer.label) + '">' + escapeHtml(menu.footer.label) + ' <span class="armcom-mega-arrow" aria-hidden="true">→</span></a></div>'
@@ -186,6 +186,11 @@
     openMenuId = menuId;
     var menuEl = document.getElementById('armcomMega-' + menuId);
     if (menuEl) menuEl.hidden = false;
+    var data = window.ArmcomNavData || {};
+    var menu = data[menuId];
+    if (menu && menu.categories && menu.categories.length) {
+      setActiveCategory(menuId, menu.categories[0].id);
+    }
     if (trigger) {
       trigger.classList.add('is-open');
       trigger.setAttribute('aria-expanded', 'true');
@@ -223,6 +228,11 @@
         if (menuId && catId) setActiveCategory(menuId, catId);
       });
       btn.addEventListener('focus', function () {
+        var menuId = btn.getAttribute('data-armcom-menu');
+        var catId = btn.getAttribute('data-armcom-rail');
+        if (menuId && catId) setActiveCategory(menuId, catId);
+      });
+      btn.addEventListener('click', function () {
         var menuId = btn.getAttribute('data-armcom-menu');
         var catId = btn.getAttribute('data-armcom-rail');
         if (menuId && catId) setActiveCategory(menuId, catId);

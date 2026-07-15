@@ -267,6 +267,11 @@ body.armcom-mega-open {
 .armcom-mega-panels {
   padding: 2rem 2rem 2rem 2.5rem;
   min-width: 0;
+  position: relative;
+}
+
+.armcom-mega-panels__item[hidden] {
+  display: none !important;
 }
 
 .armcom-mega-panel__title {
