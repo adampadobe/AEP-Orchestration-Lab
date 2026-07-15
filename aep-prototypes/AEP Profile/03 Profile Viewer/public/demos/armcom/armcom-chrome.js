@@ -76,6 +76,8 @@
     Markets: 'markets',
     Partners: 'partners',
     Developers: 'developers',
+    'Support & Training': 'supportTraining',
+    Company: 'company',
   };
 
   function renderHeader() {

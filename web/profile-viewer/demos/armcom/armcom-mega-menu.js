@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var MEGA_IDS = ['products', 'markets', 'partners', 'developers'];
+  var MEGA_IDS = ['products', 'markets', 'partners', 'developers', 'supportTraining', 'company'];
   var openMenuId = null;
   var activeCategory = {};
 
@@ -67,7 +67,10 @@
       ? '<img src="' + escapeHtml(resolveHref(featured.image)) + '" alt="' + escapeHtml(featured.imageAlt || '') + '" class="armcom-mega-featured__img">'
       : '<div class="armcom-mega-featured__brand">' + escapeHtml(featured.brand || '') + '</div>';
     return (
-      '<a href="' + escapeHtml(href) + '" class="armcom-mega-featured" data-armcom-nav-href="' + escapeHtml(featured.href) + '" data-armcom-nav-track="' + escapeHtml(featured.track || featured.label) + '">' +
+      '<a href="' + escapeHtml(href) + '" class="armcom-mega-featured" data-armcom-nav-href="' + escapeHtml(featured.href) + '" data-armcom-nav-track="' + escapeHtml(featured.track || featured.label) + '"' +
+      (featured.topic ? ' data-armcom-nav-topic="' + escapeHtml(featured.topic) + '"' : '') +
+      (featured.intent ? ' data-armcom-nav-intent="' + escapeHtml(featured.intent) + '"' : '') +
+      '>' +
       img +
       '<span class="armcom-mega-featured__title">' + escapeHtml(featured.label) + ' <span class="armcom-mega-arrow" aria-hidden="true">→</span></span>' +
       (featured.description ? '<span class="armcom-mega-featured__desc">' + escapeHtml(featured.description) + '</span>' : '') +
