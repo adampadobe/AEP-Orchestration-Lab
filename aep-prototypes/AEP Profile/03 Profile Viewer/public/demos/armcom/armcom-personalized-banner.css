@@ -1,0 +1,126 @@
+/**
+ * Arm demo — fake personalized decisioning banner (TopRibbon mount).
+ */
+
+#TopRibbon.armcom-personalized-banner-mount:not(:empty) {
+  display: block;
+}
+
+.armcom-personalized-banner {
+  background: linear-gradient(105deg, #2b0055 0%, #1a0033 55%, #0d001a 100%);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.armcom-personalized-banner__inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.25rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.85rem 2rem;
+  box-sizing: border-box;
+}
+
+.armcom-personalized-banner__visual {
+  flex-shrink: 0;
+}
+
+.armcom-personalized-banner__image {
+  display: block;
+  width: 88px;
+  height: auto;
+  max-height: 72px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.armcom-personalized-banner__copy {
+  min-width: 0;
+}
+
+.armcom-personalized-banner__segment {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c8b6ff;
+}
+
+.armcom-personalized-banner__headline {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.armcom-personalized-banner__subtext {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.armcom-personalized-banner__interest {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(200, 182, 255, 0.95);
+}
+
+.armcom-personalized-banner__actions {
+  flex-shrink: 0;
+}
+
+.armcom-personalized-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #2b0055;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.armcom-personalized-banner__cta:hover,
+.armcom-personalized-banner__cta:focus-visible {
+  background: #e8dcff;
+  color: #1a0033;
+  outline: none;
+}
+
+@media (max-width: 900px) {
+  .armcom-personalized-banner__inner {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    padding-inline: 1.25rem;
+  }
+
+  .armcom-personalized-banner__actions {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .armcom-personalized-banner__inner {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .armcom-personalized-banner__visual {
+    display: none;
+  }
+
+  .armcom-personalized-banner__headline {
+    font-size: 0.92rem;
+  }
+}

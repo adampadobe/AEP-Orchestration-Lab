@@ -20,7 +20,7 @@ function syncIframeToJourneyUrl() {
     return;
   }
   if (/armcom-demo\.html$/i.test(window.location.pathname)) {
-    armcomSiteFrame.src = 'demos/armcom/index.html?v=20260714e';
+    armcomSiteFrame.src = 'demos/armcom/index.html?v=20260715d';
   }
 }
 
@@ -108,20 +108,20 @@ function scheduleArmcomDrawerRefresh() {
   }, 8000);
 }
 
-function triggerArmcomDecisioningRefresh() {
-  if (
-    window.DecisioningProfileRuntime &&
-    typeof window.DecisioningProfileRuntime.runContentDecision === 'function'
-  ) {
-    void window.DecisioningProfileRuntime.runContentDecision().catch(function (err) {
-      console.warn('[armcom-demo] decisioning refresh failed', err && err.message ? err.message : err);
-    });
-  } else if (
-    window.SiteCloneDecisioningBoot &&
-    typeof window.SiteCloneDecisioningBoot.syncFromProfileLookup === 'function'
-  ) {
-    void window.SiteCloneDecisioningBoot.syncFromProfileLookup();
-  }
+function postArmcomBannerMessage(type, payload) {
+  if (!armcomSiteFrame || !armcomSiteFrame.contentWindow) return;
+  armcomSiteFrame.contentWindow.postMessage(
+    {
+      source: 'armcom-demo-shell',
+      type: type,
+      payload: payload || {},
+    },
+    '*',
+  );
+}
+
+function triggerArmcomDecisioningRefresh(payload) {
+  postArmcomBannerMessage('armcom-banner-refresh', payload || { contentTriggered: true });
 }
 
 async function sendArmcomExperienceEvent(payload) {
@@ -194,8 +194,10 @@ window.addEventListener('message', function (ev) {
     });
     return;
   }
-  if (ev.data.type === 'armcom-decisioning-refresh') {
-    triggerArmcomDecisioningRefresh();
+  if (ev.data.type === 'armcom-decisioning-refresh' || ev.data.type === 'armcom-lead-capture') {
+    triggerArmcomDecisioningRefresh(
+      ev.data.type === 'armcom-lead-capture' ? { forceVariant: 'brand-awareness' } : { contentTriggered: true },
+    );
   }
 });
 

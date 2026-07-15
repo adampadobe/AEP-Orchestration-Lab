@@ -212,6 +212,10 @@
   function boot(cfg, opts) {
     opts = opts || {};
     cfg = cfg || {};
+    var explicitDecisioning = cfg.decisioning && typeof cfg.decisioning === 'object' ? cfg.decisioning : {};
+    if (explicitDecisioning.useFakeDecisioning === true) {
+      return null;
+    }
     installStitchSyncHook();
 
     var wiring = resolveDecisioningWiring(cfg);

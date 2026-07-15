@@ -245,6 +245,7 @@
       if (data.type === 'login-request') {
         var email = String(data.email || '').trim();
         if (!email) return;
+        var company = String(data.company || '').trim();
 
         if (customerEmail) customerEmail.value = email;
         rememberArmcomSessionIdentifier(email);
@@ -271,6 +272,7 @@
           found: !!ok,
           email: email,
           firstName: firstName,
+          company: company,
           mode: mode,
         });
 

@@ -392,6 +392,16 @@
       setSubmitLoading('register', false);
 
       if (ev.data.found) {
+        if (
+          window.ArmcomPersonalizedBanner &&
+          typeof window.ArmcomPersonalizedBanner.onRegistrationComplete === 'function'
+        ) {
+          window.ArmcomPersonalizedBanner.onRegistrationComplete({
+            email: ev.data.email,
+            firstName: ev.data.firstName,
+            company: ev.data.company,
+          });
+        }
         showSignedIn(ev.data.firstName || null);
       } else if (currentMode === 'register') {
         showFormError('register', 'No Arm profile found for that email. Check the address and try again.');

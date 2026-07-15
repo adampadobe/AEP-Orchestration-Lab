@@ -8,7 +8,7 @@
     home: { viewName: 'Arm home', topic: 'general', siteId: 'arm.com' },
     'cloud-ai-hub': { viewName: 'Cloud AI hub', topic: 'cloud-ai', siteId: 'arm.com' },
     'data-center-ai': { viewName: 'Data center AI', topic: 'cloud-ai', siteId: 'arm.com', intent: 'high' },
-    developer: { viewName: 'Arm Developer', topic: 'cloud-ai', siteId: 'developer.arm.com' },
+    developer: { viewName: 'Arm Developer', topic: 'developer', siteId: 'developer.arm.com' },
     subscribe: { viewName: 'Subscribe', topic: 'cloud-ai', siteId: 'arm.com' },
     'blog-future-computing': {
       viewName: 'The future of computing',
@@ -20,7 +20,7 @@
     },
     'neoverse-n2': {
       viewName: 'Arm Neoverse N2',
-      topic: 'cloud-ai',
+      topic: 'neoverse',
       siteId: 'arm.com',
       intent: 'high',
       productName: 'Arm Neoverse N2',
@@ -71,7 +71,24 @@
   }
 
   function requestDecisioningRefresh() {
+    if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.refresh === 'function') {
+      window.ArmcomPersonalizedBanner.refresh({ contentTriggered: true });
+      return;
+    }
     postToParent('armcom-decisioning-refresh', {});
+  }
+
+  function notifyLeadCapture(email, company, source) {
+    if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.onLeadCapture === 'function') {
+      window.ArmcomPersonalizedBanner.onLeadCapture({ email: email, company: company, source: source });
+    }
+    postToParent('armcom-lead-capture', { email: email, company: company, source: source });
+  }
+
+  function notifyContentInterest(topic, label) {
+    if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.onContentInterest === 'function') {
+      window.ArmcomPersonalizedBanner.onContentInterest(topic, label);
+    }
   }
 
   function sendPageView() {
@@ -111,6 +128,7 @@
 
   function sendContentClick(label, extra) {
     var m = meta();
+    notifyContentInterest(m.topic, label);
     postToParent('armcom-experience-event', {
       eventType: 'armcom.content.clicked',
       viewName: m.viewName,
@@ -232,6 +250,7 @@
         },
       });
 
+      notifyLeadCapture(email, company, source);
       postLoginRequest(email, company);
       showActivationToast();
 
@@ -290,6 +309,16 @@
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== 'armcom-demo-shell') return;
       if (ev.data.type === 'login-complete' && ev.data.found) {
+        if (
+          window.ArmcomPersonalizedBanner &&
+          typeof window.ArmcomPersonalizedBanner.onRegistrationComplete === 'function'
+        ) {
+          window.ArmcomPersonalizedBanner.onRegistrationComplete({
+            email: ev.data.email,
+            firstName: ev.data.firstName,
+            company: ev.data.company,
+          });
+        }
         showActivationToast();
       }
     });
