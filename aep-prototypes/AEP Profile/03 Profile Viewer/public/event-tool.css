@@ -366,6 +366,8 @@
 /* ── Editable payload preview JSON editor ── */
 .event-generator-page #etPreviewPanel .consent-preview-panel__collapse {
   overflow: hidden;
+  /* Default consent cap is 520px — too small for a 600px JSON viewport + chrome */
+  max-height: min(90vh, 780px);
 }
 
 .et-preview-editor {
@@ -398,7 +400,7 @@
   position: relative;
   display: block;
   flex: 1 1 auto;
-  min-height: 10rem;
+  min-height: 600px;
   overflow: hidden;
   border: none;
   border-radius: 0;
