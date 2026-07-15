@@ -318,8 +318,22 @@
     });
   }
 
+  function requestDecisioningStateFromShell() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { source: 'armcom-lab', type: 'armcom-decisioning-refresh', payload: {} },
+          '*',
+        );
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+
   function init() {
     wireMessages();
+    requestDecisioningStateFromShell();
     var body = document.body;
     var pageId = body ? body.getAttribute('data-armcom-page-id') || '' : '';
     var topicMap = {

@@ -155,7 +155,16 @@ function wireArmcomFakeDecisioningSync() {
   });
 }
 
+function wireArmcomIframeDecisioningSync() {
+  if (!armcomSiteFrame || armcomSiteFrame.getAttribute('data-armcom-decisioning-sync-wired') === '1') return;
+  armcomSiteFrame.setAttribute('data-armcom-decisioning-sync-wired', '1');
+  armcomSiteFrame.addEventListener('load', function () {
+    syncArmcomDecisioningStateToIframe();
+  });
+}
+
 wireArmcomFakeDecisioningSync();
+wireArmcomIframeDecisioningSync();
 
 function triggerArmcomDecisioningRefresh(payload) {
   if (!isArmcomDecisioningEnabled()) return;
@@ -233,6 +242,10 @@ window.addEventListener('message', function (ev) {
     return;
   }
   if (ev.data.type === 'armcom-decisioning-refresh' || ev.data.type === 'armcom-lead-capture') {
+    if (ev.data.type === 'armcom-decisioning-refresh') {
+      syncArmcomDecisioningStateToIframe();
+      return;
+    }
     if (ev.data.type === 'armcom-lead-capture') {
       var lead = ev.data.payload && typeof ev.data.payload === 'object' ? ev.data.payload : {};
       triggerArmcomDecisioningRefresh({
