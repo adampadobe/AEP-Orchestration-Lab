@@ -1,14 +1,14 @@
 {
-  "gitSha": "f55e749b2eea9704756932a327b36f66424e3709",
-  "gitShortSha": "f55e749b",
+  "gitSha": "6dcceeaa89e1569da2ef9dce5170ce579c0a9b1d",
+  "gitShortSha": "6dcceeaa",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: streaming button visibility on fresh sandbox",
+  "gitCommitSubject": "[apalmer] feat: industry filter on recently generated profiles",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-16T14:31:55+01:00",
-  "deployedAt": "2026-07-16T13:32:07.632Z",
+  "gitCommitDate": "2026-07-16T15:39:31+01:00",
+  "deployedAt": "2026-07-16T14:39:48.083Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f55e749b2eea9704756932a327b36f66424e3709"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/6dcceeaa89e1569da2ef9dce5170ce579c0a9b1d"
 }
