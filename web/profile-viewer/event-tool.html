@@ -217,22 +217,6 @@
                     <button type="button" id="etRemoveTriggerBtn" class="btn-icon btn-icon--remove" title="Remove from My triggers" hidden aria-label="Remove from My triggers">✕</button>
                   </div>
                   <div id="etTriggerDesc" class="field-hint" style="margin-bottom:0.75rem;"></div>
-
-                  <details id="etMyTriggersPanel" class="et-schema-types-panel et-my-triggers-panel">
-                    <summary class="et-schema-types-summary">My triggers <span id="etMyTriggersCount" class="et-schema-types-count"></span></summary>
-                    <div class="et-schema-types-body">
-                      <p class="field-hint">Saved event types for this sandbox (Firebase). <strong>Add to dropdown</strong> puts a shortcut in the type-ahead; <strong>Remove from dropdown</strong> hides it there but keeps it saved. <strong>Delete saved</strong> removes it everywhere.</p>
-                      <div id="etMyTriggersList" class="et-schema-types-list"></div>
-                    </div>
-                  </details>
-
-                  <details id="etSchemaTypesPanel" class="et-schema-types-panel">
-                    <summary class="et-schema-types-summary">Schema event types <span id="etSchemaTypesCount" class="et-schema-types-count"></span></summary>
-                    <div class="et-schema-types-body">
-                      <p class="field-hint">Click <strong>+ Add</strong> to save an event type to <strong>My triggers</strong> and add it to the dropdown shortcuts. Types already saved are hidden here.</p>
-                      <div id="etSchemaTypesList" class="et-schema-types-list"></div>
-                    </div>
-                  </details>
                 </div>
 
                 <!-- Industry event mode -->
@@ -246,9 +230,10 @@
                     <select id="etScenarioSelect" class="sandbox-select" aria-label="Industry event scenario"></select>
                   </div>
                   <p id="etIndustryDesc" class="field-hint et-industry-desc"></p>
-                  <div class="form-row">
+                  <div class="form-row et-quick-trigger-row">
                     <label for="etIndEventType">Event type</label>
-                    <input type="text" id="etIndEventType" readonly class="et-readonly-input" aria-readonly="true">
+                    <input type="text" id="etIndEventType" class="et-trigger-combo" list="etQuickTriggerList" placeholder="Pick a shortcut or type an event type…" autocomplete="off" spellcheck="false" aria-label="Industry event type">
+                    <button type="button" id="etIndAddTriggerBtn" class="btn btn-secondary btn-sm et-add-trigger-btn" title="Save this event type under My triggers">Add to my triggers</button>
                   </div>
                   <div class="et-industry-common">
                     <h4 class="et-industry-common__title">Common context</h4>
@@ -270,6 +255,22 @@
                     <div id="etIndustryFields" class="et-industry-fields__grid"></div>
                   </div>
                 </div>
+
+                <details id="etMyTriggersPanel" class="et-schema-types-panel et-my-triggers-panel">
+                  <summary class="et-schema-types-summary">My triggers <span id="etMyTriggersCount" class="et-schema-types-count"></span></summary>
+                  <div class="et-schema-types-body">
+                    <p class="field-hint">Saved event types for this sandbox (Firebase). <strong>Add to dropdown</strong> puts a shortcut in the type-ahead; <strong>Remove from dropdown</strong> hides it there but keeps it saved. <strong>Delete saved</strong> removes it everywhere.</p>
+                    <div id="etMyTriggersList" class="et-schema-types-list"></div>
+                  </div>
+                </details>
+
+                <details id="etSchemaTypesPanel" class="et-schema-types-panel">
+                  <summary class="et-schema-types-summary">Schema event types <span id="etSchemaTypesCount" class="et-schema-types-count"></span></summary>
+                  <div class="et-schema-types-body">
+                    <p class="field-hint">Click <strong>+ Add</strong> to save an event type to <strong>My triggers</strong> and add it to the dropdown shortcuts. Types already saved are hidden here.</p>
+                    <div id="etSchemaTypesList" class="et-schema-types-list"></div>
+                  </div>
+                </details>
 
                 <div class="button-row event-gen-send-actions">
                   <button type="button" id="etSendBtn" class="btn btn-primary btn-save">Send event</button>
@@ -314,7 +315,7 @@
   <script src="identity-picker.js"></script>
   <script src="event-industry-catalog.js?v=20260716-industry-events"></script>
   <script src="aep-json-editor.js?v=20260715-event-tool-json-scroll"></script>
-  <script src="event-tool.js?v=20260716-industry-ch-dedupe"></script>
+  <script src="event-tool.js?v=20260716-industry-event-type-combo"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>

@@ -42,6 +42,7 @@
     scenarioSelect:   document.getElementById('etScenarioSelect'),
     industryDesc:     document.getElementById('etIndustryDesc'),
     indEventType:     document.getElementById('etIndEventType'),
+    indAddTriggerBtn: document.getElementById('etIndAddTriggerBtn'),
     indViewName:      document.getElementById('etIndViewName'),
     indViewUrl:       document.getElementById('etIndViewUrl'),
     indOrchId:        document.getElementById('etIndOrchId'),
@@ -276,6 +277,21 @@
     return typeof t === 'string' ? t : (t.value || t.eventType || '');
   }
 
+  function getActiveEventTypeInput() {
+    if (activeMode === 'industry' && dom.indEventType) return dom.indEventType;
+    return dom.triggerType;
+  }
+
+  function getActiveEventTypeValue() {
+    var el = getActiveEventTypeInput();
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  function setActiveEventTypeValue(eventType) {
+    var el = getActiveEventTypeInput();
+    if (el) el.value = eventType || '';
+  }
+
   function isTemplatePayloadKey(k) {
     var tpl = triggerTemplates[k];
     return !!(tpl && typeof tpl === 'object' && tpl.payload);
@@ -451,6 +467,7 @@
     if (!dom.triggerType) return;
     sanitizeQuickMenuTriggers();
     var prev = (dom.triggerType.value || '').trim();
+    var prevInd = dom.indEventType ? (dom.indEventType.value || '').trim() : '';
     var dl = document.getElementById('etQuickTriggerList');
     if (dl) {
       dl.innerHTML = '';
@@ -469,8 +486,12 @@
         .sort()
         .forEach(addDatalistOption);
       quickMenuTriggers.slice().sort().forEach(addDatalistOption);
+      schemaEventTypes.slice().sort(function (a, b) {
+        return String(a.value || '').localeCompare(String(b.value || ''));
+      }).forEach(function (et) { addDatalistOption(et.value); });
     }
     if (prev) dom.triggerType.value = prev;
+    if (prevInd && dom.indEventType) dom.indEventType.value = prevInd;
     updateTriggerDesc();
     updateRemoveBtn();
     populateMyTriggersPanel();
@@ -624,8 +645,8 @@
     }
     sanitizeQuickMenuTriggers();
     rebuildTriggerSelect();
-    dom.triggerType.value = eventType;
-    updateTriggerDesc();
+    setActiveEventTypeValue(eventType);
+    if (activeMode === 'trigger') updateTriggerDesc();
     updateRemoveBtn();
     persistTriggersState();
   }
@@ -1213,23 +1234,33 @@
 
   if (dom.addTriggerBtn) {
     dom.addTriggerBtn.addEventListener('click', function () {
-      var raw = (dom.triggerType.value || '').trim();
-      if (!raw) {
-        setMsg(dom.sendMsg, 'Enter an event type in the field first.', 'error');
-        return;
-      }
-      if (isInCustomLibrary(raw)) {
-        if (quickMenuTriggers.indexOf(raw) < 0) {
-          addToQuickMenuOnly(raw);
-          setMsg(dom.sendMsg, 'Added to dropdown shortcuts.', 'success');
-        } else {
-          setMsg(dom.sendMsg, 'Already saved and listed in the dropdown.', '');
-        }
-        return;
-      }
-      addCustomTrigger(raw);
-      setMsg(dom.sendMsg, 'Saved to My triggers and added to dropdown (Firebase).', 'success');
+      handleAddTriggerFromField();
     });
+  }
+
+  if (dom.indAddTriggerBtn) {
+    dom.indAddTriggerBtn.addEventListener('click', function () {
+      handleAddTriggerFromField();
+    });
+  }
+
+  function handleAddTriggerFromField() {
+    var raw = getActiveEventTypeValue();
+    if (!raw) {
+      setMsg(dom.sendMsg, 'Enter an event type in the field first.', 'error');
+      return;
+    }
+    if (isInCustomLibrary(raw)) {
+      if (quickMenuTriggers.indexOf(raw) < 0) {
+        addToQuickMenuOnly(raw);
+        setMsg(dom.sendMsg, 'Added to dropdown shortcuts.', 'success');
+      } else {
+        setMsg(dom.sendMsg, 'Already saved and listed in the dropdown.', '');
+      }
+      return;
+    }
+    addCustomTrigger(raw);
+    setMsg(dom.sendMsg, 'Saved to My triggers and added to dropdown (Firebase).', 'success');
   }
 
   if (dom.removeTriggerBtn) {
@@ -1278,8 +1309,10 @@
       if (!catalog) return { error: 'Industry catalog not loaded.' };
       var scenario = getSelectedIndustryScenario();
       if (!scenario) return { error: 'Select an industry scenario.' };
+      var eventType = getActiveEventTypeValue() || scenario.eventType;
+      if (!eventType) return { error: 'Enter or select an event type.' };
       body.xdmStyle = 'full';
-      body.eventType = (dom.indEventType && dom.indEventType.value || '').trim() || scenario.eventType;
+      body.eventType = eventType;
       var vn = (dom.indViewName && dom.indViewName.value || '').trim() || scenario.viewName || '';
       var vu = (dom.indViewUrl && dom.indViewUrl.value || '').trim() || scenario.viewUrl || '';
       if (vn) body.viewName = vn;
