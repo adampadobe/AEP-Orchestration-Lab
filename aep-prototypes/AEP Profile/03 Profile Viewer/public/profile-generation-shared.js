@@ -321,14 +321,12 @@
   }
 
   /**
-   * True when a Firestore `streaming` object is worth offering "Load from Firebase".
-   * Matches the minimum the connection loader treats as a saved per-sandbox record.
+   * True when Firestore has a saved streaming connection worth "Load from Firebase".
+   * Requires URL + Flow ID — wizard infra sync may persist schema/dataset ids alone,
+   * which is not a reloadable streaming connection on a fresh sandbox.
    */
   function hasMeaningfulStreamingRecord(streaming) {
     if (!streaming || typeof streaming !== 'object') return false;
-    const schemaId = String(streaming.schemaId || '').trim();
-    const datasetId = String(streaming.datasetId || '').trim();
-    if (schemaId && datasetId) return true;
     const flowId = String(streaming.flowId || '').trim();
     const url = String(streaming.url || '').trim();
     return !!(flowId && url);

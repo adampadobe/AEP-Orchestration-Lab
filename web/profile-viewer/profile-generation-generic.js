@@ -325,6 +325,9 @@
     getPayload: getStreamingPayload,
     fieldEls: [streamSchemaIdEl, streamDatasetIdEl, streamXdmKeyEl, streamFlowIdEl, streamFlowNameEl, streamUrlEl],
   });
+  streamSaveUi.wire();
+  if (loadFromFirebaseBtn) loadFromFirebaseBtn.hidden = true;
+  if (saveStreamBtn) saveStreamBtn.hidden = true;
 
   let _firestoreHasStreamingRecord = false;
   function syncLoadButtonVisibility() {
@@ -504,7 +507,10 @@
         showInfraMessage(data.error || 'Save failed.', 'error');
         return false;
       }
-      setFirestoreHasRecord(getStreamingPayload());
+      const savedStreaming = data.record && data.record.streaming && typeof data.record.streaming === 'object'
+        ? data.record.streaming
+        : null;
+      setFirestoreHasRecord(savedStreaming);
       streamSaveUi.markSynced();
       applyConfiguredCollapseState();
       return true;
@@ -520,6 +526,7 @@
     if (streamDatasetIdEl && data.datasetId) streamDatasetIdEl.value = String(data.datasetId);
     if (streamSchemaIdEl && data.schemaId) streamSchemaIdEl.value = String(data.schemaId);
     if (streamXdmKeyEl && data.xdmKey) streamXdmKeyEl.value = String(data.xdmKey);
+    streamSaveUi.markSynced();
   }
 
   async function runStep(step, btn) {
@@ -950,6 +957,7 @@
         `✓ Auto-filled Schema ID and Dataset ID from sandbox "${sb}". Create the HTTP API source in AEP and paste the dataflow ID below.`,
         'success'
       );
+      streamSaveUi.markSynced();
       applyConfiguredCollapseState();
       return true;
     } catch (e) {
@@ -2152,8 +2160,6 @@
 
   if (loadFromFirebaseBtn) loadFromFirebaseBtn.addEventListener('click', () => loadConnectionFromFirestore(false));
   if (fetchFlowFromAepBtn) fetchFlowFromAepBtn.addEventListener('click', fetchFlowFromAep);
-  if (loadFromFirebaseBtn) loadFromFirebaseBtn.hidden = true;
-  streamSaveUi.wire();
   if (saveStreamBtn) {
     saveStreamBtn.addEventListener('click', async () => {
       saveStreamBtn.disabled = true;
