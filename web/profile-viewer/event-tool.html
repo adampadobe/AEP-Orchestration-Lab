@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260715-event-tool-json-min500">
+  <link rel="stylesheet" href="event-tool.css?v=20260716-industry-events">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -139,6 +139,17 @@
                     </div>
                     <ol id="etEnableProfileProgressList" class="consent-infra-progress" hidden aria-live="polite"></ol>
                   </div>
+
+                  <div class="et-config-step et-config-step--industry-schema">
+                    <h4 class="et-config-step-title">Industry event schema update</h4>
+                    <p class="field-hint">
+                      Adds <strong>Event Industry Public v1</strong> and <strong>Travel Hotel Experience v1</strong> field groups to your existing Event Tool schema — same dataset and datastream. Run once per sandbox before sending industry scenarios with rich <code class="et-code-inline">public.*</code> payloads.
+                    </p>
+                    <div class="form-row form-row--action et-setup-actions">
+                      <button type="button" id="etAttachIndustryFgBtn" class="btn btn-secondary">Update schema for industry events</button>
+                    </div>
+                    <div id="etIndustrySchemaMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                  </div>
                 </div>
 
                 <!-- Step 2 — Datastream in Data Collection -->
@@ -175,7 +186,7 @@
             <div class="profile-box profile-box--event-def et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Event</h3>
               <div class="profile-box-content">
-                <p class="field-hint event-gen-box-intro">Choose a <strong>channel</strong>, then an <strong>event type</strong>, then send.</p>
+                <p class="field-hint event-gen-box-intro">Choose a <strong>channel</strong>, then a <strong>quick trigger</strong> or an <strong>industry scenario</strong>, then send.</p>
                 <div class="form-row et-channel-row">
                   <label for="etChannel">Channel</label>
                   <select id="etChannel" class="sandbox-select" aria-label="Interaction channel">
@@ -193,7 +204,7 @@
 
                 <div class="et-mode-toggle">
                   <button type="button" class="et-mode-btn et-mode-btn--active" data-mode="trigger">Quick trigger</button>
-                  <button type="button" class="et-mode-btn" data-mode="custom">Custom event</button>
+                  <button type="button" class="et-mode-btn" data-mode="industry">Industry event</button>
                 </div>
 
                 <!-- Quick Trigger mode -->
@@ -224,25 +235,39 @@
                   </details>
                 </div>
 
-                <!-- Custom Event mode -->
-                <div id="etCustomMode" class="et-mode-panel" hidden>
+                <!-- Industry event mode -->
+                <div id="etIndustryMode" class="et-mode-panel" hidden>
                   <div class="form-row">
-                    <label for="etEventType">Event type</label>
-                    <input type="text" id="etEventType" list="etEventTypeList" placeholder="e.g. commerce.productViews" autocomplete="off">
-                    <datalist id="etEventTypeList"></datalist>
-                    <span id="etEventTypeHint" class="field-hint" hidden></span>
+                    <label for="etIndustrySelect">Industry</label>
+                    <select id="etIndustrySelect" class="sandbox-select" aria-label="Profile industry"></select>
                   </div>
                   <div class="form-row">
-                    <label for="etOrchId">Orchestration event ID <span class="field-hint">(optional)</span></label>
-                    <input type="text" id="etOrchId" placeholder="Overrides journey / campaign eventID in XDM" autocomplete="off" spellcheck="false">
+                    <label for="etScenarioSelect">Scenario</label>
+                    <select id="etScenarioSelect" class="sandbox-select" aria-label="Industry event scenario"></select>
                   </div>
+                  <p id="etIndustryDesc" class="field-hint et-industry-desc"></p>
                   <div class="form-row">
-                    <label for="etViewName">View name <span class="field-hint">(optional)</span></label>
-                    <input type="text" id="etViewName" placeholder="e.g. Home">
+                    <label for="etIndEventType">Event type</label>
+                    <input type="text" id="etIndEventType" readonly class="et-readonly-input" aria-readonly="true">
                   </div>
-                  <div class="form-row">
-                    <label for="etViewUrl">URL <span class="field-hint">(optional)</span></label>
-                    <input type="text" id="etViewUrl" placeholder="e.g. https://example.com/page">
+                  <div class="et-industry-common">
+                    <h4 class="et-industry-common__title">Common context</h4>
+                    <div class="form-row">
+                      <label for="etIndViewName">Page / view name</label>
+                      <input type="text" id="etIndViewName" placeholder="e.g. Product detail" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                      <label for="etIndViewUrl">Page URL</label>
+                      <input type="text" id="etIndViewUrl" placeholder="e.g. https://example.com/page" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                      <label for="etIndOrchId">Orchestration event ID <span class="field-hint">(optional)</span></label>
+                      <input type="text" id="etIndOrchId" placeholder="Journey / campaign eventID in XDM" autocomplete="off" spellcheck="false">
+                    </div>
+                  </div>
+                  <div id="etIndustryFieldsWrap" class="et-industry-fields" hidden>
+                    <h4 class="et-industry-fields__title">Industry fields</h4>
+                    <div id="etIndustryFields" class="et-industry-fields__grid"></div>
                   </div>
                 </div>
 
@@ -287,8 +312,9 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
+  <script src="event-industry-catalog.js?v=20260716-industry-events"></script>
   <script src="aep-json-editor.js?v=20260715-event-tool-json-scroll"></script>
-  <script src="event-tool.js?v=20260714-event-tool-json"></script>
+  <script src="event-tool.js?v=20260716-industry-events"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>

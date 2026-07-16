@@ -26,6 +26,10 @@ const LIST_FIELDGROUP_ACCEPTS = [
 const eventEdgeService = require('./eventEdgeService');
 const tagsReactorService = require('./tagsReactorService');
 const { buildAddProfileUnionPatchOps } = require('./profileInfraFactory');
+const {
+  EVENT_INDUSTRY_PUBLIC_FG_TITLE,
+  buildEventIndustryPublicV1ExperienceEventFieldGroup,
+} = require('./eventIndustryFieldGroups');
 
 const ADOBE_SIPHON_TABLE_FORMAT_KEY = 'adobe/siphon/table/format';
 const ADOBE_SIPHON_TABLE_FORMAT_VALUE = ['delta'];
@@ -1969,6 +1973,118 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     };
   }
 
+  if (step === 'attachIndustryEventFieldGroups') {
+    const title = String(opts.schemaTitle || '').trim();
+    const schemaIdOpt = String(opts.schemaId || '').trim();
+    if (!title && !schemaIdOpt) {
+      return { ok: false, error: 'Provide schemaTitle or schemaId (full schema $id URI).' };
+    }
+    let schema = null;
+    if (schemaIdOpt) {
+      schema = await findSchemaById(token, clientId, orgId, sandbox, schemaIdOpt);
+    } else {
+      schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
+    }
+    if (!schema) {
+      return { ok: false, error: 'Schema not found for the given title or schemaId.' };
+    }
+    const metaAltId = schema['meta:altId'];
+    if (!metaAltId) {
+      return { ok: false, error: 'Schema has no meta:altId yet — wait a few seconds and retry.' };
+    }
+    let tenantCtx;
+    try {
+      tenantCtx = await discoverTenantContextForEventTool(token, clientId, orgId, sandbox);
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+
+    /** @type {string[]} */
+    const createdTitles = [];
+    /** @type {string[]} */
+    const attachIds = [];
+    const warnings = [];
+
+    let industryFg = await findTenantExperienceEventFieldGroupByTitle(
+      token,
+      clientId,
+      orgId,
+      sandbox,
+      EVENT_INDUSTRY_PUBLIC_FG_TITLE,
+      (row) => String(row.title || '').trim() === EVENT_INDUSTRY_PUBLIC_FG_TITLE,
+    );
+    if (!industryFg) {
+      try {
+        const body = buildEventIndustryPublicV1ExperienceEventFieldGroup(tenantCtx.tenantId);
+        industryFg = await postTenantFieldGroup(token, clientId, orgId, sandbox, body);
+        createdTitles.push(EVENT_INDUSTRY_PUBLIC_FG_TITLE);
+      } catch (e) {
+        const msg = String(e.message || e);
+        if (/duplicate|already exists|409/i.test(msg)) {
+          industryFg = await findTenantExperienceEventFieldGroupByTitle(
+            token,
+            clientId,
+            orgId,
+            sandbox,
+            EVENT_INDUSTRY_PUBLIC_FG_TITLE,
+            (row) => String(row.title || '').trim() === EVENT_INDUSTRY_PUBLIC_FG_TITLE,
+          );
+        }
+        if (!industryFg) return { ok: false, error: msg };
+      }
+    }
+    if (industryFg && industryFg.$id) attachIds.push(industryFg.$id);
+
+    let travelHotel = findTravelHotelExperienceV1Mixin(
+      await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox),
+    );
+    if (!travelHotel) {
+      try {
+        const body = buildTravelHotelExperienceV1ExperienceEventFieldGroup(tenantCtx.tenantId);
+        travelHotel = await postTenantFieldGroup(token, clientId, orgId, sandbox, body);
+        createdTitles.push(TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE);
+      } catch (e) {
+        const msg = String(e.message || e);
+        if (/duplicate|already exists|409/i.test(msg)) {
+          travelHotel = findTravelHotelExperienceV1Mixin(
+            await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox),
+          );
+        } else {
+          warnings.push(`Travel hotel FG: ${msg}`);
+        }
+      }
+    }
+    if (travelHotel && travelHotel.$id) attachIds.push(travelHotel.$id);
+
+    const uniqueAttach = [...new Set(attachIds.filter(Boolean))];
+    const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, uniqueAttach);
+    for (const w of fgRes.warnings || []) warnings.push(w);
+
+    const parts = [];
+    if (createdTitles.length) parts.push(`Created: ${createdTitles.join(', ')}.`);
+    if (fgRes.attached.length) {
+      parts.push(`Attached to schema (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
+    }
+    if (fgRes.skipped.length) parts.push('Some field groups were already on the schema.');
+    parts.push(
+      `Industry payloads use ${tenantCtx.xdmKey}.public.* and optional root hotel.* — same datastream and dataset as Quick trigger.`,
+    );
+
+    return {
+      ok: true,
+      sandbox,
+      step,
+      schemaId: schema.$id,
+      schemaMetaAltId: metaAltId,
+      tenantXdmKey: tenantCtx.xdmKey,
+      createdFieldGroups: createdTitles.map((t) => ({ title: t })),
+      attachedFieldGroupIds: fgRes.attached,
+      skippedFieldGroupIds: fgRes.skipped,
+      warnings,
+      message: parts.join(' '),
+    };
+  }
+
   if (step === 'ensureBookerStayerFieldGroup') {
     const title = String(opts.schemaTitle || '').trim();
     const schemaIdOpt = String(opts.schemaId || '').trim();
@@ -2142,7 +2258,7 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
 
   return {
     ok: false,
-    error: `Unknown step: ${step}. Use setupEventInfra, enableForProfile, createSchema, attachRecommendedFieldGroups, ensureBookerStayerFieldGroup, createDataset, createDatastream, or probeTagsApi.`,
+    error: `Unknown step: ${step}. Use setupEventInfra, enableForProfile, createSchema, attachRecommendedFieldGroups, attachIndustryEventFieldGroups, ensureBookerStayerFieldGroup, createDataset, createDatastream, or probeTagsApi.`,
   };
 }
 

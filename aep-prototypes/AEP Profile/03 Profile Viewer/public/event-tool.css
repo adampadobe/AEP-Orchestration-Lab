@@ -77,7 +77,7 @@
 .et-config-step-row .form-row.et-ds-id-row { flex: 2 1 22rem; }
 .et-config-step-row .form-row.form-row--action { flex: 0 0 auto; }
 
-/* Channel selector — shared above quick trigger / custom event */
+/* Channel selector — shared above quick trigger / industry event */
 .et-channel-row {
   max-width: 22rem;
   margin-bottom: 0.75rem;
@@ -465,6 +465,58 @@
 
 .event-generator-page #etPreviewPanel textarea.et-preview-json.aep-json--mirror-input::selection {
   background: color-mix(in srgb, var(--dash-blue) 28%, transparent);
+}
+
+/* Industry event mode */
+.et-industry-desc {
+  margin: 0.35rem 0 0.75rem;
+}
+
+.et-industry-common,
+.et-industry-fields {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dash-input-border);
+}
+
+.et-industry-common__title,
+.et-industry-fields__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+}
+
+.et-industry-fields__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.65rem 1rem;
+}
+
+.et-industry-field-row label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+}
+
+.et-readonly-input {
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+  cursor: default;
+}
+
+.et-config-step--industry-schema {
+  margin-top: 0.5rem;
+}
+
+.et-code-inline {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
 }
 
 .event-generator-page #etPreviewPanel textarea.et-preview-json.aep-json--invalid {

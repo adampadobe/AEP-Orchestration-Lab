@@ -37,7 +37,18 @@
     enableProfileProgressList: document.getElementById('etEnableProfileProgressList'),
 
     triggerMode:      document.getElementById('etTriggerMode'),
-    customMode:       document.getElementById('etCustomMode'),
+    industryMode:     document.getElementById('etIndustryMode'),
+    industrySelect:   document.getElementById('etIndustrySelect'),
+    scenarioSelect:   document.getElementById('etScenarioSelect'),
+    industryDesc:     document.getElementById('etIndustryDesc'),
+    indEventType:     document.getElementById('etIndEventType'),
+    indViewName:      document.getElementById('etIndViewName'),
+    indViewUrl:       document.getElementById('etIndViewUrl'),
+    indOrchId:        document.getElementById('etIndOrchId'),
+    industryFieldsWrap: document.getElementById('etIndustryFieldsWrap'),
+    industryFields:   document.getElementById('etIndustryFields'),
+    attachIndustryFgBtn: document.getElementById('etAttachIndustryFgBtn'),
+    industrySchemaMsg: document.getElementById('etIndustrySchemaMsg'),
     triggerType:      document.getElementById('etTriggerType'),
     triggerDesc:      document.getElementById('etTriggerDesc'),
     removeTriggerBtn: document.getElementById('etRemoveTriggerBtn'),
@@ -48,10 +59,6 @@
     schemaTypesPanel: document.getElementById('etSchemaTypesPanel'),
     schemaTypesCount: document.getElementById('etSchemaTypesCount'),
     schemaTypesList:  document.getElementById('etSchemaTypesList'),
-    eventType:        document.getElementById('etEventType'),
-    orchId:           document.getElementById('etOrchId'),
-    viewName:         document.getElementById('etViewName'),
-    viewUrl:          document.getElementById('etViewUrl'),
     channel:          document.getElementById('etChannel'),
 
     sendBtn:          document.getElementById('etSendBtn'),
@@ -419,8 +426,6 @@
     if (!t && !id) return;
     const qs = sandboxQs();
     if (!qs) return;
-    const hint = document.getElementById('etEventTypeHint');
-    if (hint) { hint.textContent = 'Loading event types from schema…'; hint.hidden = false; }
     try {
       let url = '/api/events/infra/event-types' + qs;
       if (id) url += '&schemaId=' + encodeURIComponent(id);
@@ -431,31 +436,14 @@
         schemaEventTypes = data.eventTypes;
       } else {
         schemaEventTypes = [];
-        if (hint) { hint.textContent = data.error || 'No event types found in schema — type any value.'; hint.hidden = false; }
       }
     } catch (e) {
       schemaEventTypes = [];
-      if (hint) { hint.textContent = 'Could not load event types: ' + (e.message || 'network error'); hint.hidden = false; }
     }
     populateEventTypeDatalist();
   }
 
   function populateEventTypeDatalist() {
-    const dl = document.getElementById('etEventTypeList');
-    if (dl) {
-      dl.innerHTML = '';
-      schemaEventTypes.forEach(function (et) {
-        const opt = document.createElement('option');
-        opt.value = et.value;
-        if (et.label && et.label !== et.value) opt.label = et.label;
-        dl.appendChild(opt);
-      });
-    }
-    const hint = document.getElementById('etEventTypeHint');
-    if (hint && schemaEventTypes.length > 0) {
-      hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
-      hint.hidden = false;
-    }
     rebuildTriggerSelect();
   }
 
@@ -881,6 +869,54 @@
     dom.enableProfileBtn.addEventListener('click', runEnableSchemaAndDatasetForProfile);
   }
 
+  async function runAttachIndustryFieldGroups() {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
+    if (!schemaTitle && !schemaId) {
+      setMsg(dom.industrySchemaMsg, 'Enter a schema name or run Set up event infrastructure first.', 'error');
+      return;
+    }
+    const sandbox = getSandboxName();
+    if (!sandbox) {
+      setMsg(dom.industrySchemaMsg, 'Select a sandbox first.', 'error');
+      return;
+    }
+    if (!dom.attachIndustryFgBtn) return;
+    dom.attachIndustryFgBtn.disabled = true;
+    setMsg(dom.industrySchemaMsg, 'Attaching industry field groups to schema…', '');
+    try {
+      const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          step: 'attachIndustryEventFieldGroups',
+          schemaTitle: schemaTitle || undefined,
+          schemaId: schemaId || undefined,
+        }),
+      });
+      const data = await res.json().catch(function () { return {}; });
+      if (!res.ok || data.ok === false) {
+        setMsg(dom.industrySchemaMsg, data.message || data.error || formatInfraStepError(data), 'error');
+        return;
+      }
+      if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+      var msg = data.message || 'Industry field groups attached.';
+      if (Array.isArray(data.warnings) && data.warnings.length) {
+        msg += ' ' + data.warnings.join(' ');
+      }
+      setMsg(dom.industrySchemaMsg, msg, 'success');
+      loadSchemaEventTypes(schemaTitle || dom.schemaTitle.value, data.schemaId || schemaId);
+    } catch (e) {
+      setMsg(dom.industrySchemaMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.attachIndustryFgBtn.disabled = false;
+    }
+  }
+
+  if (dom.attachIndustryFgBtn) {
+    dom.attachIndustryFgBtn.addEventListener('click', runAttachIndustryFieldGroups);
+  }
+
   /* ═══════════ Step 2 — Save Datastream ID ═══════════ */
 
   dom.saveConfigBtn.addEventListener('click', async () => {
@@ -1042,9 +1078,107 @@
         b.classList.toggle('et-mode-btn--active', b.dataset.mode === mode)
       );
       dom.triggerMode.hidden = mode !== 'trigger';
-      dom.customMode.hidden = mode !== 'custom';
+      dom.industryMode.hidden = mode !== 'industry';
     });
   });
+
+  /* ═══════════ Industry event mode ═══════════ */
+
+  function getIndustryCatalog() {
+    return typeof window.AepEventIndustryCatalog !== 'undefined' ? window.AepEventIndustryCatalog : null;
+  }
+
+  function getSelectedIndustryScenario() {
+    var catalog = getIndustryCatalog();
+    if (!catalog || !dom.industrySelect || !dom.scenarioSelect) return null;
+    return catalog.getScenario(dom.industrySelect.value, dom.scenarioSelect.value);
+  }
+
+  function getIndustryFieldValues() {
+    var values = {};
+    if (!dom.industryFields) return values;
+    dom.industryFields.querySelectorAll('[data-industry-field]').forEach(function (input) {
+      var key = input.getAttribute('data-industry-field');
+      if (!key) return;
+      if (input.type === 'number') values[key] = input.value;
+      else values[key] = (input.value || '').trim();
+    });
+    return values;
+  }
+
+  function renderIndustryFields(scenario) {
+    if (!dom.industryFields || !dom.industryFieldsWrap) return;
+    dom.industryFields.innerHTML = '';
+    var fields = (scenario && scenario.fields) || [];
+    if (!fields.length) {
+      dom.industryFieldsWrap.hidden = true;
+      return;
+    }
+    dom.industryFieldsWrap.hidden = false;
+    fields.forEach(function (f) {
+      var row = document.createElement('div');
+      row.className = 'form-row et-industry-field-row';
+      var label = document.createElement('label');
+      label.setAttribute('for', 'etIndField_' + f.key);
+      label.textContent = f.label || f.key;
+      var input = document.createElement('input');
+      input.id = 'etIndField_' + f.key;
+      input.type = f.type === 'number' ? 'number' : 'text';
+      input.setAttribute('data-industry-field', f.key);
+      input.value = f.default == null ? '' : String(f.default);
+      input.autocomplete = 'off';
+      row.appendChild(label);
+      row.appendChild(input);
+      dom.industryFields.appendChild(row);
+    });
+  }
+
+  function applyIndustryScenarioToForm(scenario) {
+    if (!scenario) return;
+    if (dom.indEventType) dom.indEventType.value = scenario.eventType || '';
+    if (dom.indViewName) dom.indViewName.value = scenario.viewName || '';
+    if (dom.indViewUrl) dom.indViewUrl.value = scenario.viewUrl || '';
+    if (dom.industryDesc) dom.industryDesc.textContent = scenario.description || '';
+    renderIndustryFields(scenario);
+  }
+
+  function renderIndustryScenarios(industryId) {
+    var catalog = getIndustryCatalog();
+    if (!catalog || !dom.scenarioSelect) return;
+    dom.scenarioSelect.innerHTML = '';
+    var scenarios = catalog.getScenarios(industryId);
+    scenarios.forEach(function (sc) {
+      var opt = document.createElement('option');
+      opt.value = sc.id;
+      opt.textContent = sc.label;
+      dom.scenarioSelect.appendChild(opt);
+    });
+    applyIndustryScenarioToForm(catalog.getScenario(industryId, dom.scenarioSelect.value));
+  }
+
+  function initIndustryMode() {
+    var catalog = getIndustryCatalog();
+    if (!catalog || !dom.industrySelect) return;
+    dom.industrySelect.innerHTML = '';
+    catalog.getIndustries().forEach(function (ind) {
+      var opt = document.createElement('option');
+      opt.value = ind.id;
+      opt.textContent = ind.label;
+      dom.industrySelect.appendChild(opt);
+    });
+    renderIndustryScenarios(dom.industrySelect.value);
+  }
+
+  if (dom.industrySelect) {
+    dom.industrySelect.addEventListener('change', function () {
+      renderIndustryScenarios(dom.industrySelect.value);
+    });
+  }
+  if (dom.scenarioSelect) {
+    dom.scenarioSelect.addEventListener('change', function () {
+      applyIndustryScenarioToForm(getSelectedIndustryScenario());
+    });
+  }
 
   /* ═══════════ Trigger templates ═══════════ */
 
@@ -1139,8 +1273,22 @@
       const key = (dom.triggerType.value || '').trim();
       if (!key) return { error: 'Enter or select an event type.' };
       body.eventType = key;
+    } else if (activeMode === 'industry') {
+      var catalog = getIndustryCatalog();
+      if (!catalog) return { error: 'Industry catalog not loaded.' };
+      var scenario = getSelectedIndustryScenario();
+      if (!scenario) return { error: 'Select an industry scenario.' };
+      body.xdmStyle = 'full';
+      body.eventType = (dom.indEventType && dom.indEventType.value || '').trim() || scenario.eventType;
+      var vn = (dom.indViewName && dom.indViewName.value || '').trim() || scenario.viewName || '';
+      var vu = (dom.indViewUrl && dom.indViewUrl.value || '').trim() || scenario.viewUrl || '';
+      if (vn) body.viewName = vn;
+      if (vu) body.viewUrl = vu;
+      var orch = (dom.indOrchId && dom.indOrchId.value || '').trim();
+      if (orch) body.eventID = orch;
+      body.public = catalog.buildPublicPayload(scenario, getIndustryFieldValues());
     } else {
-      body.eventType = (dom.eventType.value || '').trim() || 'transaction';
+      body.eventType = 'transaction';
     }
     return { body };
   }
@@ -1408,6 +1556,7 @@
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
     setMsg(dom.infraMsg, '', '');
+    setMsg(dom.industrySchemaMsg, '', '');
     setMsg(dom.sendMsg, '', '');
     resetPreviewPanel();
     if (dom.configBadge) dom.configBadge.hidden = true;
@@ -1428,6 +1577,7 @@
       window.AepJsonEditor.initTextarea(dom.previewJson, previewJsonOpts);
     }
     await initSandboxSelect();
+    initIndustryMode();
     loadTriggerTemplates();
     if (window.__aepLabSyncReady) {
       try {
