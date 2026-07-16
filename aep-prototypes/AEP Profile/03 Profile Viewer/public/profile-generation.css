@@ -236,6 +236,13 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   display: none;
 }
 
+/* Streaming Load/Save buttons toggle via the `hidden` attribute (commit
+ * 3032c3f0). `.btn { display: inline-block }` in home.css beats the UA
+ * `[hidden]` rule at equal specificity — restate hide for action buttons. */
+.profile-generation-page .btn[hidden] {
+  display: none !important;
+}
+
 .profile-generation-page .profile-gen-merge-label {
   display: flex;
   align-items: flex-start;
