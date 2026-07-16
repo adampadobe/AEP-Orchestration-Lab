@@ -556,6 +556,10 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-muted);
 }
 
+.profile-gen-prefs-sync-status.profile-gen-prefs-sync--local-only {
+  color: var(--dash-muted);
+}
+
 /* Profile email sub-blocks: separate the lookup widget from the pattern/generate widget
    visually so the user reads them as two consolidated actions in the same box. */
 .profile-generation-page .generic-lookup-block,

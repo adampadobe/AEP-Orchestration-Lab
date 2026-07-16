@@ -22,6 +22,7 @@
     return 'https://us-central1-' + pid + '.cloudfunctions.net';
   }
   function directCfAnalyzeUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
+  function directCfDemoBuildUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
   function directCfClassifyUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperClassify'; }
   function directCfExportUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperExport'; }
 
@@ -542,12 +543,91 @@
   let progressHandle = null;
   /** When true, bottom dock mirrors Analyse progress; classify/export keep in-card only. */
   let progressBottomDockEnabled = false;
-  /** Total wall clock — warn before server stale job cleanup (35m), but well above normal crawl+LLM. */
+  /** Total wall clock — warn before server stale job cleanup (45m), but well above normal crawl+LLM. */
   const RUN_STALE_WARN_MS = 12 * 60 * 1000;
-  /** If index `updatedAt` stalls this long while still “active”, worker likely died (crawl heartbeats ~22s). */
+  /** If index `updatedAt` stalls this long while crawl still running, worker likely died. */
   const RUN_STALE_NO_SERVER_UPDATE_MS = 4 * 60 * 1000;
   /** Reassure during long fetch/JS crawl before first checkpoint. */
   const RUN_LONG_CRAWL_HINT_MS = 3 * 60 * 1000;
+  /** Demo / upload build can run several minutes; warn if index stops advancing. */
+  const RUN_DEMO_SLOW_MS = 3 * 60 * 1000;
+  const RUN_DEMO_STUCK_MS = 8 * 60 * 1000;
+  /** Cloud Function analyse timeout is 60m — no heartbeat past this means the worker is gone. */
+  const RUN_WORKER_DEAD_MS = 62 * 60 * 1000;
+
+  function scrapeRunAgeMs(row) {
+    const started = effectiveRunStartedMs(row);
+    return started != null ? Math.max(0, Date.now() - started) : null;
+  }
+
+  function scrapeLastServerUpdateMs(row) {
+    const updated = parseTimestampMs(row && row.updatedAt);
+    return updated != null ? Math.max(0, Date.now() - updated) : null;
+  }
+
+  function staleThresholdMsForRow(row) {
+    const phase = String((row && row.buildPhase) || '');
+    if (phase === 'demo') return RUN_DEMO_STUCK_MS;
+    if (phase === 'persist' || phase === 'competitor') return 6 * 60 * 1000;
+    if (row && row.scrapeStatus === 'running') return RUN_STALE_NO_SERVER_UPDATE_MS;
+    return 5 * 60 * 1000;
+  }
+
+  function cardActivityState(row, activeRow) {
+    if (!activeRow || !row) return { kind: 'idle' };
+    const noUpdateMs = scrapeLastServerUpdateMs(row);
+    const runAgeMs = scrapeRunAgeMs(row);
+    const thresholdMs = staleThresholdMsForRow(row);
+    const phase = String(row.buildPhase || row.scrapeStatus || 'running');
+    if (noUpdateMs != null && noUpdateMs >= RUN_WORKER_DEAD_MS) {
+      return {
+        kind: 'stuck',
+        noUpdateMs,
+        runAgeMs,
+        label: 'Likely stuck',
+        message: 'No server activity for ' + fmtDuration(noUpdateMs) + ' during “' + phase + '”. The worker probably timed out or crashed (60 minute Cloud Function limit). Use <strong>Cancel</strong>, then re-run — or wait for automatic cleanup.',
+      };
+    }
+    if (noUpdateMs != null && noUpdateMs >= thresholdMs) {
+      return {
+        kind: 'slow',
+        noUpdateMs,
+        runAgeMs,
+        label: 'May be stuck',
+        message: 'No server updates for ' + fmtDuration(noUpdateMs) + ' at step “' + phase + '”. Large save-page ZIP demos can take 5–10 minutes; if nothing changes soon, use <strong>Cancel</strong> and retry.',
+      };
+    }
+    if (runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS) {
+      return {
+        kind: 'slow',
+        noUpdateMs,
+        runAgeMs,
+        label: 'Long run',
+        message: 'This run has been active for ' + fmtDuration(runAgeMs) + '. The card refreshes every few seconds — watch “last server update” below.',
+      };
+    }
+    return {
+      kind: 'live',
+      noUpdateMs,
+      runAgeMs,
+      label: 'Live',
+      message: '',
+    };
+  }
+
+  function runPillLabel(row, activeRow, runState) {
+    const phase = String((row && row.buildPhase) || '');
+    if (phase === 'cancelled' || runState === 'failed') {
+      return { text: 'Cancelled', title: (row && row.scrapeError) || 'Run cancelled' };
+    }
+    if (runState === 'running') return { text: 'Running…', title: 'Crawler in progress' };
+    if (runState === 'crawl_complete') return { text: 'Analyzing…', title: 'Crawl saved; LLM analysis in progress' };
+    if (activeRow && phase === 'demo') return { text: 'Building demo…', title: row.buildPhaseDetail || 'Building Profile Viewer site clone' };
+    if (activeRow && phase === 'competitor') return { text: 'Competitor analysis…', title: row.buildPhaseDetail || 'Competitor analysis' };
+    if (activeRow && phase === 'persist') return { text: 'Saving…', title: row.buildPhaseDetail || 'Saving final scrape record' };
+    if (activeRow && runState === 'complete') return { text: 'Finalising…', title: 'Saving merged results' };
+    return null;
+  }
 
   function parseTimestampMs(v) {
     if (!v) return null;
@@ -581,10 +661,34 @@
     return null;
   }
 
+  /** Prefer runStartedAt; demo build uses buildPhaseStartedAt after analysis checkpoint. */
+  function effectiveRunStartedMs(row) {
+    if (!row || typeof row !== 'object') return null;
+    const phase = String(row.buildPhase || '');
+    if (phase === 'demo' || phase === 'prep') {
+      const demoStarted = parseTimestampMs(row.demoBuildStartedAt)
+        || parseTimestampMs(row.buildPhaseStartedAt);
+      if (demoStarted != null) return demoStarted;
+    }
+    const runStarted = parseTimestampMs(row.runStartedAt);
+    const updated = parseTimestampMs(row.updatedAt);
+    const created = parseTimestampMs(row.createdAt);
+    const st = String(row.scrapeStatus || '');
+    if (st === 'running' || st === 'crawl_complete') {
+      if (runStarted == null && updated != null) return updated;
+      if (runStarted != null && updated != null && updated > runStarted + 120000) return updated;
+    }
+    return runStarted ?? created;
+  }
+
   function rowIndicatesActiveScrape(row) {
     if (!row || typeof row !== 'object') return false;
     const st = row.scrapeStatus;
+    const phase = row.buildPhase != null ? String(row.buildPhase) : '';
+    if (phase === 'cancelled') return false;
+    if (st === 'failed') return false;
     if (st === 'running' || st === 'crawl_complete') return true;
+    if (row.demoGenerationStatus === 'queued') return true;
     if (st === 'complete') {
       if (row.analysisPending === true) return true;
       if (row.buildPhase && row.buildPhase !== 'complete') return true;
@@ -603,8 +707,9 @@
     if (phase === 'brand') return 52;
     if (phase === 'audiences') return 68;
     if (phase === 'segments') return 78;
-    if (phase === 'demo') return 88;
-    if (phase === 'competitor') return 93;
+    if (phase === 'prep') return 82;
+    if (phase === 'competitor') return 86;
+    if (phase === 'demo') return 92;
     if (phase === 'persist') return 97;
     if (st === 'crawl_complete') return 94;
     return 96;
@@ -622,8 +727,9 @@
     if (phase === 'brand') return 'Generating audiences';
     if (phase === 'audiences') return detail || 'Generating audiences';
     if (phase === 'segments') return detail || 'Finishing analysis prep';
-    if (phase === 'demo') return detail || 'Building demo website';
+    if (phase === 'prep') return detail || 'Analysis complete — starting demo build';
     if (phase === 'competitor') return detail || 'Competitor analysis';
+    if (phase === 'demo') return detail || 'Building demo website';
     if (phase === 'persist') return detail || 'Saving scrape';
     if (st === 'crawl_complete') return 'Finalizing';
     return 'Running';
@@ -683,7 +789,7 @@
   }
 
   function estimateAnalyzeDurationMs(opts) {
-    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry → demo → competitor.
+    // Server runs phases sequentially: brand → audiences → segments → (competitor if demo) → demo → persist.
     let crawl = opts.crawler === 'js' ? 18 : 6;
     const inc = opts.include || {};
     if (inc.tagAudit !== false && opts.crawler === 'js') crawl += 3;
@@ -692,9 +798,12 @@
     const trioWall = trio === 0 ? 0 : 32 + (trio - 1) * 2;
     const segmentsWall = inc.segments ? 28 : 8;
     const industryWall = inc.analysis !== false ? 4 : 0;
-    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 180 : 120) : 0;
     const competitorWall = inc.llmDemoConfig !== false ? 90 : 0;
-    return (crawl + brandWall + trioWall + segmentsWall + industryWall + demoWall + competitorWall) * 1000;
+    const demoWall = inc.demoWebsite ? (opts.hasUpload ? 300 : 120) : 0;
+    const orderWall = inc.demoWebsite && inc.llmDemoConfig !== false
+      ? competitorWall + demoWall
+      : demoWall + competitorWall;
+    return (crawl + brandWall + trioWall + segmentsWall + industryWall + orderWall) * 1000;
   }
 
   function startProgress(totalMs, phases, startOpts) {
@@ -1884,9 +1993,10 @@
           buildPhase === 'crawl' ? 'crawl saved; starting brand core.' :
             buildPhase === 'brand' ? 'brand guidelines saved; running audiences.' :
               buildPhase === 'audiences' ? 'audiences saved; running segments & industry.' :
-                buildPhase === 'segments' ? 'segments saved; demo website & competitor analysis may follow.' :
-                  buildPhase === 'demo' ? (data.buildPhaseDetail || 'building demo website from upload.') :
-                    buildPhase === 'competitor' ? (data.buildPhaseDetail || 'running competitor analysis.') :
+                buildPhase === 'segments' ? 'segments saved; competitor analysis and demo build may follow.' :
+                buildPhase === 'prep' ? (data.buildPhaseDetail || 'analysis complete — starting demo build session.') :
+                  buildPhase === 'competitor' ? (data.buildPhaseDetail || 'running competitor analysis before demo build.') :
+                    buildPhase === 'demo' ? (data.buildPhaseDetail || 'demo build session — using saved upload files.') :
                       buildPhase === 'persist' ? (data.buildPhaseDetail || 'saving final scrape record.') :
                         'saving\u2026',
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
@@ -1954,15 +2064,12 @@
     const isChecked = selected.has(it.scrapeId);
     const runState = it.scrapeStatus || '';
     const activeRow = rowIndicatesActiveScrape(it);
-    const runPill = runState === 'running'
-      ? '<span class="brand-scraper-run-pill" title="Crawler in progress">Running…</span>'
-      : (runState === 'crawl_complete'
-        ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Crawl saved; LLM analysis in progress">Analyzing…</span>'
-        : (activeRow && runState === 'complete'
-          ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Saving merged results">Finalising…</span>'
-          : (runState === 'failed'
-            ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
-            : '')));
+    const pill = runPillLabel(it, activeRow, runState);
+    const runPill = pill
+      ? '<span class="brand-scraper-run-pill' +
+          (runState === 'failed' ? ' brand-scraper-run-pill--fail' : (activeRow && runState === 'complete' ? ' brand-scraper-run-pill--stage' : (runState === 'crawl_complete' ? ' brand-scraper-run-pill--stage' : ''))) +
+          '" title="' + esc(pill.title) + '">' + esc(pill.text) + '</span>'
+      : '';
     const runSteps = Array.isArray(it.runSteps) ? it.runSteps : [];
     const failDetails = runState === 'failed'
       ? (
@@ -1986,17 +2093,18 @@
         '</details>'
       )
       : '';
-    const runStartedMs = parseTimestampMs(it.runStartedAt);
+    const runStartedMs = effectiveRunStartedMs(it);
     const runAgeMs = runStartedMs != null ? Math.max(0, Date.now() - runStartedMs) : null;
-    const updatedMs = parseTimestampMs(it.updatedAt);
-    const noServerUpdateMs = (activeRow && updatedMs != null) ? Math.max(0, Date.now() - updatedMs) : null;
-    const staleNoServerUpdate = runState === 'running' && noServerUpdateMs != null &&
-      noServerUpdateMs >= RUN_STALE_NO_SERVER_UPDATE_MS;
-    const staleLongWall = runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS;
+    const noServerUpdateMs = scrapeLastServerUpdateMs(it);
+    const activity = cardActivityState(it, activeRow);
     const longCrawlHint = activeRow && runAgeMs != null && runAgeMs >= RUN_LONG_CRAWL_HINT_MS &&
       runState === 'running' && !(it.buildPhase);
+    const longDemoHint = activeRow && String(it.buildPhase || '') === 'demo' &&
+      runAgeMs != null && runAgeMs >= RUN_DEMO_SLOW_MS && activity.kind === 'live';
     const runAgeMeta = (activeRow && runAgeMs != null) ? (' · running ' + fmtDuration(runAgeMs)) : '';
-    const staleMeta = (activeRow && (staleLongWall || staleNoServerUpdate)) ? ' · check status' : '';
+    const lastUpdateMeta = (activeRow && noServerUpdateMs != null)
+      ? (' · last server update ' + fmtDuration(noServerUpdateMs) + ' ago')
+      : '';
     const hbMeta = (activeRow && it.crawlHeartbeatDetail) ? (' · ' + esc(String(it.crawlHeartbeatDetail))) : '';
     const viewDisabled = runState === 'running';
     const canReAnalyse = !activeRow && runState !== 'running' && (it.pagesScraped > 0 || runState === 'complete' || runState === 'crawl_complete');
@@ -2004,6 +2112,9 @@
     const canRegenDemo = !activeRow && runState !== 'running' && scrapeHasDemo(it);
     const progressPct = cardProgressPercent(it);
     const progressLabel = cardProgressLabel(it);
+    const activityBadge = activeRow
+      ? ('<span class="brand-scraper-activity brand-scraper-activity--' + esc(activity.kind) + '">' + esc(activity.label) + '</span>')
+      : '';
     return (
       '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
         (selectMode ? (
@@ -2035,26 +2146,31 @@
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             runAgeMeta +
+            lastUpdateMeta +
             hbMeta +
-            staleMeta +
             (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
           (activeRow ? (
             '<div class="brand-scraper-history-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progressPct + '">' +
               '<div class="brand-scraper-history-progress-track">' +
-                '<div class="brand-scraper-history-progress-fill" style="width:' + progressPct + '%"></div>' +
+                '<div class="brand-scraper-history-progress-fill' + (activity.kind === 'stuck' ? ' is-stalled' : '') + '" style="width:' + progressPct + '%"></div>' +
               '</div>' +
-              '<div class="brand-scraper-history-progress-meta">' + esc(progressLabel) + (runAgeMs != null ? ' · ' + esc(fmtDuration(runAgeMs)) : '') + '</div>' +
+              '<div class="brand-scraper-history-progress-meta">' +
+                activityBadge +
+                '<span>' + esc(progressLabel) + (runAgeMs != null ? ' · ' + esc(fmtDuration(runAgeMs)) + ' total' : '') +
+                  (noServerUpdateMs != null ? ' · updated ' + esc(fmtDuration(noServerUpdateMs)) + ' ago' : '') +
+                '</span>' +
+              '</div>' +
             '</div>'
           ) : '') +
-          ((activeRow && longCrawlHint && !staleNoServerUpdate && !staleLongWall)
-            ? '<p class="brand-scraper-result-muted">Large sites or JS-rendered pages can take several minutes before the first save. While the crawl is alive, the card timestamp should advance about every 20–30s.</p>'
+          ((activeRow && longCrawlHint && activity.kind === 'live')
+            ? '<p class="brand-scraper-result-muted">Large sites or JS-rendered pages can take several minutes before the first save. While the crawl is alive, <strong>last server update</strong> should advance about every 20–30s.</p>'
             : '') +
-          ((activeRow && staleNoServerUpdate)
-            ? '<p class="brand-scraper-result-warn">No server updates for ' + esc(fmtDuration(noServerUpdateMs)) + '. The worker may have crashed or hit a platform limit — try <strong>Cancel</strong> and run again.</p>'
+          ((activeRow && longDemoHint)
+            ? '<p class="brand-scraper-result-muted">Demo build from a save-page ZIP can take 5–10 minutes (asset fetch + GCS upload). <strong>Last server update</strong> should advance every ~20s while the worker is alive.</p>'
             : '') +
-          ((activeRow && staleLongWall && !staleNoServerUpdate)
-            ? '<p class="brand-scraper-result-warn">This run has been active for ' + esc(fmtDuration(runAgeMs)) + '. If results never arrive, cancel and retry.</p>'
+          ((activeRow && activity.message)
+            ? '<p class="brand-scraper-result-warn">' + activity.message + '</p>'
             : '') +
           failDetails +
         '</div>' +
@@ -2191,6 +2307,35 @@
    * opts.onTerminal(row, st, timedOut)
    * opts.progressPhases — optional; syncs progress bar label with Firestore status during async runs.
    */
+  function findFirstActiveScrapeRow() {
+    return historyItemsCache.find(rowIndicatesActiveScrape) || null;
+  }
+
+  /** After refresh or when returning to the page, keep watching in-flight scrapes. */
+  function maybeResumeActiveScrapePoll() {
+    if (scrapePollTimer || pendingAsyncScrapeId) return;
+    const active = findFirstActiveScrapeRow();
+    if (!active || !active.scrapeId) return;
+    if (!progressBottomDockEnabled) {
+      progressBottomDockEnabled = true;
+      setBottomDockVisible(true);
+      if (progressEl) progressEl.hidden = true;
+      applyProgressWidthsPct(cardProgressPercent(active) + '%');
+      setProgressPhaseBoth(cardProgressLabel(active));
+    }
+    startScrapePoll(active.scrapeId, {
+      onTerminal: function (row, st, timedOut) {
+        pendingAsyncScrapeId = null;
+        if (st === 'complete' && row && !timedOut) {
+          stopProgress({ success: true });
+        } else {
+          stopProgress();
+        }
+        loadHistory();
+      },
+    });
+  }
+
   function startScrapePoll(expectedId, opts) {
     opts = opts || {};
     if (!expectedId) return;
@@ -2221,7 +2366,10 @@
       }
       const st = row && row.scrapeStatus;
       const bp = row && row.buildPhase ? String(row.buildPhase) : '';
-      if (progressPhases) {
+      if (row && rowIndicatesActiveScrape(row)) {
+        applyProgressWidthsPct(cardProgressPercent(row) + '%');
+        setProgressPhaseBoth(cardProgressLabel(row));
+      } else if (progressPhases) {
         if (st === 'running' && !bp) {
           const base = progressPhases[0] || 'Crawling pages…';
           const hb = row && row.crawlHeartbeatDetail ? (' ' + String(row.crawlHeartbeatDetail)) : '';
@@ -2285,6 +2433,7 @@
       }
       historyItemsCache = Array.isArray(data.items) ? data.items : [];
       renderHistory(historyItemsCache);
+      if (!quiet) maybeResumeActiveScrapePoll();
     } catch (e) {
       if (!quiet) historyEmptyEl.textContent = 'Network error: ' + (e && e.message || e);
       historyItemsCache = [];
@@ -2397,15 +2546,11 @@
         return;
       }
       setStatus('Regenerating demo website…', 'info');
-      const retryResp = await scopedFetch(directCfAnalyzeUrl(), {
+      const retryResp = await scopedFetch(withScopeQuery(directCfDemoBuildUrl()), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: detail.url || detail.baseUrl,
-          businessType: detail.businessType || (btypeSel && btypeSel.value) || 'b2c',
-          country: detail.country || (countrySel && countrySel.value) || '',
-          include: { demoWebsite: true },
-          analysisOnly: true,
+          mode: 'demo_build',
           existingScrapeId: scrapeId,
           regenerateDemoWebsite: true,
           overwriteDemoWebsite: true,
@@ -2905,7 +3050,7 @@
 
     if (runBtn) runBtn.disabled = true;
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
-    setStatus('Crawling ' + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
+    setStatus((uploadOnly ? 'Processing upload for ' : 'Crawling ') + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
     resultsEl.hidden = true;
 
     const estMs = estimateAnalyzeDurationMs({

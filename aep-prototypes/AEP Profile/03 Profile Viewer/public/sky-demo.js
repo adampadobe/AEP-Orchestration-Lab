@@ -88,9 +88,22 @@
       return /^\d+$/.test(v) && v.length >= 10 ? v : '';
     }
 
-    function refreshSkyDrawerEvents(ecid) {
-      const id = normaliseEcidDigits(ecid);
-      if (!id || typeof DemoProfileDrawer === 'undefined' || typeof DemoProfileDrawer.refreshDrawerEventsForIdentity !== 'function') {
+    function refreshSkyDrawerEvents() {
+      if (typeof DemoProfileDrawer === 'undefined') return;
+      if (typeof DemoProfileDrawer.refreshDrawerEventsForLoadedProfile === 'function') {
+        void DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        global.setTimeout(function () {
+          void DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        }, 2500);
+        global.setTimeout(function () {
+          void DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        }, 8000);
+        return;
+      }
+      const ecidEl = document.getElementById('infoEcid');
+      const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
+      const id = normaliseEcidDigits(ecidText);
+      if (!id || typeof DemoProfileDrawer.refreshDrawerEventsForIdentity !== 'function') {
         return;
       }
       void DemoProfileDrawer.refreshDrawerEventsForIdentity(id, 'ecid');
@@ -136,7 +149,7 @@
         profile && profile.ecid != null && String(profile.ecid).length >= 10
           ? String(profile.ecid)
           : normaliseEcidDigits(document.getElementById('infoEcid') && document.getElementById('infoEcid').textContent);
-      if (ecid) refreshSkyDrawerEvents(ecid);
+      if (ecid) refreshSkyDrawerEvents();
       return true;
     }
 
@@ -145,7 +158,7 @@
         global.AepBcToggle.enableIfPrefsSet('skyDemo');
       }
       const ecidDigits = normaliseEcidDigits(ecid);
-      if (ecidDigits) refreshSkyDrawerEvents(ecidDigits);
+      if (ecidDigits) refreshSkyDrawerEvents();
       void stitchSkyProfileIfReady(ecidDigits);
     }
 
@@ -336,12 +349,22 @@
       getSelectedGeneratorTarget: getSelectedGeneratorTarget,
       fetchBrowserEcidOnInit: true,
       afterBrowserEcidApplied: function (ecid) {
-        refreshSkyDrawerEvents(ecid);
+        refreshSkyDrawerEvents();
         void stitchSkyProfileIfReady(ecid);
       },
     });
 
     void performProfileLookup({ showMessage: false, remember: false });
+
+    if (typeof global.SiteCloneLoginShell !== 'undefined' && typeof global.SiteCloneLoginShell.init === 'function') {
+      global.SiteCloneLoginShell.init({
+        fileSlug: 'sky',
+        getEmail: getEmail,
+        setMessage: setSkyMessage,
+        customerEmailEl: customerEmail,
+        tagsInjection: skyTagsInjection,
+      });
+    }
   }
 
   if (global.envBar && typeof global.envBar.ready === 'function') {

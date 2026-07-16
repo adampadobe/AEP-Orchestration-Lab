@@ -103,6 +103,63 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   white-space: nowrap;
 }
 
+.brand-scraper-customer-row {
+  margin-top: 10px;
+}
+
+.brand-scraper-customer-row .brand-scraper-input {
+  max-width: 420px;
+}
+
+.brand-scraper-customer-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  flex-shrink: 0;
+}
+
+.brand-scraper-customer-logo--header {
+  width: 52px;
+  height: 52px;
+}
+
+.brand-scraper-customer-logo--card {
+  width: 36px;
+  height: 36px;
+}
+
+.brand-scraper-customer-logo--asset {
+  width: 72px;
+  height: 72px;
+}
+
+.brand-scraper-result-title-row,
+.brand-scraper-history-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.brand-scraper-result-industry {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-blue);
+}
+
+.brand-scraper-customer-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .brand-scraper-url-row {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
@@ -628,6 +685,83 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   margin: 0;
 }
 
+.brand-scraper-card-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dash-text-secondary);
+  margin: 0;
+}
+
+.brand-scraper-upload-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0 0.5rem;
+}
+
+.brand-scraper-source-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.brand-scraper-source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-source-badge--live { background: var(--dash-success-bg, #ecfdf5); color: var(--dash-success-text, #047857); border-color: transparent; }
+.brand-scraper-source-badge--upload { background: var(--dash-info-bg, #eff6ff); color: var(--dash-info-text, #1d4ed8); border-color: transparent; }
+.brand-scraper-source-badge--blocked { background: var(--dash-error-bg, #fef2f2); color: var(--dash-error-text, #b91c1c); border-color: transparent; }
+.brand-scraper-source-badge--partial { background: var(--dash-warning-bg, #fffbeb); color: var(--dash-warning-text, #b45309); border-color: transparent; }
+.brand-scraper-source-badge--inferred { background: var(--dash-surface-alt); color: var(--dash-muted); border-color: var(--dash-border); }
+
+.brand-scraper-confidence {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0 0.75rem;
+  background: var(--dash-surface);
+}
+
+.brand-scraper-confidence h4 { margin: 0 0 0.35rem; font-size: 14px; }
+.brand-scraper-confidence--high .brand-scraper-confidence-level { color: var(--dash-success-text, #047857); }
+.brand-scraper-confidence--medium .brand-scraper-confidence-level { color: var(--dash-warning-text, #b45309); }
+.brand-scraper-confidence--low .brand-scraper-confidence-level { color: var(--dash-error-text, #b91c1c); }
+
+.brand-scraper-confidence-reasons {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 13px;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-warning-banner {
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-warning-bg, #fffbeb);
+  color: var(--dash-warning-text, #92400e);
+  font-size: 13px;
+}
+
+.brand-scraper-demo-details {
+  margin: 0.75rem 0;
+}
+
+.brand-scraper-regen-demo {
+  margin-top: 0.5rem;
+}
+
 .brand-scraper-history {
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);
@@ -819,6 +953,12 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   word-break: break-all;
 }
 
+.brand-scraper-regen-demo-option {
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 2px solid var(--dash-border);
+}
+
 .brand-scraper-history-card-actions {
   display: flex;
   flex-wrap: wrap;
@@ -867,8 +1007,42 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 }
 
 .brand-scraper-history-progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 11px;
   color: var(--dash-text-secondary);
+}
+
+.brand-scraper-activity {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.brand-scraper-activity--live {
+  color: var(--dash-success);
+  background: color-mix(in srgb, var(--dash-success) 14%, transparent);
+}
+
+.brand-scraper-activity--slow {
+  color: var(--dash-warning, #b45309);
+  background: color-mix(in srgb, var(--dash-warning, #b45309) 14%, transparent);
+}
+
+.brand-scraper-activity--stuck {
+  color: var(--dash-error);
+  background: color-mix(in srgb, var(--dash-error) 14%, transparent);
+}
+
+.brand-scraper-history-progress-fill.is-stalled {
+  background: linear-gradient(90deg, var(--dash-warning, #b45309), color-mix(in srgb, var(--dash-warning, #b45309) 60%, var(--dash-error)));
 }
 
 .brand-scraper-history-retention {
@@ -1293,7 +1467,53 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 
 .brand-scraper-table td a {
   color: var(--dash-blue);
-  word-break: break-all;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-block {
+  min-width: 0;
+}
+
+.brand-scraper-crawl-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-table--crawl {
+  min-width: 880px;
+  margin: 0;
+}
+
+.brand-scraper-table--crawl th,
+.brand-scraper-table--crawl td {
+  white-space: normal;
+}
+
+.brand-scraper-crawl-url {
+  min-width: 200px;
+  max-width: 320px;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-title {
+  min-width: 140px;
+  max-width: 220px;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-tag {
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.brand-scraper-crawl-num {
+  white-space: nowrap;
+  width: 1%;
 }
 
 .brand-scraper-num {

@@ -20,10 +20,14 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 
 ## Before you ship
 
-- **Git + deploy ritual:** `.cursor/rules/ship-git-and-firebase.mdc` and `.cursor/rules/sync-origin-main.mdc` (always-on). Do not deploy hosting while behind `origin/main`.
+- **Before substantive edits:** run `git fetch origin` and `git status`; if the branch is behind, update it before editing (`git pull --ff-only origin main` on `main`, or integrate `origin/main` on a feature branch).
+- **Immediately before push:** repeat the fetch/status check. Rebase or merge if the branch is behind, then rerun affected tests and verifiers.
+- **Immediately before Firebase deploy:** repeat the fetch/status check again. Never deploy while behind `origin/main`; pull first and rebuild any affected vendored sub-apps.
+- **Ship order:** commit → push → final sync check → Firebase deploy. Do not deploy uncommitted work. Skip deployment only when the user explicitly excludes it or a repo gate blocks it.
 - **Human policy:** [CONTRIBUTING.md](CONTRIBUTING.md) — especially [Preserved Decisioning Profile Viewer routes](CONTRIBUTING.md#preserved-decisioning-profile-viewer-routes) and [Change workflow](CONTRIBUTING.md#change-workflow-mandatory).
 - After edits under **`web/profile-viewer/`:** run **`npm run verify:profile-viewer-routes`** before PR; run **`npm run sync-profile-viewer-ui`** when the Express mirror must stay aligned (see CONTRIBUTING).
-- **New lab demos** (Tags + generator): use the canonical strip documented in [CONTRIBUTING.md](CONTRIBUTING.md) (section *Profile Viewer lab demos — environment strip*) and the Cursor skill **`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`**.
+- **Preserved routes:** keep the `journey-arbitration.html` and `journey-arbitration-v2.html` redirect stubs targeting v3; keep v3 assets and nav wiring. Do not restore `decisioning-overview-v2.html` or `ajo-decisioning-pipeline-v8-demo.html`.
+- **New lab demos** (Tags + generator): use the canonical strip documented in [CONTRIBUTING.md](CONTRIBUTING.md) and the Codex skill **`.agents/skills/profile-viewer-lab-demo-strip/SKILL.md`**.
 - **Anonymous Web SDK + `_demoemea` (Edge → profile):** [docs/ANONYMOUS_EDGE_DEMO_PATTERN.md](docs/ANONYMOUS_EDGE_DEMO_PATTERN.md) — `getIdentity`, then `sendEvent` with `_demoemea.identification.core.ecid`; validate with **`GET /api/profile/table?namespace=ecid&identifier=…`**.
 - **AJO content templates & fragments:** create via **terminal → `platform.adobe.io`** (not Firebase); see [docs/AJO_CONTENT_TEMPLATE_API.md](docs/AJO_CONTENT_TEMPLATE_API.md) — policy, correct `Content-Type` for `POST /ajo/content/templates`, `npm run ajo:create-content-template`, fragments base path, optional `/api/aep` `platform_headers` for browser-only tests, and **generic** template `name` / `description` / default `subject` (body may personalise; metadata defaults stay demo-safe per that doc).
 - Rebuild vendored sub-apps when their sources change (e.g. **`npm run build:edp`**, **`npm run build:eds-quickstart`**) before deploy — see ship rule.
@@ -32,37 +36,17 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 
 Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local JSON, or team-documented env vars. See [Credentials, secrets and .env files](CONTRIBUTING.md#credentials-secrets-and-env-files).
 
-## MCP in this workspace
+## Codex skills in this workspace
 
-Cursor loads MCP from two places — they appear as separate sections in **Settings → MCP**:
+Project skills live under `.agents/skills/`:
 
-| Location | File | Cursor UI label |
-|----------|------|-----------------|
-| **Workspace** (committed, team default for this repo) | `.cursor/mcp.json` | **Workspace MCP Servers** |
-| **User / global** (your machine only, all projects) | `~/.cursor/mcp.json` | **User MCP Servers** |
+- `aep-demo-use-case` — researched, self-contained use-case and journey HTML.
+- `aep-lab-profile-mcp` — lab profile, event, brand scrape, and infrastructure workflows. Adobe Coworker `dx-api` steps remain explicit handoffs because this Codex setup has no equivalent connector.
+- `profile-viewer-lab-demo-strip` — canonical demo environment/profile strip.
+- `sync-with-origin-main` — the shared-repo sync workflow used at all three checkpoints.
 
-- **Workspace (this repo):** **Firebase MCP** only — `firebase-tools experimental:mcp` (same auth as **Firebase CLI** / ADC). Keeps deploy/emulator tooling tied to the lab project without duplicating personal Adobe OAuth servers in git.
-- **User / global:** Adobe product MCPs belong here alongside your other Adobe entries. Prefer the unified **[CX Enterprise MCP](https://experienceleague.adobe.com/en/docs/cx-enterprise-agentic-tools/using/tools/mcp-servers)** (one endpoint for Analytics, AEP, AJO, CJA, RTCDP, Marketo, and more); per-product servers (Real-Time CDP, Journey Optimizer, AEP AMA, Analytics, etc.) are optional if you need a single-app surface. Paste into `~/.cursor/mcp.json` (merge; do not wipe existing servers):
+## MCP in Codex
 
-```json
-"adobe-cx-enterprise": {
-  "type": "http",
-  "url": "https://cx-enterprise.adobe.io/mcp"
-},
-"rtcdp": {
-  "type": "streamable-http",
-  "url": "https://rtcdp-mcp.adobe.io/mcp"
-},
-"ajo": {
-  "type": "streamable-http",
-  "url": "https://ajo-mcp.adobe.io/mcp"
-}
-```
-
-Optional — if you want **Firebase MCP in every project**, add the same block as workspace `firebase` to your user file (or enable the workspace entry when this repo is open). Browser Adobe ID sign-in on first tool use for OAuth MCPs; no static auth headers in the repo.
-
-- **Secrets:** never commit tokens or client secrets. Use user-level `headers` / `env` only in `~/.cursor/mcp.json` (gitignored on your machine).
-
-## Global Cursor baseline (all projects)
-
-For the same defaults in **every** repo, paste the repo-root **`.cursorrules`** text into **Cursor Settings → Rules → User rules** with **Always apply** (Agent chat only).
+- Global MCP configuration is in `~/.codex/config.toml`; Firebase and the Adobe MCP endpoints are already configured there for this machine.
+- The legacy `.cursor/mcp.json` remains for teammates still using Cursor, but Codex does not load it.
+- Never commit tokens or client secrets. Keep credential-backed MCP entries disabled until their environment variables are configured.
