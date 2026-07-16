@@ -218,6 +218,7 @@
       recentDetails: 'sportsRecentDetails',
       recentListBody: 'sportsRecentListBody',
       recentCountLabel: 'sportsRecentCountLabel',
+      recentIndustryFilter: 'sportsRecentIndustryFilter',
       debug: 'sportsProfileDebug',
       debugClientRequest: 'sportsDebugClientRequest',
       debugStatus: 'sportsDebugStatus',

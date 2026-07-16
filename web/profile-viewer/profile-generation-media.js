@@ -238,6 +238,7 @@
       recentDetails: 'mediaRecentDetails',
       recentListBody: 'mediaRecentListBody',
       recentCountLabel: 'mediaRecentCountLabel',
+      recentIndustryFilter: 'mediaRecentIndustryFilter',
       debug: 'mediaProfileDebug',
       debugClientRequest: 'mediaDebugClientRequest',
       debugStatus: 'mediaDebugStatus',

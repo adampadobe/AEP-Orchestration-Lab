@@ -388,6 +388,7 @@
       recentDetails: 'fsiRecentDetails',
       recentListBody: 'fsiRecentListBody',
       recentCountLabel: 'fsiRecentCountLabel',
+      recentIndustryFilter: 'fsiRecentIndustryFilter',
 
       debug: 'fsiProfileDebug',
       debugClientRequest: 'fsiDebugClientRequest',

@@ -277,6 +277,7 @@
       recentDetails: 'telecomRecentDetails',
       recentListBody: 'telecomRecentListBody',
       recentCountLabel: 'telecomRecentCountLabel',
+      recentIndustryFilter: 'telecomRecentIndustryFilter',
       debug: 'telecomProfileDebug',
       debugClientRequest: 'telecomDebugClientRequest',
       debugStatus: 'telecomDebugStatus',

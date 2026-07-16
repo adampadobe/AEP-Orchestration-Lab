@@ -1252,9 +1252,10 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   border: 1px solid var(--dash-border);
   border-radius: 10px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr 1fr auto;
   grid-template-areas:
-    "label select button"
+    "header header header"
+    "select select button"
     "details details details";
   align-items: center;
   gap: 0.5rem 0.75rem;
@@ -1264,8 +1265,16 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   display: none;
 }
 
+.profile-generation-page .gen-recent-picker__header {
+  grid-area: header;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
 .profile-generation-page .gen-recent-picker__label {
-  grid-area: label;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -1276,6 +1285,30 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 
 .profile-generation-page .gen-recent-picker__label .icon {
   color: var(--dash-blue);
+}
+
+.profile-generation-page .gen-recent-picker__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.profile-generation-page .gen-recent-picker__filter-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--dash-text-secondary);
+  white-space: nowrap;
+}
+
+.profile-generation-page .gen-recent-picker__industry-filter {
+  min-width: 8.5rem;
+  max-width: 12rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 8px);
+  color: var(--dash-text);
+  font-size: 0.8125rem;
 }
 
 .profile-generation-page .gen-recent-picker__select {

@@ -344,6 +344,7 @@
       recentDetails: 'retailRecentDetails',
       recentListBody: 'retailRecentListBody',
       recentCountLabel: 'retailRecentCountLabel',
+      recentIndustryFilter: 'retailRecentIndustryFilter',
       debug: 'retailProfileDebug',
       debugClientRequest: 'retailDebugClientRequest',
       debugStatus: 'retailDebugStatus',

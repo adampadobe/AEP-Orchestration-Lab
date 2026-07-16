@@ -281,6 +281,168 @@
     return '—';
   }
 
+  function resolveRecentEntryIndustryKey(entry) {
+    if (!entry || typeof entry !== 'object') return '';
+    return String(entry.industryKey || entry.industry || '').trim().toLowerCase();
+  }
+
+  function filterRecentByIndustry(list, filterKey) {
+    const fk = String(filterKey || '').trim().toLowerCase();
+    if (!fk) return Array.isArray(list) ? list : [];
+    return (Array.isArray(list) ? list : []).filter((entry) => resolveRecentEntryIndustryKey(entry) === fk);
+  }
+
+  /** Unique industry keys present in `list`, sorted by canonical display order. */
+  function collectRecentIndustryOptions(list) {
+    const seen = new Map();
+    (Array.isArray(list) ? list : []).forEach((entry) => {
+      const key = resolveRecentEntryIndustryKey(entry);
+      if (!key) return;
+      const label = formatRecentIndustryLabel(entry);
+      if (label && label !== '—') seen.set(key, label);
+      else if (!seen.has(key)) seen.set(key, industryDisplayNameForKey(key) || key);
+    });
+    const order = Object.keys(INDUSTRY_DISPLAY_NAMES);
+    return Array.from(seen.entries())
+      .sort((a, b) => {
+        const ia = order.indexOf(a[0]);
+        const ib = order.indexOf(b[0]);
+        if (ia === -1 && ib === -1) return a[1].localeCompare(b[1]);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      })
+      .map(([key, label]) => ({ key, label }));
+  }
+
+  function recentIndustryFilterStorageKey(sandbox, baseEmail) {
+    return `${PREFIX_NEW}:recent-industry-filter:${String(sandbox || '').trim()}:${String(baseEmail || '').trim().toLowerCase()}`;
+  }
+
+  function readRecentIndustryFilter(sandbox, baseEmail) {
+    try {
+      return sessionStorage.getItem(recentIndustryFilterStorageKey(sandbox, baseEmail)) || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function writeRecentIndustryFilter(sandbox, baseEmail, filterKey) {
+    try {
+      const storageKey = recentIndustryFilterStorageKey(sandbox, baseEmail);
+      const fk = String(filterKey || '').trim();
+      if (!fk) sessionStorage.removeItem(storageKey);
+      else sessionStorage.setItem(storageKey, fk);
+    } catch (_) { /* ignore */ }
+  }
+
+  function populateRecentIndustryFilterSelect(filterEl, list, sandbox, baseEmail) {
+    if (!filterEl) return '';
+    const prev = filterEl.value || readRecentIndustryFilter(sandbox, baseEmail);
+    const options = collectRecentIndustryOptions(list);
+    filterEl.innerHTML = '<option value="">All industries</option>';
+    options.forEach(({ key, label }) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = label;
+      filterEl.appendChild(opt);
+    });
+    if (prev && options.some((o) => o.key === prev)) {
+      filterEl.value = prev;
+      return prev;
+    }
+    filterEl.value = '';
+    return '';
+  }
+
+  /**
+   * Render the recently-generated picker (dropdown + expandable table).
+   * Applies the industry filter to both views and updates the filtered count.
+   */
+  function renderRecentPicker(opts) {
+    const o = opts || {};
+    const fullList = Array.isArray(o.list) ? o.list : [];
+    const {
+      recentPickerEl,
+      recentSelectEl,
+      recentListBodyEl,
+      recentCountLabelEl,
+      recentIndustryFilterEl,
+      sandbox,
+      baseEmail,
+      formatRelative,
+      summariseSnapshot,
+      onLoadEntry,
+    } = o;
+
+    if (!recentPickerEl) return;
+
+    recentPickerEl.hidden = fullList.length === 0;
+
+    const filterKey = populateRecentIndustryFilterSelect(
+      recentIndustryFilterEl,
+      fullList,
+      sandbox,
+      baseEmail
+    );
+    const list = filterRecentByIndustry(fullList, filterKey);
+
+    if (recentCountLabelEl) {
+      recentCountLabelEl.textContent = `Recently generated (${list.length})`;
+    }
+
+    if (recentSelectEl) {
+      const prev = recentSelectEl.value;
+      recentSelectEl.innerHTML = '<option value="">— pick to load —</option>';
+      list.forEach((entry) => {
+        const opt = document.createElement('option');
+        opt.value = entry.scaledEmail;
+        let tail = typeof summariseSnapshot === 'function' ? summariseSnapshot(entry.snapshot) : '';
+        if (!tail && window.AepProfileGenRecentSync) {
+          tail = window.AepProfileGenRecentSync.summariseEntry(entry);
+        }
+        const industryLabel = formatRecentIndustryLabel(entry);
+        const industryPrefix = industryLabel !== '—' ? `[${industryLabel}] ` : '';
+        opt.textContent = industryPrefix + (tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail);
+        recentSelectEl.appendChild(opt);
+      });
+      if (list.some((e) => e && e.scaledEmail === prev)) recentSelectEl.value = prev;
+      else recentSelectEl.value = '';
+    }
+
+    if (recentListBodyEl) {
+      recentListBodyEl.innerHTML = '';
+      list.forEach((entry) => {
+        const tr = document.createElement('tr');
+        const tdEmail = document.createElement('td');
+        tdEmail.textContent = entry.scaledEmail;
+        const tdTs = document.createElement('td');
+        tdTs.textContent = typeof formatRelative === 'function' ? formatRelative(entry.ts) : '';
+        if (entry.ts) tdTs.title = new Date(entry.ts).toISOString();
+        const tdIndustry = document.createElement('td');
+        tdIndustry.className = 'gen-recent-list__industry';
+        tdIndustry.textContent = formatRecentIndustryLabel(entry);
+        const tdSummary = document.createElement('td');
+        let rowSummary = typeof summariseSnapshot === 'function' ? summariseSnapshot(entry.snapshot) : '';
+        if (!rowSummary && window.AepProfileGenRecentSync) {
+          rowSummary = window.AepProfileGenRecentSync.summariseEntry(entry);
+        }
+        tdSummary.textContent = rowSummary;
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-link';
+        btn.textContent = 'Load';
+        btn.addEventListener('click', () => {
+          if (typeof onLoadEntry === 'function') onLoadEntry(entry);
+        });
+        tdAction.appendChild(btn);
+        tr.append(tdEmail, tdTs, tdIndustry, tdSummary, tdAction);
+        recentListBodyEl.appendChild(tr);
+      });
+    }
+  }
+
   /**
    * Push a new entry to the front of the recent list (deduping by `scaledEmail`).
    * Caller passes a fully-formed entry like `{ scaledEmail, n, ts, snapshot, industryKey }`.
@@ -390,6 +552,12 @@
     INDUSTRY_DISPLAY_NAMES,
     industryDisplayNameForKey,
     formatRecentIndustryLabel,
+    resolveRecentEntryIndustryKey,
+    filterRecentByIndustry,
+    collectRecentIndustryOptions,
+    readRecentIndustryFilter,
+    writeRecentIndustryFilter,
+    renderRecentPicker,
     readRecent,
     writeRecent,
     pushRecent,

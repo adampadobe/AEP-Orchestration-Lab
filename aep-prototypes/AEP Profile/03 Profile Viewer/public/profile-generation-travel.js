@@ -216,6 +216,7 @@
   const recentDetailsEl = document.getElementById('travelRecentDetails');
   const recentListBodyEl = document.getElementById('travelRecentListBody');
   const recentCountLabelEl = document.getElementById('travelRecentCountLabel');
+  const recentIndustryFilterEl = document.getElementById('travelRecentIndustryFilter');
 
   // Debug
   const debugEl = document.getElementById('travelProfileDebug');
@@ -2856,56 +2857,19 @@
   }
 
   function renderRecent() {
-    const list = readRecent();
-    if (!recentPickerEl) return;
-    recentPickerEl.hidden = list.length === 0;
-    if (recentCountLabelEl) recentCountLabelEl.textContent = `Recently generated (${list.length})`;
-    if (recentSelectEl) {
-      const prev = recentSelectEl.value;
-      recentSelectEl.innerHTML = '<option value="">— pick to load —</option>';
-      list.forEach((entry) => {
-        const opt = document.createElement('option');
-        opt.value = entry.scaledEmail;
-        let tail = summariseSnapshot(entry.snapshot);
-        if (!tail && window.AepProfileGenRecentSync) {
-          tail = window.AepProfileGenRecentSync.summariseEntry(entry);
-        }
-        const industryLabel = Shared.formatRecentIndustryLabel(entry);
-        const industryPrefix = industryLabel !== '—' ? `[${industryLabel}] ` : '';
-        opt.textContent = industryPrefix + (tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail);
-        recentSelectEl.appendChild(opt);
-      });
-      if (list.some((e) => e.scaledEmail === prev)) recentSelectEl.value = prev;
-    }
-    if (recentListBodyEl) {
-      recentListBodyEl.innerHTML = '';
-      list.forEach((entry) => {
-        const tr = document.createElement('tr');
-        const tdEmail = document.createElement('td');
-        tdEmail.textContent = entry.scaledEmail;
-        const tdTs = document.createElement('td');
-        tdTs.textContent = formatRelative(entry.ts);
-        tdTs.title = new Date(entry.ts).toISOString();
-        const tdIndustry = document.createElement('td');
-        tdIndustry.className = 'gen-recent-list__industry';
-        tdIndustry.textContent = Shared.formatRecentIndustryLabel(entry);
-        const tdSummary = document.createElement('td');
-        let rowSummary = summariseSnapshot(entry.snapshot);
-        if (!rowSummary && window.AepProfileGenRecentSync) {
-          rowSummary = window.AepProfileGenRecentSync.summariseEntry(entry);
-        }
-        tdSummary.textContent = rowSummary;
-        const tdAction = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn btn-link';
-        btn.textContent = 'Load';
-        btn.addEventListener('click', () => loadRecentSnapshot(entry));
-        tdAction.appendChild(btn);
-        tr.append(tdEmail, tdTs, tdIndustry, tdSummary, tdAction);
-        recentListBodyEl.appendChild(tr);
-      });
-    }
+    Shared.renderRecentPicker({
+      list: readRecent(),
+      recentPickerEl,
+      recentSelectEl,
+      recentListBodyEl,
+      recentCountLabelEl,
+      recentIndustryFilterEl,
+      sandbox: getSandboxName(),
+      baseEmail: trimVal(baseEmailEl),
+      formatRelative,
+      summariseSnapshot,
+      onLoadEntry: loadRecentSnapshot,
+    });
   }
 
   function loadRecentSnapshot(entry) {
@@ -3122,6 +3086,12 @@
   if (reservationsEnabledEl) reservationsEnabledEl.addEventListener('change', applyReservationsToggleVisibility);
   if (travelPrefsEnabledEl) travelPrefsEnabledEl.addEventListener('change', applyTravelPrefsToggleVisibility);
 
+  if (recentIndustryFilterEl) {
+    recentIndustryFilterEl.addEventListener('change', () => {
+      Shared.writeRecentIndustryFilter(getSandboxName(), trimVal(baseEmailEl), recentIndustryFilterEl.value);
+      renderRecent();
+    });
+  }
   if (recentLoadBtn && recentSelectEl) {
     recentLoadBtn.addEventListener('click', () => {
       const v = recentSelectEl.value;
