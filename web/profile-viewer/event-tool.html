@@ -143,7 +143,16 @@
                   <div class="et-config-step et-config-step--industry-schema">
                     <h4 class="et-config-step-title">Industry event schema update</h4>
                     <p class="field-hint">
-                      Adds <strong>Event Industry Public v1</strong> and <strong>Travel Hotel Experience v1</strong> field groups to your existing Event Tool schema — same dataset and datastream. Run once per sandbox before sending industry scenarios with rich <code class="et-code-inline">public.*</code> payloads.
+                      Adds per-industry field groups to your existing Event Tool schema — same dataset and datastream. Run once per sandbox before sending industry scenarios with rich <code class="et-code-inline">public.{industryId}.*</code> payloads:
+                      <strong>Event Generic v1</strong> (<code class="et-code-inline">public.generic.*</code>),
+                      <strong>Event Retail v1</strong> (<code class="et-code-inline">public.retail.*</code>),
+                      <strong>Event FSI v1</strong> (<code class="et-code-inline">public.fsi.*</code>),
+                      <strong>Event Telecom v1</strong> (<code class="et-code-inline">public.telecom.*</code>),
+                      <strong>Event Media v1</strong> (<code class="et-code-inline">public.media.*</code>),
+                      <strong>Event Travel v1</strong> (<code class="et-code-inline">public.travel.*</code>),
+                      <strong>Event Sports v1</strong> (<code class="et-code-inline">public.sports.*</code>),
+                      <strong>Event Public Sector v1</strong> (<code class="et-code-inline">public.public.*</code>),
+                      plus <strong>Travel Hotel Experience v1</strong> (<code class="et-code-inline">hotel.*</code>). Retired monolithic Event Industry Public v1 is detached if present.
                     </p>
                     <div class="form-row form-row--action et-setup-actions">
                       <button type="button" id="etAttachIndustryFgBtn" class="btn btn-secondary">Update schema for industry events</button>

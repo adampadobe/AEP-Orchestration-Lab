@@ -1319,7 +1319,7 @@
       if (vu) body.viewUrl = vu;
       var orch = (dom.indOrchId && dom.indOrchId.value || '').trim();
       if (orch) body.eventID = orch;
-      body.public = catalog.buildPublicPayload(scenario, getIndustryFieldValues());
+      body.public = catalog.buildPublicPayload(scenario, getIndustryFieldValues(), dom.industrySelect.value);
     } else {
       body.eventType = 'transaction';
     }

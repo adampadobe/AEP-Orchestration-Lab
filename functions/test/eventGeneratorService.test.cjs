@@ -178,6 +178,55 @@ test('buildEventGeneratorXdm merges Sky News Insider tenant interestTypes and pr
   assert.equal(xdm._demoemea.public.insider.plan, 'monthly');
 });
 
+test('buildEventGeneratorXdm merges nested industry retail into _demoemea.public.retail', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'commerce.purchases',
+    ecid,
+    public: { retail: { productName: 'Featured product', sku: 'SKU-001', orderValue: 49.99 } },
+  });
+  assert.ok(xdm._demoemea && xdm._demoemea.public && xdm._demoemea.public.retail);
+  assert.equal(xdm._demoemea.public.retail.productName, 'Featured product');
+  assert.equal(xdm._demoemea.public.retail.sku, 'SKU-001');
+  assert.equal(xdm._demoemea.public.retail.orderValue, 49.99);
+});
+
+test('buildEventGeneratorXdm nested public sector donation under public.public', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'donation.made',
+    ecid,
+    public: { public: { donationAmount: 25, donationDate: '2026-07-16' } },
+  });
+  assert.equal(xdm._demoemea.public.public.donationAmount, 25);
+  assert.equal(xdm._demoemea.public.public.donationDate, '2026-07-16');
+  assert.equal(xdm._demoemea.omnichannelCdpUseCasePack.donatedAmount, 25);
+});
+
+test('buildEventGeneratorXdm maps nested public.travel to hotel.bookingDetails', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'hotel.booking',
+    ecid,
+    channel: 'Web',
+    public: {
+      travel: {
+        hotelName: 'Premier Inn London',
+        hotelLocation: 'London',
+        checkInDate: '2026-08-01',
+        confirmationNumber: 'BK-DEMO-001',
+        hotelItineraryId: 'ITN-DEMO-001',
+      },
+    },
+  });
+  assert.ok(xdm.hotel && xdm.hotel.bookingDetails);
+  assert.equal(xdm.hotel.bookingDetails.hotelName, 'Premier Inn London');
+  assert.equal(xdm.hotel.bookingDetails.hotelLocation, 'London');
+  assert.equal(xdm.hotel.bookingDetails.checkInDate, '2026-08-01');
+  assert.equal(xdm.hotel.bookingDetails.confirmationNumber, 'ITN-DEMO-001');
+  assert.ok(xdm._demoemea.hotel && xdm._demoemea.hotel.bookingDetails);
+});
+
 test('resolveGeneratorPreset defaults to lab-event-tool-edge and rejects silent static fallback', () => {
   const staticOnly = [
     { id: 'edge-46677-donation', transport: 'edge', dataStreamId: '46677fd7-9db0-4f16-898c-b424d0245c38' },

@@ -1,6 +1,6 @@
 /**
  * Industry event scenarios for Event Tool — aligned with profile-generation industries.
- * Payloads use tenant public.* + web.webPageDetails + interactionDetails (same schema/datastream).
+ * Payloads use tenant public.{industryId}.* + web.webPageDetails + interactionDetails (same schema/datastream).
  */
 (function () {
   'use strict';
@@ -354,11 +354,12 @@
   }
 
   /**
-   * Merge scenario defaults with form field values (flat public keys).
+   * Merge scenario defaults with form field values under public.{industryId}.*
    * @param {object} scenario
    * @param {Record<string, string|number>} fieldValues
+   * @param {string} industryId
    */
-  function buildPublicPayload(scenario, fieldValues) {
+  function buildPublicPayload(scenario, fieldValues, industryId) {
     var pub = clonePublic(scenario && scenario.public);
     var fields = (scenario && scenario.fields) || [];
     fields.forEach(function (f) {
@@ -374,7 +375,11 @@
         pub[f.key] = String(raw).trim();
       }
     });
-    return pub;
+    var id = String(industryId || '').trim();
+    if (!id) return pub;
+    var out = {};
+    out[id] = pub;
+    return out;
   }
 
   window.AepEventIndustryCatalog = {

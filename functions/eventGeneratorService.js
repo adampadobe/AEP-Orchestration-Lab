@@ -7,6 +7,7 @@
 
 const { readFileSync, existsSync } = require('fs');
 const { join } = require('path');
+const { INDUSTRY_PUBLIC_SLICE_IDS } = require('./eventIndustryFieldGroups');
 
 const XDM_TENANT_ID = process.env.AEP_XDM_TENANT_ID || 'demoemea';
 const EVENT_SCHEMA_ID =
@@ -107,41 +108,70 @@ function syncXdmTenantLowercaseAlias(xdm, tenantKey) {
   }
 }
 
-function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
-  if (!tenant || !pubIn || typeof pubIn !== 'object' || Array.isArray(pubIn)) return;
-  const dest = {};
+function hasIndustryPublicSlices(pubIn) {
+  return INDUSTRY_PUBLIC_SLICE_IDS.some(
+    (id) => pubIn[id] && typeof pubIn[id] === 'object' && !Array.isArray(pubIn[id]),
+  );
+}
+
+/** Admiral / insurance lab demos — merge structured objects into tenant.public (Experience Event). */
+const EXTRA_PUBLIC_STRUCTURED_KEYS = [
+  'quoteForm',
+  'bankSubscription',
+  'bankSubscribtion',
+  'protectionAddon',
+  'protectionConsolidation',
+  'policyInfo',
+  'dashboard',
+  'bookingParty',
+  'insider',
+];
+
+function parseDonationAmountNumber(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const n = Number(String(raw).replace(/,/g, ''));
+  return Number.isFinite(n) && !Number.isNaN(n) ? n : null;
+}
+
+/**
+ * Merge flat public scalars / structured keys from a source object into dest.
+ * @returns {number|null} donation amount when coerced from source
+ */
+function mergeFlatPublicFieldsIntoDest(dest, pubIn) {
+  if (!dest || !pubIn || typeof pubIn !== 'object' || Array.isArray(pubIn)) return null;
   let donationAmountNumber = null;
+
   const da = pubIn.donationAmount;
   const donatedOnly = pubIn.donatedAmount;
   if (da != null && da !== '') {
-    if (typeof da === 'number' && Number.isFinite(da)) {
-      dest.donationAmount = da;
-      donationAmountNumber = da;
+    const n = parseDonationAmountNumber(da);
+    if (n != null) {
+      dest.donationAmount = n;
+      donationAmountNumber = n;
     } else {
-      const n = Number(String(da).replace(/,/g, ''));
-      dest.donationAmount = Number.isFinite(n) && !Number.isNaN(n) ? n : String(da).trim();
-      if (Number.isFinite(n) && !Number.isNaN(n)) donationAmountNumber = n;
+      dest.donationAmount = String(da).trim();
     }
   } else if (donatedOnly != null && donatedOnly !== '') {
-    const n =
-      typeof donatedOnly === 'number' && Number.isFinite(donatedOnly)
-        ? donatedOnly
-        : Number(String(donatedOnly).replace(/,/g, ''));
-    if (Number.isFinite(n) && !Number.isNaN(n)) {
+    const n = parseDonationAmountNumber(donatedOnly);
+    if (n != null) {
       dest.donationAmount = n;
       donationAmountNumber = n;
     }
   }
+
   const er = pubIn.eventRegistration;
   if (er != null && String(er).trim() !== '') dest.eventRegistration = String(er).trim();
   const dd = pubIn.donationDate;
   if (dd != null && String(dd).trim() !== '') dest.donationDate = String(dd).trim();
   if (pubIn.linkUrl != null && String(pubIn.linkUrl).trim() !== '') dest.linkUrl = String(pubIn.linkUrl).trim();
   if (pubIn.ctaLabel != null && String(pubIn.ctaLabel).trim() !== '') dest.ctaLabel = String(pubIn.ctaLabel).trim();
+
   const itineraryRaw = pubIn.itineraryId;
   if (itineraryRaw != null && String(itineraryRaw).trim() !== '') {
     dest.hotelItineraryId = String(itineraryRaw).trim();
   }
+
   for (const hk of Object.keys(pubIn)) {
     if (hk === 'itineraryId') continue;
     if (!/^hotel/i.test(hk)) continue;
@@ -152,19 +182,7 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
     }
   }
 
-  /** Admiral / insurance lab demos — merge structured objects into tenant.public (Experience Event). */
-  const extraPublicKeys = [
-    'quoteForm',
-    'bankSubscription',
-    'bankSubscribtion',
-    'protectionAddon',
-    'protectionConsolidation',
-    'policyInfo',
-    'dashboard',
-    'bookingParty',
-    'insider',
-  ];
-  for (const ek of extraPublicKeys) {
+  for (const ek of EXTRA_PUBLIC_STRUCTURED_KEYS) {
     if (!Object.prototype.hasOwnProperty.call(pubIn, ek)) continue;
     const ev = pubIn[ek];
     if (ev == null) continue;
@@ -180,7 +198,62 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
     }
   }
 
-  if (Object.keys(dest).length > 0) tenant.public = dest;
+  const handled = new Set([
+    'donationAmount',
+    'donatedAmount',
+    'eventRegistration',
+    'donationDate',
+    'linkUrl',
+    'ctaLabel',
+    'itineraryId',
+    ...EXTRA_PUBLIC_STRUCTURED_KEYS,
+    ...INDUSTRY_PUBLIC_SLICE_IDS,
+  ]);
+  for (const key of Object.keys(pubIn)) {
+    if (handled.has(key)) continue;
+    if (/^hotel/i.test(key)) continue;
+    const val = pubIn[key];
+    if (val == null || val === '') continue;
+    if (typeof val === 'object') continue;
+    if (typeof val === 'number' || typeof val === 'boolean') {
+      dest[key] = val;
+    } else {
+      const s = String(val).trim();
+      if (s) dest[key] = s;
+    }
+  }
+
+  return donationAmountNumber;
+}
+
+function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
+  if (!tenant || !pubIn || typeof pubIn !== 'object' || Array.isArray(pubIn)) return;
+
+  let donationAmountNumber = null;
+
+  if (hasIndustryPublicSlices(pubIn)) {
+    if (!tenant.public || typeof tenant.public !== 'object' || Array.isArray(tenant.public)) {
+      tenant.public = {};
+    }
+    for (const industryId of INDUSTRY_PUBLIC_SLICE_IDS) {
+      const sliceIn = pubIn[industryId];
+      if (!sliceIn || typeof sliceIn !== 'object' || Array.isArray(sliceIn)) continue;
+      const sliceDest = {};
+      const sliceDonation = mergeFlatPublicFieldsIntoDest(sliceDest, sliceIn);
+      if (sliceDonation != null) donationAmountNumber = sliceDonation;
+      if (Object.keys(sliceDest).length > 0) {
+        const prev =
+          tenant.public[industryId] && typeof tenant.public[industryId] === 'object'
+            ? tenant.public[industryId]
+            : {};
+        tenant.public[industryId] = { ...prev, ...sliceDest };
+      }
+    }
+  } else {
+    const dest = {};
+    donationAmountNumber = mergeFlatPublicFieldsIntoDest(dest, pubIn);
+    if (Object.keys(dest).length > 0) tenant.public = dest;
+  }
 
   if (donationAmountNumber != null && Number.isFinite(donationAmountNumber)) {
     if (!tenant.omnichannelCdpUseCasePack || typeof tenant.omnichannelCdpUseCasePack !== 'object') {
@@ -358,44 +431,59 @@ function mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey) {
   const node = xdm[tenantKey];
   if (!node || typeof node !== 'object' || !node.public || typeof node.public !== 'object') return;
   const pub = node.public;
-  const keys = Object.keys(pub);
-  const hasHotelKey = keys.some((k) => /^hotel/i.test(k));
+  const travelSlice =
+    pub.travel && typeof pub.travel === 'object' && !Array.isArray(pub.travel) ? pub.travel : {};
+  const src = { ...pub, ...travelSlice };
+  if (src.hotelName != null && String(src.hotelName).trim() !== '' && src.hotelPropertyName == null) {
+    src.hotelPropertyName = String(src.hotelName).trim();
+  }
+  if (src.hotelLocation != null && String(src.hotelLocation).trim() !== '' && src.hotelDestination == null) {
+    src.hotelDestination = String(src.hotelLocation).trim();
+  }
+  if (src.checkInDate != null && String(src.checkInDate).trim() !== '' && src.hotelCheckIn == null) {
+    src.hotelCheckIn = String(src.checkInDate).trim();
+  }
+  const keys = Object.keys(src);
+  const hasHotelKey = keys.some((k) => /^hotel/i.test(k) || k === 'checkInDate');
   const itin =
-    pub.hotelItineraryId != null && String(pub.hotelItineraryId).trim() !== ''
-      ? String(pub.hotelItineraryId).trim()
-      : pub.itineraryId != null && String(pub.itineraryId).trim() !== ''
-        ? String(pub.itineraryId).trim()
+    src.hotelItineraryId != null && String(src.hotelItineraryId).trim() !== ''
+      ? String(src.hotelItineraryId).trim()
+      : src.itineraryId != null && String(src.itineraryId).trim() !== ''
+        ? String(src.itineraryId).trim()
         : '';
   const hasItin = itin !== '';
   if (!hasHotelKey && !hasItin) return;
 
   const bd = {};
-  if (pub.hotelPropertyName != null && String(pub.hotelPropertyName).trim() !== '') {
-    bd.hotelName = String(pub.hotelPropertyName).trim();
+  if (src.hotelPropertyName != null && String(src.hotelPropertyName).trim() !== '') {
+    bd.hotelName = String(src.hotelPropertyName).trim();
   }
-  if (pub.hotelDestination != null && String(pub.hotelDestination).trim() !== '') {
-    bd.hotelLocation = String(pub.hotelDestination).trim();
+  if (src.hotelDestination != null && String(src.hotelDestination).trim() !== '') {
+    bd.hotelLocation = String(src.hotelDestination).trim();
   }
-  if (pub.hotelChain != null && String(pub.hotelChain).trim() !== '') {
-    bd.hotelChain = String(pub.hotelChain).trim();
+  if (src.hotelChain != null && String(src.hotelChain).trim() !== '') {
+    bd.hotelChain = String(src.hotelChain).trim();
   }
-  const cin = pub.hotelCheckIn != null ? String(pub.hotelCheckIn).trim() : '';
-  const cout = pub.hotelCheckOut != null ? String(pub.hotelCheckOut).trim() : '';
+  const cin = src.hotelCheckIn != null ? String(src.hotelCheckIn).trim() : '';
+  const cout = src.hotelCheckOut != null ? String(src.hotelCheckOut).trim() : '';
   if (/^\d{4}-\d{2}-\d{2}/.test(cin)) bd.checkInDate = cin.slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}/.test(cout)) bd.checkOutDate = cout.slice(0, 10);
-  if (pub.hotelNights != null && pub.hotelNights !== '') {
-    const n = typeof pub.hotelNights === 'number' ? pub.hotelNights : Number(String(pub.hotelNights).replace(/,/g, ''));
+  if (src.hotelNights != null && src.hotelNights !== '') {
+    const n = typeof src.hotelNights === 'number' ? src.hotelNights : Number(String(src.hotelNights).replace(/,/g, ''));
     if (Number.isFinite(n) && !Number.isNaN(n)) bd.nightsStay = Math.trunc(n);
   }
-  if (pub.hotelRoomType != null && String(pub.hotelRoomType).trim() !== '') {
-    bd.roomType = String(pub.hotelRoomType).trim();
+  if (src.hotelRoomType != null && String(src.hotelRoomType).trim() !== '') {
+    bd.roomType = String(src.hotelRoomType).trim();
   }
-  if (pub.hotelQuotedTotal != null && pub.hotelQuotedTotal !== '') {
+  if (src.hotelQuotedTotal != null && src.hotelQuotedTotal !== '') {
     const n =
-      typeof pub.hotelQuotedTotal === 'number' ? pub.hotelQuotedTotal : Number(String(pub.hotelQuotedTotal).replace(/,/g, ''));
+      typeof src.hotelQuotedTotal === 'number' ? src.hotelQuotedTotal : Number(String(src.hotelQuotedTotal).replace(/,/g, ''));
     if (Number.isFinite(n) && !Number.isNaN(n)) bd.totalCost = n;
   }
   if (hasItin) bd.confirmationNumber = itin;
+  if (src.confirmationNumber != null && String(src.confirmationNumber).trim() !== '' && !bd.confirmationNumber) {
+    bd.confirmationNumber = String(src.confirmationNumber).trim();
+  }
   if (Object.keys(bd).length === 0) return;
 
   function mergeIntoHotelTarget(target) {

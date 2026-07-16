@@ -32,7 +32,8 @@ const {
 } = require('./eventLabCoreFieldGroup');
 const {
   EVENT_INDUSTRY_PUBLIC_FG_TITLE,
-  buildEventIndustryPublicV1ExperienceEventFieldGroup,
+  EVENT_INDUSTRY_FIELD_GROUP_SPECS,
+  buildEventIndustryFieldGroupForSpec,
 } = require('./eventIndustryFieldGroups');
 
 const ADOBE_SIPHON_TABLE_FORMAT_KEY = 'adobe/siphon/table/format';
@@ -2074,36 +2075,67 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     /** @type {string[]} */
     const attachIds = [];
     const warnings = [];
+    let monolithDetached = false;
 
-    let industryFg = await findTenantExperienceEventFieldGroupByTitle(
-      token,
-      clientId,
-      orgId,
-      sandbox,
-      EVENT_INDUSTRY_PUBLIC_FG_TITLE,
+    let fullSchema =
+      (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || schema;
+    const mergedRows = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
+    const monolithRow = (mergedRows || []).find(
       (row) => String(row.title || '').trim() === EVENT_INDUSTRY_PUBLIC_FG_TITLE,
     );
-    if (!industryFg) {
-      try {
-        const body = buildEventIndustryPublicV1ExperienceEventFieldGroup(tenantCtx.tenantId);
-        industryFg = await postTenantFieldGroup(token, clientId, orgId, sandbox, body);
-        createdTitles.push(EVENT_INDUSTRY_PUBLIC_FG_TITLE);
-      } catch (e) {
-        const msg = String(e.message || e);
-        if (/duplicate|already exists|409/i.test(msg)) {
-          industryFg = await findTenantExperienceEventFieldGroupByTitle(
-            token,
-            clientId,
-            orgId,
-            sandbox,
-            EVENT_INDUSTRY_PUBLIC_FG_TITLE,
-            (row) => String(row.title || '').trim() === EVENT_INDUSTRY_PUBLIC_FG_TITLE,
-          );
+    if (monolithRow && monolithRow.$id) {
+      const refs = collectSchemaRefUris(fullSchema);
+      if (refs.has(String(monolithRow.$id))) {
+        const removeOps = buildRemoveFieldGroupPatchOps(fullSchema, monolithRow.$id);
+        if (removeOps.length) {
+          try {
+            await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, removeOps);
+            monolithDetached = true;
+            fullSchema =
+              (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || fullSchema;
+          } catch (e) {
+            warnings.push(
+              `Could not detach retired ${EVENT_INDUSTRY_PUBLIC_FG_TITLE} (${String(e.message || e).slice(0, 160)}).`,
+            );
+          }
         }
-        if (!industryFg) return { ok: false, error: msg };
       }
     }
-    if (industryFg && industryFg.$id) attachIds.push(industryFg.$id);
+
+    for (const spec of EVENT_INDUSTRY_FIELD_GROUP_SPECS) {
+      let fg = await findTenantExperienceEventFieldGroupByTitle(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        spec.title,
+        (row) => String(row.title || '').trim() === spec.title,
+      );
+      if (!fg) {
+        try {
+          const body = buildEventIndustryFieldGroupForSpec(tenantCtx.tenantId, spec);
+          fg = await postTenantFieldGroup(token, clientId, orgId, sandbox, body);
+          createdTitles.push(spec.title);
+        } catch (e) {
+          const msg = String(e.message || e);
+          if (/duplicate|already exists|409/i.test(msg)) {
+            fg = await findTenantExperienceEventFieldGroupByTitle(
+              token,
+              clientId,
+              orgId,
+              sandbox,
+              spec.title,
+              (row) => String(row.title || '').trim() === spec.title,
+            );
+          }
+          if (!fg) {
+            warnings.push(`${spec.title}: ${msg}`);
+            continue;
+          }
+        }
+      }
+      if (fg && fg.$id) attachIds.push(fg.$id);
+    }
 
     let travelHotel = findTravelHotelExperienceV1Mixin(
       await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox),
@@ -2131,13 +2163,17 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     for (const w of fgRes.warnings || []) warnings.push(w);
 
     const parts = [];
+    if (monolithDetached) {
+      parts.push(`Detached retired ${EVENT_INDUSTRY_PUBLIC_FG_TITLE} from schema.`);
+    }
     if (createdTitles.length) parts.push(`Created: ${createdTitles.join(', ')}.`);
     if (fgRes.attached.length) {
       parts.push(`Attached to schema (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
     }
     if (fgRes.skipped.length) parts.push('Some field groups were already on the schema.');
+    const fgList = EVENT_INDUSTRY_FIELD_GROUP_SPECS.map((s) => s.title).join(', ');
     parts.push(
-      `Industry payloads use ${tenantCtx.xdmKey}.public.* and optional root hotel.* — same datastream and dataset as Quick trigger.`,
+      `Industry payloads use ${tenantCtx.xdmKey}.public.{industryId}.* (${fgList}) plus optional ${TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE} hotel.* — same datastream and dataset as Quick trigger.`,
     );
 
     return {
@@ -2147,6 +2183,8 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaId: schema.$id,
       schemaMetaAltId: metaAltId,
       tenantXdmKey: tenantCtx.xdmKey,
+      monolithDetached,
+      industryFieldGroupTitles: EVENT_INDUSTRY_FIELD_GROUP_SPECS.map((s) => s.title),
       createdFieldGroups: createdTitles.map((t) => ({ title: t })),
       attachedFieldGroupIds: fgRes.attached,
       skippedFieldGroupIds: fgRes.skipped,
