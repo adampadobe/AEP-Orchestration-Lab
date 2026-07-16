@@ -414,7 +414,18 @@ function mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey) {
 
 /** After tenant `public` + channel merges, align root + tenant hotel / interaction paths for common field-group shapes. */
 function alignExperienceEventFieldGroupPayloads(xdm, tenantKey, channelIn) {
-  applyRootInteractionDetailsChannel(xdm, channelIn);
+  const tenantNode = tenantKey && xdm && xdm[tenantKey];
+  const tenantHasInteractionChannel =
+    tenantNode &&
+    typeof tenantNode === 'object' &&
+    tenantNode.interactionDetails &&
+    typeof tenantNode.interactionDetails === 'object' &&
+    tenantNode.interactionDetails.core &&
+    tenantNode.interactionDetails.core.channel;
+  // Rich payloads: Interaction Details Lite on Event Tool schemas is tenant-wrapped — avoid duplicating at root.
+  if (!tenantHasInteractionChannel) {
+    applyRootInteractionDetailsChannel(xdm, channelIn);
+  }
   const chNorm = normalizeInteractionDetailsChannel(
     channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim(),
   );

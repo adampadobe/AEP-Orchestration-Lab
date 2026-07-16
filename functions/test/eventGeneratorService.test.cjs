@@ -71,7 +71,7 @@ test('buildEventGeneratorXdm maps hospitality public to root and tenant hotel.bo
       hotelRoomType: 'double',
     },
   });
-  assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.equal(xdm.interactionDetails, undefined);
   assert.ok(xdm.channel && xdm.channel['@type'] === 'https://ns.adobe.com/xdm/channel-types/web');
   assert.ok(xdm.hotel && xdm.hotel.bookingDetails);
   assert.equal(xdm.hotel.bookingDetails.hotelName, 'Manchester Deansgate');
@@ -128,7 +128,7 @@ test('buildEventGeneratorXdm infers web channel for hotel.* when channel omitted
     public: { hotelPropertyName: 'Test Inn' },
   });
   assert.equal(xdm._demoemea.interactionDetails.core.channel, 'web');
-  assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.equal(xdm.interactionDetails, undefined);
   assert.equal(xdm.channel['@type'], 'https://ns.adobe.com/xdm/channel-types/web');
 });
 

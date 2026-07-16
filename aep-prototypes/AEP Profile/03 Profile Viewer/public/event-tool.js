@@ -1337,9 +1337,6 @@
     };
 
     var chNorm = normalizePreviewChannel(body.channel);
-    if (chNorm) {
-      xdm.interactionDetails = { core: { channel: chNorm } };
-    }
 
     if (shouldUseRichPreview(body)) {
       var orchId = (body.eventID || body.orchestrationEventID || '').trim();
@@ -1366,6 +1363,8 @@
       if (vn || vu) {
         xdm.web = { webPageDetails: { URL: vu, name: vn, viewName: vn } };
       }
+    } else if (chNorm) {
+      xdm.interactionDetails = { core: { channel: chNorm } };
     }
 
     return {
