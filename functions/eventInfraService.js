@@ -1,6 +1,6 @@
 /**
  * Event Infrastructure — create XDM ExperienceEvent schema + dataset in a sandbox.
- * Optionally attaches **Experience Event Core v2.1** (ExperienceEvent-class field group),
+ * Attaches **AEP Lab - Event Core v1** (lean web + orchestration mixin — not Experience Event Core v2.1),
  * **Interaction Details Lite**, **B2C Event Identity v1**, and non-primary ECID/Email identity descriptors on
  * `_{tenant}.identification.core.*` so the schema can be Profile-enabled in the UI with
  * **alternate primary identity** (`identityMap` per event).
@@ -26,6 +26,10 @@ const LIST_FIELDGROUP_ACCEPTS = [
 const eventEdgeService = require('./eventEdgeService');
 const tagsReactorService = require('./tagsReactorService');
 const { buildAddProfileUnionPatchOps } = require('./profileInfraFactory');
+const {
+  EVENT_LAB_CORE_V1_FG_TITLE,
+  buildEventLabCoreV1ExperienceEventFieldGroup,
+} = require('./eventLabCoreFieldGroup');
 const {
   EVENT_INDUSTRY_PUBLIC_FG_TITLE,
   buildEventIndustryPublicV1ExperienceEventFieldGroup,
@@ -191,7 +195,40 @@ async function createEventSchema(token, clientId, orgId, sandbox, schemaTitle) {
   throw new Error(`Create schema failed: ${lastErr}`);
 }
 
-/* ── Experience Event Core v2.1 + identity descriptors (ExperienceEvent, alternate primary via identityMap) ── */
+function findExperienceEventCoreV21RefOnSchema(schema, merged) {
+  const eeCore = findExperienceEventCoreV21Mixin(merged);
+  if (!eeCore || !eeCore.$id) return null;
+  const refs = collectSchemaRefUris(schema);
+  return refs.has(String(eeCore.$id)) ? String(eeCore.$id) : null;
+}
+
+function findLabEventCoreV1Mixin(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return (
+    list.find((m) => String(m.title || '').trim() === EVENT_LAB_CORE_V1_FG_TITLE) || null
+  );
+}
+
+/**
+ * Ensure tenant **AEP Lab - Event Core v1** field group exists (root web + orchestration only).
+ */
+async function ensureLabEventCoreV1FieldGroup(token, clientId, orgId, sandbox) {
+  let fg = findLabEventCoreV1Mixin(await listTenantFieldgroupsLike(token, clientId, orgId, sandbox).catch(() => []));
+  if (fg && fg.$id) return { fg, created: false };
+  try {
+    fg = await postTenantFieldGroup(token, clientId, orgId, sandbox, buildEventLabCoreV1ExperienceEventFieldGroup());
+    return { fg, created: true };
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (/duplicate|already exists|409/i.test(msg)) {
+      fg = findLabEventCoreV1Mixin(await listTenantFieldgroupsLike(token, clientId, orgId, sandbox).catch(() => []));
+      if (fg && fg.$id) return { fg, created: false };
+    }
+    throw e;
+  }
+}
+
+/* ── AEP Lab Event Core v1 + identity descriptors (ExperienceEvent, alternate primary via identityMap) ── */
 
 function parseTenantFromUri(uri) {
   const m = String(uri || '').match(/^https:\/\/ns\.adobe\.com\/([^/]+)\//);
@@ -985,12 +1022,14 @@ async function postIdentityDescriptor(
 }
 
 /**
- * Attach Experience Event Core v2.1 + non-primary ECID/Email descriptors on tenant identification.core.*
- * so Profile UI can map namespaces; primary per event should come from identityMap (user enables alternate primary).
+ * Attach **AEP Lab - Event Core v1** (not Adobe Experience Event Core v2.1), detach Core v2.1 when present,
+ * plus non-primary ECID/Email descriptors on tenant identification.core.*
  */
 async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, schemaRow) {
   const empty = {
+    labEventCoreAttached: false,
     experienceEventCoreV21Attached: false,
+    experienceEventCoreV21Detached: false,
     profileCoreAttached: false,
     interactionDetailsLiteAttached: false,
     b2cEventIdentityV1Attached: false,
@@ -1004,7 +1043,7 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
   if (!metaAltId || !schemaId) {
     return {
       ...empty,
-      warn: 'Missing meta:altId on new schema; skip Experience Event Core v2.1 attach.',
+      warn: 'Missing meta:altId on new schema; skip lab Event Core attach.',
     };
   }
 
@@ -1032,32 +1071,52 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     }
   }
 
-  const eeCore = findExperienceEventCoreV21Mixin(merged);
-  if (!eeCore || !eeCore.$id) {
-    return {
-      ...empty,
-      tenantXdmKey: tenantCtx.xdmKey,
-      warn:
-        'Experience Event Core v2.1 field group not found in this sandbox. In AEP: Schemas → Browse → import the standard Experience Event Core v2.1 field group, then run "Create schema" again with a new title or add the field group manually.',
-    };
+  let full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
+  /** @type {string[]} */
+  let recommendedFieldGroupWarnings = [];
+  let experienceEventCoreV21Detached = false;
+
+  const eeCoreRef = findExperienceEventCoreV21RefOnSchema(full, merged);
+  if (eeCoreRef) {
+    const removeOps = buildRemoveFieldGroupPatchOps(full, eeCoreRef);
+    if (removeOps.length) {
+      try {
+        await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, removeOps);
+        experienceEventCoreV21Detached = true;
+        recommendedFieldGroupWarnings.push(
+          'Detached Experience Event Core v2.1 from schema (commerce required metrics removed). Using AEP Lab - Event Core v1 instead.',
+        );
+        full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
+      } catch (e) {
+        recommendedFieldGroupWarnings.push(
+          `Could not detach Experience Event Core v2.1 (${String(e.message || e).slice(0, 160)}). Remove it manually in Schema Editor to avoid commerce required fields.`,
+        );
+      }
+    }
   }
 
-  let full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
-  const ops = buildAddFieldGroupPatchOps(full, eeCore.$id);
-  let experienceEventCoreV21Attached = false;
-  let experienceEventCoreWarning = null;
-  if (ops.length) {
-    try {
-      await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
-      experienceEventCoreV21Attached = true;
-    } catch (e) {
-      const msg = String(e.message || e);
-      experienceEventCoreWarning = `Could not attach Experience Event Core v2.1 automatically (${msg.slice(0, 180)}). Add the field group in the Schema Editor if your org restricts this mixin on ExperienceEvent schemas.`;
-      log(sandbox, 'eventInfra.experienceEventCore.patchFail', { err: msg.slice(0, 220) });
+  let labEventCoreAttached = false;
+  let labEventCoreWarning = null;
+  let labCoreCreated = false;
+  try {
+    const ensured = await ensureLabEventCoreV1FieldGroup(token, clientId, orgId, sandbox);
+    labCoreCreated = ensured.created;
+    if (ensured.created) {
+      recommendedFieldGroupWarnings.push(`Auto-created field group "${EVENT_LAB_CORE_V1_FG_TITLE}".`);
     }
-    full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
-  } else {
-    experienceEventCoreV21Attached = true;
+    if (ensured.fg && ensured.fg.$id) {
+      const ops = buildAddFieldGroupPatchOps(full, ensured.fg.$id);
+      if (ops.length) {
+        await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
+        labEventCoreAttached = true;
+      } else {
+        labEventCoreAttached = true;
+      }
+      full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
+    }
+  } catch (e) {
+    labEventCoreWarning = `Could not attach ${EVENT_LAB_CORE_V1_FG_TITLE} (${String(e.message || e).slice(0, 180)}).`;
+    log(sandbox, 'eventInfra.labEventCore.patchFail', { err: String(e.message || e).slice(0, 220) });
   }
 
   let interactionRepairWarnings = [];
@@ -1099,7 +1158,7 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
   ].filter(Boolean);
   let interactionDetailsLiteAttached = false;
   let b2cEventIdentityV1Attached = false;
-  const recommendedFieldGroupWarnings = [...recommendedEnsureWarnings, ...interactionRepairWarnings];
+  recommendedFieldGroupWarnings.push(...recommendedEnsureWarnings, ...interactionRepairWarnings);
   for (const c of recommendedCreated) {
     if (c && c.title) recommendedFieldGroupWarnings.push(`Auto-created field group "${c.title}" in this sandbox.`);
   }
@@ -1154,9 +1213,11 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
   }
 
   return {
-    experienceEventCoreV21Attached,
-    /** @deprecated Same as experienceEventCoreV21Attached; kept for API consumers that still read this key. */
-    profileCoreAttached: experienceEventCoreV21Attached,
+    labEventCoreAttached,
+    experienceEventCoreV21Attached: false,
+    experienceEventCoreV21Detached,
+    /** @deprecated Use labEventCoreAttached. Kept false — lab core replaces Core v2.1. */
+    profileCoreAttached: labEventCoreAttached,
     interactionDetailsLiteAttached,
     b2cEventIdentityV1Attached,
     /** @deprecated Renamed to recommendedFieldGroupWarnings; kept for API consumers. */
@@ -1165,9 +1226,11 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     /** @deprecated Renamed to recommendedPlatformErrors; kept for API consumers. */
     hospitalityPlatformErrors: recommendedPlatformErrors,
     recommendedPlatformErrors,
-    createdFieldGroups: recommendedCreated,
+    createdFieldGroups: labCoreCreated
+      ? [{ title: EVENT_LAB_CORE_V1_FG_TITLE }, ...recommendedCreated]
+      : recommendedCreated,
     identityDescriptors,
-    warn: experienceEventCoreWarning,
+    warn: labEventCoreWarning,
     tenantXdmKey: tenantCtx.xdmKey,
   };
 }
@@ -1847,7 +1910,8 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     const created = await createEventSchema(token, clientId, orgId, sandbox, title);
     const attach = await attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, created);
     const parts = [`Schema "${title}" created (ExperienceEvent class).`];
-    if (attach.experienceEventCoreV21Attached) parts.push('Experience Event Core v2.1 field group attached.');
+    if (attach.labEventCoreAttached) parts.push(`${EVENT_LAB_CORE_V1_FG_TITLE} field group attached.`);
+    if (attach.experienceEventCoreV21Detached) parts.push('Experience Event Core v2.1 detached (commerce required fields removed).');
     if (attach.interactionDetailsLiteAttached) parts.push('Interaction Details Lite attached (tenant interactionDetails.core.channel).');
     if (attach.b2cEventIdentityV1Attached) parts.push('B2C Event Identity v1 attached (tenant identification.core.ecid / .email).');
     for (const w of attach.recommendedFieldGroupWarnings || attach.hospitalityFieldGroupWarnings || []) {
@@ -1867,8 +1931,10 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaCreated: true,
       schemaId: created.$id,
       schemaMetaAltId: created['meta:altId'],
-      experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
-      profileCoreAttached: !!attach.profileCoreAttached,
+      labEventCoreAttached: !!attach.labEventCoreAttached,
+      experienceEventCoreV21Attached: false,
+      experienceEventCoreV21Detached: !!attach.experienceEventCoreV21Detached,
+      profileCoreAttached: !!attach.labEventCoreAttached,
       interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
       b2cEventIdentityV1Attached: !!attach.b2cEventIdentityV1Attached,
       recommendedFieldGroupWarnings: attach.recommendedFieldGroupWarnings || attach.hospitalityFieldGroupWarnings || [],
@@ -1914,7 +1980,8 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     const attach = await attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, schema);
     const label = schemaIdOpt ? schema.$id || schemaIdOpt : title;
     const parts = [`Field groups and identity descriptors processed for "${label}".`];
-    if (attach.experienceEventCoreV21Attached) parts.push('Experience Event Core v2.1 attached or already present.');
+    if (attach.labEventCoreAttached) parts.push(`${EVENT_LAB_CORE_V1_FG_TITLE} attached or already present.`);
+    if (attach.experienceEventCoreV21Detached) parts.push('Experience Event Core v2.1 was detached from this schema.');
     if (attach.interactionDetailsLiteAttached) parts.push('Interaction Details Lite attached or already present.');
     if (attach.b2cEventIdentityV1Attached) parts.push('B2C Event Identity v1 attached or already present.');
     if ((attach.createdFieldGroups || []).length) {
@@ -1943,7 +2010,8 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
         schemaMetaAltId: metaAltId,
         interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
         b2cEventIdentityV1Attached: !!attach.b2cEventIdentityV1Attached,
-        experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
+        experienceEventCoreV21Attached: false,
+        labEventCoreAttached: !!attach.labEventCoreAttached,
         createdFieldGroups: attach.createdFieldGroups || [],
         platformErrors: attach.recommendedPlatformErrors || attach.hospitalityPlatformErrors || [],
         warnings: attach.recommendedFieldGroupWarnings || attach.hospitalityFieldGroupWarnings || [],
@@ -1959,7 +2027,9 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaTitle: String(schema.title || '').trim() || null,
       schemaId: schema.$id,
       schemaMetaAltId: metaAltId,
-      experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
+      experienceEventCoreV21Attached: false,
+      labEventCoreAttached: !!attach.labEventCoreAttached,
+      experienceEventCoreV21Detached: !!attach.experienceEventCoreV21Detached,
       interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
       b2cEventIdentityV1Attached: !!attach.b2cEventIdentityV1Attached,
       identityDescriptorsCreated: Number(attach.identityDescriptors) || 0,
@@ -2405,6 +2475,8 @@ module.exports = {
   buildInteractionDetailsLiteExperienceEventFieldGroup,
   buildTravelHotelExperienceV1ExperienceEventFieldGroup,
   buildB2cEventIdentityV1ExperienceEventFieldGroup,
+  buildEventLabCoreV1ExperienceEventFieldGroup,
+  EVENT_LAB_CORE_V1_FG_TITLE,
   buildEventSchemaIdentityDescriptorPairs,
   buildRemoveFieldGroupPatchOps,
   findWrongInteractionDetailsLiteRefsOnSchema,

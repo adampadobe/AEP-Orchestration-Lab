@@ -21,6 +21,10 @@ const {
   SETUP_EVENT_INFRA_SUBSTEPS,
   runEventInfraStep,
 } = require('../eventInfraService');
+const {
+  buildEventLabCoreV1ExperienceEventFieldGroup,
+  EVENT_LAB_CORE_V1_FG_TITLE,
+} = require('../eventLabCoreFieldGroup');
 
 const EE_CLASS = 'https://ns.adobe.com/xdm/context/experienceevent';
 const TENANT = 'prisacar';
@@ -274,4 +278,16 @@ test('schemaHasProfileUnionTag and datasetHasProfileEnabledTag', () => {
   assert.equal(schemaHasProfileUnionTag({ 'meta:immutableTags': [] }), false);
   assert.equal(datasetHasProfileEnabledTag({ tags: { unifiedProfile: ['enabled:true'] } }), true);
   assert.equal(datasetHasProfileEnabledTag({ tags: {} }), false);
+});
+
+test('buildEventLabCoreV1ExperienceEventFieldGroup is lean root mixin without commerce', () => {
+  const body = buildEventLabCoreV1ExperienceEventFieldGroup();
+  assert.equal(body.title, EVENT_LAB_CORE_V1_FG_TITLE);
+  assert.deepEqual(body['meta:intendedToExtend'], [EE_CLASS]);
+  const props = body.definitions.eventLabCoreV1Block.properties;
+  assert.ok(props.web && props.web.properties.webPageDetails);
+  assert.ok(props.web.properties.webPageDetails.properties.name);
+  assert.ok(props._experience && props._experience.properties.campaign.properties.orchestration.properties.eventID);
+  assert.equal(props.commerce, undefined);
+  assert.equal(JSON.stringify(body).includes('productListAdds'), false);
 });
