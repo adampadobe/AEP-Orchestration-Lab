@@ -169,30 +169,79 @@
 
   /**
    * True when the four required streaming fields (Schema $id, Dataset ID,
-   * Flow ID, Collection URL) are all filled. We treat that as "fully
-   * configured" — the operator has either completed the wizard or pasted
-   * a saved connection from Firebase.
+   * Flow ID, Collection URL) are all filled.
    */
   function streamingFieldsAreFullyConfigured() {
     const s = getStreamingPayload();
     return !!(s && s.url && s.flowId && s.datasetId && s.schemaId);
   }
 
+  /** Per-sandbox cache: null = unknown (poll /status), true/false = last known Profile-enable state. */
+  let _profileEnabledCache = { sandbox: '', enabled: null };
+  let _profileEnabledInflight = null;
+
+  function clearProfileEnabledCache() {
+    _profileEnabledCache = { sandbox: '', enabled: null };
+    _profileEnabledInflight = null;
+  }
+
+  function profileEnabledFromStatusFlags(flags) {
+    if (!flags || typeof flags !== 'object') return false;
+    return !!(flags.schemaInUnion ?? flags.schemaInProfileUnion) && !!flags.datasetProfileEnabled;
+  }
+
+  function getCachedProfileEnabled() {
+    const sb = getSandboxName();
+    if (!sb || _profileEnabledCache.sandbox !== sb) return null;
+    return _profileEnabledCache.enabled;
+  }
+
+  function setProfileEnabledCache(enabled) {
+    _profileEnabledCache = { sandbox: getSandboxName(), enabled: !!enabled };
+  }
+
+  async function refreshProfileEnabledState() {
+    const sb = getSandboxName();
+    if (!sb) {
+      clearProfileEnabledCache();
+      applyConfiguredCollapseState();
+      return;
+    }
+    if (_profileEnabledInflight && _profileEnabledInflight.sandbox === sb) {
+      return _profileEnabledInflight.promise;
+    }
+    const promise = (async () => {
+      try {
+        const res = await fetch('/api/generic-profile-infra/status' + querySuffix());
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok !== false) {
+          setProfileEnabledCache(profileEnabledFromStatusFlags(data));
+        }
+      } catch (_) { /* ignore — keep panel expanded until confirmed */ }
+      applyConfiguredCollapseState();
+    })();
+    _profileEnabledInflight = { sandbox: sb, promise };
+    promise.finally(() => {
+      if (_profileEnabledInflight && _profileEnabledInflight.sandbox === sb) {
+        _profileEnabledInflight = null;
+      }
+    });
+    return promise;
+  }
+
   /**
-   * Collapse the wizard <details> when fully configured (and swap the hint
-   * for a green "Configured" message); expand it again when the
-   * configuration becomes incomplete. Called from:
-   *   - loadConnectionFromFirestore() after a successful Firebase load.
-   *   - saveConnectionToFirestore() after a successful save.
-   *   - onSandboxChange() so switching sandboxes re-evaluates state.
-   *   - The "aep-generic-panel-shown" handler so the first reveal of the
-   *     Generic editor reflects the current state correctly.
-   * `showInfraMessage('…', 'error')` still force-opens the <details>
-   * regardless, so error states stay visible.
+   * Collapse the wizard <details> only when streaming connection fields are
+   * complete AND schema + dataset are confirmed Profile-enabled. Stay open
+   * after Save connection so the architect can run Enable for Profile.
    */
   function applyConfiguredCollapseState() {
     if (!infraDetailsEl) return;
-    const ready = streamingFieldsAreFullyConfigured();
+    const streamingReady = streamingFieldsAreFullyConfigured();
+    const profileEnabled = getCachedProfileEnabled();
+    if (streamingReady && profileEnabled === null) {
+      refreshProfileEnabledState();
+    }
+    const ready = streamingReady && profileEnabled === true;
     if (ready) {
       infraDetailsEl.open = false;
       if (infraHintEl) {
@@ -205,7 +254,12 @@
     } else {
       infraDetailsEl.open = true;
       if (infraHintEl) {
-        infraHintEl.textContent = ORIGINAL_INFRA_HINT;
+        if (streamingReady && profileEnabled === false) {
+          infraHintEl.textContent =
+            'Connection saved — click Enable schema + dataset for Profile below to finish setup.';
+        } else {
+          infraHintEl.textContent = ORIGINAL_INFRA_HINT;
+        }
         infraHintEl.classList.remove('consent-streaming-details__hint--configured');
       }
     }
@@ -375,7 +429,7 @@
         return hasFirestoreSchemaAndDataset;
       }
       if (!silent) {
-        showInfraMessage('No saved connection for this sandbox yet — click "Set up schema, field groups & dataset", then create the HTTP API source and Save connection.', '');
+        showInfraMessage('No saved connection for this sandbox yet — click "Set up schema, field groups & dataset", then create the HTTP API source and click Fetch URL & Flow ID from AEP.', '');
       }
       applyConfiguredCollapseState();
       // No Firestore record at all — try sandbox auto-discover when the
@@ -718,6 +772,8 @@
         return;
       }
       showInfraMessage(data.message || 'Schema and dataset are Profile-enabled.', 'success');
+      setProfileEnabledCache(true);
+      try { applyConfiguredCollapseState(); } catch (_) { /* ignore */ }
     } finally {
       enableProfileBtn.disabled = false;
       // Refresh the at-a-glance Profile-enabled badges (industry dropdown +
@@ -788,7 +844,11 @@
       if (streamUrlEl && data.url) streamUrlEl.value = data.url;
       if (streamFlowIdEl && data.flowId) streamFlowIdEl.value = data.flowId;
       if (streamFlowNameEl && data.flowName) streamFlowNameEl.value = data.flowName;
-      showInfraMessage('Fetched URL & Flow ID from AEP. Click Save connection to persist for this sandbox.', 'success');
+      showInfraMessage('Saving connection to Firebase…', '');
+      const ok = await saveConnectionToFirestore();
+      if (ok) {
+        showInfraMessage('Fetched URL & Flow ID from AEP and saved connection for this sandbox.', 'success');
+      }
     } catch (e) {
       showInfraMessage(e.message || 'Network error', 'error');
     } finally {
@@ -1604,7 +1664,7 @@
       if (det) det.open = true;
       setMessage(
         messageEl,
-        `Streaming connection missing: ${missing.join(', ')}. Run setup or click Fetch URL & Flow ID, then Save connection.`,
+        `Streaming connection missing: ${missing.join(', ')}. Run setup or click Fetch URL & Flow ID from AEP.`,
         'error'
       );
       return null;
@@ -2214,6 +2274,7 @@
     // firestore-reload cycles within a single sandbox, not to suppress
     // discovery across sandboxes.
     _autoDiscoverAttempted.clear();
+    clearProfileEnabledCache();
     clearStreamingFields();
     // Immediately reflect the cleared fields in the wizard <details>
     // (re-expand it) — the async loadConnectionFromFirestore() below will
@@ -2241,6 +2302,14 @@
     loadBaseMobileForCurrentSandbox();
     loadCounterForCurrentContext();
     updateEmailPreview();
+  });
+
+  window.addEventListener('aep-profile-infra-status-updated', (ev) => {
+    const payload = ev && ev.detail;
+    const flags = payload && payload.industries ? payload.industries.generic : null;
+    if (!flags) return;
+    setProfileEnabledCache(profileEnabledFromStatusFlags(flags));
+    applyConfiguredCollapseState();
   });
 
   // When the user picks "Generic" in the industry dropdown, profile-generation.js

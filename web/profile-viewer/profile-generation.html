@@ -1061,7 +1061,7 @@
            profile-generation-generic.js (applyConfiguredCollapseState)
            collapses the <details> and swaps #genericProfileInfraHint to a
            green "Configured" message once all four streaming fields are
-           populated (after Save connection or after a per-sandbox Firestore
+           populated (after Fetch from AEP auto-save or after a per-sandbox Firestore
            load). showInfraMessage('…','error') re-opens it. -->
       <details class="consent-streaming-details" id="genericProfileInfraDetails" open aria-label="Generic Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -1078,7 +1078,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream Generic profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Generic Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#genStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Generic Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#genStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#genStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#genStreamDatasetId">Dataset ID</a> below.
@@ -1129,8 +1129,8 @@
               <input type="url" id="genStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="genLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="genFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="genFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="genLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="genSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
@@ -1532,7 +1532,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream Travel profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Travel Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#travelStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Travel Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#travelStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#travelStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#travelStreamDatasetId">Dataset ID</a> below.
@@ -1576,8 +1576,8 @@
               <input type="url" id="travelStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="travelLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="travelFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="travelFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="travelLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="travelSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
@@ -2592,7 +2592,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream FSI profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - FSI Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#fsiStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - FSI Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#fsiStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#fsiStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#fsiStreamDatasetId">Dataset ID</a> below.
@@ -2636,8 +2636,8 @@
               <input type="url" id="fsiStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="fsiLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="fsiFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="fsiFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="fsiLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="fsiSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
@@ -3139,7 +3139,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream Sports profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Sports Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#sportsStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Sports Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#sportsStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#sportsStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#sportsStreamDatasetId">Dataset ID</a> below.
@@ -3183,8 +3183,8 @@
               <input type="url" id="sportsStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="sportsLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="sportsFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="sportsFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="sportsLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="sportsSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
@@ -3629,7 +3629,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream Media profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Media Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#mediaStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Media Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#mediaStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#mediaStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#mediaStreamDatasetId">Dataset ID</a> below.
@@ -3673,8 +3673,8 @@
               <input type="url" id="mediaStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="mediaLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="mediaFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="mediaFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="mediaLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="mediaSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
@@ -4239,7 +4239,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream Retail profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Retail Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#retailStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Retail Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#retailStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#retailStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#retailStreamDatasetId">Dataset ID</a> below.
@@ -4283,8 +4283,8 @@
               <input type="url" id="retailStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="retailLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="retailFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="retailFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="retailLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="retailSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
@@ -4925,7 +4925,7 @@
           <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status">
             <p class="consent-agent-banner__lead">
               <strong>To stream Telecom profiles into this sandbox:</strong>
-              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Telecom Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#telecomStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+              run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Lab - Telecom Profile - Dataflow</code> and paste its dataflow ID into <a class="consent-agent-banner__field-link" href="#telecomStreamFlowId">Flow ID</a> (or click <strong>Fetch URL &amp; Flow ID from AEP</strong> — auto-saves to Firebase), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
             </p>
             <p class="consent-agent-banner__autofill">
               <strong>Auto-filled from the sandbox:</strong> <a class="consent-agent-banner__field-link" href="#telecomStreamSchemaId">Schema ID</a> and <a class="consent-agent-banner__field-link" href="#telecomStreamDatasetId">Dataset ID</a> below.
@@ -4969,8 +4969,8 @@
               <input type="url" id="telecomStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
             </div>
             <div class="button-row">
-              <button type="button" id="telecomLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-              <button type="button" id="telecomFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="telecomFetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="telecomLoadFromFirebaseBtn" class="btn btn-secondary">Load from Firebase</button>
               <button type="button" id="telecomSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
             </div>
           </div>
