@@ -1338,6 +1338,11 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   top: 0;
 }
 
+.profile-generation-page .gen-recent-list__table .gen-recent-list__industry {
+  white-space: nowrap;
+  color: var(--dash-text-secondary);
+}
+
 .profile-generation-page .gen-recent-list__table td:first-child {
   font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 0.8rem;

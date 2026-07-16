@@ -91,6 +91,8 @@
               generatedAt: entry.ts ? new Date(entry.ts).toISOString() : new Date().toISOString(),
               ts: entry.ts || Date.now(),
               snapshot: entry.snapshot,
+              industry: entry.industryKey || entry.industry || null,
+              industryDisplayName: entry.industryDisplayName || null,
               source: 'portal',
               sandbox: sb,
             });
@@ -111,6 +113,11 @@
       snapshot: item.snapshot || null,
       ecid: item.ecid || null,
       industry: item.industry || null,
+      industryKey: item.industry || null,
+      industryDisplayName: item.industryDisplayName
+        || (global.AepProfileGenShared && item.industry
+          ? global.AepProfileGenShared.industryDisplayNameForKey(item.industry)
+          : null),
       summaryLabel: item.summaryLabel || '',
       source: item.source || 'portal',
     };
@@ -267,11 +274,16 @@
     if (!email || !sb) return Promise.resolve({ ok: false });
 
     if (Shared && opts && opts.writeLocal !== false) {
+      var industryKey = opts.industry || opts.industryKey || null;
+      var industryDisplayName = opts.industryDisplayName
+        || (industryKey ? Shared.industryDisplayNameForKey(industryKey) : null);
       Shared.pushRecent(sb, (opts && opts.baseEmail) || '', {
         scaledEmail: email,
         n: opts.n,
         ts: opts.ts || Date.now(),
         snapshot: opts.snapshot,
+        industryKey: industryKey,
+        industryDisplayName: industryDisplayName || null,
       });
     }
 

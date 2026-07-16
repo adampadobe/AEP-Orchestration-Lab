@@ -2761,6 +2761,8 @@
       n: Number.isFinite(n) ? n : null,
       ts: Date.now(),
       snapshot: snap,
+      industryKey: 'travel',
+      industryDisplayName: 'Travel',
     });
     if (window.AepProfileGenRecentSync && typeof window.AepProfileGenRecentSync.appendEntry === 'function') {
       const tail = summariseSnapshot(snap);
@@ -2774,6 +2776,7 @@
         ts: Date.now(),
         snapshot: snap,
         industry: 'travel',
+        industryDisplayName: 'Travel',
         summaryLabel,
         ecid: extra && extra.ecid,
         source: 'portal',
@@ -2854,7 +2857,9 @@
         if (!tail && window.AepProfileGenRecentSync) {
           tail = window.AepProfileGenRecentSync.summariseEntry(entry);
         }
-        opt.textContent = tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail;
+        const industryLabel = Shared.formatRecentIndustryLabel(entry);
+        const industryPrefix = industryLabel !== '—' ? `[${industryLabel}] ` : '';
+        opt.textContent = industryPrefix + (tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail);
         recentSelectEl.appendChild(opt);
       });
       if (list.some((e) => e.scaledEmail === prev)) recentSelectEl.value = prev;
@@ -2868,6 +2873,9 @@
         const tdTs = document.createElement('td');
         tdTs.textContent = formatRelative(entry.ts);
         tdTs.title = new Date(entry.ts).toISOString();
+        const tdIndustry = document.createElement('td');
+        tdIndustry.className = 'gen-recent-list__industry';
+        tdIndustry.textContent = Shared.formatRecentIndustryLabel(entry);
         const tdSummary = document.createElement('td');
         let rowSummary = summariseSnapshot(entry.snapshot);
         if (!rowSummary && window.AepProfileGenRecentSync) {
@@ -2881,7 +2889,7 @@
         btn.textContent = 'Load';
         btn.addEventListener('click', () => loadRecentSnapshot(entry));
         tdAction.appendChild(btn);
-        tr.append(tdEmail, tdTs, tdSummary, tdAction);
+        tr.append(tdEmail, tdTs, tdIndustry, tdSummary, tdAction);
         recentListBodyEl.appendChild(tr);
       });
     }

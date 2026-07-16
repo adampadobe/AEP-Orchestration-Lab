@@ -248,9 +248,42 @@
     safeSet(recentKey(sandbox, baseEmail, date), JSON.stringify(list));
   }
 
+  /** Human-readable labels for recently-generated industry keys. */
+  const INDUSTRY_DISPLAY_NAMES = {
+    generic: 'Generic',
+    travel: 'Travel',
+    fsi: 'FSI',
+    telecom: 'Telecom',
+    retail: 'Retail',
+    media: 'Media',
+    sports: 'Sports',
+  };
+
+  function industryDisplayNameForKey(key) {
+    const k = String(key || '').trim().toLowerCase();
+    if (!k) return '';
+    if (INDUSTRY_DISPLAY_NAMES[k]) return INDUSTRY_DISPLAY_NAMES[k];
+    return k.charAt(0).toUpperCase() + k.slice(1);
+  }
+
+  /**
+   * Resolve the industry label for a recent-list row (local or Firestore-synced).
+   * Older entries without industry metadata return "—".
+   */
+  function formatRecentIndustryLabel(entry) {
+    if (!entry || typeof entry !== 'object') return '—';
+    if (entry.industryDisplayName) return String(entry.industryDisplayName);
+    const key = entry.industryKey || entry.industry;
+    if (key) {
+      const label = industryDisplayNameForKey(key);
+      return label || '—';
+    }
+    return '—';
+  }
+
   /**
    * Push a new entry to the front of the recent list (deduping by `scaledEmail`).
-   * Caller passes a fully-formed entry like `{ scaledEmail, n, ts, snapshot }`.
+   * Caller passes a fully-formed entry like `{ scaledEmail, n, ts, snapshot, industryKey }`.
    */
   function pushRecent(sandbox, baseEmail, entry, date) {
     if (!entry || !entry.scaledEmail) return;
@@ -354,6 +387,9 @@
     incrementCounter,
     persistLastStreamed,
     readLastStreamed,
+    INDUSTRY_DISPLAY_NAMES,
+    industryDisplayNameForKey,
+    formatRecentIndustryLabel,
     readRecent,
     writeRecent,
     pushRecent,
