@@ -1116,6 +1116,10 @@
   }
 
   function resolveGenderOptionValue(selectEl, canonicalLower) {
+    const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+    if (helpers && typeof helpers.resolveGenderOptionValue === 'function') {
+      return helpers.resolveGenderOptionValue(selectEl, canonicalLower);
+    }
     if (!selectEl || !selectEl.options) return '';
     const want = String(canonicalLower || '').toLowerCase();
     for (let i = 0; i < selectEl.options.length; i++) {
@@ -1123,6 +1127,28 @@
       if (v !== '' && String(v).toLowerCase() === want) return v;
     }
     return '';
+  }
+
+  function applyBinaryGenderForGenerate(selectEl, generateIndex) {
+    const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+    if (helpers && typeof helpers.applyBinaryGenderForGenerate === 'function') {
+      return helpers.applyBinaryGenderForGenerate(selectEl, generateIndex);
+    }
+    const mfCanon = ['male', 'female'];
+    const available = [];
+    for (const c of mfCanon) {
+      const optVal = resolveGenderOptionValue(selectEl, c);
+      if (optVal) available.push({ canon: c, optVal });
+    }
+    let genderCanon = 'female';
+    let genderValue = '';
+    if (available.length) {
+      const chosen = randomPick(available);
+      genderCanon = chosen.canon;
+      genderValue = chosen.optVal;
+    }
+    if (selectEl && genderValue) selectEl.value = genderValue;
+    return genderCanon;
   }
 
   function randomizeSliderControl(el) {
@@ -1652,21 +1678,8 @@
     setIfEl(recentStayIncidentalsEl, String(incidentalsRand));
   }
 
-  function applyRandomCustomerPersonaForGenerate() {
-    const mfCanon = ['male', 'female'];
-    const available = [];
-    for (const c of mfCanon) {
-      const optVal = resolveGenderOptionValue(genderEl, c);
-      if (optVal) available.push({ canon: c, optVal });
-    }
-    let genderCanon = 'female';
-    let genderValue = '';
-    if (available.length) {
-      const chosen = randomPick(available);
-      genderCanon = chosen.canon;
-      genderValue = chosen.optVal;
-    }
-    if (genderEl && genderValue) genderEl.value = genderValue;
+  function applyRandomCustomerPersonaForGenerate(generateIndex) {
+    const genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
 
     if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
     if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
@@ -2680,7 +2693,7 @@
         }
         lastEmail = email;
         try {
-          applyRandomCustomerPersonaForGenerate();
+          applyRandomCustomerPersonaForGenerate(n);
           const updates = buildUpdatesFromForm(email);
           if (!updates.length) {
             lastError = 'Could not build profile fields after randomization — check form configuration.';

@@ -162,6 +162,41 @@
     return '';
   }
 
+  /** Auto-generate paths only — never non_specific / not_specified. */
+  const BINARY_GENDER_CANON = ['male', 'female'];
+
+  /**
+   * Pick male or female for Generate-N. When generateIndex (email counter n) is
+   * provided, alternates by parity (odd → male, even → female); otherwise 50/50.
+   * @returns {{ canon: string, optVal: string }}
+   */
+  function pickBinaryGenderForGenerate(selectEl, generateIndex) {
+    const available = [];
+    for (const c of BINARY_GENDER_CANON) {
+      const optVal = resolveGenderOptionValue(selectEl, c);
+      if (optVal) available.push({ canon: c, optVal });
+    }
+    if (!available.length) {
+      return { canon: 'female', optVal: '' };
+    }
+    let wantCanon;
+    if (Number.isFinite(generateIndex) && generateIndex > 0) {
+      wantCanon = Math.floor(generateIndex) % 2 === 1 ? 'male' : 'female';
+    } else {
+      wantCanon = randomPick(BINARY_GENDER_CANON);
+    }
+    const exact = available.find((entry) => entry.canon === wantCanon);
+    if (exact) return exact;
+    return available[0];
+  }
+
+  /** Sets the gender `<select>` and returns the canonical gender for first-name pick. */
+  function applyBinaryGenderForGenerate(selectEl, generateIndex) {
+    const chosen = pickBinaryGenderForGenerate(selectEl, generateIndex);
+    if (selectEl && chosen.optVal) selectEl.value = chosen.optVal;
+    return chosen.canon;
+  }
+
   function randomizeSliderControl(el) {
     if (!el) return;
     const min = parseFloat(el.min || '0');
@@ -1434,21 +1469,8 @@
     function syncPropensitySlider() { renderPropensity(); applySliderTint(propensityEl, false); }
     function syncAovSlider() { renderAov(); applySliderTint(aovEl, false); }
 
-    function applyRandomCustomerPersonaForGenerate() {
-      const mfCanon = ['male', 'female'];
-      const available = [];
-      for (const c of mfCanon) {
-        const optVal = resolveGenderOptionValue(genderEl, c);
-        if (optVal) available.push({ canon: c, optVal });
-      }
-      let genderCanon = 'female';
-      let genderValue = '';
-      if (available.length) {
-        const chosen = randomPick(available);
-        genderCanon = chosen.canon;
-        genderValue = chosen.optVal;
-      }
-      if (genderEl && genderValue) genderEl.value = genderValue;
+    function applyRandomCustomerPersonaForGenerate(generateIndex) {
+      const genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
 
       if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
       if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
@@ -2034,7 +2056,7 @@
           }
           lastEmail = email;
           try {
-            applyRandomCustomerPersonaForGenerate();
+            applyRandomCustomerPersonaForGenerate(n);
             const updates = buildUpdatesFromForm(email);
             if (!updates.length) {
               lastError = 'Could not build profile fields after randomization — check form configuration.';
@@ -2510,6 +2532,9 @@
       safeSelectValues,
       randomBetween,
       randomPick,
+      resolveGenderOptionValue,
+      pickBinaryGenderForGenerate,
+      applyBinaryGenderForGenerate,
     },
   };
 })();
