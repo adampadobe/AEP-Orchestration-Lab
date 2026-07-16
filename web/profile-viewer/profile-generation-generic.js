@@ -320,6 +320,41 @@
     };
   }
 
+  const streamSaveUi = Shared.createStreamConnectionSaveUi({
+    saveBtn: saveStreamBtn,
+    getPayload: getStreamingPayload,
+    fieldEls: [streamSchemaIdEl, streamDatasetIdEl, streamXdmKeyEl, streamFlowIdEl, streamFlowNameEl, streamUrlEl],
+  });
+
+  let _firestoreHasStreamingRecord = false;
+  function syncLoadButtonVisibility() {
+    if (loadFromFirebaseBtn) loadFromFirebaseBtn.hidden = !_firestoreHasStreamingRecord;
+  }
+  function setFirestoreHasRecord(streamingOrFlag) {
+    if (typeof streamingOrFlag === 'boolean') {
+      _firestoreHasStreamingRecord = streamingOrFlag;
+    } else {
+      _firestoreHasStreamingRecord = Shared.hasMeaningfulStreamingRecord(streamingOrFlag);
+    }
+    syncLoadButtonVisibility();
+  }
+
+  async function refreshConnectionButtonState() {
+    try {
+      const res = await fetch('/api/generic-profile-connection' + querySuffix());
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        setFirestoreHasRecord(false);
+        return;
+      }
+      const rec = data.record;
+      const streaming = rec && rec.streaming && typeof rec.streaming === 'object' ? rec.streaming : null;
+      setFirestoreHasRecord(streaming);
+    } catch (_) {
+      setFirestoreHasRecord(false);
+    }
+  }
+
   // ---------- Email scaler (shared across industries via window.AepProfileGenShared) ----------
   const scaleEmail = Shared.scaleEmail;
 
@@ -415,9 +450,11 @@
       }
       const rec = data.record;
       const recordedStreaming = rec && rec.streaming && typeof rec.streaming === 'object' ? rec.streaming : null;
+      setFirestoreHasRecord(recordedStreaming);
       const hasFirestoreSchemaAndDataset = !!(recordedStreaming && recordedStreaming.schemaId && recordedStreaming.datasetId);
       if (recordedStreaming) {
         fillStreamingFields(recordedStreaming);
+        streamSaveUi.markSynced(recordedStreaming);
         if (!silent) showInfraMessage('Loaded saved Generic Profile connection for this sandbox.', 'success');
         applyConfiguredCollapseState();
         // Even when Firestore had a record, the architect may have saved
@@ -428,6 +465,7 @@
         }
         return hasFirestoreSchemaAndDataset;
       }
+      setFirestoreHasRecord(false);
       if (!silent) {
         showInfraMessage('No saved connection for this sandbox yet — click "Set up schema, field groups & dataset", then create the HTTP API source and click Fetch URL & Flow ID from AEP.', '');
       }
@@ -466,6 +504,8 @@
         showInfraMessage(data.error || 'Save failed.', 'error');
         return false;
       }
+      setFirestoreHasRecord(getStreamingPayload());
+      streamSaveUi.markSynced();
       applyConfiguredCollapseState();
       return true;
     } catch (e) {
@@ -2112,6 +2152,8 @@
 
   if (loadFromFirebaseBtn) loadFromFirebaseBtn.addEventListener('click', () => loadConnectionFromFirestore(false));
   if (fetchFlowFromAepBtn) fetchFlowFromAepBtn.addEventListener('click', fetchFlowFromAep);
+  if (loadFromFirebaseBtn) loadFromFirebaseBtn.hidden = true;
+  streamSaveUi.wire();
   if (saveStreamBtn) {
     saveStreamBtn.addEventListener('click', async () => {
       saveStreamBtn.disabled = true;
@@ -2275,6 +2317,8 @@
     // discovery across sandboxes.
     _autoDiscoverAttempted.clear();
     clearProfileEnabledCache();
+    setFirestoreHasRecord(false);
+    streamSaveUi.resetSyncState();
     clearStreamingFields();
     // Immediately reflect the cleared fields in the wizard <details>
     // (re-expand it) — the async loadConnectionFromFirestore() below will
@@ -2325,6 +2369,7 @@
     // user picks Generic before that 750ms delay fires we still want a
     // sensible initial state based on whatever fields are populated now).
     applyConfiguredCollapseState();
+    refreshConnectionButtonState();
     // Panel just became visible — kick the sandbox-driven Schema $id /
     // Dataset ID auto-discover. No-op when fields are already populated
     // (Firestore-loaded values, hand-typed values, or a previous discover

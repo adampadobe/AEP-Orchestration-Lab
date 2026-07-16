@@ -259,6 +259,81 @@
     writeRecent(sandbox, baseEmail, [entry, ...filtered], date);
   }
 
+  /**
+   * Show "Save connection (Firebase)" only after the architect manually edits
+   * a streaming field and the form no longer matches the last Firebase sync.
+   * Fetch-from-AEP auto-save and Load from Firebase call markSynced(); wizard /
+   * auto-discover fills do not (userEdited stays false).
+   */
+  function createStreamConnectionSaveUi(opts) {
+    const saveBtn = opts && opts.saveBtn;
+    const getPayload = opts && opts.getPayload;
+    const fieldEls = (opts && opts.fieldEls) || [];
+
+    let savedSnapshot = null;
+    let userEdited = false;
+
+    function payloadKey(payload) {
+      const p = payload || (typeof getPayload === 'function' ? getPayload() : {});
+      return JSON.stringify({
+        url: String(p.url || '').trim(),
+        flowId: String(p.flowId || '').trim(),
+        flowName: String(p.flowName || '').trim(),
+        datasetId: String(p.datasetId || '').trim(),
+        schemaId: String(p.schemaId || '').trim(),
+        xdmKey: String(p.xdmKey || '_demoemea').trim(),
+      });
+    }
+
+    function syncSaveButtonVisibility() {
+      if (!saveBtn) return;
+      const show = userEdited && payloadKey() !== (savedSnapshot == null ? '' : savedSnapshot);
+      saveBtn.hidden = !show;
+    }
+
+    function markSynced(payload) {
+      savedSnapshot = payloadKey(payload);
+      userEdited = false;
+      syncSaveButtonVisibility();
+    }
+
+    function resetSyncState() {
+      savedSnapshot = null;
+      userEdited = false;
+      syncSaveButtonVisibility();
+    }
+
+    function wire() {
+      if (saveBtn) saveBtn.hidden = true;
+      fieldEls.filter(Boolean).forEach((el) => {
+        el.addEventListener('input', () => {
+          userEdited = true;
+          syncSaveButtonVisibility();
+        });
+        el.addEventListener('change', () => {
+          userEdited = true;
+          syncSaveButtonVisibility();
+        });
+      });
+    }
+
+    return { wire, markSynced, resetSyncState, syncSaveButtonVisibility };
+  }
+
+  /**
+   * True when a Firestore `streaming` object is worth offering "Load from Firebase".
+   * Matches the minimum the connection loader treats as a saved per-sandbox record.
+   */
+  function hasMeaningfulStreamingRecord(streaming) {
+    if (!streaming || typeof streaming !== 'object') return false;
+    const schemaId = String(streaming.schemaId || '').trim();
+    const datasetId = String(streaming.datasetId || '').trim();
+    if (schemaId && datasetId) return true;
+    const flowId = String(streaming.flowId || '').trim();
+    const url = String(streaming.url || '').trim();
+    return !!(flowId && url);
+  }
+
   migrateLegacyGenericKeysOnce();
 
   window.AepProfileGenShared = {
@@ -287,5 +362,7 @@
     markTestProfilePreferenceKey,
     readMarkTestProfilePreference,
     writeMarkTestProfilePreference,
+    createStreamConnectionSaveUi,
+    hasMeaningfulStreamingRecord,
   };
 })();
