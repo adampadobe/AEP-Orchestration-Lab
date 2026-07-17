@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
 import { executeGeneratePlan, planDualStreamGenerate } from '../framework/dualStreamGenerate.mjs';
-import { buildPersonaAttributes, normalizeSegmentHint } from '../personaBuilder.mjs';
+import { buildPersonaAttributes, mergePersonaAttributes, normalizeSegmentHint } from '../personaBuilder.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
@@ -63,7 +63,7 @@ export function registerGenerateProfileTool(mcpServer) {
         randomize: z
           .boolean()
           .optional()
-          .describe('When true, build sample persona attributes server-side if attributes omitted'),
+          .describe('When true, build sample persona attributes server-side; partial attributes merge as overrides on the randomized base'),
         fill_sample_data: z
           .boolean()
           .optional()
@@ -196,14 +196,26 @@ export function registerGenerateProfileTool(mcpServer) {
       }
 
       const useRandomize = randomize ?? fill_sample_data ?? false;
+      const personaOpts = {
+        loyalty_member: loyalty_member === true,
+        last_order_details,
+      };
       let mergedAttributes = attributes;
-      if (useRandomize && (!attributes || Object.keys(attributes).length === 0)) {
-        mergedAttributes = buildPersonaAttributes(
-          norm.industry,
-          resolvedEmail,
-          typeof segmentNorm === 'string' ? segmentNorm : null,
-          { loyalty_member: loyalty_member === true, last_order_details },
-        );
+      if (useRandomize) {
+        const segmentForPersona = typeof segmentNorm === 'string' ? segmentNorm : null;
+        if (!attributes || Object.keys(attributes).length === 0) {
+          mergedAttributes = buildPersonaAttributes(
+            norm.industry,
+            resolvedEmail,
+            segmentForPersona,
+            personaOpts,
+          );
+        } else {
+          mergedAttributes = mergePersonaAttributes(
+            buildPersonaAttributes(norm.industry, resolvedEmail, segmentForPersona, personaOpts),
+            attributes,
+          );
+        }
       }
 
       if (mergedAttributes && typeof mergedAttributes === 'object' && Object.keys(mergedAttributes).length > 0) {
@@ -245,7 +257,8 @@ export function registerGenerateProfileTool(mcpServer) {
         email: resolvedEmail,
         emailDomain: String(resolvedEmail).split('@')[1] || null,
         segmentHint: typeof segmentNorm === 'string' ? segmentNorm : null,
-        randomized: useRandomize && (!attributes || !Object.keys(attributes).length),
+        randomized: useRandomize,
+        randomizedWithOverrides: useRandomize && !!(attributes && Object.keys(attributes).length),
         result: apiResult.ok ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });

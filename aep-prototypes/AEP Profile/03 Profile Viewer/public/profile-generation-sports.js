@@ -105,8 +105,13 @@
   const $ = (id) => document.getElementById(id);
   const trim = (el) => (el && typeof el.value === 'string') ? el.value.trim() : '';
   const getCheck = (id) => { const el = $(id); return el ? !!el.checked : false; };
-  const setCheck = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
+  let _guardRandomize = null;
+  const setCheck = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el) el.checked = !!v;
+  };
   const setSelect = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (!el || v == null) return;
     const val = String(v).trim();
@@ -366,43 +371,35 @@
         }
         return parts.join(' · ');
       },
-      randomizePersona({ randomPick: pick }) {
-        // Fill non-team scalar fields. We deliberately skip the team here
-        // so it can be sourced from the realistic TEAMS_BY_SPORT pool keyed
-        // off the (just-randomised) favourite sport — picking from the
-        // <select>'s own placeholder option set would always pick
-        // "— Pick a sport first —" or nothing.
+      randomizePersona({ randomPick: pick, shouldRandomize }) {
+        _guardRandomize = typeof shouldRandomize === 'function' ? shouldRandomize : null;
+        try {
         SCALAR_FIELDS.forEach((f) => {
           if (f.id === 'sportsFavouriteTeam') return;
+          if (_guardRandomize && !_guardRandomize(f.id)) return;
           const opts = selectValuesNonEmpty(f.id);
           if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
-        // Repopulate the team pool now the sport is known, then pick a
-        // realistic team value from TEAMS_BY_SPORT (or leave blank when
-        // the sport has no curated pool).
         repopulateTeamOptions();
         const sport = trim($('sportsFavouriteSport'));
         const teamPool = (sport && TEAMS_BY_SPORT[sport]) ? TEAMS_BY_SPORT[sport] : [];
-        if (teamPool.length) {
+        if (teamPool.length && (!_guardRandomize || _guardRandomize('sportsFavouriteTeam'))) {
           const teamSelect = $('sportsFavouriteTeam');
           const team = pick(teamPool);
           if (teamSelect && team) teamSelect.value = team;
         }
 
-        // Fan-flag pass via the shared randomizeFlagToggles helper so the
-        // weights sit in one declarative table that audit tooling can
-        // reason about (replaces the loose per-flag `Math.random() < N`
-        // calls we previously had inline).
         const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+        const flagDefs = [
+          { id: 'sportsSeasonTicket',  weight: 0.20 },
+          { id: 'sportsFantasyPlayer', weight: 0.30 },
+          { id: 'sportsBetsRegularly', weight: 0.20 },
+          { id: 'sportsStreamLive',    weight: 0.65 },
+          { id: 'sportsNewsletterSub', weight: 0.55 },
+          { id: 'sportsChildFan',      weight: 0.30 },
+        ].filter((f) => !_guardRandomize || _guardRandomize(f.id));
         if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
-          helpers.randomizeFlagToggles([
-            { id: 'sportsSeasonTicket',  weight: 0.20 },
-            { id: 'sportsFantasyPlayer', weight: 0.30 },
-            { id: 'sportsBetsRegularly', weight: 0.20 },
-            { id: 'sportsStreamLive',    weight: 0.65 },
-            { id: 'sportsNewsletterSub', weight: 0.55 },
-            { id: 'sportsChildFan',      weight: 0.30 },
-          ]);
+          helpers.randomizeFlagToggles(flagDefs);
         } else {
           setCheck('sportsSeasonTicket',  Math.random() < 0.20);
           setCheck('sportsFantasyPlayer', Math.random() < 0.30);
@@ -448,6 +445,9 @@
         // fantasy players almost always subscribe to club newsletters).
         if (getCheck('sportsFantasyPlayer') && weightedBool(0.70)) {
           setCheck('sportsNewsletterSub', true);
+        }
+        } finally {
+          _guardRandomize = null;
         }
       },
     },

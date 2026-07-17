@@ -41,6 +41,34 @@ const INDUSTRIES_WITH_LOYALTY_TOGGLE = new Set(LAB_INDUSTRY_KEYS);
  */
 
 /**
+ * Deep-merge persona attributes: randomized base with caller overrides winning.
+ * @param {Record<string, unknown>} base
+ * @param {Record<string, unknown>} overrides
+ * @returns {Record<string, unknown>}
+ */
+export function mergePersonaAttributes(base, overrides) {
+  if (!base || typeof base !== 'object') return overrides && typeof overrides === 'object' ? { ...overrides } : {};
+  if (!overrides || typeof overrides !== 'object') return { ...base };
+  /** @type {Record<string, unknown>} */
+  const out = { ...base };
+  for (const [key, val] of Object.entries(overrides)) {
+    if (
+      val &&
+      typeof val === 'object' &&
+      !Array.isArray(val) &&
+      out[key] &&
+      typeof out[key] === 'object' &&
+      !Array.isArray(out[key])
+    ) {
+      out[key] = mergePersonaAttributes(/** @type {Record<string, unknown>} */ (out[key]), /** @type {Record<string, unknown>} */ (val));
+    } else {
+      out[key] = val;
+    }
+  }
+  return out;
+}
+
+/**
  * Build randomized persona attributes for an industry + email.
  * @param {string} industry - canonical industry key
  * @param {string} email

@@ -149,6 +149,40 @@
     return;
   }
 
+  /** @type {ReturnType<typeof Shared.createPersonaFieldGuard>|null} */
+  let personaGuard = null;
+
+  function setupPersonaFieldGuard() {
+    if (!Shared.createPersonaFieldGuard) return null;
+    const guard = Shared.createPersonaFieldGuard({
+      birthDateFieldId: 'genBirthDate',
+      ageFieldId: 'genAge',
+    });
+    guard.registerMany([
+      'genFirstName', 'genLastName', 'genMobilePhone', 'genBirthDate', 'genAge',
+      'genGender', 'genChurn', 'genPropensity', 'genNps', 'genAov',
+      'genPreferredChannel', 'genLanguage', 'genLoyaltyEnabled', 'genLoyaltyID',
+      'genLoyaltyTier', 'genLoyaltyPoints',
+    ]);
+    guard.registerFromContainer('genericProfilePanel', {
+      excludeIds: (Shared.PERSONA_FIELD_EXCLUDE_IDS || []).concat([
+        'genCheckInfraBtn', 'genStepRunAllBtn', 'genEnableProfileBtn',
+        'genLoadFromFirebaseBtn', 'genFetchFlowFromAepBtn', 'genSaveStreamBtn',
+        'genLookupBtn', 'genResetCounterBtn', 'genUpdateProfileBtn', 'genGenerateBtn',
+        'genRecentLoadBtn', 'genLoyaltyRandomBtn', 'genRecentSelect',
+      ]),
+    });
+    guard.wireListeners();
+    guard.captureBaseline();
+    return guard;
+  }
+
+  function capturePersonaBaseline() {
+    if (personaGuard) personaGuard.captureBaseline();
+  }
+
+  personaGuard = setupPersonaFieldGuard();
+
   // ---------- Helpers ----------
   function setMessage(el, text, type) {
     if (!el) return;
@@ -1179,55 +1213,78 @@
    * Called before each profile in Generate-N so every scaled email gets distinct demo data.
    */
   function applyRandomCustomerPersonaForGenerate(generateIndex) {
-    const genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+    const g = personaGuard;
+    const sr = (fieldId) => !g || g.shouldRandomize(String(fieldId || ''));
+    const pg = (fn) => (g ? g.runProgrammatic(fn) : fn());
 
-    if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
-    if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
-
-    // Always overwrite birth date + age on Generate so every generic
-    // profile carries person.birthDate (root) + _<tenant>.individualCharacteristics.core.age
-    // (integer). Force-overwrite even if the operator typed something —
-    // matches the "Generate always populates everything" pattern.
-    if (birthDateEl) {
-      const iso = randomBirthDateIso();
-      birthDateEl.value = iso;
-      const a = computeAgeFromBirthDate(iso);
-      if (ageEl && a != null) ageEl.value = String(a);
-    } else if (ageEl) {
-      ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX));
+    let genderCanon;
+    if (!sr('genGender')) {
+      genderCanon = trimVal(genderEl);
+      const gLower = String(genderCanon || '').toLowerCase();
+      if (gLower !== 'male' && gLower !== 'female') {
+        genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+      }
+    } else {
+      pg(() => {
+        genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+      });
+      genderCanon = genderCanon || applyBinaryGenderForGenerate(genderEl, generateIndex);
     }
 
-    randomizeSliderControl(churnEl);
-    randomizeSliderControl(propensityEl);
-    randomizeSliderControl(aovEl);
+    if (sr('genFirstName') && firstNameEl) {
+      pg(() => { firstNameEl.value = randomFirstNameForGender(genderCanon); });
+    }
+    if (sr('genLastName') && lastNameEl) {
+      pg(() => { lastNameEl.value = randomPick(RANDOM_LAST_NAMES); });
+    }
+
+    const randomizeBirthAge = !g || g.shouldRandomizeBirthDateAge();
+    if (randomizeBirthAge && birthDateEl) {
+      pg(() => {
+        const iso = randomBirthDateIso();
+        birthDateEl.value = iso;
+        const a = computeAgeFromBirthDate(iso);
+        if (ageEl && a != null) ageEl.value = String(a);
+      });
+    } else if (randomizeBirthAge && ageEl) {
+      pg(() => { ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX)); });
+    }
+
+    if (sr('genChurn')) pg(() => randomizeSliderControl(churnEl));
+    if (sr('genPropensity')) pg(() => randomizeSliderControl(propensityEl));
+    if (sr('genAov')) pg(() => randomizeSliderControl(aovEl));
 
     const npsChoices = selectNonEmptyValues(npsEl);
-    if (npsEl && npsChoices.length) npsEl.value = randomPick(npsChoices);
-
-    const prefChoices = selectPreferredChannelValuesForRandom(preferredChannelEl);
-    if (preferredChannelEl && prefChoices.length) preferredChannelEl.value = randomPick(prefChoices);
-
-    const langChoices = selectNonEmptyValues(languageEl);
-    if (languageEl && langChoices.length) languageEl.value = randomPick(langChoices);
-
-    if (loyaltyEnabledEl && loyaltyEnabledEl.checked) {
-      const tierChoices = selectNonEmptyValues(loyaltyTierEl);
-      if (loyaltyTierEl && tierChoices.length) loyaltyTierEl.value = randomPick(tierChoices);
-      const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
-      if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
-      if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
+    if (sr('genNps') && npsEl && npsChoices.length) {
+      pg(() => { npsEl.value = randomPick(npsChoices); });
     }
 
-    // AOV ↔ loyalty tier bias (audit §1.7): higher tiers spend more on
-    // average. Replaces the prior uniform `randomizeSliderControl(aovEl)`
-    // value with a tier-anchored bell-distributed integer so cohorts
-    // generated for diamond/platinum customers don't accidentally read
-    // as $5 spenders. Always re-derives from the freshly-picked tier (we
-    // ran the loyalty randomiser above) so the AOV always tracks the
-    // tier the operator sees in the UI. Falls back to the runtime helper
-    // `randomBellBetween` when available, else uses a quick uniform
-    // approximation in the same range so non-runtime callers (legacy
-    // generic page) still get a tier-shaped distribution.
+    const prefChoices = selectPreferredChannelValuesForRandom(preferredChannelEl);
+    if (sr('genPreferredChannel') && preferredChannelEl && prefChoices.length) {
+      pg(() => { preferredChannelEl.value = randomPick(prefChoices); });
+    }
+
+    const langChoices = selectNonEmptyValues(languageEl);
+    if (sr('genLanguage') && languageEl && langChoices.length) {
+      pg(() => { languageEl.value = randomPick(langChoices); });
+    }
+
+    const loyaltyOn = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    const honorLoyaltyDisabled = !sr('genLoyaltyEnabled') && !loyaltyOn;
+    if (!honorLoyaltyDisabled && loyaltyOn) {
+      const tierChoices = selectNonEmptyValues(loyaltyTierEl);
+      if (sr('genLoyaltyTier') && loyaltyTierEl && tierChoices.length) {
+        pg(() => { loyaltyTierEl.value = randomPick(tierChoices); });
+      }
+      const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
+      if (sr('genLoyaltyPoints') && loyaltyPointsEl) {
+        pg(() => { loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier)); });
+      }
+      if (sr('genLoyaltyID') && loyaltyIDEl) {
+        pg(() => { loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`; });
+      }
+    }
+
     const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
     const bell = (helpers && typeof helpers.randomBellBetween === 'function')
       ? helpers.randomBellBetween
@@ -1249,21 +1306,18 @@
         aovBiased = bell(500, 2000);
         break;
       default:
-        // No loyalty tier picked — leave AOV at the uniform value the
-        // shared randomiser already set so non-loyalty cohorts still
-        // exhibit variance.
         break;
     }
-    if (aovEl && aovBiased != null) {
-      const aovInt = Math.round(aovBiased);
-      // Clamp to the AOV slider's declared range (0..2000 in the HTML;
-      // bell can occasionally land just outside on Diamond personas).
-      const aovMin = Number(aovEl.min);
-      const aovMax = Number(aovEl.max);
-      const lo = Number.isFinite(aovMin) ? aovMin : 0;
-      const hi = Number.isFinite(aovMax) ? aovMax : 2000;
-      aovEl.value = String(Math.max(lo, Math.min(hi, aovInt)));
-      try { syncAovSlider(); } catch (_) {}
+    if (sr('genAov') && aovEl && aovBiased != null) {
+      pg(() => {
+        const aovInt = Math.round(aovBiased);
+        const aovMin = Number(aovEl.min);
+        const aovMax = Number(aovEl.max);
+        const lo = Number.isFinite(aovMin) ? aovMin : 0;
+        const hi = Number.isFinite(aovMax) ? aovMax : 2000;
+        aovEl.value = String(Math.max(lo, Math.min(hi, aovInt)));
+        try { syncAovSlider(); } catch (_) {}
+      });
     }
   }
 
@@ -1650,55 +1704,57 @@
       }
     }
 
-    if (firstName && firstNameEl) firstNameEl.value = firstName;
-    if (lastName && lastNameEl) lastNameEl.value = lastName;
-    if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
-    // Birth date / age. Prefer birthDate (the source of truth) and re-derive
-    // age from it; fall back to whatever age leaf the lookup returned. Leave
-    // birthDate blank when only age is known — we can't reliably back-derive
-    // a specific year/month/day from age alone.
-    if (birthDate && birthDateEl) {
-      const iso = String(birthDate).slice(0, 10);
-      if (isValidIsoBirthDate(iso)) {
-        birthDateEl.value = iso;
-        if (ageEl) {
-          const a = computeAgeFromBirthDate(iso);
-          if (a != null) ageEl.value = String(a);
+    const fillForm = () => {
+      if (firstName && firstNameEl) firstNameEl.value = firstName;
+      if (lastName && lastNameEl) lastNameEl.value = lastName;
+      if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
+      if (birthDate && birthDateEl) {
+        const iso = String(birthDate).slice(0, 10);
+        if (isValidIsoBirthDate(iso)) {
+          birthDateEl.value = iso;
+          if (ageEl) {
+            const a = computeAgeFromBirthDate(iso);
+            if (a != null) ageEl.value = String(a);
+          }
         }
+      } else if (ageHydrated && ageEl) {
+        const n = parseInt(String(ageHydrated), 10);
+        if (Number.isFinite(n)) ageEl.value = String(n);
       }
-    } else if (ageHydrated && ageEl) {
-      const n = parseInt(String(ageHydrated), 10);
-      if (Number.isFinite(n)) ageEl.value = String(n);
-    }
-    if (churn && churnEl) { churnEl.value = churn; syncChurnSlider(); }
-    if (propensity && propensityEl) { propensityEl.value = propensity; syncPropensitySlider(); }
-    if (nps && npsEl) npsEl.value = nps;
-    if (aov && aovEl) { aovEl.value = aov; syncAovSlider(); }
-    setSelectValueLoose(languageEl, lang);
-    setSelectValueLoose(genderEl, gender);
-    setSelectValueLoose(preferredChannelEl, preferredChannel);
+      if (churn && churnEl) { churnEl.value = churn; syncChurnSlider(); }
+      if (propensity && propensityEl) { propensityEl.value = propensity; syncPropensitySlider(); }
+      if (nps && npsEl) npsEl.value = nps;
+      if (aov && aovEl) { aovEl.value = aov; syncAovSlider(); }
+      setSelectValueLoose(languageEl, lang);
+      setSelectValueLoose(genderEl, gender);
+      setSelectValueLoose(preferredChannelEl, preferredChannel);
 
-    const hasLoyalty = !!(loyaltyId || tier || points);
-    if (hasLoyalty && loyaltyEnabledEl) {
-      loyaltyEnabledEl.checked = true;
-      if (typeof applyLoyaltyToggleVisibility === 'function') applyLoyaltyToggleVisibility();
-    }
-    if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
-    setSelectValueLoose(loyaltyTierEl, tier);
-    if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+      const hasLoyalty = !!(loyaltyId || tier || points);
+      if (hasLoyalty && loyaltyEnabledEl) {
+        loyaltyEnabledEl.checked = true;
+        if (typeof applyLoyaltyToggleVisibility === 'function') applyLoyaltyToggleVisibility();
+      }
+      if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
+      setSelectValueLoose(loyaltyTierEl, tier);
+      if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
 
-    if (
-      baseEmailEl &&
-      !trim(identificationEmailLookup) &&
-      trim(personalEmailAddressLookup)
-    ) {
-      const seed = trim(personalEmailAddressLookup);
-      baseEmailEl.value = seed;
-      try {
-        Shared.writeBaseEmail(getSandboxName(), seed);
-      } catch (_) { /* ignore */ }
-      loadCounterForCurrentContext();
-    }
+      if (
+        baseEmailEl &&
+        !trim(identificationEmailLookup) &&
+        trim(personalEmailAddressLookup)
+      ) {
+        const seed = trim(personalEmailAddressLookup);
+        baseEmailEl.value = seed;
+        try {
+          Shared.writeBaseEmail(getSandboxName(), seed);
+        } catch (_) { /* ignore */ }
+        loadCounterForCurrentContext();
+      }
+    };
+
+    if (personaGuard) personaGuard.runProgrammatic(fillForm);
+    else fillForm();
+    capturePersonaBaseline();
   }
 
   /**
@@ -2115,34 +2171,34 @@
   function loadRecentSnapshot(entry) {
     if (!entry || !entry.snapshot) return;
     const s = entry.snapshot;
-    // Identity
-    if (firstNameEl) firstNameEl.value = s.firstName || '';
-    if (lastNameEl) lastNameEl.value = s.lastName || '';
-    if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
-    if (birthDateEl) birthDateEl.value = s.birthDate || '';
-    if (ageEl) ageEl.value = s.age || '';
-    // Analytics
-    if (genderEl) genderEl.value = s.gender || '';
-    if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
-    if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
-    if (npsEl) npsEl.value = s.nps || '';
-    if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); syncAovSlider(); }
-    if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
-    if (languageEl) languageEl.value = s.language || (s.loyalty && s.loyalty.language) || '';
-    // Loyalty
-    if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
-    if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
-    if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
-    if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
-    applyLoyaltyToggleVisibility();
-    // Restore counter so subsequent Update/Generate target the same scaled
-    // email. The base email is whatever produced this entry — keep it.
-    if (counterEl && Number.isFinite(entry.n)) {
-      counterEl.value = String(entry.n);
-      persistCounter(entry.n);
-      updateEmailPreview();
-    }
-    persistLastStreamed(entry.scaledEmail, entry.n);
+    const fillForm = () => {
+      if (firstNameEl) firstNameEl.value = s.firstName || '';
+      if (lastNameEl) lastNameEl.value = s.lastName || '';
+      if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
+      if (birthDateEl) birthDateEl.value = s.birthDate || '';
+      if (ageEl) ageEl.value = s.age || '';
+      if (genderEl) genderEl.value = s.gender || '';
+      if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
+      if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
+      if (npsEl) npsEl.value = s.nps || '';
+      if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); syncAovSlider(); }
+      if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
+      if (languageEl) languageEl.value = s.language || (s.loyalty && s.loyalty.language) || '';
+      if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
+      if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
+      if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
+      if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
+      applyLoyaltyToggleVisibility();
+      if (counterEl && Number.isFinite(entry.n)) {
+        counterEl.value = String(entry.n);
+        persistCounter(entry.n);
+        updateEmailPreview();
+      }
+      persistLastStreamed(entry.scaledEmail, entry.n);
+    };
+    if (personaGuard) personaGuard.runProgrammatic(fillForm);
+    else fillForm();
+    capturePersonaBaseline();
     setMessage(messageEl, `Loaded ${entry.scaledEmail}. Edit fields then click Update profile, or Generate to create a new profile after this one.`, 'success');
   }
 
@@ -2374,17 +2430,9 @@
     loadBaseMobileForCurrentSandbox();
     renderRecent();
     applyLoyaltyToggleVisibility();
-    // Reflect the current configured state in the wizard <details> on the
-    // first reveal (the deferred loadConnectionFromFirestore at the bottom
-    // of this module already calls applyConfiguredCollapseState, but if the
-    // user picks Generic before that 750ms delay fires we still want a
-    // sensible initial state based on whatever fields are populated now).
     applyConfiguredCollapseState();
     refreshConnectionButtonState();
-    // Panel just became visible — kick the sandbox-driven Schema $id /
-    // Dataset ID auto-discover. No-op when fields are already populated
-    // (Firestore-loaded values, hand-typed values, or a previous discover
-    // attempt) thanks to the per-sandbox cache + emptiness guards.
+    capturePersonaBaseline();
     autoDiscoverInfraFromSandbox();
   });
 

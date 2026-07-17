@@ -3,7 +3,7 @@
  */
 
 import { executeGeneratePlan, planDualStreamGenerate } from './framework/dualStreamGenerate.mjs';
-import { buildPersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
+import { buildPersonaAttributes, mergePersonaAttributes, resolveBatchEmail } from './personaBuilder.mjs';
 import { resolveStoredPrefsEmail } from './tools/generationPrefs.mjs';
 import { validateScaledLabEmail } from './framework/emailFormatGuardrails.mjs';
 import { ensurePreferredLanguageOnAttributes, resolveTestProfileParam } from './framework/generateProfileParams.mjs';
@@ -91,11 +91,19 @@ export async function processBatchJob(jobId, { keyId }) {
     }
 
     let attributes = params.attributes;
-    if (params.randomize && (!attributes || Object.keys(attributes).length === 0)) {
-      attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null, {
+    if (params.randomize) {
+      const personaOpts = {
         loyalty_member: params.loyalty_member === true,
         last_order_details: params.last_order_details,
-      });
+      };
+      if (!attributes || Object.keys(attributes).length === 0) {
+        attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null, personaOpts);
+      } else {
+        attributes = mergePersonaAttributes(
+          buildPersonaAttributes(params.industry, email, params.segment_hint || null, personaOpts),
+          attributes,
+        );
+      }
     }
     if (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
       attributes = ensurePreferredLanguageOnAttributes(attributes).attributes;

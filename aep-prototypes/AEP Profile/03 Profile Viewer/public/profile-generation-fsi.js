@@ -132,12 +132,16 @@
 
   function $(id) { return document.getElementById(id); }
 
+  /** When set during randomizePersona, blocks writes to protected fields. */
+  let _guardRandomize = null;
+
   function getCheckbox(id) {
     const el = $(id);
     return el ? !!el.checked : false;
   }
 
   function setCheckbox(id, val) {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (el) el.checked = !!val;
   }
@@ -159,6 +163,7 @@
   }
 
   function setSelect(id, val) {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (!el || val == null) return;
     const v = String(val).trim();
@@ -171,6 +176,7 @@
   }
 
   function setVal(id, val) {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (el && val != null) el.value = String(val);
   }
@@ -679,7 +685,9 @@
       //   5. Life stage (free pick)
       //   6. Employment status → forced/biased by life stage
       //   7. Other holdings + bureau + tax + filing-status mutex
-      randomizePersona({ randomPick: pick }) {
+      randomizePersona({ randomPick: pick, shouldRandomize }) {
+        _guardRandomize = typeof shouldRandomize === 'function' ? shouldRandomize : null;
+        try {
         const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
         const wb = (helpers && typeof helpers.weightedBool === 'function')
           ? helpers.weightedBool
@@ -688,13 +696,21 @@
           ? helpers.randomBellBetween
           : (lo, hi) => randInt(lo, hi);
 
-        // Step 1: pick the household-income band first (drives credit + tax).
         const incomeBandOpts = selectValuesNonEmpty('fsiHouseholdIncomeBand');
-        const incomeBand = pick(incomeBandOpts);
+        let incomeBand;
+        if (_guardRandomize && !_guardRandomize('fsiHouseholdIncomeBand')) {
+          incomeBand = trim($('fsiHouseholdIncomeBand')) || pick(incomeBandOpts);
+        } else {
+          incomeBand = pick(incomeBandOpts);
+        }
         setSelect('fsiHouseholdIncomeBand', incomeBand);
 
-        // Step 2: pick credit band conditioned on income (no more uniform-all).
-        const creditBand = pickCreditBandForIncome(incomeBand);
+        let creditBand;
+        if (_guardRandomize && !_guardRandomize('fsiCreditScoreBand')) {
+          creditBand = trim($('fsiCreditScoreBand')) || pickCreditBandForIncome(incomeBand);
+        } else {
+          creditBand = pickCreditBandForIncome(incomeBand);
+        }
         setSelect('fsiCreditScoreBand', creditBand);
 
         // Step 3: pick remaining scalar dropdowns (excl. the ones we
@@ -713,21 +729,22 @@
         });
 
         // Step 5–6: life-stage drives employment.
-        //   retired   → force employment=retired (always)
-        //   student / pre_retirement / etc. → biased pool from
-        //   EMPLOYMENT_BIAS_BY_LIFE_STAGE so the persona's stage and job
-        //   reconcile (no more 'retired' personas tagged 'employed').
         const lifeOpts = selectValuesNonEmpty('fsiLifeStage');
-        const lifeStage = pick(lifeOpts);
+        let lifeStage;
+        if (_guardRandomize && !_guardRandomize('fsiLifeStage')) {
+          lifeStage = trim($('fsiLifeStage')) || pick(lifeOpts);
+        } else {
+          lifeStage = pick(lifeOpts);
+        }
         setSelect('fsiLifeStage', lifeStage);
         const employmentOpts = selectValuesNonEmpty('fsiEmploymentStatus');
         let employment;
-        if (lifeStage === 'retired') {
+        if (_guardRandomize && !_guardRandomize('fsiEmploymentStatus')) {
+          employment = trim($('fsiEmploymentStatus')) || pick(employmentOpts);
+        } else if (lifeStage === 'retired') {
           employment = 'retired';
         } else {
           const pool = EMPLOYMENT_BIAS_BY_LIFE_STAGE[lifeStage] || employmentOpts;
-          // Filter to only options that actually exist in the HTML <select>
-          // so a stale audit table can't ship an enum value AEP would drop.
           const allowed = pool.filter((v) => employmentOpts.includes(v));
           employment = allowed.length ? pick(allowed) : pick(employmentOpts);
         }
@@ -792,7 +809,9 @@
         // mutex pattern with any future industries that need it (and the
         // verifier can reach it via window.AepProfileGenIndustry.helpers).
         if (helpers && typeof helpers.pickOneOf === 'function') {
-          helpers.pickOneOf(['fsiTaxFilingJoint', 'fsiTaxFilingSeparate', 'fsiTaxFilingSingle']);
+          const filingIds = ['fsiTaxFilingJoint', 'fsiTaxFilingSeparate', 'fsiTaxFilingSingle']
+            .filter((id) => !_guardRandomize || _guardRandomize(id));
+          if (filingIds.length) helpers.pickOneOf(filingIds);
         } else {
           // Fallback to the previous probabilistic distribution if the
           // runtime helper is missing (defensive — should never happen
@@ -801,6 +820,9 @@
           setCheckbox('fsiTaxFilingJoint',     filingPick < 0.50);
           setCheckbox('fsiTaxFilingSeparate',  filingPick >= 0.50 && filingPick < 0.65);
           setCheckbox('fsiTaxFilingSingle',    filingPick >= 0.65);
+        }
+        } finally {
+          _guardRandomize = null;
         }
       },
     },

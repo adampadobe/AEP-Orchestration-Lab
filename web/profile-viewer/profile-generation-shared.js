@@ -533,6 +533,161 @@
   }
 
   /**
+   * Tracks operator-provided persona field values so Generate / Generate-N can
+   * honor edits and prefilled lookup/recent values while still randomizing
+   * untouched fields.
+   *
+   * - captureBaseline: snapshot current values (after lookup, load recent, panel show)
+   * - markDirty: user edited a field (including clearing to empty)
+   * - shouldRandomize(fieldId): false when dirty or baseline holds a meaningful value
+   * - birthDate + age behave as one unit via shouldRandomizeBirthDateAge()
+   */
+  /**
+   * @param {{ birthDateFieldId?: string, ageFieldId?: string }} [opts]
+   */
+  function createPersonaFieldGuard(opts) {
+    const options = opts && typeof opts === 'object' ? opts : {};
+    const birthDateFieldId = String(options.birthDateFieldId || 'birthDate').trim();
+    const ageFieldId = String(options.ageFieldId || 'age').trim();
+    const birthAgeIds = new Set([birthDateFieldId, ageFieldId].filter(Boolean));
+
+    /** @type {Map<string, string>} */
+    const baseline = new Map();
+    /** @type {Set<string>} */
+    const dirty = new Set();
+    /** @type {Map<string, HTMLElement>} */
+    const fields = new Map();
+    let programmaticDepth = 0;
+
+    function serializeField(el) {
+      if (!el) return '';
+      if (el.type === 'checkbox') return el.checked ? '1' : '0';
+      return String(el.value ?? '');
+    }
+
+    function resolveEl(fieldId, el) {
+      if (el && el.id) return el;
+      if (fieldId) return document.getElementById(fieldId);
+      return null;
+    }
+
+    function register(fieldId, el) {
+      const id = String(fieldId || '').trim();
+      if (!id) return;
+      const node = resolveEl(id, el);
+      if (node) fields.set(id, node);
+    }
+
+    function registerMany(fieldIds) {
+      if (!Array.isArray(fieldIds)) return;
+      fieldIds.forEach((id) => register(id));
+    }
+
+    /**
+     * Register every control with an id inside a panel container.
+     * @param {string|HTMLElement} container
+     * @param {{ excludeIds?: string[] }} [opts]
+     */
+    function registerFromContainer(container, opts) {
+      const root = typeof container === 'string' ? document.getElementById(container) : container;
+      if (!root) return;
+      const exclude = new Set((opts && opts.excludeIds) || []);
+      root.querySelectorAll('input[id], select[id], textarea[id]').forEach((el) => {
+        if (el.id && !exclude.has(el.id)) register(el.id, el);
+      });
+    }
+
+    function runProgrammatic(fn) {
+      programmaticDepth += 1;
+      try {
+        return fn();
+      } finally {
+        programmaticDepth -= 1;
+      }
+    }
+
+    function captureBaseline() {
+      dirty.clear();
+      fields.forEach((el, id) => {
+        baseline.set(id, serializeField(el));
+      });
+    }
+
+    function resetBaseline() {
+      captureBaseline();
+    }
+
+    function markDirty(fieldId) {
+      const id = String(fieldId || '').trim();
+      if (id) dirty.add(id);
+    }
+
+    function baselineIsMeaningful(fieldId) {
+      if (!baseline.has(fieldId)) return false;
+      const val = baseline.get(fieldId);
+      const el = fields.get(fieldId);
+      if (el && el.type === 'checkbox') return val === '1';
+      return val != null && String(val).trim() !== '';
+    }
+
+    function shouldRandomize(fieldId) {
+      const id = String(fieldId || '').trim();
+      if (!id) return true;
+      if (birthAgeIds.has(id)) return shouldRandomizeBirthDateAge();
+      if (dirty.has(id)) return false;
+      if (baselineIsMeaningful(id)) return false;
+      return true;
+    }
+
+    function shouldRandomizeBirthDateAge() {
+      if (dirty.has(birthDateFieldId) || dirty.has(ageFieldId)) return false;
+      if (baselineIsMeaningful(birthDateFieldId) || baselineIsMeaningful(ageFieldId)) return false;
+      return true;
+    }
+
+    function wireListeners() {
+      fields.forEach((el, id) => {
+        const mark = () => {
+          if (programmaticDepth > 0) return;
+          markDirty(id);
+        };
+        el.addEventListener('input', mark);
+        el.addEventListener('change', mark);
+      });
+    }
+
+    function setFieldValue(fieldId, value) {
+      const el = fields.get(fieldId) || document.getElementById(fieldId);
+      if (!el) return;
+      runProgrammatic(() => {
+        if (el.type === 'checkbox') el.checked = !!value;
+        else el.value = value == null ? '' : String(value);
+      });
+    }
+
+    return {
+      register,
+      registerMany,
+      registerFromContainer,
+      captureBaseline,
+      resetBaseline,
+      markDirty,
+      shouldRandomize,
+      shouldRandomizeBirthDateAge,
+      wireListeners,
+      runProgrammatic,
+      setFieldValue,
+    };
+  }
+
+  /** Infra / scaler controls excluded when auto-registering persona panels. */
+  const PERSONA_FIELD_EXCLUDE_IDS = [
+    'baseEmail', 'counter', 'generateCount', 'lookupIdentifier', 'lookupNs',
+    'streamSchemaId', 'streamDatasetId', 'streamXdmKey', 'streamFlowId',
+    'streamFlowName', 'streamUrl', 'dryRun', 'markTestProfile',
+  ];
+
+  /**
    * True when Firestore has a saved streaming connection worth "Load from Firebase".
    * Requires URL + Flow ID — wizard infra sync may persist schema/dataset ids alone,
    * which is not a reloadable streaming connection on a fresh sandbox.
@@ -584,5 +739,7 @@
     writeMarkTestProfilePreference,
     createStreamConnectionSaveUi,
     hasMeaningfulStreamingRecord,
+    createPersonaFieldGuard,
+    PERSONA_FIELD_EXCLUDE_IDS,
   };
 })();

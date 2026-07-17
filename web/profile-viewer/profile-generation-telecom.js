@@ -187,9 +187,17 @@
     const n = parseInt(raw, 10); return Number.isFinite(n) ? n : null;
   };
   const getCheck = (id) => { const el = $(id); return el ? !!el.checked : false; };
-  const setCheck = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
-  const setVal = (id, v) => { const el = $(id); if (el && v != null) el.value = String(v); };
+  let _guardRandomize = null;
+  const setCheck = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el) el.checked = !!v;
+  };
+  const setVal = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el && v != null) el.value = String(v);
+  };
   const setSelect = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (!el || v == null) return;
     const val = String(v).trim();
@@ -478,13 +486,14 @@
         if (ind.subscription && ind.subscription.bundleName) parts.push(`bundle ${ind.subscription.bundleName}`);
         return parts.join(' · ');
       },
-      randomizePersona({ randomPick: pick }) {
+      randomizePersona({ randomPick: pick, shouldRandomize }) {
+        _guardRandomize = typeof shouldRandomize === 'function' ? shouldRandomize : null;
+        try {
         const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
         const wb = (helpers && typeof helpers.weightedBool === 'function')
           ? helpers.weightedBool
           : (p) => Math.random() < p;
 
-        // ---- 1. Pick a bundle archetype ----
         const bundle = pickBundleByWeight();
 
         // ---- 2. Set every bundle-derived field. Plan tier first so the
@@ -519,9 +528,9 @@
         // tune. upgradeEligible weight is 0 here — set deterministically
         // from contractEndBand below (audit §3.7 step 4).
         if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
-          helpers.randomizeFlagToggles([
-            { id: 'telecomRecentNetworkIssue', weight: 0.20 },
-          ]);
+          const flagDefs = [{ id: 'telecomRecentNetworkIssue', weight: 0.20 }]
+            .filter((f) => !_guardRandomize || _guardRandomize(f.id));
+          if (flagDefs.length) helpers.randomizeFlagToggles(flagDefs);
         } else {
           setCheck('telecomRecentNetworkIssue', wb(0.20));
         }
@@ -586,6 +595,9 @@
         // plans). The bundle table already enforces this for Family
         // Quad-Play; nothing extra to do here, but the affordance is
         // documented for the next time the schema gains the leaf.
+        } finally {
+          _guardRandomize = null;
+        }
       },
     },
   });

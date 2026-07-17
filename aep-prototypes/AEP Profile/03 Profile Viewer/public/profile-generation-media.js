@@ -137,9 +137,17 @@
     const n = parseInt(raw, 10); return Number.isFinite(n) ? n : null;
   };
   const getCheck = (id) => { const el = $(id); return el ? !!el.checked : false; };
-  const setCheck = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
-  const setVal = (id, v) => { const el = $(id); if (el && v != null) el.value = String(v); };
+  let _guardRandomize = null;
+  const setCheck = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el) el.checked = !!v;
+  };
+  const setVal = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el && v != null) el.value = String(v);
+  };
   const setSelect = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (!el || v == null) return;
     const val = String(v).trim();
@@ -427,30 +435,30 @@
         if (ind.subscription && ind.subscription.planName) parts.push(`plan ${ind.subscription.planName}`);
         return parts.join(' · ');
       },
-      randomizePersona({ randomPick: pick }) {
+      randomizePersona({ randomPick: pick, shouldRandomize }) {
+        _guardRandomize = typeof shouldRandomize === 'function' ? shouldRandomize : null;
+        try {
         const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
         const wb = (helpers && typeof helpers.weightedBool === 'function')
           ? helpers.weightedBool
           : (p) => Math.random() < p;
 
         SCALAR_FIELDS.forEach((f) => {
+          if (_guardRandomize && !_guardRandomize(f.id)) return;
           const opts = selectValuesNonEmpty(f.id);
           if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
 
-        // Engagement-flag pass via the shared randomizeFlagToggles helper
-        // (audit §10 A) so the weights are one declarative table per
-        // industry — easier to tune & reason about than per-flag inline
-        // Math.random() draws.
+        const flagDefs = [
+          { id: 'mediaAdSupported',      weight: 0.30 },
+          { id: 'mediaDownloadsEnabled', weight: 0.70 },
+          { id: 'mediaSportsPackage',    weight: 0.20 },
+          { id: 'mediaHasKidsProfile',   weight: 0.30 },
+          { id: 'mediaLiveTv',           weight: 0.40 },
+          { id: 'mediaBingeWatcher',     weight: 0.55 },
+        ].filter((f) => !_guardRandomize || _guardRandomize(f.id));
         if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
-          helpers.randomizeFlagToggles([
-            { id: 'mediaAdSupported',      weight: 0.30 },
-            { id: 'mediaDownloadsEnabled', weight: 0.70 },
-            { id: 'mediaSportsPackage',    weight: 0.20 },
-            { id: 'mediaHasKidsProfile',   weight: 0.30 },
-            { id: 'mediaLiveTv',           weight: 0.40 },
-            { id: 'mediaBingeWatcher',     weight: 0.55 },
-          ]);
+          helpers.randomizeFlagToggles(flagDefs);
         } else {
           setCheck('mediaAdSupported',     wb(0.30));
           setCheck('mediaDownloadsEnabled', wb(0.70));
@@ -527,6 +535,9 @@
         }
 
         setSelect('mediaSubRenew', randPick(RENEW_POOL));
+        } finally {
+          _guardRandomize = null;
+        }
       },
     },
   });

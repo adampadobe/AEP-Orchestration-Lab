@@ -64,9 +64,17 @@
     return Number.isFinite(n) ? n : null;
   };
   const getCheck = (id) => { const el = $(id); return el ? !!el.checked : false; };
-  const setCheck = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
-  const setVal = (id, v) => { const el = $(id); if (el && v != null) el.value = String(v); };
+  let _guardRandomize = null;
+  const setCheck = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el) el.checked = !!v;
+  };
+  const setVal = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
+    const el = $(id); if (el && v != null) el.value = String(v);
+  };
   const setSelect = (id, v) => {
+    if (_guardRandomize && !_guardRandomize(id)) return;
     const el = $(id);
     if (!el || v == null) return;
     const val = String(v).trim();
@@ -251,6 +259,7 @@
   }
 
   function setPropensitySliderInt(cfg, intVal) {
+    if (_guardRandomize && cfg && cfg.id && !_guardRandomize(cfg.id)) return;
     const slider = $(cfg.id);
     if (!slider) return;
     const pct = Math.max(0, Math.min(100, Math.round(Number(intVal) || 0)));
@@ -648,26 +657,26 @@
       },
 
       // ----- randomizePersona: realistic random data for Generate flow.
-      randomizePersona({ randomPick: pick }) {
-        // Existing operator-context dropdowns first.
+      randomizePersona({ randomPick: pick, shouldRandomize }) {
+        _guardRandomize = typeof shouldRandomize === 'function' ? shouldRandomize : null;
+        try {
         SCALAR_FIELDS.forEach((f) => {
+          if (_guardRandomize && !_guardRandomize(f.id)) return;
           const opts = selectValuesNonEmpty(f.id);
           if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
 
-        // Engagement flags — declared as a weights table consumed by the
-        // shared randomizeFlagToggles helper (audit §10 A). Drops the
-        // ad-hoc `Math.random() < N` calls that previously lived inline.
         const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+        const flagDefs = [
+          { id: 'retailCartAbandoned',   weight: 0.30 },
+          { id: 'retailWishlist',        weight: 0.40 },
+          { id: 'retailStoreCardHolder', weight: 0.25 },
+          { id: 'retailSubscribed',      weight: 0.55 },
+          { id: 'retailReturnedRecent',  weight: 0.20 },
+          { id: 'retailReviewsItems',    weight: 0.15 },
+        ].filter((f) => !_guardRandomize || _guardRandomize(f.id));
         if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
-          helpers.randomizeFlagToggles([
-            { id: 'retailCartAbandoned',   weight: 0.30 },
-            { id: 'retailWishlist',        weight: 0.40 },
-            { id: 'retailStoreCardHolder', weight: 0.25 },
-            { id: 'retailSubscribed',      weight: 0.55 },
-            { id: 'retailReturnedRecent',  weight: 0.20 },
-            { id: 'retailReviewsItems',    weight: 0.15 },
-          ]);
+          helpers.randomizeFlagToggles(flagDefs);
         } else {
           setCheck('retailCartAbandoned',   Math.random() < 0.30);
           setCheck('retailWishlist',        Math.random() < 0.40);
@@ -693,12 +702,12 @@
           setPropensitySliderInt(s, randInt(0, 100));
         });
 
-        // Last-order details — auto-enable + populate. Audit §3.7 ties
-        // the order-value triplet together so a cohort persona reads as
-        // a coherent customer (avg unit price × order size, lifetime value
-        // ≥ rolling spend, payment method tracks cobranded-card status).
-        setCheck('retailLastOrderEnabled', true);
-        applyLastOrderToggle();
+        // Last-order details — honor protected toggle; auto-enable when randomizing.
+        if (!_guardRandomize || _guardRandomize('retailLastOrderEnabled')) {
+          setCheck('retailLastOrderEnabled', true);
+          applyLastOrderToggle();
+        }
+        if (!_guardRandomize || getCheck('retailLastOrderEnabled')) {
         setVal('retailLastOrderDate', isoDateAgo(randInt(1, 90)));
 
         const lastOrderSize = randInt(1, 12);
@@ -748,6 +757,10 @@
         );
         const lifetimeValue = Math.max(200, ltvBandFloor, orderActivityFloor);
         setVal('retailLifetimeValue', String(lifetimeValue));
+        }
+        } finally {
+          _guardRandomize = null;
+        }
       },
     },
   });

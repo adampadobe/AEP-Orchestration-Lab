@@ -236,6 +236,58 @@
     return;
   }
 
+  /** @type {ReturnType<typeof Shared.createPersonaFieldGuard>|null} */
+  let personaGuard = null;
+
+  function setupPersonaFieldGuard() {
+    if (!Shared.createPersonaFieldGuard) return null;
+    const guard = Shared.createPersonaFieldGuard({
+      birthDateFieldId: 'travelBirthDate',
+      ageFieldId: 'travelAge',
+    });
+    guard.registerMany([
+      'travelFirstName', 'travelLastName', 'travelMobilePhone', 'travelBirthDate', 'travelAge',
+      'travelGender', 'travelChurn', 'travelPropensity', 'travelNps', 'travelAov',
+      'travelPreferredChannel', 'travelLanguage', 'travelLoyaltyEnabled', 'travelLoyaltyID',
+      'travelLoyaltyTier', 'travelLoyaltyPoints',
+    ]);
+    guard.registerFromContainer('travelProfilePanel', {
+      excludeIds: (Shared.PERSONA_FIELD_EXCLUDE_IDS || []).concat([
+        'travelCheckInfraBtn', 'travelStepRunAllBtn', 'travelEnableProfileBtn',
+        'travelLoadFromFirebaseBtn', 'travelFetchFlowFromAepBtn', 'travelSaveStreamBtn',
+        'travelLookupBtn', 'travelResetCounterBtn', 'travelUpdateProfileBtn', 'travelGenerateBtn',
+        'travelRecentLoadBtn', 'travelLoyaltyRandomBtn', 'travelRecentSelect',
+      ]),
+    });
+    guard.wireListeners();
+    guard.captureBaseline();
+    return guard;
+  }
+
+  function capturePersonaBaseline() {
+    if (personaGuard) personaGuard.captureBaseline();
+  }
+
+  function fieldShouldRandomize(fieldId) {
+    return !personaGuard || personaGuard.shouldRandomize(String(fieldId || ''));
+  }
+
+  function runPersonaProgrammatic(fn) {
+    return personaGuard ? personaGuard.runProgrammatic(fn) : fn();
+  }
+
+  function maybeSetEl(el, val) {
+    if (!el || !el.id || !fieldShouldRandomize(el.id)) return;
+    runPersonaProgrammatic(() => { el.value = val == null ? '' : String(val); });
+  }
+
+  function maybeCheckEl(el, val) {
+    if (!el || !el.id || !fieldShouldRandomize(el.id)) return;
+    runPersonaProgrammatic(() => { el.checked = !!val; });
+  }
+
+  personaGuard = setupPersonaFieldGuard();
+
   // ---------- Helpers (mirror of Generic) ----------
   function setMessage(el, text, type) {
     if (!el) return;
@@ -1499,35 +1551,25 @@
   // profile that's missing reservations or preferences just because a toggle
   // happened to be off.
   function generateRandomTravelPersona() {
-    // Force both panels OPEN first so the fields we're about to populate are
-    // visible to the operator. Done unconditionally — clicking Generate is
-    // always a "show me the full persona" action.
-    if (reservationsEnabledEl) {
-      reservationsEnabledEl.checked = true;
+    if (fieldShouldRandomize('travelReservationsEnabled') && reservationsEnabledEl) {
+      maybeCheckEl(reservationsEnabledEl, true);
       try { applyReservationsToggleVisibility(); } catch (_) {}
     }
-    if (travelPrefsEnabledEl) {
-      travelPrefsEnabledEl.checked = true;
+    if (fieldShouldRandomize('travelPrefsEnabled') && travelPrefsEnabledEl) {
+      maybeCheckEl(travelPrefsEnabledEl, true);
       try { applyTravelPrefsToggleVisibility(); } catch (_) {}
     }
-    if (recentStayEnabledEl) {
-      recentStayEnabledEl.checked = true;
+    if (fieldShouldRandomize('travelRecentStayEnabled') && recentStayEnabledEl) {
+      maybeCheckEl(recentStayEnabledEl, true);
       try { applyRecentStayToggleVisibility(); } catch (_) {}
     }
 
     const airline = randomPick(RANDOM_AIRLINES);
     const { dep, arr } = pickAirportPair();
-    // Passengers: 1–4. Children gate keeps the schema honest: children only
-    // travel when there are ≥ 2 passengers (so we never ship a 1-pax flight
-    // with childrenTravelling=true). Roughly 30% of multi-pax bookings carry
-    // children — feels right for a leisure-heavy travel persona pool.
     const passengers = randomBetween(1, 4);
     const childrenTravelling = passengers >= 2 && Math.random() < 0.3;
     const flightClassRaw = randomPick(['economy', 'economy', 'economy', 'premium_economy', 'business', 'business', 'first']);
 
-    // Multi-leg distribution: ~60% direct, ~30% one-layover, ~10% two-layover.
-    // Tweak these thresholds to taste; the sim at /tmp/verify-travel-multileg.mjs
-    // asserts the distribution stays roughly here (±5pp over 1000 runs).
     const r = Math.random();
     let isMultiLeg;
     let layovers;
@@ -1535,88 +1577,78 @@
     else if (r < 0.90) { isMultiLeg = true; layovers = 1; }
     else { isMultiLeg = true; layovers = 2; }
 
-    // Route-aware hub pick (filters out dep + arr, ensures layover-1 ≠ layover-2).
     const layoverPicks = isMultiLeg ? pickRealisticLayovers(dep, arr, layovers) : [];
     const layover1 = layoverPicks[0] || null;
     const layover2 = layoverPicks[1] || null;
 
-    // Visible Travel attribute fields — always overwrite (the operator wants a
-    // fresh realistic persona on every click, not partial holdover values).
-    if (favouriteAirlineEl) favouriteAirlineEl.value = airline;
-    if (primaryTravelClassEl) {
-      const opts = selectNonEmptyValues(primaryTravelClassEl);
-      if (opts.includes(flightClassRaw)) primaryTravelClassEl.value = flightClassRaw;
-      else if (opts.length) primaryTravelClassEl.value = opts[0];
+    maybeSetEl(favouriteAirlineEl, airline);
+    if (primaryTravelClassEl && fieldShouldRandomize(primaryTravelClassEl.id)) {
+      runPersonaProgrammatic(() => {
+        const opts = selectNonEmptyValues(primaryTravelClassEl);
+        if (opts.includes(flightClassRaw)) primaryTravelClassEl.value = flightClassRaw;
+        else if (opts.length) primaryTravelClassEl.value = opts[0];
+      });
     }
 
-    // Visible flight reservation inputs.
-    if (flightDepartureEl) flightDepartureEl.value = dep.code;
-    if (flightArrivalEl) flightArrivalEl.value = arr.code;
-    if (flightNumberEl) flightNumberEl.value = randomFlightNumber(airline);
-    // Flight date: 70% future (upcoming travel), 30% past (recent travel).
-    // See randomFlightDateBiased — replaces the previous always-future logic.
-    if (flightDateEl) flightDateEl.value = randomFlightDateBiased();
-    if (flightClassEl) {
-      const opts = selectNonEmptyValues(flightClassEl);
-      flightClassEl.value = opts.includes(flightClassRaw) ? flightClassRaw : (opts[0] || '');
+    maybeSetEl(flightDepartureEl, dep.code);
+    maybeSetEl(flightArrivalEl, arr.code);
+    maybeSetEl(flightNumberEl, randomFlightNumber(airline));
+    maybeSetEl(flightDateEl, randomFlightDateBiased());
+    if (flightClassEl && fieldShouldRandomize(flightClassEl.id)) {
+      runPersonaProgrammatic(() => {
+        const opts = selectNonEmptyValues(flightClassEl);
+        flightClassEl.value = opts.includes(flightClassRaw) ? flightClassRaw : (opts[0] || '');
+      });
     }
-    if (flightConfirmationEl) flightConfirmationEl.value = randomConfirmationCode();
-    if (flightPassengersEl) flightPassengersEl.value = String(passengers);
-    if (flightChildrenEl) flightChildrenEl.value = childrenTravelling ? 'true' : 'false';
-    if (flightMultiLegEl) flightMultiLegEl.value = isMultiLeg ? 'true' : 'false';
-    if (flightLayoversEl) flightLayoversEl.value = String(layovers);
+    maybeSetEl(flightConfirmationEl, randomConfirmationCode());
+    maybeSetEl(flightPassengersEl, String(passengers));
+    maybeSetEl(flightChildrenEl, childrenTravelling ? 'true' : 'false');
+    maybeSetEl(flightMultiLegEl, isMultiLeg ? 'true' : 'false');
+    maybeSetEl(flightLayoversEl, String(layovers));
 
-    // Schema-only flight extras (now backed by real UI inputs).
-    if (flightDepartureCountryEl) flightDepartureCountryEl.value = dep.country;
-    if (flightArrivalCountryEl) flightArrivalCountryEl.value = arr.country;
-    if (flightUsaFlightEl) flightUsaFlightEl.value = (dep.isUSA || arr.isUSA) ? 'true' : 'false';
+    maybeSetEl(flightDepartureCountryEl, dep.country);
+    maybeSetEl(flightArrivalCountryEl, arr.country);
+    maybeSetEl(flightUsaFlightEl, (dep.isUSA || arr.isUSA) ? 'true' : 'false');
 
-    // Layover slots — populated ONLY for the slot the persona warrants.
-    // Direct flights blank ALL six layover inputs so a stale value from a
-    // previous click can't leak into buildUpdatesFromForm. Two-layover
-    // personas fill both slots; one-layover personas fill slot 1 only.
-    if (flightLayover1CodeEl) flightLayover1CodeEl.value = layover1 ? layover1.code : '';
-    if (flightLayover1NameEl) flightLayover1NameEl.value = layover1 ? layover1.city : '';
-    if (flightLayover1DurationEl) flightLayover1DurationEl.value = layover1 ? String(pickLayoverDurationMinutes()) : '';
-    if (flightLayover2CodeEl) flightLayover2CodeEl.value = layover2 ? layover2.code : '';
-    if (flightLayover2NameEl) flightLayover2NameEl.value = layover2 ? layover2.city : '';
-    if (flightLayover2DurationEl) flightLayover2DurationEl.value = layover2 ? String(pickLayoverDurationMinutes()) : '';
+    maybeSetEl(flightLayover1CodeEl, layover1 ? layover1.code : '');
+    maybeSetEl(flightLayover1NameEl, layover1 ? layover1.city : '');
+    maybeSetEl(flightLayover1DurationEl, layover1 ? String(pickLayoverDurationMinutes()) : '');
+    maybeSetEl(flightLayover2CodeEl, layover2 ? layover2.code : '');
+    maybeSetEl(flightLayover2NameEl, layover2 ? layover2.city : '');
+    maybeSetEl(flightLayover2DurationEl, layover2 ? String(pickLayoverDurationMinutes()) : '');
 
-    // OOTB Adobe travel-preferences mixin (root-level travelPreferences.*).
-    // Booleans bias toward leisure-friendly defaults so the resulting AEP
-    // profile reads like a real travel customer.
-    const setSel = (el, val) => { if (!el) return; const opts = selectNonEmptyValues(el); if (opts.includes(val)) el.value = val; };
+    const setSel = (el, val) => {
+      if (!el || !fieldShouldRandomize(el.id)) return;
+      runPersonaProgrammatic(() => {
+        const opts = selectNonEmptyValues(el);
+        if (opts.includes(val)) el.value = val;
+      });
+    };
     setSel(prefMealEl, randomPick(MEAL_OPTIONS));
     setSel(prefSeatEl, randomPick(SEAT_OPTIONS));
     setSel(prefSeatSectionEl, randomPick(SEAT_SECTION));
     setSel(prefRoomTypeEl, randomPick(ROOM_TYPES));
     setSel(prefVehicleTypeEl, randomPick(VEHICLE_TYPES));
     setSel(prefTicketDeliveryEl, randomPick(TICKET_DELIVERY));
-    if (prefDepartureAirportEl) prefDepartureAirportEl.value = dep.code;
-    // medicalAlerts: only fill ~10% of personas (most travellers have none),
-    // and only on the first click (don't clobber an operator-typed override).
-    if (prefMedicalAlertsEl && !trimVal(prefMedicalAlertsEl) && Math.random() < 0.1) {
-      prefMedicalAlertsEl.value = randomPick(['Peanut allergy', 'Diabetic', 'Asthmatic', 'Lactose intolerant']);
+    maybeSetEl(prefDepartureAirportEl, dep.code);
+    if (prefMedicalAlertsEl && fieldShouldRandomize(prefMedicalAlertsEl.id) && !trimVal(prefMedicalAlertsEl) && Math.random() < 0.1) {
+      maybeSetEl(prefMedicalAlertsEl, randomPick(['Peanut allergy', 'Diabetic', 'Asthmatic', 'Lactose intolerant']));
     }
-    if (prefGymEl) prefGymEl.checked = Math.random() < 0.6;
-    if (prefPoolEl) prefPoolEl.checked = Math.random() < 0.7;
-    if (prefEarlyCheckInEl) prefEarlyCheckInEl.checked = Math.random() < 0.5;
-    if (prefRoomServiceEl) prefRoomServiceEl.checked = Math.random() < 0.4;
-    if (prefHasRestaurantEl) prefHasRestaurantEl.checked = true;
-    if (prefFoamPillowsEl) prefFoamPillowsEl.checked = Math.random() < 0.3;
-    if (prefCribEl) prefCribEl.checked = childrenTravelling && Math.random() < 0.5;
-    if (prefRollAwayBedEl) prefRollAwayBedEl.checked = childrenTravelling && Math.random() < 0.3;
-    if (prefSmokingRoomEl) prefSmokingRoomEl.checked = false;
-    if (prefManualTransmissionEl) prefManualTransmissionEl.checked = Math.random() < 0.15;
-    if (prefSmokingVehicleEl) prefSmokingVehicleEl.checked = false;
-    if (prefVisuallyImpairedEl) prefVisuallyImpairedEl.checked = false;
-    if (prefWheelchairEl) prefWheelchairEl.checked = Math.random() < 0.05;
+    maybeCheckEl(prefGymEl, Math.random() < 0.6);
+    maybeCheckEl(prefPoolEl, Math.random() < 0.7);
+    maybeCheckEl(prefEarlyCheckInEl, Math.random() < 0.5);
+    maybeCheckEl(prefRoomServiceEl, Math.random() < 0.4);
+    maybeCheckEl(prefHasRestaurantEl, true);
+    maybeCheckEl(prefFoamPillowsEl, Math.random() < 0.3);
+    maybeCheckEl(prefCribEl, childrenTravelling && Math.random() < 0.5);
+    maybeCheckEl(prefRollAwayBedEl, childrenTravelling && Math.random() < 0.3);
+    maybeCheckEl(prefSmokingRoomEl, false);
+    maybeCheckEl(prefManualTransmissionEl, Math.random() < 0.15);
+    maybeCheckEl(prefSmokingVehicleEl, false);
+    maybeCheckEl(prefVisuallyImpairedEl, false);
+    maybeCheckEl(prefWheelchairEl, Math.random() < 0.05);
 
-    // Tenant `hotel.*` (Travel - Hotel Experience v1) — aligns with Recent stay form + buildUpdatesFromForm.
-    const setIfEl = (el, val) => {
-      if (!el) return;
-      el.value = val == null ? '' : String(val);
-    };
+    const setIfEl = (el, val) => { maybeSetEl(el, val); };
     const hotelChains = ['Marriott', 'Hilton', 'IHG', 'Accor', 'Hyatt', 'Radisson'];
     const roomTypes = ['standard', 'superior', 'deluxe', 'junior_suite', 'suite', 'executive'];
     const rateCodes = ['BAR', 'LOYALTY', 'CORPORATE', 'ADVANCE_PURCHASE'];
@@ -1634,16 +1666,16 @@
     ci.setUTCDate(ci.getUTCDate() + offsetDays);
     const co = new Date(ci);
     co.setUTCDate(co.getUTCDate() + nightsRand);
-    if (recentStayCheckInEl) recentStayCheckInEl.value = ci.toISOString().slice(0, 10);
-    if (recentStayCheckOutEl) recentStayCheckOutEl.value = co.toISOString().slice(0, 10);
-    if (recentStayNightsEl) recentStayNightsEl.value = '';
+    if (recentStayCheckInEl) maybeSetEl(recentStayCheckInEl, ci.toISOString().slice(0, 10));
+    if (recentStayCheckOutEl) maybeSetEl(recentStayCheckOutEl, co.toISOString().slice(0, 10));
+    maybeSetEl(recentStayNightsEl, '');
     if (recentStayHotelEl) {
-      recentStayHotelEl.value = randomPick([
+      maybeSetEl(recentStayHotelEl, randomPick([
         'The Savoy', 'Claridge\'s', 'Hotel Arts Barcelona', 'Park Hyatt Tokyo', 'Rosewood London',
-      ]);
+      ]));
     }
-    if (recentStayCityEl) recentStayCityEl.value = arr.city || '';
-    if (recentStayConfirmationEl) recentStayConfirmationEl.value = `HE-${randomBetween(100000, 999999)}`;
+    maybeSetEl(recentStayCityEl, arr.city || '');
+    maybeSetEl(recentStayConfirmationEl, `HE-${randomBetween(100000, 999999)}`);
 
     setIfEl(recentStayHotelChainEl, pick(hotelChains));
     setIfEl(recentStayRoomTypeEl, pick(roomTypes));
@@ -1689,49 +1721,78 @@
   }
 
   function applyRandomCustomerPersonaForGenerate(generateIndex) {
-    const genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+    const g = personaGuard;
+    const sr = (fieldId) => !g || g.shouldRandomize(String(fieldId || ''));
+    const pg = (fn) => (g ? g.runProgrammatic(fn) : fn());
 
-    if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
-    if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
-
-    // Always overwrite birth date + age on Generate so every Travel
-    // profile carries person.birthDate (root) + _<tenant>.individualCharacteristics.core.age
-    // (integer). Force-overwrite even if the operator had typed something —
-    // matches the "Generate always populates everything" pattern landed
-    // earlier on Travel for reservations / preferences.
-    if (birthDateEl) {
-      const iso = randomBirthDateIso();
-      birthDateEl.value = iso;
-      const a = computeAgeFromBirthDate(iso);
-      if (ageEl && a != null) ageEl.value = String(a);
-    } else if (ageEl) {
-      ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX));
+    let genderCanon;
+    if (!sr('travelGender')) {
+      genderCanon = trimVal(genderEl);
+      const gLower = String(genderCanon || '').toLowerCase();
+      if (gLower !== 'male' && gLower !== 'female') {
+        genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+      }
+    } else {
+      pg(() => {
+        genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+      });
+      genderCanon = genderCanon || applyBinaryGenderForGenerate(genderEl, generateIndex);
     }
 
-    randomizeSliderControl(churnEl);
-    randomizeSliderControl(propensityEl);
-    randomizeSliderControl(aovEl);
+    if (sr('travelFirstName') && firstNameEl) {
+      pg(() => { firstNameEl.value = randomFirstNameForGender(genderCanon); });
+    }
+    if (sr('travelLastName') && lastNameEl) {
+      pg(() => { lastNameEl.value = randomPick(RANDOM_LAST_NAMES); });
+    }
+
+    const randomizeBirthAge = !g || g.shouldRandomizeBirthDateAge();
+    if (randomizeBirthAge && birthDateEl) {
+      pg(() => {
+        const iso = randomBirthDateIso();
+        birthDateEl.value = iso;
+        const a = computeAgeFromBirthDate(iso);
+        if (ageEl && a != null) ageEl.value = String(a);
+      });
+    } else if (randomizeBirthAge && ageEl) {
+      pg(() => { ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX)); });
+    }
+
+    if (sr('travelChurn')) pg(() => randomizeSliderControl(churnEl));
+    if (sr('travelPropensity')) pg(() => randomizeSliderControl(propensityEl));
+    if (sr('travelAov')) pg(() => randomizeSliderControl(aovEl));
 
     const npsChoices = selectNonEmptyValues(npsEl);
-    if (npsEl && npsChoices.length) npsEl.value = randomPick(npsChoices);
-
-    const prefChoices = selectPreferredChannelValuesForRandom(preferredChannelEl);
-    if (preferredChannelEl && prefChoices.length) preferredChannelEl.value = randomPick(prefChoices);
-
-    const langChoices = selectNonEmptyValues(languageEl);
-    if (languageEl && langChoices.length) languageEl.value = randomPick(langChoices);
-
-    if (loyaltyEnabledEl && loyaltyEnabledEl.checked) {
-      const tierChoices = selectNonEmptyValues(loyaltyTierEl);
-      if (loyaltyTierEl && tierChoices.length) loyaltyTierEl.value = randomPick(tierChoices);
-      const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
-      if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
-      if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
+    if (sr('travelNps') && npsEl && npsChoices.length) {
+      pg(() => { npsEl.value = randomPick(npsChoices); });
     }
 
-    // AOV ↔ loyalty tier bias (audit §1.7 — applies to every industry that
-    // ships its own randomiser). Higher tiers spend more on average; bell
-    // distribution centres each tier in a believable spend band.
+    const prefChoices = selectPreferredChannelValuesForRandom(preferredChannelEl);
+    if (sr('travelPreferredChannel') && preferredChannelEl && prefChoices.length) {
+      pg(() => { preferredChannelEl.value = randomPick(prefChoices); });
+    }
+
+    const langChoices = selectNonEmptyValues(languageEl);
+    if (sr('travelLanguage') && languageEl && langChoices.length) {
+      pg(() => { languageEl.value = randomPick(langChoices); });
+    }
+
+    const loyaltyOn = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    const honorLoyaltyDisabled = !sr('travelLoyaltyEnabled') && !loyaltyOn;
+    if (!honorLoyaltyDisabled && loyaltyOn) {
+      const tierChoices = selectNonEmptyValues(loyaltyTierEl);
+      if (sr('travelLoyaltyTier') && loyaltyTierEl && tierChoices.length) {
+        pg(() => { loyaltyTierEl.value = randomPick(tierChoices); });
+      }
+      const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
+      if (sr('travelLoyaltyPoints') && loyaltyPointsEl) {
+        pg(() => { loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier)); });
+      }
+      if (sr('travelLoyaltyID') && loyaltyIDEl) {
+        pg(() => { loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`; });
+      }
+    }
+
     const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
     const bell = (helpers && typeof helpers.randomBellBetween === 'function')
       ? helpers.randomBellBetween
@@ -1755,22 +1816,18 @@
       default:
         break;
     }
-    if (aovEl && aovBiased != null) {
-      const aovInt = Math.round(aovBiased);
-      const aovMin = Number(aovEl.min);
-      const aovMax = Number(aovEl.max);
-      const lo = Number.isFinite(aovMin) ? aovMin : 0;
-      const hi = Number.isFinite(aovMax) ? aovMax : 2000;
-      aovEl.value = String(Math.max(lo, Math.min(hi, aovInt)));
-      try { syncAovSlider(); } catch (_) {}
+    if (sr('travelAov') && aovEl && aovBiased != null) {
+      pg(() => {
+        const aovInt = Math.round(aovBiased);
+        const aovMin = Number(aovEl.min);
+        const aovMax = Number(aovEl.max);
+        const lo = Number.isFinite(aovMin) ? aovMin : 0;
+        const hi = Number.isFinite(aovMax) ? aovMax : 2000;
+        aovEl.value = String(Math.max(lo, Math.min(hi, aovInt)));
+        try { syncAovSlider(); } catch (_) {}
+      });
     }
 
-    // Full Travel persona — picks airline + airport pair + class, fills the
-    // visible flight reservation form fields, auto-checks the reservations
-    // toggle (so the existing buildUpdatesFromForm push code runs), and stashes
-    // the schema-only extras (departureCountry, usaFlight, multiLeg layovers,
-    // root travelPreferences.*) into module-level pending state for
-    // buildUpdatesFromForm to consume on the next call.
     generateRandomTravelPersona();
   }
 
@@ -2404,6 +2461,7 @@
     const prefVisuallyImpaired = prefBoolFinder('visuallyimpairedaccessible');
     const prefWheelchair = prefBoolFinder('wheelchairaccessible');
 
+    const fillLookupForm = () => {
     if (firstName && firstNameEl) firstNameEl.value = firstName;
     if (lastName && lastNameEl) lastNameEl.value = lastName;
     if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
@@ -2520,6 +2578,11 @@
       } catch (_) { /* ignore */ }
       loadCounterForCurrentContext();
     }
+    };
+
+    if (personaGuard) personaGuard.runProgrammatic(fillLookupForm);
+    else fillLookupForm();
+    capturePersonaBaseline();
   }
 
   function setSelectValueLoose(selectEl, raw) {
@@ -2891,6 +2954,7 @@
   function loadRecentSnapshot(entry) {
     if (!entry || !entry.snapshot) return;
     const s = entry.snapshot;
+    const fillForm = () => {
     if (firstNameEl) firstNameEl.value = s.firstName || '';
     if (lastNameEl) lastNameEl.value = s.lastName || '';
     if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
@@ -2992,6 +3056,11 @@
       updateEmailPreview();
     }
     persistLastStreamed(entry.scaledEmail, entry.n);
+    };
+
+    if (personaGuard) personaGuard.runProgrammatic(fillForm);
+    else fillForm();
+    capturePersonaBaseline();
     setMessage(messageEl, `Loaded ${entry.scaledEmail}. Edit fields then click Update profile, or Generate to create a new profile after this one.`, 'success');
   }
 
@@ -3198,8 +3267,7 @@
     // depends on the live sandbox + base email, both of which can have
     // changed while the user was on Generic.
     loadCounterForCurrentContext();
-    // Panel just became visible — kick the sandbox-driven Schema $id /
-    // Dataset ID auto-discover. No-op when fields are already populated.
+    capturePersonaBaseline();
     autoDiscoverInfraFromSandbox();
   });
 

@@ -5,6 +5,7 @@
 export {
   buildCommonPersonaAttributes,
   buildPersonaAttributes,
+  mergePersonaAttributes,
   resolveBatchEmail,
   normalizeSegmentHint,
   TRAVEL_SEGMENT_HINTS,

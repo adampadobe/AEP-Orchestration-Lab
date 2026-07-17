@@ -557,6 +557,78 @@
       randomizePersona: typeof industryCfg.randomizePersona === 'function' ? industryCfg.randomizePersona : () => {},
     };
 
+    /** @type {ReturnType<typeof Shared.createPersonaFieldGuard>|null} */
+    let personaGuard = null;
+
+    function personaFieldId(key) {
+      return ids[key] ? String(ids[key]) : String(key || '');
+    }
+
+    function setupPersonaFieldGuard() {
+      if (!Shared.createPersonaFieldGuard) return null;
+      const guard = Shared.createPersonaFieldGuard({
+        birthDateFieldId: ids.birthDate,
+        ageFieldId: ids.age,
+      });
+      const sharedIds = [
+        ids.firstName,
+        ids.lastName,
+        ids.mobilePhone,
+        ids.birthDate,
+        ids.age,
+        ids.gender,
+        ids.churn,
+        ids.propensity,
+        ids.nps,
+        ids.aov,
+        ids.preferredChannel,
+        ids.language,
+        ids.loyaltyEnabled,
+        ids.loyaltyID,
+        ids.loyaltyTier,
+        ids.loyaltyPoints,
+      ].filter(Boolean);
+      guard.registerMany(sharedIds);
+      industryToggles.forEach((toggle) => {
+        if (toggle && toggle.checkboxId) guard.register(toggle.checkboxId);
+      });
+      const extraIds = industryCfg.personaFieldIds;
+      if (Array.isArray(extraIds)) guard.registerMany(extraIds);
+      else if (typeof extraIds === 'function') guard.registerMany(extraIds());
+      if (ids.profilePanel) {
+        guard.registerFromContainer(ids.profilePanel, {
+          excludeIds: (Shared.PERSONA_FIELD_EXCLUDE_IDS || []).concat([
+            ids.checkInfraBtn,
+            ids.stepRunAllBtn,
+            ids.stepCreateSchemaBtn,
+            ids.stepAttachFgBtn,
+            ids.stepCreateDatasetBtn,
+            ids.stepHttpFlowBtn,
+            ids.enableProfileBtn,
+            ids.loadFromFirebaseBtn,
+            ids.fetchFlowFromAepBtn,
+            ids.saveStreamBtn,
+            ids.lookupBtn,
+            ids.resetCounterBtn,
+            ids.updateProfileBtn,
+            ids.generateBtn,
+            ids.recentLoadBtn,
+            ids.loyaltyRandomBtn,
+            ids.recentSelect,
+          ].filter(Boolean)),
+        });
+      }
+      guard.wireListeners();
+      guard.captureBaseline();
+      return guard;
+    }
+
+    function capturePersonaBaseline() {
+      if (personaGuard) personaGuard.captureBaseline();
+    }
+
+    personaGuard = setupPersonaFieldGuard();
+
     // ---- Helpers ----
     function setMessage(el, text, type) {
       if (!el) return;
@@ -1479,45 +1551,79 @@
     function syncPropensitySlider() { renderPropensity(); applySliderTint(propensityEl, false); }
     function syncAovSlider() { renderAov(); applySliderTint(aovEl, false); }
 
-    function applyRandomCustomerPersonaForGenerate(generateIndex) {
-      const genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+    function applyRandomCustomerPersonaForGenerate(generateIndex, guard) {
+      const g = guard || personaGuard;
+      const sr = (fieldId) => !g || g.shouldRandomize(String(fieldId || ''));
+      const pg = (fn) => (g ? g.runProgrammatic(fn) : fn());
 
-      if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
-      if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
-
-      // Always overwrite birth date + age on Generate so every generated
-      // profile carries a realistic person.birthDate (string/date at XDM
-      // root) and a consistent _<tenant>.individualCharacteristics.core.age
-      // (integer). Force-overwrite even if the operator had typed a value —
-      // matches the Travel "Generate always populates everything" pattern.
-      if (birthDateEl) {
-        const iso = randomBirthDateIso();
-        birthDateEl.value = iso;
-        const a = computeAgeFromBirthDate(iso);
-        if (ageEl && a != null) ageEl.value = String(a);
-      } else if (ageEl) {
-        ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX));
+      let genderCanon;
+      const genderId = personaFieldId('gender');
+      if (!sr(genderId)) {
+        genderCanon = trimVal(genderEl);
+        const gLower = String(genderCanon || '').toLowerCase();
+        if (gLower !== 'male' && gLower !== 'female') {
+          genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+        }
+      } else {
+        pg(() => {
+          genderCanon = applyBinaryGenderForGenerate(genderEl, generateIndex);
+        });
+        genderCanon = genderCanon || applyBinaryGenderForGenerate(genderEl, generateIndex);
       }
 
-      randomizeSliderControl(churnEl);
-      randomizeSliderControl(propensityEl);
-      randomizeSliderControl(aovEl);
+      if (sr(personaFieldId('firstName')) && firstNameEl) {
+        pg(() => { firstNameEl.value = randomFirstNameForGender(genderCanon); });
+      }
+      if (sr(personaFieldId('lastName')) && lastNameEl) {
+        pg(() => { lastNameEl.value = randomPick(RANDOM_LAST_NAMES); });
+      }
+
+      const randomizeBirthAge = !g || g.shouldRandomizeBirthDateAge();
+      if (randomizeBirthAge && birthDateEl) {
+        pg(() => {
+          const iso = randomBirthDateIso();
+          birthDateEl.value = iso;
+          const a = computeAgeFromBirthDate(iso);
+          if (ageEl && a != null) ageEl.value = String(a);
+        });
+      } else if (randomizeBirthAge && ageEl) {
+        pg(() => { ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX)); });
+      }
+
+      if (sr(personaFieldId('churn'))) pg(() => randomizeSliderControl(churnEl));
+      if (sr(personaFieldId('propensity'))) pg(() => randomizeSliderControl(propensityEl));
+      if (sr(personaFieldId('aov'))) pg(() => randomizeSliderControl(aovEl));
 
       const npsChoices = selectNonEmptyValues(npsEl);
-      if (npsEl && npsChoices.length) npsEl.value = randomPick(npsChoices);
+      if (sr(personaFieldId('nps')) && npsEl && npsChoices.length) {
+        pg(() => { npsEl.value = randomPick(npsChoices); });
+      }
 
       const prefChoices = selectPreferredChannelValuesForRandom(preferredChannelEl);
-      if (preferredChannelEl && prefChoices.length) preferredChannelEl.value = randomPick(prefChoices);
+      if (sr(personaFieldId('preferredChannel')) && preferredChannelEl && prefChoices.length) {
+        pg(() => { preferredChannelEl.value = randomPick(prefChoices); });
+      }
 
       const langChoices = selectNonEmptyValues(languageEl);
-      if (languageEl && langChoices.length) languageEl.value = randomPick(langChoices);
+      if (sr(personaFieldId('language')) && languageEl && langChoices.length) {
+        pg(() => { languageEl.value = randomPick(langChoices); });
+      }
 
-      if (loyaltyEnabledEl && loyaltyEnabledEl.checked) {
+      const loyaltyEnabledId = personaFieldId('loyaltyEnabled');
+      const loyaltyOn = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+      const honorLoyaltyDisabled = !sr(loyaltyEnabledId) && !loyaltyOn;
+      if (!honorLoyaltyDisabled && loyaltyOn) {
         const tierChoices = selectNonEmptyValues(loyaltyTierEl);
-        if (loyaltyTierEl && tierChoices.length) loyaltyTierEl.value = randomPick(tierChoices);
+        if (sr(personaFieldId('loyaltyTier')) && loyaltyTierEl && tierChoices.length) {
+          pg(() => { loyaltyTierEl.value = randomPick(tierChoices); });
+        }
         const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
-        if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
-        if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
+        if (sr(personaFieldId('loyaltyPoints')) && loyaltyPointsEl) {
+          pg(() => { loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier)); });
+        }
+        if (sr(personaFieldId('loyaltyID')) && loyaltyIDEl) {
+          pg(() => { loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`; });
+        }
       }
 
       // Industry-specific persona pass — runs AFTER the shared persona so
@@ -1528,6 +1634,27 @@
           randomBetween,
           randomPick,
           selectNonEmptyValues,
+          shouldRandomize: sr,
+          setValGuarded: (fieldId, val) => {
+            if (!sr(fieldId)) return;
+            pg(() => {
+              if (g && typeof g.setFieldValue === 'function') g.setFieldValue(fieldId, val);
+              else {
+                const el = document.getElementById(fieldId);
+                if (el) el.value = val == null ? '' : String(val);
+              }
+            });
+          },
+          setCheckboxGuarded: (fieldId, val) => {
+            if (!sr(fieldId)) return;
+            pg(() => {
+              if (g && typeof g.setFieldValue === 'function') g.setFieldValue(fieldId, !!val);
+              else {
+                const el = document.getElementById(fieldId);
+                if (el) el.checked = !!val;
+              }
+            });
+          },
         });
       } catch (e) {
         warn('industry randomizePersona threw:', e && e.message);
@@ -1835,62 +1962,63 @@
         }
       }
 
-      if (firstName && firstNameEl) firstNameEl.value = firstName;
-      if (lastName && lastNameEl) lastNameEl.value = lastName;
-      if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
-      // Birth date / age: prefer the lookup's birthDate (it's the source of
-      // truth — we re-derive age from it on every push). When only age is
-      // returned, populate the age input but leave birthDate blank (we
-      // can't reliably back-derive a specific year/month/day from age).
-      if (birthDate && birthDateEl) {
-        // Profile API may return ISO with timestamp; trim to date portion.
-        const iso = String(birthDate).slice(0, 10);
-        if (isValidIsoBirthDate(iso)) {
-          birthDateEl.value = iso;
-          if (ageEl) {
-            const a = computeAgeFromBirthDate(iso);
-            if (a != null) ageEl.value = String(a);
+      const fillForm = () => {
+        if (firstName && firstNameEl) firstNameEl.value = firstName;
+        if (lastName && lastNameEl) lastNameEl.value = lastName;
+        if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
+        if (birthDate && birthDateEl) {
+          const iso = String(birthDate).slice(0, 10);
+          if (isValidIsoBirthDate(iso)) {
+            birthDateEl.value = iso;
+            if (ageEl) {
+              const a = computeAgeFromBirthDate(iso);
+              if (a != null) ageEl.value = String(a);
+            }
           }
+        } else if (ageRaw && ageEl) {
+          const n = parseInt(String(ageRaw), 10);
+          if (Number.isFinite(n)) ageEl.value = String(n);
         }
-      } else if (ageRaw && ageEl) {
-        const n = parseInt(String(ageRaw), 10);
-        if (Number.isFinite(n)) ageEl.value = String(n);
-      }
-      if (churn && churnEl) { churnEl.value = churn; syncChurnSlider(); }
-      if (propensity && propensityEl) { propensityEl.value = propensity; syncPropensitySlider(); }
-      if (nps && npsEl) npsEl.value = nps;
-      if (aov && aovEl) { aovEl.value = aov; syncAovSlider(); }
-      setSelectValueLoose(languageEl, lang);
-      setSelectValueLoose(genderEl, gender);
-      setSelectValueLoose(preferredChannelEl, preferredChannel);
+        if (churn && churnEl) { churnEl.value = churn; syncChurnSlider(); }
+        if (propensity && propensityEl) { propensityEl.value = propensity; syncPropensitySlider(); }
+        if (nps && npsEl) npsEl.value = nps;
+        if (aov && aovEl) { aovEl.value = aov; syncAovSlider(); }
+        setSelectValueLoose(languageEl, lang);
+        setSelectValueLoose(genderEl, gender);
+        setSelectValueLoose(preferredChannelEl, preferredChannel);
 
-      const hasLoyalty = !!(loyaltyId || tier || points);
-      if (hasLoyalty && loyaltyEnabledEl) {
-        loyaltyEnabledEl.checked = true;
-        applyLoyaltyToggleVisibility();
-      }
-      if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
-      setSelectValueLoose(loyaltyTierEl, tier);
-      if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+        const hasLoyalty = !!(loyaltyId || tier || points);
+        if (hasLoyalty && loyaltyEnabledEl) {
+          loyaltyEnabledEl.checked = true;
+          applyLoyaltyToggleVisibility();
+        }
+        if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
+        setSelectValueLoose(loyaltyTierEl, tier);
+        if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
 
-      try {
-        industryHooks.applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose });
-      } catch (e) {
-        warn('industry applyFindResult threw:', e && e.message);
-      }
-
-      if (
-        baseEmailEl &&
-        !trim(identificationEmailLookup) &&
-        trim(personalEmailAddressLookup)
-      ) {
-        const seed = trim(personalEmailAddressLookup);
-        baseEmailEl.value = seed;
         try {
-          Shared.writeBaseEmail(getSandboxName(), seed);
-        } catch (_) { /* ignore */ }
-        loadCounterForCurrentContext();
-      }
+          industryHooks.applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose });
+        } catch (e) {
+          warn('industry applyFindResult threw:', e && e.message);
+        }
+
+        if (
+          baseEmailEl &&
+          !trim(identificationEmailLookup) &&
+          trim(personalEmailAddressLookup)
+        ) {
+          const seed = trim(personalEmailAddressLookup);
+          baseEmailEl.value = seed;
+          try {
+            Shared.writeBaseEmail(getSandboxName(), seed);
+          } catch (_) { /* ignore */ }
+          loadCounterForCurrentContext();
+        }
+      };
+
+      if (personaGuard) personaGuard.runProgrammatic(fillForm);
+      else fillForm();
+      capturePersonaBaseline();
     }
 
     // ---- Find / Update / Generate ----
@@ -2237,37 +2365,43 @@
     function loadRecentSnapshot(entry) {
       if (!entry || !entry.snapshot) return;
       const s = entry.snapshot;
-      if (firstNameEl) firstNameEl.value = s.firstName || '';
-      if (lastNameEl) lastNameEl.value = s.lastName || '';
-      if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
-      if (birthDateEl) birthDateEl.value = s.birthDate || '';
-      if (ageEl) ageEl.value = s.age || '';
-      if (genderEl) genderEl.value = s.gender || '';
-      if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
-      if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
-      if (npsEl) npsEl.value = s.nps || '';
-      if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); syncAovSlider(); }
-      if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
-      if (languageEl) languageEl.value = s.language || '';
-      if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
-      if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
-      if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
-      if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
-      applyLoyaltyToggleVisibility();
+      const fillForm = () => {
+        if (firstNameEl) firstNameEl.value = s.firstName || '';
+        if (lastNameEl) lastNameEl.value = s.lastName || '';
+        if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
+        if (birthDateEl) birthDateEl.value = s.birthDate || '';
+        if (ageEl) ageEl.value = s.age || '';
+        if (genderEl) genderEl.value = s.gender || '';
+        if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
+        if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
+        if (npsEl) npsEl.value = s.nps || '';
+        if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); syncAovSlider(); }
+        if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
+        if (languageEl) languageEl.value = s.language || '';
+        if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
+        if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
+        if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
+        if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
+        applyLoyaltyToggleVisibility();
 
-      try {
-        industryHooks.loadFromSnapshot(s.industry || {}, { setSelectValueLoose });
-      } catch (e) {
-        warn('industry loadFromSnapshot threw:', e && e.message);
-      }
-      applyAllIndustryToggles();
+        try {
+          industryHooks.loadFromSnapshot(s.industry || {}, { setSelectValueLoose });
+        } catch (e) {
+          warn('industry loadFromSnapshot threw:', e && e.message);
+        }
+        applyAllIndustryToggles();
 
-      if (counterEl && Number.isFinite(entry.n)) {
-        counterEl.value = String(entry.n);
-        persistCounter(entry.n);
-        updateEmailPreview();
-      }
-      persistLastStreamed(entry.scaledEmail, entry.n);
+        if (counterEl && Number.isFinite(entry.n)) {
+          counterEl.value = String(entry.n);
+          persistCounter(entry.n);
+          updateEmailPreview();
+        }
+        persistLastStreamed(entry.scaledEmail, entry.n);
+      };
+
+      if (personaGuard) personaGuard.runProgrammatic(fillForm);
+      else fillForm();
+      capturePersonaBaseline();
       setMessage(messageEl, `Loaded ${entry.scaledEmail}. Edit fields then click Update profile, or Generate to create a new profile after this one.`, 'success');
     }
 
@@ -2481,10 +2615,7 @@
       applyConfiguredCollapseState();
       refreshConnectionButtonState();
       loadCounterForCurrentContext();
-      // Panel just became visible — kick the sandbox-driven Schema $id /
-      // Dataset ID auto-discover. No-op when fields are already populated
-      // (Firestore-loaded values, hand-typed values, or a previous discover
-      // attempt) thanks to the per-sandbox cache + emptiness guards.
+      capturePersonaBaseline();
       autoDiscoverInfraFromSandbox();
     });
 
