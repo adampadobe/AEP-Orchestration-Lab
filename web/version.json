@@ -1,14 +1,14 @@
 {
-  "gitSha": "6dcceeaa89e1569da2ef9dce5170ce579c0a9b1d",
-  "gitShortSha": "6dcceeaa",
+  "gitSha": "5a84568aa1a165edd4ab9837545ae97d9e4bcc2a",
+  "gitShortSha": "5a84568a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: industry filter on recently generated profiles",
+  "gitCommitSubject": "[apalmer] fix: cross-industry update profile uses looked-up identity",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-16T15:39:31+01:00",
-  "deployedAt": "2026-07-16T14:39:48.083Z",
+  "gitCommitDate": "2026-07-17T16:18:54+01:00",
+  "deployedAt": "2026-07-17T15:19:13.974Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/6dcceeaa89e1569da2ef9dce5170ce579c0a9b1d"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5a84568aa1a165edd4ab9837545ae97d9e4bcc2a"
 }
