@@ -14,13 +14,24 @@ function armcomJourneyRelativeFromPathname(pathname) {
 
 function syncIframeToJourneyUrl() {
   if (!armcomSiteFrame) return;
+  var params;
+  try {
+    params = new URLSearchParams(window.location.search);
+  } catch (_e) {
+    params = null;
+  }
+  var frameParam = params ? params.get('frame') : null;
+  if (frameParam) {
+    armcomSiteFrame.src = 'demos/armcom/' + String(frameParam).replace(/^\//, '');
+    return;
+  }
   var rel = armcomJourneyRelativeFromPathname(window.location.pathname);
   if (rel) {
     armcomSiteFrame.src = 'demos/armcom/' + rel.replace(/^\//, '');
     return;
   }
   if (/armcom-demo\.html$/i.test(window.location.pathname)) {
-    armcomSiteFrame.src = 'demos/armcom/index.html?v=20260715d';
+    armcomSiteFrame.src = 'demos/armcom/index.html?v=20260717';
   }
 }
 
@@ -36,7 +47,7 @@ function bootArmcomDemoLab() {
     onProfileLookupComplete: function (detail) {
       scheduleArmcomDrawerRefresh();
       var d = detail && typeof detail === 'object' ? detail : {};
-      if (d.mode === 'lead-capture' && d.email) {
+      if ((d.mode === 'lead-capture' || d.mode === 'agi-brief') && d.email) {
         triggerArmcomDecisioningRefresh({
           forceVariant: 'brand-awareness',
           email: d.email,
@@ -228,7 +239,8 @@ function isArmcomDecisioningSignal(payload) {
   return (
     eventType === 'armcom.content.clicked' ||
     eventType === 'armcom.content.interest' ||
-    eventType === 'armcom.product.view'
+    eventType === 'armcom.product.view' ||
+    eventType === 'armcom.paidSocial.clicked'
   );
 }
 

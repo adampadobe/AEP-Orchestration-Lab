@@ -13,8 +13,8 @@
       kicker: 'arm AGI CPU',
       title: "The world's most efficient agentic CPU",
       copy: 'Providing the AGI CPU architecture for a world of possibilities.',
-      cta: 'Read more',
-      ctaHref: 'cloud-ai/index.html',
+      cta: 'Download technical brief',
+      ctaHref: 'resources/agi-cpu-technical-brief.html',
       image: A + 'hero-agi-cpu.png',
       imageAlt: 'Arm AGI CPU product render',
     },
@@ -222,6 +222,7 @@
         title: 'Arm newsroom',
         copy: 'Stay up to date with the latest Arm news, blogs, and press releases.',
         cta: 'Visit newsroom',
+        href: 'resources/newsroom.html',
       },
     ],
   };

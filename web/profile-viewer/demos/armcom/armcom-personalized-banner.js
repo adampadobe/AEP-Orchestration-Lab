@@ -365,6 +365,8 @@
       developer: 'developer',
       'neoverse-n2': 'neoverse',
       subscribe: 'cloud-ai',
+      'agi-cpu-brief': 'cloud-ai',
+      newsroom: 'cloud-ai',
       'blog-future-computing': 'cloud-ai',
     };
     onPageView(topicMap[pageId] || 'general');

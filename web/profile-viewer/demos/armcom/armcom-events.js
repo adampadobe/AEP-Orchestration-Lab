@@ -10,6 +10,25 @@
     'data-center-ai': { viewName: 'Data center AI', topic: 'cloud-ai', siteId: 'arm.com', intent: 'high' },
     developer: { viewName: 'Arm Developer', topic: 'developer', siteId: 'developer.arm.com' },
     subscribe: { viewName: 'Subscribe', topic: 'cloud-ai', siteId: 'arm.com' },
+    'agi-cpu-brief': {
+      viewName: 'AGI CPU Technical Brief',
+      topic: 'cloud-ai',
+      siteId: 'arm.com',
+      intent: 'convert',
+      contentType: 'technical-brief',
+      contentId: 'agi-cpu-technical-brief',
+      productName: 'Arm AGI CPU',
+      productCategory: 'Cloud compute',
+      productId: 'agi-cpu',
+    },
+    newsroom: {
+      viewName: 'Arm Newsroom',
+      topic: 'cloud-ai',
+      siteId: 'arm.com',
+      intent: 'engage',
+      contentType: 'press-release',
+      contentId: 'agi-cpu-launch',
+    },
     'blog-future-computing': {
       viewName: 'The future of computing',
       topic: 'cloud-ai',
@@ -37,6 +56,19 @@
     return PAGE_META[pageId()] || PAGE_META.home;
   }
 
+  function assetPrefix() {
+    var path = String(location.pathname || '');
+    var marker = '/demos/armcom/';
+    var idx = path.indexOf(marker);
+    if (idx === -1) return '';
+    var rest = path.slice(idx + marker.length);
+    var depth = (rest.match(/\//g) || []).length;
+    return depth ? '../'.repeat(depth) : '';
+  }
+
+  function linkedInMockHref() {
+    return assetPrefix() + '../../social/linkedin.html?from=activation';
+  }
 
   function postToParent(type, payload) {
     var msg = {
@@ -53,25 +85,26 @@
     }
   }
 
-  function requestDecisioningRefresh() {
+  function requestDecisioningRefresh(opts) {
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.isEnabled === 'function') {
       if (!window.ArmcomPersonalizedBanner.isEnabled()) {
-        postToParent('armcom-decisioning-refresh', {});
+        postToParent('armcom-decisioning-refresh', opts || {});
         return;
       }
     }
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.refresh === 'function') {
-      window.ArmcomPersonalizedBanner.refresh({ contentTriggered: true });
+      window.ArmcomPersonalizedBanner.refresh(Object.assign({ contentTriggered: true }, opts || {}));
       return;
     }
-    postToParent('armcom-decisioning-refresh', {});
+    postToParent('armcom-decisioning-refresh', opts || {});
   }
 
-  function notifyLeadCapture(email, company, source) {
+  function notifyLeadCapture(email, company, source, extra) {
+    var payload = Object.assign({ email: email, company: company, source: source }, extra || {});
     if (window.ArmcomPersonalizedBanner && typeof window.ArmcomPersonalizedBanner.onLeadCapture === 'function') {
-      window.ArmcomPersonalizedBanner.onLeadCapture({ email: email, company: company, source: source });
+      window.ArmcomPersonalizedBanner.onLeadCapture(payload);
     }
-    postToParent('armcom-lead-capture', { email: email, company: company, source: source });
+    postToParent('armcom-lead-capture', payload);
   }
 
   function notifyContentInterest(topic, label) {
@@ -190,6 +223,39 @@
     requestDecisioningRefresh();
   }
 
+  function sendPaidSocialClicked(extra) {
+    var m = meta();
+    postToParent('armcom-experience-event', {
+      eventType: 'armcom.paidSocial.clicked',
+      viewName: 'LinkedIn sponsored ad',
+      viewUrl: window.location.href.split('?')[0],
+      channel: 'Paid Social',
+      public: Object.assign(
+        {
+          platform: 'linkedin',
+          adName: 'AGI CPU Technical Brief',
+          topic: 'cloud-ai',
+          siteId: m.siteId,
+          cloudAiContent: true,
+          intentLevel: 'high',
+        },
+        extra || {},
+      ),
+      tenant: {
+        b2bContent: {
+          topic: 'cloud-ai',
+          siteId: m.siteId,
+          intentLevel: 'high',
+          contentType: 'technical-brief',
+          contentId: 'agi-cpu-technical-brief',
+          productName: 'Arm AGI CPU',
+          leadSource: 'linkedin-paid-social',
+        },
+      },
+    });
+    requestDecisioningRefresh({ paidSocialReturn: true, forceVariant: 'brand-awareness' });
+  }
+
   function showActivationToast() {
     var existing = document.getElementById('armcomActivationToast');
     if (existing) existing.remove();
@@ -198,8 +264,11 @@
     toast.className = 'armcom-toast';
     toast.setAttribute('role', 'status');
     toast.innerHTML =
-      '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to paid social destinations.' +
-      '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span><span>·</span><span>Meta Custom Audiences</span></div>';
+      '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences and Meta Custom Audiences.' +
+      '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span><span>·</span><span>Meta Custom Audiences</span></div>' +
+      '<a class="armcom-toast-link" href="' +
+      linkedInMockHref() +
+      '" target="_top">View on LinkedIn →</a>';
     document.body.appendChild(toast);
     requestAnimationFrame(function () {
       toast.classList.add('visible');
@@ -209,7 +278,7 @@
       setTimeout(function () {
         if (toast.parentNode) toast.parentNode.removeChild(toast);
       }, 400);
-    }, 6000);
+    }, 8000);
   }
 
   function handleSubscribeForm(form, options) {
@@ -258,6 +327,63 @@
     });
   }
 
+  function handleAgiBriefForm(form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var firstName = String(form.firstname && form.firstname.value ? form.firstname.value : '').trim();
+      var lastName = String(form.lastname && form.lastname.value ? form.lastname.value : '').trim();
+      var email = String(form.email && form.email.value ? form.email.value : '').trim();
+      var company = String(form.company && form.company.value ? form.company.value : '').trim();
+      if (!email || !firstName || !lastName) return;
+
+      notifyLeadCapture(email, company, 'agi-cpu-brief', {
+        firstName: firstName,
+        lastName: lastName,
+      });
+
+      postToParent('armcom-experience-event', {
+        eventType: 'armcom.lead.capture',
+        viewName: 'AGI CPU Technical Brief download',
+        viewUrl: window.location.href.split('?')[0],
+        channel: 'Web',
+        public: {
+          topic: 'cloud-ai',
+          siteId: 'arm.com',
+          company: company,
+          firstName: firstName,
+          lastName: lastName,
+          source: 'agi-cpu-brief',
+          cloudAiContent: true,
+          intentLevel: 'convert',
+          contentType: 'technical-brief',
+          contentId: 'agi-cpu-technical-brief',
+          productName: 'Arm AGI CPU',
+        },
+        tenant: {
+          b2bContent: {
+            topic: 'cloud-ai',
+            siteId: 'arm.com',
+            intentLevel: 'convert',
+            leadSource: 'agi-cpu-brief',
+            contentType: 'technical-brief',
+            contentId: 'agi-cpu-technical-brief',
+            productName: 'Arm AGI CPU',
+            productCategory: 'Cloud compute',
+            productId: 'agi-cpu',
+          },
+        },
+      });
+
+      showActivationToast();
+
+      var success = document.getElementById('armcomAgiBriefSuccess');
+      if (success) {
+        success.hidden = false;
+        form.hidden = true;
+      }
+    });
+  }
+
   function wireCtas() {
     document.querySelectorAll('[data-armcom-track]').forEach(function (el) {
       el.addEventListener('click', function () {
@@ -266,6 +392,17 @@
         });
       });
     });
+  }
+
+  function initLinkedInAdReturnVisit() {
+    var params;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch (_e) {
+      return;
+    }
+    if (params.get('from') !== 'linkedin-ad') return;
+    sendPaidSocialClicked({ returnVisit: true });
   }
 
   function initPageSpecificEvents() {
@@ -284,6 +421,13 @@
         productId: 'neoverse-n2',
       });
     }
+    if (id === 'newsroom') {
+      sendContentInterest('Press release — Arm unveils AGI CPU', {
+        contentType: 'press-release',
+        contentId: 'agi-cpu-launch',
+      });
+    }
+    initLinkedInAdReturnVisit();
   }
 
   function init() {
@@ -301,6 +445,9 @@
         successId: 'armcomFooterNewsletterSuccess',
       });
     }
+
+    var briefForm = document.getElementById('armcomAgiBriefForm');
+    if (briefForm) handleAgiBriefForm(briefForm);
 
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== 'armcom-demo-shell') return;
@@ -339,6 +486,7 @@
     sendContentClick: sendContentClick,
     sendContentInterest: sendContentInterest,
     sendProductView: sendProductView,
+    sendPaidSocialClicked: sendPaidSocialClicked,
     showActivationToast: showActivationToast,
     requestDecisioningRefresh: requestDecisioningRefresh,
   };

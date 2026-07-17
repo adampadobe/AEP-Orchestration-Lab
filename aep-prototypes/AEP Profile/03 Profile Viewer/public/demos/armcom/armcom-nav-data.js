@@ -47,9 +47,10 @@
             {
               label: 'Arm AGI CPU',
               description: 'Arm designed SoC for rapid deployment into servers for AI data centers',
-              href: 'index.html',
+              href: 'resources/agi-cpu-technical-brief.html',
               track: 'Nav — Arm AGI CPU',
               topic: 'cloud-ai',
+              intent: 'high',
             },
             {
               label: 'Neoverse CSS',
@@ -691,8 +692,9 @@
             {
               label: 'Newsroom',
               description: 'Press releases, announcements, & media resources from Arm',
-              href: 'resources/blog-future-computing.html',
+              href: 'resources/newsroom.html',
               track: 'Nav — Newsroom',
+              topic: 'cloud-ai',
             },
             {
               label: 'Events',

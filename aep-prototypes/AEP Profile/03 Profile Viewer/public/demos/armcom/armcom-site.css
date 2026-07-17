@@ -1450,12 +1450,87 @@ body.armcom-mega-open {
 .armcom-toast.visible {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .armcom-toast-logos {
   margin-top: 0.5rem;
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.65);
+}
+
+.armcom-toast-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-weight: 700;
+  color: #7ec8ff;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.armcom-toast-link:hover {
+  text-decoration: underline;
+}
+
+/* ── AGI CPU technical brief ──────────────────────────────── */
+.armcom-brief-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.armcom-brief-lead {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--armcom-grey-700);
+  max-width: 52ch;
+}
+
+.armcom-brief-points {
+  margin: 1.25rem 0 0;
+  padding-left: 1.15rem;
+  color: var(--armcom-grey-700);
+  line-height: 1.55;
+}
+
+.armcom-brief-hero {
+  margin: 1.75rem 0 0;
+  max-width: 420px;
+}
+
+.armcom-brief-hero img {
+  width: 100%;
+  height: auto;
+}
+
+.armcom-brief-form-card {
+  position: sticky;
+  top: 1rem;
+}
+
+.armcom-press-meta {
+  font-size: 0.9375rem;
+  color: var(--armcom-grey-600);
+  margin-bottom: 1.25rem;
+}
+
+.armcom-press-quote {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid var(--armcom-purple);
+  background: var(--armcom-grey-50);
+  font-style: italic;
+  color: var(--armcom-grey-800);
+}
+
+@media (max-width: 900px) {
+  .armcom-brief-layout {
+    grid-template-columns: 1fr;
+  }
+  .armcom-brief-form-card {
+    position: static;
+  }
 }
 
 /* ── Product detail hero ──────────────────────────────────── */

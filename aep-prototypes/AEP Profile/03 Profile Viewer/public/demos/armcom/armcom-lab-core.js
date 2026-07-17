@@ -301,13 +301,23 @@
         var leadPayload = data.payload && typeof data.payload === 'object' ? data.payload : {};
         var leadEmail = String(leadPayload.email || '').trim();
         if (!leadEmail) return;
+        var leadSource = String(leadPayload.source || '').trim();
+        var lookupMessage =
+          leadSource === 'agi-cpu-brief'
+            ? 'AGI CPU brief download — looking up profile and stitching identity...'
+            : 'Newsletter signup — looking up profile and stitching identity...';
+        var successMessage =
+          leadSource === 'agi-cpu-brief'
+            ? 'Identity unified. Cloud AI ICP audience synced to LinkedIn + Meta — open LinkedIn mock from the activation toast.'
+            : 'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.';
         await performArmcomProfileLookup(leadEmail, {
-          lookupMessage: 'Newsletter signup — looking up profile and stitching identity...',
-          successMessage:
-            'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.',
+          lookupMessage: lookupMessage,
+          successMessage: successMessage,
           notifyFrame: true,
           company: leadPayload.company,
-          mode: 'lead-capture',
+          firstName: leadPayload.firstName,
+          lastName: leadPayload.lastName,
+          mode: leadSource === 'agi-cpu-brief' ? 'agi-brief' : 'lead-capture',
         });
         return;
       }
