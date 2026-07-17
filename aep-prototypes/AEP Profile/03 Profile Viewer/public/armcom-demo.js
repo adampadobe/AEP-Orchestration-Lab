@@ -12,6 +12,24 @@ function armcomJourneyRelativeFromPathname(pathname) {
   return path.slice(idx + ARMCOM_JOURNEY_MARKER.length);
 }
 
+function isLinkedInAdReturnVisit() {
+  try {
+    return new URLSearchParams(window.location.search).get('from') === 'linkedin-ad';
+  } catch (_e) {
+    return false;
+  }
+}
+
+function onLinkedInAdReturnIframeReady() {
+  if (!isLinkedInAdReturnVisit()) return;
+  triggerArmcomDecisioningRefresh({
+    paidSocialReturn: true,
+    forceVariant: 'brand-awareness',
+    contentTriggered: true,
+  });
+  setArmcomMessage('Returned from LinkedIn ad — brand awareness banner refreshed.', 'success');
+}
+
 function syncIframeToJourneyUrl() {
   if (!armcomSiteFrame) return;
   var params;
@@ -171,6 +189,7 @@ function wireArmcomIframeDecisioningSync() {
   armcomSiteFrame.setAttribute('data-armcom-decisioning-sync-wired', '1');
   armcomSiteFrame.addEventListener('load', function () {
     syncArmcomDecisioningStateToIframe();
+    onLinkedInAdReturnIframeReady();
   });
 }
 
