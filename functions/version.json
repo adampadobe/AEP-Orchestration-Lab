@@ -1,14 +1,14 @@
 {
-  "gitSha": "3f417f18dea9a98c4bf64fa8cc4136b51e89c4fb",
-  "gitShortSha": "3f417f18",
+  "gitSha": "e8c396faf874f0fce537fd881c2850522611547a",
+  "gitShortSha": "e8c396fa",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version.json after cross-industry fix deploy (5a84568a)",
+  "gitCommitSubject": "[apalmer] feat: honor user-provided fields on profile generate",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-17T16:22:35+01:00",
-  "deployedAt": "2026-07-17T15:22:57.618Z",
+  "gitCommitDate": "2026-07-17T16:53:12+01:00",
+  "deployedAt": "2026-07-17T15:54:01.245Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3f417f18dea9a98c4bf64fa8cc4136b51e89c4fb"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e8c396faf874f0fce537fd881c2850522611547a"
 }
