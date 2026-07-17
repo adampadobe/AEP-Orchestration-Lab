@@ -119,6 +119,23 @@
     return `${local}+${dd}${mm}${yyyy}-${counter}@${domain}`;
   }
 
+  /**
+   * Resolve which email Update profile should stream to.
+   * Prefers an explicit lookup identifier, then last streamed/looked-up email,
+   * then the current counter slot (generate-next).
+   */
+  function resolveUpdateTargetEmail(opts) {
+    const o = opts && typeof opts === 'object' ? opts : {};
+    const ns = String(o.lookupNamespace || 'email').trim();
+    if (ns === 'email') {
+      const fromLookup = String(o.lookupIdentifier || '').trim();
+      if (fromLookup && fromLookup.includes('@')) return fromLookup;
+    }
+    const last = typeof o.readLastStreamed === 'function' ? o.readLastStreamed() : null;
+    if (last && last.email) return last.email;
+    return typeof o.getCurrentScaledEmail === 'function' ? o.getCurrentScaledEmail() : '';
+  }
+
   // ---------- Storage key builders ----------
 
   function normSandbox(sandbox) {
@@ -535,6 +552,7 @@
     migrateLegacyGenericKeysOnce,
     todayYmd,
     scaleEmail,
+    resolveUpdateTargetEmail,
     baseEmailStorageKey,
     baseMobileStorageKey,
     counterStorageKey,

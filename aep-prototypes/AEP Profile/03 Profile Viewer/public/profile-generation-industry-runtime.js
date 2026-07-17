@@ -776,6 +776,15 @@
       return getCurrentScaledEmail();
     }
 
+    function getUpdateTargetEmail() {
+      return Shared.resolveUpdateTargetEmail({
+        lookupIdentifier: lookupIdentifierEl ? trimVal(lookupIdentifierEl) : '',
+        lookupNamespace: lookupNsEl ? lookupNsEl.value : 'email',
+        readLastStreamed,
+        getCurrentScaledEmail,
+      });
+    }
+
     function loadCounterForCurrentContext() {
       counterEl.value = String(Shared.readCounter(getSandboxName(), trimVal(baseEmailEl)));
       updateEmailPreview();
@@ -1989,10 +1998,10 @@
     }
 
     async function updateProfile() {
-      const email = getCurrentScaledEmail();
+      const email = getUpdateTargetEmail();
       if (!email) {
-        setMessage(messageEl, 'Enter a base email first.', 'warning');
-        baseEmailEl.focus();
+        setMessage(messageEl, 'Enter a base email or look up a profile first.', 'warning');
+        if (baseEmailEl) baseEmailEl.focus();
         return;
       }
       const streaming = ensureStreamingReady();
@@ -2012,7 +2021,14 @@
           return;
         }
         if (!dryRun) {
-          const n = parseInt(counterEl.value || '1', 10) || 1;
+          const counterEmail = getCurrentScaledEmail();
+          const last = readLastStreamed();
+          const n =
+            email === counterEmail
+              ? parseInt(counterEl.value || '1', 10) || 1
+              : last && last.email === email && last.n != null
+                ? last.n
+                : null;
           recordGenerated(email, n);
           persistLastStreamed(email, n);
         }
