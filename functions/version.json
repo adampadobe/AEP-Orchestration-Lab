@@ -1,14 +1,14 @@
 {
-  "gitSha": "5a84568aa1a165edd4ab9837545ae97d9e4bcc2a",
-  "gitShortSha": "5a84568a",
+  "gitSha": "3f417f18dea9a98c4bf64fa8cc4136b51e89c4fb",
+  "gitShortSha": "3f417f18",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: cross-industry update profile uses looked-up identity",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json after cross-industry fix deploy (5a84568a)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-17T16:18:54+01:00",
-  "deployedAt": "2026-07-17T15:19:13.974Z",
+  "gitCommitDate": "2026-07-17T16:22:35+01:00",
+  "deployedAt": "2026-07-17T15:22:57.618Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5a84568aa1a165edd4ab9837545ae97d9e4bcc2a"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3f417f18dea9a98c4bf64fa8cc4136b51e89c4fb"
 }
