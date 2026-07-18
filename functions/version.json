@@ -1,14 +1,14 @@
 {
-  "gitSha": "90248b62a799ac014e060885ee39971f5d167722",
-  "gitShortSha": "90248b62",
+  "gitSha": "eb6c9f685c23465fe0046920a0ae3123c6edc4d7",
+  "gitShortSha": "eb6c9f68",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version.json after hosting deploy (e8c396fa)",
+  "gitCommitSubject": "[apalmer] feat: LinkedIn mock realistic feed and rename nav",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-17T17:00:03+01:00",
-  "deployedAt": "2026-07-17T16:00:26.624Z",
+  "gitCommitDate": "2026-07-18T09:01:38+01:00",
+  "deployedAt": "2026-07-18T08:01:52.548Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/90248b62a799ac014e060885ee39971f5d167722"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/eb6c9f685c23465fe0046920a0ae3123c6edc4d7"
 }
