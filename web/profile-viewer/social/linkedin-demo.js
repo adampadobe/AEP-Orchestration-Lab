@@ -1,5 +1,5 @@
 /**
- * LinkedIn (Arm) demo — env bar, Tags inject, profile drawer, sponsored ad click.
+ * LinkedIn demo — env bar, Tags inject, profile drawer, sponsored ad click.
  */
 (function (global) {
   'use strict';
@@ -126,7 +126,7 @@
     DemoProfileDrawer.init({
       emailInputId: 'customerEmail',
       profileOpenClass: 'social-linkedin-page--profile-open',
-      viewName: 'LinkedIn (Arm) demo',
+      viewName: 'LinkedIn demo',
       emailGetter: getEmail,
       messageSetter: setLinkedinArmMessage,
       getSelectedGeneratorTarget: getSelectedGeneratorTarget,
