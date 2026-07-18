@@ -72,9 +72,24 @@
   color: var(--dash-error-text, #b42318);
 }
 
-.social-linkedin-page--nav-open .dashboard-sidebar {
-  transform: translateX(0);
-  box-shadow: var(--dash-shadow);
+/* ── Flyout nav (desktop) — hidden until left-edge hover ── */
+@media (min-width: 769px) {
+  body.social-linkedin-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+  body.social-linkedin-page--nav-open .dashboard-sidebar,
+  body.social-linkedin-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
 }
 
 .li-app {
@@ -426,5 +441,17 @@
   .li-left,
   .li-right {
     display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  body.social-linkedin-page .dashboard-sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
   }
 }

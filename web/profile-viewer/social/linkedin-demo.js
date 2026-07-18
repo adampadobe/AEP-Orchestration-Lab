@@ -183,6 +183,10 @@
         },
         { passive: true },
       );
+      mq.addEventListener('change', function () {
+        clearHideTimer();
+        if (mq.matches) body.classList.remove('social-linkedin-page--nav-open');
+      });
       setFlyoutOpen(false);
     })();
 
