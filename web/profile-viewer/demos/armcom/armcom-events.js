@@ -46,6 +46,17 @@
       productCategory: 'Cloud compute',
       productId: 'neoverse-n2',
     },
+    'email-nurture': {
+      viewName: 'Marketo email nurture mock',
+      topic: 'cloud-ai',
+      siteId: 'arm.com',
+      intent: 'engage',
+      contentType: 'email',
+      contentId: 'agi-cpu-nurture',
+      productName: 'Arm AGI CPU',
+      productCategory: 'Cloud compute',
+      productId: 'agi-cpu',
+    },
   };
 
   function pageId() {
@@ -68,6 +79,10 @@
 
   function linkedInMockHref() {
     return assetPrefix() + '../../social/linkedin.html?from=activation';
+  }
+
+  function emailNurtureHref() {
+    return assetPrefix() + 'resources/email-nurture.html';
   }
 
   function postToParent(type, payload) {
@@ -256,6 +271,32 @@
     requestDecisioningRefresh({ paidSocialReturn: true, forceVariant: 'brand-awareness' });
   }
 
+  function sendEmailEngagement(action, extra) {
+    var m = meta();
+    var eventType = action === 'click' ? 'armcom.email.clicked' : 'armcom.email.open';
+    postToParent('armcom-experience-event', {
+      eventType: eventType,
+      viewName: m.viewName,
+      viewUrl: window.location.href.split('?')[0],
+      channel: 'Email',
+      public: Object.assign(
+        {
+          topic: m.topic,
+          siteId: m.siteId,
+          cloudAiContent: true,
+          intentLevel: m.intent || 'engage',
+          contentType: m.contentType || 'email',
+          contentId: m.contentId || 'agi-cpu-nurture',
+          productName: m.productName || 'Arm AGI CPU',
+          emailAction: action,
+        },
+        extra || {},
+      ),
+      tenant: buildTenantExtras(m),
+    });
+    requestDecisioningRefresh();
+  }
+
   function showActivationToast() {
     var existing = document.getElementById('armcomActivationToast');
     if (existing) existing.remove();
@@ -266,9 +307,14 @@
     toast.innerHTML =
       '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences and Meta Custom Audiences.' +
       '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span><span>·</span><span>Meta Custom Audiences</span></div>' +
+      '<div class="armcom-toast-actions">' +
       '<a class="armcom-toast-link" href="' +
       linkedInMockHref() +
-      '" target="_top">View on LinkedIn →</a>';
+      '" target="_top">View on LinkedIn →</a>' +
+      '<a class="armcom-toast-link armcom-toast-link--secondary" href="' +
+      emailNurtureHref() +
+      '" target="_top">Email nurture (demo) →</a>' +
+      '</div>';
     document.body.appendChild(toast);
     requestAnimationFrame(function () {
       toast.classList.add('visible');
@@ -427,7 +473,55 @@
         contentId: 'agi-cpu-launch',
       });
     }
+    if (id === 'data-center-ai') {
+      sendContentInterest('AGI CPU vs Nvidia/Intel benchmark comparison', {
+        contentType: 'benchmark-comparison',
+        contentId: 'agi-cpu-vs-nvidia-intel',
+        productName: 'Arm AGI CPU',
+        comparisonView: 'data-center-ai',
+      });
+    }
     initLinkedInAdReturnVisit();
+  }
+
+  function initEmailNurtureMock() {
+    if (pageId() !== 'email-nurture') return;
+    var row = document.getElementById('armcomEmailRow');
+    var message = document.getElementById('armcomEmailMessage');
+    var openBtn = document.getElementById('armcomEmailOpenBtn');
+    var opened = false;
+
+    function openEmail() {
+      if (opened) return;
+      opened = true;
+      if (row) {
+        row.classList.remove('armcom-email-row--unread');
+        row.setAttribute('aria-expanded', 'true');
+      }
+      if (message) message.hidden = false;
+      sendEmailEngagement('open', {
+        subject: 'Aisha — your AGI CPU efficiency benchmarks',
+        persona: 'Aisha Reyes',
+      });
+    }
+
+    if (row) {
+      row.addEventListener('click', openEmail);
+    }
+    if (openBtn) {
+      openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openEmail();
+      });
+    }
+    document.querySelectorAll('.armcom-email-cta').forEach(function (el) {
+      el.addEventListener('click', function () {
+        sendEmailEngagement('click', {
+          label: el.getAttribute('data-armcom-track') || 'email-cta',
+          href: el.getAttribute('href') || '',
+        });
+      });
+    });
   }
 
   function init() {
@@ -448,6 +542,8 @@
 
     var briefForm = document.getElementById('armcomAgiBriefForm');
     if (briefForm) handleAgiBriefForm(briefForm);
+
+    initEmailNurtureMock();
 
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== 'armcom-demo-shell') return;
@@ -487,6 +583,7 @@
     sendContentInterest: sendContentInterest,
     sendProductView: sendProductView,
     sendPaidSocialClicked: sendPaidSocialClicked,
+    sendEmailEngagement: sendEmailEngagement,
     showActivationToast: showActivationToast,
     requestDecisioningRefresh: requestDecisioningRefresh,
   };

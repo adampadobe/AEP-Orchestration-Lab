@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Arm &mdash; Cloud AI Brand Awareness Journey</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f7f7f7;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+.slide { display: flex; width: 100vw; height: 100vh; }
+
+.left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f7f7f7;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  flex-shrink: 0;
+}
+
+.header img { height: 26px; }
+#logo-fb { font-size: 18px; font-weight: 900; color: #1A1A1A; }
+.header-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-left: 4px; }
+.header-sub { font-size: 12px; color: #666; margin-left: auto; }
+
+.journey-map-container {
+  padding: 4px 16px 0;
+  flex-shrink: 0;
+  flex-grow: 0;
+  display: flex;
+  align-items: center;
+  transition: flex-grow 0.7s cubic-bezier(0.4, 0, 0.2, 1), padding 0.7s ease;
+}
+
+.journey-map-container.expanded {
+  flex-grow: 1;
+  padding: 16px 40px 20px;
+}
+
+.journey-map-container.expanded .journey-svg {
+  height: 100%;
+  width: 100%;
+}
+
+.journey-svg { width: 100%; height: auto; overflow: visible; }
+
+.journey-base { fill: none; stroke: #ddd; stroke-width: 2; }
+
+.journey-active {
+  fill: none;
+  stroke: #1A1A1A;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.journey-active.visible { opacity: 1; transition: opacity 0.6s ease; }
+
+.node-circle {
+  fill: #fff;
+  stroke: #ccc;
+  stroke-width: 2;
+  transition: fill 0.3s, stroke 0.3s;
+  r: 13;
+}
+
+.node-active .node-circle {
+  fill: #1A1A1A;
+  stroke: #1A1A1A;
+  animation: nodePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(0,0,0,0)); }
+  50%       { filter: drop-shadow(0 0 6px rgba(0,0,0,0.45)); }
+}
+
+.node-label { font-size: 8.5px; fill: #444; text-anchor: middle; }
+.node-active .node-label { font-weight: 700; }
+
+.node-emoji {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+}
+
+.data-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-top: 3px solid #1A1A1A;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 16px 10px;
+  border-radius: 0 0 6px 6px;
+  opacity: 1;
+  max-height: 2000px;
+  transform: translateY(0);
+  transition: opacity 0.65s ease,
+              max-height 0.75s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.75s ease,
+              transform 0.65s ease;
+}
+
+.data-panel.hidden {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(18px);
+  margin-bottom: 0;
+  border-top-width: 0;
+  pointer-events: none;
+}
+
+.data-panel-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: #1a1a1a;
+  padding: 8px 16px;
+  border-bottom: 2px solid #1a1a1a;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.data-grid {
+  display: flex;
+  min-height: fit-content;
+  border-top: none;
+}
+
+.data-col {
+  flex: 1;
+  padding: 8px 10px 6px;
+  border-right: 1px solid #eeeeee;
+  overflow-y: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.data-col:last-child { border-right: none; }
+
+.data-col-header {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+
+.col-sub-header {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+
+.col-ingestion-wrap, .col-orch-wrap, .col-activ-wrap {
+  display: grid;
+  grid-template-rows: minmax(80px, 1fr) minmax(80px, 1fr);
+  padding: 0;
+  overflow: hidden;
+}
+
+.col-half {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px 4px;
+  min-height: 0;
+}
+
+.col-half:first-child { border-bottom: 1px solid #eeeeee; }
+.col-half:last-child { padding-top: 28px; }
+
+.data-item {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #333;
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+
+.data-item.active, .seg.active {
+  color: #1a1a1a;
+  background: rgba(80, 200, 120, 0.18);
+  border-left: 2px solid rgba(80, 200, 120, 0.7);
+  font-weight: 600;
+}
+
+.data-item.past, .seg.past { opacity: 0.38; }
+
+.seg {
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: #333;
+  padding: 3px 6px;
+  border-radius: 3px;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.seg-icon { flex-shrink: 0; }
+
+.right-panel {
+  flex: 0 0 22%;
+  background: #1A1A1A;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.nav-dots { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; justify-content: center; max-width: 200px; }
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); cursor: pointer; }
+.nav-dot.active { background: #ffffff; }
+
+#slide-label { font-size: 16px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.3px; }
+#slide-desc { font-size: 13px; line-height: 1.5; max-width: 240px; margin-bottom: 18px; }
+
+.persona-avatar { margin-top: 4px; flex-shrink: 0; }
+
+.persona-name { font-size: 13px; font-weight: 700; margin-top: 10px; }
+.persona-role { font-size: 11px; opacity: 0.85; margin-bottom: 18px; }
+
+.nav-arrows { display: flex; gap: 16px; margin-top: 8px; }
+.nav-arrow {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; user-select: none;
+  transition: background 0.2s;
+}
+.nav-arrow:hover { background: rgba(255,255,255,0.32); }
+</style>
+</head>
+<body>
+
+<div class="slide">
+  <div class="left-panel">
+    <div class="header">
+      <img src="assets/arm-logo-black.svg" alt="Arm"
+           onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
+      <span id="logo-fb" style="display:none;">Arm</span>
+      <span class="header-title">CX Enterprise</span>
+      <span class="header-sub">Cloud AI Brand Awareness &middot; B2B Identity &amp; Activation</span>
+    </div>
+
+    <div class="journey-map-container" id="journey-map-container">
+      <svg class="journey-svg" viewBox="-20 -10 1040 230" id="journey-svg">
+        <path class="journey-base" d="M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158
+          C 228,158 260,58 288,58 C 316,58 348,168 376,168
+          C 404,168 436,62 464,62 C 492,62 524,158 552,158
+          C 580,158 612,55 640,55 C 668,55 698,165 726,165
+          C 754,165 786,52 814,52 C 842,52 872,168 900,168
+          C 922,168 958,70 982,70"/>
+        <path class="journey-active" id="active-seg" d=""/>
+
+        <g class="node-group" id="node-0" onclick="goTo(1)">
+          <circle class="node-circle" cx="25" cy="168"/>
+          <foreignObject x="12" y="155" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128188;</div>
+          </foreignObject>
+          <text class="node-label" x="25" y="194">Organic</text>
+          <text class="node-label" x="25" y="204">Awareness</text>
+        </g>
+
+        <g class="node-group" id="node-1" onclick="goTo(2)">
+          <circle class="node-circle" cx="113" cy="65"/>
+          <foreignObject x="100" y="52" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128269;</div>
+          </foreignObject>
+          <text class="node-label" x="113" y="29">Cloud AI</text>
+          <text class="node-label" x="113" y="39">Research</text>
+        </g>
+
+        <g class="node-group" id="node-2" onclick="goTo(3)">
+          <circle class="node-circle" cx="200" cy="158"/>
+          <foreignObject x="187" y="145" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#127760;</div>
+          </foreignObject>
+          <text class="node-label" x="200" y="184">Cross-Site</text>
+          <text class="node-label" x="200" y="194">Engagement</text>
+        </g>
+
+        <g class="node-group" id="node-3" onclick="goTo(4)">
+          <circle class="node-circle" cx="288" cy="58"/>
+          <foreignObject x="275" y="45" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128274;</div>
+          </foreignObject>
+          <text class="node-label" x="288" y="22">Identity</text>
+          <text class="node-label" x="288" y="32">Resolved</text>
+        </g>
+
+        <g class="node-group" id="node-4" onclick="goTo(5)">
+          <circle class="node-circle" cx="376" cy="168"/>
+          <foreignObject x="363" y="155" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#127919;</div>
+          </foreignObject>
+          <text class="node-label" x="376" y="194">Segment</text>
+          <text class="node-label" x="376" y="204">Qualified</text>
+        </g>
+
+        <g class="node-group" id="node-5" onclick="goTo(6)">
+          <circle class="node-circle" cx="464" cy="62"/>
+          <foreignObject x="451" y="49" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128241;</div>
+          </foreignObject>
+          <text class="node-label" x="464" y="26">Social</text>
+          <text class="node-label" x="464" y="36">Activation</text>
+        </g>
+
+        <g class="node-group" id="node-6" onclick="goTo(7)">
+          <circle class="node-circle" cx="552" cy="158"/>
+          <foreignObject x="539" y="145" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128204;</div>
+          </foreignObject>
+          <text class="node-label" x="552" y="184">Paid</text>
+          <text class="node-label" x="552" y="194">Retargeting</text>
+        </g>
+
+        <g class="node-group" id="node-7" onclick="goTo(8)">
+          <circle class="node-circle" cx="640" cy="55"/>
+          <foreignObject x="627" y="42" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#10024;</div>
+          </foreignObject>
+          <text class="node-label" x="640" y="19">Web</text>
+          <text class="node-label" x="640" y="29">Personalization</text>
+        </g>
+
+        <g class="node-group" id="node-8" onclick="goTo(9)">
+          <circle class="node-circle" cx="726" cy="165"/>
+          <foreignObject x="713" y="152" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128231;</div>
+          </foreignObject>
+          <text class="node-label" x="726" y="191">Email</text>
+          <text class="node-label" x="726" y="201">Nurture</text>
+        </g>
+
+        <g class="node-group" id="node-9" onclick="goTo(10)">
+          <circle class="node-circle" cx="814" cy="52"/>
+          <foreignObject x="801" y="39" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128101;</div>
+          </foreignObject>
+          <text class="node-label" x="814" y="16">Account</text>
+          <text class="node-label" x="814" y="26">Engagement</text>
+        </g>
+
+        <g class="node-group" id="node-10" onclick="goTo(11)">
+          <circle class="node-circle" cx="900" cy="168"/>
+          <foreignObject x="887" y="155" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#129309;</div>
+          </foreignObject>
+          <text class="node-label" x="900" y="194">Sales</text>
+          <text class="node-label" x="900" y="204">Handoff</text>
+        </g>
+
+        <g class="node-group" id="node-11" onclick="goTo(12)">
+          <circle class="node-circle" cx="982" cy="70"/>
+          <foreignObject x="969" y="57" width="26" height="26" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">&#128202;</div>
+          </foreignObject>
+          <text class="node-label" x="982" y="34">Closed-Loop</text>
+          <text class="node-label" x="982" y="44">Reporting</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="data-panel">
+      <div class="data-panel-title">Arm &mdash; Live Data View</div>
+      <div class="data-grid">
+
+        <div class="data-col">
+          <div class="data-col-header">Data Collected</div>
+          <div id="col-data"></div>
+        </div>
+
+        <div class="data-col col-ingestion-wrap" style="padding:0;">
+          <div class="col-half" style="padding: 8px 10px 4px;">
+            <div class="data-col-header">Data Ingestion</div>
+            <div id="col-ingestion"></div>
+          </div>
+          <div class="col-half" style="padding: 6px 10px 4px;">
+            <div class="col-sub-header">Segments</div>
+            <div id="col-segments"></div>
+          </div>
+        </div>
+
+        <div class="data-col">
+          <div class="data-col-header">Identities</div>
+          <div id="col-identities"></div>
+        </div>
+
+        <div class="data-col" style="padding: 8px 10px 4px;">
+          <div class="data-col-header">Journey Orchestration</div>
+          <div id="col-orch"></div>
+        </div>
+
+        <div class="data-col" style="padding: 8px 10px 4px;">
+          <div class="data-col-header">Activation / Destinations</div>
+          <div id="col-activ"></div>
+        </div>
+
+        <div class="data-col">
+          <div class="data-col-header">Existing Arm Technology</div>
+          <div id="col-tech"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div style="margin-bottom: 12px; flex-shrink: 0;">
+      <img src="assets/arm-logo-white.svg" alt="Arm" style="height:20px;"
+           onerror="this.style.display='none';document.getElementById('rp-logo-fb').style.display='block'">
+      <span id="rp-logo-fb" style="display:none; font-family: Arial, sans-serif; font-weight: 900; font-size: 20px; color: #ffffff; letter-spacing: -0.5px;">arm</span>
+    </div>
+    <div class="nav-dots" id="nav-dots"></div>
+    <div id="slide-label">Overview</div>
+    <div id="slide-desc"></div>
+
+    <svg class="persona-avatar" width="86" height="86" viewBox="0 0 80 80">
+      <circle cx="40" cy="40" r="40" fill="#ffffff" fill-opacity="0.15"/>
+      <ellipse cx="40" cy="72" rx="24" ry="14" fill="#2a2a2a"/>
+      <rect x="35" y="52" width="10" height="8" rx="2" fill="#e8c9a0"/>
+      <ellipse cx="40" cy="44" rx="16" ry="17" fill="#e8c9a0"/>
+      <ellipse cx="40" cy="30" rx="16" ry="8" fill="#3d2b1f"/>
+      <ellipse cx="24" cy="40" rx="4" ry="10" fill="#3d2b1f"/>
+      <ellipse cx="56" cy="40" rx="4" ry="10" fill="#3d2b1f"/>
+      <circle cx="34" cy="43" r="2.5" fill="#2a2a2a"/>
+      <circle cx="46" cy="43" r="2.5" fill="#2a2a2a"/>
+      <circle cx="35" cy="42" r="1" fill="white"/>
+      <circle cx="47" cy="42" r="1" fill="white"/>
+      <path d="M31 40 Q33 38 36 40" stroke="#2a2a2a" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <path d="M43 40 Q45 38 48 40" stroke="#2a2a2a" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <path d="M34 51 Q40 56 46 51" stroke="#c87941" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="persona-name">Aisha Reyes</div>
+    <div class="persona-role">Infrastructure Lead &middot; Target Cloud AI Account</div>
+
+    <div class="nav-arrows">
+      <div class="nav-arrow" onclick="prevSlide()">&#8592;</div>
+      <div class="nav-arrow" onclick="nextSlide()">&#8594;</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const pathSegs = [
+  '',
+  'M 25,168 C 55,168 85,65 113,65',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62 C 492,62 524,158 552,158',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62 C 492,62 524,158 552,158 C 580,158 612,55 640,55',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62 C 492,62 524,158 552,158 C 580,158 612,55 640,55 C 668,55 698,165 726,165',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62 C 492,62 524,158 552,158 C 580,158 612,55 640,55 C 668,55 698,165 726,165 C 754,165 786,52 814,52',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62 C 492,62 524,158 552,158 C 580,158 612,55 640,55 C 668,55 698,165 726,165 C 754,165 786,52 814,52 C 842,52 872,168 900,168',
+  'M 25,168 C 55,168 85,65 113,65 C 141,65 172,158 200,158 C 228,158 260,58 288,58 C 316,58 348,168 376,168 C 404,168 436,62 464,62 C 492,62 524,158 552,158 C 580,158 612,55 640,55 C 668,55 698,165 726,165 C 754,165 786,52 814,52 C 842,52 872,168 900,168 C 922,168 958,70 982,70'
+];
+
+const slides = [
+  { // 0 - Overview
+    label: 'Overview', activeNode: -1,
+    desc: 'Aisha is an infrastructure lead at a target Cloud AI account on Arm\'s account-based marketing list. This journey follows her from organic awareness through identity resolution, coordinated paid social activation, and account-level sales handoff, powered by CX Enterprise.',
+    data: [], dataActive: [], ingestion: [], ingestionActive: [],
+    segs: [], segActive: [], ids: [], orch: [], orchActive: [],
+    activ: [], activActive: [], tech: []
+  },
+  { // 1 - Organic Awareness
+    label: '01  Organic Awareness', activeNode: 0,
+    desc: 'Aisha sees organic LinkedIn coverage of the new Arm AGI CPU while researching AI data-centre compute options.',
+    data: [], dataActive: [],
+    ingestion: [], ingestionActive: [],
+    segs: [], segActive: [],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: []
+  },
+  { // 2 - Cloud AI Research
+    label: '02  Cloud AI Research', activeNode: 1,
+    desc: 'She visits arm.com to compare the AGI CPU against Nvidia and Intel options, reading efficiency benchmarks in detail. Her session assigns an anonymous ECID.',
+    data: ['Anonymous Customer', 'WebSDK page views \u2014 Cloud AI product pages', 'Time on page: AGI CPU vs Nvidia/Intel comparison'],
+    dataActive: ['Anonymous Customer', 'WebSDK page views \u2014 Cloud AI product pages', 'Time on page: AGI CPU vs Nvidia/Intel comparison'],
+    ingestion: ['WebSDK streaming events \u2192 ExperienceEvent'],
+    ingestionActive: ['WebSDK streaming events \u2192 ExperienceEvent'],
+    segs: [{i: '\uD83D\uDD0D', l: 'Anonymous Cloud AI\nContent Engagement'}],
+    segActive: ['Anonymous Cloud AI\nContent Engagement'],
+    ids: [['ECID (anon)', true]],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: [{t: 'Sitecore \u2014 arm.com', a: true}, {t: 'Adobe Analytics', a: true}]
+  },
+  { // 3 - Cross-Site Engagement
+    label: '03  Cross-Site Engagement', activeNode: 2,
+    desc: 'She also checks developer.com for toolchain support and Arm Newsroom for launch coverage. Her ECID persists across Arm\'s properties \u2014 one profile, not three.',
+    data: ['Cross-domain page views \u2014 developer.com, Arm Newsroom', 'Session count: 3 across Arm properties'],
+    dataActive: ['Cross-domain page views \u2014 developer.com, Arm Newsroom', 'Session count: 3 across Arm properties'],
+    ingestion: ['Cross-domain WebSDK events \u2192 unified profile'],
+    ingestionActive: ['Cross-domain WebSDK events \u2192 unified profile'],
+    segs: [{i: '\uD83C\uDF10', l: 'Multi-Property\nEngagement'}],
+    segActive: ['Multi-Property\nEngagement'],
+    ids: [['ECID (anon)', false]],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: [{t: 'developer.com / Newsroom (WordPress)', a: true}]
+  },
+  { // 4 - Identity Resolved
+    label: '04  Identity Resolved', activeNode: 3,
+    desc: 'She downloads an AGI CPU technical whitepaper, submitting her work email. Her domain matches an existing Salesforce Target Account \u2014 the profile resolves from anonymous to known.',
+    data: ['Known Customer', 'Business email captured \u2014 whitepaper form', 'Whitepaper downloaded: AGI CPU Technical Brief'],
+    dataActive: ['Known Customer', 'Business email captured \u2014 whitepaper form', 'Whitepaper downloaded: AGI CPU Technical Brief'],
+    ingestion: ['Form submission event \u2192 ExperienceEvent'],
+    ingestionActive: ['Form submission event \u2192 ExperienceEvent'],
+    segs: [], segActive: [],
+    ids: [['ECID (anon)', false], ['Email', true], ['Account ID (Salesforce)', true]],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: []
+  },
+  { // 5 - Segment Qualified
+    label: '05  Segment Qualified', activeNode: 4,
+    desc: 'Her web behaviour combines with existing Marketo and 6Sense signals into a single B2B intent segment \u2014 no manual list-building across six systems.',
+    data: ['Marketo email engagement history merged', '6Sense account-level intent signal merged'],
+    dataActive: ['Marketo email engagement history merged', '6Sense account-level intent signal merged'],
+    ingestion: ['Marketo engagement events', '6Sense account intent signal \u2192 XDM'],
+    ingestionActive: ['Marketo engagement events', '6Sense account intent signal \u2192 XDM'],
+    segs: [{i: '\uD83C\uDFAF', l: 'Cloud AI Target Account\n\u2014 High Intent'}],
+    segActive: ['Cloud AI Target Account\n\u2014 High Intent'],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: [{t: 'Marketo Engage', a: true}, {t: '6Sense', a: true}, {t: 'Salesforce CRM \u2014 Target Account List', a: true}]
+  },
+  { // 6 - Social Activation
+    label: '06  Social Activation', activeNode: 5,
+    desc: 'The qualified segment is activated to LinkedIn and Meta simultaneously \u2014 one audience definition, no manual rebuild per channel.',
+    data: [], dataActive: [],
+    ingestion: [], ingestionActive: [],
+    segs: [], segActive: [],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: ['Segment activated to LinkedIn Matched Audiences', 'Segment activated to Meta Custom Audiences'],
+    activActive: ['Segment activated to LinkedIn Matched Audiences', 'Segment activated to Meta Custom Audiences'],
+    tech: [{t: 'LinkedIn Campaign Manager', a: true}, {t: 'Meta Ads Manager', a: true}]
+  },
+  { // 7 - Paid Retargeting
+    label: '07  Paid Retargeting', activeNode: 6,
+    desc: 'Aisha sees a LinkedIn ad for the AGI CPU technical brief and clicks back through to arm.com.',
+    data: ['LinkedIn ad click-through recorded', 'Return visit \u2014 arm.com Cloud AI page'],
+    dataActive: ['LinkedIn ad click-through recorded', 'Return visit \u2014 arm.com Cloud AI page'],
+    ingestion: ['Return session WebSDK event \u2192 ExperienceEvent'],
+    ingestionActive: ['Return session WebSDK event \u2192 ExperienceEvent'],
+    segs: [], segActive: [],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: []
+  },
+  { // 8 - Web Personalization
+    label: '08  Web Personalization', activeNode: 7,
+    desc: 'Back on arm.com, Journey Optimizer serves Cloud AI hero content matched to her prior research \u2014 personalisation driven by the unified profile, no manual Target campaign build.',
+    data: ['On-site personalised content view \u2014 Cloud AI hero'],
+    dataActive: ['On-site personalised content view \u2014 Cloud AI hero'],
+    ingestion: ['Personalisation render event \u2192 ExperienceEvent'],
+    ingestionActive: ['Personalisation render event \u2192 ExperienceEvent'],
+    segs: [], segActive: [],
+    ids: [],
+    orch: ['Target: On-site Cloud AI hero personalisation \u2014 segment-driven, no manual build'],
+    orchActive: ['Target: On-site Cloud AI hero personalisation \u2014 segment-driven, no manual build'],
+    activ: [], activActive: [],
+    tech: [{t: 'Adobe Target', a: true}]
+  },
+  { // 9 - Email Nurture
+    label: '09  Email Nurture', activeNode: 8,
+    desc: 'A technical deep-dive email lands in her inbox, continuing the nurture from her whitepaper download.',
+    data: ['Email opened \u2014 AGI CPU technical deep-dive'],
+    dataActive: ['Email opened \u2014 AGI CPU technical deep-dive'],
+    ingestion: ['Marketo email open/click events \u2192 ExperienceEvent'],
+    ingestionActive: ['Marketo email open/click events \u2192 ExperienceEvent'],
+    segs: [], segActive: [],
+    ids: [],
+    orch: ['Marketo: AGI CPU technical nurture email sent'],
+    orchActive: ['Marketo: AGI CPU technical nurture email sent'],
+    activ: [], activActive: [],
+    tech: []
+  },
+  { // 10 - Account Engagement
+    label: '10  Account Engagement', activeNode: 9,
+    desc: 'Two colleagues from Aisha\'s account engage with the same Cloud AI content \u2014 Real-Time CDP\'s account profile unifies all three under one Account ID.',
+    data: ['Two additional account contacts engaging same content'],
+    dataActive: ['Two additional account contacts engaging same content'],
+    ingestion: ['Additional contact WebSDK events \u2192 Account Profile'],
+    ingestionActive: ['Additional contact WebSDK events \u2192 Account Profile'],
+    segs: [{i: '\uD83D\uDC65', l: 'Multi-Contact\nAccount Engagement'}],
+    segActive: ['Multi-Contact\nAccount Engagement'],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: []
+  },
+  { // 11 - Sales Handoff
+    label: '11  Sales Handoff', activeNode: 10,
+    desc: 'Account engagement crosses the qualification threshold. The account is flagged to Arm\'s sales team and an opportunity is opened in Salesforce.',
+    data: ['Account engagement threshold met', 'Salesforce Opportunity created'],
+    dataActive: ['Account engagement threshold met', 'Salesforce Opportunity created'],
+    ingestion: [], ingestionActive: [],
+    segs: [{i: '\uD83D\uDCCA', l: 'CJA: Account\nEngagement Threshold'}],
+    segActive: ['CJA: Account\nEngagement Threshold'],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: ['Marketing Qualified Account signal pushed to Salesforce'],
+    activActive: ['Marketing Qualified Account signal pushed to Salesforce'],
+    tech: [{t: 'Salesforce CRM \u2014 Opportunity object', a: true}]
+  },
+  { // 12 - Closed-Loop Reporting
+    label: '12  Closed-Loop Reporting', activeNode: 11,
+    desc: 'Cross-channel reporting ties Aisha\'s web, paid social, and email touches to the Salesforce opportunity outcome \u2014 informing the next AGI CPU target account campaign.',
+    data: ['Cross-channel journey path: web + paid social + email', 'Opportunity outcome linked to originating campaign'],
+    dataActive: ['Cross-channel journey path: web + paid social + email', 'Opportunity outcome linked to originating campaign'],
+    ingestion: [], ingestionActive: [],
+    segs: [{i: '\uD83D\uDCC8', l: 'CJA: Cross-Channel\nAttribution'}],
+    segActive: ['CJA: Cross-Channel\nAttribution'],
+    ids: [],
+    orch: [], orchActive: [],
+    activ: [], activActive: [],
+    tech: [{t: 'BigQuery', a: true}, {t: 'Databricks', a: true}]
+  }
+];
+
+let current = 0;
+let overviewTimers = [];
+
+function clearOverviewTimers() {
+  overviewTimers.forEach(t => clearTimeout(t));
+  overviewTimers = [];
+}
+
+function resetNodes() {
+  for (let n = 0; n < 12; n++) {
+    document.getElementById('node-' + n).classList.remove('node-active');
+  }
+}
+
+function animateOverview() {
+  clearOverviewTimers();
+  resetNodes();
+
+  const seg = document.getElementById('active-seg');
+  seg.setAttribute('d', pathSegs[11]);
+  seg.style.transition = 'none';
+  seg.style.opacity = '1';
+  seg.classList.remove('visible');
+
+  const totalLength = seg.getTotalLength();
+  seg.style.strokeDasharray = totalLength + ' ' + totalLength;
+  seg.style.strokeDashoffset = totalLength;
+
+  seg.getBoundingClientRect();
+
+  const duration = 7000;
+  seg.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.35, 0, 0.45, 1)`;
+  seg.style.strokeDashoffset = '0';
+}
+
+function goTo(idx) {
+  clearOverviewTimers();
+  current = Math.max(0, Math.min(slides.length - 1, idx));
+
+  const seg = document.getElementById('active-seg');
+  seg.style.transition = 'none';
+  seg.style.strokeDasharray = '';
+  seg.style.strokeDashoffset = '';
+  seg.style.opacity = '';
+  seg.classList.remove('visible');
+  seg.removeAttribute('d');
+  resetNodes();
+
+  renderContent();
+
+  if (current === 0) animateOverview();
+}
+
+function nextSlide() { goTo(current + 1); }
+function prevSlide() { goTo(current - 1); }
+
+function renderContent() {
+  const s = slides[current];
+  const isOverview = current === 0;
+
+  const panel = document.querySelector('.data-panel');
+  if (isOverview) {
+    panel.classList.add('hidden');
+  } else {
+    panel.classList.remove('hidden');
+  }
+  document.querySelector('.journey-map-container').classList.toggle('expanded', isOverview);
+
+  document.getElementById('slide-label').textContent = s.label;
+  document.getElementById('slide-desc').textContent = s.desc;
+
+  const dotsEl = document.getElementById('nav-dots');
+  dotsEl.innerHTML = slides.map((_, i) =>
+    `<div class="nav-dot${i === current ? ' active' : ''}" onclick="goTo(${i})"></div>`
+  ).join('');
+
+  if (!isOverview) {
+    for (let n = 0; n < 12; n++) {
+      document.getElementById('node-' + n).classList.toggle('node-active', s.activeNode === n);
+    }
+    const seg = document.getElementById('active-seg');
+    const pi = s.activeNode;
+    if (s.activeNode >= 0 && pi > 0) {
+      seg.setAttribute('d', pathSegs[pi]);
+      seg.classList.add('visible');
+    } else {
+      seg.removeAttribute('d');
+      seg.classList.remove('visible');
+    }
+  }
+
+  function accumulate(field, activeField) {
+    const seen = new Map();
+    for (let i = 0; i <= current; i++) {
+      const items = slides[i][field] || [];
+      const active = slides[i][activeField] || [];
+      items.forEach(t => {
+        if (i === current && active.includes(t)) seen.set(t, 'active');
+        else if (!seen.has(t)) seen.set(t, 'past');
+      });
+    }
+    return seen;
+  }
+
+  const dataMap = accumulate('data', 'dataActive');
+  document.getElementById('col-data').innerHTML =
+    [...dataMap.entries()].map(([t, state]) =>
+      `<div class="data-item${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">${t}</div>`
+    ).join('');
+
+  const ingMap = accumulate('ingestion', 'ingestionActive');
+  document.getElementById('col-ingestion').innerHTML =
+    [...ingMap.entries()].map(([t, state]) =>
+      `<div class="data-item${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">${t}</div>`
+    ).join('');
+
+  function accumulateSegs() {
+    const seen = new Map();
+    for (let i = 0; i <= current; i++) {
+      const segs = slides[i].segs || [];
+      const active = slides[i].segActive || [];
+      segs.forEach(sg => {
+        if (i === current && active.includes(sg.l)) seen.set(sg.l, {i: sg.i, state: 'active'});
+        else if (!seen.has(sg.l)) seen.set(sg.l, {i: sg.i, state: 'past'});
+      });
+    }
+    return seen;
+  }
+  const segMap = accumulateSegs();
+  document.getElementById('col-segments').innerHTML =
+    [...segMap.entries()].map(([label, {i, state}]) =>
+      `<div class="seg${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">
+        <span class="seg-icon">${i}</span>
+        <span>${label.replace('\n', ' ')}</span>
+      </div>`
+    ).join('');
+
+  function accumulateIds() {
+    const seen = new Map();
+    for (let i = 0; i <= current; i++) {
+      (slides[i].ids || []).forEach(([label, active]) => {
+        if (i === current && active) seen.set(label, 'active');
+        else if (!seen.has(label)) seen.set(label, active ? 'active' : 'past');
+      });
+    }
+    return seen;
+  }
+  const idMap = accumulateIds();
+  document.getElementById('col-identities').innerHTML =
+    [...idMap.entries()].map(([label, state]) =>
+      `<div class="data-item${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">
+        <span style="font-weight:600">${label}</span>
+      </div>`
+    ).join('');
+
+  const orchMap = accumulate('orch', 'orchActive');
+  document.getElementById('col-orch').innerHTML =
+    [...orchMap.entries()].map(([t, state]) =>
+      `<div class="data-item${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">${t}</div>`
+    ).join('');
+
+  const activMap = accumulate('activ', 'activActive');
+  document.getElementById('col-activ').innerHTML =
+    [...activMap.entries()].map(([t, state]) =>
+      `<div class="data-item${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">${t}</div>`
+    ).join('');
+
+  function accumulateTech() {
+    const seen = new Map();
+    for (let i = 0; i <= current; i++) {
+      (slides[i].tech || []).forEach(({ t, a }) => {
+        if (i === current && a) seen.set(t, 'active');
+        else if (!seen.has(t)) seen.set(t, 'past');
+      });
+    }
+    return seen;
+  }
+  const techMap = accumulateTech();
+  document.getElementById('col-tech').innerHTML =
+    [...techMap.entries()].map(([t, state]) =>
+      `<div class="data-item${state === 'active' ? ' active' : state === 'past' ? ' past' : ''}">${t}</div>`
+    ).join('');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') nextSlide();
+  if (e.key === 'ArrowLeft')  prevSlide();
+});
+
+renderContent();
+animateOverview();
+</script>
+</body>
+</html>

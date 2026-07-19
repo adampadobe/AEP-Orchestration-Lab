@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arm Cloud AI journey (presenter) – AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260719">
+  <link rel="stylesheet" href="aep-theme.css?v=20260719">
+  <style>
+    body.arm-journey-presenter-page { overflow: hidden; }
+    .arm-journey-presenter-frame {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      z-index: 1;
+    }
+    body.arm-journey-presenter-page .dashboard-sidebar { z-index: 2; }
+  </style>
+</head>
+<body class="arm-journey-presenter-page home-dashboard-concierge">
+  <iframe
+    class="arm-journey-presenter-frame"
+    title="Arm Cloud AI brand awareness journey"
+    src="demos/armcom/arm-journey.html"
+    loading="eager"
+  ></iframe>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap" aria-hidden="true">
+      <main class="dashboard-main"></main>
+    </div>
+  </div>
+
+  <script defer src="aep-theme.js?v=20260719"></script>
+  <script defer src="aep-lab-nav.js?v=20260719"></script>
+</body>
+</html>

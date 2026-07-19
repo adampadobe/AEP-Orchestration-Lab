@@ -55,6 +55,14 @@
             {
               label: 'Neoverse CSS',
               description: 'Entire compute subsystems to accelerate time-to-market for server SoC designs',
+              href: 'cloud-ai/data-center-ai.html#agi-comparison',
+              track: 'Nav — AGI CPU benchmarks',
+              topic: 'cloud-ai',
+              intent: 'high',
+            },
+            {
+              label: 'Neoverse CSS platform',
+              description: 'Data center AI orchestration overview',
               href: 'cloud-ai/data-center-ai.html',
               track: 'Nav — Neoverse CSS',
               topic: 'cloud-ai',

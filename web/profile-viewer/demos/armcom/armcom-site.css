@@ -1468,8 +1468,174 @@ body.armcom-mega-open {
   pointer-events: auto;
 }
 
+.armcom-toast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: 0.65rem;
+}
+
+.armcom-toast-link--secondary {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 600;
+}
+
 .armcom-toast-link:hover {
   text-decoration: underline;
+}
+
+/* ── AGI CPU benchmark comparison ─────────────────────────── */
+.armcom-agi-comparison {
+  margin: 2rem 0 0;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--armcom-grey-200);
+  background: var(--armcom-grey-50);
+}
+
+.armcom-agi-comparison-header h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
+}
+
+.armcom-agi-comparison-header p {
+  margin: 0;
+  color: var(--armcom-grey-700);
+  line-height: 1.55;
+}
+
+.armcom-agi-comparison-table-wrap {
+  overflow-x: auto;
+  margin-top: 1.25rem;
+}
+
+.armcom-agi-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.armcom-agi-comparison-table th,
+.armcom-agi-comparison-table td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--armcom-grey-200);
+  text-align: left;
+  vertical-align: top;
+}
+
+.armcom-agi-comparison-table thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--armcom-grey-600);
+  background: var(--armcom-white);
+}
+
+.armcom-agi-comparison-table tbody th {
+  font-weight: 600;
+  color: var(--armcom-black);
+  width: 34%;
+}
+
+.armcom-agi-comparison-table td:first-of-type + td {
+  background: rgba(114, 51, 247, 0.06);
+}
+
+.armcom-agi-comparison-note {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--armcom-grey-600);
+}
+
+/* ── Marketo email nurture mock ───────────────────────────── */
+.armcom-email-inbox {
+  border: 1px solid var(--armcom-grey-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--armcom-white);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+}
+
+.armcom-email-inbox-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--armcom-grey-50);
+  border-bottom: 1px solid var(--armcom-grey-200);
+}
+
+.armcom-email-inbox-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--armcom-grey-700);
+}
+
+.armcom-email-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--armcom-grey-200);
+  background: var(--armcom-white);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.armcom-email-row--unread .armcom-email-row-subject {
+  font-weight: 700;
+}
+
+.armcom-email-row-from,
+.armcom-email-row-subject,
+.armcom-email-row-meta {
+  font-size: 0.875rem;
+}
+
+.armcom-email-row-meta {
+  color: var(--armcom-grey-600);
+  white-space: nowrap;
+}
+
+.armcom-email-message {
+  padding: 1.25rem 1rem 1.5rem;
+}
+
+.armcom-email-message-header h2 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.armcom-email-message-kicker,
+.armcom-email-message-to {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--armcom-grey-600);
+}
+
+.armcom-email-message-body {
+  margin-top: 1rem;
+  color: var(--armcom-grey-800);
+  line-height: 1.6;
+}
+
+.armcom-email-message-body ul {
+  margin: 0.75rem 0;
+  padding-left: 1.15rem;
+}
+
+@media (max-width: 640px) {
+  .armcom-email-row {
+    grid-template-columns: 1fr;
+  }
+
+  .armcom-email-row-meta {
+    white-space: normal;
+  }
 }
 
 /* ── AGI CPU technical brief ──────────────────────────────── */

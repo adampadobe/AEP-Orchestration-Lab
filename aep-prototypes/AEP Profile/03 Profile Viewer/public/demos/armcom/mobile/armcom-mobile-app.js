@@ -77,8 +77,40 @@
   }
 
   function wireNotificationClicks() {
+    function linkedInMockHref() {
+      return '../../../social/linkedin.html?from=mobile';
+    }
+
+    function openLinkedInDeepLink(el) {
+      postToParent('armcom-experience-event', {
+        eventType: 'armcom.push.clicked',
+        viewName: 'Paid social retarget',
+        channel: 'Mobile App',
+        public: {
+          campaign: el.getAttribute('data-armcom-push'),
+          topic: 'cloud-ai',
+          destination: 'linkedin',
+        },
+      });
+      var target = linkedInMockHref();
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = target;
+          return;
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+      window.location.href = target;
+    }
+
     document.querySelectorAll('[data-armcom-push]').forEach(function (el) {
       el.addEventListener('click', function () {
+        var destination = el.getAttribute('data-armcom-destination') || 'linkedin';
+        if (destination === 'linkedin') {
+          openLinkedInDeepLink(el);
+          return;
+        }
         postToParent('armcom-experience-event', {
           eventType: 'armcom.push.clicked',
           viewName: 'Paid social retarget',
@@ -86,9 +118,14 @@
           public: {
             campaign: el.getAttribute('data-armcom-push'),
             topic: 'cloud-ai',
-            destination: el.getAttribute('data-armcom-destination') || 'linkedin',
+            destination: destination,
           },
         });
+      });
+      el.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+        el.click();
       });
     });
   }
