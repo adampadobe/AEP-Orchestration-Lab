@@ -308,8 +308,8 @@
             : 'Newsletter signup — looking up profile and stitching identity...';
         var successMessage =
           leadSource === 'agi-cpu-brief'
-            ? 'Identity unified. Cloud AI ICP audience synced to LinkedIn + Meta — open LinkedIn mock from the activation toast.'
-            : 'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.';
+            ? 'Identity unified. Cloud AI ICP audience synced to LinkedIn — open LinkedIn mock from the activation toast.'
+            : 'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn Matched Audiences.';
         await performArmcomProfileLookup(leadEmail, {
           lookupMessage: lookupMessage,
           successMessage: successMessage,
@@ -334,7 +334,7 @@
         await performArmcomProfileLookup(email, {
           lookupMessage: lookupLabel,
           successMessage:
-            'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn + Meta.',
+            'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn Matched Audiences.',
           notifyFrame: true,
           company: company,
           mode: mode,

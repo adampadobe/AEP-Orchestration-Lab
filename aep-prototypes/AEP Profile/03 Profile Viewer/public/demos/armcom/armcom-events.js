@@ -305,8 +305,8 @@
     toast.className = 'armcom-toast';
     toast.setAttribute('role', 'status');
     toast.innerHTML =
-      '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences and Meta Custom Audiences.' +
-      '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span><span>·</span><span>Meta Custom Audiences</span></div>' +
+      '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences.' +
+      '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span></div>' +
       '<div class="armcom-toast-actions">' +
       '<a class="armcom-toast-link" href="' +
       linkedInMockHref() +
