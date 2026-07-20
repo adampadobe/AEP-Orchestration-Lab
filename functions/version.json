@@ -1,14 +1,14 @@
 {
-  "gitSha": "892886063f62a78584602bf095a737a3f48416df",
-  "gitShortSha": "89288606",
+  "gitSha": "cf0e294198fb00b18441e25804c57b1d68d8e5f6",
+  "gitShortSha": "cf0e2941",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: fake linear audience progression for Arm demo journey",
+  "gitCommitSubject": "[apalmer] chore: sync version.json stamp with live deploy (89288606)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:33:46+01:00",
-  "deployedAt": "2026-07-20T11:34:10.825Z",
+  "gitCommitDate": "2026-07-20T12:35:27+01:00",
+  "deployedAt": "2026-07-20T11:35:42.313Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/892886063f62a78584602bf095a737a3f48416df"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/cf0e294198fb00b18441e25804c57b1d68d8e5f6"
 }
