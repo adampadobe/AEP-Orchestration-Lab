@@ -8,10 +8,10 @@
   var SHELL_SOURCE = 'armcom-demo-shell';
 
   var PAGE_META = {
-    home: { viewName: 'Arm home', topic: 'general', siteId: 'arm.com' },
-    'cloud-ai-hub': { viewName: 'Cloud AI hub', topic: 'cloud-ai', siteId: 'arm.com' },
-    'data-center-ai': { viewName: 'Data center AI', topic: 'cloud-ai', siteId: 'arm.com', intent: 'high' },
-    developer: { viewName: 'Arm Developer', topic: 'developer', siteId: 'developer.arm.com' },
+    home: { viewName: 'Home', topic: 'general', siteId: 'arm.com' },
+    'cloud-ai-hub': { viewName: 'Cloud AI Hub', topic: 'cloud-ai', siteId: 'arm.com' },
+    'data-center-ai': { viewName: 'Data Center AI', topic: 'cloud-ai', siteId: 'arm.com', intent: 'high' },
+    developer: { viewName: 'Developer Portal', topic: 'developer', siteId: 'developer.arm.com' },
     subscribe: { viewName: 'Subscribe', topic: 'cloud-ai', siteId: 'arm.com' },
     'agi-cpu-brief': {
       viewName: 'AGI CPU Technical Brief',
@@ -25,7 +25,7 @@
       productId: 'agi-cpu',
     },
     newsroom: {
-      viewName: 'Arm Newsroom',
+      viewName: 'Newsroom',
       topic: 'cloud-ai',
       siteId: 'arm.com',
       intent: 'engage',
@@ -76,6 +76,14 @@
 
   function meta() {
     return PAGE_META[pageId()] || PAGE_META.home;
+  }
+
+  /** Human-readable drawer label: `arm.com — Cloud AI Hub`. */
+  function formatDisplayLabel(m, pageTitleOverride) {
+    var pageMeta = m || PAGE_META.home;
+    var site = pageMeta.siteId ? String(pageMeta.siteId) : 'arm.com';
+    var page = String(pageTitleOverride || pageMeta.viewName || 'Page').trim() || 'Page';
+    return site + ' \u2014 ' + page;
   }
 
   function assetPrefix() {
@@ -148,13 +156,18 @@
 
   function sendPageView() {
     var m = meta();
+    var pid = pageId();
+    var displayLabel = formatDisplayLabel(m);
     postToParent('armcom-experience-event', {
       eventType: 'armcom.page.view',
-      viewName: m.viewName,
+      viewName: displayLabel,
+      displayLabel: displayLabel,
       viewUrl: window.location.href.split('?')[0],
       channel: 'Web',
       public: {
-        pageName: pageId(),
+        pageName: pid,
+        pageTitle: m.viewName,
+        displayLabel: displayLabel,
         topic: m.topic,
         siteId: m.siteId,
         cloudAiContent: m.topic === 'cloud-ai',
@@ -183,15 +196,19 @@
 
   function sendContentClick(label, extra) {
     var m = meta();
+    var displayLabel = formatDisplayLabel(m, label || m.viewName);
     notifyContentInterest(m.topic, label);
     postToParent('armcom-experience-event', {
       eventType: 'armcom.content.clicked',
-      viewName: m.viewName,
+      viewName: displayLabel,
+      displayLabel: displayLabel,
       viewUrl: window.location.href.split('?')[0],
       channel: 'Web',
       public: Object.assign(
         {
           label: label,
+          pageTitle: label || m.viewName,
+          displayLabel: displayLabel,
           topic: m.topic,
           siteId: m.siteId,
           cloudAiContent: m.topic === 'cloud-ai',
@@ -205,14 +222,18 @@
 
   function sendContentInterest(label, extra) {
     var m = meta();
+    var displayLabel = formatDisplayLabel(m, label || m.viewName);
     postToParent('armcom-experience-event', {
       eventType: 'armcom.content.interest',
-      viewName: m.viewName,
+      viewName: displayLabel,
+      displayLabel: displayLabel,
       viewUrl: window.location.href.split('?')[0],
       channel: 'Web',
       public: Object.assign(
         {
           label: label,
+          pageTitle: label || m.viewName,
+          displayLabel: displayLabel,
           topic: m.topic,
           siteId: m.siteId,
           cloudAiContent: true,
@@ -227,13 +248,18 @@
 
   function sendProductView(extra) {
     var m = meta();
+    var productLabel = (extra && extra.productName) || m.productName || 'Arm Neoverse N2';
+    var displayLabel = formatDisplayLabel(m, productLabel);
     postToParent('armcom-experience-event', {
       eventType: 'armcom.product.view',
-      viewName: m.viewName,
+      viewName: displayLabel,
+      displayLabel: displayLabel,
       viewUrl: window.location.href.split('?')[0],
       channel: 'Web',
       public: Object.assign(
         {
+          pageTitle: productLabel,
+          displayLabel: displayLabel,
           topic: m.topic,
           siteId: m.siteId,
           cloudAiContent: true,
@@ -251,13 +277,16 @@
 
   function sendPaidSocialClicked(extra) {
     var m = meta();
+    var displayLabel = 'LinkedIn \u2014 AGI CPU Technical Brief ad';
     postToParent('armcom-experience-event', {
       eventType: 'armcom.paidSocial.clicked',
-      viewName: 'LinkedIn sponsored ad',
+      viewName: displayLabel,
+      displayLabel: displayLabel,
       viewUrl: window.location.href.split('?')[0],
       channel: 'Paid Social',
       public: Object.assign(
         {
+          displayLabel: displayLabel,
           platform: 'linkedin',
           adName: 'AGI CPU Technical Brief',
           topic: 'cloud-ai',
@@ -285,13 +314,18 @@
   function sendEmailEngagement(action, extra) {
     var m = meta();
     var eventType = action === 'click' ? 'armcom.email.clicked' : 'armcom.email.open';
+    var emailLabel = action === 'click' ? 'Email click' : 'Email open';
+    var displayLabel = formatDisplayLabel(m, emailLabel);
     postToParent('armcom-experience-event', {
       eventType: eventType,
-      viewName: m.viewName,
+      viewName: displayLabel,
+      displayLabel: displayLabel,
       viewUrl: window.location.href.split('?')[0],
       channel: 'Email',
       public: Object.assign(
         {
+          displayLabel: displayLabel,
+          pageTitle: emailLabel,
           topic: m.topic,
           siteId: m.siteId,
           cloudAiContent: true,
@@ -440,12 +474,17 @@
 
       notifyLeadCapture(email, company, source);
 
+      var leadLabel = source === 'footer-inline' ? 'Footer newsletter signup' : 'Newsletter signup';
+      var displayLabel = formatDisplayLabel({ siteId: 'arm.com', viewName: leadLabel });
       postToParent('armcom-experience-event', {
         eventType: 'armcom.lead.capture',
-        viewName: source === 'footer-inline' ? 'Footer newsletter' : 'Marketo subscribe',
+        viewName: displayLabel,
+        displayLabel: displayLabel,
         viewUrl: window.location.href.split('?')[0],
         channel: 'Web',
         public: {
+          displayLabel: displayLabel,
+          pageTitle: leadLabel,
           topic: 'cloud-ai',
           siteId: 'arm.com',
           company: company,
@@ -490,12 +529,16 @@
         lastName: lastName,
       });
 
+      var displayLabel = formatDisplayLabel({ siteId: 'arm.com', viewName: 'AGI CPU Technical Brief download' });
       postToParent('armcom-experience-event', {
         eventType: 'armcom.lead.capture',
-        viewName: 'AGI CPU Technical Brief download',
+        viewName: displayLabel,
+        displayLabel: displayLabel,
         viewUrl: window.location.href.split('?')[0],
         channel: 'Web',
         public: {
+          displayLabel: displayLabel,
+          pageTitle: 'AGI CPU Technical Brief download',
           topic: 'cloud-ai',
           siteId: 'arm.com',
           company: company,

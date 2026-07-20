@@ -551,6 +551,20 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
   margin-top: 0.15rem;
 }
 
+.aep-profile-drawer-event-sub--armcom {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.aep-profile-drawer-event-sub--armcom-main {
+  color: var(--dash-blue, #4b9cf5);
+}
+
+.aep-profile-drawer-event-sub--armcom-developer {
+  color: var(--dash-info-text, #7eb8ff);
+}
+
 .aep-profile-drawer-col--graph {
   display: flex;
   flex-direction: column;

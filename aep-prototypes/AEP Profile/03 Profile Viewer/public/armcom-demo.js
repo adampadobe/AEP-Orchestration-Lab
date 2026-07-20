@@ -282,7 +282,10 @@ async function sendArmcomExperienceEvent(payload) {
   var body = {
     targetId: target ? target.id : undefined,
     eventType: String(p.eventType || 'armcom.page.view').trim(),
-    viewName: String(p.viewName || 'Arm lab').trim(),
+    viewName: String(p.displayLabel || p.viewName || 'Arm lab').trim(),
+    displayLabel: String(p.displayLabel || p.viewName || '').trim() || undefined,
+    pageName: p.public && p.public.pageName ? String(p.public.pageName) : undefined,
+    pageTitle: p.public && p.public.pageTitle ? String(p.public.pageTitle) : undefined,
     viewUrl: String(p.viewUrl || '').trim() || window.location.href.split('?')[0],
     channel: String(p.channel || 'Web'),
     public: p.public && typeof p.public === 'object' ? p.public : {},

@@ -1798,12 +1798,162 @@ function deriveWebPageviewTitleSnippetFromRows(rows) {
   return aepDrawerTrimEventTitleSnippet(out, 88);
 }
 
+/** Fallback page titles when only a slug is stored on the event. */
+const ARMCOM_PAGE_ID_LABELS = {
+  home: 'Home',
+  'cloud-ai-hub': 'Cloud AI Hub',
+  'data-center-ai': 'Data Center AI',
+  developer: 'Developer Portal',
+  subscribe: 'Subscribe',
+  'agi-cpu-brief': 'AGI CPU Technical Brief',
+  newsroom: 'Newsroom',
+  'blog-future-computing': 'The Future of Computing',
+  'neoverse-n2': 'Arm Neoverse N2',
+  'email-nurture': 'Marketo Email Nurture',
+  'account-engagement': 'Account Engagement',
+};
+
+function isArmcomExperienceEvent(ev) {
+  const blob = aepDrawerEventHeadTypeBlob(ev);
+  if (blob.includes('armcom')) return true;
+  const rows = ev && ev.rows;
+  if (!Array.isArray(rows)) return false;
+  for (const r of rows) {
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    if (p.includes('b2bcontent') || (p.includes('public') && (p.endsWith('.siteid') || p.endsWith('.pagename')))) {
+      const v = String(r.value || '').trim().toLowerCase();
+      if (v.includes('arm.com') || v === 'cloud-ai' || v === 'developer') return true;
+    }
+  }
+  return false;
+}
+
+function deriveArmcomRowValueFromRows(rows, suffixes) {
+  if (!Array.isArray(rows)) return '';
+  const want = Array.isArray(suffixes) ? suffixes : [suffixes];
+  /** @type {{ rank: number, value: string }[]} */
+  const found = [];
+  for (const r of rows) {
+    if (!r || typeof r !== 'object') continue;
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    const v = String(r.value == null ? '' : r.value).trim();
+    if (!v) continue;
+    for (let i = 0; i < want.length; i++) {
+      const suf = want[i];
+      if (p.endsWith(suf) || p.includes(suf)) {
+        found.push({ rank: i, value: v });
+        break;
+      }
+    }
+  }
+  found.sort((a, b) => a.rank - b.rank || 0);
+  return found[0] ? found[0].value : '';
+}
+
+function deriveArmcomSiteIdFromRows(rows) {
+  return deriveArmcomRowValueFromRows(rows, ['.siteid', '.site_id']);
+}
+
+function deriveArmcomDisplayLabelFromRows(rows) {
+  return deriveArmcomRowValueFromRows(rows, ['.displaylabel', '.display_label']);
+}
+
+function deriveArmcomPageTitleFromRows(rows) {
+  const display = deriveArmcomDisplayLabelFromRows(rows);
+  if (display && display.includes('\u2014')) {
+    const parts = display.split('\u2014');
+    const tail = parts.slice(1).join('\u2014').trim();
+    if (tail) return tail;
+  }
+  const pageTitle = deriveArmcomRowValueFromRows(rows, ['.pagetitle', '.page_title']);
+  if (pageTitle) return pageTitle;
+  const label = deriveArmcomRowValueFromRows(rows, ['.label']);
+  if (label) return label;
+  const pageName = deriveArmcomRowValueFromRows(rows, ['.pagename', '.page_name']);
+  if (pageName && ARMCOM_PAGE_ID_LABELS[pageName]) return ARMCOM_PAGE_ID_LABELS[pageName];
+  const webName = deriveWebPageviewTitleSnippetFromRows(rows);
+  if (webName && !/aep profile viewer|arm \(demo\)/i.test(webName)) return webName;
+  if (pageName) return pageName.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return '';
+}
+
+function formatArmcomSitePageTitle(siteId, pageTitle) {
+  const site = String(siteId || 'arm.com').trim() || 'arm.com';
+  const page = aepDrawerTrimEventTitleSnippet(String(pageTitle || 'Page').trim() || 'Page', 72);
+  return `${site} \u2014 ${page}`;
+}
+
+function armcomEventActionLabel(eventTypeRaw) {
+  const et = String(eventTypeRaw || '').toLowerCase();
+  if (et.includes('page.view')) return 'Page view';
+  if (et.includes('content.clicked')) return 'Click';
+  if (et.includes('content.interest')) return 'Interest';
+  if (et.includes('product.view')) return 'Product view';
+  if (et.includes('lead.capture')) return 'Lead capture';
+  if (et.includes('email.clicked')) return 'Email click';
+  if (et.includes('email.open')) return 'Email open';
+  if (et.includes('paidsocial')) return 'Paid social';
+  if (et.includes('identity.stitch')) return 'Identity stitch';
+  return 'Interaction';
+}
+
+function formatArmcomExperienceEventTitle(ev) {
+  const rows = ev && ev.rows;
+  const display = deriveArmcomDisplayLabelFromRows(rows);
+  if (display) return aepDrawerTrimEventTitleSnippet(display, 96);
+  const siteId = deriveArmcomSiteIdFromRows(rows) || 'arm.com';
+  const pageTitle = deriveArmcomPageTitleFromRows(rows);
+  if (pageTitle) return formatArmcomSitePageTitle(siteId, pageTitle);
+  const et = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim();
+  if (et.startsWith('armcom.')) {
+    return formatArmcomSitePageTitle(siteId, armcomEventActionLabel(et));
+  }
+  return normalizeEventName(et);
+}
+
+/** Generic Web SDK / lab shell pageviews that duplicate armcom.page.view in the same session. */
+function isArmcomShellNoiseWebPageview(ev) {
+  if (!isAdobeWebPageViewExperienceEvent(ev)) return false;
+  const snippet = deriveWebPageviewTitleSnippetFromRows(ev && ev.rows);
+  const blob = `${snippet} ${journeyInferenceBlob(ev)}`.toLowerCase();
+  return (
+    /aep profile viewer|arm \(demo\)|armcom-demo|profile-viewer\/armcom|aep lab demo|arm demo/i.test(blob) ||
+    (!blob.includes('demos/armcom') && !blob.includes('arm.com') && /profile-viewer/.test(blob))
+  );
+}
+
+/** Drop redundant shell Web Pageview rows when a richer armcom event exists nearby. */
+function dedupeArmcomShellNoiseFromDrawerEvents(events) {
+  if (!Array.isArray(events) || events.length < 2) return events;
+  const hasArmcom = events.some(isArmcomExperienceEvent);
+  if (!hasArmcom) return events;
+  const windowMs = 120000;
+  return events.filter((ev) => {
+    if (!isArmcomShellNoiseWebPageview(ev)) return true;
+    const ts = eventTimestampMsForDrawer(ev);
+    if (ts == null) return false;
+    return !events.some((other) => {
+      if (other === ev || !isArmcomExperienceEvent(other)) return false;
+      const ots = eventTimestampMsForDrawer(other);
+      if (ots == null) return false;
+      return Math.abs(ots - ts) <= windowMs;
+    });
+  });
+}
+
+function filterDrawerEventsForTimeline(events) {
+  return dedupeArmcomShellNoiseFromDrawerEvents(filterRecentApplicationLoginForDrawer(events));
+}
+
 /**
  * Human-readable primary label for an experience event (drawer list + journey cards).
  * Web page views: `Web Pageview — <page name>` with en dash; otherwise {@link normalizeEventName}.
  * @param {Record<string, unknown> | null | undefined} ev
  */
 function formatExperienceEventDisplayTitle(ev) {
+  if (isArmcomExperienceEvent(ev)) {
+    return formatArmcomExperienceEventTitle(ev);
+  }
   if (isAdobeWebPageViewExperienceEvent(ev)) {
     const snippet = deriveWebPageviewTitleSnippetFromRows(ev && ev.rows);
     if (snippet) {
@@ -1967,6 +2117,9 @@ function eventThumbForEvent(ev) {
     return { url: aepProfileImageCssUrl('event-login-icon.png'), variant: 'event-login' };
   }
   const typePrefix = primary.trim().toLowerCase();
+  if (keyLoose.includes('armcom') || (ev && isArmcomExperienceEvent(ev))) {
+    return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
+  }
   if (typePrefix.startsWith('web')) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }
@@ -2038,6 +2191,15 @@ function formatDrawerEventChannelDisplay(ev) {
   const msgKind = aepProfileDrawerMessageChannelKind(ev);
   if (msgKind === 'email') return 'Email';
   if (msgKind === 'push') return 'Push';
+  if (isArmcomExperienceEvent(ev)) {
+    const siteId = deriveArmcomSiteIdFromRows(ev && ev.rows);
+    const et = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim();
+    const action = armcomEventActionLabel(et);
+    if (et.toLowerCase().includes('paidsocial')) return 'LinkedIn · Paid social';
+    if (siteId && siteId.includes('developer')) return `${siteId} · Developer site`;
+    if (siteId) return `${siteId} · ${action}`;
+    return action;
+  }
   const typeRaw = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase();
   if (typeRaw.startsWith('mobile')) return 'Mobile app';
   if (typeRaw.startsWith('insurance')) return 'Insurance';
@@ -3051,6 +3213,15 @@ function renderEventTimeline(events) {
 
     const subEl = document.createElement('span');
     subEl.className = 'aep-profile-drawer-event-sub';
+    const armcomSite = deriveArmcomSiteIdFromRows(ev && ev.rows);
+    if (armcomSite) {
+      subEl.classList.add('aep-profile-drawer-event-sub--armcom');
+      if (armcomSite.includes('developer')) {
+        subEl.classList.add('aep-profile-drawer-event-sub--armcom-developer');
+      } else {
+        subEl.classList.add('aep-profile-drawer-event-sub--armcom-main');
+      }
+    }
     subEl.textContent = formatDrawerEventChannelDisplay(ev);
 
     textWrap.appendChild(timeEl);
@@ -3470,7 +3641,7 @@ async function loadProfileDataForDrawer(email, options) {
       fetchAudienceMembership(emailTrim),
       fetchProfileEventsList(emailTrim, ns),
     ]);
-    const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
+    const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
     const events = eventsForTimeline.slice(0, 5);
     const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
     const engagementH = resolveEngagementMetricsHoursBack(opts);
@@ -3621,7 +3792,7 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
       if (retry.length) eventsAll = retry;
     }
   }
-  const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
+  const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
   const events = eventsForTimeline.slice(0, 5);
   const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
   patchLastProfileOrUpdate({ events, eventsStory });
