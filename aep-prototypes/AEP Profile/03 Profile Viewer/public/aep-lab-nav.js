@@ -469,6 +469,14 @@
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 18V6l8-4 8 4v12l-8 4-8-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 22V10M4 6l8 4 8-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
                 },
                 {
+                  label: 'developer.arm.com',
+                  href: 'armcom-demo.html?frame=developer/index.html',
+                  navHideKey: 'armcomDeveloperWebDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+                },
+                {
                   label: 'Email nurture',
                   href: 'armcom-demo.html?frame=resources/email-nurture.html',
                   navHideKey: 'armcomEmailNurtureDemo',
