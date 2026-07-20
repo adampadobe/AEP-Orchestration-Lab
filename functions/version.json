@@ -1,14 +1,14 @@
 {
-  "gitSha": "8056f0e897e683ea6fa237d044c3d9e731040985",
-  "gitShortSha": "8056f0e8",
+  "gitSha": "4b103788c88b420af254282824641a1232dc43f8",
+  "gitShortSha": "4b103788",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp 861d5fd9",
+  "gitCommitSubject": "[apalmer] fix: restore Social nav group when in-development capabilities shown",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T21:53:05+01:00",
-  "deployedAt": "2026-07-20T20:54:06.189Z",
+  "gitCommitDate": "2026-07-20T22:32:40+01:00",
+  "deployedAt": "2026-07-20T21:33:16.355Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8056f0e897e683ea6fa237d044c3d9e731040985"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4b103788c88b420af254282824641a1232dc43f8"
 }
