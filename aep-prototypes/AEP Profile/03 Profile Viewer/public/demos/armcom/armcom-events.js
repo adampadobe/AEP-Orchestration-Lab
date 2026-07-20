@@ -335,6 +335,7 @@
     requestAnimationFrame(function () {
       toast.classList.add('visible');
     });
+    postToParent('armcom-audience-activated', { pageId: pageId() });
   }
 
   function handleSubscribeForm(form, options) {

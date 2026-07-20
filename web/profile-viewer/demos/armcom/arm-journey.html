@@ -830,6 +830,20 @@ function goTo(idx) {
 
   syncNavButtons();
   requestAnimationFrame(function () { navBusy = false; });
+  notifyParentJourneySlide(current);
+}
+
+function notifyParentJourneySlide(slideIdx) {
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        { source: 'armcom-journey', type: 'armcom-journey-slide', slideIndex: slideIdx },
+        '*',
+      );
+    }
+  } catch (_e) {
+    /* noop */
+  }
 }
 
 function nextSlide() { goTo(current + 1); }
@@ -996,6 +1010,7 @@ document.querySelector('.right-panel').addEventListener('click', function (e) {
 renderContent();
 syncNavButtons();
 animateOverview();
+notifyParentJourneySlide(current);
 </script>
 </body>
 </html>

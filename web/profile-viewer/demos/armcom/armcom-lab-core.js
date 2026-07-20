@@ -262,6 +262,20 @@
         });
       }
 
+      if (global.ArmcomFakeAudiences) {
+        var lookupMode = String(opts.mode || 'signin');
+        if (lookupMode === 'agi-brief' || lookupMode === 'lead-capture') {
+          if (typeof global.ArmcomFakeAudiences.onLeadCapture === 'function') {
+            global.ArmcomFakeAudiences.onLeadCapture(lookupMode);
+          }
+        } else if (lookupMode === 'signin' || lookupMode === 'register') {
+          global.ArmcomFakeAudiences.advanceToAtLeast(4);
+        }
+        if (typeof global.ArmcomFakeAudiences.patchDrawer === 'function') {
+          global.ArmcomFakeAudiences.patchDrawer();
+        }
+      }
+
       return { ok: ok, profile: profile, stitched: stitched };
     }
 
@@ -285,6 +299,18 @@
         messageSetter: setArmcomMessage,
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         fetchBrowserEcidOnInit: true,
+      });
+    }
+
+    if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.init === 'function') {
+      global.ArmcomFakeAudiences.init({
+        linkedinAdReturn: (function () {
+          try {
+            return new URLSearchParams(global.location.search).get('from') === 'linkedin-ad';
+          } catch (_e) {
+            return false;
+          }
+        })(),
       });
     }
 

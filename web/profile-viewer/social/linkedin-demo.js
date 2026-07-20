@@ -8,6 +8,13 @@
   var ARMCOM_XDM_TENANT_KEY = '_demoemea';
 
   function run() {
+    var params;
+    try {
+      params = new URLSearchParams(global.location.search);
+    } catch (_e) {
+      params = null;
+    }
+
     var customerEmail = document.getElementById('customerEmail');
     if (typeof attachEmailDatalist === 'function' && customerEmail) attachEmailDatalist('customerEmail');
     if (typeof AepIdentityPicker !== 'undefined' && customerEmail) AepIdentityPicker.init('customerEmail', 'linkedinArmNs');
@@ -133,6 +140,12 @@
       fetchBrowserEcidOnInit: true,
     });
 
+    if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.init === 'function') {
+      var linkedinInitOpts = {};
+      if (params && params.get('from') === 'activation') linkedinInitOpts.linkedinActivation = true;
+      global.ArmcomFakeAudiences.init(linkedinInitOpts);
+    }
+
     (function initLinkedinDemoFlyoutSidebar() {
       var body = document.body;
       if (!body.classList.contains('social-linkedin-page')) return;
@@ -242,6 +255,9 @@
         });
         if (res.ok) {
           setLinkedinArmMessage(data.message || 'LinkedIn ad click sent to AEP.', 'success');
+          if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
+            global.ArmcomFakeAudiences.onLinkedInAdClick();
+          }
         }
       } catch (_e) {
         /* noop — navigation still proceeds */
@@ -268,14 +284,11 @@
 
     wireArmSponsoredAd();
 
-    var params;
-    try {
-      params = new URLSearchParams(global.location.search);
-    } catch (_e) {
-      params = null;
-    }
     if (params && params.get('from') === 'activation') {
       setLinkedinArmMessage('Audience activated — this feed shows the Arm AGI CPU sponsored ad.', 'success');
+      if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.onLinkedInActivation === 'function') {
+        global.ArmcomFakeAudiences.onLinkedInActivation();
+      }
     }
   }
 

@@ -27,6 +27,9 @@ function onLinkedInAdReturnIframeReady() {
     forceVariant: 'brand-awareness',
     contentTriggered: true,
   });
+  if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
+    window.ArmcomFakeAudiences.onLinkedInAdClick();
+  }
   setArmcomMessage('Returned from LinkedIn ad — brand awareness banner refreshed.', 'success');
 }
 
@@ -190,13 +193,35 @@ function wireArmcomIframeDecisioningSync() {
   armcomSiteFrame.addEventListener('load', function () {
     syncArmcomDecisioningStateToIframe();
     onLinkedInAdReturnIframeReady();
+    syncArmcomFakeAudiencesFromIframe();
   });
+}
+
+function syncArmcomFakeAudiencesFromIframe() {
+  if (!armcomSiteFrame || !window.ArmcomFakeAudiences) return;
+  var src = String(armcomSiteFrame.src || '');
+  var marker = 'demos/armcom/';
+  var idx = src.indexOf(marker);
+  if (idx === -1) return;
+  var rel = src.slice(idx + marker.length).split('?')[0].split('#')[0];
+  var pageId = rel.replace(/\.html$/i, '');
+  if (!pageId || pageId === 'index') pageId = 'home';
+  else if (pageId.indexOf('/') !== -1) {
+    var parts = pageId.split('/');
+    pageId = parts[parts.length - 1].replace(/\.html$/i, '');
+  }
+  if (typeof window.ArmcomFakeAudiences.onPageView === 'function') {
+    window.ArmcomFakeAudiences.onPageView(pageId);
+  }
 }
 
 wireArmcomFakeDecisioningSync();
 wireArmcomIframeDecisioningSync();
 
 function triggerArmcomDecisioningRefresh(payload) {
+  if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onDecisioningRefresh === 'function') {
+    window.ArmcomFakeAudiences.onDecisioningRefresh(payload || {});
+  }
   if (!isArmcomDecisioningEnabled()) return;
   postArmcomBannerMessage('armcom-banner-refresh', payload || { contentTriggered: true });
 }
@@ -264,12 +289,27 @@ function isArmcomDecisioningSignal(payload) {
 }
 
 window.addEventListener('message', function (ev) {
+  if (ev.data && ev.data.source === 'armcom-journey' && ev.data.type === 'armcom-journey-slide') {
+    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onJourneySlide === 'function') {
+      window.ArmcomFakeAudiences.onJourneySlide(Number(ev.data.slideIndex));
+    }
+    return;
+  }
   if (!armcomSiteFrame || !armcomSiteFrame.contentWindow || ev.source !== armcomSiteFrame.contentWindow) return;
   if (!ev.data || ev.data.source !== 'armcom-lab') return;
   if (ev.data.type === 'armcom-experience-event') {
+    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onExperienceEvent === 'function') {
+      window.ArmcomFakeAudiences.onExperienceEvent(ev.data.payload);
+    }
     void sendArmcomExperienceEvent(ev.data.payload).then(function (ok) {
       if (ok && isArmcomDecisioningSignal(ev.data.payload)) triggerArmcomDecisioningRefresh();
     });
+    return;
+  }
+  if (ev.data.type === 'armcom-audience-activated') {
+    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInActivation === 'function') {
+      window.ArmcomFakeAudiences.onLinkedInActivation();
+    }
     return;
   }
   if (ev.data.type === 'armcom-decisioning-refresh' || ev.data.type === 'armcom-lead-capture') {
@@ -279,6 +319,9 @@ window.addEventListener('message', function (ev) {
     }
     if (ev.data.type === 'armcom-lead-capture') {
       var lead = ev.data.payload && typeof ev.data.payload === 'object' ? ev.data.payload : {};
+      if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLeadCapture === 'function') {
+        window.ArmcomFakeAudiences.onLeadCapture(lead.source === 'agi-cpu-brief' ? 'agi-brief' : 'lead-capture');
+      }
       triggerArmcomDecisioningRefresh({
         forceVariant: 'brand-awareness',
         email: lead.email,
