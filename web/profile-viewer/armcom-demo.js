@@ -12,6 +12,26 @@ function armcomJourneyRelativeFromPathname(pathname) {
   return path.slice(idx + ARMCOM_JOURNEY_MARKER.length);
 }
 
+function normalizeArmcomFrameSrc(src) {
+  var raw = String(src || '').trim();
+  if (!raw) return '';
+  try {
+    var u = new URL(raw, window.location.href);
+    return u.pathname.replace(/^\//, '') + (u.search || '');
+  } catch (_e) {
+    return raw.split('#')[0].replace(/^\//, '');
+  }
+}
+
+function setArmcomFrameSrcIfNeeded(nextSrc) {
+  if (!armcomSiteFrame) return false;
+  var next = normalizeArmcomFrameSrc(nextSrc);
+  var cur = normalizeArmcomFrameSrc(armcomSiteFrame.getAttribute('src') || armcomSiteFrame.src || '');
+  if (!next || cur === next) return false;
+  armcomSiteFrame.src = nextSrc;
+  return true;
+}
+
 function isLinkedInAdReturnVisit() {
   try {
     return new URLSearchParams(window.location.search).get('from') === 'linkedin-ad';
@@ -46,16 +66,16 @@ function syncIframeToJourneyUrl() {
   }
   var frameParam = params ? params.get('frame') : null;
   if (frameParam) {
-    armcomSiteFrame.src = 'demos/armcom/' + String(frameParam).replace(/^\//, '');
+    setArmcomFrameSrcIfNeeded('demos/armcom/' + String(frameParam).replace(/^\//, ''));
     return;
   }
   var rel = armcomJourneyRelativeFromPathname(window.location.pathname);
   if (rel) {
-    armcomSiteFrame.src = 'demos/armcom/' + rel.replace(/^\//, '');
+    setArmcomFrameSrcIfNeeded('demos/armcom/' + rel.replace(/^\//, ''));
     return;
   }
   if (/armcom-demo\.html$/i.test(window.location.pathname)) {
-    armcomSiteFrame.src = 'demos/armcom/index.html?v=20260717';
+    setArmcomFrameSrcIfNeeded('demos/armcom/index.html?v=20260720d');
   }
 }
 
@@ -348,8 +368,26 @@ window.addEventListener('message', function (ev) {
   }
 });
 
+function stripArmcomLaunchReloadParam() {
+  try {
+    var u = new URL(window.location.href);
+    if (!u.searchParams.has('armcomLaunchReload')) return;
+    u.searchParams.delete('armcomLaunchReload');
+    var qs = u.searchParams.toString();
+    var href = u.pathname + (qs ? '?' + qs : '') + u.hash;
+    window.history.replaceState(window.history.state, '', href);
+  } catch (_e) {
+    /* noop */
+  }
+}
+
 window.addEventListener('popstate', syncIframeToJourneyUrl);
 syncIframeToJourneyUrl();
+stripArmcomLaunchReloadParam();
+
+(function wireArmcomLaunchReloadCleanup() {
+  window.addEventListener('aep-demo-tags-injected', stripArmcomLaunchReloadParam);
+})();
 
 (function initArmcomDemoFlyoutSidebar() {
   var body = document.body;

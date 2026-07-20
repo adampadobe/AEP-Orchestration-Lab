@@ -183,6 +183,7 @@
 
   function renderBanner(mount, variant, state) {
     if (!mount || !variant) return;
+    var scrollY = window.scrollY || 0;
     mount.textContent = '';
     mount.classList.add('armcom-personalized-banner-mount');
 
@@ -244,6 +245,11 @@
     inner.appendChild(actions);
     root.appendChild(inner);
     mount.appendChild(root);
+    if (scrollY > 0) {
+      window.requestAnimationFrame(function () {
+        window.scrollTo(0, scrollY);
+      });
+    }
   }
 
   function clearBanner() {

@@ -14,7 +14,7 @@
     "bootstrap": "20260602-env-bar-bootstrap",
     "prefsLocal": "20260622-bc-enabled-persist",
     "prefsSync": "20260616-tags-incognito-load",
-    "tagsInjection": "20260714-env-bar-profile-lookup-mode",
+    "tagsInjection": "20260720d-armcom-scroll-preserve",
     "aepDemoEnvBar": "20260714-env-bar-collapse",
     "siteCloneBcEnv": "20260622-bc-enabled-persist",
     "siteCloneBcChrome": "20260614-modal-dock-parity",

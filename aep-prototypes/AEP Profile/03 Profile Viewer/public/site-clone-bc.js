@@ -349,6 +349,29 @@
     return getFrameSrcPath().indexOf('mod-bc-fullscreen-shell.html') >= 0;
   }
 
+  var IFRAME_SCROLL_PRESERVE_PX = 120;
+
+  function getIframeScrollY(doc) {
+    if (!doc || !doc.defaultView) return 0;
+    try {
+      return doc.defaultView.scrollY || doc.documentElement.scrollTop || doc.body.scrollTop || 0;
+    } catch (_e) {
+      return 0;
+    }
+  }
+
+  function shouldPreserveIframeScroll(doc) {
+    return getIframeScrollY(doc) > IFRAME_SCROLL_PRESERVE_PX;
+  }
+
+  function maybeScrollElementIntoView(doc, el, opts) {
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    if (shouldPreserveIframeScroll(doc)) return;
+    var block = opts && opts.block ? opts.block : 'start';
+    var behavior = opts && opts.behavior ? opts.behavior : 'smooth';
+    el.scrollIntoView({ behavior: behavior, block: block });
+  }
+
   function refreshSnapshotRuntimeFix(doc) {
     if (!doc || !doc.body) return;
     var styleEl = doc.getElementById('aep-mod-snapshot-runtime-fix');
@@ -389,7 +412,9 @@
       : '';
     refreshSnapshotRuntimeFix(doc);
     try {
-      doc.defaultView && doc.defaultView.scrollTo(0, 0);
+      if (on && doc.defaultView && !shouldPreserveIframeScroll(doc)) {
+        doc.defaultView.scrollTo(0, 0);
+      }
     } catch (_e) {
       /* noop */
     }
@@ -1404,9 +1429,7 @@
     scheduleDisclaimerReposition(doc);
     try {
       var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
-      if (section && typeof section.scrollIntoView === 'function') {
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      maybeScrollElementIntoView(doc, section, { behavior: 'smooth', block: 'start' });
     } catch (_e) {
       /* noop */
     }
@@ -1449,9 +1472,7 @@
                 : isArmcomHomeLayout()
                   ? doc.querySelector('[data-hero-mount]') || doc.querySelector('.armcom-hero')
                   : doc.querySelector('.exp-hero-banner');
-        if (scrollTarget && typeof scrollTarget.scrollIntoView === 'function') {
-          scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        maybeScrollElementIntoView(doc, scrollTarget, { behavior: 'smooth', block: 'start' });
       } catch (_e) {
         /* noop */
       }

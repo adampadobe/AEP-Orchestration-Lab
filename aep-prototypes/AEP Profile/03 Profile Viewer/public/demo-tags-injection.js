@@ -922,6 +922,7 @@
       const opts = flowOpts || {};
       restoreInjectSandboxIfNeeded();
       clearInjectGuard();
+      stripLaunchReloadParamFromUrl();
       if (opts.silentResume) {
         try {
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
@@ -1004,6 +1005,21 @@
       } catch (e) {
         dtLog('navigation: location.replace failed, falling back to reload', e && e.message ? e.message : String(e));
         global.location.reload();
+      }
+    }
+
+    function stripLaunchReloadParamFromUrl() {
+      try {
+        const u = new URL(global.location.href);
+        const p = storagePrefix + 'LaunchReload';
+        if (!u.searchParams.has(p)) return;
+        u.searchParams.delete(p);
+        const qs = u.searchParams.toString();
+        const href = u.pathname + (qs ? '?' + qs : '') + u.hash;
+        global.history.replaceState(global.history.state, '', href);
+        dtLog('navigation: stripped LaunchReload query param', { param: p });
+      } catch (_e) {
+        /* noop */
       }
     }
 
