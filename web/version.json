@@ -1,14 +1,14 @@
 {
-  "gitSha": "94e1f5c76b4db6ef43a4f3feb5044d28592ec946",
-  "gitShortSha": "94e1f5c7",
+  "gitSha": "1f23c0664842c69afe4e64d96b01c84912c88539",
+  "gitShortSha": "1f23c066",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: profile drawer reset ECID for Arm demo",
+  "gitCommitSubject": "[apalmer] chore: deploy stamp 94e1f5c7",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T13:34:50+01:00",
-  "deployedAt": "2026-07-20T12:35:02.322Z",
+  "gitCommitDate": "2026-07-20T13:35:05+01:00",
+  "deployedAt": "2026-07-20T12:35:19.851Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/94e1f5c76b4db6ef43a4f3feb5044d28592ec946"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1f23c0664842c69afe4e64d96b01c84912c88539"
 }
