@@ -396,6 +396,82 @@ function bindProfileDrawerCopyButtonsOnce() {
 
   profileDrawerCopyButtonsBound = true;
   syncProfileDrawerCopyButtons();
+  ensureProfileDrawerEcidResetButton();
+}
+
+function isArmcomDemoDrawerPage() {
+  if (typeof document === 'undefined' || !document.body) return false;
+  return (
+    document.body.classList.contains('armcom-demo-page') ||
+    document.body.classList.contains('armcom-mobile-demo-page')
+  );
+}
+
+let profileDrawerEcidResetBound = false;
+
+function ensureProfileDrawerEcidResetButton() {
+  if (!isArmcomDemoDrawerPage()) return;
+  if (document.getElementById('profileDrawerResetEcid')) return;
+
+  const ecidRow = document.querySelector('.aep-profile-drawer-identity-row--ecid');
+  if (!ecidRow || !ecidRow.parentElement) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'aep-profile-drawer-identity-reset-wrap';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'profileDrawerResetEcid';
+  btn.className = 'aep-profile-drawer-reset-ecid-btn';
+  btn.textContent = 'New anonymous visitor';
+  btn.setAttribute(
+    'aria-label',
+    'Reset ECID — clear tracking cookies and start as a new anonymous visitor',
+  );
+  btn.title = 'Clear Adobe tracking cookies and mint a fresh ECID for this demo tab';
+
+  wrap.appendChild(btn);
+  ecidRow.parentElement.insertBefore(wrap, ecidRow.nextSibling);
+
+  if (!profileDrawerEcidResetBound) {
+    profileDrawerEcidResetBound = true;
+    btn.addEventListener('click', function () {
+      void handleProfileDrawerEcidResetClick(btn);
+    });
+  }
+}
+
+async function handleProfileDrawerEcidResetClick(btn) {
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('is-busy');
+  const priorLabel = btn.textContent;
+  btn.textContent = 'Resetting…';
+  try {
+    if (global.ArmcomEcidReset && typeof global.ArmcomEcidReset.reset === 'function') {
+      await global.ArmcomEcidReset.reset();
+    } else {
+      clearDrawerVisitorState();
+    }
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('is-busy');
+    btn.textContent = priorLabel || 'New anonymous visitor';
+  }
+}
+
+function clearDrawerVisitorState() {
+  stopEventsPoll();
+  lastLookedUpProfile = null;
+  _lastLoadedIdentifier = null;
+  _lastEventsPollIdentifier = null;
+  _lastEventsPollNamespace = null;
+  lastIdentityGraphKeys = new Set();
+  lastIdentityGraphEmail = '';
+  cacheDomRefs();
+  if (infoEcid) infoEcid.textContent = '—';
+  updateProfileDrawer(null);
+  syncProfileDrawerCopyButtons();
 }
 
 /**
@@ -3854,38 +3930,65 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
   cacheDomRefs();
   const cur = infoEcid ? String(infoEcid.textContent || '').trim() : '';
   if (cur && cur !== '—' && cur !== '-' && /^\d+$/.test(cur) && cur.length >= 10) return;
+  await refreshBrowserEcidFromAlloy();
+}
 
-  let alloyFn;
-  try {
-    alloyFn = await whenAlloyGlobalReady(25000);
-  } catch {
-    return;
-  }
+/**
+ * Force-refresh browser ECID in the strip + drawer (used after Arm demo visitor reset).
+ * @param {{ ecid?: string|null, skipEvents?: boolean }} [opts]
+ */
+async function refreshBrowserEcidFromAlloy(opts) {
+  const options = opts && typeof opts === 'object' ? opts : {};
+  cacheDomRefs();
 
-  let result;
-  try {
-    result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
-  } catch {
+  let ecid =
+    options.ecid != null && String(options.ecid).replace(/\D/g, '').length >= 10
+      ? String(options.ecid).replace(/\D/g, '')
+      : '';
+
+  if (!ecid) {
+    let alloyFn;
     try {
-      result = await alloyFn('getIdentity');
+      alloyFn = await whenAlloyGlobalReady(25000);
     } catch {
       return;
     }
+
+    let result;
+    try {
+      result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+    } catch {
+      try {
+        result = await alloyFn('getIdentity');
+      } catch {
+        return;
+      }
+    }
+    ecid = extractEcidFromAlloyGetIdentityResult(result);
   }
 
-  const ecid = extractEcidFromAlloyGetIdentityResult(result);
   if (!ecid || ecid.length < 10) return;
 
   if (infoEcid) infoEcid.textContent = ecid;
-  patchLastProfileOrUpdate({
+  const patch = {
     ecid,
     identities: [{ namespace: 'ECID', value: ecid }],
-  });
+  };
+  if (options.skipEvents) {
+    patch.events = [];
+    patch.eventsStory = [];
+    patch.audiences = { realized: [], exited: [] };
+  }
+  patchLastProfileOrUpdate(patch);
   _lastLoadedIdentifier = ecid;
   _lastEventsPollIdentifier = ecid;
   _lastEventsPollNamespace = 'ecid';
-  void refreshDrawerEventsForIdentity(ecid, 'ecid');
-  startEventsPoll();
+  if (!options.skipEvents) {
+    void refreshDrawerEventsForIdentity(ecid, 'ecid');
+    startEventsPoll();
+  } else {
+    stopEventsPoll();
+  }
 
   if (typeof _config.afterBrowserEcidApplied === 'function') {
     try {
@@ -3988,6 +4091,7 @@ function init(config) {
   }
 
   initAepProfileDrawerHover();
+  ensureProfileDrawerEcidResetButton();
 
   if (_config.fetchBrowserEcidOnInit) {
     const run = () => {
@@ -4019,6 +4123,8 @@ const api = {
   patchLastProfileOrUpdate,
   refreshDrawerEventsForIdentity,
   refreshDrawerEventsForLoadedProfile,
+  clearDrawerVisitorState,
+  refreshBrowserEcidFromAlloy,
   initHover: initAepProfileDrawerHover,
 };
 

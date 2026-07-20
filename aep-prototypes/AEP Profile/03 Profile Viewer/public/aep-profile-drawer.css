@@ -188,6 +188,42 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
   width: 100%;
 }
 
+.aep-profile-drawer-identity-reset-wrap {
+  margin: -0.15rem 0 0.35rem;
+}
+
+.aep-profile-drawer-reset-ecid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--dash-blue, #4f86ff) 55%, transparent);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: color-mix(in srgb, var(--dash-blue, #4f86ff) 14%, transparent);
+  color: var(--dash-blue, #7eb8ff);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-reset-ecid-btn:hover {
+  background: color-mix(in srgb, var(--dash-blue, #4f86ff) 24%, transparent);
+  border-color: color-mix(in srgb, var(--dash-blue, #4f86ff) 72%, transparent);
+}
+
+.aep-profile-drawer-reset-ecid-btn:focus-visible {
+  outline: 2px solid var(--dash-blue, #4f86ff);
+  outline-offset: 2px;
+}
+
+.aep-profile-drawer-reset-ecid-btn:disabled,
+.aep-profile-drawer-reset-ecid-btn.is-busy {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .aep-profile-drawer-copyable-value-wrap > span:first-child {
   flex: 1 1 auto;
   min-width: 0;
