@@ -274,7 +274,7 @@
     })();
   </script>
   <!-- Sync load before visibility checklist so getMenuVisibilityOptions() is never stale vs deferred-only nav -->
-  <script src="aep-lab-nav.js?v=20260720-social-nav-fix"></script>
+  <script src="aep-lab-nav.js?v=20260720-indev-sandbox-fallback"></script>
   <script>
     (function () {
       var LS_PREFIX = 'aepNavHideInDev_';
@@ -337,7 +337,14 @@
         var tgl = document.getElementById('aepShowInDevCapabilitiesToggle');
         if (!tgl) return;
         try {
-          tgl.checked = localStorage.getItem(getShowInDevCapabilitiesKey()) === '1';
+          if (window.AepNavInDev && typeof window.AepNavInDev.isInDevCapabilitiesEnabled === 'function') {
+            tgl.checked = window.AepNavInDev.isInDevCapabilitiesEnabled();
+            return;
+          }
+          var key = getShowInDevCapabilitiesKey();
+          var defaultKey = LS_SHOW_INDEV_PREFIX + '__default__';
+          tgl.checked = localStorage.getItem(key) === '1' ||
+            (key !== defaultKey && localStorage.getItem(defaultKey) === '1');
         } catch (e) {
           tgl.checked = false;
         }
@@ -345,8 +352,17 @@
 
       function setShowInDevCapabilities(on) {
         try {
-          if (on) localStorage.setItem(getShowInDevCapabilitiesKey(), '1');
-          else localStorage.removeItem(getShowInDevCapabilitiesKey());
+          if (window.AepNavInDev && typeof window.AepNavInDev.setInDevCapabilitiesEnabled === 'function') {
+            window.AepNavInDev.setInDevCapabilitiesEnabled(!!on);
+            return;
+          }
+          var key = getShowInDevCapabilitiesKey();
+          var defaultKey = LS_SHOW_INDEV_PREFIX + '__default__';
+          if (on) localStorage.setItem(key, '1');
+          else {
+            localStorage.removeItem(key);
+            localStorage.removeItem(defaultKey);
+          }
         } catch (e) {}
       }
 
@@ -561,8 +577,10 @@
         if (master) {
           master.addEventListener('change', function () {
             setShowInDevCapabilities(!!master.checked);
-            if (master.checked && window.AepNavInDev && typeof window.AepNavInDev.ensureDemosNavExpandedForInDev === 'function') {
-              window.AepNavInDev.ensureDemosNavExpandedForInDev();
+            if (master.checked) {
+              if (window.AepNavInDev && typeof window.AepNavInDev.ensureDemosNavExpandedForInDev === 'function') {
+                window.AepNavInDev.ensureDemosNavExpandedForInDev();
+              }
             }
             dispatchNavChange();
           });

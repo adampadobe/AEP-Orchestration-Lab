@@ -19,6 +19,8 @@
   var LS_NAV_HIDE_PREFIX = 'aepNavHideInDev_';
   /** Master switch per sandbox: aepShowInDevCapabilities_<slug> === '1' shows all in-development nav (subject to per-item hides). Missing key = off. */
   var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
+  /** When no sandbox is selected (Global values / fresh incognito), in-dev toggle is stored under this slug and applies as fallback. */
+  var INDEV_CAPABILITIES_DEFAULT_SLUG = '__default__';
   /** Older hide keys that must still suppress / clear with the canonical navHideKey (Global values bulk unhide). */
   var NAV_HIDE_LEGACY_ALIASES = {
     socialFacebookDemo: ['menu_social_facebook_html'],
@@ -45,12 +47,32 @@
     return LS_SHOW_INDEV_PREFIX + sandboxSlugForInDev();
   }
 
+  function defaultInDevCapabilitiesStorageKey() {
+    return LS_SHOW_INDEV_PREFIX + INDEV_CAPABILITIES_DEFAULT_SLUG;
+  }
+
   function isInDevCapabilitiesEnabled() {
     try {
-      return localStorage.getItem(showInDevCapabilitiesStorageKey()) === '1';
-    } catch (e) {
-      return false;
-    }
+      var key = showInDevCapabilitiesStorageKey();
+      if (localStorage.getItem(key) === '1') return true;
+      var defaultKey = defaultInDevCapabilitiesStorageKey();
+      if (key !== defaultKey && localStorage.getItem(defaultKey) === '1') return true;
+    } catch (e) {}
+    return false;
+  }
+
+  /** Persist master in-dev toggle for the active sandbox; disabling clears sandbox + default keys. */
+  function setInDevCapabilitiesEnabled(on) {
+    try {
+      var key = showInDevCapabilitiesStorageKey();
+      if (on) {
+        localStorage.setItem(key, '1');
+        showAllInDevNavItems();
+      } else {
+        localStorage.removeItem(key);
+        localStorage.removeItem(defaultInDevCapabilitiesStorageKey());
+      }
+    } catch (e) {}
   }
 
   /** Demos (donate / Race for Life): visible when in-dev capabilities are on for this sandbox, unless hidden via Global values */
@@ -1749,7 +1771,9 @@
       LS_DEMO_NAV_VISIBILITY: LS_DEMO_NAV_VISIBILITY,
       sandboxSlugForInDev: sandboxSlugForInDev,
       showInDevCapabilitiesStorageKey: showInDevCapabilitiesStorageKey,
+      defaultInDevCapabilitiesStorageKey: defaultInDevCapabilitiesStorageKey,
       isInDevCapabilitiesEnabled: isInDevCapabilitiesEnabled,
+      setInDevCapabilitiesEnabled: setInDevCapabilitiesEnabled,
       isNavInDevHidden: isNavInDevHidden,
       clearNavInDevHide: clearNavInDevHide,
       setNavInDevHide: setNavInDevHide,
