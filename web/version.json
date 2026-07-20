@@ -1,14 +1,14 @@
 {
-  "gitSha": "4c66c10812dde6d9a16e1e4177043215a5681537",
-  "gitShortSha": "4c66c108",
+  "gitSha": "1c89d42cad10491dc1ad5e4c5cccd5a055777229",
+  "gitShortSha": "1c89d42c",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp 1f23c066",
+  "gitCommitSubject": "[apalmer] fix: restore profile drawer last events list rendering",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T13:40:56+01:00",
-  "deployedAt": "2026-07-20T12:41:12.908Z",
+  "gitCommitDate": "2026-07-20T13:53:12+01:00",
+  "deployedAt": "2026-07-20T12:53:25.827Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4c66c10812dde6d9a16e1e4177043215a5681537"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1c89d42cad10491dc1ad5e4c5cccd5a055777229"
 }
