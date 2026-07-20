@@ -1,14 +1,14 @@
 {
-  "gitSha": "263b76bd70b4a7e354901e587438daa72159cf7e",
-  "gitShortSha": "263b76bd",
+  "gitSha": "2ff49b23bf0f71968b858558ba22fc22d8f0a738",
+  "gitShortSha": "2ff49b23",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: LinkedIn News organic links to Arm mock site",
+  "gitCommitSubject": "[apalmer] chore: sync Express mirror for LinkedIn ad variants",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T23:09:59+01:00",
-  "deployedAt": "2026-07-20T22:10:22.905Z",
+  "gitCommitDate": "2026-07-20T23:20:46+01:00",
+  "deployedAt": "2026-07-20T22:21:03.095Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/263b76bd70b4a7e354901e587438daa72159cf7e"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/2ff49b23bf0f71968b858558ba22fc22d8f0a738"
 }
