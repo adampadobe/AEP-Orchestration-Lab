@@ -201,6 +201,7 @@
 
     if (pageName) onPageView(pageName);
 
+    if (eventType === 'armcom.linkedin.organic.click') advanceToAtLeast(1);
     if (eventType === 'armcom.content.interest' || eventType === 'armcom.content.clicked') {
       advanceToAtLeast(2);
     }
@@ -220,6 +221,10 @@
 
   function onLinkedInActivation() {
     advanceToAtLeast(6);
+  }
+
+  function onLinkedInOrganicClick() {
+    advanceToAtLeast(1);
   }
 
   function onLinkedInAdClick() {
@@ -287,6 +292,7 @@
     onLeadCapture: onLeadCapture,
     onSegmentQualified: onSegmentQualified,
     onLinkedInActivation: onLinkedInActivation,
+    onLinkedInOrganicClick: onLinkedInOrganicClick,
     onLinkedInAdClick: onLinkedInAdClick,
     onDecisioningRefresh: onDecisioningRefresh,
     onJourneySlide: onJourneySlide,

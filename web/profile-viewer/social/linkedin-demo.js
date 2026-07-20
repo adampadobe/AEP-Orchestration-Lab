@@ -271,6 +271,64 @@
       }
     }
 
+    async function sendLinkedInOrganicNewsClickEvent(linkEl) {
+      var headline = linkEl ? String(linkEl.getAttribute('data-li-news-headline') || '').trim() : '';
+      var topic = linkEl ? String(linkEl.getAttribute('data-li-news-topic') || '').trim() : '';
+      var ecidEl = document.getElementById('infoEcid');
+      var ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
+      var ecid =
+        ecidText && ecidText !== '—' && ecidText !== '-' && /^\d{10,}$/.test(ecidText) ? ecidText : null;
+      var email = getEmail().trim();
+      var target = getSelectedGeneratorTarget();
+      var body = {
+        targetId: target ? target.id : undefined,
+        eventType: 'armcom.linkedin.organic.click',
+        viewName: 'LinkedIn News — organic referral',
+        viewUrl: global.location.href.split('?')[0],
+        channel: 'Organic Social',
+        public: {
+          platform: 'linkedin',
+          placement: 'linkedin-news',
+          headline: headline || undefined,
+          topic: topic || undefined,
+          siteId: 'arm.com',
+          intentLevel: 'low',
+        },
+        tenant: {
+          b2bContent: {
+            topic: topic || 'cloud-ai',
+            siteId: 'arm.com',
+            intentLevel: 'low',
+            contentType: 'linkedin-news',
+            leadSource: 'linkedin-organic',
+          },
+        },
+        xdmTenantKey: ARMCOM_XDM_TENANT_KEY,
+        identityMapEcidKey: 'ECID',
+      };
+      if (email) body.email = email;
+      if (ecid) body.ecid = ecid;
+      var postBody =
+        typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.augmentGeneratorPostBody
+          ? global.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+          : body;
+      try {
+        var res = await fetch('/api/events/generator', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postBody),
+        });
+        var data = await res.json().catch(function () {
+          return {};
+        });
+        if (res.ok) {
+          setLinkedinArmMessage(data.message || 'LinkedIn News click sent to AEP.', 'success');
+        }
+      } catch (_e) {
+        /* noop — navigation still proceeds */
+      }
+    }
+
     function wireArmSponsoredAd() {
       var ad = document.getElementById('linkedinArmAd');
       if (!ad) return;
@@ -289,7 +347,24 @@
       });
     }
 
+    function wireLinkedInNewsOrganic() {
+      document.querySelectorAll('[data-li-news-organic]').forEach(function (linkEl) {
+        linkEl.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          var href = linkEl.getAttribute('href') || '';
+          if (!href || href === '#') return;
+          if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.onLinkedInOrganicClick === 'function') {
+            global.ArmcomFakeAudiences.onLinkedInOrganicClick();
+          }
+          void sendLinkedInOrganicNewsClickEvent(linkEl).finally(function () {
+            global.location.href = href;
+          });
+        });
+      });
+    }
+
     wireArmSponsoredAd();
+    wireLinkedInNewsOrganic();
 
     if (params && params.get('from') === 'activation') {
       setLinkedinArmMessage('Audience activated — this feed shows the Arm AGI CPU sponsored ad.', 'success');
