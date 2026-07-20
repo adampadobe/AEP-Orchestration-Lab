@@ -71,6 +71,45 @@
     };
   }
 
+  /** Tab-scoped “Tags injected this session” flag (survives F5; cleared when tab closes). */
+  function tagsInjectedSessionStorageKey(storagePrefix, sandboxKey) {
+    const prefix = String(storagePrefix || resolvePageStoragePrefix() || 'demoTagsInjection').trim();
+    const sk = String(sandboxKey || '__default__').trim();
+    return 'aepDemoTagsInjected:' + prefix + ':' + sk;
+  }
+
+  function readTagsInjectedSessionScript(storagePrefix, sandboxKey) {
+    const key = tagsInjectedSessionStorageKey(storagePrefix, sandboxKey);
+    try {
+      return String(global.sessionStorage.getItem(key) || '').trim();
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  function writeTagsInjectedSessionScript(storagePrefix, sandboxKey, scriptUrl) {
+    const key = tagsInjectedSessionStorageKey(storagePrefix, sandboxKey);
+    const url = String(scriptUrl || '').trim();
+    try {
+      if (!url) global.sessionStorage.removeItem(key);
+      else global.sessionStorage.setItem(key, url);
+    } catch (_e2) {
+      /* quota / private mode */
+    }
+  }
+
+  function sessionKeysToPreserveOnIdentityReset(storagePrefix) {
+    const p = String(storagePrefix || resolvePageStoragePrefix() || 'demoTagsInjection').trim();
+    const keys = injectGuardSessionKeys(p);
+    const labPrefix = p;
+    return [
+      keys.inProgress,
+      keys.sandbox,
+      p + 'PendingLaunchInject',
+      labPrefix ? 'aepLabEnvConfigured:' + labPrefix : 'aepLabEnvConfigured',
+    ];
+  }
+
   function isTagsInjectInProgress(storagePrefix) {
     const keys = injectGuardSessionKeys(storagePrefix);
     try {
@@ -784,11 +823,83 @@
      * re-inject the persisted Launch URL so alloy/getIdentity and decisioning sendEvent work without
      * another manual Inject click (identified profile lookups still need the Web SDK on the page).
      */
+    function readTagsInjectedSessionScriptForSandbox() {
+      return readTagsInjectedSessionScript(storagePrefix, getSandboxKey());
+    }
+
+    function markTagsInjectedSession(scriptUrl) {
+      writeTagsInjectedSessionScript(storagePrefix, getSandboxKey(), scriptUrl);
+    }
+
+    function clearTagsInjectedSessionForSandbox() {
+      writeTagsInjectedSessionScript(storagePrefix, getSandboxKey(), '');
+    }
+
+    function resolvePersistedLaunchScriptForResume() {
+      return (
+        sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl()) ||
+        sanitiseLaunchScriptUrl(readTagsInjectedSessionScriptForSandbox())
+      );
+    }
+
     function shouldResumeSdkInjectionOnReload() {
       if (cfg.resumeSdkOnReload === false) return false;
-      if (!isSdkConfiguredForSandbox()) return false;
-      const url = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      return !!url;
+      const url = resolvePersistedLaunchScriptForResume();
+      if (!url) return false;
+      if (isSdkConfiguredForSandbox()) return true;
+      return !!readTagsInjectedSessionScriptForSandbox();
+    }
+
+    function sandboxReadyForTagsResume() {
+      const sb = getSandboxName();
+      if (sb) return true;
+      return getSandboxKey() !== '__default__';
+    }
+
+    let autoResumeOnReloadStarted = false;
+    let autoResumeSandboxDeferWired = false;
+
+    function wireAutoResumeWhenSandboxReady() {
+      if (autoResumeSandboxDeferWired) return;
+      autoResumeSandboxDeferWired = true;
+      function retryAutoResume() {
+        if (autoResumeOnReloadStarted) return;
+        if (!shouldResumeSdkInjectionOnReload()) return;
+        if (!sandboxReadyForTagsResume()) return;
+        void startAutoResumeOnReload();
+      }
+      global.addEventListener('aep-global-sandbox-change', retryAutoResume);
+      global.addEventListener('aep-lab-env-bar-prefs-synced', retryAutoResume);
+      global.addEventListener('aep-demo-env-strip-mounted', retryAutoResume);
+    }
+
+    async function startAutoResumeOnReload() {
+      if (autoResumeOnReloadStarted) return false;
+      const persistedResume = resolvePersistedLaunchScriptForResume();
+      if (!shouldResumeSdkInjectionOnReload() || !persistedResume) return false;
+      if (!sandboxReadyForTagsResume()) {
+        dtLog('auto-resume on refresh — waiting for sandbox before reinject', {
+          sandboxKey: getSandboxKey(),
+          preview: dtPreview(persistedResume),
+        });
+        wireAutoResumeWhenSandboxReady();
+        return false;
+      }
+      autoResumeOnReloadStarted = true;
+      dtLog('auto-resume on refresh — reinject persisted Launch script', {
+        sandboxKey: getSandboxKey(),
+        preview: dtPreview(persistedResume),
+        sessionInjectFlag: !!readTagsInjectedSessionScriptForSandbox(),
+        sdkConfiguredMap: isSdkConfiguredForSandbox(),
+      });
+      renderSelectedScript(persistedResume);
+      markInjectGuardActive();
+      try {
+        await injectSelectedScriptNow(persistedResume, { silentResume: true });
+      } finally {
+        finishInjectFlow({ silentResume: true });
+      }
+      return true;
     }
 
     /** Optional `cfg.brandConcierge` — bootstraps Brand Concierge after ECID resolves. Requires brand-concierge-styles-bundle.js + brand-concierge-toggle.js loaded before this script. */
@@ -1690,6 +1801,7 @@
           });
         }
         markSdkConfiguredForSandbox(true);
+        markTagsInjectedSession(scriptUrl);
         if (silentResume) {
           setSdkConfigExpanded(false);
         } else {
@@ -1856,6 +1968,7 @@
       if (changeSdkConfigBtn) {
         changeSdkConfigBtn.addEventListener('click', function () {
           markSdkConfiguredForSandbox(false);
+          clearTagsInjectedSessionForSandbox();
           clearLastResolvedEcidForSandbox();
           setSdkConfigExpanded(true);
           requestEnvOverlayOpen();
@@ -1978,12 +2091,8 @@
       } else {
         dtLog('init: no pending inject — applySandboxConfigState');
         applySandboxConfigState();
-        const persistedResume = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+        const persistedResume = resolvePersistedLaunchScriptForResume();
         if (shouldResumeSdkInjectionOnReload() && persistedResume) {
-          dtLog('init: resume — auto-reinject persisted Launch script', {
-            sandboxKey: getSandboxKey(),
-            preview: dtPreview(persistedResume),
-          });
           const cachedEcid = readLastResolvedEcid();
           if (cachedEcid && infoEcidEl) {
             const cur = String(infoEcidEl.textContent || '').trim();
@@ -1992,10 +2101,7 @@
               setMessage('Restoring Web SDK — last lab ECID shown until getIdentity refreshes.', '');
             }
           }
-          renderSelectedScript(persistedResume);
-          markInjectGuardActive();
-          void injectSelectedScriptNow(persistedResume, { silentResume: true }).finally(function () {
-            finishInjectFlow({ silentResume: true });
+          void startAutoResumeOnReload().finally(function () {
             void loadTagsCompanies();
           });
         } else {
@@ -2055,6 +2161,13 @@
     isInProgress: isTagsInjectInProgress,
     getSandboxSnapshot: readTagsInjectSandboxSnapshot,
     resolveStoragePrefix: resolvePageStoragePrefix,
+  };
+
+  global.AepLabTagsInjectSession = {
+    sessionKey: tagsInjectedSessionStorageKey,
+    readScript: readTagsInjectedSessionScript,
+    writeScript: writeTagsInjectedSessionScript,
+    keysToPreserveOnIdentityReset: sessionKeysToPreserveOnIdentityReset,
   };
 
   global.DemoLabEdgeConfig = {

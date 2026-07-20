@@ -15,7 +15,7 @@
     "bootstrap": "20260720-global-lab-console",
     "prefsLocal": "20260622-bc-enabled-persist",
     "prefsSync": "20260616-tags-incognito-load",
-    "tagsInjection": "20260720-global-lab-console",
+    "tagsInjection": "20260720e-tags-resume",
     "aepDemoEnvBar": "20260720-global-lab-console",
     "siteCloneBcEnv": "20260622-bc-enabled-persist",
     "siteCloneBcChrome": "20260614-modal-dock-parity",

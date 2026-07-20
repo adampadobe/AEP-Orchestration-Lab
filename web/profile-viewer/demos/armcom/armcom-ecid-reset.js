@@ -1,19 +1,20 @@
 /**
  * Arm demo — reset anonymous visitor ECID (cookies, session keys, fake audiences, drawer).
+ * Preserves Tags SDK inject state (Launch script in DOM, env bar configured, inject session flags).
  */
 (function (global) {
   'use strict';
 
   var STORAGE_PREFIX = 'armcom';
   var ECID_BY_SANDBOX_KEY = STORAGE_PREFIX + 'LastResolvedEcidBySandbox';
+  var LAB_ENV_CONFIGURED_KEY = 'aepLabEnvConfigured:' + STORAGE_PREFIX;
+  var LAUNCH_SCRIPT_ID = STORAGE_PREFIX + 'LaunchScript';
 
+  /** Demo visitor state only — do not clear Tags inject / env-bar configured session keys. */
   var SESSION_KEYS = [
     'armcomFakeAudienceStage',
     'armcomJourneySlideIndex',
     'aep-demo-session-identifier-v1',
-    STORAGE_PREFIX + 'PendingLaunchInject',
-    STORAGE_PREFIX + 'InjectInProgress',
-    STORAGE_PREFIX + 'InjectSandboxSnapshot',
   ];
 
   function isArmcomLabPage() {
@@ -22,6 +23,25 @@
       document.body.classList.contains('armcom-demo-page') ||
       document.body.classList.contains('armcom-mobile-demo-page')
     );
+  }
+
+  function resolveArmcomSandboxKey() {
+    try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.sandboxKey === 'function') {
+        var sb =
+          global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function'
+            ? String(global.AepGlobalSandbox.getSandboxName() || '').trim()
+            : '';
+        return global.AepLabEnvBarPrefs.sandboxKey(sb);
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    var raw =
+      global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function'
+        ? String(global.AepGlobalSandbox.getSandboxName() || '').trim().toLowerCase()
+        : '';
+    return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
   }
 
   function expireCookie(name) {
@@ -54,7 +74,16 @@
   }
 
   function clearArmcomLocalEcidCache() {
+    var sk = resolveArmcomSandboxKey();
     try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+        var map = global.AepLabEnvBarPrefs.readMap(ECID_BY_SANDBOX_KEY);
+        if (map && typeof map === 'object') {
+          delete map[sk];
+          global.AepLabEnvBarPrefs.writeMap(ECID_BY_SANDBOX_KEY, map);
+          return;
+        }
+      }
       localStorage.removeItem(ECID_BY_SANDBOX_KEY);
     } catch (_e) {
       /* noop */
@@ -69,6 +98,33 @@
         /* noop */
       }
     });
+  }
+
+  function readLaunchScriptSrcFromDom() {
+    var el = document.getElementById(LAUNCH_SCRIPT_ID);
+    if (!el) return '';
+    return String(el.getAttribute('src') || el.src || '').trim();
+  }
+
+  /** Keep env bar + tab session inject flags when alloy Launch tag is still on the page. */
+  function preserveArmcomTagsInjectState() {
+    var scriptSrc = readLaunchScriptSrcFromDom();
+    if (!scriptSrc) return;
+    try {
+      sessionStorage.setItem(LAB_ENV_CONFIGURED_KEY, '1');
+    } catch (_e) {
+      /* noop */
+    }
+    if (
+      global.AepLabTagsInjectSession &&
+      typeof global.AepLabTagsInjectSession.writeScript === 'function'
+    ) {
+      try {
+        global.AepLabTagsInjectSession.writeScript(STORAGE_PREFIX, resolveArmcomSandboxKey(), scriptSrc);
+      } catch (_e2) {
+        /* noop */
+      }
+    }
   }
 
   function clearCustomerEmailField() {
@@ -181,6 +237,20 @@
     }
   }
 
+  function persistFreshEcidForSandbox(ecid) {
+    if (!ecid) return;
+    var sk = resolveArmcomSandboxKey();
+    try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+        var map = global.AepLabEnvBarPrefs.readMap(ECID_BY_SANDBOX_KEY);
+        map[sk] = ecid;
+        global.AepLabEnvBarPrefs.writeMap(ECID_BY_SANDBOX_KEY, map);
+      }
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
   function applyFreshEcidToUi(ecid) {
     var infoEcid = document.getElementById('infoEcid');
     if (infoEcid) infoEcid.textContent = ecid || '—';
@@ -234,20 +304,27 @@
     }
 
     reloadArmcomIframe();
+    preserveArmcomTagsInjectState();
 
     var ecid = await fetchFreshEcidFromAlloy();
     if (!ecid) ecid = await fetchFallbackAnonymousEcid();
+    if (ecid) persistFreshEcidForSandbox(ecid);
     applyFreshEcidToUi(ecid);
 
+    var tagsStillLoaded = !!readLaunchScriptSrcFromDom() || typeof global.alloy === 'function';
     var message = ecid
-      ? 'New anonymous visitor — ECID ' + ecid + '. No profile events loaded until you browse or look up a profile.'
-      : 'Visitor reset — tracking cookies cleared. Inject Tags and browse to mint a new ECID via Web SDK.';
+      ? 'New anonymous visitor — ECID ' +
+        ecid +
+        '. Tags SDK kept loaded. No profile events until you browse or look up a profile.'
+      : tagsStillLoaded
+        ? 'Visitor reset — tracking cookies cleared. Minting ECID via Web SDK; browse the journey if ECID stays empty.'
+        : 'Visitor reset — tracking cookies cleared. Inject Tags and browse to mint a new ECID via Web SDK.';
     setArmcomLabMessage(message, ecid ? 'success' : '');
 
     try {
       global.dispatchEvent(
         new CustomEvent('armcom-ecid-reset-complete', {
-          detail: { ecid: ecid, message: message },
+          detail: { ecid: ecid, message: message, tagsInjectPreserved: tagsStillLoaded },
         }),
       );
     } catch (_e) {
@@ -261,5 +338,6 @@
     reset: resetArmcomVisitorEcid,
     isArmcomLabPage: isArmcomLabPage,
     clearTrackingCookiesBestEffort: clearTrackingCookiesBestEffort,
+    preserveTagsInjectState: preserveArmcomTagsInjectState,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
