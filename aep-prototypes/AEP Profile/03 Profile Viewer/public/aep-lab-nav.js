@@ -909,6 +909,7 @@
                 {
                   label: 'LinkedIn',
                   href: 'social/linkedin.html',
+                  inDevelopment: true,
                   navHideKey: 'socialLinkedinArmDemo',
                   demoMeta: { owners: ['apalmer'] },
                   ico:
