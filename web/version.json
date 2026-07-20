@@ -1,14 +1,14 @@
 {
-  "gitSha": "09e550f19ecf7571f2827596788cb9b6a25e6f6f",
-  "gitShortSha": "09e550f1",
+  "gitSha": "892886063f62a78584602bf095a737a3f48416df",
+  "gitShortSha": "89288606",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: copy-to-clipboard for Arm journey email and ECID",
+  "gitCommitSubject": "[apalmer] feat: fake linear audience progression for Arm demo journey",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:30:52+01:00",
-  "deployedAt": "2026-07-20T11:31:12.389Z",
+  "gitCommitDate": "2026-07-20T12:33:46+01:00",
+  "deployedAt": "2026-07-20T11:34:10.825Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/09e550f19ecf7571f2827596788cb9b6a25e6f6f"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/892886063f62a78584602bf095a737a3f48416df"
 }
