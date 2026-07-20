@@ -1,14 +1,14 @@
 {
-  "gitSha": "ec47aa1fc5ec602ccb982b167de0078431c30ce4",
-  "gitShortSha": "ec47aa1f",
+  "gitSha": "02761ce73c0c74838e55738ea7105ebc85a75370",
+  "gitShortSha": "02761ce7",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: sync deploy version stamps for fefb38af",
+  "gitCommitSubject": "[apalmer] fix: Social nav survives sandbox selection in incognito",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T22:35:44+01:00",
-  "deployedAt": "2026-07-20T21:36:01.142Z",
+  "gitCommitDate": "2026-07-20T22:43:55+01:00",
+  "deployedAt": "2026-07-20T21:44:19.988Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ec47aa1fc5ec602ccb982b167de0078431c30ce4"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/02761ce73c0c74838e55738ea7105ebc85a75370"
 }
