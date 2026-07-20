@@ -1,14 +1,14 @@
 {
-  "gitSha": "6bd31bee0a6e86671a73721343c8ea0efa9b6141",
-  "gitShortSha": "6bd31bee",
+  "gitSha": "5766c2fcfc917e7a6535525a12e6993a9300ccdd",
+  "gitShortSha": "5766c2fc",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: Arm demo LinkedIn-only activation polish",
+  "gitCommitSubject": "[apalmer] fix: Arm client journey nav button and sidebar titles",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-19T09:31:22+01:00",
-  "deployedAt": "2026-07-19T08:31:48.544Z",
+  "gitCommitDate": "2026-07-20T11:29:54+01:00",
+  "deployedAt": "2026-07-20T10:30:39.797Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/6bd31bee0a6e86671a73721343c8ea0efa9b6141"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5766c2fcfc917e7a6535525a12e6993a9300ccdd"
 }
