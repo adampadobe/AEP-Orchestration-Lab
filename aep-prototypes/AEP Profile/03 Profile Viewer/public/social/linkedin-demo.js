@@ -497,9 +497,14 @@
       }
     }
 
+    function openArmTargetInNewTab(url) {
+      if (!url) return;
+      global.open(url, '_blank', 'noopener,noreferrer');
+    }
+
     function navigateToArmAdTarget() {
       var targetUrl = (currentAdVariant && currentAdVariant.targetUrl) || AD_VARIANTS.awareness.targetUrl;
-      global.location.href = targetUrl;
+      openArmTargetInNewTab(targetUrl);
     }
 
     function wireArmSponsoredAd() {
@@ -530,7 +535,7 @@
             global.ArmcomFakeAudiences.onLinkedInOrganicClick();
           }
           void sendLinkedInOrganicNewsClickEvent(linkEl).finally(function () {
-            global.location.href = href;
+            openArmTargetInNewTab(href);
           });
         });
       });
