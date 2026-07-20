@@ -1,14 +1,14 @@
 {
-  "gitSha": "a172fa1879713b1009a107bc76e76655693d5b37",
-  "gitShortSha": "a172fa18",
+  "gitSha": "1ed4d65d498f4b0e280ffce374ea2ead5b3182df",
+  "gitShortSha": "1ed4d65d",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: align Arm demo flow with journey stages",
+  "gitCommitSubject": "[apalmer] chore: restamp version after Arm demo hosting deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:47:43+01:00",
-  "deployedAt": "2026-07-20T11:47:58.529Z",
+  "gitCommitDate": "2026-07-20T12:48:24+01:00",
+  "deployedAt": "2026-07-20T11:50:27.407Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a172fa1879713b1009a107bc76e76655693d5b37"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1ed4d65d498f4b0e280ffce374ea2ead5b3182df"
 }
