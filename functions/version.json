@@ -1,14 +1,14 @@
 {
-  "gitSha": "07bdf059be5a8ee70333c70520b74bb83ddd5309",
-  "gitShortSha": "07bdf059",
+  "gitSha": "31e64ed87e2a350b354be2b4d847a78b25dff87a",
+  "gitShortSha": "31e64ed8",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: add independent Arm developer web site to lab nav",
+  "gitCommitSubject": "[apalmer] chore: deploy stamp for Arm developer web nav",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:02:47+01:00",
-  "deployedAt": "2026-07-20T11:03:02.596Z",
+  "gitCommitDate": "2026-07-20T12:03:23+01:00",
+  "deployedAt": "2026-07-20T11:05:19.648Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/07bdf059be5a8ee70333c70520b74bb83ddd5309"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/31e64ed87e2a350b354be2b4d847a78b25dff87a"
 }
