@@ -1,14 +1,14 @@
 {
-  "gitSha": "31e64ed87e2a350b354be2b4d847a78b25dff87a",
-  "gitShortSha": "31e64ed8",
+  "gitSha": "0005c6212a47c287f90079507948d006a1641083",
+  "gitShortSha": "0005c621",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp for Arm developer web nav",
+  "gitCommitSubject": "[apalmer] fix: persist Arm activation LinkedIn toast with manual dismiss",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:03:23+01:00",
-  "deployedAt": "2026-07-20T11:05:19.648Z",
+  "gitCommitDate": "2026-07-20T12:25:44+01:00",
+  "deployedAt": "2026-07-20T11:26:00.432Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/31e64ed87e2a350b354be2b4d847a78b25dff87a"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0005c6212a47c287f90079507948d006a1641083"
 }
