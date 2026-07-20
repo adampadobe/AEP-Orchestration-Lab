@@ -495,7 +495,10 @@
 
     var llmDemoMessage = document.getElementById('llmDemoMessage');
     var queryProfileBtn = document.getElementById('queryProfileBtn');
-    var generatorTargetSelect = document.getElementById('generatorTarget');
+    function getGeneratorTargetSelect() {
+      return document.getElementById('generatorTarget');
+    }
+
     var generatorTargets = [];
 
     function getEmail() {
@@ -511,7 +514,8 @@
     }
 
     function getSelectedGeneratorTarget() {
-      var id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      var selectEl = getGeneratorTargetSelect();
+      var id = (selectEl && selectEl.value) || '';
       return generatorTargets.find(function (t) {
         return t.id === id;
       }) || generatorTargets[0] || null;
@@ -541,12 +545,21 @@
       });
     }
 
-    if (generatorTargetSelect && window.AepDemoGeneratorTargets) {
-      void window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {}).then(
-        function (t) {
-          generatorTargets = t || [];
-        },
-      );
+    function loadGeneratorTargets() {
+      var selectEl = getGeneratorTargetSelect();
+      if (!selectEl || !window.AepDemoGeneratorTargets) return Promise.resolve([]);
+      return window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {}).then(function (t) {
+        generatorTargets = t || [];
+        return generatorTargets;
+      });
+    }
+
+    if (window.AepDemoGeneratorTargets && window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+      window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+        return loadGeneratorTargets();
+      });
+    } else {
+      void loadGeneratorTargets();
     }
   }
 

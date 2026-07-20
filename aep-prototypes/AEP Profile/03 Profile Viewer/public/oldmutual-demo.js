@@ -124,7 +124,7 @@
         configSummaryTextId: 'omSdkConfigSummaryText',
         changeConfigButtonId: 'omChangeSdkConfigBtn',
         getSelectedGeneratorTarget: () => {
-          const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+          const id = (generatorTargetSelect && selectEl.value) || '';
           return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
         },
         getEmail,
@@ -151,7 +151,7 @@
         : null;
 
     function getSelectedGeneratorTarget() {
-      const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      const id = (generatorTargetSelect && selectEl.value) || '';
       return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
     }
 
@@ -525,9 +525,10 @@
     const OM_PREFERRED_GENERATOR_TARGET_ID = 'edge-a7f9-default';
 
     async function loadGeneratorTargets() {
-      if (!generatorTargetSelect) return;
+      var selectEl = document.getElementById('generatorTarget');
+      if (!selectEl) return;
       if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
-        generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {
+        generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {
           preferredId: OM_PREFERRED_GENERATOR_TARGET_ID,
         });
         return;
@@ -536,29 +537,29 @@
         const res = await fetch('/api/events/generator-targets');
         const data = await res.json().catch(() => ({}));
         generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         if (generatorTargets.length === 0) {
           const opt = document.createElement('option');
           opt.value = '';
           opt.textContent = 'No targets (check event-generator-targets.json)';
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
           return;
         }
         generatorTargets.forEach((t) => {
           const opt = document.createElement('option');
           opt.value = t.id;
           opt.textContent = t.label || t.id;
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
         });
         if (generatorTargets.some((t) => t.id === OM_PREFERRED_GENERATOR_TARGET_ID)) {
-          generatorTargetSelect.value = OM_PREFERRED_GENERATOR_TARGET_ID;
+          selectEl.value = OM_PREFERRED_GENERATOR_TARGET_ID;
         }
       } catch {
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = 'Failed to load targets';
-        generatorTargetSelect.appendChild(opt);
+        selectEl.appendChild(opt);
       }
     }
 
@@ -1133,11 +1134,17 @@
         await sendRaceEvent('form.abandon', true);
       });
 
-    void loadGeneratorTargets();
-    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
-      window.AepDemoGeneratorTargets.onSandboxChange(function () {
-        void loadGeneratorTargets();
+    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+      window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+        return loadGeneratorTargets();
       });
+    } else {
+      void loadGeneratorTargets();
+      if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+        window.AepDemoGeneratorTargets.onSandboxChange(function () {
+          void loadGeneratorTargets();
+        });
+      }
     }
 
     if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.init === 'function') {

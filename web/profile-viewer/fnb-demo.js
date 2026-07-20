@@ -66,7 +66,9 @@ if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmai
 
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const infoEcid = document.getElementById('infoEcid');
-const generatorTargetSelect = document.getElementById('generatorTarget');
+function getGeneratorTargetSelect() {
+  return document.getElementById('generatorTarget');
+}
 const raceEventForm = document.getElementById('raceEventForm');
 const eventLocation = document.getElementById('eventLocation');
 const eventType = document.getElementById('eventType');
@@ -237,7 +239,8 @@ if (raceMessageRevealZone && raceMessage) {
 }
 
 function getSelectedGeneratorTarget() {
-  const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+  const selectEl = getGeneratorTargetSelect();
+  const id = (selectEl && selectEl.value) || '';
   return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
 }
 
@@ -610,9 +613,10 @@ async function sendApplicationLoginExperienceEvent(email) {
 }
 
 async function loadGeneratorTargets() {
-  if (!generatorTargetSelect) return;
+  const selectEl = getGeneratorTargetSelect();
+  if (!selectEl) return;
   if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
-    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {
       preferredId: FNB_PREFERRED_GENERATOR_TARGET_ID,
     });
     return;
@@ -621,29 +625,44 @@ async function loadGeneratorTargets() {
     const res = await fetch('/api/events/generator-targets');
     const data = await res.json().catch(() => ({}));
     generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-    generatorTargetSelect.innerHTML = '';
+    selectEl.innerHTML = '';
     if (generatorTargets.length === 0) {
       const opt = document.createElement('option');
       opt.value = '';
       opt.textContent = 'No targets (check event-generator-targets.json)';
-      generatorTargetSelect.appendChild(opt);
+      selectEl.appendChild(opt);
       return;
     }
     generatorTargets.forEach((t) => {
       const opt = document.createElement('option');
       opt.value = t.id;
       opt.textContent = t.label || t.id;
-      generatorTargetSelect.appendChild(opt);
+      selectEl.appendChild(opt);
     });
     if (generatorTargets.some((t) => t.id === FNB_PREFERRED_GENERATOR_TARGET_ID)) {
-      generatorTargetSelect.value = FNB_PREFERRED_GENERATOR_TARGET_ID;
+      selectEl.value = FNB_PREFERRED_GENERATOR_TARGET_ID;
     }
   } catch {
-    generatorTargetSelect.innerHTML = '';
+    selectEl.innerHTML = '';
     const opt = document.createElement('option');
     opt.value = '';
     opt.textContent = 'Failed to load targets';
-    generatorTargetSelect.appendChild(opt);
+    selectEl.appendChild(opt);
+  }
+}
+
+function bootFnbGeneratorTargets() {
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+    window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+      return loadGeneratorTargets();
+    });
+  } else {
+    void loadGeneratorTargets();
+    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+      window.AepDemoGeneratorTargets.onSandboxChange(function () {
+        void loadGeneratorTargets();
+      });
+    }
   }
 }
 
@@ -1177,11 +1196,10 @@ abandonedBasketBtn &&
     await sendRaceEvent('form.abandon', true);
   });
 
-void loadGeneratorTargets();
-if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
-  window.AepDemoGeneratorTargets.onSandboxChange(function () {
-    void loadGeneratorTargets();
-  });
+if (window.envBar && typeof window.envBar.ready === 'function') {
+  window.envBar.ready().then(bootFnbGeneratorTargets).catch(bootFnbGeneratorTargets);
+} else {
+  bootFnbGeneratorTargets();
 }
 
 const fnbLogoutBtn = document.getElementById('fnbLogoutBtn');

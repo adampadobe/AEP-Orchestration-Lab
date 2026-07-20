@@ -44,7 +44,10 @@
 
     var queryProfileBtn = document.getElementById('queryProfileBtn');
     var starbucksMessage = document.getElementById('starbucksMessage');
-    var generatorTargetSelect = document.getElementById('generatorTarget');
+    function getGeneratorTargetSelect() {
+      return document.getElementById('generatorTarget');
+    }
+
     var starbucksBcOnInjectToggle = document.getElementById('starbucksBcOnInjectToggle');
     var starbucksBcStyleSelect = document.getElementById('starbucksBcStyleSelect');
 
@@ -72,7 +75,8 @@
     }
 
     function getSelectedGeneratorTarget() {
-      var id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      var selectEl = getGeneratorTargetSelect();
+      var id = (selectEl && selectEl.value) || '';
       return generatorTargets.find(function (t) {
         return t.id === id;
       }) || generatorTargets[0] || null;
@@ -165,12 +169,13 @@
     }
 
     async function loadGeneratorTargets() {
-      if (!generatorTargetSelect) return;
+      var selectEl = getGeneratorTargetSelect();
+      if (!selectEl) return;
       if (
         typeof global.AepDemoGeneratorTargets !== 'undefined' &&
         global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
       ) {
-        generatorTargets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+        generatorTargets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {});
         return;
       }
       try {
@@ -179,27 +184,33 @@
           return {};
         });
         generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         generatorTargets.forEach(function (t) {
           var opt = document.createElement('option');
           opt.value = t.id;
           opt.textContent = t.label || t.id;
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
         });
       } catch (_e) {
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         var failOpt = document.createElement('option');
         failOpt.value = '';
         failOpt.textContent = 'Failed to load targets';
-        generatorTargetSelect.appendChild(failOpt);
+        selectEl.appendChild(failOpt);
       }
     }
 
-    void loadGeneratorTargets();
-    if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.onSandboxChange) {
-      global.AepDemoGeneratorTargets.onSandboxChange(function () {
-        void loadGeneratorTargets();
+    if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+      global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+        return loadGeneratorTargets();
       });
+    } else {
+      void loadGeneratorTargets();
+      if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.onSandboxChange) {
+        global.AepDemoGeneratorTargets.onSandboxChange(function () {
+          void loadGeneratorTargets();
+        });
+      }
     }
 
     if (queryProfileBtn) {

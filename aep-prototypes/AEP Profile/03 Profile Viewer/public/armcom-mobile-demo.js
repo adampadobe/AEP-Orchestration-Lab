@@ -47,10 +47,6 @@ function whenEnvBarReady(run, label) {
 
 whenEnvBarReady(bootArmcomMobileLab, 'initial');
 
-document.addEventListener('DOMContentLoaded', function () {
-  bootArmcomMobileLab('DOMContentLoaded');
-});
-
 window.addEventListener('env-bar-change', function (ev) {
   if (ev && ev.detail && ev.detail.type === 'init') {
     bootArmcomMobileLab('env-bar-change:init');

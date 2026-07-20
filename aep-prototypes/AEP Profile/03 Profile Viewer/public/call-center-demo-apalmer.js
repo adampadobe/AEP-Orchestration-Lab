@@ -2074,36 +2074,37 @@
   }
 
   async function loadGeneratorTargets() {
-    if (!generatorTargetSelect) return;
+    const selectEl = document.getElementById('generatorTarget');
+    if (!selectEl) return;
     try {
       if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
-        generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+        generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {});
         return;
       }
       try {
         const res = await fetch('/api/events/generator-targets');
         const data = await res.json().catch(() => ({}));
         generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         if (generatorTargets.length === 0) {
           const opt = document.createElement('option');
           opt.value = '';
           opt.textContent = 'No targets (check event-generator-targets.json)';
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
           return;
         }
         generatorTargets.forEach((t) => {
           const opt = document.createElement('option');
           opt.value = t.id;
           opt.textContent = t.label || t.id;
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
         });
       } catch {
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = 'Failed to load targets';
-        generatorTargetSelect.appendChild(opt);
+        selectEl.appendChild(opt);
       }
     } finally {
       updateCcEventDestSummary();
@@ -2297,8 +2298,19 @@
   initIndustryUi();
   initCcFlightBookingModal();
   initCcEventDestDisclosure();
-  void loadGeneratorTargets();
   void initFromRtdb();
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+    window.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+      return loadGeneratorTargets();
+    });
+  } else {
+    void loadGeneratorTargets();
+    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+      window.AepDemoGeneratorTargets.onSandboxChange(function () {
+        void loadGeneratorTargets();
+      });
+    }
+  }
   window.addEventListener('aep-global-sandbox-change', function () {
     void initFromRtdb();
     resetCcEngagementRangeToDefault();
@@ -2314,12 +2326,6 @@
       refreshCcDrawerEngagementFromRange();
     }
   });
-  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
-    window.AepDemoGeneratorTargets.onSandboxChange(function () {
-      void loadGeneratorTargets();
-    });
-  }
-
   window.addEventListener('aep-theme-change', function () {
     renderCcEngagementTrendChart(window._ccLastEvents || []);
     if (window._ccLastEvents && window._ccLastEvents.length) {

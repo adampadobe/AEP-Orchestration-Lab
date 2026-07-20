@@ -153,6 +153,53 @@
     });
   }
 
+  /**
+   * Re-run callback when shared/env-bar.js finishes mounting the env strip (#generatorTarget).
+   * @param {function(): void} callback
+   */
+  function onEnvBarInit(callback) {
+    if (typeof callback !== 'function') return;
+    function run() {
+      callback();
+    }
+    if (global.envBar && typeof global.envBar.onChange === 'function') {
+      global.envBar.onChange(function (detail) {
+        if (detail && detail.type === 'init') run();
+      });
+    }
+    global.addEventListener('env-bar-change', function (ev) {
+      if (ev && ev.detail && ev.detail.type === 'init') run();
+    });
+  }
+
+  /** @param {string} [selectId='generatorTarget'] */
+  function resolveGeneratorTargetSelect(selectId) {
+    return global.document.getElementById(selectId || 'generatorTarget');
+  }
+
+  /**
+   * Reload generator targets when env bar remounts (async strip mount race).
+   * @param {function(): (void|Promise<void>)} reloadFn — must re-query #generatorTarget inside
+   */
+  function bindEnvBarGeneratorTargetReload(reloadFn) {
+    onEnvBarInit(function () {
+      void reloadFn();
+    });
+  }
+
+  /**
+   * Initial load + sandbox change + env-bar init remount (canonical demo wiring).
+   * @param {function(): (void|Promise<void>)} loadFn
+   */
+  function bindGeneratorTargetLifecycle(loadFn) {
+    if (typeof loadFn !== 'function') return;
+    void loadFn();
+    onSandboxChange(function () {
+      void loadFn();
+    });
+    bindEnvBarGeneratorTargetReload(loadFn);
+  }
+
   global.AepDemoGeneratorTargets = {
     getSandboxName: getSandboxName,
     generatorTargetsUrl: generatorTargetsUrl,
@@ -160,5 +207,9 @@
     loadGeneratorTargetsIntoSelect: loadGeneratorTargetsIntoSelect,
     augmentGeneratorPostBody: augmentGeneratorPostBody,
     onSandboxChange: onSandboxChange,
+    onEnvBarInit: onEnvBarInit,
+    resolveGeneratorTargetSelect: resolveGeneratorTargetSelect,
+    bindEnvBarGeneratorTargetReload: bindEnvBarGeneratorTargetReload,
+    bindGeneratorTargetLifecycle: bindGeneratorTargetLifecycle,
   };
 })(typeof window !== 'undefined' ? window : this);

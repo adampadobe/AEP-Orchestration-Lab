@@ -196,26 +196,17 @@
       }
     }
 
-    function bindGeneratorTargetReload() {
-      function reload() {
-        void loadGeneratorTargets();
-      }
-      if (global.envBar && typeof global.envBar.onChange === 'function') {
-        global.envBar.onChange(function (detail) {
-          if (detail && detail.type === 'init') reload();
+    if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+      global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+        return loadGeneratorTargets();
+      });
+    } else {
+      void loadGeneratorTargets();
+      if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.onSandboxChange) {
+        global.AepDemoGeneratorTargets.onSandboxChange(function () {
+          void loadGeneratorTargets();
         });
       }
-      global.addEventListener('env-bar-change', function (ev) {
-        if (ev && ev.detail && ev.detail.type === 'init') reload();
-      });
-    }
-
-    bindGeneratorTargetReload();
-    void loadGeneratorTargets();
-    if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.onSandboxChange) {
-      global.AepDemoGeneratorTargets.onSandboxChange(function () {
-        void loadGeneratorTargets();
-      });
     }
 
     function resolveProfileAfterLookup() {

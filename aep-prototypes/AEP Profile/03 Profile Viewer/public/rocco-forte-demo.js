@@ -153,40 +153,41 @@
     }
 
     function getSelectedGeneratorTarget() {
-      const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      const id = (generatorTargetSelect && selectEl.value) || '';
       return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
     }
 
     async function loadGeneratorTargets() {
-      if (!generatorTargetSelect) return;
+      var selectEl = document.getElementById('generatorTarget');
+      if (!selectEl) return;
       if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
-        generatorTargets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+        generatorTargets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {});
         return;
       }
       try {
         const res = await fetch('/api/events/generator-targets');
         const data = await res.json().catch(() => ({}));
         generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         if (generatorTargets.length === 0) {
           const opt = document.createElement('option');
           opt.value = '';
           opt.textContent = 'No targets (check event-generator-targets.json)';
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
           return;
         }
         generatorTargets.forEach((t) => {
           const opt = document.createElement('option');
           opt.value = t.id;
           opt.textContent = t.label || t.id;
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
         });
       } catch {
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = 'Failed to load targets';
-        generatorTargetSelect.appendChild(opt);
+        selectEl.appendChild(opt);
       }
     }
 
@@ -221,11 +222,17 @@
         await performProfileLookup({ showMessage: true });
       });
 
-    void loadGeneratorTargets();
-    if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.onSandboxChange) {
-      global.AepDemoGeneratorTargets.onSandboxChange(function () {
-        void loadGeneratorTargets();
+    if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
+      global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+        return loadGeneratorTargets();
       });
+    } else {
+      void loadGeneratorTargets();
+      if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.onSandboxChange) {
+        global.AepDemoGeneratorTargets.onSandboxChange(function () {
+          void loadGeneratorTargets();
+        });
+      }
     }
 
     if (roccoForteTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {

@@ -28,7 +28,9 @@
     const nsSelect = document.getElementById(prefix + 'Ns') || document.getElementById('customerNs');
     const messageEl = document.getElementById(messageId);
     const queryProfileBtn = document.getElementById('queryProfileBtn');
-    const generatorTargetSelect = document.getElementById('generatorTarget');
+    function getGeneratorTargetSelect() {
+      return document.getElementById('generatorTarget');
+    }
     const bcOnInjectToggle = document.getElementById(prefix + 'BcOnInjectToggle');
     const bcStyleSelect = document.getElementById(prefix + 'BcStyleSelect');
     const injectBtn = document.getElementById(prefix + 'InjectSdkBtn');
@@ -78,7 +80,8 @@
     }
 
     function getSelectedGeneratorTarget() {
-      const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      const selectEl = getGeneratorTargetSelect();
+      const id = (selectEl && selectEl.value) || '';
       return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
     }
 
@@ -123,38 +126,39 @@
         : null;
 
     async function loadGeneratorTargets() {
-      if (!generatorTargetSelect) return;
+      const selectEl = getGeneratorTargetSelect();
+      if (!selectEl) return;
       if (
         global.AepDemoGeneratorTargets &&
         typeof global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect === 'function'
       ) {
-        generatorTargets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+        generatorTargets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(selectEl, {});
         return;
       }
       try {
         const res = await fetch('/api/events/generator-targets');
         const data = await res.json().catch(() => ({}));
         generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         if (!generatorTargets.length) {
           const opt = document.createElement('option');
           opt.value = '';
           opt.textContent = 'No targets (check event-generator-targets.json)';
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
           return;
         }
         generatorTargets.forEach((t) => {
           const opt = document.createElement('option');
           opt.value = t.id;
           opt.textContent = t.label || t.id;
-          generatorTargetSelect.appendChild(opt);
+          selectEl.appendChild(opt);
         });
       } catch {
-        generatorTargetSelect.innerHTML = '';
+        selectEl.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = 'Failed to load targets';
-        generatorTargetSelect.appendChild(opt);
+        selectEl.appendChild(opt);
       }
     }
 
@@ -176,11 +180,17 @@
         if (stitched) setMessage('Profile loaded and email linked to ECID for stitching.', 'success');
       });
 
-    void loadGeneratorTargets();
-    if (global.AepDemoGeneratorTargets && typeof global.AepDemoGeneratorTargets.onSandboxChange === 'function') {
-      global.AepDemoGeneratorTargets.onSandboxChange(function () {
-        void loadGeneratorTargets();
+    if (global.AepDemoGeneratorTargets && typeof global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle === 'function') {
+      global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(function () {
+        return loadGeneratorTargets();
       });
+    } else {
+      void loadGeneratorTargets();
+      if (global.AepDemoGeneratorTargets && typeof global.AepDemoGeneratorTargets.onSandboxChange === 'function') {
+        global.AepDemoGeneratorTargets.onSandboxChange(function () {
+          void loadGeneratorTargets();
+        });
+      }
     }
 
     if (tagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
