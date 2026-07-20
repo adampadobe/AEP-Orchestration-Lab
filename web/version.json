@@ -1,14 +1,14 @@
 {
-  "gitSha": "98adca0136b79251649e1f67d44b04cec9c0ae9b",
-  "gitShortSha": "98adca01",
+  "gitSha": "a172fa1879713b1009a107bc76e76655693d5b37",
+  "gitShortSha": "a172fa18",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: restore Arm journey overview zoom on stage navigation",
+  "gitCommitSubject": "[apalmer] feat: align Arm demo flow with journey stages",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:39:59+01:00",
-  "deployedAt": "2026-07-20T11:47:42.971Z",
+  "gitCommitDate": "2026-07-20T12:47:43+01:00",
+  "deployedAt": "2026-07-20T11:47:58.529Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/98adca0136b79251649e1f67d44b04cec9c0ae9b"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a172fa1879713b1009a107bc76e76655693d5b37"
 }
