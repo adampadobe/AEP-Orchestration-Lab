@@ -1990,6 +1990,8 @@ function formatArmcomExperienceEventTitle(ev) {
 /** Generic Web SDK / lab shell pageviews that duplicate armcom.page.view in the same session. */
 function isArmcomShellNoiseWebPageview(ev) {
   if (!isAdobeWebPageViewExperienceEvent(ev)) return false;
+  // Arm journey rows on a pageview are the canonical event — not disposable shell noise.
+  if (isArmcomExperienceEvent(ev)) return false;
   const snippet = deriveWebPageviewTitleSnippetFromRows(ev && ev.rows);
   const blob = `${snippet} ${journeyInferenceBlob(ev)}`.toLowerCase();
   return (
@@ -2004,21 +2006,38 @@ function dedupeArmcomShellNoiseFromDrawerEvents(events) {
   const hasArmcom = events.some(isArmcomExperienceEvent);
   if (!hasArmcom) return events;
   const windowMs = 120000;
-  return events.filter((ev) => {
+  const filtered = events.filter((ev) => {
     if (!isArmcomShellNoiseWebPageview(ev)) return true;
     const ts = eventTimestampMsForDrawer(ev);
-    if (ts == null) return false;
+    // Keep shell rows when timestamp is missing — cannot safely pair with a nearby armcom twin.
+    if (ts == null) return true;
     return !events.some((other) => {
       if (other === ev || !isArmcomExperienceEvent(other)) return false;
+      // Only dedupe against non-shell armcom events (e.g. armcom.page.view), not each other.
+      if (isArmcomShellNoiseWebPageview(other)) return false;
       const ots = eventTimestampMsForDrawer(other);
       if (ots == null) return false;
       return Math.abs(ots - ts) <= windowMs;
     });
   });
+  if (filtered.length === 0 && events.length > 0) {
+    const canonical = events.filter((ev) => isArmcomExperienceEvent(ev) && !isArmcomShellNoiseWebPageview(ev));
+    if (canonical.length) return canonical;
+    const anyArmcom = events.filter(isArmcomExperienceEvent);
+    if (anyArmcom.length) return anyArmcom;
+    return events.slice(0, 5);
+  }
+  return filtered;
 }
 
 function filterDrawerEventsForTimeline(events) {
   return dedupeArmcomShellNoiseFromDrawerEvents(filterRecentApplicationLoginForDrawer(events));
+}
+
+/** Visible drawer events — same filter used for list + count badge. */
+function visibleDrawerEventsForPanel(events, maxCount) {
+  const cap = typeof maxCount === 'number' && Number.isFinite(maxCount) ? Math.max(0, maxCount) : 5;
+  return filterDrawerEventsForTimeline(Array.isArray(events) ? events : []).slice(0, cap);
 }
 
 /**
@@ -3262,7 +3281,7 @@ function renderEventTimeline(events) {
   if (!profileDrawerEvents) return;
   ensureProfileDrawerEventsHeadingRow();
   profileDrawerEvents.innerHTML = '';
-  const list = Array.isArray(events) ? events.slice(0, 5) : [];
+  const list = visibleDrawerEventsForPanel(events, 5);
   updateProfileDrawerEventsStoryBadgeCount(list.length);
   if (!list.length) {
     const p = document.createElement('p');
