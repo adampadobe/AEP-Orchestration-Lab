@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260521-refresh-btn-lightfix" />
   <link rel="stylesheet" href="../aep-theme.css?v=20260520" />
   <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c" />
-  <link rel="stylesheet" href="linkedin.css?v=20260718b" />
+  <link rel="stylesheet" href="linkedin.css?v=20260720c" />
 </head>
 <body class="social-linkedin-page home-dashboard-concierge">
 
@@ -113,31 +113,31 @@
         </div>
       </article>
 
-      <!-- Arm sponsored ad (demo activation) -->
-      <article class="li-card li-post li-post--sponsored" id="linkedinArmAd" data-li-ad="arm-agi-brief">
+      <!-- Arm sponsored ad — copy/CTA/URL set by linkedin-demo.js from armcomFakeAudienceStage -->
+      <article class="li-card li-post li-post--sponsored" id="linkedinArmAd" data-li-ad="arm-agi-brief" data-li-ad-variant="awareness">
         <div class="li-sponsored"><span class="li-sponsored__badge">Promoted</span> · Arm</div>
         <div class="li-post__header">
           <div class="li-post__avatar"><img src="../demos/armcom/assets/arm-logo-black.svg" alt="Arm" /></div>
           <div class="li-post__meta">
             <div class="li-post__author">Arm</div>
-            <div class="li-post__sub">Sponsored · Cloud AI</div>
+            <div class="li-post__sub" data-li-ad-sub>Sponsored · Cloud AI</div>
           </div>
         </div>
-        <div class="li-post__body"><strong>THE FUTURE IS BUILT ON ARM</strong> — Download the AGI CPU Technical Brief for rack-scale agentic AI. Compare efficiency benchmarks vs. incumbent CPUs and plan your cloud AI roadmap.</div>
+        <div class="li-post__body" data-li-ad-body><strong>THE FUTURE IS BUILT ON ARM</strong> — Download the AGI CPU Technical Brief for rack-scale agentic AI. Compare efficiency benchmarks vs. incumbent CPUs and plan your cloud AI roadmap.</div>
         <div class="li-ad">
-          <div class="li-ad__hero"><img src="../demos/armcom/assets/hero-agi-cpu.png" alt="Arm AGI CPU Technical Brief" /></div>
+          <div class="li-ad__hero"><img data-li-ad-hero src="../demos/armcom/assets/hero-agi-cpu.png" alt="Arm AGI CPU Technical Brief" /></div>
           <div class="li-ad__copy">
-            <p class="li-ad__title">Download the AGI CPU Technical Brief</p>
-            <p class="li-ad__desc">Production silicon for converged data centers — orchestrate accelerators and thousands of agents.</p>
+            <p class="li-ad__title" data-li-ad-title>Download the AGI CPU Technical Brief</p>
+            <p class="li-ad__desc" data-li-ad-desc>Production silicon for converged data centers — orchestrate accelerators and thousands of agents.</p>
             <span class="li-ad__cta" data-li-ad-cta>Apply Now</span>
           </div>
         </div>
-        <p class="li-lab-badge">AEP lab — click ad to fire <code>armcom.paidSocial.clicked</code> and return to arm.com</p>
+        <p class="li-lab-badge" data-li-lab-badge>AEP lab — click ad to fire <code>armcom.paidSocial.clicked</code> and return to arm.com</p>
         <div class="li-post__stats"><span class="li-post__reactions" aria-hidden="true"><span class="li-react li-react--like"></span><span class="li-react li-react--insight"></span></span> 1,942 · 128 comments</div>
         <div class="li-post__actions">
           <button type="button" class="li-post__action"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" d="M7 10v10M7 10l-3 1 1-4 4-2h8a2 2 0 012 2v1"/></svg>Like</button>
           <button type="button" class="li-post__action"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>Comment</button>
-          <button type="button" class="li-post__action" data-li-ad-cta><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" d="M12 5v14M5 12h14"/></svg>Apply Now</button>
+          <button type="button" class="li-post__action" data-li-ad-cta><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" d="M12 5v14M5 12h14"/></svg><span data-li-ad-cta>Apply Now</span></button>
           <button type="button" class="li-post__action"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Send</button>
         </div>
       </article>
@@ -321,6 +321,6 @@
 <script src="../aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
 <script defer src="../aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
 <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
-<script defer src="linkedin-demo.js?v=20260720b-linkedin-news"></script>
+<script defer src="linkedin-demo.js?v=20260720c-ad-variants"></script>
 </body>
 </html>

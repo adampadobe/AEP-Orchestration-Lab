@@ -605,6 +605,12 @@
 .li-post--sponsored {
   border-color: rgba(10, 102, 194, 0.2);
 }
+.li-post--sponsored-retargeting {
+  border-color: rgba(5, 118, 66, 0.25);
+}
+.li-post--sponsored-post-click .li-sponsored__badge {
+  background: var(--li-secondary);
+}
 
 .li-lab-badge {
   margin: 8px 16px 12px;
