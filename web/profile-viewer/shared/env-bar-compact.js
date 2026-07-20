@@ -5,6 +5,15 @@
 (function attachEnvBarCompact(global) {
   'use strict';
 
+  var LAB_LOG = 'env-bar';
+
+  function labLog(level, message, detail) {
+    if (!global.AepLabConsole) return;
+    if (level === 'warn') global.AepLabConsole.warn(LAB_LOG, message, detail);
+    else if (level === 'error') global.AepLabConsole.error(LAB_LOG, message, detail);
+    else global.AepLabConsole.info(LAB_LOG, message, detail);
+  }
+
   var PIN_STORAGE_KEY = 'aepLabEnvBarPinned';
   var DOCK_STORAGE_KEY = 'aepLabEnvBarDocked';
   var PIN_BTN_ID = 'aepLabEnvPinBtn';
@@ -647,7 +656,15 @@
   function init() {
     var mount = document.querySelector('[data-demo-env-strip-mount]');
     var anchor = findTopAnchor(mount);
-    if (!anchor || anchor.getAttribute('data-lab-env-compact-init') === '1') return;
+    if (!anchor || anchor.getAttribute('data-lab-env-compact-init') === '1') {
+      labLog('warn', 'compact init skipped', {
+        hasMount: !!mount,
+        hasAnchor: !!anchor,
+        alreadyInit: !!(anchor && anchor.getAttribute('data-lab-env-compact-init') === '1'),
+      });
+      return;
+    }
+    labLog('info', 'compact init start', { hasMount: !!mount });
     activeAnchor = anchor;
     anchor.classList.add('lab-env-top-anchor');
     anchor.setAttribute('data-lab-env-compact-init', '1');
@@ -763,6 +780,9 @@
       if (isOverlayPinned(anchor)) return;
       if (!isOverlayOpen(anchor)) return;
       closeOverlay(anchor, { force: isLabEnvConfiguredForCollapse() });
+    });
+    labLog('info', 'compact init complete — toolbar and overlay wired', {
+      isDocked: isDocked,
     });
   }
 

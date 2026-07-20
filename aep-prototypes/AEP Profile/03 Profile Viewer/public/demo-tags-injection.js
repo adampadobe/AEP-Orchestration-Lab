@@ -499,10 +499,23 @@
 
     var DT_LOG = '[DemoTagsInjection:' + storagePrefix + ']';
     function dtLog() {
-      if (typeof global.console === 'undefined' || !global.console.log) return;
+      if (typeof global.console === 'undefined') return;
+      var args = Array.prototype.slice.call(arguments);
+      var message = args.length ? String(args[0]) : '';
+      var detail = args.length > 1 ? args[1] : undefined;
+      if (global.AepLabConsole) {
+        var level = 'info';
+        if (/FAILED|failed|abort|skip/i.test(message)) {
+          level = /FAILED|failed/i.test(message) ? 'error' : 'warn';
+        }
+        if (level === 'error') global.AepLabConsole.error('tags-inject', message, detail);
+        else if (level === 'warn') global.AepLabConsole.warn('tags-inject', message, detail);
+        else global.AepLabConsole.info('tags-inject', message, detail);
+        return;
+      }
       try {
-        var a = [DT_LOG].concat(Array.prototype.slice.call(arguments));
-        global.console.log.apply(global.console, a);
+        var legacy = [DT_LOG].concat(args);
+        if (global.console.log) global.console.log.apply(global.console, legacy);
       } catch (_e) {
         /* noop */
       }

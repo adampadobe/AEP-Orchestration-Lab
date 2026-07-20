@@ -1,4 +1,99 @@
 /**
+ * Structured console logging for lab env bar, profile drawer, and Tags inject.
+ * Always on for internal demos; set window.__AEP_LAB_DEBUG__ = false to silence.
+ */
+(function attachAepLabConsole(global) {
+  'use strict';
+
+  if (global.AepLabConsole) return;
+
+  function isSilenced() {
+    return global.__AEP_LAB_DEBUG__ === false;
+  }
+
+  function resolveDemoPrefix(extra) {
+    if (extra && extra.demoPrefix) return String(extra.demoPrefix).trim();
+    try {
+      if (global.envBarConfig && global.envBarConfig.prefix) {
+        return String(global.envBarConfig.prefix).trim();
+      }
+      if (global.envBarConfig && global.envBarConfig.storagePrefix) {
+        return String(global.envBarConfig.storagePrefix).trim();
+      }
+      var mount = document.querySelector('[data-demo-env-strip-mount]');
+      if (mount) {
+        var fromMount = mount.getAttribute('data-demo-env-strip-prefix');
+        if (fromMount) return String(fromMount).trim();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function resolveSandbox() {
+    try {
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+        return String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (_e2) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function buildContext(extra) {
+    var ctx = {
+      page: global.location && global.location.pathname ? global.location.pathname : '',
+      inIframe: global.window !== global.top,
+      demoPrefix: resolveDemoPrefix(extra),
+    };
+    var sandbox = resolveSandbox();
+    if (sandbox) ctx.sandbox = sandbox;
+    if (extra && typeof extra === 'object') {
+      Object.keys(extra).forEach(function (key) {
+        if (extra[key] !== undefined) ctx[key] = extra[key];
+      });
+    }
+    return ctx;
+  }
+
+  function emit(level, channel, message, detail) {
+    if (isSilenced()) return;
+    var prefix = '[aep-lab:' + String(channel || 'lab') + ']';
+    var payload = buildContext(detail && typeof detail === 'object' ? detail : {});
+    var fn =
+      level === 'error'
+        ? global.console.error
+        : level === 'warn'
+          ? global.console.warn
+          : global.console.info;
+    if (typeof fn !== 'function') return;
+    if (detail !== undefined && detail !== null && typeof detail !== 'object') {
+      fn.call(global.console, prefix, message, payload, detail);
+      return;
+    }
+    fn.call(global.console, prefix, message, payload);
+  }
+
+  global.AepLabConsole = {
+    isEnabled: function () {
+      return !isSilenced();
+    },
+    context: buildContext,
+    info: function (channel, message, detail) {
+      emit('info', channel, message, detail);
+    },
+    warn: function (channel, message, detail) {
+      emit('warn', channel, message, detail);
+    },
+    error: function (channel, message, detail) {
+      emit('error', channel, message, detail);
+    },
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/**
  * Shared bottom AEP profile drawer: consent data, identity graph, audiences, events, engagement metrics.
  * Expects element ids profileDrawer*, identityGraph*, profileHoverZone.
  * Include aep-profile-drawer.css and email-engagement-metrics.js before this script.
@@ -12,6 +107,15 @@
 
   /** @type {Record<string, unknown>} */
   let _config = {};
+
+  var LAB_LOG = 'profile-drawer';
+
+  function labLog(level, message, detail) {
+    if (!global.AepLabConsole) return;
+    if (level === 'warn') global.AepLabConsole.warn(LAB_LOG, message, detail);
+    else if (level === 'error') global.AepLabConsole.error(LAB_LOG, message, detail);
+    else global.AepLabConsole.info(LAB_LOG, message, detail);
+  }
 
   let profileHoverZone;
   let profileDrawer;
@@ -182,6 +286,11 @@
     identityGraphSvg = document.getElementById('identityGraphSvg');
     identityGraphZoomIn = document.getElementById('identityGraphZoomIn');
     identityGraphZoomOut = document.getElementById('identityGraphZoomOut');
+    labLog('info', 'DOM refs cached', {
+      hasHoverZone: !!profileHoverZone,
+      hasDrawer: !!profileDrawer,
+      hasInfoEcid: !!infoEcid,
+    });
   }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -3724,7 +3833,13 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
 async function loadProfileDataForDrawer(email, options) {
   const opts = options || {};
   const emailTrim = String(email || '').trim();
-  if (!emailTrim) return false;
+  if (!emailTrim) {
+    labLog('warn', 'profile lookup skipped — empty identifier', {});
+    return false;
+  }
+
+  const ns = getNamespaceForDrawer(emailTrim);
+  labLog('info', 'profile lookup start', { namespace: ns, identifierLength: emailTrim.length });
 
   _lastLoadedIdentifier = emailTrim;
 
@@ -3739,7 +3854,6 @@ async function loadProfileDataForDrawer(email, options) {
       ? global.AepLabDebug.wrapMessageSetter(messageFn)
       : messageFn;
 
-  const ns = getNamespaceForDrawer(emailTrim);
   _lastEventsPollIdentifier = emailTrim;
   _lastEventsPollNamespace = ns;
   try {
@@ -3761,6 +3875,11 @@ async function loadProfileDataForDrawer(email, options) {
         }
         notifyUser(errMsg, 'error');
       }
+      labLog('error', 'profile lookup failed', {
+        namespace: ns,
+        status: res.status,
+        message: String(data.message || data.error || 'Profile request failed.'),
+      });
       return false;
     }
     if (data.found && (opts.addEmailOnSuccess || opts.updateMessage)) {
@@ -3913,9 +4032,19 @@ async function loadProfileDataForDrawer(email, options) {
         data.found ? 'success' : '',
       );
     }
+    labLog('info', 'profile lookup complete', {
+      namespace: ns,
+      found: !!data.found,
+      audienceCount: Array.isArray(audiences) ? audiences.length : 0,
+      eventCount: Array.isArray(events) ? events.length : 0,
+    });
     return true;
   } catch (err) {
     if (notifyUser) notifyUser(err.message || 'Network error', 'error');
+    labLog('error', 'profile lookup failed — network or parse error', {
+      namespace: ns,
+      message: err && err.message ? err.message : String(err),
+    });
     return false;
   }
 }
@@ -4099,7 +4228,13 @@ function initAepProfileDrawerHover() {
   const body = document.body;
   const hover = profileHoverZone;
   const drawer = profileDrawer;
-  if (!hover || !drawer) return;
+  if (!hover || !drawer) {
+    labLog('warn', 'hover init skipped — drawer DOM missing', {
+      hasHoverZone: !!hover,
+      hasDrawer: !!drawer,
+    });
+    return;
+  }
 
   const openClass = _config.profileOpenClass || 'aep-profile-drawer-open';
 
@@ -4124,6 +4259,7 @@ function initAepProfileDrawerHover() {
     const next = !!open;
     body.classList.toggle(openClass, next);
     if (next && !drawerOpenState) {
+      labLog('info', 'drawer opened', {});
       const email = String(drawerGetEmail() || '').trim();
       if (email) {
         if (email === _lastLoadedIdentifier && lastLookedUpProfile) {
@@ -4167,7 +4303,17 @@ function initAepProfileDrawerHover() {
 
 function init(config) {
   _config = config || {};
+  labLog('info', 'init start', {
+    emailInputId: _config.emailInputId || 'customerEmail',
+    fetchBrowserEcidOnInit: !!_config.fetchBrowserEcidOnInit,
+  });
   cacheDomRefs();
+  if (!profileDrawer || !profileHoverZone) {
+    labLog('warn', 'init incomplete — profile drawer mount nodes missing', {
+      hasDrawer: !!profileDrawer,
+      hasHoverZone: !!profileHoverZone,
+    });
+  }
   ensureProfileDrawerThemeToggle();
   ensureProfileDrawerIdentityGraphHeadingRow();
   bindProfileDrawerCopyButtonsOnce();
@@ -4200,6 +4346,10 @@ function init(config) {
       }
     }
   }
+  labLog('info', 'init complete', {
+    hasDrawer: !!profileDrawer,
+    hasHoverZone: !!profileHoverZone,
+  });
 }
 
 async function openDrawerAndLoad(email) {
@@ -4225,4 +4375,11 @@ const api = {
 
 global.AepProfileDrawer = api;
 global.DemoProfileDrawer = api;
+
+global.addEventListener('pageshow', function (ev) {
+  if (!ev || !ev.persisted) return;
+  labLog('warn', 'bfcache restore — re-caching drawer DOM and hover wiring', {});
+  cacheDomRefs();
+  initAepProfileDrawerHover();
+});
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,6 +4,37 @@
 (function () {
   'use strict';
 
+  (function redirectArmcomDirectUrlToShell() {
+    if (window !== window.top) return;
+    var path = String(window.location.pathname || '');
+    var marker = '/demos/armcom/';
+    var idx = path.toLowerCase().indexOf(marker);
+    if (idx === -1) return;
+    if (/armcom-demo\.html$/i.test(path) || /armcom-mobile-demo\.html$/i.test(path)) return;
+
+    var rel = path.slice(idx + marker.length);
+    if (!rel) rel = 'index.html';
+    var search = window.location.search || '';
+    if (search.indexOf('frame=') !== -1) return;
+
+    var depth = (rel.match(/\//g) || []).length;
+    var isMobile = /^mobile\//i.test(rel);
+    var up = '../'.repeat(depth + 2);
+    var shell = isMobile ? up + 'armcom-mobile-demo.html' : up + 'armcom-demo.html';
+    var qs = 'frame=' + encodeURIComponent(rel.replace(/^\//, ''));
+    if (search && search.length > 1) qs += '&' + search.slice(1);
+
+    if (window.AepLabConsole) {
+      window.AepLabConsole.info('env-bar', 'redirect direct armcom URL to demo shell', {
+        demoPrefix: 'armcom',
+        from: path,
+        to: shell + '?' + qs,
+        inIframe: false,
+      });
+    }
+    window.location.replace(shell + '?' + qs);
+  })();
+
   var PRIMARY_NAV = [
     'Products',
     'Markets',

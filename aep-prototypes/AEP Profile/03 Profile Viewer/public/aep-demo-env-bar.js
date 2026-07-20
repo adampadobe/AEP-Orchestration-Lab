@@ -19,12 +19,27 @@
 (function (global) {
   'use strict';
 
+  var LAB_LOG = 'env-bar';
+
+  function labLog(level, message, detail) {
+    if (!global.AepLabConsole) return;
+    if (level === 'warn') global.AepLabConsole.warn(LAB_LOG, message, detail);
+    else if (level === 'error') global.AepLabConsole.error(LAB_LOG, message, detail);
+    else global.AepLabConsole.info(LAB_LOG, message, detail);
+  }
+
   function byId(id) {
     return id ? document.getElementById(id) : null;
   }
 
   function init(cfg) {
     var c = cfg || {};
+    labLog('info', 'init start', {
+      demoPrefix: c.prefix,
+      envSectionId: c.envSectionId,
+      envEditorId: c.envEditorId,
+      envCompactId: c.envCompactId,
+    });
     var sec = byId(c.envSectionId);
     var editor = byId(c.envEditorId);
     var collapseEl = byId(c.envCollapsibleGridId) || editor;
@@ -35,7 +50,16 @@
     var fieldsEl = byId(c.fieldsId);
     var sandboxSelect = byId(c.sandboxSelectId);
     var scriptCodeEl = byId(c.selectedScriptCodeId);
-    if (!sec || !editor || !collapseEl || !compact) return;
+    if (!sec || !editor || !collapseEl || !compact) {
+      labLog('warn', 'init skipped — required env bar DOM missing', {
+        demoPrefix: c.prefix,
+        hasSection: !!sec,
+        hasEditor: !!editor,
+        hasCollapseGrid: !!collapseEl,
+        hasCompact: !!compact,
+      });
+      return;
+    }
 
     var PINNED = 'aep-demo-env-section--pinned-open';
 
@@ -339,6 +363,11 @@
         openWhenToolbarReady();
       }
     }
+    labLog('info', 'init complete — env bar editor wired', {
+      demoPrefix: c.prefix,
+      launchScriptNotSet: launchScriptNotSet(),
+      configuredThisSession: configuredThisSession(),
+    });
   }
 
   global.AepDemoEnvBar = {
@@ -370,7 +399,14 @@
   }
 
   function initEnvBar(cfg) {
-    if (!global.AepDemoEnvBar || typeof global.AepDemoEnvBar.init !== 'function') return;
+    if (!global.AepDemoEnvBar || typeof global.AepDemoEnvBar.init !== 'function') {
+      if (global.AepLabConsole) {
+        global.AepLabConsole.warn('env-bar', 'initEnvBar skipped — AepDemoEnvBar unavailable', {
+          demoPrefix: cfg && cfg.prefix,
+        });
+      }
+      return;
+    }
     global.AepDemoEnvBar.init(cfg || {});
   }
 

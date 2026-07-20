@@ -1,44 +1,6 @@
 /**
  * Arm demo shell — iframe postMessage bridge, journey URL sync, flyout lab nav.
  */
-var ARMCOM_LOG = '[armcom-lab]';
-var ARMCOM_ENV_LOG = '[aep-env-bar]';
-
-function armcomLogInfo(msg, detail) {
-  if (typeof console === 'undefined' || !console.info) return;
-  if (detail !== undefined) console.info(ARMCOM_LOG, msg, detail);
-  else console.info(ARMCOM_LOG, msg);
-}
-
-function armcomLogWarn(msg, detail) {
-  if (typeof console === 'undefined' || !console.warn) return;
-  if (detail !== undefined) console.warn(ARMCOM_LOG, msg, detail);
-  else console.warn(ARMCOM_LOG, msg);
-}
-
-function armcomLogError(msg, detail) {
-  if (typeof console === 'undefined' || !console.error) return;
-  if (detail !== undefined) console.error(ARMCOM_LOG, msg, detail);
-  else console.error(ARMCOM_LOG, msg);
-}
-
-function armcomDetectPageContext() {
-  var inIframe = false;
-  try {
-    inIframe = window.top !== window.self;
-  } catch (_e) {
-    inIframe = true;
-  }
-  return {
-    inIframe: inIframe,
-    isShellPage: /armcom-demo\.html$/i.test(String(window.location.pathname || '')),
-    pathname: String(window.location.pathname || ''),
-    search: String(window.location.search || ''),
-  };
-}
-
-armcomLogInfo('armcom-demo shell script loaded', armcomDetectPageContext());
-
 var armcomSiteFrame = document.getElementById('armcomSiteFrame');
 var ARMCOM_XDM_TENANT_KEY = '_demoemea';
 var ARMCOM_JOURNEY_MARKER = '/demos/armcom/';
@@ -120,49 +82,29 @@ function syncIframeToJourneyUrl() {
 var armcomLab = null;
 var armcomLabBootStarted = false;
 
-function bootArmcomDemoLab(reason) {
-  if (armcomLabBootStarted && armcomLab) {
-    armcomLogInfo('lab boot skipped — already running', { reason: reason || 'unknown' });
-    return;
-  }
-  if (typeof window.initArmcomLab !== 'function') {
-    armcomLogWarn('lab boot deferred — initArmcomLab not available yet', { reason: reason || 'unknown' });
-    return;
-  }
+function bootArmcomDemoLab(reason, force) {
+  if (!force && armcomLabBootStarted && armcomLab) return;
+  if (typeof window.initArmcomLab !== 'function') return;
   armcomLabBootStarted = true;
-  armcomLogInfo('lab boot start', { reason: reason || 'unknown' });
   try {
     armcomLab = window.initArmcomLab({
       iframeIds: ['armcomSiteFrame'],
+      force: !!force,
       onProfileLookupComplete: function (detail) {
         scheduleArmcomDrawerRefresh();
       },
     });
-    armcomLogInfo('lab boot success');
-  } catch (err) {
+  } catch (_err) {
     armcomLabBootStarted = false;
-    armcomLogError('lab boot failed', err && err.message ? err.message : err);
   }
 }
 
-function whenEnvBarReady(run, label) {
-  armcomLogInfo('env bar ready wait start', { label: label || 'boot' });
+function whenEnvBarReady(run) {
   if (window.envBar && typeof window.envBar.ready === 'function') {
-    window.envBar
-      .ready()
-      .then(function () {
-        armcomLogInfo('env bar ready success', { label: label || 'boot' });
-        run();
-      })
-      .catch(function (err) {
-        armcomLogWarn('env bar ready failed — continuing boot anyway', {
-          label: label || 'boot',
-          error: err && err.message ? err.message : err,
-        });
-        run();
-      });
+    window.envBar.ready().then(run).catch(function () {
+      run();
+    });
   } else {
-    armcomLogWarn('env bar API missing — continuing boot without envBar.ready()', { label: label || 'boot' });
     run();
   }
 }
@@ -170,22 +112,26 @@ function whenEnvBarReady(run, label) {
 whenEnvBarReady(function () {
   bootArmcomDemoLab('envBar.ready');
   syncArmcomDecisioningStateToIframe();
-}, 'initial');
+});
 
 document.addEventListener('DOMContentLoaded', function () {
   bootArmcomDemoLab('DOMContentLoaded');
 });
 
-window.addEventListener('env-bar-change', function (ev) {
-  var detail = ev && ev.detail ? ev.detail : {};
-  if (detail.type === 'init') {
-    console.info(ARMCOM_ENV_LOG, 'env bar init complete', detail.bootstrap || {});
-    bootArmcomDemoLab('env-bar-change:init');
-  }
+window.addEventListener('pageshow', function (ev) {
+  if (!ev || !ev.persisted) return;
+  armcomLabBootStarted = false;
+  armcomLab = null;
+  whenEnvBarReady(function () {
+    bootArmcomDemoLab('pageshow:bfcache', true);
+    syncIframeToJourneyUrl();
+    syncArmcomDecisioningStateToIframe();
+  });
 });
 
-window.addEventListener('aep-demo-tags-injected', function () {
-  armcomLogInfo('shell received aep-demo-tags-injected');
+window.addEventListener('env-bar-change', function (ev) {
+  var detail = ev && ev.detail ? ev.detail : {};
+  if (detail.type === 'init') bootArmcomDemoLab('env-bar-change:init');
 });
 
 document.addEventListener('change', function (ev) {

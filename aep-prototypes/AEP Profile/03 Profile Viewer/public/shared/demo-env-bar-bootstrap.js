@@ -10,6 +10,15 @@
 (function attachLabDemoEnvBarBootstrap(global) {
   'use strict';
 
+  var LAB_LOG = 'env-bar';
+
+  function labLog(level, message, detail) {
+    if (!global.AepLabConsole) return;
+    if (level === 'warn') global.AepLabConsole.warn(LAB_LOG, message, detail);
+    else if (level === 'error') global.AepLabConsole.error(LAB_LOG, message, detail);
+    else global.AepLabConsole.info(LAB_LOG, message, detail);
+  }
+
   var CACHE_BUST = '20260602-env-bar-bootstrap';
 
   /**
@@ -30,6 +39,7 @@
     var opt = options || {};
     var prefix = String(opt.prefix || '').trim();
     var out = { stripMounted: false, envBarInited: false, siteCloneBcRefreshed: false };
+    labLog('info', 'bootstrap init start', { demoPrefix: prefix });
 
     if (global.DemoEnvStrip) {
       if (typeof global.DemoEnvStrip.autoMount === 'function') {
@@ -94,6 +104,12 @@
       out.siteCloneBcRefreshed = true;
     }
 
+    labLog('info', 'bootstrap init complete', {
+      demoPrefix: prefix,
+      stripMounted: out.stripMounted,
+      envBarInited: out.envBarInited,
+      siteCloneBcRefreshed: out.siteCloneBcRefreshed,
+    });
     return out;
   }
 

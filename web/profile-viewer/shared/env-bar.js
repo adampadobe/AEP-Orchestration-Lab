@@ -25,13 +25,14 @@
       spectrumSync: '20260714-env-bar-config-fileconvert',
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
+      aepLabConsole: '20260720-global-lab-console',
       compactCss: '20260714-env-bar-config-fileconvert',
-      compactJs: '20260714-env-bar-config-fileconvert',
-      bootstrap: '20260602-env-bar-bootstrap',
+      compactJs: '20260720-global-lab-console',
+      bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260622-bc-enabled-persist',
       prefsSync: '20260616-tags-incognito-load',
-      tagsInjection: '20260720d-armcom-scroll-preserve',
-      aepDemoEnvBar: '20260714-env-bar-collapse',
+      tagsInjection: '20260720-global-lab-console',
+      aepDemoEnvBar: '20260720-global-lab-console',
       siteCloneBcEnv: '20260622-bc-enabled-persist',
       siteCloneBcChrome: '20260614-modal-dock-parity',
       siteCloneBc: '20260625-bc-incognito-sync-skip',
@@ -41,7 +42,7 @@
       modalBarCss: '20260617-modal-bar-v8',
       modalBarJs: '20260617-modal-bar-v7',
       modalBarBoot: '20260617-modal-bar-v7',
-      envBarJs: '20260714-env-bar-config-fileconvert',
+      envBarJs: '20260720-global-lab-console',
       decisioningModuleCss: '20260618-reset-apply-spacing',
       decisioningPanelCss: '20260618-midrail-dynamic-stack',
       profileStreamingShared: '20260615',
@@ -113,6 +114,18 @@
     var args = Array.prototype.slice.call(arguments);
     args.unshift('[envBar]');
     console.log.apply(console, args);
+  }
+
+  function labInfo(message, detail) {
+    if (global.AepLabConsole) global.AepLabConsole.info('env-bar', message, detail);
+  }
+
+  function labWarn(message, detail) {
+    if (global.AepLabConsole) global.AepLabConsole.warn('env-bar', message, detail);
+  }
+
+  function labError(message, detail) {
+    if (global.AepLabConsole) global.AepLabConsole.error('env-bar', message, detail);
   }
 
   function warn() {
@@ -474,6 +487,7 @@
       chain.push(assetUrl('shared/demo-env-strip-spectrum.js', a.demoEnvStripSpectrum));
     }
     chain.push(assetUrl('shared/demo-env-strip.js', a.demoEnvStrip));
+    chain.push(assetUrl('shared/aep-lab-console.js', a.aepLabConsole || '20260720-global-lab-console'));
     if (isProfileLookupMode(cfg)) {
       chain.push(assetUrl('shared/aep-lab-debug.js', a.aepLabDebug));
     }
@@ -946,6 +960,11 @@
   function init(userConfig) {
     if (state.initPromise && !userConfig) return state.initPromise;
 
+    labInfo('loader init start', {
+      demoPrefix: userConfig && userConfig.prefix,
+      hasMount: !!document.querySelector('[data-demo-env-strip-mount]'),
+    });
+
     state.initPromise = ensurePrefsReady()
       .then(function () {
         return loadAndMergeRemoteConfig();
@@ -957,8 +976,16 @@
       .then(function (versions) {
         state.config = resolveConfig(userConfig);
         if (!state.config.prefix) {
+          labError('loader init failed — missing demo prefix', {
+            hasMount: !!document.querySelector('[data-demo-env-strip-mount]'),
+          });
           throw new Error('envBar.init requires config.prefix (or data-demo-env-strip-prefix on mount host)');
         }
+        labInfo('config loaded', {
+          demoPrefix: state.config.prefix,
+          variant: state.config.variant,
+          mode: state.config.mode,
+        });
         applyFeatureFlags(state.config);
         ensureSiteCloneDemoEnv(state.config);
         return loadStyles(versions, state.config)
@@ -995,6 +1022,11 @@
         state.initialized = true;
         notifyChange({ type: 'init', config: getConfig(), bootstrap: result });
         log('initialized', result);
+        labInfo('loader init complete', {
+          demoPrefix: state.config.prefix,
+          stripMounted: !!(result && result.stripMounted),
+          envBarInited: !!(result && result.envBarInited),
+        });
         return loadLabCoreIfConfigured(state.config).then(function () {
           return loadBrandScraperLabCoreFallback(state.config);
         }).then(function () {
@@ -1004,6 +1036,7 @@
       .catch(function (err) {
         state.initPromise = null;
         warn('init failed', err);
+        labError('loader init failed', { message: err && err.message ? err.message : String(err) });
         throw err;
       });
 
@@ -1218,4 +1251,16 @@
   };
 
   scheduleAutoInit();
+
+  global.addEventListener('pageshow', function (ev) {
+    if (!ev || !ev.persisted) return;
+    labWarn('bfcache restore — re-initializing env bar', {
+      demoPrefix: state.config && state.config.prefix,
+    });
+    state.initialized = false;
+    state.initPromise = null;
+    init().catch(function (e) {
+      warn('bfcache re-init failed', e);
+    });
+  });
 })(typeof window !== 'undefined' ? window : globalThis);
