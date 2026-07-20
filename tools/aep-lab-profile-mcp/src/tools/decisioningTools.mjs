@@ -7,6 +7,10 @@ import {
   getDecisionLabConfig,
   lookupProfile,
   resolveDecisioningTreatmentName,
+  decisioningCatalogList,
+  decisioningCatalogGet,
+  decisioningCatalogSchema,
+  decisioningCatalogAssess,
 } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
@@ -270,6 +274,174 @@ export function registerDecisioningTools(mcpServer) {
       });
 
       return fromLabApi(apiResult, { sandbox: allowed.sandbox, id: treatmentId });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_list',
+    {
+      title: 'List Decisioning catalog entities (DPS)',
+      description:
+        'POST /api/decisioning/catalog/list — allowlisted DPS list for offer-items, item-collections, or selection-strategies. ' +
+        'Normalized rows mirror Profile Viewer decisioning-catalog.js. offer-items requires x-schema-id from Firestore /api/catalog/config (auto-detect when omitted). ' +
+        'Sandbox allowlist required. Does not expose /api/aep.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z
+          .enum(['offer-items', 'item-collections', 'selection-strategies'])
+          .describe('DPS entity type to list'),
+        limit: z.number().int().min(1).max(50).optional().describe('Page size (default 50, max 50)'),
+        schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
+        auto_detect: z.boolean().optional().describe('Auto-detect offer schema when not in Firestore (default true)'),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_list',
+        sandbox: allowed.sandbox,
+      });
+
+      const apiResult = await decisioningCatalogList({
+        sandbox: allowed.sandbox,
+        entity_type: params.entity_type,
+        limit: params.limit,
+        schema_id: params.schema_id,
+        auto_detect: params.auto_detect,
+      });
+
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        entity_type: params.entity_type,
+        next_step: 'Call lab_decisioning_catalog_assess for health report or lab_decisioning_catalog_get for a single id.',
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_get',
+    {
+      title: 'Get Decisioning catalog entity by id',
+      description:
+        'POST /api/decisioning/catalog/get — allowlisted DPS GET by id. offer-items requires x-schema-id. Sandbox allowlist required.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z.enum(['offer-items', 'item-collections', 'selection-strategies']),
+        id: z.string().describe('Entity UUID'),
+        schema_id: z.string().optional(),
+        auto_detect: z.boolean().optional(),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const id = String(params.id || '').trim();
+      if (!id) return toolError('id is required.');
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_get',
+        sandbox: allowed.sandbox,
+      });
+
+      const apiResult = await decisioningCatalogGet({
+        sandbox: allowed.sandbox,
+        entity_type: params.entity_type,
+        id,
+        schema_id: params.schema_id,
+        auto_detect: params.auto_detect,
+      });
+
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: params.entity_type, id });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_schema',
+    {
+      title: 'Resolve Decisioning offer-items schema id',
+      description:
+        'GET /api/decisioning/catalog/schema — reads Firestore /api/catalog/config and optionally auto-detects ' +
+        '"Personalized Offer Items - Experience Decisioning" schema. Use before listing offer-items.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        auto_detect: z.boolean().optional().describe('Run schema registry auto-detect when Firestore empty (default true)'),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_schema',
+        sandbox: allowed.sandbox,
+      });
+
+      const apiResult = await decisioningCatalogSchema({
+        sandbox: allowed.sandbox,
+        auto_detect: params.auto_detect,
+      });
+
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        next_step: 'Pass schemaId to lab_decisioning_catalog_list entity_type offer-items if auto-detect failed.',
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_assess',
+    {
+      title: 'Assess Decisioning catalog health',
+      description:
+        'POST /api/decisioning/catalog/assess — fetches offers, collections, and strategies then returns rule-based health findings ' +
+        '(expired/scheduled offers, empty collections, missing ranking, duplicate priorities, tag gaps) plus suggestions[] for Coworker.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        schema_id: z.string().optional(),
+        auto_detect: z.boolean().optional(),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_assess',
+        sandbox: allowed.sandbox,
+      });
+
+      const apiResult = await decisioningCatalogAssess({
+        sandbox: allowed.sandbox,
+        schema_id: params.schema_id,
+        auto_detect: params.auto_detect,
+      });
+
+      if (!apiResult.ok) {
+        return fromLabApi(apiResult, { sandbox: allowed.sandbox });
+      }
+
+      return jsonResult({
+        ok: true,
+        sandbox: allowed.sandbox,
+        assess: apiResult.data,
+        suggestions: apiResult.data?.suggestions,
+        healthy: apiResult.data?.summary?.healthy,
+      });
     },
   );
 }

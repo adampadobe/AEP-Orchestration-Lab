@@ -294,6 +294,34 @@
         }
       },
       {
+        "source": "/api/decisioning/catalog/list",
+        "function": {
+          "functionId": "decisioningCatalogListProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/catalog/get",
+        "function": {
+          "functionId": "decisioningCatalogGetProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/catalog/schema",
+        "function": {
+          "functionId": "decisioningCatalogSchemaProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/catalog/assess",
+        "function": {
+          "functionId": "decisioningCatalogAssessProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/campaign-name",
         "function": {
           "functionId": "campaignNameProxy",

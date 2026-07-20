@@ -240,6 +240,26 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/decisioning/catalog/list",
+      "functionId": "decisioningCatalogListProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/decisioning/catalog/get",
+      "functionId": "decisioningCatalogGetProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/decisioning/catalog/schema",
+      "functionId": "decisioningCatalogSchemaProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/decisioning/catalog/assess",
+      "functionId": "decisioningCatalogAssessProxy",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/generic-profile-infra/step",
       "functionId": "genericProfileInfraStep",
       "region": "us-east4"

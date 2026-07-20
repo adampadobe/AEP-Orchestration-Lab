@@ -470,6 +470,72 @@ export async function explainDecisionResponse(params) {
   });
 }
 
+/**
+ * POST /api/decisioning/catalog/list
+ * @param {object} params
+ */
+export async function decisioningCatalogList(params) {
+  return labApiRequest('/api/decisioning/catalog/list', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      entityType: params.entity_type,
+      limit: params.limit,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/catalog/get
+ * @param {object} params
+ */
+export async function decisioningCatalogGet(params) {
+  return labApiRequest('/api/decisioning/catalog/get', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      entityType: params.entity_type,
+      id: params.id,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * GET /api/decisioning/catalog/schema?sandbox=
+ * @param {object} params
+ */
+export async function decisioningCatalogSchema(params) {
+  return labApiRequest('/api/decisioning/catalog/schema', {
+    query: {
+      sandbox: params.sandbox,
+      auto_detect: params.auto_detect === false ? 'false' : undefined,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/catalog/assess
+ * @param {object} params
+ */
+export async function decisioningCatalogAssess(params) {
+  return labApiRequest('/api/decisioning/catalog/assess', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
 function generationPrefsAuthHeaders() {
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};

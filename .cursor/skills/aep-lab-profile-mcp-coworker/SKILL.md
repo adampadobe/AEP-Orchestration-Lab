@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.18.0). Use when generating test profiles, sending
-  experience events, evaluating Edge decisioning (Decision lab), setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
-  access info, MCP first-run onboarding, getting/updating profiles (full-snapshot stitch), profile activity,
+  (Streamable HTTP on Cloud Run v3.19.0). Use when generating test profiles, sending
+  experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
+  setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.14)
+# AEP Orchestration Lab MCP — Coworker workflows (Phase 3.19)
 
-MCP server: **AEP Orchestration Lab MCP v3.18.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.19.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -46,6 +46,7 @@ Coworker should call these **before** improvising lab conventions:
 7. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 8. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
 9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
+10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
 
 ### How the lab executes
 
@@ -377,6 +378,23 @@ Server-side Edge personalization for Decisioning lab — mirrors Profile Viewer 
 > Using AEP Orchestration Lab MCP sandbox apalmer: (1) lab_decision_lab_config, (2) lab_decisioning_edge_evaluate for email {email} and ecid {ecid from generate}, (3) lab_explain_decision_response with those propositions. Summarize which placement mounts received content and list treatment names.
 
 **Zero propositions:** read `explain.checklist` — verify AJO policies, datastream personalization service, surface URIs match placement fragments, and profile eligibility.
+
+## Workflow 5e — Decisioning catalog browse + health (v3.19+)
+
+Allowlisted DPS catalog proxies — mirrors Profile Viewer **decisioning-catalog** without browser `/api/aep`.
+
+1. **`lab_decisioning_catalog_schema`** — resolve offer-items `x-schema-id` (Firestore or auto-detect **Personalized Offer Items - Experience Decisioning**).
+2. **`lab_decisioning_catalog_list`** — `entity_type` `offer-items` | `item-collections` | `selection-strategies`; `limit` ≤ 50.
+3. **`lab_decisioning_catalog_assess`** — health report: expired/scheduled offers, empty collections, strategies without ranking, duplicate priorities, tag gaps; read `suggestions[]`.
+4. Optional **`lab_decisioning_catalog_get`** — single entity by id.
+
+**Example Coworker prompt (pre-demo health check):**
+
+> Using AEP Orchestration Lab MCP sandbox apalmer: (1) lab_decisioning_catalog_schema, (2) lab_decisioning_catalog_assess, (3) summarize suggestions and list any expired offers or empty collections blocking Edge personalization.
+
+**Example Coworker prompt (catalog inventory):**
+
+> lab_decisioning_catalog_list sandbox apalmer entity_type selection-strategies limit 50 — then list strategy names, priorities, and linked item collections.
 
 ## Workflow 5c — Event infrastructure setup (schema + dataset + datastream)
 

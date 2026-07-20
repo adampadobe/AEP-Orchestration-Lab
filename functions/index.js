@@ -94,6 +94,8 @@ const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
 const decisioningEdgeEvaluateService = lazyRequireMod('./decisioningEdgeEvaluateService');
 const decisioningExplainService = lazyRequireMod('./decisioningExplainService');
+const decisioningCatalogService = lazyRequireMod('./decisioningCatalogService');
+const decisioningCatalogAssessService = lazyRequireMod('./decisioningCatalogAssessService');
 const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
@@ -1069,6 +1071,209 @@ exports.decisioningExplainProxy = onRequest(profileFnOpts, async (req, res) => {
       },
     });
     res.status(200).json({ sandbox, ...explained });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/catalog/list — allowlisted DPS list + normalized rows */
+exports.decisioningCatalogListProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningCatalogService.listCatalogEntities({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      entityType: body.entityType || body.entity_type,
+      limit: body.limit,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    if (!result.ok) {
+      res.status(result.status === 400 ? 400 : 502).json({ sandbox, ...result });
+      return;
+    }
+    res.status(200).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/catalog/get — allowlisted DPS get by id */
+exports.decisioningCatalogGetProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, GET, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  let body = {};
+  if (req.method === 'POST') {
+    try {
+      body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+    } catch {
+      res.status(400).json({ error: 'Invalid JSON body' });
+      return;
+    }
+  }
+
+  const sandbox = String(body.sandbox || req.query.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  const entityType = body.entityType || body.entity_type || req.query.entity_type || req.query.entityType;
+  const id = String(body.id || req.query.id || '').trim();
+
+  if (!entityType || !id) {
+    res.status(400).json({ error: 'entity_type and id are required' });
+    return;
+  }
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningCatalogService.getCatalogEntity({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      entityType,
+      id,
+      schemaId: body.schemaId || body.schema_id || req.query.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false && req.query.auto_detect !== 'false',
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    if (!result.ok) {
+      res.status(result.status === 404 ? 404 : result.status === 400 ? 400 : 502).json({ sandbox, ...result });
+      return;
+    }
+    res.status(200).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/** GET /api/decisioning/catalog/schema — Firestore schema + optional auto-detect */
+exports.decisioningCatalogSchemaProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const sandbox = resolveSandboxFromQuery(req);
+  const autoDetect = req.query.auto_detect !== 'false' && req.query.autoDetect !== 'false';
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const record = await catalogConfigStore.getCatalogConfig(sandbox);
+    const resolved = await decisioningCatalogService.resolveCatalogSchema({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      autoDetect,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(200).json({
+      ok: true,
+      sandbox,
+      offerSchemaTitle: decisioningCatalogService.OFFER_SCHEMA_TITLE,
+      record,
+      schemaId: resolved.schemaId || (record && record.schemaId) || null,
+      source: resolved.source || (record && record.schemaId ? 'firestore' : null),
+      error: resolved.ok ? undefined : resolved.error,
+      routes: { config: '/api/catalog/config' },
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/catalog/assess — catalog health report + suggestions */
+exports.decisioningCatalogAssessProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const report = await decisioningCatalogAssessService.assessDecisioningCatalog({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(200).json({ sandbox, ...report });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
   }

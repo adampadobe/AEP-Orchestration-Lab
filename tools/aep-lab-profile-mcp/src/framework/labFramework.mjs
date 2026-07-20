@@ -178,6 +178,16 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/content-decision-live-edge-inline.js + content-decision-edge-mounts.js',
     mcp: 'Sandbox allowlist required. Auto-fetch ecid from UPS when email-only (same as event tools).',
   },
+  {
+    id: 'decisioning_catalog',
+    rule:
+      'Decisioning catalog browse uses allowlisted DPS proxies only (POST /api/decisioning/catalog/* — not /api/aep). offer-items requires x-schema-id from GET /api/catalog/config or auto-detect.',
+    tools:
+      'lab_decisioning_catalog_schema → lab_decisioning_catalog_list → lab_decisioning_catalog_get → lab_decisioning_catalog_assess.',
+    entity_types: 'offer-items | item-collections | selection-strategies — limit ≤ 50.',
+    ui: 'web/profile-viewer/decisioning-catalog.js',
+    mcp: 'Sandbox allowlist required. Run lab_decisioning_catalog_assess before Edge evaluate demos to catch expired offers and empty collections.',
+  },
 ];
 
 /** Shared language documentation for playbooks. */
@@ -377,7 +387,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.18.0',
+    version: '3.19.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -572,6 +582,32 @@ export function getExecutionFramework() {
         api: ['POST /api/decisioning/edge-evaluate', 'POST /api/decisioning/explain', 'GET /api/decisioning/treatment-name'],
         ui: 'web/profile-viewer/content-decision-live-edge.html',
         never: 'Do not call /api/aep from MCP — lab proxies only.',
+      },
+      decisioning_catalog: {
+        tools: [
+          'lab_decisioning_catalog_schema',
+          'lab_decisioning_catalog_list',
+          'lab_decisioning_catalog_get',
+          'lab_decisioning_catalog_assess',
+        ],
+        when:
+          'Coworker needs AJO Experience Decisioning catalog inventory or pre-demo health check (offers, collections, strategies) without browser catalog UI.',
+        order: [
+          'lab_decisioning_catalog_schema sandbox {sandbox} — resolve offer-items x-schema-id',
+          'lab_decisioning_catalog_list entity_type offer-items (then item-collections, selection-strategies)',
+          'lab_decisioning_catalog_assess — expired offers, empty collections, duplicate strategy priorities',
+          'Optional: lab_decisioning_catalog_get for single entity drill-down',
+        ],
+        entity_types: ['offer-items', 'item-collections', 'selection-strategies'],
+        api: [
+          'GET /api/decisioning/catalog/schema',
+          'POST /api/decisioning/catalog/list',
+          'POST /api/decisioning/catalog/get',
+          'POST /api/decisioning/catalog/assess',
+          'GET/POST /api/catalog/config (schema persistence)',
+        ],
+        ui: 'web/profile-viewer/decisioning-catalog.html',
+        never: 'Do not call /api/aep from MCP — allowlisted DPS paths only via lab catalog proxies.',
       },
       batch_seed: {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],
