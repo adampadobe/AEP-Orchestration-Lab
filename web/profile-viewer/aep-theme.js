@@ -95,6 +95,7 @@
   function shouldSkipFullscreenHelper(doc) {
     var body = doc && doc.body;
     if (body && body.classList && (
+      body.classList.contains('arm-journey-presenter-page') ||
       body.classList.contains('mobile-demo-shell-page') ||
       body.classList.contains('mobile-demo-page')
     )) return true;

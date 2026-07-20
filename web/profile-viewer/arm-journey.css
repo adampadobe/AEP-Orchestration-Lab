@@ -4,6 +4,12 @@ body.arm-journey-presenter-page {
   overflow: hidden;
 }
 
+/* Journey iframe owns sidecar controls — never stack lab mid-rail fullscreen over it. */
+body.arm-journey-presenter-page .aep-fullscreen-btn {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 .arm-journey-presenter-frame {
   position: fixed;
   inset: 0;

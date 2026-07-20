@@ -242,29 +242,79 @@ body {
   justify-content: center;
   text-align: center;
   padding: 20px;
+  position: relative;
+  isolation: isolate;
 }
 
-.nav-dots { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; justify-content: center; max-width: 200px; }
-.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); cursor: pointer; }
+.right-panel-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 240px;
+  pointer-events: auto;
+}
+
+.map-focus-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #1A1A1A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.map-focus-btn:hover { background: #f2f2f2; }
+.map-focus-btn:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+.map-focus-btn svg { width: 18px; height: 18px; display: block; pointer-events: none; }
+
+.nav-dots { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; justify-content: center; max-width: 200px; position: relative; z-index: 2; }
+.nav-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  pointer-events: auto;
+}
 .nav-dot.active { background: #ffffff; }
 
-#slide-label { font-size: 16px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.3px; }
-#slide-desc { font-size: 13px; line-height: 1.5; max-width: 240px; margin-bottom: 18px; }
+#slide-label { font-size: 16px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.3px; position: relative; z-index: 2; }
+#slide-desc { font-size: 13px; line-height: 1.5; max-width: 240px; margin-bottom: 18px; position: relative; z-index: 2; }
 
-.persona-avatar { margin-top: 4px; flex-shrink: 0; }
+.persona-avatar { margin-top: 4px; flex-shrink: 0; position: relative; z-index: 2; pointer-events: none; }
 
-.persona-name { font-size: 13px; font-weight: 700; margin-top: 10px; }
-.persona-role { font-size: 11px; opacity: 0.85; margin-bottom: 18px; }
+.persona-name { font-size: 13px; font-weight: 700; margin-top: 10px; position: relative; z-index: 2; }
+.persona-role { font-size: 11px; opacity: 0.85; margin-bottom: 18px; position: relative; z-index: 2; }
 
-.nav-arrows { display: flex; gap: 16px; margin-top: 8px; }
+.nav-arrows { display: flex; gap: 16px; margin-top: 8px; position: relative; z-index: 2; }
 .nav-arrow {
   width: 34px; height: 34px; border-radius: 50%;
   background: rgba(255,255,255,0.18);
+  border: none;
+  color: #ffffff;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: 16px; user-select: none;
   transition: background 0.2s;
+  pointer-events: auto;
+  padding: 0;
 }
 .nav-arrow:hover { background: rgba(255,255,255,0.32); }
+.nav-arrow:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -444,6 +494,16 @@ body {
   </div>
 
   <div class="right-panel">
+    <button type="button" class="map-focus-btn" id="map-focus-btn" aria-label="Fit journey map in view" title="Fit journey map in view">
+      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M12.75,14.93652h-5.5c-1.24072,0-2.25-1.00928-2.25-2.25v-5.5c0-1.24072,1.00928-2.25,2.25-2.25h5.5c1.24072,0,2.25,1.00928,2.25,2.25v5.5c0,1.24072-1.00928,2.25-2.25,2.25ZM7.25,6.43652c-.41357,0-.75.33643-.75.75v5.5c0,.41357.33643.75.75.75h5.5c.41357,0,.75-.33643.75-.75v-5.5c0-.41357-.33643-.75-.75-.75h-5.5Z"/>
+        <path fill="currentColor" d="M4.5,19h-2.25c-.68945,0-1.25-.56055-1.25-1.25v-2.25c0-.41406.33594-.75.75-.75s.75.33594.75.75v2h2c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"/>
+        <path fill="currentColor" d="M17.75,19h-2.25c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2v-2c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.25c0,.68945-.56055,1.25-1.25,1.25Z"/>
+        <path fill="currentColor" d="M18.25,5.25c-.41406,0-.75-.33594-.75-.75v-2h-2c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2.25c.68945,0,1.25.56055,1.25,1.25v2.25c0,.41406-.33594.75-.75.75ZM17.75,2.5h.00977-.00977Z"/>
+        <path fill="currentColor" d="M1.75,5.25c-.41406,0-.75-.33594-.75-.75v-2.25c0-.68945.56055-1.25,1.25-1.25h2.25c.41406,0,.75.33594.75.75s-.33594.75-.75.75h-2v2c0,.41406-.33594.75-.75.75Z"/>
+      </svg>
+    </button>
+    <div class="right-panel-inner">
     <div style="margin-bottom: 12px; flex-shrink: 0;">
       <img src="assets/arm-logo-white.svg" alt="Arm" style="height:20px;"
            onerror="this.style.display='none';document.getElementById('rp-logo-fb').style.display='block'">
@@ -473,8 +533,9 @@ body {
     <div class="persona-role">Infrastructure Lead &middot; Target Cloud AI Account</div>
 
     <div class="nav-arrows">
-      <div class="nav-arrow" onclick="prevSlide()">&#8592;</div>
-      <div class="nav-arrow" onclick="nextSlide()">&#8594;</div>
+      <button type="button" class="nav-arrow" data-nav="prev" aria-label="Previous stage">&#8592;</button>
+      <button type="button" class="nav-arrow" data-nav="next" aria-label="Next stage">&#8594;</button>
+    </div>
     </div>
   </div>
 </div>
@@ -667,6 +728,14 @@ const slides = [
 
 let current = 0;
 let overviewTimers = [];
+let navBusy = false;
+
+const FULL_VIEWBOX = '-20 -10 1040 230';
+const NODE_COORDS = [
+  { cx: 25, cy: 168 }, { cx: 113, cy: 65 }, { cx: 200, cy: 158 }, { cx: 288, cy: 58 },
+  { cx: 376, cy: 168 }, { cx: 464, cy: 62 }, { cx: 552, cy: 158 }, { cx: 640, cy: 55 },
+  { cx: 726, cy: 165 }, { cx: 814, cy: 52 }, { cx: 900, cy: 168 }, { cx: 982, cy: 70 }
+];
 
 function clearOverviewTimers() {
   overviewTimers.forEach(t => clearTimeout(t));
@@ -677,6 +746,38 @@ function resetNodes() {
   for (let n = 0; n < 12; n++) {
     document.getElementById('node-' + n).classList.remove('node-active');
   }
+}
+
+function setMapExpanded(expanded) {
+  document.querySelector('.journey-map-container').classList.toggle('expanded', !!expanded);
+}
+
+function fitMapView() {
+  const svg = document.getElementById('journey-svg');
+  const s = slides[current];
+  setMapExpanded(true);
+  if (current === 0 || s.activeNode < 0) {
+    svg.setAttribute('viewBox', FULL_VIEWBOX);
+    return;
+  }
+  const node = NODE_COORDS[s.activeNode];
+  if (!node) {
+    svg.setAttribute('viewBox', FULL_VIEWBOX);
+    return;
+  }
+  const padX = 150;
+  const padY = 95;
+  svg.setAttribute(
+    'viewBox',
+    `${node.cx - padX} ${node.cy - padY} ${padX * 2} ${padY * 2}`
+  );
+}
+
+function syncNavButtons() {
+  const prevBtn = document.querySelector('[data-nav="prev"]');
+  const nextBtn = document.querySelector('[data-nav="next"]');
+  if (prevBtn) prevBtn.disabled = current <= 0;
+  if (nextBtn) nextBtn.disabled = current >= slides.length - 1;
 }
 
 function animateOverview() {
@@ -701,8 +802,13 @@ function animateOverview() {
 }
 
 function goTo(idx) {
+  if (navBusy) return;
+  const nextIdx = Math.max(0, Math.min(slides.length - 1, idx));
+  if (nextIdx === current) return;
+  navBusy = true;
+
   clearOverviewTimers();
-  current = Math.max(0, Math.min(slides.length - 1, idx));
+  current = nextIdx;
 
   const seg = document.getElementById('active-seg');
   seg.style.transition = 'none';
@@ -715,7 +821,15 @@ function goTo(idx) {
 
   renderContent();
 
-  if (current === 0) animateOverview();
+  if (current === 0) {
+    animateOverview();
+    document.getElementById('journey-svg').setAttribute('viewBox', FULL_VIEWBOX);
+  } else {
+    fitMapView();
+  }
+
+  syncNavButtons();
+  requestAnimationFrame(function () { navBusy = false; });
 }
 
 function nextSlide() { goTo(current + 1); }
@@ -732,13 +846,14 @@ function renderContent() {
     panel.classList.remove('hidden');
   }
   document.querySelector('.journey-map-container').classList.toggle('expanded', isOverview);
+  document.getElementById('journey-svg').setAttribute('viewBox', FULL_VIEWBOX);
 
   document.getElementById('slide-label').textContent = s.label;
   document.getElementById('slide-desc').textContent = s.desc;
 
   const dotsEl = document.getElementById('nav-dots');
   dotsEl.innerHTML = slides.map((_, i) =>
-    `<div class="nav-dot${i === current ? ' active' : ''}" onclick="goTo(${i})"></div>`
+    `<button type="button" class="nav-dot${i === current ? ' active' : ''}" data-slide-idx="${i}" aria-label="Go to stage ${i + 1}"></button>`
   ).join('');
 
   if (!isOverview) {
@@ -854,7 +969,32 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft')  prevSlide();
 });
 
+document.querySelector('.right-panel').addEventListener('click', function (e) {
+  const focusBtn = e.target.closest('#map-focus-btn');
+  if (focusBtn) {
+    e.preventDefault();
+    fitMapView();
+    return;
+  }
+  const dot = e.target.closest('[data-slide-idx]');
+  if (dot) {
+    e.preventDefault();
+    goTo(Number(dot.getAttribute('data-slide-idx')));
+    return;
+  }
+  if (e.target.closest('[data-nav="prev"]')) {
+    e.preventDefault();
+    prevSlide();
+    return;
+  }
+  if (e.target.closest('[data-nav="next"]')) {
+    e.preventDefault();
+    nextSlide();
+  }
+});
+
 renderContent();
+syncNavButtons();
 animateOverview();
 </script>
 </body>
