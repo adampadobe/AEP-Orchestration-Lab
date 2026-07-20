@@ -823,9 +823,6 @@ function goTo(idx) {
 
   if (current === 0) {
     animateOverview();
-    document.getElementById('journey-svg').setAttribute('viewBox', FULL_VIEWBOX);
-  } else {
-    fitMapView();
   }
 
   syncNavButtons();
