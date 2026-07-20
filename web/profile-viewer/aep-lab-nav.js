@@ -19,6 +19,12 @@
   var LS_NAV_HIDE_PREFIX = 'aepNavHideInDev_';
   /** Master switch per sandbox: aepShowInDevCapabilities_<slug> === '1' shows all in-development nav (subject to per-item hides). Missing key = off. */
   var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
+  /** Older hide keys that must still suppress / clear with the canonical navHideKey (Global values bulk unhide). */
+  var NAV_HIDE_LEGACY_ALIASES = {
+    socialFacebookDemo: ['menu_social_facebook_html'],
+    socialLinkedinArmDemo: ['socialLinkedinDemo', 'menu_social_linkedin_html'],
+    socialTiktokDemo: ['menu_social_tiktok_html'],
+  };
   /** Demos sidebar: GitHub-style handle (lowercase). Unset key defaults to apalmer for first-time browsers; explicit empty string narrows Mine to no owner match. */
   var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
   /** Demos sidebar: mine | mine_sandbox | all */
@@ -52,14 +58,83 @@
     return isInDevCapabilitiesEnabled() && !isNavInDevHidden('demos');
   }
 
+  function legacyHideKeysForNavHideKey(navHideKey) {
+    var aliases = NAV_HIDE_LEGACY_ALIASES[navHideKey];
+    return aliases ? aliases.slice() : [];
+  }
+
+  function allStorageKeysForNavHide(navHideKey) {
+    var keys = [navHideKey];
+    legacyHideKeysForNavHideKey(navHideKey).forEach(function (alias) {
+      if (alias && keys.indexOf(alias) === -1) keys.push(alias);
+    });
+    return keys;
+  }
+
   /** Global values / sidebar: hide when key set (developers); legacy EDP key counts for decisioningOverview */
   function isNavInDevHidden(navHideKey) {
     if (!navHideKey) return false;
     try {
-      if (localStorage.getItem(LS_NAV_HIDE_PREFIX + navHideKey) === '1') return true;
+      var keys = allStorageKeysForNavHide(navHideKey);
+      for (var i = 0; i < keys.length; i++) {
+        if (localStorage.getItem(LS_NAV_HIDE_PREFIX + keys[i]) === '1') return true;
+      }
       if (navHideKey === 'decisioningOverview' && localStorage.getItem(LS_HIDE_EDP) === '1') return true;
     } catch (e) {}
     return false;
+  }
+
+  function clearNavInDevHide(navHideKey) {
+    if (!navHideKey) return;
+    try {
+      allStorageKeysForNavHide(navHideKey).forEach(function (key) {
+        localStorage.removeItem(LS_NAV_HIDE_PREFIX + key);
+      });
+      if (navHideKey === 'decisioningOverview') localStorage.removeItem(LS_HIDE_EDP);
+    } catch (e) {}
+  }
+
+  function setNavInDevHide(navHideKey) {
+    if (!navHideKey) return;
+    try {
+      localStorage.setItem(LS_NAV_HIDE_PREFIX + navHideKey, '1');
+      if (navHideKey === 'decisioningOverview') localStorage.setItem(LS_HIDE_EDP, '1');
+    } catch (e) {}
+  }
+
+  function getInDevNavHideKeys() {
+    return getMenuVisibilityOptions()
+      .filter(function (item) { return item.inDevelopment === true; })
+      .map(function (item) { return item.navHideKey; })
+      .filter(function (key) { return !!key; });
+  }
+
+  /** Global values: Show all in-development — always derive keys from NAV (not a stale checklist cache). */
+  function showAllInDevNavItems() {
+    getInDevNavHideKeys().forEach(clearNavInDevHide);
+    ensureDemosNavExpandedForInDev();
+  }
+
+  function hideAllInDevNavItems() {
+    getInDevNavHideKeys().forEach(setNavInDevHide);
+  }
+
+  /** Expand Demos + Social subgroup when surfacing in-development capabilities (discoverability). */
+  function ensureDemosNavExpandedForInDev() {
+    if (!isInDevCapabilitiesEnabled()) return;
+    try {
+      var st = getGroupStates();
+      var changed = false;
+      if (st.demos === false) {
+        st.demos = true;
+        changed = true;
+      }
+      if (st.demoSocial === false) {
+        st.demoSocial = true;
+        changed = true;
+      }
+      if (changed) saveGroupStates(st);
+    } catch (e) {}
   }
 
   function getDemoNavVisibility() {
@@ -1633,6 +1708,7 @@
   });
 
   window.addEventListener('aep-nav-indev-visibility-change', function () {
+    ensureDemosNavExpandedForInDev();
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
   });
 
@@ -1675,6 +1751,12 @@
       showInDevCapabilitiesStorageKey: showInDevCapabilitiesStorageKey,
       isInDevCapabilitiesEnabled: isInDevCapabilitiesEnabled,
       isNavInDevHidden: isNavInDevHidden,
+      clearNavInDevHide: clearNavInDevHide,
+      setNavInDevHide: setNavInDevHide,
+      getInDevNavHideKeys: getInDevNavHideKeys,
+      showAllInDevNavItems: showAllInDevNavItems,
+      hideAllInDevNavItems: hideAllInDevNavItems,
+      ensureDemosNavExpandedForInDev: ensureDemosNavExpandedForInDev,
       getDemoNavOwnerHandle: getDemoNavOwnerHandle,
       getDemoNavVisibility: getDemoNavVisibility,
       /** True if this in-development link should appear in the sidebar / home quick paths */

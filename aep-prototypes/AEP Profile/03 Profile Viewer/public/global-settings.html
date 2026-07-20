@@ -274,7 +274,7 @@
     })();
   </script>
   <!-- Sync load before visibility checklist so getMenuVisibilityOptions() is never stale vs deferred-only nav -->
-  <script src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
+  <script src="aep-lab-nav.js?v=20260720-social-nav-fix"></script>
   <script>
     (function () {
       var LS_PREFIX = 'aepNavHideInDev_';
@@ -299,6 +299,9 @@
 
       function isHiddenKey(key) {
         try {
+          if (window.AepNavInDev && typeof window.AepNavInDev.isNavInDevHidden === 'function') {
+            return window.AepNavInDev.isNavInDevHidden(key);
+          }
           if (localStorage.getItem(LS_PREFIX + key) === '1') return true;
           if (key === 'decisioningOverview' && localStorage.getItem(LS_HIDE_EDP_LEGACY) === '1') return true;
         } catch (e) {}
@@ -307,6 +310,14 @@
 
       function setHiddenKey(key, hide) {
         try {
+          if (!hide && window.AepNavInDev && typeof window.AepNavInDev.clearNavInDevHide === 'function') {
+            window.AepNavInDev.clearNavInDevHide(key);
+            return;
+          }
+          if (hide && window.AepNavInDev && typeof window.AepNavInDev.setNavInDevHide === 'function') {
+            window.AepNavInDev.setNavInDevHide(key);
+            return;
+          }
           if (key === 'decisioningOverview') {
             if (hide) {
               localStorage.setItem(LS_PREFIX + key, '1');
@@ -341,6 +352,7 @@
 
       var inDevKeysCache = [];
       var sidebarKeysCache = [];
+      var navChecklistHandlersBound = false;
 
       function getVisibilityOptions() {
         try {
@@ -457,16 +469,22 @@
       }
 
       function bindChecklistChangeHandlers() {
-        document.querySelectorAll('.aep-nav-indev-hide-cb, .aep-nav-sidebar-hide-cb').forEach(function (cb) {
-          cb.addEventListener('change', function () {
-            var key = cb.getAttribute('data-aep-nav-hide-key');
-            if (!key) return;
-            setHiddenKey(key, cb.checked);
-            // Same key can appear in both lists; keep them in sync.
-            syncCheckboxes();
-            dispatchNavChange();
-          });
-        });
+        if (navChecklistHandlersBound) return;
+        navChecklistHandlersBound = true;
+        function onChecklistChange(e) {
+          var cb = e.target;
+          if (!cb || !cb.classList) return;
+          if (!cb.classList.contains('aep-nav-indev-hide-cb') && !cb.classList.contains('aep-nav-sidebar-hide-cb')) return;
+          var key = cb.getAttribute('data-aep-nav-hide-key');
+          if (!key) return;
+          setHiddenKey(key, cb.checked);
+          syncCheckboxes();
+          dispatchNavChange();
+        }
+        var inDevRoot = document.getElementById('aepNavInDevChecklist');
+        var sidebarRoot = document.getElementById('aepNavSidebarChecklist');
+        if (inDevRoot) inDevRoot.addEventListener('change', onChecklistChange);
+        if (sidebarRoot) sidebarRoot.addEventListener('change', onChecklistChange);
       }
 
       function dispatchNavChange() {
@@ -483,17 +501,25 @@
       }
 
       function hideAllInDevNav() {
-        forEachInDevKey(function (key) {
-          setHiddenKey(key, true);
-        });
+        if (window.AepNavInDev && typeof window.AepNavInDev.hideAllInDevNavItems === 'function') {
+          window.AepNavInDev.hideAllInDevNavItems();
+        } else {
+          forEachInDevKey(function (key) {
+            setHiddenKey(key, true);
+          });
+        }
         syncCheckboxes();
         dispatchNavChange();
       }
 
       function showAllInDevNav() {
-        forEachInDevKey(function (key) {
-          setHiddenKey(key, false);
-        });
+        if (window.AepNavInDev && typeof window.AepNavInDev.showAllInDevNavItems === 'function') {
+          window.AepNavInDev.showAllInDevNavItems();
+        } else {
+          forEachInDevKey(function (key) {
+            setHiddenKey(key, false);
+          });
+        }
         syncCheckboxes();
         dispatchNavChange();
       }
@@ -535,6 +561,9 @@
         if (master) {
           master.addEventListener('change', function () {
             setShowInDevCapabilities(!!master.checked);
+            if (master.checked && window.AepNavInDev && typeof window.AepNavInDev.ensureDemosNavExpandedForInDev === 'function') {
+              window.AepNavInDev.ensureDemosNavExpandedForInDev();
+            }
             dispatchNavChange();
           });
         }
