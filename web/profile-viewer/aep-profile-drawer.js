@@ -2031,10 +2031,14 @@ function dedupeArmcomShellNoiseFromDrawerEvents(events) {
 }
 
 function filterDrawerEventsForTimeline(events) {
-  return dedupeArmcomShellNoiseFromDrawerEvents(filterRecentApplicationLoginForDrawer(events));
+  const raw = Array.isArray(events) ? events : [];
+  const filtered = dedupeArmcomShellNoiseFromDrawerEvents(filterRecentApplicationLoginForDrawer(raw));
+  // Never return an empty timeline when the API returned events — dedupe is display-only.
+  if (filtered.length === 0 && raw.length > 0) return raw;
+  return filtered;
 }
 
-/** Visible drawer events — same filter used for list + count badge. */
+/** Visible drawer events — filter raw API list once for panel + journey seed (load/poll paths). */
 function visibleDrawerEventsForPanel(events, maxCount) {
   const cap = typeof maxCount === 'number' && Number.isFinite(maxCount) ? Math.max(0, maxCount) : 5;
   return filterDrawerEventsForTimeline(Array.isArray(events) ? events : []).slice(0, cap);
@@ -3281,7 +3285,8 @@ function renderEventTimeline(events) {
   if (!profileDrawerEvents) return;
   ensureProfileDrawerEventsHeadingRow();
   profileDrawerEvents.innerHTML = '';
-  const list = visibleDrawerEventsForPanel(events, 5);
+  // Profile `events` are already filtered in load/poll — do not re-run dedupe here (double-filter can zero the list while count badge was set from stored length).
+  const list = Array.isArray(events) ? events.slice(0, 5) : [];
   updateProfileDrawerEventsStoryBadgeCount(list.length);
   if (!list.length) {
     const p = document.createElement('p');
@@ -3737,7 +3742,7 @@ async function loadProfileDataForDrawer(email, options) {
       fetchProfileEventsList(emailTrim, ns),
     ]);
     const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
-    const events = eventsForTimeline.slice(0, 5);
+    const events = visibleDrawerEventsForPanel(eventsAll, 5);
     const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
     const engagementH = resolveEngagementMetricsHoursBack(opts);
     let emailSendsLast24h;
@@ -3888,7 +3893,7 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
     }
   }
   const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
-  const events = eventsForTimeline.slice(0, 5);
+  const events = visibleDrawerEventsForPanel(eventsAll, 5);
   const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
   patchLastProfileOrUpdate({ events, eventsStory });
 }
