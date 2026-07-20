@@ -1,14 +1,14 @@
 {
-  "gitSha": "b5e38f922aa7f23775f9347ef9eaa7c0ab2fe26e",
-  "gitShortSha": "b5e38f92",
+  "gitSha": "94e1f5c76b4db6ef43a4f3feb5044d28592ec946",
+  "gitShortSha": "94e1f5c7",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: clearer Arm demo page labels in profile last events",
+  "gitCommitSubject": "[apalmer] feat: profile drawer reset ECID for Arm demo",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T13:27:24+01:00",
-  "deployedAt": "2026-07-20T12:27:36.585Z",
+  "gitCommitDate": "2026-07-20T13:34:50+01:00",
+  "deployedAt": "2026-07-20T12:35:02.322Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b5e38f922aa7f23775f9347ef9eaa7c0ab2fe26e"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/94e1f5c76b4db6ef43a4f3feb5044d28592ec946"
 }
