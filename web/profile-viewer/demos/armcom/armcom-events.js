@@ -4,6 +4,9 @@
 (function () {
   'use strict';
 
+  var TOAST_STORAGE_KEY = 'armcomToastState';
+  var SHELL_SOURCE = 'armcom-demo-shell';
+
   var PAGE_META = {
     home: { viewName: 'Arm home', topic: 'general', siteId: 'arm.com' },
     'cloud-ai-hub': { viewName: 'Cloud AI hub', topic: 'cloud-ai', siteId: 'arm.com' },
@@ -56,6 +59,14 @@
       productName: 'Arm AGI CPU',
       productCategory: 'Cloud compute',
       productId: 'agi-cpu',
+    },
+    'account-engagement': {
+      viewName: 'Account engagement — colleagues researching',
+      topic: 'cloud-ai',
+      siteId: 'arm.com',
+      intent: 'engage',
+      contentType: 'account-insight',
+      contentId: 'multi-contact-engagement',
     },
   };
 
@@ -297,7 +308,26 @@
     requestDecisioningRefresh();
   }
 
-  function dismissActivationToast(toast) {
+  function readToastState() {
+    try {
+      var raw = sessionStorage.getItem(TOAST_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function writeToastState(patch) {
+    var next = Object.assign({}, readToastState(), patch || {});
+    try {
+      sessionStorage.setItem(TOAST_STORAGE_KEY, JSON.stringify(next));
+    } catch (_e) {
+      /* ignore */
+    }
+    return next;
+  }
+
+  function dismissToast(toast) {
     if (!toast || toast.dataset.armcomDismissed === '1') return;
     toast.dataset.armcomDismissed = '1';
     toast.classList.remove('visible');
@@ -306,36 +336,95 @@
     }, 400);
   }
 
-  function showActivationToast() {
-    var existing = document.getElementById('armcomActivationToast');
+  function mountToast(id, className, html) {
+    var existing = document.getElementById(id);
     if (existing) existing.remove();
     var toast = document.createElement('div');
-    toast.id = 'armcomActivationToast';
-    toast.className = 'armcom-toast';
+    toast.id = id;
+    toast.className = 'armcom-toast' + (className ? ' ' + className : '');
     toast.setAttribute('role', 'status');
-    toast.innerHTML =
-      '<button type="button" class="armcom-toast-dismiss" aria-label="Dismiss notification">×</button>' +
-      '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences.' +
-      '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span></div>' +
-      '<div class="armcom-toast-actions">' +
-      '<a class="armcom-toast-link" href="' +
-      linkedInMockHref() +
-      '" target="_top">View on LinkedIn →</a>' +
-      '<a class="armcom-toast-link armcom-toast-link--secondary" href="' +
-      emailNurtureHref() +
-      '" target="_top">Email nurture (demo) →</a>' +
-      '</div>';
+    toast.innerHTML = html;
     document.body.appendChild(toast);
     var dismissBtn = toast.querySelector('.armcom-toast-dismiss');
     if (dismissBtn) {
       dismissBtn.addEventListener('click', function () {
-        dismissActivationToast(toast);
+        dismissToast(toast);
       });
     }
     requestAnimationFrame(function () {
       toast.classList.add('visible');
     });
+    return toast;
+  }
+
+  function showIdentityStitchToast() {
+    if (readToastState().identityStitchShown) return;
+    writeToastState({ identityStitchShown: true });
+    mountToast(
+      'armcomIdentityToast',
+      'armcom-toast--info',
+      '<button type="button" class="armcom-toast-dismiss" aria-label="Dismiss notification">×</button>' +
+        '<strong>Identity resolved</strong><br>Anonymous Cloud AI browsing is now stitched to a known B2B profile across arm.com properties.',
+    );
+  }
+
+  function showSegmentQualifiedToast() {
+    if (readToastState().segmentQualifiedShown) return;
+    writeToastState({ segmentQualifiedShown: true });
+    mountToast(
+      'armcomSegmentToast',
+      'armcom-toast--segment',
+      '<button type="button" class="armcom-toast-dismiss" aria-label="Dismiss notification">×</button>' +
+        '<strong>Segment qualified</strong><br>Cloud AI Target Account — High Intent audience is ready for activation.',
+    );
+  }
+
+  function showActivationToast() {
+    if (readToastState().activationShown) return;
+    writeToastState({ activationShown: true });
+    mountToast(
+      'armcomActivationToast',
+      '',
+      '<button type="button" class="armcom-toast-dismiss" aria-label="Dismiss notification">×</button>' +
+        '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences.' +
+        '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span></div>' +
+        '<div class="armcom-toast-actions">' +
+        '<a class="armcom-toast-link" href="' +
+        linkedInMockHref() +
+        '" target="_top">View on LinkedIn →</a>' +
+        '</div>',
+    );
     postToParent('armcom-audience-activated', { pageId: pageId() });
+  }
+
+  function showEmailNurtureToast() {
+    if (readToastState().emailNurtureShown) return;
+    writeToastState({ emailNurtureShown: true, emailNurtureUnlocked: true });
+    mountToast(
+      'armcomEmailNurtureToast',
+      'armcom-toast--secondary',
+      '<button type="button" class="armcom-toast-dismiss" aria-label="Dismiss notification">×</button>' +
+        '<strong>Email nurture ready</strong><br>Marketo Engage follow-up is queued after paid social retargeting.' +
+        '<div class="armcom-toast-actions">' +
+        '<a class="armcom-toast-link" href="' +
+        emailNurtureHref() +
+        '" target="_top">Open nurture mock →</a>' +
+        '</div>',
+    );
+  }
+
+  function restorePersistedToasts() {
+    var state = readToastState();
+    if (state.activationShown) {
+      showActivationToast();
+    }
+    if (state.emailNurtureUnlocked) {
+      showEmailNurtureToast();
+    }
+  }
+
+  function dismissActivationToast(toast) {
+    dismissToast(toast);
   }
 
   function handleSubscribeForm(form, options) {
@@ -374,7 +463,10 @@
         },
       });
 
-      showActivationToast();
+      showSegmentQualifiedToast();
+      window.setTimeout(function () {
+        showActivationToast();
+      }, 900);
 
       var success = document.getElementById(successId);
       if (success) {
@@ -431,7 +523,7 @@
         },
       });
 
-      showActivationToast();
+      showIdentityStitchToast();
 
       var success = document.getElementById('armcomAgiBriefSuccess');
       if (success) {
@@ -460,6 +552,7 @@
     }
     if (params.get('from') !== 'linkedin-ad') return;
     sendPaidSocialClicked({ returnVisit: true });
+    showEmailNurtureToast();
   }
 
   function initPageSpecificEvents() {
@@ -535,10 +628,73 @@
     });
   }
 
+  function handleShellMessages(data) {
+    if (!data || data.source !== SHELL_SOURCE) return;
+    if (data.type === 'armcom-identity-stitched') {
+      showIdentityStitchToast();
+      return;
+    }
+    if (data.type === 'armcom-segment-qualified') {
+      showSegmentQualifiedToast();
+      return;
+    }
+    if (data.type === 'armcom-audience-activation') {
+      showActivationToast();
+      return;
+    }
+    if (data.type === 'armcom-email-nurture-unlocked') {
+      showEmailNurtureToast();
+      return;
+    }
+    if (data.type === 'login-complete' && data.found) {
+      if (data.mode === 'agi-brief') {
+        if (
+          window.ArmcomPersonalizedBanner &&
+          typeof window.ArmcomPersonalizedBanner.onRegistrationComplete === 'function'
+        ) {
+          window.ArmcomPersonalizedBanner.onRegistrationComplete({
+            email: data.email,
+            firstName: data.firstName,
+            company: data.company,
+          });
+        }
+        return;
+      }
+      if (
+        window.ArmcomPersonalizedBanner &&
+        typeof window.ArmcomPersonalizedBanner.isEnabled === 'function' &&
+        !window.ArmcomPersonalizedBanner.isEnabled()
+      ) {
+        showIdentityStitchToast();
+        window.setTimeout(function () {
+          showSegmentQualifiedToast();
+          window.setTimeout(showActivationToast, 900);
+        }, 700);
+        return;
+      }
+      if (
+        window.ArmcomPersonalizedBanner &&
+        typeof window.ArmcomPersonalizedBanner.onRegistrationComplete === 'function'
+      ) {
+        window.ArmcomPersonalizedBanner.onRegistrationComplete({
+          email: data.email,
+          firstName: data.firstName,
+          company: data.company,
+        });
+      }
+      showIdentityStitchToast();
+      window.setTimeout(function () {
+        showSegmentQualifiedToast();
+        window.setTimeout(showActivationToast, 900);
+      }, 700);
+    }
+  }
+
   function init() {
     sendPageView();
     initPageSpecificEvents();
     wireCtas();
+    restorePersistedToasts();
 
     var subscribeForm = document.getElementById('armcomSubscribeForm');
     if (subscribeForm) handleSubscribeForm(subscribeForm, { source: 'marketo-form' });
@@ -557,28 +713,7 @@
     initEmailNurtureMock();
 
     window.addEventListener('message', function (ev) {
-      if (!ev.data || ev.data.source !== 'armcom-demo-shell') return;
-      if (ev.data.type === 'login-complete' && ev.data.found) {
-        if (
-          window.ArmcomPersonalizedBanner &&
-          typeof window.ArmcomPersonalizedBanner.isEnabled === 'function' &&
-          !window.ArmcomPersonalizedBanner.isEnabled()
-        ) {
-          showActivationToast();
-          return;
-        }
-        if (
-          window.ArmcomPersonalizedBanner &&
-          typeof window.ArmcomPersonalizedBanner.onRegistrationComplete === 'function'
-        ) {
-          window.ArmcomPersonalizedBanner.onRegistrationComplete({
-            email: ev.data.email,
-            firstName: ev.data.firstName,
-            company: ev.data.company,
-          });
-        }
-        showActivationToast();
-      }
+      handleShellMessages(ev.data);
     });
   }
 
@@ -596,6 +731,9 @@
     sendPaidSocialClicked: sendPaidSocialClicked,
     sendEmailEngagement: sendEmailEngagement,
     showActivationToast: showActivationToast,
+    showSegmentQualifiedToast: showSegmentQualifiedToast,
+    showEmailNurtureToast: showEmailNurtureToast,
+    showIdentityStitchToast: showIdentityStitchToast,
     requestDecisioningRefresh: requestDecisioningRefresh,
   };
 })();

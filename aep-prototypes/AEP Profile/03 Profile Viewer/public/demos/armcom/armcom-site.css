@@ -1480,6 +1480,18 @@ body.armcom-mega-open {
   pointer-events: auto;
 }
 
+.armcom-toast--info {
+  background: #1f3a5f;
+}
+
+.armcom-toast--segment {
+  background: #243746;
+}
+
+.armcom-toast--secondary {
+  background: #2d2d2d;
+}
+
 .armcom-toast-logos {
   margin-top: 0.5rem;
   font-size: 0.75rem;

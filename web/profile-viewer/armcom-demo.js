@@ -26,10 +26,13 @@ function onLinkedInAdReturnIframeReady() {
     paidSocialReturn: true,
     forceVariant: 'brand-awareness',
     contentTriggered: true,
+    leadCaptured: true,
+    registered: true,
   });
   if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
     window.ArmcomFakeAudiences.onLinkedInAdClick();
   }
+  postArmcomBannerMessage('armcom-email-nurture-unlocked', {});
   setArmcomMessage('Returned from LinkedIn ad — brand awareness banner refreshed.', 'success');
 }
 
@@ -67,17 +70,6 @@ function bootArmcomDemoLab() {
     iframeIds: ['armcomSiteFrame'],
     onProfileLookupComplete: function (detail) {
       scheduleArmcomDrawerRefresh();
-      var d = detail && typeof detail === 'object' ? detail : {};
-      if ((d.mode === 'lead-capture' || d.mode === 'agi-brief') && d.email) {
-        triggerArmcomDecisioningRefresh({
-          forceVariant: 'brand-awareness',
-          email: d.email,
-          company: d.company,
-          firstName: d.firstName,
-          leadCaptured: true,
-          registered: true,
-        });
-      }
     },
   });
 }
@@ -215,6 +207,36 @@ function syncArmcomFakeAudiencesFromIframe() {
   }
 }
 
+function applyArmcomJourneySlide(slideIndex) {
+  var idx = Number(slideIndex);
+  if (isNaN(idx)) return;
+  if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onJourneySlide === 'function') {
+    window.ArmcomFakeAudiences.onJourneySlide(idx);
+  }
+}
+
+function restoreArmcomJourneySlideFromStorage() {
+  if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.restoreJourneySlide === 'function') {
+    window.ArmcomFakeAudiences.restoreJourneySlide();
+    return;
+  }
+  try {
+    var stored = parseInt(sessionStorage.getItem('armcomJourneySlideIndex'), 10);
+    if (!isNaN(stored)) applyArmcomJourneySlide(stored);
+  } catch (_e) {
+    /* noop */
+  }
+}
+
+function wireArmcomJourneySlideSync() {
+  restoreArmcomJourneySlideFromStorage();
+  window.addEventListener('storage', function (ev) {
+    if (ev.key !== 'armcomJourneySlideIndex' || ev.newValue == null) return;
+    applyArmcomJourneySlide(ev.newValue);
+  });
+}
+
+wireArmcomJourneySlideSync();
 wireArmcomFakeDecisioningSync();
 wireArmcomIframeDecisioningSync();
 
@@ -290,9 +312,7 @@ function isArmcomDecisioningSignal(payload) {
 
 window.addEventListener('message', function (ev) {
   if (ev.data && ev.data.source === 'armcom-journey' && ev.data.type === 'armcom-journey-slide') {
-    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onJourneySlide === 'function') {
-      window.ArmcomFakeAudiences.onJourneySlide(Number(ev.data.slideIndex));
-    }
+    applyArmcomJourneySlide(ev.data.slideIndex);
     return;
   }
   if (!armcomSiteFrame || !armcomSiteFrame.contentWindow || ev.source !== armcomSiteFrame.contentWindow) return;
@@ -322,12 +342,6 @@ window.addEventListener('message', function (ev) {
       if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLeadCapture === 'function') {
         window.ArmcomFakeAudiences.onLeadCapture(lead.source === 'agi-cpu-brief' ? 'agi-brief' : 'lead-capture');
       }
-      triggerArmcomDecisioningRefresh({
-        forceVariant: 'brand-awareness',
-        email: lead.email,
-        company: lead.company,
-        leadCaptured: true,
-      });
       return;
     }
     triggerArmcomDecisioningRefresh({ contentTriggered: true });

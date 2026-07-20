@@ -1,14 +1,14 @@
 {
-  "gitSha": "cf0e294198fb00b18441e25804c57b1d68d8e5f6",
-  "gitShortSha": "cf0e2941",
+  "gitSha": "98adca0136b79251649e1f67d44b04cec9c0ae9b",
+  "gitShortSha": "98adca01",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: sync version.json stamp with live deploy (89288606)",
+  "gitCommitSubject": "[apalmer] fix: restore Arm journey overview zoom on stage navigation",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:35:27+01:00",
-  "deployedAt": "2026-07-20T11:35:42.313Z",
+  "gitCommitDate": "2026-07-20T12:39:59+01:00",
+  "deployedAt": "2026-07-20T11:47:42.971Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/cf0e294198fb00b18441e25804c57b1d68d8e5f6"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/98adca0136b79251649e1f67d44b04cec9c0ae9b"
 }

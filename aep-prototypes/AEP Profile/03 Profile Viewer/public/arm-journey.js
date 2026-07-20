@@ -1,7 +1,31 @@
 /**
- * Arm journey presenter — flyout lab nav (LinkedIn / Arm demo parity).
+ * Arm journey presenter — flyout lab nav + journey slide sync to armcom-demo.
  */
-(function initArmJourneyPresenterFlyoutSidebar() {
+(function initArmJourneyPresenter() {
+  var JOURNEY_SLIDE_KEY = 'armcomJourneySlideIndex';
+  var journeyFrame = document.querySelector('.arm-journey-presenter-frame');
+
+  function persistJourneySlide(slideIndex) {
+    try {
+      sessionStorage.setItem(JOURNEY_SLIDE_KEY, String(slideIndex));
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  window.addEventListener('message', function (ev) {
+    if (!ev.data || ev.data.source !== 'armcom-journey' || ev.data.type !== 'armcom-journey-slide') return;
+    if (journeyFrame && ev.source !== journeyFrame.contentWindow) return;
+    persistJourneySlide(ev.data.slideIndex);
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(ev.data, window.location.origin);
+      }
+    } catch (_e) {
+      /* noop */
+    }
+  });
+
   var body = document.body;
   if (!body.classList.contains('arm-journey-presenter-page')) return;
   var sidebar = document.querySelector('.dashboard-sidebar');

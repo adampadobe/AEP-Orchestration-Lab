@@ -6,6 +6,7 @@
   'use strict';
 
   var STORAGE_KEY = 'armcomFakeAudienceStage';
+  var JOURNEY_SLIDE_STORAGE_KEY = 'armcomJourneySlideIndex';
   var currentStage = 0;
 
   var NAMES = {
@@ -117,6 +118,7 @@
     subscribe: 5,
     'neoverse-n2': 2,
     'email-nurture': 9,
+    'account-engagement': 10,
   };
 
   function cloneRows(rows) {
@@ -208,8 +210,12 @@
   }
 
   function onLeadCapture(mode) {
+    if (mode === 'agi-brief' || mode === 'lead-capture') advanceToAtLeast(4);
+    else advanceToAtLeast(4);
+  }
+
+  function onSegmentQualified() {
     advanceToAtLeast(5);
-    if (mode === 'agi-brief' || mode === 'lead-capture') advanceToAtLeast(5);
   }
 
   function onLinkedInActivation() {
@@ -222,13 +228,35 @@
 
   function onDecisioningRefresh(payload) {
     var p = payload && typeof payload === 'object' ? payload : {};
-    if (p.leadCaptured || p.registered) advanceToAtLeast(5);
     if (p.paidSocialReturn) advanceToAtLeast(7);
-    if (p.forceVariant === 'brand-awareness' && p.leadCaptured) advanceToAtLeast(5);
+    if (p.paidSocialReturn && p.contentTriggered) advanceToAtLeast(8);
+  }
+
+  function persistJourneySlide(slideIndex) {
+    try {
+      global.sessionStorage.setItem(JOURNEY_SLIDE_STORAGE_KEY, String(slideIndex));
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  function restoreJourneySlide() {
+    try {
+      var stored = parseInt(global.sessionStorage.getItem(JOURNEY_SLIDE_STORAGE_KEY), 10);
+      if (!isNaN(stored) && stored >= 0 && stored < STAGES.length) {
+        applyStage(stored, { force: true });
+        return stored;
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return null;
   }
 
   function onJourneySlide(slideIndex) {
-    applyStage(slideIndex, { force: true });
+    var idx = Math.max(0, Math.min(Number(slideIndex), STAGES.length - 1));
+    persistJourneySlide(idx);
+    applyStage(idx, { force: true });
   }
 
   function reset() {
@@ -238,6 +266,7 @@
   function init(opts) {
     opts = opts || {};
     restoreStage();
+    restoreJourneySlide();
 
     if (opts.linkedinActivation) onLinkedInActivation();
     if (opts.linkedinAdReturn) onLinkedInAdClick();
@@ -256,10 +285,14 @@
     onPageView: onPageView,
     onExperienceEvent: onExperienceEvent,
     onLeadCapture: onLeadCapture,
+    onSegmentQualified: onSegmentQualified,
     onLinkedInActivation: onLinkedInActivation,
     onLinkedInAdClick: onLinkedInAdClick,
     onDecisioningRefresh: onDecisioningRefresh,
     onJourneySlide: onJourneySlide,
+    restoreJourneySlide: restoreJourneySlide,
+    persistJourneySlide: persistJourneySlide,
+    JOURNEY_SLIDE_STORAGE_KEY: JOURNEY_SLIDE_STORAGE_KEY,
     reset: reset,
     patchDrawer: patchDrawer,
     getStage: function () {

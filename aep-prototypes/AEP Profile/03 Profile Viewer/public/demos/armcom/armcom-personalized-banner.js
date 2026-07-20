@@ -7,8 +7,10 @@
 
   var STORAGE_KEY = 'armcomBannerState';
   var DECISIONING_STORAGE_KEY = 'armcomDecisioningEnabled';
+  var AUDIENCE_STAGE_STORAGE_KEY = 'armcomFakeAudienceStage';
   var SHELL_SOURCE = 'armcom-demo-shell';
   var decisioningEnabled = false;
+  var decisioningManuallyEnabled = false;
 
   var TOPIC_LABELS = {
     'cloud-ai': 'Cloud AI',
@@ -93,13 +95,30 @@
     return false;
   }
 
-  function setDecisioningEnabled(enabled) {
+  function setDecisioningEnabled(enabled, opts) {
+    opts = opts || {};
     decisioningEnabled = !!enabled;
+    if (opts.manual) decisioningManuallyEnabled = !!enabled;
     try {
       sessionStorage.setItem(DECISIONING_STORAGE_KEY, decisioningEnabled ? '1' : '0');
     } catch (_e) {
       /* ignore */
     }
+  }
+
+  function getFakeAudienceStage() {
+    try {
+      var stored = parseInt(sessionStorage.getItem(AUDIENCE_STAGE_STORAGE_KEY), 10);
+      return isNaN(stored) ? 0 : stored;
+    } catch (_e) {
+      return 0;
+    }
+  }
+
+  function canAutoShowBanner() {
+    if (!decisioningEnabled) return false;
+    if (decisioningManuallyEnabled) return true;
+    return getFakeAudienceStage() >= 7;
   }
 
   function readState() {
@@ -249,7 +268,7 @@
     opts = opts || {};
     var state = applyRefreshOpts(readState(), opts);
     writeState(state);
-    if (!decisioningEnabled) {
+    if (!canAutoShowBanner()) {
       clearBanner();
       return false;
     }
@@ -320,7 +339,7 @@
     window.addEventListener('message', function (ev) {
       if (!ev.data || ev.data.source !== SHELL_SOURCE) return;
       if (ev.data.type === 'armcom-decisioning-state') {
-        setDecisioningEnabled(ev.data.payload && ev.data.payload.enabled);
+        setDecisioningEnabled(ev.data.payload && ev.data.payload.enabled, { manual: true });
         if (!decisioningEnabled) clearBanner();
         else refresh();
         return;
@@ -356,6 +375,9 @@
     decisioningEnabled = readDecisioningEnabledFromStorage();
     wireMessages();
     requestDecisioningStateFromShell();
+    window.addEventListener('storage', function (ev) {
+      if (ev.key === AUDIENCE_STAGE_STORAGE_KEY) refresh();
+    });
     var body = document.body;
     var pageId = body ? body.getAttribute('data-armcom-page-id') || '' : '';
     var topicMap = {

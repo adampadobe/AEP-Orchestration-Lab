@@ -832,6 +832,11 @@ function goTo(idx) {
 
 function notifyParentJourneySlide(slideIdx) {
   try {
+    sessionStorage.setItem('armcomJourneySlideIndex', String(slideIdx));
+  } catch (_e) {
+    /* noop */
+  }
+  try {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage(
         { source: 'armcom-journey', type: 'armcom-journey-slide', slideIndex: slideIdx },

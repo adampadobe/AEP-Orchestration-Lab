@@ -247,6 +247,21 @@
           company: String(opts.company || '').trim(),
           mode: String(opts.mode || 'signin'),
         });
+        var lookupMode = String(opts.mode || 'signin');
+        if (lookupMode === 'agi-brief' && ok) {
+          window.setTimeout(function () {
+            if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.onSegmentQualified === 'function') {
+              global.ArmcomFakeAudiences.onSegmentQualified();
+            }
+            postToSiteFrame({ source: 'armcom-demo-shell', type: 'armcom-segment-qualified' });
+            window.setTimeout(function () {
+              if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.onLinkedInActivation === 'function') {
+                global.ArmcomFakeAudiences.onLinkedInActivation();
+              }
+              postToSiteFrame({ source: 'armcom-demo-shell', type: 'armcom-audience-activation' });
+            }, 900);
+          }, 800);
+        }
       }
 
       if (typeof options.onProfileLookupComplete === 'function') {
@@ -334,7 +349,7 @@
             : 'Newsletter signup — looking up profile and stitching identity...';
         var successMessage =
           leadSource === 'agi-cpu-brief'
-            ? 'Identity unified. Cloud AI ICP audience synced to LinkedIn — open LinkedIn mock from the activation toast.'
+            ? 'Identity unified — segment qualification and LinkedIn activation follow in the demo site.'
             : 'Identity unified across arm.com and developer.arm.com. Audience synced to LinkedIn Matched Audiences.';
         await performArmcomProfileLookup(leadEmail, {
           lookupMessage: lookupMessage,
