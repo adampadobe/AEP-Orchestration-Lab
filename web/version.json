@@ -1,14 +1,14 @@
 {
-  "gitSha": "ff78fe242b43195d1d75187ed7a63ed2400bf630",
-  "gitShortSha": "ff78fe24",
+  "gitSha": "b5e38f922aa7f23775f9347ef9eaa7c0ab2fe26e",
+  "gitShortSha": "b5e38f92",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: restamp version after armcom scroll fix deploy",
+  "gitCommitSubject": "[apalmer] feat: clearer Arm demo page labels in profile last events",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T13:00:17+01:00",
-  "deployedAt": "2026-07-20T12:00:32.869Z",
+  "gitCommitDate": "2026-07-20T13:27:24+01:00",
+  "deployedAt": "2026-07-20T12:27:36.585Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ff78fe242b43195d1d75187ed7a63ed2400bf630"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b5e38f922aa7f23775f9347ef9eaa7c0ab2fe26e"
 }
