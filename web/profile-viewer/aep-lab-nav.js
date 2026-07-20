@@ -27,6 +27,12 @@
     socialLinkedinArmDemo: ['socialLinkedinDemo', 'menu_social_linkedin_html'],
     socialTiktokDemo: ['menu_social_tiktok_html'],
   };
+  /** Presenter Social mocks — visible when in-dev master is on regardless of Demos owner filter. */
+  var SOCIAL_PRESENTER_NAV_HIDE_KEYS = {
+    socialFacebookDemo: true,
+    socialLinkedinArmDemo: true,
+    socialTiktokDemo: true,
+  };
   /** Demos sidebar: GitHub-style handle (lowercase). Unset key defaults to apalmer for first-time browsers; explicit empty string narrows Mine to no owner match. */
   var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
   /** Demos sidebar: mine | mine_sandbox | all */
@@ -65,12 +71,14 @@
   function setInDevCapabilitiesEnabled(on) {
     try {
       var key = showInDevCapabilitiesStorageKey();
+      var defaultKey = defaultInDevCapabilitiesStorageKey();
       if (on) {
         localStorage.setItem(key, '1');
+        if (key !== defaultKey) localStorage.setItem(defaultKey, '1');
         showAllInDevNavItems();
       } else {
         localStorage.removeItem(key);
-        localStorage.removeItem(defaultInDevCapabilitiesStorageKey());
+        localStorage.removeItem(defaultKey);
       }
     } catch (e) {}
   }
@@ -217,8 +225,15 @@
     return demoSandboxListMatches(meta, sandboxName);
   }
 
+  function isSocialPresenterNavItem(item) {
+    if (!item) return false;
+    var hideKey = navHideKeyForItem(item);
+    return !!SOCIAL_PRESENTER_NAV_HIDE_KEYS[hideKey];
+  }
+
   function shouldShowDemoNavItem(item) {
     if (!item || !item.demoMeta) return true;
+    if (isInDevCapabilitiesEnabled() && isSocialPresenterNavItem(item)) return true;
     var vis = getDemoNavVisibility();
     if (vis === 'all') return true;
     var handle = getDemoNavOwnerHandle();
@@ -1762,6 +1777,64 @@
     });
   } catch (e2) {}
 
+  function collectSocialPresenterNavItems() {
+    var out = [];
+    NAV.forEach(function (entry) {
+      if (entry.id !== 'demos') return;
+      (entry.subgroups || []).forEach(function (sg) {
+        if (sg.id !== 'demoSocial') return;
+        (sg.channels || []).forEach(function (ch) {
+          (ch.items || []).forEach(function (item) {
+            if (isSocialPresenterNavItem(item)) out.push(item);
+          });
+        });
+      });
+    });
+    return out;
+  }
+
+  /** Global values debug: why Social sidebar links are visible or hidden (this browser). */
+  function getSocialNavDebugStatus() {
+    var sandbox = sandboxSlugForInDev();
+    var inDevOn = isInDevCapabilitiesEnabled();
+    var demosGroup = isDemosNavVisible();
+    var owner = getDemoNavOwnerHandle();
+    var vis = getDemoNavVisibility();
+    var items = collectSocialPresenterNavItems().map(function (item) {
+      var key = navHideKeyForItem(item);
+      var label = stripInDevelopmentSuffix(item.label || key) || key;
+      var visible = shouldShowNavItem(item);
+      var reason = 'visible';
+      if (!inDevOn) {
+        reason = 'hidden — Show in development capabilities is off (sandbox key: ' + showInDevCapabilitiesStorageKey() + ')';
+      } else if (isNavInDevHidden(key)) {
+        reason = 'hidden — checked in Global values hide list (' + key + ')';
+      } else if (!demosGroup) {
+        reason = 'hidden — Demos group is hidden (navHideKey: demos)';
+      } else if (!shouldShowDemoNavItem(item)) {
+        reason = 'hidden — Demos owner filter (handle "' + owner + '", visibility "' + vis + '")';
+      } else if (!visible) {
+        reason = 'hidden — other nav rule (access mode / sandbox allow-list)';
+      } else if (isSocialPresenterNavItem(item) && inDevOn) {
+        reason = 'visible — Social presenter mocks bypass owner filter when in-development is on';
+      }
+      return { label: label, navHideKey: key, visible: visible, reason: reason };
+    });
+    var anyVisible = items.some(function (i) { return i.visible; });
+    var summary = anyVisible
+      ? 'Social nav: visible (' + items.filter(function (i) { return i.visible; }).map(function (i) { return i.label; }).join(', ') + ')'
+      : (items.length ? 'Social nav: hidden — ' + items[0].reason.replace(/^hidden — /, '') : 'Social nav: no Social items in NAV');
+    return {
+      summary: summary,
+      sandboxSlug: sandbox,
+      inDevEnabled: inDevOn,
+      demosGroupVisible: demosGroup,
+      ownerHandle: owner,
+      visibilityMode: vis,
+      items: items,
+    };
+  }
+
   try {
     window.AepNavInDev = {
       LS_PREFIX: LS_NAV_HIDE_PREFIX,
@@ -1794,6 +1867,8 @@
         return isDemosNavVisible();
       },
       shouldShowDemoNavItem: shouldShowDemoNavItem,
+      isSocialPresenterNavItem: isSocialPresenterNavItem,
+      getSocialNavDebugStatus: getSocialNavDebugStatus,
       /** Global values helper: all nav items that support independent hide/show */
       getMenuVisibilityOptions: getMenuVisibilityOptions,
       /** Loads brand-scraper demo nav manifest (GCS) before building sidebar / Global values lists */

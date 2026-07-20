@@ -159,6 +159,14 @@
                 <button type="button" class="dashboard-btn-outline" id="aepNavSidebarShowAll">Show all below</button>
               </div>
               <div id="aepNavSidebarChecklist" class="aep-nav-sidebar-checklist" style="display: flex; flex-direction: column; gap: 10px;"></div>
+              <div id="aepSocialNavDebugSection" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dash-border);">
+                <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Social nav status (debug)</label>
+                <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">
+                  Live readout for Facebook, LinkedIn, and TikTok sidebar links in this browser. Updates when sandbox, in-development toggle, hide checklist, or Demos filter changes.
+                </p>
+                <p id="aepSocialNavDebugSummary" class="dashboard-hero-subtitle" style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--dash-text);"></p>
+                <ul id="aepSocialNavDebugList" style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.5; color: var(--dash-text-secondary);"></ul>
+              </div>
             </div>
           </div>
         </section>
@@ -274,7 +282,7 @@
     })();
   </script>
   <!-- Sync load before visibility checklist so getMenuVisibilityOptions() is never stale vs deferred-only nav -->
-  <script src="aep-lab-nav.js?v=20260720-indev-sandbox-fallback"></script>
+  <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
   <script>
     (function () {
       var LS_PREFIX = 'aepNavHideInDev_';
@@ -358,8 +366,10 @@
           }
           var key = getShowInDevCapabilitiesKey();
           var defaultKey = LS_SHOW_INDEV_PREFIX + '__default__';
-          if (on) localStorage.setItem(key, '1');
-          else {
+          if (on) {
+            localStorage.setItem(key, '1');
+            if (key !== defaultKey) localStorage.setItem(defaultKey, '1');
+          } else {
             localStorage.removeItem(key);
             localStorage.removeItem(defaultKey);
           }
@@ -510,6 +520,36 @@
         try {
           window.dispatchEvent(new CustomEvent('aep-edp-visibility-change'));
         } catch (e2) {}
+        renderSocialNavDebugStatus();
+      }
+
+      function renderSocialNavDebugStatus() {
+        var summaryEl = document.getElementById('aepSocialNavDebugSummary');
+        var listEl = document.getElementById('aepSocialNavDebugList');
+        if (!summaryEl || !listEl) return;
+        var status = null;
+        try {
+          if (window.AepNavInDev && typeof window.AepNavInDev.getSocialNavDebugStatus === 'function') {
+            status = window.AepNavInDev.getSocialNavDebugStatus();
+          }
+        } catch (e) {}
+        if (!status) {
+          summaryEl.textContent = 'Social nav status: unavailable (aep-lab-nav.js not loaded).';
+          clearNode(listEl);
+          return;
+        }
+        summaryEl.textContent = status.summary +
+          ' · sandbox=' + status.sandboxSlug +
+          ' · inDev=' + (status.inDevEnabled ? 'on' : 'off') +
+          ' · demosGroup=' + (status.demosGroupVisible ? 'on' : 'off') +
+          ' · handle=' + (status.ownerHandle || '(empty)') +
+          ' · visibility=' + status.visibilityMode;
+        clearNode(listEl);
+        (status.items || []).forEach(function (item) {
+          var li = document.createElement('li');
+          li.textContent = item.label + ': ' + item.reason;
+          listEl.appendChild(li);
+        });
       }
 
       function forEachInDevKey(fn) {
@@ -565,6 +605,7 @@
           renderNavVisibilityChecklists();
           syncMasterToggle();
           syncCheckboxes();
+          renderSocialNavDebugStatus();
         }
         var navApi = window.AepNavInDev;
         if (navApi && typeof navApi.fetchBrandScraperDemoNav === 'function') {
@@ -573,6 +614,8 @@
           refreshNavChecklists();
         }
         window.addEventListener('aep-brand-scraper-demo-nav-changed', refreshNavChecklists);
+        window.addEventListener('aep-demo-nav-filter-change', renderSocialNavDebugStatus);
+        window.addEventListener('aep-global-sandbox-change', renderSocialNavDebugStatus);
         var master = document.getElementById('aepShowInDevCapabilitiesToggle');
         if (master) {
           master.addEventListener('change', function () {
@@ -611,8 +654,10 @@
             renderNavVisibilityChecklists();
             syncMasterToggle();
             syncCheckboxes();
+            renderSocialNavDebugStatus();
           }
         });
+        renderSocialNavDebugStatus();
       }
 
       if (document.readyState === 'loading') {
