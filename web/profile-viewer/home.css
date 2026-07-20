@@ -784,6 +784,26 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   padding: 0;
 }
 
+/* Desktop: pin shell/sidebar to viewport so .dashboard-sidebar-nav scrolls instead of clipping */
+@media (min-width: 769px) {
+  .dashboard-shell {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  .dashboard-sidebar {
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  .dashboard-main-wrap {
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Home deferred gate: #aepDashboardMount wraps the sidebar + main row after lab auth (see home.html). */
 #aepDashboardMount {
   flex: 1 1 auto;
@@ -1132,12 +1152,14 @@ body.home-dashboard-concierge .dashboard-server-warning a {
 }
 
 .dashboard-nav-group--expanded .dashboard-nav-group-items {
-  max-height: 600px;
+  /* none — avoid clipping long expanded lists (e.g. Demos → Social); nav scrolls in .dashboard-sidebar-nav */
+  max-height: none;
+  overflow: visible;
   opacity: 1;
 }
 
 .dashboard-nav-group--has-subgroups.dashboard-nav-group--expanded .dashboard-nav-group-items {
-  max-height: 1200px;
+  max-height: none;
 }
 
 /* Nested subgroup under a section (e.g. Architecture → End 2 End) */
@@ -1217,17 +1239,19 @@ html[data-aep-theme='dark'] .dashboard-nav-subgroup {
 }
 
 .dashboard-nav-subgroup--expanded .dashboard-nav-subgroup-items {
-  max-height: 320px;
+  max-height: none;
+  overflow: visible;
   opacity: 1;
 }
 
-/* Customer demo (Etihad, FNB, …): taller stack under Web / Mobile / Call Centre */
+/* Customer demo (Etihad, FNB, …): channel stacks under Web / Mobile / Call Centre */
 .dashboard-nav-subgroup--customer-demo .dashboard-nav-subgroup-items {
   max-height: 0;
 }
 
 .dashboard-nav-subgroup--customer-demo.dashboard-nav-subgroup--expanded .dashboard-nav-subgroup-items {
-  max-height: 2200px;
+  max-height: none;
+  overflow: visible;
 }
 
 .dashboard-nav-customer-channel {
