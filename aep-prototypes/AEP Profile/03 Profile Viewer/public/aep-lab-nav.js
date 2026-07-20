@@ -453,16 +453,7 @@
               label: 'Web',
               items: [
                 {
-                  label: 'Arm Cloud AI journey (in development)',
-                  href: 'armcom-demo.html',
-                  inDevelopment: true,
-                  navHideKey: 'armcomDemo',
-                  demoMeta: { owners: ['apalmer'] },
-                  ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 18V6l8-4 8 4v12l-8 4-8-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 22V10M4 6l8 4 8-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
-                },
-                {
-                  label: 'Arm journey (presenter)',
+                  label: 'Client Journey',
                   href: 'arm-journey.html',
                   navHideKey: 'armcomJourneyPresenter',
                   demoMeta: { owners: ['apalmer'] },
@@ -470,7 +461,15 @@
                     '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 14c1.5-2 3-4 5.5-4S11 13 14 13s4-2 4-2"/><circle cx="2.8" cy="14" r="1.2" fill="currentColor"/><circle cx="7.5" cy="10" r="1.2" fill="currentColor"/><circle cx="14" cy="13" r="1.2" fill="currentColor"/></svg>',
                 },
                 {
-                  label: 'Email nurture (demo)',
+                  label: 'Arm',
+                  href: 'armcom-demo.html',
+                  navHideKey: 'armcomDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 18V6l8-4 8 4v12l-8 4-8-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 22V10M4 6l8 4 8-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+                },
+                {
+                  label: 'Email nurture',
                   href: 'armcom-demo.html?frame=resources/email-nurture.html',
                   navHideKey: 'armcomEmailNurtureDemo',
                   demoMeta: { owners: ['apalmer'] },
@@ -483,7 +482,7 @@
               label: 'Mobile',
               items: [
                 {
-                  label: 'Arm Developer app (in development)',
+                  label: 'Developer (in development)',
                   href: 'armcom-mobile-demo.html',
                   inDevelopment: true,
                   navHideKey: 'armcomMobileDemo',
