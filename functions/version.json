@@ -1,14 +1,14 @@
 {
-  "gitSha": "861d5fd9ab2477a56a68a82117a29885c9a68117",
-  "gitShortSha": "861d5fd9",
+  "gitSha": "8056f0e897e683ea6fa237d044c3d9e731040985",
+  "gitShortSha": "8056f0e8",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: auto-resume Tags SDK on refresh; preserve inject on ECID reset",
+  "gitCommitSubject": "[apalmer] chore: deploy stamp 861d5fd9",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T21:52:26+01:00",
-  "deployedAt": "2026-07-20T20:52:48.406Z",
+  "gitCommitDate": "2026-07-20T21:53:05+01:00",
+  "deployedAt": "2026-07-20T20:54:06.189Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/861d5fd9ab2477a56a68a82117a29885c9a68117"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8056f0e897e683ea6fa237d044c3d9e731040985"
 }
