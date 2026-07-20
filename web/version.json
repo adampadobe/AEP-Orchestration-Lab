@@ -1,14 +1,14 @@
 {
-  "gitSha": "5204ca628345ce86fd53d328b86bf18a94e5e23c",
-  "gitShortSha": "5204ca62",
+  "gitSha": "263b76bd70b4a7e354901e587438daa72159cf7e",
+  "gitShortSha": "263b76bd",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: show Social nav for all presenters when in-dev is on",
+  "gitCommitSubject": "[apalmer] feat: LinkedIn News organic links to Arm mock site",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T22:51:48+01:00",
-  "deployedAt": "2026-07-20T21:52:06.826Z",
+  "gitCommitDate": "2026-07-20T23:09:59+01:00",
+  "deployedAt": "2026-07-20T22:10:22.905Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5204ca628345ce86fd53d328b86bf18a94e5e23c"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/263b76bd70b4a7e354901e587438daa72159cf7e"
 }

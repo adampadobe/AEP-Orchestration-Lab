@@ -1,14 +1,14 @@
 {
-  "gitSha": "02761ce73c0c74838e55738ea7105ebc85a75370",
-  "gitShortSha": "02761ce7",
+  "gitSha": "263b76bd70b4a7e354901e587438daa72159cf7e",
+  "gitShortSha": "263b76bd",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: Social nav survives sandbox selection in incognito",
+  "gitCommitSubject": "[apalmer] feat: LinkedIn News organic links to Arm mock site",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T22:43:55+01:00",
-  "deployedAt": "2026-07-20T21:44:19.988Z",
+  "gitCommitDate": "2026-07-20T23:09:59+01:00",
+  "deployedAt": "2026-07-20T22:10:22.905Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/02761ce73c0c74838e55738ea7105ebc85a75370"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/263b76bd70b4a7e354901e587438daa72159cf7e"
 }
