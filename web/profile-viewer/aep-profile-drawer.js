@@ -2049,25 +2049,45 @@ function visibleDrawerEventsForPanel(events, maxCount) {
  * Web page views: `Web Pageview — <page name>` with en dash; otherwise {@link normalizeEventName}.
  * @param {Record<string, unknown> | null | undefined} ev
  */
+function drawerEventTitleFallback(ev) {
+  const et = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim();
+  if (et.startsWith('armcom.')) {
+    return formatArmcomSitePageTitle('arm.com', armcomEventActionLabel(et));
+  }
+  if (isAdobeWebPageViewExperienceEvent(ev)) return 'Web Pageview';
+  if (et) return normalizeEventName(et);
+  return 'Experience Event';
+}
+
 function formatExperienceEventDisplayTitle(ev) {
-  if (isArmcomExperienceEvent(ev)) {
-    return formatArmcomExperienceEventTitle(ev);
-  }
-  if (isAdobeWebPageViewExperienceEvent(ev)) {
-    const snippet = deriveWebPageviewTitleSnippetFromRows(ev && ev.rows);
-    if (snippet) {
-      return `Web Pageview \u2014 ${snippet}`;
+  try {
+    if (isArmcomExperienceEvent(ev)) {
+      const armcomTitle = formatArmcomExperienceEventTitle(ev);
+      if (armcomTitle && String(armcomTitle).trim()) return armcomTitle;
+      return drawerEventTitleFallback(ev);
     }
-    return 'Web Pageview';
-  }
-  const base = normalizeEventName((ev && ev.eventName) || (ev && ev.eventType));
-  if (isWebInteractionExperienceEvent(ev)) {
-    const actor = deriveWebInteractionActorLabelFromRows(ev && ev.rows);
-    if (actor === 'User' || actor === 'Assistant') {
-      return `${base} - ${actor}`;
+    if (isAdobeWebPageViewExperienceEvent(ev)) {
+      const snippet = deriveWebPageviewTitleSnippetFromRows(ev && ev.rows);
+      if (snippet) {
+        return `Web Pageview \u2014 ${snippet}`;
+      }
+      return 'Web Pageview';
     }
+    const base = normalizeEventName((ev && ev.eventName) || (ev && ev.eventType));
+    if (isWebInteractionExperienceEvent(ev)) {
+      const actor = deriveWebInteractionActorLabelFromRows(ev && ev.rows);
+      if (actor === 'User' || actor === 'Assistant') {
+        return `${base} - ${actor}`;
+      }
+    }
+    if (base && String(base).trim()) return base;
+    return drawerEventTitleFallback(ev);
+  } catch (err) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('[aep-profile-drawer] formatExperienceEventDisplayTitle failed', err);
+    }
+    return drawerEventTitleFallback(ev);
   }
-  return base;
 }
 
 function formatEventTimelineDate(value) {
@@ -2216,7 +2236,8 @@ function eventThumbForEvent(ev) {
     return { url: aepProfileImageCssUrl('event-login-icon.png'), variant: 'event-login' };
   }
   const typePrefix = primary.trim().toLowerCase();
-  if (keyLoose.includes('armcom') || (ev && isArmcomExperienceEvent(ev))) {
+  const keyLoose = primary.toLowerCase();
+  if ((ev && isArmcomExperienceEvent(ev)) || keyLoose.includes('armcom')) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }
   if (typePrefix.startsWith('web')) {
@@ -2225,7 +2246,6 @@ function eventThumbForEvent(ev) {
   if (typePrefix.startsWith('mobile')) {
     return { url: aepProfileImageCssUrl('event-mobile-icon.png'), variant: 'event-mobile' };
   }
-  const keyLoose = primary.toLowerCase();
   if (keyLoose.includes('navigator.global')) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }
@@ -3281,56 +3301,107 @@ function onProfileDrawerEventsStoryKeydown(e) {
   }
 }
 
+function appendDrawerEventTimelineItem(ev) {
+  const item = document.createElement('article');
+  item.className = 'aep-profile-drawer-event-item';
+
+  const thumb = document.createElement('div');
+  fillDrawerEventThumbElement(thumb, ev);
+
+  const textWrap = document.createElement('div');
+  const timeEl = document.createElement('span');
+  timeEl.className = 'aep-profile-drawer-event-time';
+  timeEl.textContent = formatEventTimelineDate(ev && ev.timestamp);
+
+  const titleEl = document.createElement('strong');
+  titleEl.className = 'aep-profile-drawer-event-title';
+  const titleText = formatExperienceEventDisplayTitle(ev);
+  titleEl.textContent = titleText && String(titleText).trim() ? titleText : drawerEventTitleFallback(ev);
+
+  const subEl = document.createElement('span');
+  subEl.className = 'aep-profile-drawer-event-sub';
+  const armcomSite = deriveArmcomSiteIdFromRows(ev && ev.rows);
+  if (armcomSite) {
+    subEl.classList.add('aep-profile-drawer-event-sub--armcom');
+    if (armcomSite.includes('developer')) {
+      subEl.classList.add('aep-profile-drawer-event-sub--armcom-developer');
+    } else {
+      subEl.classList.add('aep-profile-drawer-event-sub--armcom-main');
+    }
+  }
+  const subText = formatDrawerEventChannelDisplay(ev);
+  subEl.textContent = subText && String(subText).trim() ? subText : 'Digital touchpoint';
+
+  textWrap.appendChild(timeEl);
+  textWrap.appendChild(titleEl);
+  textWrap.appendChild(subEl);
+  item.appendChild(thumb);
+  item.appendChild(textWrap);
+  profileDrawerEvents.appendChild(item);
+}
+
 function renderEventTimeline(events) {
   if (!profileDrawerEvents) return;
   ensureProfileDrawerEventsHeadingRow();
   profileDrawerEvents.innerHTML = '';
   // Profile `events` are already filtered in load/poll — do not re-run dedupe here (double-filter can zero the list while count badge was set from stored length).
   const list = Array.isArray(events) ? events.slice(0, 5) : [];
-  updateProfileDrawerEventsStoryBadgeCount(list.length);
   if (!list.length) {
+    updateProfileDrawerEventsStoryBadgeCount(0);
     const p = document.createElement('p');
     p.textContent = 'No events found for this profile';
     profileDrawerEvents.appendChild(p);
     return;
   }
 
+  let renderedCount = 0;
   list.forEach((ev) => {
-    const item = document.createElement('article');
-    item.className = 'aep-profile-drawer-event-item';
-
-    const thumb = document.createElement('div');
-    fillDrawerEventThumbElement(thumb, ev);
-
-    const textWrap = document.createElement('div');
-    const timeEl = document.createElement('span');
-    timeEl.className = 'aep-profile-drawer-event-time';
-    timeEl.textContent = formatEventTimelineDate(ev && ev.timestamp);
-
-    const titleEl = document.createElement('strong');
-    titleEl.className = 'aep-profile-drawer-event-title';
-    titleEl.textContent = formatExperienceEventDisplayTitle(ev);
-
-    const subEl = document.createElement('span');
-    subEl.className = 'aep-profile-drawer-event-sub';
-    const armcomSite = deriveArmcomSiteIdFromRows(ev && ev.rows);
-    if (armcomSite) {
-      subEl.classList.add('aep-profile-drawer-event-sub--armcom');
-      if (armcomSite.includes('developer')) {
-        subEl.classList.add('aep-profile-drawer-event-sub--armcom-developer');
-      } else {
-        subEl.classList.add('aep-profile-drawer-event-sub--armcom-main');
+    if (!ev || typeof ev !== 'object') return;
+    try {
+      appendDrawerEventTimelineItem(ev);
+      renderedCount += 1;
+    } catch (err) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('[aep-profile-drawer] LAST EVENTS row render failed; showing fallback label', err, ev);
+      }
+      try {
+        appendDrawerEventTimelineItem({
+          eventType: String((ev && ev.eventType) || (ev && ev.eventName) || 'Experience Event'),
+          eventName: ev && ev.eventName,
+          timestamp: ev && ev.timestamp,
+          rows: ev && ev.rows,
+        });
+        renderedCount += 1;
+      } catch (fallbackErr) {
+        if (typeof console !== 'undefined' && typeof console.error === 'function') {
+          console.error('[aep-profile-drawer] LAST EVENTS fallback row failed', fallbackErr, ev);
+        }
       }
     }
-    subEl.textContent = formatDrawerEventChannelDisplay(ev);
-
-    textWrap.appendChild(timeEl);
-    textWrap.appendChild(titleEl);
-    textWrap.appendChild(subEl);
-    item.appendChild(thumb);
-    item.appendChild(textWrap);
-    profileDrawerEvents.appendChild(item);
   });
+
+  if (renderedCount === 0 && list.length > 0) {
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn('[aep-profile-drawer] LAST EVENTS had items but rendered zero rows', list);
+    }
+    list.forEach((ev) => {
+      if (!ev || typeof ev !== 'object') return;
+      appendDrawerEventTimelineItem({
+        eventType: String((ev && ev.eventType) || (ev && ev.eventName) || 'Page view'),
+        eventName: ev && ev.eventName,
+        timestamp: ev && ev.timestamp,
+        rows: ev && ev.rows,
+      });
+      renderedCount += 1;
+    });
+  }
+
+  updateProfileDrawerEventsStoryBadgeCount(renderedCount);
+  if (renderedCount === 0) {
+    const p = document.createElement('p');
+    p.textContent = 'No events found for this profile';
+    profileDrawerEvents.appendChild(p);
+  }
 }
 
 /** Hide application.login in the drawer timeline when it fired within this window (e.g. same session sign-in). */
