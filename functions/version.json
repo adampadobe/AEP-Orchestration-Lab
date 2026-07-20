@@ -1,14 +1,14 @@
 {
-  "gitSha": "0005c6212a47c287f90079507948d006a1641083",
-  "gitShortSha": "0005c621",
+  "gitSha": "09e550f19ecf7571f2827596788cb9b6a25e6f6f",
+  "gitShortSha": "09e550f1",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: persist Arm activation LinkedIn toast with manual dismiss",
+  "gitCommitSubject": "[apalmer] feat: copy-to-clipboard for Arm journey email and ECID",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T12:25:44+01:00",
-  "deployedAt": "2026-07-20T11:26:00.432Z",
+  "gitCommitDate": "2026-07-20T12:30:52+01:00",
+  "deployedAt": "2026-07-20T11:31:12.389Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0005c6212a47c287f90079507948d006a1641083"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/09e550f19ecf7571f2827596788cb9b6a25e6f6f"
 }
