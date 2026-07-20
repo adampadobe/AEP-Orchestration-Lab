@@ -120,6 +120,7 @@ const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
+const releaseNotesSummaryService = lazyRequireMod('./releaseNotesSummaryService');
 const claudeSkillsService = lazyRequireMod('./claudeSkillsService');
 const envBarConfigStore = lazyRequireMod('./envBarConfigStore');
 const envBarPreferencesStore = lazyRequireMod('./envBarPreferencesStore');
@@ -2936,6 +2937,20 @@ exports.clientJourneyV2Pptx = onRequest(
   async (req, res) => {
     res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     await clientJourneyAssetV2Service.handlePptx(req, res);
+  }
+);
+
+/** GET /api/release-notes/summary — Experience League release highlights for home-new dashboard. */
+exports.releaseNotesSummary = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    await releaseNotesSummaryService.handleSummary(req, res);
   }
 );
 

@@ -1,5 +1,5 @@
 /**
- * Bundled Experience Cloud release catalog for home-new.html (until /api/release-notes/summary ships).
+ * Bundled Experience Cloud release catalog for home-new.html (offline fallback when /api/release-notes/summary is unavailable).
  */
 (function attachHomeReleaseCatalog(global) {
   'use strict';

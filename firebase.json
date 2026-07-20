@@ -294,6 +294,13 @@
         }
       },
       {
+        "source": "/api/release-notes/summary",
+        "function": {
+          "functionId": "releaseNotesSummary",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/webhook-listener",
         "function": {
           "functionId": "webhookListenerProxy",
