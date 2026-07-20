@@ -4,11 +4,61 @@
 (function (global) {
   'use strict';
 
+  var LOG = '[armcom-lab]';
   var armcomLabSingleton = null;
 
+  function logInfo(msg, detail) {
+    if (typeof global.console === 'undefined' || !global.console.info) return;
+    if (detail !== undefined) global.console.info(LOG, msg, detail);
+    else global.console.info(LOG, msg);
+  }
+
+  function logWarn(msg, detail) {
+    if (typeof global.console === 'undefined' || !global.console.warn) return;
+    if (detail !== undefined) global.console.warn(LOG, msg, detail);
+    else global.console.warn(LOG, msg);
+  }
+
+  function logError(msg, detail) {
+    if (typeof global.console === 'undefined' || !global.console.error) return;
+    if (detail !== undefined) global.console.error(LOG, msg, detail);
+    else global.console.error(LOG, msg);
+  }
+
+  function detectShellContext() {
+    var inIframe = false;
+    try {
+      inIframe = global.top !== global.self;
+    } catch (_e) {
+      inIframe = true;
+    }
+    return {
+      inIframe: inIframe,
+      pathname: String(global.location.pathname || ''),
+      isShellPage: /armcom-(mobile-)?demo\.html$/i.test(String(global.location.pathname || '')),
+    };
+  }
+
+  function logAlloyState(phase) {
+    var alloyReady =
+      typeof global.DemoTagsInjection !== 'undefined' &&
+      typeof global.DemoTagsInjection.isAlloyReady === 'function' &&
+      global.DemoTagsInjection.isAlloyReady();
+    logInfo('alloy state', {
+      phase: phase,
+      alloyReady: alloyReady,
+      alloyOnWindow: typeof global.alloy === 'function',
+    });
+  }
+
   function initArmcomLab(options) {
-    if (armcomLabSingleton) return armcomLabSingleton;
+    if (armcomLabSingleton) {
+      logInfo('initArmcomLab skipped — already initialized');
+      return armcomLabSingleton;
+    }
+    logInfo('initArmcomLab start', { context: detectShellContext(), iframeIds: options && options.iframeIds });
     armcomLabSingleton = buildArmcomLab(options);
+    logInfo('initArmcomLab complete');
     return armcomLabSingleton;
   }
 
@@ -92,6 +142,7 @@
     function startTagsInjection() {
       if (armcomTagsInjection) return armcomTagsInjection;
       if (typeof global.DemoTagsInjection === 'undefined') {
+        logWarn('Tags injection deferred — DemoTagsInjection not loaded yet');
         if (global.envBar && typeof global.envBar.onChange === 'function') {
           var unsubTags = global.envBar.onChange(function (detail) {
             if (detail && detail.type === 'init' && typeof global.DemoTagsInjection !== 'undefined') {
@@ -102,6 +153,7 @@
         }
         return null;
       }
+      logInfo('Tags injection init start', { iframeIds: iframeIds });
       armcomTagsInjection = global.DemoTagsInjection.init({
         storagePrefix: 'armcom',
         identityEventType: 'armcom.identity.stitch',
@@ -141,10 +193,17 @@
       if (armcomTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
         global.envBar.registerTagsInjection(armcomTagsInjection);
       }
+      logInfo('Tags injection init complete');
+      logAlloyState('tags-init');
       return armcomTagsInjection;
     }
 
     startTagsInjection();
+
+    global.addEventListener('aep-demo-tags-injected', function () {
+      logInfo('Tags inject event received');
+      logAlloyState('tags-injected');
+    });
 
     var armcomWebPushRetryBtn = document.getElementById('armcomWebPushRetryBtn');
     if (armcomWebPushRetryBtn && typeof global.AepDemoWebPush !== 'undefined') {
@@ -306,15 +365,23 @@
     }
 
     if (typeof DemoProfileDrawer !== 'undefined' && DemoProfileDrawer.init) {
-      DemoProfileDrawer.init({
-        emailInputId: 'customerEmail',
-        profileOpenClass: 'armcom-demo-page--profile-open',
-        viewName: 'Arm demo',
-        emailGetter: getEmail,
-        messageSetter: setArmcomMessage,
-        getSelectedGeneratorTarget: getSelectedGeneratorTarget,
-        fetchBrowserEcidOnInit: true,
-      });
+      logInfo('profile drawer init start');
+      try {
+        DemoProfileDrawer.init({
+          emailInputId: 'customerEmail',
+          profileOpenClass: 'armcom-demo-page--profile-open',
+          viewName: 'Arm demo',
+          emailGetter: getEmail,
+          messageSetter: setArmcomMessage,
+          getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+          fetchBrowserEcidOnInit: true,
+        });
+        logInfo('profile drawer init success');
+      } catch (err) {
+        logError('profile drawer init failed', err && err.message ? err.message : err);
+      }
+    } else {
+      logError('profile drawer init failed — DemoProfileDrawer not available');
     }
 
     if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.init === 'function') {

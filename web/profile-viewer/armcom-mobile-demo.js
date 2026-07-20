@@ -7,35 +7,55 @@ var ARMCOM_XDM_TENANT_KEY = '_demoemea';
 var armcomLab = null;
 var armcomLabBootStarted = false;
 
-function bootArmcomMobileLab() {
+function bootArmcomMobileLab(reason) {
   if (armcomLabBootStarted && armcomLab) return;
-  if (typeof window.initArmcomLab !== 'function') return;
+  if (typeof window.initArmcomLab !== 'function') {
+    console.warn('[armcom-lab] mobile lab boot deferred — initArmcomLab not available', { reason: reason || 'unknown' });
+    return;
+  }
   if (typeof window.DemoTagsInjection === 'undefined') {
     if (window.envBar && typeof window.envBar.onChange === 'function') {
       window.envBar.onChange(function (detail) {
         if (detail && detail.type === 'init' && typeof window.DemoTagsInjection !== 'undefined') {
-          bootArmcomMobileLab();
+          bootArmcomMobileLab('env-bar-change:init');
         }
       });
     }
+    console.warn('[armcom-lab] mobile lab boot deferred — DemoTagsInjection not available', { reason: reason || 'unknown' });
     return;
   }
   armcomLabBootStarted = true;
+  console.info('[armcom-lab] mobile lab boot start', { reason: reason || 'unknown' });
   armcomLab = window.initArmcomLab({ iframeIds: ['armcomMobileFrame'] });
+  console.info('[armcom-lab] mobile lab boot success');
 }
 
-function whenEnvBarReady(run) {
+function whenEnvBarReady(run, label) {
   if (window.envBar && typeof window.envBar.ready === 'function') {
-    window.envBar.ready().then(run).catch(function (err) {
-      console.warn('[armcom-mobile-demo] envBar.ready failed', err);
+    window.envBar.ready().then(function () {
+      console.info('[aep-env-bar] mobile env bar ready', { label: label || 'boot' });
+      run();
+    }).catch(function (err) {
+      console.warn('[armcom-lab] mobile envBar.ready failed', err);
       run();
     });
   } else {
+    console.warn('[armcom-lab] mobile env bar API missing');
     run();
   }
 }
 
-whenEnvBarReady(bootArmcomMobileLab);
+whenEnvBarReady(bootArmcomMobileLab, 'initial');
+
+document.addEventListener('DOMContentLoaded', function () {
+  bootArmcomMobileLab('DOMContentLoaded');
+});
+
+window.addEventListener('env-bar-change', function (ev) {
+  if (ev && ev.detail && ev.detail.type === 'init') {
+    bootArmcomMobileLab('env-bar-change:init');
+  }
+});
 
 function initArmcomMobileBcAdapter() {
   if (window.MobileBcBoot && typeof window.MobileBcBoot.init === 'function') {
