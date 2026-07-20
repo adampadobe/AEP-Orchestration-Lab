@@ -1,14 +1,14 @@
 {
-  "gitSha": "a122a1f20559de544216e9f6c09be661d3c1cbfc",
-  "gitShortSha": "a122a1f2",
+  "gitSha": "d2c091d7c8cf45a3f881c7650bec1e234526b396",
+  "gitShortSha": "d2c091d7",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: last events list renders visible event rows",
+  "gitCommitSubject": "[apalmer] chore: deploy stamp a122a1f2",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T14:03:46+01:00",
-  "deployedAt": "2026-07-20T13:04:07.775Z",
+  "gitCommitDate": "2026-07-20T14:04:25+01:00",
+  "deployedAt": "2026-07-20T13:08:18.192Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a122a1f20559de544216e9f6c09be661d3c1cbfc"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d2c091d7c8cf45a3f881c7650bec1e234526b396"
 }
