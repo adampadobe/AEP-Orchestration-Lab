@@ -1434,7 +1434,7 @@ body.armcom-mega-open {
   right: 1.5rem;
   z-index: 1200;
   max-width: 22rem;
-  padding: 1rem 1.15rem;
+  padding: 1rem 2.35rem 1rem 1.15rem;
   border-radius: 12px;
   background: var(--armcom-navy);
   color: var(--armcom-white);
@@ -1445,6 +1445,33 @@ body.armcom-mega-open {
   transform: translateY(12px);
   transition: opacity 0.35s ease, transform 0.35s ease;
   pointer-events: none;
+}
+
+.armcom-toast-dismiss {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.armcom-toast-dismiss:hover,
+.armcom-toast-dismiss:focus-visible {
+  color: var(--armcom-white);
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
 }
 
 .armcom-toast.visible {

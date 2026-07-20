@@ -297,6 +297,15 @@
     requestDecisioningRefresh();
   }
 
+  function dismissActivationToast(toast) {
+    if (!toast || toast.dataset.armcomDismissed === '1') return;
+    toast.dataset.armcomDismissed = '1';
+    toast.classList.remove('visible');
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 400);
+  }
+
   function showActivationToast() {
     var existing = document.getElementById('armcomActivationToast');
     if (existing) existing.remove();
@@ -305,6 +314,7 @@
     toast.className = 'armcom-toast';
     toast.setAttribute('role', 'status');
     toast.innerHTML =
+      '<button type="button" class="armcom-toast-dismiss" aria-label="Dismiss notification">×</button>' +
       '<strong>Audience activated</strong><br>Cloud AI ICP segment synced to LinkedIn Matched Audiences.' +
       '<div class="armcom-toast-logos"><span>LinkedIn Matched Audiences</span></div>' +
       '<div class="armcom-toast-actions">' +
@@ -316,15 +326,15 @@
       '" target="_top">Email nurture (demo) →</a>' +
       '</div>';
     document.body.appendChild(toast);
+    var dismissBtn = toast.querySelector('.armcom-toast-dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', function () {
+        dismissActivationToast(toast);
+      });
+    }
     requestAnimationFrame(function () {
       toast.classList.add('visible');
     });
-    setTimeout(function () {
-      toast.classList.remove('visible');
-      setTimeout(function () {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 400);
-    }, 8000);
   }
 
   function handleSubscribeForm(form, options) {
