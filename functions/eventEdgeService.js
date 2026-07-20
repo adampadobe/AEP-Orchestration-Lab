@@ -298,7 +298,93 @@ function buildTriggerPayload(template, ecid, email, eventType) {
 
 /* ── Edge Network calls ── */
 
-async function sendEdgeEvent(token, clientId, orgId, datastreamId, payload) {
+const PERSONALIZATION_SCHEMAS = [
+  'https://ns.adobe.com/personalization/default-content-item',
+  'https://ns.adobe.com/personalization/html-content-item',
+  'https://ns.adobe.com/personalization/json-content-item',
+  'https://ns.adobe.com/personalization/dom-action',
+];
+
+/**
+ * Build identityMap for Decisioning lab Edge evaluate — ECID primary when both present.
+ * Mirrors content-decision-edge-mounts.js + eventEdgeService.buildMinimalEdgeXdm.
+ *
+ * @param {{ email?: string, ecid?: string, namespace?: string }} params
+ */
+function buildDecisionIdentityMap({ email, ecid, namespace }) {
+  const emailTrim = email != null ? String(email).trim() : '';
+  const ecidTrim = isValidEdgeEcid(ecid) ? String(ecid).trim() : '';
+  const ns = String(namespace || 'email').trim().toLowerCase();
+  /** @type {Record<string, Array<{ id: string, primary?: boolean, authenticatedState?: string }>>} */
+  const identityMap = {};
+
+  if (ns === 'email' && emailTrim) {
+    identityMap.Email = [{ id: emailTrim, authenticatedState: 'authenticated', primary: !ecidTrim }];
+  } else if (emailTrim || (ns === 'ecid' && ecidTrim)) {
+    const idVal = ns === 'ecid' && ecidTrim ? ecidTrim : emailTrim;
+    const keyMap = { email: 'Email', ecid: 'ECID', phone: 'Phone', crmid: 'CRMId', loyaltyid: 'LoyaltyId' };
+    const key = keyMap[ns] || ns.charAt(0).toUpperCase() + ns.slice(1);
+    identityMap[key] = [{ id: idVal, authenticatedState: 'authenticated', primary: !ecidTrim }];
+  }
+
+  if (ecidTrim) {
+    if (!identityMap.ECID) {
+      identityMap.ECID = [{ id: ecidTrim, authenticatedState: 'ambiguous', primary: true }];
+    } else {
+      identityMap.ECID = [{ id: ecidTrim, authenticatedState: 'ambiguous', primary: true }];
+      for (const entries of Object.values(identityMap)) {
+        if (Array.isArray(entries) && entries[0]) entries[0].primary = false;
+      }
+      identityMap.ECID[0].primary = true;
+    }
+  }
+
+  if (identityMap.ECID && identityMap.Email) {
+    identityMap.ECID[0].primary = true;
+    identityMap.Email[0].primary = false;
+  }
+
+  return identityMap;
+}
+
+/**
+ * Parse Edge interact response handles into proposition objects (Alloy-shaped).
+ * @param {Record<string, unknown>} data
+ */
+function parseEdgeInteractPropositions(data) {
+  if (!data || typeof data !== 'object') return [];
+  /** @type {Record<string, unknown>[]} */
+  const out = [];
+  const seen = new Set();
+
+  const pushProp = (p) => {
+    if (!p || typeof p !== 'object') return;
+    const id = p.id != null ? String(p.id) : '';
+    const key = id || JSON.stringify(p).slice(0, 120);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(/** @type {Record<string, unknown>} */ (p));
+  };
+
+  const handles = Array.isArray(data.handle) ? data.handle : [];
+  for (const h of handles) {
+    if (!h || typeof h !== 'object') continue;
+    const type = String(h.type || '').toLowerCase();
+    if (!type.includes('personalization')) continue;
+    const payload = Array.isArray(h.payload) ? h.payload : [];
+    for (const p of payload) pushProp(p);
+  }
+
+  if (Array.isArray(data.propositions)) {
+    for (const p of data.propositions) pushProp(p);
+  }
+  if (Array.isArray(data.decisions)) {
+    for (const p of data.decisions) pushProp(p);
+  }
+  return out;
+}
+
+async function postEdgeInteract(token, clientId, orgId, datastreamId, payload) {
   const url = `${EDGE_INTERACT_BASE}?dataStreamId=${encodeURIComponent(datastreamId)}`;
   const headers = {
     'Content-Type': 'application/json',
@@ -315,7 +401,27 @@ async function sendEdgeEvent(token, clientId, orgId, datastreamId, payload) {
     const msg = data.message || data.title || data.detail || data.error || text.slice(0, 300) || `Edge ${resp.status}`;
     throw new Error(msg);
   }
+  return data;
+}
+
+async function sendEdgeEvent(token, clientId, orgId, datastreamId, payload) {
+  const data = await postEdgeInteract(token, clientId, orgId, datastreamId, payload);
   return { ok: true, requestId: data.requestId || null };
+}
+
+/**
+ * Send Edge interact with personalization query; return propositions from handle.
+ * Payload must be the full interact body ({ event, query }).
+ */
+async function sendEdgeDecisionEvent(token, clientId, orgId, datastreamId, payload) {
+  const data = await postEdgeInteract(token, clientId, orgId, datastreamId, payload);
+  const propositions = parseEdgeInteractPropositions(data);
+  return {
+    ok: true,
+    requestId: data.requestId || null,
+    propositions,
+    rawHandle: Array.isArray(data.handle) ? data.handle : [],
+  };
 }
 
 function extractDatastreamItems(data) {
@@ -633,6 +739,7 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
 }
 
 module.exports = {
+  PERSONALIZATION_SCHEMAS,
   buildXdm,
   buildMinimalEdgeXdm,
   buildRichEdgeXdm,
@@ -640,7 +747,11 @@ module.exports = {
   resolveGeneratorEdgeXdmStyle,
   buildGeneratorEdgeInteractXdm,
   buildTriggerPayload,
+  buildDecisionIdentityMap,
+  parseEdgeInteractPropositions,
+  isValidEdgeEcid,
   sendEdgeEvent,
+  sendEdgeDecisionEvent,
   listDatastreams,
   createDatastreamConfig,
 };

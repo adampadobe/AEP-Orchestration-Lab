@@ -280,6 +280,20 @@
         }
       },
       {
+        "source": "/api/decisioning/edge-evaluate",
+        "function": {
+          "functionId": "decisioningEdgeEvaluateProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/explain",
+        "function": {
+          "functionId": "decisioningExplainProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/campaign-name",
         "function": {
           "functionId": "campaignNameProxy",

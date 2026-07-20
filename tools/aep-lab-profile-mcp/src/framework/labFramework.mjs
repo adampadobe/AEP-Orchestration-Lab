@@ -167,6 +167,17 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/event-generator.js + mobile lab shells — buildGeneratorPostBody parity in MCP.',
     verify: 'lab_profile_activity after send — allow 30–60s UPS lag; retry if ecid was missing on first attempt.',
   },
+  {
+    id: 'decisioning_edge_evaluate',
+    rule:
+      'Decisioning lab Edge evaluate uses POST /api/decisioning/edge-evaluate (not /api/aep). Load Decision lab config first; pass email + ecid with ECID primary when both present.',
+    tools:
+      'lab_decision_lab_config → lab_decisioning_edge_evaluate → lab_explain_decision_response → lab_decisioning_resolve_treatment_name (per offer-item id).',
+    modes:
+      'surfaces (default): web://host/path#fragment URIs from targetPageUrl + placements. decisionScopes: explicit scopes or placement-derived web:// scopes.',
+    ui: 'web/profile-viewer/content-decision-live-edge-inline.js + content-decision-edge-mounts.js',
+    mcp: 'Sandbox allowlist required. Auto-fetch ecid from UPS when email-only (same as event tools).',
+  },
 ];
 
 /** Shared language documentation for playbooks. */
@@ -366,7 +377,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.12.0',
+    version: '3.18.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -537,6 +548,30 @@ export function getExecutionFramework() {
         ],
         edge_configuration: EDGE_DATASTREAM_DX_API_GUIDANCE,
         doc: 'docs/COWORKER_EDGE_DATASTREAMS.md',
+      },
+      decisioning_edge_evaluate: {
+        tools: [
+          'lab_decision_lab_config',
+          'lab_decisioning_edge_evaluate',
+          'lab_explain_decision_response',
+          'lab_decisioning_resolve_treatment_name',
+        ],
+        when:
+          'Coworker needs server-side Edge personalization propositions for Decisioning lab (surfaces or decisionScopes) without browser Alloy.',
+        order: [
+          'lab_generate_profile — capture email + ecid',
+          'lab_decision_lab_config sandbox {sandbox} — datastreamId, targetPageUrl, placements, edgePersonalizationMode',
+          'lab_decisioning_edge_evaluate sandbox {sandbox} email {email} ecid {ecid}',
+          'lab_explain_decision_response with propositions from evaluate (or pass email/ecid to evaluate+explain)',
+          'lab_decisioning_resolve_treatment_name for unresolved offer-item ids',
+        ],
+        identity_rules: [
+          'email + ecid from generate; ECID primary in identityMap when both present',
+          'Surfaces built from targetPageUrl + placement fragments (web://host/path#fragment)',
+        ],
+        api: ['POST /api/decisioning/edge-evaluate', 'POST /api/decisioning/explain', 'GET /api/decisioning/treatment-name'],
+        ui: 'web/profile-viewer/content-decision-live-edge.html',
+        never: 'Do not call /api/aep from MCP — lab proxies only.',
       },
       batch_seed: {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],

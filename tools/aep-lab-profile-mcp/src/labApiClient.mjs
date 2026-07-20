@@ -388,6 +388,88 @@ export async function sendEdgeEvent(params) {
   });
 }
 
+/**
+ * GET /api/decision-lab/config?sandbox=
+ * @param {object} params
+ * @param {string} params.sandbox
+ */
+export async function getDecisionLabConfig({ sandbox }) {
+  return labApiRequest('/api/decision-lab/config', {
+    query: { sandbox },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * GET /api/catalog/config?sandbox=
+ * @param {object} params
+ * @param {string} params.sandbox
+ */
+export async function getCatalogConfig({ sandbox }) {
+  return labApiRequest('/api/catalog/config', {
+    query: { sandbox },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/edge-evaluate
+ * @param {object} params
+ */
+export async function decisioningEdgeEvaluate(params) {
+  /** @type {Record<string, unknown>} */
+  const body = { sandbox: params.sandbox };
+  if (params.email) body.email = params.email;
+  if (params.ecid) body.ecid = params.ecid;
+  if (params.namespace) body.namespace = params.namespace;
+  if (params.mode) body.mode = params.mode;
+  if (params.datastream_id) body.datastreamId = params.datastream_id;
+  if (params.target_page_url) body.targetPageUrl = params.target_page_url;
+  if (params.view_url) body.viewUrl = params.view_url;
+  if (params.view_name) body.viewName = params.view_name;
+  if (Array.isArray(params.decision_scopes)) body.decisionScopes = params.decision_scopes;
+  return labApiRequest('/api/decisioning/edge-evaluate', {
+    method: 'POST',
+    body,
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * GET /api/decisioning/treatment-name?id=
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} params.id
+ */
+export async function resolveDecisioningTreatmentName({ sandbox, id }) {
+  return labApiRequest('/api/decisioning/treatment-name', {
+    query: { sandbox, id },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/explain
+ * @param {object} params
+ */
+export async function explainDecisionResponse(params) {
+  return labApiRequest('/api/decisioning/explain', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      propositions: params.propositions,
+      placements: params.placements,
+      evaluateContext: params.evaluate_context,
+      mode: params.mode,
+      surfaces: params.surfaces,
+      decisionScopes: params.decision_scopes,
+      datastreamId: params.datastream_id,
+      identityMap: params.identity_map,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
 function generationPrefsAuthHeaders() {
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};

@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.10.0). Use when generating test profiles, sending
-  experience events, setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
+  (Streamable HTTP on Cloud Run v3.18.0). Use when generating test profiles, sending
+  experience events, evaluating Edge decisioning (Decision lab), setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   access info, MCP first-run onboarding, getting/updating profiles (full-snapshot stitch), profile activity,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.14)
 
-MCP server: **AEP Orchestration Lab MCP v3.14.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.18.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -45,6 +45,7 @@ Coworker should call these **before** improvising lab conventions:
 6. **Portal event types** — `event_type` is **free text** (any string, same as Event tool). Datalist / `lab_send_retail_journey_events` commerce pack are optional suggestions. Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`.
 7. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 8. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
+9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
 
 ### How the lab executes
 
@@ -360,6 +361,22 @@ Before sending, confirm Event tool wiring for the sandbox (not just that static 
 **Advanced (direct datastream — avoid raw_payload):**
 
    > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email event.demo+001@adobetest.com, ecid from generate, event_type transaction.
+
+## Workflow 5d — Decisioning lab Edge evaluate (v3.18+)
+
+Server-side Edge personalization for Decisioning lab — mirrors Profile Viewer **content-decision-live-edge** without browser Alloy.
+
+1. **`lab_generate_profile`** — capture `email` + `ecid`.
+2. **`lab_decision_lab_config`** — confirm `datastreamId`, `targetPageUrl`, `placements`, `edgePersonalizationMode` (`surfaces` | `decisionScopes`).
+3. **`lab_decisioning_edge_evaluate`** — `sandbox`, `email`, `ecid` (auto-fetch ecid if email-only).
+4. **`lab_explain_decision_response`** — pass `propositions` from step 3 (or `email`/`ecid` to evaluate+explain).
+5. **`lab_decisioning_resolve_treatment_name`** — resolve any offer-item UUIDs from explain summaries.
+
+**Example Coworker prompt:**
+
+> Using AEP Orchestration Lab MCP sandbox apalmer: (1) lab_decision_lab_config, (2) lab_decisioning_edge_evaluate for email {email} and ecid {ecid from generate}, (3) lab_explain_decision_response with those propositions. Summarize which placement mounts received content and list treatment names.
+
+**Zero propositions:** read `explain.checklist` — verify AJO policies, datastream personalization service, surface URIs match placement fragments, and profile eligibility.
 
 ## Workflow 5c — Event infrastructure setup (schema + dataset + datastream)
 

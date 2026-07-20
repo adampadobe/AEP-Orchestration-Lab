@@ -32,6 +32,7 @@ import { registerMcpFirstRunSetupTool } from './mcpFirstRunSetup.mjs';
 import { registerSetupEventInfraTool } from './setupEventInfra.mjs';
 import { registerEnableEventProfileTool } from './enableEventProfile.mjs';
 import { registerEventConfigTools } from './eventConfig.mjs';
+import { registerDecisioningTools } from './decisioningTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -57,6 +58,7 @@ export function registerProfileTools(mcpServer) {
   registerSetupEventInfraTool(mcpServer);
   registerEnableEventProfileTool(mcpServer);
   registerEventConfigTools(mcpServer);
+  registerDecisioningTools(mcpServer);
   registerSendProfileEventTool(mcpServer);
   registerSendEdgeEventTool(mcpServer);
   registerPreflightProfileEventTool(mcpServer);

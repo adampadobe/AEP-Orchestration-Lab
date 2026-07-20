@@ -263,3 +263,12 @@ test('buildGeneratorEdgeInteractXdm email-only minimal avoids fake ECID fallback
   assert.equal(xdm._demoemea, undefined);
   assert.equal(xdm.interactionDetails.core.channel, 'web');
 });
+
+test('parseEdgeInteractPropositions dedupes by proposition id', () => {
+  const { parseEdgeInteractPropositions } = require('../eventEdgeService');
+  const props = parseEdgeInteractPropositions({
+    handle: [{ type: 'personalization:decisions', payload: [{ id: 'same' }, { id: 'same' }] }],
+    propositions: [{ id: 'same' }],
+  });
+  assert.equal(props.length, 1);
+});

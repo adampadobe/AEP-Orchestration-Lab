@@ -92,6 +92,8 @@ const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
+const decisioningEdgeEvaluateService = lazyRequireMod('./decisioningEdgeEvaluateService');
+const decisioningExplainService = lazyRequireMod('./decisioningExplainService');
 const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
@@ -966,6 +968,109 @@ exports.decisioningTreatmentNameProxy = onRequest(profileFnOpts, async (req, res
     res.status(200).json({ id, name });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), name: null });
+  }
+});
+
+/** POST /api/decisioning/edge-evaluate — Edge interact with personalization (surfaces / decisionScopes) */
+exports.decisioningEdgeEvaluateProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningEdgeEvaluateService.evaluateDecisioningEdge({
+      sandbox,
+      uid,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      body,
+    });
+    if (!result.ok) {
+      res.status(400).json(result);
+      return;
+    }
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(502).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/explain — summarize propositions + resolve treatment names */
+exports.decisioningExplainProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  const propositions = Array.isArray(body.propositions) ? body.propositions : [];
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const explained = await decisioningExplainService.explainDecisionResponse({
+      propositions,
+      placements: body.placements,
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      evaluateContext: body.evaluateContext || {
+        mode: body.mode,
+        surfaces: body.surfaces,
+        decisionScopes: body.decisionScopes,
+        datastreamId: body.datastreamId,
+        identityMap: body.identityMap,
+      },
+    });
+    res.status(200).json({ sandbox, ...explained });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
   }
 });
 
