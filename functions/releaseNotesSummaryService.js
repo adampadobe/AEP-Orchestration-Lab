@@ -104,6 +104,7 @@ async function fetchMarkdown(url) {
 }
 
 function mergeProduct(liveProduct, fallbackProduct) {
+  if (!liveProduct) return fallbackProduct || null;
   if (!fallbackProduct) return liveProduct;
   const hasLiveItems = (liveProduct.highlights || []).length > 0
     || (liveProduct.sections || []).some((sec) => (sec.items || []).length > 0);
@@ -161,11 +162,8 @@ function buildLiveProducts(docs, period, ajoPrefix) {
   const fallbackProducts = fallbackPeriod ? fallbackPeriod.products : {};
 
   for (const productId of fallbackCatalog.productOrder) {
-    products[productId] = mergeProduct(products[productId], fallbackProducts[productId]);
-  }
-
-  if (!products.brandVisibility && fallbackProducts.brandVisibility) {
-    products.brandVisibility = fallbackProducts.brandVisibility;
+    const merged = mergeProduct(products[productId], fallbackProducts[productId]);
+    if (merged) products[productId] = merged;
   }
 
   return products;
