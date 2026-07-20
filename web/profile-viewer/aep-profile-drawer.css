@@ -170,6 +170,65 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
   word-break: break-word;
 }
 
+.aep-profile-drawer-copyable-value-wrap {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.aep-profile-drawer-copyable-row .aep-profile-drawer-copyable-value-wrap {
+  display: inline-flex;
+  vertical-align: top;
+}
+
+.aep-profile-drawer-identity-row--ecid .aep-profile-drawer-copyable-value-wrap {
+  display: flex;
+  width: 100%;
+}
+
+.aep-profile-drawer-copyable-value-wrap > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.aep-profile-drawer-copy-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.05rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 254, 0.25);
+  border-radius: 4px;
+  background: rgba(255, 255, 254, 0.08);
+  color: #ececec;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-copy-btn:hover {
+  background: rgba(255, 255, 254, 0.16);
+  border-color: rgba(255, 255, 254, 0.4);
+}
+
+.aep-profile-drawer-copy-btn:focus-visible {
+  outline: 2px solid #4f86ff;
+  outline-offset: 1px;
+}
+
+.aep-profile-drawer-copy-btn.is-copied {
+  color: #7dffb3;
+  border-color: rgba(125, 255, 179, 0.45);
+}
+
+.aep-profile-drawer-copy-icon {
+  display: block;
+}
+
 .aep-profile-drawer-col h2:not(.aep-profile-drawer-panel-heading) {
   margin: 0 0 0.5rem;
   font-size: 1.08rem;

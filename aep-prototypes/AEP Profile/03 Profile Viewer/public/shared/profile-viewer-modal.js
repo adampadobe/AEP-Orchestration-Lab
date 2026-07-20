@@ -28,7 +28,7 @@
       '<p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>' +
       '<p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>' +
       '<p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>' +
-      '<p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>' +
+      '<p class="aep-profile-drawer-copyable-row"><strong>Email:</strong> <span class="aep-profile-drawer-copyable-value-wrap"><span id="profileDrawerEmail">—</span><button type="button" class="aep-profile-drawer-copy-btn" id="profileDrawerEmailCopy" hidden aria-label="Copy email to clipboard" title="Copy email"><svg class="aep-profile-drawer-copy-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 2a1 1 0 0 0-1 1v1H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1h1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5zm0 2h6v8H5V4zm-2 2h1v6a2 2 0 0 0 2 2h6v1H3V6z"/></svg></button></span></p>' +
       '<p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>' +
       '<p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>' +
       '<p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>' +
@@ -42,7 +42,7 @@
       '<section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">' +
       '<h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>' +
       '<div class="aep-profile-drawer-identity-fields">' +
-      '<div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">—</span></div>' +
+      '<div class="aep-profile-drawer-identity-row aep-profile-drawer-identity-row--ecid"><strong>ECID</strong><span class="aep-profile-drawer-copyable-value-wrap"><span id="profileDrawerDesktopId">—</span><button type="button" class="aep-profile-drawer-copy-btn" id="profileDrawerEcidCopy" hidden aria-label="Copy ECID to clipboard" title="Copy ECID"><svg class="aep-profile-drawer-copy-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 2a1 1 0 0 0-1 1v1H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1h1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5zm0 2h6v8H5V4zm-2 2h1v6a2 2 0 0 0 2 2h6v1H3V6z"/></svg></button></span></div>' +
       '<div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>' +
       '<div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>' +
       '<div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.npsScore">NPS score</strong><span id="profileDrawerNpsScore">—</span></div>' +

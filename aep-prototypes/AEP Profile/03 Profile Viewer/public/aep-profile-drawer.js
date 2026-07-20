@@ -39,6 +39,8 @@
   let profileDrawerConsentEmail;
   let profileDrawerConsentSms;
   let profileDrawerConsentPush;
+  let profileDrawerEmailCopyBtn;
+  let profileDrawerEcidCopyBtn;
   let infoEcid;
   let identityGraphSvg;
   let identityGraphZoomIn;
@@ -174,6 +176,8 @@
     profileDrawerConsentEmail = document.getElementById('profileDrawerConsentEmail');
     profileDrawerConsentSms = document.getElementById('profileDrawerConsentSms');
     profileDrawerConsentPush = document.getElementById('profileDrawerConsentPush');
+    profileDrawerEmailCopyBtn = document.getElementById('profileDrawerEmailCopy');
+    profileDrawerEcidCopyBtn = document.getElementById('profileDrawerEcidCopy');
     infoEcid = document.getElementById('infoEcid');
     identityGraphSvg = document.getElementById('identityGraphSvg');
     identityGraphZoomIn = document.getElementById('identityGraphZoomIn');
@@ -240,6 +244,158 @@ function setDrawerValue(el, value, fallback) {
   if (!el) return;
   const shown = value == null || value === '' ? fallback : String(value);
   el.textContent = shown;
+}
+
+const DRAWER_COPY_PLACEHOLDERS = new Set(['', '—', '-', 'Unknown', 'No profile loaded']);
+const DRAWER_COPY_ICON_SVG =
+  '<svg class="aep-profile-drawer-copy-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 2a1 1 0 0 0-1 1v1H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1h1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5zm0 2h6v8H5V4zm-2 2h1v6a2 2 0 0 0 2 2h6v1H3V6z"/></svg>';
+let profileDrawerCopyButtonsBound = false;
+
+function isDrawerCopyableValue(raw) {
+  const t = String(raw == null ? '' : raw).trim();
+  if (!t) return false;
+  return !DRAWER_COPY_PLACEHOLDERS.has(t);
+}
+
+function createProfileDrawerCopyButton(id, ariaLabel, title) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'aep-profile-drawer-copy-btn';
+  btn.id = id;
+  btn.hidden = true;
+  btn.setAttribute('aria-label', ariaLabel);
+  btn.title = title;
+  btn.innerHTML = DRAWER_COPY_ICON_SVG;
+  return btn;
+}
+
+function wrapDrawerValueWithCopyButton(valueEl, btnId, ariaLabel, title) {
+  if (!valueEl || document.getElementById(btnId)) return;
+  const parent = valueEl.parentElement;
+  if (parent && parent.classList.contains('aep-profile-drawer-copyable-value-wrap')) return;
+
+  const wrap = document.createElement('span');
+  wrap.className = 'aep-profile-drawer-copyable-value-wrap';
+  const host = valueEl.parentElement;
+  if (!host) return;
+  host.insertBefore(wrap, valueEl);
+  wrap.appendChild(valueEl);
+  wrap.appendChild(createProfileDrawerCopyButton(btnId, ariaLabel, title));
+
+  if (host.tagName === 'P' && !host.classList.contains('aep-profile-drawer-copyable-row')) {
+    host.classList.add('aep-profile-drawer-copyable-row');
+  }
+  const identityRow = valueEl.closest('.aep-profile-drawer-identity-row');
+  if (identityRow && btnId === 'profileDrawerEcidCopy') {
+    identityRow.classList.add('aep-profile-drawer-identity-row--ecid');
+  }
+}
+
+function ensureProfileDrawerCopyButtons() {
+  wrapDrawerValueWithCopyButton(
+    document.getElementById('profileDrawerEmail'),
+    'profileDrawerEmailCopy',
+    'Copy email to clipboard',
+    'Copy email',
+  );
+  wrapDrawerValueWithCopyButton(
+    document.getElementById('profileDrawerDesktopId'),
+    'profileDrawerEcidCopy',
+    'Copy ECID to clipboard',
+    'Copy ECID',
+  );
+  profileDrawerEmailCopyBtn = document.getElementById('profileDrawerEmailCopy');
+  profileDrawerEcidCopyBtn = document.getElementById('profileDrawerEcidCopy');
+}
+
+function syncDrawerCopyButton(btn, valueEl) {
+  if (!btn || !valueEl) return;
+  const copyable = isDrawerCopyableValue(valueEl.textContent);
+  btn.hidden = !copyable;
+  btn.disabled = !copyable;
+}
+
+function syncProfileDrawerCopyButtons() {
+  ensureProfileDrawerCopyButtons();
+  syncDrawerCopyButton(profileDrawerEmailCopyBtn, profileDrawerEmail);
+  syncDrawerCopyButton(profileDrawerEcidCopyBtn, profileDrawerDesktopId);
+}
+
+function showDrawerCopyFeedback(btn, defaultAriaLabel) {
+  if (!btn) return;
+  const priorTitle = btn.title || '';
+  btn.classList.add('is-copied');
+  btn.setAttribute('aria-label', 'Copied to clipboard');
+  btn.title = 'Copied!';
+  window.setTimeout(function () {
+    btn.classList.remove('is-copied');
+    btn.setAttribute('aria-label', defaultAriaLabel);
+    btn.title = priorTitle;
+  }, 1500);
+}
+
+function copyDrawerTextToClipboard(text, btn, defaultAriaLabel) {
+  const value = String(text || '').trim();
+  if (!isDrawerCopyableValue(value)) return Promise.resolve(false);
+
+  function onSuccess() {
+    showDrawerCopyFeedback(btn, defaultAriaLabel);
+    return true;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(value).then(onSuccess).catch(function () {
+      return fallbackCopyDrawerText(value, btn, defaultAriaLabel);
+    });
+  }
+  return Promise.resolve(fallbackCopyDrawerText(value, btn, defaultAriaLabel));
+}
+
+function fallbackCopyDrawerText(text, btn, defaultAriaLabel) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showDrawerCopyFeedback(btn, defaultAriaLabel);
+    return true;
+  } catch (_e) {
+    document.body.removeChild(ta);
+    return false;
+  }
+}
+
+function bindProfileDrawerCopyButtonsOnce() {
+  if (profileDrawerCopyButtonsBound) return;
+  ensureProfileDrawerCopyButtons();
+  cacheDomRefs();
+
+  if (profileDrawerEmailCopyBtn && profileDrawerEmail) {
+    profileDrawerEmailCopyBtn.addEventListener('click', function () {
+      void copyDrawerTextToClipboard(
+        profileDrawerEmail.textContent,
+        profileDrawerEmailCopyBtn,
+        'Copy email to clipboard',
+      );
+    });
+  }
+  if (profileDrawerEcidCopyBtn && profileDrawerDesktopId) {
+    profileDrawerEcidCopyBtn.addEventListener('click', function () {
+      void copyDrawerTextToClipboard(
+        profileDrawerDesktopId.textContent,
+        profileDrawerEcidCopyBtn,
+        'Copy ECID to clipboard',
+      );
+    });
+  }
+
+  profileDrawerCopyButtonsBound = true;
+  syncProfileDrawerCopyButtons();
 }
 
 /**
@@ -472,6 +628,8 @@ function updateProfileDrawer(profile) {
   ensureProfileDrawerIdentityGraphHeadingRow();
   renderIdentityGraph(source);
   updateProfileDrawerIdentityGraphModalBadgeCount();
+  bindProfileDrawerCopyButtonsOnce();
+  syncProfileDrawerCopyButtons();
 }
 
 const IDENTITY_GRAPH_PALETTE = [
@@ -3643,6 +3801,7 @@ function init(config) {
   cacheDomRefs();
   ensureProfileDrawerThemeToggle();
   ensureProfileDrawerIdentityGraphHeadingRow();
+  bindProfileDrawerCopyButtonsOnce();
   window.addEventListener('beforeunload', stopEventsPoll, { once: true });
 
   if (!eventsStoryModalKeydownBound) {
