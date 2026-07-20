@@ -1,14 +1,14 @@
 {
-  "gitSha": "d2c091d7c8cf45a3f881c7650bec1e234526b396",
-  "gitShortSha": "d2c091d7",
+  "gitSha": "280196b0098de5c2d9a3105313c78049f6dded44",
+  "gitShortSha": "280196b0",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp a122a1f2",
+  "gitCommitSubject": "[apalmer] feat: global env bar and profile drawer init debug logging",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T14:04:25+01:00",
-  "deployedAt": "2026-07-20T13:08:18.192Z",
+  "gitCommitDate": "2026-07-20T21:31:01+01:00",
+  "deployedAt": "2026-07-20T20:31:19.513Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d2c091d7c8cf45a3f881c7650bec1e234526b396"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/280196b0098de5c2d9a3105313c78049f6dded44"
 }
