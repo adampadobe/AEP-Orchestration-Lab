@@ -1,14 +1,14 @@
 {
-  "gitSha": "32feb094dad64e06dfa8e1530685940a458ee5c7",
-  "gitShortSha": "32feb094",
+  "gitSha": "a7ec985ee7b29ce93f46ad0ecb2a0d4faeb49e30",
+  "gitShortSha": "a7ec985e",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp ea71d4e4",
+  "gitCommitSubject": "[apalmer] fix: gate post-registration banner until AGI brief captured",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T12:05:00+01:00",
-  "deployedAt": "2026-07-21T11:05:17.944Z",
+  "gitCommitDate": "2026-07-21T16:20:32+01:00",
+  "deployedAt": "2026-07-21T15:23:11.317Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/32feb094dad64e06dfa8e1530685940a458ee5c7"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a7ec985ee7b29ce93f46ad0ecb2a0d4faeb49e30"
 }
