@@ -741,7 +741,11 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden,
 [class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden,
-.lab-env-top-anchor.lab-env-top-anchor--docked-hidden {
+.lab-env-top-anchor.lab-env-top-anchor--docked-hidden,
+.mod-demo-top-anchor.lab-env-top-anchor--presenter-strip-hidden,
+[class*='-demo-top-anchor'].lab-env-top-anchor--presenter-strip-hidden,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--presenter-strip-hidden,
+.lab-env-top-anchor.lab-env-top-anchor--presenter-strip-hidden {
   transform: translateY(calc(-100% - 0.5rem));
   visibility: hidden;
   pointer-events: none;
@@ -753,7 +757,11 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden::after,
 [class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden::after,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden::after,
-.lab-env-top-anchor.lab-env-top-anchor--docked-hidden::after {
+.lab-env-top-anchor.lab-env-top-anchor--docked-hidden::after,
+.mod-demo-top-anchor.lab-env-top-anchor--presenter-strip-hidden::after,
+[class*='-demo-top-anchor'].lab-env-top-anchor--presenter-strip-hidden::after,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--presenter-strip-hidden::after,
+.lab-env-top-anchor.lab-env-top-anchor--presenter-strip-hidden::after {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
@@ -793,19 +801,19 @@ html[data-lab-midrail-bc-visible] body.home-dashboard-concierge .aep-fullscreen-
 }
 
 /* Site iframe sits below the fixed env toolbar so clone nav/ribbon stays visible */
-.mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden) ~ iframe.mod-demo-site-frame,
-[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden) ~ iframe[class*='-demo-site-frame'],
-[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden) ~ iframe[id$='SiteFrame'] {
+.mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden):not(.lab-env-top-anchor--presenter-strip-hidden) ~ iframe.mod-demo-site-frame,
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden):not(.lab-env-top-anchor--presenter-strip-hidden) ~ iframe[class*='-demo-site-frame'],
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden):not(.lab-env-top-anchor--presenter-strip-hidden) ~ iframe[id$='SiteFrame'] {
   top: var(--env-bar-height, 3rem);
   height: calc(100% - var(--env-bar-height, 3rem));
 }
 
-body.site-clone-bc-bottom-dock-armed .mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden) ~ iframe.mod-demo-site-frame,
+body.site-clone-bc-bottom-dock-armed .mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden):not(.lab-env-top-anchor--presenter-strip-hidden) ~ iframe.mod-demo-site-frame,
 body.site-clone-bc-bottom-dock-armed
-  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden)
+  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden):not(.lab-env-top-anchor--presenter-strip-hidden)
   ~ iframe[class*='-demo-site-frame'],
 body.site-clone-bc-bottom-dock-armed
-  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden)
+  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden):not(.lab-env-top-anchor--presenter-strip-hidden)
   ~ iframe[id$='SiteFrame'] {
   height: calc(100% - var(--env-bar-height, 3rem) - 5.5rem);
 }
@@ -893,6 +901,10 @@ html[data-lab-midrail-bc-visible] .env-bar-dock-btn {
   [class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden,
   .mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden,
   .lab-env-top-anchor.lab-env-top-anchor--docked-hidden,
+  .mod-demo-top-anchor.lab-env-top-anchor--presenter-strip-hidden,
+  [class*='-demo-top-anchor'].lab-env-top-anchor--presenter-strip-hidden,
+  .mobile-demo-shell-env-anchor.lab-env-top-anchor--presenter-strip-hidden,
+  .lab-env-top-anchor.lab-env-top-anchor--presenter-strip-hidden,
   .env-bar-dock-btn {
     transition-duration: 0.01ms;
   }

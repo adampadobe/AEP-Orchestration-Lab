@@ -319,12 +319,6 @@
       if (bcPillEnv) bcPillEnv.classList.add('is-active');
 
       var ecidVal = infoEcid ? String(infoEcid.textContent || '').trim() : '';
-      var presenterMode = false;
-      try {
-        presenterMode = document.documentElement.hasAttribute('data-armcom-presenter');
-      } catch (_pm) {
-        /* noop */
-      }
       if (toolbarEcid && ecidVal) {
         if (/^\d{10,}$/.test(ecidVal)) {
           toolbarEcid.textContent = ecidVal.length > 16 ? ecidVal.slice(0, 8) + '…' + ecidVal.slice(-4) : ecidVal;
@@ -336,8 +330,14 @@
         }
       }
       if (ecidStat) {
+        var presenterError = false;
+        try {
+          presenterError = document.documentElement.hasAttribute('data-armcom-presenter-config-error');
+        } catch (_pe) {
+          /* noop */
+        }
         ecidStat.style.display =
-          presenterMode || (ecidVal && ecidVal !== '—' && ecidVal !== 'ECID unavailable') ? '' : 'none';
+          presenterError || (ecidVal && ecidVal !== '—' && ecidVal !== 'ECID unavailable') ? '' : 'none';
       }
     }
 

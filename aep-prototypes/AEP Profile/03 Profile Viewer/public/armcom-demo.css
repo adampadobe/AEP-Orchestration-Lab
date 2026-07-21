@@ -1,30 +1,38 @@
 /* Arm site-clone shell — iframe + compact env bar (shared/env-bar-compact.css) */
 
-/* Presenter mode (LinkedIn → arm.com new tab): toolbar only — no Configure SDK / Profile Lookup flash */
+/* Presenter mode (LinkedIn → arm.com new tab): overlay hidden until config error recovery. */
 html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-overlay-panel {
   display: none !important;
 }
 
-/* Collapsed presenter toolbar must stay clickable (configure btn, chips, profile hover zone). */
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-id-banner,
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) [class*='-demo-id-banner'] {
+/* Success path: spectrum toolbar docked off-screen — mid-rail BC/Decisioning + profile drawer only. */
+html[data-armcom-presenter-success] .env-bar-dock-btn {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Config error path: full toolbar visible and interactive so presenter can fix inject / ECID / datastream. */
+html[data-armcom-presenter-config-error] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-id-banner,
+html[data-armcom-presenter-config-error] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) [class*='-demo-id-banner'],
+html[data-armcom-presenter-config-error] .lab-env-top-anchor .lab-env-toolbar,
+html[data-armcom-presenter-config-error] .lab-env-top-anchor .lab-env-toolbar__actions,
+html[data-armcom-presenter-config-error] .lab-env-top-anchor .lab-env-toolbar button,
+html[data-armcom-presenter-config-error] .lab-env-top-anchor .lab-env-toolbar a,
+html[data-armcom-presenter-config-error] .lab-env-top-anchor .lab-env-toolbar select {
   pointer-events: auto;
 }
 
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar,
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar__actions,
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar button,
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar a,
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar select {
-  pointer-events: auto;
+html[data-armcom-presenter-config-error] .lab-env-top-anchor .lab-env-config-btn {
+  display: inline-flex;
 }
 
-/* Compact ECID readout in toolbar (overlay profile section is hidden in presenter mode). */
+/* Compact ECID readout in toolbar during error recovery (overlay profile section stays hidden). */
 .spectrum-env-stat--ecid {
   display: none;
 }
 
-html[data-armcom-presenter] .spectrum-env-stat--ecid {
+html[data-armcom-presenter-config-error] .spectrum-env-stat--ecid {
   display: flex;
 }
 
@@ -86,7 +94,7 @@ html[data-armcom-presenter] .spectrum-env-stat--ecid {
   transform: none !important;
 }
 
-.armcom-demo-top-anchor.lab-env-spectrum-overlay:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only):not(.lab-env-top-anchor--configuring)
+.armcom-demo-top-anchor.lab-env-spectrum-overlay:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only):not(.lab-env-top-anchor--configuring):not(.lab-env-top-anchor--presenter-strip-hidden)
   .armcom-demo-id-banner {
   max-height: var(--env-bar-height, 3rem) !important;
   overflow: hidden !important;

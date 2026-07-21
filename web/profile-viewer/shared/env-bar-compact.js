@@ -25,6 +25,7 @@
   var FULL_OPEN_BTN_ID = 'aepLabEnvFullOpenBtn';
   var PROFILE_ONLY_CLASS = 'lab-env-top-anchor--profile-only';
   var CONFIGURING_CLASS = 'lab-env-top-anchor--configuring';
+  var PRESENTER_STRIP_HIDDEN_CLASS = 'lab-env-top-anchor--presenter-strip-hidden';
   var selectDismissGraceUntil = 0;
   var datastreamManualEntryOpen = false;
   var toolbarResizeObserver = null;
@@ -123,6 +124,33 @@
     } catch (_e1) {
       return false;
     }
+  }
+
+  function isPresenterStripHidden(anchor) {
+    anchor = anchor || resolveAnchor();
+    return !!(anchor && anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS));
+  }
+
+  function setPresenterStripHidden(anchor, hidden) {
+    anchor = anchor || resolveAnchor();
+    if (!anchor) return false;
+    var wantsHidden = !!hidden;
+    anchor.classList.toggle(PRESENTER_STRIP_HIDDEN_CLASS, wantsHidden);
+    if (wantsHidden) {
+      closeOverlay(anchor, { force: true });
+    } else {
+      anchor.style.removeProperty('--lab-env-overlay-top');
+    }
+    try {
+      global.dispatchEvent(
+        new CustomEvent('aep-lab-env-presenter-strip', {
+          detail: { hidden: wantsHidden },
+        }),
+      );
+    } catch (_ev) {
+      /* noop */
+    }
+    return true;
   }
 
   function readUnifiedTagsConfiguredForCurrentSandbox() {
@@ -409,7 +437,13 @@
   function setExpanded(anchor, expanded, pinned, profileOnly) {
     if (!anchor) return;
     var wantsOpen = !!(expanded || pinned || (profileOnly && !expanded));
-    if (anchor.classList.contains('lab-env-top-anchor--docked-hidden') && wantsOpen) return;
+    if (
+      (anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
+        anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS)) &&
+      wantsOpen
+    ) {
+      return;
+    }
     ensureSpectrumBannerPeekCleared(anchor);
     var isProfileOnly = !!profileOnly && !expanded;
     var isOpen = !!(expanded || pinned || isProfileOnly);
@@ -518,11 +552,18 @@
 
   function collapseEnvBarForConfiguredState(anchor) {
     anchor = anchor || resolveAnchor();
-    if (!anchor || anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return false;
+    if (
+      !anchor ||
+      anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
+      anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS)
+    ) {
+      return false;
+    }
     if (isOverlayPinned(anchor)) return false;
     if (collapseEnvBarInProgress) return false;
     setConfiguring(anchor, false);
     if (isArmcomPresenterMode()) {
+      if (isPresenterStripHidden(anchor)) return true;
       if (!isOverlayOpen(anchor)) return true;
       collapseEnvBarInProgress = true;
       try {
@@ -547,7 +588,13 @@
 
   function toggleMinimizePanels(anchor) {
     anchor = anchor || resolveAnchor();
-    if (!anchor || anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return;
+    if (
+      !anchor ||
+      anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
+      anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS)
+    ) {
+      return;
+    }
     if (anchor.classList.contains(PROFILE_ONLY_CLASS)) {
       openOverlay(anchor, false);
       return;
@@ -684,7 +731,13 @@
   }
 
   function openOverlay(anchor, pin) {
-    if (anchor && anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return;
+    if (
+      anchor &&
+      (anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
+        anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS))
+    ) {
+      return;
+    }
     setExpanded(anchor, true, !!pin, false);
     if (pin) writePinnedToStorage(true);
     bindOverlayInteractionGuards(anchor);
@@ -734,7 +787,12 @@
   function openOverlayPublic(opts) {
     var anchor = resolveAnchor();
     if (!anchor) return false;
-    if (anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return false;
+    if (
+      anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
+      anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS)
+    ) {
+      return false;
+    }
     var options = opts || {};
     var pin = options.pinned != null ? !!options.pinned : isOverlayPinned(anchor);
     openOverlay(anchor, pin);
@@ -806,7 +864,14 @@
         labLog('info', 'presenter / cross-tab configured — collapse env bar on init', {
           presenterMode: isArmcomPresenterMode(),
         });
-        collapseEnvBarForConfiguredState(anchor);
+        if (
+          isArmcomPresenterMode() &&
+          document.documentElement.getAttribute('data-armcom-presenter-success') === ''
+        ) {
+          setPresenterStripHidden(anchor, true);
+        } else {
+          collapseEnvBarForConfiguredState(anchor);
+        }
       }
     }
 
@@ -945,6 +1010,12 @@
     isPinned: isOverlayPinned,
     isConfiguredForCollapse: isLabEnvConfiguredForCollapse,
     isArmcomPresenterMode: isArmcomPresenterMode,
+    isPresenterStripHidden: function () {
+      return isPresenterStripHidden(resolveAnchor());
+    },
+    setPresenterStripHidden: function (hidden) {
+      return setPresenterStripHidden(resolveAnchor(), hidden);
+    },
     seedLabEnvConfiguredSessionFromLocal: seedLabEnvConfiguredSessionFromLocal,
     minimizeToProfileLookup: function () {
       return minimizeToProfileLookup(resolveAnchor());

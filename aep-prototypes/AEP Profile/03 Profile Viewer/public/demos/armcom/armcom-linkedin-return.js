@@ -8,9 +8,12 @@
   var ARMCOM_PREFIX = 'armcom';
   var LINKEDIN_PREFIX = 'linkedinArm';
   var PRESENTER_MODE_KEY = 'armcomPresenterMode';
+  var PRESENTER_SUCCESS_ATTR = 'data-armcom-presenter-success';
+  var PRESENTER_ERROR_ATTR = 'data-armcom-presenter-config-error';
   var LAB_ENV_CONFIGURED_KEY = 'aepLabEnvConfigured:' + ARMCOM_PREFIX;
   var BOOTSTRAP_SESSION_KEY = 'armcomLinkedInPresenterBootDone';
   var PAID_AD_AFTER_BRIEF_KEY = 'armcomPaidAdClickedAfterBrief';
+  var PRESENTER_FINAL_EVAL_MS = 7000;
   var RETURN_SOURCES = {
     'linkedin-ad': true,
     'linkedin-organic': true,
@@ -19,6 +22,8 @@
   var presenterBootstrapComplete = false;
   var presenterBootstrapScheduled = false;
   var tagsReadyHandled = false;
+  var presenterChromeLocked = false;
+  var presenterFinalEvalTimer = null;
 
   function tagsLog(level, message, detail) {
     if (!global.AepLabConsole) return;
@@ -343,11 +348,162 @@
     return false;
   }
 
+  function setPresenterStripHidden(hidden, reason) {
+    if (!global.EnvBarCompact || typeof global.EnvBarCompact.setPresenterStripHidden !== 'function') {
+      return false;
+    }
+    var ok = global.EnvBarCompact.setPresenterStripHidden(!!hidden);
+    envLog('info', hidden ? 'presenter strip hidden' : 'presenter strip restored', {
+      reason: reason || 'presenter-chrome',
+      ok: ok,
+    });
+    return ok;
+  }
+
+  function readNumericEcidFromDom() {
+    var nodes = [
+      document.getElementById('infoEcid'),
+      document.getElementById('aepSpectrumToolbarEcid'),
+    ];
+    var i;
+    for (i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (!node) continue;
+      var textDigits = String(node.textContent || '').replace(/\D/g, '');
+      if (textDigits.length >= 10) return textDigits;
+      var titleDigits = String(node.title || '').replace(/\D/g, '');
+      if (titleDigits.length >= 10) return titleDigits;
+    }
+    return '';
+  }
+
+  function readEcidHintText() {
+    var info = document.getElementById('infoEcid');
+    return info ? String(info.textContent || '').trim() : '';
+  }
+
+  function isLaunchScriptConfigured(sandboxKey) {
+    return !!resolveCrossTabLaunchScript(sandboxKey) || readUnifiedConfigured(sandboxKey);
+  }
+
+  function isSdkToolbarActive() {
+    if (tagsReadyHandled) return true;
+    var scriptsBtn = document.getElementById('aepSpectrumScriptsCount');
+    if (scriptsBtn) {
+      var scriptText = String(scriptsBtn.textContent || '').trim();
+      if (scriptText && scriptText !== 'None' && scriptText !== '—') return true;
+    }
+    var sdkStatus = document.getElementById('aepSpectrumSdkStatus');
+    if (sdkStatus) {
+      var statusText = String(sdkStatus.textContent || '').trim().toLowerCase();
+      if (statusText && statusText !== 'disconnected' && statusText.indexOf('not') === -1) return true;
+    }
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.isConfiguredForCollapse === 'function') {
+      return !!global.EnvBarCompact.isConfiguredForCollapse();
+    }
+    return false;
+  }
+
+  function assessPresenterConfigHealth(opts) {
+    var options = opts || {};
+    var sandboxKey = resolveSandboxKey();
+    var launchScript = resolveCrossTabLaunchScript(sandboxKey);
+    var configured = readUnifiedConfigured(sandboxKey) || !!launchScript;
+    var ecid = readNumericEcidFromDom();
+    var ecidHint = readEcidHintText();
+    var reasons = [];
+
+    if (!launchScript && !configured) reasons.push('missing-launch-script');
+    if (options.final && !isSdkToolbarActive()) reasons.push('sdk-not-active');
+
+    if (ecid) {
+      return { ok: true, ecid: ecid, reasons: reasons };
+    }
+    if (ecidHint === 'ECID unavailable') reasons.push('ecid-unavailable');
+    if (options.final && ecidHint === 'Connecting ECID…') reasons.push('ecid-timeout');
+
+    return {
+      ok: false,
+      pending: !options.final && reasons.length === 0 && (!ecidHint || ecidHint === 'Connecting ECID…'),
+      reasons: reasons,
+      ecidHint: ecidHint,
+    };
+  }
+
+  function applyPresenterChrome(mode, detail) {
+    if (!isLinkedInReturnVisit()) return;
+    var reason = detail && detail.reason ? detail.reason : mode;
+    if (mode === 'success' || mode === 'pending') {
+      try {
+        document.documentElement.setAttribute(PRESENTER_SUCCESS_ATTR, '');
+        document.documentElement.removeAttribute(PRESENTER_ERROR_ATTR);
+      } catch (_attrOk) {
+        /* noop */
+      }
+      setPresenterStripHidden(true, reason);
+      forceEnvBarMinimized(reason);
+      return;
+    }
+    if (mode !== 'error') return;
+    presenterChromeLocked = true;
+    try {
+      document.documentElement.removeAttribute(PRESENTER_SUCCESS_ATTR);
+      document.documentElement.setAttribute(PRESENTER_ERROR_ATTR, '');
+    } catch (_attrErr) {
+      /* noop */
+    }
+    setPresenterStripHidden(false, reason);
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+      global.EnvBarCompact.openOverlay();
+    }
+    envLog('warn', 'presenter config error — expanded env bar for recovery', {
+      reason: reason,
+      detail: detail && detail.reasons ? detail.reasons : undefined,
+    });
+  }
+
+  function evaluatePresenterChrome(reason, opts) {
+    if (!isLinkedInReturnVisit()) return;
+    if (presenterChromeLocked) return;
+    var options = opts || {};
+    var health = assessPresenterConfigHealth(options);
+    if (health.ok) {
+      presenterChromeLocked = true;
+      applyPresenterChrome('success', { reason: reason, ecid: health.ecid });
+      envLog('info', 'presenter chrome locked — config OK', {
+        reason: reason,
+        ecidPreview: health.ecid ? health.ecid.slice(0, 8) + '…' : '',
+      });
+      return;
+    }
+    if (health.pending && !options.final) return;
+    if (
+      !options.final &&
+      health.reasons.indexOf('ecid-unavailable') === -1 &&
+      health.reasons.indexOf('missing-launch-script') === -1 &&
+      health.reasons.length === 0
+    ) {
+      return;
+    }
+    applyPresenterChrome('error', { reason: reason, reasons: health.reasons });
+  }
+
+  function schedulePresenterFinalEval(reason) {
+    if (!isLinkedInReturnVisit()) return;
+    if (presenterFinalEvalTimer) global.clearTimeout(presenterFinalEvalTimer);
+    presenterFinalEvalTimer = global.setTimeout(function () {
+      presenterFinalEvalTimer = null;
+      evaluatePresenterChrome(reason || 'presenter-final-eval', { final: true });
+    }, PRESENTER_FINAL_EVAL_MS);
+  }
+
   function runPresenterBootstrapOnce(reason) {
     if (!isLinkedInReturnVisit()) return;
     if (presenterBootstrapComplete || readBootstrapSessionFlag()) {
       presenterBootstrapComplete = true;
-      forceEnvBarMinimized(reason || 'bootstrap-skip');
+      if (!presenterChromeLocked) {
+        evaluatePresenterChrome(reason || 'bootstrap-skip');
+      }
       return;
     }
     presenterBootstrapComplete = true;
@@ -356,8 +512,17 @@
     var sandboxKey = resolveSandboxKey();
     var launchScript = resolveCrossTabLaunchScript(sandboxKey);
     seedCrossTabSessionState(sandboxKey, launchScript, { silent: true });
-    forceEnvBarMinimized(reason || 'presenter-bootstrap');
+    if (!isLaunchScriptConfigured(sandboxKey)) {
+      applyPresenterChrome('error', { reason: 'missing-launch-script', reasons: ['missing-launch-script'] });
+      tagsLog('warn', 'LinkedIn return visit — missing launch script', {
+        from: getReturnSource(),
+        sandboxKey: sandboxKey,
+      });
+      return;
+    }
+    applyPresenterChrome('pending', { reason: reason || 'presenter-bootstrap' });
     startPresenterEcidRefresh(reason || 'presenter-bootstrap');
+    schedulePresenterFinalEval(reason || 'presenter-bootstrap');
     tagsLog('info', 'LinkedIn return visit — presenter bootstrap complete', {
       from: getReturnSource(),
       sandboxKey: sandboxKey,
@@ -405,9 +570,16 @@
     function scheduleRefresh(delayMs) {
       global.setTimeout(function () {
         if (!global.DemoProfileDrawer || typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy !== 'function') {
+          evaluatePresenterChrome('ecid-refresh-no-drawer-' + delayMs);
           return;
         }
-        void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy();
+        void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy()
+          .then(function () {
+            evaluatePresenterChrome('ecid-refresh-' + delayMs);
+          })
+          .catch(function () {
+            evaluatePresenterChrome('ecid-refresh-fail-' + delayMs);
+          });
       }, delayMs);
     }
 
@@ -429,9 +601,9 @@
     if (tagsReadyHandled) return;
     tagsReadyHandled = true;
     deferHeavyWork(function () {
-      forceEnvBarMinimized('tags-injected');
       patchOrganicDrawerState();
       refreshToolbarEcidAfterInject();
+      evaluatePresenterChrome('tags-injected');
     });
   }
 
@@ -444,7 +616,9 @@
   global.addEventListener('aep-demo-env-strip-mounted', function () {
     if (!isLinkedInReturnVisit()) return;
     deferHeavyWork(function () {
-      forceEnvBarMinimized('env-strip-mounted');
+      if (!presenterChromeLocked) {
+        applyPresenterChrome('pending', { reason: 'env-strip-mounted' });
+      }
       startPresenterEcidRefresh('env-strip-mounted');
     });
   });
@@ -467,6 +641,8 @@
     enablePresenterMode: enablePresenterMode,
     seedCrossTabSessionState: seedCrossTabSessionState,
     forceEnvBarMinimized: forceEnvBarMinimized,
+    evaluatePresenterChrome: evaluatePresenterChrome,
+    applyPresenterChrome: applyPresenterChrome,
     isPresenterBootstrapComplete: function () {
       return presenterBootstrapComplete || readBootstrapSessionFlag();
     },
