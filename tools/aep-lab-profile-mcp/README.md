@@ -58,7 +58,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_enable_profile` | enable-profile API | Enable profile on infra |
 | `lab_sandbox_profile_config` | status-all + connection APIs | `ready`, `missing_steps`, `next_action` |
 | `lab_onboard_sandbox` | *(orchestrates provisioning)* | `plan`, `execute`, or `execute_all` (async) |
-| `lab_brand_scrape` | `POST …/brandScraperAnalyze` (direct CF) + poll `GET …/scrapes/{id}` | Crawl brand URL; dedupes complete + in-flight scrapes per URL (`prefer_existing:true`); same Firestore/GCS as Portal |
+| `lab_brand_scrape` | `POST …/brandScraperAnalyze` (direct CF) + poll `GET …/scrapes/{id}` | Crawl brand URL; optional `upload` + `upload_only` / `use_as_fallback`; dedupes complete + in-flight scrapes per URL |
+| `lab_brand_scrape_brief` | *(local markdown generator)* | Offline fallback brief + LLM task prompt when crawl fails (403/bot protection) |
+| `lab_brand_scrape_upload` | `POST …/brandScraperAnalyze` with uploaded HTML/ZIP | Upload-only analyse — same Portal HTML upload path; max 30 MB / ~40 files |
 | `lab_poll_brand_scrape` | `GET …/scrapes/{id}` (poll loop) | Human-readable progress until complete/failed/timeout — use instead of parallel `lab_brand_scrape` retries |
 | `lab_resolve_brand_scrape` | `GET /api/brand-scraper/scrapes` | Find reusable or in-flight scrape for URL; returns scrape_id or need_new_scrape |
 | `lab_cancel_brand_scrape` | `POST …/scrapes/{id}/cancel` | Cancel stuck Running scrape (Portal parity) |
@@ -92,6 +94,17 @@ Storage: Firestore index + GCS bucket `aep-orchestration-lab-brand-scrapes` (see
 Optional env: **`AEP_LAB_BRAND_SCRAPER_CF_ORIGIN`** (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`).
 
 **Tool timeouts:** set MCP client ≥ **540s** for `lab_brand_scrape` when `wait_for_complete:true`. ≥ **600s** when **`include.demoWebsite:true`** or **`lab_build_demo_website`** (demo build adds several minutes after crawl).
+
+### Brand scrape offline fallback (Phase 3.20)
+
+When live crawl fails (403, bot protection, login wall):
+
+1. **`lab_brand_scrape_brief`** — markdown brief + copy-paste LLM task prompt (mirrors Portal Download brief).
+2. Colleague runs external LLM or manual Chrome save-page + Image Eye → ZIP ≤ **30 MB**, ~**40 files**.
+3. **`lab_brand_scrape_upload`** — `upload.zip_base64` or `upload.files[]`; default `upload_only:true` (Alan/kirkham upload path = Portal Options → HTML upload).
+4. **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**.
+
+Resource: **`lab://framework/brand-scrape-offline`**. Failed `lab_brand_scrape` responses include `coworkerHints.offlineFallback`.
 
 ### Segment hints (Phase 3.1)
 

@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.19.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.20.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.19)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.20)
 
-MCP server: **AEP Orchestration Lab MCP v3.19.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.20.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -34,6 +34,7 @@ Codex should call these **before** improvising lab conventions:
 | `lab://framework/overview` | Markdown execution overview (MCP resource) |
 | `lab://framework/conventions` | Email, phone, testProfile, preferredLanguage, stitching rules |
 | `lab://framework/industries/{industry}` | JSON playbook for one industry |
+| `lab://framework/brand-scrape-offline` | Offline fallback workflow when crawl fails (403/bot protection) |
 
 ### Critical rules (always enforce)
 
@@ -47,6 +48,7 @@ Codex should call these **before** improvising lab conventions:
 8. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
 9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
+11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
 
 ### How the lab executes
 
@@ -497,6 +499,33 @@ Same MCP key as all other tools.
    > lab_get_brand_scrape: sandbox apalmer, scrape_id `<id>`. Use summary in conversation; check `profileViewerDemoHref` / `demoWebsitePath` for the site clone URL; full `lab` payload for CJv2 / LLM Demo import.
 
 Portal: [Brand scraper](https://aep-orchestration-lab.web.app/profile-viewer/brand-scraper.html) history and [Image hosting](https://aep-orchestration-lab.web.app/profile-viewer/image-hosting.html) read the same Firestore/GCS records.
+
+## Workflow 6b — Brand scrape offline fallback (blocked site / failed crawl)
+
+Use when live crawl fails (403, bot protection, login wall) or LLM analysis keeps failing. Read **`lab_get_execution_framework`** → `workflows.brand_scrape_offline_fallback` or resource **`lab://framework/brand-scrape-offline`**.
+
+> **Do not** loop `lab_brand_scrape` retries on blocked sites. Failed runs include `coworkerHints.offlineFallback` with the step chain below.
+
+1. **Get offline brief + LLM prompt**
+
+   > lab_brand_scrape_brief: url `https://blocked-brand.com`, customer_name `Blocked Brand`, include `{ "personas": true, "segments": true }`. Share the **LLM task prompt** section with the colleague (or `kind: checklist` for manual Chrome save-page steps).
+
+2. **Colleague produces ZIP (external LLM or manual)**
+
+   - External LLM: paste brief prompt; deliver save-page folder zipped (relative asset paths intact).
+   - Manual: Chrome **Save As → Webpage, Complete** + **Image Eye** for logos/images; zip ≤ **30 MB**.
+
+3. **Upload via MCP (Alan/kirkham upload path)**
+
+   > lab_brand_scrape_upload: sandbox apalmer, url `https://blocked-brand.com`, upload_only true, include `{ "personas": true, "demoWebsite": true }`, upload `{ "zip_base64": "<base64>" }`. Default `upload_only:true` skips live crawl. Partial crawl + ZIP: use `lab_brand_scrape` with `use_as_fallback:true` instead.
+
+4. **Poll and optional demo build**
+
+   > lab_poll_brand_scrape scrape_id `<id>` until terminal. If demo clone missing: lab_build_demo_website scrape_id `<id>`.
+
+**Example Coworker one-liner after failed scrape:**
+
+> Crawl failed with bot protection. Call **lab_brand_scrape_brief** for this URL, paste the LLM prompt to the user, and when they return a ZIP call **lab_brand_scrape_upload** with upload_only true.
 
 ## Workflow 8 — Brand scrape → golden profiles → events → journey asset
 

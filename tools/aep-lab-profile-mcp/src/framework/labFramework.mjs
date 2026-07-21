@@ -188,6 +188,19 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/decisioning-catalog.js',
     mcp: 'Sandbox allowlist required. Run lab_decisioning_catalog_assess before Edge evaluate demos to catch expired offers and empty collections.',
   },
+  {
+    id: 'brand_scrape_offline_fallback',
+    rule:
+      'When live brand crawl fails (403, bot protection, auth wall) or LLM analysis fails, do NOT retry lab_brand_scrape in a loop. ' +
+      'Use offline upload: colleague produces save-page ZIP (≤30 MB, ~40 files) via external LLM or manual Chrome save + Image Eye.',
+    tools:
+      'lab_brand_scrape_brief → (colleague external LLM / manual ZIP) → lab_brand_scrape_upload → lab_poll_brand_scrape → lab_build_demo_website (optional).',
+    upload:
+      'MCP upload.zip_base64 or upload.files[] — same payload as Portal Brand Scraper Options → HTML upload. upload_only:true skips crawl; use_as_fallback:true merges after blocked live pages.',
+    limits: 'Max 30 MB ZIP, ~40 files; at least one non-empty .html required.',
+    ui: 'web/profile-viewer/brand-scraper-brief.js + brand-scraper.js buildUploadedHtmlPayload',
+    mcp: 'lab_brand_scrape also accepts optional upload params; lab_brand_scrape_upload is the dedicated upload-only path.',
+  },
 ];
 
 /** Shared language documentation for playbooks. */
@@ -387,7 +400,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.19.0',
+    version: '3.20.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -655,6 +668,28 @@ export function getExecutionFramework() {
         note:
           'One-shot orchestration chains golden profiles, Portal-aligned event sequences (not generic web.webPageViews), optional CJv2 HTML. ' +
           'Event types MUST match Event tool datalist — never custom starbucks.* strings. Does not create RTCDP audiences or AJO platform journeys.',
+      },
+      brand_scrape_offline_fallback: {
+        tools: [
+          'lab_brand_scrape',
+          'lab_brand_scrape_brief',
+          'lab_brand_scrape_upload',
+          'lab_poll_brand_scrape',
+          'lab_build_demo_website',
+          'lab_get_brand_scrape',
+        ],
+        steps: [
+          'lab_brand_scrape sandbox + url — if scrapeStatus failed or crawl blocked (403/bot protection), read coworkerHints.offlineFallback',
+          'lab_brand_scrape_brief same url + include flags — share LLM task prompt with colleague (or kind:checklist for manual save-page steps)',
+          'Colleague: external LLM produces save-page ZIP OR manual Chrome Save As Complete + Image Eye for logos/images',
+          'lab_brand_scrape_upload sandbox + url + upload.zip_base64 (or upload.files[]) — default upload_only:true; include.demoWebsite when site clone needed',
+          'lab_poll_brand_scrape until scrapeStatus complete',
+          'Optional: lab_build_demo_website when demo was not included in upload analyse',
+        ],
+        note:
+          'Upload limits: 30 MB, ~40 files. MCP upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes). ' +
+          'use_as_fallback:true on lab_brand_scrape when some pages crawl but others are blocked. ' +
+          'Resource: lab://framework/brand-scrape-offline',
       },
     },
     when_to_use: {

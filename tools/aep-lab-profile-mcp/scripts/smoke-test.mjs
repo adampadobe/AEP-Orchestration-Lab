@@ -138,6 +138,8 @@ async function run() {
     'lab_provision_profile_infra_step',
     'lab_enable_profile',
     'lab_brand_scrape',
+    'lab_brand_scrape_brief',
+    'lab_brand_scrape_upload',
     'lab_poll_brand_scrape',
     'lab_resolve_brand_scrape',
     'lab_cancel_brand_scrape',

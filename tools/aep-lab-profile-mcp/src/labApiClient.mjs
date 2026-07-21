@@ -658,6 +658,22 @@ export function buildBrandScrapeAnalyzePostBody(params) {
     body.sync = true;
     body.async = false;
   }
+
+  if (params.upload_only === true) {
+    body.uploadOnly = true;
+    body.crawlMode = 'upload_only';
+  }
+  if (params.use_as_fallback === true) {
+    body.useUploadFallback = true;
+  }
+
+  const uploadedHtml = params.uploadedHtml || params.uploaded_html || null;
+  if (uploadedHtml && typeof uploadedHtml === 'object') {
+    body.uploadedHtml = uploadedHtml;
+  }
+
+  if (params.fallback_url) body.fallbackUrl = params.fallback_url;
+
   return body;
 }
 

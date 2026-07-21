@@ -1,7 +1,7 @@
 {
   "name": "aep-lab-profile-mcp",
   "private": true,
-  "version": "3.19.0",
+  "version": "3.20.0",
   "description": "Streamable HTTP MCP server for AEP Orchestration Lab profile tools (Coworker)",
   "type": "module",
   "engines": {
@@ -13,7 +13,8 @@
     "test:phase2": "node scripts/phase2-test.mjs",
     "test:phase3": "node scripts/phase3-test.mjs",
     "test:batch-sequence": "node scripts/batch-sequence-test.mjs",
-    "test:minimal-guardrails": "node scripts/minimal-event-guardrails-test.mjs"
+    "test:minimal-guardrails": "node scripts/minimal-event-guardrails-test.mjs",
+    "test:brand-scrape-offline": "node scripts/brand-scrape-offline-test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
