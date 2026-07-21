@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260420a">
-  <link rel="stylesheet" href="brand-scraper.css?v=20260603a">
+  <link rel="stylesheet" href="brand-scraper.css?v=20260721a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260420a">
 </head>
@@ -143,17 +143,30 @@
               <div class="brand-scraper-offline-body">
                 <p class="brand-scraper-result-muted">
                   When live crawl or AI analysis fails (403, bot protection, login walls), use an offline bundle instead of fighting the crawler.
-                  Download a markdown brief for ChatGPT/Claude, or a checklist for manual save-page + image export — then upload the resulting <strong>.zip</strong> under <strong>Options → HTML upload</strong>.
+                  Download a markdown brief for ChatGPT/Claude, or a checklist for manual save-page + image export — then drop the resulting <strong>.zip</strong> below.
                 </p>
                 <ol class="brand-scraper-offline-steps">
                   <li><strong>Download brief</strong> — includes brand context, LLM prompt, and expected ZIP layout.</li>
                   <li><strong>External tool</strong> — run the prompt or manually save pages (Chrome <em>Webpage, Complete</em>; bulk images via Image Eye or similar).</li>
-                  <li><strong>Upload ZIP</strong> — Options → HTML upload → tick <strong>Uploaded HTML only</strong> if the site cannot be crawled.</li>
+                  <li><strong>Upload</strong> — drop or browse for <strong>.zip</strong> / <strong>.html</strong> below (<strong>Uploaded HTML only</strong> is enabled automatically).</li>
                   <li><strong>Analyse</strong> — same AI steps as a live scrape; optionally tick <strong>Create demo website</strong> for a site clone.</li>
                 </ol>
                 <div class="brand-scraper-offline-actions">
                   <button type="button" class="dashboard-btn-outline" id="brandScraperDownloadBrief" title="Markdown brief with LLM prompt and upload instructions">Download scrape brief (MD)</button>
                   <button type="button" class="dashboard-btn-outline" id="brandScraperDownloadChecklist" title="Short asset checklist for manual collection">Download asset checklist</button>
+                </div>
+                <div class="brand-scraper-offline-drop-wrap">
+                  <div id="brandScraperOfflineDropZone" class="brand-scraper-offline-drop-zone" tabindex="0" role="button" aria-label="Drop HTML or ZIP files for offline analysis">
+                    <input type="file" id="brandScraperOfflineDropInput" accept=".html,.htm,.zip,application/zip" multiple hidden />
+                    <p class="brand-scraper-offline-drop-title">Drop .zip or .html here</p>
+                    <p class="brand-scraper-offline-drop-hint">Max 30&nbsp;MB · up to ~40 files · click to browse</p>
+                  </div>
+                  <div id="brandScraperOfflineUploadMeta" class="brand-scraper-offline-upload-meta" hidden>
+                    <span class="brand-scraper-offline-upload-name" id="brandScraperOfflineUploadName"></span>
+                    <span class="brand-scraper-offline-upload-size" id="brandScraperOfflineUploadSize"></span>
+                    <button type="button" class="dashboard-btn-outline brand-scraper-offline-upload-clear" id="brandScraperOfflineUploadClear" title="Remove selected files">Clear</button>
+                  </div>
+                  <p id="brandScraperOfflineUploadReady" class="brand-scraper-offline-upload-ready" hidden role="status">Ready — click <strong>Analyse</strong> (<strong>Uploaded HTML only</strong> is enabled).</p>
                 </div>
               </div>
             </details>

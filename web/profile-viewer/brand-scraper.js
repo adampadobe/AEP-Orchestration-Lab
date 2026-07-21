@@ -327,7 +327,103 @@
   const regenerateDemoRow = document.getElementById('brandScraperRegenerateDemoRow');
   const htmlUploadInput = document.getElementById('brandScraperHtmlUpload');
   const uploadSummaryEl = document.getElementById('brandScraperUploadSummary');
+  const offlineDropZone = document.getElementById('brandScraperOfflineDropZone');
+  const offlineDropInput = document.getElementById('brandScraperOfflineDropInput');
+  const offlineUploadMeta = document.getElementById('brandScraperOfflineUploadMeta');
+  const offlineUploadName = document.getElementById('brandScraperOfflineUploadName');
+  const offlineUploadSize = document.getElementById('brandScraperOfflineUploadSize');
+  const offlineUploadClear = document.getElementById('brandScraperOfflineUploadClear');
+  const offlineUploadReady = document.getElementById('brandScraperOfflineUploadReady');
   let pendingUploadFiles = [];
+
+  const MAX_UPLOAD_BYTES = 30 * 1024 * 1024;
+  const MAX_UPLOAD_FILES = 40;
+
+  function isAcceptedUploadFile(file) {
+    return /\.(html?|zip)$/i.test(String((file && file.name) || ''));
+  }
+
+  function formatUploadFileSize(bytes) {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function updateOfflineUploadUI() {
+    if (!offlineUploadMeta) return;
+    if (!pendingUploadFiles.length) {
+      offlineUploadMeta.hidden = true;
+      if (offlineUploadReady) offlineUploadReady.hidden = true;
+      return;
+    }
+    offlineUploadMeta.hidden = false;
+    const names = pendingUploadFiles.map(function (f) { return f.name; });
+    if (offlineUploadName) {
+      offlineUploadName.textContent = pendingUploadFiles.length === 1
+        ? names[0]
+        : pendingUploadFiles.length + ' files: ' + names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '');
+    }
+    if (offlineUploadSize) {
+      const total = pendingUploadFiles.reduce(function (sum, f) { return sum + (f.size || 0); }, 0);
+      offlineUploadSize.textContent = formatUploadFileSize(total);
+    }
+    if (offlineUploadReady) {
+      offlineUploadReady.hidden = !(uploadOnlyCb && uploadOnlyCb.checked);
+    }
+  }
+
+  function clearPendingUploadFiles() {
+    pendingUploadFiles = [];
+    if (htmlUploadInput) htmlUploadInput.value = '';
+    if (offlineDropInput) offlineDropInput.value = '';
+    updateUploadSummary();
+    updateOfflineUploadUI();
+  }
+
+  function acceptUploadFiles(fileList, opts) {
+    opts = opts || {};
+    const files = Array.from(fileList || []).filter(isAcceptedUploadFile);
+    if (!files.length) {
+      setStatus('No supported files — use .html, .htm, or .zip.', 'error');
+      return false;
+    }
+    if (files.length > MAX_UPLOAD_FILES) {
+      setStatus('Too many files — maximum ' + MAX_UPLOAD_FILES + '.', 'error');
+      return false;
+    }
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > MAX_UPLOAD_BYTES) {
+        setStatus(files[i].name + ' exceeds the 30 MB limit.', 'error');
+        return false;
+      }
+    }
+    pendingUploadFiles = files;
+    updateUploadSummary();
+    updateOfflineUploadUI();
+
+    if (opts.fromOfflinePanel) {
+      if (offlinePanel && !offlinePanel.open) offlinePanel.open = true;
+      const hasUrl = !!(urlInput && normaliseUrl(urlInput.value));
+      if (!hasUrl || opts.preferUploadOnly !== false) {
+        if (uploadOnlyCb) {
+          uploadOnlyCb.checked = true;
+          try { localStorage.setItem(LS_UPLOAD_ONLY, '1'); } catch (_e) {}
+        }
+      } else if (uploadFallbackCb) {
+        uploadFallbackCb.checked = true;
+        try { localStorage.setItem(LS_UPLOAD_FALLBACK, '1'); } catch (_e) {}
+        if (uploadOnlyCb) {
+          uploadOnlyCb.checked = false;
+          try { localStorage.setItem(LS_UPLOAD_ONLY, '0'); } catch (_e) {}
+        }
+      }
+      applyRunOptionsToUI();
+      updateOfflineUploadUI();
+      setStatus('Upload ready — click Analyse.', 'info');
+    }
+    return true;
+  }
 
   try {
     if (uploadFallbackCb) uploadFallbackCb.checked = localStorage.getItem(LS_UPLOAD_FALLBACK) !== '0';
@@ -342,6 +438,7 @@
   if (uploadOnlyCb) {
     uploadOnlyCb.addEventListener('change', function () {
       try { localStorage.setItem(LS_UPLOAD_ONLY, uploadOnlyCb.checked ? '1' : '0'); } catch (_e) {}
+      updateOfflineUploadUI();
       applyRunOptionsToUI();
     });
   }
@@ -387,8 +484,47 @@
 
   if (htmlUploadInput) {
     htmlUploadInput.addEventListener('change', function () {
-      pendingUploadFiles = Array.from(htmlUploadInput.files || []);
-      updateUploadSummary();
+      acceptUploadFiles(htmlUploadInput.files || [], { fromOfflinePanel: false });
+    });
+  }
+
+  if (offlineUploadClear) {
+    offlineUploadClear.addEventListener('click', function (evt) {
+      evt.stopPropagation();
+      clearPendingUploadFiles();
+      setStatus('Upload cleared.', 'info');
+    });
+  }
+
+  if (offlineDropZone && offlineDropInput) {
+    offlineDropZone.addEventListener('click', function () { offlineDropInput.click(); });
+    offlineDropZone.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); offlineDropInput.click(); }
+    });
+    offlineDropInput.addEventListener('change', function () {
+      if (offlineDropInput.files && offlineDropInput.files.length) {
+        acceptUploadFiles(offlineDropInput.files, { fromOfflinePanel: true });
+        offlineDropInput.value = '';
+      }
+    });
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      offlineDropZone.addEventListener(evt, function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        offlineDropZone.classList.add('is-dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      offlineDropZone.addEventListener(evt, function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        offlineDropZone.classList.remove('is-dragover');
+      });
+    });
+    offlineDropZone.addEventListener('drop', function (e) {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        acceptUploadFiles(e.dataTransfer.files, { fromOfflinePanel: true });
+      }
     });
   }
 
@@ -430,15 +566,11 @@
     brief.downloadMarkdown(filename, content);
     setStatus(
       kind === 'checklist'
-        ? 'Asset checklist downloaded — collect pages and assets, zip, then upload under Options.'
-        : 'Scrape brief downloaded — run the LLM prompt in an external tool, zip the result, then upload under Options.',
+        ? 'Asset checklist downloaded — collect pages and assets, zip, then drop below.'
+        : 'Scrape brief downloaded — run the LLM prompt in an external tool, zip the result, then drop below.',
       'info'
     );
     if (offlinePanel && !offlinePanel.open) offlinePanel.open = true;
-    if (optionsMenu && optionsMenu.hidden) {
-      optionsMenu.hidden = false;
-      if (optionsBtn) optionsBtn.setAttribute('aria-expanded', 'true');
-    }
   }
 
   if (downloadBriefBtn) {
@@ -1896,7 +2028,7 @@
     if (blocked.length) {
       inner += '<details class="brand-scraper-history-fail-details" open>' +
         '<summary class="brand-scraper-history-fail-summary">Blocked pages</summary>' +
-        '<p class="brand-scraper-result-muted brand-scraper-offline-cta">Live crawl was blocked. Use <strong>Scrape blocked? Offline fallback</strong> above to download a brief, build a save-page ZIP in an external tool, upload under <strong>Options → HTML upload</strong>, and re-run with <strong>Uploaded HTML only</strong>.</p>' +
+        '<p class="brand-scraper-result-muted brand-scraper-offline-cta">Live crawl was blocked. Use <strong>Scrape blocked? Offline fallback</strong> above to download a brief, build a save-page ZIP in an external tool, drop it in the upload box, and re-run with <strong>Uploaded HTML only</strong>.</p>' +
         '<ol class="brand-scraper-run-step-list">' +
         blocked.map(function (b) {
           return '<li class="brand-scraper-run-step brand-scraper-step--fail">' +

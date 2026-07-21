@@ -768,6 +768,89 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   gap: 0.5rem;
 }
 
+.brand-scraper-offline-drop-wrap {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.brand-scraper-offline-drop-zone {
+  border: 2px dashed var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1.1rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--dash-surface);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.brand-scraper-offline-drop-zone:hover,
+.brand-scraper-offline-drop-zone:focus {
+  border-color: var(--dash-blue);
+  background: rgba(75, 159, 255, 0.06);
+  outline: none;
+}
+
+.brand-scraper-offline-drop-zone.is-dragover {
+  border-color: var(--dash-blue);
+  background: rgba(75, 159, 255, 0.12);
+}
+
+.brand-scraper-offline-drop-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--dash-text);
+}
+
+.brand-scraper-offline-drop-hint {
+  margin: 0.35rem auto 0;
+  max-width: 520px;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary, var(--dash-muted));
+  line-height: 1.45;
+}
+
+.brand-scraper-offline-upload-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  font-size: 13px;
+}
+
+.brand-scraper-offline-upload-name {
+  font-weight: 600;
+  color: var(--dash-text);
+  word-break: break-all;
+}
+
+.brand-scraper-offline-upload-size {
+  color: var(--dash-text-secondary);
+  font-size: 12px;
+}
+
+.brand-scraper-offline-upload-clear {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 0.25rem 0.55rem;
+}
+
+.brand-scraper-offline-upload-ready {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  font-size: 13px;
+  color: var(--dash-info-text, var(--dash-text));
+  background: var(--dash-info-bg, rgba(59, 130, 246, 0.08));
+  border: 1px solid var(--dash-border);
+}
+
 .brand-scraper-offline-cta {
   margin: 0.5rem 0 0.65rem;
   padding: 0.55rem 0.75rem;
