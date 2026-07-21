@@ -236,6 +236,17 @@
     return '';
   }
 
+  function resolveSandboxName() {
+    try {
+      if (typeof global.AepGlobalSandbox !== 'undefined' && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+        return String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '';
+  }
+
   function getNamespaceForDrawer(valueHint) {
     // If a value is supplied, infer the namespace from its shape — this avoids
     // sending an email-shaped string with namespace=ecid (and vice versa),
@@ -4183,12 +4194,12 @@ function extractEcidFromAlloyGetIdentityResult(result) {
 function resolveDrawerSandboxKey() {
   try {
     if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.sandboxKey === 'function') {
-      return global.AepLabEnvBarPrefs.sandboxKey(resolveSandbox());
+      return global.AepLabEnvBarPrefs.sandboxKey(resolveSandboxName());
     }
   } catch (_e) {
     /* noop */
   }
-  const v = String(resolveSandbox() || '').trim().toLowerCase();
+  const v = String(resolveSandboxName() || '').trim().toLowerCase();
   return v ? v.replace(/[^a-z0-9_-]/g, '_') : '__default__';
 }
 
