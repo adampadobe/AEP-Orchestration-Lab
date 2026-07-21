@@ -357,11 +357,35 @@
       return sandboxKey;
     }
 
+    function flushLiveEnvStripPrefsForCrossTab(sandboxKey) {
+      if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.flushForSandboxKey === 'function') {
+        global.SiteCloneBcEnv.flushForSandboxKey(sandboxKey);
+      }
+      try {
+        var genSelect = global.document && global.document.getElementById('generatorTarget');
+        var sb = '';
+        if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+          sb = String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+        }
+        if (!sb) sb = String(global.localStorage.getItem('aepGlobalSandboxName') || '').trim();
+        if (genSelect && sb && String(genSelect.value || '').trim()) {
+          if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
+            var gmap = global.AepLabEnvBarPrefs.readMap('aepDemoGeneratorTargetBySandbox') || {};
+            gmap[sb] = String(genSelect.value || '').trim();
+            global.AepLabEnvBarPrefs.writeMap('aepDemoGeneratorTargetBySandbox', gmap);
+          }
+        }
+      } catch (_flush) {
+        /* noop */
+      }
+    }
+
     function persistLinkedInCrossTabPrefsForArm() {
       if (linkedInCrossTabMirrorBusy) return;
       linkedInCrossTabMirrorBusy = true;
       try {
         var sandboxKey = resolveLinkedInSandboxKey();
+        flushLiveEnvStripPrefsForCrossTab(sandboxKey);
         var armScriptMap = readJsonMap('armcomSelectedLaunchScriptBySandbox');
         var liScriptMap = readJsonMap('linkedinArmSelectedLaunchScriptBySandbox');
         var script = String(liScriptMap[sandboxKey] || armScriptMap[sandboxKey] || '').trim();
@@ -450,6 +474,11 @@
           /* noop */
         }
 
+        if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs === 'function') {
+          var mirrorResult = global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs(sandboxKey);
+          if (mirrorResult && mirrorResult.mirrored) mirrored = true;
+        }
+
         if (!mirrored) {
           try {
             if (global.sessionStorage.getItem(linkedInCrossTabMirrorSessionKey) === '1') return;
@@ -468,6 +497,20 @@
           global.AepLabConsole.info('tags-inject', 'LinkedIn lab — mirrored SDK config to localStorage for arm.com tab', {
             sandboxKey: sandboxKey,
             hasLaunchScript: !!script,
+            hasDatastreamId: !!(
+              global.AepLabEnvBarPrefs &&
+              global.AepLabEnvBarPrefs.readMap &&
+              String(
+                (global.AepLabEnvBarPrefs.readMap('siteCloneBcDatastreamIdBySandbox') || {})[sandboxKey] || '',
+              ).trim()
+            ),
+            hasStyleUrl: !!(
+              global.AepLabEnvBarPrefs &&
+              global.AepLabEnvBarPrefs.readMap &&
+              String(
+                (global.AepLabEnvBarPrefs.readMap('siteCloneBcStyleConfigUrlBySandbox') || {})[sandboxKey] || '',
+              ).trim()
+            ),
           });
         }
       } catch (err) {

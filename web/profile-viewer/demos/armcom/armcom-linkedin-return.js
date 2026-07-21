@@ -162,6 +162,9 @@
   }
 
   function mirrorLinkedInConfiguredMapsToArmcom(sandboxKey) {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs === 'function') {
+      global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs(sandboxKey);
+    }
     var armScriptMap = readJsonMap(ARMCOM_PREFIX + 'SelectedLaunchScriptBySandbox');
     var liScriptMap = readJsonMap(LINKEDIN_PREFIX + 'SelectedLaunchScriptBySandbox');
     var launchScript = String(armScriptMap[sandboxKey] || liScriptMap[sandboxKey] || '').trim();

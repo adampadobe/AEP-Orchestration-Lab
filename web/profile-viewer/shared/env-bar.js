@@ -29,11 +29,11 @@
       compactCss: '20260714-env-bar-config-fileconvert',
       compactJs: '20260721-organic-flow',
       bootstrap: '20260720-global-lab-console',
-      prefsLocal: '20260721-linkedin-prefs-loop-fix',
+      prefsLocal: '20260721-cross-tab-bc-prefs',
       prefsSync: '20260616-tags-incognito-load',
       tagsInjection: '20260721-organic-flow',
       aepDemoEnvBar: '20260720-global-lab-console',
-      siteCloneBcEnv: '20260622-bc-enabled-persist',
+      siteCloneBcEnv: '20260721-cross-tab-bc-restore',
       siteCloneBcChrome: '20260614-modal-dock-parity',
       siteCloneBc: '20260625-bc-incognito-sync-skip',
       bottomDockCss: '20260614-modal-dock-parity',
@@ -42,7 +42,7 @@
       modalBarCss: '20260617-modal-bar-v8',
       modalBarJs: '20260617-modal-bar-v7',
       modalBarBoot: '20260617-modal-bar-v7',
-      envBarJs: '20260720-global-lab-console',
+      envBarJs: '20260721-cross-tab-bc-prefs',
       decisioningModuleCss: '20260618-reset-apply-spacing',
       decisioningPanelCss: '20260618-midrail-dynamic-stack',
       profileStreamingShared: '20260615',
@@ -799,7 +799,7 @@
    */
   function loadSiteCloneBcEnv(versions, cfg) {
     if (!isFullShellMode(cfg)) return Promise.resolve();
-    if (cfg.features && cfg.features.bc === false) return Promise.resolve();
+    /* Env strip datastream + BC style pickers need site-clone-bc-env even when bc runtime is off (LinkedIn). */
     var refresh = function () {
       ensureDecisioningPrefsMounted(cfg);
       if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {

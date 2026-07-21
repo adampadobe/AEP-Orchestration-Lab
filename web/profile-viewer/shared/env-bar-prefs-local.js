@@ -434,6 +434,112 @@
     };
   }
 
+  var CROSS_TAB_LINKEDIN_PREFIX = 'linkedinArm';
+  var CROSS_TAB_ARMCOM_PREFIX = 'armcom';
+  var CROSS_TAB_TAGS_MIRROR_SUFFIXES = ['SelectedLaunchScriptBySandbox', 'SdkConfiguredBySandbox'];
+
+  /**
+   * Mirror LinkedIn ↔ arm.com env bar prefs for one sandbox (launch script, configured, BC, generator).
+   * Shared BC keys (datastream/style) are cross-demo; tags maps are per storagePrefix.
+   * @param {string} rawSandboxKey — normalized or display sandbox key
+   * @returns {{ sandboxKey: string, mirrored: boolean, datastreamId: string, styleUrl: string, generatorTarget: string }}
+   */
+  function mirrorLinkedInArmToArmcomPrefs(rawSandboxKey) {
+    var sk = sandboxKey(rawSandboxKey);
+    var mirrored = false;
+    var i;
+    var suffix;
+    var legacyKey;
+    var armMap;
+    var liMap;
+    var nextArm;
+    var nextLi;
+    var val;
+
+    for (i = 0; i < CROSS_TAB_TAGS_MIRROR_SUFFIXES.length; i++) {
+      suffix = CROSS_TAB_TAGS_MIRROR_SUFFIXES[i];
+      legacyKey = CROSS_TAB_ARMCOM_PREFIX + suffix;
+      armMap = readMap(CROSS_TAB_ARMCOM_PREFIX + suffix);
+      liMap = readMap(CROSS_TAB_LINKEDIN_PREFIX + suffix);
+      val = liMap[sk] != null && liMap[sk] !== '' ? liMap[sk] : armMap[sk];
+      if (val == null || val === '') continue;
+      nextArm = Object.assign({}, armMap);
+      nextLi = Object.assign({}, liMap);
+      if (nextArm[sk] !== val) nextArm[sk] = val;
+      if (nextLi[sk] !== val) nextLi[sk] = val;
+      if (!mapsJsonEqual(readMap(CROSS_TAB_ARMCOM_PREFIX + suffix), nextArm)) {
+        writeMap(CROSS_TAB_ARMCOM_PREFIX + suffix, nextArm);
+        mirrored = true;
+      }
+      if (!mapsJsonEqual(readMap(CROSS_TAB_LINKEDIN_PREFIX + suffix), nextLi)) {
+        writeMap(CROSS_TAB_LINKEDIN_PREFIX + suffix, nextLi);
+        mirrored = true;
+      }
+    }
+
+    var dsMap = readMap('siteCloneBcDatastreamIdBySandbox');
+    var styleMap = readMap('siteCloneBcStyleConfigUrlBySandbox');
+    var genMap = readMap(GEN_TARGET_LEGACY);
+    var doc = getDoc();
+    var bcEntry = doc.bcBySandbox && doc.bcBySandbox[sk] ? doc.bcBySandbox[sk] : {};
+    var datastreamId =
+      bcEntry.datastreamId != null && String(bcEntry.datastreamId).trim()
+        ? String(bcEntry.datastreamId).trim()
+        : dsMap[sk] != null
+          ? String(dsMap[sk] || '').trim()
+          : '';
+    var styleUrl =
+      bcEntry.styleUrl != null && String(bcEntry.styleUrl).trim()
+        ? String(bcEntry.styleUrl).trim()
+        : styleMap[sk] != null
+          ? String(styleMap[sk] || '').trim()
+          : '';
+    var generatorTarget = genMap[sk] != null ? String(genMap[sk] || '').trim() : '';
+
+    if (!generatorTarget) {
+      for (var gk in genMap) {
+        if (!Object.prototype.hasOwnProperty.call(genMap, gk)) continue;
+        if (sandboxKey(gk) === sk && genMap[gk]) {
+          generatorTarget = String(genMap[gk] || '').trim();
+          break;
+        }
+      }
+    }
+
+    if (datastreamId) {
+      var nextDs = Object.assign({}, dsMap);
+      if (nextDs[sk] !== datastreamId) nextDs[sk] = datastreamId;
+      if (!mapsJsonEqual(readMap('siteCloneBcDatastreamIdBySandbox'), nextDs)) {
+        writeMap('siteCloneBcDatastreamIdBySandbox', nextDs);
+        mirrored = true;
+      }
+    }
+    if (styleUrl) {
+      var nextStyle = Object.assign({}, styleMap);
+      if (nextStyle[sk] !== styleUrl) nextStyle[sk] = styleUrl;
+      if (!mapsJsonEqual(readMap('siteCloneBcStyleConfigUrlBySandbox'), nextStyle)) {
+        writeMap('siteCloneBcStyleConfigUrlBySandbox', nextStyle);
+        mirrored = true;
+      }
+    }
+    if (generatorTarget) {
+      var nextGen = Object.assign({}, genMap);
+      if (nextGen[sk] !== generatorTarget) nextGen[sk] = generatorTarget;
+      if (!mapsJsonEqual(readMap(GEN_TARGET_LEGACY), nextGen)) {
+        writeMap(GEN_TARGET_LEGACY, nextGen);
+        mirrored = true;
+      }
+    }
+
+    return {
+      sandboxKey: sk,
+      mirrored: mirrored,
+      datastreamId: datastreamId,
+      styleUrl: styleUrl,
+      generatorTarget: generatorTarget,
+    };
+  }
+
   function resolveInjectGuardPrefix() {
     try {
       if (global.envBarConfig) {
@@ -541,6 +647,7 @@
     stripRemoteUserFields: stripRemoteUserFields,
     exportForSync: exportForSync,
     importFromSync: importFromSync,
+    mirrorLinkedInArmToArmcomPrefs: mirrorLinkedInArmToArmcomPrefs,
     sandboxKey: sandboxKey,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

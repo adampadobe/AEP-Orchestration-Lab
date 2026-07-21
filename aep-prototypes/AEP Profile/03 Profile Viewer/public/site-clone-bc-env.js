@@ -1836,6 +1836,13 @@ function bindStripDomListenersOnce() {
     syncDecisioningFromPrefs();
   });
 
+  global.addEventListener('aep-lab-env-overlay-state', function (ev) {
+    var detail = ev && ev.detail ? ev.detail : {};
+    if (!detail.open && !detail.expanded) return;
+    if (!stripDomIsMounted()) return;
+    applyEnvForCurrentSandbox({ force: true });
+  });
+
   global.addEventListener('aep-demo-env-strip-mounted', function () {
     ensureSiteCloneBcDatastreamManualRow(activeSiteCloneBcEnvStripRoot());
     bootSiteCloneBcDatastreamPicker();
