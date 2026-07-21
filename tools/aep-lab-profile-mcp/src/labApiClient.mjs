@@ -541,6 +541,12 @@ function generationPrefsAuthHeaders() {
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
 }
 
+export function snowflakeAuthHeaders() {
+  return generationPrefsAuthHeaders();
+}
+
+export const STATIC_EGRESS_IP = '34.58.81.28';
+
 export async function getGenerationPrefs({ sandbox }) {
   return labApiRequest('/api/lab/generation-prefs', {
     query: { sandbox },
@@ -599,6 +605,89 @@ export async function appendRecentProfile(body) {
     body,
     headers: generationPrefsAuthHeaders(),
     timeoutMs: 30_000,
+  });
+}
+
+/**
+ * GET /api/snowflake/config?sandbox=
+ * @param {object} params
+ * @param {string} params.sandbox
+ */
+export async function getSnowflakeConfig({ sandbox }) {
+  return labApiRequest('/api/snowflake/config', {
+    query: { sandbox },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/connection-test
+ * @param {object} params
+ * @param {string} params.sandbox
+ */
+export async function snowflakeConnectionTest({ sandbox }) {
+  return labApiRequest('/api/snowflake/connection-test', {
+    method: 'POST',
+    body: { sandbox },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/generate-base-profiles
+ * @param {object} params
+ */
+export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, batch_size, start_index }) {
+  return labApiRequest('/api/snowflake/generate-base-profiles', {
+    method: 'POST',
+    body: {
+      sandbox,
+      ...(count != null ? { count } : {}),
+      ...(table ? { table } : {}),
+      ...(batch_size != null ? { batchSize: batch_size } : {}),
+      ...(start_index != null ? { startIndex: start_index } : {}),
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 300_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/insert-profile-from-aep — dual-load mirror row
+ * @param {object} params
+ */
+export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, table }) {
+  return labApiRequest('/api/snowflake/insert-profile-from-aep', {
+    method: 'POST',
+    body: {
+      sandbox,
+      email,
+      ecid,
+      ...(attributes ? { attributes } : {}),
+      ...(table ? { table } : {}),
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/agentic/query-profiles
+ * @param {object} params
+ */
+export async function snowflakeQueryProfiles({ sandbox, filter_type, time_period, limit }) {
+  return labApiRequest('/api/snowflake/agentic/query-profiles', {
+    method: 'POST',
+    body: {
+      sandbox,
+      ...(filter_type ? { filterType: filter_type } : {}),
+      ...(time_period ? { timePeriod: time_period } : {}),
+      ...(limit != null ? { limit } : {}),
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
   });
 }
 

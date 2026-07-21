@@ -26,6 +26,8 @@
 
 const { randomUUID } = require('crypto');
 const store = require('./snowflakeConnectionStore');
+const { COLUMNS, COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
+const { mapAepAttributesToBaseProfileRow } = require('./snowflakeProfileMapper');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 
 const DEFAULT_TABLE = 'BASE_PROFILES';
@@ -66,45 +68,6 @@ const CITIES = ['London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow', 'Liver
 const COUNTRIES = ['United Kingdom', 'United States', 'Canada', 'Australia', 'Germany', 'France', 'Spain', 'Italy'];
 
 const AGENTIC_MOBILE = '+447425627462';
-
-const COLUMNS = [
-  'CRMID', 'ECID', 'EMAIL', 'EMAILIDSHA256', 'GAID', 'LOYALTYID', 'PASSPORTID',
-  'PHONENUMBER', 'PUSHTOKENS', 'STACKCHATID',
-  'FIRSTNAME', 'LASTNAME', 'BIRTHDATE', 'GENDER',
-  'HOMEADDRESS_STREET1', 'HOMEADDRESS_CITY', 'HOMEADDRESS_STATEPROVINCE',
-  'HOMEADDRESS_POSTALCODE', 'HOMEADDRESS_COUNTRY',
-  'PERSONALEMAIL_ADDRESS', 'PERSONALEMAIL_LABEL', 'PERSONALEMAIL_PRIMARY',
-  'PERSONALEMAIL_STATUS', 'PERSONALEMAIL_STATUSREASON', 'PERSONALEMAIL_TYPE',
-  'MOBILEPHONE_NUMBER', 'MOBILEPHONE_STATUS', 'MOBILEPHONE_PRIMARY',
-  'TESTPROFILE',
-  '_RECORDCREATEDTIMESTAMP', '_RECORDUPDATEDTIMESTAMP',
-  'PERSON_NAME_COURTESYTITLE', 'PERSON_NAME_SUFFIX', 'PERSON_NAME_FULLNAME',
-  'PERSON_BIRTHDAY', 'PERSON_BIRTHMONTH', 'PERSON_BIRTHYEAR',
-  'PERSON_BIRTHDAYANDMONTH',
-];
-
-const COLUMN_DDL = [
-  'CRMID VARCHAR(64)', 'ECID VARCHAR(64)', 'EMAIL VARCHAR(320)',
-  'EMAILIDSHA256 VARCHAR(128)', 'GAID VARCHAR(128)', 'LOYALTYID VARCHAR(64)',
-  'PASSPORTID VARCHAR(64)', 'PHONENUMBER VARCHAR(40)', 'PUSHTOKENS ARRAY',
-  'STACKCHATID VARCHAR(64)',
-  'FIRSTNAME VARCHAR(100)', 'LASTNAME VARCHAR(100)',
-  'BIRTHDATE VARCHAR(10)', 'GENDER VARCHAR(16)',
-  'HOMEADDRESS_STREET1 VARCHAR(200)', 'HOMEADDRESS_CITY VARCHAR(100)',
-  'HOMEADDRESS_STATEPROVINCE VARCHAR(100)', 'HOMEADDRESS_POSTALCODE VARCHAR(20)',
-  'HOMEADDRESS_COUNTRY VARCHAR(100)',
-  'PERSONALEMAIL_ADDRESS VARCHAR(320)', 'PERSONALEMAIL_LABEL VARCHAR(40)',
-  'PERSONALEMAIL_PRIMARY BOOLEAN', 'PERSONALEMAIL_STATUS VARCHAR(40)',
-  'PERSONALEMAIL_STATUSREASON VARCHAR(80)', 'PERSONALEMAIL_TYPE VARCHAR(40)',
-  'MOBILEPHONE_NUMBER VARCHAR(40)', 'MOBILEPHONE_STATUS VARCHAR(40)',
-  'MOBILEPHONE_PRIMARY BOOLEAN',
-  'TESTPROFILE BOOLEAN',
-  '_RECORDCREATEDTIMESTAMP VARCHAR(40)', '_RECORDUPDATEDTIMESTAMP VARCHAR(40)',
-  'PERSON_NAME_COURTESYTITLE VARCHAR(40)', 'PERSON_NAME_SUFFIX VARCHAR(40)',
-  'PERSON_NAME_FULLNAME VARCHAR(200)',
-  'PERSON_BIRTHDAY NUMBER(2,0)', 'PERSON_BIRTHMONTH NUMBER(2,0)',
-  'PERSON_BIRTHYEAR NUMBER(4,0)', 'PERSON_BIRTHDAYANDMONTH VARCHAR(5)',
-];
 
 /** Pick a value with weighted probability, mirroring random.choices(). */
 function pickWeighted(options) {
@@ -449,6 +412,110 @@ async function handleGenerateBaseProfiles(input) {
   }
 }
 
+/**
+ * INSERT one BASE_PROFILES row mapped from AEP generate output (dual-load).
+ *
+ * @param {{ labUser: string, sandbox: string, email: string, ecid: string, attributes?: object, table?: string }} input
+ */
+async function handleInsertProfileFromAep(input) {
+  const labUser = String(input.labUser || '').trim();
+  const sandbox = String(input.sandbox || '').trim();
+  const email = String(input.email || '').trim();
+  const ecid = String(input.ecid || '').trim();
+  if (!sandbox) throw new Error('sandbox is required');
+  if (!email) throw new Error('email is required');
+  if (!ecid) throw new Error('ecid is required');
+
+  const tableName = safeIdentifier(input.table || DEFAULT_TABLE, DEFAULT_TABLE);
+  const resolved = await store.resolveConnection(labUser, sandbox);
+  if (!resolved) {
+    return {
+      ok: false,
+      error: {
+        message:
+          'No Snowflake credential saved for this user/sandbox yet. Save the connection first.',
+        code: 'NO_CREDENTIAL',
+        sqlState: null,
+        hints: [],
+      },
+    };
+  }
+
+  let snowflake;
+  try {
+    snowflake = require('snowflake-sdk');
+  } catch (e) {
+    return {
+      ok: false,
+      error: {
+        message: 'snowflake-sdk is not installed in the Cloud Functions package.',
+        code: 'SDK_MISSING',
+        sqlState: null,
+        hints: [],
+      },
+    };
+  }
+
+  const connectOpts = buildSnowflakeConnectOptions(resolved);
+  const cfg = resolved.config;
+  const fqTable = fullyQualified(cfg.database, cfg.schema, tableName);
+  const runStamp = new Date().toISOString();
+  let conn;
+  try {
+    conn = await connectAsync(snowflake, connectOpts);
+    const startIndex = await getNextCrmStartIndex(conn, fqTable);
+    const crmId = `CRM${startIndex}`;
+
+    const existing = await execAsync(conn, {
+      sqlText: `SELECT CRMID FROM ${fqTable} WHERE ECID = ? LIMIT 1`,
+      binds: [ecid],
+    });
+    if (existing.length > 0) {
+      return {
+        ok: true,
+        table: fqTable,
+        crmId: String(existing[0][0] || ''),
+        ecid,
+        email,
+        idempotent: true,
+        columnsWritten: COLUMNS.length,
+      };
+    }
+
+    const ddl = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)`;
+    await execAsync(conn, { sqlText: ddl });
+
+    const mapped = mapAepAttributesToBaseProfileRow({
+      email,
+      ecid,
+      crmId,
+      attributes: input.attributes,
+      runStamp,
+    });
+
+    const placeholders = COLUMNS.map(() => '?').join(', ');
+    await execAsync(conn, {
+      sqlText: `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) VALUES (${placeholders})`,
+      binds: mapped.row,
+    });
+
+    return {
+      ok: true,
+      table: fqTable,
+      crmId,
+      ecid,
+      email,
+      idempotent: false,
+      columnsWritten: COLUMNS.length,
+      sample: rowToObject(mapped.row),
+    };
+  } catch (err) {
+    return { ok: false, error: describeConnectError(err) };
+  } finally {
+    if (conn) await destroyAsync(conn);
+  }
+}
+
 module.exports = {
   COLUMNS,
   COLUMN_DDL,
@@ -461,5 +528,7 @@ module.exports = {
   rowToObject,
   safeIdentifier,
   fullyQualified,
+  getNextCrmStartIndex,
   handleGenerateBaseProfiles,
+  handleInsertProfileFromAep,
 };

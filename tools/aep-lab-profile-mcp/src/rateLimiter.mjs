@@ -9,6 +9,8 @@
 const GENERATE_MAX_PER_MINUTE = 30;
 const EDGE_SEND_MAX_PER_MINUTE = 30;
 const BATCH_JOBS_MAX_PER_HOUR = 3;
+const SNOWFLAKE_TEST_MAX_PER_MINUTE = 10;
+const SNOWFLAKE_GENERATE_MAX_PER_MINUTE = 5;
 
 /** @type {Map<string, number[]>} */
 const generateTimestamps = new Map();
@@ -18,6 +20,12 @@ const edgeSendTimestamps = new Map();
 
 /** @type {Map<string, number[]>} */
 const batchJobTimestamps = new Map();
+
+/** @type {Map<string, number[]>} */
+const snowflakeTestTimestamps = new Map();
+
+/** @type {Map<string, number[]>} */
+const snowflakeGenerateTimestamps = new Map();
 
 function pruneOld(timestamps, windowMs) {
   const cutoff = Date.now() - windowMs;
@@ -99,4 +107,44 @@ export function checkBatchJobRate(keyId) {
   list.push(now);
   batchJobTimestamps.set(id, list);
   return { ok: true };
+}
+
+function checkWindowRate(map, keyId, maxPerMinute, label) {
+  const id = String(keyId || 'unknown');
+  const now = Date.now();
+  const windowMs = 60_000;
+  const list = map.get(id) || [];
+  pruneOld(list, windowMs);
+
+  if (list.length >= maxPerMinute) {
+    const retryAfterSec = Math.ceil((list[0] + windowMs - now) / 1000);
+    return {
+      ok: false,
+      message: `Rate limit exceeded: max ${maxPerMinute} ${label} calls per minute per MCP key (in-memory, per instance).`,
+      retryAfterSec: Math.max(1, retryAfterSec),
+    };
+  }
+
+  list.push(now);
+  map.set(id, list);
+  return { ok: true };
+}
+
+/**
+ * @param {string} keyId
+ */
+export function checkSnowflakeTestRate(keyId) {
+  return checkWindowRate(snowflakeTestTimestamps, keyId, SNOWFLAKE_TEST_MAX_PER_MINUTE, 'Snowflake test');
+}
+
+/**
+ * @param {string} keyId
+ */
+export function checkSnowflakeGenerateRate(keyId) {
+  return checkWindowRate(
+    snowflakeGenerateTimestamps,
+    keyId,
+    SNOWFLAKE_GENERATE_MAX_PER_MINUTE,
+    'Snowflake generate/insert',
+  );
 }

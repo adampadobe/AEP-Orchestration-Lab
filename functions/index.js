@@ -102,6 +102,7 @@ const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
 const labProfileGenerationPrefsStore = lazyRequireMod('./labProfileGenerationPrefsStore');
 const labProfileRecentGeneratedStore = lazyRequireMod('./labProfileRecentGeneratedStore');
 const labGenerationPrefsAuth = lazyRequireMod('./labGenerationPrefsAuth');
+const snowflakePrincipalAuth = lazyRequireMod('./snowflakePrincipalAuth');
 const { createLabMcpFirstRunService } = require('./labMcpFirstRunService');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
@@ -3858,6 +3859,9 @@ Object.assign(
     SNOWFLAKE_AGENTIC_FN_OPTS,
     setCors,
     resolveSandboxFromQuery,
+    snowflakePrincipalAuth,
+    labWorkspaceAuthService,
+    mcpApiKeyStore,
     labUserSandboxStore,
     snowflakeService,
     snowflakeDataGeneratorService,

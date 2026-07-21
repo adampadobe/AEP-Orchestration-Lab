@@ -11,6 +11,8 @@ import {
   normalizeGenerateProfileParams,
 } from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
+import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
+import { snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
 import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
 import {
   personHintsFromAttributes,
@@ -96,6 +98,14 @@ export function registerGenerateProfileTool(mcpServer) {
           .boolean()
           .optional()
           .describe('When true (default if email omitted), reserve next scaled email from shared Firestore prefs (Portal + MCP counter sync)'),
+        dual_load_snowflake: z
+          .boolean()
+          .optional()
+          .describe('When true (travel initial scope), after AEP generate INSERT mirror row into Snowflake BASE_PROFILES with same email/ECID'),
+        snowflake_table: z
+          .string()
+          .optional()
+          .describe('Snowflake target table for dual_load_snowflake (default BASE_PROFILES)'),
       },
     },
     async ({
@@ -112,6 +122,8 @@ export function registerGenerateProfileTool(mcpServer) {
       test_profile,
       test_profile_override_reason,
       use_stored_prefs,
+      dual_load_snowflake,
+      snowflake_table,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -235,6 +247,18 @@ export function registerGenerateProfileTool(mcpServer) {
         return toolError(normalized.error);
       }
 
+      if (dual_load_snowflake === true) {
+        const userKey = requireUserMcpKeyForSnowflake();
+        if (!userKey.ok) {
+          return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+        }
+        if (norm.industry !== 'travel') {
+          return toolError('dual_load_snowflake is supported for industry travel only in v3.21.', {
+            industry: norm.industry,
+          });
+        }
+      }
+
       const generatePlan = planDualStreamGenerate({
         industry: norm.industry,
         attributes: normalized.attributes,
@@ -264,6 +288,7 @@ export function registerGenerateProfileTool(mcpServer) {
       });
 
       let recentSync = null;
+      let snowflakeDualLoad = null;
       if (apiResult.ok) {
         const ecid =
           apiResult.ecid ||
@@ -280,6 +305,30 @@ export function registerGenerateProfileTool(mcpServer) {
           attributes: normalized.attributes,
           ...hints,
         });
+
+        if (dual_load_snowflake === true && ecid) {
+          const sfResult = await snowflakeInsertProfileFromAep({
+            sandbox: allowed.sandbox,
+            email: resolvedEmail,
+            ecid: String(ecid),
+            attributes: normalized.attributes,
+            table: snowflake_table,
+          });
+          snowflakeDualLoad = {
+            requested: true,
+            ok: sfResult.ok,
+            table: sfResult.data?.result?.table || snowflake_table || 'BASE_PROFILES',
+            crmId: sfResult.data?.result?.crmId || null,
+            idempotent: sfResult.data?.result?.idempotent || false,
+            error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
+          };
+        } else if (dual_load_snowflake === true && !ecid) {
+          snowflakeDualLoad = {
+            requested: true,
+            ok: false,
+            error: 'AEP generate succeeded but no ECID returned — cannot dual-load Snowflake row.',
+          };
+        }
       }
 
       const labApiShape = apiResult.ok
@@ -311,6 +360,8 @@ export function registerGenerateProfileTool(mcpServer) {
         })),
         generate_step_results: apiResult.stepResults || null,
         ecid: apiResult.ecid || apiResult.data?.ecid || null,
+        dual_load_snowflake: dual_load_snowflake === true,
+        snowflake: snowflakeDualLoad,
         ...storedPrefsMeta,
         lab_defaults_applied: {
           test_profile: normalized.test_profile,

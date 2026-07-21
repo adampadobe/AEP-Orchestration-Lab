@@ -257,10 +257,42 @@ async function runConnectionTest(resolved) {
   });
 }
 
+/** Agentic travel demo defaults (public fields only — never credentials). */
+const PRESET_AGENTIC_TRAVEL_DEMO = {
+  account: 'dh96551.west-europe.azure',
+  user: 'AEP_INTEGRATION_1',
+  role: '',
+  warehouse: 'AEP_WH',
+  database: 'TRAVEL_DATABASE',
+  schema: 'AEP_SCHEMA',
+  authMethod: 'keyPair',
+};
+
+function isApalmerSandbox(sandbox) {
+  return String(sandbox || '').toLowerCase().includes('apalmer');
+}
+
 /** GET /api/snowflake/config?sandbox=… → public config for current lab user */
 async function handleConfigGet({ labUser, sandbox }) {
   const record = await store.getConfig(labUser, sandbox);
-  return publicConfig(record);
+  if (record) return publicConfig(record);
+  if (isApalmerSandbox(sandbox)) {
+    return {
+      ...PRESET_AGENTIC_TRAVEL_DEMO,
+      sandbox,
+      labUser,
+      hasCredential: false,
+      hasPassphrase: false,
+      credentialSetAt: null,
+      updatedAt: null,
+      updatedBy: null,
+      presetSource: 'agentic_travel_demo',
+      presetNote:
+        'No saved Snowflake config yet — AgenticAI travel defaults for apalmer sandboxes. ' +
+        'Save credential via Profile Viewer → Profile generation – Snowflake.',
+    };
+  }
+  return null;
 }
 
 /**
@@ -304,6 +336,8 @@ async function handleConnectionTest({ labUser, sandbox }) {
 }
 
 module.exports = {
+  PRESET_AGENTIC_TRAVEL_DEMO,
+  isApalmerSandbox,
   publicConfig,
   buildSnowflakeConnectOptions,
   sanitizePemInput,

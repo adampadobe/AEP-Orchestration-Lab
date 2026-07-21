@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.20.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.21.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.20)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.21)
 
-MCP server: **AEP Orchestration Lab MCP v3.20.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.21.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -130,6 +130,26 @@ Example (user on sandbox **prisacar**):
 3. **Lookup by email**
 
    > Use the scaled email returned from generate. Call lab_lookup_profile with sandbox apalmer, namespace email, identifier `<email from generate response>`. Summarize key travel attributes.
+
+## Workflow 1b — Snowflake readiness + dual-load travel (v3.21+)
+
+Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared key returns `MCP_USER_KEY_REQUIRED`.
+
+1. **Check Snowflake config**
+
+   > **lab_snowflake_config** sandbox apalmer — if `hasCredential` is false, colleague saves key pair in Profile Viewer → Profile generation – Snowflake.
+
+2. **Test connection**
+
+   > **lab_snowflake_test_connection** sandbox apalmer — expect Snowflake version or NETWORK POLICY hint with static IP **34.58.81.28**.
+
+3. **Dual-load generate**
+
+   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — save email, ecid, snowflake.crmId.
+
+4. **Verify**
+
+   > **lab_get_profile** + **lab_snowflake_query_profiles** sandbox apalmer filter_type all limit 5.
 
 ## Workflow 2 — Hotel segment personas (travel)
 

@@ -938,6 +938,13 @@
         }
       },
       {
+        "source": "/api/snowflake/insert-profile-from-aep",
+        "function": {
+          "functionId": "snowflakeInsertProfileFromAep",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/snowflake/agentic/query-profiles",
         "function": {
           "functionId": "snowflakeAgenticQueryProfiles",
