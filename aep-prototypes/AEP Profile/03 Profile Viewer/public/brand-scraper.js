@@ -392,6 +392,62 @@
     });
   }
 
+  const downloadBriefBtn = document.getElementById('brandScraperDownloadBrief');
+  const downloadChecklistBtn = document.getElementById('brandScraperDownloadChecklist');
+  const offlinePanel = document.getElementById('brandScraperOfflinePanel');
+
+  function collectBriefOpts() {
+    return {
+      url: urlInput && urlInput.value,
+      customerName: customerNameInput && customerNameInput.value,
+      businessType: btypeSel && btypeSel.value,
+      country: countrySel && countrySel.value,
+      pages: pagesInput && pagesInput.value,
+      includeAnalysis: !!runOptions.analysis,
+      includePersonas: !!runOptions.personas,
+      includeCampaigns: !!runOptions.campaigns,
+      includeSegments: !!runOptions.segments,
+      includeStakeholders: !!runOptions.stakeholders,
+      includeTagAudit: !!runOptions.tagAudit,
+      includeLlmDemoConfig: !!runOptions.llmDemoConfig,
+      includeDemoWebsite: !!runOptions.demoWebsite,
+    };
+  }
+
+  function downloadBrief(kind) {
+    var brief = window.AepBrandScraperBrief;
+    if (!brief) {
+      setStatus('Brief generator failed to load — refresh the page.', 'error');
+      return;
+    }
+    var opts = collectBriefOpts();
+    var content = kind === 'checklist'
+      ? brief.generateAssetChecklist(opts)
+      : brief.generateScrapeBrief(opts);
+    var filename = kind === 'checklist'
+      ? brief.checklistFilename(opts)
+      : brief.briefFilename(opts);
+    brief.downloadMarkdown(filename, content);
+    setStatus(
+      kind === 'checklist'
+        ? 'Asset checklist downloaded — collect pages and assets, zip, then upload under Options.'
+        : 'Scrape brief downloaded — run the LLM prompt in an external tool, zip the result, then upload under Options.',
+      'info'
+    );
+    if (offlinePanel && !offlinePanel.open) offlinePanel.open = true;
+    if (optionsMenu && optionsMenu.hidden) {
+      optionsMenu.hidden = false;
+      if (optionsBtn) optionsBtn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  if (downloadBriefBtn) {
+    downloadBriefBtn.addEventListener('click', function () { downloadBrief('brief'); });
+  }
+  if (downloadChecklistBtn) {
+    downloadChecklistBtn.addEventListener('click', function () { downloadBrief('checklist'); });
+  }
+
   try {
     const stored = localStorage.getItem(LS_CRAWLER);
     if (crawlerJsCb && stored === 'js') crawlerJsCb.checked = true;
@@ -1840,6 +1896,7 @@
     if (blocked.length) {
       inner += '<details class="brand-scraper-history-fail-details" open>' +
         '<summary class="brand-scraper-history-fail-summary">Blocked pages</summary>' +
+        '<p class="brand-scraper-result-muted brand-scraper-offline-cta">Live crawl was blocked. Use <strong>Scrape blocked? Offline fallback</strong> above to download a brief, build a save-page ZIP in an external tool, upload under <strong>Options → HTML upload</strong>, and re-run with <strong>Uploaded HTML only</strong>.</p>' +
         '<ol class="brand-scraper-run-step-list">' +
         blocked.map(function (b) {
           return '<li class="brand-scraper-run-step brand-scraper-step--fail">' +

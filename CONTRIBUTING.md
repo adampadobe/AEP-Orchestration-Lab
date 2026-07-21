@@ -281,6 +281,17 @@ matches what ships on Hosting. Do **not** assume the prototype folder is the
 source of truth; syncing the old direction overwrote Hosting assets and caused
 nav icons to “revert.”
 
+### Brand Scraper — offline fallback
+
+When live crawl fails (403, bot protection) or LLM analysis is unreliable, **`web/profile-viewer/brand-scraper.html`** exposes **Scrape blocked? Offline fallback**:
+
+1. **Download scrape brief (MD)** — client generator in `brand-scraper-brief.js`; includes brand context, copy-paste LLM prompt, and expected ZIP layout.
+2. Run the brief in an external LLM or manually save pages (Chrome *Webpage, Complete*; bulk images via Image Eye or similar).
+3. **Upload** the resulting `.zip` (≤30 MB, HTML + asset folders) under **Options → HTML upload**; tick **Uploaded HTML only** when the site cannot be crawled.
+4. **Analyse** — same pipelines as live scrape; optional **Create demo website** uses the upload for the site clone.
+
+Upload ingest is handled by `functions/brandScraperUploadedHtml.js` and persisted via `brandScraperUploadAssets.js` (no separate JSON upload required).
+
 ---
 
 ## Light / dark theming system
