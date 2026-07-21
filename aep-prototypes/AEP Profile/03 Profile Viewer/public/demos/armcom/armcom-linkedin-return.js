@@ -357,6 +357,7 @@
     var launchScript = resolveCrossTabLaunchScript(sandboxKey);
     seedCrossTabSessionState(sandboxKey, launchScript, { silent: true });
     forceEnvBarMinimized(reason || 'presenter-bootstrap');
+    startPresenterEcidRefresh(reason || 'presenter-bootstrap');
     tagsLog('info', 'LinkedIn return visit — presenter bootstrap complete', {
       from: getReturnSource(),
       sandboxKey: sandboxKey,
@@ -414,6 +415,13 @@
     scheduleRefresh(500);
     scheduleRefresh(1500);
     scheduleRefresh(3000);
+    scheduleRefresh(6000);
+  }
+
+  function startPresenterEcidRefresh(reason) {
+    if (!isLinkedInReturnVisit()) return;
+    tagsLog('info', 'LinkedIn return — refresh toolbar ECID', { reason: reason || 'presenter' });
+    refreshToolbarEcidAfterInject();
   }
 
   function onLinkedInReturnTagsReady() {
@@ -437,6 +445,7 @@
     if (!isLinkedInReturnVisit()) return;
     deferHeavyWork(function () {
       forceEnvBarMinimized('env-strip-mounted');
+      startPresenterEcidRefresh('env-strip-mounted');
     });
   });
 

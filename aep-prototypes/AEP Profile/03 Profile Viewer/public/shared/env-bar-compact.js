@@ -705,6 +705,11 @@
       setConfiguring(anchor, false);
       setExpanded(anchor, false, false, false);
       if (options.force || !readPinnedFromStorage()) writePinnedToStorage(false);
+      /* Stale ::after backdrop must not intercept clicks after forced close (presenter / LinkedIn return). */
+      if (options.force) {
+        anchor.classList.remove('lab-env-top-anchor--configuring');
+        anchor.style.removeProperty('--lab-env-overlay-top');
+      }
       return true;
     } finally {
       closeOverlayInProgress = false;

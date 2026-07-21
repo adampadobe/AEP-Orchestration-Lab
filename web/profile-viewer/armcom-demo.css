@@ -5,9 +5,35 @@ html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expande
   display: none !important;
 }
 
-html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--profile-only) .lab-env-id-banner {
-  transform: translateY(calc(-100% - var(--lab-env-toolbar-height, 48px)));
-  pointer-events: none;
+/* Collapsed presenter toolbar must stay clickable (configure btn, chips, profile hover zone). */
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-id-banner,
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) [class*='-demo-id-banner'] {
+  pointer-events: auto;
+}
+
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar,
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar__actions,
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar button,
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar a,
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-toolbar select {
+  pointer-events: auto;
+}
+
+/* Compact ECID readout in toolbar (overlay profile section is hidden in presenter mode). */
+.spectrum-env-stat--ecid {
+  display: none;
+}
+
+html[data-armcom-presenter] .spectrum-env-stat--ecid {
+  display: flex;
+}
+
+.lab-env-chip--ecid {
+  font-variant-numeric: tabular-nums;
+  max-width: min(9rem, 38vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .armcom-demo-site-frame {

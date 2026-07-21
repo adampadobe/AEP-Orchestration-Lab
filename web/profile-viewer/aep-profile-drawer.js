@@ -4181,6 +4181,24 @@ function whenAlloyGlobalReady(timeoutMs) {
 }
 
 /**
+ * Mirror browser ECID hint or digits in env strip (#infoEcid, toolbar) and drawer identity row.
+ * @param {string} text
+ */
+function setBrowserEcidHint(text) {
+  const hint = String(text || '').trim() || '—';
+  cacheDomRefs();
+  const stripNode = document.getElementById('infoEcid');
+  const toolbarNode = document.getElementById('aepSpectrumToolbarEcid');
+  if (stripNode) stripNode.textContent = hint;
+  else if (infoEcid) infoEcid.textContent = hint;
+  if (toolbarNode) {
+    toolbarNode.textContent = hint;
+    toolbarNode.title = hint === '—' ? 'Browser ECID' : hint;
+    toolbarNode.classList.toggle('lab-env-url-truncate', hint.length > 18);
+  }
+}
+
+/**
  * Mirror browser ECID in env strip (#infoEcid) and drawer identity row (#profileDrawerDesktopId).
  * @param {string} ecid
  */
@@ -4191,6 +4209,12 @@ function setBrowserEcidDisplay(ecid) {
   const stripNode = document.getElementById('infoEcid');
   if (stripNode) stripNode.textContent = digits;
   else if (infoEcid) infoEcid.textContent = digits;
+  const toolbarNode = document.getElementById('aepSpectrumToolbarEcid');
+  if (toolbarNode) {
+    toolbarNode.textContent = digits.length > 16 ? digits.slice(0, 8) + '…' + digits.slice(-4) : digits;
+    toolbarNode.title = digits;
+    toolbarNode.classList.add('lab-env-url-truncate');
+  }
   const drawerNode = document.getElementById('profileDrawerDesktopId');
   if (drawerNode) {
     const cur = String(drawerNode.textContent || '').trim();
@@ -4226,28 +4250,50 @@ async function refreshBrowserEcidFromAlloy(opts) {
       ? String(options.ecid).replace(/\D/g, '')
       : '';
 
+  if (!ecid && !options.skipConnectingHint) {
+    setBrowserEcidHint('Connecting ECID…');
+  }
+
   if (!ecid) {
     let alloyFn;
     try {
       alloyFn = await whenAlloyGlobalReady(25000);
     } catch {
-      return;
+      alloyFn = null;
     }
 
-    let result;
-    try {
-      result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
-    } catch {
+    if (alloyFn) {
+      let result;
       try {
-        result = await alloyFn('getIdentity');
+        result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
       } catch {
-        return;
+        try {
+          result = await alloyFn('getIdentity');
+        } catch {
+          result = null;
+        }
       }
+      ecid = extractEcidFromAlloyGetIdentityResult(result);
     }
-    ecid = extractEcidFromAlloyGetIdentityResult(result);
   }
 
-  if (!ecid || ecid.length < 10) return;
+  if (!ecid) {
+    try {
+      const res = await fetch('/api/ecid/anonymous');
+      const data = await res.json().catch(function () {
+        return {};
+      });
+      const fallback = data.ecid != null ? String(data.ecid).replace(/\D/g, '') : '';
+      if (fallback.length >= 10) ecid = fallback;
+    } catch {
+      /* noop */
+    }
+  }
+
+  if (!ecid || ecid.length < 10) {
+    if (!options.skipConnectingHint) setBrowserEcidHint('ECID unavailable');
+    return;
+  }
 
   setBrowserEcidDisplay(ecid);
   const patch = {

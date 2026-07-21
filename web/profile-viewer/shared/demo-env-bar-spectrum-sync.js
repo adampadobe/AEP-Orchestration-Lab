@@ -169,6 +169,8 @@
     var sdkStatus = byId('aepSpectrumSdkStatus');
     var sdkDot = byId('aepSpectrumSdkDot');
     var scriptsBtn = byId('aepSpectrumScriptsCount');
+    var toolbarEcid = byId('aepSpectrumToolbarEcid');
+    var ecidStat = document.querySelector('.spectrum-env-stat--ecid');
     var lastUpdated = byId('aepSpectrumLastUpdated');
     var targetBadge = byId('aepSpectrumTargetSdkBadge');
     var targetMeta = byId('aepSpectrumTargetSdkMeta');
@@ -315,12 +317,37 @@
         bcPillModal.classList.add('is-active');
       }
       if (bcPillEnv) bcPillEnv.classList.add('is-active');
+
+      var ecidVal = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+      var presenterMode = false;
+      try {
+        presenterMode = document.documentElement.hasAttribute('data-armcom-presenter');
+      } catch (_pm) {
+        /* noop */
+      }
+      if (toolbarEcid && ecidVal) {
+        if (/^\d{10,}$/.test(ecidVal)) {
+          toolbarEcid.textContent = ecidVal.length > 16 ? ecidVal.slice(0, 8) + '…' + ecidVal.slice(-4) : ecidVal;
+          toolbarEcid.title = ecidVal;
+          toolbarEcid.classList.add('lab-env-url-truncate');
+        } else if (ecidVal !== '—') {
+          toolbarEcid.textContent = ecidVal;
+          toolbarEcid.title = ecidVal;
+        }
+      }
+      if (ecidStat) {
+        ecidStat.style.display =
+          presenterMode || (ecidVal && ecidVal !== '—' && ecidVal !== 'ECID unavailable') ? '' : 'none';
+      }
     }
 
     if (ecidCopy) {
       ecidCopy.addEventListener('click', function () {
         var val = infoEcid ? String(infoEcid.textContent || '').trim() : '';
-        if (!val || val === '—') return;
+        if ((!val || val === '—' || !/^\d{10,}$/.test(val)) && toolbarEcid) {
+          val = String(toolbarEcid.title || '').trim();
+        }
+        if (!val || val === '—' || !/^\d{10,}$/.test(val)) return;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           void navigator.clipboard.writeText(val);
         }
