@@ -1,14 +1,14 @@
 {
-  "gitSha": "a9f0261dfbdc9707fbce5ceb6be88357f622cf05",
-  "gitShortSha": "a9f0261d",
+  "gitSha": "fab60c576313dc2001fd61fa414db0f7c4bd4249",
+  "gitShortSha": "fab60c57",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: persist datastream UUID and Brand Concierge style in cross-tab env prefs",
+  "gitCommitSubject": "[apalmer] fix: stop Arm tab freeze on LinkedIn ad and organic navigation",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T11:03:03+01:00",
-  "deployedAt": "2026-07-21T10:03:29.031Z",
+  "gitCommitDate": "2026-07-21T11:36:58+01:00",
+  "deployedAt": "2026-07-21T10:37:03.538Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 1,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a9f0261dfbdc9707fbce5ceb6be88357f622cf05"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fab60c576313dc2001fd61fa414db0f7c4bd4249"
 }
