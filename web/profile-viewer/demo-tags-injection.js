@@ -2134,7 +2134,7 @@
     }
 
     function shouldSkipTagsPrefsSyncReload() {
-      if (isUserEnvPanelOpen()) return false;
+      if (isUserEnvPanelOpen()) return true;
       if (isArmcomPresenterBootstrap()) return true;
       if (
         global.EnvBarCompact &&

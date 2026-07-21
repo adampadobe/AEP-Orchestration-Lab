@@ -1,14 +1,14 @@
 {
-  "gitSha": "fab60c576313dc2001fd61fa414db0f7c4bd4249",
-  "gitShortSha": "fab60c57",
+  "gitSha": "7eeb987ae28d8a2b56a936597e51c2fdd75fb2d3",
+  "gitShortSha": "7eeb987a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: stop Arm tab freeze on LinkedIn ad and organic navigation",
+  "gitCommitSubject": "[apalmer] fix: only mirror LinkedIn SDK configured when launch script exists",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T11:36:58+01:00",
-  "deployedAt": "2026-07-21T10:37:03.538Z",
+  "gitCommitDate": "2026-07-21T11:37:24+01:00",
+  "deployedAt": "2026-07-21T10:37:33.848Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 1,
+  "aheadOfOrigin": 3,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fab60c576313dc2001fd61fa414db0f7c4bd4249"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/7eeb987ae28d8a2b56a936597e51c2fdd75fb2d3"
 }

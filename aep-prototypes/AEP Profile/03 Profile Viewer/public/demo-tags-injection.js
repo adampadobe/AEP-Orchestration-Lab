@@ -1594,6 +1594,12 @@
       if (nextPropertyId === selectedPropertyId) return;
       selectedPropertyId = nextPropertyId;
       persistTagsPropertySelection(selectedPropertyId, propertyLabelFromItem(hit));
+      persistTagsEnvironmentEncodedValue('');
+      if (!isSdkConfiguredForSandbox()) {
+        persistSelectedScriptUrl('');
+        renderSelectedScript('');
+      }
+      setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
       await loadTagsEnvironments(selectedPropertyId);
     }
 
@@ -1905,6 +1911,10 @@
     }
 
     function injectSelectedScript() {
+      if (global.__aepTagsInjectViaButtonClick !== true) {
+        dtLog('injectSelectedScript: blocked — reload inject requires explicit Inject button click');
+        return;
+      }
       const raw = selectedScriptUrl;
       const scriptUrl = sanitiseLaunchScriptUrl(raw);
       dtLog('injectSelectedScript (reload path): click', {
@@ -2021,9 +2031,13 @@
         if (!isTagsPropertySelect()) {
           tagsPropertyInput.addEventListener('input', function () {
             renderPropertyOptions(tagsPropertyInput.value || '');
-            void applyPropertySelectionFromInput();
           });
           tagsPropertyInput.addEventListener('blur', function () {
+            void applyPropertySelectionFromInput();
+          });
+          tagsPropertyInput.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter') return;
+            ev.preventDefault();
             void applyPropertySelectionFromInput();
           });
         }
@@ -2058,7 +2072,12 @@
       if (injectSdkBtn) {
         injectSdkBtn.addEventListener('click', function () {
           dtLog('injectSdkBtn: click', { buttonId: cfg.injectButtonId });
-          injectSelectedScript();
+          global.__aepTagsInjectViaButtonClick = true;
+          try {
+            injectSelectedScript();
+          } finally {
+            global.__aepTagsInjectViaButtonClick = false;
+          }
         });
       }
 
@@ -2115,7 +2134,7 @@
     }
 
     function shouldSkipTagsPrefsSyncReload() {
-      if (isUserEnvPanelOpen()) return false;
+      if (isUserEnvPanelOpen()) return true;
       if (isArmcomPresenterBootstrap()) return true;
       if (
         global.EnvBarCompact &&
