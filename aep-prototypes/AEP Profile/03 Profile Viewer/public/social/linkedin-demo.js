@@ -777,8 +777,13 @@
         return;
       }
       try {
-        global.sessionStorage.setItem('armcomPaidAdClickedAfterBrief', '1');
+        global.localStorage.setItem('armcomPaidAdClickedAfterBrief', '1');
       } catch (_e) {
+        /* noop */
+      }
+      try {
+        global.sessionStorage.removeItem('armcomPaidAdClickedAfterBrief');
+      } catch (_e2) {
         /* noop */
       }
     }

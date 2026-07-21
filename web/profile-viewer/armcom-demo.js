@@ -84,18 +84,24 @@ function readPaidAdClickedAfterBrief() {
     return window.ArmcomLinkedInReturn.readPaidAdClickedAfterBrief();
   }
   try {
-    return window.sessionStorage.getItem('armcomPaidAdClickedAfterBrief') === '1';
+    if (window.localStorage.getItem('armcomPaidAdClickedAfterBrief') === '1') return true;
   } catch (_e) {
+    /* noop */
+  }
+  try {
+    return window.sessionStorage.getItem('armcomPaidAdClickedAfterBrief') === '1';
+  } catch (_e2) {
     return false;
   }
 }
 
-/** Email nurture toast: brief/segment ready AND paid retargeting return (not first awareness landing). */
+/** Email nurture toast: paid retargeting return after brief (not first awareness landing). */
 function shouldUnlockEmailNurture(stageBefore) {
   if (!isLinkedInAdReturnVisit()) return false;
+  /* Flag is set on LinkedIn tab only after brief/stage≥4; stored in localStorage for new arm.com tab. */
+  if (readPaidAdClickedAfterBrief()) return true;
   var leadReady = readBannerLeadCaptured() || stageBefore >= 5;
   if (!leadReady) return false;
-  if (readPaidAdClickedAfterBrief()) return true;
   return stageBefore >= 7 && readBannerLeadCaptured();
 }
 

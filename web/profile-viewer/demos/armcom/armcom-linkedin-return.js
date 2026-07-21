@@ -83,26 +83,42 @@
     return getReturnSource() === 'linkedin-organic';
   }
 
+  /** localStorage — arm.com opens in a new tab; sessionStorage is not shared across tabs. */
   function markPaidAdClickedAfterBrief() {
     try {
-      global.sessionStorage.setItem(PAID_AD_AFTER_BRIEF_KEY, '1');
+      global.localStorage.setItem(PAID_AD_AFTER_BRIEF_KEY, '1');
     } catch (_e) {
+      /* noop */
+    }
+    try {
+      global.sessionStorage.removeItem(PAID_AD_AFTER_BRIEF_KEY);
+    } catch (_e2) {
       /* noop */
     }
   }
 
   function readPaidAdClickedAfterBrief() {
     try {
-      return global.sessionStorage.getItem(PAID_AD_AFTER_BRIEF_KEY) === '1';
+      if (global.localStorage.getItem(PAID_AD_AFTER_BRIEF_KEY) === '1') return true;
     } catch (_e) {
+      /* noop */
+    }
+    try {
+      return global.sessionStorage.getItem(PAID_AD_AFTER_BRIEF_KEY) === '1';
+    } catch (_e2) {
       return false;
     }
   }
 
   function clearPaidAdClickedAfterBrief() {
     try {
-      global.sessionStorage.removeItem(PAID_AD_AFTER_BRIEF_KEY);
+      global.localStorage.removeItem(PAID_AD_AFTER_BRIEF_KEY);
     } catch (_e) {
+      /* noop */
+    }
+    try {
+      global.sessionStorage.removeItem(PAID_AD_AFTER_BRIEF_KEY);
+    } catch (_e2) {
       /* noop */
     }
   }

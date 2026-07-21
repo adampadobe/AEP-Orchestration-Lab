@@ -94,11 +94,20 @@
     }
   }
 
+  var LOCAL_CROSS_TAB_KEYS = ['armcomPaidAdClickedAfterBrief'];
+
   function clearArmcomSessionKeys() {
     SESSION_KEYS.forEach(function (key) {
       try {
         sessionStorage.removeItem(key);
       } catch (_e) {
+        /* noop */
+      }
+    });
+    LOCAL_CROSS_TAB_KEYS.forEach(function (key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (_e2) {
         /* noop */
       }
     });
