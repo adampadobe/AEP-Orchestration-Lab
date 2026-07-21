@@ -351,6 +351,21 @@
     var linkedInCrossTabMirrorBusy = false;
     var linkedInCrossTabMirrorWarned = false;
     var linkedInCrossTabMirrorSessionKey = 'linkedinArmCrossTabMirrorDone';
+    var LINKEDIN_MIRROR_SKIP_MAP_SUFFIXES = [
+      'SelectedTagsPropertyBySandbox',
+      'SelectedTagsEnvironmentBySandbox',
+      'SelectedTagsCompanyBySandbox',
+      'LastResolvedEcidBySandbox',
+    ];
+
+    function shouldSkipLinkedInMirrorForPrefsChange(ev) {
+      if (!ev || !ev.detail || ev.detail.type !== 'map') return false;
+      var key = String(ev.detail.key || '');
+      for (var i = 0; i < LINKEDIN_MIRROR_SKIP_MAP_SUFFIXES.length; i++) {
+        if (key.indexOf(LINKEDIN_MIRROR_SKIP_MAP_SUFFIXES[i]) !== -1) return true;
+      }
+      return false;
+    }
 
     function resolveLinkedInSandboxKey() {
       var sandboxKey = '__default__';
@@ -463,7 +478,7 @@
 
         var armCfgMap = readJsonMap('armcomSdkConfiguredBySandbox');
         var liCfgMap = readJsonMap('linkedinArmSdkConfiguredBySandbox');
-        if (liCfgMap[sandboxKey] === 1 || script) {
+        if (script) {
           var nextArmCfgMap = Object.assign({}, armCfgMap);
           var nextLiCfgMap = Object.assign({}, liCfgMap);
           if (nextArmCfgMap[sandboxKey] !== 1) nextArmCfgMap[sandboxKey] = 1;
@@ -476,17 +491,19 @@
           }
         }
 
-        try {
-          if (global.localStorage.getItem('aepLabEnvConfiguredLocal:armcom') !== '1') {
-            global.localStorage.setItem('aepLabEnvConfiguredLocal:armcom', '1');
-            mirrored = true;
+        if (script) {
+          try {
+            if (global.localStorage.getItem('aepLabEnvConfiguredLocal:armcom') !== '1') {
+              global.localStorage.setItem('aepLabEnvConfiguredLocal:armcom', '1');
+              mirrored = true;
+            }
+            if (global.localStorage.getItem('aepLabEnvConfiguredLocal:linkedinArm') !== '1') {
+              global.localStorage.setItem('aepLabEnvConfiguredLocal:linkedinArm', '1');
+              mirrored = true;
+            }
+          } catch (_e1) {
+            /* noop */
           }
-          if (global.localStorage.getItem('aepLabEnvConfiguredLocal:linkedinArm') !== '1') {
-            global.localStorage.setItem('aepLabEnvConfiguredLocal:linkedinArm', '1');
-            mirrored = true;
-          }
-        } catch (_e1) {
-          /* noop */
         }
 
         if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs === 'function') {
@@ -543,7 +560,8 @@
     global.addEventListener('aep-demo-env-configured', function () {
       deferHeavyWork(persistLinkedInCrossTabPrefsForArm);
     });
-    global.addEventListener('aep-lab-env-bar-prefs-change', function () {
+    global.addEventListener('aep-lab-env-bar-prefs-change', function (ev) {
+      if (shouldSkipLinkedInMirrorForPrefsChange(ev)) return;
       deferHeavyWork(persistLinkedInCrossTabPrefsForArm);
     });
 
