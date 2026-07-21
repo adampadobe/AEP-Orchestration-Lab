@@ -103,16 +103,13 @@ function onLinkedInAdReturnIframeReady() {
   if (!isLinkedInReturnVisit()) return;
   if (isLinkedInAdReturnVisit()) {
     var stageBefore = getArmcomJourneyStage();
-    var leadReady = readBannerLeadCaptured() || stageBefore >= 4;
-    var paidRetargetingReturn = readPaidAdClickedAfterBrief() || (stageBefore >= 7 && readBannerLeadCaptured());
+    var paidRetargetingReturn = readPaidAdClickedAfterBrief() || (stageBefore >= 8 && readBannerLeadCaptured());
     var unlockNurture = shouldUnlockEmailNurture(stageBefore);
     window.setTimeout(function () {
       triggerArmcomDecisioningRefresh({
         paidSocialReturn: paidRetargetingReturn,
         forceVariant: paidRetargetingReturn ? undefined : 'brand-awareness',
         contentTriggered: paidRetargetingReturn,
-        leadCaptured: leadReady,
-        registered: leadReady,
       });
       if (paidRetargetingReturn && window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
         window.ArmcomFakeAudiences.onLinkedInAdClick();

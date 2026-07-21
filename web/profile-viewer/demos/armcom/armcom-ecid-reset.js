@@ -17,6 +17,7 @@
     'armcomPaidAdClickedAfterBrief',
     'armcomToastState',
     'armcomBannerState',
+    'armcomDecisioningEnabled',
     'aep-demo-session-identifier-v1',
   ];
 

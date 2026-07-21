@@ -115,10 +115,17 @@
     }
   }
 
-  function canAutoShowBanner() {
+  function hasLeadIdentity(state) {
+    state = state && typeof state === 'object' ? state : readState();
+    return !!(state.leadCaptured || state.registered);
+  }
+
+  /** Post-registration banner: brief captured AND paid-return stage (8+), unless presenter forced decisioning on. */
+  function canAutoShowBanner(state) {
     if (!decisioningEnabled) return false;
+    if (!hasLeadIdentity(state)) return false;
     if (decisioningManuallyEnabled) return true;
-    return getFakeAudienceStage() >= 7;
+    return getFakeAudienceStage() >= 8;
   }
 
   function readState() {
@@ -262,11 +269,11 @@
   function applyRefreshOpts(state, opts) {
     if (opts.contentTriggered) state.contentTriggered = true;
     if (opts.forceVariant) state.forceVariant = opts.forceVariant;
-    if (opts.leadCaptured) state.leadCaptured = true;
-    if (opts.registered) state.registered = true;
-    if (opts.email) state.email = String(opts.email).trim();
-    if (opts.company) state.company = String(opts.company).trim();
-    if (opts.firstName) state.firstName = String(opts.firstName).trim() || null;
+    if (hasLeadIdentity(state)) {
+      if (opts.email) state.email = String(opts.email).trim();
+      if (opts.company) state.company = String(opts.company).trim();
+      if (opts.firstName) state.firstName = String(opts.firstName).trim() || null;
+    }
     return state;
   }
 
@@ -274,7 +281,7 @@
     opts = opts || {};
     var state = applyRefreshOpts(readState(), opts);
     writeState(state);
-    if (!canAutoShowBanner()) {
+    if (!canAutoShowBanner(state)) {
       clearBanner();
       return false;
     }
@@ -293,20 +300,23 @@
     var p = payload && typeof payload === 'object' ? payload : {};
     var email = String(p.email || '').trim();
     var company = String(p.company || '').trim();
+    var firstName = String(p.firstName || '').trim() || null;
     if (!email) return;
-    refresh({
+    writeState({
       email: email,
       company: company,
+      firstName: firstName,
       leadCaptured: true,
       contentTriggered: false,
       forceVariant: null,
     });
+    refresh();
   }
 
   function onRegistrationComplete(payload) {
     var p = payload && typeof payload === 'object' ? payload : {};
     var prior = readState();
-    refresh({
+    writeState({
       email: String(p.email || prior.email || '').trim(),
       company: String(p.company || prior.company || '').trim(),
       firstName: String(p.firstName || '').trim() || null,
@@ -315,6 +325,7 @@
       contentTriggered: false,
       forceVariant: null,
     });
+    refresh();
   }
 
   function onContentInterest(topic, label) {
