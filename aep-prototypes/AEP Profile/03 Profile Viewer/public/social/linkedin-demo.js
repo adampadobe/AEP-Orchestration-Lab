@@ -613,12 +613,12 @@
 
     function openArmTargetInNewTab(url) {
       if (!url) return;
-      persistLinkedInCrossTabPrefsForArm();
       global.open(url, '_blank', 'noopener,noreferrer');
     }
 
     function navigateToArmAdTarget() {
       var targetUrl = (currentAdVariant && currentAdVariant.targetUrl) || AD_VARIANTS.awareness.targetUrl;
+      persistLinkedInCrossTabPrefsForArm();
       openArmTargetInNewTab(targetUrl);
     }
 
@@ -649,9 +649,9 @@
           if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.onLinkedInOrganicClick === 'function') {
             global.ArmcomFakeAudiences.onLinkedInOrganicClick();
           }
-          void sendLinkedInOrganicNewsClickEvent(linkEl).finally(function () {
-            openArmTargetInNewTab(href);
-          });
+          persistLinkedInCrossTabPrefsForArm();
+          openArmTargetInNewTab(href);
+          void sendLinkedInOrganicNewsClickEvent(linkEl);
         });
       });
     }

@@ -426,8 +426,10 @@ function syncDrawerCopyButton(btn, valueEl) {
 
 function syncProfileDrawerCopyButtons() {
   ensureProfileDrawerCopyButtons();
+  bindProfileDrawerCopyButtonsOnce();
   syncDrawerCopyButton(profileDrawerEmailCopyBtn, profileDrawerEmail);
   syncDrawerCopyButton(profileDrawerEcidCopyBtn, profileDrawerDesktopId);
+  ensureProfileDrawerEcidResetButton();
 }
 
 function showDrawerCopyFeedback(btn, defaultAriaLabel) {
@@ -480,11 +482,16 @@ function fallbackCopyDrawerText(text, btn, defaultAriaLabel) {
 }
 
 function bindProfileDrawerCopyButtonsOnce() {
-  if (profileDrawerCopyButtonsBound) return;
   ensureProfileDrawerCopyButtons();
   cacheDomRefs();
+  ensureProfileDrawerEcidResetButton();
+  if (profileDrawerCopyButtonsBound) return;
 
-  if (profileDrawerEmailCopyBtn && profileDrawerEmail) {
+  const canBindEmail = profileDrawerEmailCopyBtn && profileDrawerEmail;
+  const canBindEcid = profileDrawerEcidCopyBtn && profileDrawerDesktopId;
+  if (!canBindEmail && !canBindEcid) return;
+
+  if (canBindEmail) {
     profileDrawerEmailCopyBtn.addEventListener('click', function () {
       void copyDrawerTextToClipboard(
         profileDrawerEmail.textContent,
@@ -493,7 +500,7 @@ function bindProfileDrawerCopyButtonsOnce() {
       );
     });
   }
-  if (profileDrawerEcidCopyBtn && profileDrawerDesktopId) {
+  if (canBindEcid) {
     profileDrawerEcidCopyBtn.addEventListener('click', function () {
       void copyDrawerTextToClipboard(
         profileDrawerDesktopId.textContent,
@@ -504,8 +511,6 @@ function bindProfileDrawerCopyButtonsOnce() {
   }
 
   profileDrawerCopyButtonsBound = true;
-  syncProfileDrawerCopyButtons();
-  ensureProfileDrawerEcidResetButton();
 }
 
 function isArmcomDemoDrawerPage() {
@@ -518,29 +523,52 @@ function isArmcomDemoDrawerPage() {
 
 let profileDrawerEcidResetBound = false;
 
-function ensureProfileDrawerEcidResetButton() {
-  if (!isArmcomDemoDrawerPage()) return;
-  if (document.getElementById('profileDrawerResetEcid')) return;
+function resolveProfileDrawerEcidRow() {
+  const byClass = document.querySelector('.aep-profile-drawer-identity-row--ecid');
+  if (byClass) return byClass;
+  const ecidEl = document.getElementById('profileDrawerDesktopId');
+  if (!ecidEl) return null;
+  const row = ecidEl.closest('.aep-profile-drawer-identity-row');
+  if (row) row.classList.add('aep-profile-drawer-identity-row--ecid');
+  return row;
+}
 
-  const ecidRow = document.querySelector('.aep-profile-drawer-identity-row--ecid');
+function ensureProfileDrawerEcidResetButton() {
+  const existingWrap = document.getElementById('profileDrawerEcidResetWrap');
+  const existingBtn = document.getElementById('profileDrawerResetEcid');
+  if (!isArmcomDemoDrawerPage()) {
+    if (existingWrap) existingWrap.hidden = true;
+    return;
+  }
+
+  const ecidRow = resolveProfileDrawerEcidRow();
   if (!ecidRow || !ecidRow.parentElement) return;
 
-  const wrap = document.createElement('div');
-  wrap.className = 'aep-profile-drawer-identity-reset-wrap';
+  let wrap = existingWrap;
+  let btn = existingBtn;
+  if (!wrap || !btn) {
+    wrap = document.createElement('div');
+    wrap.className = 'aep-profile-drawer-identity-reset-wrap';
+    wrap.id = 'profileDrawerEcidResetWrap';
 
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.id = 'profileDrawerResetEcid';
-  btn.className = 'aep-profile-drawer-reset-ecid-btn';
-  btn.textContent = 'New anonymous visitor';
-  btn.setAttribute(
-    'aria-label',
-    'Reset ECID — clear tracking cookies and start as a new anonymous visitor',
-  );
-  btn.title = 'Clear Adobe tracking cookies and mint a fresh ECID for this demo tab';
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'profileDrawerResetEcid';
+    btn.className = 'aep-profile-drawer-reset-ecid-btn';
+    btn.textContent = 'New anonymous visitor';
+    btn.setAttribute(
+      'aria-label',
+      'Reset ECID — clear tracking cookies and start as a new anonymous visitor',
+    );
+    btn.title = 'Clear Adobe tracking cookies and mint a fresh ECID for this demo tab';
 
-  wrap.appendChild(btn);
-  ecidRow.parentElement.insertBefore(wrap, ecidRow.nextSibling);
+    wrap.appendChild(btn);
+    ecidRow.parentElement.insertBefore(wrap, ecidRow.nextSibling);
+  } else if (wrap.parentElement !== ecidRow.parentElement || wrap.previousElementSibling !== ecidRow) {
+    ecidRow.parentElement.insertBefore(wrap, ecidRow.nextSibling);
+  }
+
+  wrap.hidden = false;
 
   if (!profileDrawerEcidResetBound) {
     profileDrawerEcidResetBound = true;
@@ -548,6 +576,13 @@ function ensureProfileDrawerEcidResetButton() {
       void handleProfileDrawerEcidResetClick(btn);
     });
   }
+}
+
+function ensureProfileDrawerShellReady() {
+  cacheDomRefs();
+  bindProfileDrawerCopyButtonsOnce();
+  ensureProfileDrawerEcidResetButton();
+  initAepProfileDrawerHover();
 }
 
 async function handleProfileDrawerEcidResetClick(btn) {
@@ -813,7 +848,6 @@ function updateProfileDrawer(profile) {
   ensureProfileDrawerIdentityGraphHeadingRow();
   renderIdentityGraph(source);
   updateProfileDrawerIdentityGraphModalBadgeCount();
-  bindProfileDrawerCopyButtonsOnce();
   syncProfileDrawerCopyButtons();
 }
 
@@ -4224,7 +4258,11 @@ async function refreshBrowserEcidFromAlloy(opts) {
   }
 }
 
+let profileDrawerHoverBound = false;
+
 function initAepProfileDrawerHover() {
+  if (profileDrawerHoverBound) return;
+  cacheDomRefs();
   const body = document.body;
   const hover = profileHoverZone;
   const drawer = profileDrawer;
@@ -4299,6 +4337,7 @@ function initAepProfileDrawerHover() {
 
   updateProfileDrawer(null);
   setDrawerOpen(false);
+  profileDrawerHoverBound = true;
 }
 
 function init(config) {
@@ -4316,7 +4355,7 @@ function init(config) {
   }
   ensureProfileDrawerThemeToggle();
   ensureProfileDrawerIdentityGraphHeadingRow();
-  bindProfileDrawerCopyButtonsOnce();
+  ensureProfileDrawerShellReady();
   window.addEventListener('beforeunload', stopEventsPoll, { once: true });
 
   if (!eventsStoryModalKeydownBound) {
@@ -4330,9 +4369,6 @@ function init(config) {
   if (identityGraphZoomOut) {
     identityGraphZoomOut.addEventListener('click', () => setIdentityGraphZoom(identityGraphScale - 0.12));
   }
-
-  initAepProfileDrawerHover();
-  ensureProfileDrawerEcidResetButton();
 
   if (_config.fetchBrowserEcidOnInit) {
     const run = () => {
@@ -4370,6 +4406,7 @@ const api = {
   refreshDrawerEventsForLoadedProfile,
   clearDrawerVisitorState,
   refreshBrowserEcidFromAlloy,
+  ensureProfileDrawerShellReady,
   initHover: initAepProfileDrawerHover,
 };
 
@@ -4379,7 +4416,6 @@ global.DemoProfileDrawer = api;
 global.addEventListener('pageshow', function (ev) {
   if (!ev || !ev.persisted) return;
   labLog('warn', 'bfcache restore — re-caching drawer DOM and hover wiring', {});
-  cacheDomRefs();
-  initAepProfileDrawerHover();
+  ensureProfileDrawerShellReady();
 });
 })(typeof window !== 'undefined' ? window : globalThis);

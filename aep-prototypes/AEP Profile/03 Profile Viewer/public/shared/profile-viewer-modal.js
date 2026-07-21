@@ -43,6 +43,7 @@
       '<h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>' +
       '<div class="aep-profile-drawer-identity-fields">' +
       '<div class="aep-profile-drawer-identity-row aep-profile-drawer-identity-row--ecid"><strong>ECID</strong><span class="aep-profile-drawer-copyable-value-wrap"><span id="profileDrawerDesktopId">—</span><button type="button" class="aep-profile-drawer-copy-btn" id="profileDrawerEcidCopy" hidden aria-label="Copy ECID to clipboard" title="Copy ECID"><svg class="aep-profile-drawer-copy-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 2a1 1 0 0 0-1 1v1H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1h1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5zm0 2h6v8H5V4zm-2 2h1v6a2 2 0 0 0 2 2h6v1H3V6z"/></svg></button></span></div>' +
+      '<div class="aep-profile-drawer-identity-reset-wrap" id="profileDrawerEcidResetWrap" hidden><button type="button" id="profileDrawerResetEcid" class="aep-profile-drawer-reset-ecid-btn" aria-label="Reset ECID — clear tracking cookies and start as a new anonymous visitor" title="Clear Adobe tracking cookies and mint a fresh ECID for this demo tab">New anonymous visitor</button></div>' +
       '<div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>' +
       '<div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>' +
       '<div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.npsScore">NPS score</strong><span id="profileDrawerNpsScore">—</span></div>' +
@@ -104,6 +105,13 @@
     return host;
   }
 
+  function notifyDrawerShellMounted() {
+    var drawer = global.DemoProfileDrawer || global.AepProfileDrawer;
+    if (drawer && typeof drawer.ensureProfileDrawerShellReady === 'function') {
+      drawer.ensureProfileDrawerShellReady();
+    }
+  }
+
   /**
    * Inject shared drawer markup once. Safe to call repeatedly.
    * @param {object} [config] — mountPointId, profileOpenClass (stored for open/close)
@@ -112,11 +120,13 @@
   function mount(config) {
     if (config) setContext(config);
     if (document.getElementById('profileDrawer')) {
+      notifyDrawerShellMounted();
       return { mounted: true, alreadyPresent: true };
     }
     var host = resolveMountHost(config);
     host.innerHTML = drawerShellMarkup();
     host.setAttribute(MOUNTED_ATTR, '1');
+    notifyDrawerShellMounted();
     return { mounted: true };
   }
 

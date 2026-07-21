@@ -1,14 +1,14 @@
 {
-  "gitSha": "fa72e677fb05fc77a3e5c89d58acfb864a89f863",
-  "gitShortSha": "fa72e677",
+  "gitSha": "81a91095702d169878945743fbe3a67b6c90a803",
+  "gitShortSha": "81a91095",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: end-to-end Arm LinkedIn organic demo flow without re-config",
+  "gitCommitSubject": "[apalmer] fix: open arm.com tab immediately on LinkedIn organic click",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T10:39:30+01:00",
-  "deployedAt": "2026-07-21T09:39:45.466Z",
+  "gitCommitDate": "2026-07-21T10:40:32+01:00",
+  "deployedAt": "2026-07-21T09:42:12.571Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fa72e677fb05fc77a3e5c89d58acfb864a89f863"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/81a91095702d169878945743fbe3a67b6c90a803"
 }
