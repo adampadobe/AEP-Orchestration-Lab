@@ -1,14 +1,14 @@
 {
-  "gitSha": "09484b51ee2166357603b80c07f92229d97986ea",
-  "gitShortSha": "09484b51",
+  "gitSha": "c1f68bbfe282edaf1a27483e4eed070c09727af8",
+  "gitShortSha": "c1f68bbf",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: LinkedIn return keeps toolbar-only Active SDK on arm.com",
+  "gitCommitSubject": "[apalmer] chore: stamp deploy version 09484b51",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T10:35:30+01:00",
-  "deployedAt": "2026-07-21T09:35:34.387Z",
+  "gitCommitDate": "2026-07-21T10:35:36+01:00",
+  "deployedAt": "2026-07-21T09:35:51.408Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 1,
+  "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/09484b51ee2166357603b80c07f92229d97986ea"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c1f68bbfe282edaf1a27483e4eed070c09727af8"
 }
