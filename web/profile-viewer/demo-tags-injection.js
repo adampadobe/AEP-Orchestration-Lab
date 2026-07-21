@@ -1132,6 +1132,18 @@
         } catch (_e) {
           /* noop */
         }
+        if (
+          global.EnvBarCompact &&
+          typeof global.EnvBarCompact.shouldSuppressPresenterOverlay === 'function' &&
+          global.EnvBarCompact.shouldSuppressPresenterOverlay()
+        ) {
+          if (typeof global.EnvBarCompact.closeOverlay === 'function') {
+            global.EnvBarCompact.closeOverlay({ force: true });
+          }
+          if (typeof global.EnvBarCompact.setPresenterStripHidden === 'function') {
+            global.EnvBarCompact.setPresenterStripHidden(true);
+          }
+        }
         return;
       }
       if (
@@ -1141,6 +1153,13 @@
       ) {
         if (typeof global.EnvBarCompact.closeOverlay === 'function') {
           global.EnvBarCompact.closeOverlay({ force: true });
+        }
+        if (
+          typeof global.EnvBarCompact.shouldSuppressPresenterOverlay === 'function' &&
+          global.EnvBarCompact.shouldSuppressPresenterOverlay() &&
+          typeof global.EnvBarCompact.setPresenterStripHidden === 'function'
+        ) {
+          global.EnvBarCompact.setPresenterStripHidden(true);
         }
         return;
       }
@@ -1182,6 +1201,13 @@
     }
 
     function requestEnvOverlayOpen() {
+      if (
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.shouldSuppressPresenterOverlay === 'function' &&
+        global.EnvBarCompact.shouldSuppressPresenterOverlay()
+      ) {
+        return;
+      }
       if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
         global.EnvBarCompact.openOverlay();
         return;

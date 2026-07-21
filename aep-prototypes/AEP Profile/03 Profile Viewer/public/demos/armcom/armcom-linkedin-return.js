@@ -437,6 +437,11 @@
       try {
         document.documentElement.setAttribute(PRESENTER_SUCCESS_ATTR, '');
         document.documentElement.removeAttribute(PRESENTER_ERROR_ATTR);
+        if (mode === 'success') {
+          document.documentElement.removeAttribute('data-armcom-presenter-connecting');
+        } else {
+          document.documentElement.setAttribute('data-armcom-presenter-connecting', '');
+        }
       } catch (_attrOk) {
         /* noop */
       }
@@ -448,6 +453,7 @@
     presenterChromeLocked = true;
     try {
       document.documentElement.removeAttribute(PRESENTER_SUCCESS_ATTR);
+      document.documentElement.removeAttribute('data-armcom-presenter-connecting');
       document.documentElement.setAttribute(PRESENTER_ERROR_ATTR, '');
     } catch (_attrErr) {
       /* noop */
@@ -460,6 +466,10 @@
       reason: reason,
       detail: detail && detail.reasons ? detail.reasons : undefined,
     });
+  }
+
+  function showPresenterConfigError(detail) {
+    applyPresenterChrome('error', detail || { reason: 'config-error' });
   }
 
   function evaluatePresenterChrome(reason, opts) {
@@ -476,7 +486,10 @@
       });
       return;
     }
-    if (health.pending && !options.final) return;
+    if (health.pending && !options.final) {
+      applyPresenterChrome('pending', { reason: reason });
+      return;
+    }
     if (
       !options.final &&
       health.reasons.indexOf('ecid-unavailable') === -1 &&
@@ -486,6 +499,12 @@
       return;
     }
     applyPresenterChrome('error', { reason: reason, reasons: health.reasons });
+  }
+
+  function bootstrapPresenterChromeImmediate() {
+    if (!isLinkedInReturnVisit()) return;
+    enablePresenterMode();
+    applyPresenterChrome('pending', { reason: 'bootstrap-immediate' });
   }
 
   function schedulePresenterFinalEval(reason) {
@@ -607,6 +626,7 @@
     });
   }
 
+  bootstrapPresenterChromeImmediate();
   schedulePresenterBootstrap('bootstrap-early');
 
   whenEnvBarReady(function () {
@@ -643,6 +663,7 @@
     forceEnvBarMinimized: forceEnvBarMinimized,
     evaluatePresenterChrome: evaluatePresenterChrome,
     applyPresenterChrome: applyPresenterChrome,
+    showPresenterConfigError: showPresenterConfigError,
     isPresenterBootstrapComplete: function () {
       return presenterBootstrapComplete || readBootstrapSessionFlag();
     },

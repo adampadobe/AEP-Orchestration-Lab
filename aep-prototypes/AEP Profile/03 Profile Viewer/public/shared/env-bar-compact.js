@@ -126,6 +126,19 @@
     }
   }
 
+  function isPresenterConfigErrorMode() {
+    try {
+      return document.documentElement.getAttribute('data-armcom-presenter-config-error') === '';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  /** LinkedIn → Arm success/connecting path: keep env bar fully hidden until inject/ECID recovery fails. */
+  function shouldSuppressPresenterOverlay() {
+    return isArmcomPresenterMode() && !isPresenterConfigErrorMode();
+  }
+
   function isPresenterStripHidden(anchor) {
     anchor = anchor || resolveAnchor();
     return !!(anchor && anchor.classList.contains(PRESENTER_STRIP_HIDDEN_CLASS));
@@ -611,6 +624,7 @@
   }
 
   function openProfilePeek(anchor) {
+    if (shouldSuppressPresenterOverlay()) return;
     setExpanded(anchor, false, false, true);
   }
 
@@ -731,6 +745,7 @@
   }
 
   function openOverlay(anchor, pin) {
+    if (shouldSuppressPresenterOverlay()) return;
     if (
       anchor &&
       (anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
@@ -844,8 +859,12 @@
     markSpectrumOverlayAnchor(anchor);
     ensureSpectrumBannerPeekCleared(anchor);
 
-    if (!isDocked && readPinnedFromStorage()) openOverlay(anchor, true);
-    else if (!isDocked) {
+    if (shouldSuppressPresenterOverlay()) {
+      setPresenterStripHidden(anchor, true);
+      closeOverlay(anchor, { force: true });
+    } else if (!isDocked && readPinnedFromStorage()) {
+      openOverlay(anchor, true);
+    } else if (!isDocked) {
       syncToolbarOverlayInset(anchor, false);
       var toolbar = anchor.querySelector('.lab-env-toolbar');
       if (toolbar) {
@@ -976,7 +995,7 @@
   global.addEventListener('aep-lab-datastream-manual-entry', function (ev) {
     datastreamManualEntryOpen = !!(ev && ev.detail && ev.detail.open);
     var anchor = resolveAnchor();
-    if (datastreamManualEntryOpen) {
+    if (datastreamManualEntryOpen && !shouldSuppressPresenterOverlay()) {
       setConfiguring(anchor, true);
       if (anchor && !isOverlayOpen(anchor)) openOverlay(anchor, isOverlayPinned(anchor));
     }
@@ -998,6 +1017,7 @@
   });
 
   global.addEventListener('aep-demo-env-overlay-open', function (ev) {
+    if (shouldSuppressPresenterOverlay()) return;
     var detail = ev && ev.detail;
     openOverlayPublic(detail && typeof detail === 'object' ? detail : {});
   });
@@ -1010,6 +1030,8 @@
     isPinned: isOverlayPinned,
     isConfiguredForCollapse: isLabEnvConfiguredForCollapse,
     isArmcomPresenterMode: isArmcomPresenterMode,
+    isPresenterConfigErrorMode: isPresenterConfigErrorMode,
+    shouldSuppressPresenterOverlay: shouldSuppressPresenterOverlay,
     isPresenterStripHidden: function () {
       return isPresenterStripHidden(resolveAnchor());
     },
