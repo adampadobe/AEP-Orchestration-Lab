@@ -691,7 +691,7 @@
     updateOfflineUploadUI();
 
     if (opts.fromOfflinePanel) {
-      if (offlinePanel && !offlinePanel.open) offlinePanel.open = true;
+      focusOfflinePanel();
       const hasUrl = !!(urlInput && normaliseUrl(urlInput.value));
       if (!hasUrl || opts.preferUploadOnly !== false) {
         if (uploadOnlyCb) {
@@ -826,6 +826,12 @@
   const downloadChecklistBtn = document.getElementById('brandScraperDownloadChecklist');
   const offlinePanel = document.getElementById('brandScraperOfflinePanel');
 
+  function focusOfflinePanel() {
+    if (offlinePanel) {
+      offlinePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
   function collectBriefOpts() {
     return {
       url: urlInput && urlInput.value,
@@ -864,7 +870,7 @@
         : 'Scrape brief downloaded — run the LLM prompt in an external tool, zip the result, then drop below.',
       'info'
     );
-    if (offlinePanel && !offlinePanel.open) offlinePanel.open = true;
+    focusOfflinePanel();
   }
 
   if (downloadBriefBtn) {

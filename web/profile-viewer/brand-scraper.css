@@ -707,51 +707,80 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   overflow: hidden;
 }
 
-.brand-scraper-offline-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
+.brand-scraper-offline-header {
+  padding: 0.75rem 1rem 0.5rem;
 }
 
-.brand-scraper-offline-summary::-webkit-details-marker {
-  display: none;
-}
-
-.brand-scraper-offline-summary::before {
-  content: '▸';
-  float: left;
-  margin-right: 0.5rem;
-  color: var(--dash-muted);
-  transition: transform 0.15s ease;
-}
-
-.brand-scraper-offline-panel[open] .brand-scraper-offline-summary::before {
-  transform: rotate(90deg);
-}
-
-.brand-scraper-offline-summary-title {
+.brand-scraper-offline-title {
+  margin: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--dash-text);
 }
 
-.brand-scraper-offline-summary-hint {
+.brand-scraper-offline-subtitle {
+  margin: 0.2rem 0 0;
   font-size: 12px;
   color: var(--dash-text-secondary);
-  padding-left: 1.1rem;
+  line-height: 1.45;
 }
 
 .brand-scraper-offline-body {
   padding: 0 1rem 1rem;
+}
+
+.brand-scraper-offline-instructions {
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  overflow: hidden;
+}
+
+.brand-scraper-offline-instructions-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-offline-instructions-summary::-webkit-details-marker {
+  display: none;
+}
+
+.brand-scraper-offline-instructions-summary::before {
+  content: '▸';
+  color: var(--dash-muted);
+  transition: transform 0.15s ease;
+}
+
+.brand-scraper-offline-instructions[open] .brand-scraper-offline-instructions-summary::before {
+  transform: rotate(90deg);
+}
+
+.brand-scraper-offline-instructions-summary:hover,
+.brand-scraper-offline-instructions-summary:focus {
+  color: var(--dash-text);
+  outline: none;
+}
+
+.brand-scraper-offline-instructions-body {
+  padding: 0 0.75rem 0.75rem;
   border-top: 1px solid var(--dash-border);
 }
 
+.brand-scraper-offline-instructions-body > .brand-scraper-result-muted {
+  margin: 0.65rem 0 0;
+}
+
 .brand-scraper-offline-steps {
-  margin: 0.65rem 0 0.85rem;
+  margin: 0.65rem 0 0;
   padding-left: 1.25rem;
   font-size: 13px;
   line-height: 1.55;
@@ -769,7 +798,7 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 }
 
 .brand-scraper-offline-drop-wrap {
-  margin-top: 0.85rem;
+  margin-top: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
