@@ -227,17 +227,94 @@
     return ecid && ecid.length >= 10 ? ecid : null;
   }
 
-  async function fetchFallbackAnonymousEcid() {
+  function readCachedArmcomEcid() {
+    var sk = resolveArmcomSandboxKey();
     try {
-      var res = await fetch('/api/ecid/anonymous');
-      var data = await res.json().catch(function () {
-        return {};
-      });
-      var ecid = data.ecid != null ? String(data.ecid).trim() : '';
-      return ecid && /^\d+$/.test(ecid) && ecid.length >= 10 ? ecid : null;
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getDoc === 'function') {
+        var doc = global.AepLabEnvBarPrefs.getDoc();
+        var entry = doc && doc.tagsBySandbox && doc.tagsBySandbox[sk];
+        var fromUnified = entry && entry.ecid != null ? String(entry.ecid).replace(/\D/g, '') : '';
+        if (fromUnified.length >= 10) return fromUnified;
+      }
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+        var map = global.AepLabEnvBarPrefs.readMap(ECID_BY_SANDBOX_KEY);
+        var hit = map[sk] != null ? String(map[sk]).replace(/\D/g, '') : '';
+        if (hit.length >= 10) return hit;
+      }
     } catch (_e) {
-      return null;
+      /* noop */
     }
+    return null;
+  }
+
+  function readEcidFromAdobeCookies() {
+    if (typeof document === 'undefined') return null;
+    try {
+      var parts = document.cookie.split(';');
+      for (var i = 0; i < parts.length; i++) {
+        var seg = parts[i].trim();
+        var eq = seg.indexOf('=');
+        if (eq === -1) continue;
+        var name = seg.slice(0, eq).trim();
+        var rawVal = decodeURIComponent(seg.slice(eq + 1));
+        if (/^AMCV_/i.test(name)) {
+          var amcv = rawVal.match(/MCMID(?:%7C|\|)(\d{10,})/i);
+          if (amcv && amcv[1] && amcv[1].length >= 10) return amcv[1];
+        }
+        if (/^kndctr_.*_AdobeOrg_identity$/i.test(name)) {
+          var payload = rawVal;
+          try {
+            payload = atob(rawVal.replace(/-/g, '+').replace(/_/g, '/'));
+          } catch (_b) {
+            /* keep raw */
+          }
+          try {
+            var parsed = JSON.parse(payload);
+            var fromJson = extractEcidFromAlloyResult({ identity: parsed.identity || parsed });
+            if (fromJson) return fromJson;
+          } catch (_j) {
+            var m = payload.match(/\d{20,}/);
+            if (m && m[0].length >= 10) return m[0];
+          }
+        }
+      }
+    } catch (_e2) {
+      /* noop */
+    }
+    return null;
+  }
+
+  async function fetchFreshEcidFromAlloyWithRetry() {
+    var alloyFn = await waitForAlloy(12000);
+    if (!alloyFn) return null;
+    for (var attempt = 0; attempt < 7; attempt++) {
+      if (attempt > 0) {
+        await new Promise(function (resolve) {
+          global.setTimeout(resolve, 500);
+        });
+      }
+      var result;
+      try {
+        result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+      } catch (_e1) {
+        try {
+          result = await alloyFn('getIdentity');
+        } catch (_e2) {
+          result = null;
+        }
+      }
+      var ecid = extractEcidFromAlloyResult(result);
+      if (ecid && ecid.length >= 10) return ecid;
+    }
+    return null;
+  }
+
+  async function fetchFallbackAnonymousEcid() {
+    var cached = readCachedArmcomEcid();
+    if (cached) return cached;
+    var fromCookie = readEcidFromAdobeCookies();
+    if (fromCookie) return fromCookie;
+    return fetchFreshEcidFromAlloyWithRetry();
   }
 
   function persistFreshEcidForSandbox(ecid) {

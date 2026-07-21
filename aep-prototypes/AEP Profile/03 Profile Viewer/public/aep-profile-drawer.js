@@ -4143,23 +4143,176 @@ async function refreshDrawerEventsForLoadedProfile() {
   return refreshDrawerEventsForIdentity(id, ns);
 }
 
-/** Parse ECID from Web SDK `getIdentity` result (shape varies by SDK version). */
-function extractEcidFromAlloyGetIdentityResult(result) {
-  if (!result || typeof result !== 'object') return '';
-  const id = result.identity;
+function normaliseBrowserEcidDigits(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits : '';
+}
+
+/** Parse ECID from identity map object (Web SDK getIdentity or kndctr cookie JSON). */
+function extractEcidFromIdentityMap(id) {
   if (!id || typeof id !== 'object') return '';
   const raw = id.ECID != null ? id.ECID : id.ecid;
-  if (typeof raw === 'string') {
-    const digits = raw.replace(/\D/g, '');
-    return digits.length >= 10 ? digits : '';
-  }
+  if (typeof raw === 'string') return normaliseBrowserEcidDigits(raw);
   if (raw && typeof raw === 'object') {
     const inner = raw.id != null ? String(raw.id) : '';
-    const digits = inner.replace(/\D/g, '');
-    return digits.length >= 10 ? digits : '';
+    return normaliseBrowserEcidDigits(inner);
+  }
+  if (Array.isArray(raw)) {
+    for (let i = 0; i < raw.length; i++) {
+      const item = raw[i];
+      if (item && item.id != null) {
+        const n = normaliseBrowserEcidDigits(item.id);
+        if (n) return n;
+      }
+      if (typeof item === 'string') {
+        const n = normaliseBrowserEcidDigits(item);
+        if (n) return n;
+      }
+    }
   }
   return '';
 }
+
+/** Parse ECID from Web SDK `getIdentity` result (shape varies by SDK version). */
+function extractEcidFromAlloyGetIdentityResult(result) {
+  if (!result || typeof result !== 'object') return '';
+  if (result.identity) return extractEcidFromIdentityMap(result.identity);
+  return extractEcidFromIdentityMap(result);
+}
+
+function resolveDrawerSandboxKey() {
+  try {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.sandboxKey === 'function') {
+      return global.AepLabEnvBarPrefs.sandboxKey(resolveSandbox());
+    }
+  } catch (_e) {
+    /* noop */
+  }
+  const v = String(resolveSandbox() || '').trim().toLowerCase();
+  return v ? v.replace(/[^a-z0-9_-]/g, '_') : '__default__';
+}
+
+/** Last lab-resolved ECID for this sandbox (unified prefs + legacy per-demo maps). */
+function readCachedLabEcid() {
+  const sk = resolveDrawerSandboxKey();
+  try {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getDoc === 'function') {
+      const doc = global.AepLabEnvBarPrefs.getDoc();
+      const entry = doc && doc.tagsBySandbox && doc.tagsBySandbox[sk];
+      const fromUnified = normaliseBrowserEcidDigits(entry && entry.ecid);
+      if (fromUnified) return fromUnified;
+    }
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function' && global.localStorage) {
+      for (let i = 0; i < global.localStorage.length; i++) {
+        const key = global.localStorage.key(i);
+        if (!key || key.indexOf('LastResolvedEcidBySandbox') === -1) continue;
+        const map = global.AepLabEnvBarPrefs.readMap(key);
+        const hit = normaliseBrowserEcidDigits(map[sk]);
+        if (hit) return hit;
+      }
+    }
+  } catch (_e2) {
+    /* noop */
+  }
+  return '';
+}
+
+function persistResolvedLabEcid(ecid) {
+  const digits = normaliseBrowserEcidDigits(ecid);
+  if (!digits) return;
+  const sk = resolveDrawerSandboxKey();
+  let prefix = '';
+  try {
+    if (global.envBarConfig) {
+      prefix = String(global.envBarConfig.storagePrefix || global.envBarConfig.prefix || '').trim();
+    }
+  } catch (_e) {
+    /* noop */
+  }
+  const legacyKey = (prefix || 'demoTagsInjection') + 'LastResolvedEcidBySandbox';
+  try {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+      const map = global.AepLabEnvBarPrefs.readMap(legacyKey);
+      map[sk] = digits;
+      global.AepLabEnvBarPrefs.writeMap(legacyKey, map);
+    }
+  } catch (_e2) {
+    /* noop */
+  }
+}
+
+/** Best-effort ECID from Adobe Web SDK cookies (kndctr identity) or Visitor Service (AMCV MCMID). */
+function readEcidFromAdobeIdentityCookies() {
+  if (typeof document === 'undefined') return '';
+  try {
+    const parts = document.cookie.split(';');
+    for (let i = 0; i < parts.length; i++) {
+      const seg = parts[i].trim();
+      const eq = seg.indexOf('=');
+      if (eq === -1) continue;
+      const name = seg.slice(0, eq).trim();
+      const rawVal = decodeURIComponent(seg.slice(eq + 1));
+
+      if (/^AMCV_/i.test(name)) {
+        const m = rawVal.match(/MCMID(?:%7C|\|)(\d{10,})/i);
+        if (m && m[1]) {
+          const fromAmcv = normaliseBrowserEcidDigits(m[1]);
+          if (fromAmcv) return fromAmcv;
+        }
+      }
+
+      if (/^kndctr_.*_AdobeOrg_identity$/i.test(name)) {
+        let payload = rawVal;
+        try {
+          payload = atob(rawVal.replace(/-/g, '+').replace(/_/g, '/'));
+        } catch (_b) {
+          /* keep raw */
+        }
+        try {
+          const parsed = JSON.parse(payload);
+          const fromJson = extractEcidFromAlloyGetIdentityResult(parsed);
+          if (fromJson) return fromJson;
+        } catch (_j) {
+          const m = payload.match(/\d{20,}/);
+          if (m) {
+            const fromRegex = normaliseBrowserEcidDigits(m[0]);
+            if (fromRegex) return fromRegex;
+          }
+        }
+      }
+    }
+  } catch (_e3) {
+    /* noop */
+  }
+  return '';
+}
+
+async function pollEcidFromAlloy(alloyFn, maxAttempts, delayMs) {
+  const attempts = maxAttempts != null ? maxAttempts : 7;
+  const wait = delayMs != null ? delayMs : 500;
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) {
+      await new Promise((resolve) => {
+        global.setTimeout(resolve, wait);
+      });
+    }
+    let result = null;
+    try {
+      result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+    } catch {
+      try {
+        result = await alloyFn('getIdentity');
+      } catch {
+        result = null;
+      }
+    }
+    const ecid = extractEcidFromAlloyGetIdentityResult(result);
+    if (ecid) return ecid;
+  }
+  return '';
+}
+
+let _browserEcidRefreshPromise = null;
 
 function whenAlloyGlobalReady(timeoutMs) {
   const max = timeoutMs || 25000;
@@ -4237,56 +4390,73 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
   await refreshBrowserEcidFromAlloy();
 }
 
+function applyBrowserEcidResolved(ecid, options) {
+  const digits = normaliseBrowserEcidDigits(ecid);
+  if (!digits) return false;
+  persistResolvedLabEcid(digits);
+  setBrowserEcidDisplay(digits);
+  const patch = {
+    ecid: digits,
+    identities: [{ namespace: 'ECID', value: digits }],
+  };
+  if (options.skipEvents) {
+    patch.events = [];
+    patch.eventsStory = [];
+    patch.audiences = { realized: [], exited: [] };
+  }
+  patchLastProfileOrUpdate(patch);
+  _lastLoadedIdentifier = digits;
+  _lastEventsPollIdentifier = digits;
+  _lastEventsPollNamespace = 'ecid';
+  if (!options.skipEvents) {
+    void refreshDrawerEventsForIdentity(digits, 'ecid');
+    startEventsPoll();
+  } else {
+    stopEventsPoll();
+  }
+  if (typeof _config.afterBrowserEcidApplied === 'function') {
+    try {
+      const out = _config.afterBrowserEcidApplied(digits);
+      if (out && typeof out.then === 'function') void out.then(() => {}).catch(() => {});
+    } catch {
+      /* noop */
+    }
+  }
+  return true;
+}
+
 /**
  * Force-refresh browser ECID in the strip + drawer (used after Arm demo visitor reset).
- * @param {{ ecid?: string|null, skipEvents?: boolean }} [opts]
+ * Order: explicit opts → lab localStorage cache → Adobe identity cookies → alloy getIdentity poll.
+ * @param {{ ecid?: string|null, skipEvents?: boolean, skipConnectingHint?: boolean, force?: boolean }} [opts]
  */
-async function refreshBrowserEcidFromAlloy(opts) {
+async function refreshBrowserEcidFromAlloyInner(opts) {
   const options = opts && typeof opts === 'object' ? opts : {};
   cacheDomRefs();
 
-  let ecid =
-    options.ecid != null && String(options.ecid).replace(/\D/g, '').length >= 10
-      ? String(options.ecid).replace(/\D/g, '')
-      : '';
+  let ecid = normaliseBrowserEcidDigits(options.ecid);
+  let provisional = false;
+
+  if (!ecid) ecid = readCachedLabEcid();
+  if (!ecid) ecid = readEcidFromAdobeIdentityCookies();
+  if (ecid) provisional = true;
 
   if (!ecid && !options.skipConnectingHint) {
     setBrowserEcidHint('Connecting ECID…');
+  } else if (provisional) {
+    setBrowserEcidDisplay(ecid);
   }
 
-  if (!ecid) {
-    let alloyFn;
+  let alloyFn = null;
+  if (!options.ecid) {
     try {
-      alloyFn = await whenAlloyGlobalReady(25000);
+      alloyFn = await whenAlloyGlobalReady(provisional ? 12000 : 25000);
     } catch {
       alloyFn = null;
     }
-
     if (alloyFn) {
-      let result;
-      try {
-        result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
-      } catch {
-        try {
-          result = await alloyFn('getIdentity');
-        } catch {
-          result = null;
-        }
-      }
-      ecid = extractEcidFromAlloyGetIdentityResult(result);
-    }
-  }
-
-  if (!ecid) {
-    try {
-      const res = await fetch('/api/ecid/anonymous');
-      const data = await res.json().catch(function () {
-        return {};
-      });
-      const fallback = data.ecid != null ? String(data.ecid).replace(/\D/g, '') : '';
-      if (fallback.length >= 10) ecid = fallback;
-    } catch {
-      /* noop */
+      const fromAlloy = await pollEcidFromAlloy(alloyFn, provisional ? 5 : 7, 500);
+      if (fromAlloy) ecid = fromAlloy;
     }
   }
 
@@ -4295,35 +4465,18 @@ async function refreshBrowserEcidFromAlloy(opts) {
     return;
   }
 
-  setBrowserEcidDisplay(ecid);
-  const patch = {
-    ecid,
-    identities: [{ namespace: 'ECID', value: ecid }],
-  };
-  if (options.skipEvents) {
-    patch.events = [];
-    patch.eventsStory = [];
-    patch.audiences = { realized: [], exited: [] };
-  }
-  patchLastProfileOrUpdate(patch);
-  _lastLoadedIdentifier = ecid;
-  _lastEventsPollIdentifier = ecid;
-  _lastEventsPollNamespace = 'ecid';
-  if (!options.skipEvents) {
-    void refreshDrawerEventsForIdentity(ecid, 'ecid');
-    startEventsPoll();
-  } else {
-    stopEventsPoll();
-  }
+  applyBrowserEcidResolved(ecid, options);
+}
 
-  if (typeof _config.afterBrowserEcidApplied === 'function') {
-    try {
-      const out = _config.afterBrowserEcidApplied(ecid);
-      if (out && typeof out.then === 'function') void out.then(() => {}).catch(() => {});
-    } catch {
-      /* noop */
-    }
+async function refreshBrowserEcidFromAlloy(opts) {
+  const options = opts && typeof opts === 'object' ? opts : {};
+  if (_browserEcidRefreshPromise && !options.force) {
+    return _browserEcidRefreshPromise;
   }
+  _browserEcidRefreshPromise = refreshBrowserEcidFromAlloyInner(options).finally(function () {
+    _browserEcidRefreshPromise = null;
+  });
+  return _browserEcidRefreshPromise;
 }
 
 let profileDrawerHoverBound = false;
