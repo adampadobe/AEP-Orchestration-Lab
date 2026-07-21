@@ -1,14 +1,14 @@
 {
-  "gitSha": "81a91095702d169878945743fbe3a67b6c90a803",
-  "gitShortSha": "81a91095",
+  "gitSha": "cbf0ccf78da0d9964718ba7c4080d9d1c70119d8",
+  "gitShortSha": "cbf0ccf7",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: open arm.com tab immediately on LinkedIn organic click",
+  "gitCommitSubject": "[apalmer] fix: always show Arm profile drawer ECID reset button",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T10:40:32+01:00",
-  "deployedAt": "2026-07-21T09:42:12.571Z",
+  "gitCommitDate": "2026-07-21T10:42:26+01:00",
+  "deployedAt": "2026-07-21T09:42:47.039Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/81a91095702d169878945743fbe3a67b6c90a803"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/cbf0ccf78da0d9964718ba7c4080d9d1c70119d8"
 }
