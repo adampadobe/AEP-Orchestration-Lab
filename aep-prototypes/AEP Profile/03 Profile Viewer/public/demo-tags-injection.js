@@ -96,6 +96,57 @@
     } catch (_e2) {
       /* quota / private mode */
     }
+    writeTagsInjectedLocalScript(storagePrefix, sandboxKey, url);
+  }
+
+  /** Cross-tab Launch script mirror (same origin; survives new-tab opens from LinkedIn → arm.com). */
+  function tagsInjectedLocalStorageKey(storagePrefix, sandboxKey) {
+    const prefix = String(storagePrefix || resolvePageStoragePrefix() || 'demoTagsInjection').trim();
+    const sk = String(sandboxKey || '__default__').trim();
+    return 'aepDemoTagsInjectedLocal:' + prefix + ':' + sk;
+  }
+
+  function readTagsInjectedLocalScript(storagePrefix, sandboxKey) {
+    const key = tagsInjectedLocalStorageKey(storagePrefix, sandboxKey);
+    try {
+      return String(global.localStorage.getItem(key) || '').trim();
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  function writeTagsInjectedLocalScript(storagePrefix, sandboxKey, scriptUrl) {
+    const key = tagsInjectedLocalStorageKey(storagePrefix, sandboxKey);
+    const url = String(scriptUrl || '').trim();
+    try {
+      if (!url) global.localStorage.removeItem(key);
+      else global.localStorage.setItem(key, url);
+    } catch (_e2) {
+      /* quota / private mode */
+    }
+  }
+
+  function labEnvConfiguredLocalStorageKey(labPrefix) {
+    const prefix = String(labPrefix || resolvePageStoragePrefix() || '').trim();
+    return prefix ? 'aepLabEnvConfiguredLocal:' + prefix : 'aepLabEnvConfiguredLocal';
+  }
+
+  function readLabEnvConfiguredLocal(labPrefix) {
+    try {
+      return global.localStorage.getItem(labEnvConfiguredLocalStorageKey(labPrefix)) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function writeLabEnvConfiguredLocal(labPrefix, configured) {
+    const key = labEnvConfiguredLocalStorageKey(labPrefix);
+    try {
+      if (configured) global.localStorage.setItem(key, '1');
+      else global.localStorage.removeItem(key);
+    } catch (_e2) {
+      /* noop */
+    }
   }
 
   function sessionKeysToPreserveOnIdentityReset(storagePrefix) {
@@ -461,6 +512,7 @@
       } catch (_e) {
         /* noop */
       }
+      writeLabEnvConfiguredLocal(resolveLabEnvPrefix(), true);
     }
     const identityEventType = String(cfg.identityEventType || 'demo.identity.stitch');
 
@@ -833,12 +885,14 @@
 
     function clearTagsInjectedSessionForSandbox() {
       writeTagsInjectedSessionScript(storagePrefix, getSandboxKey(), '');
+      writeTagsInjectedLocalScript(storagePrefix, getSandboxKey(), '');
     }
 
     function resolvePersistedLaunchScriptForResume() {
       return (
         sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl()) ||
-        sanitiseLaunchScriptUrl(readTagsInjectedSessionScriptForSandbox())
+        sanitiseLaunchScriptUrl(readTagsInjectedSessionScriptForSandbox()) ||
+        sanitiseLaunchScriptUrl(readTagsInjectedLocalScript(storagePrefix, getSandboxKey()))
       );
     }
 
@@ -2165,8 +2219,14 @@
 
   global.AepLabTagsInjectSession = {
     sessionKey: tagsInjectedSessionStorageKey,
+    localKey: tagsInjectedLocalStorageKey,
     readScript: readTagsInjectedSessionScript,
     writeScript: writeTagsInjectedSessionScript,
+    readLocalScript: readTagsInjectedLocalScript,
+    writeLocalScript: writeTagsInjectedLocalScript,
+    readLabEnvConfiguredLocal: readLabEnvConfiguredLocal,
+    writeLabEnvConfiguredLocal: writeLabEnvConfiguredLocal,
+    labEnvConfiguredLocalKey: labEnvConfiguredLocalStorageKey,
     keysToPreserveOnIdentityReset: sessionKeysToPreserveOnIdentityReset,
   };
 

@@ -33,6 +33,9 @@ function setArmcomFrameSrcIfNeeded(nextSrc) {
 }
 
 function isLinkedInAdReturnVisit() {
+  if (window.ArmcomLinkedInReturn && typeof window.ArmcomLinkedInReturn.isLinkedInAdReturnVisit === 'function') {
+    return window.ArmcomLinkedInReturn.isLinkedInAdReturnVisit();
+  }
   try {
     return new URLSearchParams(window.location.search).get('from') === 'linkedin-ad';
   } catch (_e) {
@@ -40,20 +43,38 @@ function isLinkedInAdReturnVisit() {
   }
 }
 
-function onLinkedInAdReturnIframeReady() {
-  if (!isLinkedInAdReturnVisit()) return;
-  triggerArmcomDecisioningRefresh({
-    paidSocialReturn: true,
-    forceVariant: 'brand-awareness',
-    contentTriggered: true,
-    leadCaptured: true,
-    registered: true,
-  });
-  if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
-    window.ArmcomFakeAudiences.onLinkedInAdClick();
+function isLinkedInReturnVisit() {
+  if (window.ArmcomLinkedInReturn && typeof window.ArmcomLinkedInReturn.isLinkedInReturnVisit === 'function') {
+    return window.ArmcomLinkedInReturn.isLinkedInReturnVisit();
   }
-  postArmcomBannerMessage('armcom-email-nurture-unlocked', {});
-  setArmcomMessage('Returned from LinkedIn ad — brand awareness banner refreshed.', 'success');
+  try {
+    var from = new URLSearchParams(window.location.search).get('from') || '';
+    return from === 'linkedin-ad' || from === 'linkedin-organic' || from === 'activation';
+  } catch (_e) {
+    return false;
+  }
+}
+
+function onLinkedInAdReturnIframeReady() {
+  if (!isLinkedInReturnVisit()) return;
+  if (isLinkedInAdReturnVisit()) {
+    triggerArmcomDecisioningRefresh({
+      paidSocialReturn: true,
+      forceVariant: 'brand-awareness',
+      contentTriggered: true,
+      leadCaptured: true,
+      registered: true,
+    });
+    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
+      window.ArmcomFakeAudiences.onLinkedInAdClick();
+    }
+    postArmcomBannerMessage('armcom-email-nurture-unlocked', {});
+    setArmcomMessage('Returned from LinkedIn ad — brand awareness banner refreshed.', 'success');
+    return;
+  }
+  if (window.ArmcomLinkedInReturn && window.ArmcomLinkedInReturn.isLinkedInOrganicReturnVisit()) {
+    setArmcomMessage('Returned from LinkedIn News — arm.com loaded with lab SDK.', 'success');
+  }
 }
 
 function syncIframeToJourneyUrl() {

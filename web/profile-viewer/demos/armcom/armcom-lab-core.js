@@ -329,14 +329,18 @@
     }
 
     if (global.ArmcomFakeAudiences && typeof global.ArmcomFakeAudiences.init === 'function') {
+      var linkedinAdReturn = false;
+      if (global.ArmcomLinkedInReturn && typeof global.ArmcomLinkedInReturn.isLinkedInAdReturnVisit === 'function') {
+        linkedinAdReturn = global.ArmcomLinkedInReturn.isLinkedInAdReturnVisit();
+      } else {
+        try {
+          linkedinAdReturn = new URLSearchParams(global.location.search).get('from') === 'linkedin-ad';
+        } catch (_e) {
+          linkedinAdReturn = false;
+        }
+      }
       global.ArmcomFakeAudiences.init({
-        linkedinAdReturn: (function () {
-          try {
-            return new URLSearchParams(global.location.search).get('from') === 'linkedin-ad';
-          } catch (_e) {
-            return false;
-          }
-        })(),
+        linkedinAdReturn: linkedinAdReturn,
       });
     }
 

@@ -108,7 +108,75 @@
     return !/no script selected/i.test(text);
   }
 
+  function isArmcomPresenterMode() {
+    try {
+      if (global.sessionStorage.getItem('armcomPresenterMode') === '1') return true;
+    } catch (_e0) {
+      /* noop */
+    }
+    try {
+      return document.documentElement.getAttribute('data-armcom-presenter') === '';
+    } catch (_e1) {
+      return false;
+    }
+  }
+
+  function readUnifiedTagsConfiguredForCurrentSandbox() {
+    try {
+      if (!global.AepLabEnvBarPrefs || typeof global.AepLabEnvBarPrefs.getDoc !== 'function') return false;
+      var sb = '';
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+        sb = String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+      if (!sb && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
+        sb = String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
+      }
+      var sk =
+        typeof global.AepLabEnvBarPrefs.sandboxKey === 'function'
+          ? global.AepLabEnvBarPrefs.sandboxKey(sb)
+          : sb.toLowerCase().replace(/[^a-z0-9_-]/g, '_') || '__default__';
+      var doc = global.AepLabEnvBarPrefs.getDoc();
+      var entry = doc && doc.tagsBySandbox ? doc.tagsBySandbox[sk] : null;
+      if (!entry || typeof entry !== 'object') return false;
+      if (entry.configured === 1 || entry.configured === '1' || entry.configured === true) return true;
+      return !!String(entry.launchScript || '').trim();
+    } catch (_e2) {
+      return false;
+    }
+  }
+
+  function readLabEnvConfiguredLocalMirror() {
+    var prefix = resolveLabEnvConfiguredPrefix();
+    if (
+      global.AepLabTagsInjectSession &&
+      typeof global.AepLabTagsInjectSession.readLabEnvConfiguredLocal === 'function'
+    ) {
+      return global.AepLabTagsInjectSession.readLabEnvConfiguredLocal(prefix);
+    }
+    try {
+      var key = prefix ? 'aepLabEnvConfiguredLocal:' + prefix : 'aepLabEnvConfiguredLocal';
+      return global.localStorage.getItem(key) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function seedLabEnvConfiguredSessionFromLocal() {
+    var prefix = resolveLabEnvConfiguredPrefix();
+    if (!prefix) return false;
+    if (!readLabEnvConfiguredLocalMirror() && !readUnifiedTagsConfiguredForCurrentSandbox()) return false;
+    var storageKey = 'aepLabEnvConfigured:' + prefix;
+    try {
+      global.sessionStorage.setItem(storageKey, '1');
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function isLabEnvConfiguredForCollapse() {
+    if (isArmcomPresenterMode()) return true;
+    if (readLabEnvConfiguredLocalMirror() || readUnifiedTagsConfiguredForCurrentSandbox()) return true;
     var prefix = resolveLabEnvConfiguredPrefix();
     var storageKey = prefix ? 'aepLabEnvConfigured:' + prefix : 'aepLabEnvConfigured';
     try {
@@ -692,6 +760,16 @@
     if (isDocked) applyDockState(anchor, true);
     else updateFloatingDockBtn(false);
 
+    if (isArmcomPresenterMode() || readLabEnvConfiguredLocalMirror() || readUnifiedTagsConfiguredForCurrentSandbox()) {
+      seedLabEnvConfiguredSessionFromLocal();
+      if (!isDocked && !readPinnedFromStorage()) {
+        labLog('info', 'presenter / cross-tab configured — minimize env bar on init', {
+          presenterMode: isArmcomPresenterMode(),
+        });
+        minimizeToProfileLookup(anchor);
+      }
+    }
+
     var configBtn = byId(CONFIG_BTN_ID);
     if (configBtn) {
       configBtn.addEventListener('click', function (ev) {
@@ -815,6 +893,8 @@
     isOpen: isOverlayOpenPublic,
     isPinned: isOverlayPinned,
     isConfiguredForCollapse: isLabEnvConfiguredForCollapse,
+    isArmcomPresenterMode: isArmcomPresenterMode,
+    seedLabEnvConfiguredSessionFromLocal: seedLabEnvConfiguredSessionFromLocal,
     minimizeToProfileLookup: function () {
       return minimizeToProfileLookup(resolveAnchor());
     },

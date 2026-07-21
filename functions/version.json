@@ -1,14 +1,14 @@
 {
-  "gitSha": "0aef3dc34ee8d771adb83a48089b5895ddc54ea7",
-  "gitShortSha": "0aef3dc3",
+  "gitSha": "29f69e6a4f24b7c3ddcf65bced215263863f64a6",
+  "gitShortSha": "29f69e6a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] refactor: collapse offline fallback instructions by default",
+  "gitCommitSubject": "[apalmer] chore: stamp deploy version 0aef3dc3",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T10:08:30+01:00",
-  "deployedAt": "2026-07-21T09:08:51.076Z",
+  "gitCommitDate": "2026-07-21T10:18:34+01:00",
+  "deployedAt": "2026-07-21T09:25:20.775Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0aef3dc34ee8d771adb83a48089b5895ddc54ea7"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/29f69e6a4f24b7c3ddcf65bced215263863f64a6"
 }

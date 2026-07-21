@@ -292,6 +292,51 @@
       global.envBar.registerTagsInjection(linkedinArmTagsInjection);
     }
 
+    function persistLinkedInCrossTabPrefsForArm() {
+      if (!global.AepLabTagsInjectSession) return;
+      var sandboxKey = '__default__';
+      try {
+        if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.sandboxKey === 'function') {
+          var sb = '';
+          if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+            sb = String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+          }
+          if (!sb && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
+            sb = String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
+          }
+          sandboxKey = global.AepLabEnvBarPrefs.sandboxKey(sb);
+        }
+      } catch (_e) {
+        /* noop */
+      }
+      var script = '';
+      if (typeof global.AepLabTagsInjectSession.readScript === 'function') {
+        script = global.AepLabTagsInjectSession.readScript('linkedinArm', sandboxKey);
+      }
+      if (!script && typeof global.AepLabTagsInjectSession.readLocalScript === 'function') {
+        script = global.AepLabTagsInjectSession.readLocalScript('linkedinArm', sandboxKey);
+      }
+      if (script) {
+        if (typeof global.AepLabTagsInjectSession.writeLocalScript === 'function') {
+          global.AepLabTagsInjectSession.writeLocalScript('linkedinArm', sandboxKey, script);
+          global.AepLabTagsInjectSession.writeLocalScript('armcom', sandboxKey, script);
+        }
+      }
+      if (typeof global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal === 'function') {
+        global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal('linkedinArm', true);
+        global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal('armcom', true);
+      }
+      if (global.AepLabConsole) {
+        global.AepLabConsole.info('tags-inject', 'LinkedIn lab — mirrored SDK config to localStorage for arm.com tab', {
+          sandboxKey: sandboxKey,
+          hasLaunchScript: !!script,
+        });
+      }
+    }
+
+    global.addEventListener('aep-demo-env-configured', persistLinkedInCrossTabPrefsForArm);
+    global.addEventListener('aep-lab-env-bar-prefs-change', persistLinkedInCrossTabPrefsForArm);
+
     DemoProfileDrawer.init({
       emailInputId: 'customerEmail',
       profileOpenClass: 'social-linkedin-page--profile-open',

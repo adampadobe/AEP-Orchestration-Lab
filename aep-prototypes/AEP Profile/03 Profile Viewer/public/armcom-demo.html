@@ -5,6 +5,7 @@
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arm (demo) – AEP Profile Viewer</title>
+  <script>(function(){try{var p=new URLSearchParams(location.search);var from=p.get('from')||'';if(from==='linkedin-ad'||from==='linkedin-organic'||from==='activation'){sessionStorage.setItem('armcomPresenterMode','1');document.documentElement.setAttribute('data-armcom-presenter','');}}catch(e){}})();</script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="armcom-demo.css?v=20260714">
@@ -124,6 +125,7 @@
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="demos/armcom/armcom-fake-audiences.js?v=20260720c"></script>
   <script src="demos/armcom/armcom-ecid-reset.js?v=20260720e-tags-resume"></script>
+  <script src="demos/armcom/armcom-linkedin-return.js?v=20260721"></script>
   <script src="demos/armcom/armcom-lab-core.js?v=20260720-gen-target-fix"></script>
   <script src="armcom-demo.js?v=20260720-gen-target-fix"></script>
   <script src="site-clone-bc.js?v=20260720d-armcom-scroll"></script>
