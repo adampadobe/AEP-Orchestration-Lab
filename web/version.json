@@ -1,14 +1,14 @@
 {
-  "gitSha": "a7ec985ee7b29ce93f46ad0ecb2a0d4faeb49e30",
-  "gitShortSha": "a7ec985e",
+  "gitSha": "0823bec3f9a6af1c835147308e0c67a01433543e",
+  "gitShortSha": "0823bec3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: gate post-registration banner until AGI brief captured",
+  "gitCommitSubject": "[apalmer] fix: armcom toasts display side by side not stacked overlap",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T16:20:32+01:00",
-  "deployedAt": "2026-07-21T15:23:11.317Z",
+  "gitCommitDate": "2026-07-21T16:36:35+01:00",
+  "deployedAt": "2026-07-21T15:36:51.468Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a7ec985ee7b29ce93f46ad0ecb2a0d4faeb49e30"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0823bec3f9a6af1c835147308e0c67a01433543e"
 }
