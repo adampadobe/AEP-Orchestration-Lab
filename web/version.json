@@ -1,14 +1,14 @@
 {
-  "gitSha": "23963df610103f3a0c3d82f428a9cb3550faf074",
-  "gitShortSha": "23963df6",
+  "gitSha": "ea71d4e4c72d2741f68058b9499e340a07f904b2",
+  "gitShortSha": "ea71d4e4",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: stop page reload when selecting Tags property on LinkedIn demo",
+  "gitCommitSubject": "[apalmer] fix: ECID in profile drawer and env bar collapse loop on LinkedIn return",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T11:41:27+01:00",
-  "deployedAt": "2026-07-21T10:41:57.055Z",
+  "gitCommitDate": "2026-07-21T11:51:14+01:00",
+  "deployedAt": "2026-07-21T10:51:28.615Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/23963df610103f3a0c3d82f428a9cb3550faf074"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ea71d4e4c72d2741f68058b9499e340a07f904b2"
 }
