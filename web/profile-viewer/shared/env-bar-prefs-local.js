@@ -408,9 +408,15 @@
     writeUnifiedLegacyMap(legacyKey, map);
     writeLegacyMap(legacyKey, map);
     if (!options.silent) {
+      if (global.__aepLabEnvBarPrefsWriteInProgress) return true;
+      global.__aepLabEnvBarPrefsWriteInProgress = true;
       try {
         global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-change', { detail: { type: 'map', key: legacyKey } }));
-      } catch (_e) {}
+      } catch (_e) {
+        /* noop */
+      } finally {
+        global.__aepLabEnvBarPrefsWriteInProgress = false;
+      }
     }
     return true;
   }

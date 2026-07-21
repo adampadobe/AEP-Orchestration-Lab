@@ -4181,12 +4181,34 @@ function whenAlloyGlobalReady(timeoutMs) {
 }
 
 /**
+ * Mirror browser ECID in env strip (#infoEcid) and drawer identity row (#profileDrawerDesktopId).
+ * @param {string} ecid
+ */
+function setBrowserEcidDisplay(ecid) {
+  const digits = String(ecid || '').replace(/\D/g, '');
+  if (digits.length < 10) return;
+  cacheDomRefs();
+  const stripNode = document.getElementById('infoEcid');
+  if (stripNode) stripNode.textContent = digits;
+  else if (infoEcid) infoEcid.textContent = digits;
+  const drawerNode = document.getElementById('profileDrawerDesktopId');
+  if (drawerNode) {
+    const cur = String(drawerNode.textContent || '').trim();
+    if (!cur || cur === '—' || cur === '-') drawerNode.textContent = digits;
+  } else if (profileDrawerDesktopId) {
+    const cur = String(profileDrawerDesktopId.textContent || '').trim();
+    if (!cur || cur === '—' || cur === '-') profileDrawerDesktopId.textContent = digits;
+  }
+}
+
+/**
  * When Launch + Web SDK assign a browser ECID before any profile lookup, mirror it in the strip
  * and drawer (IDENTITY + graph) so demos work immediately.
  */
 async function applyBrowserEcidFromAlloyIfNeeded() {
   cacheDomRefs();
-  const cur = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+  const stripNode = document.getElementById('infoEcid') || infoEcid;
+  const cur = stripNode ? String(stripNode.textContent || '').trim() : '';
   if (cur && cur !== '—' && cur !== '-' && /^\d+$/.test(cur) && cur.length >= 10) return;
   await refreshBrowserEcidFromAlloy();
 }
@@ -4227,7 +4249,7 @@ async function refreshBrowserEcidFromAlloy(opts) {
 
   if (!ecid || ecid.length < 10) return;
 
-  if (infoEcid) infoEcid.textContent = ecid;
+  setBrowserEcidDisplay(ecid);
   const patch = {
     ecid,
     identities: [{ namespace: 'ECID', value: ecid }],
@@ -4417,5 +4439,9 @@ global.addEventListener('pageshow', function (ev) {
   if (!ev || !ev.persisted) return;
   labLog('warn', 'bfcache restore — re-caching drawer DOM and hover wiring', {});
   ensureProfileDrawerShellReady();
+});
+
+global.addEventListener('aep-demo-tags-injected', function () {
+  void applyBrowserEcidFromAlloyIfNeeded();
 });
 })(typeof window !== 'undefined' ? window : globalThis);

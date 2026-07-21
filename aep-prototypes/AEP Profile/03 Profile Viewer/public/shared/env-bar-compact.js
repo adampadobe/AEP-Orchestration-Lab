@@ -28,6 +28,10 @@
   var selectDismissGraceUntil = 0;
   var datastreamManualEntryOpen = false;
   var toolbarResizeObserver = null;
+  /** Guards against closeOverlay ↔ applySandboxConfigState ↔ aep-demo-env-configured loops. */
+  var closeOverlayInProgress = false;
+  var collapseEnvBarInProgress = false;
+  var envConfiguredCollapseInProgress = false;
   /** Spectrum 2 workflow icon: Settings (S2_Icon_Settings_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var DOCK_ICON_SVG =
     '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -516,12 +520,25 @@
     anchor = anchor || resolveAnchor();
     if (!anchor || anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return false;
     if (isOverlayPinned(anchor)) return false;
+    if (collapseEnvBarInProgress) return false;
     setConfiguring(anchor, false);
     if (isArmcomPresenterMode()) {
-      return closeOverlay(anchor, { force: true });
+      if (!isOverlayOpen(anchor)) return true;
+      collapseEnvBarInProgress = true;
+      try {
+        return closeOverlay(anchor, { force: true });
+      } finally {
+        collapseEnvBarInProgress = false;
+      }
     }
-    openProfilePeek(anchor);
-    return true;
+    if (!isOverlayOpen(anchor) || anchor.classList.contains(PROFILE_ONLY_CLASS)) return true;
+    collapseEnvBarInProgress = true;
+    try {
+      openProfilePeek(anchor);
+      return true;
+    } finally {
+      collapseEnvBarInProgress = false;
+    }
   }
 
   function minimizeToProfileLookup(anchor) {
@@ -677,11 +694,21 @@
     anchor = anchor || resolveAnchor();
     if (!anchor) return false;
     var options = opts || {};
+    if (closeOverlayInProgress) return false;
     if (!options.force && shouldBlockOverlayDismiss(anchor)) return false;
-    setConfiguring(anchor, false);
-    setExpanded(anchor, false, false, false);
-    if (options.force || !readPinnedFromStorage()) writePinnedToStorage(false);
-    return true;
+    if (!isOverlayOpen(anchor)) {
+      setConfiguring(anchor, false);
+      return true;
+    }
+    closeOverlayInProgress = true;
+    try {
+      setConfiguring(anchor, false);
+      setExpanded(anchor, false, false, false);
+      if (options.force || !readPinnedFromStorage()) writePinnedToStorage(false);
+      return true;
+    } finally {
+      closeOverlayInProgress = false;
+    }
   }
 
   /** @type {HTMLElement|null} */
@@ -887,10 +914,17 @@
 
   global.addEventListener('aep-demo-env-configured', function () {
     if (global.AepLabTagsInjectGuard && global.AepLabTagsInjectGuard.isInProgress()) return;
+    if (envConfiguredCollapseInProgress) return;
     var anchor = resolveAnchor();
     if (!anchor || isOverlayPinned(anchor)) return;
-    setConfiguring(anchor, false);
-    collapseEnvBarForConfiguredState(anchor);
+    if (isArmcomPresenterMode() && !isOverlayOpen(anchor)) return;
+    envConfiguredCollapseInProgress = true;
+    try {
+      setConfiguring(anchor, false);
+      collapseEnvBarForConfiguredState(anchor);
+    } finally {
+      envConfiguredCollapseInProgress = false;
+    }
   });
 
   global.addEventListener('aep-demo-env-overlay-open', function (ev) {

@@ -401,15 +401,19 @@
   }
 
   function refreshToolbarEcidAfterInject() {
-    if (!global.DemoProfileDrawer || typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy !== 'function') {
-      return;
-    }
-    void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy();
-    global.setTimeout(function () {
-      if (typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy === 'function') {
+    function scheduleRefresh(delayMs) {
+      global.setTimeout(function () {
+        if (!global.DemoProfileDrawer || typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy !== 'function') {
+          return;
+        }
         void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy();
-      }
-    }, 1500);
+      }, delayMs);
+    }
+
+    scheduleRefresh(0);
+    scheduleRefresh(500);
+    scheduleRefresh(1500);
+    scheduleRefresh(3000);
   }
 
   function onLinkedInReturnTagsReady() {

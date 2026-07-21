@@ -1062,7 +1062,15 @@
         );
         if (isSdkConfiguredForSandbox()) markLabEnvConfiguredSession();
         if (!expanded && !options.skipConfiguredSignals) {
-          global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
+          const overlayStillOpen =
+            global.EnvBarCompact &&
+            typeof global.EnvBarCompact.isOpen === 'function' &&
+            global.EnvBarCompact.isOpen();
+          if (!overlayStillOpen) {
+            /* Overlay already collapsed — skip re-dispatch to avoid collapse loop. */
+          } else {
+            global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
+          }
         }
       } catch (e) {
         /* noop */
@@ -1164,6 +1172,12 @@
         global.dispatchEvent(new CustomEvent('aep-demo-tags-injected'));
       } catch (_e2) {
         /* noop */
+      }
+      refreshTagsDom();
+      if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy === 'function') {
+        void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy();
+      } else if (infoEcidEl) {
+        void syncEcidFromAlloy();
       }
     }
 
@@ -1970,42 +1984,53 @@
     }
 
     function applySandboxConfigState(options) {
-      const opts = options || {};
-      const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      let configured = isSdkConfiguredForSandbox() || isCrossTabSdkConfiguredForSandbox();
-      if (configured && !persistedScript) {
-        if (isSdkConfiguredForSandbox()) {
-          markSdkConfiguredForSandbox(false);
+      if (global.__aepApplySandboxConfigStateInProgress) return;
+      global.__aepApplySandboxConfigStateInProgress = true;
+      try {
+        const opts = options || {};
+        const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+        let configured = isSdkConfiguredForSandbox() || isCrossTabSdkConfiguredForSandbox();
+        if (configured && !persistedScript) {
+          if (isSdkConfiguredForSandbox()) {
+            markSdkConfiguredForSandbox(false);
+          }
+          configured = false;
         }
-        configured = false;
-      }
-      const overlayOpen = isUserEnvPanelOpen();
-      const presenterMode =
-        global.EnvBarCompact &&
-        typeof global.EnvBarCompact.isArmcomPresenterMode === 'function' &&
-        global.EnvBarCompact.isArmcomPresenterMode();
-      const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
-      const preserveEditing = !!opts.preserveEditing || (overlayOpen && !presenterMode);
-      const expandFields = presenterMode
-        ? false
-        : !configured || keepPanelOpen || preserveEditing || !persistedScript;
-      setSdkConfigExpanded(expandFields, {
-        skipConfiguredSignals: keepPanelOpen || preserveEditing || !!opts.skipConfiguredSignals,
-      });
-      if (configured && persistedScript) {
-        if (!isSdkConfiguredForSandbox()) {
-          markSdkConfiguredForSandbox(true);
-          persistSelectedScriptUrl(persistedScript);
+        const overlayOpen = isUserEnvPanelOpen();
+        const presenterMode =
+          global.EnvBarCompact &&
+          typeof global.EnvBarCompact.isArmcomPresenterMode === 'function' &&
+          global.EnvBarCompact.isArmcomPresenterMode();
+        const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
+        const preserveEditing = !!opts.preserveEditing || (overlayOpen && !presenterMode);
+        const expandFields = presenterMode
+          ? false
+          : !configured || keepPanelOpen || preserveEditing || !persistedScript;
+        const skipConfiguredSignals =
+          keepPanelOpen ||
+          preserveEditing ||
+          !!opts.skipConfiguredSignals ||
+          (!overlayOpen && configured);
+        setSdkConfigExpanded(expandFields, {
+          skipConfiguredSignals: skipConfiguredSignals,
+        });
+        if (configured && persistedScript) {
+          if (!isSdkConfiguredForSandbox()) {
+            markSdkConfiguredForSandbox(true);
+            persistSelectedScriptUrl(persistedScript);
+          }
+          markLabEnvConfiguredSession();
         }
-        markLabEnvConfiguredSession();
-      }
-      renderSelectedScript(persistedScript);
-      if (opts.announceSandboxChange) {
-        if (configured) {
-          setMessage('Sandbox changed. Existing SDK config found for this sandbox.', 'success');
-        } else {
-          setMessage('Sandbox changed. Configure SDK injection for this sandbox.', '');
+        renderSelectedScript(persistedScript);
+        if (opts.announceSandboxChange) {
+          if (configured) {
+            setMessage('Sandbox changed. Existing SDK config found for this sandbox.', 'success');
+          } else {
+            setMessage('Sandbox changed. Configure SDK injection for this sandbox.', '');
+          }
         }
+      } finally {
+        global.__aepApplySandboxConfigStateInProgress = false;
       }
     }
 
@@ -2188,7 +2213,7 @@
       if (detail.open) {
         applySandboxConfigState({ preserveEditing: true });
       } else {
-        applySandboxConfigState();
+        applySandboxConfigState({ skipConfiguredSignals: true });
       }
     });
 
