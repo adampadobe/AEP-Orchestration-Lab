@@ -29,7 +29,7 @@
       compactCss: '20260714-env-bar-config-fileconvert',
       compactJs: '20260721-organic-flow',
       bootstrap: '20260720-global-lab-console',
-      prefsLocal: '20260622-bc-enabled-persist',
+      prefsLocal: '20260721-linkedin-prefs-loop-fix',
       prefsSync: '20260616-tags-incognito-load',
       tagsInjection: '20260721-organic-flow',
       aepDemoEnvBar: '20260720-global-lab-console',

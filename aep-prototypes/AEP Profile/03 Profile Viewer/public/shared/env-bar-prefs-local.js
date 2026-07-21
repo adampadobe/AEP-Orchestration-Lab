@@ -392,9 +392,20 @@
     return readLegacyMap(legacyKey);
   }
 
+  function mapsJsonEqual(a, b) {
+    try {
+      return JSON.stringify(a || {}) === JSON.stringify(b || {});
+    } catch (_eq) {
+      return false;
+    }
+  }
+
   function writeMap(legacyKey, mapObj) {
-    writeUnifiedLegacyMap(legacyKey, mapObj);
-    writeLegacyMap(legacyKey, mapObj);
+    var map = mapObj && typeof mapObj === 'object' ? mapObj : {};
+    var current = readMap(legacyKey);
+    if (mapsJsonEqual(current, map)) return;
+    writeUnifiedLegacyMap(legacyKey, map);
+    writeLegacyMap(legacyKey, map);
     try {
       global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-change', { detail: { type: 'map', key: legacyKey } }));
     } catch (_e) {}
