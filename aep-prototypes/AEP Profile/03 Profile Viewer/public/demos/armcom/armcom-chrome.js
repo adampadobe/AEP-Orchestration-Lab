@@ -15,7 +15,7 @@
     var rel = path.slice(idx + marker.length);
     if (!rel) rel = 'index.html';
     var search = window.location.search || '';
-    if (search.indexOf('frame=') !== -1) return;
+    if (search.indexOf('frame=') !== -1 || search.indexOf('iframe=') !== -1) return;
 
     var depth = (rel.match(/\//g) || []).length;
     var isMobile = /^mobile\//i.test(rel);

@@ -14,6 +14,9 @@
     'linkedin-organic': true,
     activation: true,
   };
+  var presenterBootstrapStarted = false;
+  var presenterBootstrapComplete = false;
+  var prefsSyncedBootstrapHandled = false;
 
   function tagsLog(level, message, detail) {
     if (!global.AepLabConsole) return;
@@ -149,6 +152,14 @@
     }
   }
 
+  function mapsJsonEqual(a, b) {
+    try {
+      return JSON.stringify(a || {}) === JSON.stringify(b || {});
+    } catch (_eq) {
+      return false;
+    }
+  }
+
   function writeJsonMap(key, mapObj) {
     try {
       if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
@@ -161,6 +172,13 @@
     }
   }
 
+  function writeJsonMapIfChanged(key, mapObj) {
+    var next = mapObj && typeof mapObj === 'object' ? mapObj : {};
+    if (mapsJsonEqual(readJsonMap(key), next)) return false;
+    writeJsonMap(key, next);
+    return true;
+  }
+
   function mirrorLinkedInConfiguredMapsToArmcom(sandboxKey) {
     if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs === 'function') {
       global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs(sandboxKey);
@@ -169,15 +187,17 @@
     var liScriptMap = readJsonMap(LINKEDIN_PREFIX + 'SelectedLaunchScriptBySandbox');
     var launchScript = String(armScriptMap[sandboxKey] || liScriptMap[sandboxKey] || '').trim();
     if (launchScript) {
-      armScriptMap[sandboxKey] = launchScript;
-      writeJsonMap(ARMCOM_PREFIX + 'SelectedLaunchScriptBySandbox', armScriptMap);
+      var nextArmScriptMap = Object.assign({}, armScriptMap);
+      nextArmScriptMap[sandboxKey] = launchScript;
+      writeJsonMapIfChanged(ARMCOM_PREFIX + 'SelectedLaunchScriptBySandbox', nextArmScriptMap);
     }
 
     var armCfgMap = readJsonMap(ARMCOM_PREFIX + 'SdkConfiguredBySandbox');
     var liCfgMap = readJsonMap(LINKEDIN_PREFIX + 'SdkConfiguredBySandbox');
     if (liCfgMap[sandboxKey] === 1 || launchScript) {
-      armCfgMap[sandboxKey] = 1;
-      writeJsonMap(ARMCOM_PREFIX + 'SdkConfiguredBySandbox', armCfgMap);
+      var nextArmCfgMap = Object.assign({}, armCfgMap);
+      nextArmCfgMap[sandboxKey] = 1;
+      writeJsonMapIfChanged(ARMCOM_PREFIX + 'SdkConfiguredBySandbox', nextArmCfgMap);
     }
 
     try {
@@ -185,14 +205,16 @@
         global.localStorage.getItem('aepLabEnvConfiguredLocal:' + LINKEDIN_PREFIX) === '1' ||
         launchScript
       ) {
-        global.localStorage.setItem('aepLabEnvConfiguredLocal:' + ARMCOM_PREFIX, '1');
+        if (global.localStorage.getItem('aepLabEnvConfiguredLocal:' + ARMCOM_PREFIX) !== '1') {
+          global.localStorage.setItem('aepLabEnvConfiguredLocal:' + ARMCOM_PREFIX, '1');
+        }
       }
       var liLocalInject = global.localStorage.getItem('aepDemoTagsInjectedLocal:' + LINKEDIN_PREFIX + ':' + sandboxKey);
       var armLocalKey = 'aepDemoTagsInjectedLocal:' + ARMCOM_PREFIX + ':' + sandboxKey;
-      if (liLocalInject && !global.localStorage.getItem(armLocalKey)) {
+      var armLocalInject = global.localStorage.getItem(armLocalKey);
+      if (liLocalInject && !armLocalInject) {
         global.localStorage.setItem(armLocalKey, liLocalInject);
-      }
-      if (launchScript) {
+      } else if (launchScript && armLocalInject !== launchScript) {
         global.localStorage.setItem(armLocalKey, launchScript);
       }
     } catch (_e0) {
@@ -282,12 +304,20 @@
     }
   }
 
-  function bootstrapAfterEnvBar() {
+  function bootstrapAfterEnvBar(reason) {
     if (!isLinkedInReturnVisit()) return;
+    var bootstrapReason = reason || 'envBar.ready';
+    if (presenterBootstrapComplete && bootstrapReason === 'prefs-synced') return;
+    if (presenterBootstrapStarted && bootstrapReason === 'prefs-synced') {
+      if (prefsSyncedBootstrapHandled) return;
+      prefsSyncedBootstrapHandled = true;
+    }
+    presenterBootstrapStarted = true;
     var sandboxKey = resolveSandboxKey();
     var launchScript = resolveCrossTabLaunchScript(sandboxKey);
     seedCrossTabSessionState(sandboxKey, launchScript);
-    forceEnvBarMinimized('envBar.ready');
+    forceEnvBarMinimized(bootstrapReason);
+    presenterBootstrapComplete = true;
   }
 
   function patchOrganicDrawerState() {
@@ -302,15 +332,30 @@
     }
   }
 
+  function refreshToolbarEcidAfterInject() {
+    if (!global.DemoProfileDrawer || typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy !== 'function') {
+      return;
+    }
+    void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy();
+    global.setTimeout(function () {
+      if (typeof global.DemoProfileDrawer.refreshBrowserEcidFromAlloy === 'function') {
+        void global.DemoProfileDrawer.refreshBrowserEcidFromAlloy();
+      }
+    }, 1500);
+  }
+
   function onLinkedInReturnTagsReady() {
     if (!isLinkedInReturnVisit()) return;
     forceEnvBarMinimized('tags-injected');
     patchOrganicDrawerState();
+    refreshToolbarEcidAfterInject();
   }
 
   bootstrapEarly();
 
-  whenEnvBarReady(bootstrapAfterEnvBar);
+  whenEnvBarReady(function () {
+    bootstrapAfterEnvBar('envBar.ready');
+  });
 
   global.addEventListener('aep-demo-env-strip-mounted', function () {
     if (!isLinkedInReturnVisit()) return;
@@ -324,7 +369,7 @@
 
   global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
     if (!isLinkedInReturnVisit()) return;
-    bootstrapAfterEnvBar();
+    bootstrapAfterEnvBar('prefs-synced');
   });
 
   global.addEventListener('aep-demo-tags-injected', onLinkedInReturnTagsReady);

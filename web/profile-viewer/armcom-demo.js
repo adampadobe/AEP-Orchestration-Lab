@@ -80,15 +80,36 @@ function onLinkedInAdReturnIframeReady() {
   }
 }
 
+function resolveArmcomFrameQueryParam(params) {
+  if (!params) return null;
+  var frameParam = params.get('frame');
+  if (frameParam) return frameParam;
+  return params.get('iframe');
+}
+
+function normalizeArmcomFrameQueryParams() {
+  try {
+    var u = new URL(window.location.href);
+    if (!u.searchParams.has('iframe') || u.searchParams.has('frame')) return;
+    u.searchParams.set('frame', u.searchParams.get('iframe') || '');
+    u.searchParams.delete('iframe');
+    var qs = u.searchParams.toString();
+    window.history.replaceState(window.history.state, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+  } catch (_e) {
+    /* noop */
+  }
+}
+
 function syncIframeToJourneyUrl() {
   if (!armcomSiteFrame) return;
+  normalizeArmcomFrameQueryParams();
   var params;
   try {
     params = new URLSearchParams(window.location.search);
   } catch (_e) {
     params = null;
   }
-  var frameParam = params ? params.get('frame') : null;
+  var frameParam = resolveArmcomFrameQueryParam(params);
   if (frameParam) {
     setArmcomFrameSrcIfNeeded('demos/armcom/' + String(frameParam).replace(/^\//, ''));
     return;
@@ -162,6 +183,13 @@ window.addEventListener('pageshow', function (ev) {
 window.addEventListener('env-bar-change', function (ev) {
   var detail = ev && ev.detail ? ev.detail : {};
   if (detail.type === 'init') bootArmcomDemoLab('env-bar-change:init');
+});
+
+window.addEventListener('aep-demo-tags-injected', function () {
+  bootArmcomDemoLab('tags-injected');
+  if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshBrowserEcidFromAlloy === 'function') {
+    void DemoProfileDrawer.refreshBrowserEcidFromAlloy();
+  }
 });
 
 document.addEventListener('change', function (ev) {
