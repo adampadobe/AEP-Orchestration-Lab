@@ -335,9 +335,297 @@
   const offlineUploadClear = document.getElementById('brandScraperOfflineUploadClear');
   const offlineUploadReady = document.getElementById('brandScraperOfflineUploadReady');
   let pendingUploadFiles = [];
+  let autoFilledUrl = false;
+  let autoFilledCustomerName = false;
 
   const MAX_UPLOAD_BYTES = 30 * 1024 * 1024;
   const MAX_UPLOAD_FILES = 40;
+  const SAVED_FROM_URL_RE = /<!--\s*saved from url=\(\d+\)(https?:\/\/[^\s>-]+)\s*-->/i;
+  const AD_IFRAME_HTML_HEAD_RE = /2mdn\.net|sadbundle|doubleclick|Template_H5|Enabler_01/i;
+  const SAVE_PAGE_FILES_DIR_RE = /_files\//i;
+  const TITLE_SUFFIX_RE = /\s[-–—|:·]\s*(home|homepage|official site|welcome|main page|startseite)$/i;
+
+  if (urlInput) {
+    urlInput.addEventListener('input', function () { autoFilledUrl = false; });
+  }
+  if (customerNameInput) {
+    customerNameInput.addEventListener('input', function () { autoFilledCustomerName = false; });
+  }
+
+  function readFileAsText(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  function ensureFflate() {
+    if (typeof fflate === 'undefined' || !fflate.unzipSync) {
+      return Promise.reject(new Error('ZIP helper not loaded'));
+    }
+    return Promise.resolve(fflate);
+  }
+
+  function posixNormPath(p) {
+    return String(p || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  }
+
+  function htmlEntryHead(html) {
+    return String(html || '').slice(0, 4096);
+  }
+
+  function findBrowserSavePageRoot(entries) {
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      const name = posixNormPath(e.name);
+      if (!/\.html?$/i.test(name) || name.includes('/')) continue;
+      const m = /^(.+)\.html?$/i.exec(name);
+      if (!m) continue;
+      const companionPrefix = m[1] + '_files/';
+      const hasCompanion = entries.some(function (x) {
+        const p = posixNormPath(x && x.name);
+        return p && p.startsWith(companionPrefix);
+      });
+      if (hasCompanion) return e;
+    }
+    return null;
+  }
+
+  function scoreHtmlCandidate(entry, entries) {
+    const name = posixNormPath(entry.name);
+    let score = 0;
+    const saveRoot = findBrowserSavePageRoot(entries);
+    if (saveRoot && name === posixNormPath(saveRoot.name)) {
+      score += 150;
+      score += Math.min(String(entry.content || '').length / 5000, 40);
+    }
+    if (SAVE_PAGE_FILES_DIR_RE.test(name)) {
+      if (/(^|\/)index\.html?$/i.test(name)) score -= 80;
+      else score -= 35;
+      if (saveRoot) score -= 25;
+    }
+    if (/(^|\/)index\.html?$/i.test(name)) score = Math.max(score, 100);
+    else if (/(^|\/)default\.html?$/i.test(name)) score = Math.max(score, 90);
+    else if (/(^|\/)home\.html?$/i.test(name)) score = Math.max(score, 85);
+    else if (/(^|\/)main\.html?$/i.test(name)) score = Math.max(score, 80);
+    if (AD_IFRAME_HTML_HEAD_RE.test(htmlEntryHead(entry.content))) score -= 100;
+    if (!name.includes('/')) score += 15;
+    score -= (name.split('/').length - 1) * 3;
+    score -= Math.min(name.length, 80) * 0.01;
+    return score;
+  }
+
+  function pickPrimaryHtmlEntry(entries) {
+    const htmlEntries = entries.filter(function (e) {
+      return e && e.name && /\.html?$/i.test(e.name) && String(e.content || '').trim();
+    });
+    if (!htmlEntries.length) return null;
+    return htmlEntries.map(function (e) {
+      return { entry: e, score: scoreHtmlCandidate(e, htmlEntries) };
+    }).sort(function (a, b) { return b.score - a.score; })[0].entry;
+  }
+
+  function extractMetaContent(html, attrName, attrValue) {
+    const re = new RegExp('<meta[^>]*' + attrName + '=["\']' + attrValue + '["\'][^>]*>', 'i');
+    const tag = re.exec(html || '');
+    if (!tag) return '';
+    const content = /content=["']([^"']*)["']/i.exec(tag[0]);
+    return content ? decodeHtmlEntities(content[1].trim()) : '';
+  }
+
+  function extractLinkHref(html, rel) {
+    const tags = String(html || '').match(/<link[^>]*>/gi) || [];
+    for (let i = 0; i < tags.length; i++) {
+      const tag = tags[i];
+      if (!new RegExp('rel=["\'][^"\']*\\b' + rel + '\\b', 'i').test(tag)) continue;
+      const href = /href=["']([^"']+)["']/i.exec(tag);
+      if (href) return href[1].trim();
+    }
+    return '';
+  }
+
+  function extractTitleFromHtml(html) {
+    const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html || '');
+    return m ? decodeHtmlEntities(m[1].replace(/\s+/g, ' ').trim()) : '';
+  }
+
+  function extractSavedPageUrl(html) {
+    const m = SAVED_FROM_URL_RE.exec(String(html || '').slice(0, 2048));
+    return m ? m[1].trim() : '';
+  }
+
+  function resolveAbsoluteUrl(href, baseUrl) {
+    if (!href) return '';
+    const trimmed = String(href).trim();
+    if (!trimmed || /^data:/i.test(trimmed) || /^javascript:/i.test(trimmed)) return '';
+    try { return new URL(trimmed, normaliseUrl(baseUrl || 'https://uploaded.local/')).toString(); } catch (_e) { return ''; }
+  }
+
+  function extractUrlFromHtml(html, fileName, baseUrl) {
+    const canonical = extractLinkHref(html, 'canonical');
+    const fromCanonical = resolveAbsoluteUrl(canonical, baseUrl);
+    if (fromCanonical) return fromCanonical;
+    const ogUrl = extractMetaContent(html, 'property', 'og:url');
+    const fromOg = resolveAbsoluteUrl(ogUrl, baseUrl);
+    if (fromOg) return fromOg;
+    const baseHref = extractLinkHref(html, 'base') || (/<base\b[^>]*href=["']([^"']+)["']/i.exec(html || '') || [])[1];
+    const fromBase = resolveAbsoluteUrl(baseHref, baseUrl);
+    if (fromBase && !/uploaded\.local/i.test(fromBase)) return fromBase;
+    const saved = extractSavedPageUrl(html);
+    if (saved) return saved;
+    return extractUrlFromFilename(fileName);
+  }
+
+  function extractUrlFromFilename(name) {
+    const base = posixNormPath(name).split('/').pop().replace(/\.html?$/i, '');
+    if (!base) return '';
+    const domainOnly = base.split(/\s[-–—|]/)[0].trim();
+    if (/^(?:www\.)?[a-z0-9][-a-z0-9]*(?:\.[a-z0-9][-a-z0-9]*)+$/i.test(domainOnly)) {
+      return normaliseUrl(domainOnly);
+    }
+    const domainMatch = /^((?:www\.)?[a-z0-9][-a-z0-9]*(?:\.[a-z0-9][-a-z0-9]*)+)\s[-–—|]/i.exec(base);
+    if (domainMatch) return normaliseUrl(domainMatch[1]);
+    return '';
+  }
+
+  function prettifyDomainFromUrl(url) {
+    try {
+      const host = new URL(normaliseUrl(url)).hostname.replace(/^www\./, '');
+      const parts = host.split('.');
+      const part = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+      if (!part) return '';
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  function cleanTitleForBrandName(title) {
+    let t = String(title || '').trim();
+    if (!t) return '';
+    t = t.replace(TITLE_SUFFIX_RE, '').trim();
+    for (let i = 0; i < [' | ', ' - ', ' – ', ' — ', ' : ', ' · '].length; i++) {
+      const sep = [' | ', ' - ', ' – ', ' — ', ' : ', ' · '][i];
+      if (!t.includes(sep)) continue;
+      const parts = t.split(sep).map(function (s) { return s.trim(); }).filter(Boolean);
+      if (parts.length) return parts.reduce(function (a, b) { return a.length <= b.length ? a : b; });
+    }
+    return t;
+  }
+
+  function prettifyFilenameStem(name) {
+    const stem = posixNormPath(name).split('/').pop().replace(/\.html?$/i, '');
+    if (!stem) return '';
+    const cleaned = stem.split(/\s[-–—|]/)[0].trim();
+    if (/^(?:www\.)?[a-z0-9][-a-z0-9.]*$/i.test(cleaned)) return prettifyDomainFromUrl(normaliseUrl(cleaned));
+    return cleaned.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function extractCustomerNameFromHtml(html, url, fileName) {
+    const title = cleanTitleForBrandName(extractTitleFromHtml(html));
+    if (title) return title;
+    const ogSite = extractMetaContent(html, 'property', 'og:site_name');
+    if (ogSite) return ogSite;
+    const fromDomain = prettifyDomainFromUrl(url);
+    if (fromDomain) return fromDomain;
+    const fromFile = prettifyFilenameStem(fileName);
+    if (fromFile) return fromFile;
+    return fromDomain;
+  }
+
+  function formatUrlForInput(url) {
+    const v = String(url || '').trim();
+    if (!v) return '';
+    return v.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  }
+
+  function applyDetectedUploadFields(detected) {
+    if (!detected) return;
+    if (detected.url && urlInput && (!urlInput.value.trim() || autoFilledUrl)) {
+      urlInput.value = formatUrlForInput(detected.url);
+      autoFilledUrl = true;
+    }
+    if (detected.customerName && customerNameInput && (!customerNameInput.value.trim() || autoFilledCustomerName)) {
+      customerNameInput.value = detected.customerName;
+      autoFilledCustomerName = true;
+    }
+  }
+
+  function buildDetectionStatus(detected) {
+    if (!detected) return '';
+    const parts = [];
+    if (detected.customerName) parts.push('brand: ' + detected.customerName);
+    if (detected.url) parts.push('URL: ' + formatUrlForInput(detected.url));
+    if (!parts.length) return '';
+    return 'Detected ' + parts.join(', ') + ' — click Analyse.';
+  }
+
+  async function readZipHtmlEntries(file) {
+    const zipLib = await ensureFflate();
+    const buffer = await file.arrayBuffer();
+    const entries = zipLib.unzipSync(new Uint8Array(buffer));
+    const htmlEntries = [];
+    Object.keys(entries).forEach(function (name) {
+      if (!/\.html?$/i.test(name)) return;
+      const norm = posixNormPath(name);
+      if (!norm || norm.includes('..')) return;
+      const bytes = entries[name];
+      if (!bytes || !bytes.length) return;
+      htmlEntries.push({
+        name: norm,
+        content: new TextDecoder('utf-8').decode(bytes),
+      });
+    });
+    return htmlEntries;
+  }
+
+  async function detectBrandFromUploadFiles(files) {
+    const htmlEntries = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (/\.zip$/i.test(f.name)) {
+        try {
+          const zipEntries = await readZipHtmlEntries(f);
+          htmlEntries.push.apply(htmlEntries, zipEntries);
+        } catch (_zipErr) {
+          /* fall through to filename heuristics */
+        }
+      } else if (/\.html?$/i.test(f.name)) {
+        try {
+          htmlEntries.push({ name: posixNormPath(f.name), content: await readFileAsText(f) });
+        } catch (_readErr) { /* ignore */ }
+      }
+    }
+
+    const primary = pickPrimaryHtmlEntry(htmlEntries);
+    let url = '';
+    let customerName = '';
+    if (primary) {
+      url = extractUrlFromHtml(primary.content, primary.name, extractSavedPageUrl(primary.content) || extractUrlFromFilename(primary.name));
+      customerName = extractCustomerNameFromHtml(primary.content, url, primary.name);
+    }
+
+    if (!url) {
+      for (let i = 0; i < files.length; i++) {
+        url = extractUrlFromFilename(files[i].name);
+        if (url) break;
+      }
+    }
+    if (!customerName) {
+      if (url) customerName = prettifyDomainFromUrl(url);
+      if (!customerName) {
+        for (let j = 0; j < files.length; j++) {
+          customerName = prettifyFilenameStem(files[j].name);
+          if (customerName) break;
+        }
+      }
+    }
+
+    if (!url && !customerName) return null;
+    return { url: url || '', customerName: customerName || '' };
+  }
 
   function isAcceptedUploadFile(file) {
     return /\.(html?|zip)$/i.test(String((file && file.name) || ''));
@@ -420,7 +708,13 @@
       }
       applyRunOptionsToUI();
       updateOfflineUploadUI();
-      setStatus('Upload ready — click Analyse.', 'info');
+      detectBrandFromUploadFiles(files).then(function (detected) {
+        applyDetectedUploadFields(detected);
+        const msg = buildDetectionStatus(detected);
+        setStatus(msg || 'Upload ready — click Analyse.', 'info');
+      }).catch(function () {
+        setStatus('Upload ready — click Analyse.', 'info');
+      });
     }
     return true;
   }
