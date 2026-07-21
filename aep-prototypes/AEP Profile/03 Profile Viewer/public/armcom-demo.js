@@ -68,26 +68,60 @@ function getArmcomJourneyStage() {
   return 0;
 }
 
+function readBannerLeadCaptured() {
+  try {
+    var raw = window.sessionStorage.getItem('armcomBannerState');
+    if (!raw) return false;
+    var state = JSON.parse(raw);
+    return !!(state && (state.leadCaptured || state.registered));
+  } catch (_e) {
+    return false;
+  }
+}
+
+function readPaidAdClickedAfterBrief() {
+  if (window.ArmcomLinkedInReturn && typeof window.ArmcomLinkedInReturn.readPaidAdClickedAfterBrief === 'function') {
+    return window.ArmcomLinkedInReturn.readPaidAdClickedAfterBrief();
+  }
+  try {
+    return window.sessionStorage.getItem('armcomPaidAdClickedAfterBrief') === '1';
+  } catch (_e) {
+    return false;
+  }
+}
+
+/** Email nurture toast: brief/segment ready AND paid retargeting return (not first awareness landing). */
+function shouldUnlockEmailNurture(stageBefore) {
+  if (!isLinkedInAdReturnVisit()) return false;
+  var leadReady = readBannerLeadCaptured() || stageBefore >= 5;
+  if (!leadReady) return false;
+  if (readPaidAdClickedAfterBrief()) return true;
+  return stageBefore >= 7 && readBannerLeadCaptured();
+}
+
 function onLinkedInAdReturnIframeReady() {
   if (!isLinkedInReturnVisit()) return;
   if (isLinkedInAdReturnVisit()) {
     var stageBefore = getArmcomJourneyStage();
+    var leadReady = readBannerLeadCaptured() || stageBefore >= 4;
+    var paidRetargetingReturn = readPaidAdClickedAfterBrief() || (stageBefore >= 7 && readBannerLeadCaptured());
+    var unlockNurture = shouldUnlockEmailNurture(stageBefore);
     window.setTimeout(function () {
       triggerArmcomDecisioningRefresh({
-        paidSocialReturn: stageBefore >= 7,
-        forceVariant: stageBefore >= 7 ? undefined : 'brand-awareness',
-        contentTriggered: stageBefore >= 7,
-        leadCaptured: stageBefore >= 4,
-        registered: stageBefore >= 4,
+        paidSocialReturn: paidRetargetingReturn,
+        forceVariant: paidRetargetingReturn ? undefined : 'brand-awareness',
+        contentTriggered: paidRetargetingReturn,
+        leadCaptured: leadReady,
+        registered: leadReady,
       });
-      if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
+      if (paidRetargetingReturn && window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
         window.ArmcomFakeAudiences.onLinkedInAdClick();
       }
-      if (stageBefore >= 7) {
+      if (unlockNurture) {
         postArmcomBannerMessage('armcom-email-nurture-unlocked', {});
       }
       setArmcomMessage(
-        stageBefore >= 7
+        unlockNurture
           ? 'Returned from LinkedIn ad — personalized experience refreshed.'
           : 'Returned from LinkedIn ad — brand awareness journey started.',
         'success',

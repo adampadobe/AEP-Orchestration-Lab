@@ -14,6 +14,9 @@
   var SESSION_KEYS = [
     'armcomFakeAudienceStage',
     'armcomJourneySlideIndex',
+    'armcomPaidAdClickedAfterBrief',
+    'armcomToastState',
+    'armcomBannerState',
     'aep-demo-session-identifier-v1',
   ];
 

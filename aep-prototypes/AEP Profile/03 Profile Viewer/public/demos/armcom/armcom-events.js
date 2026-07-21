@@ -452,9 +452,7 @@
     if (state.activationShown) {
       showActivationToast();
     }
-    if (state.emailNurtureUnlocked) {
-      showEmailNurtureToast();
-    }
+    /* Email nurture is unlocked by armcom-demo shell after brief + paid retargeting return — not on iframe load. */
   }
 
   function dismissActivationToast(toast) {

@@ -10,6 +10,7 @@
   var PRESENTER_MODE_KEY = 'armcomPresenterMode';
   var LAB_ENV_CONFIGURED_KEY = 'aepLabEnvConfigured:' + ARMCOM_PREFIX;
   var BOOTSTRAP_SESSION_KEY = 'armcomLinkedInPresenterBootDone';
+  var PAID_AD_AFTER_BRIEF_KEY = 'armcomPaidAdClickedAfterBrief';
   var RETURN_SOURCES = {
     'linkedin-ad': true,
     'linkedin-organic': true,
@@ -75,6 +76,30 @@
 
   function isLinkedInOrganicReturnVisit() {
     return getReturnSource() === 'linkedin-organic';
+  }
+
+  function markPaidAdClickedAfterBrief() {
+    try {
+      global.sessionStorage.setItem(PAID_AD_AFTER_BRIEF_KEY, '1');
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  function readPaidAdClickedAfterBrief() {
+    try {
+      return global.sessionStorage.getItem(PAID_AD_AFTER_BRIEF_KEY) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function clearPaidAdClickedAfterBrief() {
+    try {
+      global.sessionStorage.removeItem(PAID_AD_AFTER_BRIEF_KEY);
+    } catch (_e) {
+      /* noop */
+    }
   }
 
   function resolveSandboxKey() {
@@ -423,6 +448,9 @@
     isLinkedInReturnVisit: isLinkedInReturnVisit,
     isLinkedInAdReturnVisit: isLinkedInAdReturnVisit,
     isLinkedInOrganicReturnVisit: isLinkedInOrganicReturnVisit,
+    markPaidAdClickedAfterBrief: markPaidAdClickedAfterBrief,
+    readPaidAdClickedAfterBrief: readPaidAdClickedAfterBrief,
+    clearPaidAdClickedAfterBrief: clearPaidAdClickedAfterBrief,
     enablePresenterMode: enablePresenterMode,
     seedCrossTabSessionState: seedCrossTabSessionState,
     forceEnvBarMinimized: forceEnvBarMinimized,

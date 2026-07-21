@@ -770,6 +770,19 @@
       }
     }
 
+    function markPaidAdReturnIfBriefCaptured() {
+      if (!readBannerLeadCaptured() && getJourneyStage() < 4) return;
+      if (global.ArmcomLinkedInReturn && typeof global.ArmcomLinkedInReturn.markPaidAdClickedAfterBrief === 'function') {
+        global.ArmcomLinkedInReturn.markPaidAdClickedAfterBrief();
+        return;
+      }
+      try {
+        global.sessionStorage.setItem('armcomPaidAdClickedAfterBrief', '1');
+      } catch (_e) {
+        /* noop */
+      }
+    }
+
     function openArmTargetInNewTab(url) {
       if (!url) return;
       global.open(url, '_blank', 'noopener,noreferrer');
@@ -778,6 +791,7 @@
     function navigateToArmAdTarget() {
       var targetUrl = (currentAdVariant && currentAdVariant.targetUrl) || AD_VARIANTS.awareness.targetUrl;
       persistLinkedInCrossTabPrefsForArm();
+      markPaidAdReturnIfBriefCaptured();
       openArmTargetInNewTab(targetUrl);
     }
 
