@@ -502,6 +502,27 @@ async function run() {
   assert(analyzeWithDemo.regenerateDemoWebsite === true, 'regenerateDemoWebsite passthrough');
   assert(analyzeWithDemo.customerName === 'Nike', 'customerName passthrough');
 
+  const analyzeWithUpload = buildBrandScrapeAnalyzePostBody({
+    sandbox: 'apalmer',
+    url: 'https://blocked.example',
+    upload_only: true,
+    use_as_fallback: false,
+    uploadedHtml: {
+      zipBase64: 'dGVzdA==',
+      uploadOnly: true,
+      useAsFallback: false,
+    },
+  });
+  assert(analyzeWithUpload.uploadOnly === true, 'uploadOnly on analyze body');
+  assert(analyzeWithUpload.uploadedHtml.zipBase64 === 'dGVzdA==', 'uploadedHtml passthrough');
+
+  const { generateScrapeBrief } = await import('../src/brandScraperBrief.mjs');
+  const { validateBrandScrapeUpload } = await import('../src/brandScraperUploadValidation.mjs');
+  const briefMd = generateScrapeBrief({ url: 'https://nike.com' });
+  assert(briefMd.includes('lab_brand_scrape_upload'), 'brief mentions upload tool');
+  const tinyB64 = Buffer.from('<html><body>x</body></html>').toString('base64');
+  assert(validateBrandScrapeUpload({ files: [{ name: 'a.html', content_base64: tinyB64 }] }).ok, 'upload validation ok');
+
   const demoBuildBody = buildBrandScrapeDemoBuildPostBody({
     sandbox: 'apalmer',
     scrape_id: 'scrape-abc',
