@@ -1,5 +1,15 @@
 /* Arm site-clone shell — iframe + compact env bar (shared/env-bar-compact.css) */
 
+/* Presenter mode (LinkedIn → arm.com new tab): toolbar only — no Configure SDK / Profile Lookup flash */
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned) .lab-env-overlay-panel {
+  display: none !important;
+}
+
+html[data-armcom-presenter] .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--profile-only) .lab-env-id-banner {
+  transform: translateY(calc(-100% - var(--lab-env-toolbar-height, 48px)));
+  pointer-events: none;
+}
+
 .armcom-demo-site-frame {
   position: fixed;
   inset: 0;

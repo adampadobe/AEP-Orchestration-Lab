@@ -292,8 +292,33 @@
       global.envBar.registerTagsInjection(linkedinArmTagsInjection);
     }
 
-    function persistLinkedInCrossTabPrefsForArm() {
-      if (!global.AepLabTagsInjectSession) return;
+    function readJsonMap(key) {
+      try {
+        if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+          return global.AepLabEnvBarPrefs.readMap(key) || {};
+        }
+        var raw = global.localStorage.getItem(key);
+        if (!raw) return {};
+        var parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (_e) {
+        return {};
+      }
+    }
+
+    function writeJsonMap(key, mapObj) {
+      try {
+        if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
+          global.AepLabEnvBarPrefs.writeMap(key, mapObj || {});
+          return;
+        }
+        global.localStorage.setItem(key, JSON.stringify(mapObj || {}));
+      } catch (_e) {
+        /* noop */
+      }
+    }
+
+    function resolveLinkedInSandboxKey() {
       var sandboxKey = '__default__';
       try {
         if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.sandboxKey === 'function') {
@@ -304,28 +329,72 @@
           if (!sb && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
             sb = String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
           }
+          if (!sb) sb = String(global.localStorage.getItem('aepGlobalSandboxName') || '').trim();
           sandboxKey = global.AepLabEnvBarPrefs.sandboxKey(sb);
         }
       } catch (_e) {
         /* noop */
       }
-      var script = '';
-      if (typeof global.AepLabTagsInjectSession.readScript === 'function') {
-        script = global.AepLabTagsInjectSession.readScript('linkedinArm', sandboxKey);
-      }
-      if (!script && typeof global.AepLabTagsInjectSession.readLocalScript === 'function') {
-        script = global.AepLabTagsInjectSession.readLocalScript('linkedinArm', sandboxKey);
-      }
-      if (script) {
-        if (typeof global.AepLabTagsInjectSession.writeLocalScript === 'function') {
-          global.AepLabTagsInjectSession.writeLocalScript('linkedinArm', sandboxKey, script);
-          global.AepLabTagsInjectSession.writeLocalScript('armcom', sandboxKey, script);
+      return sandboxKey;
+    }
+
+    function persistLinkedInCrossTabPrefsForArm() {
+      var sandboxKey = resolveLinkedInSandboxKey();
+      var armScriptMap = readJsonMap('armcomSelectedLaunchScriptBySandbox');
+      var liScriptMap = readJsonMap('linkedinArmSelectedLaunchScriptBySandbox');
+      var script = String(liScriptMap[sandboxKey] || armScriptMap[sandboxKey] || '').trim();
+
+      if (global.AepLabTagsInjectSession) {
+        if (!script && typeof global.AepLabTagsInjectSession.readScript === 'function') {
+          script = global.AepLabTagsInjectSession.readScript('linkedinArm', sandboxKey);
+        }
+        if (!script && typeof global.AepLabTagsInjectSession.readLocalScript === 'function') {
+          script = global.AepLabTagsInjectSession.readLocalScript('linkedinArm', sandboxKey);
+        }
+        if (script) {
+          if (typeof global.AepLabTagsInjectSession.writeScript === 'function') {
+            global.AepLabTagsInjectSession.writeScript('armcom', sandboxKey, script);
+          }
+          if (typeof global.AepLabTagsInjectSession.writeLocalScript === 'function') {
+            global.AepLabTagsInjectSession.writeLocalScript('linkedinArm', sandboxKey, script);
+            global.AepLabTagsInjectSession.writeLocalScript('armcom', sandboxKey, script);
+          }
+        }
+        if (typeof global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal === 'function') {
+          global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal('linkedinArm', true);
+          global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal('armcom', true);
         }
       }
-      if (typeof global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal === 'function') {
-        global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal('linkedinArm', true);
-        global.AepLabTagsInjectSession.writeLabEnvConfiguredLocal('armcom', true);
+
+      if (script) {
+        armScriptMap[sandboxKey] = script;
+        liScriptMap[sandboxKey] = script;
+        writeJsonMap('armcomSelectedLaunchScriptBySandbox', armScriptMap);
+        writeJsonMap('linkedinArmSelectedLaunchScriptBySandbox', liScriptMap);
+        try {
+          global.localStorage.setItem('aepDemoTagsInjectedLocal:armcom:' + sandboxKey, script);
+          global.localStorage.setItem('aepDemoTagsInjectedLocal:linkedinArm:' + sandboxKey, script);
+        } catch (_e0) {
+          /* noop */
+        }
       }
+
+      var armCfgMap = readJsonMap('armcomSdkConfiguredBySandbox');
+      var liCfgMap = readJsonMap('linkedinArmSdkConfiguredBySandbox');
+      if (liCfgMap[sandboxKey] === 1 || script) {
+        armCfgMap[sandboxKey] = 1;
+        liCfgMap[sandboxKey] = 1;
+        writeJsonMap('armcomSdkConfiguredBySandbox', armCfgMap);
+        writeJsonMap('linkedinArmSdkConfiguredBySandbox', liCfgMap);
+      }
+
+      try {
+        global.localStorage.setItem('aepLabEnvConfiguredLocal:armcom', '1');
+        global.localStorage.setItem('aepLabEnvConfiguredLocal:linkedinArm', '1');
+      } catch (_e1) {
+        /* noop */
+      }
+
       if (global.AepLabConsole) {
         global.AepLabConsole.info('tags-inject', 'LinkedIn lab — mirrored SDK config to localStorage for arm.com tab', {
           sandboxKey: sandboxKey,
@@ -544,6 +613,7 @@
 
     function openArmTargetInNewTab(url) {
       if (!url) return;
+      persistLinkedInCrossTabPrefsForArm();
       global.open(url, '_blank', 'noopener,noreferrer');
     }
 

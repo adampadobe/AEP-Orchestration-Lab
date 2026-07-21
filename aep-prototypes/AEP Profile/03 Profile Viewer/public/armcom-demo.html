@@ -8,7 +8,7 @@
   <script>(function(){try{var p=new URLSearchParams(location.search);var from=p.get('from')||'';if(from!=='linkedin-ad'&&from!=='linkedin-organic'&&from!=='activation')return;sessionStorage.setItem('armcomPresenterMode','1');document.documentElement.setAttribute('data-armcom-presenter','');function sk(n){var r=String(n||'').trim().toLowerCase();return r?r.replace(/[^a-z0-9_-]/g,'_'):'__default__'}function jm(k){try{var r=localStorage.getItem(k);return r?JSON.parse(r):{}}catch(e){return{}}}function jw(k,m){try{localStorage.setItem(k,JSON.stringify(m||{}))}catch(e){}}var sb=sk(localStorage.getItem('aepGlobalSandboxName'));var arm='armcom';var li='linkedinArm';var sm=jm(arm+'SelectedLaunchScriptBySandbox');var lm=jm(li+'SelectedLaunchScriptBySandbox');var script=String(sm[sb]||lm[sb]||'').trim();if(script){sm[sb]=script;jw(arm+'SelectedLaunchScriptBySandbox',sm);localStorage.setItem('aepDemoTagsInjectedLocal:'+arm+':'+sb,script);var liLocal=localStorage.getItem('aepDemoTagsInjectedLocal:'+li+':'+sb);if(liLocal&&!localStorage.getItem('aepDemoTagsInjectedLocal:'+arm+':'+sb))localStorage.setItem('aepDemoTagsInjectedLocal:'+arm+':'+sb,liLocal)}var cm=jm(arm+'SdkConfiguredBySandbox');var lmCfg=jm(li+'SdkConfiguredBySandbox');if(lmCfg[sb]===1||script){cm[sb]=1;jw(arm+'SdkConfiguredBySandbox',cm)}if(localStorage.getItem('aepLabEnvConfiguredLocal:'+li)==='1'||script)localStorage.setItem('aepLabEnvConfiguredLocal:'+arm,'1');sessionStorage.setItem('aepLabEnvConfigured:'+arm,'1');try{var doc=jm('aepLabEnvBarV1');if(doc&&doc.tagsBySandbox&&doc.tagsBySandbox[sb]){var e=doc.tagsBySandbox[sb];if((e.configured===1||e.configured==='1'||e.configured===true||String(e.launchScript||'').trim())&&!cm[sb]){cm[sb]=1;jw(arm+'SdkConfiguredBySandbox',cm)}}}catch(e2){}}catch(e){}})();</script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="armcom-demo.css?v=20260714">
+  <link rel="stylesheet" href="armcom-demo.css?v=20260721-organic-flow">
   <link rel="stylesheet" href="shared/demo-env-bar.bundle.css?v=20260720d-armcom-scroll">
   <link rel="stylesheet" href="shared/demo-env-bar-spectrum.css?v=20260720d-armcom-scroll">
   <link rel="stylesheet" href="shared/env-bar-compact.css?v=20260720d-armcom-scroll">
@@ -125,9 +125,9 @@
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="demos/armcom/armcom-fake-audiences.js?v=20260720c"></script>
   <script src="demos/armcom/armcom-ecid-reset.js?v=20260720e-tags-resume"></script>
-  <script src="demos/armcom/armcom-linkedin-return.js?v=20260721b"></script>
+  <script src="demos/armcom/armcom-linkedin-return.js?v=20260721-organic-flow"></script>
   <script src="demos/armcom/armcom-lab-core.js?v=20260720-gen-target-fix"></script>
-  <script src="armcom-demo.js?v=20260720-gen-target-fix"></script>
+  <script src="armcom-demo.js?v=20260721-organic-flow"></script>
   <script src="site-clone-bc.js?v=20260720d-armcom-scroll"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>

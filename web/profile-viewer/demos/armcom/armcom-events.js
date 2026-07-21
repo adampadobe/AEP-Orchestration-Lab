@@ -587,15 +587,7 @@
   }
 
   function initLinkedInAdReturnVisit() {
-    var params;
-    try {
-      params = new URLSearchParams(window.location.search);
-    } catch (_e) {
-      return;
-    }
-    if (params.get('from') !== 'linkedin-ad') return;
-    sendPaidSocialClicked({ returnVisit: true });
-    showEmailNurtureToast();
+    /* Paid social return + email nurture toast are driven by armcom-demo shell (?from=linkedin-ad). */
   }
 
   function initPageSpecificEvents() {

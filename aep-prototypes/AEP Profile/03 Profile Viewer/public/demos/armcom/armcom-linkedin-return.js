@@ -287,6 +287,24 @@
     forceEnvBarMinimized('envBar.ready');
   }
 
+  function patchOrganicDrawerState() {
+    if (!isLinkedInOrganicReturnVisit()) return;
+    if (global.ArmcomFakeAudiences) {
+      if (typeof global.ArmcomFakeAudiences.onLinkedInOrganicClick === 'function') {
+        global.ArmcomFakeAudiences.onLinkedInOrganicClick();
+      }
+      if (typeof global.ArmcomFakeAudiences.patchDrawer === 'function') {
+        global.ArmcomFakeAudiences.patchDrawer();
+      }
+    }
+  }
+
+  function onLinkedInReturnTagsReady() {
+    if (!isLinkedInReturnVisit()) return;
+    forceEnvBarMinimized('tags-injected');
+    patchOrganicDrawerState();
+  }
+
   bootstrapEarly();
 
   whenEnvBarReady(bootstrapAfterEnvBar);
@@ -298,13 +316,15 @@
 
   global.addEventListener('aep-demo-env-configured', function () {
     if (!isLinkedInReturnVisit()) return;
-    forceEnvBarMinimized('env-configured');
+    onLinkedInReturnTagsReady();
   });
 
   global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
     if (!isLinkedInReturnVisit()) return;
     bootstrapAfterEnvBar();
   });
+
+  global.addEventListener('aep-demo-tags-injected', onLinkedInReturnTagsReady);
 
   global.ArmcomLinkedInReturn = {
     getReturnSource: getReturnSource,

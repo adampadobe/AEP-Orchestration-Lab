@@ -1976,8 +1976,9 @@
         global.EnvBarCompact.isArmcomPresenterMode();
       const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
       const preserveEditing = !!opts.preserveEditing || (overlayOpen && !presenterMode);
-      const expandFields =
-        !configured || keepPanelOpen || preserveEditing || (!persistedScript && !presenterMode);
+      const expandFields = presenterMode
+        ? false
+        : !configured || keepPanelOpen || preserveEditing || !persistedScript;
       setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
       if (configured && persistedScript) {
         if (!isSdkConfiguredForSandbox()) {

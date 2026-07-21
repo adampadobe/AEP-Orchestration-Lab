@@ -74,6 +74,9 @@ function onLinkedInAdReturnIframeReady() {
   }
   if (window.ArmcomLinkedInReturn && window.ArmcomLinkedInReturn.isLinkedInOrganicReturnVisit()) {
     setArmcomMessage('Returned from LinkedIn News — arm.com loaded with lab SDK.', 'success');
+    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.patchDrawer === 'function') {
+      window.ArmcomFakeAudiences.patchDrawer();
+    }
   }
 }
 
