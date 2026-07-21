@@ -1,14 +1,14 @@
 {
-  "gitSha": "c1f68bbfe282edaf1a27483e4eed070c09727af8",
-  "gitShortSha": "c1f68bbf",
+  "gitSha": "fa72e677fb05fc77a3e5c89d58acfb864a89f863",
+  "gitShortSha": "fa72e677",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp deploy version 09484b51",
+  "gitCommitSubject": "[apalmer] feat: end-to-end Arm LinkedIn organic demo flow without re-config",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T10:35:36+01:00",
-  "deployedAt": "2026-07-21T09:35:51.408Z",
+  "gitCommitDate": "2026-07-21T10:39:30+01:00",
+  "deployedAt": "2026-07-21T09:39:45.466Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c1f68bbfe282edaf1a27483e4eed070c09727af8"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fa72e677fb05fc77a3e5c89d58acfb864a89f863"
 }
