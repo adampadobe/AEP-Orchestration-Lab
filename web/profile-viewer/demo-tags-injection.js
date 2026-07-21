@@ -1594,6 +1594,12 @@
       if (nextPropertyId === selectedPropertyId) return;
       selectedPropertyId = nextPropertyId;
       persistTagsPropertySelection(selectedPropertyId, propertyLabelFromItem(hit));
+      persistTagsEnvironmentEncodedValue('');
+      if (!isSdkConfiguredForSandbox()) {
+        persistSelectedScriptUrl('');
+        renderSelectedScript('');
+      }
+      setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
       await loadTagsEnvironments(selectedPropertyId);
     }
 
@@ -1905,6 +1911,10 @@
     }
 
     function injectSelectedScript() {
+      if (global.__aepTagsInjectViaButtonClick !== true) {
+        dtLog('injectSelectedScript: blocked — reload inject requires explicit Inject button click');
+        return;
+      }
       const raw = selectedScriptUrl;
       const scriptUrl = sanitiseLaunchScriptUrl(raw);
       dtLog('injectSelectedScript (reload path): click', {
@@ -1979,7 +1989,9 @@
       const expandFields = presenterMode
         ? false
         : !configured || keepPanelOpen || preserveEditing || !persistedScript;
-      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
+      setSdkConfigExpanded(expandFields, {
+        skipConfiguredSignals: keepPanelOpen || preserveEditing || !!opts.skipConfiguredSignals,
+      });
       if (configured && persistedScript) {
         if (!isSdkConfiguredForSandbox()) {
           markSdkConfiguredForSandbox(true);
@@ -2019,9 +2031,13 @@
         if (!isTagsPropertySelect()) {
           tagsPropertyInput.addEventListener('input', function () {
             renderPropertyOptions(tagsPropertyInput.value || '');
-            void applyPropertySelectionFromInput();
           });
           tagsPropertyInput.addEventListener('blur', function () {
+            void applyPropertySelectionFromInput();
+          });
+          tagsPropertyInput.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter') return;
+            ev.preventDefault();
             void applyPropertySelectionFromInput();
           });
         }
@@ -2056,7 +2072,12 @@
       if (injectSdkBtn) {
         injectSdkBtn.addEventListener('click', function () {
           dtLog('injectSdkBtn: click', { buttonId: cfg.injectButtonId });
-          injectSelectedScript();
+          global.__aepTagsInjectViaButtonClick = true;
+          try {
+            injectSelectedScript();
+          } finally {
+            global.__aepTagsInjectViaButtonClick = false;
+          }
         });
       }
 
@@ -2102,9 +2123,37 @@
       }, 0);
     }
 
+    function isArmcomPresenterBootstrap() {
+      return !!(
+        global.ArmcomLinkedInReturn &&
+        typeof global.ArmcomLinkedInReturn.isLinkedInReturnVisit === 'function' &&
+        global.ArmcomLinkedInReturn.isLinkedInReturnVisit() &&
+        typeof global.ArmcomLinkedInReturn.isPresenterBootstrapComplete === 'function' &&
+        !global.ArmcomLinkedInReturn.isPresenterBootstrapComplete()
+      );
+    }
+
+    function shouldSkipTagsPrefsSyncReload() {
+      if (isUserEnvPanelOpen()) return false;
+      if (isArmcomPresenterBootstrap()) return true;
+      if (
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isArmcomPresenterMode === 'function' &&
+        global.EnvBarCompact.isArmcomPresenterMode() &&
+        (isSdkConfiguredForSandbox() || isCrossTabSdkConfiguredForSandbox())
+      ) {
+        return true;
+      }
+      return false;
+    }
+
     function applyTagsPrefsAfterSyncNow() {
       refreshTagsDom();
       applyPersistedTagsFieldsEarly();
+      if (shouldSkipTagsPrefsSyncReload()) {
+        applySandboxConfigState({ preserveEditing: true, skipConfiguredSignals: true });
+        return;
+      }
       applySandboxConfigState({ preserveEditing: true });
       const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
       if (companyId) {

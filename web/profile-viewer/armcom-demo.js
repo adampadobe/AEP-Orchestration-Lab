@@ -55,21 +55,44 @@ function isLinkedInReturnVisit() {
   }
 }
 
+function getArmcomJourneyStage() {
+  if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.getStage === 'function') {
+    return window.ArmcomFakeAudiences.getStage();
+  }
+  try {
+    var stored = parseInt(window.sessionStorage.getItem('armcomFakeAudienceStage'), 10);
+    if (!isNaN(stored) && stored >= 0) return stored;
+  } catch (_e) {
+    /* noop */
+  }
+  return 0;
+}
+
 function onLinkedInAdReturnIframeReady() {
   if (!isLinkedInReturnVisit()) return;
   if (isLinkedInAdReturnVisit()) {
-    triggerArmcomDecisioningRefresh({
-      paidSocialReturn: true,
-      forceVariant: 'brand-awareness',
-      contentTriggered: true,
-      leadCaptured: true,
-      registered: true,
-    });
-    if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
-      window.ArmcomFakeAudiences.onLinkedInAdClick();
-    }
-    postArmcomBannerMessage('armcom-email-nurture-unlocked', {});
-    setArmcomMessage('Returned from LinkedIn ad — brand awareness banner refreshed.', 'success');
+    var stageBefore = getArmcomJourneyStage();
+    window.setTimeout(function () {
+      triggerArmcomDecisioningRefresh({
+        paidSocialReturn: stageBefore >= 7,
+        forceVariant: stageBefore >= 7 ? undefined : 'brand-awareness',
+        contentTriggered: stageBefore >= 7,
+        leadCaptured: stageBefore >= 4,
+        registered: stageBefore >= 4,
+      });
+      if (window.ArmcomFakeAudiences && typeof window.ArmcomFakeAudiences.onLinkedInAdClick === 'function') {
+        window.ArmcomFakeAudiences.onLinkedInAdClick();
+      }
+      if (stageBefore >= 7) {
+        postArmcomBannerMessage('armcom-email-nurture-unlocked', {});
+      }
+      setArmcomMessage(
+        stageBefore >= 7
+          ? 'Returned from LinkedIn ad — personalized experience refreshed.'
+          : 'Returned from LinkedIn ad — brand awareness journey started.',
+        'success',
+      );
+    }, 0);
     return;
   }
   if (window.ArmcomLinkedInReturn && window.ArmcomLinkedInReturn.isLinkedInOrganicReturnVisit()) {

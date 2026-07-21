@@ -400,15 +400,27 @@
     }
   }
 
-  function writeMap(legacyKey, mapObj) {
+  function writeMapInternal(legacyKey, mapObj, opts) {
+    var options = opts || {};
     var map = mapObj && typeof mapObj === 'object' ? mapObj : {};
     var current = readMap(legacyKey);
-    if (mapsJsonEqual(current, map)) return;
+    if (mapsJsonEqual(current, map)) return false;
     writeUnifiedLegacyMap(legacyKey, map);
     writeLegacyMap(legacyKey, map);
-    try {
-      global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-change', { detail: { type: 'map', key: legacyKey } }));
-    } catch (_e) {}
+    if (!options.silent) {
+      try {
+        global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-change', { detail: { type: 'map', key: legacyKey } }));
+      } catch (_e) {}
+    }
+    return true;
+  }
+
+  function writeMap(legacyKey, mapObj) {
+    writeMapInternal(legacyKey, mapObj, { silent: false });
+  }
+
+  function writeMapSilent(legacyKey, mapObj) {
+    writeMapInternal(legacyKey, mapObj, { silent: true });
   }
 
   /**
@@ -444,7 +456,9 @@
    * @param {string} rawSandboxKey — normalized or display sandbox key
    * @returns {{ sandboxKey: string, mirrored: boolean, datastreamId: string, styleUrl: string, generatorTarget: string }}
    */
-  function mirrorLinkedInArmToArmcomPrefs(rawSandboxKey) {
+  function mirrorLinkedInArmToArmcomPrefs(rawSandboxKey, opts) {
+    var options = opts || {};
+    var writeFn = options.silent ? writeMapSilent : writeMap;
     var sk = sandboxKey(rawSandboxKey);
     var mirrored = false;
     var i;
@@ -468,11 +482,11 @@
       if (nextArm[sk] !== val) nextArm[sk] = val;
       if (nextLi[sk] !== val) nextLi[sk] = val;
       if (!mapsJsonEqual(readMap(CROSS_TAB_ARMCOM_PREFIX + suffix), nextArm)) {
-        writeMap(CROSS_TAB_ARMCOM_PREFIX + suffix, nextArm);
+        writeFn(CROSS_TAB_ARMCOM_PREFIX + suffix, nextArm);
         mirrored = true;
       }
       if (!mapsJsonEqual(readMap(CROSS_TAB_LINKEDIN_PREFIX + suffix), nextLi)) {
-        writeMap(CROSS_TAB_LINKEDIN_PREFIX + suffix, nextLi);
+        writeFn(CROSS_TAB_LINKEDIN_PREFIX + suffix, nextLi);
         mirrored = true;
       }
     }
@@ -510,7 +524,7 @@
       var nextDs = Object.assign({}, dsMap);
       if (nextDs[sk] !== datastreamId) nextDs[sk] = datastreamId;
       if (!mapsJsonEqual(readMap('siteCloneBcDatastreamIdBySandbox'), nextDs)) {
-        writeMap('siteCloneBcDatastreamIdBySandbox', nextDs);
+        writeFn('siteCloneBcDatastreamIdBySandbox', nextDs);
         mirrored = true;
       }
     }
@@ -518,7 +532,7 @@
       var nextStyle = Object.assign({}, styleMap);
       if (nextStyle[sk] !== styleUrl) nextStyle[sk] = styleUrl;
       if (!mapsJsonEqual(readMap('siteCloneBcStyleConfigUrlBySandbox'), nextStyle)) {
-        writeMap('siteCloneBcStyleConfigUrlBySandbox', nextStyle);
+        writeFn('siteCloneBcStyleConfigUrlBySandbox', nextStyle);
         mirrored = true;
       }
     }
@@ -526,7 +540,7 @@
       var nextGen = Object.assign({}, genMap);
       if (nextGen[sk] !== generatorTarget) nextGen[sk] = generatorTarget;
       if (!mapsJsonEqual(readMap(GEN_TARGET_LEGACY), nextGen)) {
-        writeMap(GEN_TARGET_LEGACY, nextGen);
+        writeFn(GEN_TARGET_LEGACY, nextGen);
         mirrored = true;
       }
     }
@@ -580,6 +594,7 @@
 
   function importFromSync(prefs, opts) {
     if (!prefs || typeof prefs !== 'object') return getDoc();
+    var beforeJson = JSON.stringify(exportForSync());
     var remoteSb = String(prefs.selectedSandbox || '').trim();
     var skipSandbox = shouldKeepLocalSandboxOverRemote(remoteSb);
     if (tagsInjectInProgress()) {
@@ -625,9 +640,12 @@
         }
       }
     }
-    try {
-      global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-synced', { detail: { prefs: exportForSync() } }));
-    } catch (_ev) {}
+    var afterJson = JSON.stringify(exportForSync());
+    if (beforeJson !== afterJson) {
+      try {
+        global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-synced', { detail: { prefs: exportForSync() } }));
+      } catch (_ev) {}
+    }
     return getDoc();
   }
 
@@ -644,6 +662,7 @@
     hasUserSandboxPref: hasUserSandboxPref,
     readMap: readMap,
     writeMap: writeMap,
+    writeMapSilent: writeMapSilent,
     stripRemoteUserFields: stripRemoteUserFields,
     exportForSync: exportForSync,
     importFromSync: importFromSync,

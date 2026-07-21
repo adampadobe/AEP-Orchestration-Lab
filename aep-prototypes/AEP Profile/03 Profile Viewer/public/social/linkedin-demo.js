@@ -306,9 +306,14 @@
       }
     }
 
-    function writeJsonMap(key, mapObj) {
+    function writeJsonMap(key, mapObj, opts) {
+      var options = opts || {};
       try {
         if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
+          if (options.silent && typeof global.AepLabEnvBarPrefs.writeMapSilent === 'function') {
+            global.AepLabEnvBarPrefs.writeMapSilent(key, mapObj || {});
+            return;
+          }
           global.AepLabEnvBarPrefs.writeMap(key, mapObj || {});
           return;
         }
@@ -326,11 +331,21 @@
       }
     }
 
-    function writeJsonMapIfChanged(key, mapObj) {
+    function writeJsonMapIfChanged(key, mapObj, opts) {
       var next = mapObj && typeof mapObj === 'object' ? mapObj : {};
       if (mapsJsonEqual(readJsonMap(key), next)) return false;
-      writeJsonMap(key, next);
+      writeJsonMap(key, next, opts);
       return true;
+    }
+
+    function deferHeavyWork(run) {
+      if (typeof global.requestAnimationFrame === 'function') {
+        global.requestAnimationFrame(function () {
+          global.setTimeout(run, 0);
+        });
+        return;
+      }
+      global.setTimeout(run, 0);
     }
 
     var linkedInCrossTabMirrorBusy = false;
@@ -425,8 +440,8 @@
           if (nextArmScriptMap[sandboxKey] !== script) nextArmScriptMap[sandboxKey] = script;
           if (nextLiScriptMap[sandboxKey] !== script) nextLiScriptMap[sandboxKey] = script;
           if (
-            writeJsonMapIfChanged('armcomSelectedLaunchScriptBySandbox', nextArmScriptMap) ||
-            writeJsonMapIfChanged('linkedinArmSelectedLaunchScriptBySandbox', nextLiScriptMap)
+            writeJsonMapIfChanged('armcomSelectedLaunchScriptBySandbox', nextArmScriptMap, { silent: true }) ||
+            writeJsonMapIfChanged('linkedinArmSelectedLaunchScriptBySandbox', nextLiScriptMap, { silent: true })
           ) {
             mirrored = true;
           }
@@ -454,8 +469,8 @@
           if (nextArmCfgMap[sandboxKey] !== 1) nextArmCfgMap[sandboxKey] = 1;
           if (nextLiCfgMap[sandboxKey] !== 1) nextLiCfgMap[sandboxKey] = 1;
           if (
-            writeJsonMapIfChanged('armcomSdkConfiguredBySandbox', nextArmCfgMap) ||
-            writeJsonMapIfChanged('linkedinArmSdkConfiguredBySandbox', nextLiCfgMap)
+            writeJsonMapIfChanged('armcomSdkConfiguredBySandbox', nextArmCfgMap, { silent: true }) ||
+            writeJsonMapIfChanged('linkedinArmSdkConfiguredBySandbox', nextLiCfgMap, { silent: true })
           ) {
             mirrored = true;
           }
@@ -475,7 +490,7 @@
         }
 
         if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs === 'function') {
-          var mirrorResult = global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs(sandboxKey);
+          var mirrorResult = global.AepLabEnvBarPrefs.mirrorLinkedInArmToArmcomPrefs(sandboxKey, { silent: true });
           if (mirrorResult && mirrorResult.mirrored) mirrored = true;
         }
 
@@ -525,8 +540,12 @@
       }
     }
 
-    global.addEventListener('aep-demo-env-configured', persistLinkedInCrossTabPrefsForArm);
-    global.addEventListener('aep-lab-env-bar-prefs-change', persistLinkedInCrossTabPrefsForArm);
+    global.addEventListener('aep-demo-env-configured', function () {
+      deferHeavyWork(persistLinkedInCrossTabPrefsForArm);
+    });
+    global.addEventListener('aep-lab-env-bar-prefs-change', function () {
+      deferHeavyWork(persistLinkedInCrossTabPrefsForArm);
+    });
 
     DemoProfileDrawer.init({
       emailInputId: 'customerEmail',

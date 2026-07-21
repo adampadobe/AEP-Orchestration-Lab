@@ -1979,7 +1979,9 @@
       const expandFields = presenterMode
         ? false
         : !configured || keepPanelOpen || preserveEditing || !persistedScript;
-      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
+      setSdkConfigExpanded(expandFields, {
+        skipConfiguredSignals: keepPanelOpen || preserveEditing || !!opts.skipConfiguredSignals,
+      });
       if (configured && persistedScript) {
         if (!isSdkConfiguredForSandbox()) {
           markSdkConfiguredForSandbox(true);
@@ -2102,9 +2104,37 @@
       }, 0);
     }
 
+    function isArmcomPresenterBootstrap() {
+      return !!(
+        global.ArmcomLinkedInReturn &&
+        typeof global.ArmcomLinkedInReturn.isLinkedInReturnVisit === 'function' &&
+        global.ArmcomLinkedInReturn.isLinkedInReturnVisit() &&
+        typeof global.ArmcomLinkedInReturn.isPresenterBootstrapComplete === 'function' &&
+        !global.ArmcomLinkedInReturn.isPresenterBootstrapComplete()
+      );
+    }
+
+    function shouldSkipTagsPrefsSyncReload() {
+      if (isUserEnvPanelOpen()) return false;
+      if (isArmcomPresenterBootstrap()) return true;
+      if (
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isArmcomPresenterMode === 'function' &&
+        global.EnvBarCompact.isArmcomPresenterMode() &&
+        (isSdkConfiguredForSandbox() || isCrossTabSdkConfiguredForSandbox())
+      ) {
+        return true;
+      }
+      return false;
+    }
+
     function applyTagsPrefsAfterSyncNow() {
       refreshTagsDom();
       applyPersistedTagsFieldsEarly();
+      if (shouldSkipTagsPrefsSyncReload()) {
+        applySandboxConfigState({ preserveEditing: true, skipConfiguredSignals: true });
+        return;
+      }
       applySandboxConfigState({ preserveEditing: true });
       const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
       if (companyId) {

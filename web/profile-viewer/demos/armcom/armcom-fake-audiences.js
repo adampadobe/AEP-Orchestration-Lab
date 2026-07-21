@@ -274,7 +274,6 @@
     restoreJourneySlide();
 
     if (opts.linkedinActivation) onLinkedInActivation();
-    if (opts.linkedinAdReturn) onLinkedInAdClick();
 
     global.addEventListener('aep-profile-drawer-loaded', function () {
       patchDrawer();
