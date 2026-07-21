@@ -1,14 +1,14 @@
 {
-  "gitSha": "2ff49b23bf0f71968b858558ba22fc22d8f0a738",
-  "gitShortSha": "2ff49b23",
+  "gitSha": "0aef3dc34ee8d771adb83a48089b5895ddc54ea7",
+  "gitShortSha": "0aef3dc3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: sync Express mirror for LinkedIn ad variants",
+  "gitCommitSubject": "[apalmer] refactor: collapse offline fallback instructions by default",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-20T23:20:46+01:00",
-  "deployedAt": "2026-07-20T22:21:03.095Z",
+  "gitCommitDate": "2026-07-21T10:08:30+01:00",
+  "deployedAt": "2026-07-21T09:08:51.076Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/2ff49b23bf0f71968b858558ba22fc22d8f0a738"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0aef3dc34ee8d771adb83a48089b5895ddc54ea7"
 }
