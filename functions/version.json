@@ -1,14 +1,14 @@
 {
-  "gitSha": "ea71d4e4c72d2741f68058b9499e340a07f904b2",
-  "gitShortSha": "ea71d4e4",
+  "gitSha": "32feb094dad64e06dfa8e1530685940a458ee5c7",
+  "gitShortSha": "32feb094",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: ECID in profile drawer and env bar collapse loop on LinkedIn return",
+  "gitCommitSubject": "[apalmer] chore: deploy stamp ea71d4e4",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T11:51:14+01:00",
-  "deployedAt": "2026-07-21T10:51:28.615Z",
+  "gitCommitDate": "2026-07-21T12:05:00+01:00",
+  "deployedAt": "2026-07-21T11:05:17.944Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ea71d4e4c72d2741f68058b9499e340a07f904b2"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/32feb094dad64e06dfa8e1530685940a458ee5c7"
 }
