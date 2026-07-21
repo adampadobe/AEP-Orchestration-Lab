@@ -694,7 +694,24 @@
 
     function readPersistedSelectedScriptUrl() {
       const map = readStorageMap(scriptStorageKey);
-      return String(map[getSandboxKey()] || '').trim();
+      const own = String(map[getSandboxKey()] || '').trim();
+      if (own) return own;
+      if (storagePrefix === 'armcom') {
+        const liMap = readStorageMap('linkedinArmSelectedLaunchScriptBySandbox');
+        const fromLi = String(liMap[getSandboxKey()] || '').trim();
+        if (fromLi) return fromLi;
+        const localInject = readTagsInjectedLocalScript('linkedinArm', getSandboxKey());
+        if (localInject) return localInject;
+      }
+      return '';
+    }
+
+    function isCrossTabSdkConfiguredForSandbox() {
+      if (isSdkConfiguredForSandbox()) return true;
+      if (storagePrefix !== 'armcom') return false;
+      const liMap = readStorageMap('linkedinArmSdkConfiguredBySandbox');
+      if (liMap[getSandboxKey()] === 1) return true;
+      return !!readTagsInjectedLocalScript('linkedinArm', getSandboxKey());
     }
 
     function persistTagsCompanyId(companyId) {
@@ -900,7 +917,7 @@
       if (cfg.resumeSdkOnReload === false) return false;
       const url = resolvePersistedLaunchScriptForResume();
       if (!url) return false;
-      if (isSdkConfiguredForSandbox()) return true;
+      if (isSdkConfiguredForSandbox() || isCrossTabSdkConfiguredForSandbox()) return true;
       return !!readTagsInjectedSessionScriptForSandbox();
     }
 
@@ -1106,6 +1123,16 @@
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         } catch (_e) {
           /* noop */
+        }
+        return;
+      }
+      if (
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isArmcomPresenterMode === 'function' &&
+        global.EnvBarCompact.isArmcomPresenterMode()
+      ) {
+        if (typeof global.EnvBarCompact.closeOverlay === 'function') {
+          global.EnvBarCompact.closeOverlay({ force: true });
         }
         return;
       }
@@ -1935,17 +1962,30 @@
     function applySandboxConfigState(options) {
       const opts = options || {};
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      let configured = isSdkConfiguredForSandbox();
+      let configured = isSdkConfiguredForSandbox() || isCrossTabSdkConfiguredForSandbox();
       if (configured && !persistedScript) {
-        markSdkConfiguredForSandbox(false);
+        if (isSdkConfiguredForSandbox()) {
+          markSdkConfiguredForSandbox(false);
+        }
         configured = false;
       }
       const overlayOpen = isUserEnvPanelOpen();
+      const presenterMode =
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isArmcomPresenterMode === 'function' &&
+        global.EnvBarCompact.isArmcomPresenterMode();
       const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
-      const preserveEditing = !!opts.preserveEditing || overlayOpen;
-      const expandFields = !configured || keepPanelOpen || preserveEditing || !persistedScript;
+      const preserveEditing = !!opts.preserveEditing || (overlayOpen && !presenterMode);
+      const expandFields =
+        !configured || keepPanelOpen || preserveEditing || (!persistedScript && !presenterMode);
       setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
-      if (configured && persistedScript) markLabEnvConfiguredSession();
+      if (configured && persistedScript) {
+        if (!isSdkConfiguredForSandbox()) {
+          markSdkConfiguredForSandbox(true);
+          persistSelectedScriptUrl(persistedScript);
+        }
+        markLabEnvConfiguredSession();
+      }
       renderSelectedScript(persistedScript);
       if (opts.announceSandboxChange) {
         if (configured) {

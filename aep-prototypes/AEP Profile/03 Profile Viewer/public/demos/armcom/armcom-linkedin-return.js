@@ -135,7 +135,74 @@
     }
   }
 
+  function readJsonMap(key) {
+    try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+        return global.AepLabEnvBarPrefs.readMap(key) || {};
+      }
+      var raw = global.localStorage.getItem(key);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function writeJsonMap(key, mapObj) {
+    try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
+        global.AepLabEnvBarPrefs.writeMap(key, mapObj || {});
+        return;
+      }
+      global.localStorage.setItem(key, JSON.stringify(mapObj || {}));
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  function mirrorLinkedInConfiguredMapsToArmcom(sandboxKey) {
+    var armScriptMap = readJsonMap(ARMCOM_PREFIX + 'SelectedLaunchScriptBySandbox');
+    var liScriptMap = readJsonMap(LINKEDIN_PREFIX + 'SelectedLaunchScriptBySandbox');
+    var launchScript = String(armScriptMap[sandboxKey] || liScriptMap[sandboxKey] || '').trim();
+    if (launchScript) {
+      armScriptMap[sandboxKey] = launchScript;
+      writeJsonMap(ARMCOM_PREFIX + 'SelectedLaunchScriptBySandbox', armScriptMap);
+    }
+
+    var armCfgMap = readJsonMap(ARMCOM_PREFIX + 'SdkConfiguredBySandbox');
+    var liCfgMap = readJsonMap(LINKEDIN_PREFIX + 'SdkConfiguredBySandbox');
+    if (liCfgMap[sandboxKey] === 1 || launchScript) {
+      armCfgMap[sandboxKey] = 1;
+      writeJsonMap(ARMCOM_PREFIX + 'SdkConfiguredBySandbox', armCfgMap);
+    }
+
+    try {
+      if (
+        global.localStorage.getItem('aepLabEnvConfiguredLocal:' + LINKEDIN_PREFIX) === '1' ||
+        launchScript
+      ) {
+        global.localStorage.setItem('aepLabEnvConfiguredLocal:' + ARMCOM_PREFIX, '1');
+      }
+      var liLocalInject = global.localStorage.getItem('aepDemoTagsInjectedLocal:' + LINKEDIN_PREFIX + ':' + sandboxKey);
+      var armLocalKey = 'aepDemoTagsInjectedLocal:' + ARMCOM_PREFIX + ':' + sandboxKey;
+      if (liLocalInject && !global.localStorage.getItem(armLocalKey)) {
+        global.localStorage.setItem(armLocalKey, liLocalInject);
+      }
+      if (launchScript) {
+        global.localStorage.setItem(armLocalKey, launchScript);
+      }
+    } catch (_e0) {
+      /* noop */
+    }
+    return launchScript;
+  }
+
   function seedCrossTabSessionState(sandboxKey, launchScript) {
+    mirrorLinkedInConfiguredMapsToArmcom(sandboxKey);
+    if (!launchScript) {
+      launchScript = resolveCrossTabLaunchScript(sandboxKey);
+    }
     var configured = readUnifiedConfigured(sandboxKey) || !!launchScript;
     if (configured) {
       try {
@@ -172,7 +239,16 @@
   }
 
   function forceEnvBarMinimized(reason) {
-    if (global.EnvBarCompact && typeof global.EnvBarCompact.minimizeToProfileLookup === 'function') {
+    if (!global.EnvBarCompact) return false;
+    if (typeof global.EnvBarCompact.closeOverlay === 'function') {
+      var closed = global.EnvBarCompact.closeOverlay({ force: true });
+      envLog('info', 'force env bar closed (toolbar only)', {
+        reason: reason || 'linkedin-return',
+        ok: closed,
+      });
+      return closed;
+    }
+    if (typeof global.EnvBarCompact.minimizeToProfileLookup === 'function') {
       var ok = global.EnvBarCompact.minimizeToProfileLookup();
       envLog('info', 'force env bar minimized', { reason: reason || 'linkedin-return', ok: ok });
       return ok;

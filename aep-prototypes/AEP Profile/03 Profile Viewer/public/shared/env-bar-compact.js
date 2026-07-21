@@ -463,6 +463,7 @@
   }
 
   function shouldOpenProfilePeekFirst() {
+    if (isArmcomPresenterMode()) return false;
     if (isLabEnvConfiguredForCollapse()) return false;
     var sec = document.getElementById('aepDemoEnvSection');
     if (sec && sec.classList.contains('aep-demo-env-section--collapsed')) return true;
@@ -511,13 +512,20 @@
     }
   }
 
-  function minimizeToProfileLookup(anchor) {
+  function collapseEnvBarForConfiguredState(anchor) {
     anchor = anchor || resolveAnchor();
     if (!anchor || anchor.classList.contains('lab-env-top-anchor--docked-hidden')) return false;
     if (isOverlayPinned(anchor)) return false;
     setConfiguring(anchor, false);
+    if (isArmcomPresenterMode()) {
+      return closeOverlay(anchor, { force: true });
+    }
     openProfilePeek(anchor);
     return true;
+  }
+
+  function minimizeToProfileLookup(anchor) {
+    return collapseEnvBarForConfiguredState(anchor);
   }
 
   function toggleMinimizePanels(anchor) {
@@ -763,10 +771,10 @@
     if (isArmcomPresenterMode() || readLabEnvConfiguredLocalMirror() || readUnifiedTagsConfiguredForCurrentSandbox()) {
       seedLabEnvConfiguredSessionFromLocal();
       if (!isDocked && !readPinnedFromStorage()) {
-        labLog('info', 'presenter / cross-tab configured — minimize env bar on init', {
+        labLog('info', 'presenter / cross-tab configured — collapse env bar on init', {
           presenterMode: isArmcomPresenterMode(),
         });
-        minimizeToProfileLookup(anchor);
+        collapseEnvBarForConfiguredState(anchor);
       }
     }
 
@@ -834,6 +842,10 @@
 
     if (!isDocked && !readPinnedFromStorage() && isLabEnvConfiguredForCollapse()) {
       global.setTimeout(function () {
+        if (isArmcomPresenterMode()) {
+          closeOverlay(anchor, { force: true });
+          return;
+        }
         if (!isOverlayOpen(anchor) || anchor.classList.contains('lab-env-top-anchor--expanded')) {
           minimizeToProfileLookup(anchor);
         }
@@ -878,7 +890,7 @@
     var anchor = resolveAnchor();
     if (!anchor || isOverlayPinned(anchor)) return;
     setConfiguring(anchor, false);
-    minimizeToProfileLookup(anchor);
+    collapseEnvBarForConfiguredState(anchor);
   });
 
   global.addEventListener('aep-demo-env-overlay-open', function (ev) {

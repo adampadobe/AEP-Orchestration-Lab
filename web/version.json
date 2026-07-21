@@ -1,14 +1,14 @@
 {
-  "gitSha": "29f69e6a4f24b7c3ddcf65bced215263863f64a6",
-  "gitShortSha": "29f69e6a",
+  "gitSha": "d375fda8424b3e8a81c6d6d0124479bbb2733f5d",
+  "gitShortSha": "d375fda8",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp deploy version 0aef3dc3",
+  "gitCommitSubject": "[apalmer] feat: auto-inject SDK and minimize env bar when opening Arm from LinkedIn",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T10:18:34+01:00",
-  "deployedAt": "2026-07-21T09:25:20.775Z",
+  "gitCommitDate": "2026-07-21T10:25:23+01:00",
+  "deployedAt": "2026-07-21T09:35:16.663Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/29f69e6a4f24b7c3ddcf65bced215263863f64a6"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d375fda8424b3e8a81c6d6d0124479bbb2733f5d"
 }

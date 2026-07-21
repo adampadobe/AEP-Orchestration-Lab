@@ -76,6 +76,58 @@
     return !!(script && String(script).trim());
   }
 
+  function readLabEnvConfiguredLocalMirror(storagePrefix) {
+    if (!storagePrefix) return false;
+    if (
+      global.AepLabTagsInjectSession &&
+      typeof global.AepLabTagsInjectSession.readLabEnvConfiguredLocal === 'function'
+    ) {
+      return global.AepLabTagsInjectSession.readLabEnvConfiguredLocal(storagePrefix);
+    }
+    try {
+      return global.localStorage.getItem('aepLabEnvConfiguredLocal:' + storagePrefix) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function readCrossTabLaunchScript(storagePrefix, sandboxSelect) {
+    var sbKey = sandboxKeyForStorage(sandboxSelect);
+    var prefixes = [storagePrefix, 'linkedinArm'];
+    var seen = {};
+    for (var i = 0; i < prefixes.length; i++) {
+      var p = String(prefixes[i] || '').trim();
+      if (!p || seen[p]) continue;
+      seen[p] = true;
+      var scriptMap = readStorageMap(p + 'SelectedLaunchScriptBySandbox');
+      var script = scriptMap[sbKey];
+      if (script && String(script).trim()) return String(script).trim();
+      try {
+        var localInject = global.localStorage.getItem('aepDemoTagsInjectedLocal:' + p + ':' + sbKey);
+        if (localInject && String(localInject).trim()) return String(localInject).trim();
+      } catch (_e0) {
+        /* noop */
+      }
+    }
+    try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getDoc === 'function') {
+        var doc = global.AepLabEnvBarPrefs.getDoc();
+        var entry = doc && doc.tagsBySandbox ? doc.tagsBySandbox[sbKey] : null;
+        if (entry && String(entry.launchScript || '').trim()) return String(entry.launchScript).trim();
+      }
+    } catch (_e1) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function isCrossTabSdkConfigured(storagePrefix, sandboxSelect) {
+    if (isPersistedSdkConfigured(storagePrefix, sandboxSelect)) return true;
+    if (readLabEnvConfiguredLocalMirror(storagePrefix)) return true;
+    if (readLabEnvConfiguredLocalMirror('linkedinArm')) return true;
+    return !!readCrossTabLaunchScript(storagePrefix, sandboxSelect);
+  }
+
   function setStatusLight(chipEl, dotEl, statusEl, variant, text) {
     var v = STATUS_LIGHT_VARIANTS.indexOf(variant) >= 0 ? variant : 'neutral';
     if (chipEl) {
@@ -191,7 +243,7 @@
 
       var storagePrefix = resolveStoragePrefix(prefix);
       var sdkConnectedFromUi = !!(fields && fields.hidden && summary && !summary.hidden);
-      var sdkConfiguredPersist = isPersistedSdkConfigured(storagePrefix, sandboxSelect);
+      var sdkConfiguredPersist = isCrossTabSdkConfigured(storagePrefix, sandboxSelect);
       var summaryConfiguredVisible =
         !!(summary && !summary.hidden && summary.textContent && /SDK configured/i.test(String(summary.textContent)) && !/no script selected/i.test(String(summary.textContent)));
       var alloyLive = typeof global.alloy === 'function';
@@ -206,20 +258,16 @@
       var targetBadgeText = 'SDK Not configured';
       if (alloyLive) {
         sdkStatusVariant = 'positive';
-        sdkStatusText = 'Connected';
-        targetBadgeText = 'SDK Connected';
-      } else if (summaryConfiguredVisible) {
+        sdkStatusText = 'Active';
+        targetBadgeText = 'SDK Active';
+      } else if (summaryConfiguredVisible || sdkConfiguredPersist) {
         sdkStatusVariant = 'positive';
-        sdkStatusText = 'Configured';
-        targetBadgeText = 'SDK configured';
+        sdkStatusText = injectInProgress ? 'Connecting…' : 'Active';
+        targetBadgeText = injectInProgress ? 'SDK connecting…' : 'SDK Active';
       } else if (injectInProgress) {
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Connecting…';
         targetBadgeText = 'SDK connecting…';
-      } else if (sdkConfiguredPersist && !summaryConfiguredVisible) {
-        sdkStatusVariant = 'notice';
-        sdkStatusText = 'Re-configure';
-        targetBadgeText = 'SDK re-configure';
       } else if (sdkConnectedFromUi) {
         sdkStatusVariant = 'notice';
         sdkStatusText = 'Restoring…';
