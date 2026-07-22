@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260420a">
-  <link rel="stylesheet" href="brand-scraper.css?v=20260721c">
+  <link rel="stylesheet" href="brand-scraper.css?v=20260722a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260420a">
 </head>
@@ -135,12 +135,15 @@
               </div>
             </form>
 
-            <section class="brand-scraper-offline-panel" id="brandScraperOfflinePanel" aria-labelledby="brandScraperOfflineHeading">
-              <header class="brand-scraper-offline-header">
-                <h3 id="brandScraperOfflineHeading" class="brand-scraper-offline-title">Scrape blocked? Offline fallback</h3>
-                <p class="brand-scraper-offline-subtitle">Download brief → external LLM or manual save → upload ZIP</p>
-              </header>
+            <details class="brand-scraper-offline-panel" id="brandScraperOfflinePanel">
+              <summary class="brand-scraper-offline-summary" id="brandScraperOfflineHeading">
+                <span class="brand-scraper-offline-summary-main">
+                  <span class="brand-scraper-offline-title">Scrape blocked? Offline fallback</span>
+                  <span class="brand-scraper-offline-summary-hint">Expand to upload ZIP / download brief</span>
+                </span>
+              </summary>
               <div class="brand-scraper-offline-body">
+                <p class="brand-scraper-offline-subtitle">Download brief → external LLM or manual save → upload ZIP</p>
                 <details class="brand-scraper-offline-instructions" id="brandScraperOfflineInstructions">
                   <summary class="brand-scraper-offline-instructions-summary">How offline fallback works</summary>
                   <div class="brand-scraper-offline-instructions-body">
@@ -174,7 +177,7 @@
                   <p id="brandScraperOfflineUploadReady" class="brand-scraper-offline-upload-ready" hidden role="status">Ready — click <strong>Analyse</strong> (<strong>Uploaded HTML only</strong> is enabled).</p>
                 </div>
               </div>
-            </section>
+            </details>
 
             <div class="brand-scraper-status" id="brandScraperStatus" role="status" aria-live="polite" hidden></div>
             <div class="brand-scraper-progress" id="brandScraperProgress" hidden aria-hidden="true">
@@ -379,6 +382,6 @@
   <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
   <script src="fflate.min.js?v=20260619"></script>
   <script src="brand-scraper-brief.js?v=20260721b"></script>
-  <script src="brand-scraper.js?v=20260721c"></script>
+  <script src="brand-scraper.js?v=20260722a"></script>
 </body>
 </html>
