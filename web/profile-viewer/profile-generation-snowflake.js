@@ -46,6 +46,10 @@
   var lastConfigMeta = { configState: '', labUserUidPrefix: '', presetNote: '' };
   /** True when GET /api/snowflake/config last reported hasCredential (Secret Manager). */
   var lastHasCredential = false;
+  /** credentialSetAt from last GET/POST config (for badge timestamp). */
+  var lastCredentialSetAt = null;
+  /** Monotonic token — ignore stale loadConfig fetch responses. */
+  var loadConfigSeq = 0;
   /** Rows last returned from /api/snowflake/agentic/query-profiles (for enrich payload). */
   var loadedProfiles = [];
 
@@ -183,7 +187,7 @@
       }
     }
     reflectAuthMethod();
-    syncConnectionUi({ hasCredential: lastHasCredential });
+    refreshConnectionUi();
   }
 
   function setConnectionSummaryTone(tone) {
@@ -223,32 +227,48 @@
     els.connectionDetails.open = true;
   }
 
+  function applyCredentialBadge(hasCredential) {
+    var badge = els.credentialBadge;
+    var badgeText = els.credentialBadgeText;
+    if (badge) badge.hidden = !hasCredential;
+    if (!badgeText) return;
+    if (hasCredential) {
+      var when = lastCredentialSetAt
+        ? ' (saved ' + new Date(lastCredentialSetAt).toLocaleString() + ')'
+        : '';
+      badgeText.textContent = 'Credential stored in Secret Manager' + when;
+    } else {
+      badgeText.textContent = '';
+    }
+  }
+
+  function credentialActionHintText() {
+    var uidHint = lastConfigMeta.labUserUidPrefix
+      ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
+      : '';
+    var configState = lastConfigMeta.configState || '';
+    if (configState === 'preset_only' || configState === 'saved_no_credential') {
+      return 'Paste your PEM private key and Save once.' + uidHint;
+    }
+    return 'No credential saved yet for this lab user — paste one to enable connection tests.' + uidHint;
+  }
+
   function syncCredentialFieldVisibility() {
-    var ready = isConnectionReady();
+    var hasCred = lastHasCredential;
+    var needsKey = !hasCred;
     var replaceDetails = els.credentialReplaceDetails;
     var hint = els.credentialHint;
-    var badge = els.credentialBadge;
     var row = els.credentialRow;
 
-    if (row) row.classList.toggle('sf-gen-cred-row--ready', ready);
-    if (row) row.classList.toggle('sf-gen-cred-row--needs-action', needsCredentialAction());
+    applyCredentialBadge(hasCred);
 
-    if (badge) badge.hidden = !ready;
+    if (row) row.classList.toggle('sf-gen-cred-row--ready', hasCred);
+    if (row) row.classList.toggle('sf-gen-cred-row--needs-action', needsKey);
 
     if (hint) {
-      if (needsCredentialAction()) {
-        var presetHint =
-          lastConfigMeta.configState === 'preset_only'
-            ? ' Preset connection fields do not mean a key is saved — paste your PEM and Save.'
-            : '';
-        var uidHint = lastConfigMeta.labUserUidPrefix
-          ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
-          : '';
+      if (needsKey) {
         hint.hidden = false;
-        hint.textContent =
-          'No credential saved yet for this lab user — paste one to enable connection tests.' +
-          uidHint +
-          presetHint;
+        hint.textContent = credentialActionHintText();
       } else {
         hint.hidden = true;
         hint.textContent = '';
@@ -256,19 +276,20 @@
     }
 
     if (replaceDetails) {
-      replaceDetails.classList.toggle('sf-gen-cred-replace--needs-key', needsCredentialAction());
-      if (needsCredentialAction()) {
-        replaceDetails.hidden = false;
-        replaceDetails.open = true;
-      } else {
-        replaceDetails.hidden = false;
-        replaceDetails.open = false;
-      }
+      replaceDetails.classList.toggle('sf-gen-cred-replace--needs-key', needsKey);
+      replaceDetails.hidden = false;
+      replaceDetails.open = needsKey;
     }
 
     if (els.credentialReplaceSummary) {
-      els.credentialReplaceSummary.hidden = needsCredentialAction();
+      els.credentialReplaceSummary.hidden = needsKey;
     }
+  }
+
+  /** Re-render connection summary + credential row from module state (no GET). */
+  function refreshConnectionUi() {
+    syncCredentialFieldVisibility();
+    updateConnectionSummary();
   }
 
   function updateConnectionSummary() {
@@ -317,17 +338,14 @@
   }
 
   function syncConnectionUi(rec) {
-    if (rec && typeof rec.hasCredential === 'boolean') {
+    if (rec === null) {
+      lastHasCredential = false;
+      lastCredentialSetAt = null;
+    } else if (rec && typeof rec.hasCredential === 'boolean') {
       lastHasCredential = rec.hasCredential;
+      if ('credentialSetAt' in rec) lastCredentialSetAt = rec.credentialSetAt || null;
     }
-    if (rec && rec.credentialSetAt && els.credentialBadgeText) {
-      var when = ' (saved ' + new Date(rec.credentialSetAt).toLocaleString() + ')';
-      els.credentialBadgeText.textContent = 'Credential stored in Secret Manager' + when;
-    } else if (els.credentialBadgeText) {
-      els.credentialBadgeText.textContent = 'Credential stored in Secret Manager';
-    }
-    syncCredentialFieldVisibility();
-    updateConnectionSummary();
+    refreshConnectionUi();
   }
 
   function rememberConfigMeta(body, rec) {
@@ -336,12 +354,12 @@
       if (rec.account && rec.hasCredential) configState = 'saved_ready';
       else if (rec.account && !rec.hasCredential) configState = 'saved_no_credential';
       else if (rec.presetSource && rec.hasCredential) configState = 'preset_with_credential';
-      else if (rec.presetSource && rec.hasCredential) configState = 'preset_with_credential';
       else if (rec.presetSource) configState = 'preset_only';
       else if (rec.docExists) configState = 'saved_incomplete';
       else configState = 'empty';
     }
     lastHasCredential = !!(rec && rec.hasCredential);
+    lastCredentialSetAt = (rec && rec.credentialSetAt) || null;
     lastConfigMeta = {
       configState: configState,
       labUserUidPrefix: (body && body.labUserUidPrefix) || lastConfigMeta.labUserUidPrefix || '',
@@ -363,7 +381,7 @@
     if (state === 'saved_no_credential') {
       return (
         'Loaded saved connection fields for sandbox "' + sandbox +
-        '" but no credential is stored for this lab user yet — paste your key and Save.' +
+        '". Paste your PEM private key and Save once.' +
         uidHint
       );
     }
@@ -377,9 +395,10 @@
     }
     if (state === 'preset_only') {
       return (
-        'AgenticAI travel defaults applied for sandbox "' + sandbox + '" — connection fields are not saved yet.' +
+        'AgenticAI travel defaults applied for sandbox "' + sandbox +
+        '". Paste your PEM private key and Save once (connection fields are preset, not saved to Firestore until you Save).' +
         uidHint +
-        ' Paste your RSA private key (.p8 PEM), then Save. If you configured Snowflake before, confirm this lab user id matches the browser profile where you saved (anonymous Firebase auth is per-browser).'
+        ' If you configured Snowflake before, confirm this lab user id matches the browser profile where you saved (anonymous Firebase auth is per-browser).'
       );
     }
     if (rec && rec.account) {
@@ -640,6 +659,7 @@
 
   function loadConfig() {
     var sandbox = readSandbox();
+    var seq = ++loadConfigSeq;
     lastSnowflakeTestOk = false;
     if (!sandbox) {
       syncConnectionUi(null);
@@ -659,6 +679,7 @@
       var url = '/api/snowflake/config?sandbox=' + encodeURIComponent(sandbox);
       return fetch(url, { headers: h }).then(function (res) {
         return res.json().then(function (body) {
+          if (seq !== loadConfigSeq) return;
           setDebug('GET ' + url, null, res.status, body);
           if (res.ok && body && body.ok) {
             var rec = body.record || null;
@@ -771,11 +792,11 @@
             var line = 'Connected — Snowflake ' + (result.version || 'unknown') +
               ' (account ' + (result.account || '?') + ').';
             lastSnowflakeTestOk = true;
-            syncConnectionUi({ hasCredential: lastHasCredential });
+            refreshConnectionUi();
             setMessage(line, 'success');
           } else {
             lastSnowflakeTestOk = false;
-            syncConnectionUi({ hasCredential: lastHasCredential });
+            refreshConnectionUi();
             var msg = (result && result.error && result.error.message) || (data && data.error) ||
               'Connection test failed (HTTP ' + res.status + ').';
             var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
@@ -1337,7 +1358,7 @@
       els.authMethod.addEventListener('change', function () {
         reflectAuthMethod();
         lastSnowflakeTestOk = false;
-        syncConnectionUi({ hasCredential: lastHasCredential });
+        refreshConnectionUi();
       });
     }
     if (els.saveBtn) els.saveBtn.addEventListener('click', saveConfig);
@@ -1346,9 +1367,8 @@
     if (els.fillPresetBtn) {
       els.fillPresetBtn.addEventListener('click', function () {
         applyAgenticTravelPreset(false, true);
-        syncConnectionUi({ hasCredential: lastHasCredential });
         setMessage(
-          'Filled AgenticAI travel defaults. Paste your RSA private key (.p8 PEM) if not already saved, then Save.',
+          'Filled AgenticAI travel defaults. Paste your PEM private key and Save once.',
           'info'
         );
       });
@@ -1356,11 +1376,11 @@
     if (els.form) {
       els.form.addEventListener('input', function () {
         lastSnowflakeTestOk = false;
-        syncConnectionUi({ hasCredential: lastHasCredential });
+        refreshConnectionUi();
       });
       els.form.addEventListener('change', function () {
         lastSnowflakeTestOk = false;
-        syncConnectionUi({ hasCredential: lastHasCredential });
+        refreshConnectionUi();
       });
     }
     if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
