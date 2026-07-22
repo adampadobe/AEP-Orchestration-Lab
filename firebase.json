@@ -13,8 +13,13 @@
       "ignore": [
         "node_modules",
         ".git",
+        ".runtimeconfig.json",
         "firebase-debug.log",
         "firebase-debug.*.log",
+        "**/*.log",
+        "**/.*",
+        "**/*.pem",
+        "**/*.p8",
         "*.local"
       ],
       "predeploy": [
