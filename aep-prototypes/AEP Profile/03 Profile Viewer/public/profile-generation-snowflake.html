@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260722a">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260722b">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -40,10 +40,10 @@
         </section>
 
         <section class="sf-gen-grid" aria-label="Snowflake configuration">
-          <details class="sf-gen-card sf-gen-card--config" id="sfConnectionDetails" open>
+          <details class="sf-gen-card sf-gen-card--config" id="sfConnectionDetails">
             <summary class="sf-gen-connection-summary" id="sfConnectionSummary">
               <span class="sf-gen-connection-summary-title">Snowflake connection</span>
-              <span class="sf-gen-connection-summary-status" id="sfConnectionSummaryStatus" role="status">Expand to configure</span>
+              <span class="sf-gen-connection-summary-status" id="sfConnectionSummaryStatus" role="status">Loading…</span>
             </summary>
             <div class="sf-gen-connection-body">
               <p class="sf-gen-card-subtitle sf-gen-connection-lead">
@@ -95,24 +95,29 @@
               </div>
 
               <div class="form-row" id="sfCredentialRow">
-                <label for="sfCredential" id="sfCredentialLabel">Password</label>
-                <div id="sfKeyPairExtras" class="sf-gen-key-pair-extras" hidden>
-                  <input type="file" id="sfKeyFile" class="visually-hidden" accept=".p8,.pem,.key,application/x-pem-file,text/plain" aria-label="Choose Snowflake private key file">
-                  <div class="sf-gen-key-toolbar">
-                    <button type="button" id="sfKeyFilePick" class="btn btn-secondary">Choose private key file…</button>
-                    <span id="sfKeyDropHint" class="sf-gen-key-drop-hint">or drag a <code>.p8</code> / PEM file onto the box below</span>
+                <span class="sf-gen-cred-badge" id="sfCredentialBadge" hidden role="status" aria-live="polite">
+                  <span class="sf-gen-cred-badge-icon" aria-hidden="true">✓</span>
+                  <span class="sf-gen-cred-badge-text" id="sfCredentialBadgeText">Credential stored in Secret Manager</span>
+                </span>
+                <p class="field-hint sf-gen-cred-hint" id="sfCredentialHint" hidden role="status"></p>
+                <details class="sf-gen-cred-replace" id="sfCredentialReplaceDetails">
+                  <summary class="sf-gen-cred-replace-summary" id="sfCredentialReplaceSummary">
+                    Stored in Secret Manager — expand to replace key
+                  </summary>
+                  <div class="sf-gen-cred-input-block" id="sfCredentialInputBlock">
+                    <label for="sfCredential" id="sfCredentialLabel">Password</label>
+                    <div id="sfKeyPairExtras" class="sf-gen-key-pair-extras" hidden>
+                      <input type="file" id="sfKeyFile" class="visually-hidden" accept=".p8,.pem,.key,application/x-pem-file,text/plain" aria-label="Choose Snowflake private key file">
+                      <div class="sf-gen-key-toolbar">
+                        <button type="button" id="sfKeyFilePick" class="btn btn-secondary">Choose private key file…</button>
+                        <span id="sfKeyDropHint" class="sf-gen-key-drop-hint">or drag a <code>.p8</code> / PEM file onto the box below</span>
+                      </div>
+                    </div>
+                    <div id="sfKeyDropTarget" class="sf-gen-key-drop-target">
+                      <textarea id="sfCredential" rows="2" placeholder="Paste credential — leave blank to keep the previously saved value" autocomplete="off" spellcheck="false"></textarea>
+                    </div>
                   </div>
-                </div>
-                <div id="sfKeyDropTarget" class="sf-gen-key-drop-target">
-                  <textarea id="sfCredential" rows="2" placeholder="Paste credential — leave blank to keep the previously saved value" autocomplete="off" spellcheck="false"></textarea>
-                </div>
-                <p class="field-hint sf-gen-cred-status-wrap">
-                  <span class="sf-gen-cred-badge" id="sfCredentialBadge" hidden role="status" aria-live="polite">
-                    <span class="sf-gen-cred-badge-icon" aria-hidden="true">✓</span>
-                    <span class="sf-gen-cred-badge-text" id="sfCredentialBadgeText">Credential stored in Secret Manager</span>
-                  </span>
-                  <span class="sf-gen-cred-status" id="sfCredentialStatus" data-state="missing">No credential saved yet.</span>
-                </p>
+                </details>
               </div>
 
               <div class="form-row" id="sfPassphraseRow" hidden>
@@ -385,6 +390,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260722a"></script>
+  <script src="profile-generation-snowflake.js?v=20260722b"></script>
 </body>
 </html>

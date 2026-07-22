@@ -504,10 +504,56 @@ details.sf-gen-card > .sf-gen-connection-body {
   box-shadow: none;
 }
 
-.sf-gen-cred-status-wrap {
+.sf-gen-cred-row--ready .sf-gen-cred-hint {
+  display: none;
+}
+
+.sf-gen-cred-hint {
+  margin: 0;
+  font-weight: 500;
+  color: var(--dash-warning-text);
+}
+
+.sf-gen-cred-replace {
+  margin-top: 4px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+}
+
+.sf-gen-cred-replace > summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-success-text);
+  user-select: none;
+  list-style: none;
+}
+
+.sf-gen-cred-replace > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sf-gen-cred-replace--needs-key {
+  border: none;
+  background: transparent;
+  margin-top: 0;
+}
+
+.sf-gen-cred-replace--needs-key > summary {
+  display: none;
+}
+
+.sf-gen-cred-replace--needs-key .sf-gen-cred-input-block {
+  padding: 0;
+}
+
+.sf-gen-cred-input-block {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 0 12px 12px 12px;
 }
 
 .sf-gen-cred-badge {
@@ -542,18 +588,6 @@ details.sf-gen-card > .sf-gen-connection-body {
 
 .sf-gen-cred-badge-text {
   letter-spacing: 0.01em;
-}
-
-.sf-gen-cred-status {
-  font-weight: 500;
-}
-
-.sf-gen-cred-status[data-state="set"] {
-  color: var(--dash-success-text);
-}
-
-.sf-gen-cred-status[data-state="missing"] {
-  color: var(--dash-warning-text);
 }
 
 .sf-gen-message {
