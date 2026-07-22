@@ -24,7 +24,7 @@ import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
 import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { registerProfileTools } from './tools/index.mjs';
 
-const MCP_VERSION = '3.26.0';
+const MCP_VERSION = '3.26.1';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });

@@ -90,6 +90,15 @@ export const SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES = [
   'lab_snowflake_query_profiles',
 ];
 
+export const SNOWFLAKE_PROFILE_INDUSTRIES = ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports'];
+
+export function snowflakeProfileIndustryInputSchema() {
+  return z
+    .enum(SNOWFLAKE_PROFILE_INDUSTRIES)
+    .default('travel')
+    .describe('CRM industry (default travel)');
+}
+
 const SNOWFLAKE_FULL_ROW_NOTE =
   'Each profile includes profiles[].columns with every column from the selected industry CRM table ' +
   '(shared identity/person/value fields plus industry operational fields) and top-level createdAt from _RECORDCREATEDTIMESTAMP. ' +
@@ -459,7 +468,7 @@ export function registerSnowflakeTools(mcpServer) {
         'Requires user-generated MCP key (Profile Viewer → MCP servers).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
-        industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional().describe('CRM industry (default travel)'),
+        industry: snowflakeProfileIndustryInputSchema(),
         email: z
           .string()
           .email()
@@ -487,7 +496,7 @@ export function registerSnowflakeTools(mcpServer) {
         'Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
-        industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional().describe('CRM industry (default travel)'),
+        industry: snowflakeProfileIndustryInputSchema(),
         email: z
           .string()
           .email()

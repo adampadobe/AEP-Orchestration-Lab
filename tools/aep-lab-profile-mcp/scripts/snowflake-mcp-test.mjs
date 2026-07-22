@@ -9,7 +9,13 @@ import {
   checkSnowflakeGenerateRate,
   checkSnowflakeTestRate,
 } from '../src/rateLimiter.mjs';
-import { requireUserMcpKeyForSnowflake, SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES } from '../src/tools/snowflakeTools.mjs';
+import {
+  requireUserMcpKeyForSnowflake,
+  registerSnowflakeTools,
+  SNOWFLAKE_PROFILE_INDUSTRIES,
+  SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES,
+  snowflakeProfileIndustryInputSchema,
+} from '../src/tools/snowflakeTools.mjs';
 import { snowflakeAuthHeaders, STATIC_EGRESS_IP } from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
 import { snowflakeProfileTableForIndustry } from '../src/snowflakeIndustry.mjs';
@@ -56,10 +62,34 @@ async function run() {
     SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES.includes('lab_snowflake_get_profile_by_email'),
     'discoverable email readback tool exported',
   );
-  for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+  assert(
+    snowflakeProfileIndustryInputSchema().parse(undefined) === 'travel',
+    'query industry schema defaults omitted values to travel',
+  );
+  for (const industry of SNOWFLAKE_PROFILE_INDUSTRIES) {
+    assert(
+      snowflakeProfileIndustryInputSchema().parse(industry) === industry,
+      `${industry} accepted by query schema`,
+    );
     assert(
       snowflakeProfileTableForIndustry(industry) === `AGENTIC_${industry.toUpperCase()}_PROFILE_CUSTOMER`,
       `${industry} query/insert table routing`,
+    );
+  }
+  assert(
+    snowflakeProfileIndustryInputSchema().safeParse('generic').success === false,
+    'query industry schema rejects generic',
+  );
+  const registeredTools = new Map();
+  registerSnowflakeTools({
+    registerTool(name, config) {
+      registeredTools.set(name, config);
+    },
+  });
+  for (const toolName of SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES) {
+    assert(
+      registeredTools.get(toolName)?.inputSchema?.industry?.parse(undefined) === 'travel',
+      `${toolName} publishes an optional industry input with travel default`,
     );
   }
   assert(snowflakeProfileTableForIndustry('generic') === null, 'generic is not a Snowflake dual-load industry');
