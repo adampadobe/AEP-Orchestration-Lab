@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260506h">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260722a">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -43,7 +43,7 @@
           <details class="sf-gen-card sf-gen-card--config" id="sfConnectionDetails" open>
             <summary class="sf-gen-connection-summary" id="sfConnectionSummary">
               <span class="sf-gen-connection-summary-title">Snowflake connection</span>
-              <span class="sf-gen-connection-summary-status" id="sfConnectionSummaryStatus">Expand to configure</span>
+              <span class="sf-gen-connection-summary-status" id="sfConnectionSummaryStatus" role="status">Expand to configure</span>
             </summary>
             <div class="sf-gen-connection-body">
               <p class="sf-gen-card-subtitle sf-gen-connection-lead">
@@ -106,8 +106,12 @@
                 <div id="sfKeyDropTarget" class="sf-gen-key-drop-target">
                   <textarea id="sfCredential" rows="2" placeholder="Paste credential — leave blank to keep the previously saved value" autocomplete="off" spellcheck="false"></textarea>
                 </div>
-                <p class="field-hint">
-                  <span class="sf-gen-cred-status" id="sfCredentialStatus">No credential saved yet.</span>
+                <p class="field-hint sf-gen-cred-status-wrap">
+                  <span class="sf-gen-cred-badge" id="sfCredentialBadge" hidden role="status" aria-live="polite">
+                    <span class="sf-gen-cred-badge-icon" aria-hidden="true">✓</span>
+                    <span class="sf-gen-cred-badge-text" id="sfCredentialBadgeText">Credential stored in Secret Manager</span>
+                  </span>
+                  <span class="sf-gen-cred-status" id="sfCredentialStatus" data-state="missing">No credential saved yet.</span>
                 </p>
               </div>
 
@@ -381,6 +385,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260506h"></script>
+  <script src="profile-generation-snowflake.js?v=20260722a"></script>
 </body>
 </html>

@@ -44,6 +44,8 @@
   var lastSnowflakeTestOk = false;
   /** Last GET /api/snowflake/config metadata (configState, lab user uid prefix). */
   var lastConfigMeta = { configState: '', labUserUidPrefix: '', presetNote: '' };
+  /** True when GET /api/snowflake/config last reported hasCredential (Secret Manager). */
+  var lastHasCredential = false;
   /** Rows last returned from /api/snowflake/agentic/query-profiles (for enrich payload). */
   var loadedProfiles = [];
 
@@ -184,9 +186,21 @@
     updateConnectionSummary();
   }
 
+  function setConnectionSummaryTone(tone) {
+    var st = els.connectionSummaryStatus;
+    if (!st) return;
+    st.classList.remove(
+      'sf-gen-connection-summary-status--verified',
+      'sf-gen-connection-summary-status--incomplete',
+      'sf-gen-connection-summary-status--connected'
+    );
+    if (tone) st.classList.add('sf-gen-connection-summary-status--' + tone);
+  }
+
   function updateConnectionSummary() {
     var st = els.connectionSummaryStatus;
     if (!st) return;
+    setConnectionSummaryTone('');
     var sandbox = readSandbox();
     if (!sandbox) {
       st.textContent = 'Pick a sandbox in Global values';
@@ -194,34 +208,46 @@
     }
     if (lastSnowflakeTestOk) {
       st.textContent = 'Connected — expand to edit or retest';
+      setConnectionSummaryTone('connected');
       return;
     }
     var account = els.account && els.account.value.trim();
     var user = els.user && els.user.value.trim();
-    var credState = els.credentialStatus && els.credentialStatus.getAttribute('data-state');
+    var hasCred = lastHasCredential || (els.credentialStatus && els.credentialStatus.getAttribute('data-state') === 'set');
     var configState = lastConfigMeta.configState || '';
-    if (account && user && credState === 'set') {
-      st.textContent = 'Saved — run Test connection';
+    if (hasCred && account && user && (configState === 'saved_ready' || configState === 'preset_with_credential')) {
+      st.textContent = 'Saved — credential verified';
+      setConnectionSummaryTone('verified');
+      return;
+    }
+    if (hasCred && account && user) {
+      st.textContent = 'Saved — credential verified';
+      setConnectionSummaryTone('verified');
       return;
     }
     if (account && user && configState === 'preset_only') {
-      st.textContent = 'Agentic defaults — paste key & Save';
+      st.textContent = 'Incomplete — paste key & Save';
+      setConnectionSummaryTone('incomplete');
       return;
     }
     if (account && user && configState === 'saved_no_credential') {
-      st.textContent = 'Saved fields — add credential & Save';
+      st.textContent = 'Incomplete — add credential & Save';
+      setConnectionSummaryTone('incomplete');
       return;
     }
     if (account && user && configState === 'preset_with_credential') {
-      st.textContent = 'Credential saved — click Save to store fields';
+      st.textContent = 'Credential verified — click Save to store fields';
+      setConnectionSummaryTone('verified');
       return;
     }
     if (account && user) {
       st.textContent = 'Incomplete — add credential & Save';
+      setConnectionSummaryTone('incomplete');
       return;
     }
     if (account || user) {
       st.textContent = 'Incomplete — expand to finish';
+      setConnectionSummaryTone('incomplete');
       return;
     }
     st.textContent = 'Not configured — expand to edit';
@@ -237,6 +263,7 @@
       else if (rec.docExists) configState = 'saved_incomplete';
       else configState = 'empty';
     }
+    lastHasCredential = !!(rec && rec.hasCredential);
     lastConfigMeta = {
       configState: configState,
       labUserUidPrefix: (body && body.labUserUidPrefix) || lastConfigMeta.labUserUidPrefix || '',
@@ -495,16 +522,24 @@
 
   function reflectCredentialState(rec) {
     var node = els.credentialStatus;
+    var badge = els.credentialBadge;
+    var badgeText = els.credentialBadgeText;
     if (!node) return;
-    if (rec && rec.hasCredential) {
+    var hasCred = !!(rec && rec.hasCredential);
+    lastHasCredential = hasCred;
+    if (hasCred) {
       var when = rec.credentialSetAt ? ' (saved ' + new Date(rec.credentialSetAt).toLocaleString() + ')' : '';
       var uidHint = lastConfigMeta.labUserUidPrefix
         ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
         : '';
-      node.textContent =
-        'Credential is stored in Secret Manager' + when + '.' + uidHint + ' Leave the field blank to keep it.';
+      if (badge) badge.hidden = false;
+      if (badgeText) {
+        badgeText.textContent = 'Credential stored in Secret Manager' + when;
+      }
+      node.textContent = 'No need to re-paste your PEM — leave the field blank to keep the stored key.' + uidHint;
       node.setAttribute('data-state', 'set');
     } else {
+      if (badge) badge.hidden = true;
       var presetHint =
         lastConfigMeta.configState === 'preset_only'
           ? ' Preset connection fields do not mean a key is saved — paste your PEM and Save.'
@@ -587,7 +622,12 @@
             applyRecordToForm(rec);
             if (isApalmerSandbox(sandbox) && (!rec || !rec.account)) {
               applyAgenticTravelPreset(true, false);
-              rememberConfigMeta(body, Object.assign({}, rec || {}, { configState: 'preset_only' }));
+              var mergedRec = Object.assign({}, rec || {});
+              if (!mergedRec.configState) {
+                mergedRec.configState = mergedRec.hasCredential ? 'preset_with_credential' : 'preset_only';
+              }
+              rememberConfigMeta(body, mergedRec);
+              reflectCredentialState(mergedRec);
               updateConnectionSummary();
               setMessage(configLoadMessage(rec, sandbox, body), 'info');
             } else {
@@ -1200,6 +1240,8 @@
     els.credential = $('sfCredential');
     els.credentialLabel = $('sfCredentialLabel');
     els.credentialStatus = $('sfCredentialStatus');
+    els.credentialBadge = $('sfCredentialBadge');
+    els.credentialBadgeText = $('sfCredentialBadgeText');
     els.passphraseRow = $('sfPassphraseRow');
     els.keyPassphrase = $('sfKeyPassphrase');
     els.saveBtn = $('sfSaveBtn');
