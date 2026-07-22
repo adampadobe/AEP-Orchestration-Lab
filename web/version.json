@@ -1,14 +1,14 @@
 {
-  "gitSha": "11b4d260e995cf3805a32b8eba052616c3758fd0",
-  "gitShortSha": "11b4d260",
+  "gitSha": "bbb7e83a1ea2bce691ca801502b0cbb09ac05f00",
+  "gitShortSha": "bbb7e83a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp 0823bec3",
+  "gitCommitSubject": "[apalmer] fix: Snowflake UI preset vs saved credential messaging",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-21T16:38:53+01:00",
-  "deployedAt": "2026-07-21T15:39:07.824Z",
+  "gitCommitDate": "2026-07-22T09:41:15+01:00",
+  "deployedAt": "2026-07-22T08:41:32.707Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/11b4d260e995cf3805a32b8eba052616c3758fd0"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bbb7e83a1ea2bce691ca801502b0cbb09ac05f00"
 }
