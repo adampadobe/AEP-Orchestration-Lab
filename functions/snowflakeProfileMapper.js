@@ -7,6 +7,7 @@
 
 const { createHash } = require('crypto');
 const { COLUMNS } = require('./snowflakeBaseProfileSchema');
+const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
 
 const AGENTIC_MOBILE = '+447425627462';
 
@@ -169,8 +170,69 @@ function mapAepAttributesToBaseProfileRow(input) {
   return { row, rowObject: rowByCol, columns: COLUMNS.slice() };
 }
 
+/**
+ * Map AEP persona attributes → AGENTIC_TRAVEL_PROFILE_CUSTOMER row (39 columns).
+ * Travel-specific fields use sensible defaults when absent from AEP UPS.
+ *
+ * @param {object} input — same shape as mapAepAttributesToBaseProfileRow
+ */
+function mapAepAttributesToTravelProfileRow(input) {
+  const base = mapAepAttributesToBaseProfileRow(input);
+  const attrs = input.attributes && typeof input.attributes === 'object' ? input.attributes : {};
+
+  const nationality =
+    str(getAttr(attrs, 'person.nationality') || getAttr(attrs, 'nationality')) || 'GB';
+  const mobile = base.rowObject.MOBILEPHONE_NUMBER || base.rowObject.PHONENUMBER;
+
+  const rowByCol = {
+    CRMID: base.rowObject.CRMID,
+    ECID: base.rowObject.ECID,
+    EMAIL: base.rowObject.EMAIL,
+    EMAILIDSHA256: base.rowObject.EMAILIDSHA256,
+    GAID: base.rowObject.GAID,
+    LOYALTYID: base.rowObject.LOYALTYID,
+    PASSPORTID: base.rowObject.PASSPORTID,
+    PHONENUMBER: mobile,
+    PUSHTOKENS: base.rowObject.PUSHTOKENS,
+    STACKCHATID: base.rowObject.STACKCHATID,
+    FIRSTNAME: base.rowObject.FIRSTNAME,
+    LASTNAME: base.rowObject.LASTNAME,
+    DATEOFBIRTH: base.rowObject.BIRTHDATE,
+    GENDER: base.rowObject.GENDER,
+    NATIONALITY: nationality,
+    PRIMARYEMAIL: base.rowObject.EMAIL,
+    PRIMARYPHONE: mobile,
+    ADDRESSSTREET: base.rowObject.HOMEADDRESS_STREET1,
+    ADDRESSCITY: base.rowObject.HOMEADDRESS_CITY,
+    ADDRESSPOSTALCODE: base.rowObject.HOMEADDRESS_POSTALCODE,
+    ADDRESSCOUNTRY: base.rowObject.HOMEADDRESS_COUNTRY,
+    LASTHOLIDAYDATE: null,
+    LASTHOLIDAYDESTINATION: null,
+    UPCOMINGHOLIDAYDATE: null,
+    UPCOMINGHOLIDAYDESTINATION: null,
+    TOTALFLIGHTSTAKEN: 0,
+    TOTALDISTANCEFLOWN: 0,
+    FAVORITEDESTINATIONS: null,
+    PREFERREDCABINCLASS: null,
+    PREFERREDSEATTYPE: null,
+    MEALPREFERENCE: null,
+    SPECIALASSISTANCE: null,
+    LIFETIMEVALUE: 0,
+    AVERAGEBOOKINGVALUE: 0,
+    TOTALBOOKINGS: 0,
+    CUSTOMERSEGMENT: 'bronze',
+    TESTPROFILE: base.rowObject.TESTPROFILE,
+    _RECORDCREATEDTIMESTAMP: base.rowObject._RECORDCREATEDTIMESTAMP,
+    _RECORDUPDATEDTIMESTAMP: base.rowObject._RECORDUPDATEDTIMESTAMP,
+  };
+
+  const row = TRAVEL_COLUMNS.map((col) => (Object.prototype.hasOwnProperty.call(rowByCol, col) ? rowByCol[col] : null));
+  return { row, rowObject: rowByCol, columns: TRAVEL_COLUMNS.slice() };
+}
+
 module.exports = {
   AGENTIC_MOBILE,
   mapAepAttributesToBaseProfileRow,
+  mapAepAttributesToTravelProfileRow,
   getAttr,
 };

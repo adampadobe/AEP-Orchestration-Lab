@@ -29,7 +29,11 @@
 const { randomUUID } = require('crypto');
 const store = require('./snowflakeConnectionStore');
 const { COLUMNS, COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
-const { mapAepAttributesToBaseProfileRow } = require('./snowflakeProfileMapper');
+const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
+const {
+  mapAepAttributesToBaseProfileRow,
+  mapAepAttributesToTravelProfileRow,
+} = require('./snowflakeProfileMapper');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const prefsStore = require('./labProfileGenerationPrefsStore');
@@ -463,7 +467,32 @@ async function handleGenerateBaseProfiles(input) {
 }
 
 /**
- * INSERT one BASE_PROFILES row mapped from AEP generate output (dual-load).
+ * Resolve INSERT mapper + column list for dual-load target table.
+ * @param {string} tableName
+ */
+function resolveDualLoadInsertSchema(tableName) {
+  const normalized = String(tableName || '').trim().toUpperCase();
+  if (
+    normalized === DUAL_LOAD_DEFAULT_TABLE.toUpperCase()
+    || normalized === 'AGENTIC_TRAVEL_PROFILE_CUSTOMER'
+  ) {
+    return {
+      schemaKey: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+      columns: TRAVEL_COLUMNS,
+      mapRow: mapAepAttributesToTravelProfileRow,
+      skipCreateTable: true,
+    };
+  }
+  return {
+    schemaKey: 'BASE_PROFILES',
+    columns: COLUMNS,
+    mapRow: mapAepAttributesToBaseProfileRow,
+    skipCreateTable: false,
+  };
+}
+
+/**
+ * INSERT one profile row mapped from AEP generate output (dual-load).
  *
  * @param {{ labUser: string, sandbox: string, email: string, ecid: string, attributes?: object, table?: string }} input
  */
@@ -477,6 +506,8 @@ async function handleInsertProfileFromAep(input) {
   if (!ecid) throw new Error('ecid is required');
 
   const tableName = safeIdentifier(input.table || DUAL_LOAD_DEFAULT_TABLE, DUAL_LOAD_DEFAULT_TABLE);
+  const insertSchema = resolveDualLoadInsertSchema(tableName);
+  const { columns: insertColumns, mapRow, skipCreateTable, schemaKey } = insertSchema;
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
     return {
@@ -528,14 +559,17 @@ async function handleInsertProfileFromAep(input) {
         ecid,
         email,
         idempotent: true,
-        columnsWritten: COLUMNS.length,
+        schemaKey,
+        columnsWritten: insertColumns.length,
       };
     }
 
-    const ddl = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)`;
-    await execAsync(conn, { sqlText: ddl });
+    if (!skipCreateTable) {
+      const ddl = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)`;
+      await execAsync(conn, { sqlText: ddl });
+    }
 
-    const mapped = mapAepAttributesToBaseProfileRow({
+    const mapped = mapRow({
       email,
       ecid,
       crmId,
@@ -543,9 +577,9 @@ async function handleInsertProfileFromAep(input) {
       runStamp,
     });
 
-    const placeholders = COLUMNS.map(() => '?').join(', ');
+    const placeholders = insertColumns.map(() => '?').join(', ');
     await execAsync(conn, {
-      sqlText: `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) VALUES (${placeholders})`,
+      sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) VALUES (${placeholders})`,
       binds: mapped.row,
     });
 
@@ -556,8 +590,9 @@ async function handleInsertProfileFromAep(input) {
       ecid,
       email,
       idempotent: false,
-      columnsWritten: COLUMNS.length,
-      sample: rowToObject(mapped.row),
+      schemaKey,
+      columnsWritten: insertColumns.length,
+      sample: mapped.rowObject,
     };
   } catch (err) {
     return { ok: false, error: describeConnectError(err) };
@@ -582,4 +617,5 @@ module.exports = {
   getNextCrmStartIndex,
   handleGenerateBaseProfiles,
   handleInsertProfileFromAep,
+  resolveDualLoadInsertSchema,
 };

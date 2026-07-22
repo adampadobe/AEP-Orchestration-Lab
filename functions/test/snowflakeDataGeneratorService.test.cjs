@@ -6,6 +6,7 @@ const {
   generateBaseProfileRow,
   generateAgenticEmail,
   rowToObject,
+  resolveDualLoadInsertSchema,
 } = require('../snowflakeDataGeneratorService');
 const { scaleEmail } = require('../labProfileGenerationPrefsStore');
 
@@ -30,5 +31,18 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     const obj = rowToObject(row);
     assert.equal(obj.EMAIL, prefsEmail);
     assert.match(obj.EMAIL, /\+\d{8}-\d+@/);
+  });
+
+  it('resolveDualLoadInsertSchema uses travel mapper for AGENTIC_TRAVEL_PROFILE_CUSTOMER', () => {
+    const travel = resolveDualLoadInsertSchema('AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    assert.equal(travel.schemaKey, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    assert.equal(travel.skipCreateTable, true);
+    assert.ok(travel.columns.includes('DATEOFBIRTH'));
+    assert.ok(!travel.columns.includes('BIRTHDATE'));
+
+    const legacy = resolveDualLoadInsertSchema('BASE_PROFILES');
+    assert.equal(legacy.schemaKey, 'BASE_PROFILES');
+    assert.equal(legacy.skipCreateTable, false);
+    assert.ok(legacy.columns.includes('BIRTHDATE'));
   });
 });

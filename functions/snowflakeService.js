@@ -196,9 +196,12 @@ function describeConnectError(err) {
         'with Authentication method = Key pair and paste the current aep_integration_1.p8 PEM (recommended for AEP_INTEGRATION_1). ' +
         'If you intentionally use password/PAT, rotate the Snowflake user password or PAT and Save again.'
     );
+  }
+  if (/000904|invalid identifier|SQL compilation error.*identifi/i.test(msg)) {
     hints.push(
-      'Coworker dual-load uses the same Secret Manager credential as Test connection. If Test passes but dual-load fails with 390100, ' +
-        'your MCP principal may be resolving sandbox-shared credentials with a stale authMethod — Save key pair again on this sandbox.'
+      'INSERT column list does not match the Snowflake table schema (SCHEMA_MISMATCH). ' +
+        'Dual-load into AGENTIC_TRAVEL_PROFILE_CUSTOMER expects DATEOFBIRTH, PRIMARYEMAIL, and NATIONALITY — not BASE_PROFILES names like BIRTHDATE. ' +
+        'Redeploy Cloud Functions after a mapper fix, or pass table=BASE_PROFILES only for legacy batch targets.'
     );
   }
   return {

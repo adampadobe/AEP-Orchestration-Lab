@@ -25,6 +25,7 @@ describe('snowflakeIndustryManifest', () => {
   it('aligns dual-load target with query table', () => {
     assert.equal(TRAVEL_MANIFEST.dualLoad.defaultTargetTable, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
     assert.equal(TRAVEL_MANIFEST.dualLoad.queryTable, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    assert.equal(TRAVEL_MANIFEST.dualLoad.mapperSchema, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
     assert.notEqual(TRAVEL_MANIFEST.baseProfiles.legacyBatchTable, TRAVEL_MANIFEST.dualLoad.defaultTargetTable);
   });
 

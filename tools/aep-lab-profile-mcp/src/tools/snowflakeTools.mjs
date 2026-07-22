@@ -309,7 +309,8 @@ export function registerSnowflakeTools(mcpServer) {
     {
       title: 'Insert one Snowflake profile from AEP persona',
       description:
-        'POST /api/snowflake/insert-profile-from-aep — maps AEP dot-path attributes to AGENTIC_TRAVEL_PROFILE_CUSTOMER (BASE_PROFILES column shape) with shared email/ECID. ' +
+        'POST /api/snowflake/insert-profile-from-aep — maps AEP dot-path attributes to AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
+        '(DATEOFBIRTH, PRIMARYEMAIL, NATIONALITY, …) with shared email/ECID. ' +
         'Used for dual-load repair or standalone mirror insert. Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),

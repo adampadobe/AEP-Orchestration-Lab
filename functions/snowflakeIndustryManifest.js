@@ -6,6 +6,7 @@
 'use strict';
 
 const { COLUMNS } = require('./snowflakeBaseProfileSchema');
+const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
 
 const PHASE_TABLES = {
   phase1: [
@@ -63,19 +64,22 @@ const TRAVEL_MANIFEST = {
     /** Primary customer table — query-profiles + dual-load target (aligned). */
     table: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
     baseProfileTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
-    /** Legacy Node batch generator default (same 38-col shape). */
+    /** Legacy Node batch generator default (38-col BASE_PROFILES shape). */
     legacyBatchTable: 'BASE_PROFILES',
-    columnCount: COLUMNS.length,
-    columns: COLUMNS,
+    columnCount: TRAVEL_COLUMNS.length,
+    columns: TRAVEL_COLUMNS,
+    baseProfileColumnCount: COLUMNS.length,
+    baseProfileColumns: COLUMNS,
   },
   dualLoad: {
     defaultTargetTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
     queryTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
-    mapperSchema: 'BASE_PROFILES',
+    mapperSchema: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    columnCount: TRAVEL_COLUMNS.length,
     note:
-      'Dual-load INSERT uses BASE_PROFILES column mapper but targets AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
-      'so lab_snowflake_query_profiles finds mirrored AEP rows. Email and ECID come from AEP generate ' +
-      '(shared Firestore labProfileGenerationPrefs counter — same as Profile Viewer).',
+      'Dual-load INSERT maps AEP persona attributes to AGENTIC_TRAVEL_PROFILE_CUSTOMER columns ' +
+      '(DATEOFBIRTH, PRIMARYEMAIL, NATIONALITY, …) so lab_snowflake_query_profiles finds mirrored rows. ' +
+      'Email and ECID come from AEP generate (shared Firestore labProfileGenerationPrefs counter).',
   },
   emailGeneration: {
     pattern: '<local>+DDMMYYYY-N@<domain>',

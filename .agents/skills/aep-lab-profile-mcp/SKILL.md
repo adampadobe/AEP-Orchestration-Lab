@@ -149,7 +149,7 @@ Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared
 
 4. **Dual-load generate**
 
-   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — **omit email** so Firestore reserves `<local>+DDMMYYYY-N@domain>` once for AEP + Snowflake; save email, ecid, snowflake.crmId (mirrors into **AGENTIC_TRAVEL_PROFILE_CUSTOMER**, not legacy BASE_PROFILES).
+   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — **omit email** so Firestore reserves `<local>+DDMMYYYY-N@domain>` once for AEP + Snowflake; save email, ecid, snowflake.crmId (mirrors into **AGENTIC_TRAVEL_PROFILE_CUSTOMER** using DATEOFBIRTH/PRIMARYEMAIL columns, not legacy BASE_PROFILES BIRTHDATE names).
 
 5. **Batch dual-load (optional)**
 
