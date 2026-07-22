@@ -40,6 +40,24 @@ function sha256Email(email) {
   return createHash('sha256').update(e.toLowerCase(), 'utf8').digest('hex');
 }
 
+/**
+ * UTC timestamp string for AGENTIC_TRAVEL_PROFILE_CUSTOMER._RECORDCREATEDTIMESTAMP
+ * (TIMESTAMP_NTZ). Matches Python agentic-travel-runner generate_timestamp_utc().
+ *
+ * @param {string | Date | undefined} input
+ * @returns {string}
+ */
+function formatSnowflakeRecordTimestamp(input) {
+  const d = input instanceof Date
+    ? input
+    : new Date(str(input) || Date.now());
+  const when = Number.isNaN(d.getTime()) ? new Date() : d;
+  const pad = (n, w = 2) => String(n).padStart(w, '0');
+  return `${when.getUTCFullYear()}-${pad(when.getUTCMonth() + 1)}-${pad(when.getUTCDate())} `
+    + `${pad(when.getUTCHours())}:${pad(when.getUTCMinutes())}:${pad(when.getUTCSeconds())}.`
+    + `${pad(when.getUTCMilliseconds(), 3)}`;
+}
+
 function parseBirthParts(attrs) {
   const birthDate = str(getAttr(attrs, 'person.birthDate') || getAttr(attrs, 'birthDate'));
   if (birthDate && /^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
@@ -94,7 +112,7 @@ function mapAepAttributesToBaseProfileRow(input) {
   if (!ecid) throw new Error('ecid is required for Snowflake profile mapping');
 
   const attrs = input.attributes && typeof input.attributes === 'object' ? input.attributes : {};
-  const runStamp = str(input.runStamp) || new Date().toISOString();
+  const runStamp = formatSnowflakeRecordTimestamp(str(input.runStamp) || undefined);
   const crmId = str(input.crmId) || 'CRM0';
 
   const firstName = str(getAttr(attrs, 'person.name.firstName') || getAttr(attrs, 'firstName'));
@@ -232,6 +250,7 @@ function mapAepAttributesToTravelProfileRow(input) {
 
 module.exports = {
   AGENTIC_MOBILE,
+  formatSnowflakeRecordTimestamp,
   mapAepAttributesToBaseProfileRow,
   mapAepAttributesToTravelProfileRow,
   getAttr,

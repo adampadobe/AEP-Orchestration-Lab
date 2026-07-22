@@ -3,6 +3,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  formatSnowflakeRecordTimestamp,
   mapAepAttributesToBaseProfileRow,
   mapAepAttributesToTravelProfileRow,
 } = require('../snowflakeProfileMapper');
@@ -82,5 +83,30 @@ describe('snowflakeProfileMapper', () => {
     assert.equal(rowObject.CUSTOMERSEGMENT, 'bronze');
     assert.ok(!Object.prototype.hasOwnProperty.call(rowObject, 'BIRTHDATE'));
     assert.ok(!TRAVEL_COLUMNS.includes('BIRTHDATE'));
+    assert.equal(rowObject._RECORDCREATEDTIMESTAMP, '2026-07-21 12:00:00.000');
+    assert.equal(rowObject._RECORDUPDATEDTIMESTAMP, '2026-07-21 12:00:00.000');
+    const createdIdx = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
+    const updatedIdx = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
+    assert.equal(row[createdIdx], '2026-07-21 12:00:00.000');
+    assert.equal(row[updatedIdx], '2026-07-21 12:00:00.000');
+  });
+
+  it('formatSnowflakeRecordTimestamp emits Python runner UTC shape', () => {
+    assert.equal(
+      formatSnowflakeRecordTimestamp('2026-07-21T12:00:00.000Z'),
+      '2026-07-21 12:00:00.000',
+    );
+    assert.match(formatSnowflakeRecordTimestamp(), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
+  });
+
+  it('defaults _RECORDCREATEDTIMESTAMP when runStamp omitted on dual-load travel row', () => {
+    const { rowObject } = mapAepAttributesToTravelProfileRow({
+      email: 'test@example.com',
+      ecid: 'ecid-1',
+      crmId: 'CRM42',
+      attributes: {},
+    });
+    assert.match(rowObject._RECORDCREATEDTIMESTAMP, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
+    assert.equal(rowObject._RECORDUPDATEDTIMESTAMP, rowObject._RECORDCREATEDTIMESTAMP);
   });
 });
