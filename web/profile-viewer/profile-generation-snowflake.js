@@ -42,6 +42,8 @@
   var els = {};
   /** True after a successful Test connection in this page session (reset on Save / Clear / reload). */
   var lastSnowflakeTestOk = false;
+  /** Last GET /api/snowflake/config metadata (configState, lab user uid prefix). */
+  var lastConfigMeta = { configState: '', labUserUidPrefix: '', presetNote: '' };
   /** Rows last returned from /api/snowflake/agentic/query-profiles (for enrich payload). */
   var loadedProfiles = [];
 
@@ -197,8 +199,21 @@
     var account = els.account && els.account.value.trim();
     var user = els.user && els.user.value.trim();
     var credState = els.credentialStatus && els.credentialStatus.getAttribute('data-state');
+    var configState = lastConfigMeta.configState || '';
     if (account && user && credState === 'set') {
       st.textContent = 'Saved — run Test connection';
+      return;
+    }
+    if (account && user && configState === 'preset_only') {
+      st.textContent = 'Agentic defaults — paste key & Save';
+      return;
+    }
+    if (account && user && configState === 'saved_no_credential') {
+      st.textContent = 'Saved fields — add credential & Save';
+      return;
+    }
+    if (account && user && configState === 'preset_with_credential') {
+      st.textContent = 'Credential saved — click Save to store fields';
       return;
     }
     if (account && user) {
@@ -210,6 +225,62 @@
       return;
     }
     st.textContent = 'Not configured — expand to edit';
+  }
+
+  function rememberConfigMeta(body, rec) {
+    var configState = (rec && rec.configState) || '';
+    if (!configState && rec) {
+      if (rec.account && rec.hasCredential) configState = 'saved_ready';
+      else if (rec.account && !rec.hasCredential) configState = 'saved_no_credential';
+      else if (rec.presetSource && rec.hasCredential) configState = 'preset_with_credential';
+      else if (rec.presetSource) configState = 'preset_only';
+      else if (rec.docExists) configState = 'saved_incomplete';
+      else configState = 'empty';
+    }
+    lastConfigMeta = {
+      configState: configState,
+      labUserUidPrefix: (body && body.labUserUidPrefix) || lastConfigMeta.labUserUidPrefix || '',
+      presetNote: (rec && rec.presetNote) || '',
+    };
+  }
+
+  function labUserUidHint(body) {
+    var prefix = body && body.labUserUidPrefix;
+    return prefix ? ' Lab user id: ' + prefix + '.' : '';
+  }
+
+  function configLoadMessage(rec, sandbox, body) {
+    var state = rec && rec.configState;
+    var uidHint = labUserUidHint(body);
+    if (state === 'saved_ready') {
+      return 'Loaded saved Snowflake config for sandbox "' + sandbox + '".' + uidHint;
+    }
+    if (state === 'saved_no_credential') {
+      return (
+        'Loaded saved connection fields for sandbox "' + sandbox +
+        '" but no credential is stored for this lab user yet — paste your key and Save.' +
+        uidHint
+      );
+    }
+    if (state === 'preset_with_credential') {
+      return (
+        (rec.presetNote ||
+          'Credential is saved for this lab user but connection fields were empty.') +
+        uidHint +
+        ' Click Save with the preset values (or edit fields first).'
+      );
+    }
+    if (state === 'preset_only') {
+      return (
+        'AgenticAI travel defaults applied for sandbox "' + sandbox + '" — connection fields are not saved yet.' +
+        uidHint +
+        ' Paste your RSA private key (.p8 PEM), then Save. If you configured Snowflake before, confirm this lab user id matches the browser profile where you saved (anonymous Firebase auth is per-browser).'
+      );
+    }
+    if (rec && rec.account) {
+      return 'Loaded config for sandbox "' + sandbox + '".' + uidHint;
+    }
+    return 'No saved config yet for sandbox "' + sandbox + '" — fill the form and save.' + uidHint;
   }
 
   function authHeaders() {
@@ -427,10 +498,24 @@
     if (!node) return;
     if (rec && rec.hasCredential) {
       var when = rec.credentialSetAt ? ' (saved ' + new Date(rec.credentialSetAt).toLocaleString() + ')' : '';
-      node.textContent = 'Credential is stored in Secret Manager' + when + '. Leave the field blank to keep it.';
+      var uidHint = lastConfigMeta.labUserUidPrefix
+        ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
+        : '';
+      node.textContent =
+        'Credential is stored in Secret Manager' + when + '.' + uidHint + ' Leave the field blank to keep it.';
       node.setAttribute('data-state', 'set');
     } else {
-      node.textContent = 'No credential saved yet — paste one to enable connection tests.';
+      var presetHint =
+        lastConfigMeta.configState === 'preset_only'
+          ? ' Preset connection fields do not mean a key is saved — paste your PEM and Save.'
+          : '';
+      var missingUidHint = lastConfigMeta.labUserUidPrefix
+        ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
+        : '';
+      node.textContent =
+        'No credential saved yet for this lab user — paste one to enable connection tests.' +
+        missingUidHint +
+        presetHint;
       node.setAttribute('data-state', 'missing');
     }
     updateConnectionSummary();
@@ -498,21 +583,15 @@
           if (res.ok && body && body.ok) {
             var rec = body.record || null;
             lastSnowflakeTestOk = false;
+            rememberConfigMeta(body, rec);
             applyRecordToForm(rec);
             if (isApalmerSandbox(sandbox) && (!rec || !rec.account)) {
               applyAgenticTravelPreset(true, false);
+              rememberConfigMeta(body, Object.assign({}, rec || {}, { configState: 'preset_only' }));
               updateConnectionSummary();
-              setMessage(
-                'No saved Snowflake config for sandbox "' + sandbox + '" yet — applied AgenticAI travel defaults (account, user, warehouse, database, schema, key-pair). Paste your RSA private key from your aep_integration_1.p8 file, optional passphrase, then Save.',
-                'info'
-              );
+              setMessage(configLoadMessage(rec, sandbox, body), 'info');
             } else {
-              setMessage(
-                rec && rec.account
-                  ? 'Loaded saved config for sandbox ' + sandbox + '.'
-                  : 'No saved config yet for sandbox ' + sandbox + ' — fill the form and save.',
-                'info'
-              );
+              setMessage(configLoadMessage(rec, sandbox, body), 'info');
             }
           } else {
             setMessage((body && body.error) || ('Failed to load config (HTTP ' + res.status + ')'), 'error');
@@ -559,6 +638,7 @@
           setDebug('POST ' + url, debugPayload, res.status, data);
           if (res.ok && data && data.ok) {
             lastSnowflakeTestOk = false;
+            rememberConfigMeta(data, data.record || null);
             applyRecordToForm(data.record || null);
             if (els.credential) els.credential.value = '';
             if (els.keyPassphrase) els.keyPassphrase.value = '';
@@ -650,6 +730,7 @@
         return res.json().then(function (data) {
           setDebug('POST ' + url, payload, res.status, data);
           if (res.ok && data && data.ok) {
+            rememberConfigMeta(data, data.record || null);
             applyRecordToForm(data.record || null);
             setMessage('Credential cleared.', 'info');
           } else {

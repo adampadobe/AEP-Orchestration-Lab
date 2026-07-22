@@ -88,6 +88,8 @@ function registerSnowflakeRoutes(deps) {
           ok: true,
           sandbox,
           record,
+          labUserUid: uidStr,
+          labUserUidPrefix: uidStr.length > 8 ? `${uidStr.slice(0, 8)}…` : uidStr,
           staticEgressIp: STATIC_EGRESS_IP,
           ready: !!(record && record.hasCredential),
         });
