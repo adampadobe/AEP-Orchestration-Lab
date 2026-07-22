@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.23.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.24.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.21)
 
-MCP server: **AEP Orchestration Lab MCP v3.23.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.24.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -49,6 +49,7 @@ Codex should call these **before** improvising lab conventions:
 9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
+12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Requires user-generated MCP key.
 
 ### How the lab executes
 
@@ -157,7 +158,11 @@ Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared
 
 6. **Verify**
 
-   > **lab_get_profile** + **lab_snowflake_query_profiles** sandbox apalmer filter_type all limit 5.
+   > **lab_get_profile** + **lab_snowflake_get_profile_by_email** sandbox apalmer email `{email from generate}` — read `profiles[0].columns` (all 39 fields) and `createdAt`. Do **not** use Snowflake console SQL.
+
+**Example Coworker prompt (full Snowflake row by email):**
+
+> After dual-load generate, call **lab_snowflake_get_profile_by_email** sandbox apalmer email `{email from lab_generate_profile}`. Summarize every column in `profiles[0].columns` and confirm `createdAt` matches `_RECORDCREATEDTIMESTAMP`. Do not ask me to run SQL in Snowflake.
 
 **Snowflake-only batch (`lab_snowflake_generate_base_profiles`)** — default `use_generation_prefs:true` shares the same Firestore counter as Profile Viewer (not the legacy `adamp.adobedemo+DDMMYYYY+N@gmail.com` Snowflake scan). Pass `use_generation_prefs:false` only for Agentic legacy demos.
 

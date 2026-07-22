@@ -43,7 +43,8 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_snowflake_test_connection` | `POST /api/snowflake/connection-test` | `SELECT CURRENT_VERSION()`; NETWORK POLICY hints (static IP 34.58.81.28) |
 | `lab_snowflake_generate_base_profiles` | `POST /api/snowflake/generate-base-profiles` | Snowflake-only batch INSERT; default **use_generation_prefs:true** (shared Firestore `<local>+DDMMYYYY-N@domain` counter) |
 | `lab_snowflake_create_profile` | `POST /api/snowflake/insert-profile-from-aep` | Single-row AEP→Snowflake mapper (dual-load repair) |
-| `lab_snowflake_query_profiles` | `POST /api/snowflake/agentic/query-profiles` | Agentic travel profile query |
+| `lab_snowflake_get_profile_by_email` | `POST /api/snowflake/agentic/query-profiles` | **Full row by email** — all 39 AGENTIC_TRAVEL columns; use instead of Snowflake console SQL |
+| `lab_snowflake_query_profiles` | `POST /api/snowflake/agentic/query-profiles` | Full-row readback by email/ecid or list filters (loyalty, time_period) |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |

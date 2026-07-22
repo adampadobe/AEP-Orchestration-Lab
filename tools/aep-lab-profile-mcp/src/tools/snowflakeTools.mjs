@@ -83,6 +83,72 @@ function uidPrefix(uid) {
   return s.length > 8 ? `${s.slice(0, 8)}…` : s;
 }
 
+/** Discoverable aliases for full Snowflake AGENTIC_TRAVEL profile readback (Coworker tool search). */
+export const SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES = [
+  'lab_snowflake_get_profile_by_email',
+  'lab_snowflake_query_profiles',
+];
+
+const SNOWFLAKE_FULL_ROW_NOTE =
+  'Each profile includes profiles[].columns with all AGENTIC_TRAVEL_PROFILE_CUSTOMER column names ' +
+  '(FIRSTNAME, LASTNAME, DATEOFBIRTH, NATIONALITY, PRIMARYEMAIL, …) plus top-level createdAt from _RECORDCREATEDTIMESTAMP. ' +
+  'Use email or ecid after dual_load_snowflake — do NOT tell the user to run Snowflake console SQL or raw Snowflake MCP SELECT *.';
+
+async function runSnowflakeQueryProfiles({
+  sandbox,
+  email,
+  ecid,
+  filter_type,
+  time_period,
+  limit,
+  toolName,
+}) {
+  const started = Date.now();
+  const keyId = getRequestKeyId();
+  const userKey = requireUserMcpKeyForSnowflake();
+  if (!userKey.ok) {
+    return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+  }
+
+  const allowed = assertSandboxAllowed(sandbox);
+  if (!allowed.ok) {
+    return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+  }
+
+  const apiResult = await snowflakeQueryProfiles({
+    sandbox: allowed.sandbox,
+    filter_type,
+    time_period,
+    limit,
+    email,
+    ecid,
+  });
+  writeAuditLog({
+    keyId,
+    tool: toolName,
+    sandbox: allowed.sandbox,
+    result: apiResult.ok ? 'ok' : 'error',
+    durationMs: Date.now() - started,
+  });
+
+  const result = apiResult.data?.result || {};
+  return fromLabApi(apiResult, {
+    sandbox: allowed.sandbox,
+    table: result.table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    columnCount: result.columnCount || null,
+    columns: result.columns || null,
+    profiles: result.profiles,
+    count: result.count,
+    filterType: result.filterType || result.filter_type,
+    timePeriod: result.timePeriod || result.time_period,
+    email: email || null,
+    ecid: ecid || null,
+    coworkerNote: SNOWFLAKE_FULL_ROW_NOTE,
+    neverUseSnowflakeConsoleSql:
+      'Lab MCP returns the full mirror row — use this tool instead of Snowflake console SELECT * or generic Snowflake MCP SQL.',
+  });
+}
+
 function buildConfigSummary(record, sandbox, labMeta = {}) {
   const principalPrefix = uidPrefix(record && record.labUser) || uidPrefix(labMeta.labUserUid);
   const scopeHint = principalPrefix
@@ -368,14 +434,39 @@ export function registerSnowflakeTools(mcpServer) {
   );
 
   mcpServer.registerTool(
+    'lab_snowflake_get_profile_by_email',
+    {
+      title: 'Get full Snowflake travel profile row by email (all 39 columns)',
+      description:
+        'POST /api/snowflake/agentic/query-profiles with email filter — returns the complete AGENTIC_TRAVEL_PROFILE_CUSTOMER row ' +
+        '(all 39 columns in profiles[].columns: FIRSTNAME, LASTNAME, DATEOFBIRTH, NATIONALITY, PRIMARYEMAIL, ECID, …) plus createdAt from _RECORDCREATEDTIMESTAMP. ' +
+        'Use INSTEAD of Snowflake console SQL or raw Snowflake MCP SELECT * after lab_generate_profile dual_load_snowflake. ' +
+        'Requires user-generated MCP key (Profile Viewer → MCP servers).',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        email: z
+          .string()
+          .email()
+          .describe('Profile email from lab_generate_profile (same address streamed to AEP + Snowflake mirror)'),
+      },
+    },
+    async ({ sandbox, email }) =>
+      runSnowflakeQueryProfiles({
+        sandbox,
+        email,
+        limit: 1,
+        toolName: 'lab_snowflake_get_profile_by_email',
+      }),
+  );
+
+  mcpServer.registerTool(
     'lab_snowflake_query_profiles',
     {
-      title: 'Query Snowflake Agentic travel profiles (full columns)',
+      title: 'Query Snowflake Agentic travel profiles — full row readback by email or ecid',
       description:
-        'POST /api/snowflake/agentic/query-profiles — returns ALL AGENTIC_TRAVEL_PROFILE_CUSTOMER columns ' +
-        '(FIRSTNAME, LASTNAME, DATEOFBIRTH, NATIONALITY, PRIMARYEMAIL, …) in profiles[].columns. ' +
-        'Use email or ecid after lab_generate_profile dual_load_snowflake to verify the Snowflake mirror row. ' +
-        'Prefer this tool over raw Snowflake MCP SQL for dual-load readback — lab query returns named profile fields, not task metadata. ' +
+        'POST /api/snowflake/agentic/query-profiles — returns ALL AGENTIC_TRAVEL_PROFILE_CUSTOMER columns (39 fields) in profiles[].columns ' +
+        'with createdAt from _RECORDCREATEDTIMESTAMP. Filter by email or ecid for one-profile dual-load verification. ' +
+        'Prefer lab_snowflake_get_profile_by_email when you only have email. Use INSTEAD of Snowflake console SQL or raw Snowflake MCP SELECT *. ' +
         'Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
@@ -383,7 +474,7 @@ export function registerSnowflakeTools(mcpServer) {
           .string()
           .email()
           .optional()
-          .describe('Filter to one profile by EMAIL (case-insensitive). Best for dual-load verification.'),
+          .describe('Filter to one profile by EMAIL (case-insensitive). Best for dual-load verification — same as lab_snowflake_get_profile_by_email.'),
         ecid: z
           .string()
           .min(1)
@@ -400,52 +491,16 @@ export function registerSnowflakeTools(mcpServer) {
         limit: z.number().int().min(1).max(500).optional().describe('Max rows when not filtering by email/ecid (default 50)'),
       },
     },
-    async ({ sandbox, email, ecid, filter_type, time_period, limit }) => {
-      const started = Date.now();
-      const keyId = getRequestKeyId();
-      const userKey = requireUserMcpKeyForSnowflake();
-      if (!userKey.ok) {
-        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
-      }
-
-      const allowed = assertSandboxAllowed(sandbox);
-      if (!allowed.ok) {
-        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
-      }
-
-      const apiResult = await snowflakeQueryProfiles({
-        sandbox: allowed.sandbox,
+    async ({ sandbox, email, ecid, filter_type, time_period, limit }) =>
+      runSnowflakeQueryProfiles({
+        sandbox,
+        email,
+        ecid,
         filter_type,
         time_period,
         limit,
-        email,
-        ecid,
-      });
-      writeAuditLog({
-        keyId,
-        tool: 'lab_snowflake_query_profiles',
-        sandbox: allowed.sandbox,
-        result: apiResult.ok ? 'ok' : 'error',
-        durationMs: Date.now() - started,
-      });
-
-      const result = apiResult.data?.result || {};
-      return fromLabApi(apiResult, {
-        sandbox: allowed.sandbox,
-        table: result.table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
-        columnCount: result.columnCount || null,
-        columns: result.columns || null,
-        profiles: result.profiles,
-        count: result.count,
-        filterType: result.filterType || result.filter_type,
-        timePeriod: result.timePeriod || result.time_period,
-        email: email || null,
-        ecid: ecid || null,
-        coworkerNote:
-          'Each profile includes profiles[].columns with all Snowflake column names (FIRSTNAME, LASTNAME, DATEOFBIRTH, …). ' +
-          'Use email or ecid filter after dual_load_snowflake — do not rely on raw Snowflake MCP SELECT * for lab mirror verification.',
-      });
-    },
+        toolName: 'lab_snowflake_query_profiles',
+      }),
   );
 
   mcpServer.registerTool(

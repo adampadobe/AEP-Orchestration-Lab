@@ -9,7 +9,7 @@ import {
   checkSnowflakeGenerateRate,
   checkSnowflakeTestRate,
 } from '../src/rateLimiter.mjs';
-import { requireUserMcpKeyForSnowflake } from '../src/tools/snowflakeTools.mjs';
+import { requireUserMcpKeyForSnowflake, SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES } from '../src/tools/snowflakeTools.mjs';
 import { snowflakeAuthHeaders, STATIC_EGRESS_IP } from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
 
@@ -50,6 +50,15 @@ async function run() {
   assert(testRate.ok === true, 'snowflake test rate first call');
   const genRate = checkSnowflakeGenerateRate('rate-test');
   assert(genRate.ok === true, 'snowflake generate rate first call');
+
+  assert(
+    SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES.includes('lab_snowflake_get_profile_by_email'),
+    'discoverable email readback tool exported',
+  );
+  assert(
+    SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES.includes('lab_snowflake_query_profiles'),
+    'query profiles tool exported',
+  );
 
   console.log(JSON.stringify({ ok: true, suite: 'snowflake-mcp-test', staticEgressIp: STATIC_EGRESS_IP }));
 }

@@ -189,6 +189,19 @@ export const CRITICAL_RULES = [
     mcp: 'Sandbox allowlist required. Run lab_decisioning_catalog_assess before Edge evaluate demos to catch expired offers and empty collections.',
   },
   {
+    id: 'snowflake_profile_readback_by_email',
+    rule:
+      'NEVER tell the user to run Snowflake console SQL or raw Snowflake MCP SELECT * for dual-load profile verification. ' +
+      'Lab MCP returns the full AGENTIC_TRAVEL_PROFILE_CUSTOMER row (all 39 columns in profiles[].columns + createdAt from _RECORDCREATEDTIMESTAMP).',
+    tools:
+      'lab_snowflake_get_profile_by_email (email required — most discoverable) or lab_snowflake_query_profiles with email=<email> or ecid=<ecid>.',
+    when:
+      'After lab_generate_profile with dual_load_snowflake:true — pass the same email from the generate response; read profiles[0].columns for every column.',
+    never:
+      'Snowflake web console SELECT *, generic Snowflake MCP ad-hoc SQL, or asking colleague to paste SQL manually.',
+    mcp: 'Requires user-generated MCP key (ops shared key cannot resolve Snowflake credentials).',
+  },
+  {
     id: 'brand_scrape_offline_fallback',
     rule:
       'When live brand crawl fails (403, bot protection, auth wall) or LLM analysis fails, do NOT retry lab_brand_scrape in a loop. ' +
@@ -400,7 +413,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.23.0',
+    version: '3.24.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -480,6 +493,7 @@ export function getExecutionFramework() {
           'lab_confirm_profile_generation',
           'lab_generate_profile',
           'lab_get_profile',
+          'lab_snowflake_get_profile_by_email',
           'lab_snowflake_query_profiles',
           'lab_snowflake_create_profile',
         ],
@@ -492,7 +506,7 @@ export function getExecutionFramework() {
           'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, emailGeneration, tableCheck before provisioning',
           'lab_confirm_profile_generation — shared AEP email prefs (Firestore labProfileGenerationPrefs)',
           'lab_generate_profile industry travel randomize true dual_load_snowflake true — omit email; same +DDMMYYYY-N address streams to AEP and Snowflake',
-          'lab_get_profile + lab_snowflake_query_profiles email {same email} — verify full mirror row (profiles[].columns has FIRSTNAME, DATEOFBIRTH, …)',
+          'lab_get_profile + lab_snowflake_get_profile_by_email email {same email} — verify full mirror row (profiles[].columns all 39 columns + createdAt; never Snowflake console SQL)',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },
@@ -769,6 +783,10 @@ export function getExecutionFramework() {
         'Create ExperienceEvent schema, attach recommended field groups, and catalog dataset (Event tool Set up event infrastructure). Follow with dx-api Edge datastream + lab_save_event_datastream.',
       lab_save_event_datastream:
         'After Coworker dx-api or Data Collection creates the Edge datastream — persist datastreamId to Firestore so lab-event-tool-edge works.',
+      lab_snowflake_get_profile_by_email:
+        'Full Snowflake AGENTIC_TRAVEL mirror row by email — all 39 columns in profiles[].columns + createdAt. Use after dual_load_snowflake; never Snowflake console SQL.',
+      lab_snowflake_query_profiles:
+        'Same full-row readback with email/ecid filter or list filters (loyalty, time_period). Prefer lab_snowflake_get_profile_by_email when you only have email.',
     },
     dataflow_pattern: {
       description: 'Per industry: schema → dataset → HTTP API streaming flow (dx-api) → Firestore connection doc.',
