@@ -115,6 +115,22 @@ function pickNonEmpty(preferred, fallback) {
 }
 
 /**
+ * When authMethod in Firestore disagrees with Secret Manager payload, prefer PEM shape.
+ * Prevents sandbox-shared key-pair secrets from being sent as password (Snowflake 390100).
+ *
+ * @param {string} authMethod
+ * @param {string} credential
+ * @returns {'password'|'pat'|'keyPair'}
+ */
+function inferAuthMethodFromCredential(authMethod, credential) {
+  const cred = String(credential || '').trim();
+  if (cred && /BEGIN (?:RSA )?PRIVATE KEY|BEGIN ENCRYPTED PRIVATE KEY/.test(cred)) {
+    return 'keyPair';
+  }
+  return pickAuthMethod(authMethod, 'password');
+}
+
+/**
  * Merge user Firestore row + shared row for GET when user has no credential.
  * Prefers user non-secret fields when set; credential flags come from shared.
  *
@@ -125,6 +141,7 @@ function pickNonEmpty(preferred, fallback) {
 function mergeUserConfigWithSharedFallback(userCfg, sharedCfg) {
   const u = userCfg || {};
   const sh = sharedCfg || {};
+  const usingSharedCred = !!sh.hasCredential;
   return {
     sandbox: u.sandbox || sh.sandbox || '',
     labUser: u.labUser || '',
@@ -135,9 +152,13 @@ function mergeUserConfigWithSharedFallback(userCfg, sharedCfg) {
     warehouse: pickNonEmpty(u.warehouse, sh.warehouse),
     database: pickNonEmpty(u.database, sh.database),
     schema: pickNonEmpty(u.schema, sh.schema),
-    authMethod: pickAuthMethod(u.authMethod, pickAuthMethod(sh.authMethod, 'password')),
-    hasCredential: !!sh.hasCredential,
-    hasPassphrase: !!sh.hasPassphrase,
+    // Shared Secret Manager credential must use shared authMethod — empty user docs
+    // default to password and would otherwise force password auth on a PEM secret.
+    authMethod: usingSharedCred
+      ? pickAuthMethod(sh.authMethod, pickAuthMethod(u.authMethod, 'keyPair'))
+      : pickAuthMethod(u.authMethod, pickAuthMethod(sh.authMethod, 'password')),
+    hasCredential: usingSharedCred,
+    hasPassphrase: usingSharedCred ? !!sh.hasPassphrase : !!u.hasPassphrase,
     credentialSetAt: sh.credentialSetAt || u.credentialSetAt || null,
     updatedAt: sh.updatedAt || u.updatedAt || null,
     updatedBy: sh.updatedBy || u.updatedBy || null,
@@ -613,15 +634,18 @@ async function resolveConnection(labUser, sandbox) {
     : await readSecret(labUser, sandbox, '');
   if (!credential) return null;
 
+  const authMethod = inferAuthMethodFromCredential(cfg.authMethod, credential);
+  const resolvedCfg = { ...cfg, authMethod };
+
   let passphrase = '';
-  if (cfg.authMethod === 'keyPair' && cfg.hasPassphrase) {
+  if (authMethod === 'keyPair' && resolvedCfg.hasPassphrase) {
     passphrase = useShared
       ? await readSharedSecret(sandbox, 'pass')
       : await readSecret(labUser, sandbox, 'pass');
   }
 
   return {
-    config: cfg,
+    config: resolvedCfg,
     credential,
     passphrase,
   };
@@ -635,6 +659,7 @@ module.exports = {
   sharedDocId,
   sharedSecretId,
   isSandboxSharedEligible,
+  inferAuthMethodFromCredential,
   mergeUserConfigWithSharedFallback,
   migrateAnonymousConfigToAuthenticated,
   getConfig,

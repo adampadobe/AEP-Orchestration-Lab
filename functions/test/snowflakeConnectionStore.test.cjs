@@ -6,6 +6,7 @@ const {
   sharedDocId,
   sharedSecretId,
   isSandboxSharedEligible,
+  inferAuthMethodFromCredential,
   mergeUserConfigWithSharedFallback,
 } = require('../snowflakeConnectionStore');
 const { projectConfigGetResponse } = require('../snowflakeService');
@@ -63,7 +64,13 @@ describe('snowflakeConnectionStore shared helpers', () => {
     assert.equal(merged.credentialScope, 'sandbox_shared');
     assert.equal(merged.account, 'dh96551.west-europe.azure');
     assert.equal(merged.user, 'AEP_INTEGRATION_1');
-    assert.equal(merged.authMethod, 'password');
+    assert.equal(merged.authMethod, 'keyPair');
+  });
+
+  it('inferAuthMethodFromCredential detects PEM even when Firestore says password', () => {
+    const pem = '-----BEGIN PRIVATE KEY-----\nMIIE\n-----END PRIVATE KEY-----';
+    assert.equal(inferAuthMethodFromCredential('password', pem), 'keyPair');
+    assert.equal(inferAuthMethodFromCredential('password', 's3cr3t'), 'password');
   });
 });
 

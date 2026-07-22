@@ -190,6 +190,17 @@ function describeConnectError(err) {
   if (/incorrect username or password|authentication/i.test(msg)) {
     hints.push('Verify the username/password, or that the PAT has not expired.');
   }
+  if (/390100|password has expired|password expired|change your password/i.test(msg)) {
+    hints.push(
+      'Snowflake rejected password auth for this user. Re-save the connection in Profile Viewer → Profile generation – Snowflake ' +
+        'with Authentication method = Key pair and paste the current aep_integration_1.p8 PEM (recommended for AEP_INTEGRATION_1). ' +
+        'If you intentionally use password/PAT, rotate the Snowflake user password or PAT and Save again.'
+    );
+    hints.push(
+      'Coworker dual-load uses the same Secret Manager credential as Test connection. If Test passes but dual-load fails with 390100, ' +
+        'your MCP principal may be resolving sandbox-shared credentials with a stale authMethod — Save key pair again on this sandbox.'
+    );
+  }
   return {
     message: msg,
     code: (err && (err.code || err.errno)) || null,
