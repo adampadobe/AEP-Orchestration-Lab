@@ -1,14 +1,14 @@
 {
-  "gitSha": "fad1ff134fe4cbeca906584dd95c51039e557c10",
-  "gitShortSha": "fad1ff13",
+  "gitSha": "e58fa7c615c316d33b90d64c7a5d958ae6f15228",
+  "gitShortSha": "e58fa7c6",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: MCP full Snowflake profile readback by email for Coworker",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json after deploy fad1ff13",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T21:55:15+01:00",
-  "deployedAt": "2026-07-22T20:55:57.212Z",
+  "gitCommitDate": "2026-07-22T21:59:28+01:00",
+  "deployedAt": "2026-07-22T21:00:04.061Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fad1ff134fe4cbeca906584dd95c51039e557c10"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e58fa7c615c316d33b90d64c7a5d958ae6f15228"
 }
