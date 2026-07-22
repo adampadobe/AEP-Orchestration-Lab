@@ -41,7 +41,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** (default when email omitted) reserves shared Firestore counter via `POST /api/lab/generation-prefs/next-email`; **dual_load_snowflake** (travel) mirrors row to Snowflake |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |
 | `lab_snowflake_test_connection` | `POST /api/snowflake/connection-test` | `SELECT CURRENT_VERSION()`; NETWORK POLICY hints (static IP 34.58.81.28) |
-| `lab_snowflake_generate_base_profiles` | `POST /api/snowflake/generate-base-profiles` | Agentic batch INSERT (Snowflake-only, not UPS-linked) |
+| `lab_snowflake_generate_base_profiles` | `POST /api/snowflake/generate-base-profiles` | Snowflake-only batch INSERT; default **use_generation_prefs:true** (shared Firestore `<local>+DDMMYYYY-N@domain` counter) |
 | `lab_snowflake_create_profile` | `POST /api/snowflake/insert-profile-from-aep` | Single-row AEP→Snowflake mapper (dual-load repair) |
 | `lab_snowflake_query_profiles` | `POST /api/snowflake/agentic/query-profiles` | Agentic travel profile query |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |

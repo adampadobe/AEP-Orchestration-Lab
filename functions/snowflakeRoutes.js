@@ -445,11 +445,10 @@ function registerSnowflakeRoutes(deps) {
 
   /**
    * POST /api/snowflake/generate-base-profiles — body { sandbox, count?, table?,
-   * batchSize?, startIndex? }. Generates N base profiles using Faker (Phase 2
+   * batchSize?, startIndex?, use_generation_prefs? }. Generates N base profiles using Faker (Phase 2
    * minimal port of AgenticAI Demo's data_generator.py) and INSERTs them into
-   * the user's Snowflake target. Idempotent CREATE TABLE IF NOT EXISTS for
-   * first-run targets. Returns rowcount + first 3 generated rows so the UI
-   * can render a sample without a separate SELECT round-trip.
+   * the user's Snowflake target. Emails default to shared Firestore generation prefs
+   * (`<local>+DDMMYYYY-N@domain`); pass use_generation_prefs:false for legacy Snowflake scan.
    */
   routes.snowflakeGenerateBaseProfiles = onRequest(
     { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 300, memory: '1GiB' },
@@ -477,6 +476,7 @@ function registerSnowflakeRoutes(deps) {
           table: body.table,
           batchSize: Number(body.batchSize) || undefined,
           startIndex: Number(body.startIndex) || undefined,
+          useGenerationPrefs: body.use_generation_prefs !== false && body.useGenerationPrefs !== false,
         });
         res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
       } catch (e) {

@@ -1115,6 +1115,7 @@
       count: count,
       table: (els.genTable && els.genTable.value.trim()) || 'BASE_PROFILES',
       industry: els.genIndustry ? els.genIndustry.value : '',
+      use_generation_prefs: true,
     };
     if (Number.isFinite(batchSize) && batchSize > 0) payload.batchSize = batchSize;
     return payload;

@@ -74,7 +74,21 @@ const TRAVEL_MANIFEST = {
     mapperSchema: 'BASE_PROFILES',
     note:
       'Dual-load INSERT uses BASE_PROFILES column mapper but targets AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
-      'so lab_snowflake_query_profiles finds mirrored AEP rows.',
+      'so lab_snowflake_query_profiles finds mirrored AEP rows. Email and ECID come from AEP generate ' +
+      '(shared Firestore labProfileGenerationPrefs counter — same as Profile Viewer).',
+  },
+  emailGeneration: {
+    pattern: '<local>+DDMMYYYY-N@<domain>',
+    source: 'labProfileGenerationPrefs',
+    api: {
+      reserve: 'POST /api/lab/generation-prefs/next-email',
+      prefs: 'GET /api/lab/generation-prefs',
+    },
+    dualLoad: 'Uses exact email from AEP generate response (never a separate Snowflake counter).',
+    snowflakeOnlyBatch: {
+      default: 'use_generation_prefs:true — reserves N emails from Firestore before INSERT',
+      legacy: 'use_generation_prefs:false — deprecated Agentic adamp.adobedemo+DDMMYYYY+N@gmail.com scan',
+    },
   },
   eventGroups: EVENT_GROUPS,
   enrichEventTypes: ENRICH_EVENT_TYPES,

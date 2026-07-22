@@ -243,7 +243,7 @@
             <header class="sf-gen-card-header">
               <h3 id="sfGenerateHeading" class="sf-gen-card-title">Generate base profiles <span class="sf-gen-pill">Phase 2 · minimal</span></h3>
               <p class="sf-gen-card-subtitle">
-                Port of <code>data_generator.py → generate_base_profiles</code> from the AgenticAI Demo: same name pools, UK-style addresses, <code>adamp.adobedemo+DDMMYYYY+N@gmail.com</code> emails (daily counter from Snowflake), and 60% loyalty enrollment. Idempotently <code>CREATE TABLE IF NOT EXISTS</code>, then bulk INSERT. Industry selector is informational until Phase 3 branches generators by industry.
+                Port of <code>data_generator.py → generate_base_profiles</code> from the AgenticAI Demo: same name pools, UK-style addresses, emails from shared Profile Generation prefs (<code>&lt;local&gt;+DDMMYYYY-N@domain</code> — same Firestore counter as the main Generate panel), and 60% loyalty enrollment. Idempotently <code>CREATE TABLE IF NOT EXISTS</code>, then bulk INSERT. Industry selector is informational until Phase 3 branches generators by industry.
               </p>
             </header>
 

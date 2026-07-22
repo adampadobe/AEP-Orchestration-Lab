@@ -242,14 +242,22 @@ export function registerSnowflakeTools(mcpServer) {
       title: 'Generate Snowflake base profiles (Agentic batch)',
       description:
         'POST /api/snowflake/generate-base-profiles — Snowflake-only Faker batch INSERT (not UPS-linked). ' +
-        'Default table BASE_PROFILES, count 1–1000. Requires user-generated MCP key.',
+        'Default table BASE_PROFILES, count 1–1000. Emails use shared Firestore generation prefs (<local>+DDMMYYYY-N@domain) ' +
+        'unless use_generation_prefs:false (legacy Agentic Snowflake counter). Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         count: z.number().int().min(1).max(1000).optional().describe('Profiles to generate (default 10)'),
         table: z.string().optional().describe('Target table (default BASE_PROFILES for batch generator)'),
+        use_generation_prefs: z
+          .boolean()
+          .optional()
+          .describe(
+            'When true (default), each row reserves email via POST /api/lab/generation-prefs/next-email (Portal parity). ' +
+              'Set false for legacy adamp.adobedemo+DDMMYYYY+N@gmail.com Snowflake scan.',
+          ),
       },
     },
-    async ({ sandbox, count, table }) => {
+    async ({ sandbox, count, table, use_generation_prefs }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -271,6 +279,7 @@ export function registerSnowflakeTools(mcpServer) {
         sandbox: allowed.sandbox,
         count,
         table,
+        use_generation_prefs,
       });
       writeAuditLog({
         keyId,
@@ -286,7 +295,11 @@ export function registerSnowflakeTools(mcpServer) {
         rowcount: result.rowcount,
         table: result.table,
         sample: result.sample,
-        note: 'Snowflake-only rows — email scheme differs from AEP lab prefs unless dual_load_snowflake on lab_generate_profile.',
+        emailSource: result.emailSource || (use_generation_prefs === false ? 'legacy_snowflake_table_scan' : 'labProfileGenerationPrefs'),
+        use_generation_prefs: use_generation_prefs !== false,
+        note:
+          'Snowflake-only batch — emails share Portal/MCP Firestore counter when use_generation_prefs is true (default). ' +
+          'For AEP+Snowflake parity use lab_generate_profile dual_load_snowflake:true (omit email).',
       });
     },
   );

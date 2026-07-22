@@ -11,6 +11,7 @@ import {
   personHintsFromAttributes,
   recordRecentProfileGenerated,
 } from './framework/recordRecentProfile.mjs';
+import { snowflakeInsertProfileFromAep } from './labApiClient.mjs';
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
 import { checkGenerateRate } from './rateLimiter.mjs';
@@ -151,7 +152,50 @@ export async function processBatchJob(jobId, { keyId }) {
           apiResult.data?.identification?.core?.ecid ||
           apiResult.data?.profile?.ecid ||
           undefined;
-        results.push({ index: i, email, ok: true, ecid });
+        /** @type {Record<string, unknown> | null} */
+        let snowflakeDualLoad = null;
+        if (params.dual_load_snowflake === true && params.industry === 'travel' && ecid) {
+          const sfResult = await snowflakeInsertProfileFromAep({
+            sandbox: params.sandbox,
+            email,
+            ecid: String(ecid),
+            attributes,
+            table: params.snowflake_table,
+          });
+          snowflakeDualLoad = {
+            ok: sfResult.ok,
+            crmId: sfResult.data?.result?.crmId || null,
+            error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
+          };
+          if (!sfResult.ok) {
+            failed += 1;
+            completed -= 1;
+            const errMsg = snowflakeDualLoad.error || 'Snowflake dual-load failed';
+            errors.push({ index: i, email, error: errMsg });
+            results.push({
+              index: i,
+              email,
+              ok: false,
+              ecid,
+              error: errMsg,
+              snowflake: snowflakeDualLoad,
+            });
+            await updateBatchJob(jobId, {
+              progress: { completed: completed + failed, total: count, failed, succeeded: completed },
+              results,
+              errors,
+            });
+            if (i < count && delayMs > 0) await sleep(delayMs);
+            continue;
+          }
+        }
+        results.push({
+          index: i,
+          email,
+          ok: true,
+          ecid,
+          ...(snowflakeDualLoad ? { snowflake: snowflakeDualLoad } : {}),
+        });
         const hints = personHintsFromAttributes(attributes);
         await recordRecentProfileGenerated({
           sandbox: params.sandbox,

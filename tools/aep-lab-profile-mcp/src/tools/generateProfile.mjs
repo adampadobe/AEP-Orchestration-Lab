@@ -38,6 +38,7 @@ export function registerGenerateProfileTool(mcpServer) {
         'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
         'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
         'Preview with lab_confirm_generation_plan; configure with lab_get_generation_prefs / lab_set_generation_prefs. ' +
+        'dual_load_snowflake (travel): omit email or use_stored_prefs:true so AEP + Snowflake share the same Firestore counter address; Snowflake INSERT reuses that exact email + ECID. ' +
         'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
         'Non-generic industries dual-stream automatically: generic-owned paths first (POST industry generic), then industry-owned paths (POST industry travel|fsi|… with appendIfExisting). ' +
         'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
@@ -101,7 +102,10 @@ export function registerGenerateProfileTool(mcpServer) {
         dual_load_snowflake: z
           .boolean()
           .optional()
-          .describe('When true (travel initial scope), after AEP generate INSERT mirror row into Snowflake BASE_PROFILES with same email/ECID'),
+          .describe(
+            'When true (travel), after AEP generate INSERT mirror row into Snowflake with the same email/ECID. ' +
+              'Omit email (default use_stored_prefs) so both systems share labProfileGenerationPrefs counter.',
+          ),
         snowflake_table: z
           .string()
           .optional()
@@ -320,6 +324,9 @@ export function registerGenerateProfileTool(mcpServer) {
             table: sfResult.data?.result?.table || snowflake_table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
             crmId: sfResult.data?.result?.crmId || null,
             idempotent: sfResult.data?.result?.idempotent || false,
+            email: resolvedEmail,
+            ecid: String(ecid),
+            emailSource: emailResolved.use_stored_prefs ? 'labProfileGenerationPrefs' : 'custom_scaled',
             error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
           };
         } else if (dual_load_snowflake === true && !ecid) {

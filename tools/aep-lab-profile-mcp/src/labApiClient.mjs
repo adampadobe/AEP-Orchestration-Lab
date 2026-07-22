@@ -639,7 +639,7 @@ export async function snowflakeConnectionTest({ sandbox }) {
  * POST /api/snowflake/generate-base-profiles
  * @param {object} params
  */
-export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, batch_size, start_index }) {
+export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, batch_size, start_index, use_generation_prefs }) {
   return labApiRequest('/api/snowflake/generate-base-profiles', {
     method: 'POST',
     body: {
@@ -648,6 +648,7 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, bat
       ...(table ? { table } : {}),
       ...(batch_size != null ? { batchSize: batch_size } : {}),
       ...(start_index != null ? { startIndex: start_index } : {}),
+      ...(use_generation_prefs === false ? { use_generation_prefs: false } : {}),
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 300_000,

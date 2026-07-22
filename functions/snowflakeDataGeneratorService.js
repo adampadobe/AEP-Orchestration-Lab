@@ -8,8 +8,10 @@
  *
  * Phase 2 scope:
  *   - Generate N base profiles matching AgenticAI `TravelDataGenerator.generate_base_profiles`
- *     (fixed name pools, UK-style addresses, `adamp.adobedemo+DDMMYYYY+N@gmail.com` emails,
- *     daily email counter + next CRM index read from Snowflake when not overridden).
+ *     (fixed name pools, UK-style addresses; emails from shared Firestore generation prefs
+ *     `<local>+DDMMYYYY-N@domain>` by default — same counter as Profile Viewer / MCP).
+ *   - Legacy Snowflake table scan (`adamp.adobedemo+DDMMYYYY+N@gmail.com`) only when
+ *     `useGenerationPrefs: false` is passed explicitly.
  *   - Idempotently CREATE TABLE IF NOT EXISTS for the target table using the
  *     same 38-column shape AgenticAI's BASE_PROFILE table uses, so a fresh
  *     Snowflake target works on first run.
@@ -30,6 +32,7 @@ const { COLUMNS, COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
 const { mapAepAttributesToBaseProfileRow } = require('./snowflakeProfileMapper');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
+const prefsStore = require('./labProfileGenerationPrefsStore');
 
 const DEFAULT_TABLE = 'BASE_PROFILES';
 const DUAL_LOAD_DEFAULT_TABLE = TRAVEL_MANIFEST.dualLoad.defaultTargetTable;
@@ -132,9 +135,10 @@ function getCustomerProfileFlags() {
  * Build one base profile row (array order matches COLUMNS exactly).
  * @param {number} idx — numeric CRM suffix (`CRM${idx}`).
  * @param {string} runStamp — ISO timestamp for record columns.
- * @param {number} emailCounter — daily email sequence (see `getDailyEmailCounterFromTable`).
+ * @param {number} emailCounter — legacy daily email sequence (see `getDailyEmailCounterFromTable`).
+ * @param {string|null} [emailOverride] — when set, use this address instead of Agentic scheme.
  */
-function generateBaseProfileRow(idx, runStamp, emailCounter = 1) {
+function generateBaseProfileRow(idx, runStamp, emailCounter = 1, emailOverride = null) {
   const isMale = Math.random() < 0.5;
   const gender = isMale ? 'male' : 'female';
   const firstName = isMale ? pickRandom(FIRST_NAMES_MALE) : pickRandom(FIRST_NAMES_FEMALE);
@@ -154,7 +158,7 @@ function generateBaseProfileRow(idx, runStamp, emailCounter = 1) {
   const birthYmd = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
   const birthDayMonth = `${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
 
-  const email = generateAgenticEmail(emailCounter);
+  const email = emailOverride ? String(emailOverride).trim() : generateAgenticEmail(emailCounter);
   const city = pickRandom(CITIES);
   const country = pickRandom(COUNTRIES);
   const postalCode = `SW${idx % 10}A 1AA`;
@@ -291,7 +295,7 @@ async function getNextCrmStartIndex(conn, fqTable) {
  * Returns rowcount + sample of the first SAMPLE_SIZE generated rows so the
  * UI can render a confirmation panel without round-tripping back to Snowflake.
  *
- * @param {{ labUser: string, sandbox: string, count?: number, table?: string, batchSize?: number, startIndex?: number }} input
+ * @param {{ labUser: string, sandbox: string, count?: number, table?: string, batchSize?: number, startIndex?: number, useGenerationPrefs?: boolean }} input
  */
 async function handleGenerateBaseProfiles(input) {
   const labUser = String(input.labUser || '').trim();
@@ -306,6 +310,10 @@ async function handleGenerateBaseProfiles(input) {
   const count = requestedCount;
   const batchSize = Math.max(1, Math.min(Number(input.batchSize) || DEFAULT_BATCH_SIZE, count));
   const tableName = safeIdentifier(input.table || DEFAULT_TABLE, DEFAULT_TABLE);
+  const useGenerationPrefs = input.useGenerationPrefs !== false;
+  if (useGenerationPrefs && !labUser) {
+    throw new Error('labUser uid is required when useGenerationPrefs is enabled');
+  }
 
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
@@ -374,12 +382,47 @@ async function handleGenerateBaseProfiles(input) {
       startIndex = await getNextCrmStartIndex(conn, fqTable);
     }
 
-    const emailStartCounter = await getDailyEmailCounterFromTable(conn, fqTable);
+    /** @type {string[]} */
+    let reservedEmails = [];
+    let emailStartCounter = null;
+    let emailSource = 'legacy_snowflake_table_scan';
+
+    if (useGenerationPrefs) {
+      emailSource = 'labProfileGenerationPrefs';
+      for (let i = 0; i < count; i += 1) {
+        try {
+          const reserved = await prefsStore.reserveNextEmail(labUser, sandbox);
+          reservedEmails.push(reserved.scaledEmail);
+          if (emailStartCounter == null) emailStartCounter = reserved.counterN;
+        } catch (e) {
+          const status = e && e.status;
+          const message = String(e && e.message || e);
+          return {
+            ok: false,
+            error: {
+              message: status === 400
+                ? message
+                : `Failed to reserve generation prefs email: ${message}`,
+              code: status === 400 ? 'GENERATION_PREFS_MISSING' : 'GENERATION_PREFS_ERROR',
+              sqlState: null,
+              hints: [
+                'Set base email in Profile Viewer → Profile Generation or PUT /api/lab/generation-prefs.',
+                'Pass use_generation_prefs:false only for legacy Agentic Snowflake email counter.',
+              ],
+            },
+          };
+        }
+      }
+    } else {
+      emailStartCounter = await getDailyEmailCounterFromTable(conn, fqTable);
+    }
 
     const rows = [];
     for (let i = 0; i < count; i++) {
+      const emailOverride = useGenerationPrefs ? reservedEmails[i] : null;
+      const legacyCounter = emailStartCounter + i;
       rows.push(
-        generateBaseProfileRow(startIndex + i, runStamp, emailStartCounter + i)
+        generateBaseProfileRow(startIndex + i, runStamp, legacyCounter, emailOverride)
       );
     }
 
@@ -402,7 +445,12 @@ async function handleGenerateBaseProfiles(input) {
       batchSize,
       startIndex,
       emailStartCounter,
-      emailEndCounter: emailStartCounter + count - 1,
+      emailEndCounter: useGenerationPrefs
+        ? (reservedEmails.length ? emailStartCounter + count - 1 : null)
+        : emailStartCounter + count - 1,
+      emailSource,
+      useGenerationPrefs,
+      reservedEmails: useGenerationPrefs ? reservedEmails.slice(0, SAMPLE_SIZE) : undefined,
       runStamp,
       warehouse: warehouseUsed,
       sample,

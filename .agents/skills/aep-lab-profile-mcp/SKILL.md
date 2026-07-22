@@ -149,11 +149,17 @@ Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared
 
 4. **Dual-load generate**
 
-   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — save email, ecid, snowflake.crmId (mirrors into **AGENTIC_TRAVEL_PROFILE_CUSTOMER**, not legacy BASE_PROFILES).
+   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — **omit email** so Firestore reserves `<local>+DDMMYYYY-N@domain>` once for AEP + Snowflake; save email, ecid, snowflake.crmId (mirrors into **AGENTIC_TRAVEL_PROFILE_CUSTOMER**, not legacy BASE_PROFILES).
 
-5. **Verify**
+5. **Batch dual-load (optional)**
+
+   > **lab_generate_profiles_batch** sandbox apalmer industry travel count N use_stored_prefs true dual_load_snowflake true — each profile reserves the next counter via `next-email` before AEP generate + Snowflake INSERT.
+
+6. **Verify**
 
    > **lab_get_profile** + **lab_snowflake_query_profiles** sandbox apalmer filter_type all limit 5.
+
+**Snowflake-only batch (`lab_snowflake_generate_base_profiles`)** — default `use_generation_prefs:true` shares the same Firestore counter as Profile Viewer (not the legacy `adamp.adobedemo+DDMMYYYY+N@gmail.com` Snowflake scan). Pass `use_generation_prefs:false` only for Agentic legacy demos.
 
 ## Workflow 1c — Snowflake travel governed provision (v3.23+)
 

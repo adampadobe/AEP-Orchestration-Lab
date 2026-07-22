@@ -489,9 +489,9 @@ export function getExecutionFramework() {
         order: [
           'lab_snowflake_config — hasCredential must be true (save key pair in Profile Viewer if not)',
           'lab_snowflake_test_connection — confirm Snowflake version or NETWORK POLICY hint (static IP 34.58.81.28)',
-          'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, tableCheck before provisioning',
-          'lab_confirm_profile_generation — shared AEP email prefs',
-          'lab_generate_profile industry travel randomize true dual_load_snowflake true — captures ecid + snowflake.crmId',
+          'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, emailGeneration, tableCheck before provisioning',
+          'lab_confirm_profile_generation — shared AEP email prefs (Firestore labProfileGenerationPrefs)',
+          'lab_generate_profile industry travel randomize true dual_load_snowflake true — omit email; same +DDMMYYYY-N address streams to AEP and Snowflake',
           'lab_get_profile + lab_snowflake_query_profiles filter_type all limit 5 — verify mirror row in AGENTIC_TRAVEL_PROFILE_CUSTOMER',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',

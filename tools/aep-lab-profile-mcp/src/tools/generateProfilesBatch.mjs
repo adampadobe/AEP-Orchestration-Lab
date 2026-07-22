@@ -95,6 +95,16 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .describe(
             'When true (default when base_email and email_pattern omitted), each profile uses POST /api/lab/generation-prefs/next-email',
           ),
+        dual_load_snowflake: z
+          .boolean()
+          .optional()
+          .describe(
+            'When true (travel only), mirror each generated profile into Snowflake using the same reserved email + ECID',
+          ),
+        snowflake_table: z
+          .string()
+          .optional()
+          .describe('Snowflake target table for dual_load_snowflake (default AGENTIC_TRAVEL_PROFILE_CUSTOMER)'),
       },
     },
     async ({
@@ -114,6 +124,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       test_profile,
       test_profile_override_reason,
       use_stored_prefs,
+      dual_load_snowflake,
+      snowflake_table,
     }) => {
       const keyId = getRequestKeyId();
 
@@ -148,7 +160,19 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         return toolError(normalizedTest.error);
       }
 
+      if (dual_load_snowflake === true && norm.industry !== 'travel') {
+        return toolError('dual_load_snowflake is supported for industry travel only.', {
+          industry: norm.industry,
+        });
+      }
+
       const useStoredPrefs = use_stored_prefs ?? (!base_email && !email_pattern);
+      if (dual_load_snowflake === true && !useStoredPrefs) {
+        return toolError(
+          'dual_load_snowflake batch requires use_stored_prefs:true (omit base_email) so each profile gets a unique Firestore counter email.',
+          { confirmTool: 'lab_confirm_profile_generation' },
+        );
+      }
       if (useStoredPrefs) {
         const prefsCheck = await checkGenerationPrefsConfigured(allowed.sandbox);
         if (!prefsCheck.ok) {
@@ -209,6 +233,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           test_profile: normalizedTest.test_profile,
           test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
           use_stored_prefs: useStoredPrefs,
+          dual_load_snowflake: dual_load_snowflake === true,
+          snowflake_table,
         },
       });
 
@@ -241,6 +267,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
         delay_ms: delay_ms ?? null,
         use_stored_prefs: useStoredPrefs,
+        dual_load_snowflake: dual_load_snowflake === true,
         formatRules: buildEmailFormatRules(),
         pollTool: 'lab_batch_job_status',
         note: 'Job runs in background. Poll lab_batch_job_status with job_id.',

@@ -28,6 +28,13 @@ describe('snowflakeIndustryManifest', () => {
     assert.notEqual(TRAVEL_MANIFEST.baseProfiles.legacyBatchTable, TRAVEL_MANIFEST.dualLoad.defaultTargetTable);
   });
 
+  it('documents shared Firestore email generation for dual-load and Snowflake batch', () => {
+    assert.equal(TRAVEL_MANIFEST.emailGeneration.pattern, '<local>+DDMMYYYY-N@<domain>');
+    assert.equal(TRAVEL_MANIFEST.emailGeneration.source, 'labProfileGenerationPrefs');
+    assert.match(TRAVEL_MANIFEST.dualLoad.note, /Firestore/);
+    assert.equal(TRAVEL_MANIFEST.emailGeneration.snowflakeOnlyBatch.default, 'use_generation_prefs:true — reserves N emails from Firestore before INSERT');
+  });
+
   it('lists enrich event types and phase groups', () => {
     assert.deepEqual(EVENT_GROUPS.phase1, ['website', 'booking']);
     assert.ok(ENRICH_EVENT_TYPES.includes('mobile'));
