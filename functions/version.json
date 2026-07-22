@@ -1,14 +1,14 @@
 {
-  "gitSha": "79b19ebd681428a12f55c17e9b91fa597f03abc9",
-  "gitShortSha": "79b19ebd",
+  "gitSha": "fad1ff134fe4cbeca906584dd95c51039e557c10",
+  "gitShortSha": "fad1ff13",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Snowflake industry catalog Phase A — manifest, API, MCP v3.22.0",
+  "gitCommitSubject": "[apalmer] fix: MCP full Snowflake profile readback by email for Coworker",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T12:27:04+01:00",
-  "deployedAt": "2026-07-22T11:27:23.579Z",
+  "gitCommitDate": "2026-07-22T21:55:15+01:00",
+  "deployedAt": "2026-07-22T20:55:57.212Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/79b19ebd681428a12f55c17e9b91fa597f03abc9"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fad1ff134fe4cbeca906584dd95c51039e557c10"
 }
