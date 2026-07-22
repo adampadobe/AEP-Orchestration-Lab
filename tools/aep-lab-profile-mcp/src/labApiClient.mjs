@@ -659,7 +659,7 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, bat
  * POST /api/snowflake/insert-profile-from-aep — dual-load mirror row
  * @param {object} params
  */
-export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, table }) {
+export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, table, mode }) {
   return labApiRequest('/api/snowflake/insert-profile-from-aep', {
     method: 'POST',
     body: {
@@ -668,6 +668,7 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
       ecid,
       ...(attributes ? { attributes } : {}),
       ...(table ? { table } : {}),
+      ...(mode ? { mode } : {}),
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 120_000,

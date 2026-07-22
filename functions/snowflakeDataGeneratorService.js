@@ -34,7 +34,9 @@ const {
   mapAepAttributesToBaseProfileRow,
   mapAepAttributesToTravelProfileRow,
   normalizeAepAttributesForSnowflake,
+  getAttr,
 } = require('./snowflakeProfileMapper');
+const { generateTravelProfileRow } = require('./snowflakeTravelProfileGenerator');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const prefsStore = require('./labProfileGenerationPrefsStore');
@@ -481,6 +483,8 @@ function resolveDualLoadInsertSchema(tableName) {
       schemaKey: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
       columns: TRAVEL_COLUMNS,
       mapRow: mapAepAttributesToTravelProfileRow,
+      generateRow: generateTravelProfileRow,
+      defaultMode: 'crm_generate',
       skipCreateTable: true,
     };
   }
@@ -488,14 +492,27 @@ function resolveDualLoadInsertSchema(tableName) {
     schemaKey: 'BASE_PROFILES',
     columns: COLUMNS,
     mapRow: mapAepAttributesToBaseProfileRow,
+    defaultMode: 'mirror',
     skipCreateTable: false,
   };
 }
 
 /**
+ * Resolve dual-load insert mode for target table.
+ * @param {string} schemaKey
+ * @param {string | undefined} requested
+ */
+function resolveDualLoadMode(schemaKey, requested) {
+  const normalized = String(requested || '').trim().toLowerCase();
+  if (normalized === 'mirror' || normalized === 'crm_generate') return normalized;
+  if (schemaKey === 'AGENTIC_TRAVEL_PROFILE_CUSTOMER') return 'crm_generate';
+  return 'mirror';
+}
+
+/**
  * INSERT one profile row mapped from AEP generate output (dual-load).
  *
- * @param {{ labUser: string, sandbox: string, email: string, ecid: string, attributes?: object, table?: string }} input
+ * @param {{ labUser: string, sandbox: string, email: string, ecid: string, attributes?: object, table?: string, mode?: 'crm_generate'|'mirror' }} input
  */
 async function handleInsertProfileFromAep(input) {
   const labUser = String(input.labUser || '').trim();
@@ -508,7 +525,15 @@ async function handleInsertProfileFromAep(input) {
 
   const tableName = safeIdentifier(input.table || DUAL_LOAD_DEFAULT_TABLE, DUAL_LOAD_DEFAULT_TABLE);
   const insertSchema = resolveDualLoadInsertSchema(tableName);
-  const { columns: insertColumns, mapRow, skipCreateTable, schemaKey } = insertSchema;
+  const {
+    columns: insertColumns,
+    mapRow,
+    generateRow,
+    skipCreateTable,
+    schemaKey,
+    defaultMode,
+  } = insertSchema;
+  const mode = resolveDualLoadMode(schemaKey, input.mode || defaultMode);
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
     return {
@@ -561,6 +586,7 @@ async function handleInsertProfileFromAep(input) {
         email,
         idempotent: true,
         schemaKey,
+        mode,
         columnsWritten: insertColumns.length,
       };
     }
@@ -570,13 +596,32 @@ async function handleInsertProfileFromAep(input) {
       await execAsync(conn, { sqlText: ddl });
     }
 
-    const mapped = mapRow({
-      email,
-      ecid,
-      crmId,
-      attributes: normalizeAepAttributesForSnowflake(input.attributes),
-      runStamp,
-    });
+    const normalizedAttrs = normalizeAepAttributesForSnowflake(input.attributes);
+    const testProfileAttr = getAttr(normalizedAttrs, 'testProfile');
+    const testProfile = testProfileAttr === false || testProfileAttr === 'false' ? false : true;
+    const mapped = mode === 'crm_generate' && typeof generateRow === 'function'
+      ? generateRow({
+        idx: startIndex,
+        email,
+        ecid,
+        crmId,
+        attributes: normalizedAttrs,
+        firstName: String(
+          getAttr(normalizedAttrs, 'person.name.firstName') || getAttr(normalizedAttrs, 'firstName') || '',
+        ).trim() || undefined,
+        lastName: String(
+          getAttr(normalizedAttrs, 'person.name.lastName') || getAttr(normalizedAttrs, 'lastName') || '',
+        ).trim() || undefined,
+        testProfile,
+        runStamp,
+      })
+      : mapRow({
+        email,
+        ecid,
+        crmId,
+        attributes: normalizedAttrs,
+        runStamp,
+      });
 
     const placeholders = insertColumns.map(() => '?').join(', ');
     await execAsync(conn, {
@@ -592,6 +637,7 @@ async function handleInsertProfileFromAep(input) {
       email,
       idempotent: false,
       schemaKey,
+      mode,
       columnsWritten: insertColumns.length,
       sample: mapped.rowObject,
     };
@@ -619,4 +665,5 @@ module.exports = {
   handleGenerateBaseProfiles,
   handleInsertProfileFromAep,
   resolveDualLoadInsertSchema,
+  resolveDualLoadMode,
 };

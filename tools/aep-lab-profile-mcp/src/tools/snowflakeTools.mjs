@@ -373,20 +373,27 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_create_profile',
     {
-      title: 'Insert one Snowflake profile from AEP persona',
+      title: 'Insert one Snowflake travel CRM profile (dual-load)',
       description:
-        'POST /api/snowflake/insert-profile-from-aep — maps AEP dot-path attributes to AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
-        '(DATEOFBIRTH, PRIMARYEMAIL, NATIONALITY, …) with shared email/ECID. ' +
-        'Used for dual-load repair or standalone mirror insert. Requires user-generated MCP key.',
+        'POST /api/snowflake/insert-profile-from-aep — default mode crm_generate builds full AGENTIC_TRAVEL_PROFILE_CUSTOMER row ' +
+        '(LTV, holidays, preferences — agentic-travel-runner Phase 1 parity) with shared email/ECID/CRMID from AEP. ' +
+        'Pass mode mirror only for legacy AEP dot-path attribute mapping. Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         email: z.string().email().describe('Profile email (same as AEP UPS)'),
         ecid: z.string().min(1).describe('ECID from lab_generate_profile'),
         table: z.string().optional().describe('Target table (default AGENTIC_TRAVEL_PROFILE_CUSTOMER for dual-load)'),
-        attributes: z.record(z.unknown()).optional().describe('AEP persona dot-path attributes to map'),
+        mode: z
+          .enum(['crm_generate', 'mirror'])
+          .optional()
+          .describe('Insert mode (default crm_generate). mirror = legacy AEP attribute mapper only.'),
+        attributes: z
+          .record(z.unknown())
+          .optional()
+          .describe('Optional AEP attributes — crm_generate uses FIRSTNAME/LASTNAME only; mirror maps all dot-paths'),
       },
     },
-    async ({ sandbox, email, ecid, table, attributes }) => {
+    async ({ sandbox, email, ecid, table, mode, attributes }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -409,6 +416,7 @@ export function registerSnowflakeTools(mcpServer) {
         email,
         ecid,
         table,
+        mode: mode || 'crm_generate',
         attributes,
       });
       writeAuditLog({
@@ -424,6 +432,7 @@ export function registerSnowflakeTools(mcpServer) {
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         crmId: result.crmId,
+        mode: result.mode || mode || 'crm_generate',
         table: result.table,
         ecid: result.ecid,
         email: result.email,

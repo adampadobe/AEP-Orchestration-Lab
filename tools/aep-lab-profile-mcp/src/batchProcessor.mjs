@@ -161,9 +161,11 @@ export async function processBatchJob(jobId, { keyId }) {
             ecid: String(ecid),
             attributes,
             table: params.snowflake_table,
+            mode: params.dual_load_snowflake_mode || 'crm_generate',
           });
           snowflakeDualLoad = {
             ok: sfResult.ok,
+            mode: params.dual_load_snowflake_mode || 'crm_generate',
             crmId: sfResult.data?.result?.crmId || null,
             error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
           };

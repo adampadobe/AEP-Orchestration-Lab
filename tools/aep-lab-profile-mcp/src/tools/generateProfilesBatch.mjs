@@ -99,8 +99,12 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .boolean()
           .optional()
           .describe(
-            'When true (travel only), mirror each generated profile into Snowflake using the same reserved email + ECID',
+            'When true (travel only), INSERT full CRM Snowflake row per profile with shared email + ECID from AEP generate',
           ),
+        dual_load_snowflake_mode: z
+          .enum(['crm_generate', 'mirror'])
+          .optional()
+          .describe('Snowflake dual-load mode (default crm_generate). mirror = legacy AEP attribute mapper.'),
         snowflake_table: z
           .string()
           .optional()
@@ -125,6 +129,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       test_profile_override_reason,
       use_stored_prefs,
       dual_load_snowflake,
+      dual_load_snowflake_mode,
       snowflake_table,
     }) => {
       const keyId = getRequestKeyId();
@@ -234,6 +239,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
           use_stored_prefs: useStoredPrefs,
           dual_load_snowflake: dual_load_snowflake === true,
+          dual_load_snowflake_mode: dual_load_snowflake_mode || 'crm_generate',
           snowflake_table,
         },
       });

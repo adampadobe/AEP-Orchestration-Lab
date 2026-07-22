@@ -38,7 +38,9 @@ export function registerGenerateProfileTool(mcpServer) {
         'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
         'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
         'Preview with lab_confirm_generation_plan; configure with lab_get_generation_prefs / lab_set_generation_prefs. ' +
-        'dual_load_snowflake (travel): omit email or use_stored_prefs:true so AEP + Snowflake share the same Firestore counter address; Snowflake INSERT reuses that exact email + ECID. ' +
+        'dual_load_snowflake (travel): AEP streams behavioral persona + events paths; Snowflake INSERT generates full CRM row ' +
+        '(LTV, holidays, preferences — agentic-travel-runner Phase 1 parity) with shared EMAIL/ECID/CRMID from AEP generate. ' +
+        'Omit email or use_stored_prefs:true so both systems share Firestore counter. Optional dual_load_snowflake_mode:mirror for legacy AEP attribute mapping only. ' +
         'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
         'Non-generic industries dual-stream automatically: generic-owned paths first (POST industry generic), then industry-owned paths (POST industry travel|fsi|… with appendIfExisting). ' +
         'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
@@ -103,8 +105,15 @@ export function registerGenerateProfileTool(mcpServer) {
           .boolean()
           .optional()
           .describe(
-            'When true (travel), after AEP generate INSERT mirror row into Snowflake with the same email/ECID. ' +
-              'Omit email (default use_stored_prefs) so both systems share labProfileGenerationPrefs counter.',
+            'When true (travel), after AEP generate INSERT full CRM row into AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
+              '(LTV, holidays, preferences — not AEP attribute mirror). Shared join keys: email, ecid, crmId. ' +
+              'Omit email (default use_stored_prefs) for Firestore counter parity.',
+          ),
+        dual_load_snowflake_mode: z
+          .enum(['crm_generate', 'mirror'])
+          .optional()
+          .describe(
+            'Snowflake dual-load insert mode (default crm_generate). mirror = legacy AEP dot-path mapper only.',
           ),
         snowflake_table: z
           .string()
@@ -127,6 +136,7 @@ export function registerGenerateProfileTool(mcpServer) {
       test_profile_override_reason,
       use_stored_prefs,
       dual_load_snowflake,
+      dual_load_snowflake_mode,
       snowflake_table,
     }) => {
       const started = Date.now();
@@ -317,10 +327,12 @@ export function registerGenerateProfileTool(mcpServer) {
             ecid: String(ecid),
             attributes: normalized.attributes,
             table: snowflake_table,
+            mode: dual_load_snowflake_mode || 'crm_generate',
           });
           snowflakeDualLoad = {
             requested: true,
             ok: sfResult.ok,
+            mode: dual_load_snowflake_mode || 'crm_generate',
             table: sfResult.data?.result?.table || snowflake_table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
             crmId: sfResult.data?.result?.crmId || null,
             idempotent: sfResult.data?.result?.idempotent || false,

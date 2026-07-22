@@ -518,6 +518,7 @@ function registerSnowflakeRoutes(deps) {
           ecid: body.ecid,
           attributes: body.attributes,
           table: body.table,
+          mode: body.mode || body.dual_load_mode,
         });
         res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
       } catch (e) {

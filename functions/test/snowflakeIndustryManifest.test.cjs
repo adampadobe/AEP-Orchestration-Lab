@@ -26,6 +26,7 @@ describe('snowflakeIndustryManifest', () => {
     assert.equal(TRAVEL_MANIFEST.dualLoad.defaultTargetTable, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
     assert.equal(TRAVEL_MANIFEST.dualLoad.queryTable, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
     assert.equal(TRAVEL_MANIFEST.dualLoad.mapperSchema, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    assert.equal(TRAVEL_MANIFEST.dualLoad.defaultMode, 'crm_generate');
     assert.notEqual(TRAVEL_MANIFEST.baseProfiles.legacyBatchTable, TRAVEL_MANIFEST.dualLoad.defaultTargetTable);
   });
 

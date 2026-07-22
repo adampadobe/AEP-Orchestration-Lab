@@ -76,10 +76,17 @@ const TRAVEL_MANIFEST = {
     queryTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
     mapperSchema: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
     columnCount: TRAVEL_COLUMNS.length,
+    defaultMode: 'crm_generate',
+    modes: {
+      crm_generate:
+        'Default — generates full travel CRM row (LTV, holidays, preferences) via Node generator aligned with agentic-travel-runner Phase 1; binds EMAIL, ECID, CRMID (+ optional FIRSTNAME/LASTNAME) from AEP generate.',
+      mirror:
+        'Legacy — maps AEP dot-path attributes only; travel CRM columns stay empty/default. Pass mode=mirror on insert-profile-from-aep to opt in.',
+    },
     note:
-      'Dual-load INSERT maps AEP persona attributes to AGENTIC_TRAVEL_PROFILE_CUSTOMER columns ' +
-      '(DATEOFBIRTH, PRIMARYEMAIL, NATIONALITY, …) so lab_snowflake_query_profiles finds mirrored rows. ' +
-      'Email and ECID come from AEP generate (shared Firestore labProfileGenerationPrefs counter).',
+      'Dual-load INSERT targets AGENTIC_TRAVEL_PROFILE_CUSTOMER with shared Firestore email/ECID from AEP generate. ' +
+      'AEP carries behavioral intent (events, segmentation); Snowflake carries operational CRM (bookings, LTV, preferences). ' +
+      'Verify with lab_snowflake_get_profile_by_email — all 39 columns including LIFETIMEVALUE and holiday fields.',
   },
   emailGeneration: {
     pattern: '<local>+DDMMYYYY-N@<domain>',

@@ -40,6 +40,8 @@ describe('snowflakeDataGeneratorService email alignment', () => {
   it('resolveDualLoadInsertSchema uses travel mapper for AGENTIC_TRAVEL_PROFILE_CUSTOMER', () => {
     const travel = resolveDualLoadInsertSchema('AGENTIC_TRAVEL_PROFILE_CUSTOMER');
     assert.equal(travel.schemaKey, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    assert.equal(travel.defaultMode, 'crm_generate');
+    assert.equal(typeof travel.generateRow, 'function');
     assert.equal(travel.skipCreateTable, true);
     assert.ok(travel.columns.includes('DATEOFBIRTH'));
     assert.ok(!travel.columns.includes('BIRTHDATE'));
@@ -92,5 +94,6 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     assert.equal(rowObject.ECID, '40000000000000000000000000000003');
     assert.equal(rowObject.DATEOFBIRTH, '1990-05-15');
     assert.equal(rowObject.PRIMARYEMAIL, 'apalmer+22072026-2@adobetest.com');
+    assert.equal(rowObject.LIFETIMEVALUE, 0);
   });
 });
