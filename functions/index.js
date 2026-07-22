@@ -132,6 +132,7 @@ const envBarPreferencesStore = lazyRequireMod('./envBarPreferencesStore');
 const snowflakeService = lazyRequireMod('./snowflakeService');
 const snowflakeDataGeneratorService = lazyRequireMod('./snowflakeDataGeneratorService');
 const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelService');
+const snowflakeIndustryCatalogService = lazyRequireMod('./snowflakeIndustryCatalogService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -3867,6 +3868,7 @@ Object.assign(
     snowflakeService,
     snowflakeDataGeneratorService,
     snowflakeAgenticTravelService,
+    snowflakeIndustryCatalogService,
   })
 );
 

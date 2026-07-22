@@ -400,7 +400,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.21.0',
+    version: '3.22.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -475,6 +475,8 @@ export function getExecutionFramework() {
         tools: [
           'lab_snowflake_config',
           'lab_snowflake_test_connection',
+          'lab_snowflake_industry_catalog',
+          'lab_snowflake_table_structure',
           'lab_confirm_profile_generation',
           'lab_generate_profile',
           'lab_get_profile',
@@ -482,14 +484,24 @@ export function getExecutionFramework() {
           'lab_snowflake_create_profile',
         ],
         when:
-          'Travel demos that mirror AEP UPS profiles into Snowflake BASE_PROFILES with shared email/ECID (apalmer Agentic travel).',
+          'Travel demos that mirror AEP UPS profiles into Snowflake AGENTIC_TRAVEL_PROFILE_CUSTOMER with shared email/ECID.',
         requires: 'User-generated MCP key (principalUid) — ops shared key cannot resolve Snowflake credentials.',
         order: [
           'lab_snowflake_config — hasCredential must be true (save key pair in Profile Viewer if not)',
           'lab_snowflake_test_connection — confirm Snowflake version or NETWORK POLICY hint (static IP 34.58.81.28)',
+          'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, tableCheck before provisioning',
           'lab_confirm_profile_generation — shared AEP email prefs',
           'lab_generate_profile industry travel randomize true dual_load_snowflake true — captures ecid + snowflake.crmId',
-          'lab_get_profile + lab_snowflake_query_profiles filter_type all limit 5 — verify mirror row',
+          'lab_get_profile + lab_snowflake_query_profiles filter_type all limit 5 — verify mirror row in AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+        ],
+        doc: 'docs/SNOWFLAKE_INTEGRATION.md',
+      },
+      snowflake_travel_catalog: {
+        tools: ['lab_snowflake_industry_catalog', 'lab_snowflake_table_structure'],
+        when: 'Read-only Snowflake travel manifest introspection before generate-full or enrich (no arbitrary SQL).',
+        order: [
+          'lab_snowflake_industry_catalog sandbox {sandbox} industry travel',
+          'lab_snowflake_table_structure sandbox {sandbox} phase phase1 (repeat phase2/phase3 as needed)',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },

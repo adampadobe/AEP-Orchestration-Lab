@@ -7,6 +7,8 @@ import {
   snowflakeGenerateBaseProfiles,
   snowflakeInsertProfileFromAep,
   snowflakeQueryProfiles,
+  snowflakeIndustryCatalog,
+  snowflakeTableStructure,
   STATIC_EGRESS_IP,
 } from '../labApiClient.mjs';
 import { getPrincipalAccess } from '../requestContext.mjs';
@@ -240,7 +242,7 @@ export function registerSnowflakeTools(mcpServer) {
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         count: z.number().int().min(1).max(1000).optional().describe('Profiles to generate (default 10)'),
-        table: z.string().optional().describe('Target table (default BASE_PROFILES)'),
+        table: z.string().optional().describe('Target table (default BASE_PROFILES for batch generator)'),
       },
     },
     async ({ sandbox, count, table }) => {
@@ -290,13 +292,13 @@ export function registerSnowflakeTools(mcpServer) {
     {
       title: 'Insert one Snowflake profile from AEP persona',
       description:
-        'POST /api/snowflake/insert-profile-from-aep — maps AEP dot-path attributes to BASE_PROFILES with shared email/ECID. ' +
+        'POST /api/snowflake/insert-profile-from-aep — maps AEP dot-path attributes to AGENTIC_TRAVEL_PROFILE_CUSTOMER (BASE_PROFILES column shape) with shared email/ECID. ' +
         'Used for dual-load repair or standalone mirror insert. Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         email: z.string().email().describe('Profile email (same as AEP UPS)'),
         ecid: z.string().min(1).describe('ECID from lab_generate_profile'),
-        table: z.string().optional().describe('Target table (default BASE_PROFILES)'),
+        table: z.string().optional().describe('Target table (default AGENTIC_TRAVEL_PROFILE_CUSTOMER for dual-load)'),
         attributes: z.record(z.unknown()).optional().describe('AEP persona dot-path attributes to map'),
       },
     },
@@ -400,6 +402,115 @@ export function registerSnowflakeTools(mcpServer) {
         count: result.count,
         filterType: result.filterType,
         timePeriod: result.timePeriod,
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_industry_catalog',
+    {
+      title: 'Snowflake industry manifest + table existence',
+      description:
+        'POST /api/snowflake/industry-catalog — read-only travel manifest (phase tables, event groups, dual-load targets, ' +
+        'validation rules) plus optional INFORMATION_SCHEMA table checks. Requires user-generated MCP key.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        industry: z.string().optional().describe('Industry key (default travel)'),
+        check_tables: z
+          .boolean()
+          .optional()
+          .describe('Probe Snowflake INFORMATION_SCHEMA for manifest tables (default true)'),
+      },
+    },
+    async ({ sandbox, industry, check_tables }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await snowflakeIndustryCatalog({
+        sandbox: allowed.sandbox,
+        industry,
+        check_tables,
+      });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_industry_catalog',
+        sandbox: allowed.sandbox,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
+      const result = apiResult.data?.result || {};
+      const manifest = result.manifest || {};
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        industry: result.industry || industry || 'travel',
+        manifest,
+        supportedIndustries: result.supportedIndustries || ['travel'],
+        tableCheck: result.tableCheck || null,
+        tableCheckSkipped: result.tableCheckSkipped === true,
+        runnerConfigured: manifest.runner?.configured === true,
+        dualLoadTarget: manifest.dualLoad?.defaultTargetTable || null,
+        queryTable: manifest.dualLoad?.queryTable || null,
+        coworkerNextSteps: [
+          'Review phaseTables and tableCheck.missingCount before generate-full or enrich.',
+          'Use lab_snowflake_table_structure for column metadata per phase.',
+        ],
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_table_structure',
+    {
+      title: 'Snowflake Agentic travel table structure by phase',
+      description:
+        'POST /api/snowflake/agentic/table-structure — column metadata for phase1|phase2|phase3 tables. ' +
+        'Requires user-generated MCP key. No arbitrary SQL.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        phase: z.enum(['phase1', 'phase2', 'phase3']).describe('Agentic travel phase'),
+      },
+    },
+    async ({ sandbox, phase }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await snowflakeTableStructure({
+        sandbox: allowed.sandbox,
+        phase,
+      });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_table_structure',
+        sandbox: allowed.sandbox,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
+      const result = apiResult.data?.result || {};
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        phase: result.phase || phase,
+        tableCount: result.table_count,
+        structureText: result.structure_text,
       });
     },
   );

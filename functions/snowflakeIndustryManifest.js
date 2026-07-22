@@ -1,0 +1,193 @@
+/**
+ * Snowflake industry manifests — read-only introspection for Agentic travel (Phase A).
+ * Single source of truth for phase tables, event groups, dual-load targets, validation rules.
+ */
+
+'use strict';
+
+const { COLUMNS } = require('./snowflakeBaseProfileSchema');
+
+const PHASE_TABLES = {
+  phase1: [
+    'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+    'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    'AGENTIC_TRAVEL_EVENT_WEBSITE',
+    'AGENTIC_TRAVEL_EVENT_BOOKING',
+  ],
+  phase2: [
+    'AGENTIC_TRAVEL_PROFILE_LOYALTY',
+    'AGENTIC_TRAVEL_PROFILE_PREFERENCES',
+    'AGENTIC_TRAVEL_EVENT_MOBILE',
+    'AGENTIC_TRAVEL_EVENT_CALLCENTRE',
+    'AGENTIC_TRAVEL_EVENT_CHECKIN',
+  ],
+  phase3: [
+    'AGENTIC_TRAVEL_EVENT_DISRUPTION',
+    'AGENTIC_TRAVEL_EVENT_INFLIGHT',
+    'AGENTIC_TRAVEL_EVENT_HOTEL',
+    'AGENTIC_TRAVEL_EVENT_LOYALTY',
+    'AGENTIC_TRAVEL_EVENT_POS',
+  ],
+};
+
+/** Enrich runner event type keys (services/agentic-travel-runner web_app.py). */
+const ENRICH_EVENT_TYPES = [
+  'mobile',
+  'website',
+  'booking',
+  'checkin',
+  'call',
+  'disruption',
+  'inflight',
+  'hotel',
+  'loyalty',
+  'pos',
+];
+
+const EVENT_GROUPS = {
+  phase1: ['website', 'booking'],
+  phase2: ['mobile', 'call', 'checkin'],
+  phase3: ['disruption', 'inflight', 'hotel', 'loyalty', 'pos'],
+};
+
+const TRAVEL_MANIFEST = {
+  industry: 'travel',
+  label: 'Agentic Travel Demo',
+  phaseTables: PHASE_TABLES,
+  allTables: [
+    ...PHASE_TABLES.phase1,
+    ...PHASE_TABLES.phase2,
+    ...PHASE_TABLES.phase3,
+  ],
+  baseProfiles: {
+    /** Primary customer table — query-profiles + dual-load target (aligned). */
+    table: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    baseProfileTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+    /** Legacy Node batch generator default (same 38-col shape). */
+    legacyBatchTable: 'BASE_PROFILES',
+    columnCount: COLUMNS.length,
+    columns: COLUMNS,
+  },
+  dualLoad: {
+    defaultTargetTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    queryTable: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    mapperSchema: 'BASE_PROFILES',
+    note:
+      'Dual-load INSERT uses BASE_PROFILES column mapper but targets AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
+      'so lab_snowflake_query_profiles finds mirrored AEP rows.',
+  },
+  eventGroups: EVENT_GROUPS,
+  enrichEventTypes: ENRICH_EVENT_TYPES,
+  validationRules: {
+    phases: Object.keys(PHASE_TABLES),
+    generateFullCount: { min: 1, max: 1000 },
+    enrichProfilesRequired: ['profiles', 'eventTypes'],
+    enrichEventTypesAllowed: ENRICH_EVENT_TYPES,
+  },
+  runner: {
+    urlEnv: 'AGENTIC_TRAVEL_RUNNER_URL',
+    secretEnv: 'AGENTIC_TRAVEL_RUNNER_HMAC_SECRET',
+    operations: ['generate-full', 'enrich-profiles'],
+  },
+};
+
+const INDUSTRY_MANIFESTS = {
+  travel: TRAVEL_MANIFEST,
+};
+
+/**
+ * @param {string} [industry]
+ * @returns {typeof TRAVEL_MANIFEST | null}
+ */
+function getIndustryManifest(industry) {
+  const key = String(industry || 'travel').trim().toLowerCase();
+  return INDUSTRY_MANIFESTS[key] || null;
+}
+
+/**
+ * @returns {string[]}
+ */
+function listSupportedIndustries() {
+  return Object.keys(INDUSTRY_MANIFESTS);
+}
+
+/**
+ * Travel-only read-only validation for enrich / phase proposals (no DDL).
+ * @param {object} input
+ * @param {string[]} [input.phases]
+ * @param {string[]} [input.eventTypes]
+ * @param {number} [input.count]
+ */
+function validateTravelProposal(input) {
+  const manifest = TRAVEL_MANIFEST;
+  const errors = [];
+  const warnings = [];
+
+  const phases = Array.isArray(input.phases) ? input.phases : [];
+  const eventTypes = Array.isArray(input.eventTypes) ? input.eventTypes : [];
+  const countRaw = input.count;
+
+  if (phases.length) {
+    for (const p of phases) {
+      const phase = String(p || '').trim().toLowerCase();
+      if (!manifest.phaseTables[phase]) {
+        errors.push(`Unknown phase "${p}". Expected: ${manifest.validationRules.phases.join(', ')}`);
+      }
+    }
+  }
+
+  if (eventTypes.length) {
+    const allowed = new Set(manifest.enrichEventTypes);
+    for (const et of eventTypes) {
+      const key = String(et || '').trim().toLowerCase();
+      if (!allowed.has(key)) {
+        errors.push(
+          `Unknown enrich event type "${et}". Allowed: ${manifest.enrichEventTypes.join(', ')}`,
+        );
+      }
+    }
+  }
+
+  if (countRaw != null && countRaw !== '') {
+    const count = Number(countRaw);
+    const { min, max } = manifest.validationRules.generateFullCount;
+    if (!Number.isFinite(count) || count < min || count > max) {
+      errors.push(`count must be between ${min} and ${max}`);
+    }
+  }
+
+  if (!phases.length && !eventTypes.length && (countRaw == null || countRaw === '')) {
+    warnings.push('No phases, eventTypes, or count supplied — manifest introspection only.');
+  }
+
+  return {
+    ok: errors.length === 0,
+    industry: 'travel',
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    resolved: {
+      phases: phases.map((p) => String(p).trim().toLowerCase()).filter((p) => manifest.phaseTables[p]),
+      eventTypes: eventTypes
+        .map((e) => String(e).trim().toLowerCase())
+        .filter((e) => manifest.enrichEventTypes.includes(e)),
+    },
+    manifestSummary: {
+      phases: manifest.validationRules.phases,
+      enrichEventTypes: manifest.enrichEventTypes,
+      dualLoadTarget: manifest.dualLoad.defaultTargetTable,
+      queryTable: manifest.dualLoad.queryTable,
+    },
+  };
+}
+
+module.exports = {
+  PHASE_TABLES,
+  ENRICH_EVENT_TYPES,
+  EVENT_GROUPS,
+  TRAVEL_MANIFEST,
+  INDUSTRY_MANIFESTS,
+  getIndustryManifest,
+  listSupportedIndustries,
+  validateTravelProposal,
+};

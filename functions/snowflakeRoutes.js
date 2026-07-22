@@ -45,6 +45,7 @@ function registerSnowflakeRoutes(deps) {
     snowflakeService,
     snowflakeDataGeneratorService,
     snowflakeAgenticTravelService,
+    snowflakeIndustryCatalogService,
   } = deps;
 
   async function resolvePrincipal(req, res) {
@@ -319,6 +320,83 @@ function registerSnowflakeRoutes(deps) {
       res.status(httpStatus).json({ ok: result.ok, sandbox, result });
     } catch (e) {
       console.error('[snowflakeAgenticEnrichProfiles]', String(e && e.message || e));
+      res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  });
+
+  /**
+   * GET/POST /api/snowflake/industry-catalog — manifest + optional INFORMATION_SCHEMA table checks.
+   * Query/body: sandbox, industry? (default travel), checkTables? (default true).
+   */
+  routes.snowflakeIndustryCatalog = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+    setCors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      res.status(405).json({ error: 'GET or POST only' });
+      return;
+    }
+
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = (req.method === 'POST' ? String(body.sandbox || '').trim() : '')
+      || resolveSandboxFromQuery(req);
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    const industry = req.method === 'POST'
+      ? body.industry
+      : (req.query && req.query.industry);
+    const checkTablesRaw = req.method === 'POST' ? body.checkTables : (req.query && req.query.checkTables);
+    const checkTables = checkTablesRaw === 'false' || checkTablesRaw === false ? false : undefined;
+
+    try {
+      const result = await snowflakeIndustryCatalogService.handleIndustryCatalog({
+        labUser: uid,
+        sandbox,
+        industry,
+        checkTables,
+      });
+      res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+    } catch (e) {
+      console.error('[snowflakeIndustryCatalog]', String(e && e.message || e));
+      res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  });
+
+  /**
+   * POST /api/snowflake/industry-validate-proposal — travel-only read-only manifest validation.
+   */
+  routes.snowflakeIndustryValidateProposal = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    try {
+      const result = await snowflakeIndustryCatalogService.handleValidateProposal({
+        sandbox,
+        industry: body.industry,
+        phases: body.phases,
+        eventTypes: body.eventTypes || body.event_types,
+        count: body.count,
+      });
+      res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+    } catch (e) {
+      console.error('[snowflakeIndustryValidateProposal]', String(e && e.message || e));
       res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
     }
   });

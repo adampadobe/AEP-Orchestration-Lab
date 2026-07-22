@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.21.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.22.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.21)
 
-MCP server: **AEP Orchestration Lab MCP v3.21.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.22.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -143,11 +143,15 @@ Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared
 
    > **lab_snowflake_test_connection** sandbox apalmer — expect Snowflake version or NETWORK POLICY hint with static IP **34.58.81.28**.
 
-3. **Dual-load generate**
+3. **Industry catalog (v3.22+)**
 
-   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — save email, ecid, snowflake.crmId.
+   > **lab_snowflake_industry_catalog** sandbox apalmer industry travel — review `dualLoadTarget` (`AGENTIC_TRAVEL_PROFILE_CUSTOMER`), `phaseTables`, and `tableCheck`. Optional **lab_snowflake_table_structure** phase phase1|phase2|phase3 for column metadata (no arbitrary SQL).
 
-4. **Verify**
+4. **Dual-load generate**
+
+   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — save email, ecid, snowflake.crmId (mirrors into **AGENTIC_TRAVEL_PROFILE_CUSTOMER**, not legacy BASE_PROFILES).
+
+5. **Verify**
 
    > **lab_get_profile** + **lab_snowflake_query_profiles** sandbox apalmer filter_type all limit 5.
 

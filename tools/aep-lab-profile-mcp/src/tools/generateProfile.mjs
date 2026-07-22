@@ -105,7 +105,7 @@ export function registerGenerateProfileTool(mcpServer) {
         snowflake_table: z
           .string()
           .optional()
-          .describe('Snowflake target table for dual_load_snowflake (default BASE_PROFILES)'),
+          .describe('Snowflake target table for dual_load_snowflake (default AGENTIC_TRAVEL_PROFILE_CUSTOMER)'),
       },
     },
     async ({
@@ -317,7 +317,7 @@ export function registerGenerateProfileTool(mcpServer) {
           snowflakeDualLoad = {
             requested: true,
             ok: sfResult.ok,
-            table: sfResult.data?.result?.table || snowflake_table || 'BASE_PROFILES',
+            table: sfResult.data?.result?.table || snowflake_table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
             crmId: sfResult.data?.result?.crmId || null,
             idempotent: sfResult.data?.result?.idempotent || false,
             error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,

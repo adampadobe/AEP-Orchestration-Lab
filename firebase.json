@@ -973,6 +973,20 @@
         }
       },
       {
+        "source": "/api/snowflake/industry-catalog",
+        "function": {
+          "functionId": "snowflakeIndustryCatalog",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/snowflake/industry-validate-proposal",
+        "function": {
+          "functionId": "snowflakeIndustryValidateProposal",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/tags/reactor",
         "function": {
           "functionId": "tagsReactorProxy",

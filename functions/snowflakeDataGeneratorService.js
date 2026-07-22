@@ -29,8 +29,10 @@ const store = require('./snowflakeConnectionStore');
 const { COLUMNS, COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
 const { mapAepAttributesToBaseProfileRow } = require('./snowflakeProfileMapper');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
+const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 
 const DEFAULT_TABLE = 'BASE_PROFILES';
+const DUAL_LOAD_DEFAULT_TABLE = TRAVEL_MANIFEST.dualLoad.defaultTargetTable;
 const DEFAULT_COUNT = 10;
 const MAX_COUNT = 1000;
 const DEFAULT_BATCH_SIZE = 200;
@@ -426,7 +428,7 @@ async function handleInsertProfileFromAep(input) {
   if (!email) throw new Error('email is required');
   if (!ecid) throw new Error('ecid is required');
 
-  const tableName = safeIdentifier(input.table || DEFAULT_TABLE, DEFAULT_TABLE);
+  const tableName = safeIdentifier(input.table || DUAL_LOAD_DEFAULT_TABLE, DUAL_LOAD_DEFAULT_TABLE);
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
     return {
@@ -520,6 +522,7 @@ module.exports = {
   COLUMNS,
   COLUMN_DDL,
   DEFAULT_TABLE,
+  DUAL_LOAD_DEFAULT_TABLE,
   DEFAULT_COUNT,
   MAX_COUNT,
   generateBaseProfileRow,

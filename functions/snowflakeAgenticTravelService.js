@@ -20,29 +20,9 @@ const {
   safeIdentifier,
   fullyQualified,
 } = require('./snowflakeDataGeneratorService');
+const { PHASE_TABLES, TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 
-const PHASE_TABLES = {
-  phase1: [
-    'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
-    'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
-    'AGENTIC_TRAVEL_EVENT_WEBSITE',
-    'AGENTIC_TRAVEL_EVENT_BOOKING',
-  ],
-  phase2: [
-    'AGENTIC_TRAVEL_PROFILE_LOYALTY',
-    'AGENTIC_TRAVEL_PROFILE_PREFERENCES',
-    'AGENTIC_TRAVEL_EVENT_MOBILE',
-    'AGENTIC_TRAVEL_EVENT_CALLCENTRE',
-    'AGENTIC_TRAVEL_EVENT_CHECKIN',
-  ],
-  phase3: [
-    'AGENTIC_TRAVEL_EVENT_DISRUPTION',
-    'AGENTIC_TRAVEL_EVENT_INFLIGHT',
-    'AGENTIC_TRAVEL_EVENT_HOTEL',
-    'AGENTIC_TRAVEL_EVENT_LOYALTY',
-    'AGENTIC_TRAVEL_EVENT_POS',
-  ],
-};
+const QUERY_PROFILES_TABLE = TRAVEL_MANIFEST.dualLoad.queryTable;
 
 const ALLOWED_FILTER = new Set(['all', 'loyalty', 'non_loyalty']);
 const ALLOWED_TIME = new Set([
@@ -285,7 +265,7 @@ async function handleQueryProfiles(input) {
   const limit = Number.isFinite(limitRaw) ? Math.min(1000, Math.max(1, Math.floor(limitRaw))) : 50;
 
   return withConnection(labUser, sandbox, async (conn, cfg) => {
-    const fq = fullyQualified(cfg.database, cfg.schema, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    const fq = fullyQualified(cfg.database, cfg.schema, QUERY_PROFILES_TABLE);
     const tf = timeFilterSql(timePeriod);
     const lw = loyaltyWhere(filterType);
     const sql = `

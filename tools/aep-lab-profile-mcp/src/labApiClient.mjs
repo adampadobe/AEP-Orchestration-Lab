@@ -692,6 +692,36 @@ export async function snowflakeQueryProfiles({ sandbox, filter_type, time_period
 }
 
 /**
+ * GET/POST /api/snowflake/industry-catalog
+ * @param {object} params
+ */
+export async function snowflakeIndustryCatalog({ sandbox, industry, check_tables }) {
+  return labApiRequest('/api/snowflake/industry-catalog', {
+    method: 'POST',
+    body: {
+      sandbox,
+      ...(industry ? { industry } : {}),
+      ...(check_tables === false ? { checkTables: false } : {}),
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/agentic/table-structure
+ * @param {object} params
+ */
+export async function snowflakeTableStructure({ sandbox, phase }) {
+  return labApiRequest('/api/snowflake/agentic/table-structure', {
+    method: 'POST',
+    body: { sandbox, phase },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/**
  * Brand Scraper analyze runs up to 540s — bypass Firebase Hosting 60s cap via direct Cloud Function URL
  * (same pattern as web/profile-viewer/brand-scraper.js).
  */
