@@ -1,14 +1,14 @@
 {
-  "gitSha": "8bc96d909eaaa1f95af7e02c87403b3cbcbb3b4e",
-  "gitShortSha": "8bc96d90",
+  "gitSha": "5aa589873970ba4ac68a7b50ec2eebbdbdf2f533",
+  "gitShortSha": "5aa58987",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Bind Snowflake config to Portal login, not anonymous uid",
+  "gitCommitSubject": "[apalmer] chore: deploy stamp 8bc96d90",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T11:54:37+01:00",
-  "deployedAt": "2026-07-22T11:05:05.908Z",
+  "gitCommitDate": "2026-07-22T12:05:17+01:00",
+  "deployedAt": "2026-07-22T11:14:11.855Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8bc96d909eaaa1f95af7e02c87403b3cbcbb3b4e"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5aa589873970ba4ac68a7b50ec2eebbdbdf2f533"
 }
