@@ -7,6 +7,7 @@
 
 const { COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
 const { PHASE_TABLES, TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
+const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
 
 /** @typedef {'preinstalled' | 'create_if_not_exists'} ProvisionMode */
 
@@ -44,6 +45,22 @@ const PROVISION_RECIPES = {
       'Full phased Agentic travel schema (phase1–3). Use lab_snowflake_industry_catalog tableCheck ' +
       'or this preinstalled recipe to confirm readiness before generate-full / enrich.',
   },
+  ...Object.fromEntries(
+    ['fsi', 'retail', 'telecom', 'media', 'sports'].map((industry) => {
+      const profile = getIndustryProfileConfig(industry);
+      const id = `${industry}.profile_customer.v1`;
+      return [id, {
+        id,
+        industry,
+        label: `Agentic ${industry.toUpperCase()} CRM profile customer table`,
+        provisionMode: 'create_if_not_exists',
+        table: profile.table,
+        ddlKind: 'industry_profile_customer',
+        columnDdl: profile.columnDdl,
+        description: `Operational CRM profile table for ${industry} dual-load generation.`,
+      }];
+    }),
+  ),
 };
 
 /**
@@ -106,12 +123,14 @@ function buildCreateTableStatement(recipe, database, schema) {
   if (recipe.provisionMode !== 'create_if_not_exists') {
     throw new Error(`Recipe "${recipe.id}" is not create_if_not_exists`);
   }
-  if (recipe.ddlKind !== 'base_profiles') {
+  if (!['base_profiles', 'industry_profile_customer'].includes(recipe.ddlKind)) {
     throw new Error(`Unsupported ddlKind "${recipe.ddlKind}" for recipe "${recipe.id}"`);
   }
   const table = safeIdentifier(recipe.table, '');
   const fqTable = fullyQualified(database, schema, table);
-  const sql = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)`;
+  const ddl = recipe.ddlKind === 'industry_profile_customer' ? recipe.columnDdl : COLUMN_DDL;
+  if (!Array.isArray(ddl) || !ddl.length) throw new Error(`Recipe "${recipe.id}" has no column DDL`);
+  const sql = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${ddl.join(',\n  ')}\n)`;
   return { sql, table, fqTable };
 }
 
@@ -143,34 +162,9 @@ function validateProvisionProposal(input) {
     }
   }
 
-  if (industry === 'retail') {
-    const { RETAIL_DRAFT_MANIFEST } = require('./snowflakeIndustryManifest');
-    if (RETAIL_DRAFT_MANIFEST && RETAIL_DRAFT_MANIFEST.status === 'draft') {
-      if (proposedTables.length) {
-        const allowed = new Set(
-          (RETAIL_DRAFT_MANIFEST.proposedTables || []).map((t) => String(t).toUpperCase()),
-        );
-        for (const t of proposedTables) {
-          const upper = String(t || '').trim().toUpperCase();
-          if (!upper) continue;
-          if (!allowed.has(upper)) {
-            errors.push(
-              `Proposed table "${t}" is not in retail draft manifest proposedTables (${[...allowed].join(', ')})`,
-            );
-          }
-          if (!/^[A-Z][A-Z0-9_]{0,254}$/.test(upper)) {
-            errors.push(`Invalid proposed table identifier "${t}"`);
-          }
-        }
-      } else if (!recipeId) {
-        warnings.push(
-          'Retail industry is draft-only — supply recipe_id or proposed_tables for net-new table validation.',
-        );
-      }
-    }
-  } else if (proposedTables.length && industry !== 'retail') {
+  if (proposedTables.length) {
     warnings.push(
-      'proposed_tables validation is retail-draft only in v3.23; ignored for other industries.',
+      'proposed_tables is read-only legacy input; use an allowlisted recipe_id to provision tables.',
     );
   }
 

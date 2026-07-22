@@ -12,6 +12,7 @@ import {
 import { requireUserMcpKeyForSnowflake, SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES } from '../src/tools/snowflakeTools.mjs';
 import { snowflakeAuthHeaders, STATIC_EGRESS_IP } from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
+import { snowflakeProfileTableForIndustry } from '../src/snowflakeIndustry.mjs';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -55,6 +56,13 @@ async function run() {
     SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES.includes('lab_snowflake_get_profile_by_email'),
     'discoverable email readback tool exported',
   );
+  for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+    assert(
+      snowflakeProfileTableForIndustry(industry) === `AGENTIC_${industry.toUpperCase()}_PROFILE_CUSTOMER`,
+      `${industry} query/insert table routing`,
+    );
+  }
+  assert(snowflakeProfileTableForIndustry('generic') === null, 'generic is not a Snowflake dual-load industry');
   assert(
     SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES.includes('lab_snowflake_query_profiles'),
     'query profiles tool exported',

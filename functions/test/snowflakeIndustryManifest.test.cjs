@@ -44,12 +44,17 @@ describe('snowflakeIndustryManifest', () => {
     assert.equal(ENRICH_EVENT_TYPES.length, 10);
   });
 
-  it('getIndustryManifest returns travel and rejects unknown', () => {
+  it('getIndustryManifest returns all active dual-load industries and rejects unknown', () => {
     assert.equal(getIndustryManifest('travel').industry, 'travel');
     assert.equal(getIndustryManifest('Travel').industry, 'travel');
-    assert.equal(getIndustryManifest('retail').status, 'draft');
-    assert.equal(getIndustryManifest('fsi'), null);
-    assert.deepEqual(listSupportedIndustries().sort(), ['retail', 'travel']);
+    for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const manifest = getIndustryManifest(industry);
+      assert.equal(manifest.status, 'active');
+      assert.equal(manifest.dualLoad.defaultMode, 'crm_generate');
+      assert.match(manifest.dualLoad.defaultTargetTable, new RegExp(`AGENTIC_${industry.toUpperCase()}_PROFILE_CUSTOMER`));
+    }
+    assert.equal(getIndustryManifest('unknown'), null);
+    assert.deepEqual(listSupportedIndustries().sort(), ['fsi', 'media', 'retail', 'sports', 'telecom', 'travel']);
   });
 
   it('validateTravelProposal accepts known phases and event types', () => {

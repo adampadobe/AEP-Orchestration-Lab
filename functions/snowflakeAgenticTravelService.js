@@ -22,6 +22,10 @@ const {
 } = require('./snowflakeDataGeneratorService');
 const { PHASE_TABLES, TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const { COLUMNS: TRAVEL_PROFILE_COLUMNS } = require('./snowflakeTravelProfileSchema');
+const {
+  getIndustryProfileConfig,
+  listSnowflakeProfileIndustries,
+} = require('./snowflakeIndustryProfileRegistry');
 
 const QUERY_PROFILES_TABLE = TRAVEL_MANIFEST.dualLoad.queryTable;
 
@@ -115,13 +119,14 @@ function loyaltyWhere(filterType) {
  */
 function buildQueryProfilesSql({
   fqTable,
+  columns = TRAVEL_PROFILE_COLUMNS,
   filterType = 'all',
   timePeriod = 'all_time',
   limit = 50,
   email,
   ecid,
 }) {
-  const selectList = TRAVEL_PROFILE_COLUMNS.join(', ');
+  const selectList = columns.join(', ');
   const tf = timeFilterSql(timePeriod);
   const lw = loyaltyWhere(filterType);
   const binds = [];
@@ -194,10 +199,12 @@ function readTravelProfileRowCell(row, index, columnName) {
  * @param {unknown[] | Record<string, unknown>} row
  * @returns {object}
  */
-function mapTravelProfileRow(row) {
+function mapTravelProfileRow(row, profileConfig = {}) {
+  const profileColumns = profileConfig.columns || TRAVEL_PROFILE_COLUMNS;
+  const profileTable = profileConfig.table || QUERY_PROFILES_TABLE;
   const columns = {};
-  for (let i = 0; i < TRAVEL_PROFILE_COLUMNS.length; i++) {
-    const col = TRAVEL_PROFILE_COLUMNS[i];
+  for (let i = 0; i < profileColumns.length; i++) {
+    const col = profileColumns[i];
     columns[col] = serializeCellValue(readTravelProfileRowCell(row, i, col));
   }
   return {
@@ -213,7 +220,7 @@ function mapTravelProfileRow(row) {
     nationality: columns.NATIONALITY,
     primaryEmail: columns.PRIMARYEMAIL,
     columns,
-    table: QUERY_PROFILES_TABLE,
+    table: profileTable,
   };
 }
 
@@ -383,11 +390,17 @@ async function handleQueryProfiles(input) {
   const limit = Number.isFinite(limitRaw) ? Math.min(1000, Math.max(1, Math.floor(limitRaw))) : 50;
   const email = String(input.email || '').trim() || undefined;
   const ecid = String(input.ecid || '').trim() || undefined;
+  const industry = String(input.industry || 'travel').trim().toLowerCase();
+  const profileConfig = getIndustryProfileConfig(industry);
+  if (!profileConfig) {
+    throw new Error(`Unsupported industry "${industry}". Expected: ${listSnowflakeProfileIndustries().join(', ')}`);
+  }
 
   return withConnection(labUser, sandbox, async (conn, cfg) => {
-    const fq = fullyQualified(cfg.database, cfg.schema, QUERY_PROFILES_TABLE);
+    const fq = fullyQualified(cfg.database, cfg.schema, profileConfig.table);
     const { sql, binds } = buildQueryProfilesSql({
       fqTable: fq,
+      columns: profileConfig.columns,
       filterType,
       timePeriod,
       limit,
@@ -395,14 +408,15 @@ async function handleQueryProfiles(input) {
       ecid,
     });
     const rows = await execAsync(conn, { sqlText: sql, binds });
-    const profiles = rows.map((row) => mapTravelProfileRow(row));
+    const profiles = rows.map((row) => mapTravelProfileRow(row, profileConfig));
     return {
       ok: true,
       profiles,
       count: profiles.length,
-      table: QUERY_PROFILES_TABLE,
-      columnCount: TRAVEL_PROFILE_COLUMNS.length,
-      columns: TRAVEL_PROFILE_COLUMNS,
+      industry: profileConfig.industry,
+      table: profileConfig.table,
+      columnCount: profileConfig.columns.length,
+      columns: profileConfig.columns,
       time_period: timePeriod,
       filter_type: filterType,
       email: email || null,

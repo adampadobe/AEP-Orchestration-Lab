@@ -37,6 +37,12 @@ const {
   getAttr,
 } = require('./snowflakeProfileMapper');
 const { generateTravelProfileRow } = require('./snowflakeTravelProfileGenerator');
+const { generateIndustryProfileRow } = require('./snowflakeIndustryProfileGenerator');
+const {
+  getIndustryProfileConfig,
+  getIndustryProfileConfigByTable,
+  listSnowflakeProfileIndustries,
+} = require('./snowflakeIndustryProfileRegistry');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const prefsStore = require('./labProfileGenerationPrefsStore');
@@ -473,12 +479,12 @@ async function handleGenerateBaseProfiles(input) {
  * Resolve INSERT mapper + column list for dual-load target table.
  * @param {string} tableName
  */
-function resolveDualLoadInsertSchema(tableName) {
+function resolveDualLoadInsertSchema(tableName, industry) {
   const normalized = String(tableName || '').trim().toUpperCase();
-  if (
-    normalized === DUAL_LOAD_DEFAULT_TABLE.toUpperCase()
-    || normalized === 'AGENTIC_TRAVEL_PROFILE_CUSTOMER'
-  ) {
+  const industryConfig = industry ? getIndustryProfileConfig(industry) : null;
+  const tableConfig = getIndustryProfileConfigByTable(normalized);
+  const config = tableConfig || industryConfig;
+  if (config && config.industry === 'travel') {
     return {
       schemaKey: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
       columns: TRAVEL_COLUMNS,
@@ -486,6 +492,17 @@ function resolveDualLoadInsertSchema(tableName) {
       generateRow: generateTravelProfileRow,
       defaultMode: 'crm_generate',
       skipCreateTable: true,
+      industry: 'travel',
+    };
+  }
+  if (config) {
+    return {
+      schemaKey: config.table,
+      columns: config.columns,
+      generateRow: (input) => generateIndustryProfileRow(config.industry, input),
+      defaultMode: 'crm_generate',
+      skipCreateTable: true,
+      industry: config.industry,
     };
   }
   return {
@@ -494,6 +511,7 @@ function resolveDualLoadInsertSchema(tableName) {
     mapRow: mapAepAttributesToBaseProfileRow,
     defaultMode: 'mirror',
     skipCreateTable: false,
+    industry: null,
   };
 }
 
@@ -505,14 +523,14 @@ function resolveDualLoadInsertSchema(tableName) {
 function resolveDualLoadMode(schemaKey, requested) {
   const normalized = String(requested || '').trim().toLowerCase();
   if (normalized === 'mirror' || normalized === 'crm_generate') return normalized;
-  if (schemaKey === 'AGENTIC_TRAVEL_PROFILE_CUSTOMER') return 'crm_generate';
+  if (getIndustryProfileConfigByTable(schemaKey)) return 'crm_generate';
   return 'mirror';
 }
 
 /**
  * INSERT one profile row mapped from AEP generate output (dual-load).
  *
- * @param {{ labUser: string, sandbox: string, email: string, ecid: string, attributes?: object, table?: string, mode?: 'crm_generate'|'mirror' }} input
+ * @param {{ labUser: string, sandbox: string, email: string, ecid: string, attributes?: object, industry?: string, table?: string, mode?: 'crm_generate'|'mirror' }} input
  */
 async function handleInsertProfileFromAep(input) {
   const labUser = String(input.labUser || '').trim();
@@ -523,8 +541,21 @@ async function handleInsertProfileFromAep(input) {
   if (!email) throw new Error('email is required');
   if (!ecid) throw new Error('ecid is required');
 
-  const tableName = safeIdentifier(input.table || DUAL_LOAD_DEFAULT_TABLE, DUAL_LOAD_DEFAULT_TABLE);
-  const insertSchema = resolveDualLoadInsertSchema(tableName);
+  const requestedIndustry = String(input.industry || 'travel').trim().toLowerCase();
+  const industryConfig = getIndustryProfileConfig(requestedIndustry);
+  if (!industryConfig) {
+    throw new Error(
+      `Unsupported Snowflake CRM industry "${requestedIndustry}". Expected: ${listSnowflakeProfileIndustries().join(', ')}`,
+    );
+  }
+  const tableName = safeIdentifier(input.table || industryConfig.table, industryConfig.table);
+  const knownTableConfig = getIndustryProfileConfigByTable(tableName);
+  if (knownTableConfig && knownTableConfig.industry !== industryConfig.industry) {
+    throw new Error(
+      `Snowflake table ${tableName} belongs to industry ${knownTableConfig.industry}, not ${industryConfig.industry}`,
+    );
+  }
+  const insertSchema = resolveDualLoadInsertSchema(tableName, requestedIndustry);
   const {
     columns: insertColumns,
     mapRow,
@@ -532,8 +563,12 @@ async function handleInsertProfileFromAep(input) {
     skipCreateTable,
     schemaKey,
     defaultMode,
+    industry,
   } = insertSchema;
   const mode = resolveDualLoadMode(schemaKey, input.mode || defaultMode);
+  if (mode === 'mirror' && industry && industry !== 'travel') {
+    throw new Error('mode "mirror" is only supported for the legacy travel mapper; use crm_generate');
+  }
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
     return {
@@ -586,6 +621,7 @@ async function handleInsertProfileFromAep(input) {
         email,
         idempotent: true,
         schemaKey,
+        industry,
         mode,
         columnsWritten: insertColumns.length,
       };
@@ -637,6 +673,7 @@ async function handleInsertProfileFromAep(input) {
       email,
       idempotent: false,
       schemaKey,
+      industry,
       mode,
       columnsWritten: insertColumns.length,
       sample: mapped.rowObject,

@@ -19,6 +19,7 @@ import { getPrincipalAccess } from '../requestContext.mjs';
 import { checkSnowflakeGenerateRate, checkSnowflakeTestRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
+import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 
 const USER_KEY_REQUIRED =
   'Snowflake tools require a user-generated MCP API key (Profile Viewer → MCP servers) that maps to your Firebase uid. Shared ops keys cannot access per-user Snowflake credentials.';
@@ -83,19 +84,20 @@ function uidPrefix(uid) {
   return s.length > 8 ? `${s.slice(0, 8)}…` : s;
 }
 
-/** Discoverable aliases for full Snowflake AGENTIC_TRAVEL profile readback (Coworker tool search). */
+/** Discoverable aliases for full industry Snowflake profile readback (Coworker tool search). */
 export const SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES = [
   'lab_snowflake_get_profile_by_email',
   'lab_snowflake_query_profiles',
 ];
 
 const SNOWFLAKE_FULL_ROW_NOTE =
-  'Each profile includes profiles[].columns with all AGENTIC_TRAVEL_PROFILE_CUSTOMER column names ' +
-  '(FIRSTNAME, LASTNAME, DATEOFBIRTH, NATIONALITY, PRIMARYEMAIL, …) plus top-level createdAt from _RECORDCREATEDTIMESTAMP. ' +
+  'Each profile includes profiles[].columns with every column from the selected industry CRM table ' +
+  '(shared identity/person/value fields plus industry operational fields) and top-level createdAt from _RECORDCREATEDTIMESTAMP. ' +
   'Use email or ecid after dual_load_snowflake — do NOT tell the user to run Snowflake console SQL or raw Snowflake MCP SELECT *.';
 
 async function runSnowflakeQueryProfiles({
   sandbox,
+  industry = 'travel',
   email,
   ecid,
   filter_type,
@@ -117,6 +119,7 @@ async function runSnowflakeQueryProfiles({
 
   const apiResult = await snowflakeQueryProfiles({
     sandbox: allowed.sandbox,
+    industry,
     filter_type,
     time_period,
     limit,
@@ -134,7 +137,8 @@ async function runSnowflakeQueryProfiles({
   const result = apiResult.data?.result || {};
   return fromLabApi(apiResult, {
     sandbox: allowed.sandbox,
-    table: result.table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+    industry,
+    table: result.table || snowflakeProfileTableForIndustry(industry),
     columnCount: result.columnCount || null,
     columns: result.columns || null,
     profiles: result.profiles,
@@ -373,16 +377,17 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_create_profile',
     {
-      title: 'Insert one Snowflake travel CRM profile (dual-load)',
+      title: 'Insert one industry Snowflake CRM profile (dual-load)',
       description:
-        'POST /api/snowflake/insert-profile-from-aep — default mode crm_generate builds full AGENTIC_TRAVEL_PROFILE_CUSTOMER row ' +
-        '(LTV, holidays, preferences — agentic-travel-runner Phase 1 parity) with shared email/ECID/CRMID from AEP. ' +
+        'POST /api/snowflake/insert-profile-from-aep — default mode crm_generate builds a full industry CRM row ' +
+        'with independent operational attributes and shared email/ECID/CRMID from AEP. ' +
         'Pass mode mirror only for legacy AEP dot-path attribute mapping. Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         email: z.string().email().describe('Profile email (same as AEP UPS)'),
         ecid: z.string().min(1).describe('ECID from lab_generate_profile'),
-        table: z.string().optional().describe('Target table (default AGENTIC_TRAVEL_PROFILE_CUSTOMER for dual-load)'),
+        industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional().describe('CRM industry (default travel)'),
+        table: z.string().optional().describe('Optional target table override; default selected from industry'),
         mode: z
           .enum(['crm_generate', 'mirror'])
           .optional()
@@ -393,7 +398,7 @@ export function registerSnowflakeTools(mcpServer) {
           .describe('Optional AEP attributes — crm_generate uses FIRSTNAME/LASTNAME only; mirror maps all dot-paths'),
       },
     },
-    async ({ sandbox, email, ecid, table, mode, attributes }) => {
+    async ({ sandbox, email, ecid, industry, table, mode, attributes }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -415,6 +420,7 @@ export function registerSnowflakeTools(mcpServer) {
         sandbox: allowed.sandbox,
         email,
         ecid,
+        industry: industry || 'travel',
         table,
         mode: mode || 'crm_generate',
         attributes,
@@ -445,23 +451,25 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_get_profile_by_email',
     {
-      title: 'Get full Snowflake travel profile row by email (all 39 columns)',
+      title: 'Get full industry Snowflake CRM profile row by email',
       description:
-        'POST /api/snowflake/agentic/query-profiles with email filter — returns the complete AGENTIC_TRAVEL_PROFILE_CUSTOMER row ' +
-        '(all 39 columns in profiles[].columns: FIRSTNAME, LASTNAME, DATEOFBIRTH, NATIONALITY, PRIMARYEMAIL, ECID, …) plus createdAt from _RECORDCREATEDTIMESTAMP. ' +
+        'POST /api/snowflake/agentic/query-profiles with email filter — returns the complete selected industry CRM row ' +
+        '(all fields in profiles[].columns) plus createdAt from _RECORDCREATEDTIMESTAMP. ' +
         'Use INSTEAD of Snowflake console SQL or raw Snowflake MCP SELECT * after lab_generate_profile dual_load_snowflake. ' +
         'Requires user-generated MCP key (Profile Viewer → MCP servers).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional().describe('CRM industry (default travel)'),
         email: z
           .string()
           .email()
           .describe('Profile email from lab_generate_profile (same address streamed to AEP + Snowflake mirror)'),
       },
     },
-    async ({ sandbox, email }) =>
+    async ({ sandbox, email, industry }) =>
       runSnowflakeQueryProfiles({
         sandbox,
+        industry: industry || 'travel',
         email,
         limit: 1,
         toolName: 'lab_snowflake_get_profile_by_email',
@@ -471,14 +479,15 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_query_profiles',
     {
-      title: 'Query Snowflake Agentic travel profiles — full row readback by email or ecid',
+      title: 'Query Snowflake industry CRM profiles — full row readback by email or ecid',
       description:
-        'POST /api/snowflake/agentic/query-profiles — returns ALL AGENTIC_TRAVEL_PROFILE_CUSTOMER columns (39 fields) in profiles[].columns ' +
+        'POST /api/snowflake/agentic/query-profiles — returns every column from the selected industry CRM table in profiles[].columns ' +
         'with createdAt from _RECORDCREATEDTIMESTAMP. Filter by email or ecid for one-profile dual-load verification. ' +
         'Prefer lab_snowflake_get_profile_by_email when you only have email. Use INSTEAD of Snowflake console SQL or raw Snowflake MCP SELECT *. ' +
         'Requires user-generated MCP key.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
+        industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional().describe('CRM industry (default travel)'),
         email: z
           .string()
           .email()
@@ -500,9 +509,10 @@ export function registerSnowflakeTools(mcpServer) {
         limit: z.number().int().min(1).max(500).optional().describe('Max rows when not filtering by email/ecid (default 50)'),
       },
     },
-    async ({ sandbox, email, ecid, filter_type, time_period, limit }) =>
+    async ({ sandbox, industry, email, ecid, filter_type, time_period, limit }) =>
       runSnowflakeQueryProfiles({
         sandbox,
+        industry: industry || 'travel',
         email,
         ecid,
         filter_type,
@@ -624,13 +634,13 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_validate_proposal',
     {
-      title: 'Validate Snowflake travel enrich/generate proposal',
+      title: 'Validate Snowflake provision or travel enrich proposal',
       description:
-        'POST /api/snowflake/industry-validate-proposal — read-only travel manifest validation for phases, ' +
-        'enrich event_types, and generate-full count. No DDL or arbitrary SQL. Requires user MCP key.',
+        'POST /api/snowflake/industry-validate-proposal — validates allowlisted industry provision recipes; ' +
+        'travel additionally supports phases, enrich event_types, and generate-full count. No DDL or arbitrary SQL.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
-        industry: z.string().optional().describe('Industry (travel only in v3.22)'),
+        industry: z.string().optional().describe('Industry (default travel)'),
         phases: z.array(z.enum(['phase1', 'phase2', 'phase3'])).optional(),
         event_types: z
           .array(
@@ -717,7 +727,7 @@ export function registerSnowflakeTools(mcpServer) {
         industry: z.string().optional().describe('Industry (default travel)'),
         recipe_id: z
           .string()
-          .describe('Allowlisted recipe id, e.g. travel.base_profiles.v1 or travel.agentic_all.preinstalled.v1'),
+          .describe('Allowlisted recipe id, e.g. fsi.profile_customer.v1 or travel.agentic_all.preinstalled.v1'),
         dry_run: z
           .boolean()
           .optional()
@@ -781,6 +791,7 @@ export function registerSnowflakeTools(mcpServer) {
         executed: result.executed === true,
         coworkerNextSteps: [
           'lab_snowflake_industry_catalog — confirm tableCheck after create_if_not_exists',
+          'fsi|retail|telecom|media|sports.profile_customer.v1 — create the selected industry CRM table before first dual-load',
           'travel.base_profiles.v1 then lab_snowflake_generate_base_profiles for Node batch rows',
           'travel.agentic_all.preinstalled.v1 — verify Agentic tables before generate-full',
         ],

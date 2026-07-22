@@ -8,6 +8,7 @@ const {
   mapTravelProfileRow,
 } = require('../snowflakeAgenticTravelService');
 const { COLUMNS } = require('../snowflakeTravelProfileSchema');
+const { COLUMNS: FSI_COLUMNS, TABLE: FSI_TABLE } = require('../snowflakeFsiProfileSchema');
 
 describe('snowflakeAgenticTravelService query profiles', () => {
   it('TRAVEL_PROFILE_COLUMNS matches travel schema', () => {
@@ -40,6 +41,25 @@ describe('snowflakeAgenticTravelService query profiles', () => {
     assert.match(sql, /ECID = \?/);
     assert.deepEqual(binds, ['travel_demo+user22072024-2@gmail.com', '1234567890']);
     assert.match(sql, /LIMIT 1/);
+  });
+
+  it('buildQueryProfilesSql selects the requested industry columns', () => {
+    const { sql } = buildQueryProfilesSql({
+      fqTable: `DB.SCHEMA.${FSI_TABLE}`,
+      columns: FSI_COLUMNS,
+      limit: 5,
+    });
+    assert.match(sql, /HOUSEHOLDINCOME, CREDITSCOREBAND, CREDITSCORE/);
+    assert.match(sql, new RegExp(`FROM DB\\.SCHEMA\\.${FSI_TABLE}`));
+  });
+
+  it('maps a non-travel row using its industry schema and table', () => {
+    const row = FSI_COLUMNS.map((column) => column === 'EMAIL' ? 'fsi@example.com' : column === 'HOUSEHOLDINCOME' ? 600000 : null);
+    const profile = mapTravelProfileRow(row, { columns: FSI_COLUMNS, table: FSI_TABLE });
+    assert.equal(profile.email, 'fsi@example.com');
+    assert.equal(profile.columns.HOUSEHOLDINCOME, 600000);
+    assert.equal(profile.table, FSI_TABLE);
+    assert.equal(Object.keys(profile.columns).length, FSI_COLUMNS.length);
   });
 
   it('mapTravelProfileRow returns full columns and backward-compat fields', () => {

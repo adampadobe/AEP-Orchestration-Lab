@@ -62,6 +62,14 @@ async function run() {
   });
   assert(provisionOk.ok === true, 'provision recipe validates');
 
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    const industryProvision = validateProvisionProposal({
+      industry,
+      recipe_id: `${industry}.profile_customer.v1`,
+    });
+    assert(industryProvision.ok === true, `${industry} CRM provision recipe validates`);
+  }
+
   console.log(JSON.stringify({ ok: true, suite: 'snowflake-catalog-mcp-test', paths }));
 }
 

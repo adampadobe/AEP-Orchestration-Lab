@@ -154,12 +154,13 @@ export async function processBatchJob(jobId, { keyId }) {
           undefined;
         /** @type {Record<string, unknown> | null} */
         let snowflakeDualLoad = null;
-        if (params.dual_load_snowflake === true && params.industry === 'travel' && ecid) {
+        if (params.dual_load_snowflake === true && ecid) {
           const sfResult = await snowflakeInsertProfileFromAep({
             sandbox: params.sandbox,
             email,
             ecid: String(ecid),
             attributes,
+            industry: params.industry,
             table: params.snowflake_table,
             mode: params.dual_load_snowflake_mode || 'crm_generate',
           });

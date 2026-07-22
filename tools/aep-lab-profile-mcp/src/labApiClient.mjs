@@ -659,13 +659,14 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, bat
  * POST /api/snowflake/insert-profile-from-aep — dual-load mirror row
  * @param {object} params
  */
-export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, table, mode }) {
+export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, industry, table, mode }) {
   return labApiRequest('/api/snowflake/insert-profile-from-aep', {
     method: 'POST',
     body: {
       sandbox,
       email,
       ecid,
+      ...(industry ? { industry } : {}),
       ...(attributes ? { attributes } : {}),
       ...(table ? { table } : {}),
       ...(mode ? { mode } : {}),
@@ -679,11 +680,12 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
  * POST /api/snowflake/agentic/query-profiles
  * @param {object} params
  */
-export async function snowflakeQueryProfiles({ sandbox, filter_type, time_period, limit, email, ecid }) {
+export async function snowflakeQueryProfiles({ sandbox, industry, filter_type, time_period, limit, email, ecid }) {
   return labApiRequest('/api/snowflake/agentic/query-profiles', {
     method: 'POST',
     body: {
       sandbox,
+      ...(industry ? { industry } : {}),
       ...(filter_type ? { filterType: filter_type } : {}),
       ...(time_period ? { timePeriod: time_period } : {}),
       ...(limit != null ? { limit } : {}),

@@ -12,6 +12,7 @@ import { jsonResult, toolError } from './helpers.mjs';
 import { buildEmailFormatRules, validateScaledLabEmail } from '../framework/emailFormatGuardrails.mjs';
 import { checkGenerationPrefsConfigured } from './generationPrefs.mjs';
 import { resolveBatchEmail } from '../personaBuilder.mjs';
+import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 
 const BATCH_MAX = 100;
 const MAX_DELAY_MS = 5000;
@@ -99,7 +100,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .boolean()
           .optional()
           .describe(
-            'When true (travel only), INSERT full CRM Snowflake row per profile with shared email + ECID from AEP generate',
+            'When true for any non-generic industry, INSERT an independent industry CRM row per profile with shared email + ECID',
           ),
         dual_load_snowflake_mode: z
           .enum(['crm_generate', 'mirror'])
@@ -108,7 +109,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         snowflake_table: z
           .string()
           .optional()
-          .describe('Snowflake target table for dual_load_snowflake (default AGENTIC_TRAVEL_PROFILE_CUSTOMER)'),
+          .describe('Optional Snowflake table override; default is selected from industry'),
       },
     },
     async ({
@@ -148,6 +149,9 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       if (!LAB_INDUSTRY_KEYS.includes(norm.industry)) {
         return toolError(`Unknown industry "${industry}". Supported: ${LAB_INDUSTRY_KEYS.join(', ')}.`);
       }
+      if (dual_load_snowflake === true && !snowflakeProfileTableForIndustry(norm.industry)) {
+        return toolError('dual_load_snowflake requires a non-generic industry: travel, fsi, retail, telecom, media, or sports.');
+      }
 
       const segmentNorm = segment_hint ? normalizeSegmentHint(segment_hint, norm.industry) : null;
       if (segment_hint && segmentNorm && (segmentNorm.includes('Unknown') || segmentNorm.includes('not supported'))) {
@@ -163,12 +167,6 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       });
       if (!normalizedTest.ok) {
         return toolError(normalizedTest.error);
-      }
-
-      if (dual_load_snowflake === true && norm.industry !== 'travel') {
-        return toolError('dual_load_snowflake is supported for industry travel only.', {
-          industry: norm.industry,
-        });
       }
 
       const useStoredPrefs = use_stored_prefs ?? (!base_email && !email_pattern);

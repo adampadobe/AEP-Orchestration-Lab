@@ -13,6 +13,7 @@ import {
 import { fromLabApi, toolError } from './helpers.mjs';
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
 import { snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
+import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
 import {
   personHintsFromAttributes,
@@ -38,8 +39,8 @@ export function registerGenerateProfileTool(mcpServer) {
         'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
         'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
         'Preview with lab_confirm_generation_plan; configure with lab_get_generation_prefs / lab_set_generation_prefs. ' +
-        'dual_load_snowflake (travel): AEP streams behavioral persona + events paths; Snowflake INSERT generates full CRM row ' +
-        '(LTV, holidays, preferences — agentic-travel-runner Phase 1 parity) with shared EMAIL/ECID/CRMID from AEP generate. ' +
+        'dual_load_snowflake (any non-generic industry): AEP streams behavioral persona paths; Snowflake INSERT generates an independent operational CRM row ' +
+        'with shared EMAIL/ECID/CRMID from AEP generate. ' +
         'Omit email or use_stored_prefs:true so both systems share Firestore counter. Optional dual_load_snowflake_mode:mirror for legacy AEP attribute mapping only. ' +
         'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
         'Non-generic industries dual-stream automatically: generic-owned paths first (POST industry generic), then industry-owned paths (POST industry travel|fsi|… with appendIfExisting). ' +
@@ -105,8 +106,8 @@ export function registerGenerateProfileTool(mcpServer) {
           .boolean()
           .optional()
           .describe(
-            'When true (travel), after AEP generate INSERT full CRM row into AGENTIC_TRAVEL_PROFILE_CUSTOMER ' +
-              '(LTV, holidays, preferences — not AEP attribute mirror). Shared join keys: email, ecid, crmId. ' +
+            'When true (travel, fsi, retail, telecom, media, or sports), INSERT an industry-specific operational CRM row. ' +
+              'CRM attributes are independently generated; shared join keys are email, ecid, crmId. ' +
               'Omit email (default use_stored_prefs) for Firestore counter parity.',
           ),
         dual_load_snowflake_mode: z
@@ -118,7 +119,7 @@ export function registerGenerateProfileTool(mcpServer) {
         snowflake_table: z
           .string()
           .optional()
-          .describe('Snowflake target table for dual_load_snowflake (default AGENTIC_TRAVEL_PROFILE_CUSTOMER)'),
+          .describe('Optional Snowflake target table override; default is the allowlisted table for industry'),
       },
     },
     async ({
@@ -215,6 +216,9 @@ export function registerGenerateProfileTool(mcpServer) {
           aliases: ['telecommunications→telecom', 'public→generic'],
         });
       }
+      if (dual_load_snowflake === true && !snowflakeProfileTableForIndustry(norm.industry)) {
+        return toolError('dual_load_snowflake requires a non-generic industry: travel, fsi, retail, telecom, media, or sports.');
+      }
 
       const segmentNorm = segment_hint ? normalizeSegmentHint(segment_hint, norm.industry) : null;
       if (segment_hint && segmentNorm && (segmentNorm.includes('Unknown') || segmentNorm.includes('not supported'))) {
@@ -265,11 +269,6 @@ export function registerGenerateProfileTool(mcpServer) {
         const userKey = requireUserMcpKeyForSnowflake();
         if (!userKey.ok) {
           return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
-        }
-        if (norm.industry !== 'travel') {
-          return toolError('dual_load_snowflake is supported for industry travel only in v3.21.', {
-            industry: norm.industry,
-          });
         }
       }
 
@@ -326,6 +325,7 @@ export function registerGenerateProfileTool(mcpServer) {
             email: resolvedEmail,
             ecid: String(ecid),
             attributes: normalized.attributes,
+            industry: norm.industry,
             table: snowflake_table,
             mode: dual_load_snowflake_mode || 'crm_generate',
           });
@@ -333,7 +333,7 @@ export function registerGenerateProfileTool(mcpServer) {
             requested: true,
             ok: sfResult.ok,
             mode: dual_load_snowflake_mode || 'crm_generate',
-            table: sfResult.data?.result?.table || snowflake_table || 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+            table: sfResult.data?.result?.table || snowflake_table || snowflakeProfileTableForIndustry(norm.industry),
             crmId: sfResult.data?.result?.crmId || null,
             idempotent: sfResult.data?.result?.idempotent || false,
             email: resolvedEmail,

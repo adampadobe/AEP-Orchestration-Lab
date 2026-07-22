@@ -192,7 +192,7 @@ export const CRITICAL_RULES = [
     id: 'snowflake_profile_readback_by_email',
     rule:
       'NEVER tell the user to run Snowflake console SQL or raw Snowflake MCP SELECT * for dual-load profile verification. ' +
-      'Lab MCP returns the full AGENTIC_TRAVEL_PROFILE_CUSTOMER row (all 39 columns in profiles[].columns + createdAt from _RECORDCREATEDTIMESTAMP).',
+      'Lab MCP returns the full selected industry CRM row (every table column in profiles[].columns + createdAt from _RECORDCREATEDTIMESTAMP).',
     tools:
       'lab_snowflake_get_profile_by_email (email required — most discoverable) or lab_snowflake_query_profiles with email=<email> or ecid=<ecid>.',
     when:
@@ -484,7 +484,7 @@ export function getExecutionFramework() {
         api: 'POST /api/profile/generate',
         serverSidePersona: 'MCP randomize builds correlated attributes in src/personaBuilder/ (mirrors Profile Viewer Fill random sample).',
       },
-      snowflake_dual_load_travel: {
+      snowflake_dual_load_industry_crm: {
         tools: [
           'lab_snowflake_config',
           'lab_snowflake_test_connection',
@@ -498,15 +498,15 @@ export function getExecutionFramework() {
           'lab_snowflake_create_profile',
         ],
         when:
-          'Travel demos: AEP behavioral persona + Snowflake operational CRM with shared email/ECID/CRMID (crm_generate mode).',
+          'Travel, FSI, retail, telecom, media, and sports demos: AEP behavioral persona + independent Snowflake operational CRM with shared email/ECID/CRMID.',
         requires: 'User-generated MCP key (principalUid) — ops shared key cannot resolve Snowflake credentials.',
         order: [
           'lab_snowflake_config — hasCredential must be true (save key pair in Profile Viewer if not)',
           'lab_snowflake_test_connection — confirm Snowflake version or NETWORK POLICY hint (static IP 34.58.81.28)',
           'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, dualLoad.defaultMode (crm_generate), tableCheck',
           'lab_confirm_profile_generation — shared AEP email prefs (Firestore labProfileGenerationPrefs)',
-          'lab_generate_profile industry travel randomize true dual_load_snowflake true — omit email; AEP streams persona, Snowflake generates full CRM row (LTV, holidays, preferences)',
-          'lab_get_profile + lab_snowflake_get_profile_by_email email {same email} — verify CRM columns populated (LIFETIMEVALUE, LASTHOLIDAYDESTINATION); never Snowflake console SQL',
+          'lab_generate_profile industry {non-generic industry} randomize true dual_load_snowflake true — omit email; AEP streams persona and Snowflake independently generates operational CRM fields',
+          'lab_get_profile + lab_snowflake_get_profile_by_email industry {same industry} email {same email} — verify shared identity plus complementary CRM columns; never Snowflake console SQL',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },
@@ -784,7 +784,7 @@ export function getExecutionFramework() {
       lab_save_event_datastream:
         'After Coworker dx-api or Data Collection creates the Edge datastream — persist datastreamId to Firestore so lab-event-tool-edge works.',
       lab_snowflake_get_profile_by_email:
-        'Full Snowflake AGENTIC_TRAVEL CRM row by email — all 39 columns in profiles[].columns + createdAt (crm_generate dual-load). Use after dual_load_snowflake; never Snowflake console SQL.',
+        'Full selected-industry Snowflake CRM row by email — every column in profiles[].columns + createdAt. Optional industry defaults to travel. Use after dual_load_snowflake; never Snowflake console SQL.',
       lab_snowflake_query_profiles:
         'Same full-row readback with email/ecid filter or list filters (loyalty, time_period). Prefer lab_snowflake_get_profile_by_email when you only have email.',
     },

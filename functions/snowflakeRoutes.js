@@ -189,8 +189,8 @@ function registerSnowflakeRoutes(deps) {
   });
 
   /**
-   * POST /api/snowflake/agentic/query-profiles — body { sandbox, filterType?,
-   * timePeriod?, limit? }. Same semantics as AgenticAI `/api/query-profiles`.
+   * POST /api/snowflake/agentic/query-profiles — body { sandbox, industry?, filterType?,
+   * timePeriod?, limit? }. Industry defaults to travel for backwards compatibility.
    */
   routes.snowflakeAgenticQueryProfiles = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
     setCors(res, 'POST, OPTIONS');
@@ -216,6 +216,7 @@ function registerSnowflakeRoutes(deps) {
         limit: body.limit,
         email: body.email,
         ecid: body.ecid,
+        industry: body.industry,
       });
       res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
     } catch (e) {
@@ -490,7 +491,7 @@ function registerSnowflakeRoutes(deps) {
 
   /**
    * POST /api/snowflake/insert-profile-from-aep — dual-load one row from AEP persona.
-   * Body { sandbox, email, ecid, attributes?, table? }.
+   * Body { sandbox, email, ecid, industry?, attributes?, table? }.
    */
   routes.snowflakeInsertProfileFromAep = onRequest(
     { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 120, memory: '512MiB' },
@@ -517,6 +518,7 @@ function registerSnowflakeRoutes(deps) {
           email: body.email,
           ecid: body.ecid,
           attributes: body.attributes,
+          industry: body.industry,
           table: body.table,
           mode: body.mode || body.dual_load_mode,
         });

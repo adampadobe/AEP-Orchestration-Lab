@@ -6,6 +6,7 @@ const {
   generateBaseProfileRow,
   generateAgenticEmail,
   rowToObject,
+  handleInsertProfileFromAep,
   resolveDualLoadInsertSchema,
 } = require('../snowflakeDataGeneratorService');
 const { COLUMNS: TRAVEL_COLUMNS } = require('../snowflakeTravelProfileSchema');
@@ -50,6 +51,31 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     assert.equal(legacy.schemaKey, 'BASE_PROFILES');
     assert.equal(legacy.skipCreateTable, false);
     assert.ok(legacy.columns.includes('BIRTHDATE'));
+  });
+
+  it('resolveDualLoadInsertSchema routes every new industry table to crm_generate', () => {
+    for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const schema = resolveDualLoadInsertSchema('', industry);
+      assert.equal(schema.industry, industry);
+      assert.equal(schema.defaultMode, 'crm_generate');
+      assert.equal(typeof schema.generateRow, 'function');
+      assert.ok(schema.columns.includes('LIFETIMEVALUE'));
+      assert.ok(schema.columns.length >= 39);
+    }
+  });
+
+  it('rejects an industry/table mismatch before attempting a Snowflake connection', async () => {
+    await assert.rejects(
+      handleInsertProfileFromAep({
+        labUser: 'test-user',
+        sandbox: 'test',
+        industry: 'fsi',
+        table: 'AGENTIC_RETAIL_PROFILE_CUSTOMER',
+        email: 'test@example.com',
+        ecid: '123',
+      }),
+      /belongs to industry retail, not fsi/,
+    );
   });
 
   it('dual-load insert mapping writes Python-runner timestamps into travel row binds', () => {

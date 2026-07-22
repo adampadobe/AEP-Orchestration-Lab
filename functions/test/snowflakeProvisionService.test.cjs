@@ -17,7 +17,19 @@ describe('snowflakeProvisionRecipes', () => {
     assert.ok(ids.includes('travel.base_profiles.v1'));
     assert.ok(ids.includes('travel.agentic_phase1.preinstalled.v1'));
     assert.ok(ids.includes('travel.agentic_all.preinstalled.v1'));
+    for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+      assert.ok(ids.includes(`${industry}.profile_customer.v1`));
+    }
     assert.equal(Object.keys(PROVISION_RECIPES).length, ids.length);
+  });
+
+  it('builds industry CRM CREATE TABLE statements from allowlisted schemas', () => {
+    const recipe = getProvisionRecipe('fsi.profile_customer.v1');
+    const { sql, fqTable } = buildCreateTableStatement(recipe, 'DEMO_DB', 'PUBLIC');
+    assert.equal(fqTable, 'DEMO_DB.PUBLIC.AGENTIC_FSI_PROFILE_CUSTOMER');
+    assert.match(sql, /HOUSEHOLDINCOME NUMBER\(18,2\)/);
+    assert.match(sql, /TESTPROFILE BOOLEAN/);
+    assert.doesNotMatch(sql, /DROP|ALTER|TRUNCATE/i);
   });
 
   it('buildCreateTableStatement emits CREATE TABLE IF NOT EXISTS only', () => {
@@ -38,24 +50,22 @@ describe('snowflakeProvisionRecipes', () => {
     assert.ok(bad.errors.some((e) => /Unknown recipe_id/.test(e)));
   });
 
-  it('validateProvisionProposal accepts retail draft proposed_tables', () => {
+  it('validateProvisionProposal accepts retail allowlisted recipe', () => {
     const ok = validateProvisionProposal({
       industry: 'retail',
-      proposed_tables: ['RETAIL_PROFILE_CUSTOMER', 'RETAIL_EVENT_PURCHASE'],
+      recipe_id: 'retail.profile_customer.v1',
     });
     assert.equal(ok.ok, true);
-    assert.deepEqual(ok.resolved.proposed_tables, [
-      'RETAIL_PROFILE_CUSTOMER',
-      'RETAIL_EVENT_PURCHASE',
-    ]);
+    assert.equal(ok.resolved.recipe_id, 'retail.profile_customer.v1');
   });
 
-  it('validateProvisionProposal rejects retail table not in draft manifest', () => {
-    const bad = validateProvisionProposal({
+  it('validateProvisionProposal treats legacy proposed_tables as read-only', () => {
+    const proposal = validateProvisionProposal({
       industry: 'retail',
       proposed_tables: ['RETAIL_SECRET_TABLE'],
     });
-    assert.equal(bad.ok, false);
+    assert.equal(proposal.ok, true);
+    assert.ok(proposal.warnings.some((warning) => /read-only legacy input/.test(warning)));
   });
 });
 

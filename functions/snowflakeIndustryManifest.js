@@ -7,6 +7,7 @@
 
 const { COLUMNS } = require('./snowflakeBaseProfileSchema');
 const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
+const { INDUSTRY_CONFIG } = require('./snowflakeIndustryProfileRegistry');
 
 const PHASE_TABLES = {
   phase1: [
@@ -116,25 +117,49 @@ const TRAVEL_MANIFEST = {
   },
 };
 
-/** Draft retail manifest — table proposals validated read-only until recipes ship. */
-const RETAIL_DRAFT_MANIFEST = {
-  industry: 'retail',
-  label: 'Retail (draft — governed provision not enabled)',
-  status: 'draft',
-  proposedTables: [
-    'RETAIL_PROFILE_CUSTOMER',
-    'RETAIL_EVENT_PURCHASE',
-    'RETAIL_EVENT_CART',
-  ],
-  provisionRecipes: [],
-  note:
-    'Net-new retail tables may be validated via lab_snowflake_validate_proposal proposed_tables only. ' +
-    'No CREATE DDL recipes in v3.23.',
-};
+function buildCrmIndustryManifest(industry, label) {
+  const config = INDUSTRY_CONFIG[industry];
+  return {
+    industry,
+    label,
+    status: 'active',
+    phaseTables: { profile: [config.table] },
+    allTables: [config.table],
+    baseProfiles: {
+      table: config.table,
+      columnCount: config.columns.length,
+      columns: config.columns,
+    },
+    dualLoad: {
+      defaultTargetTable: config.table,
+      queryTable: config.table,
+      mapperSchema: config.table,
+      columnCount: config.columns.length,
+      defaultMode: 'crm_generate',
+      modes: {
+        crm_generate: `Generates independent ${industry} operational CRM data while sharing EMAIL, ECID, and CRMID with AEP.`,
+      },
+      note: 'AEP carries real-time behavioural attributes; Snowflake carries complementary operational CRM data.',
+    },
+    eventGroups: {},
+    enrichEventTypes: [],
+    validationRules: { phases: ['profile'] },
+  };
+}
+
+const FSI_MANIFEST = buildCrmIndustryManifest('fsi', 'Agentic FSI CRM');
+const RETAIL_MANIFEST = buildCrmIndustryManifest('retail', 'Agentic Retail CRM');
+const TELECOM_MANIFEST = buildCrmIndustryManifest('telecom', 'Agentic Telecom CRM');
+const MEDIA_MANIFEST = buildCrmIndustryManifest('media', 'Agentic Media CRM');
+const SPORTS_MANIFEST = buildCrmIndustryManifest('sports', 'Agentic Sports CRM');
 
 const INDUSTRY_MANIFESTS = {
   travel: TRAVEL_MANIFEST,
-  retail: RETAIL_DRAFT_MANIFEST,
+  fsi: FSI_MANIFEST,
+  retail: RETAIL_MANIFEST,
+  telecom: TELECOM_MANIFEST,
+  media: MEDIA_MANIFEST,
+  sports: SPORTS_MANIFEST,
 };
 
 /**
@@ -228,7 +253,11 @@ module.exports = {
   ENRICH_EVENT_TYPES,
   EVENT_GROUPS,
   TRAVEL_MANIFEST,
-  RETAIL_DRAFT_MANIFEST,
+  FSI_MANIFEST,
+  RETAIL_MANIFEST,
+  TELECOM_MANIFEST,
+  MEDIA_MANIFEST,
+  SPORTS_MANIFEST,
   INDUSTRY_MANIFESTS,
   getIndustryManifest,
   listSupportedIndustries,

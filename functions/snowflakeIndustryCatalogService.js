@@ -258,9 +258,7 @@ async function handleIndustryCatalog(input) {
   });
 }
 
-/**
- * POST /api/snowflake/industry-validate-proposal — travel-only, read-only.
- */
+/** POST /api/snowflake/industry-validate-proposal — allowlisted provision validation. */
 async function handleValidateProposal(input) {
   const sandbox = String(input.sandbox || '').trim();
   if (!sandbox) throw new Error('sandbox is required');
@@ -318,31 +316,32 @@ async function handleValidateProposal(input) {
     };
   }
 
-  if (industry === 'retail') {
-    const provisionValidation = validateProvisionProposal({
-      industry: 'retail',
-      proposed_tables: proposedTables,
-      recipe_id: recipeId,
-    });
+  if (industry !== 'travel') {
+    const manifest = getIndustryManifest(industry);
+    if (!manifest) {
+      return {
+        ok: false,
+        error: {
+          message: `Unsupported industry "${industry}". Supported: ${listSupportedIndustries().join(', ')}`,
+          code: 'UNSUPPORTED_INDUSTRY',
+          sqlState: null,
+          hints: [],
+        },
+      };
+    }
     return {
-      ok: provisionValidation.ok,
+      ok: true,
       sandbox,
       industry,
-      validation: provisionValidation,
-      runner: null,
-      manifest: { status: 'draft', proposedTables: getIndustryManifest('retail')?.proposedTables || [] },
-    };
-  }
-
-  if (industry !== 'travel') {
-    return {
-      ok: false,
-      error: {
-        message: `validate-proposal for enrich/generate is travel-only; use recipe_id or proposed_tables for ${industry}`,
-        code: 'UNSUPPORTED_INDUSTRY',
-        sqlState: null,
-        hints: [],
+      validation: {
+        ok: true,
+        valid: true,
+        errors: [],
+        warnings: ['Supply the industry profile_customer.v1 recipe_id to validate governed provisioning.'],
+        recipesForIndustry: listProvisionRecipes(industry),
       },
+      runner: null,
+      manifest: projectManifest(industry),
     };
   }
 
