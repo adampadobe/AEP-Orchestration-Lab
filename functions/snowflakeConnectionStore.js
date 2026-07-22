@@ -522,6 +522,80 @@ async function updateConfig(labUser, sandbox, payload) {
 }
 
 /**
+ * One-time migration: copy anonymous-browser Snowflake config to authenticated Portal uid.
+ * Skips when the authenticated user already has config/credential. Best-effort shared copy
+ * on eligible sandboxes when shared store is still empty.
+ *
+ * @param {string} anonymousUid
+ * @param {string} authenticatedUid
+ * @param {string} sandbox
+ * @returns {Promise<{ migrated: boolean, from?: string, to?: string, reason?: string }>}
+ */
+async function migrateAnonymousConfigToAuthenticated(anonymousUid, authenticatedUid, sandbox) {
+  const anon = sTrim(anonymousUid);
+  const auth = sTrim(authenticatedUid);
+  const s = sTrim(sandbox);
+  if (!anon || !auth || !s || anon === auth) {
+    return { migrated: false, reason: 'invalid_uids' };
+  }
+
+  const authCfg = await getUserDocConfig(auth, s);
+  if (authCfg.hasCredential) return { migrated: false, reason: 'auth_has_credential' };
+  if (authCfg.docExists && authCfg.account) return { migrated: false, reason: 'auth_has_doc' };
+
+  const anonCfg = await getUserDocConfig(anon, s);
+  if (!anonCfg.docExists && !anonCfg.hasCredential) {
+    return { migrated: false, reason: 'anon_empty' };
+  }
+
+  if (anonCfg.hasCredential) {
+    const credential = await readSecret(anon, s, '');
+    if (credential) await writeSecret(auth, s, credential, '');
+    if (anonCfg.hasPassphrase) {
+      const pass = await readSecret(anon, s, 'pass');
+      if (pass) await writeSecret(auth, s, pass, 'pass');
+    }
+  }
+
+  const anonRef = getDb().collection(COLLECTION).doc(docId(anon, s));
+  const anonSnap = await anonRef.get();
+  if (anonSnap.exists) {
+    const data = anonSnap.data() || {};
+    const authRef = getDb().collection(COLLECTION).doc(docId(auth, s));
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    await authRef.set(
+      {
+        sandbox: s,
+        labUser: auth,
+        account: data.account || '',
+        user: data.user || '',
+        role: data.role || '',
+        warehouse: data.warehouse || '',
+        database: data.database || '',
+        schema: data.schema || '',
+        authMethod: pickAuthMethod(data.authMethod, 'password'),
+        credentialSetAt: data.credentialSetAt || null,
+        updatedAt: now,
+        updatedBy: auth,
+        migratedFromAnonymous: anon,
+      },
+      { merge: true }
+    );
+  }
+
+  if (isSandboxSharedEligible(s)) {
+    const afterAuth = await getUserDocConfig(auth, s);
+    await migrateUserCredentialToShared(auth, s, afterAuth);
+    const sharedCfg = await getSharedDocConfig(s);
+    if (!sharedCfg.hasCredential && anonCfg.hasCredential) {
+      await migrateUserCredentialToShared(anon, s, anonCfg);
+    }
+  }
+
+  return { migrated: true, from: anon, to: auth };
+}
+
+/**
  * Resolve the connection material for a given lab user + sandbox so the
  * caller can open a Snowflake connection. Returns null if no credential
  * has been stored yet (user or sandbox-shared).
@@ -562,6 +636,7 @@ module.exports = {
   sharedSecretId,
   isSandboxSharedEligible,
   mergeUserConfigWithSharedFallback,
+  migrateAnonymousConfigToAuthenticated,
   getConfig,
   updateConfig,
   resolveConnection,

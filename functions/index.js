@@ -3863,6 +3863,7 @@ Object.assign(
     labWorkspaceAuthService,
     mcpApiKeyStore,
     labUserSandboxStore,
+    snowflakeConnectionStore: require('./snowflakeConnectionStore'),
     snowflakeService,
     snowflakeDataGeneratorService,
     snowflakeAgenticTravelService,

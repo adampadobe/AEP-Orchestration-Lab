@@ -1,6 +1,7 @@
 /**
  * Resolve Firebase uid for /api/snowflake/* from Bearer ID token or MCP API key.
- * Snowflake credentials are scoped per (labUserUid, sandbox) — MCP must map to principalUid.
+ * Snowflake credentials are scoped per (authenticated Portal labUserUid, sandbox).
+ * Anonymous Firebase auth is rejected — credentials must bind to Portal @adobe.com login.
  */
 
 const labUserSandboxStore = require('./labUserSandboxStore');
@@ -11,15 +12,21 @@ const SNOWFLAKE_OPS_KEY_ERROR =
   'Snowflake requires a user-generated MCP API key (Profile Viewer → MCP servers). ' +
   'Shared ops keys cannot resolve per-user Snowflake credentials.';
 
+const SNOWFLAKE_ANONYMOUS_ERROR =
+  'Snowflake requires Portal sign-in with your Adobe @adobe.com account. ' +
+  'Anonymous browser auth cannot save or resolve per-user credentials. ' +
+  'Open Profile Viewer home, sign in, then return to this page.';
+
 /**
  * @param {import('firebase-functions/v2/https').Request} req
  * @param {object} deps
  * @param {import('./mcpApiKeyStore')} deps.mcpApiKeyStore
  * @param {import('./labWorkspaceAuthService')} deps.labWorkspaceAuthService
- * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key', principalEmail?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
+ * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key', principalEmail?: string | null, principalDisplayName?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
  */
 async function resolveSnowflakePrincipal(req, deps) {
   const { mcpApiKeyStore, labWorkspaceAuthService } = deps;
+  const userStore = deps.labUserSandboxStore || labUserSandboxStore;
 
   const mcpKey = String(req.headers[MCP_KEY_HEADER] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
   if (mcpKey) {
@@ -40,12 +47,13 @@ async function resolveSnowflakePrincipal(req, deps) {
       uid: keyAuth.principalUid,
       authSource: 'mcp_key',
       principalEmail: keyAuth.principalEmail || null,
+      principalDisplayName: keyAuth.principalEmail || null,
       keySandbox: keyAuth.sandbox || null,
     };
   }
 
-  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
-  if (!uid) {
+  const claims = await userStore.verifyIdTokenClaimsFromRequest(req);
+  if (!claims || !claims.uid) {
     return {
       ok: false,
       status: 401,
@@ -53,6 +61,18 @@ async function resolveSnowflakePrincipal(req, deps) {
         ok: false,
         error: 'Firebase Auth or X-AEP-Lab-Mcp-Key required.',
         code: 'AUTH_REQUIRED',
+      },
+    };
+  }
+
+  if (claims.isAnonymous) {
+    return {
+      ok: false,
+      status: 403,
+      body: {
+        ok: false,
+        error: SNOWFLAKE_ANONYMOUS_ERROR,
+        code: 'AUTH_PORTAL_LOGIN_REQUIRED',
       },
     };
   }
@@ -84,11 +104,18 @@ async function resolveSnowflakePrincipal(req, deps) {
     }
   }
 
-  return { ok: true, uid, authSource: 'firebase' };
+  return {
+    ok: true,
+    uid: claims.uid,
+    authSource: 'firebase',
+    principalEmail: claims.email || null,
+    principalDisplayName: claims.name || claims.email || null,
+  };
 }
 
 module.exports = {
   MCP_KEY_HEADER,
   SNOWFLAKE_OPS_KEY_ERROR,
+  SNOWFLAKE_ANONYMOUS_ERROR,
   resolveSnowflakePrincipal,
 };

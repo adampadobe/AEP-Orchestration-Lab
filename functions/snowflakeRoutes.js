@@ -4,6 +4,29 @@
 
 const STATIC_EGRESS_IP = '34.58.81.28';
 
+function labUserResponseMeta(principal) {
+  const uidStr = String((principal && principal.uid) || '');
+  const email = principal && principal.principalEmail ? String(principal.principalEmail) : null;
+  const displayName = principal && (principal.principalDisplayName || principal.principalEmail)
+    ? String(principal.principalDisplayName || principal.principalEmail)
+    : null;
+  return {
+    labUserUid: uidStr,
+    labUserUidPrefix: uidStr.length > 8 ? `${uidStr.slice(0, 8)}…` : uidStr,
+    labUserEmail: email,
+    labUserDisplayName: displayName,
+    authSource: (principal && principal.authSource) || 'firebase',
+  };
+}
+
+function legacyAnonymousFromRequest(req) {
+  if (req.method === 'GET') {
+    return String((req.query && req.query.legacyAnonymousUid) || '').trim();
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  return String(body.legacyAnonymousUid || '').trim();
+}
+
 /**
  * @param {object} deps
  * @returns {Record<string, import('firebase-functions/v2/https').HttpsFunction>}
@@ -18,12 +41,13 @@ function registerSnowflakeRoutes(deps) {
     snowflakePrincipalAuth,
     labWorkspaceAuthService,
     mcpApiKeyStore,
+    snowflakeConnectionStore,
     snowflakeService,
     snowflakeDataGeneratorService,
     snowflakeAgenticTravelService,
   } = deps;
 
-  async function resolveUid(req, res) {
+  async function resolvePrincipal(req, res) {
     const principal = await snowflakePrincipalAuth.resolveSnowflakePrincipal(req, {
       labWorkspaceAuthService,
       mcpApiKeyStore,
@@ -32,7 +56,23 @@ function registerSnowflakeRoutes(deps) {
       res.status(principal.status).json(principal.body);
       return null;
     }
-    return principal.uid;
+    return principal;
+  }
+
+  async function maybeMigrateLegacyAnonymous(principal, sandbox, req) {
+    const legacyAnon = legacyAnonymousFromRequest(req);
+    if (!legacyAnon || legacyAnon === principal.uid) return null;
+    try {
+      const mig = await snowflakeConnectionStore.migrateAnonymousConfigToAuthenticated(
+        legacyAnon,
+        principal.uid,
+        sandbox,
+      );
+      return mig && mig.migrated ? legacyAnon : null;
+    } catch (e) {
+      console.warn('[snowflake] legacy anonymous migration failed', String(e && e.message || e));
+      return null;
+    }
   }
 
   const routes = {};
@@ -50,8 +90,9 @@ function registerSnowflakeRoutes(deps) {
     setCors(res, 'GET, POST, OPTIONS');
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
 
-    const uid = await resolveUid(req, res);
-    if (!uid) return;
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
 
     const sandbox = (req.method === 'POST' && req.body?.sandbox)
       ? String(req.body.sandbox).trim()
@@ -61,16 +102,17 @@ function registerSnowflakeRoutes(deps) {
       return;
     }
 
+    const migratedFromAnonymous = await maybeMigrateLegacyAnonymous(principal, sandbox, req);
+
     if (req.method === 'GET') {
       try {
         const record = await snowflakeService.handleConfigGet({ labUser: uid, sandbox });
-        const uidStr = String(uid || '');
         res.status(200).json({
           ok: true,
           sandbox,
           record,
-          labUserUid: uidStr,
-          labUserUidPrefix: uidStr.length > 8 ? `${uidStr.slice(0, 8)}…` : uidStr,
+          ...labUserResponseMeta(principal),
+          migratedFromAnonymous,
           staticEgressIp: STATIC_EGRESS_IP,
           ready: !!(record && record.hasCredential && record.account),
         });
@@ -82,15 +124,19 @@ function registerSnowflakeRoutes(deps) {
     }
     if (req.method === 'POST') {
       const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const { legacyAnonymousUid: _legacy, ...configPayload } = body;
       try {
-        const record = await snowflakeService.handleConfigPut({ labUser: uid, sandbox, payload: body });
-        const uidStr = String(uid || '');
+        const record = await snowflakeService.handleConfigPut({
+          labUser: uid,
+          sandbox,
+          payload: configPayload,
+        });
         res.status(200).json({
           ok: true,
           sandbox,
           record,
-          labUserUid: uidStr,
-          labUserUidPrefix: uidStr.length > 8 ? `${uidStr.slice(0, 8)}…` : uidStr,
+          ...labUserResponseMeta(principal),
+          migratedFromAnonymous,
           staticEgressIp: STATIC_EGRESS_IP,
           ready: !!(record && record.hasCredential),
         });
@@ -115,8 +161,9 @@ function registerSnowflakeRoutes(deps) {
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-    const uid = await resolveUid(req, res);
-    if (!uid) return;
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
@@ -148,8 +195,9 @@ function registerSnowflakeRoutes(deps) {
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-    const uid = await resolveUid(req, res);
-    if (!uid) return;
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
@@ -181,8 +229,9 @@ function registerSnowflakeRoutes(deps) {
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-    const uid = await resolveUid(req, res);
-    if (!uid) return;
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
@@ -212,8 +261,9 @@ function registerSnowflakeRoutes(deps) {
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-    const uid = await resolveUid(req, res);
-    if (!uid) return;
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
@@ -246,8 +296,9 @@ function registerSnowflakeRoutes(deps) {
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-    const uid = await resolveUid(req, res);
-    if (!uid) return;
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);

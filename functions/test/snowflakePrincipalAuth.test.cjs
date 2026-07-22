@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   MCP_KEY_HEADER,
   SNOWFLAKE_OPS_KEY_ERROR,
+  SNOWFLAKE_ANONYMOUS_ERROR,
   resolveSnowflakePrincipal,
 } = require('../snowflakePrincipalAuth');
 
@@ -69,5 +70,50 @@ describe('snowflakePrincipalAuth', () => {
     assert.equal(principal.ok, false);
     assert.equal(principal.status, 403);
     assert.equal(principal.body.code, 'MCP_USER_KEY_REQUIRED');
+  });
+
+  it('rejects anonymous Firebase token with AUTH_PORTAL_LOGIN_REQUIRED', async () => {
+    const req = mockReq({ authorization: 'Bearer anon-token' });
+    const principal = await resolveSnowflakePrincipal(req, {
+      mcpApiKeyStore: null,
+      labWorkspaceAuthService: null,
+      labUserSandboxStore: {
+        verifyIdTokenClaimsFromRequest: async () => ({
+          uid: 'anon-uid-abc',
+          email: null,
+          name: null,
+          isAnonymous: true,
+          signInProvider: 'anonymous',
+        }),
+      },
+    });
+    assert.equal(principal.ok, false);
+    assert.equal(principal.status, 403);
+    assert.equal(principal.body.code, 'AUTH_PORTAL_LOGIN_REQUIRED');
+    assert.match(principal.body.error, /Portal sign-in/);
+    assert.equal(SNOWFLAKE_ANONYMOUS_ERROR.includes('Portal sign-in'), true);
+  });
+
+  it('accepts authenticated Portal Firebase token', async () => {
+    const req = mockReq({ authorization: 'Bearer portal-token' });
+    const principal = await resolveSnowflakePrincipal(req, {
+      mcpApiKeyStore: null,
+      labWorkspaceAuthService: {
+        getLabAccessStatusFromIdTokenRequest: async () => ({ status: 'approved' }),
+      },
+      labUserSandboxStore: {
+        verifyIdTokenClaimsFromRequest: async () => ({
+          uid: 'auth-uid-999',
+          email: 'apalmer@adobe.com',
+          name: 'Adam Palmer',
+          isAnonymous: false,
+          signInProvider: 'password',
+        }),
+      },
+    });
+    assert.equal(principal.ok, true);
+    assert.equal(principal.uid, 'auth-uid-999');
+    assert.equal(principal.principalEmail, 'apalmer@adobe.com');
+    assert.equal(principal.authSource, 'firebase');
   });
 });

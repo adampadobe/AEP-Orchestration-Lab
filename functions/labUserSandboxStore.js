@@ -54,13 +54,33 @@ function sanitizeKeys(incoming) {
  * @param {import('firebase-admin').auth.Auth} [_auth]
  */
 async function verifyIdTokenFromRequest(req, _auth) {
+  const claims = await verifyIdTokenClaimsFromRequest(req, _auth);
+  return claims && claims.uid ? claims.uid : null;
+}
+
+/**
+ * Verify Bearer ID token and return uid plus sign-in metadata (email, anonymous flag).
+ *
+ * @param {import('firebase-functions/v2/https').Request} req
+ * @param {import('firebase-admin').auth.Auth} [_auth]
+ * @returns {Promise<{ uid: string, email: string | null, name: string | null, isAnonymous: boolean, signInProvider: string | null } | null>}
+ */
+async function verifyIdTokenClaimsFromRequest(req, _auth) {
   const h = req.headers.authorization || '';
   const m = /^Bearer\s+(\S+)/i.exec(h);
   if (!m) return null;
   try {
     if (!admin.apps.length) admin.initializeApp();
     const dec = await admin.auth().verifyIdToken(m[1]);
-    return dec.uid || null;
+    const uid = dec.uid || null;
+    if (!uid) return null;
+    const signInProvider = dec.firebase && dec.firebase.sign_in_provider
+      ? String(dec.firebase.sign_in_provider)
+      : null;
+    const email = dec.email ? String(dec.email).trim().toLowerCase() : null;
+    const name = dec.name ? String(dec.name).trim() : null;
+    const isAnonymous = signInProvider === 'anonymous' || (!email && signInProvider !== 'password' && signInProvider !== 'custom');
+    return { uid, email, name, isAnonymous, signInProvider };
   } catch {
     return null;
   }
@@ -205,4 +225,5 @@ module.exports = {
   getWorkspaceProfile,
   upsertWorkspaceProfile,
   verifyIdTokenFromRequest,
+  verifyIdTokenClaimsFromRequest,
 };

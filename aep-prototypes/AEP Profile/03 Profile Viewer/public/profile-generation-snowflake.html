@@ -47,7 +47,7 @@
             </summary>
             <div class="sf-gen-connection-body">
               <p class="sf-gen-card-subtitle sf-gen-connection-lead">
-                Saved per lab user, per AEP sandbox. Credentials never touch Firestore — they are written to Google Secret Manager and only read from inside the Cloud Function that opens the connection.
+                Saved per Portal login and AEP sandbox (team sandboxes such as apalmer also mirror credentials for shared read). Credentials never touch Firestore — they are written to Google Secret Manager and only read from inside the Cloud Function that opens the connection. Sign in with your Adobe @adobe.com account before Save.
               </p>
 
             <div class="sf-gen-form" id="sfConfigForm" aria-busy="false">
@@ -390,6 +390,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260722c"></script>
+  <script src="profile-generation-snowflake.js?v=20260722d"></script>
 </body>
 </html>

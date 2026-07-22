@@ -9,15 +9,17 @@
  *     so users can validate the static-egress-IP allowlist round-trips
  *     without leaving the lab.
  *
- * Auth: relies on the same anonymous-Firebase-auth pattern that
- * aep-lab-sandbox-sync.js boots (window.__aepLabSyncReady). The Cloud Functions
- * require a Firebase ID token Bearer; anonymous sign-in is enough.
+ * Auth: requires Portal sign-in with an Adobe @adobe.com Firebase account (not anonymous).
+ * aep-lab-sandbox-sync.js still boots anonymous auth for other lab features; this page
+ * rejects anonymous tokens on /api/snowflake/* and prompts sign-in before Save.
  */
 
 (function () {
   'use strict';
 
   var LS_SANDBOX = 'aepGlobalSandboxName';
+  /** Anonymous Firebase uid from this browser before Portal login — sent once for migration. */
+  var LS_LEGACY_ANON_UID = 'aepLabSnowflakeLegacyAnonymousUid';
   /** Base-profile generate runs only (separate from Agentic full-gen batches). */
   var LS_SF_BASE_GEN_BATCHES = 'aepLabSnowflakeBaseProfileBatchesV1';
   var MAX_SF_BASE_BATCH_HISTORY = 20;
@@ -43,7 +45,14 @@
   /** True after a successful Test connection in this page session (reset on Save / Clear / reload). */
   var lastSnowflakeTestOk = false;
   /** Last GET /api/snowflake/config metadata (configState, lab user uid prefix). */
-  var lastConfigMeta = { configState: '', labUserUidPrefix: '', presetNote: '', credentialScope: 'user' };
+  var lastConfigMeta = {
+    configState: '',
+    labUserUidPrefix: '',
+    labUserEmail: '',
+    labUserDisplayName: '',
+    presetNote: '',
+    credentialScope: 'user',
+  };
   /** True when GET /api/snowflake/config last reported hasCredential (Secret Manager). */
   var lastHasCredential = false;
   /** credentialSetAt from last GET/POST config (for badge timestamp). */
@@ -160,6 +169,83 @@
   }
 
   /** True when Global values sandbox is Adam's dev sandbox (technical name contains `apalmer`). */
+  function hasPortalLogin() {
+    try {
+      var f = window.firebase;
+      if (!f || !f.auth) return false;
+      var u = f.auth().currentUser;
+      if (!u || u.isAnonymous) return false;
+      var email = String(u.email || '').trim().toLowerCase();
+      return email.endsWith('@adobe.com');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function portalLoginLabel() {
+    try {
+      var f = window.firebase;
+      if (!f || !f.auth) return '';
+      var u = f.auth().currentUser;
+      if (!u || u.isAnonymous) return '';
+      return String(u.email || u.displayName || '').trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function captureLegacyAnonymousUid() {
+    try {
+      var f = window.firebase;
+      if (!f || !f.auth) return;
+      var u = f.auth().currentUser;
+      if (u && u.isAnonymous && u.uid) {
+        localStorage.setItem(LS_LEGACY_ANON_UID, String(u.uid));
+      }
+    } catch (_) {}
+  }
+
+  function readLegacyAnonymousUid(currentUid) {
+    try {
+      var legacy = String(localStorage.getItem(LS_LEGACY_ANON_UID) || '').trim();
+      if (!legacy || legacy === String(currentUid || '')) return '';
+      return legacy;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function clearLegacyAnonymousUidAfterMigration(body) {
+    if (!body || !body.migratedFromAnonymous) return;
+    try {
+      localStorage.removeItem(LS_LEGACY_ANON_UID);
+    } catch (_) {}
+  }
+
+  function labUserIdentityHint(body) {
+    var email = (body && body.labUserEmail) || lastConfigMeta.labUserEmail || portalLoginLabel();
+    if (email) return ' Linked to Portal user ' + email + '.';
+    var prefix = (body && body.labUserUidPrefix) || lastConfigMeta.labUserUidPrefix;
+    return prefix ? ' Lab user id: ' + prefix + '.' : '';
+  }
+
+  function portalLoginRequiredMessage() {
+    return (
+      'Sign in to the Portal with your Adobe @adobe.com account before configuring Snowflake. ' +
+      'Open home.html and use Login — anonymous browser auth cannot own Snowflake credentials.'
+    );
+  }
+
+  function openPortalLoginHint() {
+    if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
+      window.AepAccessOnboarding.open();
+      return;
+    }
+    try {
+      window.location.assign('home.html?accessSetup=1');
+    } catch (_) {}
+  }
+
   function isApalmerSandbox(sandbox) {
     return String(sandbox || '').toLowerCase().indexOf('apalmer') !== -1;
   }
@@ -262,9 +348,7 @@
         ' (shared across browsers).'
       );
     }
-    var uidHint = lastConfigMeta.labUserUidPrefix
-      ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
-      : '';
+    var uidHint = labUserIdentityHint(lastConfigMeta);
     var configState = lastConfigMeta.configState || '';
     if (configState === 'preset_only' || configState === 'saved_no_credential') {
       return 'Paste your PEM private key and Save once.' + uidHint;
@@ -393,14 +477,16 @@
     lastConfigMeta = {
       configState: configState,
       labUserUidPrefix: (body && body.labUserUidPrefix) || lastConfigMeta.labUserUidPrefix || '',
+      labUserEmail: (body && body.labUserEmail) || lastConfigMeta.labUserEmail || '',
+      labUserDisplayName: (body && body.labUserDisplayName) || lastConfigMeta.labUserDisplayName || '',
       presetNote: (rec && rec.presetNote) || '',
       credentialScope: (rec && rec.credentialScope) || 'user',
     };
+    clearLegacyAnonymousUidAfterMigration(body);
   }
 
   function labUserUidHint(body) {
-    var prefix = body && body.labUserUidPrefix;
-    return prefix ? ' Lab user id: ' + prefix + '.' : '';
+    return labUserIdentityHint(body);
   }
 
   function configLoadMessage(rec, sandbox, body) {
@@ -694,26 +780,64 @@
     return payload;
   }
 
+  function snowflakeQuerySuffix(currentUid) {
+    var legacy = readLegacyAnonymousUid(currentUid);
+    return legacy ? '&legacyAnonymousUid=' + encodeURIComponent(legacy) : '';
+  }
+
+  function attachLegacyAnonymousPayload(payload, currentUid) {
+    var legacy = readLegacyAnonymousUid(currentUid);
+    if (legacy) payload.legacyAnonymousUid = legacy;
+    return payload;
+  }
+
+  function handleSnowflakeAuthError(body) {
+    if (body && body.code === 'AUTH_PORTAL_LOGIN_REQUIRED') {
+      setMessage(portalLoginRequiredMessage(), 'error');
+      return true;
+    }
+    return false;
+  }
+
+  function currentFirebaseUid() {
+    try {
+      var f = window.firebase;
+      if (!f || !f.auth || !f.auth().currentUser) return '';
+      return String(f.auth().currentUser.uid || '');
+    } catch (_) {
+      return '';
+    }
+  }
+
   function loadConfig() {
     var sandbox = readSandbox();
     var seq = ++loadConfigSeq;
     lastSnowflakeTestOk = false;
+    captureLegacyAnonymousUid();
     if (!sandbox) {
       syncConnectionUi(null);
       setMessage(
-        'Pick a sandbox from Global values before configuring Snowflake. The connection is saved per lab user, per sandbox.',
+        'Pick a sandbox from Global values before configuring Snowflake. Credentials bind to your Portal login, per sandbox.',
         'info'
       );
+      return Promise.resolve();
+    }
+    if (!hasPortalLogin()) {
+      syncConnectionUi(null);
+      setMessage(portalLoginRequiredMessage(), 'error');
       return Promise.resolve();
     }
     setBusy(true);
     setMessage('Loading saved Snowflake config…', 'info');
     return authHeaders().then(function (h) {
       if (!h.Authorization) {
-        setMessage('Anonymous Firebase auth is initializing — refresh the page in a second.', 'info');
+        setMessage('Firebase auth is initializing — refresh the page in a second.', 'info');
         return null;
       }
-      var url = '/api/snowflake/config?sandbox=' + encodeURIComponent(sandbox);
+      var url =
+        '/api/snowflake/config?sandbox=' +
+        encodeURIComponent(sandbox) +
+        snowflakeQuerySuffix(currentFirebaseUid());
       return fetch(url, { headers: h }).then(function (res) {
         return res.json().then(function (body) {
           if (seq !== loadConfigSeq) return;
@@ -723,6 +847,13 @@
             lastSnowflakeTestOk = false;
             rememberConfigMeta(body, rec);
             applyRecordToForm(rec);
+            if (body.migratedFromAnonymous) {
+              setMessage(
+                'Migrated Snowflake config from your previous anonymous browser session.' +
+                  labUserIdentityHint(body),
+                'success'
+              );
+            }
             if (isApalmerSandbox(sandbox) && (!rec || !rec.account)) {
               applyAgenticTravelPreset(true, false);
               var mergedRec = Object.assign({}, rec || {}, {
@@ -735,11 +866,13 @@
               }
               rememberConfigMeta(body, mergedRec);
               reflectCredentialState(mergedRec);
-              setMessage(configLoadMessage(mergedRec, sandbox, body), 'info');
-            } else {
+              if (!body.migratedFromAnonymous) {
+                setMessage(configLoadMessage(mergedRec, sandbox, body), 'info');
+              }
+            } else if (!body.migratedFromAnonymous) {
               setMessage(configLoadMessage(rec, sandbox, body), 'info');
             }
-          } else {
+          } else if (!handleSnowflakeAuthError(body)) {
             setMessage((body && body.error) || ('Failed to load config (HTTP ' + res.status + ')'), 'error');
           }
         });
@@ -752,6 +885,11 @@
   }
 
   function saveConfig() {
+    if (!hasPortalLogin()) {
+      setMessage(portalLoginRequiredMessage(), 'error');
+      openPortalLoginHint();
+      return;
+    }
     var payload = readForm();
     if (!payload.sandbox) {
       setMessage('Pick a sandbox from Global values first.', 'error');
@@ -769,6 +907,7 @@
         setBusy(false);
         return;
       }
+      attachLegacyAnonymousPayload(payload, currentFirebaseUid());
       var url = '/api/snowflake/config';
       var body = JSON.stringify(payload);
       // Redact secret-like fields from the debug pane.
@@ -788,8 +927,12 @@
             applyRecordToForm(data.record || null);
             if (els.credential) els.credential.value = '';
             if (els.keyPassphrase) els.keyPassphrase.value = '';
-            setMessage('Saved. Click Test connection to validate the IP allowlist round-trip.', 'success');
-          } else {
+            setMessage(
+              'Saved for ' + (portalLoginLabel() || 'your Portal account') +
+                '. Click Test connection to validate the IP allowlist round-trip.',
+              'success'
+            );
+          } else if (!handleSnowflakeAuthError(data)) {
             setMessage((data && data.error) || ('Save failed (HTTP ' + res.status + ')'), 'error');
           }
         });
@@ -802,6 +945,11 @@
   }
 
   function testConnection() {
+    if (!hasPortalLogin()) {
+      setMessage(portalLoginRequiredMessage(), 'error');
+      openPortalLoginHint();
+      return;
+    }
     var sandbox = readSandbox();
     if (!sandbox) {
       setMessage('Pick a sandbox from Global values first.', 'error');
@@ -815,15 +963,16 @@
         setBusy(false);
         return;
       }
+      var testPayload = attachLegacyAnonymousPayload({ sandbox: sandbox }, currentFirebaseUid());
       var url = '/api/snowflake/connection-test';
-      var body = JSON.stringify({ sandbox: sandbox });
+      var body = JSON.stringify(testPayload);
       fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: body,
       }).then(function (res) {
         return res.json().then(function (data) {
-          setDebug('POST ' + url, { sandbox: sandbox }, res.status, data);
+          setDebug('POST ' + url, testPayload, res.status, data);
           var result = data && data.result;
           if (res.ok && result && result.ok) {
             var line = 'Connected — Snowflake ' + (result.version || 'unknown') +
@@ -836,8 +985,10 @@
             refreshConnectionUi();
             var msg = (result && result.error && result.error.message) || (data && data.error) ||
               'Connection test failed (HTTP ' + res.status + ').';
-            var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
-            setMessage(msg, 'error', { hints: hints });
+            if (!handleSnowflakeAuthError(data)) {
+              var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
+              setMessage(msg, 'error', { hints: hints });
+            }
           }
         });
       }).catch(function (e) {
@@ -849,6 +1000,11 @@
   }
 
   function clearCredential() {
+    if (!hasPortalLogin()) {
+      setMessage(portalLoginRequiredMessage(), 'error');
+      openPortalLoginHint();
+      return;
+    }
     var sandbox = readSandbox();
     if (!sandbox) {
       setMessage('Pick a sandbox from Global values first.', 'error');
@@ -866,7 +1022,10 @@
         return;
       }
       var url = '/api/snowflake/config';
-      var payload = { sandbox: sandbox, clearCredential: true, clearKeyPassphrase: true };
+      var payload = attachLegacyAnonymousPayload(
+        { sandbox: sandbox, clearCredential: true, clearKeyPassphrase: true },
+        currentFirebaseUid()
+      );
       fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
@@ -1277,6 +1436,11 @@
   }
 
   function generateProfiles() {
+    if (!hasPortalLogin()) {
+      setGenerateMessage(portalLoginRequiredMessage(), 'error');
+      openPortalLoginHint();
+      return;
+    }
     var payload = readGenerateForm();
     if (!payload.sandbox) {
       setGenerateMessage('Pick a sandbox from Global values first.', 'error');
