@@ -678,7 +678,7 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
  * POST /api/snowflake/agentic/query-profiles
  * @param {object} params
  */
-export async function snowflakeQueryProfiles({ sandbox, filter_type, time_period, limit }) {
+export async function snowflakeQueryProfiles({ sandbox, filter_type, time_period, limit, email, ecid }) {
   return labApiRequest('/api/snowflake/agentic/query-profiles', {
     method: 'POST',
     body: {
@@ -686,6 +686,8 @@ export async function snowflakeQueryProfiles({ sandbox, filter_type, time_period
       ...(filter_type ? { filterType: filter_type } : {}),
       ...(time_period ? { timePeriod: time_period } : {}),
       ...(limit != null ? { limit } : {}),
+      ...(email ? { email } : {}),
+      ...(ecid ? { ecid } : {}),
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 120_000,

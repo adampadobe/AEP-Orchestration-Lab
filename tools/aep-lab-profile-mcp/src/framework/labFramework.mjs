@@ -492,7 +492,7 @@ export function getExecutionFramework() {
           'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, emailGeneration, tableCheck before provisioning',
           'lab_confirm_profile_generation — shared AEP email prefs (Firestore labProfileGenerationPrefs)',
           'lab_generate_profile industry travel randomize true dual_load_snowflake true — omit email; same +DDMMYYYY-N address streams to AEP and Snowflake',
-          'lab_get_profile + lab_snowflake_query_profiles filter_type all limit 5 — verify mirror row in AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+          'lab_get_profile + lab_snowflake_query_profiles email {same email} — verify full mirror row (profiles[].columns has FIRSTNAME, DATEOFBIRTH, …)',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },

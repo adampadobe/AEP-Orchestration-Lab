@@ -21,6 +21,7 @@ const {
   fullyQualified,
 } = require('./snowflakeDataGeneratorService');
 const { PHASE_TABLES, TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
+const { COLUMNS: TRAVEL_PROFILE_COLUMNS } = require('./snowflakeTravelProfileSchema');
 
 const QUERY_PROFILES_TABLE = TRAVEL_MANIFEST.dualLoad.queryTable;
 
@@ -97,6 +98,93 @@ function loyaltyWhere(filterType) {
   if (filterType === 'loyalty') return 'AND LOYALTYID IS NOT NULL';
   if (filterType === 'non_loyalty') return 'AND LOYALTYID IS NULL';
   return '';
+}
+
+/**
+ * Build SELECT for AGENTIC_TRAVEL_PROFILE_CUSTOMER with all travel profile columns.
+ * Exported for unit tests (no live Snowflake).
+ *
+ * @param {object} opts
+ * @param {string} opts.fqTable — fully qualified table name
+ * @param {string} [opts.filterType]
+ * @param {string} [opts.timePeriod]
+ * @param {number} opts.limit
+ * @param {string} [opts.email]
+ * @param {string} [opts.ecid]
+ * @returns {{ sql: string, binds: string[] }}
+ */
+function buildQueryProfilesSql({
+  fqTable,
+  filterType = 'all',
+  timePeriod = 'all_time',
+  limit = 50,
+  email,
+  ecid,
+}) {
+  const selectList = TRAVEL_PROFILE_COLUMNS.join(', ');
+  const tf = timeFilterSql(timePeriod);
+  const lw = loyaltyWhere(filterType);
+  const binds = [];
+  let identityFilter = '';
+  const emailTrim = String(email || '').trim();
+  const ecidTrim = String(ecid || '').trim();
+  if (emailTrim) {
+    identityFilter += ' AND UPPER(EMAIL) = UPPER(?)';
+    binds.push(emailTrim);
+  }
+  if (ecidTrim) {
+    identityFilter += ' AND ECID = ?';
+    binds.push(ecidTrim);
+  }
+  const safeLimit = Number.isFinite(limit) ? Math.min(1000, Math.max(1, Math.floor(limit))) : 50;
+  const sql = `
+      SELECT ${selectList}
+      FROM ${fqTable}
+      WHERE 1=1
+      ${lw}
+      ${tf}
+      ${identityFilter}
+      ORDER BY _RECORDCREATEDTIMESTAMP DESC
+      LIMIT ${safeLimit}
+    `;
+  return { sql, binds };
+}
+
+function serializeCellValue(val) {
+  if (val == null) return null;
+  if (typeof val === 'bigint') return val.toString();
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === 'object' && typeof val.toJSON === 'function') return val.toJSON();
+  if (typeof val === 'object' && typeof val.toString === 'function') return String(val);
+  return val;
+}
+
+/**
+ * Map a Snowflake row array to full column object + Profile Viewer backward-compat fields.
+ *
+ * @param {unknown[]} row
+ * @returns {object}
+ */
+function mapTravelProfileRow(row) {
+  const columns = {};
+  for (let i = 0; i < TRAVEL_PROFILE_COLUMNS.length; i++) {
+    columns[TRAVEL_PROFILE_COLUMNS[i]] = serializeCellValue(row[i]);
+  }
+  return {
+    crmId: columns.CRMID,
+    email: columns.EMAIL,
+    ecid: columns.ECID,
+    loyaltyId: columns.LOYALTYID,
+    phoneNumber: columns.PHONENUMBER,
+    createdAt: columns._RECORDCREATEDTIMESTAMP,
+    firstName: columns.FIRSTNAME,
+    lastName: columns.LASTNAME,
+    dateOfBirth: columns.DATEOFBIRTH,
+    nationality: columns.NATIONALITY,
+    primaryEmail: columns.PRIMARYEMAIL,
+    columns,
+    table: QUERY_PROFILES_TABLE,
+  };
 }
 
 function snowflakePayloadFromResolved(resolved) {
@@ -263,35 +351,32 @@ async function handleQueryProfiles(input) {
   const timePeriod = ALLOWED_TIME.has(input.timePeriod) ? input.timePeriod : 'all_time';
   const limitRaw = Number(input.limit);
   const limit = Number.isFinite(limitRaw) ? Math.min(1000, Math.max(1, Math.floor(limitRaw))) : 50;
+  const email = String(input.email || '').trim() || undefined;
+  const ecid = String(input.ecid || '').trim() || undefined;
 
   return withConnection(labUser, sandbox, async (conn, cfg) => {
     const fq = fullyQualified(cfg.database, cfg.schema, QUERY_PROFILES_TABLE);
-    const tf = timeFilterSql(timePeriod);
-    const lw = loyaltyWhere(filterType);
-    const sql = `
-      SELECT CRMID, EMAIL, ECID, LOYALTYID, PHONENUMBER, _RECORDCREATEDTIMESTAMP
-      FROM ${fq}
-      WHERE 1=1
-      ${lw}
-      ${tf}
-      ORDER BY _RECORDCREATEDTIMESTAMP DESC
-      LIMIT ${limit}
-    `;
-    const rows = await execAsync(conn, { sqlText: sql });
-    const profiles = rows.map((row) => ({
-      crmId: row[0],
-      email: row[1],
-      ecid: row[2],
-      loyaltyId: row[3],
-      phoneNumber: row[4],
-      createdAt: row[5] != null ? String(row[5]) : null,
-    }));
+    const { sql, binds } = buildQueryProfilesSql({
+      fqTable: fq,
+      filterType,
+      timePeriod,
+      limit,
+      email,
+      ecid,
+    });
+    const rows = await execAsync(conn, { sqlText: sql, binds });
+    const profiles = rows.map((row) => mapTravelProfileRow(row));
     return {
       ok: true,
       profiles,
       count: profiles.length,
+      table: QUERY_PROFILES_TABLE,
+      columnCount: TRAVEL_PROFILE_COLUMNS.length,
+      columns: TRAVEL_PROFILE_COLUMNS,
       time_period: timePeriod,
       filter_type: filterType,
+      email: email || null,
+      ecid: ecid || null,
     };
   });
 }
@@ -462,6 +547,9 @@ async function handleAgenticEnrich(input) {
 
 module.exports = {
   PHASE_TABLES,
+  TRAVEL_PROFILE_COLUMNS,
+  buildQueryProfilesSql,
+  mapTravelProfileRow,
   handleQueryProfiles,
   handleTableStructure,
   handleAgenticGenerateFull,
