@@ -1,14 +1,14 @@
 {
-  "gitSha": "76430af4bd27b85dce4f948ac0fa63788e37d19c",
-  "gitShortSha": "76430af4",
+  "gitSha": "8bc96d909eaaa1f95af7e02c87403b3cbcbb3b4e",
+  "gitShortSha": "8bc96d90",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Show green tick when Snowflake P8 credential is stored",
+  "gitCommitSubject": "[apalmer] Bind Snowflake config to Portal login, not anonymous uid",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T09:48:10+01:00",
-  "deployedAt": "2026-07-22T08:48:24.042Z",
+  "gitCommitDate": "2026-07-22T11:54:37+01:00",
+  "deployedAt": "2026-07-22T11:05:05.908Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/76430af4bd27b85dce4f948ac0fa63788e37d19c"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8bc96d909eaaa1f95af7e02c87403b3cbcbb3b4e"
 }
