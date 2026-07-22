@@ -8,7 +8,11 @@ const {
   rowToObject,
   resolveDualLoadInsertSchema,
 } = require('../snowflakeDataGeneratorService');
+const { COLUMNS: TRAVEL_COLUMNS } = require('../snowflakeTravelProfileSchema');
 const { scaleEmail } = require('../labProfileGenerationPrefsStore');
+
+const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
+const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
 
 describe('snowflakeDataGeneratorService email alignment', () => {
   it('generateBaseProfileRow uses emailOverride for EMAIL columns', () => {
@@ -44,5 +48,23 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     assert.equal(legacy.schemaKey, 'BASE_PROFILES');
     assert.equal(legacy.skipCreateTable, false);
     assert.ok(legacy.columns.includes('BIRTHDATE'));
+  });
+
+  it('dual-load insert mapping writes Python-runner timestamps into travel row binds', () => {
+    const { mapRow } = resolveDualLoadInsertSchema('AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    const runStamp = '2026-07-22T21:49:38.000Z';
+    const expectedStamp = '2026-07-22 21:49:38.000';
+    const { row, rowObject } = mapRow({
+      email: 'apalmer+22072026-1@adobetest.com',
+      ecid: '00000000000000000000000000000001',
+      crmId: 'CRM1001',
+      attributes: {},
+      runStamp,
+    });
+
+    assert.equal(rowObject._RECORDCREATEDTIMESTAMP, expectedStamp);
+    assert.equal(rowObject._RECORDUPDATEDTIMESTAMP, expectedStamp);
+    assert.equal(row[TRAVEL_CREATED_IDX], expectedStamp);
+    assert.equal(row[TRAVEL_UPDATED_IDX], expectedStamp);
   });
 });
