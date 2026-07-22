@@ -1,14 +1,14 @@
 {
-  "gitSha": "40bbe9ffc2315ea90fb1a1014780f80654fdfef1",
-  "gitShortSha": "40bbe9ff",
+  "gitSha": "73193c6a3e9e17534a8c73082e233ca1d7af3245",
+  "gitShortSha": "73193c6a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: map AEP persona attributes on Snowflake dual-load INSERT",
+  "gitCommitSubject": "[apalmer] chore: harden Functions deploy exclusions",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T22:15:35+01:00",
-  "deployedAt": "2026-07-22T21:20:38.620Z",
+  "gitCommitDate": "2026-07-22T22:48:20+01:00",
+  "deployedAt": "2026-07-22T21:49:45.571Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/40bbe9ffc2315ea90fb1a1014780f80654fdfef1"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/73193c6a3e9e17534a8c73082e233ca1d7af3245"
 }
