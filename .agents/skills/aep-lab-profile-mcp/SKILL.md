@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.22.1). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.23.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.21)
 
-MCP server: **AEP Orchestration Lab MCP v3.22.1** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.23.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -155,7 +155,7 @@ Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared
 
    > **lab_get_profile** + **lab_snowflake_query_profiles** sandbox apalmer filter_type all limit 5.
 
-## Workflow 1c — Snowflake travel phased provision (v3.22+)
+## Workflow 1c — Snowflake travel governed provision (v3.23+)
 
 Requires user MCP key + Snowflake credential. Full generate/enrich need **AGENTIC_TRAVEL_RUNNER_URL** on Cloud Functions (`runner.configured` from **lab_snowflake_industry_catalog**).
 
@@ -165,15 +165,25 @@ Requires user MCP key + Snowflake credential. Full generate/enrich need **AGENTI
 
 2. **Validate proposal (read-only)**
 
-   > **lab_snowflake_validate_proposal** sandbox apalmer count 5 event_types ["website","booking","mobile"].
+   > **lab_snowflake_validate_proposal** sandbox apalmer recipe_id travel.base_profiles.v1 — or count 5 event_types ["website","booking","mobile"] for generate/enrich.
 
-3. **Generate full phased data**
+3. **Provision dry_run then execute**
+
+   > **lab_snowflake_provision** sandbox apalmer industry travel recipe_id travel.base_profiles.v1 dry_run true — review plannedSql — then **lab_snowflake_provision** same args dry_run false.
+
+   Preinstalled Agentic tables: **lab_snowflake_provision** recipe_id travel.agentic_all.preinstalled.v1 dry_run true (existence check only; no CREATE DDL).
+
+4. **Generate full phased data**
 
    > **lab_snowflake_generate_full** sandbox apalmer count 5 — returns 501/`RUNNER_NOT_CONFIGURED` when runner env is unset.
 
-4. **Query + enrich**
+5. **Query + enrich**
 
    > **lab_snowflake_query_profiles** limit 10 → **lab_snowflake_enrich_profiles** with CRM rows from query + event_types ["hotel","loyalty"].
+
+### Retail draft table proposals (read-only)
+
+> **lab_snowflake_validate_proposal** sandbox apalmer industry retail proposed_tables ["RETAIL_PROFILE_CUSTOMER","RETAIL_EVENT_PURCHASE"] — no provision recipes for retail yet.
 
 ## Workflow 2 — Hotel segment personas (travel)
 

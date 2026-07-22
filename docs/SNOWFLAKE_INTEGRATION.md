@@ -129,6 +129,9 @@ parameter (`?sandbox=…` for GET, request body for POST). Wired via
 | POST   | `/api/snowflake/config`                    | `snowflakeConfig`                | Save / update config; credential, if supplied, is written to Secret Manager. |
 | POST   | `/api/snowflake/connection-test`           | `snowflakeConnectionTest`        | Open a Snowflake connection, run `SELECT CURRENT_VERSION()`, tear down.  |
 | POST   | `/api/snowflake/generate-base-profiles`    | `snowflakeGenerateBaseProfiles`  | Phase 2 — generate `count` Faker-driven base profiles and bulk-INSERT into the target table (auto-creates the table if missing). Returns `{ rowcount, table, sample[3] }`. |
+| POST   | `/api/snowflake/provision`                 | `snowflakeProvision`             | Phase C — governed allowlisted table recipes only (`CREATE TABLE IF NOT EXISTS` or preinstalled existence checks). Body `{ sandbox, industry?, recipe_id, dry_run?, approval_id? }`. Audit: Firestore `snowflakeProvisionAuditLog`. |
+| POST   | `/api/snowflake/industry-catalog`          | `snowflakeIndustryCatalog`       | Travel manifest + optional INFORMATION_SCHEMA table checks. |
+| POST   | `/api/snowflake/industry-validate-proposal`| `snowflakeIndustryValidateProposal` | Read-only validate enrich/generate proposals, `recipe_id`, or retail draft `proposed_tables`. |
 
 All four handlers attach the `snowflake-egress` VPC connector with
 `vpcConnectorEgressSettings: 'ALL_TRAFFIC'`, which is the bit that actually
@@ -199,7 +202,67 @@ plus `secretmanager.admin` only on the resource prefix `snowflake-cred-*`.
 
 ---
 
-## End-user flow
+## Phase C — governed table provisioning (MCP v3.23+)
+
+Allowlisted recipes live in [`functions/snowflakeProvisionRecipes.js`](../functions/snowflakeProvisionRecipes.js). Execution is in [`functions/snowflakeProvisionService.js`](../functions/snowflakeProvisionService.js). **No DROP, ALTER, or arbitrary SQL.**
+
+| Recipe id | Mode | Purpose |
+| --------- | ---- | ------- |
+| `travel.base_profiles.v1` | `create_if_not_exists` | `CREATE TABLE IF NOT EXISTS BASE_PROFILES` (38-column batch shape) |
+| `travel.agentic_phase1.preinstalled.v1` | `preinstalled` | Verify Phase 1 Agentic tables exist (no DDL) |
+| `travel.agentic_all.preinstalled.v1` | `preinstalled` | Verify all 14 manifest tables exist (no DDL) |
+
+Coworker workflow: **lab_snowflake_industry_catalog** → **lab_snowflake_validate_proposal** (`recipe_id`) → **lab_snowflake_provision** `dry_run true` → **lab_snowflake_provision** `dry_run false`.
+
+Verifier: `npm run verify:snowflake-industry-manifest` (manifest ↔ recipe registry alignment).
+
+Retail **draft** manifest supports read-only **proposed_tables** validation only — no CREATE recipes yet.
+
+---
+
+## Agentic travel runner (Cloud Run)
+
+Full phased generate/enrich (`lab_snowflake_generate_full`, `lab_snowflake_enrich_profiles`) forward to the Python runner at [`services/agentic-travel-runner/`](../services/agentic-travel-runner/) when Cloud Functions env is set:
+
+| Cloud Functions env | Runner env | Purpose |
+| ------------------- | ---------- | ------- |
+| `AGENTIC_TRAVEL_RUNNER_URL` | — | HTTPS base URL of deployed runner (no trailing slash) |
+| `AGENTIC_TRAVEL_RUNNER_HMAC_SECRET` | `RUNNER_HMAC_SECRET` | Shared HMAC secret for `X-Runner-Signature` (store in Secret Manager — **never commit**) |
+
+Set on Gen2 functions (same project/region as Snowflake egress):
+
+```bash
+# Ops — generate secret locally, store in Secret Manager, bind to functions (example)
+openssl rand -hex 32   # use for both sides; do not commit
+
+# Deploy runner (from repo root)
+cd services/agentic-travel-runner
+export PROJECT_ID=aep-orchestration-lab
+export REGION=us-central1
+export SERVICE=agentic-travel-runner
+
+gcloud builds submit --tag "gcr.io/${PROJECT_ID}/${SERVICE}" .
+
+gcloud run deploy "${SERVICE}" \
+  --image "gcr.io/${PROJECT_ID}/${SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --platform managed \
+  --no-allow-unauthenticated \
+  --set-secrets "RUNNER_HMAC_SECRET=agentic-travel-runner-hmac:latest" \
+  --memory 1Gi \
+  --timeout 900 \
+  --min-instances 0 \
+  --max-instances 5
+
+# Then set on Cloud Functions (Firebase secrets or env):
+# AGENTIC_TRAVEL_RUNNER_URL=https://agentic-travel-runner-….run.app
+# AGENTIC_TRAVEL_RUNNER_HMAC_SECRET=<same value as RUNNER_HMAC_SECRET>
+```
+
+Redeploy functions after setting env. Confirm with **lab_snowflake_industry_catalog** → `manifest.runner.configured: true`.
+
+---
 
 1. **Sign in to the Portal** with your Adobe @adobe.com email (home.html → Login).
    Anonymous browser auth is not enough for Snowflake. Pick a sandbox in
@@ -260,6 +323,9 @@ The API response includes `labUserEmail`, `labUserDisplayName`, and
 - Backend: [`functions/snowflakeConnectionStore.js`](../functions/snowflakeConnectionStore.js)
   · [`functions/snowflakeService.js`](../functions/snowflakeService.js)
   · [`functions/snowflakeDataGeneratorService.js`](../functions/snowflakeDataGeneratorService.js) (Phase 2 — base-profile generator)
+  · [`functions/snowflakeProvisionRecipes.js`](../functions/snowflakeProvisionRecipes.js)
+  · [`functions/snowflakeProvisionService.js`](../functions/snowflakeProvisionService.js) (Phase C — governed provision)
+  · [`functions/snowflakeIndustryManifest.js`](../functions/snowflakeIndustryManifest.js)
   · handler exports + `SNOWFLAKE_FN_OPTS` in [`functions/index.js`](../functions/index.js)
 - Hosting rewrites: [`firebase.json`](../firebase.json) (`/api/snowflake/*`)
 - Source project mirrored: `/Users/apalmer/Library/CloudStorage/OneDrive-Adobe/AI Projects/AgenticAI Demo/Agentic_Demo_Platform/`
@@ -270,13 +336,8 @@ The API response includes `labUserEmail`, `labUserDisplayName`, and
 
 - ✅ **Phase 1** — connection plumbing, Secret Manager + Firestore store,
   static-IP egress, connection test.
-- ✅ **Phase 2 (this commit)** — minimal port of `data_generator.py →
-  generate_base_profiles` in
-  [`functions/snowflakeDataGeneratorService.js`](../functions/snowflakeDataGeneratorService.js)
-  ; idempotent `CREATE TABLE IF NOT EXISTS` for the target, batch INSERT via
-  `snowflake-sdk` binds, sample preview in the UI.
-- **Phase 3** — port the rest of the generators (full profiles, website /
-  booking events, loyalty, mobile, call, disruption, in-flight, hotel, POS),
-  the industry-aware code paths (the industry selector is wired to the UI
-  but informational only in Phase 2), and the query / enrich panel from the
-  original Flask app.
+- ✅ **Phase 2** — minimal port of `data_generator.py → generate_base_profiles` in
+  [`functions/snowflakeDataGeneratorService.js`](../functions/snowflakeDataGeneratorService.js).
+- ✅ **Phase C (MCP v3.23)** — governed provision recipes, `POST /api/snowflake/provision`,
+  `lab_snowflake_provision`, Firestore audit log, retail draft table proposal validation.
+- **Phase 3+** — additional CREATE recipes for Agentic event tables; full query/enrich UI in Profile Viewer.

@@ -12,6 +12,7 @@ const {
   listSupportedIndustries,
   validateTravelProposal,
 } = require('./snowflakeIndustryManifest');
+const { validateProvisionProposal, listProvisionRecipes } = require('./snowflakeProvisionRecipes');
 
 function execAsync(conn, options) {
   return new Promise((resolve, reject) => {
@@ -60,31 +61,51 @@ function runnerConfigured() {
 function projectManifest(industry) {
   const manifest = getIndustryManifest(industry);
   if (!manifest) return null;
-  return {
+
+  const base = {
     industry: manifest.industry,
     label: manifest.label,
+    status: manifest.status || 'active',
+    proposedTables: manifest.proposedTables || undefined,
+    provisionRecipes: listProvisionRecipes(manifest.industry).map((r) => ({
+      id: r.id,
+      label: r.label,
+      provisionMode: r.provisionMode,
+    })),
+  };
+
+  if (manifest.status === 'draft') {
+    return base;
+  }
+
+  return {
+    ...base,
     phaseTables: manifest.phaseTables,
     allTables: manifest.allTables,
-    baseProfiles: {
-      table: manifest.baseProfiles.table,
-      baseProfileTable: manifest.baseProfiles.baseProfileTable,
-      legacyBatchTable: manifest.baseProfiles.legacyBatchTable,
-      columnCount: manifest.baseProfiles.columnCount,
-    },
+    baseProfiles: manifest.baseProfiles
+      ? {
+          table: manifest.baseProfiles.table,
+          baseProfileTable: manifest.baseProfiles.baseProfileTable,
+          legacyBatchTable: manifest.baseProfiles.legacyBatchTable,
+          columnCount: manifest.baseProfiles.columnCount,
+        }
+      : undefined,
     dualLoad: manifest.dualLoad,
     eventGroups: manifest.eventGroups,
     enrichEventTypes: manifest.enrichEventTypes,
     validationRules: manifest.validationRules,
-    runner: {
-      urlEnv: manifest.runner.urlEnv,
-      secretEnv: manifest.runner.secretEnv,
-      operations: manifest.runner.operations,
-      ...runnerConfigured(),
-    },
+    runner: manifest.runner
+      ? {
+          urlEnv: manifest.runner.urlEnv,
+          secretEnv: manifest.runner.secretEnv,
+          operations: manifest.runner.operations,
+          ...runnerConfigured(),
+        }
+      : undefined,
   };
 }
 
-async function withConnection(labUser, sandbox, fn) {
+async function withSnowflakeConnection(labUser, sandbox, fn) {
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
     return {
@@ -222,7 +243,7 @@ async function handleIndustryCatalog(input) {
     };
   }
 
-  return withConnection(labUser, sandbox, async (conn, cfg) => {
+  return withSnowflakeConnection(labUser, sandbox, async (conn, cfg) => {
     const tableCheck = await checkTableExistence(conn, cfg, manifest.allTables);
     return {
       ok: true,
@@ -245,11 +266,79 @@ async function handleValidateProposal(input) {
   if (!sandbox) throw new Error('sandbox is required');
 
   const industry = String(input.industry || 'travel').trim().toLowerCase();
+  const recipeId = input.recipe_id || input.recipeId;
+  const proposedTables = input.proposed_tables || input.proposedTables;
+  const hasProvisionInput = Boolean(recipeId) || (Array.isArray(proposedTables) && proposedTables.length);
+
+  if (hasProvisionInput) {
+    const provisionValidation = validateProvisionProposal({
+      industry,
+      recipe_id: recipeId,
+      proposed_tables: proposedTables,
+    });
+    const travelValidation =
+      industry === 'travel'
+        ? validateTravelProposal({
+            phases: input.phases,
+            eventTypes: input.eventTypes || input.event_types,
+            count: input.count,
+          })
+        : null;
+
+    const errors = [
+      ...provisionValidation.errors,
+      ...(travelValidation ? travelValidation.errors : []),
+    ];
+    const warnings = [
+      ...provisionValidation.warnings,
+      ...(travelValidation ? travelValidation.warnings : []),
+    ];
+
+    return {
+      ok: errors.length === 0,
+      sandbox,
+      industry,
+      validation: {
+        ok: errors.length === 0,
+        valid: errors.length === 0,
+        errors,
+        warnings,
+        provision: provisionValidation,
+        travel: travelValidation,
+      },
+      runner: industry === 'travel' ? runnerConfigured() : null,
+      manifest:
+        industry === 'travel' && travelValidation
+          ? {
+              dualLoadTarget: travelValidation.manifestSummary.dualLoadTarget,
+              queryTable: travelValidation.manifestSummary.queryTable,
+              enrichEventTypes: travelValidation.manifestSummary.enrichEventTypes,
+            }
+          : null,
+    };
+  }
+
+  if (industry === 'retail') {
+    const provisionValidation = validateProvisionProposal({
+      industry: 'retail',
+      proposed_tables: proposedTables,
+      recipe_id: recipeId,
+    });
+    return {
+      ok: provisionValidation.ok,
+      sandbox,
+      industry,
+      validation: provisionValidation,
+      runner: null,
+      manifest: { status: 'draft', proposedTables: getIndustryManifest('retail')?.proposedTables || [] },
+    };
+  }
+
   if (industry !== 'travel') {
     return {
       ok: false,
       error: {
-        message: 'validate-proposal is travel-only in v3.22',
+        message: `validate-proposal for enrich/generate is travel-only; use recipe_id or proposed_tables for ${industry}`,
         code: 'UNSUPPORTED_INDUSTRY',
         sqlState: null,
         hints: [],
@@ -266,6 +355,7 @@ async function handleValidateProposal(input) {
   return {
     ok: validation.ok,
     sandbox,
+    industry,
     validation,
     runner: runnerConfigured(),
     manifest: {
@@ -279,6 +369,7 @@ async function handleValidateProposal(input) {
 module.exports = {
   runnerConfigured,
   projectManifest,
+  withSnowflakeConnection,
   checkTableExistence,
   handleIndustryCatalog,
   handleValidateProposal,

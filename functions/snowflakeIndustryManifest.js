@@ -91,8 +91,25 @@ const TRAVEL_MANIFEST = {
   },
 };
 
+/** Draft retail manifest — table proposals validated read-only until recipes ship. */
+const RETAIL_DRAFT_MANIFEST = {
+  industry: 'retail',
+  label: 'Retail (draft — governed provision not enabled)',
+  status: 'draft',
+  proposedTables: [
+    'RETAIL_PROFILE_CUSTOMER',
+    'RETAIL_EVENT_PURCHASE',
+    'RETAIL_EVENT_CART',
+  ],
+  provisionRecipes: [],
+  note:
+    'Net-new retail tables may be validated via lab_snowflake_validate_proposal proposed_tables only. ' +
+    'No CREATE DDL recipes in v3.23.',
+};
+
 const INDUSTRY_MANIFESTS = {
   travel: TRAVEL_MANIFEST,
+  retail: RETAIL_DRAFT_MANIFEST,
 };
 
 /**
@@ -186,6 +203,7 @@ module.exports = {
   ENRICH_EVENT_TYPES,
   EVENT_GROUPS,
   TRAVEL_MANIFEST,
+  RETAIL_DRAFT_MANIFEST,
   INDUSTRY_MANIFESTS,
   getIndustryManifest,
   listSupportedIndustries,

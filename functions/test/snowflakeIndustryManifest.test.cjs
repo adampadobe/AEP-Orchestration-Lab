@@ -38,8 +38,9 @@ describe('snowflakeIndustryManifest', () => {
   it('getIndustryManifest returns travel and rejects unknown', () => {
     assert.equal(getIndustryManifest('travel').industry, 'travel');
     assert.equal(getIndustryManifest('Travel').industry, 'travel');
-    assert.equal(getIndustryManifest('retail'), null);
-    assert.deepEqual(listSupportedIndustries(), ['travel']);
+    assert.equal(getIndustryManifest('retail').status, 'draft');
+    assert.equal(getIndustryManifest('fsi'), null);
+    assert.deepEqual(listSupportedIndustries().sort(), ['retail', 'travel']);
   });
 
   it('validateTravelProposal accepts known phases and event types', () => {

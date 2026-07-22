@@ -10,8 +10,10 @@ import {
   snowflakeValidateProposal,
   snowflakeGenerateFull,
   snowflakeEnrichProfiles,
+  snowflakeProvision,
 } from '../src/labApiClient.mjs';
 import { validateTravelProposal } from '../../../functions/snowflakeIndustryManifest.js';
+import { validateProvisionProposal } from '../../../functions/snowflakeProvisionRecipes.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -27,11 +29,13 @@ async function run() {
   assert(typeof snowflakeValidateProposal === 'function', 'snowflakeValidateProposal export');
   assert(typeof snowflakeGenerateFull === 'function', 'snowflakeGenerateFull export');
   assert(typeof snowflakeEnrichProfiles === 'function', 'snowflakeEnrichProfiles export');
+  assert(typeof snowflakeProvision === 'function', 'snowflakeProvision export');
 
   const paths = {
     catalog: '/api/snowflake/industry-catalog',
     tableStructure: '/api/snowflake/agentic/table-structure',
     validateProposal: '/api/snowflake/industry-validate-proposal',
+    provision: '/api/snowflake/provision',
     generateFull: '/api/snowflake/agentic/generate-full',
     enrichProfiles: '/api/snowflake/agentic/enrich-profiles',
   };
@@ -39,6 +43,7 @@ async function run() {
   assert(snowflakeIndustryCatalog.toString().includes(paths.catalog), 'catalog path');
   assert(snowflakeTableStructure.toString().includes(paths.tableStructure), 'table structure path');
   assert(snowflakeValidateProposal.toString().includes(paths.validateProposal), 'validate path');
+  assert(snowflakeProvision.toString().includes(paths.provision), 'provision path');
   assert(snowflakeGenerateFull.toString().includes(paths.generateFull), 'generate-full path');
   assert(snowflakeEnrichProfiles.toString().includes(paths.enrichProfiles), 'enrich path');
 
@@ -50,6 +55,12 @@ async function run() {
 
   const invalid = validateTravelProposal({ eventTypes: ['bogus'] });
   assert(invalid.ok === false, 'manifest rejects bogus event type');
+
+  const provisionOk = validateProvisionProposal({
+    industry: 'travel',
+    recipe_id: 'travel.base_profiles.v1',
+  });
+  assert(provisionOk.ok === true, 'provision recipe validates');
 
   console.log(JSON.stringify({ ok: true, suite: 'snowflake-catalog-mcp-test', paths }));
 }

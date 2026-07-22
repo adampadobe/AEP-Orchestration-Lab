@@ -46,6 +46,7 @@ function registerSnowflakeRoutes(deps) {
     snowflakeDataGeneratorService,
     snowflakeAgenticTravelService,
     snowflakeIndustryCatalogService,
+    snowflakeProvisionService,
   } = deps;
 
   async function resolvePrincipal(req, res) {
@@ -393,10 +394,51 @@ function registerSnowflakeRoutes(deps) {
         phases: body.phases,
         eventTypes: body.eventTypes || body.event_types,
         count: body.count,
+        recipe_id: body.recipe_id || body.recipeId,
+        proposed_tables: body.proposed_tables || body.proposedTables,
       });
       res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
     } catch (e) {
       console.error('[snowflakeIndustryValidateProposal]', String(e && e.message || e));
+      res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  });
+
+  /**
+   * POST /api/snowflake/provision — governed table provisioning (allowlisted recipes only).
+   * Body { sandbox, industry?, recipe_id, dry_run?, approval_id? }.
+   */
+  routes.snowflakeProvision = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const uid = principal.uid;
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    try {
+      const result = await snowflakeProvisionService.handleProvision({
+        labUser: uid,
+        sandbox,
+        industry: body.industry,
+        recipe_id: body.recipe_id || body.recipeId,
+        dry_run: body.dry_run === true || body.dryRun === true,
+        approval_id: body.approval_id || body.approvalId,
+      });
+      const status = result.ok
+        ? 200
+        : (result.error && result.error.code === 'RECIPE_NOT_ALLOWLISTED' ? 403 : 400);
+      res.status(status).json({ ok: result.ok, sandbox, result });
+    } catch (e) {
+      console.error('[snowflakeProvision]', String(e && e.message || e));
       res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
     }
   });
@@ -416,8 +458,9 @@ function registerSnowflakeRoutes(deps) {
       if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
       if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-      const uid = await resolveUid(req, res);
-      if (!uid) return;
+      const principal = await resolvePrincipal(req, res);
+      if (!principal) return;
+      const uid = principal.uid;
 
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
@@ -454,8 +497,9 @@ function registerSnowflakeRoutes(deps) {
       if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
       if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-      const uid = await resolveUid(req, res);
-      if (!uid) return;
+      const principal = await resolvePrincipal(req, res);
+      if (!principal) return;
+      const uid = principal.uid;
 
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);

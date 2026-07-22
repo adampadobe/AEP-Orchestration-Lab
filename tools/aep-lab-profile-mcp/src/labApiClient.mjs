@@ -725,7 +725,15 @@ export async function snowflakeTableStructure({ sandbox, phase }) {
  * POST /api/snowflake/industry-validate-proposal
  * @param {object} params
  */
-export async function snowflakeValidateProposal({ sandbox, industry, phases, event_types, count }) {
+export async function snowflakeValidateProposal({
+  sandbox,
+  industry,
+  phases,
+  event_types,
+  count,
+  recipe_id,
+  proposed_tables,
+}) {
   return labApiRequest('/api/snowflake/industry-validate-proposal', {
     method: 'POST',
     body: {
@@ -734,6 +742,8 @@ export async function snowflakeValidateProposal({ sandbox, industry, phases, eve
       ...(phases ? { phases } : {}),
       ...(event_types ? { eventTypes: event_types } : {}),
       ...(count != null ? { count } : {}),
+      ...(recipe_id ? { recipe_id } : {}),
+      ...(proposed_tables ? { proposed_tables } : {}),
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 60_000,
@@ -767,6 +777,25 @@ export async function snowflakeEnrichProfiles({ sandbox, profiles, event_types }
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 540_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/provision — governed allowlisted table recipes
+ * @param {{ sandbox: string, industry?: string, recipe_id: string, dry_run?: boolean, approval_id?: string }} params
+ */
+export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run, approval_id }) {
+  return labApiRequest('/api/snowflake/provision', {
+    method: 'POST',
+    body: {
+      sandbox,
+      industry,
+      recipe_id,
+      dry_run,
+      approval_id,
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
   });
 }
 

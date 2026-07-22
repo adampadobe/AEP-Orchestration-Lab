@@ -12,6 +12,7 @@ import {
   snowflakeValidateProposal,
   snowflakeGenerateFull,
   snowflakeEnrichProfiles,
+  snowflakeProvision,
   STATIC_EGRESS_IP,
 } from '../labApiClient.mjs';
 import { getPrincipalAccess } from '../requestContext.mjs';
@@ -546,9 +547,17 @@ export function registerSnowflakeTools(mcpServer) {
           )
           .optional(),
         count: z.number().int().min(1).max(1000).optional().describe('generate-full profile count'),
+        recipe_id: z
+          .string()
+          .optional()
+          .describe('Governed provision recipe id (e.g. travel.base_profiles.v1)'),
+        proposed_tables: z
+          .array(z.string())
+          .optional()
+          .describe('Retail draft net-new table proposals (read-only validation)'),
       },
     },
-    async ({ sandbox, industry, phases, event_types, count }) => {
+    async ({ sandbox, industry, phases, event_types, count, recipe_id, proposed_tables }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const userKey = requireUserMcpKeyForSnowflake();
@@ -567,6 +576,8 @@ export function registerSnowflakeTools(mcpServer) {
         phases,
         event_types,
         count,
+        recipe_id,
+        proposed_tables,
       });
       writeAuditLog({
         keyId,
@@ -578,14 +589,99 @@ export function registerSnowflakeTools(mcpServer) {
 
       const result = apiResult.data?.result || {};
       const validation = result.validation || {};
+      const provision = validation.provision || validation;
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
-        valid: validation.valid === true,
-        errors: validation.errors || [],
-        warnings: validation.warnings || [],
-        resolved: validation.resolved || null,
+        valid: validation.valid === true || provision.valid === true,
+        errors: validation.errors || provision.errors || [],
+        warnings: validation.warnings || provision.warnings || [],
+        resolved: validation.resolved || provision.resolved || null,
+        provisionRecipes: provision.recipesForIndustry || null,
         runnerConfigured: result.runner?.configured === true,
         manifest: result.manifest || null,
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_provision',
+    {
+      title: 'Governed Snowflake table provision (allowlisted recipes)',
+      description:
+        'POST /api/snowflake/provision — executes CREATE TABLE IF NOT EXISTS or preinstalled table checks ' +
+        'for allowlisted recipe_id values only. Supports dry_run. Requires user MCP key. No DROP/ALTER/arbitrary SQL.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        industry: z.string().optional().describe('Industry (default travel)'),
+        recipe_id: z
+          .string()
+          .describe('Allowlisted recipe id, e.g. travel.base_profiles.v1 or travel.agentic_all.preinstalled.v1'),
+        dry_run: z
+          .boolean()
+          .optional()
+          .describe('When true, return planned SQL / table checks without executing DDL'),
+        approval_id: z.string().optional().describe('Optional approval reference for audit log'),
+      },
+    },
+    async ({ sandbox, industry, recipe_id, dry_run, approval_id }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const proposal = await snowflakeValidateProposal({
+        sandbox: allowed.sandbox,
+        industry: industry || 'travel',
+        recipe_id,
+      });
+      const proposalValidation = proposal.data?.result?.validation;
+      const proposalErrors =
+        proposalValidation?.errors ||
+        proposalValidation?.provision?.errors ||
+        [];
+      if (!proposal.ok || (proposalErrors.length && !dry_run)) {
+        return toolError('provision recipe failed validation', { errors: proposalErrors });
+      }
+
+      const apiResult = await snowflakeProvision({
+        sandbox: allowed.sandbox,
+        industry: industry || 'travel',
+        recipe_id,
+        dry_run: dry_run === true,
+        approval_id,
+      });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_provision',
+        sandbox: allowed.sandbox,
+        recipe_id,
+        dry_run: dry_run === true,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
+      const result = apiResult.data?.result || {};
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        recipe_id,
+        dry_run: result.dry_run === true,
+        provisionMode: result.provisionMode || null,
+        plannedSql: result.plannedSql || null,
+        table: result.table || null,
+        tableCheck: result.tableCheck || null,
+        executed: result.executed === true,
+        coworkerNextSteps: [
+          'lab_snowflake_industry_catalog — confirm tableCheck after create_if_not_exists',
+          'travel.base_profiles.v1 then lab_snowflake_generate_base_profiles for Node batch rows',
+          'travel.agentic_all.preinstalled.v1 — verify Agentic tables before generate-full',
+        ],
       });
     },
   );

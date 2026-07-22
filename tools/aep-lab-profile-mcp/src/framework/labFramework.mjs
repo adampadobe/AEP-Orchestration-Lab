@@ -400,7 +400,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.22.1',
+    version: '3.23.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -511,16 +511,19 @@ export function getExecutionFramework() {
           'lab_snowflake_test_connection',
           'lab_snowflake_industry_catalog',
           'lab_snowflake_validate_proposal',
+          'lab_snowflake_provision',
           'lab_snowflake_generate_full',
           'lab_snowflake_query_profiles',
           'lab_snowflake_enrich_profiles',
         ],
         when:
-          'Full Agentic travel Snowflake phased generate + enrich via Python runner (requires AGENTIC_TRAVEL_RUNNER_URL on Cloud Functions).',
+          'Governed Snowflake travel table provision + phased generate/enrich via Python runner (AGENTIC_TRAVEL_RUNNER_URL).',
         requires: 'User-generated MCP key; runner configured on functions deployment.',
         order: [
           'lab_snowflake_config + lab_snowflake_test_connection',
-          'lab_snowflake_industry_catalog — confirm tableCheck and runner.configured',
+          'lab_snowflake_industry_catalog — review provisionRecipes + tableCheck + runner.configured',
+          'lab_snowflake_validate_proposal recipe_id travel.base_profiles.v1 (or preinstalled recipe)',
+          'lab_snowflake_provision recipe_id travel.base_profiles.v1 dry_run true — then dry_run false',
           'lab_snowflake_validate_proposal count {n} event_types [website,booking,…]',
           'lab_snowflake_generate_full count {n}',
           'lab_snowflake_query_profiles limit 10',
