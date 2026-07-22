@@ -58,7 +58,7 @@ describe('snowflakeService.projectConfigGetResponse', () => {
     assert.equal(out.presetSource, null);
   });
 
-  it('preset_with_credential when apalmer has credential but empty account fields', () => {
+  it('saved_ready when apalmer has credential but empty account fields (preset fills account)', () => {
     const raw = {
       sandbox: 'apalmer',
       labUser: 'uid-other',
@@ -78,7 +78,7 @@ describe('snowflakeService.projectConfigGetResponse', () => {
     };
     const out = projectConfigGetResponse(raw, { labUser: 'uid-other', sandbox: 'apalmer' });
     assert.equal(out.account, PRESET_AGENTIC_TRAVEL_DEMO.account);
-    assert.equal(out.configState, 'preset_with_credential');
+    assert.equal(out.configState, 'saved_ready');
     assert.equal(out.hasCredential, true);
   });
 

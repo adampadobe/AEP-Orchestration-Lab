@@ -114,6 +114,7 @@ function publicConfig(record) {
     authMethod: record.authMethod || 'password',
     hasCredential: !!record.hasCredential,
     hasPassphrase: !!record.hasPassphrase,
+    credentialScope: record.credentialScope || 'user',
     credentialSetAt: record.credentialSetAt || null,
     updatedAt:
       record.updatedAt && typeof record.updatedAt.toDate === 'function'
@@ -298,6 +299,10 @@ function projectConfigGetResponse(rawRecord, ctx) {
   }
 
   if (isApalmerSandbox(sandbox)) {
+    const sharedNote =
+      pub.credentialScope === 'sandbox_shared'
+        ? 'Sandbox-shared credential in Secret Manager — works across browsers on this sandbox.'
+        : null;
     return {
       ...PRESET_AGENTIC_TRAVEL_DEMO,
       sandbox,
@@ -305,15 +310,19 @@ function projectConfigGetResponse(rawRecord, ctx) {
       docExists: pub.docExists,
       hasCredential: pub.hasCredential,
       hasPassphrase: pub.hasPassphrase,
+      credentialScope: pub.credentialScope,
       credentialSetAt: pub.credentialSetAt,
       updatedAt: pub.updatedAt,
       updatedBy: pub.updatedBy,
-      presetSource: 'agentic_travel_demo',
-      presetNote: pub.hasCredential
-        ? 'Credential saved for this Firebase user but connection fields are empty — re-save account/user in Profile Viewer → Profile generation – Snowflake.'
-        : 'No saved Snowflake config for this Firebase user — AgenticAI travel defaults for apalmer sandboxes. ' +
-          'Save credential via Profile Viewer → Profile generation – Snowflake (same account as your MCP key).',
-      configState: pub.hasCredential ? 'preset_with_credential' : 'preset_only',
+      presetSource: pub.hasCredential && pub.account ? null : 'agentic_travel_demo',
+      presetNote: sharedNote
+        || (pub.hasCredential
+          ? 'Credential saved but connection fields were empty — re-save account/user in Profile Viewer → Profile generation – Snowflake.'
+          : 'No saved Snowflake config yet — AgenticAI travel defaults for apalmer sandboxes. ' +
+            'Paste your .p8 once and Save to store in Secret Manager (shared across browsers on this sandbox).'),
+      configState: pub.hasCredential
+        ? (pub.account || PRESET_AGENTIC_TRAVEL_DEMO.account ? 'saved_ready' : 'preset_with_credential')
+        : 'preset_only',
     };
   }
 

@@ -1,22 +1,19 @@
 /**
- * Per-lab-user, per-AEP-sandbox Snowflake connection store.
+ * Per-lab-user and sandbox-shared Snowflake connection store.
  *
- * - Firestore: snowflakeConnections/{labUser__sandbox} — non-secret config:
- *     account, user, role, warehouse, database, schema, authMethod,
- *     hasCredential, credentialSetAt, updatedBy, updatedAt.
- *   The credential value itself is NEVER written to Firestore.
+ * - Firestore: snowflakeConnections/{labUser__sandbox} — per-user non-secret config.
+ * - Firestore: snowflakeConnections/_sandbox__{sandbox} — team sandbox-shared config
+ *   (allowlisted sandboxes such as apalmer / kirkham).
  *
- * - Secret Manager: stores the credential. One secret per labUser+sandbox:
- *     snowflake-cred-<labUserSlug>-<sandboxSlug>
- *   For password / pat auth → a single string.
- *   For keyPair auth → the full PEM-encoded private key
- *   (passphrase is stored in a sibling secret with `-pass` suffix).
+ * - Secret Manager per user: snowflake-cred-<labUserSlug>-<sandboxSlug>
+ * - Secret Manager per sandbox (shared): snowflake-cred-sandbox-<sandboxSlug>
  *
- * Access only from Cloud Functions (Admin SDK + Secret Manager IAM); the
- * Firestore client SDK is denied by security rules. The lab user identity
- * resolves from the Authorization Bearer ID token (see
- * labUserSandboxStore.verifyIdTokenFromRequest), which means each visitor
- * configures their own Snowflake target without overwriting anyone else's.
+ * Resolution order (GET / resolveConnection):
+ *   1. User-specific (principalUid, sandbox) when hasCredential
+ *   2. Else sandbox-shared doc/secret when present (eligible sandboxes only)
+ *
+ * Save on eligible sandboxes dual-writes the same payload to the sandbox-shared
+ * copy so any browser / MCP principal on that sandbox sees hasCredential true.
  */
 
 'use strict';
@@ -27,6 +24,7 @@ const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const COLLECTION = 'snowflakeConnections';
 const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
 const SECRET_PREFIX = 'snowflake-cred';
+const SHARED_DOC_PREFIX = '_sandbox__';
 
 const ALLOWED_AUTH_METHODS = new Set(['password', 'pat', 'keyPair']);
 
@@ -67,13 +65,38 @@ function docId(labUser, sandbox) {
   return `${u}__${s}`.slice(0, 700);
 }
 
+function sharedDocId(sandbox) {
+  return `${SHARED_DOC_PREFIX}${safeSlug(sandbox, 'default')}`.slice(0, 700);
+}
+
 function secretId(labUser, sandbox, suffix) {
   const tail = suffix ? `-${suffix}` : '';
   return `${SECRET_PREFIX}-${safeSlug(labUser, 'anon')}-${safeSlug(sandbox, 'default')}${tail}`;
 }
 
+function sharedSecretId(sandbox, suffix) {
+  const tail = suffix ? `-${suffix}` : '';
+  return `${SECRET_PREFIX}-sandbox-${safeSlug(sandbox, 'default')}${tail}`;
+}
+
 function secretResourceName(labUser, sandbox, suffix) {
   return `projects/${PROJECT_ID}/secrets/${secretId(labUser, sandbox, suffix)}`;
+}
+
+function sharedSecretResourceName(sandbox, suffix) {
+  return `projects/${PROJECT_ID}/secrets/${sharedSecretId(sandbox, suffix)}`;
+}
+
+/**
+ * Team sandboxes whose Snowflake credential may be shared across lab users.
+ * Matches technical sandbox names containing apalmer or kirkham.
+ *
+ * @param {string} sandbox
+ * @returns {boolean}
+ */
+function isSandboxSharedEligible(sandbox) {
+  const s = String(sandbox || '').toLowerCase();
+  return s.includes('apalmer') || s.includes('kirkham');
 }
 
 function trimField(val, max) {
@@ -85,9 +108,46 @@ function pickAuthMethod(value, fallback) {
   return ALLOWED_AUTH_METHODS.has(value) ? value : fallback;
 }
 
-async function secretExists(labUser, sandbox, suffix) {
+function pickNonEmpty(preferred, fallback) {
+  const p = String(preferred == null ? '' : preferred).trim();
+  if (p) return p;
+  return String(fallback == null ? '' : fallback).trim();
+}
+
+/**
+ * Merge user Firestore row + shared row for GET when user has no credential.
+ * Prefers user non-secret fields when set; credential flags come from shared.
+ *
+ * @param {object} userCfg
+ * @param {object} sharedCfg
+ * @returns {object}
+ */
+function mergeUserConfigWithSharedFallback(userCfg, sharedCfg) {
+  const u = userCfg || {};
+  const sh = sharedCfg || {};
+  return {
+    sandbox: u.sandbox || sh.sandbox || '',
+    labUser: u.labUser || '',
+    docExists: !!u.docExists || !!sh.docExists,
+    account: pickNonEmpty(u.account, sh.account),
+    user: pickNonEmpty(u.user, sh.user),
+    role: pickNonEmpty(u.role, sh.role),
+    warehouse: pickNonEmpty(u.warehouse, sh.warehouse),
+    database: pickNonEmpty(u.database, sh.database),
+    schema: pickNonEmpty(u.schema, sh.schema),
+    authMethod: pickAuthMethod(u.authMethod, pickAuthMethod(sh.authMethod, 'password')),
+    hasCredential: !!sh.hasCredential,
+    hasPassphrase: !!sh.hasPassphrase,
+    credentialSetAt: sh.credentialSetAt || u.credentialSetAt || null,
+    updatedAt: sh.updatedAt || u.updatedAt || null,
+    updatedBy: sh.updatedBy || u.updatedBy || null,
+    credentialScope: 'sandbox_shared',
+  };
+}
+
+async function secretExistsAt(resourceName) {
   try {
-    await getSecretClient().getSecret({ name: secretResourceName(labUser, sandbox, suffix) });
+    await getSecretClient().getSecret({ name: resourceName });
     return true;
   } catch (e) {
     if (e && (e.code === 5 || /NOT_FOUND/i.test(String(e.message)))) return false;
@@ -95,8 +155,16 @@ async function secretExists(labUser, sandbox, suffix) {
   }
 }
 
-async function readSecret(labUser, sandbox, suffix) {
-  const name = `${secretResourceName(labUser, sandbox, suffix)}/versions/latest`;
+async function secretExists(labUser, sandbox, suffix) {
+  return secretExistsAt(secretResourceName(labUser, sandbox, suffix));
+}
+
+async function sharedSecretExists(sandbox, suffix) {
+  return secretExistsAt(sharedSecretResourceName(sandbox, suffix));
+}
+
+async function readSecretAt(resourceName) {
+  const name = `${resourceName}/versions/latest`;
   try {
     const [version] = await getSecretClient().accessSecretVersion({ name });
     const data = version && version.payload && version.payload.data;
@@ -107,12 +175,19 @@ async function readSecret(labUser, sandbox, suffix) {
   }
 }
 
-async function writeSecret(labUser, sandbox, value, suffix) {
+async function readSecret(labUser, sandbox, suffix) {
+  return readSecretAt(secretResourceName(labUser, sandbox, suffix));
+}
+
+async function readSharedSecret(sandbox, suffix) {
+  return readSecretAt(sharedSecretResourceName(sandbox, suffix));
+}
+
+async function writeSecretAt(resourceName, id, value, labels) {
   const client = getSecretClient();
   const parent = `projects/${PROJECT_ID}`;
-  const id = secretId(labUser, sandbox, suffix);
   try {
-    await client.getSecret({ name: secretResourceName(labUser, sandbox, suffix) });
+    await client.getSecret({ name: resourceName });
   } catch (e) {
     if (e && (e.code === 5 || /NOT_FOUND/i.test(String(e.message)))) {
       await client.createSecret({
@@ -120,12 +195,7 @@ async function writeSecret(labUser, sandbox, value, suffix) {
         secretId: id,
         secret: {
           replication: { automatic: {} },
-          labels: {
-            app: 'snowflake-cred',
-            lab_user: safeSlug(labUser, 'anon'),
-            sandbox: safeSlug(sandbox, 'default'),
-            suffix: suffix ? safeSlug(suffix, 'main') : 'main',
-          },
+          labels: labels || {},
         },
       });
     } else {
@@ -133,15 +203,43 @@ async function writeSecret(labUser, sandbox, value, suffix) {
     }
   }
   const [version] = await client.addSecretVersion({
-    parent: secretResourceName(labUser, sandbox, suffix),
+    parent: resourceName,
     payload: { data: Buffer.from(value, 'utf8') },
   });
   return version && version.name;
 }
 
-async function deleteSecretIfExists(labUser, sandbox, suffix) {
+async function writeSecret(labUser, sandbox, value, suffix) {
+  return writeSecretAt(
+    secretResourceName(labUser, sandbox, suffix),
+    secretId(labUser, sandbox, suffix),
+    value,
+    {
+      app: 'snowflake-cred',
+      lab_user: safeSlug(labUser, 'anon'),
+      sandbox: safeSlug(sandbox, 'default'),
+      suffix: suffix ? safeSlug(suffix, 'main') : 'main',
+    }
+  );
+}
+
+async function writeSharedSecret(sandbox, value, suffix) {
+  return writeSecretAt(
+    sharedSecretResourceName(sandbox, suffix),
+    sharedSecretId(sandbox, suffix),
+    value,
+    {
+      app: 'snowflake-cred',
+      scope: 'sandbox_shared',
+      sandbox: safeSlug(sandbox, 'default'),
+      suffix: suffix ? safeSlug(suffix, 'main') : 'main',
+    }
+  );
+}
+
+async function deleteSecretIfExistsAt(resourceName) {
   try {
-    await getSecretClient().deleteSecret({ name: secretResourceName(labUser, sandbox, suffix) });
+    await getSecretClient().deleteSecret({ name: resourceName });
     return true;
   } catch (e) {
     if (e && (e.code === 5 || /NOT_FOUND/i.test(String(e.message)))) return false;
@@ -149,29 +247,21 @@ async function deleteSecretIfExists(labUser, sandbox, suffix) {
   }
 }
 
-/**
- * Read the public (non-secret) config for a given lab user + sandbox.
- * Always also reports whether a credential is currently stored, by checking
- * Secret Manager directly (handles manual secret deletions).
- *
- * @param {string} labUser
- * @param {string} sandbox
- */
-async function getConfig(labUser, sandbox) {
-  const u = String(labUser || '').trim();
-  const s = String(sandbox || '').trim();
-  if (!s) throw new Error('sandbox is required');
-  const ref = getDb().collection(COLLECTION).doc(docId(u, s));
+async function deleteSecretIfExists(labUser, sandbox, suffix) {
+  return deleteSecretIfExistsAt(secretResourceName(labUser, sandbox, suffix));
+}
+
+async function deleteSharedSecretIfExists(sandbox, suffix) {
+  return deleteSecretIfExistsAt(sharedSecretResourceName(sandbox, suffix));
+}
+
+async function readDocRecord(ref, labUser, sandbox) {
   const snap = await ref.get();
   const data = (snap.exists ? snap.data() : null) || {};
   const authMethod = pickAuthMethod(data.authMethod, 'password');
-  const [hasCredential, hasPassphrase] = await Promise.all([
-    secretExists(u, s, ''),
-    authMethod === 'keyPair' ? secretExists(u, s, 'pass') : Promise.resolve(false),
-  ]);
   return {
-    sandbox: s,
-    labUser: u,
+    sandbox: sTrim(sandbox),
+    labUser: sTrim(labUser),
     docExists: snap.exists,
     account: data.account || '',
     user: data.user || '',
@@ -180,37 +270,172 @@ async function getConfig(labUser, sandbox) {
     database: data.database || '',
     schema: data.schema || '',
     authMethod,
-    hasCredential,
-    hasPassphrase,
     credentialSetAt: data.credentialSetAt || null,
     updatedAt: data.updatedAt || null,
     updatedBy: data.updatedBy || null,
   };
 }
 
+function sTrim(v) {
+  return String(v || '').trim();
+}
+
+async function attachCredentialFlags(record, labUser, sandbox, { shared }) {
+  const authMethod = pickAuthMethod(record.authMethod, 'password');
+  const [hasCredential, hasPassphrase] = await Promise.all([
+    shared ? sharedSecretExists(sandbox, '') : secretExists(labUser, sandbox, ''),
+    authMethod === 'keyPair'
+      ? (shared ? sharedSecretExists(sandbox, 'pass') : secretExists(labUser, sandbox, 'pass'))
+      : Promise.resolve(false),
+  ]);
+  return {
+    ...record,
+    authMethod,
+    hasCredential,
+    hasPassphrase,
+    credentialScope: shared ? 'sandbox_shared' : 'user',
+  };
+}
+
+async function getUserDocConfig(labUser, sandbox) {
+  const u = sTrim(labUser);
+  const s = sTrim(sandbox);
+  if (!s) throw new Error('sandbox is required');
+  const ref = getDb().collection(COLLECTION).doc(docId(u, s));
+  const base = await readDocRecord(ref, u, s);
+  return attachCredentialFlags(base, u, s, { shared: false });
+}
+
+async function getSharedDocConfig(sandbox) {
+  const s = sTrim(sandbox);
+  if (!s) throw new Error('sandbox is required');
+  const ref = getDb().collection(COLLECTION).doc(sharedDocId(s));
+  const base = await readDocRecord(ref, '_sandbox', s);
+  return attachCredentialFlags(base, '_sandbox', s, { shared: true });
+}
+
 /**
- * Apply a mutation to a lab user's Snowflake config in a sandbox.
- * payload may include:
- *   - account, user, role, warehouse, database, schema (strings)
- *   - authMethod: "password" | "pat" | "keyPair"
- *   - credential: string → stored as a new secret version
- *   - keyPassphrase: string → stored only when authMethod === 'keyPair'
- *   - clearCredential: true → delete both credential + passphrase secrets
+ * Copy user credential + config to sandbox-shared store (lazy migration).
  *
  * @param {string} labUser
  * @param {string} sandbox
- * @param {object} payload
+ * @param {object} userCfg
  */
-async function updateConfig(labUser, sandbox, payload) {
-  const u = String(labUser || '').trim();
-  const s = String(sandbox || '').trim();
-  if (!s) throw new Error('sandbox is required');
+async function migrateUserCredentialToShared(labUser, sandbox, userCfg) {
+  if (!isSandboxSharedEligible(sandbox)) return;
+  if (!userCfg || !userCfg.hasCredential) return;
+  const sharedCfg = await getSharedDocConfig(sandbox);
+  if (sharedCfg.hasCredential) return;
+
+  const credential = await readSecret(labUser, sandbox, '');
+  if (credential) await writeSharedSecret(sandbox, credential, '');
+  if (userCfg.hasPassphrase) {
+    const pass = await readSecret(labUser, sandbox, 'pass');
+    if (pass) await writeSharedSecret(sandbox, pass, 'pass');
+  }
+
+  const ref = getDb().collection(COLLECTION).doc(sharedDocId(sandbox));
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  await ref.set(
+    {
+      sandbox,
+      labUser: '_sandbox',
+      account: userCfg.account || '',
+      user: userCfg.user || '',
+      role: userCfg.role || '',
+      warehouse: userCfg.warehouse || '',
+      database: userCfg.database || '',
+      schema: userCfg.schema || '',
+      authMethod: userCfg.authMethod || 'password',
+      credentialSetAt: userCfg.credentialSetAt || new Date().toISOString(),
+      updatedAt: now,
+      updatedBy: labUser || 'migration',
+      migratedFrom: docId(labUser, sandbox),
+    },
+    { merge: true }
+  );
+}
+
+/**
+ * Read the public (non-secret) config for a given lab user + sandbox.
+ * Falls back to sandbox-shared credential on allowlisted sandboxes.
+ *
+ * @param {string} labUser
+ * @param {string} sandbox
+ */
+async function getConfig(labUser, sandbox) {
+  const userCfg = await getUserDocConfig(labUser, sandbox);
+
+  if (userCfg.hasCredential) {
+    await migrateUserCredentialToShared(labUser, sandbox, userCfg);
+    return { ...userCfg, credentialScope: 'user' };
+  }
+
+  if (isSandboxSharedEligible(sandbox)) {
+    const sharedCfg = await getSharedDocConfig(sandbox);
+    if (sharedCfg.hasCredential) {
+      return mergeUserConfigWithSharedFallback(userCfg, sharedCfg);
+    }
+  }
+
+  return { ...userCfg, credentialScope: 'user' };
+}
+
+async function applyCredentialPayload(labUser, sandbox, payload, nextAuthMethod, { shared }) {
   const p = payload && typeof payload === 'object' ? payload : {};
 
-  const ref = getDb().collection(COLLECTION).doc(docId(u, s));
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  if (p.clearCredential) {
+    if (shared) {
+      await deleteSharedSecretIfExists(sandbox, '');
+      await deleteSharedSecretIfExists(sandbox, 'pass');
+    } else {
+      await deleteSecretIfExists(labUser, sandbox, '');
+      await deleteSecretIfExists(labUser, sandbox, 'pass');
+    }
+    return { credentialSetAt: null };
+  }
 
-  const set = { sandbox: s, labUser: u, updatedAt: now, updatedBy: u || 'anon' };
+  const patch = {};
+  if (typeof p.credential === 'string' && p.credential.trim().length > 0) {
+    const cred = p.credential.slice(0, MAX.credential);
+    if (shared) await writeSharedSecret(sandbox, cred, '');
+    else await writeSecret(labUser, sandbox, cred, '');
+    patch.credentialSetAt = new Date().toISOString();
+    if (nextAuthMethod === 'keyPair') {
+      if (typeof p.keyPassphrase === 'string' && p.keyPassphrase.length > 0) {
+        const pass = p.keyPassphrase.slice(0, MAX.passphrase);
+        if (shared) await writeSharedSecret(sandbox, pass, 'pass');
+        else await writeSecret(labUser, sandbox, pass, 'pass');
+      } else if (p.clearKeyPassphrase) {
+        if (shared) await deleteSharedSecretIfExists(sandbox, 'pass');
+        else await deleteSecretIfExists(labUser, sandbox, 'pass');
+      }
+    } else if (shared) {
+      await deleteSharedSecretIfExists(sandbox, 'pass');
+    } else {
+      await deleteSecretIfExists(labUser, sandbox, 'pass');
+    }
+  } else if (typeof p.keyPassphrase === 'string' && p.keyPassphrase.length > 0 && nextAuthMethod === 'keyPair') {
+    const pass = p.keyPassphrase.slice(0, MAX.passphrase);
+    if (shared) await writeSharedSecret(sandbox, pass, 'pass');
+    else await writeSecret(labUser, sandbox, pass, 'pass');
+  } else if (p.clearKeyPassphrase) {
+    if (shared) await deleteSharedSecretIfExists(sandbox, 'pass');
+    else await deleteSecretIfExists(labUser, sandbox, 'pass');
+  }
+
+  return patch;
+}
+
+async function updateConfigDoc(ref, labUser, sandbox, payload, identityLabel) {
+  const p = payload && typeof payload === 'object' ? payload : {};
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const set = {
+    sandbox,
+    labUser: identityLabel || labUser,
+    updatedAt: now,
+    updatedBy: labUser || 'anon',
+  };
 
   if (p.account !== undefined) set.account = trimField(p.account, MAX.account);
   if (p.user !== undefined) set.user = trimField(p.user, MAX.user);
@@ -231,36 +456,75 @@ async function updateConfig(labUser, sandbox, payload) {
     nextAuthMethod = pickAuthMethod((snap.exists && snap.data() && snap.data().authMethod) || '', 'password');
   }
 
-  if (p.clearCredential) {
-    await deleteSecretIfExists(u, s, '');
-    await deleteSecretIfExists(u, s, 'pass');
-    set.credentialSetAt = null;
-  } else if (typeof p.credential === 'string' && p.credential.trim().length > 0) {
-    await writeSecret(u, s, p.credential.slice(0, MAX.credential), '');
-    set.credentialSetAt = new Date().toISOString();
-    if (nextAuthMethod === 'keyPair') {
-      if (typeof p.keyPassphrase === 'string' && p.keyPassphrase.length > 0) {
-        await writeSecret(u, s, p.keyPassphrase.slice(0, MAX.passphrase), 'pass');
-      } else if (p.clearKeyPassphrase) {
-        await deleteSecretIfExists(u, s, 'pass');
-      }
-    } else {
-      await deleteSecretIfExists(u, s, 'pass');
+  const credPatch = await applyCredentialPayload(labUser, sandbox, p, nextAuthMethod, { shared: false });
+  Object.assign(set, credPatch);
+  await ref.set(set, { merge: true });
+  return nextAuthMethod;
+}
+
+async function updateSharedConfigDoc(sandbox, payload, updatedBy) {
+  const p = payload && typeof payload === 'object' ? payload : {};
+  const ref = getDb().collection(COLLECTION).doc(sharedDocId(sandbox));
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const set = {
+    sandbox,
+    labUser: '_sandbox',
+    updatedAt: now,
+    updatedBy: updatedBy || 'anon',
+  };
+
+  if (p.account !== undefined) set.account = trimField(p.account, MAX.account);
+  if (p.user !== undefined) set.user = trimField(p.user, MAX.user);
+  if (p.role !== undefined) set.role = trimField(p.role, MAX.role);
+  if (p.warehouse !== undefined) set.warehouse = trimField(p.warehouse, MAX.warehouse);
+  if (p.database !== undefined) set.database = trimField(p.database, MAX.database);
+  if (p.schema !== undefined) set.schema = trimField(p.schema, MAX.schema);
+
+  let nextAuthMethod;
+  if (p.authMethod !== undefined) {
+    if (!ALLOWED_AUTH_METHODS.has(p.authMethod)) {
+      throw new Error(`authMethod must be one of ${[...ALLOWED_AUTH_METHODS].join(', ')}`);
     }
-  } else if (typeof p.keyPassphrase === 'string' && p.keyPassphrase.length > 0 && nextAuthMethod === 'keyPair') {
-    await writeSecret(u, s, p.keyPassphrase.slice(0, MAX.passphrase), 'pass');
-  } else if (p.clearKeyPassphrase) {
-    await deleteSecretIfExists(u, s, 'pass');
+    nextAuthMethod = p.authMethod;
+    set.authMethod = nextAuthMethod;
+  } else {
+    const snap = await ref.get();
+    nextAuthMethod = pickAuthMethod((snap.exists && snap.data() && snap.data().authMethod) || '', 'password');
   }
 
+  const credPatch = await applyCredentialPayload(updatedBy, sandbox, p, nextAuthMethod, { shared: true });
+  Object.assign(set, credPatch);
   await ref.set(set, { merge: true });
+}
+
+/**
+ * Apply a mutation to a lab user's Snowflake config in a sandbox.
+ * On allowlisted sandboxes, also dual-writes to the sandbox-shared copy.
+ *
+ * @param {string} labUser
+ * @param {string} sandbox
+ * @param {object} payload
+ */
+async function updateConfig(labUser, sandbox, payload) {
+  const u = sTrim(labUser);
+  const s = sTrim(sandbox);
+  if (!s) throw new Error('sandbox is required');
+  const p = payload && typeof payload === 'object' ? payload : {};
+
+  const ref = getDb().collection(COLLECTION).doc(docId(u, s));
+  await updateConfigDoc(ref, u, s, p, u);
+
+  if (isSandboxSharedEligible(s)) {
+    await updateSharedConfigDoc(s, p, u);
+  }
+
   return getConfig(u, s);
 }
 
 /**
  * Resolve the connection material for a given lab user + sandbox so the
  * caller can open a Snowflake connection. Returns null if no credential
- * has been stored yet.
+ * has been stored yet (user or sandbox-shared).
  *
  * @param {string} labUser
  * @param {string} sandbox
@@ -268,12 +532,20 @@ async function updateConfig(labUser, sandbox, payload) {
 async function resolveConnection(labUser, sandbox) {
   const cfg = await getConfig(labUser, sandbox);
   if (!cfg.hasCredential) return null;
-  const credential = await readSecret(labUser, sandbox, '');
+
+  const useShared = cfg.credentialScope === 'sandbox_shared';
+  const credential = useShared
+    ? await readSharedSecret(sandbox, '')
+    : await readSecret(labUser, sandbox, '');
   if (!credential) return null;
+
   let passphrase = '';
   if (cfg.authMethod === 'keyPair' && cfg.hasPassphrase) {
-    passphrase = await readSecret(labUser, sandbox, 'pass');
+    passphrase = useShared
+      ? await readSharedSecret(sandbox, 'pass')
+      : await readSecret(labUser, sandbox, 'pass');
   }
+
   return {
     config: cfg,
     credential,
@@ -283,8 +555,13 @@ async function resolveConnection(labUser, sandbox) {
 
 module.exports = {
   COLLECTION,
+  SHARED_DOC_PREFIX,
   ALLOWED_AUTH_METHODS,
   docId,
+  sharedDocId,
+  sharedSecretId,
+  isSandboxSharedEligible,
+  mergeUserConfigWithSharedFallback,
   getConfig,
   updateConfig,
   resolveConnection,

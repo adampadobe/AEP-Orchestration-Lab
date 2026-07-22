@@ -43,7 +43,7 @@
   /** True after a successful Test connection in this page session (reset on Save / Clear / reload). */
   var lastSnowflakeTestOk = false;
   /** Last GET /api/snowflake/config metadata (configState, lab user uid prefix). */
-  var lastConfigMeta = { configState: '', labUserUidPrefix: '', presetNote: '' };
+  var lastConfigMeta = { configState: '', labUserUidPrefix: '', presetNote: '', credentialScope: 'user' };
   /** True when GET /api/snowflake/config last reported hasCredential (Secret Manager). */
   var lastHasCredential = false;
   /** credentialSetAt from last GET/POST config (for badge timestamp). */
@@ -164,6 +164,16 @@
     return String(sandbox || '').toLowerCase().indexOf('apalmer') !== -1;
   }
 
+  function isSandboxSharedCredential(sandbox) {
+    return isApalmerSandbox(sandbox) || String(sandbox || '').toLowerCase().indexOf('kirkham') !== -1;
+  }
+
+  function sandboxSharedLabel(sandbox) {
+    return isSandboxSharedCredential(sandbox)
+      ? ' (shared across browsers on sandbox ' + sandbox + ')'
+      : '';
+  }
+
   /**
    * @param {boolean} onlyFillEmpty — when true, only writes a field if it is blank (used after load when no saved config).
    * @param {boolean} force — when true with onlyFillEmpty false, overwrites all preset-mapped fields from PRESET_AGENTIC_TRAVEL_DEMO.
@@ -243,6 +253,15 @@
   }
 
   function credentialActionHintText() {
+    var sandbox = readSandbox();
+    var shared = isSandboxSharedCredential(sandbox);
+    if (shared) {
+      return (
+        'Paste your .p8 and Save once to store in Secret Manager for sandbox ' +
+        sandbox +
+        ' (shared across browsers).'
+      );
+    }
     var uidHint = lastConfigMeta.labUserUidPrefix
       ? ' Lab user id: ' + lastConfigMeta.labUserUidPrefix + '.'
       : '';
@@ -251,6 +270,13 @@
       return 'Paste your PEM private key and Save once.' + uidHint;
     }
     return 'No credential saved yet for this lab user — paste one to enable connection tests.' + uidHint;
+  }
+
+  function credentialReadyHintText() {
+    if (lastConfigMeta.credentialScope === 'sandbox_shared') {
+      return 'Private key is not shown in the browser. Paste PEM only to replace the sandbox-shared key in Secret Manager.';
+    }
+    return 'Private key is not shown in the browser. Paste PEM only to replace the stored key.';
   }
 
   function syncCredentialFieldVisibility() {
@@ -270,8 +296,8 @@
         hint.hidden = false;
         hint.textContent = credentialActionHintText();
       } else {
-        hint.hidden = true;
-        hint.textContent = '';
+        hint.hidden = false;
+        hint.textContent = credentialReadyHintText();
       }
     }
 
@@ -283,6 +309,10 @@
 
     if (els.credentialReplaceSummary) {
       els.credentialReplaceSummary.hidden = needsKey;
+      if (!needsKey) {
+        els.credentialReplaceSummary.textContent =
+          'Stored in Secret Manager — expand to replace key';
+      }
     }
   }
 
@@ -309,7 +339,7 @@
       return;
     }
     if (isConnectionReady()) {
-      st.textContent = 'Snowflake ready — credential verified (expand to edit)';
+      st.textContent = 'Snowflake ready — credential in Secret Manager';
       setConnectionSummaryTone('verified');
       syncConnectionPanelOpen();
       return;
@@ -364,6 +394,7 @@
       configState: configState,
       labUserUidPrefix: (body && body.labUserUidPrefix) || lastConfigMeta.labUserUidPrefix || '',
       presetNote: (rec && rec.presetNote) || '',
+      credentialScope: (rec && rec.credentialScope) || 'user',
     };
   }
 
@@ -376,7 +407,8 @@
     var state = rec && rec.configState;
     var uidHint = labUserUidHint(body);
     if (state === 'saved_ready') {
-      return 'Loaded saved Snowflake config for sandbox "' + sandbox + '".' + uidHint;
+      var sharedNote = rec && rec.credentialScope === 'sandbox_shared' ? sandboxSharedLabel(sandbox) : '';
+      return 'Loaded saved Snowflake config for sandbox "' + sandbox + '".' + sharedNote + uidHint;
     }
     if (state === 'saved_no_credential') {
       return (
@@ -394,11 +426,16 @@
       );
     }
     if (state === 'preset_only') {
+      var sharedPreset =
+        isSandboxSharedCredential(sandbox)
+          ? ' Paste your .p8 and Save once to store in Secret Manager for sandbox ' +
+            sandbox +
+            ' (shared across browsers).'
+          : ' Paste your PEM private key and Save once (connection fields are preset, not saved to Firestore until you Save).';
       return (
-        'AgenticAI travel defaults applied for sandbox "' + sandbox +
-        '". Paste your PEM private key and Save once (connection fields are preset, not saved to Firestore until you Save).' +
-        uidHint +
-        ' If you configured Snowflake before, confirm this lab user id matches the browser profile where you saved (anonymous Firebase auth is per-browser).'
+        'AgenticAI travel defaults applied for sandbox "' + sandbox + '".' +
+        sharedPreset +
+        uidHint
       );
     }
     if (rec && rec.account) {

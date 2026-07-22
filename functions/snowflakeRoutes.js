@@ -84,6 +84,7 @@ function registerSnowflakeRoutes(deps) {
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       try {
         const record = await snowflakeService.handleConfigPut({ labUser: uid, sandbox, payload: body });
+        const uidStr = String(uid || '');
         res.status(200).json({
           ok: true,
           sandbox,
