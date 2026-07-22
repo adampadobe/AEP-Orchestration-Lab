@@ -1,14 +1,14 @@
 {
-  "gitSha": "73193c6a3e9e17534a8c73082e233ca1d7af3245",
-  "gitShortSha": "73193c6a",
+  "gitSha": "b9bab352b488d9ac3b67f8baf0ecbadf769e1de3",
+  "gitShortSha": "b9bab352",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: harden Functions deploy exclusions",
+  "gitCommitSubject": "[apalmer] feat: extend Snowflake CRM dual-load across industries",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T22:48:20+01:00",
-  "deployedAt": "2026-07-22T21:49:45.571Z",
+  "gitCommitDate": "2026-07-22T23:07:56+01:00",
+  "deployedAt": "2026-07-22T22:08:42.271Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/73193c6a3e9e17534a8c73082e233ca1d7af3245"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b9bab352b488d9ac3b67f8baf0ecbadf769e1de3"
 }
