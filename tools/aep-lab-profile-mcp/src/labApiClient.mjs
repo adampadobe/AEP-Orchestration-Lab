@@ -722,6 +722,55 @@ export async function snowflakeTableStructure({ sandbox, phase }) {
 }
 
 /**
+ * POST /api/snowflake/industry-validate-proposal
+ * @param {object} params
+ */
+export async function snowflakeValidateProposal({ sandbox, industry, phases, event_types, count }) {
+  return labApiRequest('/api/snowflake/industry-validate-proposal', {
+    method: 'POST',
+    body: {
+      sandbox,
+      ...(industry ? { industry } : {}),
+      ...(phases ? { phases } : {}),
+      ...(event_types ? { eventTypes: event_types } : {}),
+      ...(count != null ? { count } : {}),
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/agentic/generate-full
+ * @param {object} params
+ */
+export async function snowflakeGenerateFull({ sandbox, count }) {
+  return labApiRequest('/api/snowflake/agentic/generate-full', {
+    method: 'POST',
+    body: { sandbox, count },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 540_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/agentic/enrich-profiles
+ * @param {object} params
+ */
+export async function snowflakeEnrichProfiles({ sandbox, profiles, event_types }) {
+  return labApiRequest('/api/snowflake/agentic/enrich-profiles', {
+    method: 'POST',
+    body: {
+      sandbox,
+      profiles,
+      eventTypes: event_types,
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 540_000,
+  });
+}
+
+/**
  * Brand Scraper analyze runs up to 540s — bypass Firebase Hosting 60s cap via direct Cloud Function URL
  * (same pattern as web/profile-viewer/brand-scraper.js).
  */

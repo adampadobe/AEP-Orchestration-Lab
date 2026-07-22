@@ -9,6 +9,9 @@ import {
   snowflakeQueryProfiles,
   snowflakeIndustryCatalog,
   snowflakeTableStructure,
+  snowflakeValidateProposal,
+  snowflakeGenerateFull,
+  snowflakeEnrichProfiles,
   STATIC_EGRESS_IP,
 } from '../labApiClient.mjs';
 import { getPrincipalAccess } from '../requestContext.mjs';
@@ -511,6 +514,237 @@ export function registerSnowflakeTools(mcpServer) {
         phase: result.phase || phase,
         tableCount: result.table_count,
         structureText: result.structure_text,
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_validate_proposal',
+    {
+      title: 'Validate Snowflake travel enrich/generate proposal',
+      description:
+        'POST /api/snowflake/industry-validate-proposal — read-only travel manifest validation for phases, ' +
+        'enrich event_types, and generate-full count. No DDL or arbitrary SQL. Requires user MCP key.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        industry: z.string().optional().describe('Industry (travel only in v3.22)'),
+        phases: z.array(z.enum(['phase1', 'phase2', 'phase3'])).optional(),
+        event_types: z
+          .array(
+            z.enum([
+              'mobile',
+              'website',
+              'booking',
+              'checkin',
+              'call',
+              'disruption',
+              'inflight',
+              'hotel',
+              'loyalty',
+              'pos',
+            ]),
+          )
+          .optional(),
+        count: z.number().int().min(1).max(1000).optional().describe('generate-full profile count'),
+      },
+    },
+    async ({ sandbox, industry, phases, event_types, count }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await snowflakeValidateProposal({
+        sandbox: allowed.sandbox,
+        industry,
+        phases,
+        event_types,
+        count,
+      });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_validate_proposal',
+        sandbox: allowed.sandbox,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
+      const result = apiResult.data?.result || {};
+      const validation = result.validation || {};
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        valid: validation.valid === true,
+        errors: validation.errors || [],
+        warnings: validation.warnings || [],
+        resolved: validation.resolved || null,
+        runnerConfigured: result.runner?.configured === true,
+        manifest: result.manifest || null,
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_generate_full',
+    {
+      title: 'Snowflake Agentic travel generate-full (phased)',
+      description:
+        'POST /api/snowflake/agentic/generate-full — delegates to Python agentic-travel-runner when configured. ' +
+        'Generates Phase 1–3 profiles + events. Requires user MCP key. count 1–1000.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        count: z.number().int().min(1).max(1000).describe('Profiles to generate across all phases'),
+      },
+    },
+    async ({ sandbox, count }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      const rate = checkSnowflakeGenerateRate(keyId);
+      if (!rate.ok) {
+        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+      }
+
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const proposal = await snowflakeValidateProposal({
+        sandbox: allowed.sandbox,
+        industry: 'travel',
+        count,
+      });
+      if (!proposal.ok || proposal.data?.result?.validation?.valid === false) {
+        const errors = proposal.data?.result?.validation?.errors || [proposal.error || 'Invalid proposal'];
+        return toolError('generate-full proposal failed manifest validation', { errors });
+      }
+
+      const apiResult = await snowflakeGenerateFull({ sandbox: allowed.sandbox, count });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_generate_full',
+        sandbox: allowed.sandbox,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
+      const result = apiResult.data?.result || {};
+      const runnerNotConfigured =
+        !apiResult.ok && result.error && result.error.code === 'RUNNER_NOT_CONFIGURED';
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        count,
+        data: result.data || null,
+        runnerNotConfigured,
+        coworkerNextSteps: runnerNotConfigured
+          ? [
+              'Runner not configured — AGENTIC_TRAVEL_RUNNER_URL + AGENTIC_TRAVEL_RUNNER_HMAC_SECRET must be set on Cloud Functions.',
+              'Use lab_snowflake_industry_catalog to confirm runner.configured before retry.',
+            ]
+          : ['lab_snowflake_query_profiles — verify generated rows'],
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_enrich_profiles',
+    {
+      title: 'Snowflake Agentic travel enrich profiles',
+      description:
+        'POST /api/snowflake/agentic/enrich-profiles — add event streams for existing CRM profiles via Python runner. ' +
+        'Requires user MCP key. event_types from travel manifest (website, booking, mobile, …).',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        profiles: z
+          .array(
+            z.object({
+              crmId: z.string().optional(),
+              ecid: z.string().optional(),
+              email: z.string().optional(),
+              phoneNumber: z.string().optional(),
+              loyaltyId: z.string().optional(),
+            }),
+          )
+          .min(1),
+        event_types: z
+          .array(
+            z.enum([
+              'mobile',
+              'website',
+              'booking',
+              'checkin',
+              'call',
+              'disruption',
+              'inflight',
+              'hotel',
+              'loyalty',
+              'pos',
+            ]),
+          )
+          .min(1),
+      },
+    },
+    async ({ sandbox, profiles, event_types }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      const rate = checkSnowflakeGenerateRate(keyId);
+      if (!rate.ok) {
+        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+      }
+
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const proposal = await snowflakeValidateProposal({
+        sandbox: allowed.sandbox,
+        industry: 'travel',
+        event_types,
+      });
+      if (!proposal.ok || proposal.data?.result?.validation?.valid === false) {
+        const errors = proposal.data?.result?.validation?.errors || [proposal.error || 'Invalid event_types'];
+        return toolError('enrich proposal failed manifest validation', { errors });
+      }
+
+      const apiResult = await snowflakeEnrichProfiles({
+        sandbox: allowed.sandbox,
+        profiles,
+        event_types,
+      });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_enrich_profiles',
+        sandbox: allowed.sandbox,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+
+      const result = apiResult.data?.result || {};
+      const runnerNotConfigured =
+        !apiResult.ok && result.error && result.error.code === 'RUNNER_NOT_CONFIGURED';
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        profileCount: profiles.length,
+        eventTypes: event_types,
+        data: result.data || null,
+        runnerNotConfigured,
       });
     },
   );

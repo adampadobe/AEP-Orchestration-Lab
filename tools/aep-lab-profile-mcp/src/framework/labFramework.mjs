@@ -400,7 +400,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.22.0',
+    version: '3.22.1',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -502,6 +502,29 @@ export function getExecutionFramework() {
         order: [
           'lab_snowflake_industry_catalog sandbox {sandbox} industry travel',
           'lab_snowflake_table_structure sandbox {sandbox} phase phase1 (repeat phase2/phase3 as needed)',
+        ],
+        doc: 'docs/SNOWFLAKE_INTEGRATION.md',
+      },
+      snowflake_travel_provision: {
+        tools: [
+          'lab_snowflake_config',
+          'lab_snowflake_test_connection',
+          'lab_snowflake_industry_catalog',
+          'lab_snowflake_validate_proposal',
+          'lab_snowflake_generate_full',
+          'lab_snowflake_query_profiles',
+          'lab_snowflake_enrich_profiles',
+        ],
+        when:
+          'Full Agentic travel Snowflake phased generate + enrich via Python runner (requires AGENTIC_TRAVEL_RUNNER_URL on Cloud Functions).',
+        requires: 'User-generated MCP key; runner configured on functions deployment.',
+        order: [
+          'lab_snowflake_config + lab_snowflake_test_connection',
+          'lab_snowflake_industry_catalog — confirm tableCheck and runner.configured',
+          'lab_snowflake_validate_proposal count {n} event_types [website,booking,…]',
+          'lab_snowflake_generate_full count {n}',
+          'lab_snowflake_query_profiles limit 10',
+          'lab_snowflake_enrich_profiles with CRM rows + event_types',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },

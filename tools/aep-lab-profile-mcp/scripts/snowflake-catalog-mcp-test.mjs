@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 /**
- * Offline tests for Snowflake industry catalog MCP wiring (no live Snowflake).
+ * Offline tests for Snowflake industry catalog + Phase B MCP API wiring.
  */
 
 import { loadAuthConfig } from '../src/auth.mjs';
-import { snowflakeIndustryCatalog, snowflakeTableStructure } from '../src/labApiClient.mjs';
+import {
+  snowflakeIndustryCatalog,
+  snowflakeTableStructure,
+  snowflakeValidateProposal,
+  snowflakeGenerateFull,
+  snowflakeEnrichProfiles,
+} from '../src/labApiClient.mjs';
+import { validateTravelProposal } from '../../../functions/snowflakeIndustryManifest.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -17,21 +24,34 @@ async function run() {
 
   assert(typeof snowflakeIndustryCatalog === 'function', 'snowflakeIndustryCatalog export');
   assert(typeof snowflakeTableStructure === 'function', 'snowflakeTableStructure export');
+  assert(typeof snowflakeValidateProposal === 'function', 'snowflakeValidateProposal export');
+  assert(typeof snowflakeGenerateFull === 'function', 'snowflakeGenerateFull export');
+  assert(typeof snowflakeEnrichProfiles === 'function', 'snowflakeEnrichProfiles export');
 
-  const catalogPath = '/api/snowflake/industry-catalog';
-  const structurePath = '/api/snowflake/agentic/table-structure';
+  const paths = {
+    catalog: '/api/snowflake/industry-catalog',
+    tableStructure: '/api/snowflake/agentic/table-structure',
+    validateProposal: '/api/snowflake/industry-validate-proposal',
+    generateFull: '/api/snowflake/agentic/generate-full',
+    enrichProfiles: '/api/snowflake/agentic/enrich-profiles',
+  };
 
-  const catalogFn = snowflakeIndustryCatalog.toString();
-  assert(catalogFn.includes(catalogPath), 'industry catalog API path');
+  assert(snowflakeIndustryCatalog.toString().includes(paths.catalog), 'catalog path');
+  assert(snowflakeTableStructure.toString().includes(paths.tableStructure), 'table structure path');
+  assert(snowflakeValidateProposal.toString().includes(paths.validateProposal), 'validate path');
+  assert(snowflakeGenerateFull.toString().includes(paths.generateFull), 'generate-full path');
+  assert(snowflakeEnrichProfiles.toString().includes(paths.enrichProfiles), 'enrich path');
 
-  const structureFn = snowflakeTableStructure.toString();
-  assert(structureFn.includes(structurePath), 'table structure API path');
+  const valid = validateTravelProposal({
+    count: 3,
+    eventTypes: ['website', 'booking'],
+  });
+  assert(valid.ok === true, 'manifest validateTravelProposal accepts website+booking');
 
-  console.log(JSON.stringify({
-    ok: true,
-    suite: 'snowflake-catalog-mcp-test',
-    paths: { catalog: catalogPath, tableStructure: structurePath },
-  }));
+  const invalid = validateTravelProposal({ eventTypes: ['bogus'] });
+  assert(invalid.ok === false, 'manifest rejects bogus event type');
+
+  console.log(JSON.stringify({ ok: true, suite: 'snowflake-catalog-mcp-test', paths }));
 }
 
 run().catch((err) => {

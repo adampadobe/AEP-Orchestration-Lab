@@ -1,14 +1,14 @@
 {
-  "gitSha": "5aa589873970ba4ac68a7b50ec2eebbdbdf2f533",
-  "gitShortSha": "5aa58987",
+  "gitSha": "79b19ebd681428a12f55c17e9b91fa597f03abc9",
+  "gitShortSha": "79b19ebd",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: deploy stamp 8bc96d90",
+  "gitCommitSubject": "[apalmer] Snowflake industry catalog Phase A — manifest, API, MCP v3.22.0",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T12:05:17+01:00",
-  "deployedAt": "2026-07-22T11:14:11.855Z",
+  "gitCommitDate": "2026-07-22T12:27:04+01:00",
+  "deployedAt": "2026-07-22T11:27:23.579Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5aa589873970ba4ac68a7b50ec2eebbdbdf2f533"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/79b19ebd681428a12f55c17e9b91fa597f03abc9"
 }
