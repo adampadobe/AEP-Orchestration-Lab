@@ -27,6 +27,9 @@ const CONTEXT7_API_KEY = defineSecret('CONTEXT7_API_KEY');
 /** Same secret as Cloud Run LOYALTY_PROVIDER_API_KEY — ledger proxy only; never exposed to browser. */
 const LOYALTY_PROVIDER_API_KEY = defineSecret('FAKE_LOYALTY_API_KEY');
 
+/** Shared with Cloud Run agentic-travel-runner (X-Runner-Signature). Secret Manager only — never commit. */
+const AGENTIC_TRAVEL_RUNNER_HMAC_SECRET = defineSecret('AGENTIC_TRAVEL_RUNNER_HMAC_SECRET');
+
 /** Default Platform sandbox; override at deploy: `ADOBE_SANDBOX_NAME=other firebase deploy` or edit this constant. */
 const DEFAULT_ADOBE_SANDBOX = 'apalmer';
 const RESOLVED_ADOBE_SANDBOX = String(
@@ -290,6 +293,7 @@ const SNOWFLAKE_FN_OPTS = {
   invoker: 'public',
   timeoutSeconds: 60,
   memory: '512MiB',
+  secrets: [AGENTIC_TRAVEL_RUNNER_HMAC_SECRET],
   ...SNOWFLAKE_VPC_OPTS,
 };
 

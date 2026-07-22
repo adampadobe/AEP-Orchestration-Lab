@@ -229,35 +229,22 @@ Full phased generate/enrich (`lab_snowflake_generate_full`, `lab_snowflake_enric
 | `AGENTIC_TRAVEL_RUNNER_URL` | — | HTTPS base URL of deployed runner (no trailing slash) |
 | `AGENTIC_TRAVEL_RUNNER_HMAC_SECRET` | `RUNNER_HMAC_SECRET` | Shared HMAC secret for `X-Runner-Signature` (store in Secret Manager — **never commit**) |
 
-Set on Gen2 functions (same project/region as Snowflake egress):
+Cloud Functions bind the secret via `defineSecret('AGENTIC_TRAVEL_RUNNER_HMAC_SECRET')` on all Snowflake Gen2 handlers (`SNOWFLAKE_FN_OPTS.secrets`). Set the runner base URL in **`functions/.env.aep-orchestration-lab`** (gitignored) as `AGENTIC_TRAVEL_RUNNER_URL`, then redeploy Snowflake functions.
+
+The runner receives Snowflake credentials in the POST body; attach **`snowflake-egress`** with **`all-traffic`** egress so outbound Snowflake uses the allowlisted static IP. Cloud Run is **`--allow-unauthenticated`** at IAM; only callers with the shared HMAC can run generate/enrich.
+
+Ops script: [`scripts/deploy-agentic-travel-runner.sh`](../scripts/deploy-agentic-travel-runner.sh)
 
 ```bash
-# Ops — generate secret locally, store in Secret Manager, bind to functions (example)
-openssl rand -hex 32   # use for both sides; do not commit
+# One-time secret (do not commit the value)
+openssl rand -hex 32 | gcloud secrets create AGENTIC_TRAVEL_RUNNER_HMAC_SECRET --project=aep-orchestration-lab --data-file=-
 
-# Deploy runner (from repo root)
-cd services/agentic-travel-runner
-export PROJECT_ID=aep-orchestration-lab
-export REGION=us-central1
-export SERVICE=agentic-travel-runner
+./scripts/deploy-agentic-travel-runner.sh
 
-gcloud builds submit --tag "gcr.io/${PROJECT_ID}/${SERVICE}" .
-
-gcloud run deploy "${SERVICE}" \
-  --image "gcr.io/${PROJECT_ID}/${SERVICE}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}" \
-  --platform managed \
-  --no-allow-unauthenticated \
-  --set-secrets "RUNNER_HMAC_SECRET=agentic-travel-runner-hmac:latest" \
-  --memory 1Gi \
-  --timeout 900 \
-  --min-instances 0 \
-  --max-instances 5
-
-# Then set on Cloud Functions (Firebase secrets or env):
+# functions/.env.aep-orchestration-lab
 # AGENTIC_TRAVEL_RUNNER_URL=https://agentic-travel-runner-….run.app
-# AGENTIC_TRAVEL_RUNNER_HMAC_SECRET=<same value as RUNNER_HMAC_SECRET>
+
+npx -y firebase-tools@latest deploy --only functions:snowflakeIndustryCatalog,functions:snowflakeAgenticGenerateFull,functions:snowflakeAgenticEnrichProfiles,functions:snowflakeAgenticQueryProfiles,functions:snowflakeAgenticTableStructure,functions:snowflakeConfig,functions:snowflakeConnectionTest,functions:snowflakeGenerateBaseProfiles,functions:snowflakeIndustryValidateProposal,functions:snowflakeInsertProfileFromAep,functions:snowflakeProvision
 ```
 
 Redeploy functions after setting env. Confirm with **lab_snowflake_industry_catalog** → `manifest.runner.configured: true`.
