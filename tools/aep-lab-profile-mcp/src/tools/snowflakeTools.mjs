@@ -52,7 +52,16 @@ function buildConfigCoworkerSteps(record) {
     );
     if (record && record.presetSource === 'agentic_travel_demo') {
       steps.push(
-        'Apalmer sandboxes: Agentic travel defaults are pre-filled — paste PEM from aep_integration_1.p8, Save, then Test connection.',
+        'Apalmer sandboxes: Agentic travel defaults are returned by the API — paste PEM from aep_integration_1.p8, Save, then Test connection.',
+      );
+      if (record.labUser) {
+        steps.push(
+          `Config is scoped to Firebase uid ${String(record.labUser).slice(0, 8)}… — MCP key must be generated while signed in as the same user.`,
+        );
+      }
+    } else if (record && record.configState === 'empty') {
+      steps.push(
+        'Empty config for this MCP principal — generate your MCP key in Profile Viewer → MCP servers while signed in as the user who saves Snowflake.',
       );
     }
   } else {
@@ -60,6 +69,52 @@ function buildConfigCoworkerSteps(record) {
   }
   steps.push(`If network policy blocks the lab, allowlist static egress IP ${STATIC_EGRESS_IP}/32.`);
   return steps;
+}
+
+function uidPrefix(uid) {
+  const s = String(uid || '');
+  if (!s) return null;
+  return s.length > 8 ? `${s.slice(0, 8)}…` : s;
+}
+
+function buildConfigSummary(record, sandbox, labMeta = {}) {
+  const principalPrefix = uidPrefix(record && record.labUser) || uidPrefix(labMeta.labUserUid);
+  const scopeHint = principalPrefix
+    ? ` Scoped to Firebase uid prefix ${principalPrefix} — MCP key must belong to the same user who saved in Profile Viewer.`
+    : '';
+
+  if (!record) {
+    return `No Snowflake config for sandbox "${sandbox}".${scopeHint}`;
+  }
+
+  if (record.account && record.hasCredential) {
+    return `Snowflake ready: ${record.account} / ${record.user} → ${record.database}.${record.schema}.${scopeHint}`;
+  }
+
+  if (record.account && !record.hasCredential) {
+    return (
+      `Connection fields saved (${record.account}) but credential not stored for this principal.${scopeHint} ` +
+      'Save PEM in Profile Viewer → Profile generation – Snowflake.'
+    );
+  }
+
+  if (record.presetSource === 'agentic_travel_demo') {
+    const target = `${record.account} / ${record.database}.${record.schema}`;
+    if (record.hasCredential) {
+      return (
+        `Apalmer preset defaults (${target}) and credential exist for this principal, but account fields were empty in Firestore — re-save connection in Profile Viewer.${scopeHint}`
+      );
+    }
+    return (
+      `Apalmer Agentic travel preset defaults apply (${target}). Connection fields are pre-filled; credential not saved for this MCP principal.${scopeHint} ` +
+      'Profile Viewer shows the same presets client-side — save your key pair there, then retry lab_snowflake_test_connection.'
+    );
+  }
+
+  return (
+    `Snowflake connection fields are empty for sandbox "${sandbox}".${scopeHint} ` +
+    'Use a user-generated MCP key (Profile Viewer → MCP servers), not the shared ops key.'
+  );
 }
 
 /**
@@ -104,12 +159,20 @@ export function registerSnowflakeTools(mcpServer) {
       });
 
       const record = redactSnowflakeConfig(apiResult.data?.record);
-      const ready = !!(record && record.hasCredential);
+      const ready = !!(record && record.hasCredential && record.account);
+      const labMeta = {
+        labUserUid: apiResult.data?.labUserUid || null,
+        labUserUidPrefix: apiResult.data?.labUserUidPrefix || null,
+      };
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         record,
         ready,
         hasCredential: !!(record && record.hasCredential),
+        configState: record && record.configState ? record.configState : null,
+        presetSource: record && record.presetSource ? record.presetSource : null,
+        configSummary: buildConfigSummary(record, allowed.sandbox, labMeta),
+        labUserUidPrefix: labMeta.labUserUidPrefix,
         staticEgressIp: STATIC_EGRESS_IP,
         coworkerNextSteps: buildConfigCoworkerSteps(record),
         note: 'Credentials are never returned. Save via Profile Viewer → Profile generation – Snowflake.',

@@ -172,6 +172,7 @@ async function getConfig(labUser, sandbox) {
   return {
     sandbox: s,
     labUser: u,
+    docExists: snap.exists,
     account: data.account || '',
     user: data.user || '',
     role: data.role || '',

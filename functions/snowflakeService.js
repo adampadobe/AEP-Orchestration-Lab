@@ -104,6 +104,7 @@ function publicConfig(record) {
   return {
     sandbox: record.sandbox || '',
     labUser: record.labUser || '',
+    docExists: !!record.docExists,
     account: record.account || '',
     user: record.user || '',
     role: record.role || '',
@@ -119,6 +120,9 @@ function publicConfig(record) {
         ? record.updatedAt.toDate().toISOString()
         : record.updatedAt || null,
     updatedBy: record.updatedBy || null,
+    presetSource: record.presetSource || null,
+    presetNote: record.presetNote || null,
+    configState: record.configState || null,
   };
 }
 
@@ -272,27 +276,57 @@ function isApalmerSandbox(sandbox) {
   return String(sandbox || '').toLowerCase().includes('apalmer');
 }
 
-/** GET /api/snowflake/config?sandbox=… → public config for current lab user */
-async function handleConfigGet({ labUser, sandbox }) {
-  const record = await store.getConfig(labUser, sandbox);
-  if (record) return publicConfig(record);
+/**
+ * Pure projection for GET config — unit-testable without Firestore.
+ * Matches Profile Viewer client: apalmer presets apply when account is empty.
+ *
+ * @param {object | null | undefined} rawRecord from snowflakeConnectionStore.getConfig
+ * @param {{ labUser: string, sandbox: string }} ctx
+ * @returns {object | null}
+ */
+function projectConfigGetResponse(rawRecord, ctx) {
+  const labUser = String(ctx && ctx.labUser || '').trim();
+  const sandbox = String(ctx && ctx.sandbox || '').trim();
+  const pub = publicConfig(rawRecord);
+  if (!pub) return null;
+
+  if (pub.account) {
+    return {
+      ...pub,
+      configState: pub.hasCredential ? 'saved_ready' : 'saved_no_credential',
+    };
+  }
+
   if (isApalmerSandbox(sandbox)) {
     return {
       ...PRESET_AGENTIC_TRAVEL_DEMO,
       sandbox,
       labUser,
-      hasCredential: false,
-      hasPassphrase: false,
-      credentialSetAt: null,
-      updatedAt: null,
-      updatedBy: null,
+      docExists: pub.docExists,
+      hasCredential: pub.hasCredential,
+      hasPassphrase: pub.hasPassphrase,
+      credentialSetAt: pub.credentialSetAt,
+      updatedAt: pub.updatedAt,
+      updatedBy: pub.updatedBy,
       presetSource: 'agentic_travel_demo',
-      presetNote:
-        'No saved Snowflake config yet — AgenticAI travel defaults for apalmer sandboxes. ' +
-        'Save credential via Profile Viewer → Profile generation – Snowflake.',
+      presetNote: pub.hasCredential
+        ? 'Credential saved for this Firebase user but connection fields are empty — re-save account/user in Profile Viewer → Profile generation – Snowflake.'
+        : 'No saved Snowflake config for this Firebase user — AgenticAI travel defaults for apalmer sandboxes. ' +
+          'Save credential via Profile Viewer → Profile generation – Snowflake (same account as your MCP key).',
+      configState: pub.hasCredential ? 'preset_with_credential' : 'preset_only',
     };
   }
-  return null;
+
+  return {
+    ...pub,
+    configState: pub.docExists ? 'saved_incomplete' : 'empty',
+  };
+}
+
+/** GET /api/snowflake/config?sandbox=… → public config for current lab user */
+async function handleConfigGet({ labUser, sandbox }) {
+  const record = await store.getConfig(labUser, sandbox);
+  return projectConfigGetResponse(record, { labUser, sandbox });
 }
 
 /**
@@ -338,6 +372,7 @@ async function handleConnectionTest({ labUser, sandbox }) {
 module.exports = {
   PRESET_AGENTIC_TRAVEL_DEMO,
   isApalmerSandbox,
+  projectConfigGetResponse,
   publicConfig,
   buildSnowflakeConnectOptions,
   sanitizePemInput,

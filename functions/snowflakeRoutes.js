@@ -64,12 +64,15 @@ function registerSnowflakeRoutes(deps) {
     if (req.method === 'GET') {
       try {
         const record = await snowflakeService.handleConfigGet({ labUser: uid, sandbox });
+        const uidStr = String(uid || '');
         res.status(200).json({
           ok: true,
           sandbox,
           record,
+          labUserUid: uidStr,
+          labUserUidPrefix: uidStr.length > 8 ? `${uidStr.slice(0, 8)}…` : uidStr,
           staticEgressIp: STATIC_EGRESS_IP,
-          ready: !!(record && record.hasCredential),
+          ready: !!(record && record.hasCredential && record.account),
         });
       } catch (e) {
         console.error('[snowflakeConfig:get]', String(e && e.message || e));
