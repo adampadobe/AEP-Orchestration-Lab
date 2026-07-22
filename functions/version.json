@@ -1,14 +1,14 @@
 {
-  "gitSha": "bbb7e83a1ea2bce691ca801502b0cbb09ac05f00",
-  "gitShortSha": "bbb7e83a",
+  "gitSha": "76430af4bd27b85dce4f948ac0fa63788e37d19c",
+  "gitShortSha": "76430af4",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: Snowflake UI preset vs saved credential messaging",
+  "gitCommitSubject": "[apalmer] Show green tick when Snowflake P8 credential is stored",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T09:41:15+01:00",
-  "deployedAt": "2026-07-22T08:41:32.707Z",
+  "gitCommitDate": "2026-07-22T09:48:10+01:00",
+  "deployedAt": "2026-07-22T08:48:24.042Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bbb7e83a1ea2bce691ca801502b0cbb09ac05f00"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/76430af4bd27b85dce4f948ac0fa63788e37d19c"
 }
