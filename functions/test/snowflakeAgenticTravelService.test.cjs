@@ -69,4 +69,22 @@ describe('snowflakeAgenticTravelService query profiles', () => {
     assert.equal(Object.keys(profile.columns).length, COLUMNS.length);
     assert.equal(profile.table, 'AGENTIC_TRAVEL_PROFILE_CUSTOMER');
   });
+
+  it('mapTravelProfileRow reads column-keyed Snowflake rows (not only arrays)', () => {
+    const rowObject = {};
+    for (const col of COLUMNS) {
+      if (col === 'CRMID') rowObject[col] = 'CRM-002';
+      else if (col === 'EMAIL') rowObject[col] = 'object-row@example.com';
+      else if (col === 'ECID') rowObject[col] = 'ecid-object';
+      else if (col === 'FIRSTNAME') rowObject[col] = 'Object';
+      else if (col === 'LASTNAME') rowObject[col] = 'Row';
+      else rowObject[col] = null;
+    }
+    const profile = mapTravelProfileRow(rowObject);
+    assert.equal(profile.email, 'object-row@example.com');
+    assert.equal(profile.ecid, 'ecid-object');
+    assert.equal(profile.firstName, 'Object');
+    assert.equal(profile.columns.EMAIL, 'object-row@example.com');
+    assert.equal(profile.columns.FIRSTNAME, 'Object');
+  });
 });

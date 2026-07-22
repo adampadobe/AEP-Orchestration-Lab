@@ -4,8 +4,10 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   formatSnowflakeRecordTimestamp,
+  getAttr,
   mapAepAttributesToBaseProfileRow,
   mapAepAttributesToTravelProfileRow,
+  normalizeAepAttributesForSnowflake,
 } = require('../snowflakeProfileMapper');
 const { COLUMNS } = require('../snowflakeBaseProfileSchema');
 const { COLUMNS: TRAVEL_COLUMNS } = require('../snowflakeTravelProfileSchema');
@@ -108,5 +110,42 @@ describe('snowflakeProfileMapper', () => {
     });
     assert.match(rowObject._RECORDCREATEDTIMESTAMP, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
     assert.equal(rowObject._RECORDUPDATEDTIMESTAMP, rowObject._RECORDCREATEDTIMESTAMP);
+  });
+
+  it('maps nested XDM persona objects and tenant-prefixed dot paths', () => {
+    const nested = {
+      person: {
+        name: { firstName: 'Jamie', lastName: 'Brown' },
+        gender: 'male',
+        birthDate: '1988-03-20',
+      },
+      mobilePhone: { number: '+447700900123' },
+    };
+    const { rowObject } = mapAepAttributesToTravelProfileRow({
+      email: 'jamie@example.com',
+      ecid: '40000000000000000000000000000002',
+      crmId: 'CRM2002',
+      attributes: {
+        ...nested,
+        'person.name.lastName': 'TenantLast',
+        '_demoemea.mobilePhone.number': '+447700900999',
+      },
+    });
+    assert.equal(rowObject.FIRSTNAME, 'Jamie');
+    assert.equal(rowObject.LASTNAME, 'TenantLast');
+    assert.equal(rowObject.EMAIL, 'jamie@example.com');
+    assert.equal(rowObject.ECID, '40000000000000000000000000000002');
+    assert.equal(rowObject.DATEOFBIRTH, '1988-03-20');
+    assert.equal(rowObject.PRIMARYPHONE, '+447700900999');
+  });
+
+  it('normalizeAepAttributesForSnowflake flattens nested roots without dropping flat keys', () => {
+    const normalized = normalizeAepAttributesForSnowflake({
+      person: { name: { firstName: 'NestedOnly' } },
+      'person.name.lastName': 'FlatWins',
+    });
+    assert.equal(normalized['person.name.firstName'], 'NestedOnly');
+    assert.equal(normalized['person.name.lastName'], 'FlatWins');
+    assert.equal(getAttr(normalized, 'person.name.lastName'), 'FlatWins');
   });
 });

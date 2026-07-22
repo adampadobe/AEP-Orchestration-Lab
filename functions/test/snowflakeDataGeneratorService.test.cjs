@@ -67,4 +67,30 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     assert.equal(row[TRAVEL_CREATED_IDX], expectedStamp);
     assert.equal(row[TRAVEL_UPDATED_IDX], expectedStamp);
   });
+
+  it('dual-load travel mapper binds persona fields from nested AEP attributes', () => {
+    const { mapRow } = resolveDualLoadInsertSchema('AGENTIC_TRAVEL_PROFILE_CUSTOMER');
+    const { rowObject } = mapRow({
+      email: 'apalmer+22072026-2@adobetest.com',
+      ecid: '40000000000000000000000000000003',
+      crmId: 'CRM1003',
+      attributes: {
+        person: {
+          name: { firstName: 'Alex', lastName: 'Traveler' },
+          gender: 'female',
+          birthDate: '1990-05-15',
+        },
+        mobilePhone: { number: '+447425627462' },
+        testProfile: true,
+      },
+      runStamp: '2026-07-22T22:00:00.000Z',
+    });
+
+    assert.equal(rowObject.FIRSTNAME, 'Alex');
+    assert.equal(rowObject.LASTNAME, 'Traveler');
+    assert.equal(rowObject.EMAIL, 'apalmer+22072026-2@adobetest.com');
+    assert.equal(rowObject.ECID, '40000000000000000000000000000003');
+    assert.equal(rowObject.DATEOFBIRTH, '1990-05-15');
+    assert.equal(rowObject.PRIMARYEMAIL, 'apalmer+22072026-2@adobetest.com');
+  });
 });

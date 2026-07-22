@@ -33,6 +33,7 @@ const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
 const {
   mapAepAttributesToBaseProfileRow,
   mapAepAttributesToTravelProfileRow,
+  normalizeAepAttributesForSnowflake,
 } = require('./snowflakeProfileMapper');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
@@ -573,7 +574,7 @@ async function handleInsertProfileFromAep(input) {
       email,
       ecid,
       crmId,
-      attributes: input.attributes,
+      attributes: normalizeAepAttributesForSnowflake(input.attributes),
       runStamp,
     });
 

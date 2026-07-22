@@ -8,17 +8,88 @@
 const { createHash } = require('crypto');
 const { COLUMNS } = require('./snowflakeBaseProfileSchema');
 const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
+const { get } = require('./profileTableHelpers');
 
 const AGENTIC_MOBILE = '+447425627462';
+const TENANT_PREFIX_RE = /^(_demoemea\.|xdm:demoss\.|demoemea\.)/i;
+
+function stripTenantPrefix(path) {
+  return String(path || '').replace(TENANT_PREFIX_RE, '').trim();
+}
 
 /**
+ * Flatten nested persona objects (Coworker / XDM) into dot-path keys.
+ * Explicit flat keys on the input win over flattened nested values.
+ *
+ * @param {Record<string, unknown> | null | undefined} raw
+ * @returns {Record<string, unknown>}
+ */
+function normalizeAepAttributesForSnowflake(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+  /** @type {Record<string, unknown>} */
+  const flatExplicit = {};
+  /** @type {Record<string, unknown>} */
+  const nestedRoots = {};
+
+  for (const [key, val] of Object.entries(raw)) {
+    const cleanKey = stripTenantPrefix(key);
+    if (!cleanKey) continue;
+    if (val !== null && typeof val === 'object' && !Array.isArray(val) && !cleanKey.includes('.')) {
+      nestedRoots[cleanKey] = val;
+    } else {
+      flatExplicit[cleanKey] = val;
+    }
+  }
+
+  /** @type {Record<string, unknown>} */
+  const flattened = {};
+  const visit = (obj, prefix = '') => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+    for (const [key, val] of Object.entries(obj)) {
+      const segment = String(key || '').trim();
+      if (!segment) continue;
+      const path = prefix ? `${prefix}.${segment}` : segment;
+      if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+        visit(val, path);
+      } else if (val !== undefined) {
+        flattened[path] = val;
+      }
+    }
+  };
+  visit(nestedRoots);
+
+  return { ...flattened, ...flatExplicit };
+}
+
+/**
+ * Resolve AEP persona leaf values from flat dot-path keys, tenant-prefixed keys,
+ * or nested XDM objects (same precedence as profileTableHelpers.get).
+ *
  * @param {Record<string, unknown> | null | undefined} attrs
  * @param {string} path
  * @returns {unknown}
  */
 function getAttr(attrs, path) {
   if (!attrs || typeof attrs !== 'object') return null;
-  if (Object.prototype.hasOwnProperty.call(attrs, path)) return attrs[path];
+  const normalizedPath = stripTenantPrefix(path);
+  const candidates = [
+    path,
+    normalizedPath,
+    `_demoemea.${normalizedPath}`,
+    `xdm:demoss.${normalizedPath}`,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (Object.prototype.hasOwnProperty.call(attrs, candidate)) {
+      const val = attrs[candidate];
+      if (val !== undefined) return val;
+    }
+  }
+  for (const candidate of [normalizedPath, `_demoemea.${normalizedPath}`]) {
+    const nested = get(attrs, candidate);
+    if (nested !== undefined && nested !== null) return nested;
+  }
   return null;
 }
 
@@ -106,12 +177,11 @@ function parseBirthParts(attrs) {
  * @param {string} [input.runStamp] — ISO timestamp
  */
 function mapAepAttributesToBaseProfileRow(input) {
-  const email = str(input.email);
-  const ecid = str(input.ecid);
+  const attrs = normalizeAepAttributesForSnowflake(input.attributes);
+  const email = str(input.email) || str(getAttr(attrs, 'personalEmail.address'));
+  const ecid = str(input.ecid) || str(getAttr(attrs, 'identification.core.ecid'));
   if (!email) throw new Error('email is required for Snowflake profile mapping');
   if (!ecid) throw new Error('ecid is required for Snowflake profile mapping');
-
-  const attrs = input.attributes && typeof input.attributes === 'object' ? input.attributes : {};
   const runStamp = formatSnowflakeRecordTimestamp(str(input.runStamp) || undefined);
   const crmId = str(input.crmId) || 'CRM0';
 
@@ -195,8 +265,12 @@ function mapAepAttributesToBaseProfileRow(input) {
  * @param {object} input — same shape as mapAepAttributesToBaseProfileRow
  */
 function mapAepAttributesToTravelProfileRow(input) {
-  const base = mapAepAttributesToBaseProfileRow(input);
-  const attrs = input.attributes && typeof input.attributes === 'object' ? input.attributes : {};
+  const normalizedInput = {
+    ...input,
+    attributes: normalizeAepAttributesForSnowflake(input.attributes),
+  };
+  const base = mapAepAttributesToBaseProfileRow(normalizedInput);
+  const attrs = normalizedInput.attributes;
 
   const nationality =
     str(getAttr(attrs, 'person.nationality') || getAttr(attrs, 'nationality')) || 'GB';
@@ -251,6 +325,7 @@ function mapAepAttributesToTravelProfileRow(input) {
 module.exports = {
   AGENTIC_MOBILE,
   formatSnowflakeRecordTimestamp,
+  normalizeAepAttributesForSnowflake,
   mapAepAttributesToBaseProfileRow,
   mapAepAttributesToTravelProfileRow,
   getAttr,

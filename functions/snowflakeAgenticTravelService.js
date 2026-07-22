@@ -160,15 +160,45 @@ function serializeCellValue(val) {
 }
 
 /**
+ * Read one travel profile cell from a Snowflake result row (array or column-keyed object).
+ *
+ * @param {unknown} row
+ * @param {number} index
+ * @param {string} columnName
+ * @returns {unknown}
+ */
+function readTravelProfileRowCell(row, index, columnName) {
+  if (Array.isArray(row)) return row[index];
+  if (!row || typeof row !== 'object') return undefined;
+  const name = String(columnName || '');
+  const candidates = [name, name.toUpperCase(), name.toLowerCase()];
+  for (const key of candidates) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) return row[key];
+  }
+  if (typeof row.getColumnValue === 'function') {
+    for (const key of candidates) {
+      try {
+        const val = row.getColumnValue(key);
+        if (val !== undefined) return val;
+      } catch (_) {
+        /* ignore driver lookup failures */
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
  * Map a Snowflake row array to full column object + Profile Viewer backward-compat fields.
  *
- * @param {unknown[]} row
+ * @param {unknown[] | Record<string, unknown>} row
  * @returns {object}
  */
 function mapTravelProfileRow(row) {
   const columns = {};
   for (let i = 0; i < TRAVEL_PROFILE_COLUMNS.length; i++) {
-    columns[TRAVEL_PROFILE_COLUMNS[i]] = serializeCellValue(row[i]);
+    const col = TRAVEL_PROFILE_COLUMNS[i];
+    columns[col] = serializeCellValue(readTravelProfileRowCell(row, i, col));
   }
   return {
     crmId: columns.CRMID,
