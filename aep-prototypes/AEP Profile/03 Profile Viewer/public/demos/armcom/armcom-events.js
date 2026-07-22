@@ -361,12 +361,26 @@
     return next;
   }
 
+  function getToastStack() {
+    var stack = document.getElementById('armcomToastStack');
+    if (stack) return stack;
+    stack = document.createElement('div');
+    stack.id = 'armcomToastStack';
+    stack.className = 'armcom-toast-stack';
+    stack.setAttribute('role', 'region');
+    stack.setAttribute('aria-label', 'Demo notifications');
+    document.body.appendChild(stack);
+    return stack;
+  }
+
   function dismissToast(toast) {
     if (!toast || toast.dataset.armcomDismissed === '1') return;
     toast.dataset.armcomDismissed = '1';
     toast.classList.remove('visible');
     setTimeout(function () {
       if (toast.parentNode) toast.parentNode.removeChild(toast);
+      var stack = document.getElementById('armcomToastStack');
+      if (stack && !stack.childElementCount) stack.remove();
     }, 400);
   }
 
@@ -378,7 +392,7 @@
     toast.className = 'armcom-toast' + (className ? ' ' + className : '');
     toast.setAttribute('role', 'status');
     toast.innerHTML = html;
-    document.body.appendChild(toast);
+    getToastStack().appendChild(toast);
     var dismissBtn = toast.querySelector('.armcom-toast-dismiss');
     if (dismissBtn) {
       dismissBtn.addEventListener('click', function () {

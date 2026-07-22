@@ -334,6 +334,7 @@
   const offlineUploadSize = document.getElementById('brandScraperOfflineUploadSize');
   const offlineUploadClear = document.getElementById('brandScraperOfflineUploadClear');
   const offlineUploadReady = document.getElementById('brandScraperOfflineUploadReady');
+  const offlinePanel = document.getElementById('brandScraperOfflinePanel');
   let pendingUploadFiles = [];
   let autoFilledUrl = false;
   let autoFilledCustomerName = false;
@@ -822,11 +823,48 @@
     });
   }
 
+  if (offlinePanel) {
+    function panelHasFileDrag(e) {
+      const types = e.dataTransfer && e.dataTransfer.types;
+      if (!types) return false;
+      return Array.from(types).indexOf('Files') !== -1;
+    }
+
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      offlinePanel.addEventListener(evt, function (e) {
+        if (!panelHasFileDrag(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        offlinePanel.classList.add('is-dragover');
+        if (!offlinePanel.open) offlinePanel.open = true;
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      offlinePanel.addEventListener(evt, function (e) {
+        offlinePanel.classList.remove('is-dragover');
+      });
+    });
+    offlinePanel.addEventListener('drop', function (e) {
+      if (offlinePanel.open && offlineDropZone && offlineDropZone.contains(e.target)) return;
+      if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (!offlinePanel.open) offlinePanel.open = true;
+      acceptUploadFiles(e.dataTransfer.files, { fromOfflinePanel: true });
+    });
+  }
+
   const downloadBriefBtn = document.getElementById('brandScraperDownloadBrief');
   const downloadChecklistBtn = document.getElementById('brandScraperDownloadChecklist');
-  const offlinePanel = document.getElementById('brandScraperOfflinePanel');
+
+  function expandOfflinePanel() {
+    if (offlinePanel && offlinePanel.tagName === 'DETAILS') {
+      offlinePanel.open = true;
+    }
+  }
 
   function focusOfflinePanel() {
+    expandOfflinePanel();
     if (offlinePanel) {
       offlinePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
