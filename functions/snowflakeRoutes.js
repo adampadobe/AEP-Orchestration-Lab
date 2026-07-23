@@ -420,6 +420,39 @@ function registerSnowflakeRoutes(deps) {
   });
 
   /**
+   * POST /api/snowflake/industry-table-preview — bounded read-only preview of
+   * one table allowlisted by the selected industry manifest.
+   */
+  routes.snowflakeIndustryTablePreview = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    try {
+      const result = await snowflakeIndustryCatalogService.handleIndustryTablePreview({
+        labUser: principal.uid,
+        sandbox,
+        industry: body.industry,
+        table: body.table,
+        limit: body.limit,
+      });
+      res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+    } catch (e) {
+      console.error('[snowflakeIndustryTablePreview]', String(e && e.message || e));
+      res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  });
+
+  /**
    * POST /api/snowflake/industry-validate-proposal — governed industry manifest/recipe validation.
    */
   routes.snowflakeIndustryValidateProposal = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {

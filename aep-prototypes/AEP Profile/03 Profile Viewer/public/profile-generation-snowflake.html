@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260723-collapsible-tables">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260723-table-preview">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -197,6 +197,35 @@
               </summary>
               <div class="sf-gen-table-details-body">
                 <div id="sfIndustryTableGrid" class="sf-gen-table-status-grid" aria-live="polite"></div>
+                <section class="sf-gen-table-preview" aria-labelledby="sfIndustryPreviewHeading">
+                  <div>
+                    <h4 id="sfIndustryPreviewHeading">Preview table data</h4>
+                    <p>Read a small sample from any ready table without opening Snowflake.</p>
+                  </div>
+                  <div class="sf-gen-table-preview-controls">
+                    <div class="form-group">
+                      <label for="sfIndustryPreviewTable">Table</label>
+                      <select id="sfIndustryPreviewTable" disabled></select>
+                    </div>
+                    <div class="form-group sf-gen-table-preview-limit">
+                      <label for="sfIndustryPreviewLimit">Rows</label>
+                      <select id="sfIndustryPreviewLimit">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                      </select>
+                    </div>
+                    <button type="button" id="sfIndustryPreviewBtn" class="btn btn-secondary" disabled>Preview rows</button>
+                  </div>
+                  <div id="sfIndustryPreviewMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+                  <div id="sfIndustryPreviewWrap" class="sf-gen-profile-table-wrap sf-gen-table-preview-wrap" hidden>
+                    <table class="sf-gen-profile-table" id="sfIndustryPreviewResult" aria-label="Snowflake table preview">
+                      <thead id="sfIndustryPreviewThead"></thead>
+                      <tbody id="sfIndustryPreviewTbody"></tbody>
+                    </table>
+                  </div>
+                </section>
                 <div class="form-row form-row--actions sf-gen-actions">
                   <button type="button" id="sfIndustryRefreshBtn" class="btn btn-secondary">Check readiness</button>
                   <button type="button" id="sfIndustryDryRunBtn" class="btn btn-secondary" disabled>Preview provisioning</button>
@@ -418,6 +447,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260723-snowflake-industry"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260723-collapsible-tables"></script>
+  <script src="profile-generation-snowflake.js?v=20260723-table-preview"></script>
 </body>
 </html>

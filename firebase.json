@@ -999,6 +999,13 @@
         }
       },
       {
+        "source": "/api/snowflake/industry-table-preview",
+        "function": {
+          "functionId": "snowflakeIndustryTablePreview",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/snowflake/industry-validate-proposal",
         "function": {
           "functionId": "snowflakeIndustryValidateProposal",

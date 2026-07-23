@@ -224,6 +224,154 @@ function projectTableExistence(rows, tableNames) {
   };
 }
 
+function clampPreviewLimit(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return 10;
+  return Math.min(50, Math.max(1, parsed));
+}
+
+function validatePreviewTable(industry, table) {
+  const normalizedIndustry = String(industry || 'travel').trim().toLowerCase();
+  const manifest = projectManifest(normalizedIndustry);
+  if (!manifest) {
+    return {
+      ok: false,
+      industry: normalizedIndustry,
+      error: {
+        message:
+          `Unsupported industry "${normalizedIndustry}". Supported: ${listSupportedIndustries().join(', ')}`,
+        code: 'UNSUPPORTED_INDUSTRY',
+        sqlState: null,
+        hints: [],
+      },
+    };
+  }
+
+  const normalizedTable = String(table || '').trim().toUpperCase();
+  const allowedTables = Array.isArray(manifest.allTables) ? manifest.allTables : [];
+  if (!normalizedTable || !allowedTables.includes(normalizedTable)) {
+    return {
+      ok: false,
+      industry: normalizedIndustry,
+      error: {
+        message: normalizedTable
+          ? `Table "${normalizedTable}" is not governed by the ${normalizedIndustry} manifest.`
+          : 'table is required',
+        code: 'TABLE_NOT_ALLOWLISTED',
+        sqlState: null,
+        hints: ['Choose a table from the industry readiness list.'],
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    industry: normalizedIndustry,
+    table: normalizedTable,
+    manifest,
+  };
+}
+
+function buildPreviewSql(database, schema, table, columns, orderBy, limit) {
+  const db = safeIdentifier(database, '');
+  const sc = safeIdentifier(schema, '');
+  const tb = safeIdentifier(table, '');
+  const selectedColumns = columns.map((column) => safeIdentifier(column, '')).join(', ');
+  const orderClause = orderBy ? ` ORDER BY ${safeIdentifier(orderBy, '')} DESC` : '';
+  return `SELECT ${selectedColumns} FROM ${db}.${sc}.${tb}${orderClause} LIMIT ${clampPreviewLimit(limit)}`;
+}
+
+function serializePreviewCell(value) {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'bigint') return String(value);
+  return value;
+}
+
+/**
+ * POST /api/snowflake/industry-table-preview — read a bounded sample from one
+ * table selected from the governed industry manifest. Arbitrary SQL and table
+ * names are intentionally unsupported.
+ */
+async function handleIndustryTablePreview(input) {
+  const labUser = String(input.labUser || '').trim();
+  const sandbox = String(input.sandbox || '').trim();
+  if (!sandbox) throw new Error('sandbox is required');
+
+  const validation = validatePreviewTable(input.industry, input.table);
+  if (!validation.ok) return validation;
+  const limit = clampPreviewLimit(input.limit);
+
+  return withSnowflakeConnection(labUser, sandbox, async (conn, cfg) => {
+    const db = safeIdentifier(cfg.database, '');
+    const sc = safeIdentifier(cfg.schema, '');
+    const columnRows = await execAsync(conn, {
+      sqlText: `
+        SELECT COLUMN_NAME
+        FROM ${db}.INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ?
+          AND TABLE_NAME = ?
+        ORDER BY ORDINAL_POSITION
+      `,
+      binds: [sc.toUpperCase(), validation.table],
+    });
+    const columns = columnRows
+      .map((row) => String(readSnowflakeCell(row, 0, 'COLUMN_NAME') || '').trim().toUpperCase())
+      .filter(Boolean);
+    if (!columns.length) {
+      return {
+        ok: false,
+        sandbox,
+        industry: validation.industry,
+        table: validation.table,
+        error: {
+          message: `Table "${validation.table}" was not found in the configured Snowflake schema.`,
+          code: 'TABLE_NOT_FOUND',
+          sqlState: null,
+          hints: ['Run the industry readiness check or provision the governed tables first.'],
+        },
+      };
+    }
+
+    const orderBy = [
+      '_RECORDCREATEDTIMESTAMP',
+      'TIMESTAMP',
+      'CREATED_AT',
+      'CREATEDAT',
+    ].find((column) => columns.includes(column)) || null;
+    const rows = await execAsync(conn, {
+      sqlText: buildPreviewSql(
+        cfg.database,
+        cfg.schema,
+        validation.table,
+        columns,
+        orderBy,
+        limit,
+      ),
+    });
+    const projectedRows = rows.map((row) => {
+      const projected = {};
+      columns.forEach((column, index) => {
+        projected[column] = serializePreviewCell(readSnowflakeCell(row, index, column));
+      });
+      return projected;
+    });
+
+    return {
+      ok: true,
+      sandbox,
+      industry: validation.industry,
+      database: cfg.database || null,
+      schema: cfg.schema || null,
+      table: validation.table,
+      columns,
+      rows: projectedRows,
+      rowCount: projectedRows.length,
+      limit,
+      orderBy,
+    };
+  });
+}
+
 /**
  * GET/POST /api/snowflake/industry-catalog
  * @param {object} input
@@ -352,9 +500,13 @@ module.exports = {
   runnerConfigured,
   projectManifest,
   projectTableExistence,
+  clampPreviewLimit,
+  validatePreviewTable,
+  buildPreviewSql,
   withSnowflakeConnection,
   checkTableExistence,
   handleIndustryCatalog,
+  handleIndustryTablePreview,
   handleValidateProposal,
   validateTravelProposal,
 };

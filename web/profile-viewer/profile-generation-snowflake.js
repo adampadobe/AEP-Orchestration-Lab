@@ -1183,6 +1183,106 @@
     }
   }
 
+  function setIndustryPreviewMessage(text, tone) {
+    var node = els.industryPreviewMessage;
+    if (!node) return;
+    node.hidden = !text;
+    node.textContent = text || '';
+    if (text) node.setAttribute('data-tone', tone || 'info');
+    else node.removeAttribute('data-tone');
+  }
+
+  function setIndustryPreviewBusy(busy) {
+    if (els.industryPreviewTable) els.industryPreviewTable.disabled = !!busy || !industryCatalog;
+    if (els.industryPreviewLimit) els.industryPreviewLimit.disabled = !!busy;
+    if (els.industryPreviewBtn) {
+      els.industryPreviewBtn.disabled =
+        !!busy || !industryCatalog || !els.industryPreviewTable || !els.industryPreviewTable.value;
+      els.industryPreviewBtn.textContent = busy ? 'Loading…' : 'Preview rows';
+    }
+  }
+
+  function renderIndustryPreviewTable(result) {
+    var columns = result && Array.isArray(result.columns) ? result.columns : [];
+    var rows = result && Array.isArray(result.rows) ? result.rows : [];
+    if (!els.industryPreviewThead || !els.industryPreviewTbody || !els.industryPreviewWrap) return;
+    els.industryPreviewThead.textContent = '';
+    els.industryPreviewTbody.textContent = '';
+
+    var headerRow = document.createElement('tr');
+    columns.forEach(function (column) {
+      var th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = column;
+      headerRow.appendChild(th);
+    });
+    els.industryPreviewThead.appendChild(headerRow);
+
+    rows.forEach(function (row) {
+      var tr = document.createElement('tr');
+      columns.forEach(function (column) {
+        var td = document.createElement('td');
+        var value = row ? row[column] : null;
+        var display = value == null
+          ? ''
+          : (typeof value === 'object' ? safeStringify(value) : String(value));
+        td.textContent = display;
+        if (display.length > 80) td.title = display;
+        tr.appendChild(td);
+      });
+      els.industryPreviewTbody.appendChild(tr);
+    });
+    els.industryPreviewWrap.hidden = columns.length === 0;
+  }
+
+  function previewIndustryTable() {
+    var table = els.industryPreviewTable && els.industryPreviewTable.value;
+    if (!table) {
+      setIndustryPreviewMessage('Choose a ready table first.', 'error');
+      return;
+    }
+    setIndustryPreviewBusy(true);
+    setIndustryPreviewMessage('Loading a read-only sample from ' + table + '…', 'info');
+    if (els.industryPreviewWrap) els.industryPreviewWrap.hidden = true;
+
+    authHeaders().then(function (h) {
+      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+      return fetch('/api/snowflake/industry-table-preview', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({
+          sandbox: readSandbox(),
+          industry: readIndustry(),
+          table: table,
+          limit: els.industryPreviewLimit ? parseInt(els.industryPreviewLimit.value, 10) : 10,
+        }),
+      });
+    }).then(function (res) {
+      return res.json().then(function (body) {
+        var result = body && body.result;
+        if (!res.ok || !result || !result.ok) {
+          throw new Error(
+            (result && result.error && result.error.message) ||
+            body.error ||
+            'Table preview failed.'
+          );
+        }
+        renderIndustryPreviewTable(result);
+        setIndustryPreviewMessage(
+          result.rowCount
+            ? 'Showing ' + result.rowCount + ' row(s) from ' + result.table + '.'
+            : 'No rows found in ' + result.table + '.',
+          result.rowCount ? 'success' : 'info'
+        );
+      });
+    }).catch(function (error) {
+      renderIndustryPreviewTable(null);
+      setIndustryPreviewMessage(error && error.message || String(error), 'error');
+    }).then(function () {
+      setIndustryPreviewBusy(false);
+    });
+  }
+
   function selectedProvisionRecipe(manifest) {
     var recipes = manifest && Array.isArray(manifest.provisionRecipes)
       ? manifest.provisionRecipes
@@ -1264,6 +1364,21 @@
         item.appendChild(badge);
         els.industryTableGrid.appendChild(item);
       });
+    }
+    if (els.industryPreviewTable) {
+      var previousTable = els.industryPreviewTable.value;
+      els.industryPreviewTable.textContent = '';
+      allTables.forEach(function (table) {
+        var status = tableCheck.tables && tableCheck.tables[table];
+        var option = document.createElement('option');
+        option.value = table;
+        option.textContent = table + (status && !status.exists ? ' — missing' : '');
+        option.disabled = !!(status && !status.exists);
+        els.industryPreviewTable.appendChild(option);
+      });
+      var defaultTable = allTables.includes(previousTable) ? previousTable : profileTable;
+      if (allTables.includes(defaultTable)) els.industryPreviewTable.value = defaultTable;
+      setIndustryPreviewBusy(false);
     }
     if (els.industryReadinessStatus) {
       els.industryReadinessStatus.textContent = tableCheck.missingCount === 0
@@ -1855,6 +1970,13 @@
     els.industryTableDetails = $('sfIndustryTableDetails');
     els.industryTableDetailsStatus = $('sfIndustryTableDetailsStatus');
     els.industryTableGrid = $('sfIndustryTableGrid');
+    els.industryPreviewTable = $('sfIndustryPreviewTable');
+    els.industryPreviewLimit = $('sfIndustryPreviewLimit');
+    els.industryPreviewBtn = $('sfIndustryPreviewBtn');
+    els.industryPreviewMessage = $('sfIndustryPreviewMessage');
+    els.industryPreviewWrap = $('sfIndustryPreviewWrap');
+    els.industryPreviewThead = $('sfIndustryPreviewThead');
+    els.industryPreviewTbody = $('sfIndustryPreviewTbody');
     els.industryRefreshBtn = $('sfIndustryRefreshBtn');
     els.industryDryRunBtn = $('sfIndustryDryRunBtn');
     els.industryProvisionBtn = $('sfIndustryProvisionBtn');
@@ -1974,10 +2096,16 @@
     if (els.industryProvisionBtn) {
       els.industryProvisionBtn.addEventListener('click', function () { provisionIndustry(false); });
     }
+    if (els.industryPreviewBtn) {
+      els.industryPreviewBtn.addEventListener('click', previewIndustryTable);
+    }
     if (els.industry) {
       els.industry.addEventListener('change', function () {
         industryCatalog = null;
         reflectIndustrySelection();
+        renderIndustryPreviewTable(null);
+        setIndustryPreviewMessage('', 'info');
+        setIndustryPreviewBusy(false);
         loadedProfiles = [];
         renderProfileRows([]);
         if (els.profileBundleOut) els.profileBundleOut.hidden = true;
