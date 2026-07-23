@@ -26,6 +26,7 @@ const {
   getIndustryProfileConfig,
   listSnowflakeProfileIndustries,
 } = require('./snowflakeIndustryProfileRegistry');
+const { readSnowflakeCell } = require('./snowflakeRow');
 
 const QUERY_PROFILES_TABLE = TRAVEL_MANIFEST.dualLoad.queryTable;
 
@@ -448,10 +449,10 @@ async function formatTableStructure(conn, cfg, tableName) {
   });
   if (columns.length) {
     for (const row of columns) {
-      const colName = row[0];
-      const dataType = row[1];
-      const isNullable = row[2];
-      const defaultVal = row[3];
+      const colName = readSnowflakeCell(row, 0, 'COLUMN_NAME');
+      const dataType = readSnowflakeCell(row, 1, 'DATA_TYPE');
+      const isNullable = readSnowflakeCell(row, 2, 'IS_NULLABLE');
+      const defaultVal = readSnowflakeCell(row, 3, 'COLUMN_DEFAULT');
       const nullable = isNullable === 'YES' ? 'NULL' : 'NOT NULL';
       const defaultText = defaultVal != null ? ` DEFAULT ${defaultVal}` : '';
       lines.push(`  - ${colName} ${dataType} ${nullable}${defaultText}`);
@@ -468,7 +469,7 @@ async function formatTableStructure(conn, cfg, tableName) {
   }
   if (pkRows.length) {
     const pkCols = pkRows
-      .map((row) => (row.length > 4 ? row[4] : ''))
+      .map((row) => readSnowflakeCell(row, 4, 'column_name'))
       .filter(Boolean)
       .join(', ');
     lines.push(`-- Primary Key: ${pkCols || '(unknown)'}`);
@@ -485,9 +486,9 @@ async function formatTableStructure(conn, cfg, tableName) {
   if (fkRows.length) {
     lines.push('-- Foreign Keys:');
     for (const row of fkRows) {
-      const fkCol = row.length > 7 ? row[7] : 'UNKNOWN';
-      const refTable = row.length > 2 ? row[2] : 'UNKNOWN';
-      const refCol = row.length > 3 ? row[3] : 'UNKNOWN';
+      const fkCol = readSnowflakeCell(row, 7, 'fk_column_name') || 'UNKNOWN';
+      const refTable = readSnowflakeCell(row, 2, 'pk_table_name') || 'UNKNOWN';
+      const refCol = readSnowflakeCell(row, 3, 'pk_column_name') || 'UNKNOWN';
       lines.push(`  - ${fkCol} -> ${refTable}.${refCol}`);
     }
   } else {

@@ -45,6 +45,7 @@ const {
 } = require('./snowflakeIndustryProfileRegistry');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
+const { readSnowflakeCell } = require('./snowflakeRow');
 const prefsStore = require('./labProfileGenerationPrefsStore');
 
 const DEFAULT_TABLE = 'BASE_PROFILES';
@@ -276,7 +277,7 @@ async function getDailyEmailCounterFromTable(conn, fqTable) {
     });
     let maxCounter = 0;
     for (const row of rows) {
-      const email = row[0];
+      const email = readSnowflakeCell(row, 0, 'EMAIL');
       if (typeof email !== 'string') continue;
       const parts = email.split('+');
       if (parts.length >= 3) {
@@ -302,7 +303,7 @@ async function getNextCrmStartIndex(conn, fqTable) {
     const rows = await execAsync(conn, {
       sqlText: `SELECT MAX(TRY_CAST(SUBSTRING(CRMID, 4) AS INTEGER)) AS MX FROM ${fqTable}`,
     });
-    const mx = rows[0] && rows[0][0];
+    const mx = readSnowflakeCell(rows[0], 0, 'MX');
     if (mx == null || !Number.isFinite(Number(mx))) return 1000;
     return Number(mx) + 1;
   } catch (_) {

@@ -14,6 +14,7 @@ const {
   validateIndustryProposal,
 } = require('./snowflakeIndustryManifest');
 const { validateProvisionProposal, listProvisionRecipes } = require('./snowflakeProvisionRecipes');
+const { readSnowflakeCell } = require('./snowflakeRow');
 
 function execAsync(conn, options) {
   return new Promise((resolve, reject) => {
@@ -190,7 +191,25 @@ async function checkTableExistence(conn, cfg, tableNames) {
     sqlText: sql,
     binds: [sc.toUpperCase(), ...upperNames],
   });
-  const existing = new Set(rows.map((row) => String(row[0] || '').toUpperCase()));
+  return projectTableExistence(rows, upperNames);
+}
+
+/**
+ * Convert Snowflake INFORMATION_SCHEMA rows into the public table check shape.
+ * Snowflake SDK rows are objects by default; positional arrays remain supported.
+ *
+ * @param {unknown[]} rows
+ * @param {string[]} tableNames
+ */
+function projectTableExistence(rows, tableNames) {
+  const upperNames = tableNames
+    .map((name) => String(name || '').trim().toUpperCase())
+    .filter(Boolean);
+  const existing = new Set(
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => String(readSnowflakeCell(row, 0, 'TABLE_NAME') || '').toUpperCase())
+      .filter(Boolean),
+  );
 
   /** @type {Record<string, { exists: boolean }>} */
   const tables = {};
@@ -332,6 +351,7 @@ async function handleValidateProposal(input) {
 module.exports = {
   runnerConfigured,
   projectManifest,
+  projectTableExistence,
   withSnowflakeConnection,
   checkTableExistence,
   handleIndustryCatalog,

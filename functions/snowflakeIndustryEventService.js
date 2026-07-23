@@ -11,6 +11,7 @@ const {
 } = require('./snowflakeIndustryEventRegistry');
 const { generateIndustryEventRows } = require('./snowflakeIndustryEventGenerator');
 const { fullyQualified } = require('./snowflakeProvisionRecipes');
+const { readSnowflakeCell } = require('./snowflakeRow');
 
 function execAsync(conn, options) {
   return new Promise((resolve, reject) => {
@@ -24,15 +25,6 @@ function execAsync(conn, options) {
   });
 }
 
-function readCell(row, index, column) {
-  if (Array.isArray(row)) return row[index];
-  if (!row || typeof row !== 'object') return undefined;
-  for (const key of [column, column.toUpperCase(), column.toLowerCase()]) {
-    if (Object.hasOwn(row, key)) return row[key];
-  }
-  return undefined;
-}
-
 function serialize(value) {
   if (value == null) return null;
   if (value instanceof Date) return value.toISOString();
@@ -44,7 +36,7 @@ function serialize(value) {
 
 function rowObject(row, columns) {
   return Object.fromEntries(
-    columns.map((column, index) => [column, serialize(readCell(row, index, column))]),
+    columns.map((column, index) => [column, serialize(readSnowflakeCell(row, index, column))]),
   );
 }
 
@@ -79,7 +71,7 @@ async function generationExists(conn, fqTable, generationId) {
     sqlText: `SELECT COUNT(*) AS ROW_COUNT FROM ${fqTable} WHERE GENERATIONID = ?`,
     binds: [generationId],
   });
-  return Number(readCell(rows[0], 0, 'ROW_COUNT') || 0) > 0;
+  return Number(readSnowflakeCell(rows[0], 0, 'ROW_COUNT') || 0) > 0;
 }
 
 async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50) {
