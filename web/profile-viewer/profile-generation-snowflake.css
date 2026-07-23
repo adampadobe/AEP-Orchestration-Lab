@@ -223,6 +223,8 @@
 }
 
 .sf-gen-table-preview {
+  min-width: 0;
+  max-width: 100%;
   margin: 14px 0;
   padding: 14px;
   border: 1px solid var(--dash-border);
@@ -278,15 +280,33 @@
 }
 
 .sf-gen-table-preview-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   max-height: 420px;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
   background: var(--dash-surface);
+}
+
+.sf-gen-table-preview-wrap .sf-gen-profile-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.sf-gen-table-preview-wrap th,
+.sf-gen-table-preview-wrap td {
+  width: auto;
+  min-width: 140px;
+  white-space: nowrap;
 }
 
 .sf-gen-table-preview-wrap td {
   max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 @media (max-width: 720px) {
