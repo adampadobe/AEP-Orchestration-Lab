@@ -1,14 +1,14 @@
 {
-  "gitSha": "b9bab352b488d9ac3b67f8baf0ecbadf769e1de3",
-  "gitShortSha": "b9bab352",
+  "gitSha": "f9914b7e23b9c81461f973f2a601ef5fea7773a0",
+  "gitShortSha": "f9914b7e",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: extend Snowflake CRM dual-load across industries",
+  "gitCommitSubject": "[apalmer] Add industry-aware Snowflake generation workflow",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-22T23:07:56+01:00",
-  "deployedAt": "2026-07-22T22:08:42.271Z",
+  "gitCommitDate": "2026-07-23T12:18:03+01:00",
+  "deployedAt": "2026-07-23T11:19:09.346Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b9bab352b488d9ac3b67f8baf0ecbadf769e1de3"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f9914b7e23b9c81461f973f2a601ef5fea7773a0"
 }
