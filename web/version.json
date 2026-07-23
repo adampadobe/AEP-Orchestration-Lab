@@ -1,14 +1,14 @@
 {
-  "gitSha": "37ea8138cba0b47c7b09b0173ec57f8dd10b64cf",
-  "gitShortSha": "37ea8138",
+  "gitSha": "bcf5615be39008b2d2eba456754080fb1b11d2f8",
+  "gitShortSha": "bcf5615b",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Add governed Snowflake table previews",
+  "gitCommitSubject": "[apalmer] Keep Snowflake previews within viewport",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-23T19:58:06+01:00",
-  "deployedAt": "2026-07-23T18:59:08.675Z",
+  "gitCommitDate": "2026-07-23T20:13:05+01:00",
+  "deployedAt": "2026-07-23T19:14:04.593Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/37ea8138cba0b47c7b09b0173ec57f8dd10b64cf"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bcf5615be39008b2d2eba456754080fb1b11d2f8"
 }
