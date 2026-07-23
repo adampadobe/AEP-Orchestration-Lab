@@ -8,16 +8,21 @@
  */
 
 .sf-gen-main {
+  min-width: 0;
+  max-width: 100%;
   padding-bottom: 32px;
 }
 
 .sf-gen-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "config"
     "workflow"
     "dual";
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 18px;
   margin-top: 18px;
 }
@@ -50,6 +55,9 @@
 }
 
 .sf-gen-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius);
@@ -167,6 +175,10 @@
 }
 
 .sf-gen-table-details {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-top: 10px;
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm);
@@ -219,6 +231,10 @@
 }
 
 .sf-gen-table-details-body {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
   padding: 12px 14px 14px;
 }
 
@@ -284,10 +300,31 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   max-height: 420px;
-  overflow: auto;
+  overflow-x: scroll;
+  overflow-y: auto;
+  contain: inline-size;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--dash-text-secondary) var(--dash-surface-alt);
+  scrollbar-width: auto;
   overscroll-behavior-inline: contain;
   background: var(--dash-surface);
+}
+
+.sf-gen-table-preview-wrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.sf-gen-table-preview-wrap::-webkit-scrollbar-track {
+  background: var(--dash-surface-alt);
+}
+
+.sf-gen-table-preview-wrap::-webkit-scrollbar-thumb {
+  border: 3px solid var(--dash-surface-alt);
+  border-radius: 999px;
+  background: var(--dash-text-secondary);
 }
 
 .sf-gen-table-preview-wrap .sf-gen-profile-table {
