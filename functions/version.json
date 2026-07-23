@@ -1,14 +1,14 @@
 {
-  "gitSha": "78a2b09d5446b6978385a39ecc2f20598c6e57f7",
-  "gitShortSha": "78a2b09d",
+  "gitSha": "7ea916dbd30d19471c472973fc70e865df96d25f",
+  "gitShortSha": "7ea916db",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Fix Snowflake ARRAY enrichment inserts",
+  "gitCommitSubject": "[apalmer] Collapse Snowflake table readiness details",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-23T19:33:18+01:00",
-  "deployedAt": "2026-07-23T18:33:59.722Z",
+  "gitCommitDate": "2026-07-23T19:50:18+01:00",
+  "deployedAt": "2026-07-23T18:50:58.689Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/78a2b09d5446b6978385a39ecc2f20598c6e57f7"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/7ea916dbd30d19471c472973fc70e865df96d25f"
 }
