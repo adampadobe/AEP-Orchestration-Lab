@@ -1,14 +1,14 @@
 {
-  "gitSha": "f9914b7e23b9c81461f973f2a601ef5fea7773a0",
-  "gitShortSha": "f9914b7e",
+  "gitSha": "cb1de355e5c2c6ff72c5c183232c40314edad237",
+  "gitShortSha": "cb1de355",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Add industry-aware Snowflake generation workflow",
+  "gitCommitSubject": "[apalmer] Support multiple MCP keys per sandbox",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-23T12:18:03+01:00",
-  "deployedAt": "2026-07-23T11:19:09.346Z",
+  "gitCommitDate": "2026-07-23T14:58:05+01:00",
+  "deployedAt": "2026-07-23T13:59:04.378Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f9914b7e23b9c81461f973f2a601ef5fea7773a0"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/cb1de355e5c2c6ff72c5c183232c40314edad237"
 }
