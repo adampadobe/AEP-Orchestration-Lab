@@ -66,6 +66,18 @@ function bindValue(value, isArray) {
   return isArray ? JSON.stringify(value) : value;
 }
 
+function buildInsertSql(fqTable, tableConfig, rowCount) {
+  const arrayColumns = new Set(tableConfig.arrayColumns);
+  const expressions = tableConfig.columns.map((column) =>
+    arrayColumns.has(column) ? 'PARSE_JSON(?)::ARRAY' : '?',
+  );
+  const selects = Array.from(
+    { length: rowCount },
+    () => `SELECT ${expressions.join(', ')}`,
+  );
+  return `INSERT INTO ${fqTable} (${tableConfig.columns.join(', ')}) ${selects.join(' UNION ALL ')}`;
+}
+
 async function generationExists(conn, fqTable, generationId) {
   const rows = await execAsync(conn, {
     sqlText: `SELECT COUNT(*) AS ROW_COUNT FROM ${fqTable} WHERE GENERATIONID = ?`,
@@ -77,18 +89,16 @@ async function generationExists(conn, fqTable, generationId) {
 async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50) {
   if (!rows.length) return 0;
   const arrayColumns = new Set(tableConfig.arrayColumns);
-  const expressions = tableConfig.columns.map((column) =>
-    arrayColumns.has(column) ? 'PARSE_JSON(?)::ARRAY' : '?',
-  );
   let inserted = 0;
   for (let offset = 0; offset < rows.length; offset += chunkSize) {
     const chunk = rows.slice(offset, offset + chunkSize);
-    const valueSql = chunk.map(() => `(${expressions.join(', ')})`).join(', ');
     const binds = chunk.flatMap((row) =>
       tableConfig.columns.map((column) => bindValue(row[column], arrayColumns.has(column))),
     );
     await execAsync(conn, {
-      sqlText: `INSERT INTO ${fqTable} (${tableConfig.columns.join(', ')}) VALUES ${valueSql}`,
+      // Snowflake rejects PARSE_JSON bind expressions inside a VALUES clause.
+      // SELECT/UNION ALL keeps array conversion server-side and supports batches.
+      sqlText: buildInsertSql(fqTable, tableConfig, chunk.length),
       binds,
     });
     inserted += chunk.length;
@@ -251,6 +261,7 @@ async function handleIndustryProfileBundle(input) {
 }
 
 module.exports = {
+  buildInsertSql,
   handleIndustryEnrich,
   handleIndustryProfileBundle,
   normalizeProfileSelector,
