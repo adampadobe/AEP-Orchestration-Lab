@@ -1,14 +1,14 @@
 {
-  "gitSha": "bcf5615be39008b2d2eba456754080fb1b11d2f8",
-  "gitShortSha": "bcf5615b",
+  "gitSha": "536c54265002228c8b2387863bab03ce58d8d7fa",
+  "gitShortSha": "536c5426",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Keep Snowflake previews within viewport",
+  "gitCommitSubject": "[apalmer] Contain Snowflake preview overflow",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-23T20:13:05+01:00",
-  "deployedAt": "2026-07-23T19:14:04.593Z",
+  "gitCommitDate": "2026-07-23T20:19:27+01:00",
+  "deployedAt": "2026-07-23T19:20:55.326Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bcf5615be39008b2d2eba456754080fb1b11d2f8"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/536c54265002228c8b2387863bab03ce58d8d7fa"
 }
