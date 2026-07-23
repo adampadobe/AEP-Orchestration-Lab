@@ -1270,6 +1270,11 @@
         ? allTables.length + ' of ' + allTables.length + ' tables ready'
         : tableCheck.existingCount + ' ready · ' + tableCheck.missingCount + ' missing';
     }
+    if (els.industryTableDetailsStatus) {
+      els.industryTableDetailsStatus.textContent = tableCheck.missingCount === 0
+        ? allTables.length + ' tables ready'
+        : tableCheck.missingCount + ' of ' + allTables.length + ' tables missing';
+    }
     var recipe = selectedProvisionRecipe(manifest);
     var travelPreinstalled = recipe && recipe.provisionMode === 'preinstalled';
     if (els.industryProvisionBtn) {
@@ -1313,6 +1318,7 @@
         );
       });
     }).catch(function (error) {
+      if (els.industryTableDetails) els.industryTableDetails.open = true;
       setIndustryMessage(error && error.message || String(error), 'error');
     }).then(function () {
       setIndustryBusy(false);
@@ -1846,6 +1852,8 @@
     els.queryTableName = $('sfQueryTableName');
     els.generateTargetTable = $('sfGenerateTargetTable');
     els.industryReadinessStatus = $('sfIndustryReadinessStatus');
+    els.industryTableDetails = $('sfIndustryTableDetails');
+    els.industryTableDetailsStatus = $('sfIndustryTableDetailsStatus');
     els.industryTableGrid = $('sfIndustryTableGrid');
     els.industryRefreshBtn = $('sfIndustryRefreshBtn');
     els.industryDryRunBtn = $('sfIndustryDryRunBtn');

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260723-industry-workflow">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260723-collapsible-tables">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -190,14 +190,22 @@
               </div>
               <strong id="sfIndustryReadinessStatus">Check readiness to inspect Snowflake</strong>
             </div>
-            <div id="sfIndustryTableGrid" class="sf-gen-table-status-grid" aria-live="polite"></div>
-            <div class="form-row form-row--actions sf-gen-actions">
-              <button type="button" id="sfIndustryRefreshBtn" class="btn btn-secondary">Check readiness</button>
-              <button type="button" id="sfIndustryDryRunBtn" class="btn btn-secondary" disabled>Preview provisioning</button>
-              <button type="button" id="sfIndustryProvisionBtn" class="btn btn-primary" disabled>Create missing tables</button>
-            </div>
-            <div id="sfIndustryMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
-            <pre id="sfIndustryProvisionOut" class="sf-gen-sql-pre" hidden></pre>
+            <details id="sfIndustryTableDetails" class="sf-gen-table-details">
+              <summary>
+                <span>Table details &amp; provisioning</span>
+                <span id="sfIndustryTableDetailsStatus">Expand to inspect governed tables</span>
+              </summary>
+              <div class="sf-gen-table-details-body">
+                <div id="sfIndustryTableGrid" class="sf-gen-table-status-grid" aria-live="polite"></div>
+                <div class="form-row form-row--actions sf-gen-actions">
+                  <button type="button" id="sfIndustryRefreshBtn" class="btn btn-secondary">Check readiness</button>
+                  <button type="button" id="sfIndustryDryRunBtn" class="btn btn-secondary" disabled>Preview provisioning</button>
+                  <button type="button" id="sfIndustryProvisionBtn" class="btn btn-primary" disabled>Create missing tables</button>
+                </div>
+                <div id="sfIndustryMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+                <pre id="sfIndustryProvisionOut" class="sf-gen-sql-pre" hidden></pre>
+              </div>
+            </details>
           </article>
 
           <div class="sf-gen-dual">
@@ -410,6 +418,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260723-snowflake-industry"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260723-industry-workflow"></script>
+  <script src="profile-generation-snowflake.js?v=20260723-collapsible-tables"></script>
 </body>
 </html>
