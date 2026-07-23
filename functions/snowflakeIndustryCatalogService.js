@@ -11,6 +11,7 @@ const {
   getIndustryManifest,
   listSupportedIndustries,
   validateTravelProposal,
+  validateIndustryProposal,
 } = require('./snowflakeIndustryManifest');
 const { validateProvisionProposal, listProvisionRecipes } = require('./snowflakeProvisionRecipes');
 
@@ -274,22 +275,20 @@ async function handleValidateProposal(input) {
       recipe_id: recipeId,
       proposed_tables: proposedTables,
     });
-    const travelValidation =
-      industry === 'travel'
-        ? validateTravelProposal({
-            phases: input.phases,
-            eventTypes: input.eventTypes || input.event_types,
-            count: input.count,
-          })
-        : null;
+    const industryValidation = validateIndustryProposal({
+      industry,
+      phases: input.phases,
+      eventTypes: input.eventTypes || input.event_types,
+      count: input.count,
+    });
 
     const errors = [
       ...provisionValidation.errors,
-      ...(travelValidation ? travelValidation.errors : []),
+      ...industryValidation.errors,
     ];
     const warnings = [
       ...provisionValidation.warnings,
-      ...(travelValidation ? travelValidation.warnings : []),
+      ...industryValidation.warnings,
     ];
 
     return {
@@ -302,50 +301,15 @@ async function handleValidateProposal(input) {
         errors,
         warnings,
         provision: provisionValidation,
-        travel: travelValidation,
+        industry: industryValidation,
       },
       runner: industry === 'travel' ? runnerConfigured() : null,
-      manifest:
-        industry === 'travel' && travelValidation
-          ? {
-              dualLoadTarget: travelValidation.manifestSummary.dualLoadTarget,
-              queryTable: travelValidation.manifestSummary.queryTable,
-              enrichEventTypes: travelValidation.manifestSummary.enrichEventTypes,
-            }
-          : null,
+      manifest: industryValidation.manifestSummary,
     };
   }
 
-  if (industry !== 'travel') {
-    const manifest = getIndustryManifest(industry);
-    if (!manifest) {
-      return {
-        ok: false,
-        error: {
-          message: `Unsupported industry "${industry}". Supported: ${listSupportedIndustries().join(', ')}`,
-          code: 'UNSUPPORTED_INDUSTRY',
-          sqlState: null,
-          hints: [],
-        },
-      };
-    }
-    return {
-      ok: true,
-      sandbox,
-      industry,
-      validation: {
-        ok: true,
-        valid: true,
-        errors: [],
-        warnings: ['Supply the industry profile_customer.v1 recipe_id to validate governed provisioning.'],
-        recipesForIndustry: listProvisionRecipes(industry),
-      },
-      runner: null,
-      manifest: projectManifest(industry),
-    };
-  }
-
-  const validation = validateTravelProposal({
+  const validation = validateIndustryProposal({
+    industry,
     phases: input.phases,
     eventTypes: input.eventTypes || input.event_types,
     count: input.count,
@@ -356,7 +320,7 @@ async function handleValidateProposal(input) {
     sandbox,
     industry,
     validation,
-    runner: runnerConfigured(),
+    runner: industry === 'travel' ? runnerConfigured() : null,
     manifest: {
       dualLoadTarget: validation.manifestSummary.dualLoadTarget,
       queryTable: validation.manifestSummary.queryTable,

@@ -978,6 +978,13 @@
         }
       },
       {
+        "source": "/api/snowflake/agentic/profile-bundle",
+        "function": {
+          "functionId": "snowflakeAgenticProfileBundle",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/snowflake/industry-catalog",
         "function": {
           "functionId": "snowflakeIndustryCatalog",

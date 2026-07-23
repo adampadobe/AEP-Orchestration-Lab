@@ -106,6 +106,14 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .enum(['crm_generate', 'mirror'])
           .optional()
           .describe('Snowflake dual-load mode (default crm_generate). mirror = legacy AEP attribute mapper.'),
+        snowflake_enrichment: z
+          .boolean()
+          .optional()
+          .describe('Non-travel opt-in: populate all governed event/enrichment tables after each CRM insert.'),
+        snowflake_event_types: z
+          .array(z.string())
+          .optional()
+          .describe('Optional industry event/enrichment keys; omit for all five tables.'),
         snowflake_table: z
           .string()
           .optional()
@@ -131,6 +139,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       use_stored_prefs,
       dual_load_snowflake,
       dual_load_snowflake_mode,
+      snowflake_enrichment,
+      snowflake_event_types,
       snowflake_table,
     }) => {
       const keyId = getRequestKeyId();
@@ -238,6 +248,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           use_stored_prefs: useStoredPrefs,
           dual_load_snowflake: dual_load_snowflake === true,
           dual_load_snowflake_mode: dual_load_snowflake_mode || 'crm_generate',
+          snowflake_enrichment: snowflake_enrichment === true,
+          snowflake_event_types,
           snowflake_table,
         },
       });

@@ -194,6 +194,28 @@ Requires user MCP key + Snowflake credential. Full generate/enrich need **AGENTI
 
    > **lab_snowflake_query_profiles** limit 10 → **lab_snowflake_enrich_profiles** with CRM rows from query + event_types ["hotel","loyalty"].
 
+## Workflow 1d — Snowflake non-travel event enrichment (v3.27+)
+
+FSI, retail, telecom, media, and sports each have one CRM profile table, four event tables, and one enrichment profile table. All rows share **EMAIL**, **ECID**, and **CRMID**.
+
+1. Provision all six tables idempotently:
+
+   > **lab_snowflake_provision** sandbox apalmer industry retail recipe_id retail.all.v1
+
+2. Generate a dual-load profile and opt into activity generation:
+
+   > **lab_generate_profile** sandbox apalmer industry retail randomize true dual_load_snowflake true snowflake_enrichment true
+
+   `snowflake_enrichment` defaults false for backward-compatible latency. Optionally pass `snowflake_event_types`; omit it for all five retail tables.
+
+3. Validate the joined result without raw SQL:
+
+   > **lab_snowflake_get_profile_bundle** sandbox apalmer industry retail email `{generated email}` event_limit 25
+
+4. Re-running enrichment is retry-safe. The deterministic `GENERATIONID` causes already-populated tables to be reported as idempotent rather than duplicated.
+
+Use the corresponding `{industry}.all.v1` recipe and manifest event keys for fsi, telecom, media, or sports. Travel continues to use its Python runner.
+
 ### Retail draft table proposals (read-only)
 
 > **lab_snowflake_validate_proposal** sandbox apalmer industry retail proposed_tables ["RETAIL_PROFILE_CUSTOMER","RETAIL_EVENT_PURCHASE"] — no provision recipes for retail yet.

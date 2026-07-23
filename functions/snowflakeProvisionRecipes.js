@@ -8,6 +8,7 @@
 const { COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
 const { PHASE_TABLES, TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
+const { listIndustryEventTables } = require('./snowflakeIndustryEventRegistry');
 
 /** @typedef {'preinstalled' | 'create_if_not_exists'} ProvisionMode */
 
@@ -46,11 +47,11 @@ const PROVISION_RECIPES = {
       'or this preinstalled recipe to confirm readiness before generate-full / enrich.',
   },
   ...Object.fromEntries(
-    ['fsi', 'retail', 'telecom', 'media', 'sports'].map((industry) => {
+    ['fsi', 'retail', 'telecom', 'media', 'sports'].flatMap((industry) => {
       const profile = getIndustryProfileConfig(industry);
-      const id = `${industry}.profile_customer.v1`;
-      return [id, {
-        id,
+      const profileId = `${industry}.profile_customer.v1`;
+      const profileRecipe = {
+        id: profileId,
         industry,
         label: `Agentic ${industry.toUpperCase()} CRM profile customer table`,
         provisionMode: 'create_if_not_exists',
@@ -58,7 +59,44 @@ const PROVISION_RECIPES = {
         ddlKind: 'industry_profile_customer',
         columnDdl: profile.columnDdl,
         description: `Operational CRM profile table for ${industry} dual-load generation.`,
-      }];
+      };
+      const eventRecipes = listIndustryEventTables(industry).map((entry) => {
+        const id = `${industry}.${entry.key === 'return' ? 'event_return' : entry.kind === 'event' ? `event_${entry.key}` : `profile_${entry.key}`}.v1`;
+        return [id, {
+          id,
+          industry,
+          label: `${entry.table} ${entry.kind} table`,
+          provisionMode: 'create_if_not_exists',
+          table: entry.table,
+          ddlKind: 'industry_event_or_enrichment',
+          columnDdl: entry.columnDdl,
+          description: `${industry} ${entry.key} ${entry.kind} table for generated profile enrichment.`,
+        }];
+      });
+      const allId = `${industry}.all.v1`;
+      const allRecipe = {
+        id: allId,
+        industry,
+        label: `All Agentic ${industry.toUpperCase()} profile, event, and enrichment tables`,
+        provisionMode: 'create_if_not_exists',
+        ddlKind: 'industry_all',
+        tables: [
+          {
+            table: profile.table,
+            columnDdl: profile.columnDdl,
+          },
+          ...listIndustryEventTables(industry).map((entry) => ({
+            table: entry.table,
+            columnDdl: entry.columnDdl,
+          })),
+        ],
+        description: `Creates all six allowlisted ${industry} tables idempotently.`,
+      };
+      return [
+        [profileId, profileRecipe],
+        ...eventRecipes,
+        [allId, allRecipe],
+      ];
     }),
   ),
 };
@@ -120,18 +158,56 @@ function fullyQualified(database, schema, table) {
  * @returns {{ sql: string, table: string, fqTable: string }}
  */
 function buildCreateTableStatement(recipe, database, schema) {
+  const statements = buildCreateTableStatements(recipe, database, schema);
+  if (statements.length !== 1) {
+    throw new Error(
+      `Recipe "${recipe.id}" contains ${statements.length} tables; use buildCreateTableStatements`,
+    );
+  }
+  return statements[0];
+}
+
+/**
+ * Build one or more CREATE TABLE IF NOT EXISTS statements for an allowlisted recipe.
+ * @param {object} recipe
+ * @param {string} database
+ * @param {string} schema
+ * @returns {Array<{ sql: string, table: string, fqTable: string }>}
+ */
+function buildCreateTableStatements(recipe, database, schema) {
   if (recipe.provisionMode !== 'create_if_not_exists') {
     throw new Error(`Recipe "${recipe.id}" is not create_if_not_exists`);
   }
-  if (!['base_profiles', 'industry_profile_customer'].includes(recipe.ddlKind)) {
+  if (![
+    'base_profiles',
+    'industry_profile_customer',
+    'industry_event_or_enrichment',
+    'industry_all',
+  ].includes(recipe.ddlKind)) {
     throw new Error(`Unsupported ddlKind "${recipe.ddlKind}" for recipe "${recipe.id}"`);
   }
-  const table = safeIdentifier(recipe.table, '');
-  const fqTable = fullyQualified(database, schema, table);
-  const ddl = recipe.ddlKind === 'industry_profile_customer' ? recipe.columnDdl : COLUMN_DDL;
-  if (!Array.isArray(ddl) || !ddl.length) throw new Error(`Recipe "${recipe.id}" has no column DDL`);
-  const sql = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${ddl.join(',\n  ')}\n)`;
-  return { sql, table, fqTable };
+  const tableDefinitions = recipe.ddlKind === 'industry_all'
+    ? recipe.tables
+    : [{
+        table: recipe.table,
+        columnDdl: recipe.ddlKind === 'base_profiles' ? COLUMN_DDL : recipe.columnDdl,
+      }];
+  if (!Array.isArray(tableDefinitions) || !tableDefinitions.length) {
+    throw new Error(`Recipe "${recipe.id}" has no table definitions`);
+  }
+  return tableDefinitions.map((definition) => {
+    const tableName = safeIdentifier(definition.table, '');
+    const fqTable = fullyQualified(database, schema, tableName);
+    const ddl = definition.columnDdl;
+    if (!Array.isArray(ddl) || !ddl.length) {
+      throw new Error(`Recipe "${recipe.id}" table "${tableName}" has no column DDL`);
+    }
+    return {
+      sql: `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${ddl.join(',\n  ')}\n)`,
+      table: tableName,
+      fqTable,
+    };
+  });
 }
 
 /**
@@ -200,6 +276,7 @@ module.exports = {
   listProvisionRecipeIds,
   listProvisionRecipes,
   buildCreateTableStatement,
+  buildCreateTableStatements,
   validateProvisionProposal,
   safeIdentifier,
   fullyQualified,

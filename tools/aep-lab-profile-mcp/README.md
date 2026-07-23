@@ -38,13 +38,16 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
 | `lab_mcp_first_run_setup` | `POST /api/lab/mcp-first-run-setup` + readiness | **First Coworker session** — workspace profile, RTDB ldapSlug, infra/event checklist |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
-| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row for travel, FSI, retail, telecom, media, or sports |
+| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |
 | `lab_snowflake_test_connection` | `POST /api/snowflake/connection-test` | `SELECT CURRENT_VERSION()`; NETWORK POLICY hints (static IP 34.58.81.28) |
 | `lab_snowflake_generate_base_profiles` | `POST /api/snowflake/generate-base-profiles` | Snowflake-only batch INSERT; default **use_generation_prefs:true** (shared Firestore `<local>+DDMMYYYY-N@domain` counter) |
 | `lab_snowflake_create_profile` | `POST /api/snowflake/insert-profile-from-aep` | Single independent industry CRM row (dual-load repair) |
 | `lab_snowflake_get_profile_by_email` | `POST /api/snowflake/agentic/query-profiles` | **Full industry row by email**; optional `industry` defaults to travel |
 | `lab_snowflake_query_profiles` | `POST /api/snowflake/agentic/query-profiles` | Industry-aware full-row readback by email/ecid or list filters |
+| `lab_snowflake_enrich_profiles` | `POST /api/snowflake/agentic/enrich-profiles` | Populate selected industry event/enrichment tables for existing CRM profiles |
+| `lab_snowflake_get_profile_bundle` | `POST /api/snowflake/agentic/profile-bundle` | Non-travel profile plus bounded rows from all five allowlisted activity tables |
+| `lab_snowflake_provision` | `POST /api/snowflake/provision` | Governed recipes, including `{fsi,retail,telecom,media,sports}.all.v1` (six tables each) |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |

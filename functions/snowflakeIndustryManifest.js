@@ -8,6 +8,10 @@
 const { COLUMNS } = require('./snowflakeBaseProfileSchema');
 const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
 const { INDUSTRY_CONFIG } = require('./snowflakeIndustryProfileRegistry');
+const {
+  listIndustryEventTables,
+  listIndustryEventTypes,
+} = require('./snowflakeIndustryEventRegistry');
 
 const PHASE_TABLES = {
   phase1: [
@@ -119,12 +123,24 @@ const TRAVEL_MANIFEST = {
 
 function buildCrmIndustryManifest(industry, label) {
   const config = INDUSTRY_CONFIG[industry];
+  const tableConfigs = listIndustryEventTables(industry);
+  const eventTables = tableConfigs.filter((entry) => entry.kind === 'event');
+  const enrichmentTables = tableConfigs.filter((entry) => entry.kind === 'enrichment');
+  const enrichEventTypes = listIndustryEventTypes(industry);
   return {
     industry,
     label,
     status: 'active',
-    phaseTables: { profile: [config.table] },
-    allTables: [config.table],
+    phaseTables: {
+      profile: [config.table],
+      events: eventTables.map((entry) => entry.table),
+      enrichment: enrichmentTables.map((entry) => entry.table),
+    },
+    allTables: [
+      config.table,
+      ...eventTables.map((entry) => entry.table),
+      ...enrichmentTables.map((entry) => entry.table),
+    ],
     baseProfiles: {
       table: config.table,
       columnCount: config.columns.length,
@@ -141,9 +157,17 @@ function buildCrmIndustryManifest(industry, label) {
       },
       note: 'AEP carries real-time behavioural attributes; Snowflake carries complementary operational CRM data.',
     },
-    eventGroups: {},
-    enrichEventTypes: [],
-    validationRules: { phases: ['profile'] },
+    eventGroups: {
+      core: eventTables.slice(0, 2).map((entry) => entry.key),
+      service: eventTables.slice(2).map((entry) => entry.key),
+      enrichment: enrichmentTables.map((entry) => entry.key),
+    },
+    enrichEventTypes,
+    validationRules: {
+      phases: ['profile', 'events', 'enrichment'],
+      enrichProfilesRequired: ['profiles', 'eventTypes'],
+      enrichEventTypesAllowed: enrichEventTypes,
+    },
   };
 }
 
@@ -186,9 +210,34 @@ function listSupportedIndustries() {
  * @param {number} [input.count]
  */
 function validateTravelProposal(input) {
-  const manifest = TRAVEL_MANIFEST;
+  return validateIndustryProposal({ ...input, industry: 'travel' });
+}
+
+/**
+ * Read-only validation for enrich / phase proposals for any supported industry.
+ * @param {object} input
+ * @param {string} [input.industry]
+ * @param {string[]} [input.phases]
+ * @param {string[]} [input.eventTypes]
+ * @param {number} [input.count]
+ */
+function validateIndustryProposal(input) {
+  const industry = String(input.industry || 'travel').trim().toLowerCase();
+  const manifest = getIndustryManifest(industry);
   const errors = [];
   const warnings = [];
+
+  if (!manifest) {
+    return {
+      ok: false,
+      industry,
+      valid: false,
+      errors: [`Unsupported industry "${industry}". Expected: ${listSupportedIndustries().join(', ')}`],
+      warnings,
+      resolved: { phases: [], eventTypes: [] },
+      manifestSummary: null,
+    };
+  }
 
   const phases = Array.isArray(input.phases) ? input.phases : [];
   const eventTypes = Array.isArray(input.eventTypes) ? input.eventTypes : [];
@@ -217,9 +266,11 @@ function validateTravelProposal(input) {
 
   if (countRaw != null && countRaw !== '') {
     const count = Number(countRaw);
-    const { min, max } = manifest.validationRules.generateFullCount;
-    if (!Number.isFinite(count) || count < min || count > max) {
-      errors.push(`count must be between ${min} and ${max}`);
+    const countRules = manifest.validationRules.generateFullCount;
+    if (countRules && (!Number.isFinite(count) || count < countRules.min || count > countRules.max)) {
+      errors.push(`count must be between ${countRules.min} and ${countRules.max}`);
+    } else if (!countRules && countRaw != null && countRaw !== '') {
+      warnings.push(`count is ignored for ${industry}; enrich existing profiles instead.`);
     }
   }
 
@@ -229,7 +280,7 @@ function validateTravelProposal(input) {
 
   return {
     ok: errors.length === 0,
-    industry: 'travel',
+    industry,
     valid: errors.length === 0,
     errors,
     warnings,
@@ -262,4 +313,5 @@ module.exports = {
   getIndustryManifest,
   listSupportedIndustries,
   validateTravelProposal,
+  validateIndustryProposal,
 };

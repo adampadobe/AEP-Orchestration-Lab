@@ -9,7 +9,7 @@ const admin = require('firebase-admin');
 const {
   getProvisionRecipe,
   listProvisionRecipes,
-  buildCreateTableStatement,
+  buildCreateTableStatements,
   validateProvisionProposal,
 } = require('./snowflakeProvisionRecipes');
 const {
@@ -108,7 +108,7 @@ async function handleProvision(input) {
 
   if (recipe.provisionMode === 'create_if_not_exists') {
     return withSnowflakeConnection(labUser, sandbox, async (conn, cfg) => {
-      const { sql, table, fqTable } = buildCreateTableStatement(
+      const statements = buildCreateTableStatements(
         recipe,
         cfg.database,
         cfg.schema,
@@ -123,8 +123,8 @@ async function handleProvision(input) {
           provisionMode: recipe.provisionMode,
           dry_run: true,
           approval_id: approvalId,
-          sqlPreview: sql.slice(0, 500),
-          table: fqTable,
+          sqlPreview: statements.map((entry) => entry.sql.slice(0, 500)),
+          tables: statements.map((entry) => entry.fqTable),
         });
         return {
           ok: true,
@@ -133,13 +133,32 @@ async function handleProvision(input) {
           recipe_id: recipeId,
           dry_run: true,
           provisionMode: recipe.provisionMode,
-          plannedSql: sql,
-          table: fqTable,
+          plannedStatements: statements.map((entry) => ({
+            table: entry.fqTable,
+            sql: entry.sql,
+          })),
+          tables: statements.map((entry) => entry.fqTable),
           executed: false,
         };
       }
 
-      await execAsync(conn, { sqlText: sql });
+      const tableResults = [];
+      for (const statement of statements) {
+        try {
+          await execAsync(conn, { sqlText: statement.sql });
+          tableResults.push({ table: statement.fqTable, ok: true, executed: true });
+        } catch (error) {
+          tableResults.push({
+            table: statement.fqTable,
+            ok: false,
+            executed: false,
+            error: String(error && error.message || error),
+          });
+          break;
+        }
+      }
+      const allSucceeded = tableResults.length === statements.length
+        && tableResults.every((result) => result.ok);
       await writeProvisionAuditLog({
         labUser,
         sandbox,
@@ -148,20 +167,30 @@ async function handleProvision(input) {
         provisionMode: recipe.provisionMode,
         dry_run: false,
         approval_id: approvalId,
-        table: fqTable,
-        executed: true,
+        tables: statements.map((entry) => entry.fqTable),
+        tableResults,
+        executed: allSucceeded,
       });
 
       return {
-        ok: true,
+        ok: allSucceeded,
         sandbox,
         industry,
         recipe_id: recipeId,
         dry_run: false,
         provisionMode: recipe.provisionMode,
-        table: fqTable,
-        executed: true,
+        tables: statements.map((entry) => entry.fqTable),
+        tableResults,
+        executed: allSucceeded,
         sqlExecuted: 'CREATE TABLE IF NOT EXISTS',
+        error: allSucceeded
+          ? null
+          : {
+              message: 'Provisioning stopped after a table creation failed',
+              code: 'TABLE_CREATE_FAILED',
+              sqlState: null,
+              hints: ['Retrying the same recipe is safe because every statement uses IF NOT EXISTS.'],
+            },
       };
     });
   }

@@ -7,6 +7,7 @@ const {
   getProvisionRecipe,
   listProvisionRecipeIds,
   buildCreateTableStatement,
+  buildCreateTableStatements,
   validateProvisionProposal,
 } = require('../snowflakeProvisionRecipes');
 const { handleProvision } = require('../snowflakeProvisionService');
@@ -19,8 +20,25 @@ describe('snowflakeProvisionRecipes', () => {
     assert.ok(ids.includes('travel.agentic_all.preinstalled.v1'));
     for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
       assert.ok(ids.includes(`${industry}.profile_customer.v1`));
+      assert.ok(ids.includes(`${industry}.all.v1`));
     }
     assert.equal(Object.keys(PROVISION_RECIPES).length, ids.length);
+  });
+
+  it('builds six idempotent CREATE statements for every industry all recipe', () => {
+    for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const statements = buildCreateTableStatements(
+        getProvisionRecipe(`${industry}.all.v1`),
+        'TRAVEL_DATABASE',
+        'AEP_SCHEMA',
+      );
+      assert.equal(statements.length, 6);
+      assert.equal(new Set(statements.map((entry) => entry.table)).size, 6);
+      for (const statement of statements) {
+        assert.match(statement.sql, /^CREATE TABLE IF NOT EXISTS /);
+        assert.doesNotMatch(statement.sql, /\b(?:DROP|ALTER|DELETE)\b/i);
+      }
+    }
   });
 
   it('builds industry CRM CREATE TABLE statements from allowlisted schemas', () => {

@@ -12,6 +12,7 @@ import {
   snowflakeValidateProposal,
   snowflakeGenerateFull,
   snowflakeEnrichProfiles,
+  snowflakeProfileBundle,
   snowflakeProvision,
   STATIC_EGRESS_IP,
 } from '../labApiClient.mjs';
@@ -91,6 +92,14 @@ export const SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES = [
 ];
 
 export const SNOWFLAKE_PROFILE_INDUSTRIES = ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports'];
+export const SNOWFLAKE_ENRICH_EVENT_TYPES = [
+  'mobile', 'website', 'booking', 'checkin', 'call', 'disruption', 'inflight', 'hotel', 'loyalty', 'pos',
+  'digital', 'transaction', 'application', 'advisory', 'products',
+  'order', 'browse', 'return', 'service', 'rewards',
+  'usage', 'billing', 'network', 'devices',
+  'viewing', 'engagement', 'download', 'watchlist',
+  'attendance', 'merchandise', 'betting', 'membership',
+];
 
 export function snowflakeProfileIndustryInputSchema() {
   return z
@@ -643,29 +652,16 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_validate_proposal',
     {
-      title: 'Validate Snowflake provision or travel enrich proposal',
+      title: 'Validate Snowflake provision or industry enrich proposal',
       description:
         'POST /api/snowflake/industry-validate-proposal — validates allowlisted industry provision recipes; ' +
-        'travel additionally supports phases, enrich event_types, and generate-full count. No DDL or arbitrary SQL.',
+        'validates phases and enrich event_types against the selected industry manifest. No DDL or arbitrary SQL.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.string().optional().describe('Industry (default travel)'),
-        phases: z.array(z.enum(['phase1', 'phase2', 'phase3'])).optional(),
+        phases: z.array(z.enum(['phase1', 'phase2', 'phase3', 'profile', 'events', 'enrichment'])).optional(),
         event_types: z
-          .array(
-            z.enum([
-              'mobile',
-              'website',
-              'booking',
-              'checkin',
-              'call',
-              'disruption',
-              'inflight',
-              'hotel',
-              'loyalty',
-              'pos',
-            ]),
-          )
+          .array(z.enum(SNOWFLAKE_ENRICH_EVENT_TYPES))
           .optional(),
         count: z.number().int().min(1).max(1000).optional().describe('generate-full profile count'),
         recipe_id: z
@@ -736,7 +732,7 @@ export function registerSnowflakeTools(mcpServer) {
         industry: z.string().optional().describe('Industry (default travel)'),
         recipe_id: z
           .string()
-          .describe('Allowlisted recipe id, e.g. fsi.profile_customer.v1 or travel.agentic_all.preinstalled.v1'),
+          .describe('Allowlisted recipe id, e.g. fsi.all.v1 or travel.agentic_all.preinstalled.v1'),
         dry_run: z
           .boolean()
           .optional()
@@ -795,12 +791,15 @@ export function registerSnowflakeTools(mcpServer) {
         dry_run: result.dry_run === true,
         provisionMode: result.provisionMode || null,
         plannedSql: result.plannedSql || null,
+        plannedStatements: result.plannedStatements || null,
         table: result.table || null,
+        tables: result.tables || null,
+        tableResults: result.tableResults || null,
         tableCheck: result.tableCheck || null,
         executed: result.executed === true,
         coworkerNextSteps: [
           'lab_snowflake_industry_catalog — confirm tableCheck after create_if_not_exists',
-          'fsi|retail|telecom|media|sports.profile_customer.v1 — create the selected industry CRM table before first dual-load',
+          'fsi|retail|telecom|media|sports.all.v1 — create all six selected-industry tables before enrichment',
           'travel.base_profiles.v1 then lab_snowflake_generate_base_profiles for Node batch rows',
           'travel.agentic_all.preinstalled.v1 — verify Agentic tables before generate-full',
         ],
@@ -878,12 +877,14 @@ export function registerSnowflakeTools(mcpServer) {
   mcpServer.registerTool(
     'lab_snowflake_enrich_profiles',
     {
-      title: 'Snowflake Agentic travel enrich profiles',
+      title: 'Snowflake industry enrich profiles',
       description:
-        'POST /api/snowflake/agentic/enrich-profiles — add event streams for existing CRM profiles via Python runner. ' +
-        'Requires user MCP key. event_types from travel manifest (website, booking, mobile, …).',
+        'POST /api/snowflake/agentic/enrich-profiles — add event/enrichment rows for existing CRM profiles. ' +
+        'Travel uses the Python runner; fsi, retail, telecom, media, and sports use governed Firebase generators. ' +
+        'Requires a user MCP key. event_types must belong to the selected industry manifest.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
+        industry: snowflakeProfileIndustryInputSchema(),
         profiles: z
           .array(
             z.object({
@@ -897,23 +898,12 @@ export function registerSnowflakeTools(mcpServer) {
           .min(1),
         event_types: z
           .array(
-            z.enum([
-              'mobile',
-              'website',
-              'booking',
-              'checkin',
-              'call',
-              'disruption',
-              'inflight',
-              'hotel',
-              'loyalty',
-              'pos',
-            ]),
+            z.enum(SNOWFLAKE_ENRICH_EVENT_TYPES),
           )
           .min(1),
       },
     },
-    async ({ sandbox, profiles, event_types }) => {
+    async ({ sandbox, industry, profiles, event_types }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -933,7 +923,7 @@ export function registerSnowflakeTools(mcpServer) {
 
       const proposal = await snowflakeValidateProposal({
         sandbox: allowed.sandbox,
-        industry: 'travel',
+        industry,
         event_types,
       });
       if (!proposal.ok || proposal.data?.result?.validation?.valid === false) {
@@ -943,6 +933,7 @@ export function registerSnowflakeTools(mcpServer) {
 
       const apiResult = await snowflakeEnrichProfiles({
         sandbox: allowed.sandbox,
+        industry,
         profiles,
         event_types,
       });
@@ -950,6 +941,7 @@ export function registerSnowflakeTools(mcpServer) {
         keyId,
         tool: 'lab_snowflake_enrich_profiles',
         sandbox: allowed.sandbox,
+        industry,
         result: apiResult.ok ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });
@@ -960,9 +952,66 @@ export function registerSnowflakeTools(mcpServer) {
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         profileCount: profiles.length,
+        industry,
         eventTypes: event_types,
         data: result.data || null,
         runnerNotConfigured,
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_snowflake_get_profile_bundle',
+    {
+      title: 'Get Snowflake profile with industry activity',
+      description:
+        'Returns one non-travel CRM profile plus bounded, allowlisted rows from all five industry event/enrichment tables. ' +
+        'Use after lab_snowflake_enrich_profiles to validate joined data without raw SQL.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name'),
+        industry: z.enum(['fsi', 'retail', 'telecom', 'media', 'sports']),
+        email: z.string().email().optional(),
+        ecid: z.string().optional(),
+        crm_id: z.string().optional(),
+        event_limit: z.number().int().min(1).max(100).default(25),
+      },
+    },
+    async ({ sandbox, industry, email, ecid, crm_id, event_limit }) => {
+      const started = Date.now();
+      const keyId = getRequestKeyId();
+      if (!email && !ecid && !crm_id) {
+        return toolError('email, ecid, or crm_id is required');
+      }
+      const userKey = requireUserMcpKeyForSnowflake();
+      if (!userKey.ok) {
+        return toolError(userKey.message, { code: userKey.code, coworkerPrompt: userKey.coworkerPrompt });
+      }
+      const allowed = assertSandboxAllowed(sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+      const apiResult = await snowflakeProfileBundle({
+        sandbox: allowed.sandbox,
+        industry,
+        email,
+        ecid,
+        crm_id,
+        event_limit,
+      });
+      writeAuditLog({
+        keyId,
+        tool: 'lab_snowflake_get_profile_bundle',
+        sandbox: allowed.sandbox,
+        industry,
+        result: apiResult.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        industry,
+        profile: apiResult.data?.result?.profile || null,
+        tables: apiResult.data?.result?.tables || null,
+        totalReturnedRows: apiResult.data?.result?.totalReturnedRows || 0,
       });
     },
   );

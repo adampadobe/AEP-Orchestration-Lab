@@ -12,7 +12,7 @@ import {
 } from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
-import { snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
+import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
 import {
@@ -116,6 +116,17 @@ export function registerGenerateProfileTool(mcpServer) {
           .describe(
             'Snowflake dual-load insert mode (default crm_generate). mirror = legacy AEP dot-path mapper only.',
           ),
+        snowflake_enrichment: z
+          .boolean()
+          .optional()
+          .describe(
+            'Non-travel opt-in: after the CRM row succeeds, populate the five governed industry event/enrichment tables. ' +
+              'Defaults false to preserve existing dual-load latency and behavior.',
+          ),
+        snowflake_event_types: z
+          .array(z.string())
+          .optional()
+          .describe('Optional industry event/enrichment keys; omit to populate all five non-travel tables.'),
         snowflake_table: z
           .string()
           .optional()
@@ -138,6 +149,8 @@ export function registerGenerateProfileTool(mcpServer) {
       use_stored_prefs,
       dual_load_snowflake,
       dual_load_snowflake_mode,
+      snowflake_enrichment,
+      snowflake_event_types,
       snowflake_table,
     }) => {
       const started = Date.now();
@@ -341,6 +354,38 @@ export function registerGenerateProfileTool(mcpServer) {
             emailSource: emailResolved.use_stored_prefs ? 'labProfileGenerationPrefs' : 'custom_scaled',
             error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
           };
+          if (sfResult.ok && snowflake_enrichment === true) {
+            if (norm.industry === 'travel') {
+              snowflakeDualLoad.enrichment = {
+                requested: true,
+                ok: false,
+                error: 'snowflake_enrichment from lab_generate_profile is currently supported for fsi, retail, telecom, media, and sports; use lab_snowflake_enrich_profiles for travel.',
+              };
+              snowflakeDualLoad.ok = false;
+            } else {
+              const enrichmentResult = await snowflakeEnrichProfiles({
+                sandbox: allowed.sandbox,
+                industry: norm.industry,
+                profiles: [{
+                  email: resolvedEmail,
+                  ecid: String(ecid),
+                  crmId: sfResult.data?.result?.crmId || undefined,
+                }],
+                event_types: snowflake_event_types,
+              });
+              snowflakeDualLoad.enrichment = {
+                requested: true,
+                ok: enrichmentResult.ok,
+                eventTypes: snowflake_event_types || 'all',
+                insertedRowCount: enrichmentResult.data?.result?.insertedRowCount || 0,
+                profileResults: enrichmentResult.data?.result?.profileResults || null,
+                error: enrichmentResult.ok
+                  ? null
+                  : enrichmentResult.error || enrichmentResult.data?.result?.error,
+              };
+              snowflakeDualLoad.ok = snowflakeDualLoad.ok && enrichmentResult.ok;
+            }
+          }
         } else if (dual_load_snowflake === true && !ecid) {
           snowflakeDualLoad = {
             requested: true,
@@ -380,6 +425,7 @@ export function registerGenerateProfileTool(mcpServer) {
         generate_step_results: apiResult.stepResults || null,
         ecid: apiResult.ecid || apiResult.data?.ecid || null,
         dual_load_snowflake: dual_load_snowflake === true,
+        snowflake_enrichment: snowflake_enrichment === true,
         snowflake: snowflakeDualLoad,
         ...storedPrefsMeta,
         lab_defaults_applied: {

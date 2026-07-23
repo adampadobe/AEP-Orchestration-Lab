@@ -11,7 +11,7 @@ import {
   personHintsFromAttributes,
   recordRecentProfileGenerated,
 } from './framework/recordRecentProfile.mjs';
-import { snowflakeInsertProfileFromAep } from './labApiClient.mjs';
+import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from './labApiClient.mjs';
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
 import { checkGenerateRate } from './rateLimiter.mjs';
@@ -170,10 +170,41 @@ export async function processBatchJob(jobId, { keyId }) {
             crmId: sfResult.data?.result?.crmId || null,
             error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
           };
-          if (!sfResult.ok) {
+          if (sfResult.ok && params.snowflake_enrichment === true) {
+            if (params.industry === 'travel') {
+              snowflakeDualLoad.enrichment = {
+                ok: false,
+                error: 'Batch snowflake_enrichment is currently supported for non-travel industries only.',
+              };
+              snowflakeDualLoad.ok = false;
+            } else {
+              const enrichmentResult = await snowflakeEnrichProfiles({
+                sandbox: params.sandbox,
+                industry: params.industry,
+                profiles: [{
+                  email,
+                  ecid: String(ecid),
+                  crmId: sfResult.data?.result?.crmId || undefined,
+                }],
+                event_types: params.snowflake_event_types,
+              });
+              snowflakeDualLoad.enrichment = {
+                ok: enrichmentResult.ok,
+                insertedRowCount: enrichmentResult.data?.result?.insertedRowCount || 0,
+                error: enrichmentResult.ok
+                  ? null
+                  : enrichmentResult.error || enrichmentResult.data?.result?.error,
+              };
+              snowflakeDualLoad.ok = snowflakeDualLoad.ok && enrichmentResult.ok;
+            }
+          }
+          if (!snowflakeDualLoad.ok) {
             failed += 1;
             completed -= 1;
-            const errMsg = snowflakeDualLoad.error || 'Snowflake dual-load failed';
+            const errMsg =
+              snowflakeDualLoad.error ||
+              snowflakeDualLoad.enrichment?.error ||
+              'Snowflake dual-load or enrichment failed';
             errors.push({ index: i, email, error: errMsg });
             results.push({
               index: i,

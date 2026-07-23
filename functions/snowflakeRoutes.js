@@ -47,6 +47,7 @@ function registerSnowflakeRoutes(deps) {
     snowflakeAgenticTravelService,
     snowflakeIndustryCatalogService,
     snowflakeProvisionService,
+    snowflakeIndustryEventService,
   } = deps;
 
   async function resolvePrincipal(req, res) {
@@ -312,12 +313,21 @@ function registerSnowflakeRoutes(deps) {
       return;
     }
     try {
-      const result = await snowflakeAgenticTravelService.handleAgenticEnrich({
-        labUser: uid,
-        sandbox,
-        profiles: body.profiles,
-        eventTypes: body.eventTypes,
-      });
+      const industry = String(body.industry || 'travel').trim().toLowerCase();
+      const result = industry === 'travel'
+        ? await snowflakeAgenticTravelService.handleAgenticEnrich({
+            labUser: uid,
+            sandbox,
+            profiles: body.profiles,
+            eventTypes: body.eventTypes || body.event_types,
+          })
+        : await snowflakeIndustryEventService.handleIndustryEnrich({
+            labUser: uid,
+            sandbox,
+            industry,
+            profiles: body.profiles,
+            eventTypes: body.eventTypes || body.event_types,
+          });
       const httpStatus = result.ok
         ? 200
         : (result.error && result.error.code === 'RUNNER_NOT_CONFIGURED' ? 501 : 400);
@@ -327,6 +337,43 @@ function registerSnowflakeRoutes(deps) {
       res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
     }
   });
+
+  /**
+   * POST /api/snowflake/agentic/profile-bundle — bounded, allowlisted non-travel
+   * profile + event/enrichment readback.
+   */
+  routes.snowflakeAgenticProfileBundle = onRequest(
+    { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 120, memory: '512MiB' },
+    async (req, res) => {
+      setCors(res, 'POST, OPTIONS');
+      if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+      if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+      const principal = await resolvePrincipal(req, res);
+      if (!principal) return;
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+      if (!sandbox) {
+        res.status(400).json({ ok: false, error: 'sandbox is required' });
+        return;
+      }
+      try {
+        const result = await snowflakeIndustryEventService.handleIndustryProfileBundle({
+          labUser: principal.uid,
+          sandbox,
+          industry: body.industry,
+          email: body.email,
+          ecid: body.ecid,
+          crmId: body.crmId || body.crmid,
+          eventLimit: body.eventLimit || body.event_limit,
+        });
+        res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+      } catch (e) {
+        console.error('[snowflakeAgenticProfileBundle]', String(e && e.message || e));
+        res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+      }
+    },
+  );
 
   /**
    * GET/POST /api/snowflake/industry-catalog — manifest + optional INFORMATION_SCHEMA table checks.
@@ -373,7 +420,7 @@ function registerSnowflakeRoutes(deps) {
   });
 
   /**
-   * POST /api/snowflake/industry-validate-proposal — travel-only read-only manifest validation.
+   * POST /api/snowflake/industry-validate-proposal — governed industry manifest/recipe validation.
    */
   routes.snowflakeIndustryValidateProposal = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
     setCors(res, 'POST, OPTIONS');

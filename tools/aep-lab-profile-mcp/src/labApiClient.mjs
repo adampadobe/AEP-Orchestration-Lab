@@ -773,16 +773,43 @@ export async function snowflakeGenerateFull({ sandbox, count }) {
  * POST /api/snowflake/agentic/enrich-profiles
  * @param {object} params
  */
-export async function snowflakeEnrichProfiles({ sandbox, profiles, event_types }) {
+export async function snowflakeEnrichProfiles({ sandbox, industry, profiles, event_types }) {
   return labApiRequest('/api/snowflake/agentic/enrich-profiles', {
     method: 'POST',
     body: {
       sandbox,
+      ...(industry ? { industry } : {}),
       profiles,
       eventTypes: event_types,
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 540_000,
+  });
+}
+
+/**
+ * POST /api/snowflake/agentic/profile-bundle — allowlisted non-travel readback.
+ */
+export async function snowflakeProfileBundle({
+  sandbox,
+  industry,
+  email,
+  ecid,
+  crm_id,
+  event_limit,
+}) {
+  return labApiRequest('/api/snowflake/agentic/profile-bundle', {
+    method: 'POST',
+    body: {
+      sandbox,
+      industry,
+      ...(email ? { email } : {}),
+      ...(ecid ? { ecid } : {}),
+      ...(crm_id ? { crmId: crm_id } : {}),
+      ...(event_limit != null ? { eventLimit: event_limit } : {}),
+    },
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
   });
 }
 

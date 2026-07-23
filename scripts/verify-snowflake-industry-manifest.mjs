@@ -14,6 +14,7 @@ import {
   listProvisionRecipeIds,
   listProvisionRecipes,
   getProvisionRecipe,
+  buildCreateTableStatements,
 } from '../functions/snowflakeProvisionRecipes.js';
 
 function assert(condition, message) {
@@ -22,7 +23,8 @@ function assert(condition, message) {
 
 function run() {
   assert(listSupportedIndustries().includes('travel'), 'travel industry registered');
-  assert(listSupportedIndustries().includes('retail'), 'retail draft registered');
+  const nonTravelIndustries = ['fsi', 'retail', 'telecom', 'media', 'sports'];
+  assert(nonTravelIndustries.every((industry) => listSupportedIndustries().includes(industry)), 'all non-travel industries registered');
 
   const travel = getIndustryManifest('travel');
   assert(travel.allTables.length === 14, 'travel allTables count');
@@ -43,10 +45,11 @@ function run() {
     const recipe = getProvisionRecipe(id);
     assert(recipe, `recipe exists ${id}`);
     assert(['preinstalled', 'create_if_not_exists'].includes(recipe.provisionMode), `${id} mode`);
-    assert(recipe.industry === 'travel', `${id} travel-only in v3.23`);
+    assert(listSupportedIndustries().includes(recipe.industry), `${id} industry registered`);
     if (recipe.provisionMode === 'create_if_not_exists') {
-      assert(recipe.ddlKind === 'base_profiles', `${id} ddlKind`);
-      assert(recipe.table === 'BASE_PROFILES', `${id} table`);
+      const statements = buildCreateTableStatements(recipe, 'DEMO_DB', 'AEP_SCHEMA');
+      assert(statements.length > 0, `${id} CREATE statements`);
+      assert(statements.every((entry) => /^CREATE TABLE IF NOT EXISTS /.test(entry.sql)), `${id} idempotent DDL`);
     }
     if (recipe.provisionMode === 'preinstalled') {
       assert(Array.isArray(recipe.tables) && recipe.tables.length > 0, `${id} tables`);
@@ -63,8 +66,20 @@ function run() {
   const manifestAllSorted = [...TRAVEL_MANIFEST.allTables].sort().join(',');
   assert(allSorted === manifestAllSorted, 'all preinstalled recipe matches manifest');
 
-  const travelRecipes = listProvisionRecipes('travel');
-  assert(travelRecipes.length === recipeIds.length, 'travel recipe list');
+  assert(listProvisionRecipes('travel').length === 3, 'travel recipe list');
+  for (const industry of nonTravelIndustries) {
+    const manifest = getIndustryManifest(industry);
+    assert(manifest.allTables.length === 6, `${industry} manifest has six tables`);
+    assert(manifest.phaseTables.events.length === 4, `${industry} has four event tables`);
+    assert(manifest.phaseTables.enrichment.length === 1, `${industry} has one enrichment table`);
+    assert(manifest.enrichEventTypes.length === 5, `${industry} has five enrichment types`);
+    const recipe = getProvisionRecipe(`${industry}.all.v1`);
+    assert(recipe, `${industry}.all.v1 registered`);
+    assert(
+      buildCreateTableStatements(recipe, 'DEMO_DB', 'AEP_SCHEMA').length === 6,
+      `${industry}.all.v1 creates six tables`,
+    );
+  }
 
   console.log(
     JSON.stringify({

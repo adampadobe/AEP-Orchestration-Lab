@@ -92,6 +92,14 @@ async function run() {
       `${toolName} publishes an optional industry input with travel default`,
     );
   }
+  assert(
+    registeredTools.has('lab_snowflake_get_profile_bundle'),
+    'profile bundle tool is registered',
+  );
+  assert(
+    registeredTools.get('lab_snowflake_enrich_profiles')?.inputSchema?.industry?.parse(undefined) === 'travel',
+    'enrich tool publishes industry with travel default',
+  );
   assert(snowflakeProfileTableForIndustry('generic') === null, 'generic is not a Snowflake dual-load industry');
   assert(
     SNOWFLAKE_PROFILE_READBACK_TOOL_NAMES.includes('lab_snowflake_query_profiles'),
