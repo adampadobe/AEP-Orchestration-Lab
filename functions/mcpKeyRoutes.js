@@ -1,6 +1,6 @@
 /**
  * Self-service MCP API key routes — GET/POST/DELETE /api/lab/mcp-keys
- * One active key per user per sandbox (?sandbox= on GET/POST).
+ * Multiple named active keys per user per sandbox (?sandbox= on GET/POST).
  */
 
 /**
@@ -161,6 +161,7 @@ function registerMcpKeyRoutes(deps) {
             keyPrefix: rotated.keyPrefix,
             sandbox: rotated.sandbox,
             allowedSandboxes: rotated.allowedSandboxes,
+            keyLabel: rotated.keyLabel,
             rotatedAt: rotated.rotatedAt,
             warning: 'Copy this key now. The previous key no longer works.',
           });
@@ -184,6 +185,7 @@ function registerMcpKeyRoutes(deps) {
           email,
           displayName,
           sandbox,
+          keyLabel: body.keyLabel,
           profile,
           activeSandboxNames: activeSandboxNames || undefined,
           trustedLabUser: true,
@@ -195,6 +197,7 @@ function registerMcpKeyRoutes(deps) {
           keyPrefix: created.keyPrefix,
           sandbox: created.sandbox,
           allowedSandboxes: created.allowedSandboxes,
+          keyLabel: created.keyLabel,
           principalLabel: created.principalLabel,
           createdAt: created.createdAt,
           warning: 'Copy this key now. It will not be shown again.',

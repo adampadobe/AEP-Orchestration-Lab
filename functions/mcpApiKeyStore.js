@@ -1,6 +1,6 @@
 /**
  * Self-service MCP API keys — Firestore mcpApiKeys/{keyId} + mcpSandboxAllowlist/{keyId}.
- * One active key per principalUid + sandbox. Plaintext returned only at create/rotate.
+ * Multiple active keys per principalUid + sandbox. Plaintext returned only at create/rotate.
  */
 
 const crypto = require('node:crypto');
@@ -11,6 +11,8 @@ const KEYS_COLLECTION = 'mcpApiKeys';
 const ALLOWLIST_COLLECTION = 'mcpSandboxAllowlist';
 const KEY_BYTE_LEN = 32;
 const KEY_PREFIX_DISPLAY_LEN = 8;
+const MAX_ACTIVE_KEYS_PER_SANDBOX = 10;
+const DEFAULT_KEY_LABEL = 'MCP key';
 
 let db;
 
@@ -54,6 +56,14 @@ function normalizeSandboxList(raw) {
 function normalizeSandboxName(raw) {
   const list = normalizeSandboxList([raw]);
   return list[0] || '';
+}
+
+function normalizeKeyLabel(raw) {
+  return String(raw || '')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
 }
 
 /** Derive primary sandbox from key doc (new `sandbox` field or legacy allowedSandboxes). */
@@ -184,6 +194,7 @@ function serializeKeyDoc(data) {
     keyPrefix: String(data.keyPrefix || ''),
     sandbox,
     allowedSandboxes,
+    keyLabel: normalizeKeyLabel(data.keyLabel) || DEFAULT_KEY_LABEL,
     principalLabel: String(data.principalLabel || ''),
     createdAt: firestoreTimestampToIso(data.createdAt),
     rotatedAt: firestoreTimestampToIso(data.rotatedAt),
@@ -204,21 +215,36 @@ function pickCurrentKey(keys) {
   return active[0] || null;
 }
 
+function countActiveKeysForSandbox(keys, sandbox) {
+  const sb = normalizeSandboxName(sandbox);
+  if (!sb) return 0;
+  return (Array.isArray(keys) ? keys : []).filter((key) => (
+    key &&
+    !key.revoked &&
+    (normalizeSandboxName(key.sandbox) || deriveSandboxFromKeyData(key)) === sb
+  )).length;
+}
+
 /**
- * Active key for a specific sandbox (one key per uid + sandbox).
+ * Newest active key for a specific sandbox.
  * @param {object[]} keys serialized keys
  * @param {string} sandbox
  */
 function pickKeyForSandbox(keys, sandbox) {
   const sb = normalizeSandboxName(sandbox);
   if (!sb) return null;
-  const active = (Array.isArray(keys) ? keys : []).filter((k) => k && !k.revoked);
-  for (const key of active) {
-    const keySb = normalizeSandboxName(key.sandbox)
-      || deriveSandboxFromKeyData(key);
-    if (keySb === sb) return key;
-  }
-  return null;
+  const active = (Array.isArray(keys) ? keys : [])
+    .filter((key) => {
+      if (!key || key.revoked) return false;
+      const keySb = normalizeSandboxName(key.sandbox) || deriveSandboxFromKeyData(key);
+      return keySb === sb;
+    })
+    .sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
+    });
+  return active[0] || null;
 }
 
 async function listKeysForUser(uid) {
@@ -240,33 +266,13 @@ async function listKeysForUser(uid) {
   return keys.slice(0, 50);
 }
 
-async function findActiveKeyDocForSandbox(uid, sandbox) {
-  const userId = String(uid || '').trim().slice(0, 128);
-  const sb = normalizeSandboxName(sandbox);
-  if (!userId || !sb) return null;
-
-  const snap = await getDb()
-    .collection(KEYS_COLLECTION)
-    .where('principalUid', '==', userId)
-    .get();
-
-  for (const doc of snap.docs) {
-    const data = doc.data() || {};
-    if (data.revoked) continue;
-    const keySb = deriveSandboxFromKeyData(data);
-    if (keySb === sb) {
-      return { ref: doc.ref, data: { keyId: doc.id, ...data } };
-    }
-  }
-  return null;
-}
-
 /**
  * @param {object} input
  * @param {string} input.uid
  * @param {string} input.email
  * @param {string} input.displayName
  * @param {string} input.sandbox
+ * @param {string} [input.keyLabel]
  * @param {object | null} [input.profile]
  * @param {string[]} [input.activeSandboxNames]
  */
@@ -285,15 +291,8 @@ async function createKey(input) {
     { trustedLabUser: input.trustedLabUser === true },
   );
 
-  const existing = await findActiveKeyDocForSandbox(uid, sandbox);
-  if (existing) {
-    throw Object.assign(
-      new Error(`You already have an active MCP key for sandbox "${sandbox}". Rotate or revoke it first.`),
-      { status: 409, keyId: existing.data.keyId },
-    );
-  }
-
   const allowedSandboxes = [sandbox];
+  const keyLabel = normalizeKeyLabel(input.keyLabel) || DEFAULT_KEY_LABEL;
   const plaintext = generatePlaintextKey();
   const keyId = generateStableKeyId();
   const keyHash = hashApiKey(plaintext);
@@ -309,6 +308,7 @@ async function createKey(input) {
     principalUid: uid,
     principalEmail,
     principalLabel,
+    keyLabel,
     sandbox,
     allowedSandboxes,
     revoked: false,
@@ -324,10 +324,30 @@ async function createKey(input) {
     updatedAt: now,
   };
 
-  const batch = getDb().batch();
-  batch.set(getDb().collection(KEYS_COLLECTION).doc(keyId), keyDoc);
-  batch.set(getDb().collection(ALLOWLIST_COLLECTION).doc(keyId), allowlistDoc);
-  await batch.commit();
+  const firestore = getDb();
+  const keyRef = firestore.collection(KEYS_COLLECTION).doc(keyId);
+  const allowlistRef = firestore.collection(ALLOWLIST_COLLECTION).doc(keyId);
+  const userKeysQuery = firestore
+    .collection(KEYS_COLLECTION)
+    .where('principalUid', '==', uid);
+
+  await firestore.runTransaction(async (transaction) => {
+    const snap = await transaction.get(userKeysQuery);
+    const activeKeyCount = countActiveKeysForSandbox(
+      snap.docs.map((doc) => doc.data() || {}),
+      sandbox,
+    );
+    if (activeKeyCount >= MAX_ACTIVE_KEYS_PER_SANDBOX) {
+      throw Object.assign(
+        new Error(
+          `Sandbox "${sandbox}" already has the maximum of ${MAX_ACTIVE_KEYS_PER_SANDBOX} active MCP keys. Revoke an unused key first.`,
+        ),
+        { status: 409 },
+      );
+    }
+    transaction.set(keyRef, keyDoc);
+    transaction.set(allowlistRef, allowlistDoc);
+  });
 
   return {
     key: plaintext,
@@ -335,6 +355,7 @@ async function createKey(input) {
     keyPrefix,
     sandbox,
     allowedSandboxes,
+    keyLabel,
     principalLabel,
     createdAt: new Date().toISOString(),
   };
@@ -399,6 +420,7 @@ async function rotateKey(uid, keyId) {
     keyPrefix,
     sandbox,
     allowedSandboxes,
+    keyLabel: normalizeKeyLabel(data.keyLabel) || DEFAULT_KEY_LABEL,
     rotatedAt: new Date().toISOString(),
   };
 }
@@ -472,6 +494,7 @@ module.exports = {
   timingSafeEqual,
   normalizeSandboxList,
   normalizeSandboxName,
+  normalizeKeyLabel,
   deriveSandboxFromKeyData,
   workspaceSandboxCandidates,
   validateRequestedSandboxes,
@@ -479,7 +502,9 @@ module.exports = {
   listKeysForUser,
   pickCurrentKey,
   pickKeyForSandbox,
+  countActiveKeysForSandbox,
   generateStableKeyId,
+  MAX_ACTIVE_KEYS_PER_SANDBOX,
   createKey,
   rotateKey,
   revokeKey,

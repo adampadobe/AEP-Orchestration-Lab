@@ -590,8 +590,25 @@
 .mcp-key-actions-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.mcp-key-name-input {
+  min-width: min(100%, 18rem);
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--dash-text, #2c2c2c);
+  border: 1px solid var(--dash-input-border, #cacaca);
+  border-radius: 8px;
+  background: var(--dash-input-bg, #fff);
+}
+
+.mcp-key-name-input:focus {
+  border-color: var(--dash-blue, #0265dc);
+  outline: 2px solid color-mix(in srgb, var(--dash-blue, #0265dc) 20%, transparent);
+  outline-offset: 1px;
 }
 
 .mcp-key-status {
@@ -639,6 +656,12 @@
 .mcp-key-card-prefix {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-key-card-name {
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--dash-text, #2c2c2c);
 }
@@ -823,4 +846,3 @@ body.mcp-key-modal-open {
 .mcp-gen-prefs-sync .profile-gen-prefs-sync-status {
   margin: 0;
 }
-

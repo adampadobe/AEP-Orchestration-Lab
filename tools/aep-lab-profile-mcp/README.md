@@ -356,13 +356,13 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 | API | Auth | Notes |
 |-----|------|--------|
-| `GET /api/lab/mcp-keys?sandbox=` | Firebase ID token | List keys; `currentKey` is the active key for that sandbox |
-| `POST /api/lab/mcp-keys?sandbox=` | Firebase ID token | Body `{ sandbox: "kirkham" }` — one key per user per sandbox; plaintext **once** |
+| `GET /api/lab/mcp-keys?sandbox=` | Firebase ID token | List keys; `currentKey` is the newest active key for that sandbox |
+| `POST /api/lab/mcp-keys?sandbox=` | Firebase ID token | Body `{ sandbox: "kirkham", keyLabel: "ChatGPT" }` — creates an additional named key; plaintext **once** |
 | `POST /api/lab/mcp-keys/rotate` | Firebase ID token | Body `{ keyId, action: "rotate" }` — same `keyId`, new secret, old key invalid immediately |
 | `DELETE /api/lab/mcp-keys?keyId=` | Firebase ID token | Revoke + remove `mcpSandboxAllowlist/{keyId}` |
 
-- One active key per user **per sandbox**; `allowedSandboxes` on the key is always `[sandbox]`. Legacy multi-sandbox keys still work via `allowedSandboxes[0]`.
-- Firestore: `mcpApiKeys/{keyId}` stores `keyHash` (SHA-256), `keyPrefix`, `allowedSandboxes`, `principalUid`, `revoked`.
+- Up to 10 active keys per user **per sandbox** so each client can have its own independently rotatable/revocable credential. `allowedSandboxes` on each key is always `[sandbox]`. Legacy multi-sandbox keys still work via `allowedSandboxes[0]`.
+- Firestore: `mcpApiKeys/{keyId}` stores `keyHash` (SHA-256), `keyPrefix`, `keyLabel`, `allowedSandboxes`, `principalUid`, `revoked`.
 - MCP Cloud Run auth: shared ops key (`AEP_LAB_MCP_API_KEY`) **or** user key via `keyHash` query on `mcpApiKeys`.
 - Ops seed script `scripts/seed-mcp-sandbox-allowlist.mjs` remains for shared / legacy keys.
 

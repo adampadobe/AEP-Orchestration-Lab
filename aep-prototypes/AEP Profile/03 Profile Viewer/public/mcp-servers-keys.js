@@ -1,5 +1,5 @@
 /**
- * Self-service MCP API keys on mcp-servers.html — one key per global sandbox.
+ * Self-service MCP API keys on mcp-servers.html — multiple named keys per global sandbox.
  */
 (function (global) {
   'use strict';
@@ -12,6 +12,7 @@
   var KEY_PLACEHOLDER = '<paste your key — shown only at generate/rotate>';
   var SESSION_KEY_PREFIX = 'aepLabMcpKeySecret:';
   var cachedKeysPayload = null;
+  var selectedKeyId = '';
 
   function getGlobalSandboxName() {
     if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
@@ -213,15 +214,24 @@
 
     var created = formatKeyDate(current.createdAt);
     var rotated = current.rotatedAt ? formatKeyDate(current.rotatedAt) : '';
+    var keyLabel = String(current.keyLabel || 'MCP key');
 
     section.innerHTML =
-      '<h4 class="mcp-key-section-title">Key for sandbox <code>' +
+      '<h4 class="mcp-key-section-title">' +
+      escapeHtml(keyLabel) +
+      ' — sandbox <code>' +
       escapeHtml(sb) +
       '</code></h4>' +
       '<p class="mcp-key-current-lead">This key works only in sandbox <strong>' +
       escapeHtml(sb) +
       '</strong>. The full secret is shown once when you generate or rotate.</p>' +
       '<dl class="mcp-key-current-meta">' +
+      '<div class="mcp-key-current-meta-row">' +
+      '<dt>Name</dt>' +
+      '<dd>' +
+      escapeHtml(keyLabel) +
+      '</dd>' +
+      '</div>' +
       '<div class="mcp-key-current-meta-row">' +
       '<dt>Key prefix</dt>' +
       '<dd><code class="mcp-key-current-prefix">' +
@@ -252,7 +262,7 @@
           '</dd></div>'
         : '') +
       '</dl>' +
-      '<p class="mcp-key-current-note">Use <strong>Reveal key</strong> while this browser tab is open, or <strong>Rotate key</strong> to issue a new secret for this sandbox.</p>' +
+      '<p class="mcp-key-current-note">Reveal is available only in the browser tab that created or rotated this key. Rotation affects this key only; other keys remain active.</p>' +
       '<div class="mcp-key-actions-row">' +
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyRevealBtn">Reveal key</button>' +
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyRotateBtn">Rotate key</button>' +
@@ -274,7 +284,7 @@
           return;
         }
         showKeyModal(
-          'MCP API key for ' + sb,
+          keyLabel + ' MCP API key for ' + sb,
           secret,
           'Stored for this browser tab only (sessionStorage). Copy before closing the tab.',
         );
@@ -287,7 +297,9 @@
         var ok = global.confirm(
           'Rotate the MCP API key for sandbox ' +
             sb +
-            '?\n\nThe current key stops working immediately. Update X-AEP-Lab-Mcp-Key in Coworker or Cursor.',
+            ' named "' +
+            keyLabel +
+            '"?\n\nOnly this key stops working immediately. Update the client that uses it.',
         );
         if (!ok) return;
         rotateKey(current.keyId);
@@ -298,7 +310,7 @@
     if (revokeBtn) {
       revokeBtn.addEventListener('click', function () {
         var ok = global.confirm(
-          'Revoke the MCP API key for sandbox ' + sb + '? It will stop working immediately.',
+          'Revoke the "' + keyLabel + '" MCP API key for sandbox ' + sb + '? It will stop working immediately.',
         );
         if (!ok) return;
         revokeKey(current.keyId);
@@ -462,15 +474,17 @@
     el.className = 'mcp-key-status' + (isError ? ' mcp-key-status--error' : '');
   }
 
-  function renderKeysList(keys) {
+  function renderKeysList(keys, sandbox) {
     var list = document.getElementById('mcpLabKeyList');
     if (!list) return;
 
-    var active = activeKeysSorted(keys);
-    var currentSb = getGlobalSandboxName();
+    var currentSb = sandbox || getGlobalSandboxName();
+    var active = activeKeysSorted(keys).filter(function (key) {
+      return keySandboxLabel(key) === currentSb;
+    });
 
     if (!active.length) {
-      list.innerHTML = '<p class="mcp-key-empty">No MCP keys yet — generate one per sandbox as needed.</p>';
+      list.innerHTML = '<p class="mcp-key-empty">No active MCP keys for this sandbox yet.</p>';
       return;
     }
 
@@ -478,7 +492,7 @@
       .map(function (k) {
         var sb = keySandboxLabel(k);
         var created = k.createdAt ? new Date(k.createdAt).toLocaleString() : '—';
-        var isCurrent = currentSb && sb === currentSb;
+        var isCurrent = k.keyId === selectedKeyId;
         return (
           '<article class="mcp-key-card' +
           (isCurrent ? ' mcp-key-card--current' : '') +
@@ -486,6 +500,9 @@
           escapeHtml(k.keyId) +
           '">' +
           '<div class="mcp-key-card-main">' +
+          '<span class="mcp-key-card-name">' +
+          escapeHtml(k.keyLabel || 'MCP key') +
+          '</span>' +
           '<span class="mcp-key-card-prefix" title="Key prefix">' +
           escapeHtml(k.keyPrefix || '????????') +
           '…</span>' +
@@ -500,27 +517,59 @@
           escapeHtml(created) +
           '</span>' +
           '</div>' +
+          '<div class="mcp-key-card-actions">' +
+          '<button type="button" class="dashboard-btn-outline mcp-key-manage-btn" data-key-id="' +
+          escapeHtml(k.keyId) +
+          '">' +
+          (isCurrent ? 'Managing' : 'Manage') +
+          '</button>' +
+          '</div>' +
           '</article>'
         );
       })
       .join('');
+
+    Array.prototype.forEach.call(list.querySelectorAll('.mcp-key-manage-btn'), function (button) {
+      button.addEventListener('click', function () {
+        selectedKeyId = String(button.getAttribute('data-key-id') || '');
+        refreshKeysFromCache();
+      });
+    });
   }
 
   function applyKeysPayload(data) {
     cachedKeysPayload = data;
     var sandbox = data.sandbox || getGlobalSandboxName();
-    renderCurrentKey(data.currentKey, sandbox);
-    renderKeysList(data.keys || []);
-    var hasKey = !!(data.currentKey && !data.currentKey.revoked);
+    var sandboxKeys = activeKeysSorted(data.keys || []).filter(function (key) {
+      return keySandboxLabel(key) === sandbox;
+    });
+    var selected = sandboxKeys.find(function (key) {
+      return key.keyId === selectedKeyId;
+    });
+    if (!selected) {
+      selected = data.currentKey || sandboxKeys[0] || null;
+      selectedKeyId = selected ? selected.keyId : '';
+    }
+    renderCurrentKey(selected, sandbox);
+    renderKeysList(data.keys || [], sandbox);
+    var keyCount = sandboxKeys.length;
     var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
     if (genBtn) {
-      genBtn.disabled = !sandbox || hasKey;
-      genBtn.textContent = hasKey ? 'Key exists for ' + sandbox : 'Generate key';
+      genBtn.disabled = !sandbox || keyCount >= 10;
+      genBtn.textContent = keyCount ? 'Generate additional key' : 'Generate key';
     }
     if (!sandbox) {
       setStatus('Select a sandbox in the nav to manage its MCP key.');
-    } else if (hasKey) {
-      setStatus('Active key for ' + sandbox + '.');
+    } else if (keyCount) {
+      setStatus(
+        keyCount +
+          ' active ' +
+          (keyCount === 1 ? 'key' : 'keys') +
+          ' for ' +
+          sandbox +
+          (keyCount >= 10 ? '. Revoke an unused key before creating another.' : '.'),
+        keyCount >= 10,
+      );
     } else {
       setStatus('No key for ' + sandbox + ' yet.');
     }
@@ -535,7 +584,7 @@
     var sandbox = getGlobalSandboxName();
     if (!sandbox) {
       renderCurrentKey(null, '');
-      renderKeysList([]);
+      renderKeysList([], '');
       var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
       if (genBtn) genBtn.disabled = true;
       setStatus('Select a sandbox in the nav to manage its MCP key.');
@@ -562,14 +611,21 @@
 
   function generateKey() {
     var sandbox = getGlobalSandboxName();
+    var labelInput = document.getElementById('mcpLabKeyNameInput');
+    var keyLabel = labelInput ? String(labelInput.value || '').trim() : '';
     if (!sandbox) {
       setStatus('Select a sandbox in the nav first.', true);
       return;
     }
-    setStatus('Generating key for ' + sandbox + '…');
+    if (!keyLabel) {
+      setStatus('Enter a key name such as ChatGPT or Adobe Coworker.', true);
+      if (labelInput) labelInput.focus();
+      return;
+    }
+    setStatus('Generating "' + keyLabel + '" key for ' + sandbox + '…');
     labAuthFetch('/api/lab/mcp-keys?sandbox=' + encodeURIComponent(sandbox), {
       method: 'POST',
-      body: JSON.stringify({ sandbox: sandbox }),
+      body: JSON.stringify({ sandbox: sandbox, keyLabel: keyLabel }),
     })
       .then(function (res) {
         return res.json().then(function (data) {
@@ -581,8 +637,10 @@
           throw new Error((pair.data && pair.data.error) || 'Generate failed');
         }
         storeKeyInSession(pair.data.keyId, pair.data.key);
+        selectedKeyId = pair.data.keyId;
+        if (labelInput) labelInput.value = '';
         showKeyModal(
-          'New MCP API key for ' + sandbox,
+          'New "' + (pair.data.keyLabel || keyLabel) + '" MCP API key for ' + sandbox,
           pair.data.key,
           pair.data.warning,
         );
@@ -645,6 +703,7 @@
   }
 
   function onGlobalSandboxChange() {
+    selectedKeyId = '';
     refreshKeys();
   }
 
@@ -655,7 +714,7 @@
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
       '<p class="mcp-key-lead">Sign in to generate a personal <code>X-AEP-Lab-Mcp-Key</code> for the lab MCP (<code>' +
       escapeHtml(MCP_SERVER_ID) +
-      '</code>) — one key per sandbox.</p>' +
+      '</code>). You can keep separate named keys for ChatGPT, Adobe Coworker, and other clients.</p>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeySignInBtn">Sign in to lab</button>';
     var btn = document.getElementById('mcpLabKeySignInBtn');
     if (btn) {
@@ -673,15 +732,27 @@
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
       '<div id="mcpLabKeyCurrentSection" class="mcp-key-section mcp-key-current-section" aria-live="polite"></div>' +
+      '<label class="mcp-key-label" for="mcpLabKeyNameInput">New key name</label>' +
       '<div class="mcp-key-actions-row">' +
+      '<input type="text" id="mcpLabKeyNameInput" class="mcp-key-name-input" maxlength="60" placeholder="e.g. ChatGPT">' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyGenerateBtn">Generate key</button>' +
       '</div>' +
+      '<p class="mcp-key-hint">Creating an additional key does not rotate or revoke any existing key.</p>' +
       '<p id="mcpLabKeyStatus" class="mcp-key-status" aria-live="polite"></p>' +
-      '<h4 class="mcp-key-section-title mcp-key-list-heading">All sandbox keys</h4>' +
+      '<h4 class="mcp-key-section-title mcp-key-list-heading">Active keys for selected sandbox</h4>' +
       '<div id="mcpLabKeyList" class="mcp-key-list"></div>';
 
     var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
     if (genBtn) genBtn.addEventListener('click', generateKey);
+    var nameInput = document.getElementById('mcpLabKeyNameInput');
+    if (nameInput) {
+      nameInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          generateKey();
+        }
+      });
+    }
     refreshKeys();
   }
 
