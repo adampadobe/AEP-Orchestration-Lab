@@ -943,6 +943,13 @@
         }
       },
       {
+        "source": "/api/snowflake/generate-industry-profiles",
+        "function": {
+          "functionId": "snowflakeGenerateIndustryProfiles",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/snowflake/insert-profile-from-aep",
         "function": {
           "functionId": "snowflakeInsertProfileFromAep",

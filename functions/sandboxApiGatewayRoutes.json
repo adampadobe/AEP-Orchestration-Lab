@@ -140,6 +140,11 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/snowflake/generate-industry-profiles",
+      "functionId": "snowflakeGenerateIndustryProfiles",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/snowflake/agentic/query-profiles",
       "functionId": "snowflakeAgenticQueryProfiles",
       "region": "us-east4"

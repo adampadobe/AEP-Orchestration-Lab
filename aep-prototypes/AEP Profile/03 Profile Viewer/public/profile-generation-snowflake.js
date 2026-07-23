@@ -1,5 +1,5 @@
 /**
- * Profile Generation – Snowflake (in development) page logic.
+ * Industry Profile Generation – Snowflake page logic.
  *
  * Phase 1 scope (per docs/SNOWFLAKE_INTEGRATION.md):
  *   - Reads/writes per-lab-user, per-AEP-sandbox Snowflake connection config via
@@ -40,6 +40,33 @@
     schema: 'AEP_SCHEMA',
     authMethod: 'keyPair',
   };
+  /** Immediate UI fallback; authenticated catalog responses remain the source of truth. */
+  var INDUSTRY_UI_FALLBACKS = {
+    travel: {
+      table: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
+      events: ['website', 'mobile', 'booking', 'checkin', 'call', 'disruption', 'inflight', 'hotel', 'loyalty', 'pos'],
+    },
+    fsi: {
+      table: 'AGENTIC_FSI_PROFILE_CUSTOMER',
+      events: ['digital', 'transaction', 'application', 'advisory', 'products'],
+    },
+    retail: {
+      table: 'AGENTIC_RETAIL_PROFILE_CUSTOMER',
+      events: ['order', 'browse', 'return', 'service', 'rewards'],
+    },
+    telecom: {
+      table: 'AGENTIC_TELECOM_PROFILE_CUSTOMER',
+      events: ['usage', 'billing', 'service', 'network', 'devices'],
+    },
+    media: {
+      table: 'AGENTIC_MEDIA_PROFILE_CUSTOMER',
+      events: ['viewing', 'engagement', 'billing', 'download', 'watchlist'],
+    },
+    sports: {
+      table: 'AGENTIC_SPORTS_PROFILE_CUSTOMER',
+      events: ['attendance', 'merchandise', 'engagement', 'betting', 'membership'],
+    },
+  };
 
   var els = {};
   /** True after a successful Test connection in this page session (reset on Save / Clear / reload). */
@@ -61,6 +88,8 @@
   var loadConfigSeq = 0;
   /** Rows last returned from /api/snowflake/agentic/query-profiles (for enrich payload). */
   var loadedProfiles = [];
+  /** Last governed industry manifest returned by the catalog endpoint. */
+  var industryCatalog = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -73,6 +102,16 @@
     } catch (_) {
       return '';
     }
+  }
+
+  function readIndustry() {
+    return els.industry ? String(els.industry.value || 'travel').trim().toLowerCase() : 'travel';
+  }
+
+  function titleCase(value) {
+    return String(value || '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
   }
 
   function formatBatchLabelFromIso(isoString) {
@@ -1113,12 +1152,212 @@
     var payload = {
       sandbox: readSandbox(),
       count: count,
-      table: (els.genTable && els.genTable.value.trim()) || 'BASE_PROFILES',
-      industry: els.genIndustry ? els.genIndustry.value : '',
-      use_generation_prefs: true,
+      industry: readIndustry(),
     };
     if (Number.isFinite(batchSize) && batchSize > 0) payload.batchSize = batchSize;
     return payload;
+  }
+
+  function setIndustryMessage(text, tone) {
+    var node = els.industryMessage;
+    if (!node) return;
+    node.hidden = !text;
+    node.textContent = text || '';
+    if (text) node.setAttribute('data-tone', tone || 'info');
+    else node.removeAttribute('data-tone');
+  }
+
+  function setIndustryBusy(busy) {
+    [els.industry, els.industryRefreshBtn, els.industryDryRunBtn, els.industryProvisionBtn]
+      .forEach(function (node) { if (node) node.disabled = !!busy; });
+    if (!busy) {
+      if (els.industryDryRunBtn) els.industryDryRunBtn.disabled = !industryCatalog;
+      if (els.industryProvisionBtn) {
+        var recipe = industryCatalog && selectedProvisionRecipe(industryCatalog.manifest);
+        var missing = industryCatalog && industryCatalog.tableCheck
+          ? Number(industryCatalog.tableCheck.missingCount)
+          : null;
+        els.industryProvisionBtn.disabled =
+          !industryCatalog || (recipe && recipe.provisionMode === 'preinstalled') || missing === 0;
+      }
+    }
+  }
+
+  function selectedProvisionRecipe(manifest) {
+    var recipes = manifest && Array.isArray(manifest.provisionRecipes)
+      ? manifest.provisionRecipes
+      : [];
+    var industry = readIndustry();
+    var preferred = industry === 'travel'
+      ? 'travel.agentic_all.preinstalled.v1'
+      : industry + '.all.v1';
+    return recipes.find(function (recipe) { return recipe.id === preferred; }) || recipes[0] || null;
+  }
+
+  function profileSignal(profile) {
+    var columns = profile && profile.columns || {};
+    var keys = [
+      'CUSTOMERSEGMENT', 'FANSEGMENT', 'CREDITSCOREBAND', 'PLANTIER',
+      'SUBSCRIPTIONTIER', 'PREFERREDCABINCLASS', 'LOYALTYID',
+    ];
+    for (var i = 0; i < keys.length; i++) {
+      if (columns[keys[i]] != null && columns[keys[i]] !== '') return columns[keys[i]];
+    }
+    return '—';
+  }
+
+  function renderEventTypes(types) {
+    if (!els.eventTypes) return;
+    els.eventTypes.textContent = '';
+    (Array.isArray(types) ? types : []).forEach(function (type, index) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = type;
+      input.checked = index === 0;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + titleCase(type)));
+      els.eventTypes.appendChild(label);
+    });
+  }
+
+  function reflectIndustrySelection() {
+    var industry = readIndustry();
+    var fallback = INDUSTRY_UI_FALLBACKS[industry] || INDUSTRY_UI_FALLBACKS.travel;
+    [els.industryProfileTable, els.queryTableName, els.generateTargetTable].forEach(function (node) {
+      if (node) node.textContent = fallback.table;
+    });
+    renderEventTypes(fallback.events);
+    if (els.travelAdvanced) els.travelAdvanced.hidden = industry !== 'travel';
+    if (els.travelRunnerHint) els.travelRunnerHint.hidden = industry !== 'travel';
+    if (els.profileBundleBtn) els.profileBundleBtn.hidden = industry === 'travel';
+  }
+
+  function renderIndustryCatalog(result) {
+    industryCatalog = result || null;
+    var manifest = result && result.manifest;
+    if (!manifest) return;
+    var profileTables = manifest.phaseTables && manifest.phaseTables.profile;
+    var profileTable = (profileTables && profileTables[0])
+      || (manifest.baseProfiles && manifest.baseProfiles.table)
+      || (manifest.dualLoad && manifest.dualLoad.defaultTargetTable)
+      || '—';
+    [els.industryProfileTable, els.queryTableName, els.generateTargetTable].forEach(function (node) {
+      if (node) node.textContent = profileTable;
+    });
+    renderEventTypes(manifest.enrichEventTypes);
+
+    var tableCheck = result.tableCheck || { tables: {}, existingCount: 0, missingCount: 0 };
+    var allTables = Array.isArray(manifest.allTables) ? manifest.allTables : [];
+    if (els.industryTableGrid) {
+      els.industryTableGrid.textContent = '';
+      allTables.forEach(function (table) {
+        var status = tableCheck.tables && tableCheck.tables[table];
+        var item = document.createElement('div');
+        item.className = 'sf-gen-table-status ' +
+          (status && status.exists ? 'sf-gen-table-status--ready' : 'sf-gen-table-status--missing');
+        var name = document.createElement('code');
+        name.textContent = table;
+        var badge = document.createElement('span');
+        badge.textContent = status && status.exists ? 'Ready' : 'Missing';
+        item.appendChild(name);
+        item.appendChild(badge);
+        els.industryTableGrid.appendChild(item);
+      });
+    }
+    if (els.industryReadinessStatus) {
+      els.industryReadinessStatus.textContent = tableCheck.missingCount === 0
+        ? allTables.length + ' of ' + allTables.length + ' tables ready'
+        : tableCheck.existingCount + ' ready · ' + tableCheck.missingCount + ' missing';
+    }
+    var recipe = selectedProvisionRecipe(manifest);
+    var travelPreinstalled = recipe && recipe.provisionMode === 'preinstalled';
+    if (els.industryProvisionBtn) {
+      els.industryProvisionBtn.disabled = travelPreinstalled || tableCheck.missingCount === 0;
+      els.industryProvisionBtn.textContent = travelPreinstalled ? 'Travel tables are preinstalled' : 'Create missing tables';
+    }
+    if (els.travelAdvanced) els.travelAdvanced.hidden = readIndustry() !== 'travel';
+    if (els.travelRunnerHint) els.travelRunnerHint.hidden = readIndustry() !== 'travel';
+    if (els.profileBundleBtn) els.profileBundleBtn.hidden = readIndustry() === 'travel';
+  }
+
+  function loadIndustryCatalog(checkTables) {
+    var sandbox = readSandbox();
+    if (!sandbox) {
+      setIndustryMessage('Pick a sandbox from Global values first.', 'error');
+      return Promise.resolve();
+    }
+    setIndustryBusy(true);
+    setIndustryMessage('Checking the governed ' + titleCase(readIndustry()) + ' manifest…', 'info');
+    return authHeaders().then(function (h) {
+      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+      return fetch('/api/snowflake/industry-catalog', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({
+          sandbox: sandbox,
+          industry: readIndustry(),
+          checkTables: checkTables !== false,
+        }),
+      });
+    }).then(function (res) {
+      return res.json().then(function (body) {
+        var result = body && body.result;
+        if (!res.ok || !result || !result.ok) {
+          throw new Error((result && result.error && result.error.message) || body.error || 'Catalog check failed.');
+        }
+        renderIndustryCatalog(result);
+        setIndustryMessage(
+          result.tableCheckSkipped ? 'Industry manifest loaded.' : 'Snowflake readiness check completed.',
+          'success'
+        );
+      });
+    }).catch(function (error) {
+      setIndustryMessage(error && error.message || String(error), 'error');
+    }).then(function () {
+      setIndustryBusy(false);
+    });
+  }
+
+  function provisionIndustry(dryRun) {
+    var manifest = industryCatalog && industryCatalog.manifest;
+    var recipe = selectedProvisionRecipe(manifest);
+    if (!recipe) {
+      setIndustryMessage('Load the industry manifest before provisioning.', 'error');
+      return;
+    }
+    setIndustryBusy(true);
+    setIndustryMessage(dryRun ? 'Preparing allowlisted SQL preview…' : 'Creating missing allowlisted tables…', 'info');
+    authHeaders().then(function (h) {
+      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+      return fetch('/api/snowflake/provision', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({
+          sandbox: readSandbox(),
+          industry: readIndustry(),
+          recipe_id: recipe.id,
+          dry_run: !!dryRun,
+        }),
+      });
+    }).then(function (res) {
+      return res.json().then(function (body) {
+        var result = body && body.result;
+        if (!res.ok || !result || !result.ok) {
+          throw new Error((result && result.error && result.error.message) || body.error || 'Provisioning failed.');
+        }
+        if (els.industryProvisionOut) {
+          els.industryProvisionOut.hidden = false;
+          els.industryProvisionOut.textContent = safeStringify(result);
+        }
+        setIndustryMessage(dryRun ? 'Provisioning preview ready.' : 'Table provisioning completed.', 'success');
+        if (!dryRun) return loadIndustryCatalog(true);
+      });
+    }).catch(function (error) {
+      setIndustryMessage(error && error.message || String(error), 'error');
+    }).then(function () {
+      setIndustryBusy(false);
+    });
   }
 
   function setUpdaterMessage(text, tone, extras) {
@@ -1151,6 +1390,7 @@
     if (els.updaterForm) els.updaterForm.setAttribute('aria-busy', busy ? 'true' : 'false');
     if (els.loadProfilesBtn) els.loadProfilesBtn.disabled = !!busy;
     if (els.enrichBtn) els.enrichBtn.disabled = !!busy;
+    if (els.profileBundleBtn) els.profileBundleBtn.disabled = !!busy;
   }
 
   function setFullGenMessage(text, tone) {
@@ -1194,7 +1434,7 @@
       }
       cell(r.crmId);
       cell(r.email);
-      cell(r.loyaltyId != null && r.loyaltyId !== '' ? r.loyaltyId : '—');
+      cell(profileSignal(r));
       cell(r.createdAt);
       tb.appendChild(tr);
     }
@@ -1209,6 +1449,7 @@
     }
     setUpdaterBusy(true);
     setUpdaterMessage('Loading profiles…', 'info');
+    if (els.profileBundleOut) els.profileBundleOut.hidden = true;
     authHeaders().then(function (h) {
       if (!h.Authorization) {
         setUpdaterMessage('Sign-in not ready yet — try again in a second.', 'error');
@@ -1221,6 +1462,7 @@
         filterType: els.filterType ? els.filterType.value : 'all',
         timePeriod: els.timePeriod ? els.timePeriod.value : 'all_time',
         limit: els.queryLimit ? parseInt(els.queryLimit.value, 10) : 50,
+        industry: readIndustry(),
       });
       fetch(url, {
         method: 'POST',
@@ -1297,7 +1539,12 @@
         return;
       }
       var url = '/api/snowflake/agentic/enrich-profiles';
-      var payload = { sandbox: sandbox, profiles: profiles, eventTypes: eventTypes };
+      var payload = {
+        sandbox: sandbox,
+        industry: readIndustry(),
+        profiles: profiles,
+        eventTypes: eventTypes,
+      };
       fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
@@ -1313,10 +1560,17 @@
             );
             return;
           }
-          if (res.ok && data && data.ok && data.result && data.result.ok && data.result.data) {
-            var st = data.result.data.enrichment_status || {};
-            var lr = st.last_result || {};
-            setUpdaterMessage(st.message || 'Enrichment finished.', lr.success === false ? 'error' : 'success');
+          if (res.ok && data && data.ok && data.result && data.result.ok) {
+            if (data.result.data) {
+              var st = data.result.data.enrichment_status || {};
+              var lr = st.last_result || {};
+              setUpdaterMessage(st.message || 'Enrichment finished.', lr.success === false ? 'error' : 'success');
+            } else {
+              setUpdaterMessage(
+                'Enrichment finished: ' + Number(data.result.insertedRowCount || 0) + ' row(s) inserted.',
+                'success'
+              );
+            }
           } else {
             var msg = (data.result && data.result.error && data.result.error.message) || (data && data.error) ||
               ('Enrich failed (HTTP ' + res.status + ').');
@@ -1328,6 +1582,58 @@
       }).then(function () {
         setUpdaterBusy(false);
       });
+    });
+  }
+
+  function selectedProfile() {
+    var picks = document.querySelectorAll('.sf-pick:checked');
+    if (picks.length !== 1) return null;
+    var idx = parseInt(picks[0].getAttribute('data-idx'), 10);
+    return Number.isFinite(idx) ? loadedProfiles[idx] || null : null;
+  }
+
+  function viewProfileBundle() {
+    var profile = selectedProfile();
+    if (!profile) {
+      setUpdaterMessage('Select exactly one profile row to view its bundle.', 'error');
+      return;
+    }
+    if (readIndustry() === 'travel') {
+      setUpdaterMessage('Profile bundle readback is available for FSI, retail, telecom, media, and sports.', 'info');
+      return;
+    }
+    setUpdaterBusy(true);
+    setUpdaterMessage('Loading the complete industry profile bundle…', 'info');
+    authHeaders().then(function (h) {
+      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+      return fetch('/api/snowflake/agentic/profile-bundle', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({
+          sandbox: readSandbox(),
+          industry: readIndustry(),
+          email: profile.email,
+          ecid: profile.ecid,
+          crmId: profile.crmId,
+          eventLimit: 25,
+        }),
+      });
+    }).then(function (res) {
+      return res.json().then(function (body) {
+        var result = body && body.result;
+        if (!res.ok || !result || !result.ok) {
+          throw new Error((result && result.error && result.error.message) || body.error || 'Bundle lookup failed.');
+        }
+        if (els.profileBundleOut) {
+          els.profileBundleOut.hidden = false;
+          els.profileBundleOut.textContent = safeStringify(result);
+        }
+        setUpdaterMessage('Profile bundle loaded with ' + result.totalReturnedRows + ' event/enrichment row(s).', 'success');
+      });
+    }).catch(function (error) {
+      setUpdaterMessage(error && error.message || String(error), 'error');
+    }).then(function () {
+      setUpdaterBusy(false);
     });
   }
 
@@ -1454,8 +1760,8 @@
     setGenerateBusy(true);
     if (els.genResult) els.genResult.hidden = true;
     setGenerateMessage(
-      'Generating ' + payload.count + ' base profile' + (payload.count === 1 ? '' : 's') +
-        ' into ' + payload.table + ' (egress IP ' + STATIC_EGRESS_IP + ')…',
+      'Generating ' + payload.count + ' ' + titleCase(payload.industry) + ' profile' +
+        (payload.count === 1 ? '' : 's') + ' (egress IP ' + STATIC_EGRESS_IP + ')…',
       'info'
     );
     authHeaders().then(function (h) {
@@ -1464,7 +1770,7 @@
         setGenerateBusy(false);
         return;
       }
-      var url = '/api/snowflake/generate-base-profiles';
+      var url = '/api/snowflake/generate-industry-profiles';
       var body = JSON.stringify(payload);
       fetch(url, {
         method: 'POST',
@@ -1477,7 +1783,7 @@
           if (res.ok && result && result.ok) {
             appendBaseBatchHistory(result);
             setGenerateMessage(
-              'Inserted ' + result.rowcount + ' base profile' + (result.rowcount === 1 ? '' : 's') +
+              'Inserted ' + result.rowcount + ' ' + titleCase(payload.industry) + ' profile' + (result.rowcount === 1 ? '' : 's') +
                 ' into ' + result.table + '.',
               'success'
             );
@@ -1535,14 +1841,26 @@
     els.debugStatus = $('sfDebugStatus');
     els.debugResponse = $('sfDebugResponse');
 
+    els.industry = $('sfIndustry');
+    els.industryProfileTable = $('sfIndustryProfileTable');
+    els.queryTableName = $('sfQueryTableName');
+    els.generateTargetTable = $('sfGenerateTargetTable');
+    els.industryReadinessStatus = $('sfIndustryReadinessStatus');
+    els.industryTableGrid = $('sfIndustryTableGrid');
+    els.industryRefreshBtn = $('sfIndustryRefreshBtn');
+    els.industryDryRunBtn = $('sfIndustryDryRunBtn');
+    els.industryProvisionBtn = $('sfIndustryProvisionBtn');
+    els.industryMessage = $('sfIndustryMessage');
+    els.industryProvisionOut = $('sfIndustryProvisionOut');
+    els.travelAdvanced = $('sfTravelAdvanced');
+    els.travelRunnerHint = $('sfTravelRunnerHint');
+
     els.genForm = $('sfGenerateForm');
     els.genCount = $('sfGenCount');
     els.genCountDisplay = $('sfGenCountDisplay');
     els.genBatchHistorySelect = $('sfGenBatchHistorySelect');
     els.genBatchLoadBtn = $('sfGenBatchLoadBtn');
     els.genBatchClearBtn = $('sfGenBatchClearBtn');
-    els.genTable = $('sfGenTable');
-    els.genIndustry = $('sfGenIndustry');
     els.genBatchSize = $('sfGenBatchSize');
     els.generateBtn = $('sfGenerateBtn');
     els.genMessage = $('sfGenerateMessage');
@@ -1622,7 +1940,10 @@
     els.profileTbody = $('sfProfileTbody');
     els.selectAll = $('sfSelectAll');
     els.eventTypes = $('sfEventTypes');
+    reflectIndustrySelection();
     els.enrichBtn = $('sfEnrichBtn');
+    els.profileBundleBtn = $('sfProfileBundleBtn');
+    els.profileBundleOut = $('sfProfileBundleOut');
     els.updaterMessage = $('sfUpdaterMessage');
     els.fullGenForm = $('sfFullGenForm');
     els.fullGenCount = $('sfFullGenCount');
@@ -1635,6 +1956,27 @@
 
     if (els.loadProfilesBtn) els.loadProfilesBtn.addEventListener('click', loadProfiles);
     if (els.enrichBtn) els.enrichBtn.addEventListener('click', enrichSelected);
+    if (els.profileBundleBtn) els.profileBundleBtn.addEventListener('click', viewProfileBundle);
+    if (els.industryRefreshBtn) {
+      els.industryRefreshBtn.addEventListener('click', function () { loadIndustryCatalog(true); });
+    }
+    if (els.industryDryRunBtn) {
+      els.industryDryRunBtn.addEventListener('click', function () { provisionIndustry(true); });
+    }
+    if (els.industryProvisionBtn) {
+      els.industryProvisionBtn.addEventListener('click', function () { provisionIndustry(false); });
+    }
+    if (els.industry) {
+      els.industry.addEventListener('change', function () {
+        industryCatalog = null;
+        reflectIndustrySelection();
+        loadedProfiles = [];
+        renderProfileRows([]);
+        if (els.profileBundleOut) els.profileBundleOut.hidden = true;
+        if (els.industryProvisionOut) els.industryProvisionOut.hidden = true;
+        loadIndustryCatalog(true);
+      });
+    }
     if (els.fullGenBtn) els.fullGenBtn.addEventListener('click', runFullPhasedGenerate);
     if (els.phaseStructureBtn) els.phaseStructureBtn.addEventListener('click', describePhaseTables);
     if (els.selectAll) {
@@ -1648,7 +1990,7 @@
     bindKeyFileUi();
 
     document.addEventListener('aep-lab-sandbox-synced', function () {
-      loadConfig();
+      loadConfig().then(function () { return loadIndustryCatalog(true); });
     });
     window.addEventListener('storage', function (e) {
       if (e && e.key === LS_SANDBOX) loadConfig();
@@ -1660,7 +2002,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     bind();
     ensureFirebaseReady().then(function () {
-      loadConfig();
+      return loadConfig();
+    }).then(function () {
+      return loadIndustryCatalog(true);
     });
   });
 })();

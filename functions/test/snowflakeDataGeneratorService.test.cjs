@@ -5,8 +5,10 @@ const assert = require('node:assert/strict');
 const {
   generateBaseProfileRow,
   generateAgenticEmail,
+  generateEcid,
   rowToObject,
   handleInsertProfileFromAep,
+  handleGenerateIndustryProfiles,
   resolveDualLoadInsertSchema,
 } = require('../snowflakeDataGeneratorService');
 const { COLUMNS: TRAVEL_COLUMNS } = require('../snowflakeTravelProfileSchema');
@@ -28,6 +30,11 @@ describe('snowflakeDataGeneratorService email alignment', () => {
   it('legacy generateAgenticEmail keeps Agentic plus-plus scheme', () => {
     const legacy = generateAgenticEmail(3);
     assert.match(legacy, /^adamp\.adobedemo\+\d{8}\+3@gmail\.com$/);
+  });
+
+  it('generateEcid returns the numeric 38-character AEP identity shape', () => {
+    const ecid = generateEcid();
+    assert.match(ecid, /^4\d{37}$/);
   });
 
   it('dual_load path email override matches generation prefs hyphen format', () => {
@@ -75,6 +82,18 @@ describe('snowflakeDataGeneratorService email alignment', () => {
         ecid: '123',
       }),
       /belongs to industry retail, not fsi/,
+    );
+  });
+
+  it('rejects an unsupported governed batch industry before connecting', async () => {
+    await assert.rejects(
+      handleGenerateIndustryProfiles({
+        labUser: 'test-user',
+        sandbox: 'test',
+        industry: 'public',
+        count: 1,
+      }),
+      /Unsupported Snowflake CRM industry "public"/,
     );
   });
 

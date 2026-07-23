@@ -136,6 +136,13 @@ function generateAgenticEmail(emailCounter) {
   return `adamp.adobedemo+${dateStr}+${emailCounter}@gmail.com`;
 }
 
+/** Match the numeric 38-character ECID shape used by the AEP profile generator. */
+function generateEcid() {
+  let value = '4';
+  for (let i = 0; i < 37; i += 1) value += Math.floor(Math.random() * 10);
+  return value;
+}
+
 /**
  * Mirrors `customer_journey_probabilities.CustomerJourneyConfig.get_customer_profile_flags`
  * for the one field we persist on base rows: `has_loyalty` (60 % enrollment).
@@ -476,6 +483,145 @@ async function handleGenerateBaseProfiles(input) {
 }
 
 /**
+ * Generate CRM profile rows in the governed table for one supported industry.
+ * Unlike the legacy BASE_PROFILES generator, callers cannot select an arbitrary
+ * table: the registry owns the industry -> table/schema mapping.
+ *
+ * @param {{ labUser: string, sandbox: string, industry?: string, count?: number, batchSize?: number }} input
+ */
+async function handleGenerateIndustryProfiles(input) {
+  const labUser = String(input.labUser || '').trim();
+  const sandbox = String(input.sandbox || '').trim();
+  const industry = String(input.industry || 'travel').trim().toLowerCase();
+  if (!sandbox) throw new Error('sandbox is required');
+  if (!labUser) throw new Error('labUser uid is required');
+
+  const config = getIndustryProfileConfig(industry);
+  if (!config) {
+    throw new Error(
+      `Unsupported Snowflake CRM industry "${industry}". Expected: ${listSnowflakeProfileIndustries().join(', ')}`,
+    );
+  }
+  const requestedCount = Number.isFinite(input.count) ? Math.floor(input.count) : DEFAULT_COUNT;
+  if (requestedCount <= 0 || requestedCount > MAX_COUNT) {
+    throw new Error(`count must be between 1 and ${MAX_COUNT}`);
+  }
+  const count = requestedCount;
+  const batchSize = Math.max(1, Math.min(Number(input.batchSize) || DEFAULT_BATCH_SIZE, count));
+
+  const resolved = await store.resolveConnection(labUser, sandbox);
+  if (!resolved) {
+    return {
+      ok: false,
+      error: {
+        message: 'No Snowflake credential saved for this user/sandbox yet. Save the connection first.',
+        code: 'NO_CREDENTIAL',
+        sqlState: null,
+        hints: [],
+      },
+    };
+  }
+
+  let snowflake;
+  try {
+    snowflake = require('snowflake-sdk');
+  } catch (e) {
+    return {
+      ok: false,
+      error: {
+        message: 'snowflake-sdk is not installed in the Cloud Functions package.',
+        code: 'SDK_MISSING',
+        sqlState: null,
+        hints: [],
+      },
+    };
+  }
+
+  const cfg = resolved.config;
+  const fqTable = fullyQualified(cfg.database, cfg.schema, config.table);
+  const runStamp = new Date().toISOString();
+  const schema = resolveDualLoadInsertSchema(config.table, industry);
+  let conn;
+  try {
+    conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
+    if (cfg.warehouse) {
+      await execAsync(conn, { sqlText: `USE WAREHOUSE ${safeIdentifier(cfg.warehouse, '')}` });
+    }
+    if (cfg.database) {
+      await execAsync(conn, { sqlText: `USE DATABASE ${safeIdentifier(cfg.database, '')}` });
+    }
+    if (cfg.schema) {
+      await execAsync(conn, { sqlText: `USE SCHEMA ${safeIdentifier(cfg.schema, '')}` });
+    }
+
+    const startIndex = await getNextCrmStartIndex(conn, fqTable);
+    const rows = [];
+    const profiles = [];
+    for (let i = 0; i < count; i += 1) {
+      const reserved = await prefsStore.reserveNextEmail(labUser, sandbox);
+      const idx = startIndex + i;
+      const email = reserved.scaledEmail;
+      const ecid = generateEcid();
+      const crmId = `CRM${idx}`;
+      const generated = schema.generateRow({
+        idx,
+        email,
+        ecid,
+        crmId,
+        attributes: {},
+        testProfile: true,
+        runStamp,
+      });
+      rows.push(generated.row);
+      profiles.push({
+        crmId,
+        ecid,
+        email,
+        phoneNumber: generated.rowObject.PHONENUMBER || generated.rowObject.PRIMARYPHONE || null,
+        loyaltyId: generated.rowObject.LOYALTYID || null,
+        columns: generated.rowObject,
+      });
+    }
+
+    const placeholders = schema.columns.map(() => '?').join(', ');
+    const insertSql =
+      `INSERT INTO ${fqTable} (${schema.columns.join(', ')}) VALUES (${placeholders})`;
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const slice = rows.slice(i, i + batchSize);
+      await execAsync(conn, { sqlText: insertSql, binds: slice });
+      inserted += slice.length;
+    }
+
+    return {
+      ok: true,
+      sandbox,
+      industry,
+      table: fqTable,
+      tableName: config.table,
+      rowcount: inserted,
+      batchSize,
+      startIndex,
+      runStamp,
+      profiles,
+      sample: profiles.slice(0, SAMPLE_SIZE).map((profile) => profile.columns),
+    };
+  } catch (err) {
+    const described = describeConnectError(err);
+    const message = String(err && err.message || '');
+    if (/does not exist|not authorized/i.test(message)) {
+      described.code = 'INDUSTRY_TABLE_NOT_READY';
+      described.hints = [
+        `Provision ${industry}.all.v1 from the industry readiness panel, then retry.`,
+      ];
+    }
+    return { ok: false, error: described };
+  } finally {
+    if (conn) await destroyAsync(conn);
+  }
+}
+
+/**
  * Resolve INSERT mapper + column list for dual-load target table.
  * @param {string} tableName
  */
@@ -694,12 +840,14 @@ module.exports = {
   MAX_COUNT,
   generateBaseProfileRow,
   generateAgenticEmail,
+  generateEcid,
   formatDdMmYyyy,
   rowToObject,
   safeIdentifier,
   fullyQualified,
   getNextCrmStartIndex,
   handleGenerateBaseProfiles,
+  handleGenerateIndustryProfiles,
   handleInsertProfileFromAep,
   resolveDualLoadInsertSchema,
   resolveDualLoadMode,

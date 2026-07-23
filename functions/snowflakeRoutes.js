@@ -537,6 +537,42 @@ function registerSnowflakeRoutes(deps) {
   );
 
   /**
+   * POST /api/snowflake/generate-industry-profiles — governed CRM batch generator.
+   * Body { sandbox, industry?, count?, batchSize? }. Industry defaults to travel.
+   */
+  routes.snowflakeGenerateIndustryProfiles = onRequest(
+    { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 300, memory: '1GiB' },
+    async (req, res) => {
+      setCors(res, 'POST, OPTIONS');
+      if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+      if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+      const principal = await resolvePrincipal(req, res);
+      if (!principal) return;
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+      if (!sandbox) {
+        res.status(400).json({ ok: false, error: 'sandbox is required' });
+        return;
+      }
+
+      try {
+        const result = await snowflakeDataGeneratorService.handleGenerateIndustryProfiles({
+          labUser: principal.uid,
+          sandbox,
+          industry: body.industry,
+          count: Number(body.count),
+          batchSize: Number(body.batchSize) || undefined,
+        });
+        res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+      } catch (e) {
+        console.error('[snowflakeGenerateIndustryProfiles]', String(e && e.message || e));
+        res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+      }
+    },
+  );
+
+  /**
    * POST /api/snowflake/insert-profile-from-aep — dual-load one row from AEP persona.
    * Body { sandbox, email, ecid, industry?, attributes?, table? }.
    */

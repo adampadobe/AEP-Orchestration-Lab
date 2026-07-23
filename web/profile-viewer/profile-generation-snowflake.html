@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile Generation – Snowflake (in development) – AEP Profile Viewer</title>
+  <title>Industry Profile Generation – Snowflake – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260722c">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260723-industry-workflow">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -22,7 +22,7 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="In development">In dev</span>
+          <span class="dashboard-env-pill" title="Industry-aware Snowflake workflow">Snowflake</span>
           <a href="https://docs.snowflake.com/en/user-guide/network-policies" class="dashboard-topbar-link" target="_blank" rel="noopener">Snowflake docs</a>
         </div>
       </header>
@@ -31,9 +31,10 @@
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingSfGen">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingSfGen" class="dashboard-hero-title">Profile generation – Snowflake</h2>
+              <h2 id="bannerHeadingSfGen" class="dashboard-hero-title">Industry profile generation – Snowflake</h2>
               <p class="dashboard-hero-subtitle">
-                Configure the Snowflake target this lab user uses for the AgenticAI demo data loader, validate the IP allowlist, then generate a configurable batch of base profiles directly into your Snowflake table.
+                Select an industry, verify its governed Snowflake tables, generate operational CRM profiles,
+                add industry events, and validate the complete profile bundle.
               </p>
             </header>
           </div>
@@ -161,15 +162,51 @@
             </div>
           </details>
 
+          <article class="sf-gen-card sf-gen-card--workflow" aria-labelledby="sfIndustryHeading">
+            <header class="sf-gen-card-header sf-gen-industry-header">
+              <div>
+                <h3 id="sfIndustryHeading" class="sf-gen-card-title">1. Industry &amp; table readiness</h3>
+                <p class="sf-gen-card-subtitle">
+                  The industry manifest controls the profile table, event types, and allowlisted provisioning recipe.
+                  Arbitrary table names and SQL are not accepted.
+                </p>
+              </div>
+              <div class="form-group sf-gen-industry-select">
+                <label for="sfIndustry">Industry</label>
+                <select id="sfIndustry">
+                  <option value="travel" selected>Travel</option>
+                  <option value="fsi">Financial services</option>
+                  <option value="retail">Retail</option>
+                  <option value="telecom">Telecom</option>
+                  <option value="media">Media</option>
+                  <option value="sports">Sports</option>
+                </select>
+              </div>
+            </header>
+            <div class="sf-gen-readiness-bar">
+              <div>
+                <span class="sf-gen-result-label">Target profile table</span>
+                <code id="sfIndustryProfileTable">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>
+              </div>
+              <strong id="sfIndustryReadinessStatus">Check readiness to inspect Snowflake</strong>
+            </div>
+            <div id="sfIndustryTableGrid" class="sf-gen-table-status-grid" aria-live="polite"></div>
+            <div class="form-row form-row--actions sf-gen-actions">
+              <button type="button" id="sfIndustryRefreshBtn" class="btn btn-secondary">Check readiness</button>
+              <button type="button" id="sfIndustryDryRunBtn" class="btn btn-secondary" disabled>Preview provisioning</button>
+              <button type="button" id="sfIndustryProvisionBtn" class="btn btn-primary" disabled>Create missing tables</button>
+            </div>
+            <div id="sfIndustryMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+            <pre id="sfIndustryProvisionOut" class="sf-gen-sql-pre" hidden></pre>
+          </article>
+
           <div class="sf-gen-dual">
           <article class="sf-gen-card" aria-labelledby="sfUpdaterHeading">
             <header class="sf-gen-card-header">
-              <h3 id="sfUpdaterHeading" class="sf-gen-card-title">Query &amp; enrich profiles</h3>
+              <h3 id="sfUpdaterHeading" class="sf-gen-card-title">3. Query, enrich &amp; verify</h3>
               <p class="sf-gen-card-subtitle">
-                Same flow as AgenticAI <code>index_enhanced.html</code>: load rows from
-                <code>AGENTIC_TRAVEL_PROFILE_CUSTOMER</code> (loyalty / non-loyalty filters), pick event types, then enrich.
-                Enrichment and full phased generation run in the Python runner when the lab ops team wires
-                <code>AGENTIC_TRAVEL_RUNNER_URL</code> on the Cloud Function.
+                Load rows from <code id="sfQueryTableName">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>,
+                add the event types defined by the selected industry manifest, then read back the profile bundle.
               </p>
             </header>
             <div class="sf-gen-form" id="sfUpdaterForm" aria-busy="false">
@@ -207,12 +244,12 @@
               </div>
               <div class="sf-gen-profile-table-wrap">
                 <table class="sf-gen-profile-table" id="sfProfileTable" aria-label="Loaded profiles">
-                  <thead>
+                  <thead id="sfProfileThead">
                     <tr>
                       <th scope="col"><input type="checkbox" id="sfSelectAll" title="Select all" /></th>
                       <th scope="col">CRMID</th>
                       <th scope="col">Email</th>
-                      <th scope="col">Loyalty</th>
+                      <th scope="col">Segment</th>
                       <th scope="col">Created</th>
                     </tr>
                   </thead>
@@ -220,30 +257,22 @@
                 </table>
               </div>
               <p class="field-hint">Select rows and event types, then enrich. Adds events only (no new profile rows).</p>
-              <div class="sf-gen-checkbox-grid" id="sfEventTypes" aria-label="Event types">
-                <label><input type="checkbox" value="website" checked /> Website</label>
-                <label><input type="checkbox" value="mobile" /> Mobile</label>
-                <label><input type="checkbox" value="booking" /> Booking</label>
-                <label><input type="checkbox" value="checkin" /> Check-in</label>
-                <label><input type="checkbox" value="call" /> Call centre</label>
-                <label><input type="checkbox" value="disruption" /> Disruption</label>
-                <label><input type="checkbox" value="inflight" /> In-flight</label>
-                <label><input type="checkbox" value="hotel" /> Hotel</label>
-                <label><input type="checkbox" value="loyalty" /> Loyalty</label>
-                <label><input type="checkbox" value="pos" /> POS</label>
-              </div>
+              <div class="sf-gen-checkbox-grid" id="sfEventTypes" aria-label="Event types"></div>
               <div class="form-row form-row--actions sf-gen-actions">
                 <button type="button" id="sfEnrichBtn" class="btn btn-primary">Enrich selected</button>
+                <button type="button" id="sfProfileBundleBtn" class="btn btn-secondary" hidden>View selected profile bundle</button>
               </div>
               <div id="sfUpdaterMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+              <pre id="sfProfileBundleOut" class="sf-gen-sql-pre" hidden></pre>
             </div>
           </article>
 
           <article class="sf-gen-card sf-gen-card--phase2" aria-labelledby="sfGenerateHeading">
             <header class="sf-gen-card-header">
-              <h3 id="sfGenerateHeading" class="sf-gen-card-title">Generate base profiles <span class="sf-gen-pill">Phase 2 · minimal</span></h3>
+              <h3 id="sfGenerateHeading" class="sf-gen-card-title">2. Generate industry profiles</h3>
               <p class="sf-gen-card-subtitle">
-                Port of <code>data_generator.py → generate_base_profiles</code> from the AgenticAI Demo: same name pools, UK-style addresses, emails from shared Profile Generation prefs (<code>&lt;local&gt;+DDMMYYYY-N@domain</code> — same Firestore counter as the main Generate panel), and 60% loyalty enrollment. Idempotently <code>CREATE TABLE IF NOT EXISTS</code>, then bulk INSERT. Industry selector is informational until Phase 3 branches generators by industry.
+                Generate operational CRM data in the selected industry table. Identity emails use the shared
+                Profile Generation counter and the table schema is fixed by the governed manifest.
               </p>
             </header>
 
@@ -258,26 +287,12 @@
                   <p class="field-hint">Same control pattern as AgenticAI <code>index_enhanced.html</code>. Maximum 1000 per run.</p>
                 </div>
                 <div class="form-group">
-                  <label for="sfGenTable">Target table</label>
-                  <input type="text" id="sfGenTable" value="BASE_PROFILES" placeholder="BASE_PROFILES" autocomplete="off">
-                  <p class="field-hint">Table is auto-created in <em>database.schema</em> from your saved config if missing.</p>
+                  <label>Target table</label>
+                  <code id="sfGenerateTargetTable" class="sf-gen-target-table">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>
+                  <p class="field-hint">Use the readiness panel to provision this allowlisted table before generation.</p>
                 </div>
               </div>
               <div class="form-row form-row--inline">
-                <div class="form-group">
-                  <label for="sfGenIndustry">Industry <span class="sf-gen-optional">(informational)</span></label>
-                  <select id="sfGenIndustry">
-                    <option value="">— Select industry —</option>
-                    <option value="generic">Generic (industry-less)</option>
-                    <option value="retail">Retail</option>
-                    <option value="fsi">FSI</option>
-                    <option value="telecommunications">Telecommunications</option>
-                    <option value="media">Media</option>
-                    <option value="travel" selected>Travel</option>
-                    <option value="sports">Sports</option>
-                    <option value="public">Public</option>
-                  </select>
-                </div>
                 <div class="form-group">
                   <label for="sfGenBatchSize">Batch size <span class="sf-gen-optional">(optional)</span></label>
                   <input type="number" id="sfGenBatchSize" min="1" max="1000" step="1" placeholder="200">
@@ -313,6 +328,9 @@
                 <pre id="sfGenResultSample" class="sf-gen-result-sample"></pre>
               </div>
 
+              <details id="sfTravelAdvanced" class="sf-gen-advanced">
+                <summary>Travel runner and legacy tools</summary>
+                <div class="sf-gen-advanced-body">
               <hr class="sf-gen-divider" aria-hidden="true">
 
               <header class="sf-gen-card-header sf-gen-card-header--tight">
@@ -350,6 +368,8 @@
                 </div>
                 <pre id="sfPhaseStructureOut" class="sf-gen-sql-pre" hidden></pre>
               </div>
+                </div>
+              </details>
 
               <details id="sfGenerateDebug" class="sf-gen-debug" hidden>
                 <summary>Last request &amp; response</summary>
@@ -372,7 +392,7 @@
               </details>
             </div>
 
-            <p class="sf-gen-side-hint sf-gen-roadmap-hint">
+            <p id="sfTravelRunnerHint" class="sf-gen-side-hint sf-gen-roadmap-hint">
               <strong>Runner:</strong> deploy <code>services/agentic-travel-runner</code> (Dockerfile) to Cloud Run in the same VPC egress path, set
               <code>AGENTIC_TRAVEL_RUNNER_URL</code> and <code>AGENTIC_TRAVEL_RUNNER_HMAC_SECRET</code> on the Snowflake Cloud Functions, matching <code>RUNNER_HMAC_SECRET</code> on the container.
             </p>
@@ -388,8 +408,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
-  <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
+  <script src="aep-lab-nav.js?v=20260723-snowflake-industry"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260722d"></script>
+  <script src="profile-generation-snowflake.js?v=20260723-industry-workflow"></script>
 </body>
 </html>
