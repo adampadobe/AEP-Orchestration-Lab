@@ -222,6 +222,27 @@
         }
       },
       {
+        "source": "/api/ajo/live-activity/templates",
+        "function": {
+          "functionId": "ajoLiveActivityTemplates",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/ajo/live-activity/preflight",
+        "function": {
+          "functionId": "ajoLiveActivityPreflight",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/ajo/live-activity/runs",
+        "function": {
+          "functionId": "ajoLiveActivityRuns",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",

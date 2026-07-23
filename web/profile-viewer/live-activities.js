@@ -5,6 +5,18 @@
   'use strict';
 
   var API = '/api/ajo/live-activity';
+  var PREFLIGHT_API = '/api/ajo/live-activity/preflight';
+
+  function laAuthHeaders() {
+    if (
+      typeof window !== 'undefined' &&
+      window.AepLabSandboxSync &&
+      typeof window.AepLabSandboxSync.getAuthHeaders === 'function'
+    ) {
+      return window.AepLabSandboxSync.getAuthHeaders();
+    }
+    return Promise.resolve({});
+  }
 
   /** Expanded paths in Paste JSON → Tree view (same idea as Firebase RTDB tree). */
   var laTreeExpanded = new Set();
@@ -3845,12 +3857,59 @@
         updateActionBarSend: true,
       });
       try {
+        var authHeaders = await laAuthHeaders();
+        if (!authHeaders || !authHeaders.Authorization) {
+          throw new Error('Sign-in is not ready. Return to Profile Viewer home, sign in, and try again.');
+        }
+        var selectedTemplate = $('laTemplateSelect') && $('laTemplateSelect').value;
+        var aps = payload.recipients[0].context.requestPayload.aps;
+        var preflightRes = await fetch(PREFLIGHT_API, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
+          body: JSON.stringify({
+            sandbox: sandbox,
+            templateId: selectedTemplate || 'portal-draft',
+            draftTemplate: payload,
+            campaignId: payload.campaignId,
+            ecid: payload.recipients[0].userId,
+            liveActivityId:
+              aps.attributes &&
+              aps.attributes.liveActivityData &&
+              aps.attributes.liveActivityData.liveActivityID,
+            event: aps.event,
+          }),
+        });
+        var preflightBody = await preflightRes.json();
+        if (!preflightRes.ok || !preflightBody.ready || !preflightBody.preflightId) {
+          throw new Error(
+            preflightBody.error ||
+            (preflightBody.missingFields && 'Missing: ' + preflightBody.missingFields.map(function (x) { return x.label; }).join(', ')) ||
+            'Live Activity preflight failed.'
+          );
+        }
+        var summary = preflightBody.summary || {};
+        var confirmed = window.confirm(
+          'Send this Live Activity?\n\n' +
+          'Campaign: ' + String(summary.campaignId || '') + '\n' +
+          'Recipient: ' + String(summary.recipientEcid || '') + '\n' +
+          'Event: ' + String(summary.event || '') + '\n' +
+          'Template: ' + String((preflightBody.template && preflightBody.template.name) || selectedTemplate || 'Portal draft')
+        );
+        if (!confirmed) {
+          laShowSendFeedback({
+            statusText: 'Send cancelled after preflight.',
+            updateActionBarSend: true,
+          });
+          return;
+        }
         var res = await fetch(API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
           body: JSON.stringify({
-            sandboxName: sandbox,
-            payload: payload,
+            sandbox: sandbox,
+            preflightId: preflightBody.preflightId,
+            confirmed: true,
+            idempotencyKey: preflightBody.preflightId,
           }),
         });
         var bodyText = await res.text();

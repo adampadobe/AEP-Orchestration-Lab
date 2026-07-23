@@ -30,6 +30,7 @@ async function resolveGenerationPrefsPrincipal(req, deps) {
       ok: true,
       uid: keyAuth.principalUid,
       authSource: 'mcp_key',
+      keyId: keyAuth.keyId || null,
       principalEmail: keyAuth.principalEmail || null,
       keySandbox: keyAuth.sandbox || null,
     };
@@ -71,7 +72,7 @@ async function resolveGenerationPrefsPrincipal(req, deps) {
     }
   }
 
-  return { ok: true, uid, authSource: 'firebase' };
+  return { ok: true, uid, authSource: 'firebase', keyId: null };
 }
 
 module.exports = {

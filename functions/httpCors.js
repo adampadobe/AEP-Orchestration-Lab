@@ -13,7 +13,7 @@ const buildInfo = require('./buildInfo');
 function setCors(res, methods = 'GET, POST, OPTIONS') {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', methods);
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-AEP-Lab-Mcp-Key');
   buildInfo.setBuildHeaders(res);
 }
 

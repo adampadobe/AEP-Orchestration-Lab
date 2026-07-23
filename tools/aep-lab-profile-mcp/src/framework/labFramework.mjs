@@ -168,6 +168,20 @@ export const CRITICAL_RULES = [
     verify: 'lab_profile_activity after send — allow 30–60s UPS lag; retry if ecid was missing on first attempt.',
   },
   {
+    id: 'live_activity_preflight_confirmation',
+    rule:
+      'AJO Live Activity sends are important external actions. Resolve the profile ECID, select an allowlisted customer template, ' +
+      'run lab_live_activity_preflight, ask only for missingFields, show the ready summary, and obtain explicit colleague confirmation before lab_live_activity_send.',
+    identity:
+      'The AJO unitary execution uses ECID as recipients[0].userId. Device push-token fields are diagnostic and are never copied into the MCP payload.',
+    tools:
+      'lab_live_activity_list_templates → lab_live_activity_profile_context → lab_live_activity_preflight → explicit confirmation → lab_live_activity_send → lab_live_activity_list_runs.',
+    templates:
+      'User templates are scoped to MCP principalUid + sandbox and mirrored to the Portal saved-template list. Built-ins are global read-only.',
+    never:
+      'Never send arbitrary raw payloads, bypass preflight, invent campaign/live-activity IDs, reuse another principal preflight, or claim this updates the AJO campaign asset.',
+  },
+  {
     id: 'decisioning_edge_evaluate',
     rule:
       'Decisioning lab Edge evaluate uses POST /api/decisioning/edge-evaluate (not /api/aep). Load Decision lab config first; pass email + ecid with ECID primary when both present.',
@@ -598,6 +612,26 @@ export function getExecutionFramework() {
           'lab_send_edge_event when datastream_id is known. Avoid raw_payload unless debugging — prefer lab_send_profile_event.',
         api: 'POST /api/events/generator or POST /api/events/edge',
       },
+      send_live_activity: {
+        tools: [
+          'lab_live_activity_list_templates',
+          'lab_live_activity_profile_context',
+          'lab_live_activity_preflight',
+          'lab_live_activity_send',
+          'lab_live_activity_list_runs',
+        ],
+        steps: [
+          'lab_live_activity_list_templates sandbox {sandbox} with optional customer filter',
+          'lab_live_activity_profile_context with email or other identifier — capture ECID',
+          'lab_live_activity_preflight with template_id + known fields',
+          'If ready:false, ask only for missingFields and preflight again',
+          'If ready:true, show customer/template/campaign/masked recipient/event/Live Activity ID and ask for explicit confirmation',
+          'lab_live_activity_send with preflight_id + confirmed:true; use stable idempotency_key for retries',
+          'lab_live_activity_list_runs to inspect the result',
+        ],
+        note:
+          'The payload references campaignId for AJO unitary execution; it does not edit the campaign asset. ECID is the recipient identifier, not the raw push token.',
+      },
       event_infra_setup: {
         tools: [
           'lab_setup_event_infra',
@@ -777,6 +811,10 @@ export function getExecutionFramework() {
         'Append experience events (web views, transactions, donations) without rewriting profile attributes. Pass email+ecid after generate.',
       lab_send_edge_event:
         'Direct Alloy-style Edge interact when you have datastream_id; same identityMap rules; include _demoemea.identification.core for Demo Website schemas.',
+      lab_live_activity_preflight:
+        'Required dry-run for AJO Live Activity: resolves required values, returns missingFields or a redacted ready summary plus short-lived preflightId.',
+      lab_live_activity_send:
+        'Important external push action. Use only after explicit colleague confirmation of a ready preflight; exact payload hash and idempotency are enforced.',
       lab_onboard_sandbox:
         'New colleague sandbox missing Firestore connection docs or profile not enabled on dataset.',
       lab_setup_event_infra:

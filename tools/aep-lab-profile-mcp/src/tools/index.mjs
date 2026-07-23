@@ -34,6 +34,7 @@ import { registerEnableEventProfileTool } from './enableEventProfile.mjs';
 import { registerEventConfigTools } from './eventConfig.mjs';
 import { registerDecisioningTools } from './decisioningTools.mjs';
 import { registerSnowflakeTools } from './snowflakeTools.mjs';
+import { registerLiveActivityTools } from './liveActivityTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -61,6 +62,7 @@ export function registerProfileTools(mcpServer) {
   registerEventConfigTools(mcpServer);
   registerDecisioningTools(mcpServer);
   registerSnowflakeTools(mcpServer);
+  registerLiveActivityTools(mcpServer);
   registerSendProfileEventTool(mcpServer);
   registerSendEdgeEventTool(mcpServer);
   registerPreflightProfileEventTool(mcpServer);

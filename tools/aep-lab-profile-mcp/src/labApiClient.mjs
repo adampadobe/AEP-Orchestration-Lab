@@ -541,6 +541,10 @@ function generationPrefsAuthHeaders() {
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
 }
 
+export function principalAuthHeaders() {
+  return generationPrefsAuthHeaders();
+}
+
 export function snowflakeAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
@@ -585,6 +589,83 @@ export async function reserveGenerationNextEmail({ sandbox }) {
     body: { sandbox },
     headers: generationPrefsAuthHeaders(),
     timeoutMs: 30_000,
+  });
+}
+
+export async function liveActivityListTemplates({ sandbox }) {
+  return labApiRequest('/api/ajo/live-activity/templates', {
+    query: { sandbox },
+    headers: principalAuthHeaders(),
+    timeoutMs: 60_000,
+  });
+}
+
+export async function liveActivityUpsertTemplate(params) {
+  return labApiRequest('/api/ajo/live-activity/templates', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      sandbox: params.sandbox,
+      templateId: params.template_id,
+      customer: params.customer,
+      name: params.name,
+      description: params.description,
+      template: params.template,
+      variableDefinitions: params.variable_definitions,
+      validateOnly: params.validate_only,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+export async function liveActivityDeleteTemplate(params) {
+  return labApiRequest('/api/ajo/live-activity/templates', {
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    body: {
+      sandbox: params.sandbox,
+      templateId: params.template_id,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+export async function liveActivityPreflight(params) {
+  return labApiRequest('/api/ajo/live-activity/preflight', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      sandbox: params.sandbox,
+      templateId: params.template_id,
+      campaignId: params.campaign_id,
+      ecid: params.ecid,
+      liveActivityId: params.live_activity_id,
+      event: params.event,
+      variables: params.variables,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+export async function liveActivitySend(params) {
+  return labApiRequest('/api/ajo/live-activity', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      sandbox: params.sandbox,
+      preflightId: params.preflight_id,
+      confirmed: params.confirmed,
+      idempotencyKey: params.idempotency_key,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+export async function liveActivityListRuns({ sandbox, limit }) {
+  return labApiRequest('/api/ajo/live-activity/runs', {
+    query: { sandbox, limit },
+    headers: principalAuthHeaders(),
+    timeoutMs: 60_000,
   });
 }
 

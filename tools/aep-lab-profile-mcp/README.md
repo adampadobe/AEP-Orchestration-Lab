@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.26)
+# AEP Orchestration Lab MCP (Phase 3.28)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.26.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.28.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -48,6 +48,14 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_snowflake_enrich_profiles` | `POST /api/snowflake/agentic/enrich-profiles` | Populate selected industry event/enrichment tables for existing CRM profiles |
 | `lab_snowflake_get_profile_bundle` | `POST /api/snowflake/agentic/profile-bundle` | Non-travel profile plus bounded rows from all five allowlisted activity tables |
 | `lab_snowflake_provision` | `POST /api/snowflake/provision` | Governed recipes, including `{fsi,retail,telecom,media,sports}.all.v1` (six tables each) |
+| `lab_live_activity_list_templates` | `GET /api/ajo/live-activity/templates` | Built-in + principal/sandbox customer templates |
+| `lab_live_activity_get_template` | `GET /api/ajo/live-activity/templates` | Full template and required-variable definitions |
+| `lab_live_activity_profile_context` | `GET /api/profile/table` | Resolve profile ECID; push token is diagnostic only |
+| `lab_live_activity_preflight` | `POST /api/ajo/live-activity/preflight` | Required dry-run; missing fields or redacted preview + short-lived preflight ID |
+| `lab_live_activity_send` | `POST /api/ajo/live-activity` | Confirmed, hash-bound, idempotent AJO unitary execution |
+| `lab_live_activity_upsert_template` | `POST /api/ajo/live-activity/templates` | Create/version principal + sandbox customer template; mirrors Portal |
+| `lab_live_activity_delete_template` | `DELETE /api/ajo/live-activity/templates` | Confirmed custom-template deletion |
+| `lab_live_activity_list_runs` | `GET /api/ajo/live-activity/runs` | Recent principal/sandbox execution audit |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |

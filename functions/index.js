@@ -87,6 +87,7 @@ const { registerProfileRoutes } = require('./profileRoutes');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
+const { registerLiveActivityRoutes } = require('./liveActivityRoutes');
 const mcpApiKeyStore = lazyRequireMod('./mcpApiKeyStore');
 const { registerSnowflakeRoutes } = require('./snowflakeRoutes');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
@@ -138,6 +139,8 @@ const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelSe
 const snowflakeIndustryCatalogService = lazyRequireMod('./snowflakeIndustryCatalogService');
 const snowflakeProvisionService = lazyRequireMod('./snowflakeProvisionService');
 const snowflakeIndustryEventService = lazyRequireMod('./snowflakeIndustryEventService');
+const liveActivityTemplateStore = lazyRequireMod('./liveActivityTemplateStore');
+const liveActivityService = lazyRequireMod('./liveActivityService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -467,101 +470,6 @@ exports.aepProxy = onRequest(
       platform_response: platformResponse,
       request_url: url,
       platform_base_url: platformBase,
-    });
-  }
-);
-
-const AJO_UNITARY_EXECUTIONS_URL = `${DEFAULT_PLATFORM_BASE_URL}/ajo/im/executions/unitary`;
-
-/**
- * POST /api/ajo/live-activity — AJO in-app messaging unitary execution (Live Activity push).
- * Uses deployment IMS credentials (same as /api/aep); optional sandboxName overrides default sandbox.
- */
-exports.ajoLiveActivityProxy = onRequest(
-  {
-    region: REGION,
-    secrets: [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES],
-    environmentVariables: {
-      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
-    },
-    invoker: 'public',
-    timeoutSeconds: 120,
-    memory: '256MiB',
-  },
-  async (req, res) => {
-    setCors(res);
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
-    if (req.method !== 'POST') {
-      res.status(405).json({ error: 'Method not allowed' });
-      return;
-    }
-    let body;
-    try {
-      body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
-    } catch (e) {
-      res.status(400).json({ error: 'Invalid JSON body' });
-      return;
-    }
-    const sandboxName = String(body.sandboxName || '').trim() || RESOLVED_ADOBE_SANDBOX;
-    const payload = body.payload;
-
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      res.status(400).json({ error: 'payload must be a JSON object' });
-      return;
-    }
-
-    let accessToken;
-    try {
-      accessToken = await getAdobeAccessToken();
-    } catch (e) {
-      res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
-      return;
-    }
-
-    const clientId = ADOBE_CLIENT_ID.value();
-    const org = ADOBE_IMS_ORG.value();
-    const headers = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'x-gw-ims-org-id': String(org).slice(0, 512),
-      'x-api-key': String(clientId).slice(0, 256),
-      'x-sandbox-name': sandboxName.slice(0, 120),
-      Authorization: `Bearer ${accessToken}`,
-    };
-
-    let upstream;
-    try {
-      upstream = await fetch(AJO_UNITARY_EXECUTIONS_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-      });
-    } catch (e) {
-      res.status(502).json({ error: String(e.message || e) });
-      return;
-    }
-
-    const ct = upstream.headers.get('Content-Type') || '';
-    let platformResponse;
-    if (ct.toLowerCase().includes('json')) {
-      try {
-        platformResponse = await upstream.json();
-      } catch {
-        platformResponse = { raw: await upstream.text() };
-      }
-    } else {
-      const text = await upstream.text();
-      platformResponse = { raw: text.slice(0, 50000) };
-    }
-
-    res.status(upstream.status).json({
-      ok: upstream.ok,
-      status: upstream.status,
-      platform_response: platformResponse,
-      request_url: AJO_UNITARY_EXECUTIONS_URL,
     });
   }
 );
@@ -2212,6 +2120,22 @@ Object.assign(
     ADOBE_CLIENT_ID,
     ADOBE_IMS_ORG,
     sandboxesList,
+  }),
+);
+
+Object.assign(
+  exports,
+  registerLiveActivityRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    labGenerationPrefsAuth,
+    labWorkspaceAuthService,
+    liveActivityTemplateStore,
+    liveActivityService,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
   }),
 );
 
