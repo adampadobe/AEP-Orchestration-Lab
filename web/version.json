@@ -1,14 +1,14 @@
 {
-  "gitSha": "536c54265002228c8b2387863bab03ce58d8d7fa",
-  "gitShortSha": "536c5426",
+  "gitSha": "9672fa70966821302035ec2f46f0bd36ce287cc6",
+  "gitShortSha": "9672fa70",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Contain Snowflake preview overflow",
+  "gitCommitSubject": "[apalmer] Add secure Live Activity MCP workflow",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-23T20:19:27+01:00",
-  "deployedAt": "2026-07-23T19:20:55.326Z",
+  "gitCommitDate": "2026-07-23T21:06:11+01:00",
+  "deployedAt": "2026-07-23T20:07:48.837Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/536c54265002228c8b2387863bab03ce58d8d7fa"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9672fa70966821302035ec2f46f0bd36ce287cc6"
 }
