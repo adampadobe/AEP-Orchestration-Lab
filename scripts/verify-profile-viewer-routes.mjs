@@ -136,6 +136,40 @@ if (edsNavStart !== -1) {
   }
 }
 
+// The legacy/simple Decisioning Lab is an owner-only work-in-progress. Keep it
+// out of both the sidebar and Global values menu for every other portal user.
+const decisioningLabNavStart = nav.indexOf("href: 'content-decision-live.html'");
+if (decisioningLabNavStart === -1) {
+  console.error('aep-lab-nav.js must include the owner-only Decisioning Lab entry');
+  failed = true;
+} else {
+  const decisioningLabWindow = nav.slice(
+    Math.max(0, decisioningLabNavStart - 220),
+    decisioningLabNavStart + 700,
+  );
+  if (!decisioningLabWindow.includes("onlyUserEmails: ['apalmer@adobe.com']")) {
+    console.error('aep-lab-nav.js: Decisioning Lab must remain restricted to apalmer@adobe.com');
+    failed = true;
+  }
+}
+if (!nav.includes('if (!isUserAllowedForNavItem(item)) return false;')) {
+  console.error('aep-lab-nav.js must enforce owner-only visibility before rendering sidebar items');
+  failed = true;
+}
+
+for (const file of [
+  'decisioning-catalog.html',
+  'decisioning-visualiser.html',
+  'experience-decisioning.html',
+]) {
+  const html = fs.readFileSync(path.join(root, 'web/profile-viewer', file), 'utf8');
+  const ownerLink = /<a[^>]+href="content-decision-live\.html"[^>]+data-aep-owner-emails="apalmer@adobe\.com"[^>]+hidden[^>]*>/;
+  if (!ownerLink.test(html)) {
+    console.error(`${file}: Decisioning Lab topbar link must be hidden and owner-restricted`);
+    failed = true;
+  }
+}
+
 const gsPath = path.join(root, 'web/profile-viewer/global-settings.html');
 const gs = fs.readFileSync(gsPath, 'utf8');
 if (gs.includes('data-aep-nav-hide-key="journeyArbitration"')) {
