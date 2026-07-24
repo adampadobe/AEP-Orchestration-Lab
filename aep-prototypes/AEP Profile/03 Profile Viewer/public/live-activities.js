@@ -3880,14 +3880,27 @@
           }
           var ecidVal = Array.isArray(data.ecid) ? data.ecid[0] || '' : data.ecid || '';
           ecidVal = String(ecidVal || '').trim();
+          var liveActivityPushToken = String(data.liveActivityPushToken || '').trim();
+          if (data.found && $('laLiveActivityId')) {
+            $('laLiveActivityId').value = liveActivityPushToken;
+          }
           if (data.found && ecidVal) {
             $('laUserId').value = ecidVal;
-            laScheduleSaveExecutionFields();
-            setProfileQueryMsg(profileQueryMsg, 'Profile found — ECID filled in below.', 'success');
-          } else if (data.found && !ecidVal) {
+            laRememberExecutionIds();
             setProfileQueryMsg(
               profileQueryMsg,
-              'Profile found but no ECID on record — enter ECID manually.',
+              liveActivityPushToken
+                ? 'Profile found — ECID and Live Activity ID filled in below.'
+                : 'Profile found — ECID filled in below. No Live Activity push token was found; choose a remembered ID or enter one manually.',
+              'success'
+            );
+          } else if (data.found && !ecidVal) {
+            laRememberExecutionIds();
+            setProfileQueryMsg(
+              profileQueryMsg,
+              liveActivityPushToken
+                ? 'Profile found and Live Activity ID filled in, but no ECID is on record — enter ECID manually.'
+                : 'Profile found but no ECID or Live Activity push token is on record — enter them manually.',
               'error'
             );
           } else {

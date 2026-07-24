@@ -527,6 +527,37 @@ function getMobilePhoneForConsent(entity, response) {
   return mobile;
 }
 
+/**
+ * First Live Activity push token on the merged profile. The Live Activities page uses this
+ * as its Live Activity ID while continuing to address the AJO unitary recipient by ECID.
+ */
+function getLiveActivityPushTokenForConsent(entity, response, flatRows) {
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    const candidates = [
+      get(root, 'liveActivityPushNotificationDetails.0.token'),
+      get(root, '_demoemea.liveActivityPushNotificationDetails.0.token'),
+      get(root, 'attributes.liveActivityPushNotificationDetails.0.token'),
+    ];
+    for (const value of candidates) {
+      const token = stringifyConsentScalar(value);
+      if (token && token.length <= 256) return token;
+    }
+  }
+  const rows = Array.isArray(flatRows) ? flatRows : flattenEntityToTableRows(entity);
+  for (const row of rows || []) {
+    const path = String(row.path || '').toLowerCase();
+    if (!/(^|\.)liveactivitypushnotificationdetails(?:\.\d+)?\.token$/.test(path)) continue;
+    const token = stringifyConsentScalar(row.value);
+    if (token && token.length <= 256) return token;
+  }
+  return null;
+}
+
 /** @param {unknown} v @returns {number | null} */
 function clampNpsScoreInt(v) {
   if (v == null || v === '') return null;
@@ -864,6 +895,7 @@ function buildConsentGetPayload(email, response) {
     ecid = getFirstEcidFromRows(flatRows);
   }
   ecid = ensureSingleEcid(ecid);
+  const liveActivityPushToken = getLiveActivityPushTokenForConsent(entity, response, flatRows);
   const identities = collectIdentitiesForGraph(entity, flatRows);
   const { propensityScore, churnPrediction } = getDemoemeaScoringForConsent(entity, response);
   const phone = getMobilePhoneForConsent(entity, response);
@@ -903,6 +935,7 @@ function buildConsentGetPayload(email, response) {
     lastModifiedAt: lastModifiedAt ?? null,
     profileSource: 'Adobe Experience Platform',
     ecid: ecid || null,
+    liveActivityPushToken: liveActivityPushToken || null,
     identities,
     marketingConsent: marketingConsent ?? null,
     channelOptInOut: channelOptInOut ?? null,
@@ -915,4 +948,4 @@ function buildConsentGetPayload(email, response) {
   };
 }
 
-module.exports = { buildConsentGetPayload };
+module.exports = { buildConsentGetPayload, getLiveActivityPushTokenForConsent };
