@@ -103,8 +103,9 @@
               <div class="la-grid la-grid--exec">
                 <div class="la-field">
                   <label for="laCampaignId">Campaign ID</label>
-                  <input type="text" id="laCampaignId" autocomplete="off" spellcheck="false" aria-describedby="laCampaignHint" placeholder="e.g. 43a8ba87-81c0-4e0c-86ec-8bdbb4faf2e85">
-                  <span id="laCampaignHint" class="la-field-hint">AJO campaign UUID</span>
+                  <input type="text" id="laCampaignId" list="laCampaignIdHistory" autocomplete="off" spellcheck="false" aria-describedby="laCampaignHint" placeholder="e.g. 43a8ba87-81c0-4e0c-86ec-8bdbb4faf2e85">
+                  <datalist id="laCampaignIdHistory"></datalist>
+                  <span id="laCampaignHint" class="la-field-hint">AJO campaign UUID · recent values are remembered for you in this sandbox</span>
                 </div>
                 <div class="la-field">
                   <label for="laUserId">ECID (recipient)</label>
@@ -123,12 +124,14 @@
                   <input
                     type="text"
                     id="laLiveActivityId"
+                    list="laLiveActivityIdHistory"
                     autocomplete="off"
                     spellcheck="false"
                     placeholder="e.g. 80085f973468e3e562568e937582397afbbfd9bc599c26c63643d14ff108303e6f…"
                     aria-describedby="laLaiHint"
                   >
-                  <span id="laLaiHint" class="la-field-hint">Written to attributes.liveActivityData in JSON</span>
+                  <datalist id="laLiveActivityIdHistory"></datalist>
+                  <span id="laLaiHint" class="la-field-hint">Written to attributes.liveActivityData in JSON · recent values are remembered for you in this sandbox</span>
                 </div>
                 <div class="la-field">
                   <label for="laEvent">Event</label>

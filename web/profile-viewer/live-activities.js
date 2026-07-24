@@ -76,28 +76,100 @@
 
   /** Per-sandbox unitary execution row (Campaign / ECID / Live Activity ID / Event) — synced via aep-lab-sandbox-sync. */
   var LA_EXEC_FIELDS_STORAGE_KEY = 'aepLaExecutionFieldsV1';
+  var LA_EXEC_HISTORY_MAX = 12;
   var laExecFieldsSaveTimer = null;
+
+  function laReadExecutionFieldsStorage() {
+    try {
+      var raw = localStorage.getItem(LA_EXEC_FIELDS_STORAGE_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function laNormalizeExecutionIdHistory(values) {
+    var seen = {};
+    return (Array.isArray(values) ? values : [])
+      .map(function (value) {
+        return String(value || '').trim();
+      })
+      .filter(function (value) {
+        if (!value || seen[value]) return false;
+        seen[value] = true;
+        return true;
+      })
+      .slice(0, LA_EXEC_HISTORY_MAX);
+  }
+
+  function laAddExecutionIdToHistory(values, value) {
+    var nextValue = String(value || '').trim();
+    var next = laNormalizeExecutionIdHistory(values).filter(function (item) {
+      return item !== nextValue;
+    });
+    if (nextValue) next.unshift(nextValue);
+    return next.slice(0, LA_EXEC_HISTORY_MAX);
+  }
+
+  function laRenderExecutionIdHistory(state) {
+    [
+      { listId: 'laCampaignIdHistory', values: state && state.campaignIds },
+      { listId: 'laLiveActivityIdHistory', values: state && state.liveActivityIds },
+    ].forEach(function (config) {
+      var list = $(config.listId);
+      if (!list) return;
+      list.textContent = '';
+      laNormalizeExecutionIdHistory(config.values).forEach(function (value) {
+        var option = document.createElement('option');
+        option.value = value;
+        list.appendChild(option);
+      });
+    });
+  }
+
+  function laSaveExecutionFields(rememberIds) {
+    var existing = laReadExecutionFieldsStorage();
+    var campaignId = String($('laCampaignId') && $('laCampaignId').value || '').trim();
+    var liveActivityId = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
+    var campaignIds = laNormalizeExecutionIdHistory(existing.campaignIds);
+    var liveActivityIds = laNormalizeExecutionIdHistory(existing.liveActivityIds);
+    if (rememberIds) {
+      campaignIds = laAddExecutionIdToHistory(campaignIds, campaignId);
+      liveActivityIds = laAddExecutionIdToHistory(liveActivityIds, liveActivityId);
+    }
+    var o = {
+      campaignId: campaignId,
+      userId: String($('laUserId') && $('laUserId').value || '').trim(),
+      liveActivityId: liveActivityId,
+      event: String($('laEvent') && $('laEvent').value || '').trim().toLowerCase(),
+      campaignIds: campaignIds,
+      liveActivityIds: liveActivityIds,
+    };
+    try {
+      localStorage.setItem(LA_EXEC_FIELDS_STORAGE_KEY, JSON.stringify(o));
+    } catch (e) {}
+    laRenderExecutionIdHistory(o);
+    if (
+      typeof window !== 'undefined' &&
+      window.AepLabSandboxSync &&
+      typeof window.AepLabSandboxSync.notifyDirty === 'function'
+    ) {
+      window.AepLabSandboxSync.notifyDirty();
+    }
+  }
 
   function laScheduleSaveExecutionFields() {
     clearTimeout(laExecFieldsSaveTimer);
     laExecFieldsSaveTimer = setTimeout(function () {
-      var o = {
-        campaignId: String($('laCampaignId') && $('laCampaignId').value || '').trim(),
-        userId: String($('laUserId') && $('laUserId').value || '').trim(),
-        liveActivityId: String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim(),
-        event: String($('laEvent') && $('laEvent').value || '').trim().toLowerCase(),
-      };
-      try {
-        localStorage.setItem(LA_EXEC_FIELDS_STORAGE_KEY, JSON.stringify(o));
-      } catch (e) {}
-      if (
-        typeof window !== 'undefined' &&
-        window.AepLabSandboxSync &&
-        typeof window.AepLabSandboxSync.notifyDirty === 'function'
-      ) {
-        window.AepLabSandboxSync.notifyDirty();
-      }
+      laSaveExecutionFields(false);
     }, 450);
+  }
+
+  function laRememberExecutionIds() {
+    clearTimeout(laExecFieldsSaveTimer);
+    laSaveExecutionFields(true);
   }
 
   function laLoadExecutionFieldsFromStorage() {
@@ -107,20 +179,13 @@
     var ev = $('laEvent');
     if (!c || !u || !l || !ev) return;
     try {
-      var raw = localStorage.getItem(LA_EXEC_FIELDS_STORAGE_KEY);
-      if (!raw) {
+      var o = laReadExecutionFieldsStorage();
+      if (!Object.keys(o).length) {
         c.value = '';
         u.value = '';
         l.value = '';
         ev.value = '';
-        return;
-      }
-      var o = JSON.parse(raw);
-      if (!o || typeof o !== 'object') {
-        c.value = '';
-        u.value = '';
-        l.value = '';
-        ev.value = '';
+        laRenderExecutionIdHistory({});
         return;
       }
       c.value = o.campaignId != null ? String(o.campaignId) : '';
@@ -128,11 +193,13 @@
       l.value = o.liveActivityId != null ? String(o.liveActivityId) : '';
       var e = o.event != null ? String(o.event).trim().toLowerCase() : '';
       ev.value = e === 'start' || e === 'update' || e === 'end' ? e : '';
+      laRenderExecutionIdHistory(o);
     } catch (err2) {
       c.value = '';
       u.value = '';
       l.value = '';
       ev.value = '';
+      laRenderExecutionIdHistory({});
     }
   }
 
@@ -141,7 +208,12 @@
       var el = $(fid);
       if (!el) return;
       el.addEventListener('input', laScheduleSaveExecutionFields);
-      el.addEventListener('change', laScheduleSaveExecutionFields);
+      el.addEventListener(
+        'change',
+        fid === 'laCampaignId' || fid === 'laLiveActivityId'
+          ? laRememberExecutionIds
+          : laScheduleSaveExecutionFields
+      );
     });
   }
 
@@ -3849,6 +3921,7 @@
         });
         return;
       }
+      laRememberExecutionIds();
 
       laShowSendFeedback({
         statusText: 'Sending…',
