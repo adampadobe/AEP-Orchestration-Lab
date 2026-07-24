@@ -3973,21 +3973,6 @@
             'Live Activity preflight failed.'
           );
         }
-        var summary = preflightBody.summary || {};
-        var confirmed = window.confirm(
-          'Send this Live Activity?\n\n' +
-          'Campaign: ' + String(summary.campaignId || '') + '\n' +
-          'Recipient: ' + String(summary.recipientEcid || '') + '\n' +
-          'Event: ' + String(summary.event || '') + '\n' +
-          'Template: ' + String((preflightBody.template && preflightBody.template.name) || selectedTemplate || 'Portal draft')
-        );
-        if (!confirmed) {
-          laShowSendFeedback({
-            statusText: 'Send cancelled after preflight.',
-            updateActionBarSend: true,
-          });
-          return;
-        }
         var res = await fetch(API, {
           method: 'POST',
           headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
