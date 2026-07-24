@@ -1,14 +1,14 @@
 {
-  "gitSha": "9672fa70966821302035ec2f46f0bd36ce287cc6",
-  "gitShortSha": "9672fa70",
+  "gitSha": "4ad53d557438579a9db21143ab32e95408938290",
+  "gitShortSha": "4ad53d55",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Add secure Live Activity MCP workflow",
+  "gitCommitSubject": "[apalmer] Restrict Decisioning Lab navigation",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-23T21:06:11+01:00",
-  "deployedAt": "2026-07-23T20:07:48.837Z",
+  "gitCommitDate": "2026-07-24T16:00:30+01:00",
+  "deployedAt": "2026-07-24T15:01:13.940Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9672fa70966821302035ec2f46f0bd36ce287cc6"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4ad53d557438579a9db21143ab32e95408938290"
 }
