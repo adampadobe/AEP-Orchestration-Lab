@@ -173,11 +173,13 @@ export const CRITICAL_RULES = [
       'AJO Live Activity sends are important external actions. Resolve the profile ECID, select an allowlisted customer template, ' +
       'run lab_live_activity_preflight, ask only for missingFields, show the ready summary, and obtain explicit colleague confirmation before lab_live_activity_send.',
     identity:
-      'The AJO unitary execution uses ECID as recipients[0].userId. Device push-token fields are diagnostic and are never copied into the MCP payload.',
+      'The AJO unitary execution uses ECID as recipients[0].userId. Profile field liveActivityPushNotificationDetails.0.token is returned as the suggested live_activity_id and is not used as the recipient identifier.',
     tools:
-      'lab_live_activity_list_templates → lab_live_activity_profile_context → lab_live_activity_preflight → explicit confirmation → lab_live_activity_send → lab_live_activity_list_runs.',
+      'lab_live_activity_list_templates → lab_live_activity_profile_context → lab_live_activity_save_execution_state when the colleague supplies a campaign ID → lab_live_activity_preflight → explicit confirmation → lab_live_activity_send → lab_live_activity_list_runs.',
     templates:
       'User templates are scoped to MCP principalUid + sandbox and mirrored to the Portal saved-template list. Built-ins are global read-only.',
+    execution_state:
+      'Campaign and Live Activity IDs are shared with the Portal Live Activities page through principalUid + sandbox state. Read with lab_live_activity_get_execution_state; save colleague-supplied values with lab_live_activity_save_execution_state. Preflight also persists supplied IDs.',
     never:
       'Never send arbitrary raw payloads, bypass preflight, invent campaign/live-activity IDs, reuse another principal preflight, or claim this updates the AJO campaign asset.',
   },
@@ -616,13 +618,17 @@ export function getExecutionFramework() {
         tools: [
           'lab_live_activity_list_templates',
           'lab_live_activity_profile_context',
+          'lab_live_activity_get_execution_state',
+          'lab_live_activity_save_execution_state',
           'lab_live_activity_preflight',
           'lab_live_activity_send',
           'lab_live_activity_list_runs',
         ],
         steps: [
           'lab_live_activity_list_templates sandbox {sandbox} with optional customer filter',
-          'lab_live_activity_profile_context with email or other identifier — capture ECID',
+          'lab_live_activity_profile_context with email or other identifier — capture ECID and suggested live_activity_id from the profile token',
+          'lab_live_activity_get_execution_state — reuse the campaign ID already remembered for this user + sandbox when appropriate',
+          'When the colleague supplies a campaign ID, lab_live_activity_save_execution_state so the Portal UI restores it',
           'lab_live_activity_preflight with template_id + known fields',
           'If ready:false, ask only for missingFields and preflight again',
           'If ready:true, show customer/template/campaign/masked recipient/event/Live Activity ID and ask for explicit confirmation',
@@ -630,7 +636,7 @@ export function getExecutionFramework() {
           'lab_live_activity_list_runs to inspect the result',
         ],
         note:
-          'The payload references campaignId for AJO unitary execution; it does not edit the campaign asset. ECID is the recipient identifier, not the raw push token.',
+          'The payload references campaignId for AJO unitary execution; it does not edit the campaign asset. ECID is the recipient identifier. The profile push token is the suggested Live Activity ID. Execution IDs are shared with the Portal per principal + sandbox.',
       },
       event_infra_setup: {
         tools: [
@@ -812,7 +818,7 @@ export function getExecutionFramework() {
       lab_send_edge_event:
         'Direct Alloy-style Edge interact when you have datastream_id; same identityMap rules; include _demoemea.identification.core for Demo Website schemas.',
       lab_live_activity_preflight:
-        'Required dry-run for AJO Live Activity: resolves required values, returns missingFields or a redacted ready summary plus short-lived preflightId.',
+        'Required dry-run for AJO Live Activity: resolves ECID and profile-derived Live Activity ID when possible, persists supplied execution IDs to shared Portal state, and returns missingFields or a redacted ready summary plus short-lived preflightId.',
       lab_live_activity_send:
         'Important external push action. Use only after explicit colleague confirmation of a ready preflight; exact payload hash and idempotency are enforced.',
       lab_onboard_sandbox:

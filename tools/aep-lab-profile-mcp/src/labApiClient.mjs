@@ -600,6 +600,27 @@ export async function liveActivityListTemplates({ sandbox }) {
   });
 }
 
+export async function liveActivityGetExecutionState({ sandbox }) {
+  return labApiRequest('/api/ajo/live-activity/execution-state', {
+    query: { sandbox },
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function liveActivitySaveExecutionState(params) {
+  return labApiRequest('/api/ajo/live-activity/execution-state', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      sandbox: params.sandbox,
+      ...(params.campaign_id != null ? { campaignId: params.campaign_id } : {}),
+      ...(params.live_activity_id != null ? { liveActivityId: params.live_activity_id } : {}),
+    },
+    timeoutMs: 30_000,
+  });
+}
+
 export async function liveActivityUpsertTemplate(params) {
   return labApiRequest('/api/ajo/live-activity/templates', {
     method: 'POST',

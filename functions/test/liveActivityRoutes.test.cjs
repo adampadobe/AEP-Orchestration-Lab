@@ -19,6 +19,20 @@ function makeRoutes(overrides = {}) {
       }),
     },
     labWorkspaceAuthService: null,
+    labUserSandboxStore: {
+      getLiveActivityExecutionFields: async () => ({
+        campaignId: '',
+        liveActivityId: '',
+        campaignIds: [],
+        liveActivityIds: [],
+      }),
+      mergeLiveActivityExecutionFields: async (_uid, _sandbox, patch) => ({
+        campaignId: patch.campaignId || '',
+        liveActivityId: patch.liveActivityId || '',
+        campaignIds: patch.campaignId ? [patch.campaignId] : [],
+        liveActivityIds: patch.liveActivityId ? [patch.liveActivityId] : [],
+      }),
+    },
     liveActivityTemplateStore: {
       listTemplates: async () => [],
       getTemplate: async () => null,
@@ -48,16 +62,86 @@ function response() {
 }
 
 describe('liveActivityRoutes', () => {
-  it('registers template, preflight, send, and run handlers', () => {
+  it('registers template, shared state, preflight, send, and run handlers', () => {
     const routes = makeRoutes();
     for (const name of [
       'ajoLiveActivityTemplates',
+      'ajoLiveActivityExecutionState',
       'ajoLiveActivityPreflight',
       'ajoLiveActivityProxy',
       'ajoLiveActivityRuns',
     ]) {
       assert.equal(typeof routes[name]?.__handler, 'function');
     }
+  });
+
+  it('saves execution state for the MCP principal and scoped sandbox', async () => {
+    let saved = null;
+    const routes = makeRoutes({
+      labUserSandboxStore: {
+        getLiveActivityExecutionFields: async () => ({}),
+        mergeLiveActivityExecutionFields: async (uid, sandbox, patch) => {
+          saved = { uid, sandbox, patch };
+          return {
+            campaignId: patch.campaignId,
+            liveActivityId: '',
+            campaignIds: [patch.campaignId],
+            liveActivityIds: [],
+          };
+        },
+      },
+    });
+    const res = response();
+    await routes.ajoLiveActivityExecutionState.__handler({
+      method: 'POST',
+      query: {},
+      headers: { 'x-aep-lab-mcp-key': 'secret' },
+      body: { sandbox: 'apalmer', campaignId: 'campaign-123' },
+    }, res);
+    assert.equal(res.code, 200);
+    assert.deepEqual(saved, {
+      uid: 'uid-apalmer',
+      sandbox: 'apalmer',
+      patch: { campaignId: 'campaign-123' },
+    });
+    assert.equal(res.body.executionFields.campaignId, 'campaign-123');
+  });
+
+  it('persists supplied execution IDs when preflight succeeds', async () => {
+    let saved = null;
+    const routes = makeRoutes({
+      liveActivityTemplateStore: {
+        listTemplates: async () => [],
+        getTemplate: async () => ({ id: 'template-1', body: {} }),
+        upsertTemplate: async () => ({}),
+        deleteTemplate: async () => ({ deleted: true }),
+      },
+      labUserSandboxStore: {
+        getLiveActivityExecutionFields: async () => ({}),
+        mergeLiveActivityExecutionFields: async (uid, sandbox, patch) => {
+          saved = { uid, sandbox, patch };
+          return { ...patch, campaignIds: [patch.campaignId], liveActivityIds: [patch.liveActivityId] };
+        },
+      },
+    });
+    const res = response();
+    await routes.ajoLiveActivityPreflight.__handler({
+      method: 'POST',
+      query: {},
+      headers: { 'x-aep-lab-mcp-key': 'secret' },
+      body: {
+        sandbox: 'apalmer',
+        templateId: 'template-1',
+        campaignId: 'campaign-123',
+        liveActivityId: 'activity-123',
+      },
+    }, res);
+    assert.equal(res.code, 200);
+    assert.deepEqual(saved.patch, {
+      campaignId: 'campaign-123',
+      liveActivityId: 'activity-123',
+    });
+    assert.match(res.body.uiSync, /Portal UI/);
   });
 
   it('rejects a sandbox outside the MCP key scope', async () => {

@@ -10,6 +10,7 @@ function registerLiveActivityRoutes(deps) {
     setCors,
     labGenerationPrefsAuth,
     labWorkspaceAuthService,
+    labUserSandboxStore,
     liveActivityTemplateStore,
     liveActivityService,
     getAdobeAccessToken,
@@ -113,6 +114,55 @@ function registerLiveActivityRoutes(deps) {
     }
   });
 
+  routes.ajoLiveActivityExecutionState = onRequest(profileFnOpts, async (req, res) => {
+    setCors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const sandbox = sandboxFor(req, principal);
+    if (!enforceSandbox(principal, sandbox, res)) return;
+    try {
+      if (req.method === 'GET') {
+        const executionFields = await labUserSandboxStore.getLiveActivityExecutionFields(
+          principal.uid,
+          sandbox,
+        );
+        res.status(200).json({ ok: true, sandbox, executionFields });
+        return;
+      }
+      if (req.method === 'POST') {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const executionFields = await labUserSandboxStore.mergeLiveActivityExecutionFields(
+          principal.uid,
+          sandbox,
+          {
+            ...(Object.prototype.hasOwnProperty.call(body, 'campaignId')
+              ? { campaignId: body.campaignId }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(body, 'liveActivityId')
+              ? { liveActivityId: body.liveActivityId }
+              : {}),
+          },
+        );
+        res.status(200).json({
+          ok: true,
+          sandbox,
+          executionFields,
+          uiSync:
+            'Saved for this user and sandbox. The Portal Live Activities page restores it on load or sandbox refresh.',
+        });
+        return;
+      }
+      res.status(405).json({ ok: false, error: 'Method not allowed' });
+    } catch (e) {
+      res.status(Number(e?.status) || 500).json({
+        ok: false,
+        error: String(e.message || e),
+        sandbox,
+      });
+    }
+  });
+
   routes.ajoLiveActivityPreflight = onRequest(profileFnOpts, async (req, res) => {
     setCors(res, 'POST, OPTIONS');
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
@@ -156,7 +206,28 @@ function registerLiveActivityRoutes(deps) {
         principalEmail: principal.principalEmail,
         keyId: principal.keyId || null,
       });
-      res.status(200).json({ ok: true, ...result });
+      let executionFields = null;
+      if (body.campaignId || body.liveActivityId) {
+        executionFields = await labUserSandboxStore.mergeLiveActivityExecutionFields(
+          principal.uid,
+          sandbox,
+          {
+            ...(body.campaignId ? { campaignId: body.campaignId } : {}),
+            ...(body.liveActivityId ? { liveActivityId: body.liveActivityId } : {}),
+          },
+        );
+      }
+      res.status(200).json({
+        ok: true,
+        ...result,
+        ...(executionFields
+          ? {
+              executionFields,
+              uiSync:
+                'Campaign and Live Activity IDs were saved for this user and sandbox and will restore in the Portal UI.',
+            }
+          : {}),
+      });
     } catch (e) {
       res.status(Number(e?.status) || 400).json({ ok: false, error: String(e.message || e), sandbox });
     }

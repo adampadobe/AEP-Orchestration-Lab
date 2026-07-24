@@ -11,6 +11,9 @@ const WORKSPACE_PROFILE_COLLECTION = 'labWorkspaceAccessProfiles';
 const MAX_KEY_LEN = 120;
 const MAX_VAL_CHARS = 450000;
 const MAX_TOTAL_KEYS = 40;
+const LIVE_ACTIVITY_EXECUTION_KEY = 'aepLaExecutionFieldsV1';
+const LIVE_ACTIVITY_HISTORY_LIMIT = 12;
+const LIVE_ACTIVITY_SAFE_ID = /^[A-Za-z0-9._:-]+$/;
 
 let db;
 function getDb() {
@@ -151,6 +154,98 @@ async function mergeLabKeys(uid, sandbox, patch, options) {
   return getLabKeys(uid, name);
 }
 
+function normalizeLiveActivityExecutionFields(value) {
+  let parsed = value;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      parsed = {};
+    }
+  }
+  const source = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  const cleanId = (input, maxLength) => {
+    const text = String(input || '').trim().slice(0, maxLength);
+    return text && LIVE_ACTIVITY_SAFE_ID.test(text) ? text : '';
+  };
+  const cleanList = (input, maxLength) => {
+    const seen = new Set();
+    return (Array.isArray(input) ? input : [])
+      .map((entry) => cleanId(entry, maxLength))
+      .filter((entry) => {
+        if (!entry || seen.has(entry)) return false;
+        seen.add(entry);
+        return true;
+      })
+      .slice(0, LIVE_ACTIVITY_HISTORY_LIMIT);
+  };
+  const event = String(source.event || '').trim().toLowerCase();
+  return {
+    campaignId: cleanId(source.campaignId, 160),
+    userId: String(source.userId || '').trim().slice(0, 80),
+    liveActivityId: cleanId(source.liveActivityId, 256),
+    event: ['start', 'update', 'end'].includes(event) ? event : '',
+    campaignIds: cleanList(source.campaignIds, 160),
+    liveActivityIds: cleanList(source.liveActivityIds, 256),
+  };
+}
+
+function addRecentLiveActivityValue(list, value) {
+  if (!value) return list;
+  return [value, ...list.filter((entry) => entry !== value)].slice(0, LIVE_ACTIVITY_HISTORY_LIMIT);
+}
+
+async function getLiveActivityExecutionFields(uid, sandbox) {
+  const sandboxName = String(sandbox || '').trim().toLowerCase();
+  if (!sandboxName) throw new Error('sandbox is required');
+  const keys = await getLabKeys(uid, `sandbox:${sandboxName}`);
+  return normalizeLiveActivityExecutionFields(keys[LIVE_ACTIVITY_EXECUTION_KEY]);
+}
+
+async function mergeLiveActivityExecutionFields(uid, sandbox, patch) {
+  const sandboxName = String(sandbox || '').trim().toLowerCase();
+  if (!sandboxName) throw new Error('sandbox is required');
+  const input = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
+  const requested = normalizeLiveActivityExecutionFields(input);
+  const hasCampaignId = Object.prototype.hasOwnProperty.call(input, 'campaignId');
+  const hasLiveActivityId = Object.prototype.hasOwnProperty.call(input, 'liveActivityId');
+  if (hasCampaignId && String(input.campaignId || '').trim() && !requested.campaignId) {
+    throw Object.assign(new Error('campaign ID contains unsupported characters or is too long'), { status: 400 });
+  }
+  if (hasLiveActivityId && String(input.liveActivityId || '').trim() && !requested.liveActivityId) {
+    throw Object.assign(new Error('Live Activity ID contains unsupported characters or is too long'), { status: 400 });
+  }
+
+  const storageScope = `sandbox:${sandboxName}`;
+  const ref = getDb().collection(COLLECTION).doc(docId(uid, storageScope));
+  let merged = null;
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists && snap.data() ? snap.data() : {};
+    const keys = data.keys && typeof data.keys === 'object' ? { ...data.keys } : {};
+    const current = normalizeLiveActivityExecutionFields(keys[LIVE_ACTIVITY_EXECUTION_KEY]);
+    merged = {
+      ...current,
+      ...(hasCampaignId ? { campaignId: requested.campaignId } : {}),
+      ...(hasLiveActivityId ? { liveActivityId: requested.liveActivityId } : {}),
+    };
+    if (hasCampaignId && requested.campaignId) {
+      merged.campaignIds = addRecentLiveActivityValue(current.campaignIds, requested.campaignId);
+    }
+    if (hasLiveActivityId && requested.liveActivityId) {
+      merged.liveActivityIds = addRecentLiveActivityValue(current.liveActivityIds, requested.liveActivityId);
+    }
+    keys[LIVE_ACTIVITY_EXECUTION_KEY] = JSON.stringify(merged);
+    tx.set(ref, {
+      uid: String(uid).trim().slice(0, 128),
+      sandbox: storageScope,
+      keys,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+  return merged;
+}
+
 function sanitizeWorkspaceProfile(profile) {
   const body = profile && typeof profile === 'object' ? profile : {};
   const firstName = String(body.firstName || '').trim().slice(0, 80);
@@ -222,6 +317,10 @@ module.exports = {
   docId,
   getLabKeys,
   mergeLabKeys,
+  LIVE_ACTIVITY_EXECUTION_KEY,
+  normalizeLiveActivityExecutionFields,
+  getLiveActivityExecutionFields,
+  mergeLiveActivityExecutionFields,
   getWorkspaceProfile,
   upsertWorkspaceProfile,
   verifyIdTokenFromRequest,

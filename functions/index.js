@@ -2131,6 +2131,7 @@ Object.assign(
     setCors,
     labGenerationPrefsAuth,
     labWorkspaceAuthService,
+    labUserSandboxStore,
     liveActivityTemplateStore,
     liveActivityService,
     getAdobeAccessToken,

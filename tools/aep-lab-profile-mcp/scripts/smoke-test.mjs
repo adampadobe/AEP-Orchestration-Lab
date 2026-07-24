@@ -124,6 +124,8 @@ async function run() {
     'lab_live_activity_list_templates',
     'lab_live_activity_get_template',
     'lab_live_activity_profile_context',
+    'lab_live_activity_get_execution_state',
+    'lab_live_activity_save_execution_state',
     'lab_live_activity_preflight',
     'lab_live_activity_send',
     'lab_live_activity_upsert_template',

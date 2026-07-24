@@ -2,11 +2,14 @@ import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
 import {
   liveActivityDeleteTemplate,
+  liveActivityGetExecutionState,
   liveActivityListRuns,
   liveActivityListTemplates,
   liveActivityPreflight,
+  liveActivitySaveExecutionState,
   liveActivitySend,
   liveActivityUpsertTemplate,
+  getProfileConsent,
   lookupProfile,
 } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
@@ -39,20 +42,40 @@ function allowSandbox(sandbox) {
   return { sandbox: allowed.sandbox };
 }
 
-async function resolveEcid({ sandbox, ecid, identifier, namespace }) {
+export function extractLiveActivityPushToken(data) {
+  const direct = String(data?.liveActivityPushToken || '').trim();
+  if (direct) return direct;
+  const rows = Array.isArray(data?.rows)
+    ? data.rows
+    : Array.isArray(data?.attributes)
+      ? data.attributes
+      : [];
+  const row = rows.find((entry) => {
+    const path = String(entry?.path || entry?.key || entry?.name || '').replace(/\[(\d+)\]/g, '.$1');
+    return /(?:^|\.)liveActivityPushNotificationDetails\.0\.token$/i.test(path);
+  });
+  return String(row?.value || '').trim();
+}
+
+async function resolveProfileContext({ sandbox, ecid, identifier, namespace }) {
   const direct = String(ecid || '').trim();
-  if (direct) return { ecid: direct, lookup: null };
   const value = String(identifier || '').trim();
-  if (!value) return { ecid: '', lookup: null };
-  const profile = await lookupProfile({
+  if (!value) return { ecid: direct, liveActivityId: '', lookup: null, consent: null };
+  const lookupParams = {
     sandbox,
     namespace: String(namespace || 'email').trim(),
     identifier: value,
-  });
-  if (!profile.ok) return { ecid: '', lookup: profile };
+  };
+  const [profile, consent] = await Promise.all([
+    lookupProfile(lookupParams),
+    getProfileConsent(lookupParams),
+  ]);
+  if (!profile.ok) return { ecid: direct, liveActivityId: '', lookup: profile, consent };
   return {
-    ecid: extractEcidFromProfileTable(profile.data) || '',
+    ecid: direct || extractEcidFromProfileTable(profile.data) || '',
+    liveActivityId: consent.ok ? extractLiveActivityPushToken(consent.data) : '',
     lookup: profile,
+    consent,
   };
 }
 
@@ -130,8 +153,9 @@ export function registerLiveActivityTools(mcpServer) {
     {
       title: 'Resolve Live Activity recipient profile',
       description:
-        'Looks up an AEP profile and resolves its ECID for AJO unitary execution. ' +
-        'Push-token fields are diagnostic only; the Live Activity request uses ECID as recipients[0].userId.',
+        'Looks up an AEP profile, resolves its ECID for AJO unitary execution, and returns ' +
+        'liveActivityPushNotificationDetails.0.token as the suggested Live Activity ID. ' +
+        'The ECID remains recipients[0].userId; the push token is used only as live_activity_id.',
       inputSchema: {
         sandbox: z.string(),
         identifier: z.string().describe('Email, ECID, CRM ID, loyalty ID, or phone value'),
@@ -141,24 +165,79 @@ export function registerLiveActivityTools(mcpServer) {
     async ({ sandbox, identifier, namespace }) => {
       const check = allowSandbox(sandbox);
       if (check.error) return check.error;
-      const profile = await lookupProfile({
+      const context = await resolveProfileContext({
         sandbox: check.sandbox,
-        namespace: namespace || 'email',
         identifier,
+        namespace: namespace || 'email',
       });
-      if (!profile.ok) return fromLabApi(profile, { sandbox: check.sandbox });
-      const resolvedEcid = extractEcidFromProfileTable(profile.data);
+      if (context.lookup && !context.lookup.ok) {
+        return fromLabApi(context.lookup, { sandbox: check.sandbox });
+      }
       return jsonResult({
         ok: true,
         sandbox: check.sandbox,
         identifier,
         namespace: namespace || 'email',
-        found: !!profile.data,
-        ecid: resolvedEcid || null,
-        ready: !!resolvedEcid,
+        found: !!context.lookup?.data,
+        ecid: context.ecid || null,
+        liveActivityId: context.liveActivityId || null,
+        liveActivityIdSource: context.liveActivityId
+          ? 'liveActivityPushNotificationDetails.0.token'
+          : null,
+        ready: !!context.ecid,
         note:
-          'Use ecid in lab_live_activity_preflight. The AJO unitary payload does not take the device push token directly.',
+          'Use ecid for the recipient and liveActivityId as live_activity_id in preflight unless the colleague explicitly overrides it.',
       });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_live_activity_get_execution_state',
+    {
+      title: 'Get shared Live Activity execution IDs',
+      description:
+        'Reads the Campaign ID and Live Activity ID remembered for this MCP principal and sandbox. ' +
+        'These are the same values restored by the Portal Live Activities page.',
+      inputSchema: {
+        sandbox: z.string(),
+      },
+    },
+    async ({ sandbox }) => {
+      const check = allowSandbox(sandbox);
+      if (check.error) return check.error;
+      return fromLabApi(
+        await liveActivityGetExecutionState({ sandbox: check.sandbox }),
+        { sandbox: check.sandbox },
+      );
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_live_activity_save_execution_state',
+    {
+      title: 'Save shared Live Activity execution IDs',
+      description:
+        'Saves a colleague-supplied Campaign ID and/or Live Activity ID for this MCP principal and sandbox. ' +
+        'Use when the colleague says to use a specific campaign ID; the Portal Live Activities page restores it on load or sandbox refresh.',
+      inputSchema: {
+        sandbox: z.string(),
+        campaign_id: z.string().optional(),
+        live_activity_id: z.string().optional(),
+      },
+    },
+    async (params) => {
+      const check = allowSandbox(params.sandbox);
+      if (check.error) return check.error;
+      if (params.campaign_id == null && params.live_activity_id == null) {
+        return toolError('Provide campaign_id and/or live_activity_id to save.');
+      }
+      return fromLabApi(
+        await liveActivitySaveExecutionState({
+          ...params,
+          sandbox: check.sandbox,
+        }),
+        { sandbox: check.sandbox },
+      );
     },
   );
 
@@ -187,7 +266,7 @@ export function registerLiveActivityTools(mcpServer) {
       const keyId = getRequestKeyId();
       const check = allowSandbox(params.sandbox);
       if (check.error) return check.error;
-      const resolved = await resolveEcid({
+      const resolved = await resolveProfileContext({
         sandbox: check.sandbox,
         ecid: params.ecid,
         identifier: params.identifier,
@@ -200,6 +279,7 @@ export function registerLiveActivityTools(mcpServer) {
         ...params,
         sandbox: check.sandbox,
         ecid: resolved.ecid,
+        live_activity_id: params.live_activity_id || resolved.liveActivityId || undefined,
       });
       writeAuditLog({
         keyId,
@@ -212,6 +292,12 @@ export function registerLiveActivityTools(mcpServer) {
       return fromLabApi(result, {
         sandbox: check.sandbox,
         ecidResolvedFromProfile: !params.ecid && !!resolved.ecid,
+        liveActivityIdResolvedFromProfile:
+          !params.live_activity_id && !!resolved.liveActivityId,
+        liveActivityIdSource:
+          !params.live_activity_id && resolved.liveActivityId
+            ? 'liveActivityPushNotificationDetails.0.token'
+            : null,
       });
     },
   );

@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.28.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.29.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.28)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.29)
 
-MCP server: **AEP Orchestration Lab MCP v3.28.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.29.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -50,7 +50,7 @@ Codex should call these **before** improvising lab conventions:
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
 12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires user-generated MCP key.
-13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution uses **ECID**, not a raw push token. Never pass arbitrary payloads or claim the campaign asset is being edited.
+13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 
 ### How the lab executes
 
@@ -217,7 +217,7 @@ FSI, retail, telecom, media, and sports each have one CRM profile table, four ev
 
 Use the corresponding `{industry}.all.v1` recipe and manifest event keys for fsi, telecom, media, or sports. Travel continues to use its Python runner.
 
-## Workflow 1e — AJO Live Activity customer test (v3.28+)
+## Workflow 1e — AJO Live Activity customer test (v3.29+)
 
 Live Activity sends are important external actions. They require a user-generated MCP key, an allowlisted sandbox, a customer template, preflight, and explicit colleague confirmation.
 
@@ -229,11 +229,17 @@ Live Activity sends are important external actions. They require a user-generate
 
    > **lab_live_activity_profile_context** sandbox apalmer identifier `{profile email}` namespace email
 
-   The result supplies the **ECID** used as `recipients[0].userId`. Push-token fields are diagnostic only and are never copied directly into the unitary payload.
+   The result supplies the **ECID** used as `recipients[0].userId` and, when present, a suggested **Live Activity ID** from `liveActivityPushNotificationDetails.0.token`. Use that suggestion unless the colleague explicitly overrides it.
 
 3. Preflight:
 
-   > **lab_live_activity_preflight** sandbox apalmer template_id `{id}` identifier `{email}` campaign_id `{campaign UUID}` live_activity_id `{Live Activity ID}` event update variables `{...}`
+   When the colleague supplies the campaign ID, persist it to the shared Portal state:
+
+   > **lab_live_activity_save_execution_state** sandbox apalmer campaign_id `{campaign UUID}`
+
+   Then preflight; `live_activity_id` may be omitted when profile context found the token:
+
+   > **lab_live_activity_preflight** sandbox apalmer template_id `{id}` identifier `{email}` campaign_id `{campaign UUID}` event update variables `{...}`
 
    If `ready:false`, ask the colleague only for `missingFields`, then preflight again. Never invent campaign, Live Activity, or template-variable values.
 

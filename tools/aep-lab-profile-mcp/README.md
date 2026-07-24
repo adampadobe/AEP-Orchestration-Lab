@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.28)
+# AEP Orchestration Lab MCP (Phase 3.29)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.28.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.29.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -50,7 +50,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_snowflake_provision` | `POST /api/snowflake/provision` | Governed recipes, including `{fsi,retail,telecom,media,sports}.all.v1` (six tables each) |
 | `lab_live_activity_list_templates` | `GET /api/ajo/live-activity/templates` | Built-in + principal/sandbox customer templates |
 | `lab_live_activity_get_template` | `GET /api/ajo/live-activity/templates` | Full template and required-variable definitions |
-| `lab_live_activity_profile_context` | `GET /api/profile/table` | Resolve profile ECID; push token is diagnostic only |
+| `lab_live_activity_profile_context` | `GET /api/profile/table` + `/api/profile/consent` | Resolve profile ECID and suggest `live_activity_id` from `liveActivityPushNotificationDetails.0.token` |
+| `lab_live_activity_get_execution_state` | `GET /api/ajo/live-activity/execution-state` | Read Campaign / Live Activity IDs shared with the Portal UI for this user + sandbox |
+| `lab_live_activity_save_execution_state` | `POST /api/ajo/live-activity/execution-state` | Persist colleague-supplied IDs into the same per-user, per-sandbox Portal state |
 | `lab_live_activity_preflight` | `POST /api/ajo/live-activity/preflight` | Required dry-run; missing fields or redacted preview + short-lived preflight ID |
 | `lab_live_activity_send` | `POST /api/ajo/live-activity` | Confirmed, hash-bound, idempotent AJO unitary execution |
 | `lab_live_activity_upsert_template` | `POST /api/ajo/live-activity/templates` | Create/version principal + sandbox customer template; mirrors Portal |
