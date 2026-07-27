@@ -78,6 +78,14 @@
       color: #fff !important;
       font-size: 11px !important;
     }
+    .nav-subscribe {
+      padding: 10px 16px !important;
+      border: 1px solid var(--qia-burgundy) !important;
+      background: var(--qia-burgundy);
+      color: #fff !important;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
     .mobile-menu { display: none; border: 0; background: none; color: var(--qia-burgundy); font-size: 26px; }
 
     #TopRibbon:empty,
@@ -213,6 +221,78 @@
     .news-card h3 { margin: 16px 0 9px; font-size: 17px; line-height: 1.18; }
     .news-card p { margin: 0; color: var(--qia-copy); font-size: 13px; }
 
+    .newsletter-demo {
+      padding: 78px 0;
+      background: var(--qia-burgundy);
+      color: #fff;
+    }
+    .newsletter-intro { max-width: 760px; margin-bottom: 30px; }
+    .newsletter-kicker {
+      margin: 0 0 10px;
+      color: var(--qia-gold);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .newsletter-intro h2 {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 4vw, 46px);
+      font-weight: 400;
+      line-height: 1.08;
+    }
+    .newsletter-intro p { margin: 0; color: rgba(255, 255, 255, 0.82); }
+    .newsletter-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(290px, 0.8fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+    .newsletter-demo .campaign-card {
+      border: 0;
+      background: #fff;
+      color: var(--qia-ink);
+      box-shadow: 0 18px 45px rgba(51, 5, 33, 0.24);
+    }
+    .newsletter-demo .journey-steps {
+      margin: 0;
+      grid-template-columns: 1fr;
+      border: 0;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .newsletter-demo .journey-step {
+      min-height: 74px;
+      padding: 14px 18px 14px 58px;
+      position: relative;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .newsletter-demo .journey-step:last-child { border-bottom: 0; }
+    .newsletter-demo .journey-step::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 18px;
+      top: 15px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.46);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .newsletter-demo .journey-step b { color: #fff; }
+    .newsletter-demo .journey-step.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .newsletter-demo .journey-step.complete::before {
+      content: "✓";
+      border-color: var(--qia-gold);
+      background: var(--qia-gold);
+      color: var(--qia-burgundy-dark);
+    }
+
     .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
     .feature-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 3px; }
     .feature-card h2 { margin: 18px 0 8px; font-size: 31px; font-weight: 400; }
@@ -347,6 +427,7 @@
     .journey-step:last-child { border-right: 0; }
     .journey-step b { display: block; margin-bottom: 4px; color: var(--qia-burgundy); font-size: 14px; }
     .campaign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .campaign-grid--workspace { grid-template-columns: 1fr; }
     .campaign-card { padding: 26px; border: 1px solid var(--qia-line); background: var(--qia-grey); }
     .campaign-card header { margin-bottom: 20px; display: flex; justify-content: space-between; gap: 14px; }
     .campaign-card h2 { margin: 0; font-size: 25px; font-weight: 400; }
@@ -382,6 +463,7 @@
     .channel em { color: #2f7855; font-style: normal; font-weight: 700; }
     .channel.future em { color: var(--qia-burgundy); }
     .compliance { color: var(--qia-copy); font-size: 11px; }
+    .campaign-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
     @media (max-width: 1040px) {
       .desktop-nav { gap: 15px; }
@@ -397,7 +479,7 @@
       .mobile-menu { display: block; }
       .hero { min-height: 480px; }
       .hero::before { background-position: 44% center; }
-      .focus-grid, .history-card, .campaign-grid { grid-template-columns: 1fr; }
+      .focus-grid, .history-card, .campaign-grid, .newsletter-grid { grid-template-columns: 1fr; }
       .news-grid { grid-template-columns: 1fr; }
       .feature-grid { gap: 18px; }
       .footer-main { grid-template-columns: 1fr 1fr; }
@@ -438,9 +520,9 @@
         <a href="#news">Newsroom</a>
         <a href="https://www.qia.qa/en/Careers/Pages/default.aspx" target="_blank" rel="noopener">Careers</a>
         <a href="#contact">Contact Us</a>
-        <a class="nav-circle" href="#campaign" data-open-campaign aria-label="Open campaign demo">D</a>
+        <a class="nav-subscribe" href="#newsletter">Subscribe</a>
       </nav>
-      <button class="mobile-menu" type="button" data-open-campaign aria-label="Open campaign demo">☰</button>
+      <a class="mobile-menu" href="#newsletter" aria-label="Newsletter sign-up">✉</a>
     </div>
   </header>
 
@@ -498,6 +580,43 @@
             <h3>QIA participates as a cornerstone investor in RWE’s equity capital raise</h3>
             <p>The investment supports increased ownership in critical energy infrastructure.</p>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="newsletter-demo" id="newsletter" aria-labelledby="newsletterTitle">
+      <div class="container">
+        <div class="newsletter-intro">
+          <p class="newsletter-kicker">Adobe orchestration demonstration · mock data</p>
+          <h2 id="newsletterTitle">Choose the updates that matter to you</h2>
+          <p>Start as a public-site visitor. Submit explicit newsletter preferences, inspect the resulting unified profile, then activate a governed campaign to the eligible audience.</p>
+        </div>
+        <div class="newsletter-grid">
+          <form class="campaign-card" id="subscriberForm">
+            <header><h2>Newsletter preferences</h2><span class="mock-badge">Mock subscriber</span></header>
+            <div class="field"><label for="subscriberEmail">Email address</label><input id="subscriberEmail" type="email" value="maya@example.com" required></div>
+            <div class="field"><label for="subscriberType">Subscriber type</label><select id="subscriberType"><option>Institutional partner</option><option>Market observer</option><option>Media professional</option><option>Prospective talent</option></select></div>
+            <fieldset class="field">
+              <legend>Content interests</legend>
+              <div class="checks">
+                <label class="check"><input type="checkbox" name="interest" value="Sustainability" checked> Sustainability</label>
+                <label class="check"><input type="checkbox" name="interest" value="Technology" checked> Technology</label>
+                <label class="check"><input type="checkbox" name="interest" value="Infrastructure"> Infrastructure</label>
+                <label class="check"><input type="checkbox" name="interest" value="Qatar ecosystem"> Qatar ecosystem</label>
+              </div>
+            </fieldset>
+            <label class="consent"><input id="marketingConsent" type="checkbox" checked required><span>I agree to receive selected updates by email and understand I can withdraw this preference. <b>Demo consent text.</b></span></label>
+            <button class="qia-button" type="submit">Sign up and continue</button>
+            <div class="status" id="subscriberStatus" role="status">Ready to create a consented preference signal.</div>
+          </form>
+
+          <div class="journey-steps" aria-label="Campaign journey">
+            <div class="journey-step active" data-step="1"><b>Signal</b>Visitor chooses interests and gives explicit consent.</div>
+            <div class="journey-step" data-step="2"><b>Profile</b>AEP unifies the approved subscriber signals.</div>
+            <div class="journey-step" data-step="3"><b>Audience</b>Marketer selects an eligible subscriber audience.</div>
+            <div class="journey-step" data-step="4"><b>Activate</b>Journey applies consent, suppression and channel rules.</div>
+            <div class="journey-step" data-step="5"><b>Learn</b>Engagement can inform the next campaign and future experience.</div>
+          </div>
         </div>
       </div>
     </section>
@@ -574,32 +693,7 @@
       <button class="drawer-close" id="campaignClose" type="button" aria-label="Close campaign demo">×</button>
     </div>
     <div class="drawer-content">
-      <div class="journey-steps" aria-label="Campaign journey">
-        <div class="journey-step"><b>01 · Signal</b>Visitor chooses interests and consent.</div>
-        <div class="journey-step"><b>02 · Profile</b>AEP unifies approved subscriber signals.</div>
-        <div class="journey-step"><b>03 · Audience</b>Marketer selects an eligible audience.</div>
-        <div class="journey-step"><b>04 · Activate</b>Journey applies consent and suppression.</div>
-        <div class="journey-step"><b>05 · Learn</b>Engagement informs the next campaign.</div>
-      </div>
-      <div class="campaign-grid">
-        <form class="campaign-card" id="subscriberForm">
-          <header><h2>Newsletter preferences</h2><span class="mock-badge">Mock subscriber</span></header>
-          <div class="field"><label for="subscriberEmail">Email address</label><input id="subscriberEmail" type="email" value="maya@example.com" required></div>
-          <div class="field"><label for="subscriberType">Subscriber type</label><select id="subscriberType"><option>Institutional partner</option><option>Market observer</option><option>Media professional</option><option>Prospective talent</option></select></div>
-          <fieldset class="field">
-            <legend>Content interests</legend>
-            <div class="checks">
-              <label class="check"><input type="checkbox" name="interest" value="Sustainability" checked> Sustainability</label>
-              <label class="check"><input type="checkbox" name="interest" value="Technology" checked> Technology</label>
-              <label class="check"><input type="checkbox" name="interest" value="Infrastructure"> Infrastructure</label>
-              <label class="check"><input type="checkbox" name="interest" value="Qatar ecosystem"> Qatar ecosystem</label>
-            </div>
-          </fieldset>
-          <label class="consent"><input id="marketingConsent" type="checkbox" checked required><span>I agree to receive selected updates by email and understand I can withdraw this preference. <b>Demo consent text.</b></span></label>
-          <button class="qia-button" type="submit">Save preferences</button>
-          <div class="status" id="subscriberStatus" role="status">Ready to create a consented preference signal.</div>
-        </form>
-
+      <div class="campaign-grid campaign-grid--workspace">
         <div class="campaign-card">
           <header><h2>Campaign workspace</h2><span class="mock-badge">Mock audience</span></header>
           <div class="field"><label for="audienceSelect">Subscriber audience</label><select id="audienceSelect"><option value="sustainability">Consented · Sustainability interest</option><option value="technology">Consented · Technology interest</option><option value="talent">Consented · Prospective talent</option></select></div>
@@ -609,7 +703,10 @@
           <div class="channel"><span>Profile Viewer inspection</span><em>Lab view</em></div>
           <div class="channel future"><span>AEM + Target on-site experience</span><em>Future phase</em></div>
           <p class="compliance"><b>Compliance context:</b> newsletter purpose; explicit consent required; withdrawn consent, invalid addresses and frequency caps suppressed. Retention and audit rules would be agreed during discovery.</p>
-          <button class="qia-button" id="activateCampaign" type="button">Activate demo campaign</button>
+          <div class="campaign-actions">
+            <button class="qia-button qia-button--light" id="viewProfile" type="button">Open unified profile</button>
+            <button class="qia-button" id="activateCampaign" type="button">Activate demo campaign</button>
+          </div>
           <div class="status" id="campaignStatus" role="status">Waiting for a consented subscriber signal.</div>
         </div>
       </div>
@@ -655,6 +752,16 @@
 
       var subscriberStatus = document.getElementById('subscriberStatus');
       var campaignStatus = document.getElementById('campaignStatus');
+      var journeySteps = [].slice.call(document.querySelectorAll('.newsletter-demo .journey-step'));
+
+      function updateJourney(completedThrough, activeStep) {
+        journeySteps.forEach(function (step, index) {
+          var stepNumber = index + 1;
+          step.classList.toggle('complete', stepNumber <= completedThrough);
+          step.classList.toggle('active', stepNumber === activeStep);
+        });
+      }
+
       document.getElementById('subscriberForm').addEventListener('submit', function (event) {
         event.preventDefault();
         var email = document.getElementById('subscriberEmail').value.trim();
@@ -680,10 +787,12 @@
             }
           }
         }, '*');
-        subscriberStatus.textContent = 'Preference signal created. Use the Lab bar above to inspect the unified profile.';
+        subscriberStatus.textContent = 'Preference signal created. Continue in the campaign workspace to inspect the unified profile.';
         subscriberStatus.classList.add('success');
-        campaignStatus.textContent = 'Consented profile signal ready. Select a mock audience and activate the campaign.';
+        campaignStatus.textContent = 'Consented profile signal ready. Open the unified profile, then select the eligible audience.';
         campaignStatus.classList.add('success');
+        updateJourney(1, 2);
+        window.setTimeout(function () { openCampaign(); }, 450);
       });
 
       var audienceSelect = document.getElementById('audienceSelect');
@@ -696,6 +805,15 @@
         var data = audienceData[audienceSelect.value];
         document.getElementById('audienceCount').textContent = data[0];
         document.getElementById('audienceDescription').textContent = data[1] + ' Withdrawn consent and frequency-cap exclusions are suppressed.';
+        updateJourney(2, 3);
+      });
+
+      document.getElementById('viewProfile').addEventListener('click', function () {
+        var email = document.getElementById('subscriberEmail').value.trim();
+        parent.postMessage({ source: 'qia-demo-site', type: 'profile-request', identifier: email }, '*');
+        campaignStatus.textContent = 'Unified Profile Viewer opened for the mock subscriber. Review the consented interests, then activate the selected audience.';
+        campaignStatus.classList.add('success');
+        updateJourney(2, 3);
       });
 
       document.getElementById('activateCampaign').addEventListener('click', function () {
@@ -712,6 +830,7 @@
         }, '*');
         campaignStatus.textContent = 'Demo activation requested for ' + campaign + '. Consent and suppression remain applied; AEM and Target are future-state.';
         campaignStatus.classList.add('success');
+        updateJourney(4, 5);
       });
     })();
   </script>
