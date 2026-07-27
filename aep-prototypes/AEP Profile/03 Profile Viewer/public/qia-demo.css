@@ -1,0 +1,83 @@
+.qia-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 100;
+  background: #f4f0e9;
+}
+
+.qia-demo-page .dashboard-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  pointer-events: none;
+}
+
+.qia-demo-page .dashboard-sidebar { pointer-events: auto; }
+.qia-demo-page .dashboard-main-wrap { display: none; }
+
+.qia-demo-top-anchor {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+.qia-demo-top-anchor::before {
+  content: "";
+  display: block;
+  height: 14px;
+  pointer-events: auto;
+}
+
+.qia-demo-id-banner {
+  pointer-events: auto;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  transform: translateY(calc(-100% - 14px));
+  transition: transform 0.2s ease;
+}
+
+.qia-demo-top-anchor:hover .qia-demo-id-banner,
+.qia-demo-top-anchor:focus-within .qia-demo-id-banner { transform: translateY(0); }
+
+.qia-demo-script-preview,
+.qia-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.45rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.82rem;
+}
+
+.qia-demo-message--success { color: var(--dash-success-text); }
+.qia-demo-message--error { color: var(--dash-error-text); }
+.qia-demo-page .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (min-width: 769px) {
+  body.qia-demo-page .dashboard-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(calc(-100% + 12px));
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+  body.qia-demo-page .dashboard-sidebar:hover,
+  body.qia-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.18);
+  }
+}
+
+@media (max-width: 768px) {
+  body.qia-demo-page .dashboard-sidebar {
+    position: relative;
+    transform: none;
+  }
+}
