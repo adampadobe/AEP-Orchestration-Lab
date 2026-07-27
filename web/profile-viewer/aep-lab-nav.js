@@ -819,6 +819,28 @@
           ],
         },
         {
+          id: 'demoQia',
+          label: 'QIA',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'qiaWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Campaign and subscriber journey (in development)',
+                  href: 'qia-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'qiaOrchestrationDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" stroke="currentColor" stroke-width="1.5"/><path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoPremierInn',
           label: 'Premier Inn',
           demoCustomer: true,

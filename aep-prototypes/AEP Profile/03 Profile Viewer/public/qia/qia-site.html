@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Fictional Adobe orchestration deployment plan demo inspired by public QIA themes.">
+  <title>QIA × Adobe — orchestration plan demo</title>
+  <style>
+    :root{--ink:#102b35;--navy:#0b2530;--navy-2:#173c47;--wine:#7c1937;--sand:#d8b985;--paper:#f5f1ea;--white:#fff;--muted:#587078;--line:rgba(16,43,53,.14);--max:1180px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}button,a{font:inherit}a{color:inherit;text-decoration:none}
+    .demo-notice{background:var(--wine);color:#fff;text-align:center;padding:8px 20px;font-size:12px;letter-spacing:.02em}
+    .site-header{position:sticky;top:0;z-index:30;background:rgba(245,241,234,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+    .nav{max-width:var(--max);margin:auto;height:78px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{display:flex;align-items:center;gap:13px;font-weight:700;letter-spacing:.08em}.brand-mark{width:36px;height:36px;position:relative}.brand-mark:before,.brand-mark:after{content:"";position:absolute;inset:4px;border:1px solid var(--sand);transform:rotate(45deg)}.brand-mark:after{inset:10px;border-color:var(--wine)}.brand small{display:block;color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.2em}.nav-links{display:flex;align-items:center;gap:28px;font-size:13px;font-weight:600}.nav-links a:hover{color:var(--wine)}.nav-cta{border:1px solid var(--ink);padding:10px 16px}
+    .hero{position:relative;min-height:670px;background:var(--navy);color:#fff;overflow:hidden}.hero:before{content:"";position:absolute;width:680px;height:680px;border:1px solid rgba(216,185,133,.26);transform:rotate(45deg);right:-190px;top:-185px}.hero:after{content:"";position:absolute;width:420px;height:420px;border:1px solid rgba(216,185,133,.18);transform:rotate(45deg);right:-20px;bottom:-285px}.hero-inner{position:relative;z-index:2;max-width:var(--max);margin:auto;padding:112px 24px 90px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:80px;align-items:end}.eyebrow{color:var(--sand);text-transform:uppercase;letter-spacing:.18em;font-size:12px;font-weight:700}.hero h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(48px,7vw,86px);font-weight:400;line-height:.98;letter-spacing:-.04em;margin:20px 0 28px;max-width:850px}.hero h1 em{color:var(--sand);font-style:normal}.hero-copy{max-width:650px;color:#d8e1e3;font-size:18px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}.btn{border:1px solid var(--sand);background:var(--sand);color:var(--navy);padding:14px 20px;font-weight:700;cursor:pointer}.btn:hover{background:#e8ce9f}.btn--ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.45)}.hero-aside{border-left:1px solid rgba(255,255,255,.18);padding-left:32px}.hero-aside h2{font-size:13px;text-transform:uppercase;letter-spacing:.15em;color:var(--sand)}.hero-aside ol{list-style:none;padding:0;margin:22px 0 0;counter-reset:phase}.hero-aside li{counter-increment:phase;display:grid;grid-template-columns:34px 1fr;gap:12px;padding:16px 0;border-top:1px solid rgba(255,255,255,.13);font-size:14px}.hero-aside li:before{content:"0" counter(phase);color:var(--sand);font-size:11px;letter-spacing:.1em}
+    .section{max-width:var(--max);margin:auto;padding:96px 24px}.section-head{display:grid;grid-template-columns:.65fr 1.35fr;gap:70px;align-items:start;margin-bottom:48px}.section h2{font-family:Georgia,"Times New Roman",serif;font-size:clamp(36px,5vw,58px);font-weight:400;line-height:1.06;margin:0}.section-intro{font-size:18px;color:var(--muted);max-width:620px}.pill{display:inline-block;border:1px solid var(--line);padding:7px 10px;text-transform:uppercase;letter-spacing:.13em;font-size:10px;font-weight:800;margin-bottom:18px}
+    .journey-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:34px}.journey-step{background:var(--paper);padding:22px}.journey-step span{color:var(--wine);font-size:11px;font-weight:800;letter-spacing:.1em}.journey-step strong{display:block;margin:12px 0 5px}.journey-step small{color:var(--muted)}
+    .campaign-lab{display:grid;grid-template-columns:1fr 1fr;gap:24px}.lab-card{background:#fff;border:1px solid var(--line);padding:30px}.lab-card__head{display:flex;justify-content:space-between;gap:18px;align-items:start;margin-bottom:24px}.lab-card h3{font-family:Georgia,serif;font-size:30px;font-weight:400;margin:0}.mock-label{display:inline-block;background:#f3e5e9;color:var(--wine);padding:6px 9px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.field{display:grid;gap:7px;margin:15px 0}.field label,.field legend{font-size:12px;font-weight:800;letter-spacing:.04em}.field input,.field select{width:100%;border:1px solid var(--line);background:#fbfaf8;padding:12px;color:var(--ink);border-radius:0}.checks{display:flex;flex-wrap:wrap;gap:8px}.check{border:1px solid var(--line);padding:9px 11px;font-size:12px;display:flex;align-items:center;gap:7px}.consent{display:flex;gap:10px;align-items:flex-start;padding:14px;background:#f8f4ef;font-size:12px}.lab-status{min-height:45px;margin:18px 0 0;padding:12px 14px;border-left:3px solid var(--sand);background:#f8f4ef;color:var(--muted);font-size:13px}.lab-status.success{border-left-color:#2b7554;color:#19563c}.audience-summary{border:1px solid var(--line);padding:18px;margin-top:16px}.audience-summary strong{font-family:Georgia,serif;font-size:25px;font-weight:400}.audience-summary p{color:var(--muted);font-size:13px}.channel-list{display:grid;gap:8px;margin:16px 0}.channel{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);padding:11px 13px;font-size:13px}.channel em{font-style:normal;color:#2b7554;font-size:11px;font-weight:800}.channel.future em{color:var(--wine)}.compliance-note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+    .roadmap-wrap{background:#fff}.roadmap{display:grid;grid-template-columns:240px 1fr;gap:48px}.phase-tabs{display:flex;flex-direction:column;gap:8px}.phase-tab{border:0;border-left:2px solid var(--line);background:transparent;text-align:left;padding:15px 18px;color:var(--muted);cursor:pointer}.phase-tab strong{display:block;color:var(--ink);font-size:15px}.phase-tab.active{border-left-color:var(--wine);background:#f8f4ef;color:var(--wine)}.phase-panel{display:none}.phase-panel.active{display:block}.phase-panel h3{font-family:Georgia,serif;font-size:42px;font-weight:400;margin:0 0 12px}.phase-panel>p{color:var(--muted);max-width:690px}.workstreams{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}.workstream{border:1px solid var(--line);padding:22px}.workstream span{color:var(--wine);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}.workstream h4{margin:18px 0 8px}.workstream p{color:var(--muted);font-size:13px}
+    .architecture{background:var(--navy);color:#fff;max-width:none}.architecture .section{padding-top:100px;padding-bottom:100px}.architecture .section-intro{color:#c3d1d4}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;align-items:stretch}.flow-card{position:relative;border:1px solid rgba(255,255,255,.18);padding:24px;min-height:180px;background:rgba(255,255,255,.035)}.flow-card:not(:last-child):after{content:"→";position:absolute;right:-16px;top:50%;color:var(--sand);z-index:2}.flow-card small{color:var(--sand);text-transform:uppercase;letter-spacing:.12em}.flow-card h3{font-family:Georgia,serif;font-size:22px;font-weight:400;margin:25px 0 8px}.flow-card p{font-size:13px;color:#b8c8cc}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.metric{padding:28px 0;border-top:2px solid var(--wine)}.metric strong{font-family:Georgia,serif;font-size:48px;font-weight:400}.metric span{display:block;color:var(--muted);font-size:13px}.guardrail{margin-top:38px;padding:24px;border:1px solid var(--line);display:flex;gap:18px;align-items:flex-start;background:rgba(255,255,255,.45)}.guardrail-mark{flex:0 0 40px;height:40px;border:1px solid var(--wine);display:grid;place-items:center;color:var(--wine);font-weight:800}.guardrail h3{margin:0 0 6px}.guardrail p{margin:0;color:var(--muted);font-size:14px}
+    .cta{background:var(--wine);color:#fff}.cta .section{display:grid;grid-template-columns:1fr auto;gap:50px;align-items:center}.cta h2{max-width:760px}.cta p{color:#f1dfe5;max-width:650px}.cta .btn{background:#fff;border-color:#fff;color:var(--wine)}
+    footer{background:#081b23;color:#aabdc1}.footer-inner{max-width:var(--max);margin:auto;padding:42px 24px;display:flex;justify-content:space-between;gap:30px;font-size:12px}.footer-inner strong{color:#fff}
+    #TopRibbon:empty,#ContentCardContainer:empty{display:none}
+    @media(max-width:900px){.nav-links a:not(.nav-cta){display:none}.hero-inner,.section-head,.cta .section,.campaign-lab{grid-template-columns:1fr}.hero-aside{border-left:0;border-top:1px solid rgba(255,255,255,.18);padding:24px 0 0}.journey-steps{grid-template-columns:1fr 1fr}.roadmap{grid-template-columns:1fr}.phase-tabs{flex-direction:row;overflow:auto}.phase-tab{min-width:150px;border-left:0;border-bottom:2px solid var(--line)}.workstreams,.metrics{grid-template-columns:1fr}.flow{grid-template-columns:1fr 1fr}.flow-card:after{display:none}}
+    @media(max-width:560px){.nav{height:66px}.brand small{display:none}.hero-inner{padding-top:80px;gap:45px}.hero h1{font-size:46px}.section{padding:70px 20px}.journey-steps,.flow{grid-template-columns:1fr}.footer-inner{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="demo-notice">Fictional Adobe customer demo · Public information only · Not affiliated with or endorsed by Qatar Investment Authority</div>
+  <header class="site-header">
+    <nav class="nav" aria-label="Demo navigation">
+      <a class="brand" href="#top" aria-label="QIA orchestration demo home"><span class="brand-mark" aria-hidden="true"></span><span>QIA <small>ORCHESTRATION DEMO</small></span></a>
+      <div class="nav-links"><a href="#campaign">Campaign flow</a><a href="#roadmap">Phased plan</a><a href="#architecture">Architecture</a><a class="nav-cta" href="#outcomes">Target outcomes</a></div>
+    </nav>
+  </header>
+
+  <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+  <main id="top">
+    <section class="hero" id="hero-banner" data-hero-mount>
+      <div class="hero-inner">
+        <div>
+          <span class="eyebrow">QIA × Adobe · Customer experience blueprint</span>
+          <h1>From subscriber interest to <em>trusted engagement.</em></h1>
+          <p class="hero-copy">A fictional end-to-end campaign demonstration: capture consented newsletter preferences, unify signals in Adobe Experience Platform, build a governed audience, and activate relevant investment content.</p>
+          <div class="actions"><button class="btn" data-experience="blueprint">Run the campaign flow</button><a class="btn btn--ghost" href="#roadmap">View the phased plan</a></div>
+        </div>
+        <aside class="hero-aside" aria-label="Planning principles">
+          <h2>Design principles</h2>
+          <ol><li>Capture explicit preferences and consent</li><li>Unify subscriber signals with governed identity</li><li>Activate audiences with suppression controls</li><li>Phase AEM and Target personalisation responsibly</li></ol>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="campaign">
+      <div class="section-head"><div><span class="pill">01 · Campaign flow</span><h2>A consent-first subscriber journey</h2></div><p class="section-intro">Use the mock controls below to tell the full story. Data is illustrative and is not connected to QIA systems. The Lab environment bar and Profile Viewer provide the technical AEP view.</p></div>
+      <div class="journey-steps">
+        <div class="journey-step"><span>01</span><strong>Signal</strong><small>Visitor selects content interests.</small></div>
+        <div class="journey-step"><span>02</span><strong>Profile</strong><small>AEP unifies consented signals.</small></div>
+        <div class="journey-step"><span>03</span><strong>Audience</strong><small>Marketer selects subscribers.</small></div>
+        <div class="journey-step"><span>04</span><strong>Activate</strong><small>Journey applies channel rules.</small></div>
+        <div class="journey-step"><span>05</span><strong>Learn</strong><small>Engagement improves the next decision.</small></div>
+      </div>
+      <div class="campaign-lab">
+        <form class="lab-card" id="subscriberForm">
+          <div class="lab-card__head"><div><span class="eyebrow">Visitor experience</span><h3>Create preferences</h3></div><span class="mock-label">Mock subscriber</span></div>
+          <div class="field"><label for="subscriberEmail">Email address</label><input id="subscriberEmail" type="email" value="maya@example.com" required></div>
+          <div class="field"><label for="subscriberType">Subscriber type</label><select id="subscriberType"><option>Institutional partner</option><option>Market observer</option><option>Media professional</option><option>Prospective talent</option></select></div>
+          <fieldset class="field"><legend>Content interests</legend><div class="checks"><label class="check"><input type="checkbox" name="interest" value="Sustainability" checked> Sustainability</label><label class="check"><input type="checkbox" name="interest" value="Technology" checked> Technology</label><label class="check"><input type="checkbox" name="interest" value="Infrastructure"> Infrastructure</label><label class="check"><input type="checkbox" name="interest" value="Qatar ecosystem"> Qatar ecosystem</label></div></fieldset>
+          <label class="consent"><input id="marketingConsent" type="checkbox" checked required><span>I agree to receive selected updates by email. I can change or withdraw this preference. <strong>Demo consent text.</strong></span></label>
+          <button class="btn" type="submit">Save preferences</button>
+          <div class="lab-status" id="subscriberStatus" role="status">Ready to create a consented preference signal.</div>
+        </form>
+        <div class="lab-card">
+          <div class="lab-card__head"><div><span class="eyebrow">Marketing workspace</span><h3>Compose campaign</h3></div><span class="mock-label">Mock audience</span></div>
+          <div class="field"><label for="audienceSelect">Subscriber audience</label><select id="audienceSelect"><option value="sustainability">Consented · Sustainability interest</option><option value="technology">Consented · Technology interest</option><option value="talent">Consented · Prospective talent</option></select></div>
+          <div class="field"><label for="campaignSelect">Campaign</label><select id="campaignSelect"><option>Future economy newsletter</option><option>Responsible investment briefing</option><option>Qatar ecosystem digest</option></select></div>
+          <div class="audience-summary"><strong id="audienceCount">2,480</strong><p id="audienceDescription">Illustrative consented subscribers interested in sustainability. Withdrawn consent and frequency-cap exclusions are suppressed.</p></div>
+          <div class="channel-list"><div class="channel"><span>Email newsletter</span><em>Eligible now</em></div><div class="channel"><span>Profile Viewer inspection</span><em>Lab view</em></div><div class="channel future"><span>AEM + Target on-site experience</span><em>Future phase</em></div></div>
+          <p class="compliance-note"><strong>Compliance context:</strong> purpose = newsletter updates; consent = required; suppression = withdrawn consent, invalid address and frequency cap; retention and audit rules = to be agreed during discovery.</p>
+          <button class="btn" id="activateCampaign" type="button">Activate demo campaign</button>
+          <div class="lab-status" id="campaignStatus" role="status">Waiting for a consented subscriber signal.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="roadmap-wrap" id="roadmap">
+      <div class="section">
+        <div class="section-head"><div><span class="pill">02 · Deployment plan</span><h2>Campaign foundation first, personalisation next</h2></div><p class="section-intro">A phased plan reflecting the call: newsletter and mailing-list orchestration is the demonstrable starting point. AEM integration and Target personalisation are described as future opportunities, not live capabilities.</p></div>
+        <div class="roadmap">
+          <div class="phase-tabs" role="tablist" aria-label="Deployment phases">
+            <button class="phase-tab active" data-phase="0" role="tab" aria-selected="true"><strong>Phase 1</strong>Campaign foundation</button>
+            <button class="phase-tab" data-phase="1" role="tab" aria-selected="false"><strong>Phase 2</strong>Profile + consent</button>
+            <button class="phase-tab" data-phase="2" role="tab" aria-selected="false"><strong>Phase 3</strong>Newsletter pilot</button>
+            <button class="phase-tab" data-phase="3" role="tab" aria-selected="false"><strong>Future phase</strong>AEM + Target</button>
+          </div>
+          <div>
+            <article class="phase-panel active" data-panel="0"><span class="eyebrow">Foundation</span><h3>Agree the campaign operating model</h3><p>Define subscriber types, mailing purposes, channel ownership, measures and approval workflow.</p><div class="workstreams"><div class="workstream"><span>Governance</span><h4>Consent taxonomy</h4><p>Purpose, source, timestamp, withdrawal and audit fields.</p></div><div class="workstream"><span>Content</span><h4>Newsletter model</h4><p>Topics, languages, cadence and reusable modules.</p></div><div class="workstream"><span>Measurement</span><h4>Campaign baseline</h4><p>Delivery, engagement and unsubscribe measures.</p></div></div></article>
+            <article class="phase-panel" data-panel="1"><span class="eyebrow">Data readiness</span><h3>Unify subscriber preferences</h3><p>Map consented mailing-list and behavioural signals into governed profiles without assuming access to unapproved personal data.</p><div class="workstreams"><div class="workstream"><span>Platform</span><h4>Subscriber schema</h4><p>Type, topics, locale, consent and activity events.</p></div><div class="workstream"><span>Identity</span><h4>Approved stitching</h4><p>Email or CRM keys with transparent merge rules.</p></div><div class="workstream"><span>Audience</span><h4>Reusable segments</h4><p>Interest plus consent, with suppression policy.</p></div></div></article>
+            <article class="phase-panel" data-panel="2"><span class="eyebrow">Pilot</span><h3>Activate a governed newsletter</h3><p>Select one subscriber audience and campaign, orchestrate delivery, and inspect profile and engagement events in the Lab.</p><div class="workstreams"><div class="workstream"><span>Journey</span><h4>Email activation</h4><p>Eligibility, frequency cap, send and fallback.</p></div><div class="workstream"><span>Profile</span><h4>Response signals</h4><p>Delivery, open, click and preference updates.</p></div><div class="workstream"><span>Insight</span><h4>Learning loop</h4><p>Audience and content performance review.</p></div></div></article>
+            <article class="phase-panel" data-panel="3"><span class="eyebrow">Planned opportunity</span><h3>Connect AEM, then introduce Target</h3><p>AEM-managed public content can become reusable campaign and web experience content. Once Target is deployed and governance is agreed, consented segments could support on-site testing and personalisation.</p><div class="workstreams"><div class="workstream"><span>AEM</span><h4>Content supply chain</h4><p>Approved fragments, metadata and campaign reuse.</p></div><div class="workstream"><span>Target</span><h4>Phased experiments</h4><p>Start with low-risk anonymous tests; add known audiences later.</p></div><div class="workstream"><span>Guardrail</span><h4>Not live in demo</h4><p>This page describes future-state potential only.</p></div></div></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture" id="architecture">
+      <div class="section">
+        <div class="section-head"><div><span class="pill">03 · Target pattern</span><h2>Governed campaigning, end to end</h2></div><p class="section-intro">A composable pattern that keeps source ownership clear while AEP turns approved subscriber signals into consented audiences and measurable campaigns.</p></div>
+        <div class="flow"><article class="flow-card"><small>01 · Public site</small><h3>Preference signal</h3><p>Topic choice, subscriber type and explicit consent.</p></article><article class="flow-card"><small>02 · AEP</small><h3>Unified profile</h3><p>Identity, preferences, consent and engagement events.</p></article><article class="flow-card"><small>03 · Audience</small><h3>Eligible subscribers</h3><p>Interest rules plus consent and suppression policy.</p></article><article class="flow-card"><small>04 · Campaign</small><h3>Newsletter journey</h3><p>Approved content, frequency rules and delivery.</p></article><article class="flow-card"><small>05 · Future</small><h3>AEM + Target</h3><p>Phased content reuse and on-site experimentation.</p></article></div>
+      </div>
+    </section>
+
+    <section class="section" id="outcomes">
+      <div class="section-head"><div><span class="pill">04 · Pilot scorecard</span><h2>Outcomes designed for evidence</h2></div><p class="section-intro">Illustrative demo targets, to be baselined and agreed during discovery—not claims about QIA performance or confirmed customer requirements.</p></div>
+      <div class="metrics"><div class="metric"><strong>1</strong><span>Consented newsletter journey demonstrated end to end</span></div><div class="metric"><strong>3+</strong><span>Reusable mock subscriber audiences</span></div><div class="metric"><strong>100%</strong><span>Activations with explicit consent context</span></div></div>
+      <div class="guardrail"><div class="guardrail-mark">G</div><div><h3>Governance is a product feature</h3><p>Every campaign decision includes purpose, approved inputs, consent, eligibility, suppression, fallback, ownership and auditability from the start. No internal QIA data is used in this demonstration.</p></div></div>
+      <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Personalized content cards" role="region"></section>
+    </section>
+
+    <section class="cta"><div class="section"><div><span class="eyebrow">Customer demo next step</span><h2>Choose the first audience. Define the proof. Build the pilot.</h2><p>This demonstration is ready to support a collaborative discovery conversation and turn an agreed priority into a governed Adobe deployment backlog.</p></div><button class="btn" data-experience="workshop">Open workshop brief</button></div></section>
+  </main>
+  <footer><div class="footer-inner"><strong>QIA × Adobe orchestration plan · fictional demo</strong><span>Original demo content · public context: <a href="https://www.qia.qa/en/pages/default.aspx" target="_blank" rel="noopener">qia.qa</a> · July 2026</span></div></footer>
+  <script>
+    (function(){
+      var tabs=[].slice.call(document.querySelectorAll('.phase-tab'));
+      var panels=[].slice.call(document.querySelectorAll('.phase-panel'));
+      tabs.forEach(function(tab){tab.addEventListener('click',function(){
+        var phase=tab.getAttribute('data-phase');
+        tabs.forEach(function(item){var active=item===tab;item.classList.toggle('active',active);item.setAttribute('aria-selected',active?'true':'false');});
+        panels.forEach(function(panel){panel.classList.toggle('active',panel.getAttribute('data-panel')===phase);});
+        parent.postMessage({source:'qia-demo-site',type:'experience',payload:{eventType:'qia.demo.plan.phaseView',viewName:'QIA orchestration plan',public:{phase:phase}}},'*');
+      });});
+      document.querySelectorAll('[data-experience]').forEach(function(button){button.addEventListener('click',function(){
+        var action=button.getAttribute('data-experience');
+        parent.postMessage({source:'qia-demo-site',type:'experience',payload:{eventType:'qia.demo.plan.'+action,viewName:'QIA orchestration plan',public:{action:action}}},'*');
+        if(action==='blueprint')document.getElementById('campaign').scrollIntoView({behavior:'smooth'});
+        if(action==='workshop')document.getElementById('roadmap').scrollIntoView({behavior:'smooth'});
+      });});
+      var subscriberForm=document.getElementById('subscriberForm');
+      var subscriberStatus=document.getElementById('subscriberStatus');
+      var campaignStatus=document.getElementById('campaignStatus');
+      subscriberForm.addEventListener('submit',function(event){
+        event.preventDefault();
+        var email=document.getElementById('subscriberEmail').value.trim();
+        var consent=document.getElementById('marketingConsent').checked;
+        var interests=[].slice.call(document.querySelectorAll('input[name="interest"]:checked')).map(function(input){return input.value;});
+        if(!consent||!email){subscriberStatus.textContent='Consent and a valid mock email are required.';return;}
+        parent.postMessage({source:'qia-demo-site',type:'set-identifier',identifier:email},'*');
+        parent.postMessage({source:'qia-demo-site',type:'experience',payload:{eventType:'qia.demo.subscription.preferenceSubmit',viewName:'QIA newsletter preferences',public:{subscriberType:document.getElementById('subscriberType').value,interests:interests,marketingConsent:true,consentSource:'qia-demo-site'}}},'*');
+        subscriberStatus.textContent='Preference signal created. Use the Lab strip above to inspect the unified profile and audience context.';
+        subscriberStatus.classList.add('success');
+        campaignStatus.textContent='Consented profile signal ready. Select a mock audience and activate the newsletter campaign.';
+        campaignStatus.classList.add('success');
+      });
+      var audienceSelect=document.getElementById('audienceSelect');
+      var audienceData={sustainability:['2,480','Illustrative consented subscribers interested in sustainability.'],technology:['1,760','Illustrative consented subscribers interested in technology and the future economy.'],talent:['940','Illustrative consented prospective-talent subscribers.']};
+      audienceSelect.addEventListener('change',function(){var data=audienceData[audienceSelect.value];document.getElementById('audienceCount').textContent=data[0];document.getElementById('audienceDescription').textContent=data[1]+' Withdrawn consent and frequency-cap exclusions are suppressed.';});
+      document.getElementById('activateCampaign').addEventListener('click',function(){
+        var audience=audienceSelect.options[audienceSelect.selectedIndex].text;
+        var campaign=document.getElementById('campaignSelect').value;
+        parent.postMessage({source:'qia-demo-site',type:'experience',payload:{eventType:'qia.demo.campaign.activate',viewName:'QIA newsletter campaign',public:{audience:audience,campaign:campaign,channel:'email',consentRequired:true,mockData:true}}},'*');
+        campaignStatus.textContent='Demo activation requested for '+campaign+'. Consent and suppression rules remain applied; AEM/Target stays future-state.';
+        campaignStatus.classList.add('success');
+      });
+    })();
+  </script>
+</body>
+</html>
