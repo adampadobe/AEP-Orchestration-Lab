@@ -692,13 +692,6 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   margin: 0;
 }
 
-.brand-scraper-upload-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.35rem 0 0.5rem;
-}
-
 .brand-scraper-offline-panel {
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm, 12px);
@@ -768,6 +761,71 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   margin: 0 0 0.75rem;
   font-size: 12px;
   color: var(--dash-text-secondary);
+  line-height: 1.45;
+}
+
+.brand-scraper-offline-modes {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.brand-scraper-offline-modes legend {
+  width: 100%;
+  margin: 0 0 0.45rem;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.brand-scraper-offline-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.brand-scraper-offline-mode:hover {
+  border-color: color-mix(in srgb, var(--dash-blue) 55%, var(--dash-border));
+}
+
+.brand-scraper-offline-mode:has(input:checked) {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 7%, var(--dash-surface));
+}
+
+.brand-scraper-offline-mode input {
+  margin: 0.2rem 0 0;
+  accent-color: var(--dash-blue);
+  flex: 0 0 auto;
+}
+
+.brand-scraper-offline-mode span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.brand-scraper-offline-mode strong {
+  color: var(--dash-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.brand-scraper-offline-mode em {
+  color: var(--dash-text-secondary);
+  font-size: 12px;
+  font-style: normal;
   line-height: 1.45;
 }
 
@@ -905,6 +963,11 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   font-size: 13px;
 }
 
+.brand-scraper-offline-upload-meta[hidden],
+.brand-scraper-offline-upload-ready[hidden] {
+  display: none;
+}
+
 .brand-scraper-offline-upload-name {
   font-weight: 600;
   color: var(--dash-text);
@@ -930,6 +993,12 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   color: var(--dash-info-text, var(--dash-text));
   background: var(--dash-info-bg, rgba(59, 130, 246, 0.08));
   border: 1px solid var(--dash-border);
+}
+
+@media (max-width: 760px) {
+  .brand-scraper-offline-modes {
+    grid-template-columns: 1fr;
+  }
 }
 
 .brand-scraper-offline-cta {

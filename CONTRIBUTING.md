@@ -287,7 +287,7 @@ When live crawl fails (403, bot protection) or LLM analysis is unreliable, **`we
 
 1. **Download scrape brief (MD)** — client generator in `brand-scraper-brief.js`; includes brand context, copy-paste LLM prompt, and expected ZIP layout.
 2. Run the brief in an external LLM or manually save pages (Chrome *Webpage, Complete*; bulk images via Image Eye or similar).
-3. **Upload** the resulting `.zip` (≤30 MB, HTML + asset folders) under **Options → HTML upload**; tick **Uploaded HTML only** when the site cannot be crawled.
+3. **Upload** the resulting `.zip` (≤30 MB, HTML + asset folders) under **Scrape blocked? Offline fallback**; choose **Uploaded HTML only** when the site cannot be crawled, or keep **Live crawl, then use upload as fallback** when the crawler may still work.
 4. **Analyse** — same pipelines as live scrape; optional **Create demo website** uses the upload for the site clone.
 
 Upload ingest is handled by `functions/brandScraperUploadedHtml.js` and persisted via `brandScraperUploadAssets.js` (no separate JSON upload required).

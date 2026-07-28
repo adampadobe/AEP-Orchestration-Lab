@@ -318,15 +318,13 @@
   const LS_CRAWLER = 'aepBrandScraperCrawler';
   const LS_UPLOAD_FALLBACK = 'aepBrandScraperUploadFallback';
   const LS_UPLOAD_ONLY = 'aepBrandScraperUploadOnly';
-  /** Includes AI/run flags plus JS-rendered crawl, upload options, and optional demo regenerate. */
-  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 4;
+  /** Includes AI/run flags plus JS-rendered crawl and optional demo regenerate. */
+  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 2;
 
   const uploadFallbackCb = document.getElementById('brandScraperUploadFallback');
   const uploadOnlyCb = document.getElementById('brandScraperUploadOnly');
   const regenerateDemoCb = document.getElementById('brandScraperRegenerateDemo');
   const regenerateDemoRow = document.getElementById('brandScraperRegenerateDemoRow');
-  const htmlUploadInput = document.getElementById('brandScraperHtmlUpload');
-  const uploadSummaryEl = document.getElementById('brandScraperUploadSummary');
   const offlineDropZone = document.getElementById('brandScraperOfflineDropZone');
   const offlineDropInput = document.getElementById('brandScraperOfflineDropInput');
   const offlineUploadMeta = document.getElementById('brandScraperOfflineUploadMeta');
@@ -658,15 +656,34 @@
       offlineUploadSize.textContent = formatUploadFileSize(total);
     }
     if (offlineUploadReady) {
-      offlineUploadReady.hidden = !(uploadOnlyCb && uploadOnlyCb.checked);
+      offlineUploadReady.hidden = false;
+      offlineUploadReady.innerHTML = uploadOnlyCb && uploadOnlyCb.checked
+        ? 'Ready — <strong>Uploaded HTML only</strong> will skip the live crawl. Click <strong>Analyse</strong>.'
+        : 'Ready — the <strong>live crawl runs first</strong>; this upload replaces blocked pages. Click <strong>Analyse</strong>.';
     }
   }
 
   function clearPendingUploadFiles() {
     pendingUploadFiles = [];
-    if (htmlUploadInput) htmlUploadInput.value = '';
     if (offlineDropInput) offlineDropInput.value = '';
-    updateUploadSummary();
+    updateOfflineUploadUI();
+  }
+
+  function persistUploadMode() {
+    const uploadOnly = !!(uploadOnlyCb && uploadOnlyCb.checked);
+    try {
+      localStorage.setItem(LS_UPLOAD_ONLY, uploadOnly ? '1' : '0');
+      localStorage.setItem(LS_UPLOAD_FALLBACK, uploadOnly ? '0' : '1');
+    } catch (_e) {}
+  }
+
+  function syncUploadModeUI() {
+    const uploadOnly = !!(uploadOnlyCb && uploadOnlyCb.checked);
+    if (uploadFallbackCb) uploadFallbackCb.checked = !uploadOnly;
+    if (urlInput) {
+      urlInput.required = !uploadOnly;
+      urlInput.setAttribute('aria-required', uploadOnly ? 'false' : 'true');
+    }
     updateOfflineUploadUI();
   }
 
@@ -688,27 +705,20 @@
       }
     }
     pendingUploadFiles = files;
-    updateUploadSummary();
-    updateOfflineUploadUI();
 
     if (opts.fromOfflinePanel) {
       focusOfflinePanel();
       const hasUrl = !!(urlInput && normaliseUrl(urlInput.value));
-      if (!hasUrl || opts.preferUploadOnly !== false) {
+      if (!hasUrl) {
         if (uploadOnlyCb) {
           uploadOnlyCb.checked = true;
-          try { localStorage.setItem(LS_UPLOAD_ONLY, '1'); } catch (_e) {}
         }
-      } else if (uploadFallbackCb) {
+      } else if (!(uploadOnlyCb && uploadOnlyCb.checked) && uploadFallbackCb) {
         uploadFallbackCb.checked = true;
-        try { localStorage.setItem(LS_UPLOAD_FALLBACK, '1'); } catch (_e) {}
-        if (uploadOnlyCb) {
-          uploadOnlyCb.checked = false;
-          try { localStorage.setItem(LS_UPLOAD_ONLY, '0'); } catch (_e) {}
-        }
       }
+      persistUploadMode();
+      syncUploadModeUI();
       applyRunOptionsToUI();
-      updateOfflineUploadUI();
       detectBrandFromUploadFiles(files).then(function (detected) {
         applyDetectedUploadFields(detected);
         const msg = buildDetectionStatus(detected);
@@ -717,6 +727,7 @@
         setStatus('Upload ready — click Analyse.', 'info');
       });
     }
+    updateOfflineUploadUI();
     return true;
   }
 
@@ -726,28 +737,21 @@
   } catch (_e) {}
   if (uploadFallbackCb) {
     uploadFallbackCb.addEventListener('change', function () {
-      try { localStorage.setItem(LS_UPLOAD_FALLBACK, uploadFallbackCb.checked ? '1' : '0'); } catch (_e) {}
+      if (uploadFallbackCb.checked && uploadOnlyCb) uploadOnlyCb.checked = false;
+      persistUploadMode();
+      syncUploadModeUI();
       applyRunOptionsToUI();
     });
   }
   if (uploadOnlyCb) {
     uploadOnlyCb.addEventListener('change', function () {
-      try { localStorage.setItem(LS_UPLOAD_ONLY, uploadOnlyCb.checked ? '1' : '0'); } catch (_e) {}
-      updateOfflineUploadUI();
+      if (uploadOnlyCb.checked && uploadFallbackCb) uploadFallbackCb.checked = false;
+      persistUploadMode();
+      syncUploadModeUI();
       applyRunOptionsToUI();
     });
   }
-
-  function updateUploadSummary() {
-    if (!uploadSummaryEl) return;
-    if (!pendingUploadFiles.length) {
-      uploadSummaryEl.textContent = 'No files selected. Upload .html files or a .zip containing HTML and asset folders.';
-      return;
-    }
-    const names = pendingUploadFiles.map(function (f) { return f.name; }).slice(0, 4);
-    uploadSummaryEl.textContent = pendingUploadFiles.length + ' file(s): ' + names.join(', ') +
-      (pendingUploadFiles.length > 4 ? '…' : '');
-  }
+  syncUploadModeUI();
 
   function readFileAsBase64(file) {
     return new Promise(function (resolve, reject) {
@@ -775,12 +779,6 @@
       useAsFallback: !!(uploadFallbackCb && uploadFallbackCb.checked),
       uploadOnly: !!(uploadOnlyCb && uploadOnlyCb.checked),
     };
-  }
-
-  if (htmlUploadInput) {
-    htmlUploadInput.addEventListener('change', function () {
-      acceptUploadFiles(htmlUploadInput.files || [], { fromOfflinePanel: false });
-    });
   }
 
   if (offlineUploadClear) {
@@ -946,8 +944,6 @@
       if (runOptions[key]) on++;
     });
     if (crawlerJsCb && crawlerJsCb.checked) on++;
-    if (uploadFallbackCb && uploadFallbackCb.checked) on++;
-    if (uploadOnlyCb && uploadOnlyCb.checked) on++;
     if (regenerateDemoCb && regenerateDemoCb.checked) on++;
     syncRegenerateDemoOption();
     if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTIONS_MENU_TOTAL;
