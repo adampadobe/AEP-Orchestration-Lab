@@ -889,6 +889,80 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   margin: 0.65rem 0 0;
 }
 
+.brand-scraper-offline-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+
+.brand-scraper-offline-tool {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  color: inherit;
+  background: var(--dash-surface-alt);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.brand-scraper-offline-tool:hover,
+.brand-scraper-offline-tool:focus-visible {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 7%, var(--dash-surface));
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.brand-scraper-offline-tool img {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 10px;
+}
+
+.brand-scraper-offline-tool span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.brand-scraper-offline-tool strong {
+  color: var(--dash-text);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.brand-scraper-offline-tool strong small {
+  display: inline-block;
+  margin-left: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 12%, transparent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 0.08rem;
+}
+
+.brand-scraper-offline-tool em {
+  color: var(--dash-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.brand-scraper-offline-tool code {
+  font-size: inherit;
+}
+
 .brand-scraper-offline-steps {
   margin: 0.65rem 0 0;
   padding-left: 1.25rem;
@@ -996,7 +1070,8 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 }
 
 @media (max-width: 760px) {
-  .brand-scraper-offline-modes {
+  .brand-scraper-offline-modes,
+  .brand-scraper-offline-tools {
     grid-template-columns: 1fr;
   }
 }

@@ -286,7 +286,7 @@ nav icons to “revert.”
 When live crawl fails (403, bot protection) or LLM analysis is unreliable, **`web/profile-viewer/brand-scraper.html`** exposes **Scrape blocked? Offline fallback**:
 
 1. **Download scrape brief (MD)** — client generator in `brand-scraper-brief.js`; includes brand context, copy-paste LLM prompt, and expected ZIP layout.
-2. Run the brief in an external LLM or manually save pages (Chrome *Webpage, Complete*; bulk images via Image Eye or similar).
+2. Run the brief in an external LLM or manually save pages. [SingleFile](https://www.getsinglefile.com/) is the recommended one-click route to a self-contained `.html`; Chrome *Webpage, Complete* produces HTML plus an asset folder. [html.to.design](https://chromewebstore.google.com/detail/htmltodesign/ldnheaepmnmbjjjahokphckbpgciiaed?hl=en) is an optional visual/Figma capture aid, not a standard HTML export.
 3. **Upload** the resulting `.zip` (≤30 MB, HTML + asset folders) under **Scrape blocked? Offline fallback**; choose **Uploaded HTML only** when the site cannot be crawled, or keep **Live crawl, then use upload as fallback** when the crawler may still work.
 4. **Analyse** — same pipelines as live scrape; optional **Create demo website** uses the upload for the site clone.
 

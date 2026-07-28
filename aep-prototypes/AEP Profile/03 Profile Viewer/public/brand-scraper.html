@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260420a">
-  <link rel="stylesheet" href="brand-scraper.css?v=20260728a">
+  <link rel="stylesheet" href="brand-scraper.css?v=20260728b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260420a">
 </head>
@@ -160,9 +160,25 @@
                       When live crawl or AI analysis fails (403, bot protection, login walls), use an offline bundle instead of fighting the crawler.
                       Download a markdown brief for ChatGPT/Claude, or a checklist for manual save-page + image export — then drop the resulting <strong>.zip</strong> below.
                     </p>
+                    <div class="brand-scraper-offline-tools" aria-label="Manual webpage capture tools">
+                      <a class="brand-scraper-offline-tool" href="https://www.getsinglefile.com/" target="_blank" rel="noopener noreferrer" aria-label="Open SingleFile website in a new tab">
+                        <img src="images/brand-scraper-singlefile-icon.png" alt="" width="48" height="48" />
+                        <span>
+                          <strong>SingleFile <small>Recommended</small></strong>
+                          <em>Click the icon, install the browser extension, then save the complete page as one upload-ready <code>.html</code> file.</em>
+                        </span>
+                      </a>
+                      <a class="brand-scraper-offline-tool" href="https://chromewebstore.google.com/detail/htmltodesign/ldnheaepmnmbjjjahokphckbpgciiaed?hl=en" target="_blank" rel="noopener noreferrer" aria-label="Open html.to.design in the Chrome Web Store in a new tab">
+                        <img src="images/brand-scraper-html-to-design-icon.png" alt="" width="48" height="48" />
+                        <span>
+                          <strong>html.to.design</strong>
+                          <em>Capture a page for Figma or clipboard-based design work. Use SingleFile when you need an ordinary HTML file for this uploader.</em>
+                        </span>
+                      </a>
+                    </div>
                     <ol class="brand-scraper-offline-steps">
                       <li><strong>Download brief</strong> — includes brand context, LLM prompt, and expected ZIP layout.</li>
-                      <li><strong>External tool</strong> — run the prompt or manually save pages (Chrome <em>Webpage, Complete</em>; bulk images via Image Eye or similar).</li>
+                      <li><strong>Capture the page</strong> — click <strong>SingleFile</strong> above for a one-file HTML download, or use Chrome <em>Webpage, Complete</em> when you need separate asset folders.</li>
                       <li><strong>Choose a mode</strong> — try the live crawl first with the upload as fallback, or skip the crawl with <strong>Uploaded HTML only</strong>.</li>
                       <li><strong>Upload</strong> — drop or browse for <strong>.zip</strong> / <strong>.html</strong> below.</li>
                       <li><strong>Analyse</strong> — same AI steps as a live scrape; optionally tick <strong>Create demo website</strong> for a site clone.</li>
@@ -391,7 +407,7 @@
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260720-social-presenter-bypass"></script>
   <script src="fflate.min.js?v=20260619"></script>
-  <script src="brand-scraper-brief.js?v=20260728a"></script>
+  <script src="brand-scraper-brief.js?v=20260728b"></script>
   <script src="brand-scraper.js?v=20260728a"></script>
 </body>
 </html>
