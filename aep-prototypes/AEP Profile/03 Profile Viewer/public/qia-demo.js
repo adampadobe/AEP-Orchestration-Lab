@@ -134,11 +134,26 @@
       }
     }
 
+    function openBrandConcierge() {
+      const fab = document.getElementById('siteCloneBcFab');
+      if (fab && !fab.hidden) {
+        fab.click();
+        setMessage('External Brand Concierge opened for the customer-initiated handoff.', 'success');
+        return true;
+      }
+      setMessage('Brand Concierge handoff is ready. Inject or enable the externally trained Concierge from the Lab bar, then retry.', 'error');
+      return false;
+    }
+
     global.addEventListener('message', function (event) {
       if (!frame || event.source !== frame.contentWindow || !event.data || event.data.source !== 'qia-demo-site') return;
       if (event.data.type === 'experience') void sendExperience(event.data.payload);
       if (event.data.type === 'profile-request') void lookUpProfile(String(event.data.identifier || '').trim());
       if (event.data.type === 'set-identifier' && customerEmail) customerEmail.value = String(event.data.identifier || '').trim();
+      if (event.data.type === 'open-brand-concierge') {
+        const opened = openBrandConcierge();
+        frame.contentWindow.postMessage({ source: 'qia-demo-shell', type: 'brand-concierge-status', opened: opened }, '*');
+      }
     });
 
     if (global.AepDemoGeneratorTargets && global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle) {
