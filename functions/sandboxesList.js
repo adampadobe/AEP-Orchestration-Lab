@@ -14,7 +14,7 @@ async function listActiveSandboxes(token, clientId, orgId) {
   let offset = 0;
   const limit = 100;
   for (;;) {
-    const url = `${SANDBOX_MANAGEMENT_BASE}/?limit=${limit}&offset=${offset}`;
+    const url = `${SANDBOX_MANAGEMENT_BASE}/sandboxes?limit=${limit}&offset=${offset}`;
     const apiRes = await fetch(url, { method: 'GET', headers });
     const data = await apiRes.json().catch(() => ({}));
     if (!apiRes.ok) {
