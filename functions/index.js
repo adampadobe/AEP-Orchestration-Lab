@@ -1952,6 +1952,7 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
         datastreamId: body.datastreamId,
         datastreamTitle: body.datastreamTitle,
         schemaTitle: body.schemaTitle,
+        schemaId: body.schemaId,
         datasetName: body.datasetName,
         customTriggers: body.customTriggers,
         quickMenuTriggers: body.quickMenuTriggers,
