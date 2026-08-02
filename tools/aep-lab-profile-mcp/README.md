@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.29)
+# AEP Orchestration Lab MCP (Phase 3.30)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.29.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.30.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -66,9 +66,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_setup_event_infra` | `POST /api/events/infra/step` (`setupEventInfra`) | ExperienceEvent schema + field groups + dataset (Event tool step 1) |
 | `lab_get_event_config` | `GET /api/events/config` | Read saved datastream/schema/dataset Firestore config |
 | `lab_save_event_datastream` | Firestore `eventEdgeConfig` (Admin) | Save Edge datastream ID after Coworker **dx-api** or Data Collection setup |
-| `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target without sending |
-| `lab_send_profile_event` | `POST /api/events/generator` | Send experience event (any `event_type` string); portal-identical POST body |
-| `lab_send_profile_events_batch` | `POST /api/events/generator` × N (sequential) | Convenience wrapper: one generator POST per event (800ms delay default); `events[]` or `event_types[]` |
+| `lab_preflight_profile_event` | *(dry-run)* | Resolve identityMap + target; preview governed `industry` + `industry_fields` payloads |
+| `lab_send_profile_event` | `POST /api/events/generator` | Minimal by default; optional `industry` + flat `industry_fields` builds validated `public.{industry}.*` full XDM |
+| `lab_send_profile_events_batch` | `POST /api/events/generator` × N (sequential) | One generator POST per event; `events[]` supports optional `industry` + `industry_fields` per step |
 | `lab_send_retail_journey_events` | `POST /api/events/generator` (×4) | Portal-aligned retail commerce journey pack; preflight + staggered timestamps |
 | `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |

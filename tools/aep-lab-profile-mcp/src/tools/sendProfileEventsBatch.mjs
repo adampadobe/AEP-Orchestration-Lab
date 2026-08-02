@@ -6,12 +6,21 @@ import { getRequestKeyId } from '../requestContext.mjs';
 import { sendProfileEventSequence } from '../framework/sendProfileEventSequence.mjs';
 import { buildEventsFromEventTypes } from '../framework/demoEventPacks.mjs';
 import { sanitizeCoworkerEventSteps } from '../framework/sanitizeCoworkerEventParams.mjs';
+import { INDUSTRY_EVENT_IDS } from '../framework/industryEventPayload.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 const eventStepSchema = z.object({
   event_type: z.string().describe('Any XDM eventType string — server builds XDM; do not pass xdm blobs'),
   channel: z.string().optional().describe('Interaction channel (web, mobile, …) — server adds interactionDetails.core.channel'),
   timestamp: z.string().optional(),
+  industry: z
+    .string()
+    .optional()
+    .describe(`Optional governed rich event industry: ${INDUSTRY_EVENT_IDS.join(', ')}`),
+  industry_fields: z
+    .record(z.unknown())
+    .optional()
+    .describe('Optional flat, allowlisted fields for the selected industry; omit for safe sample defaults'),
 });
 
 /**
@@ -24,8 +33,9 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
       title: 'Send multiple profile experience events',
       description:
         'Convenience wrapper: sends multiple Experience Events for one profile via sequential POST /api/events/generator calls ' +
-        '(one event per request, default 800ms delay — NOT one Edge bulk payload). Server builds minimal XDM per step from tool params only. ' +
-        'Coworker/agents: pass events[] with event_type (+ optional channel, timestamp per step) OR event_types[] shorthand. ' +
+        '(one event per request, default 800ms delay — NOT one Edge bulk payload). Server builds minimal XDM by default. ' +
+        'Coworker/agents: pass events[] with event_type (+ optional channel, timestamp, industry, industry_fields per step) OR event_types[] shorthand. ' +
+        'Industry steps are validated, nested under public.{industry}, and sent as full XDM. ' +
         'NEVER pass view_name, view_url, custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
         'Requires email + ecid from lab_generate_profile for reliable stitching. ' +
         'Results: requestId for Edge transport (eventId is null for lab-event-tool-edge). Verify with lab_profile_activity after 30–60s UPS lag.',
@@ -74,7 +84,12 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
       if (!resolvedEvents.length && Array.isArray(event_types) && event_types.length) {
         resolvedEvents = buildEventsFromEventTypes(event_types, { channel });
       }
-      const { events: sanitizedEvents, warnings: strippedWarnings } = sanitizeCoworkerEventSteps(resolvedEvents);
+      const {
+        events: sanitizedEvents,
+        warnings: strippedWarnings,
+        errors: eventStepErrors,
+      } = sanitizeCoworkerEventSteps(resolvedEvents);
+      if (eventStepErrors.length) return toolError(eventStepErrors.join(' '));
       resolvedEvents = sanitizedEvents;
       if (!resolvedEvents.length) {
         return toolError('Provide events[] or event_types[] with at least one event.');

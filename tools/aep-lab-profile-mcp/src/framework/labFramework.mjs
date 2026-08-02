@@ -120,24 +120,25 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
   },
   {
-    id: 'coworker_event_minimal_params',
+    id: 'coworker_event_governed_params',
     rule:
-      'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, tenant field groups, or rich demo payloads to event tools. ' +
-      'Coworker/agents must use lab_send_profile_event or lab_send_profile_events_batch with tool params ONLY: sandbox, email, ecid, event_type, channel, timestamp. ' +
-      'NEVER pass view_name or view_url — they add web.webPageDetails and break Event tool UI minimal parity. The lab server builds minimal Edge XDM — do not construct event.xdm yourself.',
+      'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, or tenant field-group blobs to event tools. ' +
+      'Default intent events use sandbox, email, ecid, event_type, channel, timestamp and remain minimal. ' +
+      'When the colleague explicitly requests industry detail, pass industry plus optional flat industry_fields; the MCP validates the allowlist, nests public.{industry}.*, and selects full XDM automatically. ' +
+      'NEVER pass view_name or view_url or construct event.xdm yourself.',
     never_pass: [
       'xdm / event.xdm JSON blobs',
       'view_name / view_url / viewName / viewUrl',
       'schema $id / meta:altId / allOf mixin definitions',
       'descriptor payloads or field-group schema fragments',
-      'public / message / tenant / xdm_tenant_key unless colleague explicitly requests rich tenant demo fields',
-      'xdm_style=full or edge_minimal=false unless explicitly requested',
+      'hand-built public / message / tenant / xdm_tenant_key; use industry + industry_fields instead',
+      'xdm_style=full or edge_minimal=false directly; industry opt-in selects these internally',
       'lab_send_edge_event raw_payload (advanced Edge debugging only — breaks when schema refs are injected)',
     ],
     preferred_tools: ['lab_send_profile_event', 'lab_send_profile_events_batch', 'lab_preflight_profile_event'],
     server_build:
-      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity). ' +
-      'MCP buildGeneratorPostBody sends camelCase fields only (eventType, email, ecid, channel) — never viewName/viewUrl or raw XDM.',
+      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm. Minimal intent calls use buildMinimalEdgeXdm; ' +
+      'governed industry calls add validated public.{industry} fields and xdmStyle=full. MCP sends camelCase POST fields only—never viewName/viewUrl or raw XDM.',
     server_built_xdm_shape: {
       wrapper: '{ event: { xdm: { … } } }',
       required_fields: ['identityMap (ECID primary + Email secondary)', 'eventType', '_id', 'timestamp'],
@@ -153,7 +154,8 @@ export const CRITICAL_RULES = [
     },
     intent_demo_flow:
       'lab_generate_profile → capture email + ecid → lab_send_profile_events_batch with event_types [donation.made, web.webPageDetails.pageViews, transaction] and channel web → lab_profile_activity after 30–60s.',
-    mcp: 'Default edge_minimal:true — omit public/message/xdm overrides for intent demos.',
+    mcp:
+      'Default remains minimal. Rich opt-in: industry generic|retail|fsi|telecom|media|travel|sports|public plus optional industry_fields. Omit industry_fields for safe sample defaults.',
   },
   {
     id: 'portal_event_types_free_text',
@@ -429,7 +431,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.29.0',
+    version: '3.30.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -581,23 +583,25 @@ export function getExecutionFramework() {
           'lab_generate_profile — capture ecid from response + email',
           'lab_list_event_targets — pick target_id (default lab-event-tool-edge)',
           'Optional: lab_preflight_profile_event — shows identityMap + generatorPostBody (NOT raw XDM to construct)',
-          'lab_send_profile_event with email AND ecid, event_type, channel only — server builds minimal XDM',
-          'Multi-event intent demos: lab_send_profile_events_batch with event_types[] — same identity, no XDM blobs',
+          'lab_send_profile_event with email AND ecid, event_type, channel — server builds minimal XDM by default',
+          'Optional rich detail: add industry + flat industry_fields; MCP validates and builds public.{industry} with full XDM',
+          'Multi-event demos: lab_send_profile_events_batch supports the same industry + industry_fields per events[] step',
           'lab_profile_activity — confirm event count (allow UPS lag)',
         ],
         never_pass: [
           'Custom xdm / event.xdm JSON',
           'view_name / view_url (adds web.webPageDetails)',
           'Schema refs, mixin definitions, descriptors, tenant field-group payloads',
-          'public / message / xdm_tenant_key unless colleague explicitly asks for rich tenant fields',
+          'hand-built public / message / xdm_tenant_key; use industry + industry_fields for rich context',
         ],
         identity_rules: [
           'At least one of email or ecid required',
           'identityMap: ECID primary when both present; Email secondary',
-          'Minimal XDM: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only',
+          'Minimal default: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only',
+          'Industry opt-in: validated public.{industry}.* plus the same stitched identity',
         ],
         server_build:
-          'eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity). See criticalRules.coworker_event_minimal_params.',
+          'eventEdgeService.buildGeneratorEdgeInteractXdm → minimal by default or governed full industry XDM. See criticalRules.coworker_event_governed_params.',
         coworker_event_send_recipe: {
           summary: 'Profile + intent events — params only, server builds XDM',
           steps: [
@@ -607,6 +611,8 @@ export function getExecutionFramework() {
           ],
           single_event_example:
             'lab_send_profile_event sandbox apalmer email {email} ecid {ecid} event_type donation.made channel web',
+          rich_industry_example:
+            'lab_send_profile_event sandbox apalmer email {email} ecid {ecid} industry media industry_fields {contentTitle, genre, subscriptionTier}',
           preflight:
             'lab_preflight_profile_event with same params — inspect generatorPostBody (camelCase POST fields), not hand-built XDM',
         },
@@ -812,9 +818,9 @@ export function getExecutionFramework() {
       lab_update_profile:
         'Change existing profile attributes after discuss step. Requires profile already in UPS. Uses industry dataflow from argument.',
       lab_preflight_profile_event:
-        'Dry-run event identity + target resolution (identityMap, _demoemea.identification.core) without sending.',
+        'Dry-run event identity + target resolution without sending; previews governed industry payloads when industry is supplied.',
       lab_send_profile_event:
-        'Append experience events (web views, transactions, donations) without rewriting profile attributes. Pass email+ecid after generate.',
+        'Append experience events without rewriting profile attributes. Minimal by default; industry + industry_fields safely opts into richer public.{industry} context.',
       lab_send_edge_event:
         'Direct Alloy-style Edge interact when you have datastream_id; same identityMap rules; include _demoemea.identification.core for Demo Website schemas.',
       lab_live_activity_preflight:

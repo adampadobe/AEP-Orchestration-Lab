@@ -5,8 +5,8 @@
  * Event type is free text (datalist suggestions only). Backend buildEventGeneratorXdm passes
  * arbitrary eventType through to XDM.
  *
- * Coworker/agents: pass ONLY these camelCase fields — never raw XDM. Server builds minimal Edge
- * payload via eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity).
+ * Coworker/agents: pass tool-level fields — never raw XDM. Server builds minimal Edge payloads
+ * by default, or governed full XDM when the MCP supplies an allowlisted public.{industry} slice.
  * Typical server-built shape (channel=web):
  *   { event: { xdm: { identityMap, eventType, _id, timestamp, interactionDetails.core.channel } } }
  * Do NOT pass viewName/viewUrl — they upgrade to rich XDM with web.webPageDetails.

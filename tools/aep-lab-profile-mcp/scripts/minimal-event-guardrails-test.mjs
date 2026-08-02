@@ -25,6 +25,37 @@ function run() {
   assert.ok(stripped.stripped.includes('public'), 'public stripped');
   assert.equal(stripped.params.view_name, undefined);
 
+  const travelRich = sanitizeCoworkerEventParams({
+    event_type: 'travel.flight.search',
+    channel: 'web',
+    industry: 'travel',
+    industry_fields: {
+      departureAirport: 'LHR',
+      arrivalAirport: 'DXB',
+      confirmationNumber: 'VAL-001',
+    },
+  });
+  assert.deepEqual(travelRich.errors, []);
+  assert.equal(travelRich.params.xdm_style, 'full');
+  assert.equal(travelRich.params.edge_minimal, false);
+  assert.equal(travelRich.params.public.travel.departureAirport, 'LHR');
+  assert.equal(travelRich.params.public.travel.confirmationNumber, 'VAL-001');
+  assert.equal(travelRich.params.public.hotel, undefined);
+  assert.equal(travelRich.richIndustry.payloadPath, '_demoemea.public.travel');
+
+  const mediaDefaults = sanitizeCoworkerEventParams({ industry: 'media' });
+  assert.deepEqual(mediaDefaults.errors, []);
+  assert.equal(mediaDefaults.params.event_type, 'media.contentView');
+  assert.equal(mediaDefaults.params.channel, 'web');
+  assert.equal(mediaDefaults.params.public.media.contentTitle, 'Featured content');
+  assert.equal(mediaDefaults.richIndustry.usedDefaults, true);
+
+  const invalidRich = sanitizeCoworkerEventParams({
+    industry: 'retail',
+    industry_fields: { schemaRef: 'must-not-pass' },
+  });
+  assert.ok(invalidRich.errors[0].includes('Unsupported retail industry field'));
+
   const body = buildGeneratorPostBody({
     sandbox: 'apalmer',
     email: EMAIL,
@@ -38,6 +69,15 @@ function run() {
   assert.equal(body.eventType, 'commerce.search');
   assert.equal(body.channel, 'web');
   assert.ok(body.ecid && body.email, 'identity fields present');
+
+  const richBody = buildGeneratorPostBody({
+    sandbox: 'apalmer',
+    email: EMAIL,
+    ecid: ECID,
+    ...travelRich.params,
+  });
+  assert.equal(richBody.xdmStyle, 'full');
+  assert.equal(richBody.public.travel.arrivalAirport, 'DXB');
 
   const shorthand = buildEventsFromEventTypes(['donation.made', 'web.webPageDetails.pageViews'], {
     channel: 'web',
@@ -54,6 +94,15 @@ function run() {
   ]);
   assert.equal(batchSanitized.events[0].view_name, undefined);
   assert.ok(batchSanitized.stripped.length >= 1);
+
+  const richBatch = sanitizeCoworkerEventSteps([
+    { event_type: 'media.contentView', industry: 'media', industry_fields: { contentTitle: 'Pilot', genre: 'Drama' } },
+    { event_type: 'telecom.plan.upgrade', industry: 'telecom' },
+  ]);
+  assert.deepEqual(richBatch.errors, []);
+  assert.equal(richBatch.events[0].public.media.contentTitle, 'Pilot');
+  assert.equal(richBatch.events[0].xdm_style, 'full');
+  assert.equal(richBatch.events[1].public.telecom.planAction, 'upgrade_offer');
 
   console.log(JSON.stringify({ ok: true, tests: 'minimal-event-guardrails' }));
 }

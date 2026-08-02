@@ -5,6 +5,7 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { checkEdgeSendRate } from '../rateLimiter.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { EVENT_TYPE_SUGGESTIONS } from '../framework/buildGeneratorPostBody.mjs';
+import { INDUSTRY_EVENT_IDS } from '../framework/industryEventPayload.mjs';
 import { sanitizeCoworkerEventParams } from '../framework/sanitizeCoworkerEventParams.mjs';
 import {
   buildEventIdentityMap,
@@ -27,11 +28,12 @@ export function registerSendProfileEventTool(mcpServer) {
     {
       title: 'Send profile experience event',
       description:
-        'POST /api/events/generator — server builds minimal Edge XDM from tool params (same as Profile Viewer Event tool). ' +
-        'Coworker/agents: pass ONLY sandbox, email, ecid, event_type, channel, timestamp — NEVER pass view_name, view_url, custom xdm, schema refs, mixin blobs, or tenant field groups. ' +
+        'POST /api/events/generator — server builds safe Edge XDM from tool params (same as Profile Viewer Event tool). ' +
+        'Default is minimal: sandbox, email, ecid, event_type, channel, timestamp. For richer industry context, pass industry plus optional flat industry_fields; the MCP validates and wraps them under public.{industry} and selects full XDM. ' +
+        'NEVER pass view_name, view_url, custom xdm, schema refs, mixin blobs, or tenant field groups. ' +
         'event_type accepts ANY string (datalist suggestions are optional). Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
         'Server builds XDM via buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (identityMap, eventType, _id, timestamp, interactionDetails when channel set). ' +
-        'Omit public/message/xdm_style unless colleague explicitly needs rich tenant demo fields. Default target_id lab-event-tool-edge. ' +
+        'Do not hand-build public/message/xdm_style; use industry + industry_fields. Default target_id lab-event-tool-edge. ' +
         'Preflight: lab_preflight_profile_event. Multi-event: lab_send_profile_events_batch.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -53,7 +55,13 @@ export function registerSendProfileEventTool(mcpServer) {
           .record(z.unknown())
           .optional()
           .describe(
-            'AVOID for Coworker intent demos — triggers rich XDM. Only when colleague explicitly needs tenant public fields (donationAmount, hotel*, etc.). Prefer omitting.',
+            'Legacy compatibility only; raw public is stripped unless paired with industry. Prefer industry_fields.',
+          ),
+        industry_fields: z
+          .record(z.unknown())
+          .optional()
+          .describe(
+            'Optional flat, allowlisted details for the selected industry. Omit for safe sample defaults. Examples: travel {departureAirport, arrivalAirport, confirmationNumber}; media {contentTitle, genre, subscriptionTier}; retail {productName, sku, productCategory}.',
           ),
         message: z
           .record(z.unknown())
@@ -64,7 +72,9 @@ export function registerSendProfileEventTool(mcpServer) {
         industry: z
           .string()
           .optional()
-          .describe('Industry context label (portal uses public sector fields when industry=public)'),
+          .describe(
+            `Governed rich event industry. Allowed: ${INDUSTRY_EVENT_IDS.join(', ')}. Automatically selects full XDM and public.{industry} nesting.`,
+          ),
         xdm_tenant_key: z
           .string()
           .optional()
@@ -81,11 +91,11 @@ export function registerSendProfileEventTool(mcpServer) {
         edge_minimal: z
           .boolean()
           .optional()
-          .describe('Default true — keep minimal server-built XDM. Do NOT set false unless colleague explicitly needs full tenant FG alignment.'),
+          .describe('Managed by the MCP: minimal by default; industry opt-in sets false automatically.'),
         xdm_style: z
           .enum(['minimal', 'full'])
           .optional()
-          .describe('Default minimal (omit). NEVER set full for Coworker intent demos — triggers rich tenant/channel field-group payload.'),
+          .describe('Managed by the MCP: minimal by default; industry opt-in selects full automatically.'),
         auto_fetch_ecid: z
           .boolean()
           .optional()
@@ -101,7 +111,16 @@ export function registerSendProfileEventTool(mcpServer) {
         ...rawEventFields
       } = params;
 
-      const { params: eventFields, warnings: strippedWarnings } = sanitizeCoworkerEventParams(rawEventFields);
+      const {
+        params: eventFields,
+        warnings: strippedWarnings,
+        errors: eventParamErrors,
+        richIndustry,
+      } = sanitizeCoworkerEventParams(rawEventFields);
+
+      if (eventParamErrors.length) {
+        return toolError(eventParamErrors.join(' '));
+      }
 
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -227,6 +246,15 @@ export function registerSendProfileEventTool(mcpServer) {
         identityMap: buildEventIdentityMap({ email: resolved.email, ecid: resolved.ecid }),
         ecid: resolved.ecid || null,
         warnings: allWarnings.length ? allWarnings : undefined,
+        richIndustry: richIndustry
+          ? {
+              industry: richIndustry.industry,
+              payloadPath: richIndustry.payloadPath,
+              fields: richIndustry.industry_fields,
+              usedDefaults: richIndustry.usedDefaults,
+              xdmStyle: 'full',
+            }
+          : undefined,
         stitch_note:
           'ok:true means Edge accepted the event — not that UPS already shows it on the profile. ' +
           'Verify with lab_profile_activity after 30–60s; pass ecid from lab_generate_profile for reliable stitching.',

@@ -93,6 +93,7 @@ export async function sendProfileEventSequence({
       target_id: targetCheck.requested_id,
       targets,
       warnings: resolved.warnings,
+      eventFields: events[0],
     });
   }
 
@@ -120,6 +121,10 @@ export async function sendProfileEventSequence({
       event_type: step.event_type,
       channel: step.channel || 'web',
       timestamp,
+      industry: step.industry,
+      public: step.public,
+      edge_minimal: step.edge_minimal,
+      xdm_style: step.xdm_style,
     });
 
     const lab = apiResult.ok && apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : {};
@@ -129,6 +134,8 @@ export async function sendProfileEventSequence({
       event_type: step.event_type,
       channel: step.channel || 'web',
       timestamp,
+      industry: step.industry || null,
+      rich: step.xdm_style === 'full',
       ok: apiResult.ok,
       error: apiResult.ok ? undefined : apiResult.error,
       transport: lab.transport || null,

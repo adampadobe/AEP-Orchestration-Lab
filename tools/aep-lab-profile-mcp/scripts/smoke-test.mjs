@@ -110,6 +110,7 @@ async function run() {
   });
 
   const names = toolsList.json?.result?.tools?.map((t) => t.name) || [];
+  const listedTools = toolsList.json?.result?.tools || [];
   const expected = [
     'lab_get_execution_framework',
     'lab_get_industry_playbook',
@@ -164,6 +165,19 @@ async function run() {
     }
   }
 
+  const richSingle = listedTools.find((tool) => tool.name === 'lab_send_profile_event');
+  const richPreflight = listedTools.find((tool) => tool.name === 'lab_preflight_profile_event');
+  const richBatch = listedTools.find((tool) => tool.name === 'lab_send_profile_events_batch');
+  if (!richSingle?.inputSchema?.properties?.industry_fields) {
+    throw new Error('lab_send_profile_event is missing industry_fields schema');
+  }
+  if (!richPreflight?.inputSchema?.properties?.industry_fields) {
+    throw new Error('lab_preflight_profile_event is missing industry_fields schema');
+  }
+  if (!richBatch?.inputSchema?.properties?.events?.items?.properties?.industry_fields) {
+    throw new Error('lab_send_profile_events_batch events[] is missing industry_fields schema');
+  }
+
   const call = await mcpRequest(sessionId, {
     jsonrpc: '2.0',
     id: 3,
@@ -193,7 +207,9 @@ async function run() {
 
   console.log(JSON.stringify({
     ok: true,
+    version: init.json?.result?.serverInfo?.version || null,
     toolCount: names.length,
+    richIndustrySchemas: true,
     tools: names,
     accessInfo: accessText.slice(0, 200),
     sample: listCall.json.result?.content?.[0]?.text?.slice(0, 120),

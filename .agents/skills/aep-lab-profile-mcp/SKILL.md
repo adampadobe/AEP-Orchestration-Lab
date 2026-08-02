@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.29.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.30.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.29)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.30)
 
-MCP server: **AEP Orchestration Lab MCP v3.29.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.30.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -42,7 +42,7 @@ Codex should call these **before** improvising lab conventions:
 2. **preferredLanguage** — BCP-47 on `preferredLanguage` (root), `preferences.preferredLanguage`, and `personalEmail.language`. MCP randomize defaults `en-US` when missing. `profileStreamingCore.mirrorPreferredLanguageDemoSchema` dual-writes root + tenant.
 3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; server adds `_demoemea.identification.core` automatically. Preflight: `lab_preflight_profile_event`.
-5. **Event params only (never inject XDM)** — Coworker must use `lab_send_profile_event` / `lab_send_profile_events_batch` with **tool params only**: `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. **Never** pass `view_name`, `view_url`, custom `xdm`, schema `$ref`s, mixin definitions, descriptors, or tenant field-group blobs. Server builds minimal Edge XDM via `buildGeneratorEdgeInteractXdm` → `buildMinimalEdgeXdm` (Event tool UI parity). Omit `public`/`message`/`xdm_style=full` for intent demos.
+5. **Event params only (never inject XDM)** — Coworker must use `lab_send_profile_event` / `lab_send_profile_events_batch` with tool params. Minimal default: `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. Governed rich opt-in: add `industry` plus optional flat `industry_fields`; the MCP allowlists fields, nests `public.{industry}.*`, and selects full XDM automatically. **Never** pass `view_name`, `view_url`, custom `xdm`, schema `$ref`s, mixin definitions, descriptors, tenant blobs, or raw `public`/`xdm_style` overrides.
 6. **Portal event types** — `event_type` is **free text** (any string, same as Event tool). Datalist / `lab_send_retail_journey_events` commerce pack are optional suggestions. Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`.
 7. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 8. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
@@ -57,7 +57,7 @@ Codex should call these **before** improvising lab conventions:
 1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset. **HTTP API dataflows:** lab MCP creates schema/FGs/dataset; Coworker **dx-api** creates Flow Service connections + dataflow (see Workflow 4b).
 2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via per-industry HTTP API connections. **Non-generic industries dual-stream automatically:** step 1 `industry generic` (generic-owned paths), step 2 `industry travel|fsi|…` with `appendIfExisting` (industry-owned paths, same email/ECID). `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Generate**). Pass partial `attributes` with `randomize:true` to merge overrides onto the randomized base (Portal parity: honor user-provided fields). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
-4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator`. **Coworker: pass tool params only** — `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. **Never** pass `view_name`, `view_url`, custom XDM, schema refs, mixin definitions, or tenant field groups. Server builds minimal Edge XDM (`buildGeneratorEdgeInteractXdm` → `buildMinimalEdgeXdm`). **`event_type` is free text**. **Identity**: pass email **and** ecid from `lab_generate_profile`. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event` (returns `generatorPostBody` camelCase fields — not XDM to construct). Multi-event: `lab_send_profile_events_batch` (sequential POSTs — one generator call per event, not one Edge bulk payload; `events[]` steps allow only `event_type`, `channel`, `timestamp`). Auto-fetches ecid from UPS when email-only.
+4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator`. Minimal calls use `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. For travel/media/retail/etc. detail, add `industry` plus optional flat `industry_fields`; omit fields for safe defaults. The MCP builds the nested rich payload—never pass custom XDM, schema refs, mixins, tenant blobs, `view_name`, or `view_url`. **Identity**: pass email **and** ecid from `lab_generate_profile`. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event`. Batch `events[]` supports the same governed industry fields per step.
 
 ### Test data conventions
 

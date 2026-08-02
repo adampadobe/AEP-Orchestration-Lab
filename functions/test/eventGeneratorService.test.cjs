@@ -203,7 +203,7 @@ test('buildEventGeneratorXdm nested public sector donation under public.public',
   assert.equal(xdm._demoemea.omnichannelCdpUseCasePack.donatedAmount, 25);
 });
 
-test('buildEventGeneratorXdm maps nested public.travel to hotel.bookingDetails', () => {
+test('buildEventGeneratorXdm keeps governed public.travel out of retired hotel.bookingDetails', () => {
   const ecid = '03976612467829823963241934423837679452';
   const xdm = buildEventGeneratorXdm({
     eventType: 'hotel.booking',
@@ -219,12 +219,10 @@ test('buildEventGeneratorXdm maps nested public.travel to hotel.bookingDetails',
       },
     },
   });
-  assert.ok(xdm.hotel && xdm.hotel.bookingDetails);
-  assert.equal(xdm.hotel.bookingDetails.hotelName, 'Premier Inn London');
-  assert.equal(xdm.hotel.bookingDetails.hotelLocation, 'London');
-  assert.equal(xdm.hotel.bookingDetails.checkInDate, '2026-08-01');
-  assert.equal(xdm.hotel.bookingDetails.confirmationNumber, 'ITN-DEMO-001');
-  assert.ok(xdm._demoemea.hotel && xdm._demoemea.hotel.bookingDetails);
+  assert.equal(xdm.hotel, undefined);
+  assert.equal(xdm._demoemea.hotel, undefined);
+  assert.equal(xdm._demoemea.public.travel.hotelName, 'Premier Inn London');
+  assert.equal(xdm._demoemea.public.travel.hotelItineraryId, 'ITN-DEMO-001');
 });
 
 test('resolveGeneratorPreset defaults to lab-event-tool-edge and rejects silent static fallback', () => {

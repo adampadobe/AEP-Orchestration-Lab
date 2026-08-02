@@ -433,7 +433,10 @@ function mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey) {
   const pub = node.public;
   const travelSlice =
     pub.travel && typeof pub.travel === 'object' && !Array.isArray(pub.travel) ? pub.travel : {};
-  const src = { ...pub, ...travelSlice };
+  // Governed industry events already target Event Travel v1 at public.travel.*.
+  // Do not duplicate them into the retired Travel Hotel Experience v1 hotel.* path.
+  if (Object.keys(travelSlice).length > 0) return;
+  const src = pub;
   if (src.hotelName != null && String(src.hotelName).trim() !== '' && src.hotelPropertyName == null) {
     src.hotelPropertyName = String(src.hotelName).trim();
   }
