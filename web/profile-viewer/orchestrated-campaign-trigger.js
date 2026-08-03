@@ -265,25 +265,27 @@
     return { response, data };
   }
 
-  async function checkStatus() {
-    if (!dom.campaignId.value.trim()) {
+  function checkStatus() {
+    const campaignId = dom.campaignId.value.trim();
+    const sandbox = getSandbox();
+    if (!campaignId) {
       setMessage(dom.lookupMsg, 'Enter a campaign ID first.', 'error');
       return;
     }
-    dom.statusBtn.disabled = true;
-    setMessage(dom.lookupMsg, 'Checking campaign status…', '');
-    try {
-      const result = await callAep('GET', campaignPath());
-      const campaign = result.data.platform_response || {};
-      const status = campaign.status || campaign.state || campaign.executionStatus || 'available';
-      setMessage(dom.lookupMsg, `Campaign found. Status: ${status}.`, 'success');
-      await saveCurrentCampaign(false);
-      showResponse(`Status check · ${result.response.status}`, result.data);
-    } catch (error) {
-      setMessage(dom.lookupMsg, error.message, 'error');
-    } finally {
-      dom.statusBtn.disabled = false;
+    if (!sandbox) {
+      setMessage(dom.lookupMsg, 'Select a sandbox first.', 'error');
+      return;
     }
+
+    const note = 'Trigger setup is ready. Adobe does not provide a read-only status endpoint for this signal API; confirm that the campaign is Published in AJO before sending.';
+    setMessage(dom.lookupMsg, note, 'success');
+    showResponse('Trigger readiness', {
+      ready: true,
+      sandbox,
+      campaignId,
+      endpoint: `POST https://platform.adobe.io${campaignPath()}/trigger`,
+      note,
+    });
   }
 
   function showResponse(title, data) {
