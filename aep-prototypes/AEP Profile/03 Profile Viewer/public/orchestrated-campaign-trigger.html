@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orchestrated Campaign Trigger – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="event-generator.css">
+  <link rel="stylesheet" href="orchestrated-campaign-trigger.css?v=20260730">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="event-generator-page profile-generation-page home-dashboard-concierge oct-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="AJO Orchestrated Campaign signal trigger">AJO</span>
+          <a href="https://experienceleague.adobe.com/" class="dashboard-topbar-link" target="_blank" rel="noopener">Docs</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-generation-main event-generator-main app-page oct-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="octHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="octHeading" class="dashboard-hero-title">Trigger Orchestrated Campaigns via signal</h2>
+              <p class="dashboard-hero-subtitle">Select a sandbox, choose or enter a campaign trigger, build the signal payload, and send it through the lab backend.</p>
+            </header>
+          </div>
+        </section>
+
+        <section class="consent-panel">
+          <div class="profile-gen-boxes">
+            <div class="profile-box oct-full-width">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Campaign lookup</h3>
+              <div class="profile-box-content">
+                <p class="field-hint event-gen-box-intro">Saved triggers are scoped to the selected <strong>sandbox</strong>. Select one to reuse its campaign ID, or type a new trigger name to unlock the campaign ID field.</p>
+                <div class="oct-lookup-grid">
+                  <div class="form-row">
+                    <label for="sandboxSelect">Sandbox</label>
+                    <select id="sandboxSelect" class="sandbox-select">
+                      <option value="">Loading sandboxes…</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="octCampaignName">Orchestrated campaign trigger</label>
+                    <input id="octCampaignName" type="text" list="octCampaignList" placeholder="Choose a saved trigger or enter a new name…" autocomplete="off">
+                    <datalist id="octCampaignList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="octCampaignId">Campaign ID</label>
+                    <input id="octCampaignId" type="text" placeholder="e.g. dc0db936-0846-4e55-bfdc-9e3a8b859812" readonly autocomplete="off" spellcheck="false">
+                    <span id="octCampaignIdHint" class="field-hint">Select a saved trigger, or enter a new trigger name to edit.</span>
+                  </div>
+                  <div class="oct-lookup-actions">
+                    <button type="button" id="octStatusBtn" class="btn btn-primary">Check campaign status</button>
+                    <button type="button" id="octSaveBtn" class="btn btn-secondary">Save trigger</button>
+                    <button type="button" id="octDeleteBtn" class="btn btn-secondary" hidden>Delete saved</button>
+                  </div>
+                </div>
+                <div id="octLookupMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+              </div>
+            </div>
+
+            <div class="profile-box oct-full-width">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Signal</h3>
+              <div class="profile-box-content">
+                <p class="field-hint event-gen-box-intro">Use the supplied Daily News template or edit the complete JSON payload before sending it to the campaign’s <code>/trigger</code> endpoint.</p>
+                <div class="oct-mode-toggle" role="tablist" aria-label="Payload mode">
+                  <button type="button" class="oct-mode-btn oct-mode-btn--active" data-mode="quick">Quick trigger</button>
+                  <button type="button" class="oct-mode-btn" data-mode="custom">Custom payload</button>
+                </div>
+
+                <div id="octQuickPanel">
+                  <h4 class="oct-section-title">Edition</h4>
+                  <div class="oct-fields">
+                    <div class="form-row"><label for="editionDate">Edition date</label><input id="editionDate" data-variable="editionDate" value="29/07/2026"></div>
+                    <div class="form-row"><label for="readTime">Read time</label><input id="readTime" data-variable="readTime" value="3 minutes"></div>
+                  </div>
+
+                  <h4 class="oct-section-title">Featured article</h4>
+                  <div class="oct-fields">
+                    <div class="form-row"><label for="featuredHeadline">Headline</label><input id="featuredHeadline" data-variable="featuredHeadline" value="AFTERSHOCKS CONTINUE IN VENEZUELA"></div>
+                    <div class="form-row"><label for="featureImageUrl">Image URL</label><input id="featureImageUrl" data-variable="featureImageUrl" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image-10.png"></div>
+                    <div class="form-row oct-span-2"><label for="featureSummary">Summary</label><textarea id="featureSummary" data-variable="featureSummary">At least 1,450 people are confirmed dead after the two earthquakes that rocked Venezuela last Wednesday. Stories of “miracle” rescues are being reported – but the country also faced an aftershock today.</textarea></div>
+                    <div class="form-row oct-span-2"><label for="featuredArticle">Article body (intro)</label><textarea id="featuredArticle" data-variable="featuredArticle">One sentence here introducing the day. Everything you need to know in under five minutes, and head to the website for more. Get in touch using the link below. And don’t forget to catch up on xyz.</textarea></div>
+                    <div class="form-row oct-span-2"><label for="featuredArticleUrl">Article link</label><input id="featuredArticleUrl" data-variable="featuredArticleUrl" type="url" placeholder="https://…"></div>
+                  </div>
+
+                  <h4 class="oct-section-title">Trending</h4>
+                  <div class="oct-fields">
+                    <div class="form-row"><label for="trendingHeadline">Headline</label><input id="trendingHeadline" data-variable="trendingHeadline" value="IT’S COMING HOME!"></div>
+                    <div class="form-row"><label for="trending">Section image URL</label><input id="trending" data-variable="trending" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image-8.png"></div>
+                    <div class="form-row oct-span-2"><label for="trendingBody">Body</label><textarea id="trendingBody" data-variable="trendingBody">Britain is well and truly in the grips of football fever after England’s win against Mexico last night. Across Sky News’ social media, the most watched clips this morning by a long way are reflecting this – like this clip of fans celebrating two back-to-back goals in two minutes.</textarea></div>
+                    <div class="form-row"><label for="trendingImageUrl">Image URL</label><input id="trendingImageUrl" data-variable="trendingImageUrl" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image-9.png"></div>
+                    <div class="form-row"><label for="trendingIconUrl">Icon URL</label><input id="trendingIconUrl" data-variable="trendingIconUrl" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image-7.png"></div>
+                    <div class="form-row oct-span-2"><label for="trendingArticleUrl">Article link</label><input id="trendingArticleUrl" data-variable="trendingArticleUrl" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image-3.png"></div>
+                  </div>
+
+                  <h4 class="oct-section-title">Coming up</h4>
+                  <div class="oct-fields">
+                    <div class="form-row"><label for="comingUp">Section image URL</label><input id="comingUp" data-variable="comingUp" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image.png"></div>
+                    <div class="form-row"><label for="weatherImageUrl">Weather image URL</label><input id="weatherImageUrl" data-variable="weatherImageUrl" type="url" value="https://aep-orchestration-lab.web.app/cdn/kirkham/image-11.png"></div>
+                    <div class="form-row oct-span-2"><label for="comingUp1">Agenda item 1</label><input id="comingUp1" data-variable="comingUp1" value="8am: GDP figures for 2026 Q2 due to be released"></div>
+                    <div class="form-row oct-span-2"><label for="comingUp2">Agenda item 2</label><input id="comingUp2" data-variable="comingUp2" value="12pm: PMQs – expect the PM to get a grilling over the latest amendments to the Online Safety Act"></div>
+                    <div class="form-row oct-span-2"><label for="comingUp3">Agenda item 3</label><input id="comingUp3" data-variable="comingUp3" value="8pm: England vs Panama in Dallas"></div>
+                  </div>
+                </div>
+
+                <div id="octCustomPanel" hidden>
+                  <div class="form-row">
+                    <label for="octCustomPayload">JSON payload</label>
+                    <textarea id="octCustomPayload" class="oct-json-editor" spellcheck="false" aria-label="Custom trigger payload"></textarea>
+                  </div>
+                </div>
+
+                <div class="oct-preview-head">
+                  <strong>Request preview</strong>
+                  <button type="button" id="octCopyCurlBtn" class="btn btn-secondary btn-sm">Copy as cURL</button>
+                </div>
+                <pre id="octRequestPreview" class="oct-preview"></pre>
+
+                <div class="button-row oct-send-actions">
+                  <button type="button" id="octSendBtn" class="btn btn-primary btn-save">Send trigger</button>
+                  <button type="button" id="octResetBtn" class="btn btn-secondary">Reset to supplied template</button>
+                </div>
+                <div id="octSendMsg" class="consent-message" role="status" aria-live="polite" hidden></div>
+                <div id="octResponse" class="oct-response" hidden>
+                  <strong id="octResponseTitle">Response</strong>
+                  <pre id="octResponseJson"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="orchestrated-campaign-trigger.js?v=20260730"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260730-orchestrated-campaign-trigger"></script>
+</body>
+</html>

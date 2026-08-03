@@ -775,6 +775,13 @@
         }
       },
       {
+        "source": "/api/orchestrated-campaigns/config",
+        "function": {
+          "functionId": "orchestratedCampaignConfigStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/catalog/config",
         "function": {
           "functionId": "catalogConfigStore",
