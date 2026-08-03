@@ -1918,6 +1918,12 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   setCors(res, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
 
+  const requestedPath = String(req.originalUrl || req.url || req.path || '').split('?')[0];
+  if (requestedPath === '/api/orchestrated-campaigns/config') {
+    await handleOrchestratedCampaignConfig(req, res);
+    return;
+  }
+
   const sandbox = (req.method === 'POST' && req.body?.sandbox)
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
@@ -1972,14 +1978,8 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   res.status(405).json({ error: 'Method not allowed' });
 });
 
-/** GET/POST /api/orchestrated-campaigns/config — saved campaign triggers per sandbox. */
-exports.orchestratedCampaignConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
-  setCors(res, 'GET, POST, OPTIONS');
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-
+/** Handle /api/orchestrated-campaigns/config through the existing Event config function. */
+async function handleOrchestratedCampaignConfig(req, res) {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const sandbox = req.method === 'POST' && body.sandbox
     ? String(body.sandbox).trim()
@@ -2029,7 +2029,7 @@ exports.orchestratedCampaignConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async
   }
 
   res.status(405).json({ error: 'Method not allowed' });
-});
+}
 
 /** GET/POST /api/catalog/config — per-sandbox catalog schema ID (Firestore) */
 exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {

@@ -777,7 +777,7 @@
       {
         "source": "/api/orchestrated-campaigns/config",
         "function": {
-          "functionId": "orchestratedCampaignConfigStore",
+          "functionId": "eventConfigStore",
           "region": "us-central1"
         }
       },
