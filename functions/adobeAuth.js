@@ -6,6 +6,7 @@ const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 /** Platform header overrides allowed through aepProxy / aepHeaders. */
 const ALLOWED_PLATFORM_HEADER_KEYS = new Set([
   'x-schema-id',
+  'x-api-version',
   'accept',
   'content-type',
   'if-match',

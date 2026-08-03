@@ -160,9 +160,12 @@
     const id = dom.campaignId.value.trim() || '<campaign-id>';
     dom.preview.textContent = [
       `POST https://platform.adobe.io/ajo/campaign-orchestration/orchestratedCampaigns/${id}/trigger`,
+      'Authorization: Bearer <server-managed access token>',
+      'Content-Type: application/json',
+      'x-api-key: <server-managed API key>',
       `x-sandbox-name: ${sandbox}`,
       'x-api-version: 1',
-      'Content-Type: application/json',
+      'x-gw-ims-org-id: <server-managed IMS org>',
       '',
       JSON.stringify(payload, null, 2),
     ].join('\n');
@@ -243,6 +246,7 @@
       method,
       path,
       platform_headers: {
+        'Content-Type': 'application/json',
         'x-sandbox-name': sandbox,
         'x-api-version': '1',
       },

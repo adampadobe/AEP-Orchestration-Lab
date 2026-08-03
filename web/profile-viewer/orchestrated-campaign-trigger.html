@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="orchestrated-campaign-trigger.css?v=20260730">
+  <link rel="stylesheet" href="orchestrated-campaign-trigger.css?v=20260803-layout-fix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -35,8 +35,8 @@
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="octHeading">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="octHeading" class="dashboard-hero-title">Trigger Orchestrated Campaigns via signal</h2>
-              <p class="dashboard-hero-subtitle">Select a sandbox, choose or enter a campaign trigger, build the signal payload, and send it through the lab backend.</p>
+              <h2 id="octHeading" class="dashboard-hero-title">Trigger Orchestrated Campaigns via Signal</h2>
+              <p class="dashboard-hero-subtitle">Send a signal into an AJO Orchestrated Campaign to kick off its workflow. Pick the campaign, confirm the sandbox, fill in the signal's payload, and fire the trigger — all from one page.</p>
             </header>
           </div>
         </section>
@@ -46,7 +46,7 @@
             <div class="profile-box oct-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Campaign lookup</h3>
               <div class="profile-box-content">
-                <p class="field-hint event-gen-box-intro">Saved triggers are scoped to the selected <strong>sandbox</strong>. Select one to reuse its campaign ID, or type a new trigger name to unlock the campaign ID field.</p>
+                <p class="field-hint event-gen-box-intro">Select a <strong>sandbox</strong>, then choose the <strong>orchestrated campaign</strong> to trigger. Saved triggers are scoped to the selected sandbox; type a new trigger name to unlock its campaign ID.</p>
                 <div class="oct-lookup-grid">
                   <div class="form-row">
                     <label for="sandboxSelect">Sandbox</label>
@@ -55,7 +55,7 @@
                     </select>
                   </div>
                   <div class="form-row">
-                    <label for="octCampaignName">Orchestrated campaign trigger</label>
+                    <label for="octCampaignName">Orchestrated campaign</label>
                     <input id="octCampaignName" type="text" list="octCampaignList" placeholder="Choose a saved trigger or enter a new name…" autocomplete="off">
                     <datalist id="octCampaignList"></datalist>
                   </div>
@@ -64,8 +64,10 @@
                     <input id="octCampaignId" type="text" placeholder="e.g. dc0db936-0846-4e55-bfdc-9e3a8b859812" readonly autocomplete="off" spellcheck="false">
                     <span id="octCampaignIdHint" class="field-hint">Select a saved trigger, or enter a new trigger name to edit.</span>
                   </div>
-                  <div class="oct-lookup-actions">
+                  <div class="oct-status-action">
                     <button type="button" id="octStatusBtn" class="btn btn-primary">Check campaign status</button>
+                  </div>
+                  <div class="oct-lookup-actions">
                     <button type="button" id="octSaveBtn" class="btn btn-secondary">Save trigger</button>
                     <button type="button" id="octDeleteBtn" class="btn btn-secondary" hidden>Delete saved</button>
                   </div>
@@ -77,7 +79,7 @@
             <div class="profile-box oct-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Signal</h3>
               <div class="profile-box-content">
-                <p class="field-hint event-gen-box-intro">Use the supplied Daily News template or edit the complete JSON payload before sending it to the campaign’s <code>/trigger</code> endpoint.</p>
+                <p class="field-hint event-gen-box-intro">Choose a saved signal template or edit a custom payload, then send it to the campaign's <code>/trigger</code> endpoint.</p>
                 <div class="oct-mode-toggle" role="tablist" aria-label="Payload mode">
                   <button type="button" class="oct-mode-btn oct-mode-btn--active" data-mode="quick">Quick trigger</button>
                   <button type="button" class="oct-mode-btn" data-mode="custom">Custom payload</button>
@@ -141,6 +143,7 @@
                   <strong id="octResponseTitle">Response</strong>
                   <pre id="octResponseJson"></pre>
                 </div>
+                <p class="oct-credential-note">Signals are sent through the lab backend. The Adobe bearer token, API key, and IMS organisation ID never reach the browser.</p>
               </div>
             </div>
           </div>
@@ -154,7 +157,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
-  <script src="orchestrated-campaign-trigger.js?v=20260730"></script>
+  <script src="orchestrated-campaign-trigger.js?v=20260803-header-fix"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260730-orchestrated-campaign-trigger"></script>

@@ -1,102 +1,339 @@
-.oct-main { max-width: 1440px; }
-.oct-full-width { width: 100%; }
+.oct-page {
+  --oct-purple: #6b5bd6;
+  --oct-blue: #3b6fe0;
+  --oct-control-border: #d7d9de;
+}
+
+.oct-page .oct-main {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.oct-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  padding: 2.55rem clamp(1.5rem, 4vw, 3rem) 2.25rem;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #fbeee9 0%, #f4f0fb 100%);
+  box-shadow: none;
+}
+
+.oct-page .dashboard-hero--page-banner .dashboard-hero-header {
+  max-width: 50rem;
+}
+
+.oct-page .dashboard-hero--page-banner .dashboard-hero-title {
+  margin-bottom: .65rem;
+  font-size: clamp(1.65rem, 2.5vw, 1.95rem);
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+
+.oct-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  max-width: 46rem;
+  font-size: .94rem;
+  line-height: 1.55;
+}
+
+.oct-page .consent-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Profile Generation defaults to a two-column grid. This tool follows the
+   supplied single-column campaign card + signal card layout. */
+.oct-page .profile-gen-boxes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.oct-page .profile-box.oct-full-width {
+  width: 100%;
+  padding: 1.75rem 2rem 2rem;
+  border: 1px solid var(--dash-border, #e4e6ea);
+  border-radius: 16px;
+  background: var(--dash-surface, #fff);
+  box-shadow: none;
+}
+
+.oct-page .profile-box-title {
+  margin: 0 0 .45rem;
+  padding: 0;
+  border: 0;
+  gap: .55rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.oct-page .profile-box-icon {
+  color: var(--oct-blue);
+}
+
+.oct-page .profile-box-content {
+  gap: 0;
+}
+
+.oct-page .event-gen-box-intro {
+  max-width: 64rem;
+  margin: 0 0 1.4rem;
+  font-size: .84rem;
+  line-height: 1.6;
+  color: var(--dash-muted, #5b6270);
+}
+
+.oct-page .event-gen-box-intro code,
+.oct-page .field-hint code {
+  padding: .08rem .32rem;
+  border-radius: 5px;
+  background: var(--dash-surface-muted, #f2f3f6);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
 .oct-lookup-grid {
   display: grid;
-  grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.25fr) minmax(260px, 1.25fr);
-  gap: 1rem;
+  grid-template-columns:
+    minmax(190px, .9fr)
+    minmax(240px, 1.05fr)
+    minmax(260px, 1.08fr)
+    auto;
+  gap: 1rem 1.2rem;
   align-items: start;
 }
-.oct-lookup-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: .65rem;
-  flex-wrap: wrap;
+
+.oct-status-action {
+  align-self: start;
+  padding-top: 1.55rem;
 }
+
+.oct-status-action .btn {
+  min-height: 42px;
+}
+
+.oct-lookup-actions {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-top: -.35rem;
+}
+
+.oct-page .form-row {
+  min-width: 0;
+}
+
+.oct-page .form-row > label {
+  display: block;
+  margin: 0 0 .42rem;
+  color: var(--dash-text, #1c1f26);
+  font-size: .8rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.oct-page .form-row > input,
+.oct-page .form-row > select,
+.oct-page .form-row > textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: .65rem .78rem;
+  border: 1px solid var(--oct-control-border);
+  border-radius: 10px;
+  outline: 0;
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #1c1f26);
+  font: 400 .84rem/1.4 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.oct-page .form-row > input:focus,
+.oct-page .form-row > select:focus,
+.oct-page .form-row > textarea:focus {
+  border-color: var(--oct-blue);
+  box-shadow: 0 0 0 3px rgba(59, 111, 224, .12);
+}
+
+.oct-page .form-row > textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
 .oct-page input[readonly] {
-  background: var(--dash-surface-muted, #f5f5f5);
-  color: var(--dash-text-muted, #6b6b6b);
+  background: var(--dash-surface-muted, #f7f8f9);
+  color: var(--dash-muted, #5b6270);
   cursor: default;
 }
+
+.oct-page .form-row .field-hint,
+.oct-page #octCampaignIdHint {
+  display: block;
+  margin-top: .38rem;
+  color: var(--dash-muted, #8b909b);
+  font-size: .73rem;
+  line-height: 1.45;
+}
+
 .oct-mode-toggle {
   display: inline-flex;
+  align-self: flex-start;
+  gap: .15rem;
+  margin: 0 0 .6rem;
   padding: .2rem;
-  margin: .25rem 0 1rem;
-  gap: .2rem;
-  border-radius: .6rem;
-  background: var(--dash-surface-muted, #f2f3f5);
+  border-radius: 10px;
+  background: var(--dash-surface-muted, #f2f3f6);
 }
+
 .oct-mode-btn {
+  padding: .52rem 1rem;
   border: 0;
-  border-radius: .45rem;
-  padding: .55rem 1rem;
+  border-radius: 8px;
   background: transparent;
-  color: var(--dash-text-muted, #5b6270);
-  font: inherit;
-  font-weight: 600;
+  color: var(--dash-muted, #5b6270);
+  font: 600 .8rem/1.25 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   cursor: pointer;
 }
+
 .oct-mode-btn--active {
-  background: var(--dash-accent, #6b5bd6);
+  background: var(--oct-purple);
   color: #fff;
 }
+
 .oct-section-title {
-  margin: 1.25rem 0 .75rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--dash-border, #e3e5e8);
-  color: var(--dash-text-muted, #5b6270);
-  font-size: .78rem;
-  letter-spacing: .05em;
+  margin: 1.35rem 0 .8rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--dash-border, #e4e6ea);
+  color: var(--dash-muted, #8b909b);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .045em;
   text-transform: uppercase;
 }
+
+#octQuickPanel > .oct-section-title:first-child {
+  margin-top: .6rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .oct-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .85rem 1rem;
+  gap: .9rem 1.25rem;
 }
-.oct-span-2 { grid-column: 1 / -1; }
-.oct-page textarea {
-  min-height: 5rem;
-  resize: vertical;
+
+.oct-span-2 {
+  grid-column: 1 / -1;
 }
+
 .oct-json-editor {
   min-height: 22rem !important;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
-  line-height: 1.5;
+  line-height: 1.5 !important;
 }
+
 .oct-preview-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin: 1.25rem 0 .5rem;
+  margin: 1.4rem 0 .55rem;
+  color: var(--dash-muted, #8b909b);
+  font-size: .75rem;
+  letter-spacing: .035em;
+  text-transform: uppercase;
 }
+
 .oct-preview {
   max-height: 28rem;
   overflow: auto;
   margin: 0;
-  padding: 1rem;
-  border-radius: .65rem;
-  background: var(--dash-code-bg, #17191f);
-  color: var(--dash-code-text, #e2e6ed);
-  font: .78rem/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 1.1rem 1.25rem;
+  border-radius: 12px;
+  background: #14161c;
+  color: #d7dce6;
+  font: .77rem/1.65 ui-monospace, SFMono-Regular, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.oct-send-actions { margin-top: 1rem; }
+
+.oct-send-actions {
+  margin-top: 1.15rem;
+}
+
+.oct-page #octSendBtn {
+  background: var(--oct-purple);
+  border-color: var(--oct-purple);
+}
+
 .oct-response {
   margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--dash-border, #e3e5e8);
-  border-radius: .65rem;
-  background: var(--dash-surface-muted, #f7f8fa);
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--dash-border, #e4e6ea);
+  border-radius: 12px;
+  background: var(--dash-surface-muted, #fafbfc);
 }
+
 .oct-response pre {
   margin: .65rem 0 0;
-  font: .78rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--dash-muted, #5b6270);
+  font: .76rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
 }
-@media (max-width: 920px) {
-  .oct-lookup-grid, .oct-fields { grid-template-columns: 1fr; }
-  .oct-span-2 { grid-column: auto; }
+
+.oct-credential-note {
+  margin: 1rem 0 0;
+  color: var(--dash-muted, #8b909b);
+  font-size: .74rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+html[data-aep-theme="dark"] .oct-page {
+  --oct-control-border: rgba(255, 255, 255, .2);
+}
+
+html[data-aep-theme="dark"] .oct-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  background: linear-gradient(120deg, rgba(102, 63, 52, .34), rgba(73, 58, 112, .38));
+}
+
+@media (max-width: 1050px) {
+  .oct-lookup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oct-status-action {
+    padding-top: 0;
+  }
+
+  .oct-lookup-actions {
+    grid-column: auto;
+    margin-top: 0;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .oct-page .dashboard-hero--page-banner .dashboard-hero-inner,
+  .oct-page .profile-box.oct-full-width {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+
+  .oct-lookup-grid,
+  .oct-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .oct-lookup-actions,
+  .oct-span-2 {
+    grid-column: auto;
+  }
 }
