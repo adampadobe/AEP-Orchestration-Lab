@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.30)
+# AEP Orchestration Lab MCP (Phase 3.31)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.30.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.31.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -37,6 +37,10 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
 | `lab_mcp_first_run_setup` | `POST /api/lab/mcp-first-run-setup` + readiness | **First Coworker session** — workspace profile, RTDB ldapSlug, infra/event checklist |
+| `lab_demo_config_inspect` | `GET /api/lab/demo-config` | Read-only structure and current values for the MCP key owner's RTDB workspace; protected values redacted |
+| `lab_demo_config_preview` | `POST /api/lab/demo-config` (`action=preview`) | Before/after diff for allowlisted manual changes or evidence-backed mappings from a completed brand scrape |
+| `lab_demo_config_apply` | `POST /api/lab/demo-config` (`action=apply`) | Confirmed, conflict-checked, idempotent atomic RTDB update with readback and revision |
+| `lab_demo_config_restore` | `POST /api/lab/demo-config` (`action=restore-preview/apply`) | Preview-first rollback of a prior revision |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |
@@ -88,10 +92,22 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_build_demo_website` | `POST …/brandScraperAnalyze` (`mode: demo_build`, direct CF) | Regenerate Profile Viewer site clone from existing scrape — no new crawl |
 | `lab_generate_profile_from_brand_scrape` | `GET` scrape + `POST /api/profile/generate` + `POST /api/lab/generation-prefs/next-email` | Map scrape persona → golden UPS profile; **default** reserves scaled email + static mobile from Firestore generation prefs (Portal parity) |
 | `lab_generate_profiles_from_brand_scrape` | same (all personas) | Batch alias — one profile per scrape persona; each reserves next prefs email |
-| `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep; events step sends retail commerce journey when lab_industry=retail |
+| `lab_prepare_demo_from_brand_scrape` | RTDB preview + profiles + optional events + optional CJv2 | Orchestrated demo prep; `steps.demo_config_preview` is preview-only and requires separate confirmed apply |
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
+
+### Governed Real-Time Database demo preparation (Phase 3.31)
+
+RTDB demo configuration is scoped to the Firebase `principalUid` on a **user-generated** MCP key. The Firebase API resolves the saved workspace slug and verifies `workspaceClaims`; tools never accept an arbitrary `ajoLookups/{slug}` path. Shared ops keys are rejected.
+
+1. `lab_demo_config_inspect sandbox apalmer` — show the current tree, ordinary values, descriptions, editable fields and validation rules.
+2. `lab_demo_config_preview sandbox apalmer changes [...]` — or pass `scrape_id` to map verified brand name/URL/stable logo/colour and inferred industry. No write occurs.
+3. Show the returned diff and obtain explicit colleague confirmation.
+4. `lab_demo_config_apply sandbox apalmer preflight_id ... confirmed true idempotency_key ...` — atomic partial update, readback verification and automatic revision.
+5. Re-run inspect. Use `lab_demo_config_restore` to preview and then confirm a rollback.
+
+Protected metadata, infrastructure sections, uncatalogued fields, nested objects, expiring signed logo URLs and invented scrape values remain read-only. Preflights expire after 15 minutes and fail closed if any proposed field changed after preview.
 
 ### Brand scrape (Phase 3.8)
 
@@ -321,6 +337,9 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 - `mcpProfileBatchJobs`
 - `mcpProfileAuditLog`
 - `mcpSandboxAllowlist`
+- `labDemoConfigPreflights`
+- `labDemoConfigRevisions`
+- `labDemoConfigIdempotency`
 
 ```bash
 cd tools/aep-lab-profile-mcp

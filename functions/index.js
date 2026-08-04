@@ -110,6 +110,7 @@ const snowflakePrincipalAuth = lazyRequireMod('./snowflakePrincipalAuth');
 const { createLabMcpFirstRunService } = require('./labMcpFirstRunService');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
+const labDemoConfigService = lazyRequireMod('./labDemoConfigService');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -2099,6 +2100,7 @@ Object.assign(
     labProfileGenerationPrefsStore,
     labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
+    labDemoConfigService,
     labMcpFirstRunService: createLabMcpFirstRunService({
       labUserSandboxStore,
       labRtdbProvisionService,

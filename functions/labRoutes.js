@@ -27,6 +27,7 @@ function registerLabRoutes(deps) {
     labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
     labMcpFirstRunService,
+    labDemoConfigService,
     mcpApiKeyStore,
   } = deps;
 
@@ -358,6 +359,119 @@ function registerLabRoutes(deps) {
     } catch (e) {
       const status = e && e.code === 'slug_taken' ? 409 : 500;
       res.status(status).json({ ok: false, error: String(e.message || e), code: e && e.code ? String(e.code) : '' });
+    }
+  });
+
+  /**
+   * GET/POST /api/lab/demo-config — governed user-scoped RTDB discovery,
+   * preview, apply and restore. Supports Firebase Auth or a user-generated MCP key.
+   */
+  routes.labDemoConfig = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+    setCors(res, 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      res.status(405).json({ ok: false, error: 'Method not allowed' });
+      return;
+    }
+
+    const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, {
+      labWorkspaceAuthService,
+    });
+    if (!principal.ok) {
+      res.status(principal.status).json(principal.body);
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(
+      body.sandbox || (req.query && req.query.sandbox) || principal.keySandbox || '',
+    ).trim().toLowerCase();
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required (body, query, or MCP key scope)' });
+      return;
+    }
+    if (principal.authSource === 'mcp_key' && principal.keySandbox && principal.keySandbox !== sandbox) {
+      res.status(403).json({
+        ok: false,
+        error: `MCP key is scoped to sandbox "${principal.keySandbox}" — cannot manage demo configuration for "${sandbox}".`,
+      });
+      return;
+    }
+
+    try {
+      const profile = await labUserSandboxStore.getWorkspaceProfile(principal.uid);
+      const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
+      if (!workspaceSlug) {
+        res.status(409).json({
+          ok: false,
+          error: 'Workspace slug is not configured. Run lab_mcp_first_run_setup before managing demo configuration.',
+          code: 'DEMO_CONFIG_FIRST_RUN_REQUIRED',
+          sandbox,
+        });
+        return;
+      }
+      const ownsWorkspace = await labRtdbProvisionService.userOwnsWorkspace(
+        null,
+        principal.uid,
+        workspaceSlug,
+      );
+      if (!ownsWorkspace) {
+        res.status(403).json({
+          ok: false,
+          error: 'The authenticated user does not own the configured RTDB workspace.',
+          code: 'DEMO_CONFIG_WORKSPACE_FORBIDDEN',
+          sandbox,
+        });
+        return;
+      }
+
+      const context = {
+        uid: principal.uid,
+        workspaceSlug,
+        sandbox,
+      };
+      if (req.method === 'GET') {
+        const result = await labDemoConfigService.inspect(context);
+        res.status(200).json({ ...result, authSource: principal.authSource });
+        return;
+      }
+
+      const action = String(body.action || 'preview').trim().toLowerCase();
+      let result;
+      if (action === 'preview') {
+        result = await labDemoConfigService.createPreview({
+          ...context,
+          changes: body.changes,
+          source: body.source || 'manual',
+        });
+      } else if (action === 'apply') {
+        result = await labDemoConfigService.applyPreview({
+          ...context,
+          preflightId: body.preflight_id || body.preflightId,
+          confirmed: body.confirmed,
+          idempotencyKey: body.idempotency_key || body.idempotencyKey,
+        });
+      } else if (action === 'restore-preview') {
+        result = await labDemoConfigService.createRestorePreview({
+          ...context,
+          revisionId: body.revision_id || body.revisionId,
+        });
+      } else {
+        res.status(400).json({ ok: false, error: `Unknown demo-config action: ${action}` });
+        return;
+      }
+      res.status(200).json({ ...result, authSource: principal.authSource });
+    } catch (e) {
+      const status = Number(e && e.status) || 500;
+      res.status(status).json({
+        ok: false,
+        error: String(e && e.message ? e.message : e),
+        code: e && e.code ? String(e.code) : 'DEMO_CONFIG_ERROR',
+        sandbox,
+      });
     }
   });
 

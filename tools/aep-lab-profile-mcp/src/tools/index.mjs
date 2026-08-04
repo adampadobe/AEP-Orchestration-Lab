@@ -35,6 +35,7 @@ import { registerEventConfigTools } from './eventConfig.mjs';
 import { registerDecisioningTools } from './decisioningTools.mjs';
 import { registerSnowflakeTools } from './snowflakeTools.mjs';
 import { registerLiveActivityTools } from './liveActivityTools.mjs';
+import { registerDemoConfigTools } from './demoConfig.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -50,6 +51,7 @@ export function registerProfileTools(mcpServer) {
   registerListSandboxesTool(mcpServer);
   registerMcpAccessInfoTool(mcpServer);
   registerMcpFirstRunSetupTool(mcpServer);
+  registerDemoConfigTools(mcpServer);
   registerProfileInfraStatusTool(mcpServer);
   registerGenerateProfileTool(mcpServer);
   registerLookupProfileTool(mcpServer);

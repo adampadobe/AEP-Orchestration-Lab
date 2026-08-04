@@ -4,7 +4,7 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
 import { resolveBrandScrapeFromList } from '../brandScrapeResolve.mjs';
-import { listBrandScrapes } from '../labApiClient.mjs';
+import { listBrandScrapes, previewDemoConfig } from '../labApiClient.mjs';
 import {
   createClientJourneyFromScrape,
   generateProfilesFromScrapePersonas,
@@ -16,6 +16,7 @@ import {
   shouldUseStoredGenerationPrefs,
 } from './generationPrefs.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
+import { buildDemoConfigChangesFromScrape } from './demoConfig.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -27,7 +28,8 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       title: 'Orchestrate demo prep from brand scrape',
       description:
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
-        'optional experience events per profile, optional Client Journey v2 HTML asset. ' +
+        'optional governed RTDB preview, experience events per profile, and Client Journey v2 HTML asset. ' +
+        'RTDB is preview-only here: show the diff and use lab_demo_config_apply separately after confirmation. ' +
         'Profiles reserve scaled emails + static mobile from Firestore generation prefs (FORMAT: <local>+DDMMYYYY-N@<domain>). ' +
         'Call lab_confirm_profile_generation before first generate. ' +
         'Provide scrape_id OR url — when url is given, resolves an existing complete scrape via lab_resolve_brand_scrape logic. ' +
@@ -54,6 +56,10 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
             profiles: z.boolean().optional().describe('Generate golden profiles (default true)'),
             events: z.boolean().optional().describe('Send Portal-aligned journey events per profile (default false; retail → commerce pack)'),
             journey: z.boolean().optional().describe('Create Client Journey v2 asset (default false; ~60–180s)'),
+            demo_config_preview: z
+              .boolean()
+              .optional()
+              .describe('Preview user-scoped RTDB brand/industry changes from the scrape; never applies them'),
           })
           .optional(),
         persona_indices: z.array(z.number().int().min(0)).optional().describe('Subset of personas for profiles step'),
@@ -161,6 +167,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         profiles: steps?.profiles !== false,
         events: steps?.events === true,
         journey: steps?.journey === true,
+        demoConfigPreview: steps?.demo_config_preview === true,
       };
 
       if (stepFlags.profiles || stepFlags.events) {
@@ -220,6 +227,36 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
 
       /** @type {Record<string, unknown>} */
       const pipeline = { scrapeSummary: loaded.summary, stepsRun: [] };
+
+      if (stepFlags.demoConfigPreview) {
+        const changes = buildDemoConfigChangesFromScrape(loaded.record, 'brand_and_industry');
+        if (!changes.length) {
+          return toolError('The scrape did not contain safe brand values for a demo configuration preview.', {
+            sandbox: allowed.sandbox,
+            scrapeId,
+          });
+        }
+        const preview = await previewDemoConfig({
+          sandbox: allowed.sandbox,
+          changes,
+          source: `brand-scrape:${scrapeId}`,
+        });
+        pipeline.stepsRun.push('demo_config_preview');
+        pipeline.demoConfigPreview = preview.ok ? preview.data : {
+          ok: false,
+          error: preview.error,
+          status: preview.status,
+        };
+        if (!preview.ok) {
+          return jsonResult({
+            ok: false,
+            sandbox: allowed.sandbox,
+            scrapeId,
+            error: 'Demo configuration preview step failed',
+            pipeline,
+          });
+        }
+      }
 
       let profileOutcome = null;
       if (stepFlags.profiles) {

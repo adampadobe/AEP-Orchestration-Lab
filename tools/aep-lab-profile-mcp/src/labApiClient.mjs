@@ -545,6 +545,56 @@ export function principalAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
 
+export async function inspectDemoConfig({ sandbox }) {
+  return labApiRequest('/api/lab/demo-config', {
+    query: { sandbox },
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function previewDemoConfig({ sandbox, changes, source }) {
+  return labApiRequest('/api/lab/demo-config', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      action: 'preview',
+      sandbox,
+      changes,
+      source,
+    },
+    timeoutMs: 30_000,
+  });
+}
+
+export async function applyDemoConfig({ sandbox, preflight_id, confirmed, idempotency_key }) {
+  return labApiRequest('/api/lab/demo-config', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      action: 'apply',
+      sandbox,
+      preflight_id,
+      confirmed,
+      idempotency_key,
+    },
+    timeoutMs: 30_000,
+  });
+}
+
+export async function previewDemoConfigRestore({ sandbox, revision_id }) {
+  return labApiRequest('/api/lab/demo-config', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      action: 'restore-preview',
+      sandbox,
+      revision_id,
+    },
+    timeoutMs: 30_000,
+  });
+}
+
 export function snowflakeAuthHeaders() {
   return generationPrefsAuthHeaders();
 }

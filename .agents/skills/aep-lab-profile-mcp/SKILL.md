@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.30.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.31.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.30)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.31)
 
-MCP server: **AEP Orchestration Lab MCP v3.30.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.31.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -51,6 +51,7 @@ Codex should call these **before** improvising lab conventions:
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
 12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires user-generated MCP key.
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
+14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
 
 ### How the lab executes
 
@@ -90,6 +91,24 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 ### One-shot full demo prep (v3.14+ — confirm → scrape → profiles → events)
 
 > Sandbox **apalmer**, customer site **https://example-brand.com**. (1) **lab_mcp_access_info**. (2) **lab_mcp_first_run_setup** if new key — if `readiness.generation_prefs.ready` is false, **lab_confirm_profile_generation** and ask colleague for base email (e.g. apalmer@adobetest.com), then `confirmed:true`. (3) **lab_resolve_brand_scrape** url — if `need_new_scrape`, one **lab_brand_scrape** with `include: { personas: true, segments: true, demoWebsite: true }`, `wait_for_complete: true`. (4) **lab_prepare_demo_from_brand_scrape** with `steps: { profiles: true, events: true }` — omit industry and email (scrape-inferred industry + stored prefs). (5) Open demo URL from `profileViewerDemoHref` / `lab_list_brand_scrapes`. (6) **lab_get_profile** + **lab_profile_activity** per scaled email (allow 30–60s UPS lag).
+
+## Workflow 0c — Prepare the user-scoped RTDB for a customer demo
+
+1. **Inspect before suggesting changes**
+
+   > **lab_demo_config_inspect** sandbox apalmer — show current sections, ordinary values, editable paths and recommended brand fields.
+
+2. **Preview explicit or scrape-derived changes**
+
+   > **lab_demo_config_preview** sandbox apalmer scrape_id `{complete scrape id}` preset brand_and_industry — or pass explicit `changes: [{ path, value }]`. Never invent slogans or short names.
+
+3. **Confirm and apply**
+
+   > Show the before/after diff. After explicit colleague confirmation call **lab_demo_config_apply** with the returned `preflight_id`, `confirmed:true`, and a stable `idempotency_key`.
+
+4. **Verify or restore**
+
+   > Re-run **lab_demo_config_inspect**. To roll back, call **lab_demo_config_restore** first with `revision_id` and `confirmed:false`, show the restore diff, then call it again with the returned `preflight_id`, `confirmed:true`, and a new idempotency key.
 
 ## Workflow 0a — Confirm email format before first generate
 
@@ -669,7 +688,7 @@ End-to-end chain for customer-specific demo prep.
 
 3. **One-shot orchestration (optional)**
 
-   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, url `https://example-brand.com` (or scrape_id), steps `{ "profiles": true, "events": true, "journey": true }`. Retail/F&B scrapes send commerce journey events (productViews → cart → purchase) with email+ecid from generate — not generic page views.
+   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, url `https://example-brand.com` (or scrape_id), steps `{ "demo_config_preview": true, "profiles": true, "events": true, "journey": true }`. Show the RTDB diff and apply it separately only after confirmation. Retail/F&B scrapes send commerce journey events (productViews → cart → purchase) with email+ecid from generate — not generic page views.
 
 4. **Retail journey events (Starbucks / F&B)**
 
