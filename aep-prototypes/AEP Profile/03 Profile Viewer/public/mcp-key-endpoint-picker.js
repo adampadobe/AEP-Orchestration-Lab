@@ -93,12 +93,10 @@
 
   function updateModal(modal) {
     var endpoint = selectedEndpoint(modal);
+    var nameInput = modal.querySelector('#mcpLabKeyName');
     var preview = modal.querySelector('#mcpLabKeySnippet');
-    var hint = modal.querySelector('#mcpLabKeyEndpointHint');
+    if (nameInput) nameInput.value = endpoint.name;
     if (preview) preview.value = configFor(endpoint, PLACEHOLDER);
-    if (hint) {
-      hint.textContent = 'Coworker name: ' + endpoint.name + ' · ' + endpoint.url;
-    }
   }
 
   function enhanceModal() {
@@ -120,12 +118,18 @@
     });
     urlInput.replaceWith(select);
 
-    var row = select.closest('.mcp-key-modal-row');
-    var hint = document.createElement('p');
-    hint.id = 'mcpLabKeyEndpointHint';
-    hint.className = 'mcp-key-hint';
-    hint.setAttribute('aria-live', 'polite');
-    if (row) row.insertAdjacentElement('afterend', hint);
+    var urlField = select.closest('.mcp-key-modal-field');
+    var nameField = document.createElement('div');
+    nameField.className = 'mcp-key-modal-field';
+    nameField.innerHTML =
+      '<label class="mcp-key-modal-label" for="mcpLabKeyName">MCP name</label>' +
+      '<div class="mcp-key-modal-row">' +
+      '<input id="mcpLabKeyName" class="mcp-key-modal-input" type="text" readonly>' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyNameBtn" aria-label="Copy MCP name">Copy name</button>' +
+      '</div>';
+    if (urlField && urlField.parentNode) {
+      urlField.parentNode.insertBefore(nameField, urlField);
+    }
 
     modal.dataset.endpointPickerReady = '1';
     select.addEventListener('change', function () {
@@ -142,6 +146,7 @@
       var modal = button.closest('#' + MODAL_ID + '[data-endpoint-picker-ready="1"]');
       if (!modal) return;
       if (
+        button.id !== 'mcpLabKeyCopyNameBtn' &&
         button.id !== 'mcpLabKeyCopyUrlBtn' &&
         button.id !== 'mcpLabKeyCopyConfigBtn' &&
         button.id !== 'mcpLabKeyCopyAllBtn'
@@ -155,7 +160,9 @@
       var endpoint = selectedEndpoint(modal);
       var secretInput = modal.querySelector('#mcpLabKeyPlaintext');
       var secret = secretInput ? secretInput.value : '';
-      if (button.id === 'mcpLabKeyCopyUrlBtn') {
+      if (button.id === 'mcpLabKeyCopyNameBtn') {
+        copyFromPicker(button, endpoint.name, endpoint.name + ' MCP name copied');
+      } else if (button.id === 'mcpLabKeyCopyUrlBtn') {
         copyFromPicker(button, endpoint.url, endpoint.label + ' URL copied');
       } else if (button.id === 'mcpLabKeyCopyConfigBtn') {
         copyFromPicker(
