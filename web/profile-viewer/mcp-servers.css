@@ -215,6 +215,23 @@
   color: var(--dash-text, #2c2c2c);
 }
 
+.mcp-choice-config-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.55rem;
+}
+
+.mcp-choice-config-name code {
+  padding: 0.2rem 0.38rem;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--dash-text, #2c2c2c) 7%, transparent);
+  color: var(--dash-text, #2c2c2c);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+}
+
 .mcp-connection-choice p {
   margin: 0;
   font-size: 0.8rem;

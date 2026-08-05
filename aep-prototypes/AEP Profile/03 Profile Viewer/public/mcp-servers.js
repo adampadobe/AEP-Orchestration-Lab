@@ -14,6 +14,7 @@
    *   summary: string;
    *   useCases: string[];
    *   configNotes: string;
+   *   configName?: string;
    *   connectionKind?: string;
    *   toolCount?: number;
    *   caution?: boolean;
@@ -24,6 +25,7 @@
   const MCP_SERVERS = [
     {
       id: 'aep-orchestration-lab-mcp',
+      configName: 'aep-lab-general',
       section: 'lab',
       name: 'AEP Lab — General demo preparation',
       product: 'Complete Lab MCP · 85 tools',
@@ -46,6 +48,7 @@
     },
     {
       id: 'aep-lab-profiles',
+      configName: 'aep-lab-profiles',
       section: 'lab',
       name: 'AEP Lab — Profiles',
       product: 'Focused Lab MCP · 9 tools',
@@ -67,6 +70,7 @@
     },
     {
       id: 'aep-lab-audiences',
+      configName: 'aep-lab-audiences',
       section: 'lab',
       name: 'AEP Lab — Audiences',
       product: 'Focused Lab MCP · 4 tools',
@@ -89,6 +93,7 @@
     },
     {
       id: 'aep-lab-decisioning',
+      configName: 'aep-lab-decisioning',
       section: 'lab',
       name: 'AEP Lab — Decisioning',
       product: 'Focused Lab MCP · 9 tools',
@@ -451,6 +456,9 @@
       return (
         link +
         '<div class="mcp-url-actions">' +
+        '<button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="' +
+        escapeHtml(entry.id) +
+        '">Copy name</button>' +
         '<button type="button" class="mcp-copy-action" data-mcp-copy="url" data-server-id="' +
         escapeHtml(entry.id) +
         '">Copy URL</button>' +
@@ -467,6 +475,7 @@
     if (!query) return true;
     const hay = [
       entry.id,
+      entry.configName || '',
       entry.section,
       entry.name,
       entry.product,
@@ -483,7 +492,7 @@
   function coworkerConfig(entry) {
     const placeholder = '<paste your key — shown only at generate/rotate>';
     const config = {};
-    config[entry.id] = {
+    config[entry.configName || entry.id] = {
       type: 'streamable-http',
       url: entry.mcpUrl,
       headers: {
@@ -529,12 +538,25 @@
     });
     if (!entry) return;
     const action = button.getAttribute('data-mcp-copy');
-    const text = action === 'config' ? coworkerConfig(entry) : entry.mcpUrl;
+    const text =
+      action === 'config'
+        ? coworkerConfig(entry)
+        : action === 'name'
+          ? entry.configName || entry.id
+          : entry.mcpUrl;
     copyText(text)
       .then(function () {
-        const defaultLabel = action === 'config' ? 'Copy Coworker config' : 'Copy URL';
+        const defaultLabel =
+          action === 'config' ? 'Copy Coworker config' : action === 'name' ? 'Copy name' : 'Copy URL';
         button.textContent = 'Copied';
-        setCopyStatus(entry.name + (action === 'config' ? ' config copied — paste your generated key into the placeholder.' : ' URL copied.'));
+        setCopyStatus(
+          entry.name +
+            (action === 'config'
+              ? ' config copied — paste your generated key into the placeholder.'
+              : action === 'name'
+                ? ' Coworker config name copied.'
+                : ' URL copied.'),
+        );
         setTimeout(function () {
           button.textContent = defaultLabel;
         }, 1500);
@@ -552,7 +574,7 @@
       '<td><span class="mcp-server-name">' +
       escapeHtml(entry.name) +
       '</span><span class="mcp-server-id">' +
-      escapeHtml(entry.id) +
+      escapeHtml(entry.configName ? 'Coworker name: ' + entry.configName : entry.id) +
       '</span></td>' +
       '<td>' +
       escapeHtml(entry.product) +
@@ -583,6 +605,9 @@
       '<h4>' +
       escapeHtml(entry.name) +
       '</h4>' +
+      (entry.configName
+        ? '<span class="mcp-server-id">Coworker name: ' + escapeHtml(entry.configName) + '</span>'
+        : '') +
       '</div>' +
       '<dl class="mcp-card-dl">' +
       '<div><dt>Product</dt><dd>' +
