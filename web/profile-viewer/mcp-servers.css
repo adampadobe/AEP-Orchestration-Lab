@@ -205,8 +205,8 @@
 }
 
 .mcp-connection-choice--caution .mcp-connection-badge {
-  background: color-mix(in srgb, var(--dash-warning-text, #b45309) 11%, transparent);
-  color: var(--dash-warning-text, #b45309);
+  background: color-mix(in srgb, var(--dash-error-text, #c9252d) 13%, transparent);
+  color: var(--dash-error-text, #c9252d);
 }
 
 .mcp-connection-choice h4 {
