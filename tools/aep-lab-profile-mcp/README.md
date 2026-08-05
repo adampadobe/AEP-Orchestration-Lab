@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.33)
+# AEP Orchestration Lab MCP (Phase 3.34)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.33.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.34.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -10,7 +10,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
-| `/mcp/profile` | 9 | Profile readiness, preference confirmation, preflight, generation, lookup, and activity |
+| `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
 

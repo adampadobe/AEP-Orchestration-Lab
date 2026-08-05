@@ -30,7 +30,7 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.33.0';
+const MCP_VERSION = '3.34.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -49,7 +49,8 @@ const ENDPOINTS = [
     path: '/mcp/profile',
     toolset: 'profile',
     register: registerFocusedProfileTools,
-    instructions: 'Focused profile workflow: access, industries, readiness, preflight, generate, lookup, get, and activity.',
+    instructions:
+      'Focused profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback.',
   },
   {
     path: '/mcp/audiences',

@@ -94,7 +94,22 @@ export function registerFocusedProfileTools(mcpServer) {
   registerGenerateProfileTool(mcpServer);
   registerLookupProfileTool(mcpServer);
   registerGetProfileTool(mcpServer);
+  registerUpdateProfileTool(mcpServer);
   registerProfileActivityTool(mcpServer);
+  registerListEventTargetsTool(mcpServer);
+  registerPreflightProfileEventTool(mcpServer);
+  registerSendProfileEventTool(mcpServer);
+  registerSendProfileEventsBatchTool(mcpServer);
+  registerSendRetailJourneyEventsTool(mcpServer);
+  registerSnowflakeTools(mcpServer, {
+    include: new Set([
+      'lab_snowflake_config',
+      'lab_snowflake_test_connection',
+      'lab_snowflake_get_profile_by_email',
+      'lab_snowflake_enrich_profiles',
+      'lab_snowflake_get_profile_bundle',
+    ]),
+  });
 }
 
 /** Governed audience cleanup catalog: access check, list, audit, one delete. */
