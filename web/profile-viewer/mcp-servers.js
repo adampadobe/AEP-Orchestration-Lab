@@ -14,6 +14,9 @@
    *   summary: string;
    *   useCases: string[];
    *   configNotes: string;
+   *   connectionKind?: string;
+   *   toolCount?: number;
+   *   caution?: boolean;
    *   docUrl?: string;
    *   docLabel?: string;
    * }>}
@@ -22,11 +25,11 @@
     {
       id: 'aep-orchestration-lab-mcp',
       section: 'lab',
-      name: 'AEP Orchestration Lab MCP',
-      product: 'AEP Orchestration Lab (Cloud Run)',
+      name: 'AEP Lab — General demo preparation',
+      product: 'Complete Lab MCP · 85 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
-        'Lab MCP v3.8.5 — Coworker/Cursor automation for golden profiles, brand-scrape demo prep, experience events, and sandbox config. Authenticates with X-AEP-Lab-Mcp-Key (one per sandbox).',
+        'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
       useCases: [
         'Generate and batch-seed golden test profiles',
         'Brand scrape → profiles, events, and Client Journey demo prep',
@@ -34,10 +37,76 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'streamable-http, URL below. Header X-AEP-Lab-Mcp-Key from your per-sandbox key (generate below). Server id aep-orchestration-lab-mcp. Use Copy Coworker config for a ready snippet. Never commit secrets.',
+        'Choose this for general demo work or when a workflow spans several areas. Uses X-AEP-Lab-Mcp-Key; the same sandbox key also works with every focused connection below.',
+      connectionKind: 'Complete · backward compatible',
+      toolCount: 85,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
+    },
+    {
+      id: 'aep-lab-profiles',
+      section: 'lab',
+      name: 'AEP Lab — Profiles',
+      product: 'Focused Lab MCP · 9 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile',
+      summary:
+        'A smaller profile-only context for dependable discovery and invocation in Coworker.',
+      useCases: [
+        'Check profile and ingestion readiness',
+        'Generate golden test profiles',
+        'Look up profiles and inspect activity',
+      ],
+      configNotes:
+        'Choose this when the task is specifically about test profiles. Reuse the same X-AEP-Lab-Mcp-Key generated below.',
+      connectionKind: 'Focused',
+      toolCount: 9,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Profile tools reference',
+    },
+    {
+      id: 'aep-lab-audiences',
+      section: 'lab',
+      name: 'AEP Lab — Audiences',
+      product: 'Focused Lab MCP · 4 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/audiences',
+      summary:
+        'A governed audience audit context with an exact, confirmation-gated single-audience delete operation.',
+      useCases: [
+        'List and search audiences',
+        'Inspect one audience before changing it',
+        'Delete one exact audience after explicit confirmation',
+      ],
+      configNotes:
+        'Choose this for audience inventory and cleanup. Destructive calls still require an exact audience id and explicit confirmation. Reuse the same sandbox key.',
+      connectionKind: 'Focused · controlled delete',
+      toolCount: 4,
+      caution: true,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Audience tools reference',
+    },
+    {
+      id: 'aep-lab-decisioning',
+      section: 'lab',
+      name: 'AEP Lab — Decisioning',
+      product: 'Focused Lab MCP · 9 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning',
+      summary:
+        'A smaller decisioning context for Edge evaluation, catalog inspection, diagnostics, and explanations.',
+      useCases: [
+        'Evaluate Edge decisions for a profile',
+        'Browse decisioning catalog objects',
+        'Check health and explain decision results',
+      ],
+      configNotes:
+        'Choose this for Decision Lab and Edge decisioning work. Reuse the same X-AEP-Lab-Mcp-Key generated below.',
+      connectionKind: 'Focused',
+      toolCount: 9,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Decisioning tools reference',
     },
     {
       id: 'aep',
@@ -372,12 +441,23 @@
       return '<span class="mcp-url-na">' + escapeHtml(url) + '</span>';
     }
     if (url.indexOf('https://') === 0 && url.indexOf('<') === -1) {
-      return (
+      const link =
         '<a class="mcp-url-link" href="' +
         escapeHtml(url) +
         '" target="_blank" rel="noopener noreferrer">' +
         escapeHtml(url) +
-        '</a>'
+        '</a>';
+      if (entry.section !== 'lab') return link;
+      return (
+        link +
+        '<div class="mcp-url-actions">' +
+        '<button type="button" class="mcp-copy-action" data-mcp-copy="url" data-server-id="' +
+        escapeHtml(entry.id) +
+        '">Copy URL</button>' +
+        '<button type="button" class="mcp-copy-action" data-mcp-copy="config" data-server-id="' +
+        escapeHtml(entry.id) +
+        '">Copy Coworker config</button>' +
+        '</div>'
       );
     }
     return '<span class="mcp-url-plain">' + escapeHtml(url) + '</span>';
@@ -398,6 +478,70 @@
       .join(' ')
       .toLowerCase();
     return hay.indexOf(query) !== -1;
+  }
+
+  function coworkerConfig(entry) {
+    const placeholder = '<paste your key — shown only at generate/rotate>';
+    const config = {};
+    config[entry.id] = {
+      type: 'streamable-http',
+      url: entry.mcpUrl,
+      headers: {
+        'X-AEP-Lab-Mcp-Key': placeholder,
+      },
+    };
+    return JSON.stringify(config, null, 2);
+  }
+
+  function setCopyStatus(message) {
+    const status = document.getElementById('mcpConnectionCopyStatus');
+    if (!status) return;
+    status.textContent = message || '';
+    clearTimeout(setCopyStatus._timer);
+    if (message) {
+      setCopyStatus._timer = setTimeout(function () {
+        status.textContent = '';
+      }, 2500);
+    }
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return copied ? Promise.resolve() : Promise.reject(new Error('Copy failed'));
+  }
+
+  function onCatalogClick(event) {
+    const button = event.target.closest('[data-mcp-copy]');
+    if (!button) return;
+    const entry = MCP_SERVERS.find(function (candidate) {
+      return candidate.id === button.getAttribute('data-server-id');
+    });
+    if (!entry) return;
+    const action = button.getAttribute('data-mcp-copy');
+    const text = action === 'config' ? coworkerConfig(entry) : entry.mcpUrl;
+    copyText(text)
+      .then(function () {
+        const defaultLabel = action === 'config' ? 'Copy Coworker config' : 'Copy URL';
+        button.textContent = 'Copied';
+        setCopyStatus(entry.name + (action === 'config' ? ' config copied — paste your generated key into the placeholder.' : ' URL copied.'));
+        setTimeout(function () {
+          button.textContent = defaultLabel;
+        }, 1500);
+      })
+      .catch(function () {
+        setCopyStatus('Copy failed — select and copy the endpoint manually.');
+      });
   }
 
   function rowHtml(entry) {
@@ -561,6 +705,8 @@
   function init() {
     const search = document.getElementById('mcpSearch');
     if (search) search.addEventListener('input', applyFilters);
+    const catalog = document.querySelector('.mcp-catalog-panel');
+    if (catalog) catalog.addEventListener('click', onCatalogClick);
     applyFilters();
   }
 
