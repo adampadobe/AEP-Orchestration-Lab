@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoint: POST /mcp (Streamable HTTP, JSON response mode)
+ * Endpoints: POST /mcp and focused /mcp/{profile,audiences,decisioning}
  * Health:   GET /health
  */
 
@@ -22,23 +22,59 @@ import { getLabApiOrigin } from './labApiClient.mjs';
 import { requestContext } from './requestContext.mjs';
 import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
 import { registerFrameworkResources } from './resources/frameworkResources.mjs';
-import { registerProfileTools } from './tools/index.mjs';
+import { installToolAnnotations } from './toolAnnotations.mjs';
+import {
+  registerFocusedAudienceTools,
+  registerFocusedDecisioningTools,
+  registerFocusedProfileTools,
+  registerProfileTools,
+} from './tools/index.mjs';
 
-const MCP_VERSION = '3.32.0';
+const MCP_VERSION = '3.33.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
 
-/** @type {Record<string, StreamableHTTPServerTransport>} */
-const transports = {};
+/** @type {Map<string, { transport: StreamableHTTPServerTransport, endpoint: string }>} */
+const transports = new Map();
 
-function createMcpServer() {
+const ENDPOINTS = [
+  {
+    path: '/mcp',
+    toolset: 'full',
+    register: registerProfileTools,
+    instructions: 'Complete AEP Orchestration Lab catalog. Prefer a focused endpoint when the client cannot invoke deferred tools.',
+  },
+  {
+    path: '/mcp/profile',
+    toolset: 'profile',
+    register: registerFocusedProfileTools,
+    instructions: 'Focused profile workflow: access, industries, readiness, preflight, generate, lookup, get, and activity.',
+  },
+  {
+    path: '/mcp/audiences',
+    toolset: 'audiences',
+    register: registerFocusedAudienceTools,
+    instructions: 'Governed audience cleanup: list, audit, exact confirmation, then delete one audience.',
+  },
+  {
+    path: '/mcp/decisioning',
+    toolset: 'decisioning',
+    register: registerFocusedDecisioningTools,
+    instructions: 'Focused decisioning evaluation, response explanation, treatment resolution, and catalog assessment.',
+  },
+];
+
+export function createMcpServer(endpoint = ENDPOINTS[0]) {
   const server = new McpServer({
     name: 'aep-orchestration-lab-mcp',
     version: MCP_VERSION,
+  }, {
+    instructions: endpoint.instructions,
   });
-  registerFrameworkResources(server);
-  registerProfileTools(server);
+  installToolAnnotations(server);
+  if (endpoint.toolset === 'full') registerFrameworkResources(server);
+  endpoint.register(server);
   return server;
 }
 
@@ -69,83 +105,105 @@ async function main() {
       version: MCP_VERSION,
       labOrigin: getLabApiOrigin(),
       allowedSandboxes: cfg.allowedSandboxes,
+      mcpEndpoints: ENDPOINTS.map(({ path, toolset }) => ({ path, toolset })),
       note: 'Per-principal allowlist may override via Firestore mcpSandboxAllowlist/{keyId}',
     });
   });
 
-  app.post('/mcp', async (req, res) => {
-    const auth = await validateMcpApiKey(req);
-    if (!auth.ok) {
-      jsonRpcError(res, auth.status, auth.message);
-      return;
-    }
+  function registerEndpoint(endpoint) {
+    app.post(endpoint.path, async (req, res) => {
+      const startedAt = Date.now();
+      const rpcMethod = String(req.body?.method || 'unknown');
+      const toolName = rpcMethod === 'tools/call' ? String(req.body?.params?.name || '') : undefined;
+      res.once('finish', () => {
+        console.log(JSON.stringify({
+          type: 'aep-lab-mcp-request',
+          endpoint: endpoint.path,
+          toolset: endpoint.toolset,
+          method: rpcMethod,
+          ...(toolName ? { tool: toolName } : {}),
+          httpStatus: res.statusCode,
+          durationMs: Date.now() - startedAt,
+        }));
+      });
 
-    const mcpKey = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
-
-    const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
-
-    await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey }, async () => {
-      try {
-        const sessionId = req.headers['mcp-session-id'];
-        let transport;
-
-        if (sessionId && transports[sessionId]) {
-          transport = transports[sessionId];
-        } else if (!sessionId && isInitializeRequest(req.body)) {
-          transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => randomUUID(),
-            enableJsonResponse: true,
-            onsessioninitialized: (id) => {
-              transports[id] = transport;
-            },
-          });
-
-          transport.onclose = () => {
-            const sid = transport.sessionId;
-            if (sid && transports[sid]) {
-              delete transports[sid];
-            }
-          };
-
-          const server = createMcpServer();
-          await server.connect(transport);
-          await transport.handleRequest(req, res, req.body);
-          return;
-        } else {
-          jsonRpcError(res, 400, 'Bad Request: no valid MCP session. Send initialize without mcp-session-id.');
-          return;
-        }
-
-        await transport.handleRequest(req, res, req.body);
-      } catch (err) {
-        console.error('[aep-lab-profile-mcp] MCP handler error:', err);
-        if (!res.headersSent) {
-          jsonRpcError(res, 500, 'Internal server error');
-        }
+      const auth = await validateMcpApiKey(req);
+      if (!auth.ok) {
+        jsonRpcError(res, auth.status, auth.message);
+        return;
       }
+
+      const mcpKey = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
+      const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
+
+      await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey }, async () => {
+        try {
+          const sessionId = req.headers['mcp-session-id'];
+          let transport;
+
+          if (sessionId && transports.has(sessionId)) {
+            const active = transports.get(sessionId);
+            if (active.endpoint !== endpoint.path) {
+              jsonRpcError(res, 400, `MCP session belongs to ${active.endpoint}, not ${endpoint.path}.`);
+              return;
+            }
+            transport = active.transport;
+          } else if (!sessionId && isInitializeRequest(req.body)) {
+            transport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: () => randomUUID(),
+              enableJsonResponse: true,
+              onsessioninitialized: (id) => {
+                transports.set(id, { transport, endpoint: endpoint.path });
+              },
+            });
+
+            transport.onclose = () => {
+              const sid = transport.sessionId;
+              if (sid) transports.delete(sid);
+            };
+
+            const server = createMcpServer(endpoint);
+            await server.connect(transport);
+            await transport.handleRequest(req, res, req.body);
+            return;
+          } else {
+            jsonRpcError(res, 400, 'Bad Request: no valid MCP session. Send initialize without mcp-session-id.');
+            return;
+          }
+
+          await transport.handleRequest(req, res, req.body);
+        } catch (err) {
+          console.error('[aep-lab-profile-mcp] MCP handler error:', err);
+          if (!res.headersSent) jsonRpcError(res, 500, 'Internal server error');
+        }
+      });
     });
-  });
 
-  app.get('/mcp', (_req, res) => {
-    res.status(405).set('Allow', 'POST').json({ error: 'Use POST /mcp for Streamable HTTP (JSON mode).' });
-  });
+    app.get(endpoint.path, (_req, res) => {
+      res.status(405).set('Allow', 'POST').json({
+        error: `Use POST ${endpoint.path} for Streamable HTTP (JSON mode).`,
+      });
+    });
 
-  app.delete('/mcp', async (req, res) => {
-    const auth = await validateMcpApiKey(req);
-    if (!auth.ok) {
-      res.status(auth.status).json({ error: auth.message });
-      return;
-    }
-    const sessionId = req.headers['mcp-session-id'];
-    const transport = sessionId ? transports[sessionId] : undefined;
-    if (transport) {
-      await transport.close();
-      delete transports[sessionId];
-      res.status(200).json({ ok: true });
-      return;
-    }
-    res.status(404).json({ error: 'Session not found' });
-  });
+    app.delete(endpoint.path, async (req, res) => {
+      const auth = await validateMcpApiKey(req);
+      if (!auth.ok) {
+        res.status(auth.status).json({ error: auth.message });
+        return;
+      }
+      const sessionId = req.headers['mcp-session-id'];
+      const active = sessionId ? transports.get(sessionId) : undefined;
+      if (active?.endpoint === endpoint.path) {
+        await active.transport.close();
+        transports.delete(sessionId);
+        res.status(200).json({ ok: true });
+        return;
+      }
+      res.status(404).json({ error: 'Session not found' });
+    });
+  }
+
+  for (const endpoint of ENDPOINTS) registerEndpoint(endpoint);
 
   const host = String(process.env.HOST || '0.0.0.0').trim();
   const port = Number(process.env.PORT || 8080);
@@ -159,7 +217,10 @@ async function main() {
         port,
         labOrigin: getLabApiOrigin(),
         allowedSandboxes: cfg.allowedSandboxes,
-        mcpEndpoint: `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}/mcp`,
+        mcpEndpoints: ENDPOINTS.map(({ path, toolset }) => ({
+          toolset,
+          url: `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}${path}`,
+        })),
       }),
     );
   });

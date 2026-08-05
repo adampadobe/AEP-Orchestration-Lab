@@ -2,15 +2,17 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.32.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.33.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.32)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.33)
 
-MCP server: **AEP Orchestration Lab MCP v3.32.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.33.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+
+Focused Coworker endpoints use the same API key: `/mcp/profile` (9 tools), `/mcp/audiences` (4), and `/mcp/decisioning` (9). Prefer one when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 

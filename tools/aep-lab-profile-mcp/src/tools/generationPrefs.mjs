@@ -237,6 +237,18 @@ export function registerGenerationPrefsTools(mcpServer) {
   );
 }
 
+/** Register only the required first-generation confirmation gate. */
+export function registerConfirmProfileGenerationTool(mcpServer) {
+  registerGenerationPrefsTools({
+    registerTool(name, definition, handler) {
+      if (name === 'lab_confirm_profile_generation') {
+        return mcpServer.registerTool(name, definition, handler);
+      }
+      return undefined;
+    },
+  });
+}
+
 /** @typedef {{ use_stored_prefs?: boolean, email?: string }} StoredPrefsEmailInput */
 
 export const STORED_PREFS_MISSING_HINT =

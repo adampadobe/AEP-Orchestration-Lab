@@ -1,0 +1,98 @@
+const READ_ONLY_TOOLS = new Set([
+  'lab_audience_audit',
+  'lab_audience_list',
+  'lab_batch_job_status',
+  'lab_brand_scrape_brief',
+  'lab_confirm_generation_plan',
+  'lab_decision_lab_config',
+  'lab_decisioning_catalog_assess',
+  'lab_decisioning_catalog_get',
+  'lab_decisioning_catalog_list',
+  'lab_decisioning_catalog_schema',
+  'lab_decisioning_edge_evaluate',
+  'lab_decisioning_resolve_treatment_name',
+  'lab_demo_config_inspect',
+  'lab_demo_config_preview',
+  'lab_explain_decision_response',
+  'lab_get_brand_scrape',
+  'lab_get_event_config',
+  'lab_get_execution_framework',
+  'lab_get_generation_prefs',
+  'lab_get_industry_playbook',
+  'lab_get_profile',
+  'lab_list_brand_scrapes',
+  'lab_list_event_targets',
+  'lab_list_industries',
+  'lab_list_recent_profiles',
+  'lab_list_sandboxes',
+  'lab_live_activity_get_execution_state',
+  'lab_live_activity_get_template',
+  'lab_live_activity_list_runs',
+  'lab_live_activity_list_templates',
+  'lab_live_activity_profile_context',
+  'lab_lookup_profile',
+  'lab_mcp_access_info',
+  'lab_poll_brand_scrape',
+  'lab_preflight_profile_event',
+  'lab_preflight_profile_generate',
+  'lab_profile_activity',
+  'lab_profile_infra_status',
+  'lab_resolve_brand_scrape',
+  'lab_sandbox_profile_config',
+  'lab_snowflake_config',
+  'lab_snowflake_get_profile_bundle',
+  'lab_snowflake_get_profile_by_email',
+  'lab_snowflake_industry_catalog',
+  'lab_snowflake_query_profiles',
+  'lab_snowflake_table_structure',
+  'lab_snowflake_test_connection',
+  'lab_snowflake_validate_proposal',
+]);
+
+const DESTRUCTIVE_TOOLS = new Set([
+  'lab_audience_delete',
+  'lab_cancel_brand_scrape',
+  'lab_live_activity_delete_template',
+]);
+
+const IDEMPOTENT_WRITE_TOOLS = new Set([
+  'lab_demo_config_apply',
+  'lab_demo_config_restore',
+  'lab_enable_event_profile',
+  'lab_enable_profile',
+  'lab_live_activity_save_execution_state',
+  'lab_live_activity_send',
+  'lab_live_activity_upsert_template',
+  'lab_provision_profile_infra_step',
+  'lab_save_event_datastream',
+  'lab_setup_event_infra',
+  'lab_snowflake_provision',
+]);
+
+export function annotationsForTool(name) {
+  const readOnlyHint = READ_ONLY_TOOLS.has(name);
+  return {
+    readOnlyHint,
+    destructiveHint: DESTRUCTIVE_TOOLS.has(name),
+    idempotentHint: readOnlyHint || IDEMPOTENT_WRITE_TOOLS.has(name),
+    openWorldHint: !['lab_get_execution_framework', 'lab_get_industry_playbook'].includes(name),
+  };
+}
+
+/** Add consistent safety hints to every registered tool. Explicit hints win. */
+export function installToolAnnotations(mcpServer) {
+  const registerTool = mcpServer.registerTool.bind(mcpServer);
+  mcpServer.registerTool = (name, definition, handler) =>
+    registerTool(
+      name,
+      {
+        ...definition,
+        annotations: {
+          ...annotationsForTool(name),
+          ...(definition.annotations || {}),
+        },
+      },
+      handler,
+    );
+  return mcpServer;
+}

@@ -18,7 +18,7 @@ const PORT = Number(process.env.SMOKE_PORT || 18080);
 const BASE = `http://127.0.0.1:${PORT}`;
 const API_KEY = String(process.env.AEP_LAB_MCP_API_KEY || 'local-smoke-test-key').trim();
 
-async function mcpRequest(sessionId, body) {
+async function mcpRequest(sessionId, body, endpoint = '/mcp') {
   const headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json, text/event-stream',
@@ -26,7 +26,7 @@ async function mcpRequest(sessionId, body) {
   };
   if (sessionId) headers['mcp-session-id'] = sessionId;
 
-  const res = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: JSON.stringify(body) });
+  const res = await fetch(`${BASE}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
   const text = await res.text();
   let json;
   try {
@@ -77,6 +77,11 @@ async function run() {
 
   const health = await fetch(`${BASE}/health`);
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
+  const healthJson = await health.json();
+  const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
+  for (const path of ['/mcp', '/mcp/profile', '/mcp/audiences', '/mcp/decisioning']) {
+    if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
+  }
 
   const init = await mcpRequest(undefined, {
     jsonrpc: '2.0',
@@ -175,6 +180,14 @@ async function run() {
   const richSingle = listedTools.find((tool) => tool.name === 'lab_send_profile_event');
   const richPreflight = listedTools.find((tool) => tool.name === 'lab_preflight_profile_event');
   const richBatch = listedTools.find((tool) => tool.name === 'lab_send_profile_events_batch');
+  const audienceList = listedTools.find((tool) => tool.name === 'lab_audience_list');
+  const audienceDelete = listedTools.find((tool) => tool.name === 'lab_audience_delete');
+  const missingAnnotations = listedTools.filter((tool) =>
+    !tool.annotations ||
+    typeof tool.annotations.readOnlyHint !== 'boolean' ||
+    typeof tool.annotations.destructiveHint !== 'boolean' ||
+    typeof tool.annotations.idempotentHint !== 'boolean' ||
+    typeof tool.annotations.openWorldHint !== 'boolean');
   if (!richSingle?.inputSchema?.properties?.industry_fields) {
     throw new Error('lab_send_profile_event is missing industry_fields schema');
   }
@@ -183,6 +196,15 @@ async function run() {
   }
   if (!richBatch?.inputSchema?.properties?.events?.items?.properties?.industry_fields) {
     throw new Error('lab_send_profile_events_batch events[] is missing industry_fields schema');
+  }
+  if (audienceList?.annotations?.readOnlyHint !== true || audienceList?.annotations?.destructiveHint !== false) {
+    throw new Error('lab_audience_list safety annotations are incorrect');
+  }
+  if (audienceDelete?.annotations?.readOnlyHint !== false || audienceDelete?.annotations?.destructiveHint !== true) {
+    throw new Error('lab_audience_delete safety annotations are incorrect');
+  }
+  if (missingAnnotations.length) {
+    throw new Error(`Tools missing complete safety annotations: ${missingAnnotations.map((tool) => tool.name).join(', ')}`);
   }
 
   const call = await mcpRequest(sessionId, {
@@ -212,10 +234,86 @@ async function run() {
     throw new Error(`tools/call failed: ${JSON.stringify(listCall.json)}`);
   }
 
+  async function verifyFocusedEndpoint(endpoint, expectedNames) {
+    const focusedInit = await mcpRequest(undefined, {
+      jsonrpc: '2.0',
+      id: 10,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-03-26',
+        capabilities: {},
+        clientInfo: { name: 'focused-smoke-test', version: '1.0.0' },
+      },
+    }, endpoint);
+    if (focusedInit.status !== 200 || !focusedInit.sessionId) {
+      throw new Error(`${endpoint} initialize failed: ${JSON.stringify(focusedInit.json)}`);
+    }
+
+    await mcpRequest(focusedInit.sessionId, {
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+      params: {},
+    }, endpoint);
+
+    const focusedList = await mcpRequest(focusedInit.sessionId, {
+      jsonrpc: '2.0',
+      id: 11,
+      method: 'tools/list',
+      params: {},
+    }, endpoint);
+    const focusedNames = focusedList.json?.result?.tools?.map((tool) => tool.name) || [];
+    if (JSON.stringify([...focusedNames].sort()) !== JSON.stringify([...expectedNames].sort())) {
+      throw new Error(`${endpoint} tools mismatch: ${focusedNames.join(', ')}`);
+    }
+
+    const focusedCall = await mcpRequest(focusedInit.sessionId, {
+      jsonrpc: '2.0',
+      id: 12,
+      method: 'tools/call',
+      params: { name: 'lab_mcp_access_info', arguments: {} },
+    }, endpoint);
+    if (focusedCall.status !== 200 || focusedCall.json.error) {
+      throw new Error(`${endpoint} tools/call failed: ${JSON.stringify(focusedCall.json)}`);
+    }
+    return focusedNames.length;
+  }
+
+  const focusedToolCounts = {
+    profile: await verifyFocusedEndpoint('/mcp/profile', [
+      'lab_mcp_access_info',
+      'lab_list_industries',
+      'lab_profile_infra_status',
+      'lab_preflight_profile_generate',
+      'lab_confirm_profile_generation',
+      'lab_generate_profile',
+      'lab_lookup_profile',
+      'lab_get_profile',
+      'lab_profile_activity',
+    ]),
+    audiences: await verifyFocusedEndpoint('/mcp/audiences', [
+      'lab_mcp_access_info',
+      'lab_audience_list',
+      'lab_audience_audit',
+      'lab_audience_delete',
+    ]),
+    decisioning: await verifyFocusedEndpoint('/mcp/decisioning', [
+      'lab_mcp_access_info',
+      'lab_decision_lab_config',
+      'lab_decisioning_edge_evaluate',
+      'lab_explain_decision_response',
+      'lab_decisioning_resolve_treatment_name',
+      'lab_decisioning_catalog_list',
+      'lab_decisioning_catalog_get',
+      'lab_decisioning_catalog_schema',
+      'lab_decisioning_catalog_assess',
+    ]),
+  };
+
   console.log(JSON.stringify({
     ok: true,
     version: init.json?.result?.serverInfo?.version || null,
     toolCount: names.length,
+    focusedToolCounts,
     richIndustrySchemas: true,
     tools: names,
     accessInfo: accessText.slice(0, 200),

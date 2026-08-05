@@ -20,7 +20,7 @@ import { registerPreflightProfileEventTool } from './preflightProfileEvent.mjs';
 import { registerGetExecutionFrameworkTool } from './getExecutionFramework.mjs';
 import { registerGetIndustryPlaybookTool } from './getIndustryPlaybook.mjs';
 import { registerPreflightProfileGenerateTool } from './preflightProfileGenerate.mjs';
-import { registerGenerationPrefsTools } from './generationPrefs.mjs';
+import { registerConfirmProfileGenerationTool, registerGenerationPrefsTools } from './generationPrefs.mjs';
 import { registerListRecentProfilesTool } from './listRecentProfiles.mjs';
 import { registerBrandScrapeTools } from './brandScrape.mjs';
 import { registerGenerateProfileFromBrandScrapeTools } from './generateProfileFromBrandScrape.mjs';
@@ -82,4 +82,29 @@ export function registerProfileTools(mcpServer) {
   registerGenerateProfileFromBrandScrapeTools(mcpServer);
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
   registerCreateJourneyFromBrandScrapeTool(mcpServer);
+}
+
+/** Small, high-frequency catalog for clients that eagerly load only a few tools. */
+export function registerFocusedProfileTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerListIndustriesTool(mcpServer);
+  registerProfileInfraStatusTool(mcpServer);
+  registerPreflightProfileGenerateTool(mcpServer);
+  registerConfirmProfileGenerationTool(mcpServer);
+  registerGenerateProfileTool(mcpServer);
+  registerLookupProfileTool(mcpServer);
+  registerGetProfileTool(mcpServer);
+  registerProfileActivityTool(mcpServer);
+}
+
+/** Governed audience cleanup catalog: access check, list, audit, one delete. */
+export function registerFocusedAudienceTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerAudienceTools(mcpServer);
+}
+
+/** Decisioning evaluation and catalog tools, plus the access check. */
+export function registerFocusedDecisioningTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerDecisioningTools(mcpServer);
 }

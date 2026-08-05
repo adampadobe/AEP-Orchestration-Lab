@@ -1,8 +1,20 @@
-# AEP Orchestration Lab MCP (Phase 3.32)
+# AEP Orchestration Lab MCP (Phase 3.33)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.32.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.33.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+
+## Focused endpoints for Coworker
+
+The original `/mcp` endpoint remains backward compatible and exposes the complete catalog. Clients that struggle to invoke tools from a large deferred catalog can connect to a focused endpoint using the same API key header:
+
+| Endpoint | Tools | Intended workflow |
+|----------|------:|-------------------|
+| `/mcp/profile` | 9 | Profile readiness, preference confirmation, preflight, generation, lookup, and activity |
+| `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
+| `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
+
+Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
 ## Framework tools & resources (v3.6)
 
