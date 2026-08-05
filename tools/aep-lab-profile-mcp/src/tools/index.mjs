@@ -36,6 +36,7 @@ import { registerDecisioningTools } from './decisioningTools.mjs';
 import { registerSnowflakeTools } from './snowflakeTools.mjs';
 import { registerLiveActivityTools } from './liveActivityTools.mjs';
 import { registerDemoConfigTools } from './demoConfig.mjs';
+import { registerAudienceTools } from './audienceTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -63,6 +64,7 @@ export function registerProfileTools(mcpServer) {
   registerEnableEventProfileTool(mcpServer);
   registerEventConfigTools(mcpServer);
   registerDecisioningTools(mcpServer);
+  registerAudienceTools(mcpServer);
   registerSnowflakeTools(mcpServer);
   registerLiveActivityTools(mcpServer);
   registerSendProfileEventTool(mcpServer);

@@ -536,6 +536,40 @@ export async function decisioningCatalogAssess(params) {
   });
 }
 
+/** Read-only AEP audience inventory; requires the caller's user-generated MCP key. */
+export async function audienceList(params) {
+  return labApiRequest('/api/audience-management', {
+    query: {
+      sandbox: params.sandbox,
+      name: params.name,
+      start: params.start,
+      limit: params.limit,
+      include_inactive: params.include_inactive === false ? 'false' : 'true',
+    },
+    headers: principalAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/** Required read-only review immediately before an audience delete. */
+export async function audienceAudit({ sandbox, audience_id }) {
+  return labApiRequest('/api/audience-management', {
+    query: { sandbox, audience_id },
+    headers: principalAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/** Delete one exact, explicitly confirmed audience. */
+export async function audienceDelete({ sandbox, audience_id, expected_name, confirmed }) {
+  return labApiRequest('/api/audience-management', {
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    body: { sandbox, audience_id, expected_name, confirmed },
+    timeoutMs: 120_000,
+  });
+}
+
 function generationPrefsAuthHeaders() {
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};

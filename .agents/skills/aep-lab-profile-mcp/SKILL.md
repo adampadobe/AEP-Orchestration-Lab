@@ -2,15 +2,15 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.31.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.32.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.31)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.32)
 
-MCP server: **AEP Orchestration Lab MCP v3.31.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.32.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -52,6 +52,7 @@ Codex should call these **before** improvising lab conventions:
 12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires user-generated MCP key.
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
+15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
 
 ### How the lab executes
 
@@ -544,6 +545,26 @@ Allowlisted DPS catalog proxies — mirrors Profile Viewer **decisioning-catalog
 **Example Coworker prompt (catalog inventory):**
 
 > lab_decisioning_catalog_list sandbox apalmer entity_type selection-strategies limit 50 — then list strategy names, priorities, and linked item collections.
+
+## Workflow 5f — Governed audience audit + deletion (v3.32+)
+
+Audience deletion is irreversible and requires a **user-generated MCP key** whose sandbox scope exactly matches the requested sandbox.
+
+1. **List/search (read-only)**
+
+   > **lab_audience_list** sandbox apalmer name "demo" include_inactive true — inspect the exact `id`, name, origin, lifecycle, and timestamps.
+
+2. **Audit one exact ID (read-only)**
+
+   > **lab_audience_audit** sandbox apalmer audience_id `{exact id field}` — review dependencies/dependents, source-system warning, and the stated audit limitations. This cannot prove that destinations, Account Audiences, or AJO do not use it; Adobe may reject deletion while usage remains.
+
+3. **Confirm**
+
+   > Show the colleague the exact sandbox, `confirmation.audience_id`, and `confirmation.expected_name`. Ask them to explicitly confirm deletion of that one audience. Do not treat a general cleanup request as confirmation for any listed item.
+
+4. **Delete one audience**
+
+   > Only after confirmation: **lab_audience_delete** sandbox apalmer audience_id `{id}` expected_name `{exact current name}` confirmed true. The server re-fetches and exact-matches ID + name immediately before Adobe `DELETE /data/core/ups/audiences/{id}`. No batch-delete tool exists.
 
 ## Workflow 5c — Event infrastructure setup (schema + dataset + datastream)
 

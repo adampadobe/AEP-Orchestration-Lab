@@ -218,6 +218,19 @@ export const CRITICAL_RULES = [
     mcp: 'Sandbox allowlist required. Run lab_decisioning_catalog_assess before Edge evaluate demos to catch expired offers and empty collections.',
   },
   {
+    id: 'audience_delete_confirmation',
+    rule:
+      'Audience deletion is irreversible: lab_audience_list → lab_audience_audit for one exact id → show sandbox/id/name and risks → explicit colleague confirmation → lab_audience_delete.',
+    auth:
+      'Requires a user-generated MCP key. The Firebase proxy enforces that the requested sandbox exactly matches the key sandbox.',
+    guardrails:
+      'Delete accepts one audience only, requires confirmed=true plus the exact expected_name, and re-fetches immediately before DELETE so stale or mismatched confirmations fail closed.',
+    audit_limit:
+      'Audience detail exposes dependencies/dependents but cannot prove there is no destination, Account Audience, or AJO usage. Adobe may reject deletion while usage remains.',
+    never:
+      'Never call /api/aep, infer confirmation from a general cleanup request, delete by name alone, or batch-delete audiences.',
+  },
+  {
     id: 'snowflake_profile_readback_by_email',
     rule:
       'NEVER tell the user to run Snowflake console SQL or raw Snowflake MCP SELECT * for dual-load profile verification. ' +
@@ -442,7 +455,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.31.0',
+    version: '3.32.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -769,6 +782,19 @@ export function getExecutionFramework() {
         ],
         ui: 'web/profile-viewer/decisioning-catalog.html',
         never: 'Do not call /api/aep from MCP — allowlisted DPS paths only via lab catalog proxies.',
+      },
+      audience_cleanup: {
+        tools: ['lab_audience_list', 'lab_audience_audit', 'lab_audience_delete'],
+        when: 'A colleague wants to inventory and remove obsolete AEP audiences.',
+        order: [
+          'lab_audience_list — search read-only inventory; retain the exact id field',
+          'lab_audience_audit audience_id {id} — review current metadata, dependencies/dependents and audit limitations',
+          'Show exact sandbox + audience id + expected name; obtain explicit colleague confirmation',
+          'lab_audience_delete with the same id/name and confirmed true — one audience only',
+        ],
+        api: ['GET/DELETE /api/audience-management', 'DELETE /data/core/ups/audiences/{id}'],
+        auth: 'User-generated MCP key; key sandbox must exactly match request sandbox.',
+        never: 'No generic /api/aep access, deletion by name, inferred confirmation, or batch delete.',
       },
       batch_seed: {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],

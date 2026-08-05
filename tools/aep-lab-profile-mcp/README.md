@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.31)
+# AEP Orchestration Lab MCP (Phase 3.32)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.31.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.32.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Framework tools & resources (v3.6)
 
@@ -62,6 +62,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_live_activity_upsert_template` | `POST /api/ajo/live-activity/templates` | Create/version principal + sandbox customer template; mirrors Portal |
 | `lab_live_activity_delete_template` | `DELETE /api/ajo/live-activity/templates` | Confirmed custom-template deletion |
 | `lab_live_activity_list_runs` | `GET /api/ajo/live-activity/runs` | Recent principal/sandbox execution audit |
+| `lab_audience_list` | `GET /api/audience-management` | Read-only Segmentation audience inventory/search; user-generated MCP key + exact sandbox scope required |
+| `lab_audience_audit` | `GET /api/audience-management?audience_id=…` | Required exact-ID pre-delete review: current name, origin, lifecycle, dates, dependencies/dependents and limitations |
+| `lab_audience_delete` | `DELETE /api/audience-management` | Irreversible single-audience delete only after explicit confirmation; re-reads and exact-matches ID + name |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
@@ -96,6 +99,17 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
+
+### Governed audience cleanup (Phase 3.32)
+
+Audience deletion uses a dedicated allowlisted proxy, never the generic `/api/aep` route. It requires a user-generated MCP key whose single sandbox scope exactly matches the request.
+
+1. `lab_audience_list sandbox apalmer name "demo"` — inspect IDs, origin, lifecycle and timestamps. This is read-only.
+2. `lab_audience_audit sandbox apalmer audience_id {exact id}` — review dependencies/dependents, source-system warning, and the limits of what the audience record can prove. Destination, Account Audience and AJO usage may still cause Adobe to reject deletion.
+3. Show the exact sandbox, `audience_id`, and `expected_name` returned by audit. Obtain explicit colleague confirmation for that one audience.
+4. `lab_audience_delete sandbox apalmer audience_id {id} expected_name {exact name} confirmed true` — the server re-fetches immediately and fails closed if the ID/name changed. No batch delete tool exists.
+
+Adobe documents successful `DELETE /data/core/ups/audiences/{id}` as HTTP 204. The MCP records list, audit and delete calls in `mcpProfileAuditLog`; deletes include the selected audience ID and result.
 
 ### Governed Real-Time Database demo preparation (Phase 3.31)
 
@@ -399,7 +413,7 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 `validateOAuthBearer` in `src/auth.mjs` checks `AEP_LAB_MCP_OAUTH_ISSUER` and `AEP_LAB_MCP_OAUTH_AUDIENCE`. When both are set, a stub returns *not implemented* until Coworker OIDC docs land. **Today:** use `X-AEP-Lab-Mcp-Key` only.
 
-No changes to public Firebase `/api/*` profile routes in Phase 3.
+The audience-management route is authenticated with a user-generated MCP key and is not an anonymous profile API. Existing public profile read routes remain unchanged.
 
 ## Related
 

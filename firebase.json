@@ -292,6 +292,13 @@
         }
       },
       {
+        "source": "/api/audience-management",
+        "function": {
+          "functionId": "audienceManagementProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/consent",
         "function": {
           "functionId": "profileConsentProxy",
