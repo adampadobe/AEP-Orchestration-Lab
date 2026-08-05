@@ -51,19 +51,20 @@
       configName: 'aep-lab-profiles',
       section: 'lab',
       name: 'AEP Lab — Profiles',
-      product: 'Focused Lab MCP · 9 tools',
+      product: 'Focused Lab MCP · 20 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile',
       summary:
-        'A smaller profile-only context for dependable discovery and invocation in Coworker.',
+        'A focused profile lifecycle context for dependable discovery and invocation in Coworker.',
       useCases: [
         'Check profile and ingestion readiness',
-        'Generate golden test profiles',
-        'Look up profiles and inspect activity',
+        'Generate, update, and inspect golden test profiles',
+        'Send governed industry events and inspect activity',
+        'Verify and enrich Snowflake dual-loaded profiles',
       ],
       configNotes:
-        'Choose this when the task is specifically about test profiles. Reuse the same X-AEP-Lab-Mcp-Key generated below.',
+        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Reuse the same X-AEP-Lab-Mcp-Key generated below.',
       connectionKind: 'Focused',
-      toolCount: 9,
+      toolCount: 20,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Profile tools reference',
@@ -114,22 +115,24 @@
       docLabel: 'Decisioning tools reference',
     },
     {
-      id: 'aep',
+      id: 'cx-coworker-gateway',
       section: 'adobe',
-      name: 'AEP / Marketing Agent',
-      product: 'Adobe Experience Platform',
-      mcpUrl: 'https://aep-ai-ama.adobe.io/mcp',
+      name: 'Adobe CX Coworker Gateway',
+      product: 'Unified Adobe CX product tools',
+      mcpUrl: 'https://cx-coworker-gateway.adobe.io/mcp',
       summary:
-        'Adobe-hosted Marketing Agent MCP for Experience Platform: org/sandbox/dataview context, task orchestration, product knowledge, audience and journey workflows (tools vary by entitlements).',
+        'Adobe’s recommended unified MCP endpoint. One connection exposes the Experience Platform, Real-Time CDP, Journey Optimizer, Customer Journey Analytics, Adobe Analytics, and Workfront tools your organization and account are entitled to use.',
       useCases: [
-        'Switch sandbox or data view from natural language',
-        'Plan and approve mutating operations (audiences, journeys, campaigns)',
-        'Product guidance and troubleshooting across AEP surfaces',
+        'Inspect Experience Platform schemas, datasets, governance, queries, and audit events',
+        'Monitor Real-Time CDP audiences, sources, destinations, and activation health',
+        'Analyze Analytics or CJA data and manage supported components',
+        'Review AJO campaigns or work with entitled Workfront tools',
       ],
       configNotes:
-        'Typically installed as a Cursor global/plugin server (user-aep). OAuth via Adobe Experience Cloud on first use. No Adobe secrets in repo config.',
-      docUrl: 'https://experienceleague.adobe.com/docs/experience-platform.html',
-      docLabel: 'Experience Platform docs',
+        'Recommended Adobe connection. Remote Streamable HTTP with browser-based Adobe sign-in; no API key, bearer token, client secret, or custom header in client config. Organization enablement is required. Set organization and, for Experience Platform products, sandbox context once per session.',
+      docUrl:
+        'https://experienceleague.adobe.com/en/docs/cx-enterprise-ai/experience-cloud-ai/mcp/overview',
+      docLabel: 'CX Coworker Gateway overview',
     },
     {
       id: 'aa',
@@ -138,14 +141,14 @@
       product: 'Adobe Analytics',
       mcpUrl: 'https://aa-mcp.adobe.io/mcp',
       summary:
-        'Adobe-hosted MCP for Analytics: query metrics, explore trends, build segments, and manage components from natural language in Cursor.',
+        'Standalone Adobe Analytics MCP: discover report suites and components, run ranked or trended reports, and create or update supported segments and date ranges.',
       useCases: [
         'List report suites and components',
         'Run analysis-style questions without opening Workspace',
         'Segment and calculated metric discovery',
       ],
       configNotes:
-        'Cursor: streamable-http — Settings → Tools & MCP → Connect → Adobe ID. Alternate gateway: https://mcp-gateway.adobe.io/aa/mcp. Server id often user-aa.',
+        'Standalone endpoint remains documented. Remote Streamable HTTP with Adobe OAuth. The user must belong to an Analytics product profile containing MCP Access and retain the required product permissions. The unified CX Coworker Gateway is the recommended multi-product alternative.',
       docUrl: 'https://developer.adobe.com/analytics-mcp/docs/',
       docLabel: 'Analytics MCP docs',
     },
@@ -156,14 +159,14 @@
       product: 'Customer Journey Analytics',
       mcpUrl: 'https://cja-mcp.adobe.io/mcp',
       summary:
-        'Adobe-hosted MCP for CJA: data views, dimensions, segments, and Analysis Workspace–style workflows via agent prompts (requires CJA access and Data Mirror where applicable).',
+        'Standalone CJA MCP: discover data views and components, run reports, and create or update supported segments, calculated metrics, date ranges, projects, and audiences.',
       useCases: [
         'List data views and explore schema',
         'Build or refine segments from conversation',
         'Accelerate report and component authoring',
       ],
       configNotes:
-        'Cursor: streamable-http — OAuth connect in Tools & MCP. Alternate gateway: https://mcp-gateway.adobe.io/cja/mcp. Server id often user-cja.',
+        'Standalone endpoint remains documented. Remote Streamable HTTP with Adobe OAuth. The user must belong to a CJA product profile containing MCP Access and retain the required product permissions. The unified CX Coworker Gateway is the recommended multi-product alternative.',
       docUrl: 'https://developer.adobe.com/analytics-mcp/docs/',
       docLabel: 'Analytics & CJA MCP docs',
     },
@@ -174,15 +177,16 @@
       product: 'Adobe Target',
       mcpUrl: 'https://targetmcp.adobe.io/mcp',
       summary:
-        'Adobe-hosted Target MCP (Public Beta): read-only tools for activities, audiences, offers, mboxes, properties, and A/B or XT reporting.',
+        'Adobe Target MCP (Public Beta): 41 read and write tools for experimentation, reporting, activities, audiences, offers, QA previews, mboxes, properties, and implementation auditing.',
       useCases: [
-        'List active activities and audiences',
-        'Pull A/B or XT performance reports in conversation',
-        'Explore mboxes, environments, and properties',
+        'Inspect experiments and retrieve A/B, XT, AP, Auto-Target, revenue, or A4T reports',
+        'Create or update A/B and XT activities, traffic splits, variants, audiences, and offers',
+        'Activate, pause, or deactivate activities with the required role and confirmation',
       ],
       configNotes:
-        'Cursor global ~/.cursor/mcp.json: "type": "streamable-http", "url": "https://targetmcp.adobe.io/mcp" — OAuth on first tool use (no static headers). Server id often user-adobe-target. Requires Target license and Observer+ role in Admin Console.',
-      docUrl: 'https://experienceleague.adobe.com/docs/target/using/mcp/target-mcp-get-started.html',
+        'Remote Streamable HTTP with Adobe IMS OAuth; no static credentials. Public Beta for Target customers. Observer supports read tools, Editor supports create/update, and Approver is required for activation/deactivation. Write tools use confirmation gates; validate changes in a sandbox first.',
+      docUrl:
+        'https://experienceleague.adobe.com/en/docs/target/using/mcp/target-mcp-get-started',
       docLabel: 'Target MCP get started',
     },
     {
@@ -192,15 +196,16 @@
       product: 'AEM as a Cloud Service',
       mcpUrl: 'https://mcp.adobeaemcloud.com/adobe/mcp/content-readonly',
       summary:
-        'AEM MCP HTTP endpoints for content, assets, and development operations (readonly and fuller servers). AI clients discover tools and call them with Adobe OAuth governance.',
+        'AEM as a Cloud Service MCP family for content, assets, Cloud Manager, experience governance, and Cloud Acceleration Manager migration findings.',
       useCases: [
-        'Search or read pages and content fragments',
-        'Asset and content operations from Cursor (per server permissions)',
-        'AEM development workflows with governed write tools',
+        'Read pages, content fragments, and assets without write access',
+        'Create, update, or delete content and trigger Cloud Manager pipelines where permitted',
+        'Evaluate experience governance or retrieve Cloud Migration BPA findings',
       ],
       configNotes:
-        'Additional endpoints under https://mcp.adobeaemcloud.com/adobe/mcp/ (e.g. /content, /cloudmanager). Authenticate with Adobe ID when prompted. Server id often user-aem.',
-      docUrl: 'https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/ai-in-aem/mcp-support/using-mcp-with-aem-as-a-cloud-service.html',
+        'Primary URL shown is read-only. Documented alternatives under the same base: /content (CRUD), /cloudmanager, /experience-governance, and /cloud-migration. Adobe OAuth and existing AEM permissions apply. Content/assets search requires AEM release 26309 or newer; governance requires an agents trial or paid license.',
+      docUrl:
+        'https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/ai-in-aem/mcp-support/using-mcp-with-aem-as-a-cloud-service',
       docLabel: 'AEM MCP overview',
     },
     {
@@ -217,8 +222,9 @@
         'Email and snippet discovery',
       ],
       configNotes:
-        'Cursor global ~/.cursor/mcp.json: "type": "http", url https://marketo-mcp.adobe.io/mcp, headers X-Marketo-Client-Id, X-Marketo-Client-Secret, X-Marketo-Munchkin-Id (LaunchPoint + Admin > Munchkin; never commit). Limited availability — request access via Adobe form.',
-      docUrl: 'https://experienceleague.adobe.com/docs/marketo-developer/marketo/mcp-server.html',
+        'Limited availability. Streamable HTTP supports either Adobe IMS Authorization + x-gw-ims-org-id headers or X-Marketo-Client-Id, X-Marketo-Client-Secret, and X-Marketo-Munchkin-Id. Use environment interpolation and never commit credentials.',
+      docUrl:
+        'https://experienceleague.adobe.com/en/docs/marketo-developer/marketo/mcp-server',
       docLabel: 'Marketo MCP server',
     },
     {
@@ -235,9 +241,9 @@
         'Monitor source ingestion pipelines and diagnose batch audience evaluation jobs',
       ],
       configNotes:
-        'Cursor: streamable-http — Settings → Tools & MCP → Connect → Adobe ID, url https://rtcdp-mcp.adobe.io/mcp (no static headers). OAuth browser sign-in on first tool use. Tell the assistant your imsOrgId and sandboxName each session (use search_organizations if needed). Public Beta — contact your Adobe rep for access. Also: https://experienceleague.adobe.com/docs/experience-platform/rtcdp/intro/rtcdpb2b-intro/rtcdp-mcp',
+        'Standalone Beta endpoint remains documented and is invitation-only. Remote Streamable HTTP with browser-based Adobe sign-in and no static headers. Supply imsOrgId and sandboxName per session. The unified CX Coworker Gateway is the recommended multi-product alternative.',
       docUrl:
-        'https://experienceleague.adobe.com/docs/experience-cloud-ai/experience-cloud-ai/mcp/rtcdp-mcp',
+        'https://experienceleague.adobe.com/en/docs/experience-platform/rtcdp/intro/rtcdp-mcp',
       docLabel: 'Real-Time CDP MCP (Beta)',
     },
     {
@@ -247,17 +253,36 @@
       product: 'Adobe Journey Optimizer',
       mcpUrl: 'https://ajo-mcp.adobe.io/mcp',
       summary:
-        'Adobe-hosted Journey Optimizer MCP (Beta, read-only): list and inspect campaigns (status filters), fetch campaign configuration (audience, schedule, channels), and list email/SMS/push/WhatsApp channel presets — offers and sandbox context; tools vary by entitlements.',
+        'Standalone Journey Optimizer MCP (Beta, read-only): inspect and summarize campaigns, journeys, offers, channel configurations, and sandbox context.',
       useCases: [
-        'Audit live, draft, stopped, or completed campaigns without the AJO UI',
-        'Troubleshoot campaign setup, targeting, and channel configuration from conversation',
-        'Review channel surface presets and branding across sandboxes',
+        'Audit live, draft, stopped, or completed campaigns and journeys',
+        'Explain journey branches, conditions, actions, targeting, and schedules',
+        'Review offers and email, SMS, push, or WhatsApp channel configurations',
       ],
       configNotes:
-        'Cursor: streamable-http — Settings → Tools & MCP → Connect → Adobe ID, url https://ajo-mcp.adobe.io/mcp (no static headers). OAuth browser sign-in on first tool use. Beta — contact your Adobe rep for org access; official setup also documents Claude Web/Desktop. View permissions for campaigns/offers required; all tools are read-only.',
+        'Standalone Beta endpoint remains documented for Claude Web/Desktop and Cursor. Browser-based Adobe sign-in; no static headers. View permissions are required and all tools are read-only. The unified CX Coworker Gateway is the recommended multi-product alternative.',
       docUrl:
-        'https://experienceleague.adobe.com/docs/journey-optimizer/using/content-management/combine/ajo-mcp.html',
+        'https://experienceleague.adobe.com/en/docs/journey-optimizer/using/content-management/combine/ajo-mcp',
       docLabel: 'AJO MCP (Beta)',
+    },
+    {
+      id: 'workfront',
+      section: 'adobe',
+      name: 'Adobe Workfront',
+      product: 'Adobe Workfront · Preview',
+      mcpUrl: 'https://mcp.workfront.adobe.com/mcp/v1/workfront',
+      summary:
+        'Regional Workfront MCP for finding, creating, updating, and managing projects, tasks, approvals, and other permitted work items through natural-language requests.',
+      useCases: [
+        'Find current projects, tasks, documents, or approval work',
+        'Create or update Workfront items when write tools are enabled',
+        'Manage approvals and Workfront Planning work from a supported client',
+      ],
+      configNotes:
+        'Preview and currently limited to Workfront customers hosted on AWS. US endpoint shown; EU instances must use https://mcp-eu.workfront.adobe.com/mcp/v1/workfront. Requires IMS, a Workfront admin to enable MCP access, and OAuth sign-in. Read tools default on; an admin separately enables write tools.',
+      docUrl:
+        'https://experienceleague.adobe.com/en/docs/workfront/using/basics/workfront-mcp-server/configure-workfront-mcp-server',
+      docLabel: 'Configure Workfront MCP',
     },
     {
       id: 'context7',

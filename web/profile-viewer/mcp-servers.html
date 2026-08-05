@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Catalog of lab-hosted, Adobe-hosted, and third-party MCP servers — endpoints and setup notes for Cursor and Adobe AI Coworker. Lab MCP keys are managed per sandbox below; Adobe servers use OAuth on connect.
+                Catalog of lab-hosted, Adobe-hosted, and third-party MCP servers — endpoints and setup notes for Cursor and Adobe AI Coworker. Lab MCP keys are managed per sandbox below; most Adobe servers use browser-based Adobe OAuth on connect.
               </p>
               <p class="mcp-claude-hint" id="mcpClaudeHint">
                 <span class="mcp-claude-hint-label" aria-hidden="true">Tip</span>
@@ -76,7 +76,7 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.33.0</span>
+                <span class="mcp-lab-version">v3.34.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
                 Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor. Use the complete connection for broad demo preparation, or a focused connection when the task needs a smaller, more reliable tool context.
@@ -103,7 +103,7 @@
                   <span class="mcp-connection-badge">Focused</span>
                   <h4>Profiles</h4>
                   <div class="mcp-choice-config-name"><code>aep-lab-profiles</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-profiles">Copy name</button></div>
-                  <p>Use when Coworker only needs profile readiness, generation, lookup, and activity tools.</p>
+                  <p>Use for the complete profile lifecycle: readiness, creation and updates, industry events, activity, and Snowflake dual-load verification.</p>
                 </article>
                 <article class="mcp-connection-choice mcp-connection-choice--caution">
                   <span class="mcp-connection-badge">Focused · controlled delete</span>
@@ -177,7 +177,9 @@
 
           <div class="mcp-section" data-mcp-section="adobe" aria-labelledby="mcpSectionAdobeHeading">
             <h2 id="mcpSectionAdobeHeading" class="mcp-section-heading">Adobe</h2>
-            <p class="mcp-section-lead">Adobe-hosted HTTPS MCP servers. Every row includes a documented endpoint URL.</p>
+            <p class="mcp-section-lead">
+              Adobe-hosted HTTPS MCP servers, reviewed against official Adobe Experience League and Developer documentation on 5 August 2026. Adobe now recommends the unified <strong>CX Coworker Gateway</strong> for entitled product tools; standalone endpoints remain listed where Adobe still documents them.
+            </p>
             <div class="mcp-table-wrap">
               <table class="mcp-table" aria-describedby="mcpSectionAdobeHeading">
                 <thead>
@@ -224,7 +226,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260805-copy-names"></script>
+  <script src="mcp-servers.js?v=20260805-adobe-doc-audit"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
