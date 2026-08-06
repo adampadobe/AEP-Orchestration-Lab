@@ -901,6 +901,13 @@
         }
       },
       {
+        "source": "/api/lab/demo-assets",
+        "function": {
+          "functionId": "labDemoAssets",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/workspace-auth/register-from-id-token",
         "function": {
           "functionId": "labWorkspaceAuthRegisterFromIdToken",

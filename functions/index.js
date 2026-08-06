@@ -112,6 +112,7 @@ const { createLabMcpFirstRunService } = require('./labMcpFirstRunService');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
 const labDemoConfigService = lazyRequireMod('./labDemoConfigService');
+const labDemoAssetService = lazyRequireMod('./labDemoAssetService');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -2117,6 +2118,9 @@ Object.assign(
     labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
     labDemoConfigService,
+    labDemoAssetService,
+    brandScrapeStore,
+    imageHostingLibrary,
     labMcpFirstRunService: createLabMcpFirstRunService({
       labUserSandboxStore,
       labRtdbProvisionService,
