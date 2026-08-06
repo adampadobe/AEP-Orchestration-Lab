@@ -315,6 +315,11 @@
   font-size: 11px !important;
 }
 
+.pdf-json-heading-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .pdf-drop-zone {
   display: flex;
   align-items: center;

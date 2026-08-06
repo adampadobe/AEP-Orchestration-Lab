@@ -76,6 +76,7 @@
 
   const htmlEditor = document.getElementById('pdfHtmlEditor');
   const dataEditor = document.getElementById('pdfDataEditor');
+  const beautifyJsonButton = document.getElementById('pdfBeautifyJson');
   const templateSelect = document.getElementById('pdfSavedTemplate');
   const templateName = document.getElementById('pdfTemplateName');
   const htmlFile = document.getElementById('pdfHtmlFile');
@@ -169,6 +170,7 @@
     previewButton.disabled = busy;
     generateButton.disabled = busy;
     document.getElementById('pdfSaveTemplate').disabled = busy;
+    beautifyJsonButton.disabled = busy;
   }
 
   function setAuthState(message, kind) {
@@ -201,6 +203,18 @@
       jsonState.textContent = 'Invalid JSON';
       jsonState.classList.add('is-error');
       throw new Error(`Personalisation data is invalid: ${error.message}`);
+    }
+  }
+
+  function beautifyJson() {
+    try {
+      const data = parseData();
+      dataEditor.value = JSON.stringify(data, null, 2);
+      markRequestChanged();
+      setStatus('JSON payload beautified and validated.', 'success');
+    } catch (error) {
+      dataEditor.focus();
+      setStatus(error.message, 'error');
     }
   }
 
@@ -770,6 +784,7 @@
     document.getElementById('pdfLoadSample').addEventListener('click', loadSample);
     document.getElementById('pdfRefreshTemplates').addEventListener('click', () => loadTemplates());
     document.getElementById('pdfSaveTemplate').addEventListener('click', saveTemplate);
+    beautifyJsonButton.addEventListener('click', beautifyJson);
     previewButton.addEventListener('click', () => { renderPreview().catch(() => {}); });
     generateButton.addEventListener('click', generatePdf);
     document.getElementById('pdfCopyHandoff').addEventListener('click', copyHandoff);

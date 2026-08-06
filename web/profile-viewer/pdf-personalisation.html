@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806e">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806f">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -137,7 +137,10 @@
                   <span class="pdf-step">2</span>
                   <h3 id="pdfDataHeading">Personalisation and output</h3>
                 </div>
-                <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                <div class="pdf-json-heading-actions">
+                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
+                  <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                </div>
               </div>
               <div id="pdfPersonalisationFields">
                 <label for="pdfDataEditor">JSON payload</label>
@@ -264,6 +267,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806h"></script>
+  <script src="pdf-personalisation.js?v=20260806i"></script>
 </body>
 </html>
