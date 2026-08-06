@@ -85,6 +85,9 @@
   const documentFile = document.getElementById('pdfDocumentFile');
   const documentDropZone = document.getElementById('pdfDocumentDropZone');
   const documentFileMeta = document.getElementById('pdfDocumentFileMeta');
+  const jsonFile = document.getElementById('pdfJsonFile');
+  const jsonDropZone = document.getElementById('pdfJsonDropZone');
+  const jsonFileMeta = document.getElementById('pdfJsonFileMeta');
   const authState = document.getElementById('pdfAuthState');
   const statusEl = document.getElementById('pdfWorkspaceStatus');
   const jsonState = document.getElementById('pdfJsonState');
@@ -271,6 +274,7 @@
     document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     fileMeta.hidden = true;
+    jsonFileMeta.hidden = true;
     dropZone.setAttribute('aria-disabled', 'false');
     parseData();
     previewEmpty.hidden = false;
@@ -308,6 +312,23 @@
     fileMeta.hidden = false;
     useUnsavedEditor();
     setStatus('HTML file loaded. Add or paste its JSON, then choose Save HTML + JSON to keep the pair in the repository.', 'success');
+  }
+
+  async function readJsonFile(file) {
+    if (!file) return;
+    if (!/\.json$/i.test(file.name) && file.type !== 'application/json') throw new Error('Choose a .json file.');
+    const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : 250_000;
+    if (file.size > maxBytes) {
+      throw new Error(`JSON file exceeds ${conversionMode() === 'document' ? '8 MB' : '250 KB'}.`);
+    }
+    dataEditor.value = await file.text();
+    const data = parseData();
+    dataEditor.value = JSON.stringify(data, null, 2);
+    jsonFileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
+    jsonFileMeta.hidden = false;
+    if (conversionMode() === 'document') updateDocumentOperation();
+    markRequestChanged();
+    setStatus('JSON payload loaded. Preview or generate now, or use Save HTML + JSON to keep the pair in the repository.', 'success');
   }
 
   function fileAsBase64(file) {
@@ -390,6 +411,9 @@
     document.getElementById('pdfDataHelp').textContent = documentMode
       ? 'For DOCX templates, keys match Word tags such as {{PassengerName}}. Image placeholders accept HTTPS URLs or data:image/...;base64 values. Use {} for direct conversion.'
       : 'HTML mode uses values beneath data in Handlebars expressions.';
+    document.getElementById('pdfJsonDropHelp').textContent = documentMode
+      ? 'or click to browse · maximum 8 MB for DOCX merge data'
+      : 'or click to browse · maximum 250 KB';
     updateDocumentOperation();
     markRequestChanged();
   }
@@ -433,6 +457,8 @@
       dropZone.setAttribute('aria-disabled', 'true');
       fileMeta.textContent = `${sourceHtmlFileName || body.name || 'Saved HTML'} · HTML ${formatBytes(body.size)} · JSON ${formatBytes(body.dataSize)}`;
       fileMeta.hidden = false;
+      jsonFileMeta.textContent = `Default JSON from repository · ${formatBytes(body.dataSize)}`;
+      jsonFileMeta.hidden = false;
       parseData();
       markRequestChanged();
       setStatus(`Loaded “${body.name}” with its default JSON. You can edit the JSON for this recipient before previewing or generating.`, 'success');
@@ -610,6 +636,28 @@
       readHtmlFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
     });
 
+    jsonDropZone.addEventListener('click', () => jsonFile.click());
+    jsonDropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        jsonFile.click();
+      }
+    });
+    jsonFile.addEventListener('change', () => {
+      readJsonFile(jsonFile.files && jsonFile.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+    ['dragenter', 'dragover'].forEach((name) => jsonDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      jsonDropZone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach((name) => jsonDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      jsonDropZone.classList.remove('is-dragging');
+    }));
+    jsonDropZone.addEventListener('drop', (event) => {
+      readJsonFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+
     documentDropZone.addEventListener('click', () => documentFile.click());
     documentDropZone.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -667,6 +715,7 @@
     conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
+      jsonFileMeta.hidden = true;
       try { parseData(); } catch (_error) {}
       if (conversionMode() === 'document') updateDocumentOperation();
       markRequestChanged();

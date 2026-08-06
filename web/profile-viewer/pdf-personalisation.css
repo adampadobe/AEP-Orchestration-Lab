@@ -351,6 +351,17 @@
   font-size: 11px;
 }
 
+.pdf-json-drop-zone {
+  min-height: 82px;
+  margin-top: 5px;
+  padding: 11px 16px;
+}
+
+.pdf-json-drop-zone .pdf-drop-icon {
+  margin-bottom: 2px;
+  font-size: 20px;
+}
+
 .pdf-drop-icon {
   margin-bottom: 5px;
   color: var(--pdf-accent);
