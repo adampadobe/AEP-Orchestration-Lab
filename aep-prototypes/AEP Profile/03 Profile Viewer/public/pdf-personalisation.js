@@ -90,9 +90,11 @@
   const previewButton = document.getElementById('pdfPreviewButton');
   const generateButton = document.getElementById('pdfGenerateButton');
   const previewFrame = document.getElementById('pdfPreviewFrame');
+  const documentPreviewFrame = document.getElementById('pdfDocumentPreviewFrame');
   const previewEmpty = document.getElementById('pdfPreviewEmpty');
   const previewMeta = document.getElementById('pdfPreviewMeta');
   const resultPanel = document.getElementById('pdfResultPanel');
+  const openPreviewLink = document.getElementById('pdfOpenPreviewLink');
   const handoffJson = document.getElementById('pdfHandoffJson');
   let authUser = null;
   let lastResult = null;
@@ -247,6 +249,14 @@
   function markRequestChanged() {
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     resultPanel.hidden = true;
+    documentPreviewFrame.removeAttribute('src');
+    documentPreviewFrame.hidden = true;
+    openPreviewLink.removeAttribute('href');
+    openPreviewLink.hidden = true;
+    if (conversionMode() === 'document') {
+      previewEmpty.hidden = false;
+      previewMeta.textContent = 'Direct conversion';
+    }
   }
 
   function useUnsavedEditor() {
@@ -309,6 +319,9 @@
     document.getElementById('pdfJsonState').hidden = documentMode;
     previewButton.hidden = documentMode;
     previewFrame.hidden = documentMode;
+    documentPreviewFrame.removeAttribute('src');
+    documentPreviewFrame.hidden = true;
+    openPreviewLink.hidden = true;
     previewEmpty.hidden = false;
     previewMeta.textContent = documentMode ? 'Direct conversion' : 'Not rendered';
     document.getElementById('pdfDataHeading').textContent = documentMode ? 'Output settings' : 'Personalisation and output';
@@ -413,6 +426,21 @@
     document.getElementById('pdfResultExpiry').textContent = new Date(result.expiresAt).toLocaleString();
     document.getElementById('pdfResultHash').textContent = result.sha256;
     document.getElementById('pdfDownloadLink').href = result.downloadUrl;
+    const documentResult = result.conversionMode === 'document' && result.previewUrl;
+    if (documentResult) {
+      documentPreviewFrame.src = result.previewUrl;
+      documentPreviewFrame.hidden = false;
+      previewFrame.hidden = true;
+      previewEmpty.hidden = true;
+      previewMeta.textContent = `${formatBytes(result.size)} PDF preview`;
+      openPreviewLink.href = result.previewUrl;
+      openPreviewLink.hidden = false;
+    } else {
+      documentPreviewFrame.removeAttribute('src');
+      documentPreviewFrame.hidden = true;
+      openPreviewLink.removeAttribute('href');
+      openPreviewLink.hidden = true;
+    }
     const handoff = {
       status: result.status,
       jobId: result.jobId,
@@ -423,7 +451,10 @@
       ...result.ajoHandoff,
     };
     handoffJson.textContent = JSON.stringify(handoff, null, 2);
-    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    (documentResult ? documentPreviewFrame : resultPanel).scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
   }
 
   async function generatePdf() {
@@ -441,7 +472,14 @@
       }, true);
       const result = response.status === 202 ? await pollJob(response.body.jobId) : response.body;
       showResult(result);
-      setStatus(result.reused ? 'Existing idempotent PDF returned.' : 'PDF converted and stored privately.', 'success');
+      setStatus(
+        result.reused
+          ? 'Existing idempotent PDF returned.'
+          : conversionMode() === 'document'
+            ? 'Document converted and stored privately. The PDF preview is ready.'
+            : 'PDF converted and stored privately.',
+        'success',
+      );
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {

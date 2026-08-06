@@ -77,3 +77,11 @@ test('uses the canonical Hosting handoff URL when a direct function URL is calle
     if (previous !== undefined) process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL = previous;
   }
 });
+
+test('only opts into inline PDF rendering when explicitly requested', () => {
+  assert.equal(service.downloadDisposition({ query: { disposition: 'inline' } }), 'inline');
+  assert.equal(service.downloadDisposition({ query: { disposition: 'INLINE' } }), 'inline');
+  assert.equal(service.downloadDisposition({ query: { disposition: 'attachment' } }), 'attachment');
+  assert.equal(service.downloadDisposition({ query: { disposition: 'anything-else' } }), 'attachment');
+  assert.equal(service.downloadDisposition({}), 'attachment');
+});

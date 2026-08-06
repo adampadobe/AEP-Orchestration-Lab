@@ -71,6 +71,7 @@ function publicBaseUrl(req) {
 
 async function responseForReadyJob(job, req, deps = {}) {
   const token = await store.issueDownloadToken(job, deps);
+  const downloadUrl = `${publicBaseUrl(req)}/download/${encodeURIComponent(token)}`;
   return {
     status: 'ready',
     jobId: job.jobId,
@@ -83,13 +84,19 @@ async function responseForReadyJob(job, req, deps = {}) {
     sha256: job.sha256,
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
-    downloadUrl: `${publicBaseUrl(req)}/download/${encodeURIComponent(token)}`,
+    downloadUrl,
+    previewUrl: `${downloadUrl}?disposition=inline`,
     ajoHandoff: {
       attachmentName: job.documentName,
       attachmentMimeType: job.mimeType,
-      attachmentUrl: `${publicBaseUrl(req)}/download/${encodeURIComponent(token)}`,
+      attachmentUrl: downloadUrl,
     },
   };
+}
+
+function downloadDisposition(req) {
+  const requested = String(req && req.query && req.query.disposition || '').trim().toLowerCase();
+  return requested === 'inline' ? 'inline' : 'attachment';
 }
 
 async function resolveTemplate(input, principal, deps = {}) {
@@ -138,7 +145,10 @@ async function handleDownload(req, res, token, deps = {}) {
     return;
   }
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${core.safeDocumentName(record.documentName)}"`);
+  res.setHeader(
+    'Content-Disposition',
+    `${downloadDisposition(req)}; filename="${core.safeDocumentName(record.documentName)}"`,
+  );
   res.setHeader('Cache-Control', 'private, no-store, max-age=0, no-transform');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (record.size) res.setHeader('Content-Length', String(record.size));
@@ -318,5 +328,6 @@ module.exports = {
   routePath,
   authorise,
   publicBaseUrl,
+  downloadDisposition,
   createHandler,
 };

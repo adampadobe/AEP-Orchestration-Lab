@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806b">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -191,6 +191,7 @@
 
               <div class="pdf-preview-frame-wrap">
                 <iframe id="pdfPreviewFrame" title="Rendered HTML preview" sandbox="" referrerpolicy="no-referrer"></iframe>
+                <iframe id="pdfDocumentPreviewFrame" title="Converted PDF preview" referrerpolicy="no-referrer" hidden></iframe>
                 <div id="pdfPreviewEmpty" class="pdf-preview-empty">
                   <span aria-hidden="true">PDF</span>
                   <strong id="pdfPreviewEmptyTitle">Your rendered HTML will appear here</strong>
@@ -213,6 +214,7 @@
                 <div><dt>SHA-256</dt><dd id="pdfResultHash"></dd></div>
               </dl>
               <div class="pdf-result-actions">
+                <a id="pdfOpenPreviewLink" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener" hidden>Open preview</a>
                 <a id="pdfDownloadLink" class="dashboard-btn-primary" href="#" target="_blank" rel="noopener">Download PDF</a>
                 <button type="button" class="dashboard-btn-outline" id="pdfCopyHandoff">Copy AJO handoff JSON</button>
               </div>
@@ -249,6 +251,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806b"></script>
+  <script src="pdf-personalisation.js?v=20260806c"></script>
 </body>
 </html>
