@@ -351,6 +351,72 @@
   font-size: 11px;
 }
 
+.pdf-drop-zone.is-loaded,
+.pdf-drop-zone.is-loaded:hover,
+.pdf-drop-zone.is-loaded:focus-visible {
+  border-color: rgba(22, 163, 74, 0.72);
+  color: #166534;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(240, 253, 244, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.08);
+  transform: none;
+}
+
+.pdf-drop-zone.is-loaded strong {
+  max-width: 100%;
+  color: #14532d;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.pdf-drop-zone.is-loaded .pdf-drop-description {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.pdf-drop-zone.is-loaded .pdf-drop-icon {
+  display: none;
+}
+
+.pdf-loaded-file-icon {
+  position: relative;
+  display: none;
+  width: 38px;
+  height: 47px;
+  margin-bottom: 8px;
+  border: 3px solid #16a34a;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 14px rgba(22, 101, 52, 0.14);
+}
+
+.pdf-loaded-file-icon::before {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 13px;
+  height: 13px;
+  border-bottom: 3px solid #16a34a;
+  border-left: 3px solid #16a34a;
+  border-radius: 0 3px 0 3px;
+  background: #dcfce7;
+  content: "";
+}
+
+.pdf-loaded-file-icon::after {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  left: 7px;
+  height: 14px;
+  border-top: 3px solid #86efac;
+  border-bottom: 3px solid #86efac;
+  content: "";
+}
+
+.pdf-drop-zone.is-loaded .pdf-loaded-file-icon {
+  display: block;
+}
+
 .pdf-json-drop-zone {
   min-height: 82px;
   margin-top: 5px;

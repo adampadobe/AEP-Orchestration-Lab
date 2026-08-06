@@ -134,6 +134,31 @@
     return `${(number / (1024 * 1024)).toFixed(2)} MB`;
   }
 
+  function rememberEmptyDropState(zone) {
+    if (!zone.dataset.emptyTitle) zone.dataset.emptyTitle = zone.querySelector('strong').textContent;
+    if (!zone.dataset.emptyDescription) {
+      zone.dataset.emptyDescription = zone.querySelector('.pdf-drop-description').textContent;
+    }
+    if (!zone.dataset.emptyAriaLabel) zone.dataset.emptyAriaLabel = zone.getAttribute('aria-label') || '';
+  }
+
+  function setDropZoneLoaded(zone, fileName, bytes, typeLabel, originLabel = 'Loaded') {
+    rememberEmptyDropState(zone);
+    const safeName = String(fileName || 'Loaded file');
+    zone.classList.add('is-loaded');
+    zone.querySelector('strong').textContent = safeName;
+    zone.querySelector('.pdf-drop-description').textContent = `${originLabel} · ${typeLabel} · ${formatBytes(bytes)}`;
+    zone.setAttribute('aria-label', `${safeName} loaded. Click or drop another file to replace it.`);
+  }
+
+  function resetDropZone(zone) {
+    rememberEmptyDropState(zone);
+    zone.classList.remove('is-loaded');
+    zone.querySelector('strong').textContent = zone.dataset.emptyTitle;
+    zone.querySelector('.pdf-drop-description').textContent = zone.dataset.emptyDescription;
+    zone.setAttribute('aria-label', zone.dataset.emptyAriaLabel);
+  }
+
   function setStatus(message, kind) {
     statusEl.hidden = !message;
     statusEl.textContent = message || '';
@@ -275,6 +300,8 @@
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     fileMeta.hidden = true;
     jsonFileMeta.hidden = true;
+    resetDropZone(dropZone);
+    resetDropZone(jsonDropZone);
     dropZone.setAttribute('aria-disabled', 'false');
     parseData();
     previewEmpty.hidden = false;
@@ -308,8 +335,8 @@
     htmlEditor.value = await file.text();
     sourceHtmlFileName = file.name;
     templateName.value = file.name.replace(/\.html?$/i, '');
-    fileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
-    fileMeta.hidden = false;
+    setDropZoneLoaded(dropZone, file.name, file.size, 'HTML');
+    fileMeta.hidden = true;
     useUnsavedEditor();
     setStatus('HTML file loaded. Add or paste its JSON, then choose Save HTML + JSON to keep the pair in the repository.', 'success');
   }
@@ -324,8 +351,8 @@
     dataEditor.value = await file.text();
     const data = parseData();
     dataEditor.value = JSON.stringify(data, null, 2);
-    jsonFileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
-    jsonFileMeta.hidden = false;
+    setDropZoneLoaded(jsonDropZone, file.name, file.size, 'JSON');
+    jsonFileMeta.hidden = true;
     if (conversionMode() === 'document') updateDocumentOperation();
     markRequestChanged();
     setStatus('JSON payload loaded. Preview or generate now, or use Save HTML + JSON to keep the pair in the repository.', 'success');
@@ -359,8 +386,8 @@
     };
     const documentMerge = extension === 'docx' && Object.keys(parseData()).length > 0;
     updateDocumentOperation();
-    documentFileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
-    documentFileMeta.hidden = false;
+    setDropZoneLoaded(documentDropZone, file.name, file.size, extension.toUpperCase());
+    documentFileMeta.hidden = true;
     document.getElementById('pdfDocumentName').value = file.name.replace(/\.[^.]+$/, '.pdf');
     markRequestChanged();
     setStatus(
@@ -411,9 +438,13 @@
     document.getElementById('pdfDataHelp').textContent = documentMode
       ? 'For DOCX templates, keys match Word tags such as {{PassengerName}}. Image placeholders accept HTTPS URLs or data:image/...;base64 values. Use {} for direct conversion.'
       : 'HTML mode uses values beneath data in Handlebars expressions.';
-    document.getElementById('pdfJsonDropHelp').textContent = documentMode
+    const jsonDropHelp = documentMode
       ? 'or click to browse · maximum 8 MB for DOCX merge data'
       : 'or click to browse · maximum 250 KB';
+    jsonDropZone.dataset.emptyDescription = jsonDropHelp;
+    if (!jsonDropZone.classList.contains('is-loaded')) {
+      document.getElementById('pdfJsonDropHelp').textContent = jsonDropHelp;
+    }
     updateDocumentOperation();
     markRequestChanged();
   }
@@ -455,10 +486,22 @@
       sourceHtmlFileName = body.sourceFileName || '';
       htmlEditor.disabled = true;
       dropZone.setAttribute('aria-disabled', 'true');
-      fileMeta.textContent = `${sourceHtmlFileName || body.name || 'Saved HTML'} · HTML ${formatBytes(body.size)} · JSON ${formatBytes(body.dataSize)}`;
-      fileMeta.hidden = false;
-      jsonFileMeta.textContent = `Default JSON from repository · ${formatBytes(body.dataSize)}`;
-      jsonFileMeta.hidden = false;
+      setDropZoneLoaded(
+        dropZone,
+        sourceHtmlFileName || body.name || 'Saved HTML template',
+        body.size,
+        'HTML',
+        'Loaded from repository',
+      );
+      setDropZoneLoaded(
+        jsonDropZone,
+        `${body.name || 'Saved template'} default.json`,
+        body.dataSize,
+        'JSON',
+        'Loaded from repository',
+      );
+      fileMeta.hidden = true;
+      jsonFileMeta.hidden = true;
       parseData();
       markRequestChanged();
       setStatus(`Loaded “${body.name}” with its default JSON. You can edit the JSON for this recipient before previewing or generating.`, 'success');

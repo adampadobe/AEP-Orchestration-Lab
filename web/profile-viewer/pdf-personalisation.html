@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806d">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806e">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -88,8 +88,9 @@
               <div id="pdfHtmlDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop an HTML file or click to browse">
                 <input type="file" id="pdfHtmlFile" accept=".html,.htm,text/html" hidden>
                 <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
                 <strong>Drop an HTML file here</strong>
-                <span>or click to browse · maximum 1.5 MB</span>
+                <span class="pdf-drop-description">or click to browse · maximum 1.5 MB</span>
               </div>
               <p id="pdfHtmlFileMeta" class="pdf-file-meta" hidden></p>
 
@@ -120,8 +121,9 @@
               <div id="pdfDocumentDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop a supported document or click to browse">
                 <input type="file" id="pdfDocumentFile" accept=".doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff" hidden>
                 <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
                 <strong>Drop a document here</strong>
-                <span>DOCX, DOC, PPTX, PPT, XLSX, XLS, RTF, TXT, JPG, PNG, BMP, GIF or TIFF · maximum 10 MB</span>
+                <span class="pdf-drop-description">DOCX, DOC, PPTX, PPT, XLSX, XLS, RTF, TXT, JPG, PNG, BMP, GIF or TIFF · maximum 10 MB</span>
               </div>
               <p id="pdfDocumentFileMeta" class="pdf-file-meta" hidden></p>
               <p class="pdf-field-help">
@@ -142,8 +144,9 @@
                 <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON payload or click to browse">
                   <input type="file" id="pdfJsonFile" accept=".json,application/json" hidden>
                   <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                  <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
                   <strong>Drop a JSON payload here</strong>
-                  <span id="pdfJsonDropHelp">or click to browse · maximum 250 KB</span>
+                  <span id="pdfJsonDropHelp" class="pdf-drop-description">or click to browse · maximum 250 KB</span>
                 </div>
                 <p id="pdfJsonFileMeta" class="pdf-file-meta" hidden></p>
                 <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
@@ -261,6 +264,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806g"></script>
+  <script src="pdf-personalisation.js?v=20260806h"></script>
 </body>
 </html>
