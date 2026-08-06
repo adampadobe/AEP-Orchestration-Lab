@@ -84,6 +84,8 @@ async function responseForReadyJob(job, req, deps = {}) {
     sha256: job.sha256,
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
+    storageProvider: job.storageProvider || 'gcs',
+    storageUri: job.s3Uri || null,
     downloadUrl,
     previewUrl: `${downloadUrl}?disposition=inline`,
     ajoHandoff: {
@@ -139,8 +141,8 @@ async function handleDownload(req, res, token, deps = {}) {
     res.status(404).send('not found or expired');
     return;
   }
-  const [exists] = await record.file.exists();
-  if (!exists) {
+  const opened = await store.openDownload(record, deps, { headOnly: req.method === 'HEAD' });
+  if (!opened) {
     res.status(404).send('not found');
     return;
   }
@@ -151,12 +153,13 @@ async function handleDownload(req, res, token, deps = {}) {
   );
   res.setHeader('Cache-Control', 'private, no-store, max-age=0, no-transform');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (record.size) res.setHeader('Content-Length', String(record.size));
+  const contentLength = Number(opened.contentLength || record.size || 0);
+  if (contentLength) res.setHeader('Content-Length', String(contentLength));
   if (req.method === 'HEAD') {
     res.status(200).end();
     return;
   }
-  record.file.createReadStream()
+  opened.stream
     .on('error', (error) => {
       console.error('[pdfPersonalisation] download stream', String(error && error.message || error));
       if (!res.headersSent) res.status(500).send('download failed');

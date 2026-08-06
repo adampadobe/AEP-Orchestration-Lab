@@ -210,6 +210,7 @@
               </div>
               <dl class="pdf-result-details">
                 <div><dt>Job ID</dt><dd id="pdfResultJob"></dd></div>
+                <div><dt>Storage</dt><dd id="pdfResultStorage"></dd></div>
                 <div><dt>Expires</dt><dd id="pdfResultExpiry"></dd></div>
                 <div><dt>SHA-256</dt><dd id="pdfResultHash"></dd></div>
               </dl>
@@ -235,7 +236,7 @@
             <li><span>1</span><strong>Validate</strong><em id="pdfFlowValidate">Authorised user, static HTML, bounded JSON</em></li>
             <li><span>2</span><strong id="pdfFlowPrepareTitle">Merge</strong><em id="pdfFlowPrepare">Handlebars data into escaped HTML</em></li>
             <li><span>3</span><strong>Convert</strong><em id="pdfFlowConvert">ZIP index.html → HTMLToPDFJob</em></li>
-            <li><span>4</span><strong>Store</strong><em>Private GCS object with 14-day expiry</em></li>
+            <li><span>4</span><strong>Store</strong><em>Private S3 output with GCS fallback and 14-day expiry</em></li>
             <li><span>5</span><strong>Handoff</strong><em>Opaque download URL returned for AJO</em></li>
           </ol>
         </section>
@@ -251,6 +252,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806c"></script>
+  <script src="pdf-personalisation.js?v=20260806d"></script>
 </body>
 </html>

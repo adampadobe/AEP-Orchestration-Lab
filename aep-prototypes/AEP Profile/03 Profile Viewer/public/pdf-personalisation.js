@@ -423,6 +423,9 @@
     resultPanel.hidden = false;
     document.getElementById('pdfResultSize').textContent = formatBytes(result.size);
     document.getElementById('pdfResultJob').textContent = result.jobId;
+    document.getElementById('pdfResultStorage').textContent = result.storageProvider === 's3'
+      ? `Amazon S3 · ${result.storageUri || 'private object'}`
+      : 'Google Cloud Storage';
     document.getElementById('pdfResultExpiry').textContent = new Date(result.expiresAt).toLocaleString();
     document.getElementById('pdfResultHash').textContent = result.sha256;
     document.getElementById('pdfDownloadLink').href = result.downloadUrl;

@@ -3,6 +3,7 @@
 const { createHash, randomBytes, randomUUID } = require('node:crypto');
 const admin = require('firebase-admin');
 const { PdfPersonalisationError, safeDocumentName, validateHtmlTemplate } = require('./pdfPersonalisationCore');
+const s3Store = require('./pdfPersonalisationS3');
 
 const JOBS_COLLECTION = 'pdfPersonalisationJobs';
 const IDEMPOTENCY_COLLECTION = 'pdfPersonalisationIdempotency';
@@ -119,29 +120,46 @@ async function claimIdempotency(input, deps = {}) {
 
 async function saveReadyJob(input, deps = {}) {
   const db = getFirestore(deps);
-  const bucket = getBucket(deps);
   const createdAt = input.createdAt instanceof Date ? input.createdAt : now(deps);
   const expiresAt = expiryFrom(createdAt);
   const objectPath = jobObjectPath(input.jobId, createdAt);
   const documentName = safeDocumentName(input.documentName);
-  await bucket.file(objectPath).save(input.pdfBuffer, {
-    contentType: 'application/pdf',
-    resumable: false,
-    validation: 'crc32c',
-    metadata: {
-      cacheControl: 'private, no-store, max-age=0, no-transform',
-      contentDisposition: `attachment; filename="${documentName}"`,
+  const mode = s3Store.outputStoreMode(deps);
+  let s3Record = null;
+  let gcsObjectPath = null;
+
+  if (s3Store.usesS3(mode)) {
+    s3Record = await s3Store.uploadPdf({
+      ...input,
+      createdAt,
+      expiresAt: expiresAt.toISOString(),
+      documentName,
+      principalIdHash: sha256(input.principalId),
+    }, deps);
+  }
+
+  if (s3Store.usesGcs(mode)) {
+    await getBucket(deps).file(objectPath).save(input.pdfBuffer, {
+      contentType: 'application/pdf',
+      resumable: false,
+      validation: 'crc32c',
       metadata: {
-        jobId: input.jobId,
-        principalIdHash: sha256(input.principalId),
-        conversionMode: input.conversionMode || 'html',
-        sourceHash: input.sourceHash || '',
-        templateHash: input.templateHash || '',
-        requestHash: input.requestHash,
-        expiresAt: expiresAt.toISOString(),
+        cacheControl: 'private, no-store, max-age=0, no-transform',
+        contentDisposition: `attachment; filename="${documentName}"`,
+        metadata: {
+          jobId: input.jobId,
+          principalIdHash: sha256(input.principalId),
+          conversionMode: input.conversionMode || 'html',
+          sourceHash: input.sourceHash || '',
+          templateHash: input.templateHash || '',
+          requestHash: input.requestHash,
+          expiresAt: expiresAt.toISOString(),
+        },
       },
-    },
-  });
+    });
+    gcsObjectPath = objectPath;
+  }
+
   const record = {
     jobId: input.jobId,
     principalId: input.principalId,
@@ -155,7 +173,11 @@ async function saveReadyJob(input, deps = {}) {
     requestHash: input.requestHash,
     idempotencyDocId: input.idempotencyDocId,
     status: 'ready',
-    objectPath,
+    storageProvider: s3Record ? 's3' : 'gcs',
+    outputStoreMode: mode,
+    objectPath: gcsObjectPath,
+    gcsObjectPath,
+    ...(s3Record || {}),
     documentName,
     mimeType: 'application/pdf',
     size: input.pdfBuffer.length,
@@ -201,7 +223,12 @@ async function issueDownloadToken(job, deps = {}) {
   const tokenHash = sha256(token);
   await getFirestore(deps).collection(DOWNLOADS_COLLECTION).doc(tokenHash).set({
     jobId: job.jobId,
-    objectPath: job.objectPath,
+    storageProvider: job.storageProvider || 'gcs',
+    objectPath: job.objectPath || null,
+    gcsObjectPath: job.gcsObjectPath || job.objectPath || null,
+    s3Bucket: job.s3Bucket || null,
+    s3Region: job.s3Region || null,
+    s3Key: job.s3Key || null,
     documentName: job.documentName,
     mimeType: job.mimeType,
     size: job.size,
@@ -227,7 +254,28 @@ async function resolveDownloadToken(token, deps = {}) {
   } catch (_error) {
     // Download access must not fail only because audit metadata could not update.
   }
-  return { ...record, file: getBucket(deps).file(record.objectPath) };
+  return record;
+}
+
+async function openDownload(record, deps = {}, options = {}) {
+  const gcsPath = String(record && (record.gcsObjectPath || record.objectPath) || '').trim();
+  if (record && record.storageProvider === 's3' && record.s3Key) {
+    try {
+      const opened = await s3Store.openPdf(record, deps, options);
+      if (opened) return opened;
+    } catch (error) {
+      if (!gcsPath) throw error;
+      console.warn('[pdfPersonalisation] S3 read failed; using GCS fallback', String(error && error.message || error));
+    }
+  }
+  if (!gcsPath) return null;
+  const file = getBucket(deps).file(gcsPath);
+  const [exists] = await file.exists();
+  if (!exists) return null;
+  return {
+    stream: options.headOnly ? null : file.createReadStream(),
+    contentLength: Number(record.size || 0),
+  };
 }
 
 function safeTemplateName(value) {
@@ -298,7 +346,8 @@ async function cleanupExpired(deps = {}) {
   let deleted = 0;
   for (const doc of snapshot.docs) {
     const job = doc.data() || {};
-    if (job.objectPath) await bucket.file(job.objectPath).delete({ ignoreNotFound: true }).catch(() => {});
+    const gcsPath = job.gcsObjectPath || job.objectPath;
+    if (gcsPath) await bucket.file(gcsPath).delete({ ignoreNotFound: true }).catch(() => {});
     const tokenSnapshot = await db.collection(DOWNLOADS_COLLECTION).where('jobId', '==', doc.id).get();
     const batch = db.batch();
     tokenSnapshot.docs.forEach((tokenDoc) => batch.delete(tokenDoc.ref));
@@ -328,6 +377,7 @@ module.exports = {
   getJob,
   issueDownloadToken,
   resolveDownloadToken,
+  openDownload,
   saveTemplate,
   getTemplate,
   listTemplates,

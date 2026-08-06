@@ -17,6 +17,9 @@ const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
 /** Dedicated PDF Services credentials; intentionally separate from enterprise AEP IMS credentials. */
 const PDF_SERVICES_CLIENT_ID = defineSecret('PDF_SERVICES_CLIENT_ID');
 const PDF_SERVICES_CLIENT_SECRET = defineSecret('PDF_SERVICES_CLIENT_SECRET');
+/** Dedicated least-privilege AWS identity for private PDF output storage. */
+const PDF_S3_ACCESS_KEY_ID = defineSecret('PDF_S3_ACCESS_KEY_ID');
+const PDF_S3_SECRET_ACCESS_KEY = defineSecret('PDF_S3_SECRET_ACCESS_KEY');
 
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
@@ -493,7 +496,13 @@ exports.aepProxy = onRequest(
 exports.pdfPersonalisation = onRequest(
   {
     region: REGION,
-    secrets: [PDF_SERVICES_CLIENT_ID, PDF_SERVICES_CLIENT_SECRET, PDF_PERSONALISATION_API_KEY],
+    secrets: [
+      PDF_SERVICES_CLIENT_ID,
+      PDF_SERVICES_CLIENT_SECRET,
+      PDF_PERSONALISATION_API_KEY,
+      PDF_S3_ACCESS_KEY_ID,
+      PDF_S3_SECRET_ACCESS_KEY,
+    ],
     environmentVariables: {
       PDF_PERSONALISATION_PUBLIC_BASE_URL:
         process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL
@@ -502,6 +511,10 @@ exports.pdfPersonalisation = onRequest(
         process.env.PDF_PERSONALISATION_ALLOWED_EMAILS || 'apalmer@adobe.com',
       PDF_PERSONALISATION_RETENTION_DAYS:
         process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+      PDF_OUTPUT_STORE: process.env.PDF_OUTPUT_STORE || 'dual',
+      PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+      PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
+      PDF_S3_PREFIX: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
     },
     invoker: 'public',
     timeoutSeconds: 300,
@@ -515,6 +528,8 @@ exports.pdfPersonalisation = onRequest(
     getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
     getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
     getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
+    getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
+    getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
   }),
 );
 
