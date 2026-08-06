@@ -101,6 +101,72 @@ test('submits ZIP to HTMLToPDFJob and validates returned PDF bytes', async () =>
   ]);
 });
 
+test('normalises a supported source document and derives its PDF name', () => {
+  const input = core.normaliseGenerateRequest({
+    conversionMode: 'document',
+    sourceDocument: {
+      fileName: '../../Board Pack.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      base64: Buffer.from('docx fixture').toString('base64'),
+    },
+    idempotencyKey: 'document-board-pack-1',
+  });
+  assert.equal(input.conversionMode, 'document');
+  assert.equal(input.sourceDocument.fileName, 'Board-Pack.docx');
+  assert.equal(input.sourceDocument.mimeType, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  assert.equal(input.sourceDocument.buffer.toString('utf8'), 'docx fixture');
+  assert.equal(input.sourceDocument.sha256.length, 64);
+  assert.equal(input.documentName, 'Board-Pack.pdf');
+  assert.equal(input.htmlTemplate, '');
+});
+
+test('rejects unsupported or mismatched source documents', () => {
+  assert.throws(
+    () => core.normaliseSourceDocument({ fileName: 'payload.exe', base64: 'YQ==' }),
+    (error) => error.code === 'PDF_SOURCE_DOCUMENT_TYPE_UNSUPPORTED',
+  );
+  assert.throws(
+    () => core.normaliseSourceDocument({ fileName: 'report.docx', mimeType: 'image/png', base64: 'YQ==' }),
+    (error) => error.code === 'PDF_SOURCE_DOCUMENT_MIME_MISMATCH',
+  );
+  assert.throws(
+    () => core.normaliseSourceDocument({ fileName: 'report.docx', base64: 'not-base64' }),
+    (error) => error.code === 'PDF_SOURCE_DOCUMENT_BASE64_INVALID',
+  );
+});
+
+test('submits source documents with CreatePDFJob', async () => {
+  class Stub { constructor(value) { Object.assign(this, value); } }
+  const calls = [];
+  const pdfServices = {
+    async upload(input) { calls.push(['upload', input.mimeType]); return { id: 'source' }; },
+    async submit(input) { calls.push(['submit', input.job.inputAsset.id]); return 'create-poll-url'; },
+    async getJobResult(input) { calls.push(['poll', input.pollingURL]); return { result: { asset: { id: 'pdf' } } }; },
+    async getContent() { calls.push(['content']); return { readStream: Readable.from(Buffer.from('%PDF-1.7\nfixture')) }; },
+  };
+  const pdfSdk = {
+    ServicePrincipalCredentials: Stub,
+    CreatePDFJob: Stub,
+    CreatePDFResult: class CreatePDFResult {},
+  };
+  const sourceDocument = core.normaliseSourceDocument({
+    fileName: 'report.docx',
+    base64: Buffer.from('fixture').toString('base64'),
+  });
+  const pdf = await core.convertDocumentToPdf(
+    sourceDocument,
+    { clientId: 'client', clientSecret: 'secret' },
+    { pdfSdk, pdfServices },
+  );
+  assert.equal(pdf.subarray(0, 5).toString('ascii'), '%PDF-');
+  assert.deepEqual(calls, [
+    ['upload', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    ['submit', 'source'],
+    ['poll', 'create-poll-url'],
+    ['content'],
+  ]);
+});
+
 test('normalises document options and enforces idempotency keys', () => {
   const input = core.normaliseGenerateRequest({
     htmlTemplate: '<p>{{data.name}}</p>',

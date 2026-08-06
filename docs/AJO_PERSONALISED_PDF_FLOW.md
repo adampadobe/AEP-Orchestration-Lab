@@ -1,6 +1,13 @@
 # AJO personalised PDF generation
 
-The AEP Orchestration Lab generates recipient-specific PDFs before an Adobe Journey Optimizer message is sent. Firebase owns template storage, data merge, Adobe PDF Services conversion, private object storage, expiry, and the handoff response.
+The AEP Orchestration Lab generates or converts PDFs before an Adobe Journey Optimizer message is sent. Firebase owns template storage, data merge, Adobe PDF Services conversion, private object storage, expiry, and the handoff response.
+
+The workspace exposes two PDF Services operations:
+
+- **HTML to PDF:** merge JSON into escaped Handlebars HTML, ZIP `index.html`, then run `HTMLToPDFJob`.
+- **Document to PDF:** upload a supported Word, PowerPoint, Excel, text, or image file and run `CreatePDFJob` without a data merge.
+
+Adobe Document Generation (a DOCX template plus JSON merge) is a separate operation and is not implemented by the Document to PDF mode.
 
 ## Product boundary
 
@@ -38,7 +45,7 @@ https://us-central1-aep-orchestration-lab.cloudfunctions.net/pdfPersonalisation
 | `GET` | `/templates` | List the signed-in owner's templates | Firebase ID token |
 | `POST` | `/templates` | Save private reusable HTML | Firebase ID token |
 | `POST` | `/preview` | Merge data and return rendered HTML | Firebase ID token |
-| `POST` | `/generate` | Generate, store, and issue a download URL | Firebase ID token or `X-PDF-API-Key` |
+| `POST` | `/generate` | Generate HTML or convert a source document, store it, and issue a download URL | Firebase ID token or `X-PDF-API-Key` |
 | `GET` | `/status/{jobId}` | Read a generation result and issue a fresh download URL | Firebase ID token or `X-PDF-API-Key` |
 | `GET` | `/download/{token}` | Stream an unexpired PDF | Opaque capability token in URL |
 
@@ -50,8 +57,11 @@ https://aep-orchestration-lab.web.app/profile-viewer/pdf-personalisation.html
 
 ## Generate request
 
+### HTML to PDF
+
 ```json
 {
+  "conversionMode": "html",
   "templateId": "saved-template-uuid",
   "idempotencyKey": "journey-instance-and-message-key",
   "documentName": "booking-confirmation.pdf",
@@ -73,6 +83,25 @@ https://aep-orchestration-lab.web.app/profile-viewer/pdf-personalisation.html
 }
 ```
 
+### Document to PDF
+
+The browser workspace base64-encodes files for this JSON API. The source file is limited to 10 MB and is not persisted separately after Adobe consumes the uploaded asset.
+
+```json
+{
+  "conversionMode": "document",
+  "idempotencyKey": "journey-instance-and-document-key",
+  "documentName": "booking-pack.pdf",
+  "sourceDocument": {
+    "fileName": "booking-pack.docx",
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "base64": "UEsDB..."
+  }
+}
+```
+
+Supported extensions are `doc`, `docx`, `ppt`, `pptx`, `xls`, `xlsx`, `rtf`, `txt`, `jpg`, `jpeg`, `png`, `bmp`, `gif`, `tif`, and `tiff`.
+
 Use a stable idempotency key for one logical recipient/document send. Reusing the key with identical input returns the existing PDF. Reusing it with different input returns `PDF_IDEMPOTENCY_CONFLICT`.
 
 ## Ready response
@@ -81,6 +110,8 @@ Use a stable idempotency key for one logical recipient/document send. Reusing th
 {
   "status": "ready",
   "jobId": "job-uuid",
+  "conversionMode": "html",
+  "sourceName": null,
   "templateId": "saved-template-uuid",
   "documentName": "booking-confirmation.pdf",
   "mimeType": "application/pdf",

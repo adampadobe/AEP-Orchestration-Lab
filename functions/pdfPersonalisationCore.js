@@ -9,6 +9,25 @@ const MAX_TEMPLATE_BYTES = 1_500_000;
 const MAX_DATA_BYTES = 250_000;
 const MAX_RENDERED_HTML_BYTES = 2_000_000;
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
+const MAX_SOURCE_DOCUMENT_BYTES = 10 * 1024 * 1024;
+
+const SUPPORTED_SOURCE_DOCUMENTS = Object.freeze({
+  bmp: 'image/bmp',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  gif: 'image/gif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  rtf: 'text/rtf',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  txt: 'text/plain',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+});
 
 class PdfPersonalisationError extends Error {
   constructor(message, status = 400, code = 'PDF_PERSONALISATION_INVALID') {
@@ -47,6 +66,81 @@ function safeDocumentName(value) {
     .replace(/^[.-]+|[.-]+$/g, '')
     .slice(0, 100);
   return `${clean || 'personalised-document'}.pdf`;
+}
+
+function safeSourceDocumentName(value) {
+  const raw = String(value || '').trim();
+  const extensionMatch = raw.match(/\.([a-zA-Z0-9]{2,5})$/);
+  const extension = String(extensionMatch && extensionMatch[1] || '').toLowerCase();
+  if (!SUPPORTED_SOURCE_DOCUMENTS[extension]) {
+    throw new PdfPersonalisationError(
+      'Unsupported source document type.',
+      400,
+      'PDF_SOURCE_DOCUMENT_TYPE_UNSUPPORTED',
+    );
+  }
+  const base = raw.slice(0, -(extension.length + 1))
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9._ -]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/^[.-]+|[.-]+$/g, '')
+    .slice(0, 100);
+  return `${base || 'source-document'}.${extension}`;
+}
+
+function normaliseSourceDocument(value) {
+  if (!plainObject(value)) {
+    throw new PdfPersonalisationError(
+      'sourceDocument is required for document conversion.',
+      400,
+      'PDF_SOURCE_DOCUMENT_REQUIRED',
+    );
+  }
+  const fileName = safeSourceDocumentName(value.fileName || value.name);
+  const extension = fileName.split('.').pop().toLowerCase();
+  const expectedMimeType = SUPPORTED_SOURCE_DOCUMENTS[extension];
+  const suppliedMimeType = String(value.mimeType || '').trim().toLowerCase();
+  if (suppliedMimeType && suppliedMimeType !== expectedMimeType
+    && !(expectedMimeType === 'image/jpeg' && suppliedMimeType === 'image/jpg')) {
+    throw new PdfPersonalisationError(
+      'Source document MIME type does not match its file extension.',
+      400,
+      'PDF_SOURCE_DOCUMENT_MIME_MISMATCH',
+    );
+  }
+  const base64 = String(value.base64 || '').replace(/\s+/g, '');
+  if (!base64 || base64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) {
+    throw new PdfPersonalisationError(
+      'sourceDocument.base64 must contain valid base64 file data.',
+      400,
+      'PDF_SOURCE_DOCUMENT_BASE64_INVALID',
+    );
+  }
+  if (base64.length > Math.ceil(MAX_SOURCE_DOCUMENT_BYTES / 3) * 4 + 4) {
+    throw new PdfPersonalisationError(
+      `Source document exceeds ${MAX_SOURCE_DOCUMENT_BYTES} bytes.`,
+      413,
+      'PDF_SOURCE_DOCUMENT_TOO_LARGE',
+    );
+  }
+  const buffer = Buffer.from(base64, 'base64');
+  if (!buffer.length) {
+    throw new PdfPersonalisationError('Source document is empty.', 400, 'PDF_SOURCE_DOCUMENT_EMPTY');
+  }
+  if (buffer.length > MAX_SOURCE_DOCUMENT_BYTES) {
+    throw new PdfPersonalisationError(
+      `Source document exceeds ${MAX_SOURCE_DOCUMENT_BYTES} bytes.`,
+      413,
+      'PDF_SOURCE_DOCUMENT_TOO_LARGE',
+    );
+  }
+  return {
+    fileName,
+    mimeType: expectedMimeType,
+    buffer,
+    size: buffer.length,
+    sha256: sha256(buffer),
+  };
 }
 
 function validateRemoteReferences(html) {
@@ -142,12 +236,20 @@ function normaliseOptions(value) {
 
 function normaliseGenerateRequest(body) {
   const input = plainObject(body) ? body : {};
+  const conversionMode = String(input.conversionMode || 'html').trim().toLowerCase();
+  if (conversionMode !== 'html' && conversionMode !== 'document') {
+    throw new PdfPersonalisationError(
+      'conversionMode must be html or document.',
+      400,
+      'PDF_CONVERSION_MODE_INVALID',
+    );
+  }
   const templateId = String(input.templateId || '').trim().slice(0, 100);
   const inlineTemplate = input.htmlTemplate == null ? '' : String(input.htmlTemplate);
-  if (!templateId && !inlineTemplate.trim()) {
+  if (conversionMode === 'html' && !templateId && !inlineTemplate.trim()) {
     throw new PdfPersonalisationError('Provide templateId or htmlTemplate.', 400, 'PDF_TEMPLATE_REQUIRED');
   }
-  if (templateId && inlineTemplate.trim()) {
+  if (conversionMode === 'html' && templateId && inlineTemplate.trim()) {
     throw new PdfPersonalisationError('Provide templateId or htmlTemplate, not both.', 400, 'PDF_TEMPLATE_AMBIGUOUS');
   }
   const idempotencyKey = String(input.idempotencyKey || '').trim();
@@ -158,12 +260,20 @@ function normaliseGenerateRequest(body) {
       'PDF_IDEMPOTENCY_KEY_INVALID',
     );
   }
+  const sourceDocument = conversionMode === 'document'
+    ? normaliseSourceDocument(input.sourceDocument)
+    : null;
+  const defaultDocumentName = sourceDocument
+    ? sourceDocument.fileName.replace(/\.[^.]+$/, '.pdf')
+    : 'personalised-document.pdf';
   return {
-    templateId,
-    htmlTemplate: inlineTemplate ? validateHtmlTemplate(inlineTemplate) : '',
-    data: normaliseData(input.data || {}),
+    conversionMode,
+    templateId: conversionMode === 'html' ? templateId : '',
+    htmlTemplate: conversionMode === 'html' && inlineTemplate ? validateHtmlTemplate(inlineTemplate) : '',
+    data: conversionMode === 'html' ? normaliseData(input.data || {}) : {},
+    sourceDocument,
     options: normaliseOptions(input.options),
-    documentName: safeDocumentName(input.documentName),
+    documentName: safeDocumentName(input.documentName || defaultDocumentName),
     idempotencyKey,
   };
 }
@@ -334,8 +444,48 @@ async function convertHtmlZipToPdf(zipBuffer, options, credentials, deps = {}) {
   return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
 }
 
+async function convertDocumentToPdf(sourceDocument, credentials, deps = {}) {
+  const sdk = deps.pdfSdk || require('@adobe/pdfservices-node-sdk');
+  const clientId = String(credentials && credentials.clientId || '').trim();
+  const clientSecret = String(credentials && credentials.clientSecret || '').trim();
+  if (!clientId || !clientSecret) {
+    throw new PdfPersonalisationError(
+      'Adobe PDF Services credentials are not configured.',
+      503,
+      'PDF_SERVICES_NOT_CONFIGURED',
+    );
+  }
+  const input = sourceDocument && sourceDocument.buffer
+    ? sourceDocument
+    : normaliseSourceDocument(sourceDocument);
+  const serviceCredentials = new sdk.ServicePrincipalCredentials({ clientId, clientSecret });
+  const pdfServices = deps.pdfServices || new sdk.PDFServices({ credentials: serviceCredentials });
+  const inputAsset = await pdfServices.upload({
+    readStream: Readable.from(Buffer.from(input.buffer)),
+    mimeType: input.mimeType,
+  });
+  const pollingURL = await pdfServices.submit({
+    job: new sdk.CreatePDFJob({ inputAsset }),
+  });
+  const response = await pdfServices.getJobResult({
+    pollingURL,
+    resultType: sdk.CreatePDFResult,
+  });
+  const streamAsset = await pdfServices.getContent({ asset: response.result.asset });
+  return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
+}
+
 function requestHash(input, templateHash) {
+  if (input.conversionMode === 'document') {
+    return sha256(JSON.stringify({
+      conversionMode: input.conversionMode,
+      sourceDocumentHash: input.sourceDocument.sha256,
+      sourceDocumentMimeType: input.sourceDocument.mimeType,
+      documentName: input.documentName,
+    }));
+  }
   return sha256(JSON.stringify({
+    conversionMode: input.conversionMode || 'html',
     templateHash,
     data: input.data,
     options: input.options,
@@ -348,9 +498,13 @@ module.exports = {
   MAX_DATA_BYTES,
   MAX_RENDERED_HTML_BYTES,
   MAX_PDF_BYTES,
+  MAX_SOURCE_DOCUMENT_BYTES,
+  SUPPORTED_SOURCE_DOCUMENTS,
   PdfPersonalisationError,
   sha256,
   safeDocumentName,
+  safeSourceDocumentName,
+  normaliseSourceDocument,
   validateHtmlTemplate,
   normaliseData,
   normaliseOptions,
@@ -360,5 +514,6 @@ module.exports = {
   streamToBuffer,
   validatePdfBuffer,
   convertHtmlZipToPdf,
+  convertDocumentToPdf,
   requestHash,
 };

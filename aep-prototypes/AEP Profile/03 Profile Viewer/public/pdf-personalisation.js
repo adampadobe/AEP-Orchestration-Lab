@@ -2,6 +2,11 @@
   'use strict';
 
   const MAX_HTML_BYTES = 1_500_000;
+  const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+  const supportedDocumentExtensions = new Set([
+    'bmp', 'doc', 'docx', 'gif', 'jpeg', 'jpg', 'png', 'ppt', 'pptx',
+    'rtf', 'tif', 'tiff', 'txt', 'xls', 'xlsx',
+  ]);
   const sampleHtml = `<!doctype html>
 <html lang="en">
 <head>
@@ -75,6 +80,10 @@
   const htmlFile = document.getElementById('pdfHtmlFile');
   const dropZone = document.getElementById('pdfHtmlDropZone');
   const fileMeta = document.getElementById('pdfHtmlFileMeta');
+  const conversionModeSelect = document.getElementById('pdfConversionMode');
+  const documentFile = document.getElementById('pdfDocumentFile');
+  const documentDropZone = document.getElementById('pdfDocumentDropZone');
+  const documentFileMeta = document.getElementById('pdfDocumentFileMeta');
   const authState = document.getElementById('pdfAuthState');
   const statusEl = document.getElementById('pdfWorkspaceStatus');
   const jsonState = document.getElementById('pdfJsonState');
@@ -87,6 +96,11 @@
   const handoffJson = document.getElementById('pdfHandoffJson');
   let authUser = null;
   let lastResult = null;
+  let sourceDocument = null;
+
+  function conversionMode() {
+    return conversionModeSelect.value === 'document' ? 'document' : 'html';
+  }
 
   function uniqueKey() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
@@ -156,12 +170,21 @@
     return { htmlTemplate };
   }
 
+  function activeDocumentPayload() {
+    if (!sourceDocument) throw new Error('Drop in a supported source document first.');
+    return { sourceDocument };
+  }
+
   function requestPayload(includeGenerationFields) {
+    const mode = conversionMode();
     const payload = {
-      ...activeTemplatePayload(),
-      data: parseData(),
-      options: pageOptions(),
+      conversionMode: mode,
+      ...(mode === 'document' ? activeDocumentPayload() : activeTemplatePayload()),
     };
+    if (mode === 'html') {
+      payload.data = parseData();
+      payload.options = pageOptions();
+    }
     if (includeGenerationFields) {
       payload.documentName = document.getElementById('pdfDocumentName').value.trim() || 'personalised-document.pdf';
       payload.idempotencyKey = document.getElementById('pdfIdempotencyKey').value.trim();
@@ -206,6 +229,8 @@
   }
 
   function loadSample() {
+    conversionModeSelect.value = 'html';
+    applyConversionMode();
     templateSelect.value = '';
     htmlEditor.disabled = false;
     htmlEditor.value = sampleHtml;
@@ -240,6 +265,76 @@
     fileMeta.hidden = false;
     useUnsavedEditor();
     setStatus('HTML file loaded. Add JSON data, then render a preview.', 'success');
+  }
+
+  function fileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('The document could not be read.'));
+      reader.onload = () => {
+        const value = String(reader.result || '');
+        const comma = value.indexOf(',');
+        if (comma < 0) reject(new Error('The document could not be encoded.'));
+        else resolve(value.slice(comma + 1));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function readDocumentFile(file) {
+    if (!file) return;
+    const extension = String(file.name.split('.').pop() || '').toLowerCase();
+    if (!supportedDocumentExtensions.has(extension)) {
+      throw new Error('Unsupported document type. Use Word, PowerPoint, Excel, RTF, TXT, JPEG, PNG, BMP, GIF or TIFF.');
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) throw new Error('Source document exceeds 10 MB.');
+    sourceDocument = {
+      fileName: file.name,
+      mimeType: file.type || '',
+      base64: await fileAsBase64(file),
+    };
+    documentFileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
+    documentFileMeta.hidden = false;
+    document.getElementById('pdfDocumentName').value = file.name.replace(/\.[^.]+$/, '.pdf');
+    markRequestChanged();
+    setStatus('Source document loaded. Generate PDF will submit it with Adobe CreatePDFJob.', 'success');
+  }
+
+  function applyConversionMode() {
+    const documentMode = conversionMode() === 'document';
+    document.getElementById('pdfHtmlModePanel').hidden = documentMode;
+    document.getElementById('pdfDocumentModePanel').hidden = !documentMode;
+    document.getElementById('pdfPersonalisationFields').hidden = documentMode;
+    document.querySelectorAll('.pdf-html-option').forEach((element) => { element.hidden = documentMode; });
+    document.getElementById('pdfJsonState').hidden = documentMode;
+    previewButton.hidden = documentMode;
+    previewFrame.hidden = documentMode;
+    previewEmpty.hidden = false;
+    previewMeta.textContent = documentMode ? 'Direct conversion' : 'Not rendered';
+    document.getElementById('pdfDataHeading').textContent = documentMode ? 'Output settings' : 'Personalisation and output';
+    document.getElementById('pdfPreviewHeading').textContent = documentMode ? 'Convert and store' : 'Preview and generate';
+    generateButton.textContent = documentMode ? 'Convert document to PDF' : 'Generate PDF';
+    document.getElementById('pdfModeHelp').textContent = documentMode
+      ? 'Uploads the source file and submits Adobe CreatePDFJob. No JSON merge is applied.'
+      : 'Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.';
+    document.getElementById('pdfPreviewEmptyTitle').textContent = documentMode
+      ? 'Your source document will be converted directly'
+      : 'Your rendered HTML will appear here';
+    document.getElementById('pdfPreviewEmptyText').textContent = documentMode
+      ? 'Adobe PDF Services returns the PDF after CreatePDFJob completes.'
+      : 'Preview uses the same server-side merge that runs before Adobe PDF Services.';
+    document.getElementById('pdfFlowValidate').textContent = documentMode
+      ? 'Authorised user, supported type, bounded file size'
+      : 'Authorised user, static HTML, bounded JSON';
+    document.getElementById('pdfFlowPrepareTitle').textContent = documentMode ? 'Upload' : 'Merge';
+    document.getElementById('pdfFlowPrepare').textContent = documentMode
+      ? 'Source document uploaded as a private input asset'
+      : 'Handlebars data into escaped HTML';
+    document.getElementById('pdfFlowConvert').textContent = documentMode
+      ? 'Source asset → CreatePDFJob'
+      : 'ZIP index.html → HTMLToPDFJob';
+    resultPanel.hidden = true;
+    markRequestChanged();
   }
 
   async function loadTemplates(selectId) {
@@ -281,6 +376,7 @@
 
   async function renderPreview() {
     try {
+      if (conversionMode() === 'document') throw new Error('Document conversion does not have an HTML preview. Generate the PDF to inspect it.');
       setBusy(true);
       setStatus('Rendering the personalisation data into static HTML...', 'working');
       const { body } = await api('/preview', {
@@ -320,6 +416,8 @@
     const handoff = {
       status: result.status,
       jobId: result.jobId,
+      conversionMode: result.conversionMode,
+      sourceName: result.sourceName,
       templateId: result.templateId,
       expiresAt: result.expiresAt,
       ...result.ajoHandoff,
@@ -331,14 +429,19 @@
   async function generatePdf() {
     try {
       setBusy(true);
-      setStatus('Generating the PDF with Adobe PDF Services. This can take up to a minute...', 'working');
+      setStatus(
+        conversionMode() === 'document'
+          ? 'Converting the source document with Adobe CreatePDFJob. This can take up to a minute...'
+          : 'Generating the PDF with Adobe HTMLToPDFJob. This can take up to a minute...',
+        'working',
+      );
       const response = await api('/generate', {
         method: 'POST',
         body: JSON.stringify(requestPayload(true)),
       }, true);
       const result = response.status === 202 ? await pollJob(response.body.jobId) : response.body;
       showResult(result);
-      setStatus(result.reused ? 'Existing idempotent PDF returned.' : 'PDF generated and stored privately.', 'success');
+      setStatus(result.reused ? 'Existing idempotent PDF returned.' : 'PDF converted and stored privately.', 'success');
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
@@ -378,6 +481,28 @@
     dropZone.addEventListener('drop', (event) => {
       readHtmlFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
     });
+
+    documentDropZone.addEventListener('click', () => documentFile.click());
+    documentDropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        documentFile.click();
+      }
+    });
+    documentFile.addEventListener('change', () => {
+      readDocumentFile(documentFile.files && documentFile.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+    ['dragenter', 'dragover'].forEach((name) => documentDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      documentDropZone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach((name) => documentDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      documentDropZone.classList.remove('is-dragging');
+    }));
+    documentDropZone.addEventListener('drop', (event) => {
+      readDocumentFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
   }
 
   function waitForAuth() {
@@ -411,6 +536,7 @@
   async function init() {
     loadSample();
     bindFileDrop();
+    conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
       try { parseData(); } catch (_error) {}

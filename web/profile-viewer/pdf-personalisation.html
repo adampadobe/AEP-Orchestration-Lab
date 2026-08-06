@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF personalisation - AEP Profile Viewer</title>
+  <title>PDF conversion workspace - AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806a">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -22,7 +22,7 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Adobe PDF Services HTML-to-PDF workspace">PDF Services</span>
+          <span class="dashboard-env-pill" title="Adobe PDF Services conversion workspace">PDF Services</span>
           <span id="pdfAuthState" class="pdf-auth-state">Checking access...</span>
           <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
         </div>
@@ -34,15 +34,14 @@
             <header class="dashboard-hero-header">
               <div class="pdf-hero-heading-row">
                 <div>
-                  <span class="pdf-eyebrow">Adobe PDF Services · HTML to PDF</span>
-                  <h2 id="pdfPageHeading" class="dashboard-hero-title">Personalised document workspace</h2>
+                  <span class="pdf-eyebrow">Adobe PDF Services · Create PDF</span>
+                  <h2 id="pdfPageHeading" class="dashboard-hero-title">PDF conversion workspace</h2>
                 </div>
                 <span class="pdf-flow-badge">AJO handoff ready</span>
               </div>
               <p class="dashboard-hero-subtitle">
-                Drop in static HTML, merge JSON data with Handlebars fields such as
-                <code>{{data.passenger.firstName}}</code>, preview the rendered document, then generate and privately store a PDF.
-                The response includes the expiring URL and metadata needed for an AJO custom action.
+                Choose HTML to PDF for Handlebars personalisation and preview, or Document to PDF for direct conversion of
+                Word, PowerPoint, Excel, text, and image files. Both modes privately store the result and return an expiring AJO handoff URL.
               </p>
             </header>
           </div>
@@ -50,9 +49,24 @@
 
         <div id="pdfWorkspaceStatus" class="pdf-status" role="status" aria-live="polite" hidden></div>
 
+        <section class="pdf-mode-panel" aria-labelledby="pdfModeHeading">
+          <div>
+            <span class="pdf-eyebrow">Conversion mode</span>
+            <h3 id="pdfModeHeading">Choose the PDF Services operation</h3>
+          </div>
+          <div class="pdf-mode-control">
+            <label for="pdfConversionMode">Operation</label>
+            <select id="pdfConversionMode">
+              <option value="html">HTML to PDF - template plus JSON</option>
+              <option value="document">Document to PDF - direct file conversion</option>
+            </select>
+          </div>
+          <p id="pdfModeHelp">Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.</p>
+        </section>
+
         <section class="pdf-workspace" aria-label="PDF personalisation workspace">
           <div class="pdf-editor-column">
-            <section class="pdf-panel pdf-template-panel" aria-labelledby="pdfTemplateHeading">
+            <section id="pdfHtmlModePanel" class="pdf-panel pdf-template-panel" aria-labelledby="pdfTemplateHeading">
               <div class="pdf-panel-heading">
                 <div>
                   <span class="pdf-step">1</span>
@@ -94,16 +108,38 @@
               </div>
             </section>
 
-            <section class="pdf-panel pdf-data-panel" aria-labelledby="pdfDataHeading">
+            <section id="pdfDocumentModePanel" class="pdf-panel pdf-template-panel" aria-labelledby="pdfDocumentHeading" hidden>
+              <div class="pdf-panel-heading">
+                <div>
+                  <span class="pdf-step">1</span>
+                  <h3 id="pdfDocumentHeading">Source document</h3>
+                </div>
+                <span class="pdf-document-badge">CreatePDFJob</span>
+              </div>
+              <div id="pdfDocumentDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop a supported document or click to browse">
+                <input type="file" id="pdfDocumentFile" accept=".doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff" hidden>
+                <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <strong>Drop a document here</strong>
+                <span>DOCX, DOC, PPTX, PPT, XLSX, XLS, RTF, TXT, JPG, PNG, BMP, GIF or TIFF · maximum 10 MB</span>
+              </div>
+              <p id="pdfDocumentFileMeta" class="pdf-file-meta" hidden></p>
+              <p class="pdf-field-help">
+                Document mode converts the file as-is. It does not merge the JSON below; Word-template data merge uses Adobe Document Generation, which is a separate operation.
+              </p>
+            </section>
+
+            <section id="pdfDataPanel" class="pdf-panel pdf-data-panel" aria-labelledby="pdfDataHeading">
               <div class="pdf-panel-heading">
                 <div>
                   <span class="pdf-step">2</span>
-                  <h3 id="pdfDataHeading">Personalisation data</h3>
+                  <h3 id="pdfDataHeading">Personalisation and output</h3>
                 </div>
                 <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
               </div>
-              <label for="pdfDataEditor">JSON payload</label>
-              <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
+              <div id="pdfPersonalisationFields">
+                <label for="pdfDataEditor">JSON payload</label>
+                <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
+              </div>
 
               <div class="pdf-options-grid">
                 <div>
@@ -114,7 +150,7 @@
                   <label for="pdfIdempotencyKey">Idempotency key</label>
                   <input id="pdfIdempotencyKey" type="text" maxlength="200" spellcheck="false">
                 </div>
-                <div>
+                <div class="pdf-html-option">
                   <label for="pdfPagePreset">Page size</label>
                   <select id="pdfPagePreset">
                     <option value="a4">A4 portrait</option>
@@ -122,15 +158,15 @@
                     <option value="a4-landscape">A4 landscape</option>
                   </select>
                 </div>
-                <div>
+                <div class="pdf-html-option">
                   <label for="pdfLocale">Locale</label>
                   <input id="pdfLocale" type="text" value="en-GB" maxlength="35">
                 </div>
-                <div>
+                <div class="pdf-html-option">
                   <label for="pdfTimeZone">Time zone</label>
                   <input id="pdfTimeZone" type="text" value="UTC" maxlength="80">
                 </div>
-                <label class="pdf-checkbox-option" for="pdfHeaderFooter">
+                <label class="pdf-checkbox-option pdf-html-option" for="pdfHeaderFooter">
                   <input id="pdfHeaderFooter" type="checkbox">
                   <span>Include browser header/footer</span>
                 </label>
@@ -157,8 +193,8 @@
                 <iframe id="pdfPreviewFrame" title="Rendered HTML preview" sandbox="" referrerpolicy="no-referrer"></iframe>
                 <div id="pdfPreviewEmpty" class="pdf-preview-empty">
                   <span aria-hidden="true">PDF</span>
-                  <strong>Your rendered HTML will appear here</strong>
-                  <p>Preview uses the same server-side merge that runs before Adobe PDF Services.</p>
+                  <strong id="pdfPreviewEmptyTitle">Your rendered HTML will appear here</strong>
+                  <p id="pdfPreviewEmptyText">Preview uses the same server-side merge that runs before Adobe PDF Services.</p>
                 </div>
               </div>
             </section>
@@ -194,9 +230,9 @@
             <h3 id="pdfFlowHeading">What happens after Generate PDF</h3>
           </div>
           <ol class="pdf-flow-steps">
-            <li><span>1</span><strong>Validate</strong><em>Authorised user, static HTML, bounded JSON</em></li>
-            <li><span>2</span><strong>Merge</strong><em>Handlebars data into escaped HTML</em></li>
-            <li><span>3</span><strong>Convert</strong><em>ZIP index.html → Adobe PDF Services</em></li>
+            <li><span>1</span><strong>Validate</strong><em id="pdfFlowValidate">Authorised user, static HTML, bounded JSON</em></li>
+            <li><span>2</span><strong id="pdfFlowPrepareTitle">Merge</strong><em id="pdfFlowPrepare">Handlebars data into escaped HTML</em></li>
+            <li><span>3</span><strong>Convert</strong><em id="pdfFlowConvert">ZIP index.html → HTMLToPDFJob</em></li>
             <li><span>4</span><strong>Store</strong><em>Private GCS object with 14-day expiry</em></li>
             <li><span>5</span><strong>Handoff</strong><em>Opaque download URL returned for AJO</em></li>
           </ol>
@@ -213,6 +249,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-personalisation"></script>
-  <script src="pdf-personalisation.js?v=20260806a"></script>
+  <script src="pdf-personalisation.js?v=20260806b"></script>
 </body>
 </html>

@@ -74,6 +74,8 @@ async function responseForReadyJob(job, req, deps = {}) {
   return {
     status: 'ready',
     jobId: job.jobId,
+    conversionMode: job.conversionMode || 'html',
+    sourceName: job.sourceName || null,
     templateId: job.templateId || null,
     documentName: job.documentName,
     mimeType: job.mimeType,
@@ -221,9 +223,13 @@ function createHandler(deps) {
 
       if (path === '/generate' && req.method === 'POST') {
         const input = core.normaliseGenerateRequest(jsonBody(req));
-        const resolved = await resolveTemplate(input, principal, required);
-        const rendered = core.renderHtmlTemplate(resolved.htmlTemplate, input.data, input.options);
-        const hash = core.requestHash(input, rendered.templateHash);
+        let resolved = { templateId: null, htmlTemplate: '' };
+        let rendered = null;
+        if (input.conversionMode === 'html') {
+          resolved = await resolveTemplate(input, principal, required);
+          rendered = core.renderHtmlTemplate(resolved.htmlTemplate, input.data, input.options);
+        }
+        const hash = core.requestHash(input, rendered && rendered.templateHash);
         const jobId = randomUUID();
         const claim = await store.claimIdempotency({
           principalId: principal.principalId,
@@ -244,18 +250,27 @@ function createHandler(deps) {
           return;
         }
         try {
-          const zipBuffer = await core.createHtmlZip(rendered.renderedHtml);
-          const pdfBuffer = await core.convertHtmlZipToPdf(zipBuffer, input.options, {
+          const credentials = {
             clientId: required.getPdfClientId(),
             clientSecret: required.getPdfClientSecret(),
-          }, required);
+          };
+          let pdfBuffer;
+          if (input.conversionMode === 'document') {
+            pdfBuffer = await core.convertDocumentToPdf(input.sourceDocument, credentials, required);
+          } else {
+            const zipBuffer = await core.createHtmlZip(rendered.renderedHtml);
+            pdfBuffer = await core.convertHtmlZipToPdf(zipBuffer, input.options, credentials, required);
+          }
           const record = await store.saveReadyJob({
             jobId,
             principalId: principal.principalId,
             ownerUid: principal.ownerUid,
+            conversionMode: input.conversionMode,
+            sourceName: input.sourceDocument && input.sourceDocument.fileName,
+            sourceHash: input.sourceDocument && input.sourceDocument.sha256,
             templateId: resolved.templateId,
-            templateHash: rendered.templateHash,
-            renderedHash: rendered.renderedHash,
+            templateHash: rendered && rendered.templateHash,
+            renderedHash: rendered && rendered.renderedHash,
             requestHash: hash,
             idempotencyDocId: claim.docId,
             documentName: input.documentName,
