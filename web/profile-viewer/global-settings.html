@@ -201,12 +201,15 @@
         var v = window.AepGlobalSandbox.getSelected();
         statusEl.textContent = v
           ? 'Saved sandbox: ' + v + ' (key: ' + window.AepGlobalSandbox.LS_SANDBOX + ')'
-          : 'Using server default (empty selection). IMS org comes from Adobe auth / Firebase secrets.';
+          : 'No sandbox saved. Choose a sandbox above before using sandbox-scoped tools such as MCP keys.';
       }
 
       async function init() {
         if (!sel || !window.AepGlobalSandbox) return;
         await window.AepGlobalSandbox.loadSandboxesIntoSelect(sel);
+        if (!window.AepGlobalSandbox.getSelected()) {
+          sel.value = '';
+        }
         window.AepGlobalSandbox.onSandboxSelectChange(sel);
         sel.addEventListener('change', showStatus);
         showStatus();

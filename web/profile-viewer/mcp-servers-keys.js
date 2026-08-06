@@ -4,13 +4,20 @@
 (function (global) {
   'use strict';
 
-  var MCP_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp';
   var MCP_HEADER_NAME = 'X-AEP-Lab-Mcp-Key';
-  var MCP_SERVER_ID = 'aep-orchestration-lab-mcp';
+  var MCP_BASE_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app';
+  var MCP_ENDPOINTS = [
+    { id: 'aep-lab-general', label: 'General demo prep (89 tools)', path: '/mcp' },
+    { id: 'aep-lab-demo-prep', label: 'Focused demo prep (19 tools)', path: '/mcp/demo-prep' },
+    { id: 'aep-lab-profiles', label: 'Profiles and events (20 tools)', path: '/mcp/profile' },
+    { id: 'aep-lab-decisioning', label: 'Decisioning (9 tools)', path: '/mcp/decisioning' },
+    { id: 'aep-lab-audiences', label: 'Audience audit and delete (4 tools)', path: '/mcp/audiences' },
+  ];
   var PANEL_ID = 'mcpLabKeyPanel';
   var MODAL_ID = 'mcpLabKeyModal';
   var KEY_PLACEHOLDER = '<paste your key — shown only at generate/rotate>';
   var SESSION_KEY_PREFIX = 'aepLabMcpKeySecret:';
+  var DEFAULT_MAX_ACTIVE_KEYS_PER_SANDBOX = 25;
   var cachedKeysPayload = null;
   var selectedKeyId = '';
 
@@ -91,24 +98,34 @@
     return sb ? '/api/lab/mcp-keys?sandbox=' + encodeURIComponent(sb) : '/api/lab/mcp-keys';
   }
 
-  function coworkerSnippet(apiKey) {
+  function endpointById(endpointId) {
+    return MCP_ENDPOINTS.find(function (endpoint) {
+      return endpoint.id === endpointId;
+    }) || MCP_ENDPOINTS[0];
+  }
+
+  function endpointUrl(endpoint) {
+    return MCP_BASE_URL + endpoint.path;
+  }
+
+  function coworkerSnippet(apiKey, endpoint) {
+    endpoint = endpoint || MCP_ENDPOINTS[0];
+    var config = {};
+    config[endpoint.id] = {
+      type: 'streamable-http',
+      url: endpointUrl(endpoint),
+      headers: {},
+    };
+    config[endpoint.id].headers[MCP_HEADER_NAME] = apiKey;
     return JSON.stringify(
-      {
-        [MCP_SERVER_ID]: {
-          type: 'streamable-http',
-          url: MCP_URL,
-          headers: {
-            [MCP_HEADER_NAME]: apiKey,
-          },
-        },
-      },
+      config,
       null,
       2,
     );
   }
 
-  function coworkerSnippetPlaceholder() {
-    return coworkerSnippet(KEY_PLACEHOLDER);
+  function coworkerSnippetPlaceholder(endpoint) {
+    return coworkerSnippet(KEY_PLACEHOLDER, endpoint);
   }
 
   function activeKeysSorted(keys) {
@@ -124,6 +141,13 @@
         var tb = b.createdAt ? Date.parse(b.createdAt) : 0;
         return tb - ta;
       });
+  }
+
+  function maxActiveKeysPerSandbox(data) {
+    var parsed = Number(data && data.maxActiveKeysPerSandbox);
+    return Number.isFinite(parsed) && parsed > 0
+      ? Math.floor(parsed)
+      : DEFAULT_MAX_ACTIVE_KEYS_PER_SANDBOX;
   }
 
   function keySandboxLabel(key) {
@@ -367,8 +391,16 @@
     wrap.setAttribute('aria-modal', 'true');
     wrap.setAttribute('aria-labelledby', 'mcpLabKeyModalTitle');
 
-    var snippetWithKey = coworkerSnippet(apiKey);
-    var snippetPlaceholder = coworkerSnippetPlaceholder();
+    var selectedEndpoint = MCP_ENDPOINTS[0];
+    var endpointOptions = MCP_ENDPOINTS.map(function (endpoint) {
+      return (
+        '<option value="' +
+        escapeHtml(endpoint.id) +
+        '">' +
+        escapeHtml(endpoint.label) +
+        '</option>'
+      );
+    }).join('');
     wrap.innerHTML =
       '<div class="mcp-key-modal">' +
       '<div class="mcp-key-modal-header">' +
@@ -381,8 +413,15 @@
       escapeHtml(warning || 'Copy this key now. It will not be shown again.') +
       '</p>' +
       '<p id="mcpLabKeyModalCopyToast" class="mcp-key-modal-copy-toast" aria-live="polite"></p>' +
+      '<div class="mcp-key-modal-field">' +
+      '<label class="mcp-key-modal-label" for="mcpLabKeyEndpoint">MCP endpoint</label>' +
+      '<select id="mcpLabKeyEndpoint" class="mcp-key-modal-input">' +
+      endpointOptions +
+      '</select>' +
+      '</div>' +
       '<div class="mcp-key-modal-fields">' +
-      modalCopyField('mcpLabKeyUrl', 'MCP URL', MCP_URL, 'mcpLabKeyCopyUrlBtn', 'Copy URL') +
+      modalCopyField('mcpLabKeyName', 'MCP name', selectedEndpoint.id, 'mcpLabKeyCopyNameBtn', 'Copy name') +
+      modalCopyField('mcpLabKeyUrl', 'MCP URL', endpointUrl(selectedEndpoint), 'mcpLabKeyCopyUrlBtn', 'Copy URL') +
       modalCopyField(
         'mcpLabKeyHeader',
         'Header',
@@ -395,7 +434,7 @@
       '<details class="mcp-key-modal-snippet-details">' +
       '<summary class="mcp-key-modal-snippet-summary">Coworker / Cursor mcp.json preview</summary>' +
       '<textarea id="mcpLabKeySnippet" class="mcp-key-modal-snippet" readonly rows="8" aria-label="Coworker MCP config preview without secret">' +
-      escapeHtml(snippetPlaceholder) +
+      escapeHtml(coworkerSnippetPlaceholder(selectedEndpoint)) +
       '</textarea>' +
       '</details>' +
       '<div class="mcp-key-modal-actions">' +
@@ -407,11 +446,25 @@
     document.body.appendChild(wrap);
     document.body.classList.add('mcp-key-modal-open');
 
+    function syncSelectedEndpoint() {
+      var select = document.getElementById('mcpLabKeyEndpoint');
+      selectedEndpoint = endpointById(select && select.value);
+      var nameInput = document.getElementById('mcpLabKeyName');
+      var urlInput = document.getElementById('mcpLabKeyUrl');
+      var snippetInput = document.getElementById('mcpLabKeySnippet');
+      if (nameInput) nameInput.value = selectedEndpoint.id;
+      if (urlInput) urlInput.value = endpointUrl(selectedEndpoint);
+      if (snippetInput) snippetInput.value = coworkerSnippetPlaceholder(selectedEndpoint);
+    }
+
+    var endpointSelect = document.getElementById('mcpLabKeyEndpoint');
+    if (endpointSelect) endpointSelect.addEventListener('change', syncSelectedEndpoint);
+
     var copyConfigBtn = document.getElementById('mcpLabKeyCopyConfigBtn');
     if (copyConfigBtn) {
       copyConfigBtn.addEventListener('click', function () {
         copyTextToClipboard(
-          snippetPlaceholder,
+          coworkerSnippetPlaceholder(selectedEndpoint),
           copyConfigBtn,
           'Copy Coworker config',
           'Coworker config copied (no secret) — paste your key into ' + MCP_HEADER_NAME,
@@ -419,10 +472,17 @@
       });
     }
 
+    var copyNameBtn = document.getElementById('mcpLabKeyCopyNameBtn');
+    if (copyNameBtn) {
+      copyNameBtn.addEventListener('click', function () {
+        copyTextToClipboard(selectedEndpoint.id, copyNameBtn, 'Copy name', 'MCP name copied');
+      });
+    }
+
     var copyUrlBtn = document.getElementById('mcpLabKeyCopyUrlBtn');
     if (copyUrlBtn) {
       copyUrlBtn.addEventListener('click', function () {
-        copyTextToClipboard(MCP_URL, copyUrlBtn, 'Copy URL', 'MCP URL copied');
+        copyTextToClipboard(endpointUrl(selectedEndpoint), copyUrlBtn, 'Copy URL', 'MCP URL copied');
       });
     }
 
@@ -444,7 +504,7 @@
     if (copyAllBtn) {
       copyAllBtn.addEventListener('click', function () {
         copyTextToClipboard(
-          snippetWithKey,
+          coworkerSnippet(apiKey, selectedEndpoint),
           copyAllBtn,
           'Copy all',
           'Complete Coworker config copied (includes secret)',
@@ -553,10 +613,18 @@
     renderCurrentKey(selected, sandbox);
     renderKeysList(data.keys || [], sandbox);
     var keyCount = sandboxKeys.length;
+    var maxKeys = maxActiveKeysPerSandbox(data);
     var genBtn = document.getElementById('mcpLabKeyGenerateBtn');
     if (genBtn) {
-      genBtn.disabled = !sandbox || keyCount >= 10;
+      genBtn.disabled = !sandbox || keyCount >= maxKeys;
       genBtn.textContent = keyCount ? 'Generate additional key' : 'Generate key';
+    }
+    var limitHint = document.getElementById('mcpLabKeyLimitHint');
+    if (limitHint) {
+      limitHint.textContent =
+        'Create separate named keys for ChatGPT, Adobe Coworker, or other clients. Up to ' +
+        maxKeys +
+        ' active keys are allowed for each sandbox; existing keys remain active.';
     }
     if (!sandbox) {
       setStatus('Select a sandbox in the nav to manage its MCP key.');
@@ -567,8 +635,8 @@
           (keyCount === 1 ? 'key' : 'keys') +
           ' for ' +
           sandbox +
-          (keyCount >= 10 ? '. Revoke an unused key before creating another.' : '.'),
-        keyCount >= 10,
+          (keyCount >= maxKeys ? '. Revoke an unused key before creating another.' : '.'),
+        keyCount >= maxKeys,
       );
     } else {
       setStatus('No key for ' + sandbox + ' yet.');
@@ -737,7 +805,9 @@
       '<input type="text" id="mcpLabKeyNameInput" class="mcp-key-name-input" maxlength="60" placeholder="e.g. ChatGPT">' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyGenerateBtn">Generate key</button>' +
       '</div>' +
-      '<p class="mcp-key-hint">Creating an additional key does not rotate or revoke any existing key.</p>' +
+      '<p class="mcp-key-hint" id="mcpLabKeyLimitHint">Create separate named keys for ChatGPT, Adobe Coworker, or other clients. Up to ' +
+      DEFAULT_MAX_ACTIVE_KEYS_PER_SANDBOX +
+      ' active keys are allowed for each sandbox; existing keys remain active.</p>' +
       '<p id="mcpLabKeyStatus" class="mcp-key-status" aria-live="polite"></p>' +
       '<h4 class="mcp-key-section-title mcp-key-list-heading">Active keys for selected sandbox</h4>' +
       '<div id="mcpLabKeyList" class="mcp-key-list"></div>';

@@ -127,6 +127,7 @@ function registerMcpKeyRoutes(deps) {
           activeSandboxNames: activeSandboxNames || [],
           workspaceSandboxes: mcpApiKeyStore.workspaceSandboxCandidates(profile, { email }),
           workspaceProfileComplete: !!(profile && profile.workspaceSlug),
+          maxActiveKeysPerSandbox: mcpApiKeyStore.MAX_ACTIVE_KEYS_PER_SANDBOX,
           firstRunHint: 'After connecting Coworker, run lab_mcp_first_run_setup to configure workspace slug and RTDB foundations.',
         });
       } catch (e) {

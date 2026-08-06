@@ -28,7 +28,7 @@
       configName: 'aep-lab-general',
       section: 'lab',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 85 tools',
+      product: 'Complete Lab MCP · 89 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -41,10 +41,33 @@
       configNotes:
         'Choose this for general demo work or when a workflow spans several areas. Uses X-AEP-Lab-Mcp-Key; the same sandbox key also works with every focused connection below.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 85,
+      toolCount: 89,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
+    },
+    {
+      id: 'aep-lab-demo-prep',
+      configName: 'aep-lab-demo-prep',
+      section: 'lab',
+      name: 'AEP Lab — Customer demo preparation',
+      product: 'Focused Lab MCP · 19 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep',
+      summary:
+        'A focused customer-preparation context for research, stable hosted imagery, governed demo configuration, and end-to-end orchestration.',
+      useCases: [
+        'Scrape and inspect public customer brand evidence',
+        'Preview stable logo, hero, mobile, and channel asset replacements',
+        'Back up the active customer and restore an earlier revision',
+        'Preview allowlisted RTDB customer values before applying them',
+      ],
+      configNotes:
+        'Choose this for repeatable customer swaps. Image and RTDB writes are separately previewed and confirmation-gated. Reuse the same X-AEP-Lab-Mcp-Key.',
+      connectionKind: 'Focused',
+      toolCount: 19,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Demo preparation tools reference',
     },
     {
       id: 'aep-lab-profiles',
