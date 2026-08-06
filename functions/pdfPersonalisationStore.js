@@ -128,6 +128,11 @@ async function saveReadyJob(input, deps = {}) {
   let s3Record = null;
   let gcsObjectPath = null;
 
+  console.info('[pdfPersonalisation] storage route', JSON.stringify({
+    jobId: input.jobId,
+    mode,
+  }));
+
   if (s3Store.usesS3(mode)) {
     s3Record = await s3Store.uploadPdf({
       ...input,

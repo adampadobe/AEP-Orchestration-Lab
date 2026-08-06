@@ -530,6 +530,12 @@ exports.pdfPersonalisation = onRequest(
     getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
     getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
     getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
+    // Gen2 may omit onRequest.environmentVariables. Inject non-secret S3 routing
+    // directly so the adapter cannot silently fall back to GCS in production.
+    outputStoreMode: process.env.PDF_OUTPUT_STORE || 'dual',
+    s3Bucket: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+    s3Region: process.env.PDF_S3_REGION || 'us-east-1',
+    s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
   }),
 );
 
