@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
 const { Readable } = require('node:stream');
 const unzipper = require('unzipper');
 const core = require('../pdfPersonalisationCore');
@@ -59,6 +61,39 @@ test('blocks active content injected by an unescaped personalised value', () => 
     ),
     (error) => error && error.code === 'PDF_TEMPLATE_ACTIVE_CONTENT_BLOCKED',
   );
+});
+
+test('allows dynamic HTTPS image fields and validates the rendered URL', () => {
+  const template = '<img src="{{data.imageUrl}}" alt="{{data.imageAlt}}">';
+  const result = core.renderHtmlTemplate(template, {
+    imageUrl: 'https://example.com/personalised-offer.png',
+    imageAlt: 'Meal offer',
+  });
+  assert.match(result.renderedHtml, /src="https:\/\/example\.com\/personalised-offer\.png"/);
+  assert.throws(
+    () => core.renderHtmlTemplate(template, { imageUrl: 'http://example.com/insecure.png' }),
+    (error) => error && error.code === 'PDF_TEMPLATE_RESOURCE_URL_INVALID',
+  );
+  assert.throws(
+    () => core.renderHtmlTemplate(template, { imageUrl: 'https://127.0.0.1/private.png' }),
+    (error) => error && error.code === 'PDF_TEMPLATE_PRIVATE_URL_BLOCKED',
+  );
+});
+
+test('renders the Riyadh Air HTML and JSON example without unresolved fields', () => {
+  const templatePath = resolve(__dirname, '../../web/profile-viewer/riyadh-air-boarding-pass-personalisation.html');
+  const dataPath = resolve(__dirname, '../../web/profile-viewer/riyadh-air-boarding-pass-personalisation.json');
+  const template = readFileSync(templatePath, 'utf8');
+  const data = JSON.parse(readFileSync(dataPath, 'utf8'));
+  const result = core.renderHtmlTemplate(template, data, {
+    locale: 'en-GB',
+    timeZone: 'Asia/Riyadh',
+  });
+  assert.doesNotMatch(result.renderedHtml, /{{/);
+  assert.match(result.renderedHtml, /DARAKHSHAN KHAN/);
+  assert.match(result.renderedHtml, /12 Aug 2026/);
+  assert.equal((result.renderedHtml.match(/class="meal-card"/g) || []).length, 3);
+  assert.equal((result.renderedHtml.match(/<img /g) || []).length, 4);
 });
 
 test('packages rendered HTML as a top-level index.html ZIP entry', async () => {

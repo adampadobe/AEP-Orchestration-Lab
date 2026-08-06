@@ -150,6 +150,9 @@ function validateRemoteReferences(html) {
   while ((match = urlPattern.exec(html))) {
     const raw = String(match[1] || match[2] || '').trim();
     if (!raw || raw.startsWith('#') || raw.startsWith('data:') || raw.startsWith('cid:')) continue;
+    // Template-time Handlebars URLs cannot be validated until the data merge.
+    // renderHtmlTemplate validates the completed HTML again before Adobe sees it.
+    if (raw.includes('{{') && raw.includes('}}')) continue;
     if (!/^https:\/\//i.test(raw)) {
       throw new PdfPersonalisationError(
         `Template resource URLs must use HTTPS or data URLs: ${raw.slice(0, 120)}`,
