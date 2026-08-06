@@ -172,15 +172,15 @@ Triple braces are not recommended because they bypass HTML escaping.
 
 ## Required secrets
 
-The function currently uses the existing Developer Console credentials:
+PDF conversion uses a dedicated PDF Services Developer Console credential pair, intentionally isolated from the Lab's enterprise AEP/IMS connection:
 
-- `ADOBE_CLIENT_ID`
-- `ADOBE_CLIENT_SECRET`
+- `PDF_SERVICES_CLIENT_ID`
+- `PDF_SERVICES_CLIENT_SECRET`
 
-This works only if PDF Services API is enabled on that credential. Verify with a non-PII smoke document after deployment.
+The source credential JSON must remain outside the repository. Transfer its values directly into Firebase Secret Manager and bind only these secret names to `pdfPersonalisation`.
 
 Machine-to-machine AJO access additionally requires:
 
 - `PDF_PERSONALISATION_API_KEY`
 
-If credentials are split into a dedicated PDF Services Developer Console project later, add dedicated `PDF_SERVICES_CLIENT_ID` and `PDF_SERVICES_CLIENT_SECRET` secrets and update the function binding.
+The enterprise `ADOBE_CLIENT_ID` and `ADOBE_CLIENT_SECRET` remain bound to the existing AEP functions and are not used by this PDF conversion service.

@@ -14,6 +14,9 @@ const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 /** Optional machine-to-machine key used by a future AJO custom action. */
 const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
+/** Dedicated PDF Services credentials; intentionally separate from enterprise AEP IMS credentials. */
+const PDF_SERVICES_CLIENT_ID = defineSecret('PDF_SERVICES_CLIENT_ID');
+const PDF_SERVICES_CLIENT_SECRET = defineSecret('PDF_SERVICES_CLIENT_SECRET');
 
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
@@ -490,7 +493,7 @@ exports.aepProxy = onRequest(
 exports.pdfPersonalisation = onRequest(
   {
     region: REGION,
-    secrets: [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, PDF_PERSONALISATION_API_KEY],
+    secrets: [PDF_SERVICES_CLIENT_ID, PDF_SERVICES_CLIENT_SECRET, PDF_PERSONALISATION_API_KEY],
     environmentVariables: {
       PDF_PERSONALISATION_PUBLIC_BASE_URL:
         process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL
@@ -509,8 +512,8 @@ exports.pdfPersonalisation = onRequest(
   pdfPersonalisationService.createHandler({
     setCors,
     verifyIdTokenClaimsFromRequest: labUserSandboxStore.verifyIdTokenClaimsFromRequest,
-    getPdfClientId: () => ADOBE_CLIENT_ID.value(),
-    getPdfClientSecret: () => ADOBE_CLIENT_SECRET.value(),
+    getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
+    getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
     getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
   }),
 );
