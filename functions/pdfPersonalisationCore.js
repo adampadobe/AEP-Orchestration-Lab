@@ -7,6 +7,7 @@ const Handlebars = require('handlebars');
 
 const MAX_TEMPLATE_BYTES = 1_500_000;
 const MAX_DATA_BYTES = 250_000;
+const MAX_DOCUMENT_MERGE_DATA_BYTES = 8 * 1024 * 1024;
 const MAX_RENDERED_HTML_BYTES = 2_000_000;
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 const MAX_SOURCE_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -222,6 +223,30 @@ function normaliseData(value) {
   return value;
 }
 
+function normaliseDocumentMergeData(value) {
+  if (!plainObject(value)) {
+    throw new PdfPersonalisationError('data must be a JSON object.', 400, 'PDF_DATA_INVALID');
+  }
+  let serialised;
+  try {
+    serialised = JSON.stringify(value);
+  } catch {
+    throw new PdfPersonalisationError('data must be JSON serialisable.', 400, 'PDF_DATA_INVALID');
+  }
+  if (utf8Bytes(serialised) > MAX_DOCUMENT_MERGE_DATA_BYTES) {
+    throw new PdfPersonalisationError(
+      `Document merge data exceeds ${MAX_DOCUMENT_MERGE_DATA_BYTES} bytes.`,
+      413,
+      'PDF_DOCUMENT_MERGE_DATA_TOO_LARGE',
+    );
+  }
+  return value;
+}
+
+function hasMergeData(value) {
+  return plainObject(value) && Object.keys(value).length > 0;
+}
+
 function normaliseOptions(value) {
   const options = plainObject(value) ? value : {};
   return {
@@ -263,6 +288,17 @@ function normaliseGenerateRequest(body) {
   const sourceDocument = conversionMode === 'document'
     ? normaliseSourceDocument(input.sourceDocument)
     : null;
+  const data = conversionMode === 'document'
+    ? normaliseDocumentMergeData(input.data || {})
+    : normaliseData(input.data || {});
+  const documentMerge = conversionMode === 'document' && hasMergeData(data);
+  if (documentMerge && !/\.docx$/i.test(sourceDocument.fileName)) {
+    throw new PdfPersonalisationError(
+      'JSON personalisation requires a DOCX template. Leave data as {} for direct conversion of other file types.',
+      400,
+      'PDF_DOCUMENT_MERGE_DOCX_REQUIRED',
+    );
+  }
   const defaultDocumentName = sourceDocument
     ? sourceDocument.fileName.replace(/\.[^.]+$/, '.pdf')
     : 'personalised-document.pdf';
@@ -270,8 +306,11 @@ function normaliseGenerateRequest(body) {
     conversionMode,
     templateId: conversionMode === 'html' ? templateId : '',
     htmlTemplate: conversionMode === 'html' && inlineTemplate ? validateHtmlTemplate(inlineTemplate) : '',
-    data: conversionMode === 'html' ? normaliseData(input.data || {}) : {},
+    data,
     sourceDocument,
+    documentOperation: conversionMode === 'document'
+      ? (documentMerge ? 'document-merge' : 'create-pdf')
+      : 'html-to-pdf',
     options: normaliseOptions(input.options),
     documentName: safeDocumentName(input.documentName || defaultDocumentName),
     idempotencyKey,
@@ -444,7 +483,7 @@ async function convertHtmlZipToPdf(zipBuffer, options, credentials, deps = {}) {
   return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
 }
 
-async function convertDocumentToPdf(sourceDocument, credentials, deps = {}) {
+async function convertDocumentToPdf(sourceDocument, data, credentials, deps = {}) {
   const sdk = deps.pdfSdk || require('@adobe/pdfservices-node-sdk');
   const clientId = String(credentials && credentials.clientId || '').trim();
   const clientSecret = String(credentials && credentials.clientSecret || '').trim();
@@ -464,12 +503,20 @@ async function convertDocumentToPdf(sourceDocument, credentials, deps = {}) {
     readStream: Readable.from(Buffer.from(input.buffer)),
     mimeType: input.mimeType,
   });
-  const pollingURL = await pdfServices.submit({
-    job: new sdk.CreatePDFJob({ inputAsset }),
-  });
+  const documentMerge = hasMergeData(data);
+  const job = documentMerge
+    ? new sdk.DocumentMergeJob({
+      inputAsset,
+      params: new sdk.DocumentMergeParams({
+        jsonDataForMerge: data,
+        outputFormat: sdk.OutputFormat.PDF,
+      }),
+    })
+    : new sdk.CreatePDFJob({ inputAsset });
+  const pollingURL = await pdfServices.submit({ job });
   const response = await pdfServices.getJobResult({
     pollingURL,
-    resultType: sdk.CreatePDFResult,
+    resultType: documentMerge ? sdk.DocumentMergeResult : sdk.CreatePDFResult,
   });
   const streamAsset = await pdfServices.getContent({ asset: response.result.asset });
   return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
@@ -481,6 +528,8 @@ function requestHash(input, templateHash) {
       conversionMode: input.conversionMode,
       sourceDocumentHash: input.sourceDocument.sha256,
       sourceDocumentMimeType: input.sourceDocument.mimeType,
+      documentOperation: input.documentOperation,
+      data: input.data,
       documentName: input.documentName,
     }));
   }
@@ -496,6 +545,7 @@ function requestHash(input, templateHash) {
 module.exports = {
   MAX_TEMPLATE_BYTES,
   MAX_DATA_BYTES,
+  MAX_DOCUMENT_MERGE_DATA_BYTES,
   MAX_RENDERED_HTML_BYTES,
   MAX_PDF_BYTES,
   MAX_SOURCE_DOCUMENT_BYTES,
@@ -507,6 +557,8 @@ module.exports = {
   normaliseSourceDocument,
   validateHtmlTemplate,
   normaliseData,
+  normaliseDocumentMergeData,
+  hasMergeData,
   normaliseOptions,
   normaliseGenerateRequest,
   renderHtmlTemplate,

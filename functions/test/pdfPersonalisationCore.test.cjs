@@ -118,6 +118,59 @@ test('normalises a supported source document and derives its PDF name', () => {
   assert.equal(input.sourceDocument.sha256.length, 64);
   assert.equal(input.documentName, 'Board-Pack.pdf');
   assert.equal(input.htmlTemplate, '');
+  assert.deepEqual(input.data, {});
+  assert.equal(input.documentOperation, 'create-pdf');
+});
+
+test('normalises DOCX merge data for text and base64 image placeholders', () => {
+  const input = core.normaliseGenerateRequest({
+    conversionMode: 'document',
+    sourceDocument: {
+      fileName: 'boarding-pass.docx',
+      base64: Buffer.from('docx fixture').toString('base64'),
+    },
+    data: {
+      PassengerName: 'Darakhshan Khan',
+      Gate: 'A12',
+      Barcode: 'data:image/png;base64,iVBORw0KGgo=',
+    },
+    idempotencyKey: 'riyadh-boarding-pass-1',
+  });
+  assert.equal(input.documentOperation, 'document-merge');
+  assert.equal(input.data.PassengerName, 'Darakhshan Khan');
+  assert.match(input.data.Barcode, /^data:image\/png;base64,/);
+});
+
+test('rejects JSON merge data for non-DOCX source files', () => {
+  assert.throws(
+    () => core.normaliseGenerateRequest({
+      conversionMode: 'document',
+      sourceDocument: {
+        fileName: 'slides.pptx',
+        base64: Buffer.from('pptx fixture').toString('base64'),
+      },
+      data: { PassengerName: 'Ada' },
+      idempotencyKey: 'slides-with-data-1',
+    }),
+    (error) => error.code === 'PDF_DOCUMENT_MERGE_DOCX_REQUIRED',
+  );
+});
+
+test('includes document merge data in the idempotency request hash', () => {
+  const sourceDocument = core.normaliseSourceDocument({
+    fileName: 'boarding-pass.docx',
+    base64: Buffer.from('same template').toString('base64'),
+  });
+  const base = {
+    conversionMode: 'document',
+    documentOperation: 'document-merge',
+    sourceDocument,
+    documentName: 'boarding-pass.pdf',
+  };
+  assert.notEqual(
+    core.requestHash({ ...base, data: { PassengerName: 'Ada' } }),
+    core.requestHash({ ...base, data: { PassengerName: 'Grace' } }),
+  );
 });
 
 test('rejects unsupported or mismatched source documents', () => {
@@ -155,6 +208,7 @@ test('submits source documents with CreatePDFJob', async () => {
   });
   const pdf = await core.convertDocumentToPdf(
     sourceDocument,
+    {},
     { clientId: 'client', clientSecret: 'secret' },
     { pdfSdk, pdfServices },
   );
@@ -163,6 +217,52 @@ test('submits source documents with CreatePDFJob', async () => {
     ['upload', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
     ['submit', 'source'],
     ['poll', 'create-poll-url'],
+    ['content'],
+  ]);
+});
+
+test('submits DOCX templates and JSON with DocumentMergeJob in PDF format', async () => {
+  class Stub { constructor(value) { Object.assign(this, value); } }
+  class MergeJob extends Stub {}
+  class MergeParams extends Stub {}
+  class MergeResult {}
+  const calls = [];
+  const pdfServices = {
+    async upload(input) { calls.push(['upload', input.mimeType]); return { id: 'template' }; },
+    async submit(input) {
+      calls.push(['submit', input.job.constructor.name, input.job.params.jsonDataForMerge.PassengerName]);
+      return 'merge-poll-url';
+    },
+    async getJobResult(input) {
+      calls.push(['poll', input.pollingURL, input.resultType.name]);
+      return { result: { asset: { id: 'pdf' } } };
+    },
+    async getContent() { calls.push(['content']); return { readStream: Readable.from(Buffer.from('%PDF-1.7\nfixture')) }; },
+  };
+  const pdfSdk = {
+    ServicePrincipalCredentials: Stub,
+    CreatePDFJob: Stub,
+    CreatePDFResult: class CreatePDFResult {},
+    DocumentMergeJob: MergeJob,
+    DocumentMergeParams: MergeParams,
+    DocumentMergeResult: MergeResult,
+    OutputFormat: { PDF: 'pdf' },
+  };
+  const sourceDocument = core.normaliseSourceDocument({
+    fileName: 'boarding-pass.docx',
+    base64: Buffer.from('fixture').toString('base64'),
+  });
+  const pdf = await core.convertDocumentToPdf(
+    sourceDocument,
+    { PassengerName: 'Darakhshan Khan', Barcode: 'data:image/png;base64,AA==' },
+    { clientId: 'client', clientSecret: 'secret' },
+    { pdfSdk, pdfServices },
+  );
+  assert.equal(pdf.subarray(0, 5).toString('ascii'), '%PDF-');
+  assert.deepEqual(calls, [
+    ['upload', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    ['submit', 'MergeJob', 'Darakhshan Khan'],
+    ['poll', 'merge-poll-url', 'MergeResult'],
     ['content'],
   ]);
 });

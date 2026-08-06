@@ -76,6 +76,7 @@ async function responseForReadyJob(job, req, deps = {}) {
     status: 'ready',
     jobId: job.jobId,
     conversionMode: job.conversionMode || 'html',
+    documentOperation: job.documentOperation || null,
     sourceName: job.sourceName || null,
     templateId: job.templateId || null,
     documentName: job.documentName,
@@ -269,7 +270,7 @@ function createHandler(deps) {
           };
           let pdfBuffer;
           if (input.conversionMode === 'document') {
-            pdfBuffer = await core.convertDocumentToPdf(input.sourceDocument, credentials, required);
+            pdfBuffer = await core.convertDocumentToPdf(input.sourceDocument, input.data, credentials, required);
           } else {
             const zipBuffer = await core.createHtmlZip(rendered.renderedHtml);
             pdfBuffer = await core.convertHtmlZipToPdf(zipBuffer, input.options, credentials, required);
@@ -279,6 +280,7 @@ function createHandler(deps) {
             principalId: principal.principalId,
             ownerUid: principal.ownerUid,
             conversionMode: input.conversionMode,
+            documentOperation: input.documentOperation,
             sourceName: input.sourceDocument && input.sourceDocument.fileName,
             sourceHash: input.sourceDocument && input.sourceDocument.sha256,
             templateId: resolved.templateId,

@@ -3,6 +3,7 @@
 
   const MAX_HTML_BYTES = 1_500_000;
   const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+  const MAX_DOCUMENT_DATA_BYTES = 8 * 1024 * 1024;
   const supportedDocumentExtensions = new Set([
     'bmp', 'doc', 'docx', 'gif', 'jpeg', 'jpg', 'png', 'ppt', 'pptx',
     'rtf', 'tif', 'tiff', 'txt', 'xls', 'xlsx',
@@ -104,6 +105,19 @@
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
   }
 
+  function updateDocumentOperation() {
+    if (!sourceDocument) {
+      document.getElementById('pdfDocumentOperationBadge').textContent = 'CreatePDFJob';
+      return;
+    }
+    const extension = String(sourceDocument.fileName.split('.').pop() || '').toLowerCase();
+    let mergeData = false;
+    try { mergeData = Object.keys(parseData()).length > 0; } catch (_error) {}
+    document.getElementById('pdfDocumentOperationBadge').textContent = extension === 'docx' && mergeData
+      ? 'DocumentMergeJob'
+      : 'CreatePDFJob';
+  }
+
   function uniqueKey() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
     return `pdf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -134,10 +148,24 @@
   }
 
   function parseData() {
+    const raw = dataEditor.value || '{}';
     try {
-      const value = JSON.parse(dataEditor.value || '{}');
+      let value;
+      let normalisedSmartQuotes = false;
+      try {
+        value = JSON.parse(raw);
+      } catch (firstError) {
+        const repaired = raw.replace(/[“”]/g, '"');
+        if (repaired === raw) throw firstError;
+        value = JSON.parse(repaired);
+        normalisedSmartQuotes = true;
+      }
       if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a JSON object');
-      jsonState.textContent = 'Valid JSON';
+      const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : 250_000;
+      if (new Blob([JSON.stringify(value)]).size > maxBytes) {
+        throw new Error(`Payload exceeds ${conversionMode() === 'document' ? '8 MB' : '250 KB'}`);
+      }
+      jsonState.textContent = normalisedSmartQuotes ? 'Valid · smart quotes fixed' : 'Valid JSON';
       jsonState.classList.remove('is-error');
       return value;
     } catch (error) {
@@ -174,7 +202,7 @@
 
   function activeDocumentPayload() {
     if (!sourceDocument) throw new Error('Drop in a supported source document first.');
-    return { sourceDocument };
+    return { sourceDocument, data: parseData() };
   }
 
   function requestPayload(includeGenerationFields) {
@@ -303,50 +331,61 @@
       mimeType: file.type || '',
       base64: await fileAsBase64(file),
     };
+    const documentMerge = extension === 'docx' && Object.keys(parseData()).length > 0;
+    updateDocumentOperation();
     documentFileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
     documentFileMeta.hidden = false;
     document.getElementById('pdfDocumentName').value = file.name.replace(/\.[^.]+$/, '.pdf');
     markRequestChanged();
-    setStatus('Source document loaded. Generate PDF will submit it with Adobe CreatePDFJob.', 'success');
+    setStatus(
+      documentMerge
+        ? 'DOCX template loaded. Its tags will be merged with the JSON payload before Adobe returns the PDF.'
+        : 'Source document loaded. Add JSON for a DOCX template merge, or convert the file directly.',
+      'success',
+    );
   }
 
   function applyConversionMode() {
     const documentMode = conversionMode() === 'document';
     document.getElementById('pdfHtmlModePanel').hidden = documentMode;
     document.getElementById('pdfDocumentModePanel').hidden = !documentMode;
-    document.getElementById('pdfPersonalisationFields').hidden = documentMode;
+    document.getElementById('pdfPersonalisationFields').hidden = false;
     document.querySelectorAll('.pdf-html-option').forEach((element) => { element.hidden = documentMode; });
-    document.getElementById('pdfJsonState').hidden = documentMode;
+    document.getElementById('pdfJsonState').hidden = false;
     previewButton.hidden = documentMode;
     previewFrame.hidden = documentMode;
     documentPreviewFrame.removeAttribute('src');
     documentPreviewFrame.hidden = true;
     openPreviewLink.hidden = true;
     previewEmpty.hidden = false;
-    previewMeta.textContent = documentMode ? 'Direct conversion' : 'Not rendered';
-    document.getElementById('pdfDataHeading').textContent = documentMode ? 'Output settings' : 'Personalisation and output';
-    document.getElementById('pdfPreviewHeading').textContent = documentMode ? 'Convert and store' : 'Preview and generate';
-    generateButton.textContent = documentMode ? 'Convert document to PDF' : 'Generate PDF';
+    previewMeta.textContent = documentMode ? 'Document generation' : 'Not rendered';
+    document.getElementById('pdfDataHeading').textContent = 'Personalisation and output';
+    document.getElementById('pdfPreviewHeading').textContent = documentMode ? 'Generate and store' : 'Preview and generate';
+    generateButton.textContent = documentMode ? 'Generate document PDF' : 'Generate PDF';
     document.getElementById('pdfModeHelp').textContent = documentMode
-      ? 'Uploads the source file and submits Adobe CreatePDFJob. No JSON merge is applied.'
+      ? 'DOCX plus JSON uses Adobe Document Generation. Empty JSON, or another supported file, uses direct Create PDF.'
       : 'Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.';
     document.getElementById('pdfPreviewEmptyTitle').textContent = documentMode
-      ? 'Your source document will be converted directly'
+      ? 'Your personalised or converted PDF will appear here'
       : 'Your rendered HTML will appear here';
     document.getElementById('pdfPreviewEmptyText').textContent = documentMode
-      ? 'Adobe PDF Services returns the PDF after CreatePDFJob completes.'
+      ? 'Adobe returns the personalised or directly converted PDF, which is then stored privately.'
       : 'Preview uses the same server-side merge that runs before Adobe PDF Services.';
     document.getElementById('pdfFlowValidate').textContent = documentMode
-      ? 'Authorised user, supported type, bounded file size'
+      ? 'Authorised user, supported type, bounded file and JSON'
       : 'Authorised user, static HTML, bounded JSON';
-    document.getElementById('pdfFlowPrepareTitle').textContent = documentMode ? 'Upload' : 'Merge';
+    document.getElementById('pdfFlowPrepareTitle').textContent = 'Merge';
     document.getElementById('pdfFlowPrepare').textContent = documentMode
-      ? 'Source document uploaded as a private input asset'
+      ? 'DOCX tags receive text and image data from JSON'
       : 'Handlebars data into escaped HTML';
     document.getElementById('pdfFlowConvert').textContent = documentMode
-      ? 'Source asset → CreatePDFJob'
+      ? 'DocumentMergeJob or CreatePDFJob → PDF'
       : 'ZIP index.html → HTMLToPDFJob';
     resultPanel.hidden = true;
+    document.getElementById('pdfDataHelp').textContent = documentMode
+      ? 'For DOCX templates, keys match Word tags such as {{PassengerName}}. Image placeholders accept HTTPS URLs or data:image/...;base64 values. Use {} for direct conversion.'
+      : 'HTML mode uses values beneath data in Handlebars expressions.';
+    updateDocumentOperation();
     markRequestChanged();
   }
 
@@ -448,6 +487,7 @@
       status: result.status,
       jobId: result.jobId,
       conversionMode: result.conversionMode,
+      documentOperation: result.documentOperation,
       sourceName: result.sourceName,
       templateId: result.templateId,
       expiresAt: result.expiresAt,
@@ -465,7 +505,7 @@
       setBusy(true);
       setStatus(
         conversionMode() === 'document'
-          ? 'Converting the source document with Adobe CreatePDFJob. This can take up to a minute...'
+          ? 'Merging DOCX data or converting the source document with Adobe PDF Services. This can take up to a minute...'
           : 'Generating the PDF with Adobe HTMLToPDFJob. This can take up to a minute...',
         'working',
       );
@@ -479,7 +519,7 @@
         result.reused
           ? 'Existing idempotent PDF returned.'
           : conversionMode() === 'document'
-            ? 'Document converted and stored privately. The PDF preview is ready.'
+            ? 'Document generated and stored privately. The PDF preview is ready.'
             : 'PDF converted and stored privately.',
         'success',
       );
@@ -581,6 +621,7 @@
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
       try { parseData(); } catch (_error) {}
+      if (conversionMode() === 'document') updateDocumentOperation();
       markRequestChanged();
     });
     ['pdfDocumentName', 'pdfPagePreset', 'pdfLocale', 'pdfTimeZone', 'pdfHeaderFooter'].forEach((id) => {

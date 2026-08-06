@@ -103,6 +103,7 @@ async function uploadPdf(input, deps = {}) {
       jobid: String(input.jobId || ''),
       principalidhash: String(input.principalIdHash || ''),
       conversionmode: String(input.conversionMode || 'html'),
+      documentoperation: String(input.documentOperation || ''),
       sourcehash: String(input.sourceHash || ''),
       templatehash: String(input.templateHash || ''),
       requesthash: String(input.requestHash || ''),

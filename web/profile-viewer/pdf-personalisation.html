@@ -58,7 +58,7 @@
             <label for="pdfConversionMode">Operation</label>
             <select id="pdfConversionMode">
               <option value="html">HTML to PDF - template plus JSON</option>
-              <option value="document">Document to PDF - direct file conversion</option>
+              <option value="document">Document to PDF - DOCX + JSON or direct conversion</option>
             </select>
           </div>
           <p id="pdfModeHelp">Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.</p>
@@ -114,7 +114,7 @@
                   <span class="pdf-step">1</span>
                   <h3 id="pdfDocumentHeading">Source document</h3>
                 </div>
-                <span class="pdf-document-badge">CreatePDFJob</span>
+                <span class="pdf-document-badge" id="pdfDocumentOperationBadge">CreatePDFJob</span>
               </div>
               <div id="pdfDocumentDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop a supported document or click to browse">
                 <input type="file" id="pdfDocumentFile" accept=".doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff" hidden>
@@ -124,7 +124,7 @@
               </div>
               <p id="pdfDocumentFileMeta" class="pdf-file-meta" hidden></p>
               <p class="pdf-field-help">
-                Document mode converts the file as-is. It does not merge the JSON below; Word-template data merge uses Adobe Document Generation, which is a separate operation.
+                DOCX templates can merge the JSON below, including text and image values, with Adobe Document Generation. Other supported files are converted as-is.
               </p>
             </section>
 
@@ -139,6 +139,7 @@
               <div id="pdfPersonalisationFields">
                 <label for="pdfDataEditor">JSON payload</label>
                 <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
+                <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
               </div>
 
               <div class="pdf-options-grid">
