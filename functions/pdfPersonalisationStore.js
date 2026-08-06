@@ -2,7 +2,12 @@
 
 const { createHash, randomBytes, randomUUID } = require('node:crypto');
 const admin = require('firebase-admin');
-const { PdfPersonalisationError, safeDocumentName, validateHtmlTemplate } = require('./pdfPersonalisationCore');
+const {
+  PdfPersonalisationError,
+  normaliseData,
+  safeDocumentName,
+  validateHtmlTemplate,
+} = require('./pdfPersonalisationCore');
 const s3Store = require('./pdfPersonalisationS3');
 
 const JOBS_COLLECTION = 'pdfPersonalisationJobs';
@@ -290,8 +295,18 @@ function safeTemplateName(value) {
   return name || 'Untitled PDF template';
 }
 
+function safeTemplateSourceName(value) {
+  return String(value || '')
+    .replace(/[\\/\u0000-\u001f\u007f]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+}
+
 async function saveTemplate(input, deps = {}) {
   const html = validateHtmlTemplate(input.htmlTemplate);
+  const defaultData = normaliseData(input.defaultData || {});
+  const serialisedData = JSON.stringify(defaultData);
   const db = getFirestore(deps);
   const bucket = getBucket(deps);
   const templateId = deps.randomId ? deps.randomId() : randomUUID();
@@ -313,6 +328,10 @@ async function saveTemplate(input, deps = {}) {
     objectPath: path,
     templateHash: sha256(html),
     size: Buffer.byteLength(html, 'utf8'),
+    defaultData,
+    dataHash: sha256(serialisedData),
+    dataSize: Buffer.byteLength(serialisedData, 'utf8'),
+    sourceFileName: safeTemplateSourceName(input.sourceFileName),
     createdAt: timestamp,
     updatedAt: timestamp,
     status: 'active',
@@ -328,7 +347,11 @@ async function getTemplate(templateId, deps = {}) {
   const record = snapshot.data() || {};
   if (record.status !== 'active' || !record.objectPath) return null;
   const [bytes] = await getBucket(deps).file(record.objectPath).download();
-  return { ...record, htmlTemplate: bytes.toString('utf8') };
+  return {
+    ...record,
+    defaultData: record.defaultData && typeof record.defaultData === 'object' ? record.defaultData : {},
+    htmlTemplate: bytes.toString('utf8'),
+  };
 }
 
 async function listTemplates(ownerUid, deps = {}) {
@@ -339,7 +362,7 @@ async function listTemplates(ownerUid, deps = {}) {
     .map((doc) => doc.data())
     .filter((record) => record && record.status === 'active')
     .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
-    .map(({ objectPath, ownerUid: _ownerUid, ...record }) => record);
+    .map(({ defaultData: _defaultData, objectPath, ownerUid: _ownerUid, ...record }) => record);
 }
 
 async function cleanupExpired(deps = {}) {
@@ -385,6 +408,7 @@ module.exports = {
   issueDownloadToken,
   resolveDownloadToken,
   openDownload,
+  safeTemplateSourceName,
   saveTemplate,
   getTemplate,
   listTemplates,

@@ -100,6 +100,7 @@
   let authUser = null;
   let lastResult = null;
   let sourceDocument = null;
+  let sourceHtmlFileName = '';
 
   function conversionMode() {
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
@@ -266,9 +267,11 @@
     htmlEditor.value = sampleHtml;
     dataEditor.value = JSON.stringify(sampleData, null, 2);
     templateName.value = 'Travel booking confirmation v1';
+    sourceHtmlFileName = '';
     document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     fileMeta.hidden = true;
+    dropZone.setAttribute('aria-disabled', 'false');
     parseData();
     previewEmpty.hidden = false;
     resultPanel.hidden = true;
@@ -290,6 +293,7 @@
   function useUnsavedEditor() {
     if (templateSelect.value) templateSelect.value = '';
     htmlEditor.disabled = false;
+    dropZone.setAttribute('aria-disabled', 'false');
     markRequestChanged();
   }
 
@@ -298,11 +302,12 @@
     if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') throw new Error('Choose an .html or .htm file.');
     if (file.size > MAX_HTML_BYTES) throw new Error('HTML file exceeds 1.5 MB.');
     htmlEditor.value = await file.text();
+    sourceHtmlFileName = file.name;
     templateName.value = file.name.replace(/\.html?$/i, '');
     fileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
     fileMeta.hidden = false;
     useUnsavedEditor();
-    setStatus('HTML file loaded. Add JSON data, then render a preview.', 'success');
+    setStatus('HTML file loaded. Add or paste its JSON, then choose Save HTML + JSON to keep the pair in the repository.', 'success');
   }
 
   function fileAsBase64(file) {
@@ -393,9 +398,9 @@
     try {
       const { body } = await api('/templates', { method: 'GET' });
       const current = selectId || templateSelect.value;
-      templateSelect.replaceChildren(new Option('Unsaved HTML in editor', ''));
+      templateSelect.replaceChildren(new Option('Unsaved HTML + JSON in editor', ''));
       (body.templates || []).forEach((item) => {
-        const label = `${item.name} · ${formatBytes(item.size)}`;
+        const label = `${item.name} · HTML ${formatBytes(item.size)} · JSON ${formatBytes(item.dataSize)}`;
         templateSelect.add(new Option(label, item.templateId));
       });
       if (current && Array.from(templateSelect.options).some((option) => option.value === current)) {
@@ -407,18 +412,60 @@
     }
   }
 
+  async function loadSelectedTemplate() {
+    const templateId = templateSelect.value.trim();
+    if (!templateId) {
+      htmlEditor.disabled = false;
+      dropZone.setAttribute('aria-disabled', 'false');
+      markRequestChanged();
+      setStatus('Using the editable HTML and JSON currently in the workspace.', 'success');
+      return;
+    }
+    try {
+      setBusy(true);
+      setStatus('Loading HTML and default JSON from the private template repository...', 'working');
+      const { body } = await api(`/templates/${encodeURIComponent(templateId)}`, { method: 'GET' });
+      htmlEditor.value = body.htmlTemplate || '';
+      dataEditor.value = JSON.stringify(body.defaultData || {}, null, 2);
+      templateName.value = body.name || '';
+      sourceHtmlFileName = body.sourceFileName || '';
+      htmlEditor.disabled = true;
+      dropZone.setAttribute('aria-disabled', 'true');
+      fileMeta.textContent = `${sourceHtmlFileName || body.name || 'Saved HTML'} · HTML ${formatBytes(body.size)} · JSON ${formatBytes(body.dataSize)}`;
+      fileMeta.hidden = false;
+      parseData();
+      markRequestChanged();
+      setStatus(`Loaded “${body.name}” with its default JSON. You can edit the JSON for this recipient before previewing or generating.`, 'success');
+    } catch (error) {
+      templateSelect.value = '';
+      htmlEditor.disabled = false;
+      dropZone.setAttribute('aria-disabled', 'false');
+      setStatus(error.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveTemplate() {
     try {
       if (!htmlEditor.value.trim()) throw new Error('Add HTML before saving a template.');
       setBusy(true);
-      setStatus('Saving the private reusable template...', 'working');
+      const defaultData = parseData();
+      setStatus('Saving the HTML and default JSON in the private repository...', 'working');
       const { body } = await api('/templates', {
         method: 'POST',
-        body: JSON.stringify({ name: templateName.value, htmlTemplate: htmlEditor.value }),
+        body: JSON.stringify({
+          name: templateName.value,
+          htmlTemplate: htmlEditor.value,
+          defaultData,
+          sourceFileName: sourceHtmlFileName,
+        }),
       });
       await loadTemplates(body.templateId);
+      htmlEditor.disabled = true;
+      dropZone.setAttribute('aria-disabled', 'true');
       markRequestChanged();
-      setStatus(`Template saved as “${body.name}”. AJO can generate from templateId ${body.templateId}.`, 'success');
+      setStatus(`Saved “${body.name}” with its default JSON. Selecting templateId ${body.templateId} will restore the pair.`, 'success');
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
@@ -627,13 +674,7 @@
     ['pdfDocumentName', 'pdfPagePreset', 'pdfLocale', 'pdfTimeZone', 'pdfHeaderFooter'].forEach((id) => {
       document.getElementById(id).addEventListener('change', markRequestChanged);
     });
-    templateSelect.addEventListener('change', () => {
-      const saved = !!templateSelect.value;
-      htmlEditor.disabled = saved;
-      dropZone.setAttribute('aria-disabled', saved ? 'true' : 'false');
-      if (saved) setStatus('Saved template selected. The private templateId will be sent to the API.', 'success');
-      markRequestChanged();
-    });
+    templateSelect.addEventListener('change', () => { loadSelectedTemplate().catch(() => {}); });
     document.getElementById('pdfLoadSample').addEventListener('click', loadSample);
     document.getElementById('pdfRefreshTemplates').addEventListener('click', () => loadTemplates());
     document.getElementById('pdfSaveTemplate').addEventListener('click', saveTemplate);

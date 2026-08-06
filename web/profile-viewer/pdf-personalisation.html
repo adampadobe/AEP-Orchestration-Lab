@@ -76,10 +76,10 @@
               </div>
 
               <div class="pdf-saved-template-row">
-                <label for="pdfSavedTemplate">Saved template</label>
+                <label for="pdfSavedTemplate">Template repository</label>
                 <div class="pdf-inline-control">
                   <select id="pdfSavedTemplate">
-                    <option value="">Unsaved HTML in editor</option>
+                    <option value="">Unsaved HTML + JSON in editor</option>
                   </select>
                   <button type="button" class="dashboard-btn-outline pdf-icon-button" id="pdfRefreshTemplates" title="Refresh saved templates" aria-label="Refresh saved templates">↻</button>
                 </div>
@@ -103,8 +103,9 @@
                 <label for="pdfTemplateName">Reusable template name</label>
                 <div class="pdf-inline-control">
                   <input id="pdfTemplateName" type="text" maxlength="120" placeholder="e.g. Emirates booking confirmation v1">
-                  <button type="button" class="dashboard-btn-outline" id="pdfSaveTemplate">Save template</button>
+                  <button type="button" class="dashboard-btn-outline" id="pdfSaveTemplate">Save HTML + JSON</button>
                 </div>
+                <p class="pdf-field-help">Saves the HTML and the current JSON together in your private server-side repository. Selecting it later restores both editors.</p>
               </div>
             </section>
 
@@ -253,6 +254,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806e"></script>
+  <script src="pdf-personalisation.js?v=20260806f"></script>
 </body>
 </html>

@@ -12,6 +12,65 @@ function request(headers = {}, url = '/api/pdf-personalisation/generate') {
   };
 }
 
+function response() {
+  return {
+    headersSent: false,
+    headers: {},
+    setHeader(name, value) { this.headers[name] = value; },
+    status(code) { this.statusCode = code; return this; },
+    json(value) { this.body = value; this.headersSent = true; return this; },
+    end() { this.headersSent = true; return this; },
+  };
+}
+
+function templateRepositoryDeps() {
+  const records = new Map();
+  const objects = new Map();
+  return {
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    randomId: () => 'template-route-1',
+    now: () => new Date('2026-08-06T12:00:00Z'),
+    firestore: {
+      collection() {
+        return {
+          doc(id) {
+            return {
+              async set(value) { records.set(id, structuredClone(value)); },
+              async get() {
+                const value = records.get(id);
+                return { exists: !!value, data: () => structuredClone(value) };
+              },
+            };
+          },
+          where(field, _operator, expected) {
+            return {
+              async get() {
+                return {
+                  docs: Array.from(records.values())
+                    .filter((value) => value[field] === expected)
+                    .map((value) => ({ data: () => structuredClone(value) })),
+                };
+              },
+            };
+          },
+        };
+      },
+    },
+    bucket: {
+      file(path) {
+        return {
+          async save(bytes) { objects.set(path, Buffer.from(bytes)); },
+          async download() { return [Buffer.from(objects.get(path))]; },
+        };
+      },
+    },
+  };
+}
+
 test('normalises Hosting and direct function route paths', () => {
   assert.equal(service.routePath(request({}, '/api/pdf-personalisation/templates?x=1')), '/templates');
   assert.equal(service.routePath(request({}, '/generate')), '/generate');
@@ -84,4 +143,34 @@ test('only opts into inline PDF rendering when explicitly requested', () => {
   assert.equal(service.downloadDisposition({ query: { disposition: 'attachment' } }), 'attachment');
   assert.equal(service.downloadDisposition({ query: { disposition: 'anything-else' } }), 'attachment');
   assert.equal(service.downloadDisposition({}), 'attachment');
+});
+
+test('saves and reloads the HTML plus default JSON repository pair', async () => {
+  const handler = service.createHandler(templateRepositoryDeps());
+  const saveReq = Object.assign(request({}, '/api/pdf-personalisation/templates'), {
+    method: 'POST',
+    body: {
+      name: 'Riyadh Air boarding pass',
+      sourceFileName: 'riyadh-air.html',
+      htmlTemplate: '<p>{{data.passenger.name}}</p>',
+      defaultData: { passenger: { name: 'DARAKHSHAN KHAN' } },
+    },
+  });
+  const saveRes = response();
+  await handler(saveReq, saveRes);
+  assert.equal(saveRes.statusCode, 201);
+  assert.equal(saveRes.body.templateId, 'template-route-1');
+  assert.equal('defaultData' in saveRes.body, false);
+
+  const getReq = Object.assign(request({}, '/api/pdf-personalisation/templates/template-route-1'), {
+    method: 'GET',
+  });
+  const getRes = response();
+  await handler(getReq, getRes);
+  assert.equal(getRes.statusCode, 200);
+  assert.equal(getRes.body.htmlTemplate, '<p>{{data.passenger.name}}</p>');
+  assert.deepEqual(getRes.body.defaultData, { passenger: { name: 'DARAKHSHAN KHAN' } });
+  assert.equal(getRes.body.sourceFileName, 'riyadh-air.html');
+  assert.equal('ownerUid' in getRes.body, false);
+  assert.equal('objectPath' in getRes.body, false);
 });

@@ -199,6 +199,29 @@ function createHandler(deps) {
         return;
       }
 
+      const templateMatch = path.match(/^\/templates\/([^/]+)$/);
+      if (templateMatch && req.method === 'GET') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        let templateId = '';
+        try { templateId = decodeURIComponent(templateMatch[1]); } catch (_error) {}
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(templateId)) {
+          throw new core.PdfPersonalisationError('Template was not found.', 404, 'PDF_TEMPLATE_NOT_FOUND');
+        }
+        const template = await store.getTemplate(templateId, required);
+        if (!template || template.ownerUid !== principal.ownerUid) {
+          throw new core.PdfPersonalisationError('Template was not found.', 404, 'PDF_TEMPLATE_NOT_FOUND');
+        }
+        const {
+          ownerUid: _ownerUid,
+          objectPath: _objectPath,
+          ...response
+        } = template;
+        res.status(200).json(response);
+        return;
+      }
+
       if (path === '/templates' && req.method === 'POST') {
         if (principal.type !== 'portal') {
           throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
@@ -208,8 +231,15 @@ function createHandler(deps) {
           ownerUid: principal.ownerUid,
           name: body.name,
           htmlTemplate: body.htmlTemplate,
+          defaultData: body.defaultData,
+          sourceFileName: body.sourceFileName,
         }, required);
-        const { ownerUid: _ownerUid, objectPath: _objectPath, ...response } = saved;
+        const {
+          defaultData: _defaultData,
+          ownerUid: _ownerUid,
+          objectPath: _objectPath,
+          ...response
+        } = saved;
         res.status(201).json(response);
         return;
       }
