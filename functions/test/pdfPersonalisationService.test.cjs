@@ -174,3 +174,24 @@ test('saves and reloads the HTML plus default JSON repository pair', async () =>
   assert.equal('ownerUid' in getRes.body, false);
   assert.equal('objectPath' in getRes.body, false);
 });
+
+test('converts an authenticated Word data document into editable JSON', async () => {
+  const deps = templateRepositoryDeps();
+  deps.convertDocxData = async () => ({
+    sourceName: 'data.docx',
+    format: 'json-text',
+    paragraphCount: 4,
+    fieldCount: 2,
+    data: { PassengerName: 'Darakhshan Khan', FlightNumber: 'RX 123' },
+  });
+  const handler = service.createHandler(deps);
+  const req = Object.assign(request({}, '/api/pdf-personalisation/convert-data-document'), {
+    method: 'POST',
+    body: { sourceDocument: { fileName: 'data.docx', base64: 'fixture' } },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, 'converted');
+  assert.deepEqual(res.body.data, { PassengerName: 'Darakhshan Khan', FlightNumber: 'RX 123' });
+});

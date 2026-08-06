@@ -2,6 +2,7 @@
 
 const { randomUUID, timingSafeEqual } = require('node:crypto');
 const core = require('./pdfPersonalisationCore');
+const docxData = require('./pdfPersonalisationDocxData');
 const store = require('./pdfPersonalisationStore');
 
 const DEFAULT_ALLOWED_EMAILS = ['apalmer@adobe.com'];
@@ -241,6 +242,24 @@ function createHandler(deps) {
           ...response
         } = saved;
         res.status(201).json(response);
+        return;
+      }
+
+      if (path === '/convert-data-document' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const converted = await (required.convertDocxData || docxData.convertDocxToJson)(body.sourceDocument);
+        const data = core.normaliseDocumentMergeData(converted.data);
+        res.status(200).json({
+          status: 'converted',
+          sourceName: converted.sourceName,
+          format: converted.format,
+          paragraphCount: converted.paragraphCount,
+          fieldCount: converted.fieldCount,
+          data,
+        });
         return;
       }
 

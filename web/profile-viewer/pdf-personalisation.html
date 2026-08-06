@@ -144,12 +144,12 @@
               </div>
               <div id="pdfPersonalisationFields">
                 <label for="pdfDataEditor">JSON payload</label>
-                <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON payload or click to browse">
-                  <input type="file" id="pdfJsonFile" accept=".json,application/json" hidden>
+                <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON or DOCX data file, or click to browse">
+                  <input type="file" id="pdfJsonFile" accept=".json,.docx,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
                   <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
                   <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
-                  <strong>Drop a JSON payload here</strong>
-                  <span id="pdfJsonDropHelp" class="pdf-drop-description">or click to browse · maximum 250 KB</span>
+                  <strong>Drop JSON or a Word data document here</strong>
+                  <span id="pdfJsonDropHelp" class="pdf-drop-description">JSON up to 1.5 MB or DOCX up to 10 MB</span>
                 </div>
                 <p id="pdfJsonFileMeta" class="pdf-file-meta" hidden></p>
                 <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
@@ -267,6 +267,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806i"></script>
+  <script src="pdf-personalisation.js?v=20260806j"></script>
 </body>
 </html>

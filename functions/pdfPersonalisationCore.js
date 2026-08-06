@@ -6,7 +6,7 @@ const archiver = require('archiver');
 const Handlebars = require('handlebars');
 
 const MAX_TEMPLATE_BYTES = 1_500_000;
-const MAX_DATA_BYTES = 250_000;
+const MAX_DATA_BYTES = 1_500_000;
 const MAX_DOCUMENT_MERGE_DATA_BYTES = 8 * 1024 * 1024;
 const MAX_RENDERED_HTML_BYTES = 2_000_000;
 const MAX_PDF_BYTES = 5 * 1024 * 1024;

@@ -2,6 +2,7 @@
   'use strict';
 
   const MAX_HTML_BYTES = 1_500_000;
+  const MAX_HTML_DATA_BYTES = 1_500_000;
   const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
   const MAX_DOCUMENT_DATA_BYTES = 8 * 1024 * 1024;
   const supportedDocumentExtensions = new Set([
@@ -192,9 +193,9 @@
         normalisedSmartQuotes = true;
       }
       if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a JSON object');
-      const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : 250_000;
+      const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : MAX_HTML_DATA_BYTES;
       if (new Blob([JSON.stringify(value)]).size > maxBytes) {
-        throw new Error(`Payload exceeds ${conversionMode() === 'document' ? '8 MB' : '250 KB'}`);
+        throw new Error(`Payload exceeds ${conversionMode() === 'document' ? '8 MB' : '1.5 MB'}`);
       }
       jsonState.textContent = normalisedSmartQuotes ? 'Valid · smart quotes fixed' : 'Valid JSON';
       jsonState.classList.remove('is-error');
@@ -355,12 +356,41 @@
     setStatus('HTML file loaded. Add or paste its JSON, then choose Save HTML + JSON to keep the pair in the repository.', 'success');
   }
 
-  async function readJsonFile(file) {
+  async function readDataFile(file) {
     if (!file) return;
-    if (!/\.json$/i.test(file.name) && file.type !== 'application/json') throw new Error('Choose a .json file.');
-    const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : 250_000;
+    const docx = /\.docx$/i.test(file.name);
+    const json = /\.json$/i.test(file.name) || file.type === 'application/json';
+    if (!docx && !json) throw new Error('Choose a .json or .docx data file.');
+    if (docx) {
+      if (file.size > MAX_DOCUMENT_BYTES) throw new Error('Word data document exceeds 10 MB.');
+      setBusy(true);
+      setStatus('Extracting JSON data from the Word document...', 'working');
+      try {
+        const { body } = await api('/convert-data-document', {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceDocument: {
+              fileName: file.name,
+              mimeType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              base64: await fileAsBase64(file),
+            },
+          }),
+        });
+        dataEditor.value = JSON.stringify(body.data || {}, null, 2);
+        parseData();
+        setDropZoneLoaded(jsonDropZone, file.name, file.size, 'DOCX → JSON');
+        jsonFileMeta.hidden = true;
+        if (conversionMode() === 'document') updateDocumentOperation();
+        markRequestChanged();
+        setStatus(`Converted “${file.name}” into editable JSON with ${body.fieldCount || 0} top-level fields.`, 'success');
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
+    const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : MAX_HTML_DATA_BYTES;
     if (file.size > maxBytes) {
-      throw new Error(`JSON file exceeds ${conversionMode() === 'document' ? '8 MB' : '250 KB'}.`);
+      throw new Error(`JSON file exceeds ${conversionMode() === 'document' ? '8 MB' : '1.5 MB'}.`);
     }
     dataEditor.value = await file.text();
     const data = parseData();
@@ -453,8 +483,8 @@
       ? 'For DOCX templates, keys match Word tags such as {{PassengerName}}. Image placeholders accept HTTPS URLs or data:image/...;base64 values. Use {} for direct conversion.'
       : 'HTML mode uses values beneath data in Handlebars expressions.';
     const jsonDropHelp = documentMode
-      ? 'or click to browse · maximum 8 MB for DOCX merge data'
-      : 'or click to browse · maximum 250 KB';
+      ? 'JSON up to 8 MB or DOCX up to 10 MB · extracted data remains editable'
+      : 'JSON up to 1.5 MB or DOCX up to 10 MB · extracted data remains editable';
     jsonDropZone.dataset.emptyDescription = jsonDropHelp;
     if (!jsonDropZone.classList.contains('is-loaded')) {
       document.getElementById('pdfJsonDropHelp').textContent = jsonDropHelp;
@@ -701,7 +731,7 @@
       }
     });
     jsonFile.addEventListener('change', () => {
-      readJsonFile(jsonFile.files && jsonFile.files[0]).catch((error) => setStatus(error.message, 'error'));
+      readDataFile(jsonFile.files && jsonFile.files[0]).catch((error) => setStatus(error.message, 'error'));
     });
     ['dragenter', 'dragover'].forEach((name) => jsonDropZone.addEventListener(name, (event) => {
       event.preventDefault();
@@ -712,7 +742,7 @@
       jsonDropZone.classList.remove('is-dragging');
     }));
     jsonDropZone.addEventListener('drop', (event) => {
-      readJsonFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
+      readDataFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
     });
 
     documentDropZone.addEventListener('click', () => documentFile.click());
