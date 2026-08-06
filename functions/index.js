@@ -12,6 +12,8 @@ const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
 const ADOBE_CLIENT_SECRET = defineSecret('ADOBE_CLIENT_SECRET');
 const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
+/** Optional machine-to-machine key used by a future AJO custom action. */
+const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
 
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
@@ -113,6 +115,8 @@ const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
 const labDemoConfigService = lazyRequireMod('./labDemoConfigService');
 const labDemoAssetService = lazyRequireMod('./labDemoAssetService');
+const pdfPersonalisationService = require('./pdfPersonalisationService');
+const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -476,6 +480,54 @@ exports.aepProxy = onRequest(
       platform_base_url: platformBase,
     });
   }
+);
+
+/**
+ * Private-template HTML-to-PDF workspace and AJO handoff API.
+ * Browser writes require an allow-listed Firebase user; future AJO calls use
+ * X-PDF-API-Key. Download URLs carry a separate opaque, expiring token.
+ */
+exports.pdfPersonalisation = onRequest(
+  {
+    region: REGION,
+    secrets: [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, PDF_PERSONALISATION_API_KEY],
+    environmentVariables: {
+      PDF_PERSONALISATION_PUBLIC_BASE_URL:
+        process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL
+        || 'https://aep-orchestration-lab.web.app/api/pdf-personalisation',
+      PDF_PERSONALISATION_ALLOWED_EMAILS:
+        process.env.PDF_PERSONALISATION_ALLOWED_EMAILS || 'apalmer@adobe.com',
+      PDF_PERSONALISATION_RETENTION_DAYS:
+        process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+    },
+    invoker: 'public',
+    timeoutSeconds: 300,
+    memory: '1GiB',
+    maxInstances: 10,
+    concurrency: 10,
+  },
+  pdfPersonalisationService.createHandler({
+    setCors,
+    verifyIdTokenClaimsFromRequest: labUserSandboxStore.verifyIdTokenClaimsFromRequest,
+    getPdfClientId: () => ADOBE_CLIENT_ID.value(),
+    getPdfClientSecret: () => ADOBE_CLIENT_SECRET.value(),
+    getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
+  }),
+);
+
+/** Delete expired PDF artefacts and their capability-token metadata. */
+exports.pdfPersonalisationCleanup = onSchedule(
+  {
+    schedule: 'every day 03:17',
+    timeZone: 'Etc/UTC',
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: '512MiB',
+  },
+  async () => {
+    const result = await pdfPersonalisationStore.cleanupExpired();
+    console.log('[pdfPersonalisationCleanup]', JSON.stringify(result));
+  },
 );
 
 const profileFnOpts = {

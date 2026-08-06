@@ -1,0 +1,447 @@
+(function () {
+  'use strict';
+
+  const MAX_HTML_BYTES = 1_500_000;
+  const sampleHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 38px; color: #201d1b; background: #f4f1ed; font-family: Arial, sans-serif; }
+    .ticket { max-width: 760px; margin: 0 auto; overflow: hidden; border-radius: 18px; background: #fff; box-shadow: 0 18px 55px rgba(61,37,22,.13); }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 28px 32px; color: #fff; background: linear-gradient(120deg,#6d1020,#b31e36); }
+    .brand { font-size: 24px; font-weight: bold; letter-spacing: .08em; }
+    .reference { text-align: right; font-size: 12px; }
+    .reference strong { display: block; margin-top: 4px; font-size: 19px; }
+    .content { padding: 30px 32px; }
+    h1 { margin: 0 0 8px; font-size: 25px; }
+    .lead { margin: 0 0 26px; color: #665f5b; }
+    .flight { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; margin: 14px 0; padding: 20px; border: 1px solid #e9dfd9; border-radius: 12px; }
+    .airport:last-child { text-align: right; }
+    .code { display: block; color: #6d1020; font-size: 28px; font-weight: bold; }
+    .route { color: #b31e36; font-weight: bold; }
+    .meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 22px; }
+    .meta div { padding: 13px; border-radius: 9px; background: #f8f4f1; }
+    .meta span { display: block; margin-bottom: 5px; color: #7b706a; font-size: 10px; text-transform: uppercase; }
+    .footer { padding: 17px 32px; color: #776c66; background: #f8f4f1; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <article class="ticket">
+    <header class="header">
+      <div class="brand">TRAVEL DEMO</div>
+      <div class="reference">Booking reference<strong>{{data.bookingReference}}</strong></div>
+    </header>
+    <section class="content">
+      <h1>Your booking is confirmed, {{data.passenger.firstName}}</h1>
+      <p class="lead">Your personalised itinerary and ticket details are below.</p>
+      {{#each data.flightDetails}}
+      <div class="flight">
+        <div class="airport"><span class="code">{{departureAirport}}</span>{{formatDateTime departureDateTime}}</div>
+        <div class="route">{{flightNumber}} →</div>
+        <div class="airport"><span class="code">{{arrivalAirport}}</span>{{formatDateTime arrivalDateTime}}</div>
+      </div>
+      {{/each}}
+      <div class="meta">
+        <div><span>Passenger</span><strong>{{data.passenger.firstName}} {{data.passenger.lastName}}</strong></div>
+        <div><span>Ticket</span><strong>{{data.ticketNumber}}</strong></div>
+        <div><span>Total paid</span><strong>{{formatCurrency data.fareDetails.totalPaid data.fareDetails.currency}}</strong></div>
+      </div>
+    </section>
+    <footer class="footer">Generated securely for this recipient · Do not forward if it contains personal information.</footer>
+  </article>
+</body>
+</html>`;
+
+  const sampleData = {
+    bookingReference: 'EK8F2Q',
+    ticketNumber: '1761234567890',
+    passenger: { firstName: 'Amelia', lastName: 'Palmer' },
+    flightDetails: [{
+      flightNumber: 'EK 001',
+      departureAirport: 'DXB',
+      arrivalAirport: 'LHR',
+      departureDateTime: '2026-08-12T07:45:00Z',
+      arrivalDateTime: '2026-08-12T15:10:00Z',
+    }],
+    fareDetails: { totalPaid: 1280.5, currency: 'GBP' },
+  };
+
+  const htmlEditor = document.getElementById('pdfHtmlEditor');
+  const dataEditor = document.getElementById('pdfDataEditor');
+  const templateSelect = document.getElementById('pdfSavedTemplate');
+  const templateName = document.getElementById('pdfTemplateName');
+  const htmlFile = document.getElementById('pdfHtmlFile');
+  const dropZone = document.getElementById('pdfHtmlDropZone');
+  const fileMeta = document.getElementById('pdfHtmlFileMeta');
+  const authState = document.getElementById('pdfAuthState');
+  const statusEl = document.getElementById('pdfWorkspaceStatus');
+  const jsonState = document.getElementById('pdfJsonState');
+  const previewButton = document.getElementById('pdfPreviewButton');
+  const generateButton = document.getElementById('pdfGenerateButton');
+  const previewFrame = document.getElementById('pdfPreviewFrame');
+  const previewEmpty = document.getElementById('pdfPreviewEmpty');
+  const previewMeta = document.getElementById('pdfPreviewMeta');
+  const resultPanel = document.getElementById('pdfResultPanel');
+  const handoffJson = document.getElementById('pdfHandoffJson');
+  let authUser = null;
+  let lastResult = null;
+
+  function uniqueKey() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return `pdf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  function formatBytes(bytes) {
+    const number = Number(bytes) || 0;
+    if (number < 1024) return `${number} B`;
+    if (number < 1024 * 1024) return `${(number / 1024).toFixed(1)} KB`;
+    return `${(number / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function setStatus(message, kind) {
+    statusEl.hidden = !message;
+    statusEl.textContent = message || '';
+    statusEl.className = `pdf-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function setBusy(busy) {
+    previewButton.disabled = busy;
+    generateButton.disabled = busy;
+    document.getElementById('pdfSaveTemplate').disabled = busy;
+  }
+
+  function setAuthState(message, kind) {
+    authState.textContent = message;
+    authState.className = `pdf-auth-state${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function parseData() {
+    try {
+      const value = JSON.parse(dataEditor.value || '{}');
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a JSON object');
+      jsonState.textContent = 'Valid JSON';
+      jsonState.classList.remove('is-error');
+      return value;
+    } catch (error) {
+      jsonState.textContent = 'Invalid JSON';
+      jsonState.classList.add('is-error');
+      throw new Error(`Personalisation data is invalid: ${error.message}`);
+    }
+  }
+
+  function pageOptions() {
+    const preset = document.getElementById('pdfPagePreset').value;
+    const sizes = {
+      a4: { pageWidth: 8.27, pageHeight: 11.69 },
+      letter: { pageWidth: 8.5, pageHeight: 11 },
+      'a4-landscape': { pageWidth: 11.69, pageHeight: 8.27 },
+    };
+    return {
+      ...(sizes[preset] || sizes.a4),
+      includeHeaderFooter: document.getElementById('pdfHeaderFooter').checked,
+      waitTimeToLoad: 100,
+      locale: document.getElementById('pdfLocale').value.trim() || 'en-GB',
+      timeZone: document.getElementById('pdfTimeZone').value.trim() || 'UTC',
+    };
+  }
+
+  function activeTemplatePayload() {
+    const templateId = templateSelect.value.trim();
+    if (templateId) return { templateId };
+    const htmlTemplate = htmlEditor.value;
+    if (!htmlTemplate.trim()) throw new Error('Add or select an HTML template first.');
+    if (new Blob([htmlTemplate]).size > MAX_HTML_BYTES) throw new Error('HTML template exceeds 1.5 MB.');
+    return { htmlTemplate };
+  }
+
+  function requestPayload(includeGenerationFields) {
+    const payload = {
+      ...activeTemplatePayload(),
+      data: parseData(),
+      options: pageOptions(),
+    };
+    if (includeGenerationFields) {
+      payload.documentName = document.getElementById('pdfDocumentName').value.trim() || 'personalised-document.pdf';
+      payload.idempotencyKey = document.getElementById('pdfIdempotencyKey').value.trim();
+    }
+    return payload;
+  }
+
+  function projectId() {
+    try {
+      return String(window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId || 'aep-orchestration-lab').trim();
+    } catch (_error) {
+      return 'aep-orchestration-lab';
+    }
+  }
+
+  function directFunctionUrl(path) {
+    return `https://us-central1-${projectId()}.cloudfunctions.net/pdfPersonalisation${path}`;
+  }
+
+  async function token() {
+    const user = authUser || (window.firebase && firebase.auth && firebase.auth().currentUser);
+    if (!user || user.isAnonymous || !user.email) throw new Error('Sign in to the Lab with apalmer@adobe.com first.');
+    return user.getIdToken(false);
+  }
+
+  async function api(path, init, direct) {
+    const idToken = await token();
+    const response = await fetch(direct ? directFunctionUrl(path) : `/api/pdf-personalisation${path}`, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${idToken}`,
+        ...(init && init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(init && init.headers || {}),
+      },
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.message || body.error || `Request failed (${response.status})`);
+    }
+    return { status: response.status, body };
+  }
+
+  function loadSample() {
+    templateSelect.value = '';
+    htmlEditor.disabled = false;
+    htmlEditor.value = sampleHtml;
+    dataEditor.value = JSON.stringify(sampleData, null, 2);
+    templateName.value = 'Travel booking confirmation v1';
+    document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
+    document.getElementById('pdfIdempotencyKey').value = uniqueKey();
+    fileMeta.hidden = true;
+    parseData();
+    previewEmpty.hidden = false;
+    resultPanel.hidden = true;
+  }
+
+  function markRequestChanged() {
+    document.getElementById('pdfIdempotencyKey').value = uniqueKey();
+    resultPanel.hidden = true;
+  }
+
+  function useUnsavedEditor() {
+    if (templateSelect.value) templateSelect.value = '';
+    htmlEditor.disabled = false;
+    markRequestChanged();
+  }
+
+  async function readHtmlFile(file) {
+    if (!file) return;
+    if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') throw new Error('Choose an .html or .htm file.');
+    if (file.size > MAX_HTML_BYTES) throw new Error('HTML file exceeds 1.5 MB.');
+    htmlEditor.value = await file.text();
+    templateName.value = file.name.replace(/\.html?$/i, '');
+    fileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
+    fileMeta.hidden = false;
+    useUnsavedEditor();
+    setStatus('HTML file loaded. Add JSON data, then render a preview.', 'success');
+  }
+
+  async function loadTemplates(selectId) {
+    try {
+      const { body } = await api('/templates', { method: 'GET' });
+      const current = selectId || templateSelect.value;
+      templateSelect.replaceChildren(new Option('Unsaved HTML in editor', ''));
+      (body.templates || []).forEach((item) => {
+        const label = `${item.name} · ${formatBytes(item.size)}`;
+        templateSelect.add(new Option(label, item.templateId));
+      });
+      if (current && Array.from(templateSelect.options).some((option) => option.value === current)) {
+        templateSelect.value = current;
+        htmlEditor.disabled = true;
+      }
+    } catch (error) {
+      setStatus(error.message, 'error');
+    }
+  }
+
+  async function saveTemplate() {
+    try {
+      if (!htmlEditor.value.trim()) throw new Error('Add HTML before saving a template.');
+      setBusy(true);
+      setStatus('Saving the private reusable template...', 'working');
+      const { body } = await api('/templates', {
+        method: 'POST',
+        body: JSON.stringify({ name: templateName.value, htmlTemplate: htmlEditor.value }),
+      });
+      await loadTemplates(body.templateId);
+      markRequestChanged();
+      setStatus(`Template saved as “${body.name}”. AJO can generate from templateId ${body.templateId}.`, 'success');
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function renderPreview() {
+    try {
+      setBusy(true);
+      setStatus('Rendering the personalisation data into static HTML...', 'working');
+      const { body } = await api('/preview', {
+        method: 'POST',
+        body: JSON.stringify(requestPayload(false)),
+      });
+      previewFrame.srcdoc = body.renderedHtml;
+      previewEmpty.hidden = true;
+      previewMeta.textContent = `${formatBytes(body.renderedBytes)} rendered`;
+      setStatus('Preview rendered. This is the HTML that will be zipped and sent to Adobe PDF Services.', 'success');
+      return body;
+    } catch (error) {
+      setStatus(error.message, 'error');
+      throw error;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pollJob(jobId) {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      const result = await api(`/status/${encodeURIComponent(jobId)}`, { method: 'GET' }, true);
+      if (result.body.status === 'ready') return result.body;
+    }
+    throw new Error('PDF generation is still running. Use the job ID to check status later.');
+  }
+
+  function showResult(result) {
+    lastResult = result;
+    resultPanel.hidden = false;
+    document.getElementById('pdfResultSize').textContent = formatBytes(result.size);
+    document.getElementById('pdfResultJob').textContent = result.jobId;
+    document.getElementById('pdfResultExpiry').textContent = new Date(result.expiresAt).toLocaleString();
+    document.getElementById('pdfResultHash').textContent = result.sha256;
+    document.getElementById('pdfDownloadLink').href = result.downloadUrl;
+    const handoff = {
+      status: result.status,
+      jobId: result.jobId,
+      templateId: result.templateId,
+      expiresAt: result.expiresAt,
+      ...result.ajoHandoff,
+    };
+    handoffJson.textContent = JSON.stringify(handoff, null, 2);
+    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function generatePdf() {
+    try {
+      setBusy(true);
+      setStatus('Generating the PDF with Adobe PDF Services. This can take up to a minute...', 'working');
+      const response = await api('/generate', {
+        method: 'POST',
+        body: JSON.stringify(requestPayload(true)),
+      }, true);
+      const result = response.status === 202 ? await pollJob(response.body.jobId) : response.body;
+      showResult(result);
+      setStatus(result.reused ? 'Existing idempotent PDF returned.' : 'PDF generated and stored privately.', 'success');
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyHandoff() {
+    if (!lastResult) return;
+    try {
+      await navigator.clipboard.writeText(handoffJson.textContent);
+      setStatus('AJO handoff JSON copied to the clipboard.', 'success');
+    } catch (_error) {
+      setStatus('Copy was blocked by the browser. Expand the handoff JSON and copy it manually.', 'error');
+    }
+  }
+
+  function bindFileDrop() {
+    dropZone.addEventListener('click', () => htmlFile.click());
+    dropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        htmlFile.click();
+      }
+    });
+    htmlFile.addEventListener('change', () => {
+      readHtmlFile(htmlFile.files && htmlFile.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+    ['dragenter', 'dragover'].forEach((name) => dropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      dropZone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach((name) => dropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('is-dragging');
+    }));
+    dropZone.addEventListener('drop', (event) => {
+      readHtmlFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+  }
+
+  function waitForAuth() {
+    return new Promise((resolve) => {
+      let completed = false;
+      const finish = (user) => {
+        if (completed) return;
+        completed = true;
+        resolve(user || null);
+      };
+      const started = Date.now();
+      const findAuth = () => {
+        try {
+          if (window.firebase && typeof firebase.auth === 'function') {
+            const auth = firebase.auth();
+            if (auth.currentUser) { finish(auth.currentUser); return; }
+            const unsubscribe = auth.onAuthStateChanged((user) => {
+              if (user) { unsubscribe(); finish(user); }
+            });
+            window.setTimeout(() => { unsubscribe(); finish(auth.currentUser); }, 7000);
+            return;
+          }
+        } catch (_error) {}
+        if (Date.now() - started > 7000) { finish(null); return; }
+        window.setTimeout(findAuth, 100);
+      };
+      findAuth();
+    });
+  }
+
+  async function init() {
+    loadSample();
+    bindFileDrop();
+    htmlEditor.addEventListener('input', useUnsavedEditor);
+    dataEditor.addEventListener('input', () => {
+      try { parseData(); } catch (_error) {}
+      markRequestChanged();
+    });
+    ['pdfDocumentName', 'pdfPagePreset', 'pdfLocale', 'pdfTimeZone', 'pdfHeaderFooter'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', markRequestChanged);
+    });
+    templateSelect.addEventListener('change', () => {
+      const saved = !!templateSelect.value;
+      htmlEditor.disabled = saved;
+      dropZone.setAttribute('aria-disabled', saved ? 'true' : 'false');
+      if (saved) setStatus('Saved template selected. The private templateId will be sent to the API.', 'success');
+      markRequestChanged();
+    });
+    document.getElementById('pdfLoadSample').addEventListener('click', loadSample);
+    document.getElementById('pdfRefreshTemplates').addEventListener('click', () => loadTemplates());
+    document.getElementById('pdfSaveTemplate').addEventListener('click', saveTemplate);
+    previewButton.addEventListener('click', () => { renderPreview().catch(() => {}); });
+    generateButton.addEventListener('click', generatePdf);
+    document.getElementById('pdfCopyHandoff').addEventListener('click', copyHandoff);
+
+    authUser = await waitForAuth();
+    if (authUser && !authUser.isAnonymous && authUser.email) {
+      setAuthState(authUser.email, 'ready');
+      await loadTemplates();
+    } else {
+      setAuthState('Authorised sign-in required', 'error');
+      setStatus('Sign in to the AEP Orchestration Lab with apalmer@adobe.com before saving templates or generating PDFs.', 'error');
+    }
+  }
+
+  void init();
+})();

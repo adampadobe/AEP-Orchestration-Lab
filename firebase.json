@@ -61,6 +61,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/pdf-personalisation/**",
+        "function": {
+          "functionId": "pdfPersonalisation",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/aep",
         "function": {
           "functionId": "aepProxy",
