@@ -13,6 +13,8 @@ const READ_ONLY_TOOLS = new Set([
   'lab_decisioning_resolve_treatment_name',
   'lab_demo_config_inspect',
   'lab_demo_config_preview',
+  'lab_demo_assets_inspect',
+  'lab_demo_assets_preview_from_scrape',
   'lab_explain_decision_response',
   'lab_get_brand_scrape',
   'lab_get_event_config',
@@ -53,11 +55,15 @@ const DESTRUCTIVE_TOOLS = new Set([
   'lab_audience_delete',
   'lab_cancel_brand_scrape',
   'lab_live_activity_delete_template',
+  'lab_demo_assets_apply',
+  'lab_demo_assets_restore',
 ]);
 
 const IDEMPOTENT_WRITE_TOOLS = new Set([
   'lab_demo_config_apply',
   'lab_demo_config_restore',
+  'lab_demo_assets_apply',
+  'lab_demo_assets_restore',
   'lab_enable_event_profile',
   'lab_enable_profile',
   'lab_live_activity_save_execution_state',

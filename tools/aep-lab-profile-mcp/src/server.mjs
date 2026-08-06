@@ -26,11 +26,12 @@ import { installToolAnnotations } from './toolAnnotations.mjs';
 import {
   registerFocusedAudienceTools,
   registerFocusedDecisioningTools,
+  registerFocusedDemoPrepTools,
   registerFocusedProfileTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.34.0';
+const MCP_VERSION = '3.35.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -63,6 +64,13 @@ const ENDPOINTS = [
     toolset: 'decisioning',
     register: registerFocusedDecisioningTools,
     instructions: 'Focused decisioning evaluation, response explanation, treatment resolution, and catalog assessment.',
+  },
+  {
+    path: '/mcp/demo-prep',
+    toolset: 'demo-prep',
+    register: registerFocusedDemoPrepTools,
+    instructions:
+      'Focused customer demo preparation: resolve or run one brand scrape, preview stable image-hosting slots and governed RTDB changes, obtain explicit confirmation, activate with automatic customer backup, and restore named customers.',
   },
 ];
 

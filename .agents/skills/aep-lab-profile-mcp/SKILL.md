@@ -2,17 +2,17 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.34.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.35.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.34)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.35)
 
-MCP server: **AEP Orchestration Lab MCP v3.34.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.35.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused Coworker endpoints use the same API key: `/mcp/profile` (20 tools), `/mcp/audiences` (4), and `/mcp/decisioning` (9). The profile endpoint covers create/update/read, AEP industry events, and Snowflake dual-load readiness, enrichment, and readback. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
+Focused Coworker endpoints use the same API key: `/mcp/profile` (20 tools), `/mcp/audiences` (4), `/mcp/decisioning` (9), and `/mcp/demo-prep` (19). The demo-prep endpoint covers brand scrape, stable image hosting, governed RTDB configuration, and saved-customer restore. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -55,6 +55,7 @@ Codex should call these **before** improvising lab conventions:
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
+16. **Customer demo images are inspect → preview → confirm → apply** — use **`lab_demo_assets_inspect`**, then **`lab_demo_assets_preview_from_scrape`** for one completed scrape. Show the transformed previews, stable target URLs, current customer backup label, and expiry. Only after explicit confirmation call **`lab_demo_assets_apply`** with the preflight id and an idempotency key. The server backs up only allowlisted customer slots, never the whole shared library. Restore a saved customer with **`lab_demo_assets_restore`** preview first, then confirmed apply.
 
 ### How the lab executes
 
@@ -112,6 +113,26 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 4. **Verify or restore**
 
    > Re-run **lab_demo_config_inspect**. To roll back, call **lab_demo_config_restore** first with `revision_id` and `confirmed:false`, show the restore diff, then call it again with the returned `preflight_id`, `confirmed:true`, and a new idempotency key.
+
+## Workflow 0d — Prepare stable customer images and saved-customer restore
+
+1. **Inspect active slots and saved customers**
+
+   > **lab_demo_assets_inspect** sandbox apalmer — report the active customer, permanent CDN URLs, slot hashes, and named revisions.
+
+2. **Preview from a completed scrape**
+
+   > **lab_demo_assets_preview_from_scrape** sandbox apalmer scrape_id `{id}` asset_pack `core` (or `core_and_mobile`). Show each signed preview, its stable target URL, source classification/confidence, and the current customer backup label. Do not apply yet.
+
+3. **Confirm and activate**
+
+   > After explicit colleague confirmation, **lab_demo_assets_apply** with `preflight_id`, `confirmed:true`, and a stable `idempotency_key`. The current managed slots are automatically saved as a named customer revision before replacement.
+
+4. **Restore a previous customer**
+
+   > Take `revisionId` from **lab_demo_assets_inspect**. Call **lab_demo_assets_restore** with `revision_id` and `confirmed:false`; show the preview. After confirmation call it again with returned `preflight_id`, `confirmed:true`, and a new idempotency key.
+
+**Focused Coworker config:** name `aep-lab-demo-prep`, URL ending `/mcp/demo-prep`, same `X-AEP-Lab-Mcp-Key` as the full endpoint.
 
 ## Workflow 0a — Confirm email format before first generate
 

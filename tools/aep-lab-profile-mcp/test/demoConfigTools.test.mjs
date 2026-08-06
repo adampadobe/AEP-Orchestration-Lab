@@ -43,3 +43,16 @@ test('brand scrape mapping does not invent slogans or short names and rejects si
   assert.equal(mapped.has('CoreDemoData.customerLogo'), false);
   assert.equal(mapped.has('StaffPortal.Colour'), false);
 });
+
+test('stable image-hosting logo URL overrides expiring scrape logo evidence', () => {
+  const changes = buildDemoConfigChangesFromScrape({
+    brandName: 'Example Customer',
+    customerLogo: { url: 'https://storage.example/logo.png?X-Goog-Signature=secret' },
+  }, 'brand_only', {
+    customerLogoUrl: 'https://aep-orchestration-lab.web.app/cdn/apalmer/logo/logo.png',
+  });
+  assert.equal(
+    byPath(changes).get('CoreDemoData.customerLogo'),
+    'https://aep-orchestration-lab.web.app/cdn/apalmer/logo/logo.png',
+  );
+});

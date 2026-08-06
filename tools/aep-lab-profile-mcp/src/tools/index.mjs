@@ -37,6 +37,7 @@ import { registerSnowflakeTools } from './snowflakeTools.mjs';
 import { registerLiveActivityTools } from './liveActivityTools.mjs';
 import { registerDemoConfigTools } from './demoConfig.mjs';
 import { registerAudienceTools } from './audienceTools.mjs';
+import { registerDemoAssetTools } from './demoAssets.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -53,6 +54,7 @@ export function registerProfileTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerMcpFirstRunSetupTool(mcpServer);
   registerDemoConfigTools(mcpServer);
+  registerDemoAssetTools(mcpServer);
   registerProfileInfraStatusTool(mcpServer);
   registerGenerateProfileTool(mcpServer);
   registerLookupProfileTool(mcpServer);
@@ -122,4 +124,13 @@ export function registerFocusedAudienceTools(mcpServer) {
 export function registerFocusedDecisioningTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerDecisioningTools(mcpServer);
+}
+
+/** Focused customer demo preparation: scrape, stable assets, and governed RTDB. */
+export function registerFocusedDemoPrepTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerBrandScrapeTools(mcpServer);
+  registerDemoAssetTools(mcpServer);
+  registerDemoConfigTools(mcpServer);
+  registerPrepareDemoFromBrandScrapeTool(mcpServer);
 }

@@ -629,6 +629,41 @@ export async function previewDemoConfigRestore({ sandbox, revision_id }) {
   });
 }
 
+export async function inspectDemoAssets({ sandbox }) {
+  return labApiRequest('/api/lab/demo-assets', {
+    query: { sandbox },
+    headers: principalAuthHeaders(),
+    timeoutMs: 60_000,
+  });
+}
+
+export async function previewDemoAssets({ sandbox, scrape_id, asset_pack, overrides }) {
+  return labApiRequest('/api/lab/demo-assets', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { action: 'preview', sandbox, scrape_id, asset_pack, overrides },
+    timeoutMs: 120_000,
+  });
+}
+
+export async function applyDemoAssets({ sandbox, preflight_id, confirmed, idempotency_key, backup_customer_name }) {
+  return labApiRequest('/api/lab/demo-assets', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { action: 'apply', sandbox, preflight_id, confirmed, idempotency_key, backup_customer_name },
+    timeoutMs: 120_000,
+  });
+}
+
+export async function previewDemoAssetsRestore({ sandbox, revision_id }) {
+  return labApiRequest('/api/lab/demo-assets', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { action: 'restore-preview', sandbox, revision_id },
+    timeoutMs: 120_000,
+  });
+}
+
 export function snowflakeAuthHeaders() {
   return generationPrefsAuthHeaders();
 }

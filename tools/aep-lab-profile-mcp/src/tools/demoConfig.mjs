@@ -49,13 +49,13 @@ function stableLogo(record) {
  * Build conservative, evidence-backed RTDB suggestions from a completed scrape.
  * Never invent a slogan/short name and never use expiring signed logo URLs.
  */
-export function buildDemoConfigChangesFromScrape(record, preset = 'brand_and_industry') {
+export function buildDemoConfigChangesFromScrape(record, preset = 'brand_and_industry', options = {}) {
   const changes = [];
   const brandName = String(record?.brandName || record?.customerName || '').trim();
   const brandUrl = stableHttpUrl(record?.url || record?.baseUrl);
   const shortName = String(record?.shortName || record?.customerShortName || '').trim();
   const slogan = String(record?.analysis?.slogan || record?.analysis?.tagline || '').trim();
-  const logo = stableLogo(record);
+  const logo = stableHttpUrl(options.customerLogoUrl) || stableLogo(record);
 
   if (brandName) changes.push({ path: 'CoreDemoData.name', value: brandName });
   if (shortName) changes.push({ path: 'CoreDemoData.shortName', value: shortName });

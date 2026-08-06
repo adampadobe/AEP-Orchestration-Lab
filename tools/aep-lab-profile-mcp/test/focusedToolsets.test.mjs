@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedDemoPrepTools, registerFocusedProfileTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -61,4 +61,28 @@ test('focused profile endpoint exposes the complete governed profile lifecycle',
     'lab_snowflake_enrich_profiles',
     'lab_snowflake_get_profile_bundle',
   ]);
+});
+
+test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orchestration only', () => {
+  const focused = registrationRecorder();
+  registerFocusedDemoPrepTools(focused.server);
+  assert.equal(focused.names.length, 19);
+  assert.deepEqual(focused.names.slice(-9), [
+    'lab_demo_assets_inspect',
+    'lab_demo_assets_preview_from_scrape',
+    'lab_demo_assets_apply',
+    'lab_demo_assets_restore',
+    'lab_demo_config_inspect',
+    'lab_demo_config_preview',
+    'lab_demo_config_apply',
+    'lab_demo_config_restore',
+    'lab_prepare_demo_from_brand_scrape',
+  ]);
+  assert.equal(focused.names.includes('lab_brand_scrape'), true);
+  assert.equal(focused.names.includes('lab_generate_profile'), false);
+
+  const full = registrationRecorder();
+  registerProfileTools(full.server);
+  assert.equal(full.names.length, 89);
+  for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });

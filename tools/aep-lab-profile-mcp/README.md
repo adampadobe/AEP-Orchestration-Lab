@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.34)
+# AEP Orchestration Lab MCP (Phase 3.35)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.34.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.35.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -13,6 +13,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
+| `/mcp/demo-prep` | 19 | Brand scrape, stable customer asset preview/activation/restore, governed RTDB, and one-shot demo preparation |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
@@ -53,6 +54,10 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_config_preview` | `POST /api/lab/demo-config` (`action=preview`) | Before/after diff for allowlisted manual changes or evidence-backed mappings from a completed brand scrape |
 | `lab_demo_config_apply` | `POST /api/lab/demo-config` (`action=apply`) | Confirmed, conflict-checked, idempotent atomic RTDB update with readback and revision |
 | `lab_demo_config_restore` | `POST /api/lab/demo-config` (`action=restore-preview/apply`) | Preview-first rollback of a prior revision |
+| `lab_demo_assets_inspect` | `GET /api/lab/demo-assets` | Active stable image slots, permanent URLs, hashes, and saved customer revisions |
+| `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
+| `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
+| `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |
@@ -352,6 +357,18 @@ AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=
 }
 ```
 
+Focused demo preparation uses the same key:
+
+```json
+"aep-lab-demo-prep": {
+  "type": "streamable-http",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep",
+  "headers": {
+    "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
+  }
+}
+```
+
 **Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
 
 ## Deploy to Cloud Run
@@ -366,6 +383,10 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 - `labDemoConfigPreflights`
 - `labDemoConfigRevisions`
 - `labDemoConfigIdempotency`
+- `labDemoAssetPreflights`
+- `labDemoAssetRevisions`
+- `labDemoAssetIdempotency`
+- `labDemoAssetActive`
 
 ```bash
 cd tools/aep-lab-profile-mcp
