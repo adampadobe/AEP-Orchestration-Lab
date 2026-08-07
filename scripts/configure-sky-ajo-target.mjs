@@ -12,7 +12,9 @@ const snapshotPath = path.join(
 );
 
 const authoringScript =
-  '<script defer src="../sky-demo-ajo-target.js?v=20260807-post-hero-image"></script>';
+  '<script defer src="../sky-demo-ajo-target.js?v=20260807-hero-insert-after"></script>';
+const existingAuthoringScriptPattern =
+  /<script\s+defer\s+src="\.\.\/sky-demo-ajo-target\.js\?v=[^"]+"><\/script>/i;
 const capturedLaunchPattern =
   /<script\s+src="sky-home-snapshot_files\/launch-ENd6c8a33809694f8684febbdf83b39af8\.min\.js\.download"\s+async=""><\/script>/i;
 const disabledCapturedLaunch =
@@ -37,7 +39,9 @@ if (dynamicCapturedLaunchPattern.test(html)) {
 
 html = html.replaceAll(capturedLaunchUrl, disabledCapturedLaunchUrl);
 
-if (!html.includes('sky-demo-ajo-target.js')) {
+if (existingAuthoringScriptPattern.test(html)) {
+  html = html.replace(existingAuthoringScriptPattern, authoringScript);
+} else if (!html.includes('sky-demo-ajo-target.js')) {
   const headEnd = html.toLowerCase().lastIndexOf('</head>');
   if (headEnd < 0) throw new Error('Sky snapshot does not contain </head>');
   html = `${html.slice(0, headEnd)}${authoringScript}${html.slice(headEnd)}`;
