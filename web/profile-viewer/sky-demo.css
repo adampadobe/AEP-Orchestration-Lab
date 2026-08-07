@@ -1,40 +1,6 @@
 /**
- * Sky demo — same-document saved homepage + lab strip (AJO visual-authoring ready).
+ * Sky demo — site-clone iframe + lab strip (Spectrum card layout pilot).
  */
-
-.sky-demo-page {
-  margin: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-.sky-demo-page .sky-demo-site-root {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-}
-
-/* The captured trading-banner artwork has a misleading .png extension. Keep it decorative so
-   its intrinsic dimensions cannot stretch the same-document flex row. */
-.sky-demo-page .sky-demo-site-root .eIzYzK {
-  align-items: center;
-  min-height: 48px;
-}
-
-.sky-demo-page .sky-demo-site-root .eIzYzK > img[role='presentation'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-}
-
-.sky-demo-page .sky-demo-site-root [data-test-id='trading-banner'] {
-  min-height: 32px;
-}
 
 .sky-demo-page .mod-demo-id-inner--spectrum {
   width: 100%;
@@ -50,8 +16,7 @@
 }
 
 /* Modal open: dim via backdrop; keep Sky snapshot visible underneath (not a solid page fill) */
-.sky-demo-page.aep-bc-modal-open .mod-demo-site-frame,
-.sky-demo-page.aep-bc-modal-open .sky-demo-site-root {
+.sky-demo-page.aep-bc-modal-open .mod-demo-site-frame {
   visibility: visible;
 }
 
@@ -130,13 +95,11 @@
   max-width: none;
 }
 
-.sky-demo-page .mod-demo-site-frame,
-.sky-demo-page .sky-demo-site-root {
+.sky-demo-page .mod-demo-site-frame {
   transition: padding-bottom 0.2s ease;
 }
 
-.sky-demo-page.sky-demo-page--bottom-dock-armed .mod-demo-site-frame,
-.sky-demo-page.sky-demo-page--bottom-dock-armed .sky-demo-site-root {
+.sky-demo-page.sky-demo-page--bottom-dock-armed .mod-demo-site-frame {
   padding-bottom: 6rem;
 }
 

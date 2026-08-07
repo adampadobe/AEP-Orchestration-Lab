@@ -100,8 +100,6 @@
   var ORG_ID = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
   var EDGE_DEPLOYMENT = 'nld2';
   var IFRAME_ID = cfg('iframeId', 'siteCloneDemoSiteFrame');
-  var SAME_DOCUMENT = !!cfg('sameDocument', false);
-  var CONTENT_ROOT_ID = cfg('contentRootId', '');
   var IFRAME_INLINE_SECTION_ID = cfg('inlineSectionId', 'siteCloneBcInline');
   var IFRAME_MOUNT_SELECTOR = '#brand-concierge-mount';
   var IFRAME_INJECTED_MOUNT_SELECTOR = cfg('injectedMountSelector', '#siteCloneBcInline #brand-concierge-mount');
@@ -331,7 +329,6 @@
   }
 
   function getIframeDoc() {
-    if (SAME_DOCUMENT) return document;
     var frame = getSiteCloneFrame();
     if (!frame) return null;
     try {
@@ -342,7 +339,6 @@
   }
 
   function getFrameSrcPath() {
-    if (SAME_DOCUMENT) return DEFAULT_FRAME_SRC;
     var frame = getSiteCloneFrame();
     if (!frame) return '';
     var src = frame.getAttribute('src') || '';
@@ -446,7 +442,6 @@
   }
 
   async function ensureSnapshotFrame() {
-    if (SAME_DOCUMENT) return;
     var frame = getSiteCloneFrame();
     if (!frame) return;
     var current = getFrameSrcPath();
@@ -769,19 +764,9 @@
   function positionBcFrameHost(fullscreen) {
     var host = document.getElementById(FRAME_OVERLAY_HOST_ID);
     var frame = getSiteCloneFrame();
-    var contentRoot = SAME_DOCUMENT && CONTENT_ROOT_ID ? document.getElementById(CONTENT_ROOT_ID) : null;
-    if (!host || (!frame && !contentRoot)) return;
+    if (!host || !frame) return;
 
-    var frameRect = frame
-      ? frame.getBoundingClientRect()
-      : {
-          top: 0,
-          left: 0,
-          right: global.innerWidth,
-          bottom: global.innerHeight,
-          width: global.innerWidth,
-          height: global.innerHeight,
-        };
+    var frameRect = frame.getBoundingClientRect();
     var top = frameRect.top;
     var doc = getIframeDoc();
 

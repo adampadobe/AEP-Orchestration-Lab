@@ -181,7 +181,7 @@
             changeConfigButtonId: 'skyChangeSdkConfigBtn',
             getSelectedGeneratorTarget: getSelectedGeneratorTarget,
             getEmail: () => getEmail(),
-            iframeIds: [],
+            iframeIds: ['skyDemoSiteFrame'],
             hideTagsCompanyUi: true,
             webPush: {
               enabled: true,

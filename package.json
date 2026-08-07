@@ -58,7 +58,7 @@
     "profile-viewer": "cd \"aep-prototypes/AEP Profile/03 Profile Viewer\" && npm start",
     "profile-viewer:install": "cd \"aep-prototypes/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
     "restore:decision-lab:kirkham-preset": "node scripts/restore-decision-lab-config.mjs kirkham --preset=race-for-life-retail",
-    "build:sky-demo": "node scripts/build-sky-demo-page.mjs",
+    "build:sky-ajo-target": "node scripts/configure-sky-ajo-target.mjs",
     "sync-profile-viewer-ui": "rsync -a --delete \"web/profile-viewer/\" \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\"",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "upload-live-activities-rtdb": "npx -y firebase-tools@latest database:set /profileViewerConfig/liveActivitiesPostmanCollection \"./web/profile-viewer/data/live-activities.postman_collection.json\" --project aep-orchestration-lab --force",
