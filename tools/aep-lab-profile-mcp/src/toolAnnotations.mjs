@@ -1,6 +1,10 @@
 const READ_ONLY_TOOLS = new Set([
   'lab_audience_audit',
   'lab_audience_list',
+  'lab_ajo_campaign_audit',
+  'lab_ajo_campaign_list',
+  'lab_ajo_journey_audit',
+  'lab_ajo_journey_list',
   'lab_batch_job_status',
   'lab_brand_scrape_brief',
   'lab_confirm_generation_plan',
@@ -53,6 +57,8 @@ const READ_ONLY_TOOLS = new Set([
 
 const DESTRUCTIVE_TOOLS = new Set([
   'lab_audience_delete',
+  'lab_ajo_campaign_delete',
+  'lab_ajo_journey_delete',
   'lab_cancel_brand_scrape',
   'lab_live_activity_delete_template',
   'lab_demo_assets_apply',

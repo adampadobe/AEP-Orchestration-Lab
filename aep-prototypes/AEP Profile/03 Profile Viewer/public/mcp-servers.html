@@ -76,7 +76,7 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.34.0</span>
+                <span class="mcp-lab-version">v3.36.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
                 Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor. Use the complete connection for broad demo preparation, or a focused connection when the task needs a smaller, more reliable tool context.
@@ -84,7 +84,7 @@
 
               <div class="mcp-connection-guidance" aria-labelledby="mcpConnectionGuidanceHeading">
                 <div>
-                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, four connection choices</h4>
+                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, six connection choices</h4>
                   <p>
                     Generate one sandbox-scoped key below and reuse it with any Lab endpoint. The focused connections are governed views of the same MCP server, not separate services or credentials.
                   </p>
@@ -98,6 +98,12 @@
                   <h4>General demo preparation</h4>
                   <div class="mcp-choice-config-name"><code>aep-lab-general</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-orchestration-lab-mcp">Copy name</button></div>
                   <p>Use for multi-step customer demos, brand setup, profiles, events, infrastructure, Snowflake, and lab configuration. This is the unchanged full endpoint for existing users.</p>
+                </article>
+                <article class="mcp-connection-choice">
+                  <span class="mcp-connection-badge">Focused</span>
+                  <h4>Customer demo preparation</h4>
+                  <div class="mcp-choice-config-name"><code>aep-lab-demo-prep</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-demo-prep">Copy name</button></div>
+                  <p>Use to research a customer, select and stage stable logo and hero assets, preview RTDB customer data, then apply either change only after review.</p>
                 </article>
                 <article class="mcp-connection-choice">
                   <span class="mcp-connection-badge">Focused</span>
@@ -226,16 +232,15 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260805-adobe-doc-audit"></script>
+  <script src="mcp-servers.js?v=20260806-demo-prep"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
   <script src="aep-access-onboarding.js?v=20260527b"></script>
-  <script src="mcp-servers-keys.js?v=20260723-multiple-keys"></script>
+  <script src="mcp-servers-keys.js?v=20260806-endpoint-picker"></script>
   <script src="mcp-key-recovery.js?v=20260805"></script>
-  <script src="mcp-key-endpoint-picker.js?v=20260805-four-copy-rows"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>

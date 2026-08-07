@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.35)
+# AEP Orchestration Lab MCP (Phase 3.36)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.35.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.36.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -12,6 +12,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 |----------|------:|-------------------|
 | `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
+| `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
 | `/mcp/demo-prep` | 19 | Brand scrape, stable customer asset preview/activation/restore, governed RTDB, and one-shot demo preparation |
 
@@ -82,6 +83,12 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_audience_list` | `GET /api/audience-management` | Read-only Segmentation audience inventory/search; user-generated MCP key + exact sandbox scope required |
 | `lab_audience_audit` | `GET /api/audience-management?audience_id=…` | Required exact-ID pre-delete review: current name, origin, lifecycle, dates, dependencies/dependents and limitations |
 | `lab_audience_delete` | `DELETE /api/audience-management` | Irreversible single-audience delete only after explicit confirmation; re-reads and exact-matches ID + name |
+| `lab_ajo_journey_list` | `GET /api/ajo-cleanup?asset_type=journey` | Read-only journey inventory/search with exact sandbox scope |
+| `lab_ajo_journey_audit` | `GET /api/ajo-cleanup?asset_type=journey&asset_id=…` | Exact-ID lifecycle and metadata review; returns confirmation fields and blockers |
+| `lab_ajo_journey_delete` | `DELETE /api/ajo-cleanup` | One Draft or Finished journey only; exact ID/name/status confirmation and immediate re-read |
+| `lab_ajo_campaign_list` | `GET /api/ajo-cleanup?asset_type=campaign` | Read-only campaign inventory/search with exact sandbox scope |
+| `lab_ajo_campaign_audit` | `GET /api/ajo-cleanup?asset_type=campaign&asset_id=…` | Exact-ID lifecycle, audience/message, and metadata review |
+| `lab_ajo_campaign_delete` | `DELETE /api/ajo-cleanup` | One Draft campaign only; exact ID/name/status confirmation and immediate re-read |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
@@ -127,6 +134,18 @@ Audience deletion uses a dedicated allowlisted proxy, never the generic `/api/ae
 4. `lab_audience_delete sandbox apalmer audience_id {id} expected_name {exact name} confirmed true` — the server re-fetches immediately and fails closed if the ID/name changed. No batch delete tool exists.
 
 Adobe documents successful `DELETE /data/core/ups/audiences/{id}` as HTTP 204. The MCP records list, audit and delete calls in `mcpProfileAuditLog`; deletes include the selected audience ID and result.
+
+### Governed AJO journey and campaign cleanup (Phase 3.36)
+
+Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cleanup tools through the complete `/mcp` endpoint. The user-generated MCP key must match the requested sandbox exactly.
+
+1. Run `lab_ajo_journey_list` or `lab_ajo_campaign_list` and select one exact ID.
+2. Run the matching audit tool. It returns current name, status, timestamps, blockers, and exact confirmation values.
+3. Show the exact sandbox, ID, name, and status. Obtain explicit confirmation for that one asset.
+4. Run the matching delete tool with the returned `expected_name`, `expected_status`, and `confirmed true`.
+5. The Firebase proxy re-fetches immediately, blocks identity/lifecycle changes, and permits only Draft or Finished journeys and Draft campaigns. There is no batch delete tool.
+
+Adobe's current public Journey and Campaign references document retrieval but not deletion. These delete calls use the allowlisted AJO authoring operations used by product lifecycle management; availability still depends on the integration's Journey/Campaign permissions and Adobe may reject unsupported dependencies.
 
 ### Governed Real-Time Database demo preparation (Phase 3.31)
 

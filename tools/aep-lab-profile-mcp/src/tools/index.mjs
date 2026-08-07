@@ -38,6 +38,7 @@ import { registerLiveActivityTools } from './liveActivityTools.mjs';
 import { registerDemoConfigTools } from './demoConfig.mjs';
 import { registerAudienceTools } from './audienceTools.mjs';
 import { registerDemoAssetTools } from './demoAssets.mjs';
+import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -67,6 +68,7 @@ export function registerProfileTools(mcpServer) {
   registerEventConfigTools(mcpServer);
   registerDecisioningTools(mcpServer);
   registerAudienceTools(mcpServer);
+  registerAjoCleanupTools(mcpServer);
   registerSnowflakeTools(mcpServer);
   registerLiveActivityTools(mcpServer);
   registerSendProfileEventTool(mcpServer);
@@ -118,6 +120,12 @@ export function registerFocusedProfileTools(mcpServer) {
 export function registerFocusedAudienceTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerAudienceTools(mcpServer);
+}
+
+/** Governed AJO cleanup catalog: access check, read-only audit, and one exact delete. */
+export function registerFocusedAjoCleanupTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerAjoCleanupTools(mcpServer);
 }
 
 /** Decisioning evaluation and catalog tools, plus the access check. */

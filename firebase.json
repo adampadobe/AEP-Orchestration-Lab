@@ -306,6 +306,13 @@
         }
       },
       {
+        "source": "/api/ajo-cleanup",
+        "function": {
+          "functionId": "ajoCleanupProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/consent",
         "function": {
           "functionId": "profileConsentProxy",

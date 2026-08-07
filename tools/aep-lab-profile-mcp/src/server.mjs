@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{profile,audiences,decisioning}
+ * Endpoints: POST /mcp and focused /mcp/{profile,audiences,ajo-cleanup,decisioning,demo-prep}
  * Health:   GET /health
  */
 
@@ -25,13 +25,14 @@ import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { installToolAnnotations } from './toolAnnotations.mjs';
 import {
   registerFocusedAudienceTools,
+  registerFocusedAjoCleanupTools,
   registerFocusedDecisioningTools,
   registerFocusedDemoPrepTools,
   registerFocusedProfileTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.35.0';
+const MCP_VERSION = '3.36.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -58,6 +59,13 @@ const ENDPOINTS = [
     toolset: 'audiences',
     register: registerFocusedAudienceTools,
     instructions: 'Governed audience cleanup: list, audit, exact confirmation, then delete one audience.',
+  },
+  {
+    path: '/mcp/ajo-cleanup',
+    toolset: 'ajo-cleanup',
+    register: registerFocusedAjoCleanupTools,
+    instructions:
+      'Governed AJO cleanup: list and audit journeys or campaigns, obtain exact colleague confirmation, then delete one lifecycle-eligible asset.',
   },
   {
     path: '/mcp/decisioning',

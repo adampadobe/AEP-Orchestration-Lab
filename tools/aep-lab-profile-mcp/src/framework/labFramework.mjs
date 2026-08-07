@@ -231,6 +231,19 @@ export const CRITICAL_RULES = [
       'Never call /api/aep, infer confirmation from a general cleanup request, delete by name alone, or batch-delete audiences.',
   },
   {
+    id: 'ajo_cleanup_confirmation',
+    rule:
+      'AJO deletion is irreversible: use the matching journey/campaign list → audit one exact id → show sandbox/id/name/status and blockers → obtain explicit colleague confirmation → delete one asset.',
+    auth:
+      'Requires a user-generated MCP key. The Firebase proxy enforces that the requested sandbox exactly matches the key sandbox.',
+    guardrails:
+      'Delete requires confirmed=true plus exact expected_name and expected_status, re-fetches immediately, allows Draft or Finished journeys and Draft campaigns only, and never batch-deletes.',
+    api_note:
+      'Current public AJO references document retrieval, while deletion uses the allowlisted authoring lifecycle operations. Adobe permissions or dependencies can still reject deletion.',
+    never:
+      'Never delete a Live, Paused, Closed, or Stopped journey; never delete a non-Draft campaign; never infer confirmation from a broad cleanup request.',
+  },
+  {
     id: 'snowflake_profile_readback_by_email',
     rule:
       'NEVER tell the user to run Snowflake console SQL or raw Snowflake MCP SELECT * for dual-load profile verification. ' +
@@ -455,7 +468,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.35.0',
+    version: '3.36.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +

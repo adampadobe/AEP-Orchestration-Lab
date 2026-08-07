@@ -2,17 +2,17 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.35.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.36.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.35)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.36)
 
-MCP server: **AEP Orchestration Lab MCP v3.35.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.36.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused Coworker endpoints use the same API key: `/mcp/profile` (20 tools), `/mcp/audiences` (4), `/mcp/decisioning` (9), and `/mcp/demo-prep` (19). The demo-prep endpoint covers brand scrape, stable image hosting, governed RTDB configuration, and saved-customer restore. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
+Focused Coworker endpoints use the same API key: `/mcp/profile` (20 tools), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), and `/mcp/demo-prep` (19). The AJO cleanup endpoint provides governed journey/campaign inventory, audit, and one-at-a-time deletion. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 

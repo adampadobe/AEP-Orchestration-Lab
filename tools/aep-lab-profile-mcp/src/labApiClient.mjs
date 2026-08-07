@@ -570,6 +570,34 @@ export async function audienceDelete({ sandbox, audience_id, expected_name, conf
   });
 }
 
+/** Read-only AJO journey or campaign inventory; scoped by the caller's MCP key. */
+export async function ajoAssetList({ sandbox, asset_type, name, start, limit }) {
+  return labApiRequest('/api/ajo-cleanup', {
+    query: { sandbox, asset_type, name, start, limit },
+    headers: principalAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/** Required exact-ID review before deleting one AJO journey or campaign. */
+export async function ajoAssetAudit({ sandbox, asset_type, asset_id }) {
+  return labApiRequest('/api/ajo-cleanup', {
+    query: { sandbox, asset_type, asset_id },
+    headers: principalAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+/** Delete one exact, explicitly confirmed and lifecycle-eligible AJO asset. */
+export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_name, expected_status, confirmed }) {
+  return labApiRequest('/api/ajo-cleanup', {
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    body: { sandbox, asset_type, asset_id, expected_name, expected_status, confirmed },
+    timeoutMs: 120_000,
+  });
+}
+
 function generationPrefsAuthHeaders() {
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};

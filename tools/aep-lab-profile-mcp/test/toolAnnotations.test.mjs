@@ -16,6 +16,18 @@ test('classifies read-only and destructive audience tools', () => {
     idempotentHint: false,
     openWorldHint: true,
   });
+  assert.deepEqual(annotationsForTool('lab_ajo_journey_list'), {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  });
+  assert.deepEqual(annotationsForTool('lab_ajo_campaign_delete'), {
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: false,
+    openWorldHint: true,
+  });
 });
 
 test('annotates every registration while preserving explicit overrides', () => {

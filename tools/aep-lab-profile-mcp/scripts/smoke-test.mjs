@@ -79,7 +79,7 @@ async function run() {
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/profile', '/mcp/audiences', '/mcp/decisioning']) {
+  for (const path of ['/mcp', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 
@@ -148,6 +148,12 @@ async function run() {
     'lab_audience_list',
     'lab_audience_audit',
     'lab_audience_delete',
+    'lab_ajo_journey_list',
+    'lab_ajo_journey_audit',
+    'lab_ajo_journey_delete',
+    'lab_ajo_campaign_list',
+    'lab_ajo_campaign_audit',
+    'lab_ajo_campaign_delete',
     'lab_update_profile',
     'lab_profile_activity',
     'lab_list_event_targets',
@@ -186,6 +192,8 @@ async function run() {
   const richBatch = listedTools.find((tool) => tool.name === 'lab_send_profile_events_batch');
   const audienceList = listedTools.find((tool) => tool.name === 'lab_audience_list');
   const audienceDelete = listedTools.find((tool) => tool.name === 'lab_audience_delete');
+  const ajoJourneyList = listedTools.find((tool) => tool.name === 'lab_ajo_journey_list');
+  const ajoCampaignDelete = listedTools.find((tool) => tool.name === 'lab_ajo_campaign_delete');
   const missingAnnotations = listedTools.filter((tool) =>
     !tool.annotations ||
     typeof tool.annotations.readOnlyHint !== 'boolean' ||
@@ -206,6 +214,12 @@ async function run() {
   }
   if (audienceDelete?.annotations?.readOnlyHint !== false || audienceDelete?.annotations?.destructiveHint !== true) {
     throw new Error('lab_audience_delete safety annotations are incorrect');
+  }
+  if (ajoJourneyList?.annotations?.readOnlyHint !== true || ajoJourneyList?.annotations?.destructiveHint !== false) {
+    throw new Error('lab_ajo_journey_list safety annotations are incorrect');
+  }
+  if (ajoCampaignDelete?.annotations?.readOnlyHint !== false || ajoCampaignDelete?.annotations?.destructiveHint !== true) {
+    throw new Error('lab_ajo_campaign_delete safety annotations are incorrect');
   }
   if (missingAnnotations.length) {
     throw new Error(`Tools missing complete safety annotations: ${missingAnnotations.map((tool) => tool.name).join(', ')}`);
@@ -310,6 +324,15 @@ async function run() {
       'lab_audience_list',
       'lab_audience_audit',
       'lab_audience_delete',
+    ]),
+    ajoCleanup: await verifyFocusedEndpoint('/mcp/ajo-cleanup', [
+      'lab_mcp_access_info',
+      'lab_ajo_journey_list',
+      'lab_ajo_journey_audit',
+      'lab_ajo_journey_delete',
+      'lab_ajo_campaign_list',
+      'lab_ajo_campaign_audit',
+      'lab_ajo_campaign_delete',
     ]),
     decisioning: await verifyFocusedEndpoint('/mcp/decisioning', [
       'lab_mcp_access_info',

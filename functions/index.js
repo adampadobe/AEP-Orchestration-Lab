@@ -93,6 +93,7 @@ const sportsProfileConnectionStore = lazyRequireMod('./sportsProfileConnectionSt
 const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { registerProfileRoutes } = require('./profileRoutes');
 const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes');
+const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
@@ -155,6 +156,7 @@ const snowflakeIndustryEventService = lazyRequireMod('./snowflakeIndustryEventSe
 const liveActivityTemplateStore = lazyRequireMod('./liveActivityTemplateStore');
 const liveActivityService = lazyRequireMod('./liveActivityService');
 const audienceManagementService = lazyRequireMod('./audienceManagementService');
+const ajoCleanupService = lazyRequireMod('./ajoCleanupService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -885,6 +887,20 @@ Object.assign(
     ADOBE_IMS_ORG,
     mcpApiKeyStore,
     audienceManagementService,
+  })
+);
+
+Object.assign(
+  exports,
+  registerAjoCleanupRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
+    mcpApiKeyStore,
+    ajoCleanupService,
   })
 );
 
