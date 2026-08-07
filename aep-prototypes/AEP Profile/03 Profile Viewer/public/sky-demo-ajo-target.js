@@ -33,7 +33,7 @@
     style.textContent = [
       authoring ? 'html.sky-ajo-hero-authoring body *{pointer-events:none!important;}' : '',
       authoring
-        ? 'html.sky-ajo-hero-authoring #' + TARGET_ID + '{pointer-events:auto!important;cursor:crosshair;outline:4px solid #1473e6;outline-offset:-4px;}'
+        ? 'html.sky-ajo-hero-authoring #' + TARGET_ID + '{pointer-events:auto!important;}'
         : '',
     ].join('');
   }
