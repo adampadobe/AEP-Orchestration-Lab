@@ -12,7 +12,7 @@ const snapshotPath = path.join(
 );
 
 const authoringScript =
-  '<script defer src="../sky-demo-ajo-target.js?v=20260807-main-authoring-bridge"></script>';
+  '<script defer src="../sky-demo-ajo-target.js?v=20260807-editable-main-insert"></script>';
 const existingAuthoringScriptPattern =
   /<script\s+defer\s+src="\.\.\/sky-demo-ajo-target\.js\?v=[^"]+"><\/script>/i;
 const capturedLaunchPattern =

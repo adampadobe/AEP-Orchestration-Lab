@@ -11,6 +11,7 @@
   var TARGET_ID = 'skyAjoHeroBanner';
   var HERO_SELECTOR = '[data-test-id="hero"]';
   var PRODUCT_SECTION_SELECTOR = '[data-test-id="product-cards-section"]';
+  var SPACER_ID = 'skyAjoHeroInsertSpacer';
   var STYLE_ID = 'skyAjoHeroAuthoringStyles';
   var LAUNCH_ID = 'skyAjoAuthoringLaunchScript';
   var RETRY_DELAYS = [0, 100, 300, 750, 1500, 3000, 6000];
@@ -53,7 +54,9 @@
       while (productRoot.parentElement && productRoot.parentElement.tagName !== 'MAIN') {
         productRoot = productRoot.parentElement;
       }
-      if (productRoot.previousElementSibling) return productRoot.previousElementSibling;
+      var hero = productRoot.previousElementSibling;
+      if (hero && hero.id === SPACER_ID) hero = hero.previousElementSibling;
+      if (hero) return hero;
     }
     return document.querySelector(HERO_SELECTOR);
   }
