@@ -2,7 +2,9 @@
   'use strict';
 
   const MAX_HTML_BYTES = 1_500_000;
+  const MAX_HTML_DATA_BYTES = 1_500_000;
   const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+  const MAX_DOCUMENT_DATA_BYTES = 8 * 1024 * 1024;
   const supportedDocumentExtensions = new Set([
     'bmp', 'doc', 'docx', 'gif', 'jpeg', 'jpg', 'png', 'ppt', 'pptx',
     'rtf', 'tif', 'tiff', 'txt', 'xls', 'xlsx',
@@ -75,6 +77,7 @@
 
   const htmlEditor = document.getElementById('pdfHtmlEditor');
   const dataEditor = document.getElementById('pdfDataEditor');
+  const beautifyJsonButton = document.getElementById('pdfBeautifyJson');
   const templateSelect = document.getElementById('pdfSavedTemplate');
   const templateName = document.getElementById('pdfTemplateName');
   const htmlFile = document.getElementById('pdfHtmlFile');
@@ -84,6 +87,9 @@
   const documentFile = document.getElementById('pdfDocumentFile');
   const documentDropZone = document.getElementById('pdfDocumentDropZone');
   const documentFileMeta = document.getElementById('pdfDocumentFileMeta');
+  const jsonFile = document.getElementById('pdfJsonFile');
+  const jsonDropZone = document.getElementById('pdfJsonDropZone');
+  const jsonFileMeta = document.getElementById('pdfJsonFileMeta');
   const authState = document.getElementById('pdfAuthState');
   const statusEl = document.getElementById('pdfWorkspaceStatus');
   const jsonState = document.getElementById('pdfJsonState');
@@ -99,9 +105,23 @@
   let authUser = null;
   let lastResult = null;
   let sourceDocument = null;
+  let sourceHtmlFileName = '';
 
   function conversionMode() {
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
+  }
+
+  function updateDocumentOperation() {
+    if (!sourceDocument) {
+      document.getElementById('pdfDocumentOperationBadge').textContent = 'CreatePDFJob';
+      return;
+    }
+    const extension = String(sourceDocument.fileName.split('.').pop() || '').toLowerCase();
+    let mergeData = false;
+    try { mergeData = Object.keys(parseData()).length > 0; } catch (_error) {}
+    document.getElementById('pdfDocumentOperationBadge').textContent = extension === 'docx' && mergeData
+      ? 'DocumentMergeJob'
+      : 'CreatePDFJob';
   }
 
   function uniqueKey() {
@@ -116,6 +136,31 @@
     return `${(number / (1024 * 1024)).toFixed(2)} MB`;
   }
 
+  function rememberEmptyDropState(zone) {
+    if (!zone.dataset.emptyTitle) zone.dataset.emptyTitle = zone.querySelector('strong').textContent;
+    if (!zone.dataset.emptyDescription) {
+      zone.dataset.emptyDescription = zone.querySelector('.pdf-drop-description').textContent;
+    }
+    if (!zone.dataset.emptyAriaLabel) zone.dataset.emptyAriaLabel = zone.getAttribute('aria-label') || '';
+  }
+
+  function setDropZoneLoaded(zone, fileName, bytes, typeLabel, originLabel = 'Loaded') {
+    rememberEmptyDropState(zone);
+    const safeName = String(fileName || 'Loaded file');
+    zone.classList.add('is-loaded');
+    zone.querySelector('strong').textContent = safeName;
+    zone.querySelector('.pdf-drop-description').textContent = `${originLabel} · ${typeLabel} · ${formatBytes(bytes)}`;
+    zone.setAttribute('aria-label', `${safeName} loaded. Click or drop another file to replace it.`);
+  }
+
+  function resetDropZone(zone) {
+    rememberEmptyDropState(zone);
+    zone.classList.remove('is-loaded');
+    zone.querySelector('strong').textContent = zone.dataset.emptyTitle;
+    zone.querySelector('.pdf-drop-description').textContent = zone.dataset.emptyDescription;
+    zone.setAttribute('aria-label', zone.dataset.emptyAriaLabel);
+  }
+
   function setStatus(message, kind) {
     statusEl.hidden = !message;
     statusEl.textContent = message || '';
@@ -126,6 +171,7 @@
     previewButton.disabled = busy;
     generateButton.disabled = busy;
     document.getElementById('pdfSaveTemplate').disabled = busy;
+    beautifyJsonButton.disabled = busy;
   }
 
   function setAuthState(message, kind) {
@@ -134,16 +180,42 @@
   }
 
   function parseData() {
+    const raw = dataEditor.value || '{}';
     try {
-      const value = JSON.parse(dataEditor.value || '{}');
+      let value;
+      let normalisedSmartQuotes = false;
+      try {
+        value = JSON.parse(raw);
+      } catch (firstError) {
+        const repaired = raw.replace(/[“”]/g, '"');
+        if (repaired === raw) throw firstError;
+        value = JSON.parse(repaired);
+        normalisedSmartQuotes = true;
+      }
       if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a JSON object');
-      jsonState.textContent = 'Valid JSON';
+      const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : MAX_HTML_DATA_BYTES;
+      if (new Blob([JSON.stringify(value)]).size > maxBytes) {
+        throw new Error(`Payload exceeds ${conversionMode() === 'document' ? '8 MB' : '1.5 MB'}`);
+      }
+      jsonState.textContent = normalisedSmartQuotes ? 'Valid · smart quotes fixed' : 'Valid JSON';
       jsonState.classList.remove('is-error');
       return value;
     } catch (error) {
       jsonState.textContent = 'Invalid JSON';
       jsonState.classList.add('is-error');
       throw new Error(`Personalisation data is invalid: ${error.message}`);
+    }
+  }
+
+  function beautifyJson() {
+    try {
+      const data = parseData();
+      dataEditor.value = JSON.stringify(data, null, 2);
+      markRequestChanged();
+      setStatus('JSON payload beautified and validated.', 'success');
+    } catch (error) {
+      dataEditor.focus();
+      setStatus(error.message, 'error');
     }
   }
 
@@ -174,7 +246,7 @@
 
   function activeDocumentPayload() {
     if (!sourceDocument) throw new Error('Drop in a supported source document first.');
-    return { sourceDocument };
+    return { sourceDocument, data: parseData() };
   }
 
   function requestPayload(includeGenerationFields) {
@@ -238,9 +310,14 @@
     htmlEditor.value = sampleHtml;
     dataEditor.value = JSON.stringify(sampleData, null, 2);
     templateName.value = 'Travel booking confirmation v1';
+    sourceHtmlFileName = '';
     document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     fileMeta.hidden = true;
+    jsonFileMeta.hidden = true;
+    resetDropZone(dropZone);
+    resetDropZone(jsonDropZone);
+    dropZone.setAttribute('aria-disabled', 'false');
     parseData();
     previewEmpty.hidden = false;
     resultPanel.hidden = true;
@@ -262,6 +339,7 @@
   function useUnsavedEditor() {
     if (templateSelect.value) templateSelect.value = '';
     htmlEditor.disabled = false;
+    dropZone.setAttribute('aria-disabled', 'false');
     markRequestChanged();
   }
 
@@ -270,11 +348,58 @@
     if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') throw new Error('Choose an .html or .htm file.');
     if (file.size > MAX_HTML_BYTES) throw new Error('HTML file exceeds 1.5 MB.');
     htmlEditor.value = await file.text();
+    sourceHtmlFileName = file.name;
     templateName.value = file.name.replace(/\.html?$/i, '');
-    fileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
-    fileMeta.hidden = false;
+    setDropZoneLoaded(dropZone, file.name, file.size, 'HTML');
+    fileMeta.hidden = true;
     useUnsavedEditor();
-    setStatus('HTML file loaded. Add JSON data, then render a preview.', 'success');
+    setStatus('HTML file loaded. Add or paste its JSON, then choose Save HTML + JSON to keep the pair in the repository.', 'success');
+  }
+
+  async function readDataFile(file) {
+    if (!file) return;
+    const docx = /\.docx$/i.test(file.name);
+    const json = /\.json$/i.test(file.name) || file.type === 'application/json';
+    if (!docx && !json) throw new Error('Choose a .json or .docx data file.');
+    if (docx) {
+      if (file.size > MAX_DOCUMENT_BYTES) throw new Error('Word data document exceeds 10 MB.');
+      setBusy(true);
+      setStatus('Extracting JSON data from the Word document...', 'working');
+      try {
+        const { body } = await api('/convert-data-document', {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceDocument: {
+              fileName: file.name,
+              mimeType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              base64: await fileAsBase64(file),
+            },
+          }),
+        });
+        dataEditor.value = JSON.stringify(body.data || {}, null, 2);
+        parseData();
+        setDropZoneLoaded(jsonDropZone, file.name, file.size, 'DOCX → JSON');
+        jsonFileMeta.hidden = true;
+        if (conversionMode() === 'document') updateDocumentOperation();
+        markRequestChanged();
+        setStatus(`Converted “${file.name}” into editable JSON with ${body.fieldCount || 0} top-level fields.`, 'success');
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
+    const maxBytes = conversionMode() === 'document' ? MAX_DOCUMENT_DATA_BYTES : MAX_HTML_DATA_BYTES;
+    if (file.size > maxBytes) {
+      throw new Error(`JSON file exceeds ${conversionMode() === 'document' ? '8 MB' : '1.5 MB'}.`);
+    }
+    dataEditor.value = await file.text();
+    const data = parseData();
+    dataEditor.value = JSON.stringify(data, null, 2);
+    setDropZoneLoaded(jsonDropZone, file.name, file.size, 'JSON');
+    jsonFileMeta.hidden = true;
+    if (conversionMode() === 'document') updateDocumentOperation();
+    markRequestChanged();
+    setStatus('JSON payload loaded. Preview or generate now, or use Save HTML + JSON to keep the pair in the repository.', 'success');
   }
 
   function fileAsBase64(file) {
@@ -303,50 +428,68 @@
       mimeType: file.type || '',
       base64: await fileAsBase64(file),
     };
-    documentFileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
-    documentFileMeta.hidden = false;
+    const documentMerge = extension === 'docx' && Object.keys(parseData()).length > 0;
+    updateDocumentOperation();
+    setDropZoneLoaded(documentDropZone, file.name, file.size, extension.toUpperCase());
+    documentFileMeta.hidden = true;
     document.getElementById('pdfDocumentName').value = file.name.replace(/\.[^.]+$/, '.pdf');
     markRequestChanged();
-    setStatus('Source document loaded. Generate PDF will submit it with Adobe CreatePDFJob.', 'success');
+    setStatus(
+      documentMerge
+        ? 'DOCX template loaded. Its tags will be merged with the JSON payload before Adobe returns the PDF.'
+        : 'Source document loaded. Add JSON for a DOCX template merge, or convert the file directly.',
+      'success',
+    );
   }
 
   function applyConversionMode() {
     const documentMode = conversionMode() === 'document';
     document.getElementById('pdfHtmlModePanel').hidden = documentMode;
     document.getElementById('pdfDocumentModePanel').hidden = !documentMode;
-    document.getElementById('pdfPersonalisationFields').hidden = documentMode;
+    document.getElementById('pdfPersonalisationFields').hidden = false;
     document.querySelectorAll('.pdf-html-option').forEach((element) => { element.hidden = documentMode; });
-    document.getElementById('pdfJsonState').hidden = documentMode;
+    document.getElementById('pdfJsonState').hidden = false;
     previewButton.hidden = documentMode;
     previewFrame.hidden = documentMode;
     documentPreviewFrame.removeAttribute('src');
     documentPreviewFrame.hidden = true;
     openPreviewLink.hidden = true;
     previewEmpty.hidden = false;
-    previewMeta.textContent = documentMode ? 'Direct conversion' : 'Not rendered';
-    document.getElementById('pdfDataHeading').textContent = documentMode ? 'Output settings' : 'Personalisation and output';
-    document.getElementById('pdfPreviewHeading').textContent = documentMode ? 'Convert and store' : 'Preview and generate';
-    generateButton.textContent = documentMode ? 'Convert document to PDF' : 'Generate PDF';
+    previewMeta.textContent = documentMode ? 'Document generation' : 'Not rendered';
+    document.getElementById('pdfDataHeading').textContent = 'Personalisation and output';
+    document.getElementById('pdfPreviewHeading').textContent = documentMode ? 'Generate and store' : 'Preview and generate';
+    generateButton.textContent = documentMode ? 'Generate document PDF' : 'Generate PDF';
     document.getElementById('pdfModeHelp').textContent = documentMode
-      ? 'Uploads the source file and submits Adobe CreatePDFJob. No JSON merge is applied.'
+      ? 'DOCX plus JSON uses Adobe Document Generation. Empty JSON, or another supported file, uses direct Create PDF.'
       : 'Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.';
     document.getElementById('pdfPreviewEmptyTitle').textContent = documentMode
-      ? 'Your source document will be converted directly'
+      ? 'Your personalised or converted PDF will appear here'
       : 'Your rendered HTML will appear here';
     document.getElementById('pdfPreviewEmptyText').textContent = documentMode
-      ? 'Adobe PDF Services returns the PDF after CreatePDFJob completes.'
+      ? 'Adobe returns the personalised or directly converted PDF, which is then stored privately.'
       : 'Preview uses the same server-side merge that runs before Adobe PDF Services.';
     document.getElementById('pdfFlowValidate').textContent = documentMode
-      ? 'Authorised user, supported type, bounded file size'
+      ? 'Authorised user, supported type, bounded file and JSON'
       : 'Authorised user, static HTML, bounded JSON';
-    document.getElementById('pdfFlowPrepareTitle').textContent = documentMode ? 'Upload' : 'Merge';
+    document.getElementById('pdfFlowPrepareTitle').textContent = 'Merge';
     document.getElementById('pdfFlowPrepare').textContent = documentMode
-      ? 'Source document uploaded as a private input asset'
+      ? 'DOCX tags receive text and image data from JSON'
       : 'Handlebars data into escaped HTML';
     document.getElementById('pdfFlowConvert').textContent = documentMode
-      ? 'Source asset → CreatePDFJob'
+      ? 'DocumentMergeJob or CreatePDFJob → PDF'
       : 'ZIP index.html → HTMLToPDFJob';
     resultPanel.hidden = true;
+    document.getElementById('pdfDataHelp').textContent = documentMode
+      ? 'For DOCX templates, keys match Word tags such as {{PassengerName}}. Image placeholders accept HTTPS URLs or data:image/...;base64 values. Use {} for direct conversion.'
+      : 'HTML mode uses values beneath data in Handlebars expressions.';
+    const jsonDropHelp = documentMode
+      ? 'JSON up to 8 MB or DOCX up to 10 MB · extracted data remains editable'
+      : 'JSON up to 1.5 MB or DOCX up to 10 MB · extracted data remains editable';
+    jsonDropZone.dataset.emptyDescription = jsonDropHelp;
+    if (!jsonDropZone.classList.contains('is-loaded')) {
+      document.getElementById('pdfJsonDropHelp').textContent = jsonDropHelp;
+    }
+    updateDocumentOperation();
     markRequestChanged();
   }
 
@@ -354,9 +497,9 @@
     try {
       const { body } = await api('/templates', { method: 'GET' });
       const current = selectId || templateSelect.value;
-      templateSelect.replaceChildren(new Option('Unsaved HTML in editor', ''));
+      templateSelect.replaceChildren(new Option('Unsaved HTML + JSON in editor', ''));
       (body.templates || []).forEach((item) => {
-        const label = `${item.name} · ${formatBytes(item.size)}`;
+        const label = `${item.name} · HTML ${formatBytes(item.size)} · JSON ${formatBytes(item.dataSize)}`;
         templateSelect.add(new Option(label, item.templateId));
       });
       if (current && Array.from(templateSelect.options).some((option) => option.value === current)) {
@@ -368,18 +511,74 @@
     }
   }
 
+  async function loadSelectedTemplate() {
+    const templateId = templateSelect.value.trim();
+    if (!templateId) {
+      htmlEditor.disabled = false;
+      dropZone.setAttribute('aria-disabled', 'false');
+      markRequestChanged();
+      setStatus('Using the editable HTML and JSON currently in the workspace.', 'success');
+      return;
+    }
+    try {
+      setBusy(true);
+      setStatus('Loading HTML and default JSON from the private template repository...', 'working');
+      const { body } = await api(`/templates/${encodeURIComponent(templateId)}`, { method: 'GET' });
+      htmlEditor.value = body.htmlTemplate || '';
+      dataEditor.value = JSON.stringify(body.defaultData || {}, null, 2);
+      templateName.value = body.name || '';
+      sourceHtmlFileName = body.sourceFileName || '';
+      htmlEditor.disabled = true;
+      dropZone.setAttribute('aria-disabled', 'true');
+      setDropZoneLoaded(
+        dropZone,
+        sourceHtmlFileName || body.name || 'Saved HTML template',
+        body.size,
+        'HTML',
+        'Loaded from repository',
+      );
+      setDropZoneLoaded(
+        jsonDropZone,
+        `${body.name || 'Saved template'} default.json`,
+        body.dataSize,
+        'JSON',
+        'Loaded from repository',
+      );
+      fileMeta.hidden = true;
+      jsonFileMeta.hidden = true;
+      parseData();
+      markRequestChanged();
+      setStatus(`Loaded “${body.name}” with its default JSON. You can edit the JSON for this recipient before previewing or generating.`, 'success');
+    } catch (error) {
+      templateSelect.value = '';
+      htmlEditor.disabled = false;
+      dropZone.setAttribute('aria-disabled', 'false');
+      setStatus(error.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveTemplate() {
     try {
       if (!htmlEditor.value.trim()) throw new Error('Add HTML before saving a template.');
       setBusy(true);
-      setStatus('Saving the private reusable template...', 'working');
+      const defaultData = parseData();
+      setStatus('Saving the HTML and default JSON in the private repository...', 'working');
       const { body } = await api('/templates', {
         method: 'POST',
-        body: JSON.stringify({ name: templateName.value, htmlTemplate: htmlEditor.value }),
+        body: JSON.stringify({
+          name: templateName.value,
+          htmlTemplate: htmlEditor.value,
+          defaultData,
+          sourceFileName: sourceHtmlFileName,
+        }),
       });
       await loadTemplates(body.templateId);
+      htmlEditor.disabled = true;
+      dropZone.setAttribute('aria-disabled', 'true');
       markRequestChanged();
-      setStatus(`Template saved as “${body.name}”. AJO can generate from templateId ${body.templateId}.`, 'success');
+      setStatus(`Saved “${body.name}” with its default JSON. Selecting templateId ${body.templateId} will restore the pair.`, 'success');
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
@@ -448,6 +647,7 @@
       status: result.status,
       jobId: result.jobId,
       conversionMode: result.conversionMode,
+      documentOperation: result.documentOperation,
       sourceName: result.sourceName,
       templateId: result.templateId,
       expiresAt: result.expiresAt,
@@ -465,7 +665,7 @@
       setBusy(true);
       setStatus(
         conversionMode() === 'document'
-          ? 'Converting the source document with Adobe CreatePDFJob. This can take up to a minute...'
+          ? 'Merging DOCX data or converting the source document with Adobe PDF Services. This can take up to a minute...'
           : 'Generating the PDF with Adobe HTMLToPDFJob. This can take up to a minute...',
         'working',
       );
@@ -479,7 +679,7 @@
         result.reused
           ? 'Existing idempotent PDF returned.'
           : conversionMode() === 'document'
-            ? 'Document converted and stored privately. The PDF preview is ready.'
+            ? 'Document generated and stored privately. The PDF preview is ready.'
             : 'PDF converted and stored privately.',
         'success',
       );
@@ -521,6 +721,28 @@
     }));
     dropZone.addEventListener('drop', (event) => {
       readHtmlFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+
+    jsonDropZone.addEventListener('click', () => jsonFile.click());
+    jsonDropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        jsonFile.click();
+      }
+    });
+    jsonFile.addEventListener('change', () => {
+      readDataFile(jsonFile.files && jsonFile.files[0]).catch((error) => setStatus(error.message, 'error'));
+    });
+    ['dragenter', 'dragover'].forEach((name) => jsonDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      jsonDropZone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach((name) => jsonDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      jsonDropZone.classList.remove('is-dragging');
+    }));
+    jsonDropZone.addEventListener('drop', (event) => {
+      readDataFile(event.dataTransfer && event.dataTransfer.files[0]).catch((error) => setStatus(error.message, 'error'));
     });
 
     documentDropZone.addEventListener('click', () => documentFile.click());
@@ -580,22 +802,19 @@
     conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
+      jsonFileMeta.hidden = true;
       try { parseData(); } catch (_error) {}
+      if (conversionMode() === 'document') updateDocumentOperation();
       markRequestChanged();
     });
     ['pdfDocumentName', 'pdfPagePreset', 'pdfLocale', 'pdfTimeZone', 'pdfHeaderFooter'].forEach((id) => {
       document.getElementById(id).addEventListener('change', markRequestChanged);
     });
-    templateSelect.addEventListener('change', () => {
-      const saved = !!templateSelect.value;
-      htmlEditor.disabled = saved;
-      dropZone.setAttribute('aria-disabled', saved ? 'true' : 'false');
-      if (saved) setStatus('Saved template selected. The private templateId will be sent to the API.', 'success');
-      markRequestChanged();
-    });
+    templateSelect.addEventListener('change', () => { loadSelectedTemplate().catch(() => {}); });
     document.getElementById('pdfLoadSample').addEventListener('click', loadSample);
     document.getElementById('pdfRefreshTemplates').addEventListener('click', () => loadTemplates());
     document.getElementById('pdfSaveTemplate').addEventListener('click', saveTemplate);
+    beautifyJsonButton.addEventListener('click', beautifyJson);
     previewButton.addEventListener('click', () => { renderPreview().catch(() => {}); });
     generateButton.addEventListener('click', generatePdf);
     document.getElementById('pdfCopyHandoff').addEventListener('click', copyHandoff);

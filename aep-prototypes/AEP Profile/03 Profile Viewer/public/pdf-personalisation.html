@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806c">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260806f">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -58,7 +58,7 @@
             <label for="pdfConversionMode">Operation</label>
             <select id="pdfConversionMode">
               <option value="html">HTML to PDF - template plus JSON</option>
-              <option value="document">Document to PDF - direct file conversion</option>
+              <option value="document">Document to PDF - DOCX + JSON or direct conversion</option>
             </select>
           </div>
           <p id="pdfModeHelp">Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.</p>
@@ -76,10 +76,10 @@
               </div>
 
               <div class="pdf-saved-template-row">
-                <label for="pdfSavedTemplate">Saved template</label>
+                <label for="pdfSavedTemplate">Template repository</label>
                 <div class="pdf-inline-control">
                   <select id="pdfSavedTemplate">
-                    <option value="">Unsaved HTML in editor</option>
+                    <option value="">Unsaved HTML + JSON in editor</option>
                   </select>
                   <button type="button" class="dashboard-btn-outline pdf-icon-button" id="pdfRefreshTemplates" title="Refresh saved templates" aria-label="Refresh saved templates">↻</button>
                 </div>
@@ -88,8 +88,9 @@
               <div id="pdfHtmlDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop an HTML file or click to browse">
                 <input type="file" id="pdfHtmlFile" accept=".html,.htm,text/html" hidden>
                 <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
                 <strong>Drop an HTML file here</strong>
-                <span>or click to browse · maximum 1.5 MB</span>
+                <span class="pdf-drop-description">or click to browse · maximum 1.5 MB</span>
               </div>
               <p id="pdfHtmlFileMeta" class="pdf-file-meta" hidden></p>
 
@@ -103,8 +104,9 @@
                 <label for="pdfTemplateName">Reusable template name</label>
                 <div class="pdf-inline-control">
                   <input id="pdfTemplateName" type="text" maxlength="120" placeholder="e.g. Emirates booking confirmation v1">
-                  <button type="button" class="dashboard-btn-outline" id="pdfSaveTemplate">Save template</button>
+                  <button type="button" class="dashboard-btn-outline" id="pdfSaveTemplate">Save HTML + JSON</button>
                 </div>
+                <p class="pdf-field-help">Saves the HTML and the current JSON together in your private server-side repository. Selecting it later restores both editors.</p>
               </div>
             </section>
 
@@ -114,17 +116,18 @@
                   <span class="pdf-step">1</span>
                   <h3 id="pdfDocumentHeading">Source document</h3>
                 </div>
-                <span class="pdf-document-badge">CreatePDFJob</span>
+                <span class="pdf-document-badge" id="pdfDocumentOperationBadge">CreatePDFJob</span>
               </div>
               <div id="pdfDocumentDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop a supported document or click to browse">
                 <input type="file" id="pdfDocumentFile" accept=".doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff" hidden>
                 <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
                 <strong>Drop a document here</strong>
-                <span>DOCX, DOC, PPTX, PPT, XLSX, XLS, RTF, TXT, JPG, PNG, BMP, GIF or TIFF · maximum 10 MB</span>
+                <span class="pdf-drop-description">DOCX, DOC, PPTX, PPT, XLSX, XLS, RTF, TXT, JPG, PNG, BMP, GIF or TIFF · maximum 10 MB</span>
               </div>
               <p id="pdfDocumentFileMeta" class="pdf-file-meta" hidden></p>
               <p class="pdf-field-help">
-                Document mode converts the file as-is. It does not merge the JSON below; Word-template data merge uses Adobe Document Generation, which is a separate operation.
+                DOCX templates can merge the JSON below, including text and image values, with Adobe Document Generation. Other supported files are converted as-is.
               </p>
             </section>
 
@@ -134,11 +137,23 @@
                   <span class="pdf-step">2</span>
                   <h3 id="pdfDataHeading">Personalisation and output</h3>
                 </div>
-                <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                <div class="pdf-json-heading-actions">
+                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
+                  <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                </div>
               </div>
               <div id="pdfPersonalisationFields">
                 <label for="pdfDataEditor">JSON payload</label>
+                <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON or DOCX data file, or click to browse">
+                  <input type="file" id="pdfJsonFile" accept=".json,.docx,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+                  <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                  <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
+                  <strong>Drop JSON or a Word data document here</strong>
+                  <span id="pdfJsonDropHelp" class="pdf-drop-description">JSON up to 1.5 MB or DOCX up to 10 MB</span>
+                </div>
+                <p id="pdfJsonFileMeta" class="pdf-file-meta" hidden></p>
                 <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
+                <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
               </div>
 
               <div class="pdf-options-grid">
@@ -252,6 +267,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260806d"></script>
+  <script src="pdf-personalisation.js?v=20260806j"></script>
 </body>
 </html>
