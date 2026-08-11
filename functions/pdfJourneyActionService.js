@@ -19,7 +19,11 @@ function plainObject(value) {
 
 function getFirestore(deps = {}) {
   if (deps.firestore) return deps.firestore;
-  if (!admin.apps.length) admin.initializeApp();
+  try {
+    admin.app();
+  } catch (_error) {
+    admin.initializeApp();
+  }
   return admin.firestore();
 }
 
