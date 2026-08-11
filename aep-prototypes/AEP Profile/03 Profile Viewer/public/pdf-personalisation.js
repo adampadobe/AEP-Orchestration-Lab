@@ -106,10 +106,15 @@
   const apiKeyList = document.getElementById('pdfApiKeyList');
   const newApiKeyPanel = document.getElementById('pdfNewApiKey');
   const newApiKeyValue = document.getElementById('pdfNewApiKeyValue');
+  const journeyTemplateDropZone = document.getElementById('pdfJourneyTemplateDropZone');
+  const journeyTemplateFileInput = document.getElementById('pdfJourneyTemplateFile');
+  const journeyTemplateStatus = document.getElementById('pdfJourneyTemplateStatus');
+  const journeyTemplateList = document.getElementById('pdfJourneyTemplateList');
   let authUser = null;
   let lastResult = null;
   let sourceDocument = null;
   let sourceHtmlFileName = '';
+  let journeyTemplateFile = null;
 
   function conversionMode() {
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
@@ -452,6 +457,190 @@
         copyText(target && target.textContent.trim(), event.currentTarget, button.textContent);
       });
     });
+  }
+
+  function setJourneyTemplateStatus(message, kind) {
+    journeyTemplateStatus.textContent = message || '';
+    journeyTemplateStatus.className = `pdf-key-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function templateNameFromFile(fileName) {
+    return String(fileName || '')
+      .replace(/\.[^.]+$/, '')
+      .normalize('NFKD')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80);
+  }
+
+  function displayLabelFromFile(fileName) {
+    return String(fileName || '')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (character) => character.toUpperCase())
+      .slice(0, 120);
+  }
+
+  function setJourneyTemplateFile(file) {
+    if (!file) return;
+    const extension = String(file.name.split('.').pop() || '').toLowerCase();
+    const html = extension === 'html' || extension === 'htm';
+    if (!html && !supportedDocumentExtensions.has(extension)) {
+      throw new Error('Use HTML, Word, PowerPoint, Excel, RTF, TXT, JPEG, PNG, BMP, GIF or TIFF.');
+    }
+    const maxBytes = html ? MAX_HTML_BYTES : MAX_DOCUMENT_BYTES;
+    if (file.size > maxBytes) {
+      throw new Error(`${html ? 'HTML template exceeds 1.5 MB' : 'Document template exceeds 10 MB'}.`);
+    }
+    journeyTemplateFile = file;
+    setDropZoneLoaded(
+      journeyTemplateDropZone,
+      file.name,
+      file.size,
+      html ? 'HTML template' : `${extension.toUpperCase()} template`,
+    );
+    const name = templateNameFromFile(file.name);
+    document.getElementById('pdfJourneyTemplateName').value = name;
+    document.getElementById('pdfJourneyTemplateLabel').value = displayLabelFromFile(file.name);
+    document.getElementById('pdfJourneyTemplateDocumentName').value = `${name || 'travel-document'}.pdf`;
+    setJourneyTemplateStatus('Template loaded locally. Review its stable name and metadata, then upload it to the server.', 'success');
+  }
+
+  function renderJourneyTemplates(templates) {
+    journeyTemplateList.replaceChildren();
+    const items = Array.isArray(templates) ? templates : [];
+    document.getElementById('pdfJourneyTemplateCount').textContent = `${items.length} available`;
+    if (!items.length) {
+      const empty = document.createElement('p');
+      empty.className = 'pdf-key-empty';
+      empty.textContent = 'No server templates are available.';
+      journeyTemplateList.appendChild(empty);
+      return;
+    }
+    items.forEach((template) => {
+      const item = document.createElement('article');
+      item.className = 'pdf-template-list-item';
+      const details = document.createElement('div');
+      const name = document.createElement('strong');
+      name.textContent = template.templateName || template.name;
+      const metadata = document.createElement('span');
+      const source = template.source === 'builtin' ? 'Built-in' : (template.sourceFileName || 'Uploaded');
+      metadata.textContent = `${template.label || template.templateName} · ${source}${template.size ? ` · ${formatBytes(template.size)}` : ''}`;
+      const kind = document.createElement('span');
+      kind.className = 'pdf-template-kind';
+      kind.textContent = template.kind === 'document' ? 'Document' : 'HTML';
+      details.append(name, metadata, kind);
+      const actions = document.createElement('div');
+      actions.className = 'pdf-template-list-actions';
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'dashboard-btn-outline';
+      copy.textContent = 'Copy name';
+      copy.addEventListener('click', () => copyText(name.textContent, copy, 'Copy name'));
+      actions.appendChild(copy);
+      if (template.canDelete) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'dashboard-btn-outline';
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', () => deleteJourneyTemplate(name.textContent));
+        actions.appendChild(remove);
+      }
+      item.append(details, actions);
+      journeyTemplateList.appendChild(item);
+    });
+  }
+
+  async function loadJourneyTemplates() {
+    try {
+      setJourneyTemplateStatus('Loading server template library…');
+      const { body } = await api('/journey-action/template-library', { method: 'GET' });
+      renderJourneyTemplates(body.templates || []);
+      setJourneyTemplateStatus(`${body.uploadedCount || 0} uploaded template${body.uploadedCount === 1 ? '' : 's'} plus built-in templates are ready.`);
+    } catch (error) {
+      setJourneyTemplateStatus(error.message, 'error');
+    }
+  }
+
+  async function uploadJourneyTemplate() {
+    const button = document.getElementById('pdfUploadJourneyTemplate');
+    try {
+      if (!journeyTemplateFile) throw new Error('Drop an HTML or document template into the upload area first.');
+      const templateName = document.getElementById('pdfJourneyTemplateName').value.trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]{2,79}$/.test(templateName)) {
+        throw new Error('Template name must contain 3 to 80 lowercase letters, numbers or hyphens.');
+      }
+      button.disabled = true;
+      setJourneyTemplateStatus('Uploading and validating the private server template…');
+      const browserMime = String(journeyTemplateFile.type || '').toLowerCase();
+      const { body } = await api('/journey-action/template-library', {
+        method: 'POST',
+        body: JSON.stringify({
+          templateName,
+          label: document.getElementById('pdfJourneyTemplateLabel').value.trim(),
+          documentName: document.getElementById('pdfJourneyTemplateDocumentName').value.trim(),
+          subject: document.getElementById('pdfJourneyTemplateSubject').value.trim(),
+          sourceFile: {
+            fileName: journeyTemplateFile.name,
+            mimeType: browserMime === 'application/octet-stream' ? '' : browserMime,
+            base64: await fileAsBase64(journeyTemplateFile),
+          },
+        }),
+      });
+      const saved = body.template || {};
+      journeyTemplateFile = null;
+      journeyTemplateFileInput.value = '';
+      resetDropZone(journeyTemplateDropZone);
+      setJourneyTemplateStatus(`Uploaded “${saved.templateName || templateName}”. Copy that name into the custom-action payload.`, 'success');
+      await loadJourneyTemplates();
+    } catch (error) {
+      setJourneyTemplateStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function deleteJourneyTemplate(templateName) {
+    if (!window.confirm(`Delete “${templateName}” from the server template library? New journey executions will no longer be able to use it.`)) return;
+    try {
+      setJourneyTemplateStatus(`Deleting “${templateName}”…`);
+      await api(`/journey-action/template-library?templateName=${encodeURIComponent(templateName)}`, { method: 'DELETE' });
+      setJourneyTemplateStatus(`Deleted “${templateName}” from future journey selections.`, 'success');
+      await loadJourneyTemplates();
+    } catch (error) {
+      setJourneyTemplateStatus(error.message, 'error');
+    }
+  }
+
+  function bindJourneyTemplateLibrary() {
+    journeyTemplateDropZone.addEventListener('click', () => journeyTemplateFileInput.click());
+    journeyTemplateDropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        journeyTemplateFileInput.click();
+      }
+    });
+    journeyTemplateFileInput.addEventListener('change', () => {
+      try { setJourneyTemplateFile(journeyTemplateFileInput.files && journeyTemplateFileInput.files[0]); }
+      catch (error) { setJourneyTemplateStatus(error.message, 'error'); }
+    });
+    ['dragenter', 'dragover'].forEach((name) => journeyTemplateDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      journeyTemplateDropZone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach((name) => journeyTemplateDropZone.addEventListener(name, (event) => {
+      event.preventDefault();
+      journeyTemplateDropZone.classList.remove('is-dragging');
+    }));
+    journeyTemplateDropZone.addEventListener('drop', (event) => {
+      try { setJourneyTemplateFile(event.dataTransfer && event.dataTransfer.files[0]); }
+      catch (error) { setJourneyTemplateStatus(error.message, 'error'); }
+    });
+    document.getElementById('pdfUploadJourneyTemplate').addEventListener('click', uploadJourneyTemplate);
+    document.getElementById('pdfRefreshJourneyTemplates').addEventListener('click', loadJourneyTemplates);
   }
 
   function loadSample() {
@@ -972,6 +1161,7 @@
     loadSample();
     bindFileDrop();
     bindCustomActionSetup();
+    bindJourneyTemplateLibrary();
     conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
@@ -995,7 +1185,7 @@
     authUser = await waitForAuth();
     if (authUser && !authUser.isAnonymous && authUser.email) {
       setAuthState(authUser.email, 'ready');
-      await Promise.all([loadTemplates(), loadApiKeys()]);
+      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates()]);
     } else {
       setAuthState('Authorised sign-in required', 'error');
       setStatus('Sign in to the AEP Orchestration Lab with apalmer@adobe.com before saving templates or generating PDFs.', 'error');

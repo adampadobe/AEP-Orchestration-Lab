@@ -69,6 +69,8 @@ function firstValue(...values) {
 
 function normaliseTemplateData(templateName, value, recipient) {
   const data = copyObject(core.normaliseData(value || {}));
+  data.firstName = cleanText(firstValue(data.firstName, recipient.firstName), 100);
+  data.lastName = cleanText(firstValue(data.lastName, recipient.lastName), 100);
   const passenger = plainObject(data.passenger) ? data.passenger : {};
   passenger.firstName = cleanText(firstValue(passenger.firstName, data.firstName, recipient.firstName), 100);
   passenger.lastName = cleanText(firstValue(passenger.lastName, data.lastName, recipient.lastName), 100);
@@ -126,7 +128,7 @@ function campaignId(deps = {}) {
 function normaliseRequest(body, deps = {}) {
   const input = plainObject(body) ? body : {};
   const requestId = validateRequestId(input.requestId);
-  const template = (deps.getTemplate || templates.getTemplate)(input.templateName);
+  const template = deps.resolvedTemplate || (deps.getTemplate || templates.getTemplate)(input.templateName);
   const recipient = {
     emailAddress: validateEmail(input.emailAddress),
     firstName: cleanText(input.firstName, 100),
@@ -140,6 +142,7 @@ function normaliseRequest(body, deps = {}) {
     data,
     documentName,
     campaignId: campaignId(deps),
+    templateSourceHash: template.sourceHash || core.sha256(template.htmlTemplate || ''),
   }));
   return {
     requestId,
@@ -148,6 +151,13 @@ function normaliseRequest(body, deps = {}) {
     templateName: template.name,
     documentName,
     subject: template.subject,
+    templateKind: template.kind || 'html',
+    templateSource: template.source || 'builtin',
+    templateSourceHash: template.sourceHash || core.sha256(template.htmlTemplate || ''),
+    templateSourceName: template.sourceFileName || null,
+    templateMimeType: template.mimeType || null,
+    templateObjectPath: template.objectPath || null,
+    templateOwnerUid: template.ownerUid || deps.templateOwnerUid || null,
     recipient,
     data,
     campaignId: campaignId(deps),
@@ -226,20 +236,38 @@ async function waitForReadyJob(jobId, deps = {}) {
 }
 
 async function generateAndStore(record, deps = {}) {
-  const template = (deps.getTemplate || templates.getTemplate)(record.templateName);
-  const input = core.normaliseGenerateRequest({
+  const source = deps.loadJourneyTemplateSource
+    ? await deps.loadJourneyTemplateSource(record)
+    : templates.getTemplate(record.templateName);
+  const documentTemplate = record.templateKind === 'document';
+  const sourceName = String(record.templateSourceName || '').toLowerCase();
+  const mergeData = documentTemplate && sourceName.endsWith('.docx')
+    ? core.normaliseDocumentMergeData(record.data)
+    : {};
+  const input = core.normaliseGenerateRequest(documentTemplate ? {
+    conversionMode: 'document',
+    sourceDocument: source.sourceDocument,
+    data: mergeData,
+    documentName: record.documentName,
+    idempotencyKey: record.requestId,
+  } : {
     conversionMode: 'html',
-    htmlTemplate: template.htmlTemplate,
+    htmlTemplate: source.htmlTemplate,
     data: record.data,
     documentName: record.documentName,
     idempotencyKey: record.requestId,
     options: { locale: 'en-GB', timeZone: 'UTC' },
   });
-  const rendered = core.renderHtmlTemplate(input.htmlTemplate, input.data, input.options);
-  const requestHash = core.requestHash(input, rendered.templateHash);
+  const rendered = documentTemplate
+    ? null
+    : core.renderHtmlTemplate(input.htmlTemplate, input.data, input.options);
+  const requestHash = core.requestHash(input, rendered ? rendered.templateHash : record.templateSourceHash);
   const pdfJobId = randomUUID();
+  const principalId = record.templateOwnerUid
+    ? `service:ajo-journey:${core.sha256(record.templateOwnerUid).slice(0, 16)}`
+    : 'service:ajo-journey';
   const claim = await pdfStore.claimIdempotency({
-    principalId: 'service:ajo-journey',
+    principalId,
     idempotencyKey: input.idempotencyKey,
     requestHash,
     jobId: pdfJobId,
@@ -262,17 +290,24 @@ async function generateAndStore(record, deps = {}) {
       clientId: deps.getPdfClientId(),
       clientSecret: deps.getPdfClientSecret(),
     };
-    const zipBuffer = await core.createHtmlZip(rendered.renderedHtml);
-    const pdfBuffer = await core.convertHtmlZipToPdf(zipBuffer, input.options, credentials, deps);
+    let pdfBuffer;
+    if (documentTemplate) {
+      pdfBuffer = await core.convertDocumentToPdf(input.sourceDocument, input.data, credentials, deps);
+    } else {
+      const zipBuffer = await core.createHtmlZip(rendered.renderedHtml);
+      pdfBuffer = await core.convertHtmlZipToPdf(zipBuffer, input.options, credentials, deps);
+    }
     return await pdfStore.saveReadyJob({
       jobId: pdfJobId,
-      principalId: 'service:ajo-journey',
-      ownerUid: null,
+      principalId,
+      ownerUid: record.templateOwnerUid || null,
       conversionMode: input.conversionMode,
       documentOperation: input.documentOperation,
-      templateId: `builtin:${record.templateName}`,
-      templateHash: rendered.templateHash,
-      renderedHash: rendered.renderedHash,
+      sourceName: documentTemplate ? input.sourceDocument.fileName : null,
+      sourceHash: documentTemplate ? input.sourceDocument.sha256 : null,
+      templateId: `${record.templateSource || 'builtin'}:${record.templateName}`,
+      templateHash: rendered ? rendered.templateHash : record.templateSourceHash,
+      renderedHash: rendered ? rendered.renderedHash : null,
       requestHash,
       idempotencyDocId: claim.docId,
       documentName: input.documentName,

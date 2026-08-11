@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811b">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -272,6 +272,67 @@
             <span class="pdf-scope-badge">Scope: PDF journey action only</span>
           </div>
 
+          <section class="pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
+            <div class="pdf-template-library-heading">
+              <div>
+                <span class="pdf-eyebrow">Server template library</span>
+                <h4 id="pdfTemplateLibraryHeading">Upload and manage custom-action templates</h4>
+                <p>Upload HTML for Handlebars personalisation, DOCX for Adobe Document Generation, or another supported document for direct PDF conversion. Use the stable template name in the journey payload.</p>
+              </div>
+              <button type="button" class="dashboard-btn-outline" id="pdfRefreshJourneyTemplates">Refresh library</button>
+            </div>
+
+            <div class="pdf-template-manager-grid">
+              <div class="pdf-template-upload-card">
+                <div id="pdfJourneyTemplateDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop an HTML or supported document template, or click to browse">
+                  <input type="file" id="pdfJourneyTemplateFile" accept=".html,.htm,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff" hidden>
+                  <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                  <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
+                  <strong>Drop a custom-action template here</strong>
+                  <span class="pdf-drop-description">HTML up to 1.5 MB or supported document up to 10 MB</span>
+                </div>
+                <p id="pdfJourneyTemplateFileMeta" class="pdf-file-meta" hidden></p>
+
+                <div class="pdf-template-fields">
+                  <div>
+                    <label for="pdfJourneyTemplateName">Template name used in payload</label>
+                    <input id="pdfJourneyTemplateName" type="text" maxlength="80" placeholder="e.g. airport-checkin-pass">
+                    <p class="pdf-field-help">Lowercase letters, numbers and hyphens only. This becomes <code>templateName</code>.</p>
+                  </div>
+                  <div>
+                    <label for="pdfJourneyTemplateLabel">Display label</label>
+                    <input id="pdfJourneyTemplateLabel" type="text" maxlength="120" placeholder="e.g. Airport check-in pass">
+                  </div>
+                  <div>
+                    <label for="pdfJourneyTemplateDocumentName">Default PDF filename</label>
+                    <input id="pdfJourneyTemplateDocumentName" type="text" maxlength="120" placeholder="e.g. airport-checkin-pass.pdf">
+                  </div>
+                  <div>
+                    <label for="pdfJourneyTemplateSubject">Email subject</label>
+                    <input id="pdfJourneyTemplateSubject" type="text" maxlength="180" placeholder="e.g. Your airport check-in confirmation">
+                  </div>
+                </div>
+                <button type="button" class="dashboard-btn-primary pdf-template-upload-button" id="pdfUploadJourneyTemplate">Upload to server library</button>
+                <p id="pdfJourneyTemplateStatus" class="pdf-key-status" aria-live="polite"></p>
+              </div>
+
+              <div class="pdf-template-library-card">
+                <div class="pdf-template-list-heading">
+                  <h5>Available template names</h5>
+                  <span id="pdfJourneyTemplateCount">Loading…</span>
+                </div>
+                <div id="pdfJourneyTemplateList" class="pdf-template-list">
+                  <p class="pdf-key-empty">Sign in to load the server template library.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="pdf-template-help pdf-template-library-help">
+              <strong>How execution works</strong>
+              <span><b>HTML</b> merges the payload with Handlebars expressions such as <code>{{data.bookingReference}}</code>. <b>DOCX</b> merges JSON into Word tags. Other documents are converted directly and ignore personalisation data.</span>
+            </div>
+          </section>
+
           <div class="pdf-key-workspace">
             <section class="pdf-key-card" aria-labelledby="pdfApiKeyHeading">
               <h4 id="pdfApiKeyHeading">Your API keys</h4>
@@ -524,6 +585,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260811c"></script>
+  <script src="pdf-personalisation.js?v=20260811d"></script>
 </body>
 </html>

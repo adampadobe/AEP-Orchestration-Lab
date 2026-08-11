@@ -40,6 +40,22 @@ The existing Firebase Secret Manager value `PDF_PERSONALISATION_API_KEY` remains
 
 Revoking a key invalidates it immediately. The full secret cannot be recovered; generate another key if it was not copied.
 
+## Server template library
+
+The same PDF Personalisation page includes **Upload and manage custom-action templates**. An authorised user can:
+
+1. Drop an HTML or supported source document into the page.
+2. Choose a stable lowercase `templateName`, display label, output PDF filename, and email subject.
+3. Upload the source into private Firebase Storage.
+4. See built-in and uploaded templates in one server-side list.
+5. Copy the exact template name into an AJO payload or archive an uploaded template.
+
+HTML templates use the existing escaped Handlebars renderer and can reference payload values such as `{{data.bookingReference}}` and `{{data.passenger.firstName}}`. DOCX templates use Adobe Document Generation with the journey `data` object. Word templates may also use top-level `firstName` and `lastName`, which Firebase adds from the recipient fields. Other supported documents are converted directly to PDF and ignore personalisation data.
+
+Uploaded templates are owner-scoped to the Firebase user who uploaded them. A self-service `pdf_…` API key carries that same owner identity, so it can resolve built-ins plus only that owner's uploaded template names. The operational fallback secret intentionally resolves built-ins only.
+
+Deleting an uploaded template marks it unavailable for new actions but retains its immutable private source version so an already-queued worker can finish safely. Re-uploading the same stable name is allowed after deletion.
+
 ## Request payload to paste
 
 The PDF Personalisation page now includes a **Copy AJO field definition** button containing one universal AJO request schema for both built-in templates. It uses `optionalMapping: true` for template-specific fields so they may remain unmapped on the other journey activity.

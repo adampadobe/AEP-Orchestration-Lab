@@ -324,11 +324,59 @@ function createHandler(deps) {
         return;
       }
 
+      if (path === '/journey-action/template-library' && req.method === 'GET') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const uploaded = await callJourneyKeyStore(
+          () => required.listJourneyTemplates(principal.ownerUid),
+        );
+        res.status(200).json({
+          templates: [...required.listBuiltinJourneyTemplates(), ...uploaded],
+          uploadedCount: uploaded.length,
+        });
+        return;
+      }
+
+      if (path === '/journey-action/template-library' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const saved = await callJourneyKeyStore(() => required.saveJourneyTemplate({
+          ownerUid: principal.ownerUid,
+          templateName: body.templateName,
+          label: body.label,
+          subject: body.subject,
+          documentName: body.documentName,
+          sourceFile: body.sourceFile,
+        }));
+        res.status(201).json({ status: 'ready', template: saved });
+        return;
+      }
+
+      if (path === '/journey-action/template-library' && req.method === 'DELETE') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const templateName = String(req.query && req.query.templateName || '').trim();
+        res.status(200).json(await callJourneyKeyStore(
+          () => required.archiveJourneyTemplate(principal.ownerUid, templateName),
+        ));
+        return;
+      }
+
       if (path === '/journey-action/templates' && req.method === 'GET') {
         if (principal.type !== 'service') {
           throw new core.PdfPersonalisationError('Service authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
-        res.status(200).json({ templates: journeyTemplates.listTemplates() });
+        const uploaded = principal.ownerUid && required.listJourneyTemplates
+          ? await required.listJourneyTemplates(principal.ownerUid)
+          : [];
+        const builtins = required.listBuiltinJourneyTemplates
+          ? required.listBuiltinJourneyTemplates()
+          : journeyTemplates.listTemplates();
+        res.status(200).json({ templates: [...builtins, ...uploaded] });
         return;
       }
 
@@ -352,7 +400,15 @@ function createHandler(deps) {
         if (principal.type !== 'service') {
           throw new core.PdfPersonalisationError('Service authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
-        const queued = await (required.enqueueJourneyAction || journeyAction.enqueue)(jsonBody(req), required);
+        const body = jsonBody(req);
+        const resolvedTemplate = required.resolveJourneyTemplateMetadata
+          ? await required.resolveJourneyTemplateMetadata(body.templateName, principal.ownerUid)
+          : null;
+        const queued = await (required.enqueueJourneyAction || journeyAction.enqueue)(body, {
+          ...required,
+          ...(resolvedTemplate ? { resolvedTemplate } : {}),
+          templateOwnerUid: principal.ownerUid || null,
+        });
         res.status(queued.reused ? 200 : 202).json(queued);
         return;
       }

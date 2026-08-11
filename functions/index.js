@@ -127,6 +127,7 @@ const pdfPersonalisationService = require('./pdfPersonalisationService');
 const pdfJourneyActionService = require('./pdfJourneyActionService');
 const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
 const pdfJourneyApiKeyStore = lazyRequireMod('./pdfJourneyApiKeyStore');
+const pdfJourneyTemplateStore = lazyRequireMod('./pdfJourneyTemplateStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -546,6 +547,11 @@ exports.pdfPersonalisation = onRequest(
     createJourneyApiKey: pdfJourneyApiKeyStore.createKey,
     revokeJourneyApiKey: pdfJourneyApiKeyStore.revokeKey,
     maxJourneyApiKeys: pdfJourneyApiKeyStore.MAX_ACTIVE_KEYS_PER_USER,
+    listBuiltinJourneyTemplates: pdfJourneyTemplateStore.builtinMetadata,
+    listJourneyTemplates: pdfJourneyTemplateStore.listUploadedTemplates,
+    saveJourneyTemplate: pdfJourneyTemplateStore.saveTemplate,
+    archiveJourneyTemplate: pdfJourneyTemplateStore.archiveTemplate,
+    resolveJourneyTemplateMetadata: pdfJourneyTemplateStore.resolveTemplateMetadata,
     getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
     getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
     getAdobeAccessToken,
@@ -613,6 +619,7 @@ exports.pdfJourneyActionWorker = onDocumentCreated(
       s3Region: process.env.PDF_S3_REGION || 'us-east-1',
       s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
       campaignId: process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
+      loadJourneyTemplateSource: pdfJourneyTemplateStore.loadTemplateSource,
     });
     console.info('[pdfJourneyActionWorker]', JSON.stringify({ jobId, result }));
   },

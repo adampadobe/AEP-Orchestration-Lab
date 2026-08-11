@@ -145,6 +145,44 @@ test('allows portal users to create, list, and revoke their journey API keys', a
   assert.equal(deleteRes.body.revoked, true);
 });
 
+test('allows portal users to manage their custom-action template library', async () => {
+  const savedInputs = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    listBuiltinJourneyTemplates: () => [{ templateName: 'booking-confirmation', source: 'builtin' }],
+    listJourneyTemplates: async () => [{ templateName: 'airport-welcome', source: 'uploaded' }],
+    saveJourneyTemplate: async (input) => { savedInputs.push(input); return { templateName: input.templateName }; },
+    archiveJourneyTemplate: async (uid, name) => ({ uid, templateName: name, archived: true }),
+  });
+
+  const getReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library'), { method: 'GET' });
+  const getRes = response();
+  await handler(getReq, getRes);
+  assert.equal(getRes.statusCode, 200);
+  assert.deepEqual(getRes.body.templates.map((item) => item.templateName), ['booking-confirmation', 'airport-welcome']);
+
+  const postReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library'), {
+    method: 'POST',
+    body: { templateName: 'airport-welcome', sourceFile: { fileName: 'welcome.html', base64: 'eA==' } },
+  });
+  const postRes = response();
+  await handler(postReq, postRes);
+  assert.equal(postRes.statusCode, 201);
+  assert.equal(savedInputs[0].ownerUid, 'user-1');
+
+  const deleteReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library?templateName=airport-welcome'), {
+    method: 'DELETE', query: { templateName: 'airport-welcome' },
+  });
+  const deleteRes = response();
+  await handler(deleteReq, deleteRes);
+  assert.equal(deleteRes.statusCode, 200);
+  assert.equal(deleteRes.body.archived, true);
+});
+
 test('rejects journey-scoped keys on manual PDF routes', async () => {
   const handler = service.createHandler({
     setCors() {},
@@ -224,6 +262,56 @@ test('queues the authenticated AJO journey action and returns its durable job re
   assert.equal(res.statusCode, 202);
   assert.equal(res.body.status, 'queued');
   assert.equal(res.body.requestId, 'event-12345678');
+});
+
+test('binds an uploaded journey template lookup to the generated key owner', async () => {
+  let resolvedFor;
+  let queuedDeps;
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => 'different-ops-key',
+    validateJourneyApiKey: async () => ({
+      ok: true,
+      keyId: 'abc123abc123',
+      principalUid: 'user-1',
+      principalEmail: 'apalmer@adobe.com',
+    }),
+    verifyIdTokenClaimsFromRequest: async () => null,
+    resolveJourneyTemplateMetadata: async (name, ownerUid) => {
+      resolvedFor = { name, ownerUid };
+      return {
+        name,
+        subject: 'Airport welcome',
+        documentName: 'airport-welcome.pdf',
+        kind: 'html',
+        source: 'uploaded',
+        sourceHash: 'a'.repeat(64),
+        objectPath: 'pdf-personalisation/journey-templates/owner/airport-welcome/source.html',
+        ownerUid,
+      };
+    },
+    enqueueJourneyAction: async (body, deps) => {
+      queuedDeps = deps;
+      return {
+        status: 'queued', jobId: 'a'.repeat(40), requestId: body.requestId,
+        templateName: body.templateName, campaignId: 'campaign-1',
+        acceptedAt: '2026-08-11T15:00:00.000Z', reused: false,
+      };
+    },
+  });
+  const req = Object.assign(request(
+    { 'x-pdf-api-key': 'pdf_generated-key-value-long-enough' },
+    '/api/pdf-personalisation/journey-action',
+  ), {
+    method: 'POST',
+    body: { requestId: 'event-12345678', templateName: 'airport-welcome' },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 202);
+  assert.deepEqual(resolvedFor, { name: 'airport-welcome', ownerUid: 'user-1' });
+  assert.equal(queuedDeps.templateOwnerUid, 'user-1');
+  assert.equal(queuedDeps.resolvedTemplate.source, 'uploaded');
 });
 
 test('does not expose the journey custom action to portal authentication', async () => {

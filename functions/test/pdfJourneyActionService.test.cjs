@@ -110,6 +110,28 @@ test('normalises flat check-in fields into the nested template contract', () => 
   assert.equal(input.data.passenger.firstName, 'Amelia');
 });
 
+test('persists owner-scoped uploaded template metadata in the queued job contract', () => {
+  const input = service.normaliseRequest(bookingRequest({ templateName: 'airport-welcome' }), {
+    resolvedTemplate: {
+      name: 'airport-welcome',
+      subject: 'Airport welcome',
+      documentName: 'airport-welcome.pdf',
+      kind: 'document',
+      source: 'uploaded',
+      sourceHash: 'a'.repeat(64),
+      sourceFileName: 'airport-welcome.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      objectPath: 'pdf-personalisation/journey-templates/owner/airport-welcome/source.docx',
+      ownerUid: 'user-1',
+    },
+  });
+  assert.equal(input.templateKind, 'document');
+  assert.equal(input.templateSource, 'uploaded');
+  assert.equal(input.templateOwnerUid, 'user-1');
+  assert.equal(input.templateSourceName, 'airport-welcome.docx');
+  assert.equal(input.data.firstName, 'Amelia');
+});
+
 test('renders both built-in templates from the flat custom-action contract', () => {
   const booking = service.normaliseRequest(bookingRequest());
   const bookingHtml = core.renderHtmlTemplate(
