@@ -459,3 +459,30 @@ test('converts an authenticated Word data document into editable JSON', async ()
   assert.equal(res.body.status, 'converted');
   assert.deepEqual(res.body.data, { PassengerName: 'Darakhshan Khan', FlightNumber: 'RX 123' });
 });
+
+test('maps canonical AJO data to DOCX merge fields for manual generation', () => {
+  const mapped = service.mapDocumentTemplateData({
+    fileName: 'boarding-pass.docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    buffer: Buffer.from('fixture'),
+  }, {
+    flightNumber: 'RX 123',
+    passengerName: 'Darakhshan Khan',
+    'Booking Ref': 'ABC1234',
+    CustomField: 'Direct value',
+  }, {
+    analyseJourneyTemplate: () => ({
+      suggestedMappings: [
+        { target: 'Flight Number', source: 'flightNumber', required: true, type: 'text' },
+        { target: 'PassengerName', source: 'passengerName', required: true, type: 'text' },
+        { target: 'Booking Ref', source: 'bookingReference', required: true, type: 'text' },
+        { target: 'CustomField', source: '', required: true, type: 'text' },
+      ],
+    }),
+  });
+
+  assert.equal(mapped['Flight Number'], 'RX 123');
+  assert.equal(mapped.PassengerName, 'Darakhshan Khan');
+  assert.equal(mapped['Booking Ref'], 'ABC1234');
+  assert.equal(mapped.CustomField, 'Direct value');
+});

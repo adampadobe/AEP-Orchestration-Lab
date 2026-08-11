@@ -91,6 +91,32 @@ async function validateJourneyTemplatePublication(input, deps = {}) {
   };
 }
 
+function hasDocumentValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function mapDocumentTemplateData(sourceDocument, data, deps = {}) {
+  if (!sourceDocument || !/\.docx$/i.test(String(sourceDocument.fileName || ''))) return data;
+  const analyse = deps.analyseJourneyTemplate || journeyTemplateContract.analyseTemplate;
+  const analysis = analyse({
+    fileName: sourceDocument.fileName,
+    mimeType: sourceDocument.mimeType,
+    base64: Buffer.from(sourceDocument.buffer || []).toString('base64'),
+  });
+  const mappings = (Array.isArray(analysis && analysis.suggestedMappings)
+    ? analysis.suggestedMappings
+    : []).filter((mapping) => String(mapping && mapping.source || '').trim());
+  if (!mappings.length) return data;
+
+  const mapped = journeyTemplateContract.applyMappings(data, mappings);
+  mappings.forEach((mapping) => {
+    if (!hasDocumentValue(mapped[mapping.target]) && hasDocumentValue(data[mapping.target])) {
+      mapped[mapping.target] = data[mapping.target];
+    }
+  });
+  return core.normaliseDocumentMergeData(mapped);
+}
+
 async function authorise(req, deps = {}) {
   const configuredServiceKey = deps.getServiceApiKey
     ? String(deps.getServiceApiKey() || '').trim()
@@ -637,7 +663,8 @@ function createHandler(deps) {
           };
           let pdfBuffer;
           if (input.conversionMode === 'document') {
-            pdfBuffer = await core.convertDocumentToPdf(input.sourceDocument, input.data, credentials, required);
+            const documentData = mapDocumentTemplateData(input.sourceDocument, input.data, required);
+            pdfBuffer = await core.convertDocumentToPdf(input.sourceDocument, documentData, credentials, required);
           } else {
             const zipBuffer = await core.createHtmlZip(rendered.renderedHtml);
             pdfBuffer = await core.convertHtmlZipToPdf(zipBuffer, input.options, credentials, required);
@@ -704,5 +731,6 @@ module.exports = {
   downloadStorage,
   responseForReadyJob,
   validateJourneyTemplatePublication,
+  mapDocumentTemplateData,
   createHandler,
 };
