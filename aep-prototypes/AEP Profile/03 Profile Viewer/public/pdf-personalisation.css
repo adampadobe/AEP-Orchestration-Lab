@@ -906,6 +906,38 @@
 
 .pdf-template-library-help { margin-top: 13px; }
 
+.pdf-ajo-setup-details {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  background: var(--dash-bg-soft, rgba(100, 116, 139, 0.035));
+}
+
+.pdf-ajo-setup-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 17px;
+  color: var(--dash-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pdf-ajo-setup-summary::-webkit-details-marker { display: none; }
+.pdf-ajo-setup-summary:hover { background: rgba(212, 63, 47, .045); }
+.pdf-ajo-setup-summary:focus-visible { outline: 2px solid var(--pdf-accent); outline-offset: -2px; }
+.pdf-ajo-setup-summary strong,
+.pdf-ajo-setup-summary em { display: block; }
+.pdf-ajo-setup-summary strong { font-size: 12px; }
+.pdf-ajo-setup-summary em { margin-top: 3px; color: var(--dash-muted); font-size: 10px; font-style: normal; }
+.pdf-ajo-setup-toggle { flex: 0 0 auto; color: var(--pdf-accent-dark); font-size: 10px; font-weight: 700; }
+.pdf-ajo-setup-toggle::after { content: "Show setup"; }
+.pdf-ajo-setup-details[open] .pdf-ajo-setup-toggle::after { content: "Hide setup"; }
+.pdf-ajo-setup-details[open] .pdf-ajo-setup-summary { border-bottom: 1px solid var(--dash-border); }
+.pdf-ajo-setup-body { padding: 0 17px 17px; }
+
 .pdf-key-workspace {
   display: grid;
   grid-template-columns: minmax(320px, .8fr) minmax(0, 1.2fr);

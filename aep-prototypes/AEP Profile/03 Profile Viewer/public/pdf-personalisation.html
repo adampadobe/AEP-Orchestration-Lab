@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811c">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811d">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -265,11 +265,11 @@
         <section class="pdf-custom-action-panel" aria-labelledby="pdfCustomActionHeading">
           <div class="pdf-custom-action-header">
             <div>
-              <span class="pdf-eyebrow">AJO journey integration</span>
-              <h3 id="pdfCustomActionHeading">Generate a custom-action API key</h3>
-              <p>Create a personal key for the PDF journey endpoint, then copy the exact values below into Adobe Journey Optimizer. The full key is shown once and its plaintext is never stored.</p>
+              <span class="pdf-eyebrow">Custom-action templates</span>
+              <h3 id="pdfCustomActionHeading">Manage server templates</h3>
+              <p>Upload and manage the reusable HTML or document templates that journeys reference by name.</p>
             </div>
-            <span class="pdf-scope-badge">Scope: PDF journey action only</span>
+            <span class="pdf-scope-badge">HTML + document library</span>
           </div>
 
           <section class="pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
@@ -333,6 +333,15 @@
             </div>
           </section>
 
+          <details class="pdf-ajo-setup-details">
+            <summary class="pdf-ajo-setup-summary">
+              <span>
+                <strong>AJO custom-action setup</strong>
+                <em>One-time configuration · API key, endpoint, request and response payloads</em>
+              </span>
+              <span class="pdf-ajo-setup-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="pdf-ajo-setup-body">
           <div class="pdf-key-workspace">
             <section class="pdf-key-card" aria-labelledby="pdfApiKeyHeading">
               <h4 id="pdfApiKeyHeading">Your API keys</h4>
@@ -572,6 +581,8 @@
             <code>checkin-confirmation</code>
             <span>Use a stable event identifier for <code>requestId</code>. A retry must reuse it; a new booking or check-in must use a new value.</span>
           </div>
+            </div>
+          </details>
         </section>
       </main>
     </div>
