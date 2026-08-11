@@ -1,14 +1,14 @@
 {
-  "gitSha": "be905b0ef136895b6691d4415ab6e5cde4f8c347",
-  "gitShortSha": "be905b0e",
+  "gitSha": "76d2289b35b459ae23bc73ec547d4bf8f2aa55dc",
+  "gitShortSha": "76d2289b",
   "gitBranch": "codex/ajo-pdf-custom-action-20260811",
-  "gitCommitSubject": "[apalmer] Simplify PDF action setup guidance",
+  "gitCommitSubject": "[apalmer] Unify PDF conversion and publishing workspace",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-11T22:42:51+03:00",
-  "deployedAt": "2026-08-11T19:43:31.607Z",
+  "gitCommitDate": "2026-08-11T22:55:48+03:00",
+  "deployedAt": "2026-08-11T19:56:34.491Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/be905b0ef136895b6691d4415ab6e5cde4f8c347"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/76d2289b35b459ae23bc73ec547d4bf8f2aa55dc"
 }
