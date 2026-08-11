@@ -4,6 +4,7 @@ const { createHash } = require('node:crypto');
 const { Readable } = require('node:stream');
 const archiver = require('archiver');
 const Handlebars = require('handlebars');
+const { PDFDocument } = require('pdf-lib');
 
 const MAX_TEMPLATE_BYTES = 1_500_000;
 const MAX_DATA_BYTES = 1_500_000;
@@ -545,6 +546,22 @@ function requestHash(input, templateHash) {
   }));
 }
 
+async function pdfPageCount(pdfBuffer) {
+  try {
+    const document = await PDFDocument.load(validatePdfBuffer(pdfBuffer), {
+      ignoreEncryption: false,
+      updateMetadata: false,
+    });
+    return document.getPageCount();
+  } catch (_error) {
+    throw new PdfPersonalisationError(
+      'The generated PDF could not be inspected for page count.',
+      502,
+      'PDF_PAGE_COUNT_INVALID',
+    );
+  }
+}
+
 module.exports = {
   MAX_TEMPLATE_BYTES,
   MAX_DATA_BYTES,
@@ -570,5 +587,6 @@ module.exports = {
   validatePdfBuffer,
   convertHtmlZipToPdf,
   convertDocumentToPdf,
+  pdfPageCount,
   requestHash,
 };

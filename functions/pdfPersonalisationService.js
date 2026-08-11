@@ -6,6 +6,7 @@ const docxData = require('./pdfPersonalisationDocxData');
 const store = require('./pdfPersonalisationStore');
 const journeyAction = require('./pdfJourneyActionService');
 const journeyTemplates = require('./pdfJourneyTemplates');
+const journeyTemplateContract = require('./pdfJourneyTemplateContract');
 
 const DEFAULT_ALLOWED_EMAILS = ['apalmer@adobe.com'];
 
@@ -36,6 +37,58 @@ function jsonBody(req) {
   } catch {
     throw new core.PdfPersonalisationError('Invalid JSON body.', 400, 'PDF_REQUEST_JSON_INVALID');
   }
+}
+
+async function validateJourneyTemplatePublication(input, deps = {}) {
+  const analysis = input.analysis || journeyTemplateContract.analyseTemplate(input.sourceFile);
+  const mappings = journeyTemplateContract.normalizeMappings(analysis.fields, input.fieldMappings);
+  const samplePayload = input.samplePayload && typeof input.samplePayload === 'object'
+    ? input.samplePayload
+    : {};
+  const sampleData = core.normaliseDocumentMergeData(
+    samplePayload.data && typeof samplePayload.data === 'object' ? samplePayload.data : samplePayload,
+  );
+  const recipient = {
+    firstName: String(samplePayload.firstName || sampleData.firstName || '').trim(),
+    lastName: String(samplePayload.lastName || sampleData.lastName || '').trim(),
+  };
+  const mappedData = journeyTemplateContract.applyMappings(sampleData, mappings, recipient);
+  journeyTemplateContract.validateMappedData(mappedData, mappings);
+  const credentials = {
+    clientId: deps.getPdfClientId(),
+    clientSecret: deps.getPdfClientSecret(),
+  };
+  let pdfBuffer;
+  if (analysis.kind === 'html') {
+    const html = Buffer.from(String(input.sourceFile.base64 || ''), 'base64').toString('utf8');
+    const rendered = core.renderHtmlTemplate(core.validateHtmlTemplate(html), mappedData, {});
+    pdfBuffer = await core.convertHtmlZipToPdf(
+      await core.createHtmlZip(rendered.renderedHtml),
+      {},
+      credentials,
+      deps,
+    );
+  } else {
+    const sourceDocument = core.normaliseSourceDocument(input.sourceFile);
+    pdfBuffer = await core.convertDocumentToPdf(sourceDocument, mappedData, credentials, deps);
+  }
+  const pageCount = await core.pdfPageCount(pdfBuffer);
+  const expectedPageCount = Math.max(1, Math.min(20, Number(input.expectedPageCount) || 1));
+  if (pageCount !== expectedPageCount) {
+    throw new core.PdfPersonalisationError(
+      `Template generated ${pageCount} pages; expected ${expectedPageCount}. Correct the layout before publishing.`,
+      400,
+      'PDF_JOURNEY_TEMPLATE_PAGE_COUNT_MISMATCH',
+    );
+  }
+  return {
+    analysis,
+    mappings,
+    mappedData,
+    pageCount,
+    expectedPageCount,
+    validatedAt: new Date().toISOString(),
+  };
 }
 
 async function authorise(req, deps = {}) {
@@ -338,11 +391,31 @@ function createHandler(deps) {
         return;
       }
 
+      if (path === '/journey-action/template-analysis' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const analysis = await Promise.resolve(
+          required.analyseJourneyTemplate
+            ? required.analyseJourneyTemplate(body.sourceFile)
+            : journeyTemplateContract.analyseTemplate(body.sourceFile),
+        );
+        res.status(200).json({ status: 'analysed', ...analysis });
+        return;
+      }
+
       if (path === '/journey-action/template-library' && req.method === 'POST') {
         if (principal.type !== 'portal') {
           throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         const body = jsonBody(req);
+        const validation = await (required.validateJourneyTemplatePublication || validateJourneyTemplatePublication)({
+          sourceFile: body.sourceFile,
+          samplePayload: body.samplePayload,
+          fieldMappings: body.fieldMappings,
+          expectedPageCount: body.expectedPageCount,
+        }, required);
         const saved = await callJourneyKeyStore(() => required.saveJourneyTemplate({
           ownerUid: principal.ownerUid,
           templateName: body.templateName,
@@ -350,8 +423,24 @@ function createHandler(deps) {
           subject: body.subject,
           documentName: body.documentName,
           sourceFile: body.sourceFile,
+          fieldDefinitions: validation.analysis.fields,
+          fieldMappings: validation.mappings,
+          expectedPageCount: validation.expectedPageCount,
+          validation: {
+            pageCount: validation.pageCount,
+            validatedAt: validation.validatedAt,
+          },
+          replace: body.replace === true,
         }));
-        res.status(201).json({ status: 'ready', template: saved });
+        res.status(201).json({
+          status: 'published',
+          template: saved,
+          validation: {
+            pageCount: validation.pageCount,
+            expectedPageCount: validation.expectedPageCount,
+            mappedFields: validation.mappings.length,
+          },
+        });
         return;
       }
 
@@ -614,5 +703,6 @@ module.exports = {
   downloadDisposition,
   downloadStorage,
   responseForReadyJob,
+  validateJourneyTemplatePublication,
   createHandler,
 };

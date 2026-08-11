@@ -176,6 +176,45 @@ test('preserves optional DOCX image variables using the document-merge data allo
   assert.match(input.data.Offer, /^data:image\/png;base64,/);
 });
 
+test('applies stored template mappings to the stable custom-action payload', () => {
+  const input = service.normaliseRequest(bookingRequest({
+    templateName: 'ra-boarding-pass-template',
+    firstName: 'Adam',
+    lastName: 'Palmer',
+    data: {
+      bookingReference: 'RA8F2Q',
+      flightNumber: 'RX 401',
+      departureDateTime: '2026-08-12T09:15:00Z',
+      boardingTime: '08:30',
+    },
+  }), {
+    resolvedTemplate: {
+      name: 'ra-boarding-pass-template',
+      subject: 'Your Riyadh Air boarding pass',
+      documentName: 'riyadh-air-boarding-pass.pdf',
+      kind: 'document',
+      source: 'uploaded',
+      sourceHash: 'c'.repeat(64),
+      sourceFileName: 'Riyadh_Air_Boarding_Pass_Template.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      objectPath: 'pdf-personalisation/journey-templates/owner/ra-boarding-pass-template/source.docx',
+      ownerUid: 'user-1',
+      version: 2,
+      fieldMappings: [
+        { target: 'PassengerName', source: 'passengerName', required: true, type: 'text' },
+        { target: 'Flight Number', source: 'flightNumber', required: true, type: 'text' },
+        { target: 'Date', source: 'flightDate', required: true, type: 'text' },
+        { target: 'B_time', source: 'boardingTime', required: true, type: 'text' },
+      ],
+    },
+  });
+  assert.equal(input.data.PassengerName, 'Adam Palmer');
+  assert.equal(input.data['Flight Number'], 'RX 401');
+  assert.equal(input.data.Date, '12 AUG 2026');
+  assert.equal(input.data.B_time, '08:30');
+  assert.equal(input.templateVersion, 2);
+});
+
 test('renders both built-in templates from the flat custom-action contract', () => {
   const booking = service.normaliseRequest(bookingRequest());
   const bookingHtml = core.renderHtmlTemplate(

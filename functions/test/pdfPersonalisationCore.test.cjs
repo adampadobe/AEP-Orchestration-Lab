@@ -6,6 +6,7 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { Readable } = require('node:stream');
 const unzipper = require('unzipper');
+const { PDFDocument } = require('pdf-lib');
 const core = require('../pdfPersonalisationCore');
 
 test('renders Emirates-style nested fields and loops with HTML escaping', () => {
@@ -318,4 +319,11 @@ test('normalises document options and enforces idempotency keys', () => {
     () => core.normaliseGenerateRequest({ htmlTemplate: '<p>x</p>', data: {}, idempotencyKey: 'short' }),
     (error) => error.code === 'PDF_IDEMPOTENCY_KEY_INVALID',
   );
+});
+
+test('reads the generated PDF page count for template publication gates', async () => {
+  const document = await PDFDocument.create();
+  document.addPage();
+  document.addPage();
+  assert.equal(await core.pdfPageCount(Buffer.from(await document.save())), 2);
 });

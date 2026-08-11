@@ -117,6 +117,35 @@ test('supports document templates and archives only the owner copy', async () =>
   assert.equal((await store.listUploadedTemplates('user-1', fixture.deps)).length, 0);
 });
 
+test('versions a validated replacement while preserving its runtime mapping', async () => {
+  const fixture = harness();
+  const base = {
+    ownerUid: 'user-1',
+    templateName: 'boarding-pass',
+    fieldDefinitions: [{ name: 'PassengerName', type: 'text' }],
+    fieldMappings: [{ target: 'PassengerName', source: 'passengerName', required: true, type: 'text' }],
+    expectedPageCount: 1,
+    validation: { pageCount: 1, validatedAt: '2026-08-11T20:00:00.000Z' },
+    sourceFile: {
+      fileName: 'boarding-pass.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      base64: Buffer.from('first-version').toString('base64'),
+    },
+  };
+  const first = await store.saveTemplate(base, fixture.deps);
+  assert.equal(first.version, 1);
+  assert.equal(first.fieldMappings[0].source, 'passengerName');
+  const second = await store.saveTemplate({
+    ...base,
+    replace: true,
+    sourceFile: { ...base.sourceFile, base64: Buffer.from('second-version').toString('base64') },
+  }, fixture.deps);
+  assert.equal(second.version, 2);
+  const metadata = await store.resolveTemplateMetadata('boarding-pass', 'user-1', fixture.deps);
+  assert.equal(metadata.version, 2);
+  assert.equal(metadata.expectedPageCount, 1);
+});
+
 test('protects built-in names and resolves built-ins without an owner', async () => {
   const fixture = harness();
   const builtIn = await store.resolveTemplateMetadata('booking-confirmation', null, fixture.deps);

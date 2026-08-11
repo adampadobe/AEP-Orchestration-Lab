@@ -122,6 +122,12 @@ function serializeRecord(record) {
     mimeType: record.mimeType,
     size: record.size,
     sourceHash: record.sourceHash,
+    fieldDefinitions: Array.isArray(record.fieldDefinitions) ? record.fieldDefinitions : [],
+    fieldMappings: Array.isArray(record.fieldMappings) ? record.fieldMappings : [],
+    expectedPageCount: Number(record.expectedPageCount) || null,
+    validation: record.validation || null,
+    version: Number(record.version) || 1,
+    status: record.status,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     canDelete: true,
@@ -166,7 +172,8 @@ async function saveTemplate(input, deps = {}) {
   const id = templateDocId(ownerUid, templateName);
   const ref = db.collection(TEMPLATES_COLLECTION).doc(id);
   const existing = await ref.get();
-  if (existing.exists && (existing.data() || {}).status === 'active') {
+  const existingRecord = existing.exists ? (existing.data() || {}) : null;
+  if (existingRecord && existingRecord.status === 'active' && input.replace !== true) {
     throw new core.PdfPersonalisationError(
       `Template "${templateName}" already exists. Delete it before uploading a replacement.`,
       409,
@@ -199,8 +206,13 @@ async function saveTemplate(input, deps = {}) {
     mimeType,
     size: bytes.length,
     sourceHash,
+    fieldDefinitions: Array.isArray(input.fieldDefinitions) ? input.fieldDefinitions : [],
+    fieldMappings: Array.isArray(input.fieldMappings) ? input.fieldMappings : [],
+    expectedPageCount: Number(input.expectedPageCount) || null,
+    validation: input.validation && typeof input.validation === 'object' ? input.validation : null,
+    version: existingRecord ? (Number(existingRecord.version) || 1) + 1 : 1,
     status: 'active',
-    createdAt: timestamp,
+    createdAt: existingRecord && existingRecord.createdAt || timestamp,
     updatedAt: timestamp,
   };
   await ref.set(record);
@@ -266,6 +278,11 @@ async function resolveTemplateMetadata(templateName, ownerUid, deps = {}) {
     mimeType: record.mimeType,
     objectPath: record.objectPath,
     ownerUid: uid,
+    fieldDefinitions: Array.isArray(record.fieldDefinitions) ? record.fieldDefinitions : [],
+    fieldMappings: Array.isArray(record.fieldMappings) ? record.fieldMappings : [],
+    expectedPageCount: Number(record.expectedPageCount) || null,
+    validation: record.validation || null,
+    version: Number(record.version) || 1,
   };
 }
 

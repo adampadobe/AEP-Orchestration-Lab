@@ -5,6 +5,7 @@ const admin = require('firebase-admin');
 const core = require('./pdfPersonalisationCore');
 const pdfStore = require('./pdfPersonalisationStore');
 const templates = require('./pdfJourneyTemplates');
+const templateContract = require('./pdfJourneyTemplateContract');
 
 const JOBS_COLLECTION = 'pdfJourneyActionJobs';
 const AJO_EXECUTION_URL = 'https://platform.adobe.io/ajo/im/executions/unitary';
@@ -146,7 +147,15 @@ function normaliseRequest(body, deps = {}) {
     firstName: cleanText(input.firstName, 100),
     lastName: cleanText(input.lastName, 100),
   };
-  const data = normaliseTemplateData(template.name, input.data, recipient, template.kind === 'document');
+  let data = normaliseTemplateData(template.name, input.data, recipient, template.kind === 'document');
+  const templateFieldMappings = Array.isArray(template.fieldMappings) ? template.fieldMappings : [];
+  if (templateFieldMappings.length) {
+    const mappedData = templateContract.applyMappings(data, templateFieldMappings, recipient);
+    data = template.kind === 'document'
+      ? core.normaliseDocumentMergeData(mappedData)
+      : core.normaliseData(mappedData);
+    templateContract.validateMappedData(data, templateFieldMappings);
+  }
   const documentName = core.safeDocumentName(input.documentName || template.documentName);
   const selectedCampaignId = resolveCampaignId(input.campaignId, deps);
   const requestHash = core.sha256(JSON.stringify({
@@ -171,6 +180,8 @@ function normaliseRequest(body, deps = {}) {
     templateMimeType: template.mimeType || null,
     templateObjectPath: template.objectPath || null,
     templateOwnerUid: template.ownerUid || deps.templateOwnerUid || null,
+    templateVersion: Number(template.version) || 1,
+    templateFieldMappings,
     recipient,
     data,
     campaignId: selectedCampaignId,

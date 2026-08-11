@@ -155,6 +155,13 @@ test('allows portal users to manage their custom-action template library', async
     }),
     listBuiltinJourneyTemplates: () => [{ templateName: 'booking-confirmation', source: 'builtin' }],
     listJourneyTemplates: async () => [{ templateName: 'airport-welcome', source: 'uploaded' }],
+    analyseJourneyTemplate: () => ({
+      kind: 'html', fields: [], suggestedMappings: [], canonicalSources: [],
+    }),
+    validateJourneyTemplatePublication: async () => ({
+      analysis: { kind: 'html', fields: [] }, mappings: [], pageCount: 1,
+      expectedPageCount: 1, validatedAt: '2026-08-11T20:00:00.000Z',
+    }),
     saveJourneyTemplate: async (input) => { savedInputs.push(input); return { templateName: input.templateName }; },
     archiveJourneyTemplate: async (uid, name) => ({ uid, templateName: name, archived: true }),
   });
@@ -165,6 +172,14 @@ test('allows portal users to manage their custom-action template library', async
   assert.equal(getRes.statusCode, 200);
   assert.deepEqual(getRes.body.templates.map((item) => item.templateName), ['booking-confirmation', 'airport-welcome']);
 
+  const analyseReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-analysis'), {
+    method: 'POST', body: { sourceFile: { fileName: 'welcome.html', base64: 'eA==' } },
+  });
+  const analyseRes = response();
+  await handler(analyseReq, analyseRes);
+  assert.equal(analyseRes.statusCode, 200);
+  assert.equal(analyseRes.body.status, 'analysed');
+
   const postReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library'), {
     method: 'POST',
     body: { templateName: 'airport-welcome', sourceFile: { fileName: 'welcome.html', base64: 'eA==' } },
@@ -172,6 +187,7 @@ test('allows portal users to manage their custom-action template library', async
   const postRes = response();
   await handler(postReq, postRes);
   assert.equal(postRes.statusCode, 201);
+  assert.equal(postRes.body.status, 'published');
   assert.equal(savedInputs[0].ownerUid, 'user-1');
 
   const deleteReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library?templateName=airport-welcome'), {
