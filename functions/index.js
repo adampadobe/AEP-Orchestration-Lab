@@ -126,6 +126,7 @@ const labDemoAssetService = lazyRequireMod('./labDemoAssetService');
 const pdfPersonalisationService = require('./pdfPersonalisationService');
 const pdfJourneyActionService = require('./pdfJourneyActionService');
 const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
+const pdfJourneyApiKeyStore = lazyRequireMod('./pdfJourneyApiKeyStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -540,6 +541,11 @@ exports.pdfPersonalisation = onRequest(
     getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
     getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
     getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
+    validateJourneyApiKey: pdfJourneyApiKeyStore.validateApiKey,
+    listJourneyApiKeys: pdfJourneyApiKeyStore.listKeysForUser,
+    createJourneyApiKey: pdfJourneyApiKeyStore.createKey,
+    revokeJourneyApiKey: pdfJourneyApiKeyStore.revokeKey,
+    maxJourneyApiKeys: pdfJourneyApiKeyStore.MAX_ACTIVE_KEYS_PER_USER,
     getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
     getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
     getAdobeAccessToken,

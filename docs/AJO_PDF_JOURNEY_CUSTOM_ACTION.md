@@ -21,9 +21,24 @@ The HTTP action only validates and queues the request, returning within the Jour
 | Authentication type | `API key` |
 | Authentication name | `x-pdf-api-key` |
 | Authentication location | `Header` |
-| Authentication value | The Firebase Secret Manager value named `PDF_PERSONALISATION_API_KEY` |
+| Authentication value | Generate a scoped key on **PDF Personalisation → AJO journey integration**, then paste the one-time value |
 
-Do not paste the key into a request payload, URL, repository, screenshot, or browser JavaScript. AJO encrypts the authentication value after it is saved.
+Open [PDF Personalisation](https://aep-orchestration-lab.web.app/profile-viewer/pdf-personalisation.html), sign in, and scroll to **Generate a custom-action API key**. The page provides individual Copy buttons for every action field, request payload, success response, failure response, and a **Copy all setup values** option.
+
+The generated secret is shown once. Only its SHA-256 hash, owner, label, scope, and audit timestamps are stored. It is valid only for the PDF journey action, template-list, and status endpoints; it cannot call the manual HTML/DOCX conversion or private-template repository routes. Create separate named keys for independent AJO configurations so one can be revoked without disrupting another.
+
+The existing Firebase Secret Manager value `PDF_PERSONALISATION_API_KEY` remains an operational fallback, but it should not be distributed to page users. Do not paste any key into a request payload, URL, repository, screenshot, or browser JavaScript. AJO encrypts the authentication value after it is saved.
+
+## Key lifecycle
+
+1. Sign in to the Lab and open the PDF Personalisation page.
+2. Enter a descriptive name such as `AJO booking journey`.
+3. Select **Generate API key**.
+4. Copy the full `pdf_…` value from the one-time panel.
+5. Paste it into the AJO custom action authentication **Value** field and save the action.
+6. Return to the page to view redacted active-key metadata or revoke an obsolete key.
+
+Revoking a key invalidates it immediately. The full secret cannot be recovered; generate another key if it was not copied.
 
 ## Request payload to paste
 

@@ -709,6 +709,118 @@
   display: block;
 }
 
+.pdf-custom-action-panel {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid var(--dash-border);
+  border-radius: 14px;
+  background: var(--dash-surface);
+  box-shadow: 0 10px 35px rgba(15, 23, 42, 0.05);
+}
+
+.pdf-custom-action-header,
+.pdf-config-title-row,
+.pdf-snippet-card > div,
+.pdf-snippet-subhead,
+.pdf-template-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pdf-custom-action-header h3,
+.pdf-key-card h4,
+.pdf-action-config h4,
+.pdf-snippet-card h4 {
+  margin: 0;
+  color: var(--dash-text);
+}
+
+.pdf-custom-action-header h3 { font-size: 18px; }
+.pdf-custom-action-header p,
+.pdf-action-config p,
+.pdf-snippet-card p {
+  margin: 7px 0 0;
+  color: var(--dash-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.pdf-scope-badge {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #17633a;
+  background: rgba(39, 174, 96, 0.1);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pdf-key-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, .8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.pdf-key-card,
+.pdf-action-config,
+.pdf-snippet-card {
+  padding: 17px;
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  background: var(--dash-bg-soft, rgba(100, 116, 139, 0.035));
+}
+
+.pdf-key-card label { display: block; margin: 14px 0 6px; font-size: 11px; font-weight: 650; }
+.pdf-key-card input { min-height: 38px; padding: 8px 10px; border: 1px solid var(--dash-input-border, var(--dash-border)); border-radius: 9px; color: var(--dash-text); background: var(--dash-input-bg, var(--dash-surface)); font: inherit; }
+.pdf-key-card h5 { margin: 17px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+
+.pdf-key-status { min-height: 16px; margin: 9px 0 0; color: var(--dash-muted); font-size: 11px; }
+.pdf-key-status.is-error { color: #9d2f26; }
+.pdf-key-status.is-success { color: #17633a; }
+
+.pdf-key-once {
+  margin-top: 13px;
+  padding: 13px;
+  border: 1px solid rgba(212, 63, 47, .28);
+  border-radius: 10px;
+  background: var(--pdf-accent-soft);
+}
+.pdf-key-once > strong { color: var(--pdf-accent-dark); font-size: 12px; }
+.pdf-key-once > p { margin: 4px 0 9px; font-size: 10.5px; }
+.pdf-copy-field { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; }
+.pdf-copy-field input { min-width: 0; font-family: "SFMono-Regular", Consolas, monospace; font-size: 10.5px; }
+
+.pdf-key-list { display: grid; gap: 7px; }
+.pdf-key-empty { margin: 0; color: var(--dash-muted); font-size: 11px; }
+.pdf-key-list-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border: 1px solid var(--dash-border); border-radius: 9px; background: var(--dash-surface); }
+.pdf-key-list-item strong,
+.pdf-key-list-item span { display: block; }
+.pdf-key-list-item strong { font-size: 11px; }
+.pdf-key-list-item span { margin-top: 2px; color: var(--dash-muted); font: 9.5px "SFMono-Regular", Consolas, monospace; }
+.pdf-key-revoke { padding: 5px 8px !important; font-size: 10px !important; }
+
+.pdf-config-title-row { align-items: flex-start; }
+.pdf-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 15px 0 0; }
+.pdf-config-grid > div { min-width: 0; padding: 9px 10px; border: 1px solid var(--dash-border); border-radius: 9px; background: var(--dash-surface); }
+.pdf-config-grid .pdf-config-wide { grid-column: 1 / -1; }
+.pdf-config-grid dt { margin-bottom: 5px; color: var(--dash-muted); font-size: 9.5px; font-weight: 650; text-transform: uppercase; }
+.pdf-config-grid dd { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0; }
+.pdf-config-grid code { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--dash-text); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-copy-mini { border: 0; color: var(--pdf-accent-dark); background: transparent; cursor: pointer; font-size: 9.5px; font-weight: 700; }
+.pdf-config-note { padding: 10px; border-radius: 9px; background: rgba(49, 90, 138, .08); }
+
+.pdf-payload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.pdf-snippet-card > div { align-items: flex-start; }
+.pdf-snippet-card pre { max-height: 390px; overflow: auto; margin: 12px 0 0; padding: 13px; border-radius: 9px; color: var(--pdf-code-text); background: var(--pdf-code-bg); font: 10px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre; }
+.pdf-copy-snippet { padding: 6px 9px !important; font-size: 10px !important; white-space: nowrap; }
+.pdf-snippet-subhead { margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--dash-border); }
+.pdf-template-help { justify-content: flex-start; flex-wrap: wrap; margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: var(--pdf-accent-soft); font-size: 11px; }
+.pdf-template-help code { padding: 3px 6px; border-radius: 5px; color: var(--pdf-accent-dark); background: var(--dash-surface); }
+.pdf-template-help span { flex: 1 1 420px; color: var(--dash-muted); }
+
 .pdf-flow-steps strong {
   color: var(--dash-text);
   font-size: 11px;
@@ -729,6 +841,7 @@
   .pdf-preview-column { position: static; grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr); }
   .pdf-result-panel { align-self: start; }
   .pdf-flow-panel { grid-template-columns: 1fr; }
+  .pdf-key-workspace { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 820px) {
@@ -744,4 +857,11 @@
   .pdf-flow-steps li:not(:last-child)::after { display: none; }
   .pdf-inline-control { align-items: stretch; flex-direction: column; }
   .pdf-icon-button { min-height: 38px; }
+  .pdf-custom-action-header,
+  .pdf-config-title-row { align-items: flex-start; flex-direction: column; }
+  .pdf-payload-grid,
+  .pdf-config-grid { grid-template-columns: 1fr; }
+  .pdf-config-grid .pdf-config-wide { grid-column: auto; }
+  .pdf-copy-field { grid-template-columns: 1fr 1fr; }
+  .pdf-copy-field input { grid-column: 1 / -1; }
 }

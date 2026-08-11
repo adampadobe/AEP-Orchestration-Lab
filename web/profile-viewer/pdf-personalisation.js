@@ -102,6 +102,10 @@
   const resultPanel = document.getElementById('pdfResultPanel');
   const openPreviewLink = document.getElementById('pdfOpenPreviewLink');
   const handoffJson = document.getElementById('pdfHandoffJson');
+  const apiKeyStatus = document.getElementById('pdfApiKeyStatus');
+  const apiKeyList = document.getElementById('pdfApiKeyList');
+  const newApiKeyPanel = document.getElementById('pdfNewApiKey');
+  const newApiKeyValue = document.getElementById('pdfNewApiKeyValue');
   let authUser = null;
   let lastResult = null;
   let sourceDocument = null;
@@ -300,6 +304,151 @@
       throw new Error(body.message || body.error || `Request failed (${response.status})`);
     }
     return { status: response.status, body };
+  }
+
+  async function copyText(value, button, restoredLabel) {
+    try {
+      await navigator.clipboard.writeText(String(value || ''));
+      if (button) {
+        const original = restoredLabel || button.textContent;
+        button.textContent = 'Copied';
+        window.setTimeout(() => { button.textContent = original; }, 1400);
+      }
+      return true;
+    } catch (_error) {
+      setStatus('Copy was blocked by the browser. Select the value and copy it manually.', 'error');
+      return false;
+    }
+  }
+
+  function setApiKeyStatus(message, kind) {
+    apiKeyStatus.textContent = message || '';
+    apiKeyStatus.className = `pdf-key-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function renderApiKeys(keys) {
+    apiKeyList.replaceChildren();
+    if (!Array.isArray(keys) || keys.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'pdf-key-empty';
+      empty.textContent = 'No active PDF journey keys yet.';
+      apiKeyList.appendChild(empty);
+      return;
+    }
+    keys.forEach((key) => {
+      const item = document.createElement('div');
+      item.className = 'pdf-key-list-item';
+      const details = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = key.keyLabel || 'AJO custom action';
+      const metadata = document.createElement('span');
+      metadata.textContent = `${key.keyPrefix || 'pdf_…'}… · created ${key.createdAt ? new Date(key.createdAt).toLocaleString() : 'recently'}`;
+      details.append(title, metadata);
+      const revoke = document.createElement('button');
+      revoke.type = 'button';
+      revoke.className = 'dashboard-btn-outline pdf-key-revoke';
+      revoke.textContent = 'Revoke';
+      revoke.addEventListener('click', () => revokeApiKey(key.keyId, key.keyLabel));
+      item.append(details, revoke);
+      apiKeyList.appendChild(item);
+    });
+  }
+
+  async function loadApiKeys() {
+    try {
+      setApiKeyStatus('Loading active keys…');
+      const { body } = await api('/journey-action/keys', { method: 'GET' });
+      renderApiKeys(body.keys || []);
+      setApiKeyStatus(`${(body.keys || []).length} active key${(body.keys || []).length === 1 ? '' : 's'}.`);
+    } catch (error) {
+      renderApiKeys([]);
+      setApiKeyStatus(error.message, 'error');
+    }
+  }
+
+  async function generateApiKey() {
+    const button = document.getElementById('pdfGenerateApiKey');
+    try {
+      button.disabled = true;
+      setApiKeyStatus('Generating a scoped key…');
+      const keyLabel = document.getElementById('pdfApiKeyLabel').value.trim();
+      const { body } = await api('/journey-action/keys', {
+        method: 'POST',
+        body: JSON.stringify({ keyLabel }),
+      });
+      newApiKeyValue.type = 'password';
+      newApiKeyValue.value = body.key || '';
+      document.getElementById('pdfToggleApiKey').textContent = 'Show';
+      newApiKeyPanel.hidden = false;
+      setApiKeyStatus(`Created “${body.keyLabel}”. Copy it now, then paste it into AJO’s authentication Value field.`, 'success');
+      await loadApiKeys();
+      newApiKeyPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) {
+      setApiKeyStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function revokeApiKey(keyId, keyLabel) {
+    if (!window.confirm(`Revoke “${keyLabel || 'this key'}”? Any AJO action using it will stop authenticating immediately.`)) return;
+    try {
+      setApiKeyStatus('Revoking key…');
+      await api(`/journey-action/keys?keyId=${encodeURIComponent(keyId)}`, { method: 'DELETE' });
+      setApiKeyStatus(`Revoked “${keyLabel || 'PDF journey key'}”.`, 'success');
+      await loadApiKeys();
+    } catch (error) {
+      setApiKeyStatus(error.message, 'error');
+    }
+  }
+
+  function actionSetupText() {
+    const generatedKey = newApiKeyValue.value.trim();
+    return [
+      'AJO CUSTOM ACTION — GENERATE PERSONALISED PDF',
+      'Name: GeneratePersonalisedPDF',
+      'Description: Generate a personalised booking or check-in PDF and send it through the configured AJO API-triggered email campaign.',
+      'Action type: Custom',
+      'Channel: Email',
+      'URL: https://aep-orchestration-lab.web.app/api/pdf-personalisation/journey-action',
+      'Method: POST',
+      'Header: Content-Type = application/json',
+      'Header: Charset = UTF-8',
+      'Authentication type: API key',
+      'Authentication name: x-pdf-api-key',
+      'Authentication location: Header',
+      `Authentication value: ${generatedKey || '<generate a key on the PDF Personalisation page and paste it here>'}`,
+      '',
+      'REQUEST PAYLOAD',
+      document.getElementById('pdfActionRequest').textContent.trim(),
+      '',
+      'SUCCESS RESPONSE',
+      document.getElementById('pdfActionSuccess').textContent.trim(),
+      '',
+      'FAILURE RESPONSE',
+      document.getElementById('pdfActionFailure').textContent.trim(),
+    ].join('\n');
+  }
+
+  function bindCustomActionSetup() {
+    document.getElementById('pdfGenerateApiKey').addEventListener('click', generateApiKey);
+    document.getElementById('pdfCopyApiKey').addEventListener('click', (event) => {
+      copyText(newApiKeyValue.value, event.currentTarget, 'Copy key');
+    });
+    document.getElementById('pdfToggleApiKey').addEventListener('click', (event) => {
+      const reveal = newApiKeyValue.type === 'password';
+      newApiKeyValue.type = reveal ? 'text' : 'password';
+      event.currentTarget.textContent = reveal ? 'Hide' : 'Show';
+    });
+    document.getElementById('pdfCopyActionSetup').addEventListener('click', (event) => {
+      copyText(actionSetupText(), event.currentTarget, 'Copy all setup values');
+    });
+    document.querySelectorAll('[data-copy-target]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        const target = document.getElementById(button.dataset.copyTarget);
+        copyText(target && target.textContent.trim(), event.currentTarget, button.textContent);
+      });
+    });
   }
 
   function loadSample() {
@@ -819,6 +968,7 @@
   async function init() {
     loadSample();
     bindFileDrop();
+    bindCustomActionSetup();
     conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
@@ -842,7 +992,7 @@
     authUser = await waitForAuth();
     if (authUser && !authUser.isAnonymous && authUser.email) {
       setAuthState(authUser.email, 'ready');
-      await loadTemplates();
+      await Promise.all([loadTemplates(), loadApiKeys()]);
     } else {
       setAuthState('Authorised sign-in required', 'error');
       setStatus('Sign in to the AEP Orchestration Lab with apalmer@adobe.com before saving templates or generating PDFs.', 'error');

@@ -44,7 +44,20 @@ async function authorise(req, deps = {}) {
     : '';
   const suppliedServiceKey = String(req.get && req.get('x-pdf-api-key') || '').trim();
   if (configuredServiceKey && constantTimeEqual(suppliedServiceKey, configuredServiceKey)) {
-    return { principalId: 'service:ajo', ownerUid: null, type: 'service', email: null };
+    return { principalId: 'service:ajo', ownerUid: null, type: 'service', email: null, scope: 'all' };
+  }
+  if (suppliedServiceKey && typeof deps.validateJourneyApiKey === 'function') {
+    const keyAuth = await deps.validateJourneyApiKey(suppliedServiceKey);
+    if (keyAuth && keyAuth.ok) {
+      return {
+        principalId: `service:pdf-key:${keyAuth.keyId}`,
+        ownerUid: keyAuth.principalUid || null,
+        type: 'service',
+        email: keyAuth.principalEmail || null,
+        scope: 'journey-action',
+        keyId: keyAuth.keyId,
+      };
+    }
   }
   const claims = await deps.verifyIdTokenClaimsFromRequest(req);
   if (!claims || !claims.uid || claims.isAnonymous || !claims.email) {
@@ -187,6 +200,23 @@ function sendError(res, error) {
   }
 }
 
+async function callJourneyKeyStore(operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error instanceof core.PdfPersonalisationError) throw error;
+    const status = Number(error && error.status);
+    if (status >= 400 && status < 500) {
+      throw new core.PdfPersonalisationError(
+        String(error && error.message || 'PDF journey key request failed.'),
+        status,
+        'PDF_JOURNEY_KEY_REQUEST_FAILED',
+      );
+    }
+    throw error;
+  }
+}
+
 async function handleDownload(req, res, token, deps = {}) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.status(405).json({ error: 'GET only' });
@@ -236,7 +266,7 @@ function createHandler(deps) {
     throw new Error('createHandler requires verifyIdTokenClaimsFromRequest');
   }
   return async function pdfPersonalisationHandler(req, res) {
-    required.setCors(res, 'GET, POST, HEAD, OPTIONS');
+    required.setCors(res, 'GET, POST, DELETE, HEAD, OPTIONS');
     res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method === 'OPTIONS') {
@@ -252,6 +282,47 @@ function createHandler(deps) {
       }
 
       const principal = await authorise(req, required);
+
+      if (path === '/journey-action/keys' && req.method === 'GET') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const keys = await callJourneyKeyStore(() => required.listJourneyApiKeys(principal.ownerUid));
+        res.status(200).json({
+          keys,
+          maxActiveKeys: Number(required.maxJourneyApiKeys || 10),
+          warning: 'Full API keys are shown only once when generated.',
+        });
+        return;
+      }
+
+      if (path === '/journey-action/keys' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const created = await callJourneyKeyStore(() => required.createJourneyApiKey({
+          uid: principal.ownerUid,
+          email: principal.email,
+          keyLabel: body.keyLabel,
+        }));
+        res.status(201).json({
+          ...created,
+          warning: 'Copy this API key now. It will not be shown again.',
+        });
+        return;
+      }
+
+      if (path === '/journey-action/keys' && req.method === 'DELETE') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const keyId = String(req.query && req.query.keyId || '').trim();
+        res.status(200).json(await callJourneyKeyStore(
+          () => required.revokeJourneyApiKey(principal.ownerUid, keyId),
+        ));
+        return;
+      }
 
       if (path === '/journey-action/templates' && req.method === 'GET') {
         if (principal.type !== 'service') {
@@ -284,6 +355,14 @@ function createHandler(deps) {
         const queued = await (required.enqueueJourneyAction || journeyAction.enqueue)(jsonBody(req), required);
         res.status(queued.reused ? 200 : 202).json(queued);
         return;
+      }
+
+      if (principal.type === 'service' && principal.scope === 'journey-action') {
+        throw new core.PdfPersonalisationError(
+          'This API key is restricted to the PDF journey custom action.',
+          403,
+          'PDF_AUTH_SCOPE_FORBIDDEN',
+        );
       }
 
       if (path === '/templates' && req.method === 'GET') {

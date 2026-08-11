@@ -88,6 +88,80 @@ test('authorises the configured AJO service key with a constant-time comparison'
   assert.equal(service.constantTimeEqual('same', 'different'), false);
 });
 
+test('authorises a user-generated journey key with journey-only scope', async () => {
+  const principal = await service.authorise(request({ 'x-pdf-api-key': 'pdf_generated-key-value-long-enough' }), {
+    getServiceApiKey: () => 'different-ops-key',
+    validateJourneyApiKey: async () => ({
+      ok: true,
+      keyId: 'abc123abc123',
+      principalUid: 'user-1',
+      principalEmail: 'apalmer@adobe.com',
+    }),
+    verifyIdTokenClaimsFromRequest: async () => null,
+  });
+  assert.equal(principal.type, 'service');
+  assert.equal(principal.scope, 'journey-action');
+  assert.equal(principal.keyId, 'abc123abc123');
+});
+
+test('allows portal users to create, list, and revoke their journey API keys', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    listJourneyApiKeys: async (uid) => [{ keyId: 'abc123abc123', keyPrefix: 'pdf_example', keyLabel: uid }],
+    createJourneyApiKey: async (input) => {
+      calls.push(input);
+      return { key: 'pdf_one-time-secret', keyId: 'abc123abc123', keyPrefix: 'pdf_one-time', keyLabel: input.keyLabel };
+    },
+    revokeJourneyApiKey: async (uid, keyId) => ({ keyId, uid, revoked: true }),
+    maxJourneyApiKeys: 10,
+  });
+
+  const getReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/keys'), { method: 'GET' });
+  const getRes = response();
+  await handler(getReq, getRes);
+  assert.equal(getRes.statusCode, 200);
+  assert.equal(getRes.body.keys[0].key, undefined);
+
+  const postReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/keys'), {
+    method: 'POST', body: { keyLabel: 'Booking journey' },
+  });
+  const postRes = response();
+  await handler(postReq, postRes);
+  assert.equal(postRes.statusCode, 201);
+  assert.equal(postRes.body.key, 'pdf_one-time-secret');
+  assert.deepEqual(calls[0], { uid: 'user-1', email: 'apalmer@adobe.com', keyLabel: 'Booking journey' });
+
+  const deleteReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/keys?keyId=abc123abc123'), {
+    method: 'DELETE', query: { keyId: 'abc123abc123' },
+  });
+  const deleteRes = response();
+  await handler(deleteReq, deleteRes);
+  assert.equal(deleteRes.statusCode, 200);
+  assert.equal(deleteRes.body.revoked, true);
+});
+
+test('rejects journey-scoped keys on manual PDF routes', async () => {
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    validateJourneyApiKey: async () => ({ ok: true, keyId: 'abc123abc123' }),
+    verifyIdTokenClaimsFromRequest: async () => null,
+  });
+  const req = Object.assign(request(
+    { 'x-pdf-api-key': 'pdf_generated-key-value-long-enough' },
+    '/api/pdf-personalisation/generate',
+  ), { method: 'POST', body: {} });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.body.error, 'PDF_AUTH_SCOPE_FORBIDDEN');
+});
+
 test('authorises only non-anonymous allow-listed Firebase users', async () => {
   const previous = process.env.PDF_PERSONALISATION_ALLOWED_EMAILS;
   process.env.PDF_PERSONALISATION_ALLOWED_EMAILS = 'apalmer@adobe.com';

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811a">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -261,6 +261,125 @@
             <li><span>5</span><strong>Handoff</strong><em>DLZ path and opaque storage links returned for AJO and testing</em></li>
           </ol>
         </section>
+
+        <section class="pdf-custom-action-panel" aria-labelledby="pdfCustomActionHeading">
+          <div class="pdf-custom-action-header">
+            <div>
+              <span class="pdf-eyebrow">AJO journey integration</span>
+              <h3 id="pdfCustomActionHeading">Generate a custom-action API key</h3>
+              <p>Create a personal key for the PDF journey endpoint, then copy the exact values below into Adobe Journey Optimizer. The full key is shown once and its plaintext is never stored.</p>
+            </div>
+            <span class="pdf-scope-badge">Scope: PDF journey action only</span>
+          </div>
+
+          <div class="pdf-key-workspace">
+            <section class="pdf-key-card" aria-labelledby="pdfApiKeyHeading">
+              <h4 id="pdfApiKeyHeading">Your API keys</h4>
+              <label for="pdfApiKeyLabel">Key name</label>
+              <div class="pdf-inline-control">
+                <input id="pdfApiKeyLabel" type="text" maxlength="60" value="AJO PDF custom action" placeholder="e.g. AJO booking journey">
+                <button type="button" class="dashboard-btn-primary" id="pdfGenerateApiKey">Generate API key</button>
+              </div>
+              <p class="pdf-field-help">Create separate keys for separate AJO configurations. You can revoke one without disrupting the others.</p>
+              <p id="pdfApiKeyStatus" class="pdf-key-status" aria-live="polite"></p>
+
+              <div id="pdfNewApiKey" class="pdf-key-once" hidden>
+                <strong>Copy this key now</strong>
+                <p>It cannot be revealed again after you leave or refresh this page.</p>
+                <div class="pdf-copy-field">
+                  <input id="pdfNewApiKeyValue" type="password" readonly aria-label="New PDF journey API key">
+                  <button type="button" class="dashboard-btn-outline" id="pdfToggleApiKey">Show</button>
+                  <button type="button" class="dashboard-btn-primary" id="pdfCopyApiKey">Copy key</button>
+                </div>
+              </div>
+
+              <h5>Active keys</h5>
+              <div id="pdfApiKeyList" class="pdf-key-list"><p class="pdf-key-empty">Sign in to load your keys.</p></div>
+            </section>
+
+            <section class="pdf-action-config" aria-labelledby="pdfActionConfigHeading">
+              <div class="pdf-config-title-row">
+                <div>
+                  <h4 id="pdfActionConfigHeading">Copy-ready AJO configuration</h4>
+                  <p>In <strong>Journeys → Configurations → Actions</strong>, create a Custom action and paste these values.</p>
+                </div>
+                <button type="button" class="dashboard-btn-outline" id="pdfCopyActionSetup">Copy all setup values</button>
+              </div>
+
+              <dl class="pdf-config-grid">
+                <div><dt>Name</dt><dd><code id="pdfActionName">GeneratePersonalisedPDF</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionName">Copy</button></dd></div>
+                <div><dt>Method</dt><dd><code id="pdfActionMethod">POST</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionMethod">Copy</button></dd></div>
+                <div class="pdf-config-wide"><dt>URL</dt><dd><code id="pdfActionUrl">https://aep-orchestration-lab.web.app/api/pdf-personalisation/journey-action</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionUrl">Copy</button></dd></div>
+                <div><dt>Authentication</dt><dd><code id="pdfActionAuthType">API key</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionAuthType">Copy</button></dd></div>
+                <div><dt>Location</dt><dd><code id="pdfActionAuthLocation">Header</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionAuthLocation">Copy</button></dd></div>
+                <div><dt>Authentication name</dt><dd><code id="pdfActionAuthName">x-pdf-api-key</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionAuthName">Copy</button></dd></div>
+                <div><dt>Content-Type</dt><dd><code id="pdfActionContentType">application/json</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionContentType">Copy</button></dd></div>
+                <div><dt>Charset</dt><dd><code id="pdfActionCharset">UTF-8</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionCharset">Copy</button></dd></div>
+                <div><dt>Channel</dt><dd><code id="pdfActionChannel">Email</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionChannel">Copy</button></dd></div>
+              </dl>
+              <p class="pdf-config-note">Paste the one-time generated key into AJO’s <strong>Value</strong> field. AJO stores that authentication value securely; do not add it to the request JSON.</p>
+            </section>
+          </div>
+
+          <div class="pdf-payload-grid">
+            <section class="pdf-snippet-card">
+              <div><h4>1. Request payload</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionRequest">Copy request JSON</button></div>
+              <p>Select the fields as variables in AJO and map them from the journey event or profile.</p>
+              <pre id="pdfActionRequest">{
+  "requestId": "booking-event-EK8F2Q-001",
+  "templateName": "booking-confirmation",
+  "emailAddress": "traveller@example.com",
+  "firstName": "Amelia",
+  "lastName": "Palmer",
+  "documentName": "booking-confirmation.pdf",
+  "data": {
+    "bookingReference": "EK8F2Q",
+    "ticketNumber": "1761234567890",
+    "flightNumber": "EK 001",
+    "departureAirport": "DXB",
+    "arrivalAirport": "LHR",
+    "originCity": "Dubai",
+    "destinationCity": "London",
+    "departureDateTime": "2026-08-12T07:45:00Z",
+    "arrivalDateTime": "2026-08-12T15:10:00Z",
+    "boardingTime": "07:00",
+    "departureTime": "07:45",
+    "gate": "A12",
+    "seat": "24A",
+    "zone": "3",
+    "totalPaid": 1280.5,
+    "currency": "GBP"
+  }
+}</pre>
+            </section>
+            <section class="pdf-snippet-card">
+              <div><h4>2. Success response</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionSuccess">Copy success JSON</button></div>
+              <p>HTTP 202 means the request is validated and durably queued for PDF generation and email delivery.</p>
+              <pre id="pdfActionSuccess">{
+  "status": "queued",
+  "jobId": "6f442fca6b76330e4de4ded79e18fe718673fa52",
+  "requestId": "booking-event-EK8F2Q-001",
+  "templateName": "booking-confirmation",
+  "campaignId": "30f45cd3-da50-436c-ae46-d0ab8f521f14",
+  "acceptedAt": "2026-08-11T15:00:00.000Z",
+  "reused": false
+}</pre>
+              <div class="pdf-snippet-subhead"><h4>3. Failure response</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionFailure">Copy failure JSON</button></div>
+              <pre id="pdfActionFailure">{
+  "status": "error",
+  "error": "PDF_JOURNEY_TEMPLATE_INVALID",
+  "message": "Unknown templateName. Use one of: booking-confirmation, checkin-confirmation."
+}</pre>
+            </section>
+          </div>
+
+          <div class="pdf-template-help">
+            <strong>Built-in template names</strong>
+            <code>booking-confirmation</code>
+            <code>checkin-confirmation</code>
+            <span>Use a stable event identifier for <code>requestId</code>. A retry must reuse it; a new booking or check-in must use a new value.</span>
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -273,6 +392,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260811a"></script>
+  <script src="pdf-personalisation.js?v=20260811b"></script>
 </body>
 </html>
