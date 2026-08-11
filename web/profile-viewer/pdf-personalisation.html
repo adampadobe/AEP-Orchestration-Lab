@@ -393,7 +393,7 @@
 
           <section class="pdf-snippet-card pdf-schema-card">
             <div><h4>AJO request field definition — booking + check-in</h4><button type="button" class="dashboard-btn-primary pdf-copy-snippet" data-copy-target="pdfActionFieldDefinition">Copy AJO field definition</button></div>
-            <p>Paste this into the custom action request payload editor. Shared fields remain required; template-specific fields are optional so one action supports both activity types.</p>
+            <p>Paste this into the custom action request payload editor. Map <code>campaignId</code> when a journey should select its transactional campaign; leave it blank to use the server default. Template-specific fields remain optional.</p>
             <pre id="pdfActionFieldDefinition">{
   "requestId": {
     "toBeMapped": true,
@@ -404,6 +404,12 @@
     "toBeMapped": true,
     "dataType": "string",
     "label": "Template name"
+  },
+  "campaignId": {
+    "optionalMapping": true,
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Campaign ID - optional, defaults server-side"
   },
   "emailAddress": {
     "toBeMapped": true,
@@ -530,6 +536,7 @@
               <pre id="pdfActionRequest">{
   "requestId": "booking-event-EK8F2Q-001",
   "templateName": "booking-confirmation",
+  "campaignId": "30f45cd3-da50-436c-ae46-d0ab8f521f14",
   "emailAddress": "traveller@example.com",
   "firstName": "Amelia",
   "lastName": "Palmer",

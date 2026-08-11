@@ -118,11 +118,20 @@ function normaliseTemplateData(templateName, value, recipient) {
   return core.normaliseData(data);
 }
 
-function campaignId(deps = {}) {
-  return cleanText(
+function resolveCampaignId(value, deps = {}) {
+  const requested = cleanText(value, 100);
+  const selected = requested || cleanText(
     deps.campaignId || process.env.PDF_JOURNEY_CAMPAIGN_ID || DEFAULT_CAMPAIGN_ID,
     100,
   );
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selected)) {
+    throw new core.PdfPersonalisationError(
+      'campaignId must be a valid campaign UUID.',
+      400,
+      'PDF_JOURNEY_CAMPAIGN_ID_INVALID',
+    );
+  }
+  return selected;
 }
 
 function normaliseRequest(body, deps = {}) {
@@ -136,12 +145,13 @@ function normaliseRequest(body, deps = {}) {
   };
   const data = normaliseTemplateData(template.name, input.data, recipient);
   const documentName = core.safeDocumentName(input.documentName || template.documentName);
+  const selectedCampaignId = resolveCampaignId(input.campaignId, deps);
   const requestHash = core.sha256(JSON.stringify({
     templateName: template.name,
     recipient,
     data,
     documentName,
-    campaignId: campaignId(deps),
+    campaignId: selectedCampaignId,
     templateSourceHash: template.sourceHash || core.sha256(template.htmlTemplate || ''),
   }));
   return {
@@ -160,7 +170,7 @@ function normaliseRequest(body, deps = {}) {
     templateOwnerUid: template.ownerUid || deps.templateOwnerUid || null,
     recipient,
     data,
-    campaignId: campaignId(deps),
+    campaignId: selectedCampaignId,
   };
 }
 
@@ -455,6 +465,7 @@ module.exports = {
   MAX_WORKER_ATTEMPTS,
   validateRequestId,
   validateEmail,
+  resolveCampaignId,
   normaliseTemplateData,
   normaliseRequest,
   actionResponse,

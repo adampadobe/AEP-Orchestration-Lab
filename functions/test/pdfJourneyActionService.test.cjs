@@ -88,6 +88,20 @@ test('normalises flat journey booking fields for the HTML template', () => {
   assert.equal(input.campaignId, service.DEFAULT_CAMPAIGN_ID);
 });
 
+test('accepts a valid per-request campaign override and rejects invalid IDs', () => {
+  const campaignId = '97b40686-ed37-4697-a137-10d18e4902f5';
+  const input = service.normaliseRequest(bookingRequest({ campaignId }));
+  assert.equal(input.campaignId, campaignId);
+  assert.equal(
+    service.normaliseRequest(bookingRequest({ campaignId: '   ' })).campaignId,
+    service.DEFAULT_CAMPAIGN_ID,
+  );
+  assert.throws(
+    () => service.normaliseRequest(bookingRequest({ campaignId: 'not-a-campaign-id' })),
+    (error) => error.code === 'PDF_JOURNEY_CAMPAIGN_ID_INVALID',
+  );
+});
+
 test('normalises flat check-in fields into the nested template contract', () => {
   const input = service.normaliseRequest(bookingRequest({
     templateName: 'checkin-confirmation',
@@ -176,7 +190,8 @@ test('enqueues once and reuses the same request without duplicating work', async
 });
 
 test('builds the proven AEP recipient and DLZ attachment payload', () => {
-  const record = service.normaliseRequest(bookingRequest());
+  const campaignId = '97b40686-ed37-4697-a137-10d18e4902f5';
+  const record = service.normaliseRequest(bookingRequest({ campaignId }));
   const payload = service.buildCampaignPayload(record, {
     documentName: 'booking-EK8F2Q.pdf',
     dlzObjectPath: 'pdf-personalisation/2026/08/11/job.pdf',
@@ -184,6 +199,7 @@ test('builds the proven AEP recipient and DLZ attachment payload', () => {
   assert.equal(payload.recipients[0].type, 'aep');
   assert.equal(payload.recipients[0].userId, 'traveller@example.com');
   assert.equal(payload.recipients[0].namespace, 'Email');
+  assert.equal(payload.campaignId, campaignId);
   assert.deepEqual(payload.recipients[0].attachments[0].source, {
     type: 'dlzPath',
     path: 'pdf-personalisation/2026/08/11/job.pdf',
