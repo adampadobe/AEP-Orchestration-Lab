@@ -1,14 +1,14 @@
 {
-  "gitSha": "4247a139d6d99f4dc1fa79abe34714d02d1d2b5f",
-  "gitShortSha": "4247a139",
+  "gitSha": "3027c3bcbdac655378e80555c82a4e7ee29c85b0",
+  "gitShortSha": "3027c3bc",
   "gitBranch": "codex/ajo-pdf-custom-action-20260811",
-  "gitCommitSubject": "[apalmer] Map AJO data in manual DOCX generation",
+  "gitCommitSubject": "[apalmer] Add copy-ready Riyadh AJO payload",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-11T23:20:55+03:00",
-  "deployedAt": "2026-08-11T20:21:38.760Z",
+  "gitCommitDate": "2026-08-11T23:39:12+03:00",
+  "deployedAt": "2026-08-11T20:40:10.330Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4247a139d6d99f4dc1fa79abe34714d02d1d2b5f"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3027c3bcbdac655378e80555c82a4e7ee29c85b0"
 }
