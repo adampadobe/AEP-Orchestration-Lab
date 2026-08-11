@@ -4,6 +4,8 @@ const { randomUUID, timingSafeEqual } = require('node:crypto');
 const core = require('./pdfPersonalisationCore');
 const docxData = require('./pdfPersonalisationDocxData');
 const store = require('./pdfPersonalisationStore');
+const journeyAction = require('./pdfJourneyActionService');
+const journeyTemplates = require('./pdfJourneyTemplates');
 
 const DEFAULT_ALLOWED_EMAILS = ['apalmer@adobe.com'];
 
@@ -250,6 +252,39 @@ function createHandler(deps) {
       }
 
       const principal = await authorise(req, required);
+
+      if (path === '/journey-action/templates' && req.method === 'GET') {
+        if (principal.type !== 'service') {
+          throw new core.PdfPersonalisationError('Service authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        res.status(200).json({ templates: journeyTemplates.listTemplates() });
+        return;
+      }
+
+      const journeyStatusMatch = path.match(/^\/journey-action\/status\/([a-f0-9]{40})$/);
+      if (journeyStatusMatch && req.method === 'GET') {
+        if (principal.type !== 'service') {
+          throw new core.PdfPersonalisationError('Service authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const status = await (required.getJourneyActionStatus || journeyAction.getStatus)(
+          journeyStatusMatch[1],
+          required,
+        );
+        if (!status) {
+          throw new core.PdfPersonalisationError('Journey PDF job was not found.', 404, 'PDF_JOURNEY_JOB_NOT_FOUND');
+        }
+        res.status(200).json(status);
+        return;
+      }
+
+      if (path === '/journey-action' && req.method === 'POST') {
+        if (principal.type !== 'service') {
+          throw new core.PdfPersonalisationError('Service authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const queued = await (required.enqueueJourneyAction || journeyAction.enqueue)(jsonBody(req), required);
+        res.status(queued.reused ? 200 : 202).json(queued);
+        return;
+      }
 
       if (path === '/templates' && req.method === 'GET') {
         if (principal.type !== 'portal') {

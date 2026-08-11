@@ -11,7 +11,7 @@ Adobe Document Generation (a DOCX template plus JSON merge) is a separate operat
 
 ## Product boundary
 
-Journey Optimizer can attach a static PDF selected from Assets Essentials. That is different from binding a unique generated PDF to every profile. Until AJO exposes that dynamic attachment contract, use `ajoHandoff.attachmentUrl` as a personalised email link. The same response is designed so a future attachment field can consume it without changing document generation.
+The Lab now uses AJO's personalised PDF attachment contract: each PDF is stored in the sandbox's dedicated `dlz-ajoemailattachments` container and the API-triggered campaign receives a `dlzPath` attachment for an `aep` recipient. The opaque HTTPS download URL remains available for preview and backup delivery, but it is not the attachment source used by AJO.
 
 ## Runtime flow
 
@@ -48,6 +48,9 @@ https://us-central1-aep-orchestration-lab.cloudfunctions.net/pdfPersonalisation
 | `POST` | `/generate` | Generate HTML or convert a source document, store it, and issue a download URL | Firebase ID token or `X-PDF-API-Key` |
 | `GET` | `/status/{jobId}` | Read a generation result and issue a fresh download URL | Firebase ID token or `X-PDF-API-Key` |
 | `GET` | `/download/{token}` | Stream an unexpired PDF | Opaque capability token in URL |
+| `POST` | `/journey-action` | Queue template selection, PDF generation, DLZ storage, and AJO campaign delivery | `X-PDF-API-Key` |
+| `GET` | `/journey-action/templates` | List built-in journey template names | `X-PDF-API-Key` |
+| `GET` | `/journey-action/status/{jobId}` | Inspect queued, processing, sent, or failed state | `X-PDF-API-Key` |
 
 The owner UI is:
 
@@ -129,15 +132,7 @@ Use a stable idempotency key for one logical recipient/document send. Reusing th
 
 ## AJO custom action
 
-Configure a custom action with:
-
-- Method: `POST`
-- URL: the direct Cloud Function `/generate` endpoint
-- Header: `X-PDF-API-Key` with the value stored in Firebase Secret Manager as `PDF_PERSONALISATION_API_KEY`
-- Success response: paste the ready response schema above
-- Error/timeout branch: send a normal email without a PDF link or route to a retry/wait path
-
-Custom action response fields can be referenced in a later native email action. Until dynamic attachments are supported, personalise the email body with the returned attachment URL.
+Use the asynchronous `/journey-action` endpoint so AJO receives a durable `202 queued` response before its external-action timeout while the worker performs conversion and campaign delivery. The complete copy-ready configuration, request schema, response schema, template names, and journey mappings are in [AJO_PDF_JOURNEY_CUSTOM_ACTION.md](AJO_PDF_JOURNEY_CUSTOM_ACTION.md).
 
 ## Template syntax
 

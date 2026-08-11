@@ -5,6 +5,7 @@
  */
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret } = require('firebase-functions/params');
 
@@ -123,6 +124,7 @@ const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
 const labDemoConfigService = lazyRequireMod('./labDemoConfigService');
 const labDemoAssetService = lazyRequireMod('./labDemoAssetService');
 const pdfPersonalisationService = require('./pdfPersonalisationService');
+const pdfJourneyActionService = require('./pdfJourneyActionService');
 const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
@@ -522,6 +524,8 @@ exports.pdfPersonalisation = onRequest(
       PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
       PDF_S3_PREFIX: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
       PDF_DLZ_PREFIX: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      PDF_JOURNEY_CAMPAIGN_ID:
+        process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
       ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
     },
     invoker: 'public',
@@ -549,6 +553,63 @@ exports.pdfPersonalisation = onRequest(
     s3Region: process.env.PDF_S3_REGION || 'us-east-1',
     s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
   }),
+);
+
+/**
+ * Async worker for AJO PDF custom actions. The HTTP action only validates and
+ * enqueues, keeping the Journey runtime safely below its external-call timeout.
+ */
+exports.pdfJourneyActionWorker = onDocumentCreated(
+  {
+    document: `${pdfJourneyActionService.JOBS_COLLECTION}/{jobId}`,
+    region: REGION,
+    secrets: [
+      ADOBE_CLIENT_ID,
+      ADOBE_CLIENT_SECRET,
+      ADOBE_IMS_ORG,
+      ADOBE_SCOPES,
+      PDF_SERVICES_CLIENT_ID,
+      PDF_SERVICES_CLIENT_SECRET,
+      PDF_S3_ACCESS_KEY_ID,
+      PDF_S3_SECRET_ACCESS_KEY,
+    ],
+    environmentVariables: {
+      PDF_PERSONALISATION_RETENTION_DAYS:
+        process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+      PDF_OUTPUT_STORE: process.env.PDF_OUTPUT_STORE || 'dual',
+      PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+      PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
+      PDF_S3_PREFIX: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+      PDF_DLZ_PREFIX: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      PDF_JOURNEY_CAMPAIGN_ID:
+        process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
+      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+    },
+    timeoutSeconds: 300,
+    memory: '1GiB',
+    maxInstances: 10,
+    concurrency: 10,
+    retry: true,
+  },
+  async (event) => {
+    const jobId = String(event.params && event.params.jobId || '');
+    const result = await pdfJourneyActionService.processQueuedJob(jobId, {
+      getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
+      getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
+      getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
+      getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
+      getAdobeAccessToken,
+      aepHeaders,
+      adobeSandbox: RESOLVED_ADOBE_SANDBOX,
+      dlzPrefix: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      outputStoreMode: process.env.PDF_OUTPUT_STORE || 'dual',
+      s3Bucket: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+      s3Region: process.env.PDF_S3_REGION || 'us-east-1',
+      s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+      campaignId: process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
+    });
+    console.info('[pdfJourneyActionWorker]', JSON.stringify({ jobId, result }));
+  },
 );
 
 /** Delete expired PDF artefacts and their capability-token metadata. */

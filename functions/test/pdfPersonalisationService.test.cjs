@@ -123,6 +123,52 @@ test('authorises only non-anonymous allow-listed Firebase users', async () => {
   }
 });
 
+test('queues the authenticated AJO journey action and returns its durable job response', async () => {
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => 'journey-key',
+    verifyIdTokenClaimsFromRequest: async () => null,
+    enqueueJourneyAction: async (body) => ({
+      status: 'queued',
+      jobId: 'a'.repeat(40),
+      requestId: body.requestId,
+      templateName: body.templateName,
+      campaignId: 'campaign-1',
+      acceptedAt: '2026-08-11T15:00:00.000Z',
+      reused: false,
+    }),
+  });
+  const req = Object.assign(request(
+    { 'x-pdf-api-key': 'journey-key' },
+    '/api/pdf-personalisation/journey-action',
+  ), {
+    method: 'POST',
+    body: { requestId: 'event-12345678', templateName: 'booking-confirmation' },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 202);
+  assert.equal(res.body.status, 'queued');
+  assert.equal(res.body.requestId, 'event-12345678');
+});
+
+test('does not expose the journey custom action to portal authentication', async () => {
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => 'journey-key',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action'), {
+    method: 'POST', body: {},
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.body.error, 'PDF_AUTH_FORBIDDEN');
+});
+
 test('uses the canonical Hosting handoff URL when a direct function URL is called', () => {
   const previous = process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL;
   delete process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL;
