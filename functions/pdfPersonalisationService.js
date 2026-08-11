@@ -72,7 +72,50 @@ function publicBaseUrl(req) {
 
 async function responseForReadyJob(job, req, deps = {}) {
   const token = await store.issueDownloadToken(job, deps);
-  const downloadUrl = `${publicBaseUrl(req)}/download/${encodeURIComponent(token)}`;
+  const gatewayUrl = `${publicBaseUrl(req)}/download/${encodeURIComponent(token)}`;
+  const storageUrl = (storage, disposition) => {
+    const params = new URLSearchParams({ storage });
+    if (disposition) params.set('disposition', disposition);
+    return `${gatewayUrl}?${params.toString()}`;
+  };
+  const storageLocations = {};
+  if (job.dlzObjectPath) {
+    storageLocations.dlz = {
+      provider: 'Adobe Data Landing Zone',
+      primary: true,
+      uri: job.dlzUri,
+      objectPath: job.dlzObjectPath,
+      platformPath: job.dlzPlatformPath,
+      expiresAt: job.dlzExpiresAt,
+      downloadUrl: storageUrl('dlz'),
+      previewUrl: storageUrl('dlz', 'inline'),
+    };
+  }
+  if (job.s3Key) {
+    storageLocations.s3 = {
+      provider: 'Amazon S3',
+      backup: true,
+      uri: job.s3Uri,
+      objectPath: job.s3Key,
+      downloadUrl: storageUrl('s3'),
+      previewUrl: storageUrl('s3', 'inline'),
+    };
+  }
+  if (job.gcsObjectPath) {
+    storageLocations.gcs = {
+      provider: 'Google Cloud Storage',
+      backup: true,
+      uri: job.gcsUri || `gs://${process.env.PDF_PERSONALISATION_BUCKET || 'aep-orchestration-lab-brand-scrapes'}/${job.gcsObjectPath}`,
+      objectPath: job.gcsObjectPath,
+      downloadUrl: storageUrl('gcs'),
+      previewUrl: storageUrl('gcs', 'inline'),
+    };
+  }
+  const primaryLocation = storageLocations.dlz
+    || storageLocations.s3
+    || storageLocations.gcs;
+  const downloadUrl = primaryLocation ? primaryLocation.downloadUrl : gatewayUrl;
+  const previewUrl = primaryLocation ? primaryLocation.previewUrl : `${gatewayUrl}?disposition=inline`;
   return {
     status: 'ready',
     jobId: job.jobId,
@@ -86,14 +129,22 @@ async function responseForReadyJob(job, req, deps = {}) {
     sha256: job.sha256,
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
-    storageProvider: job.storageProvider || 'gcs',
-    storageUri: job.s3Uri || null,
+    storageProvider: job.dlzObjectPath ? 'dlz' : job.storageProvider || 'gcs',
+    storageUri: primaryLocation && primaryLocation.uri || null,
+    storageLocations,
     downloadUrl,
-    previewUrl: `${downloadUrl}?disposition=inline`,
+    previewUrl,
     ajoHandoff: {
       attachmentName: job.documentName,
       attachmentMimeType: job.mimeType,
       attachmentUrl: downloadUrl,
+      ...(job.dlzObjectPath ? {
+        attachment: {
+          name: job.documentName,
+          contentType: job.mimeType,
+          source: { type: 'dlzPath', path: job.dlzObjectPath },
+        },
+      } : {}),
     },
   };
 }
@@ -101,6 +152,11 @@ async function responseForReadyJob(job, req, deps = {}) {
 function downloadDisposition(req) {
   const requested = String(req && req.query && req.query.disposition || '').trim().toLowerCase();
   return requested === 'inline' ? 'inline' : 'attachment';
+}
+
+function downloadStorage(req) {
+  const requested = String(req && req.query && req.query.storage || '').trim().toLowerCase();
+  return ['dlz', 's3', 'gcs'].includes(requested) ? requested : '';
 }
 
 async function resolveTemplate(input, principal, deps = {}) {
@@ -143,7 +199,10 @@ async function handleDownload(req, res, token, deps = {}) {
     res.status(404).send('not found or expired');
     return;
   }
-  const opened = await store.openDownload(record, deps, { headOnly: req.method === 'HEAD' });
+  const opened = await store.openDownload(record, deps, {
+    headOnly: req.method === 'HEAD',
+    storage: downloadStorage(req),
+  });
   if (!opened) {
     res.status(404).send('not found');
     return;
@@ -383,5 +442,7 @@ module.exports = {
   authorise,
   publicBaseUrl,
   downloadDisposition,
+  downloadStorage,
+  responseForReadyJob,
   createHandler,
 };

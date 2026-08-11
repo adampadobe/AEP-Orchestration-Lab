@@ -145,6 +145,46 @@ test('only opts into inline PDF rendering when explicitly requested', () => {
   assert.equal(service.downloadDisposition({}), 'attachment');
 });
 
+test('allows only known private storage locations on download links', () => {
+  assert.equal(service.downloadStorage({ query: { storage: 'dlz' } }), 'dlz');
+  assert.equal(service.downloadStorage({ query: { storage: 'S3' } }), 's3');
+  assert.equal(service.downloadStorage({ query: { storage: 'gcs' } }), 'gcs');
+  assert.equal(service.downloadStorage({ query: { storage: 'unknown' } }), '');
+});
+
+test('returns separate opaque links for DLZ, S3 and Google Cloud copies', async () => {
+  const body = await service.responseForReadyJob({
+    status: 'ready',
+    jobId: 'job-storage-1',
+    documentName: 'boarding-pass.pdf',
+    mimeType: 'application/pdf',
+    size: 1234,
+    sha256: 'hash',
+    createdAt: '2026-08-11T10:00:00.000Z',
+    expiresAt: '2026-08-25T10:00:00.000Z',
+    dlzContainer: 'dlz-user-container',
+    dlzObjectPath: 'pdf-personalisation/2026/08/11/job-storage-1.pdf',
+    dlzPlatformPath: 'dlz-user-container/pdf-personalisation/2026/08/11/job-storage-1.pdf',
+    dlzUri: 'dlz://account/dlz-user-container/pdf-personalisation/2026/08/11/job-storage-1.pdf',
+    dlzExpiresAt: '2026-08-18T10:00:00.000Z',
+    s3Key: 'pdf-personalisation/2026/08/11/job-storage-1.pdf',
+    s3Uri: 's3://bucket/pdf-personalisation/2026/08/11/job-storage-1.pdf',
+    gcsObjectPath: 'pdf-personalisation/documents/2026/08/11/job-storage-1.pdf',
+    gcsUri: 'gs://bucket/pdf-personalisation/documents/2026/08/11/job-storage-1.pdf',
+  }, request({ host: 'aep-orchestration-lab.web.app' }), templateRepositoryDeps());
+
+  assert.equal(body.storageProvider, 'dlz');
+  assert.match(body.storageLocations.dlz.downloadUrl, /storage=dlz/);
+  assert.match(body.storageLocations.s3.downloadUrl, /storage=s3/);
+  assert.match(body.storageLocations.gcs.downloadUrl, /storage=gcs/);
+  assert.equal(body.downloadUrl, body.storageLocations.dlz.downloadUrl);
+  assert.deepEqual(body.ajoHandoff.attachment.source, {
+    type: 'dlzPath',
+    path: 'pdf-personalisation/2026/08/11/job-storage-1.pdf',
+  });
+  assert.equal(JSON.stringify(body).includes('sig='), false);
+});
+
 test('saves and reloads the HTML plus default JSON repository pair', async () => {
   const handler = service.createHandler(templateRepositoryDeps());
   const saveReq = Object.assign(request({}, '/api/pdf-personalisation/templates'), {

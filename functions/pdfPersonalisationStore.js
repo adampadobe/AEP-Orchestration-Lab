@@ -9,6 +9,7 @@ const {
   validateHtmlTemplate,
 } = require('./pdfPersonalisationCore');
 const s3Store = require('./pdfPersonalisationS3');
+const dlzStore = require('./pdfPersonalisationDlz');
 
 const JOBS_COLLECTION = 'pdfPersonalisationJobs';
 const IDEMPOTENCY_COLLECTION = 'pdfPersonalisationIdempotency';
@@ -130,13 +131,23 @@ async function saveReadyJob(input, deps = {}) {
   const objectPath = jobObjectPath(input.jobId, createdAt);
   const documentName = safeDocumentName(input.documentName);
   const mode = s3Store.outputStoreMode(deps);
+  let dlzRecord = null;
   let s3Record = null;
   let gcsObjectPath = null;
 
   console.info('[pdfPersonalisation] storage route', JSON.stringify({
     jobId: input.jobId,
     mode,
+    primary: 'dlz',
   }));
+
+  dlzRecord = await dlzStore.uploadPdf({
+    ...input,
+    createdAt,
+    expiresAt: expiresAt.toISOString(),
+    documentName,
+    principalIdHash: sha256(input.principalId),
+  }, deps);
 
   if (s3Store.usesS3(mode)) {
     s3Record = await s3Store.uploadPdf({
@@ -185,10 +196,12 @@ async function saveReadyJob(input, deps = {}) {
     requestHash: input.requestHash,
     idempotencyDocId: input.idempotencyDocId,
     status: 'ready',
-    storageProvider: s3Record ? 's3' : 'gcs',
-    outputStoreMode: mode,
+    storageProvider: 'dlz',
+    outputStoreMode: `dlz+${mode}`,
     objectPath: gcsObjectPath,
     gcsObjectPath,
+    gcsUri: gcsObjectPath ? `gs://${bucketName()}/${gcsObjectPath}` : null,
+    ...(dlzRecord || {}),
     ...(s3Record || {}),
     documentName,
     mimeType: 'application/pdf',
@@ -241,6 +254,12 @@ async function issueDownloadToken(job, deps = {}) {
     s3Bucket: job.s3Bucket || null,
     s3Region: job.s3Region || null,
     s3Key: job.s3Key || null,
+    dlzContainer: job.dlzContainer || null,
+    dlzStorageAccount: job.dlzStorageAccount || null,
+    dlzObjectPath: job.dlzObjectPath || null,
+    dlzPlatformPath: job.dlzPlatformPath || null,
+    dlzUri: job.dlzUri || null,
+    dlzExpiresAt: job.dlzExpiresAt || null,
     documentName: job.documentName,
     mimeType: job.mimeType,
     size: job.size,
@@ -271,7 +290,30 @@ async function resolveDownloadToken(token, deps = {}) {
 
 async function openDownload(record, deps = {}, options = {}) {
   const gcsPath = String(record && (record.gcsObjectPath || record.objectPath) || '').trim();
-  if (record && record.storageProvider === 's3' && record.s3Key) {
+  const requestedStore = String(options.storage || '').trim().toLowerCase();
+  if (requestedStore === 'dlz') return dlzStore.openPdf(record, deps, options);
+  if (requestedStore === 's3') return record && record.s3Key
+    ? s3Store.openPdf(record, deps, options)
+    : null;
+  if (requestedStore === 'gcs') {
+    if (!gcsPath) return null;
+    const file = getBucket(deps).file(gcsPath);
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    return {
+      stream: options.headOnly ? null : file.createReadStream(),
+      contentLength: Number(record.size || 0),
+    };
+  }
+  if (record && record.dlzObjectPath) {
+    try {
+      const opened = await dlzStore.openPdf(record, deps, options);
+      if (opened) return opened;
+    } catch (error) {
+      console.warn('[pdfPersonalisation] DLZ read failed; trying backups', String(error && error.message || error));
+    }
+  }
+  if (record && record.s3Key) {
     try {
       const opened = await s3Store.openPdf(record, deps, options);
       if (opened) return opened;

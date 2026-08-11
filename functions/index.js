@@ -499,6 +499,10 @@ exports.pdfPersonalisation = onRequest(
   {
     region: REGION,
     secrets: [
+      ADOBE_CLIENT_ID,
+      ADOBE_CLIENT_SECRET,
+      ADOBE_IMS_ORG,
+      ADOBE_SCOPES,
       PDF_SERVICES_CLIENT_ID,
       PDF_SERVICES_CLIENT_SECRET,
       PDF_PERSONALISATION_API_KEY,
@@ -517,6 +521,8 @@ exports.pdfPersonalisation = onRequest(
       PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
       PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
       PDF_S3_PREFIX: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+      PDF_DLZ_PREFIX: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
     },
     invoker: 'public',
     timeoutSeconds: 300,
@@ -532,6 +538,10 @@ exports.pdfPersonalisation = onRequest(
     getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
     getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
     getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
+    getAdobeAccessToken,
+    aepHeaders,
+    adobeSandbox: RESOLVED_ADOBE_SANDBOX,
+    dlzPrefix: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
     // Gen2 may omit onRequest.environmentVariables. Inject non-secret S3 routing
     // directly so the adapter cannot silently fall back to GCS in production.
     outputStoreMode: process.env.PDF_OUTPUT_STORE || 'dual',

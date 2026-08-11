@@ -622,9 +622,29 @@
     resultPanel.hidden = false;
     document.getElementById('pdfResultSize').textContent = formatBytes(result.size);
     document.getElementById('pdfResultJob').textContent = result.jobId;
-    document.getElementById('pdfResultStorage').textContent = result.storageProvider === 's3'
-      ? `Amazon S3 · ${result.storageUri || 'private object'}`
-      : 'Google Cloud Storage';
+    const locations = result.storageLocations || {};
+    document.getElementById('pdfResultStorage').textContent = locations.dlz
+      ? 'Adobe DLZ primary · S3 and Google Cloud backups'
+      : result.storageProvider === 's3'
+        ? `Amazon S3 · ${result.storageUri || 'private object'}`
+        : 'Google Cloud Storage';
+    const showLocation = (name, valueId, linkId) => {
+      const location = locations[name];
+      const value = document.getElementById(valueId);
+      const link = document.getElementById(linkId);
+      value.textContent = location && (location.uri || location.objectPath) || 'Not stored';
+      value.title = value.textContent;
+      if (location && location.downloadUrl) {
+        link.href = location.downloadUrl;
+        link.hidden = false;
+      } else {
+        link.removeAttribute('href');
+        link.hidden = true;
+      }
+    };
+    showLocation('dlz', 'pdfResultDlz', 'pdfDlzDownloadLink');
+    showLocation('s3', 'pdfResultS3', 'pdfS3DownloadLink');
+    showLocation('gcs', 'pdfResultGcs', 'pdfGcsDownloadLink');
     document.getElementById('pdfResultExpiry').textContent = new Date(result.expiresAt).toLocaleString();
     document.getElementById('pdfResultHash').textContent = result.sha256;
     document.getElementById('pdfDownloadLink').href = result.downloadUrl;
@@ -679,8 +699,8 @@
         result.reused
           ? 'Existing idempotent PDF returned.'
           : conversionMode() === 'document'
-            ? 'Document generated and stored privately. The PDF preview is ready.'
-            : 'PDF converted and stored privately.',
+            ? 'Document generated in Adobe DLZ with S3 and Google Cloud backups. The PDF preview is ready.'
+            : 'PDF converted into Adobe DLZ with S3 and Google Cloud backups.',
         'success',
       );
     } catch (error) {
