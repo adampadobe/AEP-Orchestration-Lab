@@ -1,14 +1,14 @@
 {
-  "gitSha": "621c1230e9eaba8669410503a1f6c92a7e590a31",
-  "gitShortSha": "621c1230",
+  "gitSha": "be905b0ef136895b6691d4415ab6e5cde4f8c347",
+  "gitShortSha": "be905b0e",
   "gitBranch": "codex/ajo-pdf-custom-action-20260811",
-  "gitCommitSubject": "[apalmer] Add validated PDF template publishing",
+  "gitCommitSubject": "[apalmer] Simplify PDF action setup guidance",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-11T22:32:42+03:00",
-  "deployedAt": "2026-08-11T19:33:41.334Z",
+  "gitCommitDate": "2026-08-11T22:42:51+03:00",
+  "deployedAt": "2026-08-11T19:43:31.607Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/621c1230e9eaba8669410503a1f6c92a7e590a31"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/be905b0ef136895b6691d4415ab6e5cde4f8c347"
 }
