@@ -321,10 +321,142 @@
             </section>
           </div>
 
+          <section class="pdf-snippet-card pdf-schema-card">
+            <div><h4>AJO request field definition — booking + check-in</h4><button type="button" class="dashboard-btn-primary pdf-copy-snippet" data-copy-target="pdfActionFieldDefinition">Copy AJO field definition</button></div>
+            <p>Paste this into the custom action request payload editor. Shared fields remain required; template-specific fields are optional so one action supports both activity types.</p>
+            <pre id="pdfActionFieldDefinition">{
+  "requestId": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Request ID"
+  },
+  "templateName": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Template name"
+  },
+  "emailAddress": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Recipient email address"
+  },
+  "firstName": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Passenger first name"
+  },
+  "lastName": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Passenger last name"
+  },
+  "documentName": {
+    "optionalMapping": true,
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "PDF attachment filename"
+  },
+  "data": {
+    "bookingReference": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Booking reference"
+    },
+    "ticketNumber": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Ticket number - booking only"
+    },
+    "flightNumber": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Flight number"
+    },
+    "departureAirport": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Departure airport code"
+    },
+    "arrivalAirport": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Arrival airport code"
+    },
+    "originCity": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Origin city - check-in only"
+    },
+    "destinationCity": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Destination city - check-in only"
+    },
+    "departureDateTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "dateTime",
+      "label": "Departure date and time - booking only"
+    },
+    "arrivalDateTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "dateTime",
+      "label": "Arrival date and time - booking only"
+    },
+    "boardingTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Boarding time - check-in only"
+    },
+    "departureTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Display departure time - optional"
+    },
+    "gate": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Boarding gate - check-in only"
+    },
+    "seat": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Seat number - check-in only"
+    },
+    "zone": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Boarding zone - check-in only"
+    },
+    "totalPaid": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "decimal",
+      "label": "Total paid - booking only"
+    },
+    "currency": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Payment currency - booking only"
+    }
+  }
+}</pre>
+          </section>
+
           <div class="pdf-payload-grid">
             <section class="pdf-snippet-card">
-              <div><h4>1. Request payload</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionRequest">Copy request JSON</button></div>
-              <p>Select the fields as variables in AJO and map them from the journey event or profile.</p>
+              <div><h4>1. Populated runtime example</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionRequest">Copy test JSON</button></div>
+              <p>Use this populated body when sending a direct test request to the endpoint.</p>
               <pre id="pdfActionRequest">{
   "requestId": "booking-event-EK8F2Q-001",
   "templateName": "booking-confirmation",
@@ -392,6 +524,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260811b"></script>
+  <script src="pdf-personalisation.js?v=20260811c"></script>
 </body>
 </html>

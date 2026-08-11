@@ -813,6 +813,8 @@
 .pdf-config-note { padding: 10px; border-radius: 9px; background: rgba(49, 90, 138, .08); }
 
 .pdf-payload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.pdf-schema-card { margin-top: 16px; }
+.pdf-schema-card pre { max-height: 620px; }
 .pdf-snippet-card > div { align-items: flex-start; }
 .pdf-snippet-card pre { max-height: 390px; overflow: auto; margin: 12px 0 0; padding: 13px; border-radius: 9px; color: var(--pdf-code-text); background: var(--pdf-code-bg); font: 10px/1.5 "SFMono-Regular", Consolas, monospace; white-space: pre; }
 .pdf-copy-snippet { padding: 6px 9px !important; font-size: 10px !important; white-space: nowrap; }

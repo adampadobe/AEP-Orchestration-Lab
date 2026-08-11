@@ -42,7 +42,13 @@ Revoking a key invalidates it immediately. The full secret cannot be recovered; 
 
 ## Request payload to paste
 
-This superset supports both built-in templates. At journey design time, mark the fields you need as Variable and map them from the event or profile. Fields unused by the selected template can remain empty strings.
+The PDF Personalisation page now includes a **Copy AJO field definition** button containing one universal AJO request schema for both built-in templates. It uses `optionalMapping: true` for template-specific fields so they may remain unmapped on the other journey activity.
+
+Always map `requestId`, `templateName`, `emailAddress`, `firstName`, `lastName`, `bookingReference`, `flightNumber`, `departureAirport`, and `arrivalAirport`. `documentName` is optional because Firebase selects the template's default filename when omitted.
+
+Booking-only optional fields are `ticketNumber`, `departureDateTime`, `arrivalDateTime`, `totalPaid`, and `currency`. Check-in-only optional fields are `originCity`, `destinationCity`, `boardingTime`, `gate`, `seat`, and `zone`. `departureTime` is accepted as an optional display value but is not rendered by the current built-in check-in template.
+
+The following populated superset supports both built-in templates for direct endpoint testing. Fields unused by the selected template can be omitted.
 
 ```json
 {
