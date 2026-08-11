@@ -37,6 +37,20 @@ test('detects fragmented DOCX text tags and Adobe image placeholders', () => {
   ]);
 });
 
+test('detects HTML data arguments without treating helpers as template fields', () => {
+  const fields = contract.extractHtmlFields(`
+    <p>{{data.firstName}}</p>
+    <p>{{formatDateTime data.departureDateTime}}</p>
+    <p>{{formatCurrency data.totalPaid data.currency}}</p>
+  `);
+  assert.deepEqual(fields, [
+    { name: 'firstName', type: 'text' },
+    { name: 'departureDateTime', type: 'text' },
+    { name: 'totalPaid', type: 'text' },
+    { name: 'currency', type: 'text' },
+  ]);
+});
+
 test('maps the stable AJO payload into template-specific fields', () => {
   const mappings = [
     { target: 'PassengerName', source: 'passengerName', required: true, type: 'text' },

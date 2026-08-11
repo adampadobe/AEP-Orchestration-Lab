@@ -124,12 +124,23 @@ function extractDocxFields(bytes) {
 
 function extractHtmlFields(html) {
   const fields = [];
-  const pattern = /{{{?\s*([^{}#\/!][^{}]*?)\s*}?}}/g;
+  const helperNames = new Set(['formatDateTime', 'formatCurrency', 'lookup', 'log']);
+  const pattern = /{{{?\s*([^{}]+?)\s*}?}}/g;
   let match;
   while ((match = pattern.exec(String(html || '')))) {
-    const expression = String(match[1] || '').trim().split(/\s+/)[0];
-    const name = cleanTemplateField(expression.replace(/^data\./, ''));
-    if (name) fields.push({ name, type: 'text' });
+    const expression = String(match[1] || '').trim();
+    if (!expression || /^[\/!]/.test(expression)) continue;
+    const tokens = expression.split(/\s+/).map((token) => token.replace(/[()'"=]/g, '')).filter(Boolean);
+    const dataFields = tokens
+      .filter((token) => /^data\.[a-zA-Z0-9_.-]+$/.test(token))
+      .map((token) => cleanTemplateField(token.replace(/^data\./, '')));
+    if (dataFields.length) {
+      dataFields.forEach((name) => fields.push({ name, type: 'text' }));
+      continue;
+    }
+    const first = String(tokens[0] || '').replace(/^#/, '');
+    if (!first || helperNames.has(first) || /^#/.test(expression)) continue;
+    fields.push({ name: cleanTemplateField(first), type: 'text' });
   }
   return uniqueFields(fields);
 }

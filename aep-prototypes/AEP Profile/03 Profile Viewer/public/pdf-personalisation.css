@@ -268,6 +268,7 @@
 }
 
 .pdf-panel input[type="text"],
+.pdf-panel input[type="number"],
 .pdf-panel select,
 .pdf-panel textarea {
   width: 100%;
@@ -279,6 +280,7 @@
 }
 
 .pdf-panel input[type="text"],
+.pdf-panel input[type="number"],
 .pdf-panel select {
   min-height: 38px;
   padding: 8px 10px;
@@ -289,6 +291,21 @@
 .pdf-save-template-row {
   margin-bottom: 14px;
 }
+
+.pdf-draft-details {
+  margin-top: 14px;
+  border-top: 1px solid var(--dash-border);
+}
+
+.pdf-draft-details > summary {
+  padding-top: 12px;
+  color: var(--dash-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.pdf-draft-details[open] > summary { margin-bottom: 12px; }
 
 .pdf-save-template-row {
   margin-top: 14px;
@@ -665,6 +682,30 @@
   padding: 20px;
 }
 
+.pdf-runtime-details {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  background: var(--dash-surface);
+}
+
+.pdf-runtime-details > summary {
+  padding: 13px 16px;
+  color: var(--dash-text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.pdf-runtime-details .pdf-flow-panel {
+  margin-top: 0;
+  border: 0;
+  border-top: 1px solid var(--dash-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .pdf-flow-steps {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -794,6 +835,10 @@
   margin-top: 16px;
 }
 
+.pdf-template-manager-grid.pdf-template-library-only {
+  grid-template-columns: 1fr;
+}
+
 .pdf-template-upload-card,
 .pdf-template-library-card {
   min-width: 0;
@@ -828,6 +873,37 @@
   font: inherit;
   font-size: 11px;
 }
+
+.pdf-publish-details {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(49, 90, 138, .22);
+  border-radius: 11px;
+  background: rgba(49, 90, 138, .045);
+}
+
+.pdf-publish-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 14px;
+  color: var(--dash-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pdf-publish-details > summary::-webkit-details-marker { display: none; }
+.pdf-publish-details > summary strong,
+.pdf-publish-details > summary em { display: block; }
+.pdf-publish-details > summary strong { font-size: 12px; }
+.pdf-publish-details > summary em { margin-top: 3px; color: var(--dash-muted); font-size: 10px; font-style: normal; font-weight: 400; }
+.pdf-publish-details[open] > summary { border-bottom: 1px solid var(--dash-border); }
+.pdf-publish-summary-state { flex: 0 0 auto; color: #315a8a; font-size: 10px; font-weight: 700; }
+.pdf-publish-body { padding: 14px; }
+.pdf-publish-body > .pdf-field-help { margin: 0 0 12px; }
+.pdf-publish-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 13px; }
+.pdf-publish-actions button { justify-content: center; }
 
 .pdf-template-upload-button {
   width: 100%;
@@ -1152,4 +1228,6 @@
   .pdf-template-list-actions { justify-content: flex-start; }
   .pdf-template-mapping-row { grid-template-columns: 1fr; align-items: stretch; }
   .pdf-template-mapping-required { justify-content: flex-start; }
+  .pdf-publish-details > summary { align-items: flex-start; flex-direction: column; }
+  .pdf-publish-actions { grid-template-columns: 1fr; }
 }

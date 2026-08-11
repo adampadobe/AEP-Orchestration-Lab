@@ -41,19 +41,17 @@
       <div class="reference">Booking reference<strong>{{data.bookingReference}}</strong></div>
     </header>
     <section class="content">
-      <h1>Your booking is confirmed, {{data.passenger.firstName}}</h1>
+      <h1>Your booking is confirmed, {{data.firstName}}</h1>
       <p class="lead">Your personalised itinerary and ticket details are below.</p>
-      {{#each data.flightDetails}}
       <div class="flight">
-        <div class="airport"><span class="code">{{departureAirport}}</span>{{formatDateTime departureDateTime}}</div>
-        <div class="route">{{flightNumber}} →</div>
-        <div class="airport"><span class="code">{{arrivalAirport}}</span>{{formatDateTime arrivalDateTime}}</div>
+        <div class="airport"><span class="code">{{data.departureAirport}}</span>{{formatDateTime data.departureDateTime}}</div>
+        <div class="route">{{data.flightNumber}} →</div>
+        <div class="airport"><span class="code">{{data.arrivalAirport}}</span>{{formatDateTime data.arrivalDateTime}}</div>
       </div>
-      {{/each}}
       <div class="meta">
-        <div><span>Passenger</span><strong>{{data.passenger.firstName}} {{data.passenger.lastName}}</strong></div>
+        <div><span>Passenger</span><strong>{{data.firstName}} {{data.lastName}}</strong></div>
         <div><span>Ticket</span><strong>{{data.ticketNumber}}</strong></div>
-        <div><span>Total paid</span><strong>{{formatCurrency data.fareDetails.totalPaid data.fareDetails.currency}}</strong></div>
+        <div><span>Total paid</span><strong>{{formatCurrency data.totalPaid data.currency}}</strong></div>
       </div>
     </section>
     <footer class="footer">Generated securely for this recipient · Do not forward if it contains personal information.</footer>
@@ -64,15 +62,15 @@
   const sampleData = {
     bookingReference: 'EK8F2Q',
     ticketNumber: '1761234567890',
-    passenger: { firstName: 'Amelia', lastName: 'Palmer' },
-    flightDetails: [{
-      flightNumber: 'EK 001',
-      departureAirport: 'DXB',
-      arrivalAirport: 'LHR',
-      departureDateTime: '2026-08-12T07:45:00Z',
-      arrivalDateTime: '2026-08-12T15:10:00Z',
-    }],
-    fareDetails: { totalPaid: 1280.5, currency: 'GBP' },
+    firstName: 'Amelia',
+    lastName: 'Palmer',
+    flightNumber: 'EK 001',
+    departureAirport: 'DXB',
+    arrivalAirport: 'LHR',
+    departureDateTime: '2026-08-12T07:45:00Z',
+    arrivalDateTime: '2026-08-12T15:10:00Z',
+    totalPaid: 1280.5,
+    currency: 'GBP',
   };
 
   const htmlEditor = document.getElementById('pdfHtmlEditor');
@@ -106,46 +104,16 @@
   const apiKeyList = document.getElementById('pdfApiKeyList');
   const newApiKeyPanel = document.getElementById('pdfNewApiKey');
   const newApiKeyValue = document.getElementById('pdfNewApiKeyValue');
-  const journeyTemplateDropZone = document.getElementById('pdfJourneyTemplateDropZone');
-  const journeyTemplateFileInput = document.getElementById('pdfJourneyTemplateFile');
   const journeyTemplateStatus = document.getElementById('pdfJourneyTemplateStatus');
   const journeyTemplateList = document.getElementById('pdfJourneyTemplateList');
-  const journeyTemplateJsonDropZone = document.getElementById('pdfJourneyTemplateJsonDropZone');
-  const journeyTemplateJsonFileInput = document.getElementById('pdfJourneyTemplateJsonFile');
-  const journeyTemplateSample = document.getElementById('pdfJourneyTemplateSample');
   const journeyTemplateMappingPanel = document.getElementById('pdfJourneyTemplateMappingPanel');
   const journeyTemplateMappings = document.getElementById('pdfJourneyTemplateMappings');
+  const publishDetails = document.getElementById('pdfPublishDetails');
   let authUser = null;
   let lastResult = null;
   let sourceDocument = null;
   let sourceHtmlFileName = '';
-  let journeyTemplateFile = null;
   let journeyTemplateAnalysis = null;
-
-  const journeyTemplateSamplePayload = {
-    firstName: 'Adam',
-    lastName: 'Palmer',
-    data: {
-      bookingReference: 'RA8F2Q',
-      ticketNumber: '1761234567890',
-      flightNumber: 'RX 401',
-      departureAirport: 'RUH',
-      arrivalAirport: 'JED',
-      originCity: 'Riyadh',
-      destinationCity: 'Jeddah',
-      departureAirportName: 'King Khalid International Airport',
-      arrivalAirportName: 'King Abdulaziz International Airport',
-      departureTerminal: 'Terminal 5',
-      arrivalTerminal: 'Terminal 1',
-      departureDateTime: '2026-08-12T09:15:00Z',
-      arrivalDateTime: '2026-08-12T10:55:00Z',
-      boardingTime: '08:30',
-      departureTime: '09:15',
-      gate: 'A12',
-      seat: '24A',
-      zone: '3',
-    },
-  };
 
   function conversionMode() {
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
@@ -211,6 +179,8 @@
     previewButton.disabled = busy;
     generateButton.disabled = busy;
     document.getElementById('pdfSaveTemplate').disabled = busy;
+    document.getElementById('pdfAnalyseJourneyTemplate').disabled = busy;
+    document.getElementById('pdfUploadJourneyTemplate').disabled = busy || !journeyTemplateAnalysis;
     beautifyJsonButton.disabled = busy;
   }
 
@@ -515,59 +485,50 @@
       .slice(0, 120);
   }
 
-  function setJourneyTemplateFile(file) {
-    if (!file) return;
-    const extension = String(file.name.split('.').pop() || '').toLowerCase();
-    const html = extension === 'html' || extension === 'htm';
-    if (!html && !supportedDocumentExtensions.has(extension)) {
-      throw new Error('Use HTML, Word, PowerPoint, Excel, RTF, TXT, JPEG, PNG, BMP, GIF or TIFF.');
-    }
-    const maxBytes = html ? MAX_HTML_BYTES : MAX_DOCUMENT_BYTES;
-    if (file.size > maxBytes) {
-      throw new Error(`${html ? 'HTML template exceeds 1.5 MB' : 'Document template exceeds 10 MB'}.`);
-    }
-    journeyTemplateFile = file;
+  function invalidateJourneyTemplateAnalysis(message) {
     journeyTemplateAnalysis = null;
     journeyTemplateMappingPanel.hidden = true;
     journeyTemplateMappings.replaceChildren();
     document.getElementById('pdfUploadJourneyTemplate').disabled = true;
-    setDropZoneLoaded(
-      journeyTemplateDropZone,
-      file.name,
-      file.size,
-      html ? 'HTML template' : `${extension.toUpperCase()} template`,
-    );
-    const name = templateNameFromFile(file.name);
-    document.getElementById('pdfJourneyTemplateName').value = name;
-    document.getElementById('pdfJourneyTemplateLabel').value = displayLabelFromFile(file.name);
-    document.getElementById('pdfJourneyTemplateDocumentName').value = `${name || 'travel-document'}.pdf`;
-    setJourneyTemplateStatus('Template loaded locally. Add sample JSON, then detect and map its fields.', 'success');
+    if (message) setJourneyTemplateStatus(message);
+  }
+
+  function syncJourneyTemplateDefaults(fileName, force = false) {
+    const nameInput = document.getElementById('pdfJourneyTemplateName');
+    const labelInput = document.getElementById('pdfJourneyTemplateLabel');
+    const documentNameInput = document.getElementById('pdfJourneyTemplateDocumentName');
+    const name = templateNameFromFile(fileName);
+    if (force || !nameInput.value.trim()) nameInput.value = name;
+    if (force || !labelInput.value.trim()) labelInput.value = displayLabelFromFile(fileName);
+    if (force || !documentNameInput.value.trim()) documentNameInput.value = `${name || 'travel-document'}.pdf`;
+  }
+
+  async function currentJourneyTemplateSource() {
+    if (conversionMode() === 'document') {
+      if (!sourceDocument) throw new Error('Drop a source document into step 1 first.');
+      return { ...sourceDocument };
+    }
+    const html = htmlEditor.value.trim();
+    if (!html) throw new Error('Drop or paste an HTML template into step 1 first.');
+    if (new Blob([html]).size > MAX_HTML_BYTES) throw new Error('HTML template exceeds 1.5 MB.');
+    const fileName = /\.html?$/i.test(sourceHtmlFileName)
+      ? sourceHtmlFileName
+      : `${templateNameFromFile(document.getElementById('pdfJourneyTemplateName').value) || 'template'}.html`;
+    return {
+      fileName,
+      mimeType: 'text/html',
+      base64: await fileAsBase64(new File([html], fileName, { type: 'text/html' })),
+    };
   }
 
   function parseJourneyTemplateSample() {
-    let value;
-    try { value = JSON.parse(journeyTemplateSample.value || '{}'); }
-    catch (_error) { throw new Error('Sample AJO payload must be valid JSON.'); }
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error('Sample AJO payload must be a JSON object.');
-    }
-    return value;
-  }
-
-  async function setJourneyTemplateJsonFile(file) {
-    if (!file) return;
-    if (!/\.json$/i.test(file.name) && String(file.type || '').toLowerCase() !== 'application/json') {
-      throw new Error('Use a JSON file for the template sample payload.');
-    }
-    if (file.size > MAX_DOCUMENT_DATA_BYTES) throw new Error('Sample JSON exceeds 8 MB.');
-    const text = await file.text();
-    const value = JSON.parse(text);
-    journeyTemplateSample.value = JSON.stringify(value, null, 2);
-    setDropZoneLoaded(journeyTemplateJsonDropZone, file.name, file.size, 'Sample JSON');
-    journeyTemplateAnalysis = null;
-    journeyTemplateMappingPanel.hidden = true;
-    document.getElementById('pdfUploadJourneyTemplate').disabled = true;
-    setJourneyTemplateStatus('Sample JSON loaded. Detect the template fields next.', 'success');
+    const data = parseData();
+    const passenger = data.passenger && typeof data.passenger === 'object' ? data.passenger : {};
+    return {
+      firstName: String(data.firstName || passenger.firstName || '').trim(),
+      lastName: String(data.lastName || passenger.lastName || '').trim(),
+      data,
+    };
   }
 
   function renderJourneyTemplateMappings(analysis) {
@@ -630,20 +591,13 @@
   async function analyseJourneyTemplate() {
     const button = document.getElementById('pdfAnalyseJourneyTemplate');
     try {
-      if (!journeyTemplateFile) throw new Error('Drop a template into the upload area first.');
       parseJourneyTemplateSample();
       button.disabled = true;
-      setJourneyTemplateStatus('Inspecting template variables and image placeholders…');
-      const browserMime = String(journeyTemplateFile.type || '').toLowerCase();
+      setJourneyTemplateStatus('Inspecting the current workspace template and JSON…');
+      const sourceFile = await currentJourneyTemplateSource();
       const { body } = await api('/journey-action/template-analysis', {
         method: 'POST',
-        body: JSON.stringify({
-          sourceFile: {
-            fileName: journeyTemplateFile.name,
-            mimeType: browserMime === 'application/octet-stream' ? '' : browserMime,
-            base64: await fileAsBase64(journeyTemplateFile),
-          },
-        }),
+        body: JSON.stringify({ sourceFile }),
       });
       journeyTemplateAnalysis = body;
       renderJourneyTemplateMappings(body);
@@ -725,9 +679,9 @@
   async function uploadJourneyTemplate() {
     const button = document.getElementById('pdfUploadJourneyTemplate');
     try {
-      if (!journeyTemplateFile) throw new Error('Drop an HTML or document template into the upload area first.');
       if (!journeyTemplateAnalysis) throw new Error('Detect and map the template fields before publishing.');
       const samplePayload = parseJourneyTemplateSample();
+      const sourceFile = await currentJourneyTemplateSource();
       const fieldMappings = collectJourneyTemplateMappings();
       if (fieldMappings.some((mapping) => !mapping.source)) throw new Error('Every detected template field needs an AJO mapping.');
       const templateName = document.getElementById('pdfJourneyTemplateName').value.trim().toLowerCase();
@@ -736,7 +690,6 @@
       }
       button.disabled = true;
       setJourneyTemplateStatus('Generating the Adobe preview, checking page count, and publishing the version…');
-      const browserMime = String(journeyTemplateFile.type || '').toLowerCase();
       const { body } = await api('/journey-action/template-library', {
         method: 'POST',
         body: JSON.stringify({
@@ -748,20 +701,10 @@
           samplePayload,
           fieldMappings,
           replace: true,
-          sourceFile: {
-            fileName: journeyTemplateFile.name,
-            mimeType: browserMime === 'application/octet-stream' ? '' : browserMime,
-            base64: await fileAsBase64(journeyTemplateFile),
-          },
+          sourceFile,
         }),
       });
       const saved = body.template || {};
-      journeyTemplateFile = null;
-      journeyTemplateAnalysis = null;
-      journeyTemplateFileInput.value = '';
-      resetDropZone(journeyTemplateDropZone);
-      journeyTemplateMappingPanel.hidden = true;
-      journeyTemplateMappings.replaceChildren();
       setJourneyTemplateStatus(`Published “${saved.templateName || templateName}” v${saved.version || 1}. Adobe validation passed at ${body.validation.pageCount} page${body.validation.pageCount === 1 ? '' : 's'}.`, 'success');
       await loadJourneyTemplates();
     } catch (error) {
@@ -784,69 +727,17 @@
   }
 
   function bindJourneyTemplateLibrary() {
-    journeyTemplateDropZone.addEventListener('click', () => journeyTemplateFileInput.click());
-    journeyTemplateDropZone.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        journeyTemplateFileInput.click();
-      }
-    });
-    journeyTemplateFileInput.addEventListener('change', () => {
-      try { setJourneyTemplateFile(journeyTemplateFileInput.files && journeyTemplateFileInput.files[0]); }
-      catch (error) { setJourneyTemplateStatus(error.message, 'error'); }
-    });
-    ['dragenter', 'dragover'].forEach((name) => journeyTemplateDropZone.addEventListener(name, (event) => {
-      event.preventDefault();
-      journeyTemplateDropZone.classList.add('is-dragging');
-    }));
-    ['dragleave', 'drop'].forEach((name) => journeyTemplateDropZone.addEventListener(name, (event) => {
-      event.preventDefault();
-      journeyTemplateDropZone.classList.remove('is-dragging');
-    }));
-    journeyTemplateDropZone.addEventListener('drop', (event) => {
-      try { setJourneyTemplateFile(event.dataTransfer && event.dataTransfer.files[0]); }
-      catch (error) { setJourneyTemplateStatus(error.message, 'error'); }
-    });
     document.getElementById('pdfUploadJourneyTemplate').addEventListener('click', uploadJourneyTemplate);
     document.getElementById('pdfAnalyseJourneyTemplate').addEventListener('click', analyseJourneyTemplate);
-    document.getElementById('pdfJourneyTemplateLoadSample').addEventListener('click', () => {
-      journeyTemplateSample.value = JSON.stringify(journeyTemplateSamplePayload, null, 2);
-      journeyTemplateAnalysis = null;
-      journeyTemplateMappingPanel.hidden = true;
-      document.getElementById('pdfUploadJourneyTemplate').disabled = true;
-      setJourneyTemplateStatus('Travel sample loaded. Detect the template fields next.', 'success');
-    });
-    journeyTemplateJsonDropZone.addEventListener('click', () => journeyTemplateJsonFileInput.click());
-    journeyTemplateJsonDropZone.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        journeyTemplateJsonFileInput.click();
+    document.getElementById('pdfRefreshJourneyTemplates').addEventListener('click', loadJourneyTemplates);
+    publishDetails.addEventListener('toggle', () => {
+      if (publishDetails.open && !document.getElementById('pdfJourneyTemplateName').value.trim()) {
+        const sourceName = conversionMode() === 'document'
+          ? sourceDocument && sourceDocument.fileName
+          : sourceHtmlFileName || templateName.value || 'travel-template.html';
+        syncJourneyTemplateDefaults(sourceName || 'travel-template');
       }
     });
-    journeyTemplateJsonFileInput.addEventListener('change', () => {
-      setJourneyTemplateJsonFile(journeyTemplateJsonFileInput.files && journeyTemplateJsonFileInput.files[0])
-        .catch((error) => setJourneyTemplateStatus(error.message, 'error'));
-    });
-    journeyTemplateSample.addEventListener('input', () => {
-      if (!journeyTemplateAnalysis) return;
-      journeyTemplateAnalysis = null;
-      journeyTemplateMappingPanel.hidden = true;
-      document.getElementById('pdfUploadJourneyTemplate').disabled = true;
-      setJourneyTemplateStatus('Sample JSON changed. Detect the template fields again before publishing.');
-    });
-    ['dragenter', 'dragover'].forEach((name) => journeyTemplateJsonDropZone.addEventListener(name, (event) => {
-      event.preventDefault();
-      journeyTemplateJsonDropZone.classList.add('is-dragging');
-    }));
-    ['dragleave', 'drop'].forEach((name) => journeyTemplateJsonDropZone.addEventListener(name, (event) => {
-      event.preventDefault();
-      journeyTemplateJsonDropZone.classList.remove('is-dragging');
-    }));
-    journeyTemplateJsonDropZone.addEventListener('drop', (event) => {
-      setJourneyTemplateJsonFile(event.dataTransfer && event.dataTransfer.files[0])
-        .catch((error) => setJourneyTemplateStatus(error.message, 'error'));
-    });
-    document.getElementById('pdfRefreshJourneyTemplates').addEventListener('click', loadJourneyTemplates);
   }
 
   function loadSample() {
@@ -858,6 +749,8 @@
     dataEditor.value = JSON.stringify(sampleData, null, 2);
     templateName.value = 'Travel booking confirmation v1';
     sourceHtmlFileName = '';
+    syncJourneyTemplateDefaults('travel-booking-confirmation.html', true);
+    document.getElementById('pdfJourneyTemplateSubject').value = 'Your booking confirmation';
     document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     fileMeta.hidden = true;
@@ -881,6 +774,9 @@
       previewEmpty.hidden = false;
       previewMeta.textContent = 'Direct conversion';
     }
+    if (journeyTemplateAnalysis) {
+      invalidateJourneyTemplateAnalysis('Template or JSON changed. Detect fields again before publishing.');
+    }
   }
 
   function useUnsavedEditor() {
@@ -897,10 +793,11 @@
     htmlEditor.value = await file.text();
     sourceHtmlFileName = file.name;
     templateName.value = file.name.replace(/\.html?$/i, '');
+    syncJourneyTemplateDefaults(file.name, true);
     setDropZoneLoaded(dropZone, file.name, file.size, 'HTML');
     fileMeta.hidden = true;
     useUnsavedEditor();
-    setStatus('HTML file loaded. Add or paste its JSON, then choose Save HTML + JSON to keep the pair in the repository.', 'success');
+    setStatus('HTML loaded. Add or paste its JSON, then preview, generate, or publish this same workspace template.', 'success');
   }
 
   async function readDataFile(file) {
@@ -946,7 +843,7 @@
     jsonFileMeta.hidden = true;
     if (conversionMode() === 'document') updateDocumentOperation();
     markRequestChanged();
-    setStatus('JSON payload loaded. Preview or generate now, or use Save HTML + JSON to keep the pair in the repository.', 'success');
+    setStatus('JSON payload loaded. Preview, generate, or publish using this same payload.', 'success');
   }
 
   function fileAsBase64(file) {
@@ -975,6 +872,7 @@
       mimeType: file.type || '',
       base64: await fileAsBase64(file),
     };
+    syncJourneyTemplateDefaults(file.name, true);
     const documentMerge = extension === 'docx' && Object.keys(parseData()).length > 0;
     updateDocumentOperation();
     setDropZoneLoaded(documentDropZone, file.name, file.size, extension.toUpperCase());
@@ -1004,8 +902,8 @@
     previewEmpty.hidden = false;
     previewMeta.textContent = documentMode ? 'Document generation' : 'Not rendered';
     document.getElementById('pdfDataHeading').textContent = 'Personalisation and output';
-    document.getElementById('pdfPreviewHeading').textContent = documentMode ? 'Generate and store' : 'Preview and generate';
-    generateButton.textContent = documentMode ? 'Generate document PDF' : 'Generate PDF';
+    document.getElementById('pdfPreviewHeading').textContent = 'Preview and output';
+    generateButton.textContent = documentMode ? 'Generate, preview and store PDF' : 'Generate and store PDF';
     document.getElementById('pdfModeHelp').textContent = documentMode
       ? 'DOCX plus JSON uses Adobe Document Generation. Empty JSON, or another supported file, uses direct Create PDF.'
       : 'Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.';
@@ -1044,7 +942,7 @@
     try {
       const { body } = await api('/templates', { method: 'GET' });
       const current = selectId || templateSelect.value;
-      templateSelect.replaceChildren(new Option('Unsaved HTML + JSON in editor', ''));
+      templateSelect.replaceChildren(new Option('Current workspace', ''));
       (body.templates || []).forEach((item) => {
         const label = `${item.name} · HTML ${formatBytes(item.size)} · JSON ${formatBytes(item.dataSize)}`;
         templateSelect.add(new Option(label, item.templateId));
@@ -1069,12 +967,13 @@
     }
     try {
       setBusy(true);
-      setStatus('Loading HTML and default JSON from the private template repository...', 'working');
+      setStatus('Loading the saved HTML and JSON draft...', 'working');
       const { body } = await api(`/templates/${encodeURIComponent(templateId)}`, { method: 'GET' });
       htmlEditor.value = body.htmlTemplate || '';
       dataEditor.value = JSON.stringify(body.defaultData || {}, null, 2);
       templateName.value = body.name || '';
       sourceHtmlFileName = body.sourceFileName || '';
+      syncJourneyTemplateDefaults(sourceHtmlFileName || `${body.name || 'travel-template'}.html`, true);
       htmlEditor.disabled = true;
       dropZone.setAttribute('aria-disabled', 'true');
       setDropZoneLoaded(
@@ -1111,7 +1010,7 @@
       if (!htmlEditor.value.trim()) throw new Error('Add HTML before saving a template.');
       setBusy(true);
       const defaultData = parseData();
-      setStatus('Saving the HTML and default JSON in the private repository...', 'working');
+      setStatus('Saving the HTML and JSON as a private draft...', 'working');
       const { body } = await api('/templates', {
         method: 'POST',
         body: JSON.stringify({
