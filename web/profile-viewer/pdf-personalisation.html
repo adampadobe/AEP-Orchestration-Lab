@@ -226,7 +226,7 @@
               <dl class="pdf-result-details">
                 <div><dt>Job ID</dt><dd id="pdfResultJob"></dd></div>
                 <div><dt>Storage</dt><dd id="pdfResultStorage"></dd></div>
-                <div><dt>Adobe DLZ</dt><dd id="pdfResultDlz"></dd></div>
+                <div><dt>AJO DLZ</dt><dd id="pdfResultDlz"></dd></div>
                 <div><dt>Amazon S3</dt><dd id="pdfResultS3"></dd></div>
                 <div><dt>Google backup</dt><dd id="pdfResultGcs"></dd></div>
                 <div><dt>Expires</dt><dd id="pdfResultExpiry"></dd></div>
@@ -257,7 +257,7 @@
             <li><span>1</span><strong>Validate</strong><em id="pdfFlowValidate">Authorised user, static HTML, bounded JSON</em></li>
             <li><span>2</span><strong id="pdfFlowPrepareTitle">Merge</strong><em id="pdfFlowPrepare">Handlebars data into escaped HTML</em></li>
             <li><span>3</span><strong>Convert</strong><em id="pdfFlowConvert">ZIP index.html → HTMLToPDFJob</em></li>
-            <li><span>4</span><strong>Store</strong><em>Adobe DLZ primary plus private S3 and Google Cloud backups</em></li>
+            <li><span>4</span><strong>Store</strong><em>Dedicated AJO attachment DLZ primary plus private S3 and Google Cloud backups</em></li>
             <li><span>5</span><strong>Handoff</strong><em>DLZ path and opaque storage links returned for AJO and testing</em></li>
           </ol>
         </section>

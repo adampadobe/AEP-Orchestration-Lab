@@ -3,7 +3,8 @@
 const { Readable } = require('node:stream');
 const { PdfPersonalisationError, safeDocumentName } = require('./pdfPersonalisationCore');
 
-const CREDENTIALS_URL = 'https://platform.adobe.io/data/foundation/connectors/landingzone/credentials?type=user_drop_zone';
+const CREDENTIALS_URL = 'https://platform.adobe.io/data/foundation/connectors/landingzone/credentials?type=ajoemailattachments';
+const EXPECTED_CONTAINER = 'dlz-ajoemailattachments';
 const DEFAULT_PREFIX = 'pdf-personalisation';
 const CACHE_MS = 5 * 60 * 1000;
 const DLZ_RETENTION_DAYS = 7;
@@ -50,6 +51,13 @@ function validateCredentials(value) {
       'Adobe Data Landing Zone credentials are unavailable.',
       503,
       'PDF_DLZ_NOT_CONFIGURED',
+    );
+  }
+  if (containerName !== EXPECTED_CONTAINER) {
+    throw new PdfPersonalisationError(
+      'Adobe returned the wrong Data Landing Zone for AJO email attachments.',
+      502,
+      'PDF_DLZ_CONTAINER_INVALID',
     );
   }
   let parsed;
@@ -179,6 +187,7 @@ async function openPdf(record, deps = {}, options = {}) {
 
 module.exports = {
   CREDENTIALS_URL,
+  EXPECTED_CONTAINER,
   DEFAULT_PREFIX,
   DLZ_RETENTION_DAYS,
   normalisePrefix,

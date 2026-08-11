@@ -624,7 +624,7 @@
     document.getElementById('pdfResultJob').textContent = result.jobId;
     const locations = result.storageLocations || {};
     document.getElementById('pdfResultStorage').textContent = locations.dlz
-      ? 'Adobe DLZ primary · S3 and Google Cloud backups'
+      ? 'AJO attachment DLZ primary · S3 and Google Cloud backups'
       : result.storageProvider === 's3'
         ? `Amazon S3 · ${result.storageUri || 'private object'}`
         : 'Google Cloud Storage';

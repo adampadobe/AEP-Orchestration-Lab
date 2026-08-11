@@ -81,7 +81,7 @@ async function responseForReadyJob(job, req, deps = {}) {
   const storageLocations = {};
   if (job.dlzObjectPath) {
     storageLocations.dlz = {
-      provider: 'Adobe Data Landing Zone',
+      provider: 'Adobe AJO email-attachment DLZ',
       primary: true,
       uri: job.dlzUri,
       objectPath: job.dlzObjectPath,

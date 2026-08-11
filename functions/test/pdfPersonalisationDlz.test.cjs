@@ -7,13 +7,15 @@ const dlz = require('../pdfPersonalisationDlz');
 
 function credentials() {
   return {
-    containerName: 'dlz-user-container',
+    containerName: 'dlz-ajoemailattachments',
     storageAccountName: 'sandbox-account',
-    SASUri: 'https://sandbox-account.blob.core.windows.net/dlz-user-container?sv=test&sp=racwdlm&sig=redacted',
+    SASUri: 'https://sandbox-account.blob.core.windows.net/dlz-ajoemailattachments?sv=test&sp=rcwl&sig=redacted',
   };
 }
 
 test('builds a bounded dated DLZ object path', () => {
+  assert.match(dlz.CREDENTIALS_URL, /type=ajoemailattachments$/);
+  assert.equal(dlz.EXPECTED_CONTAINER, 'dlz-ajoemailattachments');
   assert.equal(
     dlz.objectPath('../../Job ID 123', new Date('2026-08-11T10:00:00Z'), '/pdf-personalisation/'),
     'pdf-personalisation/2026/08/11/job-id-123.pdf',
@@ -44,10 +46,10 @@ test('uploads and verifies a PDF without exposing the SAS URI', async () => {
   assert.equal(calls.length, 2);
   assert.equal(calls[0].options.method, 'PUT');
   assert.equal(calls[0].options.headers['x-ms-blob-type'], 'BlockBlob');
-  assert.match(calls[0].url, /dlz-user-container\/pdf-personalisation\/2026\/08\/11\/job-123\.pdf\?/);
+  assert.match(calls[0].url, /dlz-ajoemailattachments\/pdf-personalisation\/2026\/08\/11\/job-123\.pdf\?/);
   assert.equal(result.dlzObjectPath, 'pdf-personalisation/2026/08/11/job-123.pdf');
-  assert.equal(result.dlzPlatformPath, 'dlz-user-container/pdf-personalisation/2026/08/11/job-123.pdf');
-  assert.equal(result.dlzUri, 'dlz://sandbox-account/dlz-user-container/pdf-personalisation/2026/08/11/job-123.pdf');
+  assert.equal(result.dlzPlatformPath, 'dlz-ajoemailattachments/pdf-personalisation/2026/08/11/job-123.pdf');
+  assert.equal(result.dlzUri, 'dlz://sandbox-account/dlz-ajoemailattachments/pdf-personalisation/2026/08/11/job-123.pdf');
   assert.equal(result.dlzExpiresAt, '2026-08-18T10:00:00.000Z');
   assert.equal(JSON.stringify(result).includes('sig='), false);
 });
@@ -55,7 +57,7 @@ test('uploads and verifies a PDF without exposing the SAS URI', async () => {
 test('opens a DLZ PDF through the private gateway', async () => {
   const body = Readable.from(Buffer.from('%PDF fixture'));
   const opened = await dlz.openPdf({
-    dlzContainer: 'dlz-user-container',
+    dlzContainer: 'dlz-ajoemailattachments',
     dlzObjectPath: 'pdf-personalisation/2026/08/11/job-123.pdf',
     size: 12,
   }, {
