@@ -409,6 +409,7 @@
   }
 
   function actionSetupText() {
+    refreshActionRequestId();
     const generatedKey = newApiKeyValue.value.trim();
     return [
       'AJO CUSTOM ACTION — GENERATE PERSONALISED PDF',
@@ -439,6 +440,20 @@
     ].join('\n');
   }
 
+  function refreshActionRequestId() {
+    const target = document.getElementById('pdfActionRequest');
+    if (!target) return '';
+    try {
+      const payload = JSON.parse(target.textContent);
+      const unique = window.crypto && typeof window.crypto.randomUUID === 'function'
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      payload.requestId = `riyadh-checkin-${unique}`;
+      target.textContent = JSON.stringify(payload, null, 2);
+    } catch (_error) {}
+    return target.textContent.trim();
+  }
+
   function bindCustomActionSetup() {
     document.getElementById('pdfGenerateApiKey').addEventListener('click', generateApiKey);
     document.getElementById('pdfCopyApiKey').addEventListener('click', (event) => {
@@ -452,12 +467,20 @@
     document.getElementById('pdfCopyActionSetup').addEventListener('click', (event) => {
       copyText(actionSetupText(), event.currentTarget, 'Copy all setup values');
     });
+    document.getElementById('pdfNewActionRequestId').addEventListener('click', (event) => {
+      refreshActionRequestId();
+      const original = event.currentTarget.textContent;
+      event.currentTarget.textContent = 'New ID ready';
+      window.setTimeout(() => { event.currentTarget.textContent = original; }, 1400);
+    });
     document.querySelectorAll('[data-copy-target]').forEach((button) => {
       button.addEventListener('click', (event) => {
         const target = document.getElementById(button.dataset.copyTarget);
+        if (target && target.id === 'pdfActionRequest') refreshActionRequestId();
         copyText(target && target.textContent.trim(), event.currentTarget, button.textContent);
       });
     });
+    refreshActionRequestId();
   }
 
   function setJourneyTemplateStatus(message, kind) {
