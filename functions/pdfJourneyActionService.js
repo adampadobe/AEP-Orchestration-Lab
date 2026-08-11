@@ -67,8 +67,11 @@ function firstValue(...values) {
   return values.find((value) => value != null && String(value).trim() !== '');
 }
 
-function normaliseTemplateData(templateName, value, recipient) {
-  const data = copyObject(core.normaliseData(value || {}));
+function normaliseTemplateData(templateName, value, recipient, documentTemplate = false) {
+  const normalisePayload = documentTemplate
+    ? core.normaliseDocumentMergeData
+    : core.normaliseData;
+  const data = copyObject(normalisePayload(value || {}));
   data.firstName = cleanText(firstValue(data.firstName, recipient.firstName), 100);
   data.lastName = cleanText(firstValue(data.lastName, recipient.lastName), 100);
   const passenger = plainObject(data.passenger) ? data.passenger : {};
@@ -115,7 +118,7 @@ function normaliseTemplateData(templateName, value, recipient) {
       departure: cleanText(firstValue(times.departure, data.departureTime), 40),
     };
   }
-  return core.normaliseData(data);
+  return normalisePayload(data);
 }
 
 function resolveCampaignId(value, deps = {}) {
@@ -143,7 +146,7 @@ function normaliseRequest(body, deps = {}) {
     firstName: cleanText(input.firstName, 100),
     lastName: cleanText(input.lastName, 100),
   };
-  const data = normaliseTemplateData(template.name, input.data, recipient);
+  const data = normaliseTemplateData(template.name, input.data, recipient, template.kind === 'document');
   const documentName = core.safeDocumentName(input.documentName || template.documentName);
   const selectedCampaignId = resolveCampaignId(input.campaignId, deps);
   const requestHash = core.sha256(JSON.stringify({

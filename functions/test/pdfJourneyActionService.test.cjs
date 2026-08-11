@@ -144,6 +144,36 @@ test('persists owner-scoped uploaded template metadata in the queued job contrac
   assert.equal(input.templateOwnerUid, 'user-1');
   assert.equal(input.templateSourceName, 'airport-welcome.docx');
   assert.equal(input.data.firstName, 'Amelia');
+  assert.equal(input.data.Barcode, undefined);
+});
+
+test('preserves optional DOCX image variables using the document-merge data allowance', () => {
+  const largeImageDataUri = `data:image/png;base64,${'A'.repeat(1_600_000)}`;
+  const input = service.normaliseRequest(bookingRequest({
+    templateName: 'ra-boarding-pass-template',
+    data: {
+      bookingReference: 'RA8F2Q',
+      Barcode: largeImageDataUri,
+      FF_Image: 'data:image/jpeg;base64,ZmFrZS1mZWF0dXJlLWltYWdl',
+      Offer: 'data:image/png;base64,ZmFrZS1vZmZlci1pbWFnZQ==',
+    },
+  }), {
+    resolvedTemplate: {
+      name: 'ra-boarding-pass-template',
+      subject: 'Your Riyadh Air boarding pass',
+      documentName: 'riyadh-air-boarding-pass.pdf',
+      kind: 'document',
+      source: 'uploaded',
+      sourceHash: 'b'.repeat(64),
+      sourceFileName: 'Riyadh_Air_Boarding_Pass_Template.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      objectPath: 'pdf-personalisation/journey-templates/owner/ra-boarding-pass-template/source.docx',
+      ownerUid: 'user-1',
+    },
+  });
+  assert.equal(input.data.Barcode, largeImageDataUri);
+  assert.match(input.data.FF_Image, /^data:image\/jpeg;base64,/);
+  assert.match(input.data.Offer, /^data:image\/png;base64,/);
 });
 
 test('renders both built-in templates from the flat custom-action contract', () => {

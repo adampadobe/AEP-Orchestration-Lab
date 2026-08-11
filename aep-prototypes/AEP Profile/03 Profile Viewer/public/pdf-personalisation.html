@@ -393,7 +393,7 @@
 
           <section class="pdf-snippet-card pdf-schema-card">
             <div><h4>AJO request field definition — booking + check-in</h4><button type="button" class="dashboard-btn-primary pdf-copy-snippet" data-copy-target="pdfActionFieldDefinition">Copy AJO field definition</button></div>
-            <p>Paste this into the custom action request payload editor. Map <code>campaignId</code> when a journey should select its transactional campaign; leave it blank to use the server default. Template-specific fields remain optional.</p>
+            <p>Paste this into the custom action request payload editor. Map <code>campaignId</code> when a journey should select its transactional campaign; leave it blank to use the server default. Template-specific fields remain optional. Uploaded DOCX image fields accept complete <code>data:image/...;base64,...</code> values.</p>
             <pre id="pdfActionFieldDefinition">{
   "requestId": {
     "toBeMapped": true,
@@ -513,6 +513,24 @@
       "dataType": "string",
       "label": "Boarding zone - check-in only"
     },
+    "Barcode": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Barcode image data URI - Riyadh DOCX"
+    },
+    "FF_Image": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Feature image data URI - Riyadh DOCX"
+    },
+    "Offer": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Offer image data URI - Riyadh DOCX"
+    },
     "totalPaid": {
       "optionalMapping": true,
       "toBeMapped": true,
@@ -586,6 +604,7 @@
             <strong>Built-in template names</strong>
             <code>booking-confirmation</code>
             <code>checkin-confirmation</code>
+            <span>For <code>ra-boarding-pass-template</code>, optionally map <code>data.Barcode</code>, <code>data.FF_Image</code>, and <code>data.Offer</code> to complete base64 image data URIs. Omitted image fields leave the DOCX placeholders unchanged.</span>
             <span>Use a stable event identifier for <code>requestId</code>. A retry must reuse it; a new booking or check-in must use a new value.</span>
           </div>
             </div>
