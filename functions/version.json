@@ -1,14 +1,14 @@
 {
-  "gitSha": "4ad53d557438579a9db21143ab32e95408938290",
-  "gitShortSha": "4ad53d55",
-  "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Restrict Decisioning Lab navigation",
+  "gitSha": "621c1230e9eaba8669410503a1f6c92a7e590a31",
+  "gitShortSha": "621c1230",
+  "gitBranch": "codex/ajo-pdf-custom-action-20260811",
+  "gitCommitSubject": "[apalmer] Add validated PDF template publishing",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-24T16:00:30+01:00",
-  "deployedAt": "2026-07-24T15:01:13.940Z",
+  "gitCommitDate": "2026-08-11T22:32:42+03:00",
+  "deployedAt": "2026-08-11T19:33:41.334Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4ad53d557438579a9db21143ab32e95408938290"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/621c1230e9eaba8669410503a1f6c92a7e590a31"
 }
