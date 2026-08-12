@@ -79,7 +79,7 @@ async function run() {
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep']) {
+  for (const path of ['/mcp', '/mcp/guide', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 
@@ -123,6 +123,9 @@ async function run() {
     'lab_list_industries',
     'lab_list_sandboxes',
     'lab_mcp_access_info',
+    'lab_mcp_contexts',
+    'lab_mcp_recommend_context',
+    'lab_mcp_workflow',
     'lab_demo_config_inspect',
     'lab_demo_config_preview',
     'lab_demo_config_apply',
@@ -241,6 +244,28 @@ async function run() {
     throw new Error('lab_mcp_access_info missing keyId in response');
   }
 
+  const recommendCall = await mcpRequest(sessionId, {
+    jsonrpc: '2.0',
+    id: 31,
+    method: 'tools/call',
+    params: { name: 'lab_mcp_recommend_context', arguments: { goal: 'audit and delete an old audience', sandbox: 'apalmer' } },
+  });
+  const recommendText = recommendCall.json.result?.content?.[0]?.text || '';
+  if (recommendCall.status !== 200 || recommendCall.json.error || !recommendText.includes('aep-lab-audiences')) {
+    throw new Error(`lab_mcp_recommend_context failed: ${JSON.stringify(recommendCall.json)}`);
+  }
+
+  const resourcesList = await mcpRequest(sessionId, {
+    jsonrpc: '2.0',
+    id: 32,
+    method: 'resources/list',
+    params: {},
+  });
+  const resourceUris = resourcesList.json?.result?.resources?.map((resource) => resource.uri) || [];
+  if (!resourceUris.includes('lab://mcp/contexts')) {
+    throw new Error(`Guide resource is missing: ${JSON.stringify(resourcesList.json)}`);
+  }
+
   const listCall = await mcpRequest(sessionId, {
     jsonrpc: '2.0',
     id: 4,
@@ -297,6 +322,12 @@ async function run() {
   }
 
   const focusedToolCounts = {
+    guide: await verifyFocusedEndpoint('/mcp/guide', [
+      'lab_mcp_access_info',
+      'lab_mcp_contexts',
+      'lab_mcp_recommend_context',
+      'lab_mcp_workflow',
+    ]),
     profile: await verifyFocusedEndpoint('/mcp/profile', [
       'lab_mcp_access_info',
       'lab_list_industries',

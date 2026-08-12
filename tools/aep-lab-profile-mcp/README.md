@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.36)
+# AEP Orchestration Lab MCP (Phase 3.37)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.36.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.37.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -10,6 +10,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
+| `/mcp/guide` | 4 | Read-only access check, capability directory, context recommendation, and cross-context workflow planning |
 | `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
@@ -17,6 +18,18 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/demo-prep` | 19 | Brand scrape, stable customer asset preview/activation/restore, governed RTDB, and one-shot demo preparation |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
+
+### Read-only MCP guide (Phase 3.37)
+
+Configure `aep-lab-guide` as a lightweight companion when Coworker has several Lab MCPs. It describes the available contexts and recommends the smallest useful one, but deliberately does **not** expose a generic proxy or `call_any_tool` operation. The Coworker host must already have each recommended server configured.
+
+| Guide tool / resource | Purpose |
+|---|---|
+| `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
+| `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
+| `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
+| `lab://mcp/contexts` | Static capability directory resource |
+| `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
 ## Framework tools & resources (v3.6)
 
@@ -40,6 +53,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 
 | Tool | Lab API | Notes |
 |------|---------|--------|
+| `lab_mcp_contexts` | *(static)* | Canonical Lab and Adobe MCP capability directory |
+| `lab_mcp_recommend_context` | *(static)* | Recommends the smallest useful configured MCP context for a goal |
+| `lab_mcp_workflow` | *(static)* | Cross-context handoff plan; never invokes another MCP |
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
@@ -372,6 +388,18 @@ AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=
   "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
   "headers": {
     "X-AEP-Lab-Mcp-Key": "<same value as AEP_LAB_MCP_API_KEY>"
+  }
+}
+```
+
+Recommended read-only guide companion:
+
+```json
+"aep-lab-guide": {
+  "type": "streamable-http",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/guide",
+  "headers": {
+    "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
   }
 }
 ```

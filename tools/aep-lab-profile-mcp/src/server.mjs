@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{profile,audiences,ajo-cleanup,decisioning,demo-prep}
+ * Endpoints: POST /mcp and focused /mcp/{guide,profile,audiences,ajo-cleanup,decisioning,demo-prep}
  * Health:   GET /health
  */
 
@@ -22,6 +22,7 @@ import { getLabApiOrigin } from './labApiClient.mjs';
 import { requestContext } from './requestContext.mjs';
 import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
 import { registerFrameworkResources } from './resources/frameworkResources.mjs';
+import { registerMcpGuideResources } from './resources/mcpGuideResources.mjs';
 import { installToolAnnotations } from './toolAnnotations.mjs';
 import {
   registerFocusedAudienceTools,
@@ -29,10 +30,11 @@ import {
   registerFocusedDecisioningTools,
   registerFocusedDemoPrepTools,
   registerFocusedProfileTools,
+  registerFocusedMcpGuideTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.36.0';
+const MCP_VERSION = '3.37.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -41,6 +43,13 @@ dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
 const transports = new Map();
 
 const ENDPOINTS = [
+  {
+    path: '/mcp/guide',
+    toolset: 'guide',
+    register: registerFocusedMcpGuideTools,
+    instructions:
+      'Read-only AEP Lab MCP capability directory. Recommend the smallest configured context and cross-context workflow; never claim to connect, switch, proxy, or execute another MCP server.',
+  },
   {
     path: '/mcp',
     toolset: 'full',
@@ -91,6 +100,7 @@ export function createMcpServer(endpoint = ENDPOINTS[0]) {
   });
   installToolAnnotations(server);
   if (endpoint.toolset === 'full') registerFrameworkResources(server);
+  if (endpoint.toolset === 'full' || endpoint.toolset === 'guide') registerMcpGuideResources(server);
   endpoint.register(server);
   return server;
 }

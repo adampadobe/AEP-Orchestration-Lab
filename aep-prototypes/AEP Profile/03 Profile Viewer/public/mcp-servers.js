@@ -28,7 +28,7 @@
       configName: 'aep-lab-general',
       section: 'lab',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 95 tools',
+      product: 'Complete Lab MCP · 98 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -41,10 +41,32 @@
       configNotes:
         'Choose this for general demo work or when a workflow spans several areas. Uses X-AEP-Lab-Mcp-Key; the same sandbox key also works with every focused connection below.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 95,
+      toolCount: 98,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
+    },
+    {
+      id: 'aep-lab-guide',
+      configName: 'aep-lab-guide',
+      section: 'lab',
+      name: 'AEP Lab — MCP guide',
+      product: 'Focused read-only MCP · 4 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/guide',
+      summary:
+        'A small capability directory that explains each Lab context and recommends the smallest configured MCP or cross-context workflow for a prompt.',
+      useCases: [
+        'Discover which MCP context owns a capability',
+        'Route a prompt to the smallest useful focused context',
+        'Plan a customer demo workflow across several configured MCPs',
+      ],
+      configNotes:
+        'Recommended companion connection when several MCPs are configured. It is advisory only: it cannot connect, switch, proxy, or execute another MCP. Reuse the same X-AEP-Lab-Mcp-Key.',
+      connectionKind: 'Focused · read-only guide',
+      toolCount: 4,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'MCP guide reference',
     },
     {
       id: 'aep-lab-demo-prep',

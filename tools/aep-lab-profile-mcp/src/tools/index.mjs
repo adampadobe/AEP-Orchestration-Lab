@@ -39,12 +39,14 @@ import { registerDemoConfigTools } from './demoConfig.mjs';
 import { registerAudienceTools } from './audienceTools.mjs';
 import { registerDemoAssetTools } from './demoAssets.mjs';
 import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
+import { registerMcpGuideTools } from './mcpGuideTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
  */
 export function registerProfileTools(mcpServer) {
+  registerMcpGuideTools(mcpServer);
   registerGetExecutionFrameworkTool(mcpServer);
   registerGetIndustryPlaybookTool(mcpServer);
   registerPreflightProfileGenerateTool(mcpServer);
@@ -86,6 +88,12 @@ export function registerProfileTools(mcpServer) {
   registerGenerateProfileFromBrandScrapeTools(mcpServer);
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
   registerCreateJourneyFromBrandScrapeTool(mcpServer);
+}
+
+/** Read-only capability directory and cross-context planning, plus access check. */
+export function registerFocusedMcpGuideTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerMcpGuideTools(mcpServer);
 }
 
 /** Small, high-frequency catalog for clients that eagerly load only a few tools. */

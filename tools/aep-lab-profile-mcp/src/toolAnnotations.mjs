@@ -38,6 +38,9 @@ const READ_ONLY_TOOLS = new Set([
   'lab_live_activity_profile_context',
   'lab_lookup_profile',
   'lab_mcp_access_info',
+  'lab_mcp_contexts',
+  'lab_mcp_recommend_context',
+  'lab_mcp_workflow',
   'lab_poll_brand_scrape',
   'lab_preflight_profile_event',
   'lab_preflight_profile_generate',
@@ -87,7 +90,13 @@ export function annotationsForTool(name) {
     readOnlyHint,
     destructiveHint: DESTRUCTIVE_TOOLS.has(name),
     idempotentHint: readOnlyHint || IDEMPOTENT_WRITE_TOOLS.has(name),
-    openWorldHint: !['lab_get_execution_framework', 'lab_get_industry_playbook'].includes(name),
+    openWorldHint: ![
+      'lab_get_execution_framework',
+      'lab_get_industry_playbook',
+      'lab_mcp_contexts',
+      'lab_mcp_recommend_context',
+      'lab_mcp_workflow',
+    ].includes(name),
   };
 }
 

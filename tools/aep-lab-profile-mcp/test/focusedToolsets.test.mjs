@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAjoCleanupTools, registerFocusedDemoPrepTools, registerFocusedProfileTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAjoCleanupTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedProfileTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -83,8 +83,19 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 95);
+  assert.equal(full.names.length, 98);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
+});
+
+test('focused guide endpoint is access plus three read-only advisory tools', () => {
+  const { names, server } = registrationRecorder();
+  registerFocusedMcpGuideTools(server);
+  assert.deepEqual(names, [
+    'lab_mcp_access_info',
+    'lab_mcp_contexts',
+    'lab_mcp_recommend_context',
+    'lab_mcp_workflow',
+  ]);
 });
 
 test('focused AJO cleanup endpoint contains access plus six governed tools', () => {
