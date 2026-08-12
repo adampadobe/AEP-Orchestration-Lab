@@ -1,14 +1,14 @@
 {
-  "gitSha": "0d031516848484efbfb3e2cd42f4628b6be9dbca",
-  "gitShortSha": "0d031516",
+  "gitSha": "596083b0d8561da344c3e084b59cec9f7a670b7b",
+  "gitShortSha": "596083b0",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Add focused PDF preparation MCP",
+  "gitCommitSubject": "[apalmer] Stamp PDF MCP release build",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-12T11:46:45+03:00",
-  "deployedAt": "2026-08-12T08:48:43.692Z",
+  "gitCommitDate": "2026-08-12T11:48:43+03:00",
+  "deployedAt": "2026-08-12T08:49:28.355Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0d031516848484efbfb3e2cd42f4628b6be9dbca"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/596083b0d8561da344c3e084b59cec9f7a670b7b"
 }
