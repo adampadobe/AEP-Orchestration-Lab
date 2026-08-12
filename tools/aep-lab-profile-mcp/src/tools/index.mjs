@@ -40,6 +40,7 @@ import { registerAudienceTools } from './audienceTools.mjs';
 import { registerDemoAssetTools } from './demoAssets.mjs';
 import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
 import { registerMcpGuideTools } from './mcpGuideTools.mjs';
+import { registerPdfTools } from './pdfTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -47,6 +48,7 @@ import { registerMcpGuideTools } from './mcpGuideTools.mjs';
  */
 export function registerProfileTools(mcpServer) {
   registerMcpGuideTools(mcpServer);
+  registerPdfTools(mcpServer);
   registerGetExecutionFrameworkTool(mcpServer);
   registerGetIndustryPlaybookTool(mcpServer);
   registerPreflightProfileGenerateTool(mcpServer);
@@ -149,4 +151,10 @@ export function registerFocusedDemoPrepTools(mcpServer) {
   registerDemoAssetTools(mcpServer);
   registerDemoConfigTools(mcpServer);
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
+}
+
+/** Focused PDF preparation, stored output, and server-template catalog. */
+export function registerFocusedPdfTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerPdfTools(mcpServer);
 }

@@ -138,6 +138,24 @@ async function authorise(req, deps = {}) {
       };
     }
   }
+  const suppliedMcpKey = String(req.get && req.get('x-aep-lab-mcp-key') || '').trim();
+  if (suppliedMcpKey) {
+    const keyAuth = typeof deps.validateMcpApiKey === 'function'
+      ? await deps.validateMcpApiKey(suppliedMcpKey)
+      : null;
+    if (!keyAuth || !keyAuth.ok || !keyAuth.principalUid || !keyAuth.sandbox) {
+      throw new core.PdfPersonalisationError('Invalid MCP API key.', 401, 'PDF_MCP_AUTH_INVALID');
+    }
+    return {
+      principalId: `mcp:${keyAuth.principalUid}:${keyAuth.sandbox}`,
+      ownerUid: keyAuth.principalUid,
+      type: 'mcp',
+      email: keyAuth.principalEmail || null,
+      scope: 'pdf-mcp',
+      keyId: keyAuth.keyId,
+      sandbox: keyAuth.sandbox,
+    };
+  }
   const claims = await deps.verifyIdTokenClaimsFromRequest(req);
   if (!claims || !claims.uid || claims.isAnonymous || !claims.email) {
     throw new core.PdfPersonalisationError('Sign in with an authorised Adobe account.', 401, 'PDF_AUTH_REQUIRED');
@@ -151,6 +169,30 @@ async function authorise(req, deps = {}) {
     type: 'portal',
     email: claims.email,
   };
+}
+
+function isOwnerPrincipal(principal) {
+  return !!principal && (principal.type === 'portal' || principal.type === 'mcp') && !!principal.ownerUid;
+}
+
+function scopedSandbox(principal, supplied) {
+  const requested = String(supplied || '').trim();
+  if (!principal || principal.type !== 'mcp') return requested || null;
+  if (requested && requested !== principal.sandbox) {
+    throw new core.PdfPersonalisationError(
+      `Sandbox "${requested}" does not match this MCP key's "${principal.sandbox}" scope.`,
+      403,
+      'PDF_MCP_SANDBOX_FORBIDDEN',
+    );
+  }
+  return principal.sandbox;
+}
+
+function canAccessOwnedRecord(record, principal) {
+  if (record && principal && principal.type === 'service' && principal.scope === 'all') return true;
+  if (!record || !isOwnerPrincipal(principal) || record.ownerUid !== principal.ownerUid) return false;
+  if (principal.type !== 'mcp') return true;
+  return !record.sandbox || record.sandbox === principal.sandbox;
 }
 
 function publicBaseUrl(req) {
@@ -214,6 +256,7 @@ async function responseForReadyJob(job, req, deps = {}) {
     status: 'ready',
     jobId: job.jobId,
     conversionMode: job.conversionMode || 'html',
+    sandbox: job.sandbox || null,
     documentOperation: job.documentOperation || null,
     sourceName: job.sourceName || null,
     templateId: job.templateId || null,
@@ -259,7 +302,7 @@ async function resolveTemplate(input, principal, deps = {}) {
   if (!template) {
     throw new core.PdfPersonalisationError('Template was not found.', 404, 'PDF_TEMPLATE_NOT_FOUND');
   }
-  if (principal.type === 'portal' && template.ownerUid !== principal.ownerUid) {
+  if (!canAccessOwnedRecord(template, principal)) {
     throw new core.PdfPersonalisationError('Template was not found.', 404, 'PDF_TEMPLATE_NOT_FOUND');
   }
   return { htmlTemplate: template.htmlTemplate, templateId: template.templateId };
@@ -404,11 +447,14 @@ function createHandler(deps) {
       }
 
       if (path === '/journey-action/template-library' && req.method === 'GET') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
+        scopedSandbox(principal, req.query && req.query.sandbox);
         const uploaded = await callJourneyKeyStore(
-          () => required.listJourneyTemplates(principal.ownerUid),
+          () => required.listJourneyTemplates(principal.ownerUid, {
+            sandbox: scopedSandbox(principal, req.query && req.query.sandbox),
+          }),
         );
         res.status(200).json({
           templates: [...required.listBuiltinJourneyTemplates(), ...uploaded],
@@ -418,10 +464,11 @@ function createHandler(deps) {
       }
 
       if (path === '/journey-action/template-analysis' && req.method === 'POST') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         const body = jsonBody(req);
+        scopedSandbox(principal, body.sandbox);
         const analysis = await Promise.resolve(
           required.analyseJourneyTemplate
             ? required.analyseJourneyTemplate(body.sourceFile)
@@ -432,10 +479,11 @@ function createHandler(deps) {
       }
 
       if (path === '/journey-action/template-library' && req.method === 'POST') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
         const validation = await (required.validateJourneyTemplatePublication || validateJourneyTemplatePublication)({
           sourceFile: body.sourceFile,
           samplePayload: body.samplePayload,
@@ -444,6 +492,7 @@ function createHandler(deps) {
         }, required);
         const saved = await callJourneyKeyStore(() => required.saveJourneyTemplate({
           ownerUid: principal.ownerUid,
+          sandbox,
           templateName: body.templateName,
           label: body.label,
           subject: body.subject,
@@ -471,12 +520,13 @@ function createHandler(deps) {
       }
 
       if (path === '/journey-action/template-library' && req.method === 'DELETE') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
+        const sandbox = scopedSandbox(principal, req.query && req.query.sandbox);
         const templateName = String(req.query && req.query.templateName || '').trim();
         res.status(200).json(await callJourneyKeyStore(
-          () => required.archiveJourneyTemplate(principal.ownerUid, templateName),
+          () => required.archiveJourneyTemplate(principal.ownerUid, templateName, { sandbox }),
         ));
         return;
       }
@@ -537,17 +587,18 @@ function createHandler(deps) {
       }
 
       if (path === '/templates' && req.method === 'GET') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
-        res.status(200).json({ templates: await store.listTemplates(principal.ownerUid, required) });
+        const sandbox = scopedSandbox(principal, req.query && req.query.sandbox);
+        res.status(200).json({ templates: await store.listTemplates(principal.ownerUid, required, { sandbox }) });
         return;
       }
 
       const templateMatch = path.match(/^\/templates\/([^/]+)$/);
       if (templateMatch && req.method === 'GET') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         let templateId = '';
         try { templateId = decodeURIComponent(templateMatch[1]); } catch (_error) {}
@@ -555,7 +606,8 @@ function createHandler(deps) {
           throw new core.PdfPersonalisationError('Template was not found.', 404, 'PDF_TEMPLATE_NOT_FOUND');
         }
         const template = await store.getTemplate(templateId, required);
-        if (!template || template.ownerUid !== principal.ownerUid) {
+        scopedSandbox(principal, req.query && req.query.sandbox);
+        if (!canAccessOwnedRecord(template, principal)) {
           throw new core.PdfPersonalisationError('Template was not found.', 404, 'PDF_TEMPLATE_NOT_FOUND');
         }
         const {
@@ -568,12 +620,14 @@ function createHandler(deps) {
       }
 
       if (path === '/templates' && req.method === 'POST') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
         const saved = await store.saveTemplate({
           ownerUid: principal.ownerUid,
+          sandbox,
           name: body.name,
           htmlTemplate: body.htmlTemplate,
           defaultData: body.defaultData,
@@ -590,10 +644,11 @@ function createHandler(deps) {
       }
 
       if (path === '/convert-data-document' && req.method === 'POST') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         const body = jsonBody(req);
+        scopedSandbox(principal, body.sandbox);
         const converted = await (required.convertDocxData || docxData.convertDocxToJson)(body.sourceDocument);
         const data = core.normaliseDocumentMergeData(converted.data);
         res.status(200).json({
@@ -608,10 +663,11 @@ function createHandler(deps) {
       }
 
       if (path === '/preview' && req.method === 'POST') {
-        if (principal.type !== 'portal') {
-          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
         }
         const body = jsonBody(req);
+        scopedSandbox(principal, body.sandbox);
         const templateId = String(body.templateId || '').trim();
         const resolved = templateId
           ? await resolveTemplate({ templateId }, principal, required)
@@ -629,7 +685,9 @@ function createHandler(deps) {
       }
 
       if (path === '/generate' && req.method === 'POST') {
-        const input = core.normaliseGenerateRequest(jsonBody(req));
+        const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
+        const input = core.normaliseGenerateRequest(body);
         let resolved = { templateId: null, htmlTemplate: '' };
         let rendered = null;
         if (input.conversionMode === 'html') {
@@ -673,6 +731,7 @@ function createHandler(deps) {
             jobId,
             principalId: principal.principalId,
             ownerUid: principal.ownerUid,
+            sandbox,
             conversionMode: input.conversionMode,
             documentOperation: input.documentOperation,
             sourceName: input.sourceDocument && input.sourceDocument.fileName,
@@ -705,11 +764,25 @@ function createHandler(deps) {
 
       const statusMatch = path.match(/^\/status\/([a-f0-9-]{16,50})$/i);
       if (statusMatch && req.method === 'GET') {
+        scopedSandbox(principal, req.query && req.query.sandbox);
         const job = await store.getJob(statusMatch[1], required);
-        if (!job || (principal.type === 'portal' && job.principalId !== principal.principalId)) {
+        if (!job || (isOwnerPrincipal(principal) && !canAccessOwnedRecord(job, principal))) {
           throw new core.PdfPersonalisationError('PDF job was not found.', 404, 'PDF_JOB_NOT_FOUND');
         }
         res.status(200).json(await responseForReadyJob(job, req, required));
+        return;
+      }
+
+      if (path === '/jobs' && req.method === 'GET') {
+        if (!isOwnerPrincipal(principal)) {
+          throw new core.PdfPersonalisationError('User authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const sandbox = scopedSandbox(principal, req.query && req.query.sandbox);
+        const limit = Math.min(25, Math.max(1, Number(req.query && req.query.limit) || 10));
+        const jobs = await store.listReadyJobs(principal.ownerUid, required, { sandbox, limit });
+        const results = [];
+        for (const job of jobs) results.push(await responseForReadyJob(job, req, required));
+        res.status(200).json({ jobs: results, count: results.length, retentionDays: store.retentionDays() });
         return;
       }
 
@@ -726,6 +799,9 @@ module.exports = {
   constantTimeEqual,
   routePath,
   authorise,
+  isOwnerPrincipal,
+  scopedSandbox,
+  canAccessOwnedRecord,
   publicBaseUrl,
   downloadDisposition,
   downloadStorage,

@@ -76,7 +76,7 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.37.0</span>
+                <span class="mcp-lab-version">v3.38.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
                 Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor. Use the complete connection for broad demo preparation, or a focused connection when the task needs a smaller, more reliable tool context.
@@ -84,7 +84,7 @@
 
               <div class="mcp-connection-guidance" aria-labelledby="mcpConnectionGuidanceHeading">
                 <div>
-                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, seven connection choices</h4>
+                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, eight connection choices</h4>
                   <p>
                     Generate one sandbox-scoped key below and reuse it with any Lab endpoint. The focused connections are governed views of the same MCP server, not separate services or credentials.
                   </p>
@@ -117,6 +117,12 @@
                   <div class="mcp-choice-config-name"><code>aep-lab-profiles</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-profiles">Copy name</button></div>
                   <p>Use for the complete profile lifecycle: readiness, creation and updates, industry events, activity, and Snowflake dual-load verification.</p>
                 </article>
+                <article class="mcp-connection-choice">
+                  <span class="mcp-connection-badge">Focused</span>
+                  <h4>PDF preparation</h4>
+                  <div class="mcp-choice-config-name"><code>aep-lab-pdf-prep</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-pdf-prep">Copy name</button></div>
+                  <p>Use to upload HTML or documents, preview personalised content, generate and retrieve stored PDFs, and publish user-owned server templates.</p>
+                </article>
                 <article class="mcp-connection-choice mcp-connection-choice--caution">
                   <span class="mcp-connection-badge">Focused · controlled delete</span>
                   <h4>Audiences</h4>
@@ -148,6 +154,7 @@
                     <li><strong>Profiles</strong> — generate golden test profiles, batch seed, lookup and update UPS</li>
                     <li><strong>Brand scrape → demo prep</strong> — crawl a site, map personas to profiles, optional events and Client Journey asset</li>
                     <li><strong>Events</strong> — send any experience event type (same as Event tool), verify on profile activity</li>
+                    <li><strong>PDF preparation</strong> — preview HTML or document data, generate and store PDFs, then retrieve private preview links</li>
                     <li><strong>Sandbox config</strong> — infra readiness, onboard industries, verify MCP access</li>
                     <li><strong>HTTP streaming flows</strong> — lab MCP creates schema + dataset; use Coworker <strong>dx-api</strong> (Flow Service) for profile dataflows, then save connection in Profile Viewer</li>
                     <li><strong>Edge datastreams</strong> — <code>lab_setup_event_infra</code> + <code>lab_enable_event_profile</code>; Coworker <strong>dx-api</strong> for the datastream; <code>lab_save_event_datastream</code> to wire Event tool sends</li>
@@ -244,14 +251,14 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260812-mcp-guide"></script>
+  <script src="mcp-servers.js?v=20260812-pdf-mcp"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
   <script src="aep-access-onboarding.js?v=20260527b"></script>
-  <script src="mcp-servers-keys.js?v=20260812-mcp-guide"></script>
+  <script src="mcp-servers-keys.js?v=20260812-pdf-mcp"></script>
   <script src="mcp-key-recovery.js?v=20260805"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>

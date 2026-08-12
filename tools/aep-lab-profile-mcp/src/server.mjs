@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{guide,profile,audiences,ajo-cleanup,decisioning,demo-prep}
+ * Endpoints: POST /mcp and focused /mcp/{guide,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf}
  * Health:   GET /health
  */
 
@@ -31,10 +31,11 @@ import {
   registerFocusedDemoPrepTools,
   registerFocusedProfileTools,
   registerFocusedMcpGuideTools,
+  registerFocusedPdfTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.37.0';
+const MCP_VERSION = '3.38.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -89,6 +90,14 @@ const ENDPOINTS = [
     instructions:
       'Focused customer demo preparation: resolve or run one brand scrape, preview stable image-hosting slots and governed RTDB changes, obtain explicit confirmation, activate with automatic customer backup, and restore named customers.',
   },
+  {
+    path: '/mcp/pdf',
+    toolset: 'pdf',
+    register: registerFocusedPdfTools,
+    bodyLimit: '24mb',
+    instructions:
+      'Focused PDF preparation: inspect capabilities, upload HTML or documents, preview, generate and find stored PDFs, and manage user-owned server templates. Use fresh idempotency keys for new PDFs and exact confirmation before publishing or archiving templates.',
+  },
 ];
 
 export function createMcpServer(endpoint = ENDPOINTS[0]) {
@@ -123,7 +132,8 @@ async function main() {
   }
 
   const app = express();
-  app.use(express.json({ limit: '1mb' }));
+  const smallJson = express.json({ limit: '1mb' });
+  const largeJson = express.json({ limit: '24mb' });
 
   app.get('/health', (_req, res) => {
     res.status(200).json({
@@ -138,7 +148,18 @@ async function main() {
   });
 
   function registerEndpoint(endpoint) {
-    app.post(endpoint.path, async (req, res) => {
+    const authenticate = async (req, res, next) => {
+      const auth = await validateMcpApiKey(req);
+      if (!auth.ok) {
+        jsonRpcError(res, auth.status, auth.message);
+        return;
+      }
+      const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
+      req.mcpAuth = { auth, principalAccess };
+      next();
+    };
+    const parser = endpoint.bodyLimit || endpoint.toolset === 'full' ? largeJson : smallJson;
+    app.post(endpoint.path, authenticate, parser, async (req, res) => {
       const startedAt = Date.now();
       const rpcMethod = String(req.body?.method || 'unknown');
       const toolName = rpcMethod === 'tools/call' ? String(req.body?.params?.name || '') : undefined;
@@ -154,14 +175,8 @@ async function main() {
         }));
       });
 
-      const auth = await validateMcpApiKey(req);
-      if (!auth.ok) {
-        jsonRpcError(res, auth.status, auth.message);
-        return;
-      }
-
+      const { auth, principalAccess } = req.mcpAuth;
       const mcpKey = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
-      const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
 
       await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey }, async () => {
         try {

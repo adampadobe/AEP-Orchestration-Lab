@@ -1,14 +1,14 @@
 {
-  "gitSha": "3027c3bcbdac655378e80555c82a4e7ee29c85b0",
-  "gitShortSha": "3027c3bc",
-  "gitBranch": "codex/ajo-pdf-custom-action-20260811",
-  "gitCommitSubject": "[apalmer] Add copy-ready Riyadh AJO payload",
+  "gitSha": "b06feba5823256ea8a0eb1912919fc4825525f28",
+  "gitShortSha": "b06feba5",
+  "gitBranch": "main",
+  "gitCommitSubject": "[apalmer] Add read-only MCP context guide",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-11T23:39:12+03:00",
-  "deployedAt": "2026-08-11T20:40:10.330Z",
+  "gitCommitDate": "2026-08-12T10:22:45+03:00",
+  "deployedAt": "2026-08-12T08:44:46.424Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3027c3bcbdac655378e80555c82a4e7ee29c85b0"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b06feba5823256ea8a0eb1912919fc4825525f28"
 }

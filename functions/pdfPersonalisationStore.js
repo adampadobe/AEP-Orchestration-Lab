@@ -186,6 +186,7 @@ async function saveReadyJob(input, deps = {}) {
     jobId: input.jobId,
     principalId: input.principalId,
     ownerUid: input.ownerUid || null,
+    sandbox: input.sandbox || null,
     conversionMode: input.conversionMode || 'html',
     documentOperation: input.documentOperation || null,
     sourceName: input.sourceName || null,
@@ -235,6 +236,23 @@ async function markFailed(input, deps = {}) {
 async function getJob(jobId, deps = {}) {
   const snapshot = await getFirestore(deps).collection(JOBS_COLLECTION).doc(String(jobId || '')).get();
   return snapshot.exists ? snapshot.data() : null;
+}
+
+async function listReadyJobs(ownerUid, deps = {}, options = {}) {
+  const uid = String(ownerUid || '').trim().slice(0, 128);
+  if (!uid) return [];
+  const sandbox = String(options.sandbox || '').trim();
+  const limit = Math.min(25, Math.max(1, Number(options.limit) || 10));
+  const cutoff = now(deps).toISOString();
+  const snapshot = await getFirestore(deps).collection(JOBS_COLLECTION)
+    .where('ownerUid', '==', uid)
+    .get();
+  return snapshot.docs
+    .map((doc) => doc.data() || {})
+    .filter((record) => record.status === 'ready' && String(record.expiresAt || '') > cutoff)
+    .filter((record) => !sandbox || !record.sandbox || record.sandbox === sandbox)
+    .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))
+    .slice(0, limit);
 }
 
 async function issueDownloadToken(job, deps = {}) {
@@ -366,6 +384,7 @@ async function saveTemplate(input, deps = {}) {
   const record = {
     templateId,
     ownerUid: input.ownerUid,
+    sandbox: input.sandbox || null,
     name: safeTemplateName(input.name),
     objectPath: path,
     templateHash: sha256(html),
@@ -396,13 +415,15 @@ async function getTemplate(templateId, deps = {}) {
   };
 }
 
-async function listTemplates(ownerUid, deps = {}) {
+async function listTemplates(ownerUid, deps = {}, options = {}) {
+  const sandbox = String(options.sandbox || '').trim();
   const snapshot = await getFirestore(deps).collection(TEMPLATES_COLLECTION)
     .where('ownerUid', '==', ownerUid)
     .get();
   return snapshot.docs
     .map((doc) => doc.data())
     .filter((record) => record && record.status === 'active')
+    .filter((record) => !sandbox || !record.sandbox || record.sandbox === sandbox)
     .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
     .map(({ defaultData: _defaultData, objectPath, ownerUid: _ownerUid, ...record }) => record);
 }
@@ -447,6 +468,7 @@ module.exports = {
   saveReadyJob,
   markFailed,
   getJob,
+  listReadyJobs,
   issueDownloadToken,
   resolveDownloadToken,
   openDownload,

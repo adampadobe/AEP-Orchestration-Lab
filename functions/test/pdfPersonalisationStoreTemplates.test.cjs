@@ -90,3 +90,34 @@ test('rejects a non-object default JSON payload before saving the repository rec
     (error) => error && error.code === 'PDF_DATA_INVALID',
   );
 });
+
+test('filters private drafts and recent jobs to the MCP sandbox while retaining legacy records', async () => {
+  const deps = repositoryDeps();
+  deps.records.set('draft-apalmer', {
+    templateId: 'draft-apalmer', ownerUid: 'user-1', sandbox: 'apalmer', status: 'active', updatedAt: '2026-08-06T13:00:00Z',
+  });
+  deps.records.set('draft-other', {
+    templateId: 'draft-other', ownerUid: 'user-1', sandbox: 'other', status: 'active', updatedAt: '2026-08-06T14:00:00Z',
+  });
+  deps.records.set('draft-legacy', {
+    templateId: 'draft-legacy', ownerUid: 'user-1', status: 'active', updatedAt: '2026-08-06T12:00:00Z',
+  });
+  const drafts = await store.listTemplates('user-1', deps, { sandbox: 'apalmer' });
+  assert.deepEqual(drafts.map((item) => item.templateId), ['draft-apalmer', 'draft-legacy']);
+
+  deps.records.clear();
+  deps.records.set('job-apalmer', {
+    jobId: 'job-apalmer', ownerUid: 'user-1', sandbox: 'apalmer', status: 'ready',
+    createdAt: '2026-08-06T14:00:00Z', expiresAt: '2026-08-20T12:00:00Z',
+  });
+  deps.records.set('job-other', {
+    jobId: 'job-other', ownerUid: 'user-1', sandbox: 'other', status: 'ready',
+    createdAt: '2026-08-06T15:00:00Z', expiresAt: '2026-08-20T12:00:00Z',
+  });
+  deps.records.set('job-expired', {
+    jobId: 'job-expired', ownerUid: 'user-1', sandbox: 'apalmer', status: 'ready',
+    createdAt: '2026-07-01T12:00:00Z', expiresAt: '2026-08-01T12:00:00Z',
+  });
+  const jobs = await store.listReadyJobs('user-1', deps, { sandbox: 'apalmer', limit: 10 });
+  assert.deepEqual(jobs.map((item) => item.jobId), ['job-apalmer']);
+});

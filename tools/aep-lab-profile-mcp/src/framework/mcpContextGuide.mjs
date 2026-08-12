@@ -17,7 +17,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 98,
+    toolCount: 111,
     access: 'X-AEP-Lab-Mcp-Key',
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities'],
@@ -33,6 +33,17 @@ export const MCP_CONTEXTS = Object.freeze([
     risk: 'preview and explicit confirmation before writes',
     capabilities: ['brand scrape', 'customer research', 'stable hosted demo images', 'RTDB demo configuration', 'customer restore'],
     useWhen: 'Use for repeatable customer research, brand assets, and customer configuration swaps.',
+  },
+  {
+    id: 'aep-lab-pdf-prep',
+    name: 'AEP Lab PDF preparation',
+    url: `${LAB_BASE_URL}/mcp/pdf`,
+    kind: 'lab-focused',
+    toolCount: 14,
+    access: 'X-AEP-Lab-Mcp-Key',
+    risk: 'private generation and storage; confirmation before publish or archive',
+    capabilities: ['HTML preview', 'HTML to PDF', 'document to PDF', 'DOCX data extraction', 'stored PDF inventory', 'server template publishing'],
+    useWhen: 'Use to upload, preview, generate, store, retrieve, or publish PDFs and PDF templates.',
   },
   {
     id: 'aep-lab-profiles',
@@ -117,6 +128,17 @@ export const MCP_WORKFLOWS = Object.freeze({
     contexts: ['aep-lab-ajo-cleanup'],
     steps: ['List journeys or campaigns.', 'Audit one exact asset and its lifecycle.', 'Obtain exact ID, name, and status confirmation.', 'Delete one eligible asset and verify.'],
   },
+  pdf_preparation: {
+    title: 'Prepare and store a personalised PDF',
+    contexts: ['aep-lab-pdf-prep'],
+    steps: [
+      'Inspect PDF capabilities and source limits.',
+      'Save or select an HTML draft, or provide one supported source document.',
+      'Preview HTML or analyse document merge fields before generation.',
+      'Generate with a fresh idempotency key and inspect the private preview URL.',
+      'Use the recent-job inventory to retrieve the stored PDF until expiry; publish a server template only after explicit confirmation.',
+    ],
+  },
   platform_authoring: {
     title: 'Perform product-native Adobe authoring',
     contexts: ['adobe-cx-coworker-gateway'],
@@ -126,6 +148,7 @@ export const MCP_WORKFLOWS = Object.freeze({
 
 const KEYWORDS = Object.freeze({
   'aep-lab-demo-prep': ['brand', 'customer', 'logo', 'hero', 'image', 'asset', 'scrape', 'website', 'rtdb', 'demo prep', 'restore customer'],
+  'aep-lab-pdf-prep': ['pdf', 'html to pdf', 'document to pdf', 'docx', 'word document', 'boarding pass', 'attachment', 'pdf template', 'preview pdf'],
   'aep-lab-profiles': ['profile', 'persona', 'event', 'experience event', 'snowflake', 'dual load', 'enrich', 'seed'],
   'aep-lab-decisioning': ['decision', 'decisioning', 'offer', 'treatment', 'edge evaluate', 'catalog'],
   'aep-lab-audiences': ['audience', 'segment', 'delete audience', 'audience cleanup'],

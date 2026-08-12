@@ -130,6 +130,7 @@ function serializeRecord(record) {
     status: record.status,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+    sandbox: record.sandbox || null,
     canDelete: true,
   };
 }
@@ -197,6 +198,7 @@ async function saveTemplate(input, deps = {}) {
     templateId: id,
     templateName,
     ownerUid,
+    sandbox: String(input.sandbox || '').trim() || null,
     label: cleanText(input.label, templateName, 120),
     subject: cleanText(input.subject, 'Your travel document', 180),
     documentName: core.safeDocumentName(input.documentName || `${templateName}.pdf`),
@@ -219,7 +221,7 @@ async function saveTemplate(input, deps = {}) {
   return serializeRecord(record);
 }
 
-async function listUploadedTemplates(ownerUid, deps = {}) {
+async function listUploadedTemplates(ownerUid, deps = {}, options = {}) {
   const uid = String(ownerUid || '').trim().slice(0, 128);
   if (!uid) return [];
   const snapshot = await getFirestore(deps)
@@ -229,6 +231,7 @@ async function listUploadedTemplates(ownerUid, deps = {}) {
   return snapshot.docs
     .map((doc) => doc.data() || {})
     .filter((record) => record.status === 'active')
+    .filter((record) => !options.sandbox || !record.sandbox || record.sandbox === options.sandbox)
     .sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')))
     .map(serializeRecord);
 }
@@ -308,7 +311,7 @@ async function loadTemplateSource(record, deps = {}) {
   };
 }
 
-async function archiveTemplate(ownerUid, templateName, deps = {}) {
+async function archiveTemplate(ownerUid, templateName, deps = {}, options = {}) {
   const uid = String(ownerUid || '').trim().slice(0, 128);
   const name = normalizeTemplateName(templateName);
   if (builtins.TEMPLATE_DEFINITIONS[name]) {
@@ -316,7 +319,8 @@ async function archiveTemplate(ownerUid, templateName, deps = {}) {
   }
   const ref = getFirestore(deps).collection(TEMPLATES_COLLECTION).doc(templateDocId(uid, name));
   const snapshot = await ref.get();
-  if (!snapshot.exists || (snapshot.data() || {}).ownerUid !== uid) {
+  const existing = snapshot.exists ? (snapshot.data() || {}) : null;
+  if (!existing || existing.ownerUid !== uid || (options.sandbox && existing.sandbox && existing.sandbox !== options.sandbox)) {
     throw new core.PdfPersonalisationError('Uploaded template was not found.', 404, 'PDF_JOURNEY_TEMPLATE_NOT_FOUND');
   }
   await ref.set({ status: 'archived', archivedAt: now(deps).toISOString(), updatedAt: now(deps).toISOString() }, { merge: true });

@@ -8,8 +8,9 @@
   var MCP_BASE_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app';
   var MCP_ENDPOINTS = [
     { id: 'aep-lab-guide', label: 'MCP guide and workflow routing (4 tools)', path: '/mcp/guide' },
-    { id: 'aep-lab-general', label: 'General demo prep (98 tools)', path: '/mcp' },
+    { id: 'aep-lab-general', label: 'General demo prep (111 tools)', path: '/mcp' },
     { id: 'aep-lab-demo-prep', label: 'Focused demo prep (19 tools)', path: '/mcp/demo-prep' },
+    { id: 'aep-lab-pdf-prep', label: 'PDF preparation and storage (14 tools)', path: '/mcp/pdf' },
     { id: 'aep-lab-profiles', label: 'Profiles and events (20 tools)', path: '/mcp/profile' },
     { id: 'aep-lab-decisioning', label: 'Decisioning (9 tools)', path: '/mcp/decisioning' },
     { id: 'aep-lab-audiences', label: 'Audience audit and delete (4 tools)', path: '/mcp/audiences' },

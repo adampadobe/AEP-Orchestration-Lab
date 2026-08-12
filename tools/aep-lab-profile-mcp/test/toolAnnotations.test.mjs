@@ -53,3 +53,19 @@ test('annotates every registration while preserving explicit overrides', () => {
     openWorldHint: true,
   });
 });
+
+test('classifies PDF inspection, generation, and archive operations', () => {
+  assert.equal(annotationsForTool('lab_pdf_job_list').readOnlyHint, true);
+  assert.deepEqual(annotationsForTool('lab_pdf_generate'), {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  });
+  assert.deepEqual(annotationsForTool('lab_pdf_server_template_archive'), {
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: false,
+    openWorldHint: true,
+  });
+});

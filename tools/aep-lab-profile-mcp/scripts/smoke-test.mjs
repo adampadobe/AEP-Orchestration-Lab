@@ -79,7 +79,7 @@ async function run() {
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/guide', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep']) {
+  for (const path of ['/mcp', '/mcp/guide', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 
@@ -183,6 +183,19 @@ async function run() {
     'lab_get_brand_scrape',
     'lab_build_demo_website',
     'lab_generate_profile_from_brand_scrape',
+    'lab_pdf_capabilities',
+    'lab_pdf_draft_list',
+    'lab_pdf_draft_get',
+    'lab_pdf_draft_save',
+    'lab_pdf_extract_docx_data',
+    'lab_pdf_html_preview',
+    'lab_pdf_generate',
+    'lab_pdf_job_list',
+    'lab_pdf_job_status',
+    'lab_pdf_server_template_list',
+    'lab_pdf_server_template_analyse',
+    'lab_pdf_server_template_publish',
+    'lab_pdf_server_template_archive',
   ];
   for (const name of expected) {
     if (!names.includes(name)) {
@@ -375,6 +388,22 @@ async function run() {
       'lab_decisioning_catalog_get',
       'lab_decisioning_catalog_schema',
       'lab_decisioning_catalog_assess',
+    ]),
+    pdf: await verifyFocusedEndpoint('/mcp/pdf', [
+      'lab_mcp_access_info',
+      'lab_pdf_capabilities',
+      'lab_pdf_draft_list',
+      'lab_pdf_draft_get',
+      'lab_pdf_draft_save',
+      'lab_pdf_extract_docx_data',
+      'lab_pdf_html_preview',
+      'lab_pdf_generate',
+      'lab_pdf_job_list',
+      'lab_pdf_job_status',
+      'lab_pdf_server_template_list',
+      'lab_pdf_server_template_analyse',
+      'lab_pdf_server_template_publish',
+      'lab_pdf_server_template_archive',
     ]),
   };
 

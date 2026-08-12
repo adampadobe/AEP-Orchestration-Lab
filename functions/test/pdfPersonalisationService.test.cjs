@@ -104,6 +104,42 @@ test('authorises a user-generated journey key with journey-only scope', async ()
   assert.equal(principal.keyId, 'abc123abc123');
 });
 
+test('authorises a user-generated MCP key with stable owner and sandbox scope', async () => {
+  const principal = await service.authorise(request({ 'x-aep-lab-mcp-key': 'mcp-secret' }), {
+    getServiceApiKey: () => '',
+    validateMcpApiKey: async () => ({
+      ok: true,
+      keyId: 'mcp-key-1',
+      principalUid: 'user-1',
+      principalEmail: 'apalmer@adobe.com',
+      sandbox: 'apalmer',
+    }),
+    verifyIdTokenClaimsFromRequest: async () => null,
+  });
+  assert.equal(principal.type, 'mcp');
+  assert.equal(principal.principalId, 'mcp:user-1:apalmer');
+  assert.equal(principal.ownerUid, 'user-1');
+  assert.equal(principal.sandbox, 'apalmer');
+  assert.equal(service.scopedSandbox(principal, 'apalmer'), 'apalmer');
+  assert.throws(
+    () => service.scopedSandbox(principal, 'another-sandbox'),
+    (error) => error.code === 'PDF_MCP_SANDBOX_FORBIDDEN',
+  );
+});
+
+test('rejects an invalid MCP key without falling back to portal authentication', async () => {
+  await assert.rejects(
+    service.authorise(request({ 'x-aep-lab-mcp-key': 'bad-key' }), {
+      getServiceApiKey: () => '',
+      validateMcpApiKey: async () => ({ ok: false }),
+      verifyIdTokenClaimsFromRequest: async () => ({
+        uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+      }),
+    }),
+    (error) => error.code === 'PDF_MCP_AUTH_INVALID',
+  );
+});
+
 test('allows portal users to create, list, and revoke their journey API keys', async () => {
   const calls = [];
   const handler = service.createHandler({

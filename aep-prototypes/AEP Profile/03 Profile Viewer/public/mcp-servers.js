@@ -28,7 +28,7 @@
       configName: 'aep-lab-general',
       section: 'lab',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 98 tools',
+      product: 'Complete Lab MCP · 111 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -41,7 +41,7 @@
       configNotes:
         'Choose this for general demo work or when a workflow spans several areas. Uses X-AEP-Lab-Mcp-Key; the same sandbox key also works with every focused connection below.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 98,
+      toolCount: 111,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -113,6 +113,29 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Profile tools reference',
+    },
+    {
+      id: 'aep-lab-pdf-prep',
+      configName: 'aep-lab-pdf-prep',
+      section: 'lab',
+      name: 'AEP Lab — PDF preparation',
+      product: 'Focused Lab MCP · 14 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf',
+      summary:
+        'A focused PDF workspace for uploading HTML or documents, previewing merges, generating and storing PDFs, recovering recent jobs, and publishing server templates.',
+      useCases: [
+        'Preview JSON-personalised HTML before conversion',
+        'Convert HTML, DOCX, Office documents, text, or images to PDF',
+        'Retrieve private preview and download links for stored PDFs',
+        'Analyse, validate, publish, and archive user-owned server templates',
+      ],
+      configNotes:
+        'Choose this for PDF demo preparation. Generated files are private and retained for 14 days; publishing and archiving require explicit confirmation. Reuse the same sandbox-scoped X-AEP-Lab-Mcp-Key.',
+      connectionKind: 'Focused · private PDF workspace',
+      toolCount: 14,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_PDF_PREP_MCP.md',
+      docLabel: 'Coworker PDF preparation guide',
     },
     {
       id: 'aep-lab-audiences',

@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAjoCleanupTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedProfileTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAjoCleanupTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -83,8 +83,24 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 98);
+  assert.equal(full.names.length, 111);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
+});
+
+test('focused PDF endpoint contains access plus the complete PDF preparation lifecycle', () => {
+  const focused = registrationRecorder();
+  registerFocusedPdfTools(focused.server);
+  assert.equal(focused.names.length, 14);
+  assert.deepEqual(focused.names, [
+    'lab_mcp_access_info',
+    'lab_pdf_capabilities', 'lab_pdf_draft_list', 'lab_pdf_draft_get', 'lab_pdf_draft_save',
+    'lab_pdf_extract_docx_data', 'lab_pdf_html_preview', 'lab_pdf_generate',
+    'lab_pdf_job_list', 'lab_pdf_job_status', 'lab_pdf_server_template_list',
+    'lab_pdf_server_template_analyse', 'lab_pdf_server_template_publish', 'lab_pdf_server_template_archive',
+  ]);
+  const full = registrationRecorder();
+  registerProfileTools(full.server);
+  for (const tool of focused.names.slice(1)) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
 test('focused guide endpoint is access plus three read-only advisory tools', () => {

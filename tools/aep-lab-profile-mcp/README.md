@@ -1,8 +1,8 @@
-# AEP Orchestration Lab MCP (Phase 3.37)
+# AEP Orchestration Lab MCP (Phase 3.38)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.37.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.38.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -16,10 +16,11 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
 | `/mcp/demo-prep` | 19 | Brand scrape, stable customer asset preview/activation/restore, governed RTDB, and one-shot demo preparation |
+| `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-### Read-only MCP guide (Phase 3.37)
+### Read-only MCP guide (Phase 3.38)
 
 Configure `aep-lab-guide` as a lightweight companion when Coworker has several Lab MCPs. It describes the available contexts and recommends the smallest useful one, but deliberately does **not** expose a generic proxy or `call_any_tool` operation. The Coworker host must already have each recommended server configured.
 
@@ -416,7 +417,19 @@ Focused demo preparation uses the same key:
 }
 ```
 
-**Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
+Focused PDF preparation uses the same key:
+
+```json
+"aep-lab-pdf-prep": {
+  "type": "streamable-http",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf",
+  "headers": {
+    "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
+  }
+}
+```
+
+**Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, PDF generation/publishing, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
 
 ## Deploy to Cloud Run
 

@@ -2,17 +2,17 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.37.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.38.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.37)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.37.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.38.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused Coworker endpoints use the same API key: `/mcp/guide` (4 tools), `/mcp/profile` (20), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), and `/mcp/demo-prep` (19). The guide endpoint is a read-only capability directory and workflow recommender; it cannot connect, switch, proxy, or execute another MCP. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
+Focused Coworker endpoints use the same API key: `/mcp/guide` (4 tools), `/mcp/profile` (20), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (19), and `/mcp/pdf` (14). The guide endpoint is a read-only capability directory and workflow recommender; it cannot connect, switch, proxy, or execute another MCP. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -56,6 +56,7 @@ Codex should call these **before** improvising lab conventions:
 14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
 16. **Customer demo images are inspect → preview → confirm → apply** — use **`lab_demo_assets_inspect`**, then **`lab_demo_assets_preview_from_scrape`** for one completed scrape. Show the transformed previews, stable target URLs, current customer backup label, and expiry. Only after explicit confirmation call **`lab_demo_assets_apply`** with the preflight id and an idempotency key. The server backs up only allowlisted customer slots, never the whole shared library. Restore a saved customer with **`lab_demo_assets_restore`** preview first, then confirmed apply.
+17. **PDF preparation is inspect → preview/analyse → generate or publish → visually verify** — use **`lab_pdf_capabilities`** first. HTML should pass through **`lab_pdf_html_preview`** before **`lab_pdf_generate`**. Documents are previewed through the generated PDF link. Use a fresh idempotency key for each new PDF and reuse it only for an exact retry. Use **`lab_pdf_job_list`** to recover stored output. Analyse server templates before publishing; publication and archive require explicit confirmation. Never place PDF binary in model context or use the broad operational `X-PDF-API-Key`.
 
 ### How the lab executes
 
@@ -133,6 +134,8 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
    > Take `revisionId` from **lab_demo_assets_inspect**. Call **lab_demo_assets_restore** with `revision_id` and `confirmed:false`; show the preview. After confirmation call it again with returned `preflight_id`, `confirmed:true`, and a new idempotency key.
 
 **Focused Coworker config:** name `aep-lab-demo-prep`, URL ending `/mcp/demo-prep`, same `X-AEP-Lab-Mcp-Key` as the full endpoint.
+
+**Focused PDF Coworker config:** name `aep-lab-pdf-prep`, URL ending `/mcp/pdf`, same sandbox-scoped `X-AEP-Lab-Mcp-Key`. See `docs/COWORKER_PDF_PREP_MCP.md` for copy-ready workflows, limits, and prompts.
 
 ## Workflow 0a — Confirm email format before first generate
 
