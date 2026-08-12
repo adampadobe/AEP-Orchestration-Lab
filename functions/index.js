@@ -105,6 +105,7 @@ const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
+const orchestratedCampaignConfigStore = lazyRequireMod('./orchestratedCampaignConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
 const decisioningEdgeEvaluateService = lazyRequireMod('./decisioningEdgeEvaluateService');
@@ -2112,6 +2113,12 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   setCors(res, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
 
+  const requestedPath = String(req.originalUrl || req.url || req.path || '').split('?')[0];
+  if (requestedPath === '/api/orchestrated-campaigns/config') {
+    await handleOrchestratedCampaignConfig(req, res);
+    return;
+  }
+
   const sandbox = (req.method === 'POST' && req.body?.sandbox)
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
@@ -2165,6 +2172,59 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   }
   res.status(405).json({ error: 'Method not allowed' });
 });
+
+/** Handle /api/orchestrated-campaigns/config through the existing Event config function. */
+async function handleOrchestratedCampaignConfig(req, res) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = req.method === 'POST' && body.sandbox
+    ? String(body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+
+  if (req.method === 'GET') {
+    try {
+      const record = await orchestratedCampaignConfigStore.getEffectiveConfig(sandbox, uid);
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeFirestoreRecord(record),
+        storage: uid ? 'user' : 'shared',
+      });
+    } catch (error) {
+      res.status(500).json({ ok: false, sandbox, error: String(error?.message || error) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST') {
+    if (!uid) {
+      res.status(401).json({
+        ok: false,
+        sandbox,
+        error: 'Sign in required to save campaign triggers. The browser will retain a local fallback.',
+      });
+      return;
+    }
+    try {
+      const record = await orchestratedCampaignConfigStore.saveEffectiveConfig(
+        sandbox,
+        uid,
+        body.campaigns,
+      );
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeFirestoreRecord(record),
+        storage: 'user',
+      });
+    } catch (error) {
+      res.status(500).json({ ok: false, sandbox, error: String(error?.message || error) });
+    }
+    return;
+  }
+
+  res.status(405).json({ error: 'Method not allowed' });
+}
 
 /** GET/POST /api/catalog/config — per-sandbox catalog schema ID (Firestore) */
 exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {

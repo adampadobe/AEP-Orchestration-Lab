@@ -796,6 +796,13 @@
         }
       },
       {
+        "source": "/api/orchestrated-campaigns/config",
+        "function": {
+          "functionId": "eventConfigStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/catalog/config",
         "function": {
           "functionId": "catalogConfigStore",
