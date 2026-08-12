@@ -214,8 +214,16 @@ function buildConfigSummary(record, sandbox, labMeta = {}) {
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
  */
-export function registerSnowflakeTools(mcpServer) {
-  mcpServer.registerTool(
+export function registerSnowflakeTools(mcpServer, { include } = {}) {
+  const toolServer = include
+    ? {
+        registerTool(name, ...args) {
+          if (include.has(name)) mcpServer.registerTool(name, ...args);
+        },
+      }
+    : mcpServer;
+
+  toolServer.registerTool(
     'lab_snowflake_config',
     {
       title: 'Get Snowflake connection config (redacted)',
@@ -274,7 +282,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_test_connection',
     {
       title: 'Test Snowflake connection',
@@ -324,7 +332,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_generate_base_profiles',
     {
       title: 'Generate Snowflake base profiles (Agentic batch)',
@@ -392,7 +400,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_create_profile',
     {
       title: 'Insert one industry Snowflake CRM profile (dual-load)',
@@ -466,7 +474,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_get_profile_by_email',
     {
       title: 'Get full industry Snowflake CRM profile row by email',
@@ -494,7 +502,7 @@ export function registerSnowflakeTools(mcpServer) {
       }),
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_query_profiles',
     {
       title: 'Query Snowflake industry CRM profiles — full row readback by email or ecid',
@@ -540,7 +548,7 @@ export function registerSnowflakeTools(mcpServer) {
       }),
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_industry_catalog',
     {
       title: 'Snowflake industry manifest + table existence',
@@ -602,7 +610,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_table_structure',
     {
       title: 'Snowflake Agentic travel table structure by phase',
@@ -649,7 +657,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_validate_proposal',
     {
       title: 'Validate Snowflake provision or industry enrich proposal',
@@ -720,7 +728,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_provision',
     {
       title: 'Governed Snowflake table provision (allowlisted recipes)',
@@ -807,7 +815,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_generate_full',
     {
       title: 'Snowflake Agentic travel generate-full (phased)',
@@ -874,7 +882,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_enrich_profiles',
     {
       title: 'Snowflake industry enrich profiles',
@@ -960,7 +968,7 @@ export function registerSnowflakeTools(mcpServer) {
     },
   );
 
-  mcpServer.registerTool(
+  toolServer.registerTool(
     'lab_snowflake_get_profile_bundle',
     {
       title: 'Get Snowflake profile with industry activity',

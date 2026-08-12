@@ -1,8 +1,36 @@
-# AEP Orchestration Lab MCP (Phase 3.30)
+# AEP Orchestration Lab MCP (Phase 3.38)
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.30.0.** All tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.38.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+
+## Focused endpoints for Coworker
+
+The original `/mcp` endpoint remains backward compatible and exposes the complete catalog. Clients that struggle to invoke tools from a large deferred catalog can connect to a focused endpoint using the same API key header:
+
+| Endpoint | Tools | Intended workflow |
+|----------|------:|-------------------|
+| `/mcp/guide` | 4 | Read-only access check, capability directory, context recommendation, and cross-context workflow planning |
+| `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
+| `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
+| `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
+| `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
+| `/mcp/demo-prep` | 19 | Brand scrape, stable customer asset preview/activation/restore, governed RTDB, and one-shot demo preparation |
+| `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
+
+Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
+
+### Read-only MCP guide (Phase 3.38)
+
+Configure `aep-lab-guide` as a lightweight companion when Coworker has several Lab MCPs. It describes the available contexts and recommends the smallest useful one, but deliberately does **not** expose a generic proxy or `call_any_tool` operation. The Coworker host must already have each recommended server configured.
+
+| Guide tool / resource | Purpose |
+|---|---|
+| `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
+| `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
+| `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
+| `lab://mcp/contexts` | Static capability directory resource |
+| `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
 ## Framework tools & resources (v3.6)
 
@@ -26,6 +54,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 
 | Tool | Lab API | Notes |
 |------|---------|--------|
+| `lab_mcp_contexts` | *(static)* | Canonical Lab and Adobe MCP capability directory |
+| `lab_mcp_recommend_context` | *(static)* | Recommends the smallest useful configured MCP context for a goal |
+| `lab_mcp_workflow` | *(static)* | Cross-context handoff plan; never invokes another MCP |
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
@@ -37,6 +68,14 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
 | `lab_mcp_first_run_setup` | `POST /api/lab/mcp-first-run-setup` + readiness | **First Coworker session** — workspace profile, RTDB ldapSlug, infra/event checklist |
+| `lab_demo_config_inspect` | `GET /api/lab/demo-config` | Read-only structure and current values for the MCP key owner's RTDB workspace; protected values redacted |
+| `lab_demo_config_preview` | `POST /api/lab/demo-config` (`action=preview`) | Before/after diff for allowlisted manual changes or evidence-backed mappings from a completed brand scrape |
+| `lab_demo_config_apply` | `POST /api/lab/demo-config` (`action=apply`) | Confirmed, conflict-checked, idempotent atomic RTDB update with readback and revision |
+| `lab_demo_config_restore` | `POST /api/lab/demo-config` (`action=restore-preview/apply`) | Preview-first rollback of a prior revision |
+| `lab_demo_assets_inspect` | `GET /api/lab/demo-assets` | Active stable image slots, permanent URLs, hashes, and saved customer revisions |
+| `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
+| `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
+| `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |
@@ -58,6 +97,15 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_live_activity_upsert_template` | `POST /api/ajo/live-activity/templates` | Create/version principal + sandbox customer template; mirrors Portal |
 | `lab_live_activity_delete_template` | `DELETE /api/ajo/live-activity/templates` | Confirmed custom-template deletion |
 | `lab_live_activity_list_runs` | `GET /api/ajo/live-activity/runs` | Recent principal/sandbox execution audit |
+| `lab_audience_list` | `GET /api/audience-management` | Read-only Segmentation audience inventory/search; user-generated MCP key + exact sandbox scope required |
+| `lab_audience_audit` | `GET /api/audience-management?audience_id=…` | Required exact-ID pre-delete review: current name, origin, lifecycle, dates, dependencies/dependents and limitations |
+| `lab_audience_delete` | `DELETE /api/audience-management` | Irreversible single-audience delete only after explicit confirmation; re-reads and exact-matches ID + name |
+| `lab_ajo_journey_list` | `GET /api/ajo-cleanup?asset_type=journey` | Read-only journey inventory/search with exact sandbox scope |
+| `lab_ajo_journey_audit` | `GET /api/ajo-cleanup?asset_type=journey&asset_id=…` | Exact-ID lifecycle and metadata review; returns confirmation fields and blockers |
+| `lab_ajo_journey_delete` | `DELETE /api/ajo-cleanup` | One Draft or Finished journey only; exact ID/name/status confirmation and immediate re-read |
+| `lab_ajo_campaign_list` | `GET /api/ajo-cleanup?asset_type=campaign` | Read-only campaign inventory/search with exact sandbox scope |
+| `lab_ajo_campaign_audit` | `GET /api/ajo-cleanup?asset_type=campaign&asset_id=…` | Exact-ID lifecycle, audience/message, and metadata review |
+| `lab_ajo_campaign_delete` | `DELETE /api/ajo-cleanup` | One Draft campaign only; exact ID/name/status confirmation and immediate re-read |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
@@ -88,10 +136,45 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_build_demo_website` | `POST …/brandScraperAnalyze` (`mode: demo_build`, direct CF) | Regenerate Profile Viewer site clone from existing scrape — no new crawl |
 | `lab_generate_profile_from_brand_scrape` | `GET` scrape + `POST /api/profile/generate` + `POST /api/lab/generation-prefs/next-email` | Map scrape persona → golden UPS profile; **default** reserves scaled email + static mobile from Firestore generation prefs (Portal parity) |
 | `lab_generate_profiles_from_brand_scrape` | same (all personas) | Batch alias — one profile per scrape persona; each reserves next prefs email |
-| `lab_prepare_demo_from_brand_scrape` | profiles + optional events + optional CJv2 | Orchestrated demo prep; events step sends retail commerce journey when lab_industry=retail |
+| `lab_prepare_demo_from_brand_scrape` | RTDB preview + profiles + optional events + optional CJv2 | Orchestrated demo prep; `steps.demo_config_preview` is preview-only and requires separate confirmed apply |
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
+
+### Governed audience cleanup (Phase 3.32)
+
+Audience deletion uses a dedicated allowlisted proxy, never the generic `/api/aep` route. It requires a user-generated MCP key whose single sandbox scope exactly matches the request.
+
+1. `lab_audience_list sandbox apalmer name "demo"` — inspect IDs, origin, lifecycle and timestamps. This is read-only.
+2. `lab_audience_audit sandbox apalmer audience_id {exact id}` — review dependencies/dependents, source-system warning, and the limits of what the audience record can prove. Destination, Account Audience and AJO usage may still cause Adobe to reject deletion.
+3. Show the exact sandbox, `audience_id`, and `expected_name` returned by audit. Obtain explicit colleague confirmation for that one audience.
+4. `lab_audience_delete sandbox apalmer audience_id {id} expected_name {exact name} confirmed true` — the server re-fetches immediately and fails closed if the ID/name changed. No batch delete tool exists.
+
+Adobe documents successful `DELETE /data/core/ups/audiences/{id}` as HTTP 204. The MCP records list, audit and delete calls in `mcpProfileAuditLog`; deletes include the selected audience ID and result.
+
+### Governed AJO journey and campaign cleanup (Phase 3.36)
+
+Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cleanup tools through the complete `/mcp` endpoint. The user-generated MCP key must match the requested sandbox exactly.
+
+1. Run `lab_ajo_journey_list` or `lab_ajo_campaign_list` and select one exact ID.
+2. Run the matching audit tool. It returns current name, status, timestamps, blockers, and exact confirmation values.
+3. Show the exact sandbox, ID, name, and status. Obtain explicit confirmation for that one asset.
+4. Run the matching delete tool with the returned `expected_name`, `expected_status`, and `confirmed true`.
+5. The Firebase proxy re-fetches immediately, blocks identity/lifecycle changes, and permits only Draft or Finished journeys and Draft campaigns. There is no batch delete tool.
+
+Adobe's current public Journey and Campaign references document retrieval but not deletion. These delete calls use the allowlisted AJO authoring operations used by product lifecycle management; availability still depends on the integration's Journey/Campaign permissions and Adobe may reject unsupported dependencies.
+
+### Governed Real-Time Database demo preparation (Phase 3.31)
+
+RTDB demo configuration is scoped to the Firebase `principalUid` on a **user-generated** MCP key. The Firebase API resolves the saved workspace slug and verifies `workspaceClaims`; tools never accept an arbitrary `ajoLookups/{slug}` path. Shared ops keys are rejected.
+
+1. `lab_demo_config_inspect sandbox apalmer` — show the current tree, ordinary values, descriptions, editable fields and validation rules.
+2. `lab_demo_config_preview sandbox apalmer changes [...]` — or pass `scrape_id` to map verified brand name/URL/stable logo/colour and inferred industry. No write occurs.
+3. Show the returned diff and obtain explicit colleague confirmation.
+4. `lab_demo_config_apply sandbox apalmer preflight_id ... confirmed true idempotency_key ...` — atomic partial update, readback verification and automatic revision.
+5. Re-run inspect. Use `lab_demo_config_restore` to preview and then confirm a rollback.
+
+Protected metadata, infrastructure sections, uncatalogued fields, nested objects, expiring signed logo URLs and invented scrape values remain read-only. Preflights expire after 15 minutes and fail closed if any proposed field changed after preview.
 
 ### Brand scrape (Phase 3.8)
 
@@ -310,7 +393,43 @@ AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=
 }
 ```
 
-**Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
+Recommended read-only guide companion:
+
+```json
+"aep-lab-guide": {
+  "type": "streamable-http",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/guide",
+  "headers": {
+    "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
+  }
+}
+```
+
+Focused demo preparation uses the same key:
+
+```json
+"aep-lab-demo-prep": {
+  "type": "streamable-http",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep",
+  "headers": {
+    "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
+  }
+}
+```
+
+Focused PDF preparation uses the same key:
+
+```json
+"aep-lab-pdf-prep": {
+  "type": "streamable-http",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf",
+  "headers": {
+    "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
+  }
+}
+```
+
+**Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, PDF generation/publishing, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
 
 ## Deploy to Cloud Run
 
@@ -321,6 +440,13 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 - `mcpProfileBatchJobs`
 - `mcpProfileAuditLog`
 - `mcpSandboxAllowlist`
+- `labDemoConfigPreflights`
+- `labDemoConfigRevisions`
+- `labDemoConfigIdempotency`
+- `labDemoAssetPreflights`
+- `labDemoAssetRevisions`
+- `labDemoAssetIdempotency`
+- `labDemoAssetActive`
 
 ```bash
 cd tools/aep-lab-profile-mcp
@@ -380,7 +506,7 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 `validateOAuthBearer` in `src/auth.mjs` checks `AEP_LAB_MCP_OAUTH_ISSUER` and `AEP_LAB_MCP_OAUTH_AUDIENCE`. When both are set, a stub returns *not implemented* until Coworker OIDC docs land. **Today:** use `X-AEP-Lab-Mcp-Key` only.
 
-No changes to public Firebase `/api/*` profile routes in Phase 3.
+The audience-management route is authenticated with a user-generated MCP key and is not an anonymous profile API. Existing public profile read routes remain unchanged.
 
 ## Related
 

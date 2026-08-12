@@ -29,26 +29,11 @@ export function registerGenerateProfileTool(mcpServer) {
     {
       title: 'Generate / stream test profile',
       description:
-        'POST /api/profile/generate — streams a sample profile via the lab saved industry HTTP connection (Firestore manifest). ' +
-        'Requires sandbox on MCP allowlist and industry connection ready (lab_sandbox_profile_config / lab_preflight_profile_generate). ' +
-        'FORMAT RULES — email: <local>+DDMMYYYY-N@<domain> via shared Firestore counter (labProfileGenerationPrefs). ' +
-        'Omit email (default) to atomically reserve next scaled email; custom email MUST match +DDMMYYYY-N or is rejected. ' +
-        'Call lab_confirm_profile_generation before first generate to prompt colleague for base email + domain. ' +
-        'Mobile: static E.164 from prefs (default +447425627462). ' +
-        'CRITICAL: test_profile defaults true (AEP test profile); false requires test_profile_override_reason. ' +
-        'Language enforced on attributes (default en-US on preferredLanguage + preferences.preferredLanguage + personalEmail.language). ' +
-        'Shared Portal counter: omit email and set use_stored_prefs:true (default when email omitted) to atomically reserve next scaled email via Firestore. ' +
-        'Preview with lab_confirm_generation_plan; configure with lab_get_generation_prefs / lab_set_generation_prefs. ' +
-        'dual_load_snowflake (any non-generic industry): AEP streams behavioral persona paths; Snowflake INSERT generates an independent operational CRM row ' +
-        'with shared EMAIL/ECID/CRMID from AEP generate. ' +
-        'Omit email or use_stored_prefs:true so both systems share Firestore counter. Optional dual_load_snowflake_mode:mirror for legacy AEP attribute mapping only. ' +
-        'Set randomize:true to build correlated industry persona server-side (src/personaBuilder/). ' +
-        'Non-generic industries dual-stream automatically: generic-owned paths first (POST industry generic), then industry-owned paths (POST industry travel|fsi|… with appendIfExisting). ' +
-        'segment_hint overlays: travel (hotel_high_value, hotel_reactivation), fsi (high_net_worth, credit_rebuild), retail (loyalty_vip, cart_abandoner). ' +
-        'Travel randomize emits portal-parity paths: travelReservations.flightReservations.*, travelPreferences.*, hotel.*. ' +
-        'loyalty_member (all industries, default false — matches Portal loyalty toggles): when true, adds LYL-{6 digits} + loyalty.* / loyaltyDetails.*. ' +
-        'Retail last_order_details (default true): when false, skips orderProfile last-order SKU/store block (Portal #retailLastOrderEnabled). ' +
-        'See lab_get_execution_framework criticalRules and lab_get_industry_playbook.',
+        'Generate and stream one governed AEP test profile through the saved sandbox and industry connection. ' +
+        'Preflight first. Omit email to reserve the next shared <local>+DDMMYYYY-N@domain address; custom emails must use that format. ' +
+        'test_profile defaults true, preferred language is enforced, and non-generic industries dual-stream generic then industry attributes. ' +
+        'Use randomize plus an optional segment_hint for a correlated persona. Optional dual_load_snowflake creates an independent CRM row with shared EMAIL/ECID/CRMID. ' +
+        'See the parameter descriptions and lab_get_execution_framework for advanced options.',
       inputSchema: {
         email: z
           .string()

@@ -130,7 +130,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           method: 'GET',
-          path: '/data/foundation/sandbox-management/',
+          path: '/data/foundation/sandbox-management/sandboxes',
           params: { limit: String(limit), offset: String(offset) },
         }),
       });

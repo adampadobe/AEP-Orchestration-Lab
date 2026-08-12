@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2f286d">
+  <title>{{data.documentTitle}}</title>
+  <style>
+    :root {
+      --ink: #1d1b45;
+      --muted: #77758e;
+      --line: #e8e6f0;
+      --paper: #fbfaff;
+      --violet-950: #29225f;
+      --violet-900: #31296e;
+      --violet-700: #5c4bd0;
+      --violet-500: #8d78f5;
+      --violet-100: #eeebff;
+      --lavender: #f7f5ff;
+      --shadow: 0 24px 70px rgba(34, 27, 86, .18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background:
+        radial-gradient(circle at 12% 25%, rgba(121, 103, 228, .13), transparent 22rem),
+        radial-gradient(circle at 89% 80%, rgba(153, 125, 255, .16), transparent 24rem),
+        #f4f2fa;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 18px;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, a { font: inherit; }
+
+    .boarding-pass {
+      width: min(100%, 620px);
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid rgba(47, 40, 109, .12);
+      border-radius: 30px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .pass-header {
+      min-height: 124px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 26px 34px;
+      color: white;
+      background:
+        radial-gradient(circle at 75% -20%, rgba(137, 119, 246, .34), transparent 16rem),
+        linear-gradient(120deg, var(--violet-950), var(--violet-900));
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 50px;
+      height: 62px;
+      flex: 0 0 auto;
+    }
+
+    .brand-name {
+      font-size: 21px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      white-space: nowrap;
+    }
+
+    .brand-arabic {
+      margin-top: 4px;
+      color: #d7d2f1;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      direction: rtl;
+      text-align: left;
+    }
+
+    .cabin {
+      flex: 0 0 auto;
+      text-align: right;
+    }
+
+    .cabin strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 650;
+    }
+
+    .cabin span {
+      display: inline-block;
+      margin-top: 7px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      color: #dfd9ff;
+      background: rgba(119, 97, 224, .58);
+      font-size: 12px;
+    }
+
+    .pass-body {
+      padding: 20px 38px 16px;
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+
+    .topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .flight-number {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: .01em;
+    }
+
+    .date { text-align: right; }
+
+    .date strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .route {
+      display: grid;
+      grid-template-columns: 1fr 1.55fr 1fr;
+      align-items: center;
+      margin-top: 28px;
+    }
+
+    .airport:last-child { text-align: right; }
+
+    .airport-city {
+      color: #6e6b83;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .airport-code {
+      margin: 2px 0 1px;
+      color: var(--ink);
+      font-size: clamp(36px, 8vw, 48px);
+      font-weight: 620;
+      letter-spacing: -.045em;
+      line-height: .98;
+    }
+
+    .airport-name {
+      color: #69667c;
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+    .terminal {
+      color: var(--violet-700);
+      font-weight: 750;
+    }
+
+    .route-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      color: var(--violet-700);
+    }
+
+    .route-line::before,
+    .route-line::after {
+      width: 100%;
+      height: 2px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #d8d4e9, var(--violet-500));
+      content: "";
+    }
+
+    .route-line::after {
+      background: linear-gradient(90deg, var(--violet-500), #d8d4e9);
+    }
+
+    .plane-icon {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      transform: rotate(90deg);
+      filter: drop-shadow(0 3px 4px rgba(79, 62, 182, .18));
+    }
+
+    .trip-details {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      margin-top: 14px;
+      padding: 16px 0 13px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .detail {
+      min-width: 0;
+      padding: 0 14px;
+      border-left: 1px solid var(--line);
+    }
+
+    .detail:first-child {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .detail:last-child { padding-right: 0; }
+
+    .detail-value {
+      font-size: 17px;
+      font-weight: 650;
+    }
+
+    .detail-value.accent { color: var(--violet-700); }
+
+    .passenger-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 16px 0 11px;
+    }
+
+    .passenger-row > div:last-child { text-align: right; }
+
+    .passenger-row strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 750;
+    }
+
+    .barcode-wrap {
+      max-width: 380px;
+      margin: 4px auto 0;
+    }
+
+    .barcode {
+      display: block;
+      width: 100%;
+      height: 64px;
+    }
+
+    .barcode-image {
+      display: block;
+      width: 100%;
+      height: 64px;
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .wallet-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: fit-content;
+      margin: 9px auto 0;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 8px;
+      color: #4a4663;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .wallet-button:hover,
+    .wallet-button:focus-visible {
+      color: var(--violet-700);
+      background: var(--violet-100);
+      outline: none;
+    }
+
+    .wallet-icon {
+      width: 17px;
+      height: 14px;
+      border-radius: 3px;
+      background: var(--violet-900);
+      box-shadow: inset 0 4px 0 rgba(255, 255, 255, .28);
+    }
+
+    .story {
+      position: relative;
+      min-height: 330px;
+      margin: 0 8px;
+      overflow: hidden;
+      border-radius: 21px;
+      color: white;
+      background:
+        radial-gradient(circle at 54% 9%, #fff 0 1px, transparent 2px),
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,.8) 0 1px, transparent 2px),
+        radial-gradient(circle at 75% 28%, rgba(255,255,255,.8) 0 1px, transparent 2px),
+        radial-gradient(circle at 94% 13%, rgba(255,255,255,.7) 0 1px, transparent 2px),
+        linear-gradient(180deg, #5755ca 0%, #a880df 48%, #efb0cc 72%, #6152be 100%);
+    }
+
+    .story-image {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: .22;
+    }
+
+    .story::before {
+      position: absolute;
+      inset: auto -10% 51px;
+      height: 100px;
+      background:
+        linear-gradient(135deg, transparent 58%, rgba(47, 35, 112, .92) 59%) 0 100% / 63px 85px repeat-x;
+      opacity: .9;
+      content: "";
+    }
+
+    .story-copy {
+      position: absolute;
+      z-index: 3;
+      top: 19px;
+      left: 22px;
+      width: 190px;
+    }
+
+    .mini-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 10px;
+      color: #ece9ff;
+      font-size: 12px;
+    }
+
+    .mini-mark {
+      width: 31px;
+      height: 37px;
+    }
+
+    .story-copy p {
+      margin: 0;
+      color: #f7eaff;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .moon {
+      position: absolute;
+      top: 23px;
+      right: 84px;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #b691eb, #805ed0 70%);
+      box-shadow: 0 0 20px rgba(230, 199, 255, .36);
+      opacity: .85;
+    }
+
+    .shooting-star {
+      position: absolute;
+      top: 56px;
+      left: 49%;
+      width: 100px;
+      height: 2px;
+      transform: rotate(-29deg);
+      transform-origin: left;
+      background: linear-gradient(90deg, #fff7cc, rgba(255,255,255,0));
+      box-shadow: 0 0 7px #fff5b5;
+    }
+
+    .shooting-star::before {
+      position: absolute;
+      top: -3px;
+      left: 0;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fff8c9;
+      box-shadow: 0 0 12px #fff;
+      content: "";
+    }
+
+    .hero-plane {
+      position: absolute;
+      z-index: 2;
+      top: 37px;
+      right: 16px;
+      width: 240px;
+      transform: rotate(-8deg);
+      filter: drop-shadow(0 10px 8px rgba(30, 20, 88, .25));
+    }
+
+    .city {
+      position: absolute;
+      z-index: 1;
+      right: -7px;
+      bottom: 50px;
+      left: -7px;
+      height: 116px;
+      opacity: .75;
+    }
+
+    .family {
+      position: absolute;
+      z-index: 3;
+      right: 20px;
+      bottom: 47px;
+      left: 20px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+    }
+
+    .person {
+      --shirt: #332a8c;
+      position: relative;
+      width: 82px;
+      height: 142px;
+    }
+
+    .person.small {
+      width: 66px;
+      height: 115px;
+    }
+
+    .head {
+      position: absolute;
+      z-index: 2;
+      top: 6px;
+      left: 50%;
+      width: 46px;
+      height: 52px;
+      transform: translateX(-50%);
+      border-radius: 48% 48% 43% 43%;
+      background: #b96f42;
+      box-shadow: inset 0 6px 0 #2c1e2d;
+    }
+
+    .head::before,
+    .head::after {
+      position: absolute;
+      top: 25px;
+      width: 5px;
+      height: 6px;
+      border-radius: 50%;
+      background: #251a30;
+      content: "";
+    }
+
+    .head::before { left: 12px; }
+    .head::after { right: 12px; }
+
+    .smile {
+      position: absolute;
+      z-index: 3;
+      top: 41px;
+      left: 50%;
+      width: 14px;
+      height: 7px;
+      transform: translateX(-50%);
+      border-bottom: 2px solid #5b2b28;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .body {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 66px;
+      height: 93px;
+      transform: translateX(-50%);
+      border-radius: 28px 28px 8px 8px;
+      background: var(--shirt);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    }
+
+    .small .body {
+      width: 55px;
+      height: 71px;
+    }
+
+    .person:nth-child(2) { --shirt: #f1eee8; }
+    .person:nth-child(3) { --shirt: #302880; }
+    .person:nth-child(4) { --shirt: #5f4ec3; }
+
+    .story-footer {
+      position: absolute;
+      z-index: 4;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 51px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(38, 30, 100, .94);
+      color: #f0edff;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .planet-icon {
+      width: 23px;
+      height: 23px;
+      border: 2px solid #bdb5f2;
+      border-radius: 50%;
+      transform: rotate(-25deg);
+    }
+
+    .planet-icon::after {
+      display: block;
+      width: 30px;
+      height: 8px;
+      margin: 5px 0 0 -5px;
+      border-bottom: 2px solid #bdb5f2;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .offers {
+      padding: 23px 38px 24px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      color: #66627c;
+      font-size: 11px;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+    }
+
+    .section-heading a,
+    .section-heading > span {
+      color: var(--violet-700);
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .meal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .meal-card {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid #eceaf4;
+      border-radius: 13px;
+      background: white;
+      box-shadow: 0 5px 18px rgba(34, 27, 86, .07);
+    }
+
+    .meal-art {
+      position: relative;
+      height: 104px;
+      overflow: hidden;
+      background: linear-gradient(145deg, #f2ecdf, #fff);
+    }
+
+    .meal-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .plate {
+      position: absolute;
+      right: 9px;
+      bottom: 8px;
+      left: 9px;
+      height: 57px;
+      border: 7px solid #fefefe;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 61% 52%, var(--food-2) 0 10%, transparent 11%),
+        radial-gradient(circle at 35% 45%, var(--food-1) 0 24%, transparent 25%),
+        repeating-radial-gradient(circle at 50% 55%, var(--food-3) 0 3px, #e9d5a6 4px 7px);
+      box-shadow: 0 7px 11px rgba(45, 33, 67, .18);
+      transform: rotate(-4deg);
+    }
+
+    .meal-card:nth-child(1) {
+      --food-1: #bb7139;
+      --food-2: #f0c867;
+      --food-3: #f1dfb5;
+    }
+
+    .meal-card:nth-child(2) {
+      --food-1: #da8b64;
+      --food-2: #4f8a54;
+      --food-3: #efe2b7;
+    }
+
+    .meal-card:nth-child(3) {
+      --food-1: #5a2f26;
+      --food-2: #7d3d2e;
+      --food-3: #d7b08b;
+    }
+
+    .meal-card:nth-child(3) .plate {
+      border-width: 10px;
+      background:
+        repeating-linear-gradient(0deg, #4e271f 0 10px, #774033 11px 14px);
+      border-radius: 8px 8px 20px 20px;
+      transform: perspective(80px) rotateX(8deg);
+    }
+
+    .badge {
+      position: absolute;
+      z-index: 2;
+      top: 10px;
+      left: 9px;
+      padding: 5px 7px;
+      border-radius: 4px;
+      color: white;
+      background: var(--violet-700);
+      font-size: 8px;
+      font-weight: 800;
+    }
+
+    .meal-copy { padding: 10px 10px 12px; }
+
+    .meal-copy h3 {
+      margin: 0 0 4px;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .meal-copy p {
+      min-height: 45px;
+      margin: 0;
+      color: #767288;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+
+    .meal-price {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .meal-price strong { font-size: 11px; }
+
+    .old-price {
+      margin-left: 3px;
+      color: #aaa6b7;
+      font-size: 9px;
+      text-decoration: line-through;
+    }
+
+    .add-button {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 50%;
+      color: white;
+      background: var(--violet-700);
+      box-shadow: 0 3px 8px rgba(79, 62, 182, .25);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .add-button:hover,
+    .add-button:focus-visible {
+      background: var(--violet-950);
+      outline: 3px solid var(--violet-100);
+    }
+
+    .pass-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 20px 16px;
+      color: #8b87a0;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .bag-icon {
+      width: 15px;
+      height: 13px;
+      border: 2px solid #b4addf;
+      border-radius: 4px;
+    }
+
+    .bag-icon::before {
+      display: block;
+      width: 7px;
+      height: 5px;
+      margin: -7px auto 0;
+      border: 2px solid #b4addf;
+      border-bottom: 0;
+      border-radius: 4px 4px 0 0;
+      content: "";
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 20;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(340px, calc(100vw - 36px));
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: white;
+      background: var(--violet-950);
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 16px 10px; }
+      .boarding-pass { border-radius: 22px; }
+      .pass-header { min-height: 104px; padding: 20px; }
+      .brand-mark { width: 40px; height: 51px; }
+      .brand-name { font-size: 17px; }
+      .cabin strong { font-size: 15px; }
+      .pass-body { padding: 18px 20px 14px; }
+      .route { grid-template-columns: 1fr 1.25fr 1fr; }
+      .route-line { gap: 5px; padding: 0 5px; }
+      .plane-icon { width: 29px; height: 29px; }
+      .trip-details { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .detail { padding: 0 7px; }
+      .detail-value { font-size: 14px; }
+      .story { min-height: 300px; margin: 0 6px; }
+      .hero-plane { top: 49px; width: 195px; }
+      .family { right: 4px; left: 4px; }
+      .person { transform: scale(.9); transform-origin: bottom; }
+      .offers { padding: 20px; }
+      .meal-grid { gap: 8px; }
+      .meal-art { height: 83px; }
+      .meal-copy { padding: 8px; }
+    }
+
+    @media (max-width: 430px) {
+      .brand-arabic { display: none; }
+      .cabin span { padding: 5px 9px; }
+      .airport-code { font-size: 34px; }
+      .airport-name { font-size: 8px; }
+      .eyebrow { font-size: 8px; }
+      .detail { padding: 0 5px; }
+      .detail-value { font-size: 12px; }
+      .story-copy { width: 142px; }
+      .hero-plane { right: -8px; width: 165px; }
+      .person { margin: 0 -7px; transform: scale(.78); }
+      .meal-copy p { display: none; }
+      .meal-price { align-items: flex-end; }
+      .old-price { display: block; margin: 1px 0 0; }
+    }
+
+    @media print {
+      html, body { background: white; }
+      body { padding: 0; }
+      .boarding-pass {
+        width: 100%;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .toast { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="boarding-pass" aria-label="Boarding pass for {{data.passenger.name}}">
+    <header class="pass-header">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 52 66" aria-hidden="true">
+          <path d="M33 5C17 2 6 14 9 29c3 16 22 16 31 26M9 29c4-9 17-11 25-4 9 8 6 23-5 29-9 5-20 2-24-7" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+          <path d="M11 13c12-6 24 1 25 12M10 40c6 1 11 5 14 11" fill="none" stroke="#b8afe8" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="brand-name">RIYADH AIR</div>
+          <div class="brand-arabic" lang="ar">طيران الرياض</div>
+        </div>
+      </div>
+      <div class="cabin">
+        <strong>{{data.cabin}}</strong>
+        <span>{{data.fare}}</span>
+      </div>
+    </header>
+
+    <section class="pass-body">
+      <div class="topline">
+        <div>
+          <p class="eyebrow">Flight</p>
+          <div class="flight-number">{{data.flightNumber}}</div>
+        </div>
+        <div class="date">
+          <p class="eyebrow">Date</p>
+          <strong>{{formatDate data.flightDate}}</strong>
+        </div>
+      </div>
+
+      <div class="route">
+        <div class="airport">
+          <div class="airport-city">{{data.origin.city}}</div>
+          <div class="airport-code">{{data.origin.code}}</div>
+          <div class="airport-name">
+            <span>{{data.origin.airport}}</span><br>
+            <span class="terminal">{{data.origin.terminal}}</span>
+          </div>
+        </div>
+
+        <div class="route-line" aria-label="Flight from {{data.origin.city}} to {{data.destination.city}}">
+          <svg class="plane-icon" viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M20 2l4 14 12 7v4l-12-3-2 11 5 3v2l-7-1-7 1v-2l5-3-2-11-12 3v-4l12-7 4-14z" fill="currentColor"/>
+          </svg>
+        </div>
+
+        <div class="airport">
+          <div class="airport-city">{{data.destination.city}}</div>
+          <div class="airport-code">{{data.destination.code}}</div>
+          <div class="airport-name">
+            <span>{{data.destination.airport}}</span><br>
+            <span class="terminal">{{data.destination.terminal}}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="trip-details">
+        <div class="detail">
+          <p class="eyebrow">Boarding</p>
+          <div class="detail-value">{{data.times.boarding}}</div>
+        </div>
+        <div class="detail">
+          <p class="eyebrow">Departure</p>
+          <div class="detail-value">{{data.times.departure}}</div>
+        </div>
+        <div class="detail">
+          <p class="eyebrow">Gate</p>
+          <div class="detail-value accent">{{data.gate}}</div>
+        </div>
+        <div class="detail">
+          <p class="eyebrow">Seat</p>
+          <div class="detail-value">{{data.seat}}</div>
+        </div>
+        <div class="detail">
+          <p class="eyebrow">Zone</p>
+          <div class="detail-value">{{data.zone}}</div>
+        </div>
+      </div>
+
+      <div class="passenger-row">
+        <div>
+          <p class="eyebrow">Passenger</p>
+          <strong>{{data.passenger.name}}</strong>
+        </div>
+        <div>
+          <p class="eyebrow">Booking ref</p>
+          <strong>{{data.bookingReference}}</strong>
+        </div>
+      </div>
+
+      <div class="barcode-wrap" aria-label="Boarding pass barcode">
+        {{#if data.barcodeImageUrl}}
+        <img class="barcode-image" src="{{data.barcodeImageUrl}}" alt="Barcode for booking {{data.bookingReference}}">
+        {{else}}
+        <svg class="barcode" viewBox="0 0 380 64" preserveAspectRatio="none" role="img" aria-label="Sample boarding pass barcode">
+          <rect width="380" height="64" fill="#fff"/>
+          <path fill="#15131c" d="M2 2h5v60H2zm8 0h2v60h-2zm5 0h8v60h-8zm11 0h3v60h-3zm6 0h6v60h-6zm10 0h2v60h-2zm7 0h3v60h-3zm6 0h9v60h-9zm13 0h3v60h-3zm6 0h2v60h-2zm6 0h7v60h-7zm11 0h4v60h-4zm8 0h2v60h-2zm6 0h8v60h-8zm12 0h2v60h-2zm6 0h5v60h-5zm9 0h3v60h-3zm7 0h9v60h-9zm12 0h2v60h-2zm6 0h6v60h-6zm10 0h3v60h-3zm7 0h8v60h-8zm12 0h2v60h-2zm6 0h4v60h-4zm8 0h9v60h-9zm13 0h2v60h-2zm5 0h7v60h-7zm11 0h3v60h-3zm7 0h6v60h-6zm10 0h2v60h-2zm6 0h9v60h-9zm13 0h3v60h-3zm7 0h5v60h-5zm9 0h2v60h-2zm6 0h8v60h-8zm12 0h3v60h-3zm7 0h6v60h-6zm10 0h2v60h-2zm6 0h9v60h-9zm12 0h4v60h-4zm8 0h2v60h-2zm6 0h7v60h-7zm11 0h3v60h-3zm7 0h9v60h-9zm13 0h2v60h-2zm5 0h6v60h-6zm10 0h3v60h-3zm7 0h8v60h-8z"/>
+          <path fill="#fff" opacity=".9" d="M48 7h4v15h-4zm17 34h5v14h-5zm26-31h3v22h-3zm21 25h6v19h-6zm30-28h4v17h-4zm24 30h6v18h-6zm21-29h3v22h-3zm31 25h5v20h-5zm22-25h4v15h-4zm29 26h5v21h-5zm23-27h3v18h-3zm25 28h6v17h-6z"/>
+        </svg>
+        {{/if}}
+      </div>
+      <div class="wallet-button">
+        <span class="wallet-icon" aria-hidden="true"></span>
+        {{data.walletLabel}}
+      </div>
+    </section>
+
+    <section class="story" aria-label="Airline story">
+      {{#if data.story.imageUrl}}
+      <img class="story-image" src="{{data.story.imageUrl}}" alt="{{data.story.imageAlt}}">
+      {{/if}}
+      <div class="story-copy">
+        <div class="mini-brand">
+          <svg class="mini-mark" viewBox="0 0 52 66" aria-hidden="true">
+            <path d="M33 5C17 2 6 14 9 29c3 16 22 16 31 26M9 29c4-9 17-11 25-4 9 8 6 23-5 29-9 5-20 2-24-7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+          </svg>
+          <span lang="ar" dir="rtl">{{data.story.arabicHeading}}</span>
+        </div>
+        <p>{{data.story.headline}}<br>{{data.story.subheading}}</p>
+      </div>
+      <span class="moon" aria-hidden="true"></span>
+      <span class="shooting-star" aria-hidden="true"></span>
+      <svg class="hero-plane" viewBox="0 0 300 110" aria-hidden="true">
+        <defs>
+          <linearGradient id="fuselage" x1="0" x2="1">
+            <stop stop-color="#d9d9e5"/>
+            <stop offset=".46" stop-color="#fff"/>
+            <stop offset="1" stop-color="#c4c3d6"/>
+          </linearGradient>
+        </defs>
+        <path d="M21 59c16-7 46-9 89-9l98-28c14-4 23-3 24 1l-42 28c42 2 75 8 91 17 7 4 5 10-5 13-22 7-74 6-137-2L63 97H44l41-26-64-7c-9-1-9-2 0-5z" fill="url(#fuselage)"/>
+        <path d="M167 51l-54-33h-22l29 35zm-17 28l-42 25h20l60-21zM49 53L24 31H9l10 29z" fill="#443785"/>
+        <path d="M92 55c51-1 103 4 156 15" fill="none" stroke="#4f3f99" stroke-width="5"/>
+        <circle cx="132" cy="58" r="2" fill="#29225f"/><circle cx="142" cy="59" r="2" fill="#29225f"/><circle cx="152" cy="60" r="2" fill="#29225f"/><circle cx="162" cy="61" r="2" fill="#29225f"/>
+        <text x="176" y="66" fill="#463990" font-family="Arial, sans-serif" font-size="10" font-weight="700">RIYADH AIR</text>
+      </svg>
+      <svg class="city" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 115V83h14V67h8v48h15V84h18v31h14V72h10v43h11V59h12v56h14V76h18v39h13V54h9v61h15V64h19v51h15V34h9v81h17V72h14v43h16V52h13v63h15V41h9v74h12V78h20v37h12V69h9v46h12V25h8v90h16V56h18v59h14V73h15v42h17V47h12v68h16V67h13v48h14V77h11v38h20V63h10v52h11V37h13v78h12V73h22v42h17V58h9v57h17V87h20v28z" fill="#493f94"/>
+        <path d="M420 115V42h8l5-27 5 27h8v73M489 115V55h9V33h7v22h9v60" fill="#302a76"/>
+      </svg>
+      <div class="family" aria-hidden="true">
+        <div class="person">
+          <div class="head"><span class="smile"></span></div><div class="body"></div>
+        </div>
+        <div class="person">
+          <div class="head"><span class="smile"></span></div><div class="body"></div>
+        </div>
+        <div class="person small">
+          <div class="head"><span class="smile"></span></div><div class="body"></div>
+        </div>
+        <div class="person">
+          <div class="head"><span class="smile"></span></div><div class="body"></div>
+        </div>
+      </div>
+      <div class="story-footer">
+        <span class="planet-icon" aria-hidden="true"></span>
+        <span><span lang="ar" dir="rtl">{{data.story.sustainabilityArabic}}</span><br>{{data.story.sustainabilityText}}</span>
+      </div>
+    </section>
+
+    <section class="offers" aria-labelledby="food-heading">
+      <div class="section-heading">
+        <h2 id="food-heading">{{data.offersHeading}}</h2>
+        <span>{{data.offersLabel}}</span>
+      </div>
+      <div class="meal-grid">
+        {{#each data.offers}}
+        <article class="meal-card">
+          <div class="meal-art">
+            <span class="badge">{{saving}}</span>
+            {{#if imageUrl}}
+            <img class="meal-image" src="{{imageUrl}}" alt="{{imageAlt}}">
+            {{else}}
+            <span class="plate"></span>
+            {{/if}}
+          </div>
+          <div class="meal-copy">
+            <h3>{{name}}</h3>
+            <p>{{description}}</p>
+            <div class="meal-price">
+              <span><strong>{{price}}</strong><span class="old-price">{{originalPrice}}</span></span>
+              <span class="add-button" aria-hidden="true">+</span>
+            </div>
+          </div>
+        </article>
+        {{/each}}
+      </div>
+    </section>
+
+    <footer class="pass-footer">
+      <span class="bag-icon" aria-hidden="true"></span>
+      {{data.footerMessage}}
+    </footer>
+  </main>
+</body>
+</html>
