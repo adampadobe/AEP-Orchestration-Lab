@@ -124,6 +124,8 @@ test('versions a validated replacement while preserving its runtime mapping', as
     templateName: 'boarding-pass',
     fieldDefinitions: [{ name: 'PassengerName', type: 'text' }],
     fieldMappings: [{ target: 'PassengerName', source: 'passengerName', required: true, type: 'text' }],
+    inputSchema: [{ name: 'passengerName', label: 'Passenger name', dataType: 'string', required: true }],
+    sampleData: { passengerName: 'Adam Palmer', Barcode: `data:image/png;base64,${'A'.repeat(60_000)}` },
     expectedPageCount: 1,
     validation: { pageCount: 1, validatedAt: '2026-08-11T20:00:00.000Z' },
     sourceFile: {
@@ -135,6 +137,8 @@ test('versions a validated replacement while preserving its runtime mapping', as
   const first = await store.saveTemplate(base, fixture.deps);
   assert.equal(first.version, 1);
   assert.equal(first.fieldMappings[0].source, 'passengerName');
+  assert.equal(first.inputSchema[0].name, 'passengerName');
+  assert.deepEqual(first.sampleData, { passengerName: 'Adam Palmer' });
   const second = await store.saveTemplate({
     ...base,
     replace: true,
@@ -144,6 +148,17 @@ test('versions a validated replacement while preserving its runtime mapping', as
   const metadata = await store.resolveTemplateMetadata('boarding-pass', 'user-1', fixture.deps);
   assert.equal(metadata.version, 2);
   assert.equal(metadata.expectedPageCount, 1);
+});
+
+test('removes large image data from persisted template samples', () => {
+  assert.deepEqual(store.sanitizeSampleData({
+    Barcode: `data:image/png;base64,${'A'.repeat(10_000)}`,
+    flightNumber: 'RX 401',
+    ignored: 'not in schema',
+  }, [
+    { name: 'Barcode' },
+    { name: 'flightNumber' },
+  ]), { Barcode: '', flightNumber: 'RX 401' });
 });
 
 test('protects built-in names and resolves built-ins without an owner', async () => {

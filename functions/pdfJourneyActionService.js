@@ -180,6 +180,7 @@ function normaliseRequest(body, deps = {}) {
     templateMimeType: template.mimeType || null,
     templateObjectPath: template.objectPath || null,
     templateOwnerUid: template.ownerUid || deps.templateOwnerUid || null,
+    requestedByUid: deps.requestedByUid || deps.templateOwnerUid || template.ownerUid || null,
     templateVersion: Number(template.version) || 1,
     templateFieldMappings,
     recipient,
@@ -236,6 +237,23 @@ async function getStatus(jobId, deps = {}) {
   const snapshot = await getFirestore(deps).collection(JOBS_COLLECTION).doc(cleanJobId).get();
   if (!snapshot.exists) return null;
   const record = snapshot.data() || {};
+  return {
+    ...actionResponse(record, true),
+    pdfJobId: record.pdfJobId || null,
+    ajoExecutionId: record.ajoExecutionId || null,
+    sentAt: record.sentAt || null,
+    error: record.error || null,
+  };
+}
+
+async function getRecord(jobId, deps = {}) {
+  const cleanJobId = cleanText(jobId, 64);
+  if (!/^[a-f0-9]{40}$/.test(cleanJobId)) return null;
+  const snapshot = await getFirestore(deps).collection(JOBS_COLLECTION).doc(cleanJobId).get();
+  return snapshot.exists ? (snapshot.data() || {}) : null;
+}
+
+function statusResponse(record) {
   return {
     ...actionResponse(record, true),
     pdfJobId: record.pdfJobId || null,
@@ -441,6 +459,12 @@ async function processQueuedJob(jobId, deps = {}) {
   const ref = getFirestore(deps).collection(JOBS_COLLECTION).doc(jobId);
   try {
     const pdfRecord = await (deps.generateAndStore || generateAndStore)(claim.record, deps);
+    await ref.set({
+      status: 'stored',
+      updatedAt: now(deps).toISOString(),
+      pdfJobId: pdfRecord.jobId,
+      attachmentPath: pdfRecord.dlzObjectPath,
+    }, { merge: true });
     const execution = await (deps.sendCampaign || sendCampaign)(claim.record, pdfRecord, deps);
     const sentAt = now(deps).toISOString();
     await ref.set({
@@ -485,6 +509,8 @@ module.exports = {
   actionResponse,
   enqueue,
   getStatus,
+  getRecord,
+  statusResponse,
   generateAndStore,
   buildCampaignPayload,
   sendCampaign,

@@ -96,6 +96,42 @@ function decodeBase64(value, maxBytes) {
   return buffer;
 }
 
+function sanitizeSampleData(value, inputSchema) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const allowed = new Set((Array.isArray(inputSchema) ? inputSchema : [])
+    .map((field) => String(field && field.name || '').trim()).filter(Boolean));
+  const output = {};
+  for (const name of allowed) {
+    const raw = source[name];
+    if (raw == null) continue;
+    if (typeof raw === 'number' || typeof raw === 'boolean') output[name] = raw;
+    else {
+      const text = String(raw);
+      output[name] = text.startsWith('data:image/') || text.length > 5_000 ? '' : text;
+    }
+  }
+  return Buffer.byteLength(JSON.stringify(output), 'utf8') <= 50_000 ? output : {};
+}
+
+function sanitizeInputSchema(value) {
+  return (Array.isArray(value) ? value : []).slice(0, 100).map((field) => {
+    const sample = field && field.sampleValue;
+    const sampleValue = typeof sample === 'string' && (sample.startsWith('data:image/') || sample.length > 5_000)
+      ? ''
+      : sample == null || ['string', 'number', 'boolean'].includes(typeof sample) ? sample : '';
+    return {
+      name: cleanText(field && field.name, '', 120),
+      label: cleanText(field && field.label, field && field.name, 160),
+      dataType: ['string', 'dateTime', 'decimal', 'image'].includes(field && field.dataType) ? field.dataType : 'string',
+      required: field && field.required === true,
+      recipientField: field && field.recipientField === true,
+      targetFields: (Array.isArray(field && field.targetFields) ? field.targetFields : [])
+        .map((target) => cleanText(target, '', 120)).filter(Boolean).slice(0, 20),
+      sampleValue,
+    };
+  }).filter((field) => field.name);
+}
+
 function builtinMetadata() {
   return builtins.listTemplates().map((item) => ({
     ...item,
@@ -124,6 +160,8 @@ function serializeRecord(record) {
     sourceHash: record.sourceHash,
     fieldDefinitions: Array.isArray(record.fieldDefinitions) ? record.fieldDefinitions : [],
     fieldMappings: Array.isArray(record.fieldMappings) ? record.fieldMappings : [],
+    inputSchema: Array.isArray(record.inputSchema) ? record.inputSchema : [],
+    sampleData: record.sampleData && typeof record.sampleData === 'object' ? record.sampleData : {},
     expectedPageCount: Number(record.expectedPageCount) || null,
     validation: record.validation || null,
     version: Number(record.version) || 1,
@@ -210,6 +248,8 @@ async function saveTemplate(input, deps = {}) {
     sourceHash,
     fieldDefinitions: Array.isArray(input.fieldDefinitions) ? input.fieldDefinitions : [],
     fieldMappings: Array.isArray(input.fieldMappings) ? input.fieldMappings : [],
+    inputSchema: sanitizeInputSchema(input.inputSchema),
+    sampleData: sanitizeSampleData(input.sampleData, input.inputSchema),
     expectedPageCount: Number(input.expectedPageCount) || null,
     validation: input.validation && typeof input.validation === 'object' ? input.validation : null,
     version: existingRecord ? (Number(existingRecord.version) || 1) + 1 : 1,
@@ -251,6 +291,8 @@ async function resolveTemplateMetadata(templateName, ownerUid, deps = {}) {
       source: 'builtin',
       sourceHash: core.sha256(loaded.htmlTemplate),
       ownerUid: null,
+      inputSchema: item.inputSchema || [],
+      sampleData: item.sampleData || {},
     };
   }
   const uid = String(ownerUid || '').trim().slice(0, 128);
@@ -283,6 +325,8 @@ async function resolveTemplateMetadata(templateName, ownerUid, deps = {}) {
     ownerUid: uid,
     fieldDefinitions: Array.isArray(record.fieldDefinitions) ? record.fieldDefinitions : [],
     fieldMappings: Array.isArray(record.fieldMappings) ? record.fieldMappings : [],
+    inputSchema: Array.isArray(record.inputSchema) ? record.inputSchema : [],
+    sampleData: record.sampleData && typeof record.sampleData === 'object' ? record.sampleData : {},
     expectedPageCount: Number(record.expectedPageCount) || null,
     validation: record.validation || null,
     version: Number(record.version) || 1,
@@ -339,4 +383,6 @@ module.exports = {
   resolveTemplateMetadata,
   loadTemplateSource,
   archiveTemplate,
+  sanitizeSampleData,
+  sanitizeInputSchema,
 };

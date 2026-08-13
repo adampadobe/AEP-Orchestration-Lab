@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811f">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813h">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -49,6 +49,26 @@
 
         <div id="pdfWorkspaceStatus" class="pdf-status" role="status" aria-live="polite" hidden></div>
 
+        <section class="pdf-stage-controls" aria-label="Workspace section controls">
+          <div>
+            <span class="pdf-eyebrow">Workspace sections</span>
+            <p>Open only the capability you need. Your files, payload and results remain available when a section is collapsed.</p>
+          </div>
+          <div class="pdf-stage-control-actions">
+            <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfExpandAllStages">Expand all</button>
+            <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfCollapseAllStages">Collapse all</button>
+          </div>
+        </section>
+
+        <div class="pdf-stage-stack">
+        <details class="pdf-stage-card" id="pdfStageMode">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">1</span>
+            <span class="pdf-stage-copy"><strong>Choose conversion</strong><em>Select HTML-to-PDF or Document-to-PDF</em></span>
+            <span class="pdf-stage-state" id="pdfStageModeState">HTML to PDF</span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
         <section class="pdf-mode-panel" aria-labelledby="pdfModeHeading">
           <div>
             <span class="pdf-eyebrow">Conversion mode</span>
@@ -63,7 +83,24 @@
           </div>
           <p id="pdfModeHelp">Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.</p>
         </section>
+            <div class="pdf-stage-footer">
+              <button type="button" class="dashboard-btn-primary pdf-stage-next" data-open-stage="pdfStageBuild">Continue to upload and preview</button>
+            </div>
+          </div>
+        </details>
 
+        <details class="pdf-stage-card" id="pdfStageBuild">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">2</span>
+            <span class="pdf-stage-copy"><strong>Build, personalise and preview</strong><em>Upload source files, edit data, generate and publish</em></span>
+            <span class="pdf-stage-status-group">
+              <span class="pdf-stage-state" id="pdfStageSourceState">Sample HTML</span>
+              <span class="pdf-stage-state is-success" id="pdfStageJsonState">Valid JSON</span>
+              <span class="pdf-stage-state" id="pdfStageOutputState">Not generated</span>
+            </span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
         <section class="pdf-workspace" aria-label="PDF personalisation workspace">
           <div class="pdf-editor-column">
             <section id="pdfHtmlModePanel" class="pdf-panel pdf-template-panel" aria-labelledby="pdfTemplateHeading">
@@ -84,11 +121,35 @@
               </div>
               <p id="pdfHtmlFileMeta" class="pdf-file-meta" hidden></p>
 
-              <label for="pdfHtmlEditor">Template HTML</label>
-              <textarea id="pdfHtmlEditor" class="pdf-code-editor" spellcheck="false" aria-describedby="pdfTemplateHelp"></textarea>
-              <p id="pdfTemplateHelp" class="pdf-field-help">
-                Static HTML only. Scripts, iframes, forms, insecure URLs, and private-host URLs are blocked. Remote images and styles must use HTTPS.
-              </p>
+              <details class="pdf-html-editor-details" id="pdfHtmlEditorDetails">
+                <summary>
+                  <span>
+                    <strong>Edit template HTML</strong>
+                    <em id="pdfHtmlEditorSummaryMeta">Click to open the syntax-coloured editor</em>
+                  </span>
+                  <span class="pdf-code-language-badge">HTML</span>
+                </summary>
+                <div class="pdf-html-editor-body">
+                  <div class="pdf-code-toolbar">
+                    <label for="pdfHtmlEditor">Template HTML</label>
+                    <div class="pdf-code-toolbar-actions">
+                      <span id="pdfHtmlCursorPosition">Line 1, column 1</span>
+                      <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfHtmlWrapToggle" aria-pressed="false">Wrap lines</button>
+                    </div>
+                  </div>
+                  <div class="pdf-html-code-shell" id="pdfHtmlCodeShell">
+                    <pre id="pdfHtmlHighlight" class="pdf-html-highlight" aria-hidden="true"><code></code></pre>
+                    <textarea id="pdfHtmlEditor" class="pdf-code-editor pdf-html-textarea" spellcheck="false" wrap="off" autocomplete="off" autocapitalize="off" aria-describedby="pdfTemplateHelp pdfHtmlEditorHelp"></textarea>
+                  </div>
+                  <div class="pdf-code-editor-footer">
+                    <span id="pdfHtmlEditorHelp">Use Tab to indent. Your source is preserved exactly as entered.</span>
+                    <span id="pdfHtmlEditorStats">0 lines · 0 characters</span>
+                  </div>
+                  <p id="pdfTemplateHelp" class="pdf-field-help">
+                    Static HTML only. Scripts, iframes, forms, insecure URLs, and private-host URLs are blocked. Remote images and styles must use HTTPS.
+                  </p>
+                </div>
+              </details>
 
               <details class="pdf-draft-details">
                 <summary>Saved HTML drafts</summary>
@@ -139,13 +200,8 @@
                   <span class="pdf-step">2</span>
                   <h3 id="pdfDataHeading">Personalisation and output</h3>
                 </div>
-                <div class="pdf-json-heading-actions">
-                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
-                  <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
-                </div>
               </div>
               <div id="pdfPersonalisationFields">
-                <label for="pdfDataEditor">JSON payload</label>
                 <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON or DOCX data file, or click to browse">
                   <input type="file" id="pdfJsonFile" accept=".json,.docx,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
                   <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
@@ -154,8 +210,37 @@
                   <span id="pdfJsonDropHelp" class="pdf-drop-description">JSON up to 1.5 MB or DOCX up to 10 MB</span>
                 </div>
                 <p id="pdfJsonFileMeta" class="pdf-file-meta" hidden></p>
-                <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
-                <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
+                <details class="pdf-html-editor-details pdf-json-editor-details" id="pdfJsonEditorDetails">
+                  <summary>
+                    <span>
+                      <strong>Edit personalisation JSON</strong>
+                      <em id="pdfJsonEditorSummaryMeta">Click to open the syntax-coloured editor</em>
+                    </span>
+                    <span class="pdf-code-summary-badges">
+                      <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                      <span class="pdf-code-language-badge">JSON</span>
+                    </span>
+                  </summary>
+                  <div class="pdf-html-editor-body">
+                    <div class="pdf-code-toolbar">
+                      <label for="pdfDataEditor">JSON payload</label>
+                      <div class="pdf-code-toolbar-actions">
+                        <span id="pdfJsonCursorPosition">Line 1, column 1</span>
+                        <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
+                        <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfJsonWrapToggle" aria-pressed="false">Wrap lines</button>
+                      </div>
+                    </div>
+                    <div class="pdf-html-code-shell pdf-json-code-shell" id="pdfJsonCodeShell">
+                      <pre id="pdfJsonHighlight" class="pdf-html-highlight pdf-json-highlight" aria-hidden="true"><code></code></pre>
+                      <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor pdf-html-textarea" spellcheck="false" wrap="off" autocomplete="off" autocapitalize="off" aria-describedby="pdfDataHelp pdfJsonEditorHelp"></textarea>
+                    </div>
+                    <div class="pdf-code-editor-footer">
+                      <span id="pdfJsonEditorHelp">Use Tab to indent. Invalid JSON is flagged immediately.</span>
+                      <span id="pdfJsonEditorStats">0 lines · 0 characters</span>
+                    </div>
+                    <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
+                  </div>
+                </details>
               </div>
 
               <div class="pdf-options-grid">
@@ -295,9 +380,20 @@
             </section>
           </aside>
         </section>
+            <div class="pdf-stage-footer">
+              <button type="button" class="dashboard-btn-outline pdf-stage-next" data-open-stage="pdfStageProcessing">See how processing and storage works</button>
+            </div>
+          </div>
+        </details>
 
-        <details class="pdf-runtime-details">
-          <summary>How PDF generation and storage works</summary>
+        <details class="pdf-stage-card pdf-processing-stage" id="pdfStageProcessing">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">3</span>
+            <span class="pdf-stage-copy"><strong>Processing and storage</strong><em>Understand validation, conversion, storage and handoff</em></span>
+            <span class="pdf-stage-state">DLZ · S3 · Google</span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
           <section class="pdf-flow-panel" aria-labelledby="pdfFlowHeading">
             <div>
               <span class="pdf-eyebrow">Runtime flow</span>
@@ -311,8 +407,20 @@
               <li><span>5</span><strong>Handoff</strong><em>DLZ path and opaque storage links returned for AJO and testing</em></li>
             </ol>
           </section>
+            <div class="pdf-stage-footer">
+              <button type="button" class="dashboard-btn-outline pdf-stage-next" data-open-stage="pdfStageReuse">Manage templates and delivery</button>
+            </div>
+          </div>
         </details>
 
+        <details class="pdf-stage-card" id="pdfStageReuse">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">4</span>
+            <span class="pdf-stage-copy"><strong>Reuse and deliver</strong><em>Manage templates, test email delivery and configure AJO</em></span>
+            <span class="pdf-stage-state" id="pdfStageTemplateState">Loading templates</span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
         <section class="pdf-custom-action-panel" aria-labelledby="pdfCustomActionHeading">
           <div class="pdf-custom-action-header">
             <div>
@@ -323,7 +431,12 @@
             <span class="pdf-scope-badge">HTML + document library</span>
           </div>
 
-          <section class="pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
+          <details class="pdf-reuse-details" id="pdfTemplateLibraryDetails">
+            <summary class="pdf-reuse-summary">
+              <span><strong>Published template library</strong><em>Review, copy and remove reusable journey templates</em></span>
+              <span class="pdf-reuse-state" id="pdfReuseTemplateCount">Loading…</span>
+            </summary>
+            <div class="pdf-reuse-body pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
             <div class="pdf-template-library-heading">
               <div>
                 <span class="pdf-eyebrow">Server template library</span>
@@ -349,10 +462,128 @@
               <strong>How execution works</strong>
               <span><b>HTML</b> merges the payload with Handlebars expressions such as <code>{{data.bookingReference}}</code>. <b>DOCX</b> merges JSON into Word tags. Other documents are converted directly and ignore personalisation data.</span>
             </div>
-          </section>
+            </div>
+          </details>
 
-          <details class="pdf-ajo-setup-details">
-            <summary class="pdf-ajo-setup-summary">
+          <details class="pdf-reuse-details" id="pdfJourneyTestDetails">
+            <summary class="pdf-reuse-summary">
+              <span><strong>Test transactional delivery</strong><em>Generate a personalised PDF and send it through AJO</em></span>
+              <span class="pdf-reuse-state">Ready to test</span>
+            </summary>
+            <div class="pdf-reuse-body pdf-journey-test" aria-labelledby="pdfJourneyTestHeading">
+            <div class="pdf-journey-test-heading">
+              <div>
+                <span class="pdf-eyebrow">Live transactional email test</span>
+                <h4 id="pdfJourneyTestHeading">Generate, attach and send from this page</h4>
+                <p>Select a published template and an API-triggered AJO campaign. The form changes to match the fields stored with that template.</p>
+              </div>
+              <span class="pdf-scope-badge">Uses the same cloud worker as AJO</span>
+            </div>
+
+            <details class="pdf-story-assist">
+              <summary class="pdf-story-assist-heading" title="Expand journey assistant">
+                <div>
+                  <span class="pdf-gemini-mark" aria-hidden="true">✦</span>
+                  <div>
+                    <h5 id="pdfStoryAssistHeading">Describe the journey</h5>
+                    <p>Write the booking or check-in story naturally. The assistant uses the selected template schema to populate the relevant recipient and personalisation fields.</p>
+                  </div>
+                </div>
+                <span class="pdf-code-language-badge">AI-assisted</span>
+              </summary>
+              <div class="pdf-story-assist-body">
+                <label for="pdfTestStory">Journey story</label>
+                <textarea id="pdfTestStory" rows="5" maxlength="8000" placeholder="Describe the traveller, journey and delivery details here.">Amelia Palmer is flying Riyadh Air RX 401 from Riyadh RUH Terminal 5 to Dubai DXB Terminal 2 on 12 August 2026. Boarding is 08:30, departure is 09:15, gate A12, seat 24A, zone 3 and booking reference RA8F2Q. Send the boarding pass to amelia@example.com.</textarea>
+                <div class="pdf-story-assist-footer">
+                  <span id="pdfTestStoryCount">0 / 8,000</span>
+                  <div>
+                    <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestStoryClear">Clear</button>
+                    <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestStoryExample">Load example</button>
+                    <button type="button" class="dashboard-btn-primary" id="pdfTestStoryGenerate"><span aria-hidden="true">✦</span> Populate fields</button>
+                  </div>
+                </div>
+                <p id="pdfTestStoryStatus" class="pdf-story-assist-status" aria-live="polite"></p>
+                <div id="pdfTestStoryMissing" class="pdf-story-missing" hidden></div>
+              </div>
+            </details>
+
+            <div class="pdf-journey-test-grid">
+              <div class="pdf-journey-test-form">
+                <div class="pdf-test-primary-fields">
+                  <div>
+                    <label for="pdfTestTemplate">Published template</label>
+                    <select id="pdfTestTemplate"><option value="">Loading templates…</option></select>
+                    <p id="pdfTestTemplateHint" class="pdf-field-help">Select a template to load its expected personalisation.</p>
+                  </div>
+                  <div>
+                    <label for="pdfTestCampaign">AJO transactional campaign</label>
+                    <select id="pdfTestCampaign"><option value="">Loading campaigns…</option></select>
+                    <p id="pdfTestCampaignHint" class="pdf-field-help">Campaigns are saved for your current Adobe sandbox.</p>
+                  </div>
+                </div>
+
+                <details class="pdf-test-campaign-manager" id="pdfTestCampaignManager">
+                  <summary>Manage campaign dropdown</summary>
+                  <div class="pdf-test-campaign-fields">
+                    <div><label for="pdfTestCampaignName">Friendly name</label><input id="pdfTestCampaignName" type="text" maxlength="120" placeholder="Booking confirmation email"></div>
+                    <div><label for="pdfTestCampaignId">Campaign ID</label><input id="pdfTestCampaignId" type="text" maxlength="100" placeholder="30f45cd3-da50-436c-ae46-d0ab8f521f14"></div>
+                    <button type="button" class="dashboard-btn-outline" id="pdfTestSaveCampaign">Add or update</button>
+                    <button type="button" class="dashboard-btn-outline" id="pdfTestRemoveCampaign">Remove selected</button>
+                  </div>
+                  <p id="pdfTestCampaignStatus" class="pdf-key-status" aria-live="polite"></p>
+                </details>
+
+                <div class="pdf-test-recipient-fields">
+                  <div><label for="pdfTestEmail">Recipient email <span aria-hidden="true">*</span></label><input id="pdfTestEmail" type="email" maxlength="320" value="adamp.adobedemo+11082026-1@gmail.com" required></div>
+                  <div><label for="pdfTestFirstName">First name <span aria-hidden="true">*</span></label><input id="pdfTestFirstName" type="text" maxlength="100" value="Amelia" required></div>
+                  <div><label for="pdfTestLastName">Last name</label><input id="pdfTestLastName" type="text" maxlength="100" value="Palmer"></div>
+                  <div><label for="pdfTestDocumentName">Attachment filename</label><input id="pdfTestDocumentName" type="text" maxlength="120" placeholder="boarding-pass.pdf"></div>
+                </div>
+
+                <div class="pdf-test-fields-heading">
+                  <div><h5>Template personalisation</h5><span id="pdfTestFieldCount">Choose a template</span></div>
+                  <div class="pdf-test-field-tools">
+                    <label class="pdf-test-cache-toggle" for="pdfTestUseLastValues"><input id="pdfTestUseLastValues" type="checkbox"> Use last values</label>
+                    <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestClearLastValues">Clear saved</button>
+                    <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestUseWorkspaceJson">Use workspace JSON</button>
+                  </div>
+                </div>
+                <p id="pdfTestCacheStatus" class="pdf-field-help pdf-test-cache-status">Last confirmed-send values are stored in this browser for 30 days.</p>
+                <div id="pdfTestDynamicFields" class="pdf-test-dynamic-fields">
+                  <p class="pdf-key-empty">Choose a published template to load its fields.</p>
+                </div>
+
+                <div class="pdf-test-send-actions">
+                  <button type="button" class="dashboard-btn-outline" id="pdfTestCopyPayload">Copy request JSON</button>
+                  <button type="button" class="dashboard-btn-primary" id="pdfTestSend">Generate PDF and send email</button>
+                </div>
+                <p id="pdfTestStatus" class="pdf-status" aria-live="polite" hidden></p>
+              </div>
+
+              <aside class="pdf-test-progress-card" aria-labelledby="pdfTestProgressHeading">
+                <div class="pdf-template-list-heading"><h5 id="pdfTestProgressHeading">Delivery progress</h5><span id="pdfTestProgressBadge">Ready</span></div>
+                <ol class="pdf-test-progress" id="pdfTestProgress">
+                  <li data-state="queued"><span>1</span><div><strong>Queue</strong><em>Validate and accept the request</em></div></li>
+                  <li data-state="processing"><span>2</span><div><strong>Generate</strong><em>Personalise the template with Adobe PDF Services</em></div></li>
+                  <li data-state="stored"><span>3</span><div><strong>Store</strong><em>Write the attachment to Adobe DLZ</em></div></li>
+                  <li data-state="sent"><span>4</span><div><strong>Send</strong><em>Execute the selected AJO campaign</em></div></li>
+                </ol>
+                <dl class="pdf-test-result" id="pdfTestResult" hidden>
+                  <div><dt>Job ID</dt><dd id="pdfTestResultJob"></dd></div>
+                  <div><dt>AJO execution</dt><dd id="pdfTestResultExecution"></dd></div>
+                  <div><dt>Attachment</dt><dd id="pdfTestResultAttachment"></dd></div>
+                </dl>
+                <div class="pdf-result-actions" id="pdfTestResultActions" hidden>
+                  <a id="pdfTestOpenPdf" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener">Open PDF</a>
+                  <a id="pdfTestDownloadPdf" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener">Download PDF</a>
+                </div>
+              </aside>
+            </div>
+            </div>
+          </details>
+
+          <details class="pdf-ajo-setup-details pdf-reuse-details">
+            <summary class="pdf-ajo-setup-summary pdf-reuse-summary">
               <span>
                 <strong>AJO custom-action setup</strong>
                 <em>One-time configuration · API key, endpoint, request and response payloads</em>
@@ -658,6 +889,9 @@
             </div>
           </details>
         </section>
+          </div>
+        </details>
+        </div>
       </main>
     </div>
   </div>
@@ -670,6 +904,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260811g"></script>
+  <script src="pdf-personalisation.js?v=20260813i"></script>
 </body>
 </html>

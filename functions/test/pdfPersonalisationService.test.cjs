@@ -235,6 +235,184 @@ test('allows portal users to manage their custom-action template library', async
   assert.equal(deleteRes.body.archived, true);
 });
 
+test('allows portal users to manage transactional campaign shortcuts', async () => {
+  const savedCalls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    listJourneyCampaigns: async (uid, sandbox) => [{
+      name: `${uid}:${sandbox}`, campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }],
+    saveJourneyCampaigns: async (uid, sandbox, campaigns) => {
+      savedCalls.push({ uid, sandbox, campaigns });
+      return campaigns;
+    },
+  });
+
+  const getReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/campaigns?sandbox=apalmer'), {
+    method: 'GET', query: { sandbox: 'apalmer' },
+  });
+  const getRes = response();
+  await handler(getReq, getRes);
+  assert.equal(getRes.statusCode, 200);
+  assert.equal(getRes.body.campaigns[0].name, 'user-1:apalmer');
+
+  const campaigns = [{ name: 'Booking email', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14' }];
+  const postReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/campaigns'), {
+    method: 'POST', body: { sandbox: 'apalmer', campaigns },
+  });
+  const postRes = response();
+  await handler(postReq, postRes);
+  assert.equal(postRes.statusCode, 200);
+  assert.deepEqual(savedCalls[0], { uid: 'user-1', sandbox: 'apalmer', campaigns });
+});
+
+test('uses Gemini to suggest only the selected template personalisation fields', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, templateName: name, ownerUid: uid, label: 'Boarding pass', documentName: 'pass.pdf',
+      inputSchema: [{ name: 'flightNumber', dataType: 'string', required: true }],
+      sampleData: { flightNumber: 'RX 123' },
+    }),
+    suggestJourneyStoryFields: async (input) => {
+      calls.push(input);
+      return { recipient: { firstName: 'Amelia' }, values: { flightNumber: 'RX 401' }, missingFields: [], summary: 'Flight extracted.', model: 'gemini-2.5-flash' };
+    },
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/story-assist'), {
+    method: 'POST',
+    body: { templateName: 'boarding-pass', story: 'Amelia is flying RX 401.', sandbox: 'apalmer' },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, 'suggested');
+  assert.equal(res.body.values.flightNumber, 'RX 401');
+  assert.equal(calls[0].ownerUid, 'user-1');
+  assert.deepEqual(calls[0].inputSchema, [{ name: 'flightNumber', dataType: 'string', required: true }]);
+});
+
+test('derives Gemini fields from legacy template mappings when inputSchema is missing', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, templateName: name, ownerUid: uid, label: 'Legacy boarding pass', documentName: 'pass.pdf',
+      inputSchema: [],
+      fieldMappings: [
+        { target: 'Flight Number', source: 'flightNumber', type: 'text', required: true },
+        { target: 'Seat', source: 'seat', type: 'text', required: false },
+      ],
+      sampleData: { flightNumber: 'RX 123', seat: '24A' },
+    }),
+    suggestJourneyStoryFields: async (input) => {
+      calls.push(input);
+      return { recipient: {}, values: { flightNumber: 'RX 401', seat: '24A' }, missingFields: [], summary: 'Flight extracted.', model: 'gemini-2.5-flash' };
+    },
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/story-assist'), {
+    method: 'POST',
+    body: { templateName: 'legacy-pass', story: 'Amelia is flying RX 401 in seat 24A.', sandbox: 'apalmer' },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(calls[0].inputSchema.map((field) => ({ name: field.name, required: field.required })), [
+    { name: 'flightNumber', required: true },
+    { name: 'seat', required: false },
+  ]);
+});
+
+test('queues a portal test send and exposes only its owner status', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, ownerUid: uid, kind: 'document', documentName: 'boarding-pass.pdf', sourceHash: 'a'.repeat(64),
+    }),
+    listJourneyCampaigns: async () => [{
+      name: 'Booking email', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }],
+    enqueueJourneyAction: async (body, deps) => {
+      calls.push({ body, deps });
+      return {
+        status: 'queued', jobId: 'a'.repeat(40), requestId: body.requestId,
+        templateName: body.templateName, campaignId: body.campaignId,
+      };
+    },
+    getJourneyActionRecord: async () => ({
+      requestedByUid: 'user-1', status: 'processing', jobId: 'a'.repeat(40), requestId: 'request-12345678',
+      templateName: 'boarding-pass', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }),
+    journeyActionResponse: (record) => ({ status: record.status, jobId: record.jobId }),
+  });
+  const body = {
+    requestId: 'request-12345678', templateName: 'boarding-pass',
+    campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14', emailAddress: 'traveller@example.com', data: {},
+  };
+  const sendReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/test-send'), {
+    method: 'POST', body,
+  });
+  const sendRes = response();
+  await handler(sendReq, sendRes);
+  assert.equal(sendRes.statusCode, 202);
+  assert.equal(calls[0].deps.requestedByUid, 'user-1');
+  assert.equal(calls[0].deps.templateOwnerUid, 'user-1');
+
+  const statusReq = Object.assign(request({}, `/api/pdf-personalisation/journey-action/test-status/${'a'.repeat(40)}`), {
+    method: 'GET', query: {},
+  });
+  const statusRes = response();
+  await handler(statusReq, statusRes);
+  assert.equal(statusRes.statusCode, 200);
+  assert.equal(statusRes.body.status, 'processing');
+  assert.equal(statusRes.body.pdf, null);
+});
+
+test('rejects portal test sends to campaigns outside the saved dropdown', async () => {
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, ownerUid: uid, kind: 'html', documentName: 'booking.pdf', sourceHash: 'a'.repeat(64),
+    }),
+    listJourneyCampaigns: async () => [{
+      name: 'Approved campaign', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }],
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/test-send'), {
+    method: 'POST',
+    body: {
+      requestId: 'request-12345678', templateName: 'booking-confirmation',
+      campaignId: '97b40686-ed37-4697-a137-10d18e4902f5', emailAddress: 'traveller@example.com', data: {},
+    },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error, 'PDF_JOURNEY_CAMPAIGN_NOT_SAVED');
+});
+
 test('rejects journey-scoped keys on manual PDF routes', async () => {
   const handler = service.createHandler({
     setCors() {},

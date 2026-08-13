@@ -73,8 +73,107 @@
     currency: 'GBP',
   };
 
+  const hostedPdfImageOptions = [
+    { field: 'Barcode', label: 'Riyadh boarding-pass barcode', path: 'assets/pdf-personalisation/riyadh-barcode.png' },
+    { field: 'FF_Image', label: 'Riyadh destination feature image', path: 'assets/pdf-personalisation/riyadh-feature-image.png' },
+    { field: 'Offer', label: 'Riyadh special-offer image', path: 'assets/pdf-personalisation/riyadh-offer.png' },
+  ];
+  const PDF_TEST_CACHE_KEY = 'aepPdfJourneyTestFieldCache.v1';
+  const PDF_TEST_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+  function hostedPdfImageUrl(path) {
+    return new URL(path, window.location.href).href;
+  }
+
+  function journeyTestCacheId(templateName) {
+    return `${currentSandbox() || 'default'}::${String(templateName || '').trim()}`;
+  }
+
+  function readJourneyTestCache() {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(PDF_TEST_CACHE_KEY) || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function writeJourneyTestCache(cache) {
+    try {
+      window.localStorage.setItem(PDF_TEST_CACHE_KEY, JSON.stringify(cache));
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function setJourneyTestCacheStatus(message) {
+    document.getElementById('pdfTestCacheStatus').textContent = message;
+  }
+
+  function saveJourneyTestValues(payload) {
+    const cache = readJourneyTestCache();
+    const cacheId = journeyTestCacheId(payload.templateName);
+    cache[cacheId] = {
+      savedAt: new Date().toISOString(),
+      campaignId: payload.campaignId,
+      emailAddress: payload.emailAddress,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      documentName: payload.documentName,
+      data: payload.data,
+    };
+    Object.keys(cache).forEach((key) => {
+      if (!cache[key] || Date.now() - Date.parse(cache[key].savedAt || 0) > PDF_TEST_CACHE_MAX_AGE_MS) delete cache[key];
+    });
+    return writeJourneyTestCache(cache);
+  }
+
+  function applyJourneyTestValues() {
+    const template = selectedTestTemplate();
+    const checkbox = document.getElementById('pdfTestUseLastValues');
+    if (!checkbox.checked || !template) return false;
+    const templateName = template.templateName || template.name;
+    const record = readJourneyTestCache()[journeyTestCacheId(templateName)];
+    if (!record || Date.now() - Date.parse(record.savedAt || 0) > PDF_TEST_CACHE_MAX_AGE_MS) {
+      checkbox.checked = false;
+      setJourneyTestCacheStatus('No saved values are available for this template and sandbox yet.');
+      return false;
+    }
+    renderTestDynamicFields(record.data || {});
+    document.getElementById('pdfTestEmail').value = record.emailAddress || '';
+    document.getElementById('pdfTestFirstName').value = record.firstName || '';
+    document.getElementById('pdfTestLastName').value = record.lastName || '';
+    document.getElementById('pdfTestDocumentName').value = record.documentName || template.documentName || `${templateName}.pdf`;
+    if (record.campaignId && journeyCampaignsAvailable.some((campaign) => campaign.campaignId === record.campaignId)) {
+      document.getElementById('pdfTestCampaign').value = record.campaignId;
+      syncTestCampaignManager();
+    }
+    setJourneyTestCacheStatus(`Last values restored from ${new Date(record.savedAt).toLocaleString()}.`);
+    return true;
+  }
+
+  function clearJourneyTestValues() {
+    const template = selectedTestTemplate();
+    if (!template) {
+      setJourneyTestCacheStatus('Choose a template before clearing saved values.');
+      return;
+    }
+    const cache = readJourneyTestCache();
+    delete cache[journeyTestCacheId(template.templateName || template.name)];
+    writeJourneyTestCache(cache);
+    document.getElementById('pdfTestUseLastValues').checked = false;
+    setJourneyTestCacheStatus('Saved values cleared for this template and sandbox.');
+  }
+
   const htmlEditor = document.getElementById('pdfHtmlEditor');
   const dataEditor = document.getElementById('pdfDataEditor');
+  const htmlEditorDetails = document.getElementById('pdfHtmlEditorDetails');
+  const jsonEditorDetails = document.getElementById('pdfJsonEditorDetails');
+  const htmlCodeShell = document.getElementById('pdfHtmlCodeShell');
+  const jsonCodeShell = document.getElementById('pdfJsonCodeShell');
+  const htmlHighlight = document.querySelector('#pdfHtmlHighlight code');
+  const jsonHighlight = document.querySelector('#pdfJsonHighlight code');
   const beautifyJsonButton = document.getElementById('pdfBeautifyJson');
   const templateSelect = document.getElementById('pdfSavedTemplate');
   const templateName = document.getElementById('pdfTemplateName');
@@ -91,6 +190,12 @@
   const authState = document.getElementById('pdfAuthState');
   const statusEl = document.getElementById('pdfWorkspaceStatus');
   const jsonState = document.getElementById('pdfJsonState');
+  const stageModeState = document.getElementById('pdfStageModeState');
+  const stageSourceState = document.getElementById('pdfStageSourceState');
+  const stageJsonState = document.getElementById('pdfStageJsonState');
+  const stageOutputState = document.getElementById('pdfStageOutputState');
+  const stageTemplateState = document.getElementById('pdfStageTemplateState');
+  const reuseTemplateCount = document.getElementById('pdfReuseTemplateCount');
   const previewButton = document.getElementById('pdfPreviewButton');
   const generateButton = document.getElementById('pdfGenerateButton');
   const previewFrame = document.getElementById('pdfPreviewFrame');
@@ -114,6 +219,9 @@
   let sourceDocument = null;
   let sourceHtmlFileName = '';
   let journeyTemplateAnalysis = null;
+  let journeyTemplatesAvailable = [];
+  let journeyCampaignsAvailable = [];
+  let activeJourneyTestJob = '';
 
   function conversionMode() {
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
@@ -173,6 +281,41 @@
     statusEl.hidden = !message;
     statusEl.textContent = message || '';
     statusEl.className = `pdf-status${kind ? ` is-${kind}` : ''}`;
+    if (kind === 'error') {
+      const activeStage = document.activeElement && document.activeElement.closest('.pdf-stage-card');
+      if (activeStage) activeStage.open = true;
+    }
+  }
+
+  function setStageState(element, message, kind) {
+    if (!element) return;
+    element.textContent = message;
+    element.classList.toggle('is-success', kind === 'success');
+    element.classList.toggle('is-error', kind === 'error');
+  }
+
+  function openStage(stageId, sourceButton) {
+    const target = document.getElementById(stageId);
+    if (!target) return;
+    const current = sourceButton && sourceButton.closest('.pdf-stage-card');
+    if (current && current !== target) current.open = false;
+    target.open = true;
+    window.requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  function bindStageNavigation() {
+    const stages = Array.from(document.querySelectorAll('.pdf-stage-card'));
+    stages.forEach((stage) => { stage.open = false; });
+    document.getElementById('pdfExpandAllStages').addEventListener('click', () => {
+      stages.forEach((stage) => { stage.open = true; });
+    });
+    document.getElementById('pdfCollapseAllStages').addEventListener('click', () => {
+      stages.forEach((stage) => { stage.open = false; });
+      document.querySelector('.pdf-stage-stack').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.querySelectorAll('.pdf-stage-next').forEach((button) => {
+      button.addEventListener('click', () => openStage(button.dataset.openStage, button));
+    });
   }
 
   function setBusy(busy) {
@@ -187,6 +330,180 @@
   function setAuthState(message, kind) {
     authState.textContent = message;
     authState.className = `pdf-auth-state${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function escapeCode(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function highlightHandlebars(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /{{{?[\s\S]*?}?}}/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      output += `<span class="pdf-syntax-handlebars">${escapeCode(match[0])}</span>`;
+      cursor = match.index + match[0].length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function highlightHtmlAttributes(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /([^\s=/>]+)(\s*=\s*)("[^"]*"|'[^']*'|[^\s>]+)/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      output += `<span class="pdf-syntax-attribute">${escapeCode(match[1])}</span>`;
+      output += `<span class="pdf-syntax-operator">${escapeCode(match[2])}</span>`;
+      output += `<span class="pdf-syntax-string">${highlightHandlebars(match[3])}</span>`;
+      cursor = match.index + match[0].length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function highlightHtmlTag(value) {
+    const match = String(value || '').match(/^(<\/?)([^\s/>]+)([\s\S]*?)(\/?>)$/);
+    if (!match) return escapeCode(value);
+    return `<span class="pdf-syntax-bracket">${escapeCode(match[1])}</span>`
+      + `<span class="pdf-syntax-tag">${escapeCode(match[2])}</span>`
+      + highlightHtmlAttributes(match[3])
+      + `<span class="pdf-syntax-bracket">${escapeCode(match[4])}</span>`;
+  }
+
+  function highlightCss(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /(\/\*[\s\S]*?\*\/|"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|#[0-9a-f]{3,8}\b|-?\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%|s|ms|deg)?\b|--?[a-z][\w-]*|[a-z-]+(?=\s*:))/gi;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      let className = 'pdf-syntax-css-value';
+      if (match[0].startsWith('/*')) className = 'pdf-syntax-comment';
+      else if (/^[a-z-]+$/i.test(match[0]) || match[0].startsWith('--')) className = 'pdf-syntax-css-property';
+      output += `<span class="${className}">${escapeCode(match[0])}</span>`;
+      cursor = match.index + match[0].length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function highlightHtmlSource(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /<style\b[^>]*>[\s\S]*?<\/style>|<!--[\s\S]*?-->|<!doctype[\s\S]*?>|<\/?[a-z][^>]*>|{{{?[\s\S]*?}?}}/gi;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += highlightHandlebars(source.slice(cursor, match.index));
+      const token = match[0];
+      if (/^<!--/.test(token)) {
+        output += `<span class="pdf-syntax-comment">${escapeCode(token)}</span>`;
+      } else if (/^<!doctype/i.test(token)) {
+        output += `<span class="pdf-syntax-doctype">${escapeCode(token)}</span>`;
+      } else if (/^<style\b/i.test(token)) {
+        const styleMatch = token.match(/^(<style\b[^>]*>)([\s\S]*)(<\/style>)$/i);
+        output += highlightHtmlTag(styleMatch[1]) + highlightCss(styleMatch[2]) + highlightHtmlTag(styleMatch[3]);
+      } else if (token.startsWith('{{')) {
+        output += `<span class="pdf-syntax-handlebars">${escapeCode(token)}</span>`;
+      } else {
+        output += highlightHtmlTag(token);
+      }
+      cursor = match.index + token.length;
+    }
+    return output + highlightHandlebars(source.slice(cursor));
+  }
+
+  function highlightJsonSource(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      const token = match[0];
+      let className = 'pdf-syntax-json-number';
+      if (token.startsWith('"')) className = /^\s*:/.test(source.slice(pattern.lastIndex)) ? 'pdf-syntax-json-key' : 'pdf-syntax-json-string';
+      else if (token === 'null') className = 'pdf-syntax-json-null';
+      else if (token === 'true' || token === 'false') className = 'pdf-syntax-json-boolean';
+      output += `<span class="${className}">${escapeCode(token)}</span>`;
+      cursor = match.index + token.length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function editorMetrics(editor) {
+    const value = editor.value || '';
+    const lines = value ? value.split('\n').length : 0;
+    const beforeCursor = value.slice(0, editor.selectionStart || 0).split('\n');
+    return {
+      characters: value.length,
+      lines,
+      line: beforeCursor.length,
+      column: beforeCursor[beforeCursor.length - 1].length + 1,
+    };
+  }
+
+  function syncEditor(editor, highlight, highlighter, prefix) {
+    const metrics = editorMetrics(editor);
+    highlight.innerHTML = `${highlighter(editor.value)}\n`;
+    highlight.parentElement.scrollTop = editor.scrollTop;
+    highlight.parentElement.scrollLeft = editor.scrollLeft;
+    document.getElementById(`pdf${prefix}EditorStats`).textContent = `${metrics.lines} ${metrics.lines === 1 ? 'line' : 'lines'} · ${metrics.characters} characters`;
+    document.getElementById(`pdf${prefix}CursorPosition`).textContent = `Line ${metrics.line}, column ${metrics.column}`;
+    document.getElementById(`pdf${prefix}EditorSummaryMeta`).textContent = metrics.characters
+      ? `${metrics.lines} ${metrics.lines === 1 ? 'line' : 'lines'} · ${metrics.characters} characters`
+      : 'Click to open the syntax-coloured editor';
+  }
+
+  function syncHtmlEditorHighlight() {
+    syncEditor(htmlEditor, htmlHighlight, highlightHtmlSource, 'Html');
+  }
+
+  function syncJsonEditorHighlight() {
+    syncEditor(dataEditor, jsonHighlight, highlightJsonSource, 'Json');
+  }
+
+  function bindCodeEditor(editor, highlight, shell, wrapButton, details, sync) {
+    editor.addEventListener('scroll', () => {
+      highlight.parentElement.scrollTop = editor.scrollTop;
+      highlight.parentElement.scrollLeft = editor.scrollLeft;
+    });
+    ['click', 'keyup', 'select'].forEach((eventName) => editor.addEventListener(eventName, sync));
+    editor.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      event.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.setRangeText('  ', start, end, 'end');
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    wrapButton.addEventListener('click', () => {
+      const wrapped = shell.classList.toggle('is-wrapped');
+      editor.wrap = wrapped ? 'soft' : 'off';
+      wrapButton.setAttribute('aria-pressed', String(wrapped));
+      wrapButton.textContent = wrapped ? 'Unwrap lines' : 'Wrap lines';
+      sync();
+      editor.focus();
+    });
+    details.addEventListener('toggle', () => { if (details.open) sync(); });
+  }
+
+  function bindCodeEditors() {
+    bindCodeEditor(htmlEditor, htmlHighlight, htmlCodeShell, document.getElementById('pdfHtmlWrapToggle'), htmlEditorDetails, syncHtmlEditorHighlight);
+    bindCodeEditor(dataEditor, jsonHighlight, jsonCodeShell, document.getElementById('pdfJsonWrapToggle'), jsonEditorDetails, syncJsonEditorHighlight);
+    syncHtmlEditorHighlight();
+    syncJsonEditorHighlight();
   }
 
   function parseData() {
@@ -209,10 +526,12 @@
       }
       jsonState.textContent = normalisedSmartQuotes ? 'Valid · smart quotes fixed' : 'Valid JSON';
       jsonState.classList.remove('is-error');
+      setStageState(stageJsonState, normalisedSmartQuotes ? 'JSON repaired' : 'Valid JSON', 'success');
       return value;
     } catch (error) {
       jsonState.textContent = 'Invalid JSON';
       jsonState.classList.add('is-error');
+      setStageState(stageJsonState, 'Invalid JSON', 'error');
       throw new Error(`Personalisation data is invalid: ${error.message}`);
     }
   }
@@ -221,6 +540,7 @@
     try {
       const data = parseData();
       dataEditor.value = JSON.stringify(data, null, 2);
+      syncJsonEditorHighlight();
       markRequestChanged();
       setStatus('JSON payload beautified and validated.', 'success');
     } catch (error) {
@@ -641,7 +961,12 @@
   function renderJourneyTemplates(templates) {
     journeyTemplateList.replaceChildren();
     const items = Array.isArray(templates) ? templates : [];
+    journeyTemplatesAvailable = items;
+    renderTestTemplateOptions();
     document.getElementById('pdfJourneyTemplateCount').textContent = `${items.length} available`;
+    const templateSummary = `${items.length} template${items.length === 1 ? '' : 's'}`;
+    setStageState(stageTemplateState, templateSummary, items.length ? 'success' : '');
+    setStageState(reuseTemplateCount, templateSummary, items.length ? 'success' : '');
     if (!items.length) {
       const empty = document.createElement('p');
       empty.className = 'pdf-key-empty';
@@ -695,6 +1020,8 @@
       renderJourneyTemplates(body.templates || []);
       setJourneyTemplateStatus(`${body.uploadedCount || 0} uploaded template${body.uploadedCount === 1 ? '' : 's'} plus built-in templates are ready.`);
     } catch (error) {
+      setStageState(stageTemplateState, 'Library unavailable', 'error');
+      setStageState(reuseTemplateCount, 'Unavailable', 'error');
       setJourneyTemplateStatus(error.message, 'error');
     }
   }
@@ -763,6 +1090,441 @@
     });
   }
 
+  function currentSandbox() {
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+    }
+    return '';
+  }
+
+  function selectedTestTemplate() {
+    const name = document.getElementById('pdfTestTemplate').value;
+    return journeyTemplatesAvailable.find((template) => (template.templateName || template.name) === name) || null;
+  }
+
+  function inputSchemaForTemplate(template) {
+    if (!template) return [];
+    if (Array.isArray(template.inputSchema) && template.inputSchema.length) return template.inputSchema;
+    const seen = new Set();
+    return (Array.isArray(template.fieldMappings) ? template.fieldMappings : []).reduce((fields, mapping) => {
+      const source = String(mapping && mapping.source || '').trim();
+      const name = source === 'carrierCode' ? 'flightNumber' : source === 'flightDate' ? 'departureDateTime' : source;
+      if (!name || seen.has(name)) return fields;
+      seen.add(name);
+      fields.push({
+        name,
+        label: name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (value) => value.toUpperCase()),
+        dataType: mapping.type === 'image' ? 'image' : 'string',
+        required: mapping.required === true,
+        recipientField: ['firstName', 'lastName', 'passengerName'].includes(name),
+        targetFields: [mapping.target],
+      });
+      return fields;
+    }, []);
+  }
+
+  function renderTestTemplateOptions() {
+    const select = document.getElementById('pdfTestTemplate');
+    if (!select) return;
+    const previous = select.value;
+    select.replaceChildren(new Option('Choose a published template', ''));
+    journeyTemplatesAvailable.forEach((template) => {
+      const name = template.templateName || template.name;
+      const label = `${template.label || name} · ${template.kind === 'document' ? 'DOCX/document' : 'HTML'} · v${template.version || 1}`;
+      select.add(new Option(label, name));
+    });
+    if (previous && journeyTemplatesAvailable.some((template) => (template.templateName || template.name) === previous)) {
+      select.value = previous;
+    } else if (journeyTemplatesAvailable.length) {
+      const uploaded = journeyTemplatesAvailable.find((template) => template.source === 'uploaded');
+      select.value = (uploaded || journeyTemplatesAvailable[0]).templateName || (uploaded || journeyTemplatesAvailable[0]).name;
+    }
+    renderTestDynamicFields();
+  }
+
+  function renderTestDynamicFields(values) {
+    const template = selectedTestTemplate();
+    const container = document.getElementById('pdfTestDynamicFields');
+    if (!container) return;
+    container.replaceChildren();
+    if (!template) {
+      container.innerHTML = '<p class="pdf-key-empty">Choose a published template to load its fields.</p>';
+      document.getElementById('pdfTestFieldCount').textContent = 'Choose a template';
+      return;
+    }
+    const schema = inputSchemaForTemplate(template).filter((field) => !field.recipientField);
+    const defaults = {
+      ...(template.sampleData && typeof template.sampleData === 'object' ? template.sampleData : {}),
+      ...(values && typeof values === 'object' ? values : {}),
+    };
+    schema.forEach((field) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = `pdf-test-field${field.required ? ' is-required' : ''}${field.dataType === 'image' ? ' is-image' : ''}`;
+      const label = document.createElement('label');
+      const inputId = `pdfTestData_${field.name.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+      label.htmlFor = inputId;
+      label.textContent = field.label || field.name;
+      const input = document.createElement(field.dataType === 'image' ? 'select' : 'input');
+      input.id = inputId;
+      input.dataset.pdfTestField = field.name;
+      input.dataset.pdfTestType = field.dataType || 'string';
+      input.required = field.required === true;
+      if (field.dataType === 'image') {
+        input.add(new Option('Choose a hosted image', ''));
+        hostedPdfImageOptions.forEach((asset) => input.add(new Option(asset.label, hostedPdfImageUrl(asset.path))));
+      } else {
+        input.type = field.dataType === 'decimal' ? 'number' : 'text';
+        if (field.dataType === 'decimal') input.step = 'any';
+        input.placeholder = field.dataType === 'dateTime' ? '2026-08-12T09:15:00+03:00' : '';
+      }
+      const value = defaults[field.name] == null || defaults[field.name] === ''
+        ? field.sampleValue
+        : defaults[field.name];
+      input.value = value == null ? '' : String(value);
+      if (field.dataType === 'image' && !input.value) {
+        const preferred = hostedPdfImageOptions.find((asset) => asset.field.toLowerCase() === String(field.name).toLowerCase());
+        if (preferred) input.value = hostedPdfImageUrl(preferred.path);
+      }
+      wrapper.append(label, input);
+      if (field.dataType === 'image') {
+        const imageHint = document.createElement('small');
+        imageHint.textContent = 'Choose an image already published on AEP Orchestration Lab Hosting.';
+        wrapper.appendChild(imageHint);
+      }
+      if (field.targetFields && field.targetFields.length) {
+        const hint = document.createElement('small');
+        hint.textContent = `Used by: ${field.targetFields.join(', ')}`;
+        wrapper.appendChild(hint);
+      }
+      container.appendChild(wrapper);
+    });
+    document.getElementById('pdfTestFieldCount').textContent = `${schema.length} field${schema.length === 1 ? '' : 's'} · ${schema.filter((field) => field.required).length} required`;
+    document.getElementById('pdfTestTemplateHint').textContent = `${template.label || template.templateName} · ${template.source === 'builtin' ? 'built-in' : 'server upload'} · version ${template.version || 1}`;
+    document.getElementById('pdfTestDocumentName').value = template.documentName || `${template.templateName || template.name}.pdf`;
+  }
+
+  function renderTestCampaignOptions() {
+    const select = document.getElementById('pdfTestCampaign');
+    const previous = select.value;
+    select.replaceChildren(new Option('Choose a transactional campaign', ''));
+    journeyCampaignsAvailable.forEach((campaign) => {
+      select.add(new Option(`${campaign.name} · ${campaign.campaignId}`, campaign.campaignId));
+    });
+    if (previous && journeyCampaignsAvailable.some((campaign) => campaign.campaignId === previous)) select.value = previous;
+    else if (journeyCampaignsAvailable.length) select.value = journeyCampaignsAvailable[0].campaignId;
+    syncTestCampaignManager();
+  }
+
+  function syncTestCampaignManager() {
+    const campaignId = document.getElementById('pdfTestCampaign').value;
+    const campaign = journeyCampaignsAvailable.find((item) => item.campaignId === campaignId);
+    document.getElementById('pdfTestCampaignName').value = campaign ? campaign.name : '';
+    document.getElementById('pdfTestCampaignId').value = campaign ? campaign.campaignId : '';
+    document.getElementById('pdfTestCampaignHint').textContent = campaign
+      ? `${campaign.name} · current sandbox: ${currentSandbox() || 'default'}`
+      : 'Add or select an activated API-triggered email campaign.';
+  }
+
+  async function loadJourneyCampaigns() {
+    const sandbox = currentSandbox();
+    try {
+      const query = sandbox ? `?sandbox=${encodeURIComponent(sandbox)}` : '';
+      const { body } = await api(`/journey-action/campaigns${query}`, { method: 'GET' });
+      journeyCampaignsAvailable = Array.isArray(body.campaigns) ? body.campaigns : [];
+      renderTestCampaignOptions();
+      document.getElementById('pdfTestCampaignStatus').textContent = `${journeyCampaignsAvailable.length} campaign${journeyCampaignsAvailable.length === 1 ? '' : 's'} available for ${sandbox || 'the default sandbox'}.`;
+    } catch (error) {
+      journeyCampaignsAvailable = [];
+      renderTestCampaignOptions();
+      document.getElementById('pdfTestCampaignStatus').textContent = error.message;
+    }
+  }
+
+  async function persistJourneyCampaigns() {
+    const { body } = await api('/journey-action/campaigns', {
+      method: 'POST',
+      body: JSON.stringify({ sandbox: currentSandbox(), campaigns: journeyCampaignsAvailable }),
+    });
+    journeyCampaignsAvailable = body.campaigns || [];
+    renderTestCampaignOptions();
+  }
+
+  async function saveJourneyCampaign() {
+    const status = document.getElementById('pdfTestCampaignStatus');
+    try {
+      const name = document.getElementById('pdfTestCampaignName').value.trim();
+      const campaignId = document.getElementById('pdfTestCampaignId').value.trim();
+      if (!name) throw new Error('Enter a friendly campaign name.');
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
+        throw new Error('Campaign ID must be a valid UUID.');
+      }
+      const existing = journeyCampaignsAvailable.find((item) => item.campaignId === campaignId);
+      if (existing) existing.name = name;
+      else journeyCampaignsAvailable.push({ name, campaignId });
+      await persistJourneyCampaigns();
+      document.getElementById('pdfTestCampaign').value = campaignId;
+      syncTestCampaignManager();
+      status.textContent = `Saved “${name}” for ${currentSandbox() || 'the default sandbox'}.`;
+    } catch (error) {
+      status.textContent = error.message;
+    }
+  }
+
+  async function removeJourneyCampaign() {
+    const select = document.getElementById('pdfTestCampaign');
+    if (!select.value) return;
+    journeyCampaignsAvailable = journeyCampaignsAvailable.filter((campaign) => campaign.campaignId !== select.value);
+    await persistJourneyCampaigns();
+    document.getElementById('pdfTestCampaignStatus').textContent = 'Campaign removed from this dropdown.';
+  }
+
+  function currentTestFieldValues() {
+    const values = {};
+    document.querySelectorAll('[data-pdf-test-field]').forEach((input) => {
+      const raw = input.value.trim();
+      if (raw === '') return;
+      values[input.dataset.pdfTestField] = input.dataset.pdfTestType === 'decimal' ? Number(raw) : raw;
+    });
+    return values;
+  }
+
+  function setStoryAssistStatus(message, kind) {
+    const status = document.getElementById('pdfTestStoryStatus');
+    status.textContent = message || '';
+    status.className = `pdf-story-assist-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function renderStoryMissingFields(fields) {
+    const container = document.getElementById('pdfTestStoryMissing');
+    container.replaceChildren();
+    const items = Array.isArray(fields) ? fields : [];
+    container.hidden = !items.length;
+    if (!items.length) return;
+    const intro = document.createElement('span');
+    intro.textContent = 'Still needed';
+    container.appendChild(intro);
+    items.forEach((name) => {
+      const chip = document.createElement('span');
+      chip.textContent = name;
+      container.appendChild(chip);
+    });
+  }
+
+  async function populateTestFieldsWithGemini() {
+    const button = document.getElementById('pdfTestStoryGenerate');
+    try {
+      const template = selectedTestTemplate();
+      if (!template) throw new Error('Choose a published template before describing the journey.');
+      const story = document.getElementById('pdfTestStory').value.trim();
+      if (story.length < 10) throw new Error('Describe the traveller and journey in at least 10 characters.');
+      button.disabled = true;
+      button.innerHTML = '<span aria-hidden="true">✦</span> Reading the story…';
+      renderStoryMissingFields([]);
+      setStoryAssistStatus('Matching the story to the selected template fields…', 'working');
+      const { body } = await api('/journey-action/story-assist', {
+        method: 'POST',
+        body: JSON.stringify({
+          sandbox: currentSandbox(),
+          templateName: template.templateName || template.name,
+          story,
+          recipient: {
+            emailAddress: document.getElementById('pdfTestEmail').value.trim(),
+            firstName: document.getElementById('pdfTestFirstName').value.trim(),
+            lastName: document.getElementById('pdfTestLastName').value.trim(),
+            documentName: document.getElementById('pdfTestDocumentName').value.trim(),
+          },
+        }),
+      });
+      renderTestDynamicFields({ ...currentTestFieldValues(), ...(body.values || {}) });
+      const recipient = body.recipient || {};
+      if (recipient.emailAddress) document.getElementById('pdfTestEmail').value = recipient.emailAddress;
+      if (recipient.firstName) document.getElementById('pdfTestFirstName').value = recipient.firstName;
+      if (recipient.lastName) document.getElementById('pdfTestLastName').value = recipient.lastName;
+      if (recipient.documentName) document.getElementById('pdfTestDocumentName').value = recipient.documentName;
+      const populatedValues = currentTestFieldValues();
+      renderStoryMissingFields((body.missingFields || []).filter((name) => !populatedValues[name]));
+      const filledCount = Object.keys(body.values || {}).length + Object.keys(recipient).length;
+      setStoryAssistStatus(`${body.summary} Populated ${filledCount} field${filledCount === 1 ? '' : 's'}. Review them below before sending.`, 'success');
+    } catch (error) {
+      setStoryAssistStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+      button.innerHTML = '<span aria-hidden="true">✦</span> Populate fields';
+    }
+  }
+
+  function clearStoryAssist() {
+    const story = document.getElementById('pdfTestStory');
+    story.value = '';
+    document.getElementById('pdfTestStoryCount').textContent = '0 / 8,000';
+    renderStoryMissingFields([]);
+    setStoryAssistStatus('');
+    story.focus();
+  }
+
+  function loadStoryAssistExample() {
+    const story = document.getElementById('pdfTestStory');
+    story.value = story.defaultValue.trim();
+    document.getElementById('pdfTestStoryCount').textContent = `${story.value.length.toLocaleString()} / 8,000`;
+    renderStoryMissingFields([]);
+    setStoryAssistStatus('Example restored. Edit any detail or populate the fields.');
+    story.focus();
+  }
+
+  function useWorkspaceJsonForTest() {
+    try {
+      const data = parseData();
+      renderTestDynamicFields(data);
+      const passenger = data.passenger && typeof data.passenger === 'object' ? data.passenger : {};
+      document.getElementById('pdfTestFirstName').value = data.firstName || passenger.firstName || document.getElementById('pdfTestFirstName').value;
+      document.getElementById('pdfTestLastName').value = data.lastName || passenger.lastName || document.getElementById('pdfTestLastName').value;
+      setJourneyTestStatus('Workspace JSON loaded into the selected template fields.', 'success');
+    } catch (error) {
+      setJourneyTestStatus(error.message, 'error');
+    }
+  }
+
+  function journeyTestPayload() {
+    const template = selectedTestTemplate();
+    const campaignId = document.getElementById('pdfTestCampaign').value;
+    if (!template) throw new Error('Choose a published template.');
+    if (!campaignId) throw new Error('Choose an AJO transactional campaign.');
+    const emailAddress = document.getElementById('pdfTestEmail').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress)) throw new Error('Enter a valid recipient email address.');
+    const data = {};
+    document.querySelectorAll('[data-pdf-test-field]').forEach((input) => {
+      if (input.required && !input.value.trim()) throw new Error(`${input.previousElementSibling.textContent.replace('*', '').trim()} is required.`);
+      if (input.value.trim() !== '') data[input.dataset.pdfTestField] = input.dataset.pdfTestType === 'decimal'
+        ? Number(input.value)
+        : input.value.trim();
+    });
+    return {
+      requestId: `portal-pdf-${uniqueKey()}`,
+      templateName: template.templateName || template.name,
+      campaignId,
+      emailAddress,
+      firstName: document.getElementById('pdfTestFirstName').value.trim(),
+      lastName: document.getElementById('pdfTestLastName').value.trim(),
+      documentName: document.getElementById('pdfTestDocumentName').value.trim() || template.documentName,
+      data,
+    };
+  }
+
+  function setJourneyTestStatus(message, kind) {
+    const status = document.getElementById('pdfTestStatus');
+    status.hidden = !message;
+    status.textContent = message || '';
+    status.className = `pdf-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function setJourneyTestProgress(state, error) {
+    const completeThrough = { queued: -1, processing: 0, stored: 2, sent: 3 }[state] ?? -1;
+    const active = { queued: 0, processing: 1, stored: 3 }[state];
+    document.querySelectorAll('#pdfTestProgress li').forEach((item, index) => {
+      item.classList.toggle('is-complete', index <= completeThrough);
+      item.classList.toggle('is-active', !error && active === index);
+      item.classList.toggle('is-error', !!error && index === (active == null ? Math.max(0, completeThrough + 1) : active));
+    });
+    document.getElementById('pdfTestProgressBadge').textContent = error ? 'Failed' : state === 'sent' ? 'Email accepted' : state || 'Ready';
+  }
+
+  function showJourneyTestResult(result) {
+    document.getElementById('pdfTestResult').hidden = false;
+    document.getElementById('pdfTestResultJob').textContent = result.jobId || activeJourneyTestJob;
+    document.getElementById('pdfTestResultExecution').textContent = result.ajoExecutionId || 'Pending';
+    const pdf = result.pdf;
+    document.getElementById('pdfTestResultAttachment').textContent = pdf && pdf.storageLocations && pdf.storageLocations.dlz
+      ? pdf.storageLocations.dlz.uri || pdf.storageLocations.dlz.objectPath
+      : 'Pending';
+    if (pdf) {
+      const actions = document.getElementById('pdfTestResultActions');
+      actions.hidden = false;
+      document.getElementById('pdfTestOpenPdf').href = pdf.previewUrl;
+      document.getElementById('pdfTestDownloadPdf').href = pdf.downloadUrl;
+    }
+  }
+
+  async function pollJourneyTest(jobId) {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (attempt) await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      const { body } = await api(`/journey-action/test-status/${encodeURIComponent(jobId)}`, { method: 'GET' });
+      showJourneyTestResult(body);
+      if (body.status === 'sent') return body;
+      if (body.status === 'failed') throw new Error(body.error && body.error.message || 'PDF generation or AJO campaign execution failed.');
+      setJourneyTestProgress(body.pdfJobId ? 'stored' : body.status === 'queued' ? 'queued' : 'processing');
+    }
+    throw new Error('The delivery is still processing. Keep the job ID and refresh its status later.');
+  }
+
+  async function sendJourneyTest() {
+    const button = document.getElementById('pdfTestSend');
+    try {
+      const payload = journeyTestPayload();
+      setJourneyTestCacheStatus(saveJourneyTestValues(payload)
+        ? 'These values are saved in this browser and can be restored with Use last values.'
+        : 'The browser could not save these values. The message can still be sent.');
+      button.disabled = true;
+      document.getElementById('pdfTestResult').hidden = true;
+      document.getElementById('pdfTestResultActions').hidden = true;
+      setJourneyTestProgress('queued');
+      setJourneyTestStatus('Request accepted. Generating the personalised PDF and preparing the AJO attachment…', 'working');
+      const { body } = await api('/journey-action/test-send', {
+        method: 'POST', body: JSON.stringify({ ...payload, sandbox: currentSandbox() }),
+      });
+      activeJourneyTestJob = body.jobId;
+      showJourneyTestResult(body);
+      const result = await pollJourneyTest(body.jobId);
+      setJourneyTestProgress('sent');
+      setJourneyTestStatus(`AJO accepted the campaign execution for ${payload.emailAddress}. Execution ID: ${result.ajoExecutionId}`, 'success');
+    } catch (error) {
+      setJourneyTestProgress('processing', true);
+      setJourneyTestStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function copyJourneyTestPayload() {
+    try {
+      const payload = journeyTestPayload();
+      await copyText(JSON.stringify(payload, null, 2), document.getElementById('pdfTestCopyPayload'), 'Copy request JSON');
+      setJourneyTestStatus('Fresh request payload copied. A new request ID will be generated again when you send.', 'success');
+    } catch (error) {
+      setJourneyTestStatus(error.message, 'error');
+    }
+  }
+
+  function bindJourneyTestSender() {
+    document.getElementById('pdfTestTemplate').addEventListener('change', () => {
+      renderTestDynamicFields();
+      if (document.getElementById('pdfTestUseLastValues').checked) applyJourneyTestValues();
+      renderStoryMissingFields([]);
+      setStoryAssistStatus('Template changed. The assistant will now target this template’s fields.');
+    });
+    document.getElementById('pdfTestCampaign').addEventListener('change', syncTestCampaignManager);
+    document.getElementById('pdfTestSaveCampaign').addEventListener('click', saveJourneyCampaign);
+    document.getElementById('pdfTestRemoveCampaign').addEventListener('click', () => removeJourneyCampaign().catch((error) => setJourneyTestStatus(error.message, 'error')));
+    document.getElementById('pdfTestUseWorkspaceJson').addEventListener('click', useWorkspaceJsonForTest);
+    document.getElementById('pdfTestUseLastValues').addEventListener('change', (event) => {
+      if (event.target.checked) applyJourneyTestValues();
+      else setJourneyTestCacheStatus('Last confirmed-send values are stored in this browser for 30 days.');
+    });
+    document.getElementById('pdfTestClearLastValues').addEventListener('click', clearJourneyTestValues);
+    document.getElementById('pdfTestCopyPayload').addEventListener('click', copyJourneyTestPayload);
+    document.getElementById('pdfTestSend').addEventListener('click', sendJourneyTest);
+    document.getElementById('pdfTestStoryGenerate').addEventListener('click', populateTestFieldsWithGemini);
+    document.getElementById('pdfTestStoryClear').addEventListener('click', clearStoryAssist);
+    document.getElementById('pdfTestStoryExample').addEventListener('click', loadStoryAssistExample);
+    document.getElementById('pdfTestStory').addEventListener('input', (event) => {
+      document.getElementById('pdfTestStoryCount').textContent = `${event.target.value.length.toLocaleString()} / 8,000`;
+    });
+    const initialStory = document.getElementById('pdfTestStory').value;
+    document.getElementById('pdfTestStoryCount').textContent = `${initialStory.length.toLocaleString()} / 8,000`;
+    window.addEventListener('aep-global-sandbox-change', () => {
+      if (authUser) loadJourneyCampaigns().catch(() => {});
+    });
+  }
+
   function loadSample() {
     conversionModeSelect.value = 'html';
     applyConversionMode();
@@ -770,8 +1532,11 @@
     htmlEditor.disabled = false;
     htmlEditor.value = sampleHtml;
     dataEditor.value = JSON.stringify(sampleData, null, 2);
+    syncHtmlEditorHighlight();
+    syncJsonEditorHighlight();
     templateName.value = 'Travel booking confirmation v1';
     sourceHtmlFileName = '';
+    setStageState(stageSourceState, 'Sample HTML');
     syncJourneyTemplateDefaults('travel-booking-confirmation.html', true);
     document.getElementById('pdfJourneyTemplateSubject').value = 'Your booking confirmation';
     document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
@@ -789,6 +1554,7 @@
   function markRequestChanged() {
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     resultPanel.hidden = true;
+    setStageState(stageOutputState, 'Not generated');
     documentPreviewFrame.removeAttribute('src');
     documentPreviewFrame.hidden = true;
     openPreviewLink.removeAttribute('href');
@@ -806,6 +1572,7 @@
     if (templateSelect.value) templateSelect.value = '';
     htmlEditor.disabled = false;
     dropZone.setAttribute('aria-disabled', 'false');
+    syncHtmlEditorHighlight();
     markRequestChanged();
   }
 
@@ -814,7 +1581,9 @@
     if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') throw new Error('Choose an .html or .htm file.');
     if (file.size > MAX_HTML_BYTES) throw new Error('HTML file exceeds 1.5 MB.');
     htmlEditor.value = await file.text();
+    htmlEditorDetails.open = true;
     sourceHtmlFileName = file.name;
+    setStageState(stageSourceState, file.name, 'success');
     templateName.value = file.name.replace(/\.html?$/i, '');
     syncJourneyTemplateDefaults(file.name, true);
     setDropZoneLoaded(dropZone, file.name, file.size, 'HTML');
@@ -844,6 +1613,8 @@
           }),
         });
         dataEditor.value = JSON.stringify(body.data || {}, null, 2);
+        jsonEditorDetails.open = true;
+        syncJsonEditorHighlight();
         parseData();
         setDropZoneLoaded(jsonDropZone, file.name, file.size, 'DOCX → JSON');
         jsonFileMeta.hidden = true;
@@ -862,6 +1633,8 @@
     dataEditor.value = await file.text();
     const data = parseData();
     dataEditor.value = JSON.stringify(data, null, 2);
+    jsonEditorDetails.open = true;
+    syncJsonEditorHighlight();
     setDropZoneLoaded(jsonDropZone, file.name, file.size, 'JSON');
     jsonFileMeta.hidden = true;
     if (conversionMode() === 'document') updateDocumentOperation();
@@ -895,6 +1668,7 @@
       mimeType: file.type || '',
       base64: await fileAsBase64(file),
     };
+    setStageState(stageSourceState, file.name, 'success');
     syncJourneyTemplateDefaults(file.name, true);
     const documentMerge = extension === 'docx' && Object.keys(parseData()).length > 0;
     updateDocumentOperation();
@@ -912,6 +1686,14 @@
 
   function applyConversionMode() {
     const documentMode = conversionMode() === 'document';
+    setStageState(stageModeState, documentMode ? 'Document to PDF' : 'HTML to PDF', 'success');
+    setStageState(
+      stageSourceState,
+      documentMode
+        ? (sourceDocument ? sourceDocument.fileName : 'Add document')
+        : (sourceHtmlFileName || 'Sample HTML'),
+      documentMode && !sourceDocument ? '' : 'success',
+    );
     document.getElementById('pdfHtmlModePanel').hidden = documentMode;
     document.getElementById('pdfDocumentModePanel').hidden = !documentMode;
     document.getElementById('pdfPersonalisationFields').hidden = false;
@@ -994,8 +1776,11 @@
       const { body } = await api(`/templates/${encodeURIComponent(templateId)}`, { method: 'GET' });
       htmlEditor.value = body.htmlTemplate || '';
       dataEditor.value = JSON.stringify(body.defaultData || {}, null, 2);
+      syncHtmlEditorHighlight();
+      syncJsonEditorHighlight();
       templateName.value = body.name || '';
       sourceHtmlFileName = body.sourceFileName || '';
+      setStageState(stageSourceState, sourceHtmlFileName || body.name || 'Saved HTML', 'success');
       syncJourneyTemplateDefaults(sourceHtmlFileName || `${body.name || 'travel-template'}.html`, true);
       htmlEditor.disabled = true;
       dropZone.setAttribute('aria-disabled', 'true');
@@ -1088,6 +1873,7 @@
 
   function showResult(result) {
     lastResult = result;
+    setStageState(stageOutputState, 'PDF ready', 'success');
     resultPanel.hidden = false;
     document.getElementById('pdfResultSize').textContent = formatBytes(result.size);
     document.getElementById('pdfResultJob').textContent = result.jobId;
@@ -1152,6 +1938,7 @@
   async function generatePdf() {
     try {
       setBusy(true);
+      setStageState(stageOutputState, 'Generating…');
       setStatus(
         conversionMode() === 'document'
           ? 'Merging DOCX data or converting the source document with Adobe PDF Services. This can take up to a minute...'
@@ -1173,6 +1960,7 @@
         'success',
       );
     } catch (error) {
+      setStageState(stageOutputState, 'Generation failed', 'error');
       setStatus(error.message, 'error');
     } finally {
       setBusy(false);
@@ -1286,14 +2074,18 @@
   }
 
   async function init() {
+    bindStageNavigation();
+    bindCodeEditors();
     loadSample();
     bindFileDrop();
     bindCustomActionSetup();
     bindJourneyTemplateLibrary();
+    bindJourneyTestSender();
     conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
       jsonFileMeta.hidden = true;
+      syncJsonEditorHighlight();
       try { parseData(); } catch (_error) {}
       if (conversionMode() === 'document') updateDocumentOperation();
       markRequestChanged();
@@ -1313,7 +2105,7 @@
     authUser = await waitForAuth();
     if (authUser && !authUser.isAnonymous && authUser.email) {
       setAuthState(authUser.email, 'ready');
-      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates()]);
+      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates(), loadJourneyCampaigns()]);
     } else {
       setAuthState('Authorised sign-in required', 'error');
       setStatus('Sign in to the AEP Orchestration Lab with apalmer@adobe.com before saving templates or generating PDFs.', 'error');

@@ -84,6 +84,8 @@ async function validateJourneyTemplatePublication(input, deps = {}) {
   return {
     analysis,
     mappings,
+    sampleData,
+    recipient,
     mappedData,
     pageCount,
     expectedPageCount,
@@ -500,6 +502,12 @@ function createHandler(deps) {
           sourceFile: body.sourceFile,
           fieldDefinitions: validation.analysis.fields,
           fieldMappings: validation.mappings,
+          inputSchema: journeyTemplateContract.buildInputSchema(
+            validation.mappings,
+            validation.sampleData,
+            validation.recipient,
+          ),
+          sampleData: validation.sampleData,
           expectedPageCount: validation.expectedPageCount,
           validation: {
             pageCount: validation.pageCount,
@@ -528,6 +536,131 @@ function createHandler(deps) {
         res.status(200).json(await callJourneyKeyStore(
           () => required.archiveJourneyTemplate(principal.ownerUid, templateName, { sandbox }),
         ));
+        return;
+      }
+
+      if (path === '/journey-action/campaigns' && req.method === 'GET') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const sandbox = scopedSandbox(principal, req.query && req.query.sandbox);
+        const campaigns = await required.listJourneyCampaigns(principal.ownerUid, sandbox);
+        res.status(200).json({ campaigns, sandbox });
+        return;
+      }
+
+      if (path === '/journey-action/campaigns' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
+        const campaigns = await required.saveJourneyCampaigns(principal.ownerUid, sandbox, body.campaigns);
+        res.status(200).json({ campaigns, sandbox });
+        return;
+      }
+
+      if (path === '/journey-action/story-assist' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
+        const resolvedTemplate = await required.resolveJourneyTemplateMetadata(body.templateName, principal.ownerUid);
+        if (resolvedTemplate.sandbox && sandbox && resolvedTemplate.sandbox !== sandbox) {
+          throw new core.PdfPersonalisationError(
+            'The selected template belongs to a different Adobe sandbox.',
+            403,
+            'PDF_JOURNEY_TEMPLATE_SANDBOX_FORBIDDEN',
+          );
+        }
+        if (typeof required.suggestJourneyStoryFields !== 'function') {
+          throw new core.PdfPersonalisationError('Story assistance is unavailable.', 503, 'PDF_STORY_ASSIST_UNAVAILABLE');
+        }
+        try {
+          const storedInputSchema = Array.isArray(resolvedTemplate.inputSchema) ? resolvedTemplate.inputSchema : [];
+          const inputSchema = storedInputSchema.length
+            ? storedInputSchema
+            : journeyTemplateContract.buildInputSchema(
+              resolvedTemplate.fieldMappings || [],
+              resolvedTemplate.sampleData || {},
+              body.recipient || {},
+            );
+          const suggestion = await required.suggestJourneyStoryFields({
+            ownerUid: principal.ownerUid,
+            story: body.story,
+            templateName: resolvedTemplate.templateName || resolvedTemplate.name,
+            templateLabel: resolvedTemplate.label,
+            documentName: resolvedTemplate.documentName,
+            inputSchema,
+            defaults: resolvedTemplate.sampleData || {},
+            recipient: body.recipient,
+          });
+          res.status(200).json({ status: 'suggested', templateName: resolvedTemplate.templateName || resolvedTemplate.name, ...suggestion });
+        } catch (error) {
+          const status = Number(error && error.status) || 502;
+          throw new core.PdfPersonalisationError(
+            String(error && error.message || 'The assistant could not interpret this story.'),
+            status,
+            String(error && error.code || 'PDF_STORY_ASSIST_FAILED'),
+          );
+        }
+        return;
+      }
+
+      const portalJourneyStatusMatch = path.match(/^\/journey-action\/test-status\/([a-f0-9]{40})$/);
+      if (portalJourneyStatusMatch && req.method === 'GET') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const record = await (required.getJourneyActionRecord || journeyAction.getRecord)(
+          portalJourneyStatusMatch[1],
+          required,
+        );
+        if (!record || record.requestedByUid !== principal.ownerUid) {
+          throw new core.PdfPersonalisationError('Journey PDF job was not found.', 404, 'PDF_JOURNEY_JOB_NOT_FOUND');
+        }
+        const status = (required.journeyActionResponse || journeyAction.statusResponse)(record);
+        let pdf = null;
+        if (record.pdfJobId) {
+          const pdfRecord = await (required.getPdfJob || store.getJob)(record.pdfJobId, required);
+          if (pdfRecord && pdfRecord.ownerUid === principal.ownerUid) {
+            pdf = await responseForReadyJob(pdfRecord, req, required);
+          }
+        }
+        res.status(200).json({ ...status, pdf });
+        return;
+      }
+
+      if (path === '/journey-action/test-send' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
+        const resolvedTemplate = await required.resolveJourneyTemplateMetadata(body.templateName, principal.ownerUid);
+        if (resolvedTemplate.sandbox && sandbox && resolvedTemplate.sandbox !== sandbox) {
+          throw new core.PdfPersonalisationError(
+            'The selected template belongs to a different Adobe sandbox.',
+            403,
+            'PDF_JOURNEY_TEMPLATE_SANDBOX_FORBIDDEN',
+          );
+        }
+        const campaigns = await required.listJourneyCampaigns(principal.ownerUid, sandbox);
+        if (!campaigns.some((campaign) => campaign.campaignId === String(body.campaignId || '').trim())) {
+          throw new core.PdfPersonalisationError(
+            'Choose a campaign saved in the transactional campaign dropdown.',
+            400,
+            'PDF_JOURNEY_CAMPAIGN_NOT_SAVED',
+          );
+        }
+        const queued = await (required.enqueueJourneyAction || journeyAction.enqueue)(body, {
+          ...required,
+          resolvedTemplate,
+          templateOwnerUid: principal.ownerUid,
+          requestedByUid: principal.ownerUid,
+        });
+        res.status(queued.reused ? 200 : 202).json(queued);
         return;
       }
 
@@ -573,6 +706,7 @@ function createHandler(deps) {
           ...required,
           ...(resolvedTemplate ? { resolvedTemplate } : {}),
           templateOwnerUid: principal.ownerUid || null,
+          requestedByUid: principal.ownerUid || null,
         });
         res.status(queued.reused ? 200 : 202).json(queued);
         return;

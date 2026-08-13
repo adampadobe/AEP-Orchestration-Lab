@@ -14,6 +14,37 @@ const CANONICAL_SOURCES = Object.freeze([
   'Barcode', 'FF_Image', 'Offer',
 ]);
 
+const CANONICAL_SOURCE_DEFINITIONS = Object.freeze({
+  bookingReference: { label: 'Booking reference', dataType: 'string' },
+  ticketNumber: { label: 'Ticket number', dataType: 'string' },
+  flightNumber: { label: 'Flight number', dataType: 'string' },
+  carrierCode: { label: 'Carrier code', dataType: 'string' },
+  flightDate: { label: 'Flight date', dataType: 'string' },
+  firstName: { label: 'First name', dataType: 'string', recipientField: true },
+  lastName: { label: 'Last name', dataType: 'string', recipientField: true },
+  passengerName: { label: 'Passenger name', dataType: 'string', recipientField: true },
+  departureAirport: { label: 'Departure airport code', dataType: 'string' },
+  arrivalAirport: { label: 'Arrival airport code', dataType: 'string' },
+  originCity: { label: 'Origin city', dataType: 'string' },
+  destinationCity: { label: 'Destination city', dataType: 'string' },
+  departureAirportName: { label: 'Departure airport name', dataType: 'string' },
+  arrivalAirportName: { label: 'Arrival airport name', dataType: 'string' },
+  departureTerminal: { label: 'Departure terminal', dataType: 'string' },
+  arrivalTerminal: { label: 'Arrival terminal', dataType: 'string' },
+  departureDateTime: { label: 'Departure date and time', dataType: 'dateTime' },
+  arrivalDateTime: { label: 'Arrival date and time', dataType: 'dateTime' },
+  boardingTime: { label: 'Boarding time', dataType: 'string' },
+  departureTime: { label: 'Display departure time', dataType: 'string' },
+  gate: { label: 'Boarding gate', dataType: 'string' },
+  seat: { label: 'Seat number', dataType: 'string' },
+  zone: { label: 'Boarding zone', dataType: 'string' },
+  totalPaid: { label: 'Total paid', dataType: 'decimal' },
+  currency: { label: 'Currency', dataType: 'string' },
+  Barcode: { label: 'Barcode image', dataType: 'image' },
+  FF_Image: { label: 'Feature image', dataType: 'image' },
+  Offer: { label: 'Offer image', dataType: 'image' },
+});
+
 const FIELD_ALIASES = Object.freeze({
   flight: 'carrierCode',
   flightnumber: 'flightNumber',
@@ -263,8 +294,33 @@ function validateMappedData(data, mappings) {
   return { missing: [] };
 }
 
+function buildInputSchema(mappings, sampleData = {}, recipient = {}) {
+  const context = canonicalContext(sampleData, recipient);
+  const bySource = new Map();
+  (Array.isArray(mappings) ? mappings : []).forEach((mapping) => {
+    const source = String(mapping && mapping.source || '').trim();
+    if (!source || !CANONICAL_SOURCES.includes(source)) return;
+    const inputName = source === 'carrierCode' ? 'flightNumber' : source === 'flightDate' ? 'departureDateTime' : source;
+    const definition = CANONICAL_SOURCE_DEFINITIONS[inputName] || { label: inputName, dataType: 'string' };
+    const existing = bySource.get(inputName) || {
+      name: inputName,
+      label: definition.label,
+      dataType: mapping.type === 'image' ? 'image' : definition.dataType,
+      required: false,
+      recipientField: definition.recipientField === true,
+      targetFields: [],
+      sampleValue: context[inputName] == null ? '' : context[inputName],
+    };
+    existing.required = existing.required || mapping.required === true;
+    if (mapping.target && !existing.targetFields.includes(mapping.target)) existing.targetFields.push(mapping.target);
+    bySource.set(inputName, existing);
+  });
+  return Array.from(bySource.values());
+}
+
 module.exports = {
   CANONICAL_SOURCES,
+  CANONICAL_SOURCE_DEFINITIONS,
   extractDocxFields,
   extractHtmlFields,
   suggestSource,
@@ -273,4 +329,5 @@ module.exports = {
   canonicalContext,
   applyMappings,
   validateMappedData,
+  buildInputSchema,
 };
