@@ -1,14 +1,14 @@
 {
-  "gitSha": "596083b0d8561da344c3e084b59cec9f7a670b7b",
-  "gitShortSha": "596083b0",
-  "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Stamp PDF MCP release build",
+  "gitSha": "e993ab204ada8f03751674e949d77a0cccd4e933",
+  "gitShortSha": "e993ab20",
+  "gitBranch": "codex/pdf-portal-test-send-20260813",
+  "gitCommitSubject": "[apalmer] Add PDF transactional test sender",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-12T11:48:43+03:00",
-  "deployedAt": "2026-08-12T08:49:28.355Z",
+  "gitCommitDate": "2026-08-13T09:17:27+03:00",
+  "deployedAt": "2026-08-13T06:18:22.351Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 0,
+  "aheadOfOrigin": 1,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/596083b0d8561da344c3e084b59cec9f7a670b7b"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e993ab204ada8f03751674e949d77a0cccd4e933"
 }
