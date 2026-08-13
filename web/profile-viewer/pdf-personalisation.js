@@ -97,6 +97,12 @@
   const authState = document.getElementById('pdfAuthState');
   const statusEl = document.getElementById('pdfWorkspaceStatus');
   const jsonState = document.getElementById('pdfJsonState');
+  const stageModeState = document.getElementById('pdfStageModeState');
+  const stageSourceState = document.getElementById('pdfStageSourceState');
+  const stageJsonState = document.getElementById('pdfStageJsonState');
+  const stageOutputState = document.getElementById('pdfStageOutputState');
+  const stageTemplateState = document.getElementById('pdfStageTemplateState');
+  const reuseTemplateCount = document.getElementById('pdfReuseTemplateCount');
   const previewButton = document.getElementById('pdfPreviewButton');
   const generateButton = document.getElementById('pdfGenerateButton');
   const previewFrame = document.getElementById('pdfPreviewFrame');
@@ -182,6 +188,41 @@
     statusEl.hidden = !message;
     statusEl.textContent = message || '';
     statusEl.className = `pdf-status${kind ? ` is-${kind}` : ''}`;
+    if (kind === 'error') {
+      const activeStage = document.activeElement && document.activeElement.closest('.pdf-stage-card');
+      if (activeStage) activeStage.open = true;
+    }
+  }
+
+  function setStageState(element, message, kind) {
+    if (!element) return;
+    element.textContent = message;
+    element.classList.toggle('is-success', kind === 'success');
+    element.classList.toggle('is-error', kind === 'error');
+  }
+
+  function openStage(stageId, sourceButton) {
+    const target = document.getElementById(stageId);
+    if (!target) return;
+    const current = sourceButton && sourceButton.closest('.pdf-stage-card');
+    if (current && current !== target) current.open = false;
+    target.open = true;
+    window.requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  function bindStageNavigation() {
+    const stages = Array.from(document.querySelectorAll('.pdf-stage-card'));
+    stages.forEach((stage) => { stage.open = false; });
+    document.getElementById('pdfExpandAllStages').addEventListener('click', () => {
+      stages.forEach((stage) => { stage.open = true; });
+    });
+    document.getElementById('pdfCollapseAllStages').addEventListener('click', () => {
+      stages.forEach((stage) => { stage.open = false; });
+      document.querySelector('.pdf-stage-stack').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.querySelectorAll('.pdf-stage-next').forEach((button) => {
+      button.addEventListener('click', () => openStage(button.dataset.openStage, button));
+    });
   }
 
   function setBusy(busy) {
@@ -392,10 +433,12 @@
       }
       jsonState.textContent = normalisedSmartQuotes ? 'Valid · smart quotes fixed' : 'Valid JSON';
       jsonState.classList.remove('is-error');
+      setStageState(stageJsonState, normalisedSmartQuotes ? 'JSON repaired' : 'Valid JSON', 'success');
       return value;
     } catch (error) {
       jsonState.textContent = 'Invalid JSON';
       jsonState.classList.add('is-error');
+      setStageState(stageJsonState, 'Invalid JSON', 'error');
       throw new Error(`Personalisation data is invalid: ${error.message}`);
     }
   }
@@ -828,6 +871,9 @@
     journeyTemplatesAvailable = items;
     renderTestTemplateOptions();
     document.getElementById('pdfJourneyTemplateCount').textContent = `${items.length} available`;
+    const templateSummary = `${items.length} template${items.length === 1 ? '' : 's'}`;
+    setStageState(stageTemplateState, templateSummary, items.length ? 'success' : '');
+    setStageState(reuseTemplateCount, templateSummary, items.length ? 'success' : '');
     if (!items.length) {
       const empty = document.createElement('p');
       empty.className = 'pdf-key-empty';
@@ -881,6 +927,8 @@
       renderJourneyTemplates(body.templates || []);
       setJourneyTemplateStatus(`${body.uploadedCount || 0} uploaded template${body.uploadedCount === 1 ? '' : 's'} plus built-in templates are ready.`);
     } catch (error) {
+      setStageState(stageTemplateState, 'Library unavailable', 'error');
+      setStageState(reuseTemplateCount, 'Unavailable', 'error');
       setJourneyTemplateStatus(error.message, 'error');
     }
   }
@@ -1273,6 +1321,7 @@
     syncJsonEditorHighlight();
     templateName.value = 'Travel booking confirmation v1';
     sourceHtmlFileName = '';
+    setStageState(stageSourceState, 'Sample HTML');
     syncJourneyTemplateDefaults('travel-booking-confirmation.html', true);
     document.getElementById('pdfJourneyTemplateSubject').value = 'Your booking confirmation';
     document.getElementById('pdfDocumentName').value = 'booking-confirmation.pdf';
@@ -1290,6 +1339,7 @@
   function markRequestChanged() {
     document.getElementById('pdfIdempotencyKey').value = uniqueKey();
     resultPanel.hidden = true;
+    setStageState(stageOutputState, 'Not generated');
     documentPreviewFrame.removeAttribute('src');
     documentPreviewFrame.hidden = true;
     openPreviewLink.removeAttribute('href');
@@ -1318,6 +1368,7 @@
     htmlEditor.value = await file.text();
     htmlEditorDetails.open = true;
     sourceHtmlFileName = file.name;
+    setStageState(stageSourceState, file.name, 'success');
     templateName.value = file.name.replace(/\.html?$/i, '');
     syncJourneyTemplateDefaults(file.name, true);
     setDropZoneLoaded(dropZone, file.name, file.size, 'HTML');
@@ -1402,6 +1453,7 @@
       mimeType: file.type || '',
       base64: await fileAsBase64(file),
     };
+    setStageState(stageSourceState, file.name, 'success');
     syncJourneyTemplateDefaults(file.name, true);
     const documentMerge = extension === 'docx' && Object.keys(parseData()).length > 0;
     updateDocumentOperation();
@@ -1419,6 +1471,14 @@
 
   function applyConversionMode() {
     const documentMode = conversionMode() === 'document';
+    setStageState(stageModeState, documentMode ? 'Document to PDF' : 'HTML to PDF', 'success');
+    setStageState(
+      stageSourceState,
+      documentMode
+        ? (sourceDocument ? sourceDocument.fileName : 'Add document')
+        : (sourceHtmlFileName || 'Sample HTML'),
+      documentMode && !sourceDocument ? '' : 'success',
+    );
     document.getElementById('pdfHtmlModePanel').hidden = documentMode;
     document.getElementById('pdfDocumentModePanel').hidden = !documentMode;
     document.getElementById('pdfPersonalisationFields').hidden = false;
@@ -1505,6 +1565,7 @@
       syncJsonEditorHighlight();
       templateName.value = body.name || '';
       sourceHtmlFileName = body.sourceFileName || '';
+      setStageState(stageSourceState, sourceHtmlFileName || body.name || 'Saved HTML', 'success');
       syncJourneyTemplateDefaults(sourceHtmlFileName || `${body.name || 'travel-template'}.html`, true);
       htmlEditor.disabled = true;
       dropZone.setAttribute('aria-disabled', 'true');
@@ -1597,6 +1658,7 @@
 
   function showResult(result) {
     lastResult = result;
+    setStageState(stageOutputState, 'PDF ready', 'success');
     resultPanel.hidden = false;
     document.getElementById('pdfResultSize').textContent = formatBytes(result.size);
     document.getElementById('pdfResultJob').textContent = result.jobId;
@@ -1661,6 +1723,7 @@
   async function generatePdf() {
     try {
       setBusy(true);
+      setStageState(stageOutputState, 'Generating…');
       setStatus(
         conversionMode() === 'document'
           ? 'Merging DOCX data or converting the source document with Adobe PDF Services. This can take up to a minute...'
@@ -1682,6 +1745,7 @@
         'success',
       );
     } catch (error) {
+      setStageState(stageOutputState, 'Generation failed', 'error');
       setStatus(error.message, 'error');
     } finally {
       setBusy(false);
@@ -1795,6 +1859,7 @@
   }
 
   async function init() {
+    bindStageNavigation();
     bindCodeEditors();
     loadSample();
     bindFileDrop();

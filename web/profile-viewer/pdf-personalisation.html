@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813b">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -49,6 +49,26 @@
 
         <div id="pdfWorkspaceStatus" class="pdf-status" role="status" aria-live="polite" hidden></div>
 
+        <section class="pdf-stage-controls" aria-label="Workspace section controls">
+          <div>
+            <span class="pdf-eyebrow">Workspace sections</span>
+            <p>Open only the capability you need. Your files, payload and results remain available when a section is collapsed.</p>
+          </div>
+          <div class="pdf-stage-control-actions">
+            <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfExpandAllStages">Expand all</button>
+            <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfCollapseAllStages">Collapse all</button>
+          </div>
+        </section>
+
+        <div class="pdf-stage-stack">
+        <details class="pdf-stage-card" id="pdfStageMode">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">1</span>
+            <span class="pdf-stage-copy"><strong>Choose conversion</strong><em>Select HTML-to-PDF or Document-to-PDF</em></span>
+            <span class="pdf-stage-state" id="pdfStageModeState">HTML to PDF</span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
         <section class="pdf-mode-panel" aria-labelledby="pdfModeHeading">
           <div>
             <span class="pdf-eyebrow">Conversion mode</span>
@@ -63,7 +83,24 @@
           </div>
           <p id="pdfModeHelp">Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.</p>
         </section>
+            <div class="pdf-stage-footer">
+              <button type="button" class="dashboard-btn-primary pdf-stage-next" data-open-stage="pdfStageBuild">Continue to upload and preview</button>
+            </div>
+          </div>
+        </details>
 
+        <details class="pdf-stage-card" id="pdfStageBuild">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">2</span>
+            <span class="pdf-stage-copy"><strong>Build, personalise and preview</strong><em>Upload source files, edit data, generate and publish</em></span>
+            <span class="pdf-stage-status-group">
+              <span class="pdf-stage-state" id="pdfStageSourceState">Sample HTML</span>
+              <span class="pdf-stage-state is-success" id="pdfStageJsonState">Valid JSON</span>
+              <span class="pdf-stage-state" id="pdfStageOutputState">Not generated</span>
+            </span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
         <section class="pdf-workspace" aria-label="PDF personalisation workspace">
           <div class="pdf-editor-column">
             <section id="pdfHtmlModePanel" class="pdf-panel pdf-template-panel" aria-labelledby="pdfTemplateHeading">
@@ -343,9 +380,20 @@
             </section>
           </aside>
         </section>
+            <div class="pdf-stage-footer">
+              <button type="button" class="dashboard-btn-outline pdf-stage-next" data-open-stage="pdfStageProcessing">See how processing and storage works</button>
+            </div>
+          </div>
+        </details>
 
-        <details class="pdf-runtime-details">
-          <summary>How PDF generation and storage works</summary>
+        <details class="pdf-stage-card pdf-processing-stage" id="pdfStageProcessing">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">3</span>
+            <span class="pdf-stage-copy"><strong>Processing and storage</strong><em>Understand validation, conversion, storage and handoff</em></span>
+            <span class="pdf-stage-state">DLZ · S3 · Google</span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
           <section class="pdf-flow-panel" aria-labelledby="pdfFlowHeading">
             <div>
               <span class="pdf-eyebrow">Runtime flow</span>
@@ -359,8 +407,20 @@
               <li><span>5</span><strong>Handoff</strong><em>DLZ path and opaque storage links returned for AJO and testing</em></li>
             </ol>
           </section>
+            <div class="pdf-stage-footer">
+              <button type="button" class="dashboard-btn-outline pdf-stage-next" data-open-stage="pdfStageReuse">Manage templates and delivery</button>
+            </div>
+          </div>
         </details>
 
+        <details class="pdf-stage-card" id="pdfStageReuse">
+          <summary class="pdf-stage-summary">
+            <span class="pdf-stage-number">4</span>
+            <span class="pdf-stage-copy"><strong>Reuse and deliver</strong><em>Manage templates, test email delivery and configure AJO</em></span>
+            <span class="pdf-stage-state" id="pdfStageTemplateState">Loading templates</span>
+            <span class="pdf-stage-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="pdf-stage-body">
         <section class="pdf-custom-action-panel" aria-labelledby="pdfCustomActionHeading">
           <div class="pdf-custom-action-header">
             <div>
@@ -371,7 +431,12 @@
             <span class="pdf-scope-badge">HTML + document library</span>
           </div>
 
-          <section class="pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
+          <details class="pdf-reuse-details" id="pdfTemplateLibraryDetails">
+            <summary class="pdf-reuse-summary">
+              <span><strong>Published template library</strong><em>Review, copy and remove reusable journey templates</em></span>
+              <span class="pdf-reuse-state" id="pdfReuseTemplateCount">Loading…</span>
+            </summary>
+            <div class="pdf-reuse-body pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
             <div class="pdf-template-library-heading">
               <div>
                 <span class="pdf-eyebrow">Server template library</span>
@@ -397,9 +462,15 @@
               <strong>How execution works</strong>
               <span><b>HTML</b> merges the payload with Handlebars expressions such as <code>{{data.bookingReference}}</code>. <b>DOCX</b> merges JSON into Word tags. Other documents are converted directly and ignore personalisation data.</span>
             </div>
-          </section>
+            </div>
+          </details>
 
-          <section class="pdf-journey-test" aria-labelledby="pdfJourneyTestHeading">
+          <details class="pdf-reuse-details" id="pdfJourneyTestDetails">
+            <summary class="pdf-reuse-summary">
+              <span><strong>Test transactional delivery</strong><em>Generate a personalised PDF and send it through AJO</em></span>
+              <span class="pdf-reuse-state">Ready to test</span>
+            </summary>
+            <div class="pdf-reuse-body pdf-journey-test" aria-labelledby="pdfJourneyTestHeading">
             <div class="pdf-journey-test-heading">
               <div>
                 <span class="pdf-eyebrow">Live transactional email test</span>
@@ -476,10 +547,11 @@
                 </div>
               </aside>
             </div>
-          </section>
+            </div>
+          </details>
 
-          <details class="pdf-ajo-setup-details">
-            <summary class="pdf-ajo-setup-summary">
+          <details class="pdf-ajo-setup-details pdf-reuse-details">
+            <summary class="pdf-ajo-setup-summary pdf-reuse-summary">
               <span>
                 <strong>AJO custom-action setup</strong>
                 <em>One-time configuration · API key, endpoint, request and response payloads</em>
@@ -785,6 +857,9 @@
             </div>
           </details>
         </section>
+          </div>
+        </details>
+        </div>
       </main>
     </div>
   </div>
@@ -797,6 +872,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260813b"></script>
+  <script src="pdf-personalisation.js?v=20260813c"></script>
 </body>
 </html>
