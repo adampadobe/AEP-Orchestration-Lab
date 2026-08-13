@@ -137,6 +137,52 @@ test('submits ZIP to HTMLToPDFJob and validates returned PDF bytes', async () =>
   ]);
 });
 
+test('retries transient Adobe PDF Services gateway failures with exponential backoff', async () => {
+  let attempts = 0;
+  const sleeps = [];
+  const result = await core.withPdfServicesRetry(async () => {
+    attempts += 1;
+    if (attempts < 3) {
+      const error = new Error('The Gateway servers are up, but overloaded with requests.');
+      error.statusCode = 503;
+      throw error;
+    }
+    return 'ready';
+  }, {
+    sleep: async (milliseconds) => sleeps.push(milliseconds),
+    warn: () => {},
+  });
+  assert.equal(result, 'ready');
+  assert.equal(attempts, 3);
+  assert.deepEqual(sleeps, [1_000, 2_000]);
+});
+
+test('does not retry permanent Adobe PDF Services authentication errors', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    core.withPdfServicesRetry(async () => {
+      attempts += 1;
+      const error = new Error('Unauthorized');
+      error.statusCode = 401;
+      throw error;
+    }, { sleep: async () => {}, warn: () => {} }),
+    (error) => error.statusCode === 401,
+  );
+  assert.equal(attempts, 1);
+});
+
+test('returns a stable error after Adobe PDF Services transient retries are exhausted', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    core.withPdfServicesRetry(async () => {
+      attempts += 1;
+      throw new Error('Gateway error (http status code=503)');
+    }, { sleep: async () => {}, warn: () => {} }),
+    (error) => error.code === 'PDF_SERVICES_TEMPORARILY_UNAVAILABLE' && error.status === 503,
+  );
+  assert.equal(attempts, 4);
+});
+
 test('normalises a supported source document and derives its PDF name', () => {
   const input = core.normaliseGenerateRequest({
     conversionMode: 'document',

@@ -12,6 +12,9 @@ const MAX_DOCUMENT_MERGE_DATA_BYTES = 8 * 1024 * 1024;
 const MAX_RENDERED_HTML_BYTES = 2_000_000;
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 const MAX_SOURCE_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const PDF_SERVICES_MAX_ATTEMPTS = 4;
+const PDF_SERVICES_RETRY_BASE_MS = 1_000;
+const PDF_SERVICES_TRANSIENT_STATUSES = new Set([429, 502, 503, 504]);
 
 const SUPPORTED_SOURCE_DOCUMENTS = Object.freeze({
   bmp: 'image/bmp',
@@ -450,6 +453,63 @@ function validatePdfBuffer(value) {
   return pdf;
 }
 
+function pdfServicesStatus(error) {
+  const candidates = [
+    error && error.statusCode,
+    error && error.httpStatusCode,
+    error && error.status,
+    error && error.response && error.response.status,
+  ];
+  for (const candidate of candidates) {
+    const status = Number(candidate);
+    if (Number.isInteger(status) && status >= 100 && status <= 599) return status;
+  }
+  const match = String(error && error.message || '').match(/(?:http status code|status(?: code)?)\s*[=:]\s*(\d{3})/i);
+  return match ? Number(match[1]) : null;
+}
+
+function isTransientPdfServicesError(error) {
+  const status = pdfServicesStatus(error);
+  if (PDF_SERVICES_TRANSIENT_STATUSES.has(status)) return true;
+  const code = String(error && error.code || '').toUpperCase();
+  if (['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN'].includes(code)) return true;
+  return /gateway servers|temporarily unavailable|service unavailable|overloaded with requests|socket hang up|network timeout/i
+    .test(String(error && error.message || ''));
+}
+
+async function withPdfServicesRetry(operation, deps = {}) {
+  const sleep = deps.sleep || ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+  const warn = deps.warn || console.warn;
+  for (let attempt = 1; attempt <= PDF_SERVICES_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const transient = isTransientPdfServicesError(error);
+      if (!transient) throw error;
+      if (attempt === PDF_SERVICES_MAX_ATTEMPTS) {
+        throw new PdfPersonalisationError(
+          `Adobe PDF Services is temporarily unavailable after ${PDF_SERVICES_MAX_ATTEMPTS} attempts. Please try again.`,
+          503,
+          'PDF_SERVICES_TEMPORARILY_UNAVAILABLE',
+        );
+      }
+      const delayMs = PDF_SERVICES_RETRY_BASE_MS * (2 ** (attempt - 1));
+      warn('[pdfPersonalisation] transient Adobe PDF Services response', JSON.stringify({
+        attempt,
+        nextAttempt: attempt + 1,
+        status: pdfServicesStatus(error),
+        delayMs,
+      }));
+      await sleep(delayMs);
+    }
+  }
+  throw new PdfPersonalisationError(
+    'Adobe PDF Services is temporarily unavailable. Please try again.',
+    503,
+    'PDF_SERVICES_TEMPORARILY_UNAVAILABLE',
+  );
+}
+
 async function convertHtmlZipToPdf(zipBuffer, options, credentials, deps = {}) {
   const sdk = deps.pdfSdk || require('@adobe/pdfservices-node-sdk');
   const clientId = String(credentials && credentials.clientId || '').trim();
@@ -463,28 +523,30 @@ async function convertHtmlZipToPdf(zipBuffer, options, credentials, deps = {}) {
   }
   const serviceCredentials = new sdk.ServicePrincipalCredentials({ clientId, clientSecret });
   const pdfServices = deps.pdfServices || new sdk.PDFServices({ credentials: serviceCredentials });
-  const inputAsset = await pdfServices.upload({
-    readStream: Readable.from(Buffer.from(zipBuffer)),
-    mimeType: sdk.MimeType.ZIP,
-  });
   const settings = normaliseOptions(options);
-  const params = new sdk.HTMLToPDFParams({
-    pageLayout: new sdk.PageLayout({
-      pageWidth: settings.pageWidth,
-      pageHeight: settings.pageHeight,
-    }),
-    includeHeaderFooter: settings.includeHeaderFooter,
-    waitTimeToLoad: settings.waitTimeToLoad,
+  return withPdfServicesRetry(async () => {
+    const inputAsset = await pdfServices.upload({
+      readStream: Readable.from(Buffer.from(zipBuffer)),
+      mimeType: sdk.MimeType.ZIP,
+    });
+    const params = new sdk.HTMLToPDFParams({
+      pageLayout: new sdk.PageLayout({
+        pageWidth: settings.pageWidth,
+        pageHeight: settings.pageHeight,
+      }),
+      includeHeaderFooter: settings.includeHeaderFooter,
+      waitTimeToLoad: settings.waitTimeToLoad,
+    });
+    const pollingURL = await pdfServices.submit({
+      job: new sdk.HTMLToPDFJob({ inputAsset, params }),
+    });
+    const response = await pdfServices.getJobResult({
+      pollingURL,
+      resultType: sdk.HTMLToPDFResult,
+    });
+    const streamAsset = await pdfServices.getContent({ asset: response.result.asset });
+    return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
   });
-  const pollingURL = await pdfServices.submit({
-    job: new sdk.HTMLToPDFJob({ inputAsset, params }),
-  });
-  const response = await pdfServices.getJobResult({
-    pollingURL,
-    resultType: sdk.HTMLToPDFResult,
-  });
-  const streamAsset = await pdfServices.getContent({ asset: response.result.asset });
-  return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
 }
 
 async function convertDocumentToPdf(sourceDocument, data, credentials, deps = {}) {
@@ -503,27 +565,29 @@ async function convertDocumentToPdf(sourceDocument, data, credentials, deps = {}
     : normaliseSourceDocument(sourceDocument);
   const serviceCredentials = new sdk.ServicePrincipalCredentials({ clientId, clientSecret });
   const pdfServices = deps.pdfServices || new sdk.PDFServices({ credentials: serviceCredentials });
-  const inputAsset = await pdfServices.upload({
-    readStream: Readable.from(Buffer.from(input.buffer)),
-    mimeType: input.mimeType,
-  });
   const documentMerge = hasMergeData(data);
-  const job = documentMerge
-    ? new sdk.DocumentMergeJob({
-      inputAsset,
-      params: new sdk.DocumentMergeParams({
-        jsonDataForMerge: data,
-        outputFormat: sdk.OutputFormat.PDF,
-      }),
-    })
-    : new sdk.CreatePDFJob({ inputAsset });
-  const pollingURL = await pdfServices.submit({ job });
-  const response = await pdfServices.getJobResult({
-    pollingURL,
-    resultType: documentMerge ? sdk.DocumentMergeResult : sdk.CreatePDFResult,
+  return withPdfServicesRetry(async () => {
+    const inputAsset = await pdfServices.upload({
+      readStream: Readable.from(Buffer.from(input.buffer)),
+      mimeType: input.mimeType,
+    });
+    const job = documentMerge
+      ? new sdk.DocumentMergeJob({
+        inputAsset,
+        params: new sdk.DocumentMergeParams({
+          jsonDataForMerge: data,
+          outputFormat: sdk.OutputFormat.PDF,
+        }),
+      })
+      : new sdk.CreatePDFJob({ inputAsset });
+    const pollingURL = await pdfServices.submit({ job });
+    const response = await pdfServices.getJobResult({
+      pollingURL,
+      resultType: documentMerge ? sdk.DocumentMergeResult : sdk.CreatePDFResult,
+    });
+    const streamAsset = await pdfServices.getContent({ asset: response.result.asset });
+    return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
   });
-  const streamAsset = await pdfServices.getContent({ asset: response.result.asset });
-  return validatePdfBuffer(await streamToBuffer(streamAsset.readStream));
 }
 
 function requestHash(input, templateHash) {
@@ -585,6 +649,9 @@ module.exports = {
   createHtmlZip,
   streamToBuffer,
   validatePdfBuffer,
+  pdfServicesStatus,
+  isTransientPdfServicesError,
+  withPdfServicesRetry,
   convertHtmlZipToPdf,
   convertDocumentToPdf,
   pdfPageCount,

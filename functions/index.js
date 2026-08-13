@@ -15,9 +15,6 @@ const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 /** Optional machine-to-machine key used by a future AJO custom action. */
 const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
-/** Dedicated PDF Services credentials; intentionally separate from enterprise AEP IMS credentials. */
-const PDF_SERVICES_CLIENT_ID = defineSecret('PDF_SERVICES_CLIENT_ID');
-const PDF_SERVICES_CLIENT_SECRET = defineSecret('PDF_SERVICES_CLIENT_SECRET');
 /** Dedicated least-privilege AWS identity for private PDF output storage. */
 const PDF_S3_ACCESS_KEY_ID = defineSecret('PDF_S3_ACCESS_KEY_ID');
 const PDF_S3_SECRET_ACCESS_KEY = defineSecret('PDF_S3_SECRET_ACCESS_KEY');
@@ -510,8 +507,6 @@ exports.pdfPersonalisation = onRequest(
       ADOBE_CLIENT_SECRET,
       ADOBE_IMS_ORG,
       ADOBE_SCOPES,
-      PDF_SERVICES_CLIENT_ID,
-      PDF_SERVICES_CLIENT_SECRET,
       PDF_PERSONALISATION_API_KEY,
       PDF_S3_ACCESS_KEY_ID,
       PDF_S3_SECRET_ACCESS_KEY,
@@ -542,8 +537,10 @@ exports.pdfPersonalisation = onRequest(
   pdfPersonalisationService.createHandler({
     setCors,
     verifyIdTokenClaimsFromRequest: labUserSandboxStore.verifyIdTokenClaimsFromRequest,
-    getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
-    getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
+    // PDF Services is enabled on the enterprise Adobe Developer Console project,
+    // so it shares that project's OAuth service-principal credentials with AEP.
+    getPdfClientId: () => ADOBE_CLIENT_ID.value(),
+    getPdfClientSecret: () => ADOBE_CLIENT_SECRET.value(),
     getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
     validateMcpApiKey: mcpApiKeyStore.validateUserApiKey,
     validateJourneyApiKey: pdfJourneyApiKeyStore.validateApiKey,
@@ -590,8 +587,6 @@ exports.pdfJourneyActionWorker = onDocumentCreated(
       ADOBE_CLIENT_SECRET,
       ADOBE_IMS_ORG,
       ADOBE_SCOPES,
-      PDF_SERVICES_CLIENT_ID,
-      PDF_SERVICES_CLIENT_SECRET,
       PDF_S3_ACCESS_KEY_ID,
       PDF_S3_SECRET_ACCESS_KEY,
     ],
@@ -616,8 +611,8 @@ exports.pdfJourneyActionWorker = onDocumentCreated(
   async (event) => {
     const jobId = String(event.params && event.params.jobId || '');
     const result = await pdfJourneyActionService.processQueuedJob(jobId, {
-      getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
-      getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
+      getPdfClientId: () => ADOBE_CLIENT_ID.value(),
+      getPdfClientSecret: () => ADOBE_CLIENT_SECRET.value(),
       getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
       getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
       getAdobeAccessToken,
