@@ -46,6 +46,8 @@
     "verify:context7-coverage": "node scripts/verify-context7-coverage.mjs",
     "deploy:check": "node scripts/predeploy-check.mjs",
     "deploy:production": "npx -y firebase-tools@latest deploy --only functions,hosting --project aep-orchestration-lab",
+    "deploy:preview": "node scripts/deploy-preview.mjs",
+    "deploy:verify-production": "node scripts/verify-production-deploy.mjs",
     "deploy:sandbox": "node scripts/patch-firebase-tools-sandbox-build-sa.mjs && CLOUD_FUNCTIONS_REGION=us-east4 CF_RUNTIME_SERVICE_ACCOUNT=sc-demo-sandbox-cf-runtime@adbe-gcp0819.iam.gserviceaccount.com CF_BUILD_SERVICE_ACCOUNT=sc-demo-sandbox-admin@adbe-gcp0819.iam.gserviceaccount.com node scripts/run-firebase-sandbox-deploy.mjs -- deploy --config firebase.sandbox.json -P sandbox --only functions:sandboxApiGateway,hosting",
     "deploy:sandbox:hosting": "node scripts/patch-firebase-tools-sandbox-build-sa.mjs && node scripts/run-firebase-sandbox-deploy.mjs -- deploy --only hosting --config firebase.sandbox.json -P sandbox",
     "deploy:sandbox:functions:batched": "node scripts/deploy-sandbox-functions-batched.mjs",

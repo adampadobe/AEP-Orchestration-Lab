@@ -6,22 +6,20 @@
  * Enforces the parallel-agent-overwrite guard from CONTRIBUTING.md
  * "Phase C — immediately before firebase deploy":
  *
- *   - REFUSES the deploy if the local branch is BEHIND origin/main, since
- *     `firebase deploy` ships local-disk content and would silently
- *     overwrite the teammate's work that's already on origin.
- *   - WARNS (does not block) if the working tree is dirty — sometimes you
- *     intentionally deploy uncommitted hotfixes, but it's a sharp edge.
- *   - WARNS (does not block) if you have unpushed commits — your deploy
- *     will hit the live site before anyone can read the source on GitHub.
+ *   - REFUSES production deploys unless they run from a clean `main` whose
+ *     HEAD exactly matches origin/main.
+ *   - FAILS CLOSED when origin cannot be refreshed for a production deploy.
+ *   - Allows feature branches only when explicitly deploying a Firebase
+ *     Hosting preview channel with AEP_DEPLOY_MODE=preview.
  *
  * Then invokes scripts/build-version.mjs so /version.json on Hosting and
  * the X-Build-Sha header on every function carry the actual deployed SHA.
  *
  * Escape hatches (use sparingly, document in commit message when used):
  *
- *   SKIP_PREDEPLOY_CHECKS=1 firebase deploy ...
- *     Bypasses the behind-origin block. Use only for genuine emergency
- *     hotfixes where you accept overwriting whatever is upstream.
+ *   AEP_PRODUCTION_DEPLOY_OVERRIDE=1 firebase deploy ...
+ *     Bypasses the production source-of-truth checks. Use only for a
+ *     documented emergency rollback.
  *
  *   AEP_PREDEPLOY_TARGET=hosting npm run deploy:check
  *     Runs the same checks without deploying — useful for CI dry-runs.
@@ -36,6 +34,7 @@ import { execSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { evaluateDeployPolicy } from './predeploy-policy.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -80,12 +79,22 @@ if (!existsSync(join(repoRoot, '.git'))) {
   fail('not a git checkout — refusing to deploy without git state', 2);
 }
 
-// Refresh remote refs. Non-fatal if offline; we'll just compare against
-// whatever origin/main pointer we already have locally.
+const previewDeploy = process.env.AEP_DEPLOY_MODE === 'preview';
+const override = process.env.AEP_PRODUCTION_DEPLOY_OVERRIDE === '1';
+
+// Production deploys fail closed if the source-of-truth cannot be refreshed.
+// Preview channels may continue against the last-known ref because they cannot
+// replace the production Hosting release.
+let fetchedOrigin = true;
 try {
   execSync('git fetch origin --quiet', { cwd: repoRoot, stdio: ['ignore', 'ignore', 'pipe'], timeout: 10000 });
 } catch (e) {
-  warn(`could not fetch origin (${(e && e.message) || 'unknown'}). Proceeding against last-known origin/main pointer — your deploy may still be stale.`);
+  fetchedOrigin = false;
+  if (previewDeploy) {
+    warn(`could not fetch origin (${(e && e.message) || 'unknown'}). Preview deploy will use the last-known origin/main pointer.`);
+  } else if (!override) {
+    fail('could not refresh origin/main — refusing a production deploy without current GitHub state.');
+  }
 }
 
 const ahead    = parseInt(git('rev-list --count origin/main..HEAD', '0'), 10) || 0;
@@ -98,41 +107,29 @@ const dirty    = git('status --porcelain --untracked-files=no', '').length > 0;
 const branch   = git('rev-parse --abbrev-ref HEAD', '');
 const shortSha = git('rev-parse --short HEAD', '');
 
-info(`branch: ${branch}, HEAD: ${shortSha}, ahead/behind origin/main: +${ahead} / -${behind}, dirty: ${dirty}`);
+info(`mode: ${previewDeploy ? 'preview' : 'production'}, branch: ${branch}, HEAD: ${shortSha}, ahead/behind origin/main: +${ahead} / -${behind}, dirty: ${dirty}`);
 
-const skip = process.env.SKIP_PREDEPLOY_CHECKS === '1';
+const policy = evaluateDeployPolicy({ previewDeploy, override, fetchedOrigin, branch, ahead, behind, dirty });
 
-if (behind > 0) {
-  if (skip) {
-    warn(`local branch is BEHIND origin/main by ${behind} commit(s) — SKIP_PREDEPLOY_CHECKS=1 honoured, proceeding anyway. Your deploy will overwrite ${behind} upstream commit(s) on Hosting.`);
-  } else {
-    // eslint-disable-next-line no-console
-    console.error('');
+if (policy.mode === 'preview') {
+  ok('feature-branch deploy is isolated to a Firebase Hosting preview channel.');
+} else if (policy.mode === 'emergency-override') {
+  warn('AEP_PRODUCTION_DEPLOY_OVERRIDE=1 honoured — production source-of-truth checks are bypassed for this emergency deploy.');
+} else if (!policy.allowed) {
     fail([
-      `local branch is BEHIND origin/main by ${behind} commit(s).`,
+      'production deploy source is not the GitHub source of truth:',
+      ...policy.reasons.map((reason) => `  - ${reason}`),
       '',
-      `${DIM}Why this is blocked:${RESET}`,
-      `  ${DIM}firebase deploy --only hosting ships what is on YOUR local disk under web/,${RESET}`,
-      `  ${DIM}NOT what is on origin/main. Deploying now would silently revert ${behind} upstream${RESET}`,
-      `  ${DIM}commit(s) on the live site even though git history would still look linear.${RESET}`,
+      `${DIM}Production fix:${RESET}`,
+      `  ${CYAN}git switch main && git pull --ff-only origin main${RESET}`,
+      `  ${CYAN}git status --short --branch${RESET}`,
       '',
-      `${DIM}Fix:${RESET}`,
-      `  ${CYAN}git pull --ff-only origin main${RESET}      ${DIM}# advance local main to match origin${RESET}`,
-      `  ${CYAN}git status${RESET}                            ${DIM}# must report "up to date with 'origin/main'"${RESET}`,
-      `  ${CYAN}npm run verify:profile-viewer-routes${RESET}  ${DIM}# re-verify after the pull${RESET}`,
+      `${DIM}Feature branch preview:${RESET}`,
+      `  ${CYAN}npm run deploy:preview -- <channel-name>${RESET}`,
       '',
-      `${DIM}Emergency override (will overwrite upstream — document in commit message):${RESET}`,
-      `  ${CYAN}SKIP_PREDEPLOY_CHECKS=1 firebase deploy --only hosting${RESET}`,
+      `${DIM}Documented emergency rollback only:${RESET}`,
+      `  ${CYAN}AEP_PRODUCTION_DEPLOY_OVERRIDE=1 firebase deploy ...${RESET}`,
     ].join('\n'));
-  }
-}
-
-if (dirty) {
-  warn(`working tree has uncommitted changes — these WILL ship in the deploy. Run \`git status\` to review.`);
-}
-
-if (ahead > 0) {
-  warn(`you have ${ahead} unpushed commit(s) — the deploy will go live before anyone can see the source on GitHub. Push first if you can: \`git push origin ${branch}\``);
 }
 
 ok(`safe to deploy. Stamping build…`);

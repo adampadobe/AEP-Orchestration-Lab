@@ -38,6 +38,9 @@ jobs:
       - name: Verify Profile Viewer decisioning routes (journey-arbitration redirects, v3, eds-quickstart)
         run: npm run verify:profile-viewer-routes
 
+      - name: Verify production deployment policy
+        run: node --test scripts/predeploy-policy.test.mjs
+
       - name: Verify decisioning mount zones (site-clone demos)
         run: npm run verify:decisioning-mount-zones
 
