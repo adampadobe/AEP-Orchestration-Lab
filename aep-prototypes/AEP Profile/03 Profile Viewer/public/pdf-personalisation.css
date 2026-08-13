@@ -1466,7 +1466,7 @@
 
 .pdf-story-assist {
   margin: 0 0 18px;
-  padding: 16px;
+  overflow: hidden;
   border: 1px solid rgba(104, 74, 255, 0.25);
   border-radius: 12px;
   background:
@@ -1485,8 +1485,16 @@
 .pdf-story-assist-heading {
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 13px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
 }
+
+.pdf-story-assist-heading::-webkit-details-marker { display: none; }
+.pdf-story-assist-heading::marker { content: ""; }
+.pdf-story-assist-heading:focus-visible { outline: 2px solid #684aff; outline-offset: -3px; }
+.pdf-story-assist[open] .pdf-story-assist-heading { border-bottom: 1px solid rgba(104, 74, 255, 0.16); }
+.pdf-story-assist-body { padding: 14px 16px 16px; }
 
 .pdf-story-assist-heading > div { align-items: flex-start; gap: 10px; }
 .pdf-story-assist-heading h5 { margin: 0; color: var(--dash-text); font-size: 13px; }
@@ -1499,6 +1507,7 @@
 }
 
 .pdf-gemini-mark {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1510,7 +1519,11 @@
   background: linear-gradient(135deg, #684aff, #287eff);
   box-shadow: 0 7px 18px rgba(104, 74, 255, 0.22);
   font-size: 17px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
+
+.pdf-story-assist-heading:hover .pdf-gemini-mark { box-shadow: 0 9px 22px rgba(104, 74, 255, 0.34); transform: translateY(-1px); }
+.pdf-story-assist[open] .pdf-gemini-mark { transform: rotate(45deg); }
 
 .pdf-story-assist label { display: block; margin-bottom: 6px; color: var(--dash-text); font-size: 11px; font-weight: 650; }
 .pdf-story-assist textarea {
