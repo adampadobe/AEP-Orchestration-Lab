@@ -258,6 +258,19 @@ test('enqueues once and reuses the same request without duplicating work', async
   );
 });
 
+test('records the requesting owner for portal status authorisation', async () => {
+  const firestore = firestoreFixture();
+  const queued = await service.enqueue(bookingRequest(), {
+    firestore,
+    requestedByUid: 'user-1',
+    templateOwnerUid: 'user-1',
+  });
+  const record = await service.getRecord(queued.jobId, { firestore });
+  assert.equal(record.requestedByUid, 'user-1');
+  assert.equal(record.templateOwnerUid, 'user-1');
+  assert.equal(service.statusResponse(record).jobId, queued.jobId);
+});
+
 test('builds the proven AEP recipient and DLZ attachment payload', () => {
   const campaignId = '97b40686-ed37-4697-a137-10d18e4902f5';
   const record = service.normaliseRequest(bookingRequest({ campaignId }));

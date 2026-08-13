@@ -114,6 +114,9 @@
   let sourceDocument = null;
   let sourceHtmlFileName = '';
   let journeyTemplateAnalysis = null;
+  let journeyTemplatesAvailable = [];
+  let journeyCampaignsAvailable = [];
+  let activeJourneyTestJob = '';
 
   function conversionMode() {
     return conversionModeSelect.value === 'document' ? 'document' : 'html';
@@ -641,6 +644,8 @@
   function renderJourneyTemplates(templates) {
     journeyTemplateList.replaceChildren();
     const items = Array.isArray(templates) ? templates : [];
+    journeyTemplatesAvailable = items;
+    renderTestTemplateOptions();
     document.getElementById('pdfJourneyTemplateCount').textContent = `${items.length} available`;
     if (!items.length) {
       const empty = document.createElement('p');
@@ -760,6 +765,319 @@
           : sourceHtmlFileName || templateName.value || 'travel-template.html';
         syncJourneyTemplateDefaults(sourceName || 'travel-template');
       }
+    });
+  }
+
+  function currentSandbox() {
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+    }
+    return '';
+  }
+
+  function selectedTestTemplate() {
+    const name = document.getElementById('pdfTestTemplate').value;
+    return journeyTemplatesAvailable.find((template) => (template.templateName || template.name) === name) || null;
+  }
+
+  function inputSchemaForTemplate(template) {
+    if (!template) return [];
+    if (Array.isArray(template.inputSchema) && template.inputSchema.length) return template.inputSchema;
+    const seen = new Set();
+    return (Array.isArray(template.fieldMappings) ? template.fieldMappings : []).reduce((fields, mapping) => {
+      const source = String(mapping && mapping.source || '').trim();
+      const name = source === 'carrierCode' ? 'flightNumber' : source === 'flightDate' ? 'departureDateTime' : source;
+      if (!name || seen.has(name)) return fields;
+      seen.add(name);
+      fields.push({
+        name,
+        label: name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (value) => value.toUpperCase()),
+        dataType: mapping.type === 'image' ? 'image' : 'string',
+        required: mapping.required === true,
+        recipientField: ['firstName', 'lastName', 'passengerName'].includes(name),
+        targetFields: [mapping.target],
+      });
+      return fields;
+    }, []);
+  }
+
+  function renderTestTemplateOptions() {
+    const select = document.getElementById('pdfTestTemplate');
+    if (!select) return;
+    const previous = select.value;
+    select.replaceChildren(new Option('Choose a published template', ''));
+    journeyTemplatesAvailable.forEach((template) => {
+      const name = template.templateName || template.name;
+      const label = `${template.label || name} · ${template.kind === 'document' ? 'DOCX/document' : 'HTML'} · v${template.version || 1}`;
+      select.add(new Option(label, name));
+    });
+    if (previous && journeyTemplatesAvailable.some((template) => (template.templateName || template.name) === previous)) {
+      select.value = previous;
+    } else if (journeyTemplatesAvailable.length) {
+      const uploaded = journeyTemplatesAvailable.find((template) => template.source === 'uploaded');
+      select.value = (uploaded || journeyTemplatesAvailable[0]).templateName || (uploaded || journeyTemplatesAvailable[0]).name;
+    }
+    renderTestDynamicFields();
+  }
+
+  function renderTestDynamicFields(values) {
+    const template = selectedTestTemplate();
+    const container = document.getElementById('pdfTestDynamicFields');
+    if (!container) return;
+    container.replaceChildren();
+    if (!template) {
+      container.innerHTML = '<p class="pdf-key-empty">Choose a published template to load its fields.</p>';
+      document.getElementById('pdfTestFieldCount').textContent = 'Choose a template';
+      return;
+    }
+    const schema = inputSchemaForTemplate(template).filter((field) => !field.recipientField);
+    const defaults = {
+      ...(template.sampleData && typeof template.sampleData === 'object' ? template.sampleData : {}),
+      ...(values && typeof values === 'object' ? values : {}),
+    };
+    schema.forEach((field) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = `pdf-test-field${field.required ? ' is-required' : ''}${field.dataType === 'image' ? ' is-image' : ''}`;
+      const label = document.createElement('label');
+      const inputId = `pdfTestData_${field.name.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+      label.htmlFor = inputId;
+      label.textContent = field.label || field.name;
+      const input = document.createElement('input');
+      input.id = inputId;
+      input.dataset.pdfTestField = field.name;
+      input.dataset.pdfTestType = field.dataType || 'string';
+      input.required = field.required === true;
+      input.type = field.dataType === 'decimal' ? 'number' : 'text';
+      if (field.dataType === 'decimal') input.step = 'any';
+      input.placeholder = field.dataType === 'dateTime'
+        ? '2026-08-12T09:15:00+03:00'
+        : field.dataType === 'image'
+          ? 'https://… or data:image/...;base64,…'
+          : '';
+      const value = defaults[field.name] == null || defaults[field.name] === ''
+        ? field.sampleValue
+        : defaults[field.name];
+      input.value = value == null ? '' : String(value);
+      wrapper.append(label, input);
+      if (field.targetFields && field.targetFields.length) {
+        const hint = document.createElement('small');
+        hint.textContent = `Used by: ${field.targetFields.join(', ')}`;
+        wrapper.appendChild(hint);
+      }
+      container.appendChild(wrapper);
+    });
+    document.getElementById('pdfTestFieldCount').textContent = `${schema.length} field${schema.length === 1 ? '' : 's'} · ${schema.filter((field) => field.required).length} required`;
+    document.getElementById('pdfTestTemplateHint').textContent = `${template.label || template.templateName} · ${template.source === 'builtin' ? 'built-in' : 'server upload'} · version ${template.version || 1}`;
+    document.getElementById('pdfTestDocumentName').value = template.documentName || `${template.templateName || template.name}.pdf`;
+  }
+
+  function renderTestCampaignOptions() {
+    const select = document.getElementById('pdfTestCampaign');
+    const previous = select.value;
+    select.replaceChildren(new Option('Choose a transactional campaign', ''));
+    journeyCampaignsAvailable.forEach((campaign) => {
+      select.add(new Option(`${campaign.name} · ${campaign.campaignId}`, campaign.campaignId));
+    });
+    if (previous && journeyCampaignsAvailable.some((campaign) => campaign.campaignId === previous)) select.value = previous;
+    else if (journeyCampaignsAvailable.length) select.value = journeyCampaignsAvailable[0].campaignId;
+    syncTestCampaignManager();
+  }
+
+  function syncTestCampaignManager() {
+    const campaignId = document.getElementById('pdfTestCampaign').value;
+    const campaign = journeyCampaignsAvailable.find((item) => item.campaignId === campaignId);
+    document.getElementById('pdfTestCampaignName').value = campaign ? campaign.name : '';
+    document.getElementById('pdfTestCampaignId').value = campaign ? campaign.campaignId : '';
+    document.getElementById('pdfTestCampaignHint').textContent = campaign
+      ? `${campaign.name} · current sandbox: ${currentSandbox() || 'default'}`
+      : 'Add or select an activated API-triggered email campaign.';
+  }
+
+  async function loadJourneyCampaigns() {
+    const sandbox = currentSandbox();
+    try {
+      const query = sandbox ? `?sandbox=${encodeURIComponent(sandbox)}` : '';
+      const { body } = await api(`/journey-action/campaigns${query}`, { method: 'GET' });
+      journeyCampaignsAvailable = Array.isArray(body.campaigns) ? body.campaigns : [];
+      renderTestCampaignOptions();
+      document.getElementById('pdfTestCampaignStatus').textContent = `${journeyCampaignsAvailable.length} campaign${journeyCampaignsAvailable.length === 1 ? '' : 's'} available for ${sandbox || 'the default sandbox'}.`;
+    } catch (error) {
+      journeyCampaignsAvailable = [];
+      renderTestCampaignOptions();
+      document.getElementById('pdfTestCampaignStatus').textContent = error.message;
+    }
+  }
+
+  async function persistJourneyCampaigns() {
+    const { body } = await api('/journey-action/campaigns', {
+      method: 'POST',
+      body: JSON.stringify({ sandbox: currentSandbox(), campaigns: journeyCampaignsAvailable }),
+    });
+    journeyCampaignsAvailable = body.campaigns || [];
+    renderTestCampaignOptions();
+  }
+
+  async function saveJourneyCampaign() {
+    const status = document.getElementById('pdfTestCampaignStatus');
+    try {
+      const name = document.getElementById('pdfTestCampaignName').value.trim();
+      const campaignId = document.getElementById('pdfTestCampaignId').value.trim();
+      if (!name) throw new Error('Enter a friendly campaign name.');
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
+        throw new Error('Campaign ID must be a valid UUID.');
+      }
+      const existing = journeyCampaignsAvailable.find((item) => item.campaignId === campaignId);
+      if (existing) existing.name = name;
+      else journeyCampaignsAvailable.push({ name, campaignId });
+      await persistJourneyCampaigns();
+      document.getElementById('pdfTestCampaign').value = campaignId;
+      syncTestCampaignManager();
+      status.textContent = `Saved “${name}” for ${currentSandbox() || 'the default sandbox'}.`;
+    } catch (error) {
+      status.textContent = error.message;
+    }
+  }
+
+  async function removeJourneyCampaign() {
+    const select = document.getElementById('pdfTestCampaign');
+    if (!select.value) return;
+    journeyCampaignsAvailable = journeyCampaignsAvailable.filter((campaign) => campaign.campaignId !== select.value);
+    await persistJourneyCampaigns();
+    document.getElementById('pdfTestCampaignStatus').textContent = 'Campaign removed from this dropdown.';
+  }
+
+  function useWorkspaceJsonForTest() {
+    try {
+      const data = parseData();
+      renderTestDynamicFields(data);
+      const passenger = data.passenger && typeof data.passenger === 'object' ? data.passenger : {};
+      document.getElementById('pdfTestFirstName').value = data.firstName || passenger.firstName || document.getElementById('pdfTestFirstName').value;
+      document.getElementById('pdfTestLastName').value = data.lastName || passenger.lastName || document.getElementById('pdfTestLastName').value;
+      setJourneyTestStatus('Workspace JSON loaded into the selected template fields.', 'success');
+    } catch (error) {
+      setJourneyTestStatus(error.message, 'error');
+    }
+  }
+
+  function journeyTestPayload() {
+    const template = selectedTestTemplate();
+    const campaignId = document.getElementById('pdfTestCampaign').value;
+    if (!template) throw new Error('Choose a published template.');
+    if (!campaignId) throw new Error('Choose an AJO transactional campaign.');
+    const emailAddress = document.getElementById('pdfTestEmail').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress)) throw new Error('Enter a valid recipient email address.');
+    const data = {};
+    document.querySelectorAll('[data-pdf-test-field]').forEach((input) => {
+      if (input.required && !input.value.trim()) throw new Error(`${input.previousElementSibling.textContent.replace('*', '').trim()} is required.`);
+      if (input.value.trim() !== '') data[input.dataset.pdfTestField] = input.dataset.pdfTestType === 'decimal'
+        ? Number(input.value)
+        : input.value.trim();
+    });
+    return {
+      requestId: `portal-pdf-${uniqueKey()}`,
+      templateName: template.templateName || template.name,
+      campaignId,
+      emailAddress,
+      firstName: document.getElementById('pdfTestFirstName').value.trim(),
+      lastName: document.getElementById('pdfTestLastName').value.trim(),
+      documentName: document.getElementById('pdfTestDocumentName').value.trim() || template.documentName,
+      data,
+    };
+  }
+
+  function setJourneyTestStatus(message, kind) {
+    const status = document.getElementById('pdfTestStatus');
+    status.hidden = !message;
+    status.textContent = message || '';
+    status.className = `pdf-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function setJourneyTestProgress(state, error) {
+    const completeThrough = { queued: -1, processing: 0, stored: 2, sent: 3 }[state] ?? -1;
+    const active = { queued: 0, processing: 1, stored: 3 }[state];
+    document.querySelectorAll('#pdfTestProgress li').forEach((item, index) => {
+      item.classList.toggle('is-complete', index <= completeThrough);
+      item.classList.toggle('is-active', !error && active === index);
+      item.classList.toggle('is-error', !!error && index === (active == null ? Math.max(0, completeThrough + 1) : active));
+    });
+    document.getElementById('pdfTestProgressBadge').textContent = error ? 'Failed' : state === 'sent' ? 'Email accepted' : state || 'Ready';
+  }
+
+  function showJourneyTestResult(result) {
+    document.getElementById('pdfTestResult').hidden = false;
+    document.getElementById('pdfTestResultJob').textContent = result.jobId || activeJourneyTestJob;
+    document.getElementById('pdfTestResultExecution').textContent = result.ajoExecutionId || 'Pending';
+    const pdf = result.pdf;
+    document.getElementById('pdfTestResultAttachment').textContent = pdf && pdf.storageLocations && pdf.storageLocations.dlz
+      ? pdf.storageLocations.dlz.uri || pdf.storageLocations.dlz.objectPath
+      : 'Pending';
+    if (pdf) {
+      const actions = document.getElementById('pdfTestResultActions');
+      actions.hidden = false;
+      document.getElementById('pdfTestOpenPdf').href = pdf.previewUrl;
+      document.getElementById('pdfTestDownloadPdf').href = pdf.downloadUrl;
+    }
+  }
+
+  async function pollJourneyTest(jobId) {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (attempt) await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      const { body } = await api(`/journey-action/test-status/${encodeURIComponent(jobId)}`, { method: 'GET' });
+      showJourneyTestResult(body);
+      if (body.status === 'sent') return body;
+      if (body.status === 'failed') throw new Error(body.error && body.error.message || 'PDF generation or AJO campaign execution failed.');
+      setJourneyTestProgress(body.pdfJobId ? 'stored' : body.status === 'queued' ? 'queued' : 'processing');
+    }
+    throw new Error('The delivery is still processing. Keep the job ID and refresh its status later.');
+  }
+
+  async function sendJourneyTest() {
+    const button = document.getElementById('pdfTestSend');
+    try {
+      const payload = journeyTestPayload();
+      const campaign = journeyCampaignsAvailable.find((item) => item.campaignId === payload.campaignId);
+      if (!window.confirm(`Send “${payload.documentName}” to ${payload.emailAddress} using ${campaign ? campaign.name : payload.campaignId}?`)) return;
+      button.disabled = true;
+      document.getElementById('pdfTestResult').hidden = true;
+      document.getElementById('pdfTestResultActions').hidden = true;
+      setJourneyTestProgress('queued');
+      setJourneyTestStatus('Request accepted. Generating the personalised PDF and preparing the AJO attachment…', 'working');
+      const { body } = await api('/journey-action/test-send', {
+        method: 'POST', body: JSON.stringify({ ...payload, sandbox: currentSandbox() }),
+      });
+      activeJourneyTestJob = body.jobId;
+      showJourneyTestResult(body);
+      const result = await pollJourneyTest(body.jobId);
+      setJourneyTestProgress('sent');
+      setJourneyTestStatus(`AJO accepted the campaign execution for ${payload.emailAddress}. Execution ID: ${result.ajoExecutionId}`, 'success');
+    } catch (error) {
+      setJourneyTestProgress('processing', true);
+      setJourneyTestStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function copyJourneyTestPayload() {
+    try {
+      const payload = journeyTestPayload();
+      await copyText(JSON.stringify(payload, null, 2), document.getElementById('pdfTestCopyPayload'), 'Copy request JSON');
+      setJourneyTestStatus('Fresh request payload copied. A new request ID will be generated again when you send.', 'success');
+    } catch (error) {
+      setJourneyTestStatus(error.message, 'error');
+    }
+  }
+
+  function bindJourneyTestSender() {
+    document.getElementById('pdfTestTemplate').addEventListener('change', () => renderTestDynamicFields());
+    document.getElementById('pdfTestCampaign').addEventListener('change', syncTestCampaignManager);
+    document.getElementById('pdfTestSaveCampaign').addEventListener('click', saveJourneyCampaign);
+    document.getElementById('pdfTestRemoveCampaign').addEventListener('click', () => removeJourneyCampaign().catch((error) => setJourneyTestStatus(error.message, 'error')));
+    document.getElementById('pdfTestUseWorkspaceJson').addEventListener('click', useWorkspaceJsonForTest);
+    document.getElementById('pdfTestCopyPayload').addEventListener('click', copyJourneyTestPayload);
+    document.getElementById('pdfTestSend').addEventListener('click', sendJourneyTest);
+    window.addEventListener('aep-global-sandbox-change', () => {
+      if (authUser) loadJourneyCampaigns().catch(() => {});
     });
   }
 
@@ -1290,6 +1608,7 @@
     bindFileDrop();
     bindCustomActionSetup();
     bindJourneyTemplateLibrary();
+    bindJourneyTestSender();
     conversionModeSelect.addEventListener('change', applyConversionMode);
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
@@ -1313,7 +1632,7 @@
     authUser = await waitForAuth();
     if (authUser && !authUser.isAnonymous && authUser.email) {
       setAuthState(authUser.email, 'ready');
-      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates()]);
+      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates(), loadJourneyCampaigns()]);
     } else {
       setAuthState('Authorised sign-in required', 'error');
       setStatus('Sign in to the AEP Orchestration Lab with apalmer@adobe.com before saving templates or generating PDFs.', 'error');

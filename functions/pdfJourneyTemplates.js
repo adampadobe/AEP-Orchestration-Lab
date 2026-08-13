@@ -11,6 +11,23 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
     fileName: 'booking-confirmation.html',
     documentName: 'booking-confirmation.pdf',
     subject: 'Your booking confirmation',
+    inputSchema: Object.freeze([
+      { name: 'bookingReference', label: 'Booking reference', dataType: 'string', required: true },
+      { name: 'ticketNumber', label: 'Ticket number', dataType: 'string', required: false },
+      { name: 'flightNumber', label: 'Flight number', dataType: 'string', required: true },
+      { name: 'departureAirport', label: 'Departure airport code', dataType: 'string', required: true },
+      { name: 'arrivalAirport', label: 'Arrival airport code', dataType: 'string', required: true },
+      { name: 'departureDateTime', label: 'Departure date and time', dataType: 'dateTime', required: true },
+      { name: 'arrivalDateTime', label: 'Arrival date and time', dataType: 'dateTime', required: true },
+      { name: 'totalPaid', label: 'Total paid', dataType: 'decimal', required: false },
+      { name: 'currency', label: 'Currency', dataType: 'string', required: false },
+    ]),
+    sampleData: Object.freeze({
+      bookingReference: 'EK8F2Q', ticketNumber: '1761234567890', flightNumber: 'EK 001',
+      departureAirport: 'DXB', arrivalAirport: 'LHR',
+      departureDateTime: '2026-08-12T07:45:00Z', arrivalDateTime: '2026-08-12T15:10:00Z',
+      totalPaid: 1280.5, currency: 'GBP',
+    }),
   }),
   'checkin-confirmation': Object.freeze({
     name: 'checkin-confirmation',
@@ -18,6 +35,23 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
     fileName: 'checkin-confirmation.html',
     documentName: 'checkin-confirmation.pdf',
     subject: 'Your check-in confirmation',
+    inputSchema: Object.freeze([
+      { name: 'bookingReference', label: 'Booking reference', dataType: 'string', required: true },
+      { name: 'flightNumber', label: 'Flight number', dataType: 'string', required: true },
+      { name: 'departureAirport', label: 'Departure airport code', dataType: 'string', required: true },
+      { name: 'arrivalAirport', label: 'Arrival airport code', dataType: 'string', required: true },
+      { name: 'originCity', label: 'Origin city', dataType: 'string', required: true },
+      { name: 'destinationCity', label: 'Destination city', dataType: 'string', required: true },
+      { name: 'boardingTime', label: 'Boarding time', dataType: 'string', required: true },
+      { name: 'gate', label: 'Boarding gate', dataType: 'string', required: true },
+      { name: 'seat', label: 'Seat number', dataType: 'string', required: true },
+      { name: 'zone', label: 'Boarding zone', dataType: 'string', required: false },
+    ]),
+    sampleData: Object.freeze({
+      bookingReference: 'RX8F2Q', flightNumber: 'RX 123', departureAirport: 'RUH',
+      arrivalAirport: 'JED', originCity: 'Riyadh', destinationCity: 'Jeddah',
+      boardingTime: '08:30', gate: 'A12', seat: '24A', zone: '3',
+    }),
   }),
 });
 
@@ -29,6 +63,8 @@ function listTemplates() {
     label: template.label,
     documentName: template.documentName,
     subject: template.subject,
+    inputSchema: template.inputSchema,
+    sampleData: template.sampleData,
   }));
 }
 

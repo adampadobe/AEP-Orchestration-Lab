@@ -235,6 +235,118 @@ test('allows portal users to manage their custom-action template library', async
   assert.equal(deleteRes.body.archived, true);
 });
 
+test('allows portal users to manage transactional campaign shortcuts', async () => {
+  const savedCalls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    listJourneyCampaigns: async (uid, sandbox) => [{
+      name: `${uid}:${sandbox}`, campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }],
+    saveJourneyCampaigns: async (uid, sandbox, campaigns) => {
+      savedCalls.push({ uid, sandbox, campaigns });
+      return campaigns;
+    },
+  });
+
+  const getReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/campaigns?sandbox=apalmer'), {
+    method: 'GET', query: { sandbox: 'apalmer' },
+  });
+  const getRes = response();
+  await handler(getReq, getRes);
+  assert.equal(getRes.statusCode, 200);
+  assert.equal(getRes.body.campaigns[0].name, 'user-1:apalmer');
+
+  const campaigns = [{ name: 'Booking email', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14' }];
+  const postReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/campaigns'), {
+    method: 'POST', body: { sandbox: 'apalmer', campaigns },
+  });
+  const postRes = response();
+  await handler(postReq, postRes);
+  assert.equal(postRes.statusCode, 200);
+  assert.deepEqual(savedCalls[0], { uid: 'user-1', sandbox: 'apalmer', campaigns });
+});
+
+test('queues a portal test send and exposes only its owner status', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, ownerUid: uid, kind: 'document', documentName: 'boarding-pass.pdf', sourceHash: 'a'.repeat(64),
+    }),
+    listJourneyCampaigns: async () => [{
+      name: 'Booking email', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }],
+    enqueueJourneyAction: async (body, deps) => {
+      calls.push({ body, deps });
+      return {
+        status: 'queued', jobId: 'a'.repeat(40), requestId: body.requestId,
+        templateName: body.templateName, campaignId: body.campaignId,
+      };
+    },
+    getJourneyActionRecord: async () => ({
+      requestedByUid: 'user-1', status: 'processing', jobId: 'a'.repeat(40), requestId: 'request-12345678',
+      templateName: 'boarding-pass', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }),
+    journeyActionResponse: (record) => ({ status: record.status, jobId: record.jobId }),
+  });
+  const body = {
+    requestId: 'request-12345678', templateName: 'boarding-pass',
+    campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14', emailAddress: 'traveller@example.com', data: {},
+  };
+  const sendReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/test-send'), {
+    method: 'POST', body,
+  });
+  const sendRes = response();
+  await handler(sendReq, sendRes);
+  assert.equal(sendRes.statusCode, 202);
+  assert.equal(calls[0].deps.requestedByUid, 'user-1');
+  assert.equal(calls[0].deps.templateOwnerUid, 'user-1');
+
+  const statusReq = Object.assign(request({}, `/api/pdf-personalisation/journey-action/test-status/${'a'.repeat(40)}`), {
+    method: 'GET', query: {},
+  });
+  const statusRes = response();
+  await handler(statusReq, statusRes);
+  assert.equal(statusRes.statusCode, 200);
+  assert.equal(statusRes.body.status, 'processing');
+  assert.equal(statusRes.body.pdf, null);
+});
+
+test('rejects portal test sends to campaigns outside the saved dropdown', async () => {
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, ownerUid: uid, kind: 'html', documentName: 'booking.pdf', sourceHash: 'a'.repeat(64),
+    }),
+    listJourneyCampaigns: async () => [{
+      name: 'Approved campaign', campaignId: '30f45cd3-da50-436c-ae46-d0ab8f521f14',
+    }],
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/test-send'), {
+    method: 'POST',
+    body: {
+      requestId: 'request-12345678', templateName: 'booking-confirmation',
+      campaignId: '97b40686-ed37-4697-a137-10d18e4902f5', emailAddress: 'traveller@example.com', data: {},
+    },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error, 'PDF_JOURNEY_CAMPAIGN_NOT_SAVED');
+});
+
 test('rejects journey-scoped keys on manual PDF routes', async () => {
   const handler = service.createHandler({
     setCors() {},

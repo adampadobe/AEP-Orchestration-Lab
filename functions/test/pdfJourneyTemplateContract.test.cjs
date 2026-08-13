@@ -73,3 +73,21 @@ test('rejects publishing when a required mapped field has no sample value', () =
     (error) => error.code === 'PDF_JOURNEY_TEMPLATE_SAMPLE_INCOMPLETE',
   );
 });
+
+test('builds a deduplicated dynamic input schema from published mappings', () => {
+  const schema = contract.buildInputSchema([
+    { target: 'Flight Number', source: 'flightNumber', required: true, type: 'text' },
+    { target: 'Flight', source: 'flightNumber', required: false, type: 'text' },
+    { target: 'Barcode', source: 'Barcode', required: false, type: 'image' },
+    { target: 'Date', source: 'departureDateTime', required: true, type: 'text' },
+  ], {
+    flightNumber: 'RX 401',
+    departureDateTime: '2026-08-12T09:15:00+03:00',
+    Barcode: 'https://example.com/barcode.png',
+  });
+  assert.deepEqual(schema.map((field) => field.name), ['flightNumber', 'Barcode', 'departureDateTime']);
+  assert.equal(schema[0].required, true);
+  assert.deepEqual(schema[0].targetFields, ['Flight Number', 'Flight']);
+  assert.equal(schema[1].dataType, 'image');
+  assert.equal(schema[2].dataType, 'dateTime');
+});

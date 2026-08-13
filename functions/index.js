@@ -129,6 +129,7 @@ const pdfJourneyActionService = require('./pdfJourneyActionService');
 const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
 const pdfJourneyApiKeyStore = lazyRequireMod('./pdfJourneyApiKeyStore');
 const pdfJourneyTemplateStore = lazyRequireMod('./pdfJourneyTemplateStore');
+const pdfJourneyCampaignStore = lazyRequireMod('./pdfJourneyCampaignStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -554,6 +555,11 @@ exports.pdfPersonalisation = onRequest(
     saveJourneyTemplate: pdfJourneyTemplateStore.saveTemplate,
     archiveJourneyTemplate: (ownerUid, templateName, options) => pdfJourneyTemplateStore.archiveTemplate(ownerUid, templateName, {}, options),
     resolveJourneyTemplateMetadata: pdfJourneyTemplateStore.resolveTemplateMetadata,
+    listJourneyCampaigns: pdfJourneyCampaignStore.listCampaigns,
+    saveJourneyCampaigns: pdfJourneyCampaignStore.saveCampaigns,
+    getJourneyActionRecord: pdfJourneyActionService.getRecord,
+    journeyActionResponse: pdfJourneyActionService.statusResponse,
+    getPdfJob: pdfPersonalisationStore.getJob,
     getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
     getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
     getAdobeAccessToken,
