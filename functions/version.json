@@ -1,14 +1,14 @@
 {
-  "gitSha": "8927170e22eef3932a0062a1b9502c75024f4c9c",
-  "gitShortSha": "8927170e",
+  "gitSha": "8091ca9a8046556159c82bb9789a2e1832859be7",
+  "gitShortSha": "8091ca9a",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Support legacy templates in Gemini assistant",
+  "gitCommitSubject": "[apalmer] Collapse Gemini journey assistant",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T11:59:58+03:00",
-  "deployedAt": "2026-08-13T09:00:32.319Z",
+  "gitCommitDate": "2026-08-13T12:48:24+03:00",
+  "deployedAt": "2026-08-13T09:54:31.321Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 11,
+  "aheadOfOrigin": 13,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8927170e22eef3932a0062a1b9502c75024f4c9c"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8091ca9a8046556159c82bb9789a2e1832859be7"
 }
