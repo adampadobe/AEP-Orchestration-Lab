@@ -78,7 +78,7 @@
     }
 
     function getSelectedGeneratorTarget() {
-      const id = (generatorTargetSelect && selectEl.value) || '';
+      const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
       return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
     }
 
