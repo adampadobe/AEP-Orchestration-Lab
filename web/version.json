@@ -1,14 +1,14 @@
 {
-  "gitSha": "d36ad5de454f81c09a52f4d556f277e29eab7250",
-  "gitShortSha": "d36ad5de",
+  "gitSha": "ab7ee28d7feb692f78387fc19cd5b1e474712437",
+  "gitShortSha": "ab7ee28d",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Condense PDF source editors",
+  "gitCommitSubject": "[apalmer] Stack PDF workspace sections",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T11:07:12+03:00",
-  "deployedAt": "2026-08-13T08:07:56.447Z",
+  "gitCommitDate": "2026-08-13T11:24:01+03:00",
+  "deployedAt": "2026-08-13T08:24:41.392Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 3,
+  "aheadOfOrigin": 5,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d36ad5de454f81c09a52f4d556f277e29eab7250"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ab7ee28d7feb692f78387fc19cd5b1e474712437"
 }
