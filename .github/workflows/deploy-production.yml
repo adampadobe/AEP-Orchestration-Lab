@@ -1,0 +1,61 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: [Validate]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && vars.AUTOMATED_PRODUCTION_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out validated main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Refuse superseded validation runs
+        env:
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$VALIDATED_SHA"
+          test "$(git rev-parse origin/main)" = "$VALIDATED_SHA"
+          test "$(git branch --show-current)" = "main"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Authenticate as the dedicated Firebase deployer
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_FIREBASE_DEPLOY_CREDENTIALS }}
+
+      - name: Deploy validated main to Firebase Hosting production
+        run: npx -y firebase-tools@latest deploy --only hosting --project aep-orchestration-lab --non-interactive
+
+      - name: Verify the live release
+        env:
+          EXPECTED_GIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/verify-production-deploy.mjs
+
+  not-enabled:
+    if: github.event.workflow_run.conclusion == 'success' && vars.AUTOMATED_PRODUCTION_DEPLOY_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Validated main is protected, but automated Hosting deployment awaits production IAM approval."

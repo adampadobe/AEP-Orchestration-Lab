@@ -1090,9 +1090,13 @@ curl -fsSI "https://aep-orchestration-lab.web.app/api/event-config?cb=$(date +%s
 
 `scripts/predeploy-check.mjs` runs as the `predeploy` hook for both `hosting` and `functions` in `firebase.json`. It does three things on every `firebase deploy`:
 
-1. **REFUSES the deploy if the local branch is BEHIND `origin/main`.** This is the parallel-agent-overwrite guard — see [Phase C](#phase-c--immediately-before-firebase-deploy). The error message walks the user through the exact `git pull --ff-only origin main` fix.
-2. **WARNS (does not block) if the working tree is dirty or you have unpushed commits.** Sometimes you deploy hotfixes from a dirty tree intentionally — the warning prints in yellow and the SHA in `/version.json` will have `dirtyWorkingTree: true` so the regression is visible after the fact.
-3. **Stamps `web/version.json` + `functions/version.json`** with the current SHA, branch, commit subject/author/date, deployer, and sync status (ahead / behind / dirty) so the live deploy carries a record of how it was built.
+1. **REFUSES production deploys unless the checkout is clean `main` and `HEAD` exactly matches a freshly fetched `origin/main`.** A feature branch, detached HEAD, dirty tracked file, unpushed commit, stale branch, or failed fetch stops the deployment.
+2. **Allows feature branches only on isolated Firebase Hosting preview channels.** Run `npm run deploy:preview -- <channel-name>`; the wrapper sets `AEP_DEPLOY_MODE=preview` and the preview expires after seven days.
+3. **Stamps `web/version.json` + `functions/version.json`** with the current SHA, branch, commit subject/author/date, deployer, and sync status so the live release remains traceable.
+
+Production Hosting deployment is serialized by `.github/workflows/deploy-production.yml`. It runs only after the `Validate` workflow succeeds on `main`, refuses a superseded validation SHA, deploys with a Hosting-only GitHub service account, and checks the live `/version.json` plus critical PDF workflow sections. Feature branches must merge through `main`; they cannot replace production Hosting. Functions remain an intentional targeted deployment, protected by the same strict local `main` and exact-SHA predeploy gate.
+
+The automated deploy job is fail-safe disabled unless repository variable `AUTOMATED_PRODUCTION_DEPLOY_ENABLED` is `true` and encrypted secret `GCP_FIREBASE_DEPLOY_CREDENTIALS` contains the dedicated deployer credential. Enable it only after a project owner grants `github-firebase-deployer@aep-orchestration-lab.iam.gserviceaccount.com` `roles/firebasehosting.admin` and `roles/serviceusage.serviceUsageConsumer`; do not broaden it to Functions or Secret Manager.
 
 You can run the check ad-hoc without deploying:
 
@@ -1104,10 +1108,10 @@ npm run deploy:stamp        # just rewrite the stamp files (skip the safety chec
 **Emergency override** (use sparingly, document in the commit message):
 
 ```bash
-SKIP_PREDEPLOY_CHECKS=1 firebase deploy --only hosting
+AEP_PRODUCTION_DEPLOY_OVERRIDE=1 firebase deploy --only hosting
 ```
 
-This bypasses the behind-origin block. Use only when you genuinely accept overwriting whatever is upstream — for example, an emergency rollback where you must ship an older commit over a known-bad current state.
+This bypasses the production source-of-truth checks. Use it only for a documented emergency rollback, then immediately reconcile the live release and `main`.
 
 ### Rolling back
 
