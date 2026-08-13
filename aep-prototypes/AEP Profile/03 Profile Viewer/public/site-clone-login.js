@@ -18,6 +18,8 @@
     accentHoverColor: '',
     btnTop: '16px',
     profileNotFoundMessage: 'No profile found for that email. Check the address and try again.',
+    postLoginUrl: '',
+    postLoginDelayMs: 600,
   };
 
   function readConfig() {
@@ -179,6 +181,15 @@
         loginBtn.textContent = firstName ? 'Hi, ' + firstName : 'My Account';
         loginBtn.classList.add('is-signed-in');
       }
+      try {
+        global.sessionStorage.setItem('siteCloneLoginEmail', emailInput ? emailInput.value.trim() : '');
+        global.sessionStorage.setItem('siteCloneLoginFirstName', firstName || '');
+      } catch (_e) {}
+      if (cfg.postLoginUrl) {
+        global.setTimeout(function () {
+          global.location.assign(String(cfg.postLoginUrl));
+        }, Math.max(0, Number(cfg.postLoginDelayMs) || 0));
+      }
     }
 
     function postLoginRequest(email) {
@@ -193,7 +204,15 @@
     loginBtn.addEventListener('click', openModal);
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', closeModal);
-    if (doneBtn) doneBtn.addEventListener('click', closeModal);
+    if (doneBtn) {
+      doneBtn.addEventListener('click', function () {
+        if (cfg.postLoginUrl) {
+          global.location.assign(String(cfg.postLoginUrl));
+          return;
+        }
+        closeModal();
+      });
+    }
     if (guestLink) {
       guestLink.addEventListener('click', function (e) {
         e.preventDefault();

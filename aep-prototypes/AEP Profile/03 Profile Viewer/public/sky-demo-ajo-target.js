@@ -10,6 +10,7 @@
 
   var TARGET_ID = 'skyAjoHeroBanner';
   var HERO_SELECTOR = '[data-test-id="hero"]';
+  var POST_LOGIN_IMAGE_SELECTOR = '[data-test-id="chp-hero-image"]';
   var PRODUCT_SECTION_SELECTOR = '[data-test-id="product-cards-section"]';
   var SPACER_ID = 'skyAjoHeroInsertSpacer';
   var STYLE_ID = 'skyAjoHeroAuthoringStyles';
@@ -48,6 +49,8 @@
   }
 
   function findHeroBoundary() {
+    var postLoginImage = document.querySelector(POST_LOGIN_IMAGE_SELECTOR);
+    if (postLoginImage) return postLoginImage;
     var productSection = document.querySelector(PRODUCT_SECTION_SELECTOR);
     if (productSection) {
       var productRoot = productSection;
@@ -70,8 +73,9 @@
     ensureStyles(authoring);
 
     hero.id = TARGET_ID;
-    hero.setAttribute('data-aep-authoring-target', 'hero-banner');
-    hero.setAttribute('data-aep-insert-position', 'after');
+    var isPostLoginImage = hero.matches && hero.matches(POST_LOGIN_IMAGE_SELECTOR);
+    hero.setAttribute('data-aep-authoring-target', isPostLoginImage ? 'post-login-hero-image' : 'hero-banner');
+    hero.setAttribute('data-aep-insert-position', isPostLoginImage ? 'before after' : 'after');
     return true;
   }
 

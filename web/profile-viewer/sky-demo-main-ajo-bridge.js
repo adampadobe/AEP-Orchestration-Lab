@@ -55,6 +55,16 @@
     }
   }
 
+  function isPostLoginPage() {
+    var frame = document.getElementById(FRAME_ID);
+    if (!frame) return false;
+    try {
+      return /\/sky-post-login\.html(?:[?#]|$)/i.test(frame.contentWindow.location.href);
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function ensureBoundary() {
     var frame = document.getElementById(FRAME_ID);
     if (!frame) return null;
@@ -87,6 +97,10 @@
 
   function syncBoundary() {
     var boundary = ensureBoundary();
+    if (isPostLoginPage()) {
+      if (boundary) boundary.target.style.display = 'none';
+      return false;
+    }
     var context = getFrameAndHero();
     if (!boundary || !context) {
       if (boundary) boundary.target.style.display = 'none';
@@ -147,6 +161,10 @@
 
   function layoutInsertedNodes() {
     var boundary = ensureBoundary();
+    if (isPostLoginPage()) {
+      if (boundary) boundary.target.style.display = 'none';
+      return false;
+    }
     var context = getFrameAndHero();
     if (!boundary || !context) return false;
     syncBoundary();
