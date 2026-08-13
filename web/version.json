@@ -1,14 +1,14 @@
 {
-  "gitSha": "e39d4ffd1528757fdc60de70e1f3621f3f091231",
-  "gitShortSha": "e39d4ffd",
+  "gitSha": "8927170e22eef3932a0062a1b9502c75024f4c9c",
+  "gitShortSha": "8927170e",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Prepopulate Gemini journey example",
+  "gitCommitSubject": "[apalmer] Support legacy templates in Gemini assistant",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T11:52:59+03:00",
-  "deployedAt": "2026-08-13T08:53:32.441Z",
+  "gitCommitDate": "2026-08-13T11:59:58+03:00",
+  "deployedAt": "2026-08-13T09:00:32.319Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 9,
+  "aheadOfOrigin": 11,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e39d4ffd1528757fdc60de70e1f3621f3f091231"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8927170e22eef3932a0062a1b9502c75024f4c9c"
 }
