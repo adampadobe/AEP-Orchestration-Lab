@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813g">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813h">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -542,8 +542,13 @@
 
                 <div class="pdf-test-fields-heading">
                   <div><h5>Template personalisation</h5><span id="pdfTestFieldCount">Choose a template</span></div>
-                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestUseWorkspaceJson">Use workspace JSON</button>
+                  <div class="pdf-test-field-tools">
+                    <label class="pdf-test-cache-toggle" for="pdfTestUseLastValues"><input id="pdfTestUseLastValues" type="checkbox"> Use last values</label>
+                    <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestClearLastValues">Clear saved</button>
+                    <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestUseWorkspaceJson">Use workspace JSON</button>
+                  </div>
                 </div>
+                <p id="pdfTestCacheStatus" class="pdf-field-help pdf-test-cache-status">Last confirmed-send values are stored in this browser for 30 days.</p>
                 <div id="pdfTestDynamicFields" class="pdf-test-dynamic-fields">
                   <p class="pdf-key-empty">Choose a published template to load its fields.</p>
                 </div>
@@ -899,6 +904,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260813g"></script>
+  <script src="pdf-personalisation.js?v=20260813h"></script>
 </body>
 </html>

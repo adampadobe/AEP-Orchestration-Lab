@@ -78,9 +78,92 @@
     { field: 'FF_Image', label: 'Riyadh destination feature image', path: 'assets/pdf-personalisation/riyadh-feature-image.png' },
     { field: 'Offer', label: 'Riyadh special-offer image', path: 'assets/pdf-personalisation/riyadh-offer.png' },
   ];
+  const PDF_TEST_CACHE_KEY = 'aepPdfJourneyTestFieldCache.v1';
+  const PDF_TEST_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
   function hostedPdfImageUrl(path) {
     return new URL(path, window.location.href).href;
+  }
+
+  function journeyTestCacheId(templateName) {
+    return `${currentSandbox() || 'default'}::${String(templateName || '').trim()}`;
+  }
+
+  function readJourneyTestCache() {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(PDF_TEST_CACHE_KEY) || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function writeJourneyTestCache(cache) {
+    try {
+      window.localStorage.setItem(PDF_TEST_CACHE_KEY, JSON.stringify(cache));
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function setJourneyTestCacheStatus(message) {
+    document.getElementById('pdfTestCacheStatus').textContent = message;
+  }
+
+  function saveJourneyTestValues(payload) {
+    const cache = readJourneyTestCache();
+    const cacheId = journeyTestCacheId(payload.templateName);
+    cache[cacheId] = {
+      savedAt: new Date().toISOString(),
+      campaignId: payload.campaignId,
+      emailAddress: payload.emailAddress,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      documentName: payload.documentName,
+      data: payload.data,
+    };
+    Object.keys(cache).forEach((key) => {
+      if (!cache[key] || Date.now() - Date.parse(cache[key].savedAt || 0) > PDF_TEST_CACHE_MAX_AGE_MS) delete cache[key];
+    });
+    return writeJourneyTestCache(cache);
+  }
+
+  function applyJourneyTestValues() {
+    const template = selectedTestTemplate();
+    const checkbox = document.getElementById('pdfTestUseLastValues');
+    if (!checkbox.checked || !template) return false;
+    const templateName = template.templateName || template.name;
+    const record = readJourneyTestCache()[journeyTestCacheId(templateName)];
+    if (!record || Date.now() - Date.parse(record.savedAt || 0) > PDF_TEST_CACHE_MAX_AGE_MS) {
+      checkbox.checked = false;
+      setJourneyTestCacheStatus('No saved values are available for this template and sandbox yet.');
+      return false;
+    }
+    renderTestDynamicFields(record.data || {});
+    document.getElementById('pdfTestEmail').value = record.emailAddress || '';
+    document.getElementById('pdfTestFirstName').value = record.firstName || '';
+    document.getElementById('pdfTestLastName').value = record.lastName || '';
+    document.getElementById('pdfTestDocumentName').value = record.documentName || template.documentName || `${templateName}.pdf`;
+    if (record.campaignId && journeyCampaignsAvailable.some((campaign) => campaign.campaignId === record.campaignId)) {
+      document.getElementById('pdfTestCampaign').value = record.campaignId;
+      syncTestCampaignManager();
+    }
+    setJourneyTestCacheStatus(`Last values restored from ${new Date(record.savedAt).toLocaleString()}.`);
+    return true;
+  }
+
+  function clearJourneyTestValues() {
+    const template = selectedTestTemplate();
+    if (!template) {
+      setJourneyTestCacheStatus('Choose a template before clearing saved values.');
+      return;
+    }
+    const cache = readJourneyTestCache();
+    delete cache[journeyTestCacheId(template.templateName || template.name)];
+    writeJourneyTestCache(cache);
+    document.getElementById('pdfTestUseLastValues').checked = false;
+    setJourneyTestCacheStatus('Saved values cleared for this template and sandbox.');
   }
 
   const htmlEditor = document.getElementById('pdfHtmlEditor');
@@ -1379,6 +1462,9 @@
       const payload = journeyTestPayload();
       const campaign = journeyCampaignsAvailable.find((item) => item.campaignId === payload.campaignId);
       if (!window.confirm(`Send “${payload.documentName}” to ${payload.emailAddress} using ${campaign ? campaign.name : payload.campaignId}?`)) return;
+      setJourneyTestCacheStatus(saveJourneyTestValues(payload)
+        ? 'These values are saved in this browser and can be restored with Use last values.'
+        : 'The browser could not save these values. The message can still be sent.');
       button.disabled = true;
       document.getElementById('pdfTestResult').hidden = true;
       document.getElementById('pdfTestResultActions').hidden = true;
@@ -1413,6 +1499,7 @@
   function bindJourneyTestSender() {
     document.getElementById('pdfTestTemplate').addEventListener('change', () => {
       renderTestDynamicFields();
+      if (document.getElementById('pdfTestUseLastValues').checked) applyJourneyTestValues();
       renderStoryMissingFields([]);
       setStoryAssistStatus('Template changed. The assistant will now target this template’s fields.');
     });
@@ -1420,6 +1507,11 @@
     document.getElementById('pdfTestSaveCampaign').addEventListener('click', saveJourneyCampaign);
     document.getElementById('pdfTestRemoveCampaign').addEventListener('click', () => removeJourneyCampaign().catch((error) => setJourneyTestStatus(error.message, 'error')));
     document.getElementById('pdfTestUseWorkspaceJson').addEventListener('click', useWorkspaceJsonForTest);
+    document.getElementById('pdfTestUseLastValues').addEventListener('change', (event) => {
+      if (event.target.checked) applyJourneyTestValues();
+      else setJourneyTestCacheStatus('Last confirmed-send values are stored in this browser for 30 days.');
+    });
+    document.getElementById('pdfTestClearLastValues').addEventListener('click', clearJourneyTestValues);
     document.getElementById('pdfTestCopyPayload').addEventListener('click', copyJourneyTestPayload);
     document.getElementById('pdfTestSend').addEventListener('click', sendJourneyTest);
     document.getElementById('pdfTestStoryGenerate').addEventListener('click', populateTestFieldsWithGemini);

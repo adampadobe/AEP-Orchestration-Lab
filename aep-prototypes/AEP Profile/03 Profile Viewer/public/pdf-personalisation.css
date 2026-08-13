@@ -1649,6 +1649,22 @@
 .pdf-test-fields-heading > div { gap: 9px; }
 .pdf-test-fields-heading h5 { font-size: 13px; }
 .pdf-test-fields-heading span { color: var(--dash-muted); font-size: 10px; }
+.pdf-test-field-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.pdf-journey-test .pdf-test-cache-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--dash-bg-soft, rgba(100, 116, 139, 0.04));
+  white-space: nowrap;
+}
+.pdf-journey-test .pdf-test-cache-toggle input { width: 15px; min-height: 15px; margin: 0; padding: 0; accent-color: #684aff; }
+.pdf-test-cache-status { margin: -5px 0 11px; }
 
 .pdf-test-send-actions {
   justify-content: flex-end;
@@ -1900,6 +1916,8 @@
   .pdf-test-field.is-image { grid-column: auto; }
   .pdf-test-fields-heading,
   .pdf-test-send-actions { align-items: stretch; flex-direction: column; }
+  .pdf-test-field-tools { align-items: stretch; flex-direction: column; }
+  .pdf-journey-test .pdf-test-cache-toggle { justify-content: center; }
   .pdf-reuse-summary { align-items: flex-start; flex-direction: column; }
   .pdf-story-assist-heading,
   .pdf-story-assist-footer { align-items: stretch; flex-direction: column; }
