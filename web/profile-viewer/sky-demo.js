@@ -8,15 +8,8 @@
     const skyNs = document.getElementById('skyNs');
     const accountView = new URLSearchParams(global.location.search).get('view') === 'account';
 
-    function useAccountViewUrl() {
-      const url = new URL(global.location.href);
-      if (url.searchParams.get('view') === 'account') return;
-      url.searchParams.set('view', 'account');
-      global.history.replaceState({ skyView: 'account' }, '', url.href);
-      document.title = 'Sky Account Demo | AEP Orchestration Lab';
-    }
-
-    if (accountView && global.envBar && typeof global.envBar.dock === 'function') {
+    function dockAccountEnvBar() {
+      if (!global.envBar || typeof global.envBar.dock !== 'function') return;
       global.envBar.dock();
       try {
         global.sessionStorage.removeItem('aepLabEnvBarDocked');
@@ -24,6 +17,18 @@
         /* Keep the account-view default local to this page load. */
       }
     }
+
+    function useAccountViewUrl() {
+      const url = new URL(global.location.href);
+      if (url.searchParams.get('view') !== 'account') {
+        url.searchParams.set('view', 'account');
+        global.history.replaceState({ skyView: 'account' }, '', url.href);
+      }
+      document.title = 'Sky Account Demo | AEP Orchestration Lab';
+      dockAccountEnvBar();
+    }
+
+    if (accountView) dockAccountEnvBar();
 
     global.addEventListener('message', function updateSkyAccountViewUrl(ev) {
       const data = ev && ev.data;
