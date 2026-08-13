@@ -1460,8 +1460,6 @@
     const button = document.getElementById('pdfTestSend');
     try {
       const payload = journeyTestPayload();
-      const campaign = journeyCampaignsAvailable.find((item) => item.campaignId === payload.campaignId);
-      if (!window.confirm(`Send “${payload.documentName}” to ${payload.emailAddress} using ${campaign ? campaign.name : payload.campaignId}?`)) return;
       setJourneyTestCacheStatus(saveJourneyTestValues(payload)
         ? 'These values are saved in this browser and can be restored with Use last values.'
         : 'The browser could not save these values. The message can still be sent.');
