@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813d">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813e">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -492,11 +492,12 @@
                 <span class="pdf-code-language-badge">Gemini 2.5 Flash</span>
               </div>
               <label for="pdfTestStory">Journey story</label>
-              <textarea id="pdfTestStory" rows="5" maxlength="8000" placeholder="Example: Amelia Palmer is flying Riyadh Air RX 401 from Riyadh RUH Terminal 5 to Dubai DXB Terminal 2 on 12 August 2026. Boarding is 08:30, departure is 09:15, gate A12, seat 24A, zone 3 and booking reference RA8F2Q. Send the boarding pass to amelia@example.com."></textarea>
+              <textarea id="pdfTestStory" rows="5" maxlength="8000" placeholder="Describe the traveller, journey and delivery details here.">Amelia Palmer is flying Riyadh Air RX 401 from Riyadh RUH Terminal 5 to Dubai DXB Terminal 2 on 12 August 2026. Boarding is 08:30, departure is 09:15, gate A12, seat 24A, zone 3 and booking reference RA8F2Q. Send the boarding pass to amelia@example.com.</textarea>
               <div class="pdf-story-assist-footer">
                 <span id="pdfTestStoryCount">0 / 8,000</span>
                 <div>
                   <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestStoryClear">Clear</button>
+                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfTestStoryExample">Load example</button>
                   <button type="button" class="dashboard-btn-primary" id="pdfTestStoryGenerate"><span aria-hidden="true">✦</span> Populate fields with Gemini</button>
                 </div>
               </div>
@@ -896,6 +897,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260813d"></script>
+  <script src="pdf-personalisation.js?v=20260813e"></script>
 </body>
 </html>

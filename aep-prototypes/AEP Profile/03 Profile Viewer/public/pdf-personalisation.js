@@ -1258,6 +1258,15 @@
     story.focus();
   }
 
+  function loadStoryAssistExample() {
+    const story = document.getElementById('pdfTestStory');
+    story.value = story.defaultValue.trim();
+    document.getElementById('pdfTestStoryCount').textContent = `${story.value.length.toLocaleString()} / 8,000`;
+    renderStoryMissingFields([]);
+    setStoryAssistStatus('Example restored. Edit any detail or populate the fields with Gemini.');
+    story.focus();
+  }
+
   function useWorkspaceJsonForTest() {
     try {
       const data = parseData();
@@ -1394,9 +1403,12 @@
     document.getElementById('pdfTestSend').addEventListener('click', sendJourneyTest);
     document.getElementById('pdfTestStoryGenerate').addEventListener('click', populateTestFieldsWithGemini);
     document.getElementById('pdfTestStoryClear').addEventListener('click', clearStoryAssist);
+    document.getElementById('pdfTestStoryExample').addEventListener('click', loadStoryAssistExample);
     document.getElementById('pdfTestStory').addEventListener('input', (event) => {
       document.getElementById('pdfTestStoryCount').textContent = `${event.target.value.length.toLocaleString()} / 8,000`;
     });
+    const initialStory = document.getElementById('pdfTestStory').value;
+    document.getElementById('pdfTestStoryCount').textContent = `${initialStory.length.toLocaleString()} / 8,000`;
     window.addEventListener('aep-global-sandbox-change', () => {
       if (authUser) loadJourneyCampaigns().catch(() => {});
     });
