@@ -1318,15 +1318,18 @@
       const story = document.getElementById('pdfTestStory').value.trim();
       if (story.length < 10) throw new Error('Describe the traveller and journey in at least 10 characters.');
       button.disabled = true;
-      button.innerHTML = '<span aria-hidden="true">✦</span> Reading the story…';
+      button.innerHTML = '<span aria-hidden="true">✦</span> Creating scenario…';
       renderStoryMissingFields([]);
-      setStoryAssistStatus('Matching the story to the selected template fields…', 'working');
+      setStoryAssistStatus('Generating a complete scenario for every template field…', 'working');
       const { body } = await api('/journey-action/story-assist', {
         method: 'POST',
         body: JSON.stringify({
           sandbox: currentSandbox(),
           templateName: template.templateName || template.name,
           story,
+          currentValues: currentTestFieldValues(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Riyadh',
+          locale: navigator.language || 'en-GB',
           recipient: {
             emailAddress: document.getElementById('pdfTestEmail').value.trim(),
             firstName: document.getElementById('pdfTestFirstName').value.trim(),
@@ -1344,7 +1347,7 @@
       const populatedValues = currentTestFieldValues();
       renderStoryMissingFields((body.missingFields || []).filter((name) => !populatedValues[name]));
       const filledCount = Object.keys(body.values || {}).length + Object.keys(recipient).length;
-      setStoryAssistStatus(`${body.summary} Populated ${filledCount} field${filledCount === 1 ? '' : 's'}. Review them below before sending.`, 'success');
+      setStoryAssistStatus(`${body.summary} Generated ${filledCount} field${filledCount === 1 ? '' : 's'}. Review them below before sending.`, 'success');
     } catch (error) {
       setStoryAssistStatus(error.message, 'error');
     } finally {

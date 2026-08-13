@@ -26,7 +26,12 @@ test('normalizes Gemini output to selected template fields only', async () => {
     }),
     now: () => new Date('2026-08-13T10:00:00Z'),
   });
-  assert.deepEqual(result.recipient, { firstName: 'Amelia', documentName: 'boarding-pass.pdf' });
+  assert.deepEqual(result.recipient, {
+    emailAddress: 'traveller@example.com',
+    firstName: 'Amelia',
+    lastName: 'Morgan',
+    documentName: 'boarding-pass.pdf',
+  });
   assert.deepEqual(result.values, { flightNumber: 'EK 001', seat: '12A', totalPaid: 120.5 });
   assert.deepEqual(result.missingFields, ['Offer']);
   assert.equal(result.model, 'gemini-2.5-flash');
@@ -49,6 +54,67 @@ test('completes non-image fields from template defaults without auto-selecting i
   assert.equal(result.values.departureAirportName, 'King Khalid International Airport');
   assert.equal(result.values.Offer, undefined);
   assert.deepEqual(result.missingFields, ['Offer']);
+});
+
+test('requires a complete generated scenario and reuses safe form images and delivery email', async () => {
+  let capturedPayload;
+  let capturedOptions;
+  const result = await assist.suggest({
+    ownerUid: 'story-user-complete',
+    story: 'Create a premium Riyadh to Dubai boarding pass next month.',
+    templateName: 'riyadh-pass',
+    templateLabel: 'Riyadh Air boarding pass',
+    documentName: 'riyadh-pass.pdf',
+    recipient: { emailAddress: 'test-recipient@example.com' },
+    currentValues: { Offer: 'https://example.com/hosted-offer.png' },
+    inputSchema: [
+      { name: 'bookingReference', label: 'Booking reference', dataType: 'string' },
+      { name: 'departureDateTime', label: 'Departure date time', dataType: 'dateTime' },
+      { name: 'totalPaid', label: 'Total paid', dataType: 'decimal' },
+      { name: 'Offer', label: 'Special offer', dataType: 'image' },
+    ],
+  }, {
+    callGemini: async (_systemPrompt, userPrompt, options) => {
+      capturedPayload = JSON.parse(userPrompt);
+      capturedOptions = options;
+      return JSON.stringify({
+        recipient: { emailAddress: 'generated@example.com', firstName: 'Noura', lastName: 'Al-Saud', documentName: 'noura-pass.pdf' },
+        values: {
+          bookingReference: 'RA7K2P',
+          departureDateTime: '2026-09-18T09:15:00+03:00',
+          totalPaid: 825,
+        },
+        missingFields: ['Offer'],
+        summary: 'Created a premium Riyadh to Dubai boarding-pass scenario.',
+      });
+    },
+    now: () => new Date('2026-08-13T12:00:00Z'),
+    randomUUID: () => 'scenario-seed-123',
+  });
+
+  assert.equal(capturedPayload.generationContext.randomSeed, 'scenario-seed-123');
+  assert.equal(capturedPayload.generationContext.currentDate, '2026-08-13T12:00:00.000Z');
+  assert.equal(capturedPayload.availableImageValues.Offer, 'https://example.com/hosted-offer.png');
+  assert.equal(capturedPayload.currentRecipient.emailAddress, 'test-recipient@example.com');
+  assert.equal(capturedPayload.currentRecipient.firstName, undefined);
+  assert.equal(capturedOptions.temperature, 0.75);
+  assert.deepEqual(capturedOptions.responseSchema.properties.values.required, [
+    'bookingReference', 'departureDateTime', 'totalPaid', 'Offer',
+  ]);
+  assert.equal(result.recipient.emailAddress, 'test-recipient@example.com');
+  assert.equal(result.recipient.firstName, 'Noura');
+  assert.equal(result.values.Offer, 'https://example.com/hosted-offer.png');
+  assert.deepEqual(result.missingFields, []);
+});
+
+test('uses an email explicitly supplied in the story over the current delivery email', () => {
+  const result = assist.completeRecipient({
+    recipient: { firstName: 'Aisha', lastName: 'Khan', documentName: 'pass.pdf' },
+    values: {},
+    missingFields: [],
+    summary: 'Scenario generated.',
+  }, { emailAddress: 'current@example.com' }, { name: 'boarding-pass' }, 'Send it to new.recipient@example.com');
+  assert.equal(result.recipient.emailAddress, 'new.recipient@example.com');
 });
 
 test('rejects short stories and templates without a field schema', async () => {
