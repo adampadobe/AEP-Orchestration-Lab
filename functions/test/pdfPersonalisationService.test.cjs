@@ -270,6 +270,37 @@ test('allows portal users to manage transactional campaign shortcuts', async () 
   assert.deepEqual(savedCalls[0], { uid: 'user-1', sandbox: 'apalmer', campaigns });
 });
 
+test('uses Gemini to suggest only the selected template personalisation fields', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, templateName: name, ownerUid: uid, label: 'Boarding pass', documentName: 'pass.pdf',
+      inputSchema: [{ name: 'flightNumber', dataType: 'string', required: true }],
+      sampleData: { flightNumber: 'RX 123' },
+    }),
+    suggestJourneyStoryFields: async (input) => {
+      calls.push(input);
+      return { recipient: { firstName: 'Amelia' }, values: { flightNumber: 'RX 401' }, missingFields: [], summary: 'Flight extracted.', model: 'gemini-2.5-flash' };
+    },
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/story-assist'), {
+    method: 'POST',
+    body: { templateName: 'boarding-pass', story: 'Amelia is flying RX 401.', sandbox: 'apalmer' },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, 'suggested');
+  assert.equal(res.body.values.flightNumber, 'RX 401');
+  assert.equal(calls[0].ownerUid, 'user-1');
+  assert.deepEqual(calls[0].inputSchema, [{ name: 'flightNumber', dataType: 'string', required: true }]);
+});
+
 test('queues a portal test send and exposes only its owner status', async () => {
   const calls = [];
   const handler = service.createHandler({

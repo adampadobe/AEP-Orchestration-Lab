@@ -560,6 +560,46 @@ function createHandler(deps) {
         return;
       }
 
+      if (path === '/journey-action/story-assist' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const sandbox = scopedSandbox(principal, body.sandbox);
+        const resolvedTemplate = await required.resolveJourneyTemplateMetadata(body.templateName, principal.ownerUid);
+        if (resolvedTemplate.sandbox && sandbox && resolvedTemplate.sandbox !== sandbox) {
+          throw new core.PdfPersonalisationError(
+            'The selected template belongs to a different Adobe sandbox.',
+            403,
+            'PDF_JOURNEY_TEMPLATE_SANDBOX_FORBIDDEN',
+          );
+        }
+        if (typeof required.suggestJourneyStoryFields !== 'function') {
+          throw new core.PdfPersonalisationError('Gemini story assistance is unavailable.', 503, 'PDF_STORY_ASSIST_UNAVAILABLE');
+        }
+        try {
+          const suggestion = await required.suggestJourneyStoryFields({
+            ownerUid: principal.ownerUid,
+            story: body.story,
+            templateName: resolvedTemplate.templateName || resolvedTemplate.name,
+            templateLabel: resolvedTemplate.label,
+            documentName: resolvedTemplate.documentName,
+            inputSchema: resolvedTemplate.inputSchema || [],
+            defaults: resolvedTemplate.sampleData || {},
+            recipient: body.recipient,
+          });
+          res.status(200).json({ status: 'suggested', templateName: resolvedTemplate.templateName || resolvedTemplate.name, ...suggestion });
+        } catch (error) {
+          const status = Number(error && error.status) || 502;
+          throw new core.PdfPersonalisationError(
+            String(error && error.message || 'Gemini could not interpret this story.'),
+            status,
+            String(error && error.code || 'PDF_STORY_ASSIST_FAILED'),
+          );
+        }
+        return;
+      }
+
       const portalJourneyStatusMatch = path.match(/^\/journey-action\/test-status\/([a-f0-9]{40})$/);
       if (portalJourneyStatusMatch && req.method === 'GET') {
         if (principal.type !== 'portal') {

@@ -1175,6 +1175,89 @@
     document.getElementById('pdfTestCampaignStatus').textContent = 'Campaign removed from this dropdown.';
   }
 
+  function currentTestFieldValues() {
+    const values = {};
+    document.querySelectorAll('[data-pdf-test-field]').forEach((input) => {
+      const raw = input.value.trim();
+      if (raw === '') return;
+      values[input.dataset.pdfTestField] = input.dataset.pdfTestType === 'decimal' ? Number(raw) : raw;
+    });
+    return values;
+  }
+
+  function setStoryAssistStatus(message, kind) {
+    const status = document.getElementById('pdfTestStoryStatus');
+    status.textContent = message || '';
+    status.className = `pdf-story-assist-status${kind ? ` is-${kind}` : ''}`;
+  }
+
+  function renderStoryMissingFields(fields) {
+    const container = document.getElementById('pdfTestStoryMissing');
+    container.replaceChildren();
+    const items = Array.isArray(fields) ? fields : [];
+    container.hidden = !items.length;
+    if (!items.length) return;
+    const intro = document.createElement('span');
+    intro.textContent = 'Still needed';
+    container.appendChild(intro);
+    items.forEach((name) => {
+      const chip = document.createElement('span');
+      chip.textContent = name;
+      container.appendChild(chip);
+    });
+  }
+
+  async function populateTestFieldsWithGemini() {
+    const button = document.getElementById('pdfTestStoryGenerate');
+    try {
+      const template = selectedTestTemplate();
+      if (!template) throw new Error('Choose a published template before describing the journey.');
+      const story = document.getElementById('pdfTestStory').value.trim();
+      if (story.length < 10) throw new Error('Describe the traveller and journey in at least 10 characters.');
+      button.disabled = true;
+      button.innerHTML = '<span aria-hidden="true">✦</span> Gemini is reading the story…';
+      renderStoryMissingFields([]);
+      setStoryAssistStatus('Matching the story to the selected template fields…', 'working');
+      const { body } = await api('/journey-action/story-assist', {
+        method: 'POST',
+        body: JSON.stringify({
+          sandbox: currentSandbox(),
+          templateName: template.templateName || template.name,
+          story,
+          recipient: {
+            emailAddress: document.getElementById('pdfTestEmail').value.trim(),
+            firstName: document.getElementById('pdfTestFirstName').value.trim(),
+            lastName: document.getElementById('pdfTestLastName').value.trim(),
+            documentName: document.getElementById('pdfTestDocumentName').value.trim(),
+          },
+        }),
+      });
+      renderTestDynamicFields({ ...currentTestFieldValues(), ...(body.values || {}) });
+      const recipient = body.recipient || {};
+      if (recipient.emailAddress) document.getElementById('pdfTestEmail').value = recipient.emailAddress;
+      if (recipient.firstName) document.getElementById('pdfTestFirstName').value = recipient.firstName;
+      if (recipient.lastName) document.getElementById('pdfTestLastName').value = recipient.lastName;
+      if (recipient.documentName) document.getElementById('pdfTestDocumentName').value = recipient.documentName;
+      renderStoryMissingFields(body.missingFields);
+      const filledCount = Object.keys(body.values || {}).length + Object.keys(recipient).length;
+      setStoryAssistStatus(`${body.summary} Populated ${filledCount} field${filledCount === 1 ? '' : 's'} with ${body.model || 'Gemini'}. Review them below before sending.`, 'success');
+    } catch (error) {
+      setStoryAssistStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+      button.innerHTML = '<span aria-hidden="true">✦</span> Populate fields with Gemini';
+    }
+  }
+
+  function clearStoryAssist() {
+    const story = document.getElementById('pdfTestStory');
+    story.value = '';
+    document.getElementById('pdfTestStoryCount').textContent = '0 / 8,000';
+    renderStoryMissingFields([]);
+    setStoryAssistStatus('');
+    story.focus();
+  }
+
   function useWorkspaceJsonForTest() {
     try {
       const data = parseData();
@@ -1298,13 +1381,22 @@
   }
 
   function bindJourneyTestSender() {
-    document.getElementById('pdfTestTemplate').addEventListener('change', () => renderTestDynamicFields());
+    document.getElementById('pdfTestTemplate').addEventListener('change', () => {
+      renderTestDynamicFields();
+      renderStoryMissingFields([]);
+      setStoryAssistStatus('Template changed. Gemini will now target this template’s fields.');
+    });
     document.getElementById('pdfTestCampaign').addEventListener('change', syncTestCampaignManager);
     document.getElementById('pdfTestSaveCampaign').addEventListener('click', saveJourneyCampaign);
     document.getElementById('pdfTestRemoveCampaign').addEventListener('click', () => removeJourneyCampaign().catch((error) => setJourneyTestStatus(error.message, 'error')));
     document.getElementById('pdfTestUseWorkspaceJson').addEventListener('click', useWorkspaceJsonForTest);
     document.getElementById('pdfTestCopyPayload').addEventListener('click', copyJourneyTestPayload);
     document.getElementById('pdfTestSend').addEventListener('click', sendJourneyTest);
+    document.getElementById('pdfTestStoryGenerate').addEventListener('click', populateTestFieldsWithGemini);
+    document.getElementById('pdfTestStoryClear').addEventListener('click', clearStoryAssist);
+    document.getElementById('pdfTestStory').addEventListener('input', (event) => {
+      document.getElementById('pdfTestStoryCount').textContent = `${event.target.value.length.toLocaleString()} / 8,000`;
+    });
     window.addEventListener('aep-global-sandbox-change', () => {
       if (authUser) loadJourneyCampaigns().catch(() => {});
     });

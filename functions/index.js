@@ -130,6 +130,7 @@ const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
 const pdfJourneyApiKeyStore = lazyRequireMod('./pdfJourneyApiKeyStore');
 const pdfJourneyTemplateStore = lazyRequireMod('./pdfJourneyTemplateStore');
 const pdfJourneyCampaignStore = lazyRequireMod('./pdfJourneyCampaignStore');
+const pdfJourneyStoryAssist = lazyRequireMod('./pdfJourneyStoryAssist');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -557,6 +558,7 @@ exports.pdfPersonalisation = onRequest(
     resolveJourneyTemplateMetadata: pdfJourneyTemplateStore.resolveTemplateMetadata,
     listJourneyCampaigns: pdfJourneyCampaignStore.listCampaigns,
     saveJourneyCampaigns: pdfJourneyCampaignStore.saveCampaigns,
+    suggestJourneyStoryFields: pdfJourneyStoryAssist.suggest,
     getJourneyActionRecord: pdfJourneyActionService.getRecord,
     journeyActionResponse: pdfJourneyActionService.statusResponse,
     getPdfJob: pdfPersonalisationStore.getJob,
