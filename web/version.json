@@ -1,14 +1,14 @@
 {
-  "gitSha": "8091ca9a8046556159c82bb9789a2e1832859be7",
-  "gitShortSha": "8091ca9a",
+  "gitSha": "6bc6d2337065b92c668332a6e1a05c581a9ebecd",
+  "gitShortSha": "6bc6d233",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Collapse Gemini journey assistant",
+  "gitCommitSubject": "[apalmer] Improve AI-assisted PDF field completion",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T12:48:24+03:00",
-  "deployedAt": "2026-08-13T09:54:31.321Z",
+  "gitCommitDate": "2026-08-13T13:06:21+03:00",
+  "deployedAt": "2026-08-13T10:07:07.610Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 13,
+  "aheadOfOrigin": 15,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8091ca9a8046556159c82bb9789a2e1832859be7"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/6bc6d2337065b92c668332a6e1a05c581a9ebecd"
 }
