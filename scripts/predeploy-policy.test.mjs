@@ -24,6 +24,7 @@ for (const [name, change] of [
   ['unpushed commit', { ahead: 1 }],
   ['stale checkout', { behind: 1 }],
   ['dirty tracked file', { dirty: true }],
+  ['untracked deploy file', { untrackedDeployFiles: true }],
   ['failed origin fetch', { fetchedOrigin: false }],
 ]) {
   test(`rejects production from a ${name}`, () => {
