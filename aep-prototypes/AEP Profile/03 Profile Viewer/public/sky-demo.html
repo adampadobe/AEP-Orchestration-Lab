@@ -73,6 +73,15 @@
     sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
     loading="eager"
   ></iframe>
+  <script>
+    (function loadRequestedSkyView() {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('view') !== 'account') return;
+      var frame = document.getElementById('skyDemoSiteFrame');
+      if (frame) frame.src = 'sky-demo-assets/sky-post-login.html?v=20260813-post-login-image';
+      document.title = 'Sky Account Demo | AEP Orchestration Lab';
+    })();
+  </script>
 
   <button
     type="button"
@@ -153,7 +162,7 @@
     };
   </script>
   <script src="site-clone-login-shell.js?v=20260702-site-clone-login"></script>
-  <script src="sky-demo.js?v=20260813-profile-login-fix"></script>
+  <script src="sky-demo.js?v=20260813-account-view-url"></script>
   <script src="sky-demo-main-ajo-bridge.js?v=20260807-editable-main-insert"></script>
   <script src="sky-demo-post-login-ajo-bridge.js?v=20260813-post-login-image"></script>
   <script src="site-clone-bc.js?v=20260625-bc-aep-events-ecid"></script>

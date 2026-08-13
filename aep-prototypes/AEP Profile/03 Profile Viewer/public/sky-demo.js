@@ -6,6 +6,30 @@
   function run() {
     const customerEmail = document.getElementById('customerEmail');
     const skyNs = document.getElementById('skyNs');
+    const accountView = new URLSearchParams(global.location.search).get('view') === 'account';
+
+    function useAccountViewUrl() {
+      const url = new URL(global.location.href);
+      if (url.searchParams.get('view') === 'account') return;
+      url.searchParams.set('view', 'account');
+      global.history.replaceState({ skyView: 'account' }, '', url.href);
+      document.title = 'Sky Account Demo | AEP Orchestration Lab';
+    }
+
+    if (accountView && global.envBar && typeof global.envBar.dock === 'function') {
+      global.envBar.dock();
+      try {
+        global.sessionStorage.removeItem('aepLabEnvBarDocked');
+      } catch (_e) {
+        /* Keep the account-view default local to this page load. */
+      }
+    }
+
+    global.addEventListener('message', function updateSkyAccountViewUrl(ev) {
+      const data = ev && ev.data;
+      if (!data || data.source !== 'sky-demo-shell' || data.type !== 'login-complete' || !data.found) return;
+      useAccountViewUrl();
+    });
 
     function rememberSkySessionIdentifier(value) {
       if (typeof setSessionIdentifier !== 'function') return;
