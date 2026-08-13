@@ -15,9 +15,16 @@ const {
   timingSafeEqual,
   pickKeyForSandbox,
   countActiveKeysForSandbox,
+  MAX_ACTIVE_KEYS_PER_SANDBOX,
+  MAX_KEYS_RETURNED_PER_USER,
 } = require('../mcpApiKeyStore');
 
 describe('mcpApiKeyStore', () => {
+  it('allows a larger bounded set of active keys per sandbox', () => {
+    assert.equal(MAX_ACTIVE_KEYS_PER_SANDBOX, 25);
+    assert.equal(MAX_KEYS_RETURNED_PER_USER, 250);
+  });
+
   it('normalizeSandboxList dedupes and lowercases', () => {
     assert.deepEqual(normalizeSandboxList(['Apalmer', 'apalmer', 'kirkham']), ['apalmer', 'kirkham']);
   });

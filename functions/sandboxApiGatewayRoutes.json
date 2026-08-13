@@ -445,6 +445,11 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/lab/demo-config",
+      "functionId": "labDemoConfig",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/lab/lab-access/status",
       "functionId": "labLabAccessStatus",
       "region": "us-east4"

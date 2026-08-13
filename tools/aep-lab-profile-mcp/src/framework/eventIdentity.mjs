@@ -197,7 +197,7 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
       ? { id: LAB_EVENT_TOOL_TARGET_ID, note: 'Default Event tool preset when Firestore eventConfig has datastreamId' }
       : null);
 
-  const { params: sanitizedFields } = sanitizeCoworkerEventParams(
+  const { params: sanitizedFields, richIndustry } = sanitizeCoworkerEventParams(
     eventFields && typeof eventFields === 'object' ? eventFields : {},
   );
 
@@ -218,11 +218,13 @@ export function buildEventPreflightSummary({ sandbox, email, ecid, target_id, ta
       rules: [
         'At least one of email or ecid (10+ digits) required — same as Event Generator UI strip.',
         'When both present: identityMap.ECID primary:true, identityMap.Email primary:false.',
-        'Minimal Edge XDM: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only.',
-        'Do NOT pass view_name/view_url — server matches Event tool UI minimal (no web.webPageDetails, no _demoemea).',
+        richIndustry
+          ? `Rich industry XDM: validated fields are nested under ${richIndustry.payloadPath}.*; identity remains ECID primary + Email secondary.`
+          : 'Minimal Edge XDM: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only.',
+        'Do NOT pass view_name/view_url or raw XDM. Use industry + industry_fields for governed rich context.',
         'Prefer BOTH after lab_generate_profile — capture ecid from generate response.',
         'event_type is free text — pass as tool param only; never inject schema refs, mixin defs, or tenant FG blobs.',
-        'generatorPostBody is camelCase POST fields — server converts to minimal Edge XDM automatically.',
+        'generatorPostBody is camelCase POST fields — server converts it to minimal or governed rich XDM automatically.',
       ],
     },
     generatorPostBody,

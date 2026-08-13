@@ -1,0 +1,73 @@
+{
+  "documentTitle": "Riyadh Air boarding pass - Darakhshan Khan",
+  "cabin": "Economy",
+  "fare": "Sky Essential",
+  "flightNumber": "RX 123",
+  "flightDate": "2026-08-12T00:00:00Z",
+  "origin": {
+    "city": "Riyadh",
+    "code": "RUH",
+    "airport": "King Khalid International Airport",
+    "terminal": "Terminal 5"
+  },
+  "destination": {
+    "city": "Jeddah",
+    "code": "JED",
+    "airport": "King Abdulaziz International Airport",
+    "terminal": "Terminal 1"
+  },
+  "times": {
+    "boarding": "08:30",
+    "departure": "09:15"
+  },
+  "gate": "A12",
+  "seat": "24A",
+  "zone": "3",
+  "passenger": {
+    "name": "DARAKHSHAN KHAN"
+  },
+  "bookingReference": "RX8F2Q",
+  "barcodeImageUrl": "",
+  "walletLabel": "Add to Apple Wallet",
+  "story": {
+    "arabicHeading": "رحلتك تبدأ معنا",
+    "headline": "Your journey begins,",
+    "subheading": "and our story flies with you.",
+    "imageUrl": "https://placehold.co/1200x500/31296e/ffffff.png?text=Riyadh+Air+Journey",
+    "imageAlt": "Riyadh Air journey",
+    "sustainabilityArabic": "نعتني بكوكبنا",
+    "sustainabilityText": "We care for our planet"
+  },
+  "offersHeading": "Personalised food offers",
+  "offersLabel": "Selected for you",
+  "offers": [
+    {
+      "name": "Chicken Biryani",
+      "description": "Aromatic basmati rice with tender chicken, served with raita.",
+      "price": "SAR 48",
+      "originalPrice": "SAR 56",
+      "saving": "SAVE 15%",
+      "imageUrl": "https://placehold.co/600x360/f2ecdf/31296e.png?text=Chicken+Biryani",
+      "imageAlt": "Chicken biryani meal"
+    },
+    {
+      "name": "Grilled Salmon",
+      "description": "Grilled salmon with lemon butter sauce, served with vegetables.",
+      "price": "SAR 52",
+      "originalPrice": "SAR 61",
+      "saving": "SAVE 15%",
+      "imageUrl": "https://placehold.co/600x360/e8eff2/31296e.png?text=Grilled+Salmon",
+      "imageAlt": "Grilled salmon meal"
+    },
+    {
+      "name": "Chocolate Cake",
+      "description": "Rich chocolate cake with smooth chocolate cream.",
+      "price": "SAR 18",
+      "originalPrice": "SAR 20",
+      "saving": "SAVE 10%",
+      "imageUrl": "https://placehold.co/600x360/5a2f26/ffffff.png?text=Chocolate+Cake",
+      "imageAlt": "Chocolate cake"
+    }
+  ],
+  "footerMessage": "Pre-order your meal and enjoy a delicious journey."
+}

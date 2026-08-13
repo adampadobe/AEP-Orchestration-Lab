@@ -2,15 +2,17 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.29.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.38.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 ---
 
-# AEP Orchestration Lab MCP — Codex workflows (Phase 3.29)
+# AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.29.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.38.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+
+Focused Coworker endpoints use the same API key: `/mcp/guide` (4 tools), `/mcp/profile` (20), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (19), and `/mcp/pdf` (14). The guide endpoint is a read-only capability directory and workflow recommender; it cannot connect, switch, proxy, or execute another MCP. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -42,7 +44,7 @@ Codex should call these **before** improvising lab conventions:
 2. **preferredLanguage** — BCP-47 on `preferredLanguage` (root), `preferences.preferredLanguage`, and `personalEmail.language`. MCP randomize defaults `en-US` when missing. `profileStreamingCore.mirrorPreferredLanguageDemoSchema` dual-writes root + tenant.
 3. **Preflight** — call `lab_sandbox_profile_config` or `lab_preflight_profile_generate` before first generate on a sandbox; industry Firestore doc must have `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey`.
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; server adds `_demoemea.identification.core` automatically. Preflight: `lab_preflight_profile_event`.
-5. **Event params only (never inject XDM)** — Coworker must use `lab_send_profile_event` / `lab_send_profile_events_batch` with **tool params only**: `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. **Never** pass `view_name`, `view_url`, custom `xdm`, schema `$ref`s, mixin definitions, descriptors, or tenant field-group blobs. Server builds minimal Edge XDM via `buildGeneratorEdgeInteractXdm` → `buildMinimalEdgeXdm` (Event tool UI parity). Omit `public`/`message`/`xdm_style=full` for intent demos.
+5. **Event params only (never inject XDM)** — Coworker must use `lab_send_profile_event` / `lab_send_profile_events_batch` with tool params. Minimal default: `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. Governed rich opt-in: add `industry` plus optional flat `industry_fields`; the MCP allowlists fields, nests `public.{industry}.*`, and selects full XDM automatically. **Never** pass `view_name`, `view_url`, custom `xdm`, schema `$ref`s, mixin definitions, descriptors, tenant blobs, or raw `public`/`xdm_style` overrides.
 6. **Portal event types** — `event_type` is **free text** (any string, same as Event tool). Datalist / `lab_send_retail_journey_events` commerce pack are optional suggestions. Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`.
 7. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
 8. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
@@ -51,13 +53,17 @@ Codex should call these **before** improvising lab conventions:
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
 12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires user-generated MCP key.
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
+14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
+15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
+16. **Customer demo images are inspect → preview → confirm → apply** — use **`lab_demo_assets_inspect`**, then **`lab_demo_assets_preview_from_scrape`** for one completed scrape. Show the transformed previews, stable target URLs, current customer backup label, and expiry. Only after explicit confirmation call **`lab_demo_assets_apply`** with the preflight id and an idempotency key. The server backs up only allowlisted customer slots, never the whole shared library. Restore a saved customer with **`lab_demo_assets_restore`** preview first, then confirmed apply.
+17. **PDF preparation is inspect → preview/analyse → generate or publish → visually verify** — use **`lab_pdf_capabilities`** first. HTML should pass through **`lab_pdf_html_preview`** before **`lab_pdf_generate`**. Documents are previewed through the generated PDF link. Use a fresh idempotency key for each new PDF and reuse it only for an exact retry. Use **`lab_pdf_job_list`** to recover stored output. Analyse server templates before publishing; publication and archive require explicit confirmation. Never place PDF binary in model context or use the broad operational `X-PDF-API-Key`.
 
 ### How the lab executes
 
 1. **Onboard** (new sandbox): `lab_sandbox_profile_config` → `lab_onboard_sandbox` (plan / execute / execute_all) until each industry Firestore connection has `streaming.url`, `flowId`, `datasetId`, `schemaId`, `xdmKey` and profile is enabled on the dataset. **HTTP API dataflows:** lab MCP creates schema/FGs/dataset; Coworker **dx-api** creates Flow Service connections + dataflow (see Workflow 4b).
 2. **Generate**: `lab_generate_profile` POSTs to `/api/profile/generate` — streams XDM via per-industry HTTP API connections. **Non-generic industries dual-stream automatically:** step 1 `industry generic` (generic-owned paths), step 2 `industry travel|fsi|…` with `appendIfExisting` (industry-owned paths, same email/ECID). `randomize:true` builds correlated attributes in MCP `personaBuilder/` (mirrors Profile Viewer **Generate**). Pass partial `attributes` with `randomize:true` to merge overrides onto the randomized base (Portal parity: honor user-provided fields). Default `testProfile:true`.
 3. **Update**: `lab_update_profile` — **full-snapshot stitch** only (fetch UPS → merge changes → stream ALL writable rows for that industry). Never minimal deltas.
-4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator`. **Coworker: pass tool params only** — `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. **Never** pass `view_name`, `view_url`, custom XDM, schema refs, mixin definitions, or tenant field groups. Server builds minimal Edge XDM (`buildGeneratorEdgeInteractXdm` → `buildMinimalEdgeXdm`). **`event_type` is free text**. **Identity**: pass email **and** ecid from `lab_generate_profile`. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event` (returns `generatorPostBody` camelCase fields — not XDM to construct). Multi-event: `lab_send_profile_events_batch` (sequential POSTs — one generator call per event, not one Edge bulk payload; `events[]` steps allow only `event_type`, `channel`, `timestamp`). Auto-fetches ecid from UPS when email-only.
+4. **Events**: `lab_send_profile_event` appends ExperienceEvents via `/api/events/generator`. Minimal calls use `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. For travel/media/retail/etc. detail, add `industry` plus optional flat `industry_fields`; omit fields for safe defaults. The MCP builds the nested rich payload—never pass custom XDM, schema refs, mixins, tenant blobs, `view_name`, or `view_url`. **Identity**: pass email **and** ecid from `lab_generate_profile`. Default `target_id`: `lab-event-tool-edge`. Dry-run: `lab_preflight_profile_event`. Batch `events[]` supports the same governed industry fields per step.
 
 ### Test data conventions
 
@@ -90,6 +96,46 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 ### One-shot full demo prep (v3.14+ — confirm → scrape → profiles → events)
 
 > Sandbox **apalmer**, customer site **https://example-brand.com**. (1) **lab_mcp_access_info**. (2) **lab_mcp_first_run_setup** if new key — if `readiness.generation_prefs.ready` is false, **lab_confirm_profile_generation** and ask colleague for base email (e.g. apalmer@adobetest.com), then `confirmed:true`. (3) **lab_resolve_brand_scrape** url — if `need_new_scrape`, one **lab_brand_scrape** with `include: { personas: true, segments: true, demoWebsite: true }`, `wait_for_complete: true`. (4) **lab_prepare_demo_from_brand_scrape** with `steps: { profiles: true, events: true }` — omit industry and email (scrape-inferred industry + stored prefs). (5) Open demo URL from `profileViewerDemoHref` / `lab_list_brand_scrapes`. (6) **lab_get_profile** + **lab_profile_activity** per scaled email (allow 30–60s UPS lag).
+
+## Workflow 0c — Prepare the user-scoped RTDB for a customer demo
+
+1. **Inspect before suggesting changes**
+
+   > **lab_demo_config_inspect** sandbox apalmer — show current sections, ordinary values, editable paths and recommended brand fields.
+
+2. **Preview explicit or scrape-derived changes**
+
+   > **lab_demo_config_preview** sandbox apalmer scrape_id `{complete scrape id}` preset brand_and_industry — or pass explicit `changes: [{ path, value }]`. Never invent slogans or short names.
+
+3. **Confirm and apply**
+
+   > Show the before/after diff. After explicit colleague confirmation call **lab_demo_config_apply** with the returned `preflight_id`, `confirmed:true`, and a stable `idempotency_key`.
+
+4. **Verify or restore**
+
+   > Re-run **lab_demo_config_inspect**. To roll back, call **lab_demo_config_restore** first with `revision_id` and `confirmed:false`, show the restore diff, then call it again with the returned `preflight_id`, `confirmed:true`, and a new idempotency key.
+
+## Workflow 0d — Prepare stable customer images and saved-customer restore
+
+1. **Inspect active slots and saved customers**
+
+   > **lab_demo_assets_inspect** sandbox apalmer — report the active customer, permanent CDN URLs, slot hashes, and named revisions.
+
+2. **Preview from a completed scrape**
+
+   > **lab_demo_assets_preview_from_scrape** sandbox apalmer scrape_id `{id}` asset_pack `core` (or `core_and_mobile`). Show each signed preview, its stable target URL, source classification/confidence, and the current customer backup label. Do not apply yet.
+
+3. **Confirm and activate**
+
+   > After explicit colleague confirmation, **lab_demo_assets_apply** with `preflight_id`, `confirmed:true`, and a stable `idempotency_key`. The current managed slots are automatically saved as a named customer revision before replacement.
+
+4. **Restore a previous customer**
+
+   > Take `revisionId` from **lab_demo_assets_inspect**. Call **lab_demo_assets_restore** with `revision_id` and `confirmed:false`; show the preview. After confirmation call it again with returned `preflight_id`, `confirmed:true`, and a new idempotency key.
+
+**Focused Coworker config:** name `aep-lab-demo-prep`, URL ending `/mcp/demo-prep`, same `X-AEP-Lab-Mcp-Key` as the full endpoint.
+
+**Focused PDF Coworker config:** name `aep-lab-pdf-prep`, URL ending `/mcp/pdf`, same sandbox-scoped `X-AEP-Lab-Mcp-Key`. See `docs/COWORKER_PDF_PREP_MCP.md` for copy-ready workflows, limits, and prompts.
 
 ## Workflow 0a — Confirm email format before first generate
 
@@ -526,6 +572,26 @@ Allowlisted DPS catalog proxies — mirrors Profile Viewer **decisioning-catalog
 
 > lab_decisioning_catalog_list sandbox apalmer entity_type selection-strategies limit 50 — then list strategy names, priorities, and linked item collections.
 
+## Workflow 5f — Governed audience audit + deletion (v3.32+)
+
+Audience deletion is irreversible and requires a **user-generated MCP key** whose sandbox scope exactly matches the requested sandbox.
+
+1. **List/search (read-only)**
+
+   > **lab_audience_list** sandbox apalmer name "demo" include_inactive true — inspect the exact `id`, name, origin, lifecycle, and timestamps.
+
+2. **Audit one exact ID (read-only)**
+
+   > **lab_audience_audit** sandbox apalmer audience_id `{exact id field}` — review dependencies/dependents, source-system warning, and the stated audit limitations. This cannot prove that destinations, Account Audiences, or AJO do not use it; Adobe may reject deletion while usage remains.
+
+3. **Confirm**
+
+   > Show the colleague the exact sandbox, `confirmation.audience_id`, and `confirmation.expected_name`. Ask them to explicitly confirm deletion of that one audience. Do not treat a general cleanup request as confirmation for any listed item.
+
+4. **Delete one audience**
+
+   > Only after confirmation: **lab_audience_delete** sandbox apalmer audience_id `{id}` expected_name `{exact current name}` confirmed true. The server re-fetches and exact-matches ID + name immediately before Adobe `DELETE /data/core/ups/audiences/{id}`. No batch-delete tool exists.
+
 ## Workflow 5c — Event infrastructure setup (schema + dataset + datastream)
 
 Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (save datastream ID).
@@ -669,7 +735,7 @@ End-to-end chain for customer-specific demo prep.
 
 3. **One-shot orchestration (optional)**
 
-   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, url `https://example-brand.com` (or scrape_id), steps `{ "profiles": true, "events": true, "journey": true }`. Retail/F&B scrapes send commerce journey events (productViews → cart → purchase) with email+ecid from generate — not generic page views.
+   > lab_prepare_demo_from_brand_scrape: sandbox apalmer, url `https://example-brand.com` (or scrape_id), steps `{ "demo_config_preview": true, "profiles": true, "events": true, "journey": true }`. Show the RTDB diff and apply it separately only after confirmation. Retail/F&B scrapes send commerce journey events (productViews → cart → purchase) with email+ecid from generate — not generic page views.
 
 4. **Retail journey events (Starbucks / F&B)**
 

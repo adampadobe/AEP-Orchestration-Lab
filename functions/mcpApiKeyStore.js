@@ -11,7 +11,8 @@ const KEYS_COLLECTION = 'mcpApiKeys';
 const ALLOWLIST_COLLECTION = 'mcpSandboxAllowlist';
 const KEY_BYTE_LEN = 32;
 const KEY_PREFIX_DISPLAY_LEN = 8;
-const MAX_ACTIVE_KEYS_PER_SANDBOX = 10;
+const MAX_ACTIVE_KEYS_PER_SANDBOX = 25;
+const MAX_KEYS_RETURNED_PER_USER = 250;
 const DEFAULT_KEY_LABEL = 'MCP key';
 
 let db;
@@ -263,7 +264,7 @@ async function listKeysForUser(uid) {
     const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
     return tb - ta;
   });
-  return keys.slice(0, 50);
+  return keys.slice(0, MAX_KEYS_RETURNED_PER_USER);
 }
 
 /**
@@ -505,6 +506,7 @@ module.exports = {
   countActiveKeysForSandbox,
   generateStableKeyId,
   MAX_ACTIVE_KEYS_PER_SANDBOX,
+  MAX_KEYS_RETURNED_PER_USER,
   createKey,
   rotateKey,
   revokeKey,

@@ -101,10 +101,6 @@ function isInteractionDetailsLiteCandidate(row) {
   return /interaction\s*details\s*lite/.test(t);
 }
 
-function matchesTravelHotelExperienceV1Title(title) {
-  return /travel\s*[-–]?\s*hotel\s*experience\s*v1/i.test(String(title || ''));
-}
-
 function matchesB2cEventIdentityV1Title(title) {
   const key = normalizeFgTitleKey(title);
   return key === 'b2ceventidentityv1' || /b2ceventidentityv1$/.test(key);
@@ -349,14 +345,6 @@ function findInteractionDetailsLiteMixin(rows) {
   return global || candidates[0];
 }
 
-/** Adobe / lab "Travel - Hotel Experience v1" (ExperienceEvent) — hotel stay lifecycle fields. */
-function findTravelHotelExperienceV1Mixin(rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  return (
-    list.find((m) => matchesTravelHotelExperienceV1Title(m.title)) || null
-  );
-}
-
 /** Adobe / lab "B2C Event Identity v1" (ExperienceEvent) — tenant identification.core.* for ECID, Email, etc. */
 function findB2cEventIdentityV1Mixin(rows) {
   const list = Array.isArray(rows) ? rows : [];
@@ -374,7 +362,6 @@ function isExperienceEventFieldGroupListRow(row) {
   if (!row || typeof row.$id !== 'string' || !row.$id) return false;
   if (mixinExtendsExperienceEventClass(row)) return true;
   if (matchesInteractionDetailsLiteTitle(row.title)) return true;
-  if (matchesTravelHotelExperienceV1Title(row.title)) return true;
   if (matchesB2cEventIdentityV1Title(row.title)) return true;
   return false;
 }
@@ -386,7 +373,6 @@ const REQUIRED_EVENT_EXPERIENCE_FIELD_GROUP_TITLES = [
 ];
 
 const INTERACTION_DETAILS_LITE_FG_TITLE = 'Interaction Details Lite';
-const TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE = 'Travel - Hotel Experience v1';
 const B2C_EVENT_IDENTITY_V1_FG_TITLE = 'B2C Event Identity v1';
 
 function xdmStringField(title) {
@@ -434,90 +420,6 @@ const INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES = {
 };
 
 /**
- * Root-level `hotel.*` on ExperienceEvent — aligned with travel profile FG + eventGeneratorService
- * `mergeHospitalityPublicIntoHotelBookingDetails`.
- */
-const TRAVEL_HOTEL_EXPERIENCE_V1_EE_ROOT_PROPERTIES = {
-  hotel: {
-    type: 'object',
-    title: 'Hotel Experience',
-    description:
-      'Hotel stay lifecycle: booking details, check-in experience, in-stay services, and check-out rating.',
-    properties: {
-      bookingDetails: {
-        type: 'object',
-        title: 'Booking details',
-        properties: {
-          hotelName: { type: 'string', title: 'Hotel name' },
-          hotelLocation: { type: 'string', title: 'Hotel location / city' },
-          hotelChain: { type: 'string', title: 'Hotel chain' },
-          checkInDate: { type: 'string', title: 'Check-in date', format: 'date' },
-          checkOutDate: { type: 'string', title: 'Check-out date', format: 'date' },
-          nightsStay: { type: 'integer', title: 'Nights this stay' },
-          totalNights: { type: 'integer', title: 'Total nights past year' },
-          roomType: { type: 'string', title: 'Room type' },
-          rateCode: { type: 'string', title: 'Rate code' },
-          roomNumber: { type: 'string', title: 'Room number' },
-          confirmationNumber: { type: 'string', title: 'Confirmation number' },
-          roomCost: { type: 'number', title: 'Room cost per night' },
-          totalCost: { type: 'number', title: 'Total stay cost' },
-        },
-      },
-      checkIn: {
-        type: 'object',
-        title: 'Check-in experience',
-        properties: {
-          checkInMethod: { type: 'string', title: 'Check-in method' },
-          queueTime: { type: 'integer', title: 'Queue time (minutes)' },
-          earlyCheckIn: { type: 'boolean', title: 'Early check-in' },
-          roomReady: { type: 'boolean', title: 'Room ready on arrival' },
-          upgradedRoom: { type: 'boolean', title: 'Room upgraded' },
-          welcomeAmenities: { type: 'boolean', title: 'Welcome amenities provided' },
-        },
-      },
-      housekeeping: {
-        type: 'object',
-        title: 'Housekeeping',
-        properties: {
-          doNotDisturb: { type: 'boolean', title: 'Do not disturb' },
-          extraTowels: { type: 'boolean', title: 'Extra towels requested' },
-          serviceRequested: { type: 'boolean', title: 'Housekeeping service requested' },
-          cleanlinessRating: { type: 'integer', title: 'Cleanliness rating (1–10)' },
-        },
-      },
-      amenities: {
-        type: 'object',
-        title: 'Amenity usage',
-        properties: {
-          amenityType: { type: 'string', title: 'Amenity type' },
-          satisfactionRating: { type: 'integer', title: 'Amenity satisfaction rating (1–10)' },
-        },
-      },
-      roomService: {
-        type: 'object',
-        title: 'Room service',
-        properties: {
-          interactionType: { type: 'string', title: 'Room service interaction type' },
-          orderTotal: { type: 'number', title: 'Room service order total' },
-          serviceRating: { type: 'integer', title: 'Room service rating (1–10)' },
-        },
-      },
-      checkOut: {
-        type: 'object',
-        title: 'Check-out and rating',
-        properties: {
-          checkOutMethod: { type: 'string', title: 'Check-out method' },
-          lateCheckOut: { type: 'boolean', title: 'Late check-out' },
-          overallRating: { type: 'integer', title: 'Overall stay rating (1–10)' },
-          finalBillAmount: { type: 'number', title: 'Final bill amount' },
-          incidentalCharges: { type: 'number', title: 'Incidental charges' },
-        },
-      },
-    },
-  },
-};
-
-/**
  * Tenant ExperienceEvent field group — fields under `_{tenantId}` (AEP namespace rule).
  * Matches live sandboxes (e.g. apalmer InteractionDetails Lite) and eventGeneratorService
  * dual root + tenant payload alignment.
@@ -546,15 +448,6 @@ function buildInteractionDetailsLiteExperienceEventFieldGroup(tenantId) {
     INTERACTION_DETAILS_LITE_FG_TITLE,
     'AEP Orchestration Lab — auto-created ExperienceEvent field group for tenant interactionDetails.core (channel, deviceType, source).',
     INTERACTION_DETAILS_LITE_EE_ROOT_PROPERTIES
-  );
-}
-
-function buildTravelHotelExperienceV1ExperienceEventFieldGroup(tenantId) {
-  return buildExperienceEventTenantFieldGroup(
-    tenantId,
-    TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE,
-    'AEP Orchestration Lab — auto-created ExperienceEvent field group for tenant hotel stay lifecycle (booking through check-out).',
-    TRAVEL_HOTEL_EXPERIENCE_V1_EE_ROOT_PROPERTIES
   );
 }
 
@@ -631,7 +524,7 @@ async function relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox,
 /**
  * Resolve Interaction Details Lite and B2C Event Identity v1 for ExperienceEvent.
  * When absent from tenant/global catalogs, auto-create tenant FGs (same pattern as profile infra `createIfMissing`).
- * Industry-specific FGs (Travel - Hotel Experience v1, Booker/Stayer) are optional — use dedicated steps or travel profile infra.
+ * Demo-specific field groups are not part of the shared Event Tool setup.
  */
 async function ensureRecommendedExperienceEventFieldGroups(token, clientId, orgId, sandbox) {
   /** @type {{ title: string, $id: string }[]} */
@@ -2056,6 +1949,13 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     } else {
       schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
     }
+    if (!schema && opts.datasetName) {
+      const dataset = await findDatasetByName(token, clientId, orgId, sandbox, String(opts.datasetName).trim());
+      const datasetSchemaId = String(dataset && dataset.schemaRef && dataset.schemaRef.id || '').trim();
+      if (datasetSchemaId) {
+        schema = await findSchemaById(token, clientId, orgId, sandbox, datasetSchemaId);
+      }
+    }
     if (!schema) {
       return { ok: false, error: 'Schema not found for the given title or schemaId.' };
     }
@@ -2137,27 +2037,6 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       if (fg && fg.$id) attachIds.push(fg.$id);
     }
 
-    let travelHotel = findTravelHotelExperienceV1Mixin(
-      await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox),
-    );
-    if (!travelHotel) {
-      try {
-        const body = buildTravelHotelExperienceV1ExperienceEventFieldGroup(tenantCtx.tenantId);
-        travelHotel = await postTenantFieldGroup(token, clientId, orgId, sandbox, body);
-        createdTitles.push(TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE);
-      } catch (e) {
-        const msg = String(e.message || e);
-        if (/duplicate|already exists|409/i.test(msg)) {
-          travelHotel = findTravelHotelExperienceV1Mixin(
-            await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox),
-          );
-        } else {
-          warnings.push(`Travel hotel FG: ${msg}`);
-        }
-      }
-    }
-    if (travelHotel && travelHotel.$id) attachIds.push(travelHotel.$id);
-
     const uniqueAttach = [...new Set(attachIds.filter(Boolean))];
     const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, uniqueAttach);
     for (const w of fgRes.warnings || []) warnings.push(w);
@@ -2173,7 +2052,7 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     if (fgRes.skipped.length) parts.push('Some field groups were already on the schema.');
     const fgList = EVENT_INDUSTRY_FIELD_GROUP_SPECS.map((s) => s.title).join(', ');
     parts.push(
-      `Industry payloads use ${tenantCtx.xdmKey}.public.{industryId}.* (${fgList}) plus optional ${TRAVEL_HOTEL_EXPERIENCE_V1_FG_TITLE} hotel.* — same datastream and dataset as Quick trigger.`,
+      `Industry payloads use ${tenantCtx.xdmKey}.public.{industryId}.* (${fgList}) — same datastream and dataset as Quick trigger.`,
     );
 
     return {
@@ -2502,16 +2381,13 @@ module.exports = {
   EVENT_TOOL_IDENTITY_MAP_HINT,
   // Test / script helpers
   findInteractionDetailsLiteMixin,
-  findTravelHotelExperienceV1Mixin,
   findB2cEventIdentityV1Mixin,
   mixinExtendsExperienceEventClass,
   isExcludedDebugFieldGroupTitle,
   isGlobalAdobeFieldGroup,
   matchesInteractionDetailsLiteTitle,
-  matchesTravelHotelExperienceV1Title,
   matchesB2cEventIdentityV1Title,
   buildInteractionDetailsLiteExperienceEventFieldGroup,
-  buildTravelHotelExperienceV1ExperienceEventFieldGroup,
   buildB2cEventIdentityV1ExperienceEventFieldGroup,
   buildEventLabCoreV1ExperienceEventFieldGroup,
   EVENT_LAB_CORE_V1_FG_TITLE,

@@ -42,7 +42,7 @@ async function run() {
   }
 
   const travelAttrs = buildPersonaAttributes('travel', 't@example.com');
-  assert(travelAttrs['individualCharacteristics.travel.favouriteAirlineCompany'], 'travel airline');
+  assert(travelAttrs['travelReservations.flightReservations.flightNumber'], 'travel flight number');
 
   const email1 = resolveBatchEmail({ index: 1, baseEmail: 'user@example.com', industry: 'travel' });
   assert(email1 === 'user+travel-1@example.com', `batch email: ${email1}`);

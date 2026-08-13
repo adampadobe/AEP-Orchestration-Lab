@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF conversion workspace - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811f">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="pdf-personalisation-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Adobe PDF Services conversion workspace">PDF Services</span>
+          <span id="pdfAuthState" class="pdf-auth-state">Checking access...</span>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main app-page pdf-personalisation-main">
+        <section class="dashboard-hero dashboard-hero--page-banner pdf-personalisation-hero" aria-labelledby="pdfPageHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <div class="pdf-hero-heading-row">
+                <div>
+                  <span class="pdf-eyebrow">Adobe PDF Services · Create PDF</span>
+                  <h2 id="pdfPageHeading" class="dashboard-hero-title">PDF conversion workspace</h2>
+                </div>
+                <span class="pdf-flow-badge">AJO handoff ready</span>
+              </div>
+              <p class="dashboard-hero-subtitle">
+                Choose HTML or Document once, then use the same template and JSON to preview, generate and store a PDF,
+                or publish a reusable template for the AJO custom-action cloud function.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="pdfWorkspaceStatus" class="pdf-status" role="status" aria-live="polite" hidden></div>
+
+        <section class="pdf-mode-panel" aria-labelledby="pdfModeHeading">
+          <div>
+            <span class="pdf-eyebrow">Conversion mode</span>
+            <h3 id="pdfModeHeading">Choose the PDF Services operation</h3>
+          </div>
+          <div class="pdf-mode-control">
+            <label for="pdfConversionMode">Operation</label>
+            <select id="pdfConversionMode">
+              <option value="html">HTML to PDF - template plus JSON</option>
+              <option value="document">Document to PDF - DOCX + JSON or direct conversion</option>
+            </select>
+          </div>
+          <p id="pdfModeHelp">Renders escaped Handlebars data into HTML, then submits a ZIP containing index.html.</p>
+        </section>
+
+        <section class="pdf-workspace" aria-label="PDF personalisation workspace">
+          <div class="pdf-editor-column">
+            <section id="pdfHtmlModePanel" class="pdf-panel pdf-template-panel" aria-labelledby="pdfTemplateHeading">
+              <div class="pdf-panel-heading">
+                <div>
+                  <span class="pdf-step">1</span>
+                  <h3 id="pdfTemplateHeading">HTML template</h3>
+                </div>
+                <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfLoadSample">Load sample</button>
+              </div>
+
+              <div id="pdfHtmlDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop an HTML file or click to browse">
+                <input type="file" id="pdfHtmlFile" accept=".html,.htm,text/html" hidden>
+                <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
+                <strong>Drop an HTML file here</strong>
+                <span class="pdf-drop-description">or click to browse · maximum 1.5 MB</span>
+              </div>
+              <p id="pdfHtmlFileMeta" class="pdf-file-meta" hidden></p>
+
+              <label for="pdfHtmlEditor">Template HTML</label>
+              <textarea id="pdfHtmlEditor" class="pdf-code-editor" spellcheck="false" aria-describedby="pdfTemplateHelp"></textarea>
+              <p id="pdfTemplateHelp" class="pdf-field-help">
+                Static HTML only. Scripts, iframes, forms, insecure URLs, and private-host URLs are blocked. Remote images and styles must use HTTPS.
+              </p>
+
+              <details class="pdf-draft-details">
+                <summary>Saved HTML drafts</summary>
+                <div class="pdf-saved-template-row">
+                  <label for="pdfSavedTemplate">Load a private HTML + JSON draft</label>
+                  <div class="pdf-inline-control">
+                    <select id="pdfSavedTemplate">
+                      <option value="">Current workspace</option>
+                    </select>
+                    <button type="button" class="dashboard-btn-outline pdf-icon-button" id="pdfRefreshTemplates" title="Refresh saved drafts" aria-label="Refresh saved drafts">↻</button>
+                  </div>
+                </div>
+                <div class="pdf-save-template-row">
+                  <label for="pdfTemplateName">Draft name</label>
+                  <div class="pdf-inline-control">
+                    <input id="pdfTemplateName" type="text" maxlength="120" placeholder="e.g. Emirates booking confirmation v1">
+                    <button type="button" class="dashboard-btn-outline" id="pdfSaveTemplate">Save draft</button>
+                  </div>
+                  <p class="pdf-field-help">Optional: save the current HTML and JSON for later editing. Publishing for AJO is managed below.</p>
+                </div>
+              </details>
+            </section>
+
+            <section id="pdfDocumentModePanel" class="pdf-panel pdf-template-panel" aria-labelledby="pdfDocumentHeading" hidden>
+              <div class="pdf-panel-heading">
+                <div>
+                  <span class="pdf-step">1</span>
+                  <h3 id="pdfDocumentHeading">Source document</h3>
+                </div>
+                <span class="pdf-document-badge" id="pdfDocumentOperationBadge">CreatePDFJob</span>
+              </div>
+              <div id="pdfDocumentDropZone" class="pdf-drop-zone" role="button" tabindex="0" aria-label="Drop a supported document or click to browse">
+                <input type="file" id="pdfDocumentFile" accept=".doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff" hidden>
+                <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
+                <strong>Drop a document here</strong>
+                <span class="pdf-drop-description">DOCX, DOC, PPTX, PPT, XLSX, XLS, RTF, TXT, JPG, PNG, BMP, GIF or TIFF · maximum 10 MB</span>
+              </div>
+              <p id="pdfDocumentFileMeta" class="pdf-file-meta" hidden></p>
+              <p class="pdf-field-help">
+                DOCX templates can merge the JSON below, including text and image values, with Adobe Document Generation. Other supported files are converted as-is.
+              </p>
+            </section>
+
+            <section id="pdfDataPanel" class="pdf-panel pdf-data-panel" aria-labelledby="pdfDataHeading">
+              <div class="pdf-panel-heading">
+                <div>
+                  <span class="pdf-step">2</span>
+                  <h3 id="pdfDataHeading">Personalisation and output</h3>
+                </div>
+                <div class="pdf-json-heading-actions">
+                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
+                  <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                </div>
+              </div>
+              <div id="pdfPersonalisationFields">
+                <label for="pdfDataEditor">JSON payload</label>
+                <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON or DOCX data file, or click to browse">
+                  <input type="file" id="pdfJsonFile" accept=".json,.docx,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+                  <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
+                  <span class="pdf-loaded-file-icon" aria-hidden="true"></span>
+                  <strong>Drop JSON or a Word data document here</strong>
+                  <span id="pdfJsonDropHelp" class="pdf-drop-description">JSON up to 1.5 MB or DOCX up to 10 MB</span>
+                </div>
+                <p id="pdfJsonFileMeta" class="pdf-file-meta" hidden></p>
+                <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
+                <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
+              </div>
+
+              <div class="pdf-options-grid">
+                <div>
+                  <label for="pdfDocumentName">PDF filename</label>
+                  <input id="pdfDocumentName" type="text" value="booking-confirmation.pdf" maxlength="120">
+                </div>
+                <div>
+                  <label for="pdfIdempotencyKey">Idempotency key</label>
+                  <input id="pdfIdempotencyKey" type="text" maxlength="200" spellcheck="false">
+                </div>
+                <div class="pdf-html-option">
+                  <label for="pdfPagePreset">Page size</label>
+                  <select id="pdfPagePreset">
+                    <option value="a4">A4 portrait</option>
+                    <option value="letter">Letter portrait</option>
+                    <option value="a4-landscape">A4 landscape</option>
+                  </select>
+                </div>
+                <div class="pdf-html-option">
+                  <label for="pdfLocale">Locale</label>
+                  <input id="pdfLocale" type="text" value="en-GB" maxlength="35">
+                </div>
+                <div class="pdf-html-option">
+                  <label for="pdfTimeZone">Time zone</label>
+                  <input id="pdfTimeZone" type="text" value="UTC" maxlength="80">
+                </div>
+                <label class="pdf-checkbox-option pdf-html-option" for="pdfHeaderFooter">
+                  <input id="pdfHeaderFooter" type="checkbox">
+                  <span>Include browser header/footer</span>
+                </label>
+              </div>
+
+              <details class="pdf-publish-details" id="pdfPublishDetails">
+                <summary>
+                  <span><strong>Publish for AJO journeys</strong><em>Use this same template and JSON in the custom-action cloud function</em></span>
+                  <span class="pdf-publish-summary-state">Optional</span>
+                </summary>
+                <div class="pdf-publish-body">
+                  <p class="pdf-field-help">The Lab detects the template fields, lets you confirm their AJO mappings, generates an Adobe PDF validation preview, checks the page count, and publishes a versioned server template.</p>
+                  <div class="pdf-template-fields">
+                    <div>
+                      <label for="pdfJourneyTemplateName">Template name used in payload</label>
+                      <input id="pdfJourneyTemplateName" type="text" maxlength="80" placeholder="e.g. airport-checkin-pass">
+                      <p class="pdf-field-help">This becomes <code>templateName</code> in the AJO request.</p>
+                    </div>
+                    <div>
+                      <label for="pdfJourneyTemplateLabel">Display label</label>
+                      <input id="pdfJourneyTemplateLabel" type="text" maxlength="120" placeholder="e.g. Airport check-in pass">
+                    </div>
+                    <div>
+                      <label for="pdfJourneyTemplateDocumentName">Default PDF filename</label>
+                      <input id="pdfJourneyTemplateDocumentName" type="text" maxlength="120" placeholder="e.g. airport-checkin-pass.pdf">
+                    </div>
+                    <div>
+                      <label for="pdfJourneyTemplateSubject">Email subject</label>
+                      <input id="pdfJourneyTemplateSubject" type="text" maxlength="180" placeholder="e.g. Your airport check-in confirmation">
+                    </div>
+                    <div>
+                      <label for="pdfJourneyTemplateExpectedPages">Expected PDF pages</label>
+                      <input id="pdfJourneyTemplateExpectedPages" type="number" min="1" max="20" value="1">
+                    </div>
+                  </div>
+                  <div class="pdf-publish-actions">
+                    <button type="button" class="dashboard-btn-outline" id="pdfAnalyseJourneyTemplate">1. Detect and map fields</button>
+                    <button type="button" class="dashboard-btn-primary" id="pdfUploadJourneyTemplate" disabled>2. Validate and publish</button>
+                  </div>
+                  <section id="pdfJourneyTemplateMappingPanel" class="pdf-template-mapping-panel" hidden>
+                    <div class="pdf-template-list-heading">
+                      <h5>Detected template fields</h5>
+                      <span id="pdfJourneyTemplateMappingCount">0 mapped</span>
+                    </div>
+                    <p>Confirm how each template field maps to the stable AJO payload. Required fields must have a value in the JSON above.</p>
+                    <div id="pdfJourneyTemplateMappings" class="pdf-template-mappings"></div>
+                  </section>
+                  <p id="pdfJourneyTemplateStatus" class="pdf-key-status" aria-live="polite"></p>
+                </div>
+              </details>
+            </section>
+          </div>
+
+          <aside class="pdf-preview-column">
+            <section class="pdf-panel pdf-preview-panel" aria-labelledby="pdfPreviewHeading">
+              <div class="pdf-panel-heading">
+                <div>
+                  <span class="pdf-step">3</span>
+                  <h3 id="pdfPreviewHeading">Preview and generate</h3>
+                </div>
+                <span id="pdfPreviewMeta" class="pdf-preview-meta">Not rendered</span>
+              </div>
+
+              <div class="pdf-action-row">
+                <button type="button" class="dashboard-btn-outline" id="pdfPreviewButton">Preview HTML</button>
+                <button type="button" class="dashboard-btn-primary" id="pdfGenerateButton">Generate and store PDF</button>
+              </div>
+
+              <div class="pdf-preview-frame-wrap">
+                <iframe id="pdfPreviewFrame" title="Rendered HTML preview" sandbox="" referrerpolicy="no-referrer"></iframe>
+                <iframe id="pdfDocumentPreviewFrame" title="Converted PDF preview" referrerpolicy="no-referrer" hidden></iframe>
+                <div id="pdfPreviewEmpty" class="pdf-preview-empty">
+                  <span aria-hidden="true">PDF</span>
+                  <strong id="pdfPreviewEmptyTitle">Your rendered HTML will appear here</strong>
+                  <p id="pdfPreviewEmptyText">Preview uses the same server-side merge that runs before Adobe PDF Services.</p>
+                </div>
+              </div>
+            </section>
+
+            <section id="pdfResultPanel" class="pdf-panel pdf-result-panel" aria-labelledby="pdfResultHeading" hidden>
+              <div class="pdf-panel-heading">
+                <div>
+                  <span class="pdf-result-check" aria-hidden="true">✓</span>
+                  <h3 id="pdfResultHeading">PDF ready</h3>
+                </div>
+                <span id="pdfResultSize" class="pdf-result-size"></span>
+              </div>
+              <dl class="pdf-result-details">
+                <div><dt>Job ID</dt><dd id="pdfResultJob"></dd></div>
+                <div><dt>Storage</dt><dd id="pdfResultStorage"></dd></div>
+                <div><dt>AJO DLZ</dt><dd id="pdfResultDlz"></dd></div>
+                <div><dt>Amazon S3</dt><dd id="pdfResultS3"></dd></div>
+                <div><dt>Google backup</dt><dd id="pdfResultGcs"></dd></div>
+                <div><dt>Expires</dt><dd id="pdfResultExpiry"></dd></div>
+                <div><dt>SHA-256</dt><dd id="pdfResultHash"></dd></div>
+              </dl>
+              <div class="pdf-result-actions">
+                <a id="pdfOpenPreviewLink" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener" hidden>Open preview</a>
+                <a id="pdfDownloadLink" class="dashboard-btn-primary" href="#" target="_blank" rel="noopener">Download PDF</a>
+                <a id="pdfDlzDownloadLink" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener" hidden>Open DLZ copy</a>
+                <a id="pdfS3DownloadLink" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener" hidden>Open S3 copy</a>
+                <a id="pdfGcsDownloadLink" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener" hidden>Open Google backup</a>
+                <button type="button" class="dashboard-btn-outline" id="pdfCopyHandoff">Copy AJO handoff JSON</button>
+              </div>
+              <details class="pdf-handoff-details">
+                <summary>AJO custom-action response</summary>
+                <pre id="pdfHandoffJson"></pre>
+              </details>
+            </section>
+          </aside>
+        </section>
+
+        <details class="pdf-runtime-details">
+          <summary>How PDF generation and storage works</summary>
+          <section class="pdf-flow-panel" aria-labelledby="pdfFlowHeading">
+            <div>
+              <span class="pdf-eyebrow">Runtime flow</span>
+              <h3 id="pdfFlowHeading">What happens after Generate PDF</h3>
+            </div>
+            <ol class="pdf-flow-steps">
+              <li><span>1</span><strong>Validate</strong><em id="pdfFlowValidate">Authorised user, static HTML, bounded JSON</em></li>
+              <li><span>2</span><strong id="pdfFlowPrepareTitle">Merge</strong><em id="pdfFlowPrepare">Handlebars data into escaped HTML</em></li>
+              <li><span>3</span><strong>Convert</strong><em id="pdfFlowConvert">ZIP index.html → HTMLToPDFJob</em></li>
+              <li><span>4</span><strong>Store</strong><em>Dedicated AJO attachment DLZ primary plus private S3 and Google Cloud backups</em></li>
+              <li><span>5</span><strong>Handoff</strong><em>DLZ path and opaque storage links returned for AJO and testing</em></li>
+            </ol>
+          </section>
+        </details>
+
+        <section class="pdf-custom-action-panel" aria-labelledby="pdfCustomActionHeading">
+          <div class="pdf-custom-action-header">
+            <div>
+              <span class="pdf-eyebrow">Custom-action templates</span>
+              <h3 id="pdfCustomActionHeading">Manage server templates</h3>
+              <p>Templates published from the workspace above are available to journeys by their stable template name.</p>
+            </div>
+            <span class="pdf-scope-badge">HTML + document library</span>
+          </div>
+
+          <section class="pdf-template-library" aria-labelledby="pdfTemplateLibraryHeading">
+            <div class="pdf-template-library-heading">
+              <div>
+                <span class="pdf-eyebrow">Server template library</span>
+                <h4 id="pdfTemplateLibraryHeading">Published journey templates</h4>
+                <p>Review the versions currently available to the PDF custom-action cloud function.</p>
+              </div>
+              <button type="button" class="dashboard-btn-outline" id="pdfRefreshJourneyTemplates">Refresh library</button>
+            </div>
+
+            <div class="pdf-template-manager-grid pdf-template-library-only">
+              <div class="pdf-template-library-card">
+                <div class="pdf-template-list-heading">
+                  <h5>Available template names</h5>
+                  <span id="pdfJourneyTemplateCount">Loading…</span>
+                </div>
+                <div id="pdfJourneyTemplateList" class="pdf-template-list">
+                  <p class="pdf-key-empty">Sign in to load the server template library.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="pdf-template-help pdf-template-library-help">
+              <strong>How execution works</strong>
+              <span><b>HTML</b> merges the payload with Handlebars expressions such as <code>{{data.bookingReference}}</code>. <b>DOCX</b> merges JSON into Word tags. Other documents are converted directly and ignore personalisation data.</span>
+            </div>
+          </section>
+
+          <details class="pdf-ajo-setup-details">
+            <summary class="pdf-ajo-setup-summary">
+              <span>
+                <strong>AJO custom-action setup</strong>
+                <em>One-time configuration · API key, endpoint, request and response payloads</em>
+              </span>
+              <span class="pdf-ajo-setup-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="pdf-ajo-setup-body">
+          <div class="pdf-key-workspace">
+            <section class="pdf-key-card" aria-labelledby="pdfApiKeyHeading">
+              <h4 id="pdfApiKeyHeading">Your API keys</h4>
+              <label for="pdfApiKeyLabel">Key name</label>
+              <div class="pdf-inline-control">
+                <input id="pdfApiKeyLabel" type="text" maxlength="60" value="AJO PDF custom action" placeholder="e.g. AJO booking journey">
+                <button type="button" class="dashboard-btn-primary" id="pdfGenerateApiKey">Generate API key</button>
+              </div>
+              <p class="pdf-field-help">Create separate keys for separate AJO configurations. You can revoke one without disrupting the others.</p>
+              <p id="pdfApiKeyStatus" class="pdf-key-status" aria-live="polite"></p>
+
+              <div id="pdfNewApiKey" class="pdf-key-once" hidden>
+                <strong>Copy this key now</strong>
+                <p>It cannot be revealed again after you leave or refresh this page.</p>
+                <div class="pdf-copy-field">
+                  <input id="pdfNewApiKeyValue" type="password" readonly aria-label="New PDF journey API key">
+                  <button type="button" class="dashboard-btn-outline" id="pdfToggleApiKey">Show</button>
+                  <button type="button" class="dashboard-btn-primary" id="pdfCopyApiKey">Copy key</button>
+                </div>
+              </div>
+
+              <h5>Active keys</h5>
+              <div id="pdfApiKeyList" class="pdf-key-list"><p class="pdf-key-empty">Sign in to load your keys.</p></div>
+            </section>
+
+            <section class="pdf-action-config" aria-labelledby="pdfActionConfigHeading">
+              <div class="pdf-config-title-row">
+                <div>
+                  <h4 id="pdfActionConfigHeading">Copy-ready AJO configuration</h4>
+                  <p>In <strong>Journeys → Configurations → Actions</strong>, create a Custom action and paste these values.</p>
+                </div>
+                <button type="button" class="dashboard-btn-outline" id="pdfCopyActionSetup">Copy all setup values</button>
+              </div>
+
+              <dl class="pdf-config-grid">
+                <div><dt>Name</dt><dd><code id="pdfActionName">GeneratePersonalisedPDF</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionName">Copy</button></dd></div>
+                <div><dt>Method</dt><dd><code id="pdfActionMethod">POST</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionMethod">Copy</button></dd></div>
+                <div class="pdf-config-wide"><dt>URL</dt><dd><code id="pdfActionUrl">https://aep-orchestration-lab.web.app/api/pdf-personalisation/journey-action</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionUrl">Copy</button></dd></div>
+                <div><dt>Authentication</dt><dd><code id="pdfActionAuthType">API key</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionAuthType">Copy</button></dd></div>
+                <div><dt>Location</dt><dd><code id="pdfActionAuthLocation">Header</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionAuthLocation">Copy</button></dd></div>
+                <div><dt>Authentication name</dt><dd><code id="pdfActionAuthName">x-pdf-api-key</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionAuthName">Copy</button></dd></div>
+                <div><dt>Content-Type</dt><dd><code id="pdfActionContentType">application/json</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionContentType">Copy</button></dd></div>
+                <div><dt>Charset</dt><dd><code id="pdfActionCharset">UTF-8</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionCharset">Copy</button></dd></div>
+                <div><dt>Channel</dt><dd><code id="pdfActionChannel">Email</code><button type="button" class="pdf-copy-mini" data-copy-target="pdfActionChannel">Copy</button></dd></div>
+              </dl>
+              <p class="pdf-config-note">Paste the one-time generated key into AJO’s <strong>Value</strong> field. AJO stores that authentication value securely; do not add it to the request JSON.</p>
+            </section>
+          </div>
+
+          <section class="pdf-snippet-card pdf-schema-card">
+            <div><h4>AJO request field definition — booking + check-in</h4><button type="button" class="dashboard-btn-primary pdf-copy-snippet" data-copy-target="pdfActionFieldDefinition">Copy AJO field definition</button></div>
+            <p>Paste this into the custom action request payload editor. Map <code>campaignId</code> when a journey should select its transactional campaign; leave it blank to use the server default. Template-specific fields remain optional. Uploaded DOCX image fields accept public HTTPS URLs or complete <code>data:image/...;base64,...</code> values.</p>
+            <pre id="pdfActionFieldDefinition">{
+  "requestId": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Request ID"
+  },
+  "templateName": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Template name"
+  },
+  "campaignId": {
+    "optionalMapping": true,
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Campaign ID - optional, defaults server-side"
+  },
+  "emailAddress": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Recipient email address"
+  },
+  "firstName": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Passenger first name"
+  },
+  "lastName": {
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "Passenger last name"
+  },
+  "documentName": {
+    "optionalMapping": true,
+    "toBeMapped": true,
+    "dataType": "string",
+    "label": "PDF attachment filename"
+  },
+  "data": {
+    "bookingReference": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Booking reference"
+    },
+    "ticketNumber": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Ticket number - booking only"
+    },
+    "flightNumber": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Flight number"
+    },
+    "departureAirport": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Departure airport code"
+    },
+    "arrivalAirport": {
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Arrival airport code"
+    },
+    "originCity": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Origin city - check-in only"
+    },
+    "destinationCity": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Destination city - check-in only"
+    },
+    "departureAirportName": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Departure airport full name"
+    },
+    "arrivalAirportName": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Arrival airport full name"
+    },
+    "departureTerminal": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Departure terminal"
+    },
+    "arrivalTerminal": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Arrival terminal"
+    },
+    "departureDateTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "dateTime",
+      "label": "Departure date and time - booking only"
+    },
+    "arrivalDateTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "dateTime",
+      "label": "Arrival date and time - booking only"
+    },
+    "boardingTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Boarding time - check-in only"
+    },
+    "departureTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Display departure time - optional"
+    },
+    "gate": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Boarding gate - check-in only"
+    },
+    "seat": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Seat number - check-in only"
+    },
+    "zone": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Boarding zone - check-in only"
+    },
+    "Barcode": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Barcode image URL or data URI - Riyadh DOCX"
+    },
+    "FF_Image": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Feature image URL or data URI - Riyadh DOCX"
+    },
+    "Offer": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Offer image URL or data URI - Riyadh DOCX"
+    },
+    "totalPaid": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "decimal",
+      "label": "Total paid - booking only"
+    },
+    "currency": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Payment currency - booking only"
+    }
+  }
+}</pre>
+          </section>
+
+          <div class="pdf-payload-grid">
+            <section class="pdf-snippet-card">
+              <div>
+                <h4>1. Riyadh boarding-pass test payload</h4>
+                <span>
+                  <button type="button" class="dashboard-btn-outline" id="pdfNewActionRequestId">New request ID</button>
+                  <button type="button" class="dashboard-btn-primary pdf-copy-snippet" data-copy-target="pdfActionRequest">Copy test JSON</button>
+                </span>
+              </div>
+              <p>Publish the DOCX as <code>riyadh-air-boarding-pass-ajo-template</code>, then paste this body into AJO’s custom-action test. Copying it generates a fresh request ID.</p>
+              <pre id="pdfActionRequest">{
+  "requestId": "riyadh-checkin-00000000-0000-4000-8000-000000000000",
+  "templateName": "riyadh-air-boarding-pass-ajo-template",
+  "campaignId": "30f45cd3-da50-436c-ae46-d0ab8f521f14",
+  "emailAddress": "adamp.adobedemo+11082026-1@gmail.com",
+  "firstName": "Darakhshan",
+  "lastName": "Khan",
+  "documentName": "riyadh-air-boarding-pass.pdf",
+  "data": {
+    "bookingReference": "ABC1234",
+    "ticketNumber": "",
+    "flightNumber": "RX 123",
+    "departureAirport": "RUH",
+    "arrivalAirport": "DXB",
+    "originCity": "Riyadh",
+    "destinationCity": "Dubai",
+    "departureAirportName": "King Khalid International Airport",
+    "arrivalAirportName": "Dubai International Airport",
+    "departureTerminal": "Terminal 5",
+    "arrivalTerminal": "Terminal 2",
+    "departureDateTime": "2026-08-12T09:15:00+03:00",
+    "arrivalDateTime": "2026-08-12T11:10:00+04:00",
+    "boardingTime": "08:30",
+    "departureTime": "09:15",
+    "gate": "A12",
+    "seat": "12A",
+    "zone": "3",
+    "Barcode": "https://aep-orchestration-lab.web.app/profile-viewer/assets/pdf-personalisation/riyadh-barcode.png",
+    "FF_Image": "https://aep-orchestration-lab.web.app/profile-viewer/assets/pdf-personalisation/riyadh-feature-image.png",
+    "Offer": "https://aep-orchestration-lab.web.app/profile-viewer/assets/pdf-personalisation/riyadh-offer.png",
+    "totalPaid": 0,
+    "currency": "SAR"
+  }
+}</pre>
+            </section>
+            <section class="pdf-snippet-card">
+              <div><h4>2. Success response</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionSuccess">Copy success JSON</button></div>
+              <p>HTTP 202 means the request is validated and durably queued for PDF generation and email delivery.</p>
+              <pre id="pdfActionSuccess">{
+  "status": "queued",
+  "jobId": "6f442fca6b76330e4de4ded79e18fe718673fa52",
+  "requestId": "riyadh-checkin-00000000-0000-4000-8000-000000000000",
+  "templateName": "riyadh-air-boarding-pass-ajo-template",
+  "campaignId": "30f45cd3-da50-436c-ae46-d0ab8f521f14",
+  "acceptedAt": "2026-08-11T15:00:00.000Z",
+  "reused": false
+}</pre>
+              <div class="pdf-snippet-subhead"><h4>3. Failure response</h4><button type="button" class="dashboard-btn-outline pdf-copy-snippet" data-copy-target="pdfActionFailure">Copy failure JSON</button></div>
+              <pre id="pdfActionFailure">{
+  "status": "error",
+  "error": "PDF_JOURNEY_TEMPLATE_INVALID",
+  "message": "Unknown templateName. Publish the template for the same API-key owner, then copy its exact name."
+}</pre>
+            </section>
+          </div>
+
+            </div>
+          </details>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
+  <script src="pdf-personalisation.js?v=20260811g"></script>
+</body>
+</html>

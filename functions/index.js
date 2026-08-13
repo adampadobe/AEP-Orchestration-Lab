@@ -5,6 +5,7 @@
  */
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret } = require('firebase-functions/params');
 
@@ -12,6 +13,14 @@ const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
 const ADOBE_CLIENT_SECRET = defineSecret('ADOBE_CLIENT_SECRET');
 const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
+/** Optional machine-to-machine key used by a future AJO custom action. */
+const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
+/** Dedicated PDF Services credentials; intentionally separate from enterprise AEP IMS credentials. */
+const PDF_SERVICES_CLIENT_ID = defineSecret('PDF_SERVICES_CLIENT_ID');
+const PDF_SERVICES_CLIENT_SECRET = defineSecret('PDF_SERVICES_CLIENT_SECRET');
+/** Dedicated least-privilege AWS identity for private PDF output storage. */
+const PDF_S3_ACCESS_KEY_ID = defineSecret('PDF_S3_ACCESS_KEY_ID');
+const PDF_S3_SECRET_ACCESS_KEY = defineSecret('PDF_S3_SECRET_ACCESS_KEY');
 
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
@@ -84,6 +93,8 @@ const profileInfraStatusAllSvc = lazyRequireMod('./profileInfraStatusAll');
 const sportsProfileConnectionStore = lazyRequireMod('./sportsProfileConnectionStore');
 const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { registerProfileRoutes } = require('./profileRoutes');
+const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes');
+const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
@@ -94,6 +105,7 @@ const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
+const orchestratedCampaignConfigStore = lazyRequireMod('./orchestratedCampaignConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
 const decisioningEdgeEvaluateService = lazyRequireMod('./decisioningEdgeEvaluateService');
@@ -110,6 +122,13 @@ const snowflakePrincipalAuth = lazyRequireMod('./snowflakePrincipalAuth');
 const { createLabMcpFirstRunService } = require('./labMcpFirstRunService');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
+const labDemoConfigService = lazyRequireMod('./labDemoConfigService');
+const labDemoAssetService = lazyRequireMod('./labDemoAssetService');
+const pdfPersonalisationService = require('./pdfPersonalisationService');
+const pdfJourneyActionService = require('./pdfJourneyActionService');
+const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
+const pdfJourneyApiKeyStore = lazyRequireMod('./pdfJourneyApiKeyStore');
+const pdfJourneyTemplateStore = lazyRequireMod('./pdfJourneyTemplateStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -141,6 +160,8 @@ const snowflakeProvisionService = lazyRequireMod('./snowflakeProvisionService');
 const snowflakeIndustryEventService = lazyRequireMod('./snowflakeIndustryEventService');
 const liveActivityTemplateStore = lazyRequireMod('./liveActivityTemplateStore');
 const liveActivityService = lazyRequireMod('./liveActivityService');
+const audienceManagementService = lazyRequireMod('./audienceManagementService');
+const ajoCleanupService = lazyRequireMod('./ajoCleanupService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -474,6 +495,153 @@ exports.aepProxy = onRequest(
   }
 );
 
+/**
+ * Private-template HTML-to-PDF workspace and AJO handoff API.
+ * Browser writes require an allow-listed Firebase user; future AJO calls use
+ * X-PDF-API-Key. Download URLs carry a separate opaque, expiring token.
+ */
+exports.pdfPersonalisation = onRequest(
+  {
+    region: REGION,
+    secrets: [
+      ADOBE_CLIENT_ID,
+      ADOBE_CLIENT_SECRET,
+      ADOBE_IMS_ORG,
+      ADOBE_SCOPES,
+      PDF_SERVICES_CLIENT_ID,
+      PDF_SERVICES_CLIENT_SECRET,
+      PDF_PERSONALISATION_API_KEY,
+      PDF_S3_ACCESS_KEY_ID,
+      PDF_S3_SECRET_ACCESS_KEY,
+    ],
+    environmentVariables: {
+      PDF_PERSONALISATION_PUBLIC_BASE_URL:
+        process.env.PDF_PERSONALISATION_PUBLIC_BASE_URL
+        || 'https://aep-orchestration-lab.web.app/api/pdf-personalisation',
+      PDF_PERSONALISATION_ALLOWED_EMAILS:
+        process.env.PDF_PERSONALISATION_ALLOWED_EMAILS || 'apalmer@adobe.com',
+      PDF_PERSONALISATION_RETENTION_DAYS:
+        process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+      PDF_OUTPUT_STORE: process.env.PDF_OUTPUT_STORE || 'dual',
+      PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+      PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
+      PDF_S3_PREFIX: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+      PDF_DLZ_PREFIX: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      PDF_JOURNEY_CAMPAIGN_ID:
+        process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
+      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+    },
+    invoker: 'public',
+    timeoutSeconds: 300,
+    memory: '1GiB',
+    maxInstances: 10,
+    concurrency: 10,
+  },
+  pdfPersonalisationService.createHandler({
+    setCors,
+    verifyIdTokenClaimsFromRequest: labUserSandboxStore.verifyIdTokenClaimsFromRequest,
+    getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
+    getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
+    getServiceApiKey: () => PDF_PERSONALISATION_API_KEY.value(),
+    validateMcpApiKey: mcpApiKeyStore.validateUserApiKey,
+    validateJourneyApiKey: pdfJourneyApiKeyStore.validateApiKey,
+    listJourneyApiKeys: pdfJourneyApiKeyStore.listKeysForUser,
+    createJourneyApiKey: pdfJourneyApiKeyStore.createKey,
+    revokeJourneyApiKey: pdfJourneyApiKeyStore.revokeKey,
+    maxJourneyApiKeys: pdfJourneyApiKeyStore.MAX_ACTIVE_KEYS_PER_USER,
+    listBuiltinJourneyTemplates: pdfJourneyTemplateStore.builtinMetadata,
+    listJourneyTemplates: (ownerUid, options) => pdfJourneyTemplateStore.listUploadedTemplates(ownerUid, {}, options),
+    saveJourneyTemplate: pdfJourneyTemplateStore.saveTemplate,
+    archiveJourneyTemplate: (ownerUid, templateName, options) => pdfJourneyTemplateStore.archiveTemplate(ownerUid, templateName, {}, options),
+    resolveJourneyTemplateMetadata: pdfJourneyTemplateStore.resolveTemplateMetadata,
+    getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
+    getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
+    getAdobeAccessToken,
+    aepHeaders,
+    adobeSandbox: RESOLVED_ADOBE_SANDBOX,
+    dlzPrefix: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+    // Gen2 may omit onRequest.environmentVariables. Inject non-secret S3 routing
+    // directly so the adapter cannot silently fall back to GCS in production.
+    outputStoreMode: process.env.PDF_OUTPUT_STORE || 'dual',
+    s3Bucket: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+    s3Region: process.env.PDF_S3_REGION || 'us-east-1',
+    s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+  }),
+);
+
+/**
+ * Async worker for AJO PDF custom actions. The HTTP action only validates and
+ * enqueues, keeping the Journey runtime safely below its external-call timeout.
+ */
+exports.pdfJourneyActionWorker = onDocumentCreated(
+  {
+    document: `${pdfJourneyActionService.JOBS_COLLECTION}/{jobId}`,
+    region: REGION,
+    secrets: [
+      ADOBE_CLIENT_ID,
+      ADOBE_CLIENT_SECRET,
+      ADOBE_IMS_ORG,
+      ADOBE_SCOPES,
+      PDF_SERVICES_CLIENT_ID,
+      PDF_SERVICES_CLIENT_SECRET,
+      PDF_S3_ACCESS_KEY_ID,
+      PDF_S3_SECRET_ACCESS_KEY,
+    ],
+    environmentVariables: {
+      PDF_PERSONALISATION_RETENTION_DAYS:
+        process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+      PDF_OUTPUT_STORE: process.env.PDF_OUTPUT_STORE || 'dual',
+      PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+      PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
+      PDF_S3_PREFIX: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+      PDF_DLZ_PREFIX: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      PDF_JOURNEY_CAMPAIGN_ID:
+        process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
+      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+    },
+    timeoutSeconds: 300,
+    memory: '1GiB',
+    maxInstances: 10,
+    concurrency: 10,
+    retry: true,
+  },
+  async (event) => {
+    const jobId = String(event.params && event.params.jobId || '');
+    const result = await pdfJourneyActionService.processQueuedJob(jobId, {
+      getPdfClientId: () => PDF_SERVICES_CLIENT_ID.value(),
+      getPdfClientSecret: () => PDF_SERVICES_CLIENT_SECRET.value(),
+      getS3AccessKeyId: () => PDF_S3_ACCESS_KEY_ID.value(),
+      getS3SecretAccessKey: () => PDF_S3_SECRET_ACCESS_KEY.value(),
+      getAdobeAccessToken,
+      aepHeaders,
+      adobeSandbox: RESOLVED_ADOBE_SANDBOX,
+      dlzPrefix: process.env.PDF_DLZ_PREFIX || 'pdf-personalisation',
+      outputStoreMode: process.env.PDF_OUTPUT_STORE || 'dual',
+      s3Bucket: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
+      s3Region: process.env.PDF_S3_REGION || 'us-east-1',
+      s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+      campaignId: process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
+      loadJourneyTemplateSource: pdfJourneyTemplateStore.loadTemplateSource,
+    });
+    console.info('[pdfJourneyActionWorker]', JSON.stringify({ jobId, result }));
+  },
+);
+
+/** Delete expired PDF artefacts and their capability-token metadata. */
+exports.pdfPersonalisationCleanup = onSchedule(
+  {
+    schedule: 'every day 03:17',
+    timeZone: 'Etc/UTC',
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: '512MiB',
+  },
+  async () => {
+    const result = await pdfPersonalisationStore.cleanupExpired();
+    console.log('[pdfPersonalisationCleanup]', JSON.stringify(result));
+  },
+);
+
 const profileFnOpts = {
   region: REGION,
   secrets: PROFILE_FN_SECRETS,
@@ -791,6 +959,34 @@ Object.assign(
     profileAudiences,
     profileConsentPayload,
     profileEventsService,
+  })
+);
+
+Object.assign(
+  exports,
+  registerAudienceManagementRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
+    mcpApiKeyStore,
+    audienceManagementService,
+  })
+);
+
+Object.assign(
+  exports,
+  registerAjoCleanupRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
+    mcpApiKeyStore,
+    ajoCleanupService,
   })
 );
 
@@ -1917,6 +2113,12 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   setCors(res, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
 
+  const requestedPath = String(req.originalUrl || req.url || req.path || '').split('?')[0];
+  if (requestedPath === '/api/orchestrated-campaigns/config') {
+    await handleOrchestratedCampaignConfig(req, res);
+    return;
+  }
+
   const sandbox = (req.method === 'POST' && req.body?.sandbox)
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
@@ -1952,6 +2154,7 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
         datastreamId: body.datastreamId,
         datastreamTitle: body.datastreamTitle,
         schemaTitle: body.schemaTitle,
+        schemaId: body.schemaId,
         datasetName: body.datasetName,
         customTriggers: body.customTriggers,
         quickMenuTriggers: body.quickMenuTriggers,
@@ -1969,6 +2172,59 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   }
   res.status(405).json({ error: 'Method not allowed' });
 });
+
+/** Handle /api/orchestrated-campaigns/config through the existing Event config function. */
+async function handleOrchestratedCampaignConfig(req, res) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = req.method === 'POST' && body.sandbox
+    ? String(body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+
+  if (req.method === 'GET') {
+    try {
+      const record = await orchestratedCampaignConfigStore.getEffectiveConfig(sandbox, uid);
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeFirestoreRecord(record),
+        storage: uid ? 'user' : 'shared',
+      });
+    } catch (error) {
+      res.status(500).json({ ok: false, sandbox, error: String(error?.message || error) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST') {
+    if (!uid) {
+      res.status(401).json({
+        ok: false,
+        sandbox,
+        error: 'Sign in required to save campaign triggers. The browser will retain a local fallback.',
+      });
+      return;
+    }
+    try {
+      const record = await orchestratedCampaignConfigStore.saveEffectiveConfig(
+        sandbox,
+        uid,
+        body.campaigns,
+      );
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeFirestoreRecord(record),
+        storage: 'user',
+      });
+    } catch (error) {
+      res.status(500).json({ ok: false, sandbox, error: String(error?.message || error) });
+    }
+    return;
+  }
+
+  res.status(405).json({ error: 'Method not allowed' });
+}
 
 /** GET/POST /api/catalog/config — per-sandbox catalog schema ID (Firestore) */
 exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
@@ -2098,6 +2354,10 @@ Object.assign(
     labProfileGenerationPrefsStore,
     labProfileRecentGeneratedStore,
     labGenerationPrefsAuth,
+    labDemoConfigService,
+    labDemoAssetService,
+    brandScrapeStore,
+    imageHostingLibrary,
     labMcpFirstRunService: createLabMcpFirstRunService({
       labUserSandboxStore,
       labRtdbProvisionService,

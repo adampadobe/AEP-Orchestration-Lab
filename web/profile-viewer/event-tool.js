@@ -893,6 +893,7 @@
   async function runAttachIndustryFieldGroups() {
     const schemaTitle = (dom.schemaTitle.value || '').trim();
     const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
+    const datasetName = (dom.datasetName.value || '').trim();
     if (!schemaTitle && !schemaId) {
       setMsg(dom.industrySchemaMsg, 'Enter a schema name or run Set up event infrastructure first.', 'error');
       return;
@@ -913,6 +914,7 @@
           step: 'attachIndustryEventFieldGroups',
           schemaTitle: schemaTitle || undefined,
           schemaId: schemaId || undefined,
+          datasetName: datasetName || undefined,
         }),
       });
       const data = await res.json().catch(function () { return {}; });
@@ -921,6 +923,13 @@
         return;
       }
       if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+      if (data.schemaId) {
+        saveConfigField({
+          schemaTitle: data.schemaTitle || schemaTitle || undefined,
+          schemaId: data.schemaId,
+          datasetName: datasetName || undefined,
+        });
+      }
       var msg = data.message || 'Industry field groups attached.';
       if (Array.isArray(data.warnings) && data.warnings.length) {
         msg += ' ' + data.warnings.join(' ');

@@ -4,15 +4,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   findInteractionDetailsLiteMixin,
-  findTravelHotelExperienceV1Mixin,
   findB2cEventIdentityV1Mixin,
   mixinExtendsExperienceEventClass,
   isExcludedDebugFieldGroupTitle,
   matchesInteractionDetailsLiteTitle,
-  matchesTravelHotelExperienceV1Title,
   matchesB2cEventIdentityV1Title,
   buildInteractionDetailsLiteExperienceEventFieldGroup,
-  buildTravelHotelExperienceV1ExperienceEventFieldGroup,
   buildB2cEventIdentityV1ExperienceEventFieldGroup,
   buildEventSchemaIdentityDescriptorPairs,
   buildRemoveFieldGroupPatchOps,
@@ -82,15 +79,6 @@ test('isExcludedDebugFieldGroupTitle flags lab test and DEBUG titles', () => {
   assert.equal(isExcludedDebugFieldGroupTitle('Interaction Details Lite'), false);
 });
 
-test('findTravelHotelExperienceV1Mixin matches title variants without EE class metadata', () => {
-  const rows = [
-    { title: 'Travel - Hotel Experience v1', $id: 'https://ns.adobe.com/prisacar/mixins/hotel-v1' },
-  ];
-  const hit = findTravelHotelExperienceV1Mixin(rows);
-  assert.ok(hit);
-  assert.match(hit.title, /Hotel Experience v1/i);
-});
-
 test('matchesInteractionDetailsLiteTitle accepts spacing variants', () => {
   assert.equal(matchesInteractionDetailsLiteTitle('InteractionDetails Lite'), true);
   assert.equal(matchesInteractionDetailsLiteTitle('Interaction Details Lite'), true);
@@ -138,16 +126,6 @@ test('findWrongInteractionDetailsLiteRefsOnSchema detects debug mixin on schema'
   assert.equal(ops.length, 2);
 });
 
-test('buildTravelHotelExperienceV1ExperienceEventFieldGroup wraps hotel under tenant namespace', () => {
-  const body = buildTravelHotelExperienceV1ExperienceEventFieldGroup(TENANT);
-  assert.equal(body.title, 'Travel - Hotel Experience v1');
-  const hotel = body.properties._prisacar.properties.hotel;
-  assert.ok(hotel.properties.bookingDetails);
-  assert.ok(hotel.properties.bookingDetails.properties.hotelName);
-  assert.ok(hotel.properties.checkOut.properties.overallRating);
-  assert.equal(body.properties.hotel, undefined);
-});
-
 test('SETUP_EVENT_INFRA_SUBSTEPS chains ensure → schema → attach → dataset', () => {
   assert.deepEqual(
     SETUP_EVENT_INFRA_SUBSTEPS.map((s) => s.step),
@@ -167,10 +145,6 @@ test('runEventInfraStep setupEventInfra validates required fields without callin
   });
   assert.equal(missingSchema.ok, false);
   assert.match(missingSchema.error, /schemaTitle/i);
-});
-
-test('matchesTravelHotelExperienceV1Title accepts en-dash variant', () => {
-  assert.equal(matchesTravelHotelExperienceV1Title('Travel – Hotel Experience v1'), true);
 });
 
 test('buildEventSchemaIdentityDescriptorPairs registers ECID + Email as secondary tenant paths', () => {

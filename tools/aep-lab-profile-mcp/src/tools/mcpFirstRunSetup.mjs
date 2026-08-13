@@ -231,7 +231,7 @@ export function registerMcpFirstRunSetupTool(mcpServer) {
         portal_only: [
           'Event tool Edge datastream save (if event_targets not ready)',
           'Lab access approval (if sign-in blocked)',
-          'Brand / demo panel customisation in Profile Viewer',
+          'Advanced or uncatalogued RTDB fields outside governed lab_demo_config_* tools',
         ],
       });
     },

@@ -120,24 +120,25 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
   },
   {
-    id: 'coworker_event_minimal_params',
+    id: 'coworker_event_governed_params',
     rule:
-      'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, tenant field groups, or rich demo payloads to event tools. ' +
-      'Coworker/agents must use lab_send_profile_event or lab_send_profile_events_batch with tool params ONLY: sandbox, email, ecid, event_type, channel, timestamp. ' +
-      'NEVER pass view_name or view_url — they add web.webPageDetails and break Event tool UI minimal parity. The lab server builds minimal Edge XDM — do not construct event.xdm yourself.',
+      'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, or tenant field-group blobs to event tools. ' +
+      'Default intent events use sandbox, email, ecid, event_type, channel, timestamp and remain minimal. ' +
+      'When the colleague explicitly requests industry detail, pass industry plus optional flat industry_fields; the MCP validates the allowlist, nests public.{industry}.*, and selects full XDM automatically. ' +
+      'NEVER pass view_name or view_url or construct event.xdm yourself.',
     never_pass: [
       'xdm / event.xdm JSON blobs',
       'view_name / view_url / viewName / viewUrl',
       'schema $id / meta:altId / allOf mixin definitions',
       'descriptor payloads or field-group schema fragments',
-      'public / message / tenant / xdm_tenant_key unless colleague explicitly requests rich tenant demo fields',
-      'xdm_style=full or edge_minimal=false unless explicitly requested',
+      'hand-built public / message / tenant / xdm_tenant_key; use industry + industry_fields instead',
+      'xdm_style=full or edge_minimal=false directly; industry opt-in selects these internally',
       'lab_send_edge_event raw_payload (advanced Edge debugging only — breaks when schema refs are injected)',
     ],
     preferred_tools: ['lab_send_profile_event', 'lab_send_profile_events_batch', 'lab_preflight_profile_event'],
     server_build:
-      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity). ' +
-      'MCP buildGeneratorPostBody sends camelCase fields only (eventType, email, ecid, channel) — never viewName/viewUrl or raw XDM.',
+      'POST /api/events/generator → eventEdgeService.buildGeneratorEdgeInteractXdm. Minimal intent calls use buildMinimalEdgeXdm; ' +
+      'governed industry calls add validated public.{industry} fields and xdmStyle=full. MCP sends camelCase POST fields only—never viewName/viewUrl or raw XDM.',
     server_built_xdm_shape: {
       wrapper: '{ event: { xdm: { … } } }',
       required_fields: ['identityMap (ECID primary + Email secondary)', 'eventType', '_id', 'timestamp'],
@@ -153,7 +154,8 @@ export const CRITICAL_RULES = [
     },
     intent_demo_flow:
       'lab_generate_profile → capture email + ecid → lab_send_profile_events_batch with event_types [donation.made, web.webPageDetails.pageViews, transaction] and channel web → lab_profile_activity after 30–60s.',
-    mcp: 'Default edge_minimal:true — omit public/message/xdm overrides for intent demos.',
+    mcp:
+      'Default remains minimal. Rich opt-in: industry generic|retail|fsi|telecom|media|travel|sports|public plus optional industry_fields. Omit industry_fields for safe sample defaults.',
   },
   {
     id: 'portal_event_types_free_text',
@@ -166,6 +168,17 @@ export const CRITICAL_RULES = [
     batch: 'lab_send_profile_events_batch (sequential POST /api/events/generator per event) or event_types[] on lab_prepare_demo_from_brand_scrape for arbitrary multi-event sequences.',
     ui: 'web/profile-viewer/event-generator.js + mobile lab shells — buildGeneratorPostBody parity in MCP.',
     verify: 'lab_profile_activity after send — allow 30–60s UPS lag; retry if ecid was missing on first attempt.',
+  },
+  {
+    id: 'demo_config_governed_update',
+    rule:
+      'Real-Time Database demo preparation is user-scoped and preview-first. Always inspect the key-derived workspace, preview allowlisted Section.field changes, show the diff, and obtain explicit colleague confirmation before apply.',
+    tools:
+      'lab_demo_config_inspect → lab_demo_config_preview (manual changes or completed scrape_id) → explicit confirmation → lab_demo_config_apply → lab_demo_config_inspect readback. Use lab_demo_config_restore for previewed rollback.',
+    ownership:
+      'The Firebase API derives workspaceSlug from the user-generated MCP key principalUid and verifies workspaceClaims. Never accept or construct an arbitrary ajoLookups path.',
+    never:
+      'Never write raw RTDB JSON, protected meta, AgenticLayer, ContentDecisionLive, uncatalogued fields, expiring signed logo URLs, invented slogans/short names, or use the shared ops MCP key.',
   },
   {
     id: 'live_activity_preflight_confirmation',
@@ -203,6 +216,32 @@ export const CRITICAL_RULES = [
     entity_types: 'offer-items | item-collections | selection-strategies — limit ≤ 50.',
     ui: 'web/profile-viewer/decisioning-catalog.js',
     mcp: 'Sandbox allowlist required. Run lab_decisioning_catalog_assess before Edge evaluate demos to catch expired offers and empty collections.',
+  },
+  {
+    id: 'audience_delete_confirmation',
+    rule:
+      'Audience deletion is irreversible: lab_audience_list → lab_audience_audit for one exact id → show sandbox/id/name and risks → explicit colleague confirmation → lab_audience_delete.',
+    auth:
+      'Requires a user-generated MCP key. The Firebase proxy enforces that the requested sandbox exactly matches the key sandbox.',
+    guardrails:
+      'Delete accepts one audience only, requires confirmed=true plus the exact expected_name, and re-fetches immediately before DELETE so stale or mismatched confirmations fail closed.',
+    audit_limit:
+      'Audience detail exposes dependencies/dependents but cannot prove there is no destination, Account Audience, or AJO usage. Adobe may reject deletion while usage remains.',
+    never:
+      'Never call /api/aep, infer confirmation from a general cleanup request, delete by name alone, or batch-delete audiences.',
+  },
+  {
+    id: 'ajo_cleanup_confirmation',
+    rule:
+      'AJO deletion is irreversible: use the matching journey/campaign list → audit one exact id → show sandbox/id/name/status and blockers → obtain explicit colleague confirmation → delete one asset.',
+    auth:
+      'Requires a user-generated MCP key. The Firebase proxy enforces that the requested sandbox exactly matches the key sandbox.',
+    guardrails:
+      'Delete requires confirmed=true plus exact expected_name and expected_status, re-fetches immediately, allows Draft or Finished journeys and Draft campaigns only, and never batch-deletes.',
+    api_note:
+      'Current public AJO references document retrieval, while deletion uses the allowlisted authoring lifecycle operations. Adobe permissions or dependencies can still reject deletion.',
+    never:
+      'Never delete a Live, Paused, Closed, or Stopped journey; never delete a non-Draft campaign; never infer confirmation from a broad cleanup request.',
   },
   {
     id: 'snowflake_profile_readback_by_email',
@@ -429,7 +468,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.29.0',
+    version: '3.38.0',
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -451,6 +490,23 @@ export function getExecutionFramework() {
       check_access: {
         tools: ['lab_mcp_access_info'],
         when: 'Start of every Coworker session or after sandbox switch.',
+      },
+      demo_config_prep: {
+        tools: [
+          'lab_demo_config_inspect',
+          'lab_demo_config_preview',
+          'lab_demo_config_apply',
+          'lab_demo_config_restore',
+        ],
+        order: [
+          'lab_demo_config_inspect — show current sections, values and editable fields for the key-owned workspace',
+          'lab_demo_config_preview with explicit changes or completed scrape_id — no RTDB write',
+          'Show the before/after diff and obtain explicit colleague confirmation',
+          'lab_demo_config_apply preflight_id confirmed:true idempotency_key:<stable key>',
+          'lab_demo_config_inspect — verify current values; save revisionId for optional restore',
+        ],
+        note:
+          'Brand scrape mapping updates only evidence-backed customer name/URL/stable logo/colour and inferred industry. It never invents slogans or abbreviations.',
       },
       onboard_sandbox: {
         tools: ['lab_sandbox_profile_config', 'lab_onboard_sandbox', 'lab_batch_job_status'],
@@ -581,23 +637,25 @@ export function getExecutionFramework() {
           'lab_generate_profile — capture ecid from response + email',
           'lab_list_event_targets — pick target_id (default lab-event-tool-edge)',
           'Optional: lab_preflight_profile_event — shows identityMap + generatorPostBody (NOT raw XDM to construct)',
-          'lab_send_profile_event with email AND ecid, event_type, channel only — server builds minimal XDM',
-          'Multi-event intent demos: lab_send_profile_events_batch with event_types[] — same identity, no XDM blobs',
+          'lab_send_profile_event with email AND ecid, event_type, channel — server builds minimal XDM by default',
+          'Optional rich detail: add industry + flat industry_fields; MCP validates and builds public.{industry} with full XDM',
+          'Multi-event demos: lab_send_profile_events_batch supports the same industry + industry_fields per events[] step',
           'lab_profile_activity — confirm event count (allow UPS lag)',
         ],
         never_pass: [
           'Custom xdm / event.xdm JSON',
           'view_name / view_url (adds web.webPageDetails)',
           'Schema refs, mixin definitions, descriptors, tenant field-group payloads',
-          'public / message / xdm_tenant_key unless colleague explicitly asks for rich tenant fields',
+          'hand-built public / message / xdm_tenant_key; use industry + industry_fields for rich context',
         ],
         identity_rules: [
           'At least one of email or ecid required',
           'identityMap: ECID primary when both present; Email secondary',
-          'Minimal XDM: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only',
+          'Minimal default: identityMap + eventType + _id + timestamp + interactionDetails.core.channel only',
+          'Industry opt-in: validated public.{industry}.* plus the same stitched identity',
         ],
         server_build:
-          'eventEdgeService.buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (Event tool UI parity). See criticalRules.coworker_event_minimal_params.',
+          'eventEdgeService.buildGeneratorEdgeInteractXdm → minimal by default or governed full industry XDM. See criticalRules.coworker_event_governed_params.',
         coworker_event_send_recipe: {
           summary: 'Profile + intent events — params only, server builds XDM',
           steps: [
@@ -607,6 +665,8 @@ export function getExecutionFramework() {
           ],
           single_event_example:
             'lab_send_profile_event sandbox apalmer email {email} ecid {ecid} event_type donation.made channel web',
+          rich_industry_example:
+            'lab_send_profile_event sandbox apalmer email {email} ecid {ecid} industry media industry_fields {contentTitle, genre, subscriptionTier}',
           preflight:
             'lab_preflight_profile_event with same params — inspect generatorPostBody (camelCase POST fields), not hand-built XDM',
         },
@@ -736,6 +796,19 @@ export function getExecutionFramework() {
         ui: 'web/profile-viewer/decisioning-catalog.html',
         never: 'Do not call /api/aep from MCP — allowlisted DPS paths only via lab catalog proxies.',
       },
+      audience_cleanup: {
+        tools: ['lab_audience_list', 'lab_audience_audit', 'lab_audience_delete'],
+        when: 'A colleague wants to inventory and remove obsolete AEP audiences.',
+        order: [
+          'lab_audience_list — search read-only inventory; retain the exact id field',
+          'lab_audience_audit audience_id {id} — review current metadata, dependencies/dependents and audit limitations',
+          'Show exact sandbox + audience id + expected name; obtain explicit colleague confirmation',
+          'lab_audience_delete with the same id/name and confirmed true — one audience only',
+        ],
+        api: ['GET/DELETE /api/audience-management', 'DELETE /data/core/ups/audiences/{id}'],
+        auth: 'User-generated MCP key; key sandbox must exactly match request sandbox.',
+        never: 'No generic /api/aep access, deletion by name, inferred confirmation, or batch delete.',
+      },
       batch_seed: {
         tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],
         limits: { maxCount: 100, rateLimit: '3 batch jobs/hour per MCP key' },
@@ -768,6 +841,9 @@ export function getExecutionFramework() {
           'lab_resolve_brand_scrape',
           'lab_brand_scrape',
           'lab_prepare_demo_from_brand_scrape',
+          'lab_demo_config_inspect',
+          'lab_demo_config_preview',
+          'lab_demo_config_apply',
           'lab_send_retail_journey_events',
           'lab_get_profile',
           'lab_profile_activity',
@@ -775,7 +851,8 @@ export function getExecutionFramework() {
         steps: [
           'lab_resolve_brand_scrape sandbox + customer url (require_complete + require_personas default true)',
           'If need_new_scrape: lab_brand_scrape same url with include { personas: true, segments: true, campaigns: true }',
-          'lab_prepare_demo_from_brand_scrape scrape_id (or url) steps { profiles: true, events: true } — retail scrape sends commerce journey pack',
+          'lab_prepare_demo_from_brand_scrape scrape_id (or url) steps { demo_config_preview: true, profiles: true, events: true } — RTDB remains preview-only until separately confirmed/applied',
+          'Show pipeline.demoConfigPreview diff; after colleague confirmation call lab_demo_config_apply',
           'Or lab_send_retail_journey_events per profile with email + ecid from generate',
           'lab_get_profile / lab_profile_activity verify (allow UPS lag 30–60s after events)',
         ],
@@ -812,15 +889,21 @@ export function getExecutionFramework() {
       lab_update_profile:
         'Change existing profile attributes after discuss step. Requires profile already in UPS. Uses industry dataflow from argument.',
       lab_preflight_profile_event:
-        'Dry-run event identity + target resolution (identityMap, _demoemea.identification.core) without sending.',
+        'Dry-run event identity + target resolution without sending; previews governed industry payloads when industry is supplied.',
       lab_send_profile_event:
-        'Append experience events (web views, transactions, donations) without rewriting profile attributes. Pass email+ecid after generate.',
+        'Append experience events without rewriting profile attributes. Minimal by default; industry + industry_fields safely opts into richer public.{industry} context.',
       lab_send_edge_event:
         'Direct Alloy-style Edge interact when you have datastream_id; same identityMap rules; include _demoemea.identification.core for Demo Website schemas.',
       lab_live_activity_preflight:
         'Required dry-run for AJO Live Activity: resolves ECID and profile-derived Live Activity ID when possible, persists supplied execution IDs to shared Portal state, and returns missingFields or a redacted ready summary plus short-lived preflightId.',
       lab_live_activity_send:
         'Important external push action. Use only after explicit colleague confirmation of a ready preflight; exact payload hash and idempotency are enforced.',
+      lab_demo_config_inspect:
+        'First step for any Real-Time Database demo preparation request; shows the key-owned workspace structure and allowlisted editable fields.',
+      lab_demo_config_preview:
+        'Read-only before/after diff for explicit changes or evidence-backed mappings from a completed brand scrape.',
+      lab_demo_config_apply:
+        'Apply only an unexpired preview after explicit confirmation; performs conflict detection, atomic update, readback verification and revision creation.',
       lab_onboard_sandbox:
         'New colleague sandbox missing Firestore connection docs or profile not enabled on dataset.',
       lab_setup_event_infra:

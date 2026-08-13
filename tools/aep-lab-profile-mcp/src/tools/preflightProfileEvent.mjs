@@ -4,6 +4,7 @@ import { listEventTargets, lookupProfile } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { buildGeneratorPostBody } from '../framework/buildGeneratorPostBody.mjs';
+import { INDUSTRY_EVENT_IDS } from '../framework/industryEventPayload.mjs';
 import { sanitizeCoworkerEventParams } from '../framework/sanitizeCoworkerEventParams.mjs';
 import {
   buildEventPreflightSummary,
@@ -24,7 +25,7 @@ export function registerPreflightProfileEventTool(mcpServer) {
       description:
         'Dry-run event identity + target + POST body without sending. Shows identityMap, generatorPostBody ' +
         '(camelCase fields the server sends to /api/events/generator — NOT raw XDM to construct). ' +
-        'Coworker: use to verify email+ecid+event_type+channel before send; never hand-build event.xdm. Auto-fetches ecid from UPS when email provided.',
+        'Coworker: use to verify email+ecid+event_type+channel before send. Optional industry + industry_fields previews governed rich public.{industry} details. Never hand-build event.xdm. Auto-fetches ecid from UPS when email provided.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional().describe('Profile email'),
@@ -37,15 +38,22 @@ export function registerPreflightProfileEventTool(mcpServer) {
         channel: z.string().optional(),
         event_id: z.string().optional().describe('Orchestration eventID'),
         timestamp: z.string().optional(),
-        public: z.record(z.unknown()).optional().describe('AVOID for Coworker intent demos — triggers rich XDM'),
+        public: z.record(z.unknown()).optional().describe('Legacy compatibility only; prefer industry_fields'),
+        industry_fields: z
+          .record(z.unknown())
+          .optional()
+          .describe('Optional flat, allowlisted details for industry; omit for safe sample defaults'),
         message: z.record(z.unknown()).optional().describe('AVOID unless call-centre demo explicitly requested'),
-        industry: z.string().optional(),
+        industry: z
+          .string()
+          .optional()
+          .describe(`Governed rich event industry. Allowed: ${INDUSTRY_EVENT_IDS.join(', ')}`),
         xdm_tenant_key: z.string().optional().describe('AVOID for Coworker — server defaults _demoemea'),
         identity_map_ecid_key: z.string().optional(),
         primary_identity: z.enum(['email']).optional(),
         email_primary_identity: z.boolean().optional(),
-        edge_minimal: z.boolean().optional().describe('Default true — minimal server-built XDM'),
-        xdm_style: z.enum(['minimal', 'full']).optional().describe('Default minimal — do not set full for Coworker intent demos'),
+        edge_minimal: z.boolean().optional().describe('Managed by MCP; industry opt-in selects full XDM'),
+        xdm_style: z.enum(['minimal', 'full']).optional().describe('Managed by MCP; industry opt-in selects full automatically'),
         auto_fetch_ecid: z
           .boolean()
           .optional()
@@ -53,7 +61,13 @@ export function registerPreflightProfileEventTool(mcpServer) {
       },
     },
     async ({ sandbox, email, ecid, target_id, auto_fetch_ecid, ...rawEventFields }) => {
-      const { params: eventFields, warnings: strippedWarnings } = sanitizeCoworkerEventParams(rawEventFields);
+      const {
+        params: eventFields,
+        warnings: strippedWarnings,
+        errors: eventParamErrors,
+        richIndustry,
+      } = sanitizeCoworkerEventParams(rawEventFields);
+      if (eventParamErrors.length) return toolError(eventParamErrors.join(' '));
       const started = Date.now();
       const keyId = getRequestKeyId();
 
@@ -125,6 +139,15 @@ export function registerPreflightProfileEventTool(mcpServer) {
           ecid: resolved.ecid,
         },
       });
+      if (richIndustry) {
+        summary.richIndustry = {
+          industry: richIndustry.industry,
+          payloadPath: richIndustry.payloadPath,
+          fields: richIndustry.industry_fields,
+          usedDefaults: richIndustry.usedDefaults,
+          xdmStyle: 'full',
+        };
+      }
 
       const targetCheck = validateEventTarget({ target_id, targets });
       if (!targetCheck.ok) {

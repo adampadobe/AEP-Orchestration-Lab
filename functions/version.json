@@ -1,14 +1,14 @@
 {
-  "gitSha": "4ad53d557438579a9db21143ab32e95408938290",
-  "gitShortSha": "4ad53d55",
+  "gitSha": "596083b0d8561da344c3e084b59cec9f7a670b7b",
+  "gitShortSha": "596083b0",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Restrict Decisioning Lab navigation",
+  "gitCommitSubject": "[apalmer] Stamp PDF MCP release build",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-07-24T16:00:30+01:00",
-  "deployedAt": "2026-07-24T15:01:13.940Z",
+  "gitCommitDate": "2026-08-12T11:48:43+03:00",
+  "deployedAt": "2026-08-12T08:49:28.355Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4ad53d557438579a9db21143ab32e95408938290"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/596083b0d8561da344c3e084b59cec9f7a670b7b"
 }
