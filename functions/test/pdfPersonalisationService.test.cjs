@@ -290,7 +290,14 @@ test('uses Gemini to suggest only the selected template personalisation fields',
   });
   const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/story-assist'), {
     method: 'POST',
-    body: { templateName: 'boarding-pass', story: 'Amelia is flying RX 401.', sandbox: 'apalmer' },
+    body: {
+      templateName: 'boarding-pass',
+      story: 'Amelia is flying RX 401.',
+      sandbox: 'apalmer',
+      currentValues: { flightNumber: 'RX 123' },
+      timeZone: 'Asia/Riyadh',
+      locale: 'en-GB',
+    },
   });
   const res = response();
   await handler(req, res);
@@ -299,6 +306,9 @@ test('uses Gemini to suggest only the selected template personalisation fields',
   assert.equal(res.body.values.flightNumber, 'RX 401');
   assert.equal(calls[0].ownerUid, 'user-1');
   assert.deepEqual(calls[0].inputSchema, [{ name: 'flightNumber', dataType: 'string', required: true }]);
+  assert.deepEqual(calls[0].currentValues, { flightNumber: 'RX 123' });
+  assert.equal(calls[0].timeZone, 'Asia/Riyadh');
+  assert.equal(calls[0].locale, 'en-GB');
 });
 
 test('derives Gemini fields from legacy template mappings when inputSchema is missing', async () => {

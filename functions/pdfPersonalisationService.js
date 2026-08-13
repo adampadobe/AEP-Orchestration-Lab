@@ -594,7 +594,10 @@ function createHandler(deps) {
             documentName: resolvedTemplate.documentName,
             inputSchema,
             defaults: resolvedTemplate.sampleData || {},
+            currentValues: body.currentValues,
             recipient: body.recipient,
+            timeZone: body.timeZone,
+            locale: body.locale,
           });
           res.status(200).json({ status: 'suggested', templateName: resolvedTemplate.templateName || resolvedTemplate.name, ...suggestion });
         } catch (error) {
