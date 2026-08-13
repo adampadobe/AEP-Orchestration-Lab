@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260811f">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -84,11 +84,35 @@
               </div>
               <p id="pdfHtmlFileMeta" class="pdf-file-meta" hidden></p>
 
-              <label for="pdfHtmlEditor">Template HTML</label>
-              <textarea id="pdfHtmlEditor" class="pdf-code-editor" spellcheck="false" aria-describedby="pdfTemplateHelp"></textarea>
-              <p id="pdfTemplateHelp" class="pdf-field-help">
-                Static HTML only. Scripts, iframes, forms, insecure URLs, and private-host URLs are blocked. Remote images and styles must use HTTPS.
-              </p>
+              <details class="pdf-html-editor-details" id="pdfHtmlEditorDetails">
+                <summary>
+                  <span>
+                    <strong>Edit template HTML</strong>
+                    <em id="pdfHtmlEditorSummaryMeta">Click to open the syntax-coloured editor</em>
+                  </span>
+                  <span class="pdf-code-language-badge">HTML</span>
+                </summary>
+                <div class="pdf-html-editor-body">
+                  <div class="pdf-code-toolbar">
+                    <label for="pdfHtmlEditor">Template HTML</label>
+                    <div class="pdf-code-toolbar-actions">
+                      <span id="pdfHtmlCursorPosition">Line 1, column 1</span>
+                      <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfHtmlWrapToggle" aria-pressed="false">Wrap lines</button>
+                    </div>
+                  </div>
+                  <div class="pdf-html-code-shell" id="pdfHtmlCodeShell">
+                    <pre id="pdfHtmlHighlight" class="pdf-html-highlight" aria-hidden="true"><code></code></pre>
+                    <textarea id="pdfHtmlEditor" class="pdf-code-editor pdf-html-textarea" spellcheck="false" wrap="off" autocomplete="off" autocapitalize="off" aria-describedby="pdfTemplateHelp pdfHtmlEditorHelp"></textarea>
+                  </div>
+                  <div class="pdf-code-editor-footer">
+                    <span id="pdfHtmlEditorHelp">Use Tab to indent. Your source is preserved exactly as entered.</span>
+                    <span id="pdfHtmlEditorStats">0 lines · 0 characters</span>
+                  </div>
+                  <p id="pdfTemplateHelp" class="pdf-field-help">
+                    Static HTML only. Scripts, iframes, forms, insecure URLs, and private-host URLs are blocked. Remote images and styles must use HTTPS.
+                  </p>
+                </div>
+              </details>
 
               <details class="pdf-draft-details">
                 <summary>Saved HTML drafts</summary>
@@ -139,13 +163,8 @@
                   <span class="pdf-step">2</span>
                   <h3 id="pdfDataHeading">Personalisation and output</h3>
                 </div>
-                <div class="pdf-json-heading-actions">
-                  <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
-                  <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
-                </div>
               </div>
               <div id="pdfPersonalisationFields">
-                <label for="pdfDataEditor">JSON payload</label>
                 <div id="pdfJsonDropZone" class="pdf-drop-zone pdf-json-drop-zone" role="button" tabindex="0" aria-label="Drop a JSON or DOCX data file, or click to browse">
                   <input type="file" id="pdfJsonFile" accept=".json,.docx,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
                   <span class="pdf-drop-icon" aria-hidden="true">⇩</span>
@@ -154,8 +173,37 @@
                   <span id="pdfJsonDropHelp" class="pdf-drop-description">JSON up to 1.5 MB or DOCX up to 10 MB</span>
                 </div>
                 <p id="pdfJsonFileMeta" class="pdf-file-meta" hidden></p>
-                <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor" spellcheck="false"></textarea>
-                <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
+                <details class="pdf-html-editor-details pdf-json-editor-details" id="pdfJsonEditorDetails">
+                  <summary>
+                    <span>
+                      <strong>Edit personalisation JSON</strong>
+                      <em id="pdfJsonEditorSummaryMeta">Click to open the syntax-coloured editor</em>
+                    </span>
+                    <span class="pdf-code-summary-badges">
+                      <span id="pdfJsonState" class="pdf-json-state">Valid JSON</span>
+                      <span class="pdf-code-language-badge">JSON</span>
+                    </span>
+                  </summary>
+                  <div class="pdf-html-editor-body">
+                    <div class="pdf-code-toolbar">
+                      <label for="pdfDataEditor">JSON payload</label>
+                      <div class="pdf-code-toolbar-actions">
+                        <span id="pdfJsonCursorPosition">Line 1, column 1</span>
+                        <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfBeautifyJson">Beautify JSON</button>
+                        <button type="button" class="dashboard-btn-outline pdf-small-button" id="pdfJsonWrapToggle" aria-pressed="false">Wrap lines</button>
+                      </div>
+                    </div>
+                    <div class="pdf-html-code-shell pdf-json-code-shell" id="pdfJsonCodeShell">
+                      <pre id="pdfJsonHighlight" class="pdf-html-highlight pdf-json-highlight" aria-hidden="true"><code></code></pre>
+                      <textarea id="pdfDataEditor" class="pdf-code-editor pdf-data-editor pdf-html-textarea" spellcheck="false" wrap="off" autocomplete="off" autocapitalize="off" aria-describedby="pdfDataHelp pdfJsonEditorHelp"></textarea>
+                    </div>
+                    <div class="pdf-code-editor-footer">
+                      <span id="pdfJsonEditorHelp">Use Tab to indent. Invalid JSON is flagged immediately.</span>
+                      <span id="pdfJsonEditorStats">0 lines · 0 characters</span>
+                    </div>
+                    <p id="pdfDataHelp" class="pdf-field-help">HTML mode uses values beneath <code>data</code> in Handlebars expressions.</p>
+                  </div>
+                </details>
               </div>
 
               <div class="pdf-options-grid">
@@ -749,6 +797,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260813a"></script>
+  <script src="pdf-personalisation.js?v=20260813b"></script>
 </body>
 </html>

@@ -75,6 +75,12 @@
 
   const htmlEditor = document.getElementById('pdfHtmlEditor');
   const dataEditor = document.getElementById('pdfDataEditor');
+  const htmlEditorDetails = document.getElementById('pdfHtmlEditorDetails');
+  const jsonEditorDetails = document.getElementById('pdfJsonEditorDetails');
+  const htmlCodeShell = document.getElementById('pdfHtmlCodeShell');
+  const jsonCodeShell = document.getElementById('pdfJsonCodeShell');
+  const htmlHighlight = document.querySelector('#pdfHtmlHighlight code');
+  const jsonHighlight = document.querySelector('#pdfJsonHighlight code');
   const beautifyJsonButton = document.getElementById('pdfBeautifyJson');
   const templateSelect = document.getElementById('pdfSavedTemplate');
   const templateName = document.getElementById('pdfTemplateName');
@@ -192,6 +198,180 @@
     authState.className = `pdf-auth-state${kind ? ` is-${kind}` : ''}`;
   }
 
+  function escapeCode(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function highlightHandlebars(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /{{{?[\s\S]*?}?}}/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      output += `<span class="pdf-syntax-handlebars">${escapeCode(match[0])}</span>`;
+      cursor = match.index + match[0].length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function highlightHtmlAttributes(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /([^\s=/>]+)(\s*=\s*)("[^"]*"|'[^']*'|[^\s>]+)/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      output += `<span class="pdf-syntax-attribute">${escapeCode(match[1])}</span>`;
+      output += `<span class="pdf-syntax-operator">${escapeCode(match[2])}</span>`;
+      output += `<span class="pdf-syntax-string">${highlightHandlebars(match[3])}</span>`;
+      cursor = match.index + match[0].length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function highlightHtmlTag(value) {
+    const match = String(value || '').match(/^(<\/?)([^\s/>]+)([\s\S]*?)(\/?>)$/);
+    if (!match) return escapeCode(value);
+    return `<span class="pdf-syntax-bracket">${escapeCode(match[1])}</span>`
+      + `<span class="pdf-syntax-tag">${escapeCode(match[2])}</span>`
+      + highlightHtmlAttributes(match[3])
+      + `<span class="pdf-syntax-bracket">${escapeCode(match[4])}</span>`;
+  }
+
+  function highlightCss(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /(\/\*[\s\S]*?\*\/|"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|#[0-9a-f]{3,8}\b|-?\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%|s|ms|deg)?\b|--?[a-z][\w-]*|[a-z-]+(?=\s*:))/gi;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      let className = 'pdf-syntax-css-value';
+      if (match[0].startsWith('/*')) className = 'pdf-syntax-comment';
+      else if (/^[a-z-]+$/i.test(match[0]) || match[0].startsWith('--')) className = 'pdf-syntax-css-property';
+      output += `<span class="${className}">${escapeCode(match[0])}</span>`;
+      cursor = match.index + match[0].length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function highlightHtmlSource(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /<style\b[^>]*>[\s\S]*?<\/style>|<!--[\s\S]*?-->|<!doctype[\s\S]*?>|<\/?[a-z][^>]*>|{{{?[\s\S]*?}?}}/gi;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += highlightHandlebars(source.slice(cursor, match.index));
+      const token = match[0];
+      if (/^<!--/.test(token)) {
+        output += `<span class="pdf-syntax-comment">${escapeCode(token)}</span>`;
+      } else if (/^<!doctype/i.test(token)) {
+        output += `<span class="pdf-syntax-doctype">${escapeCode(token)}</span>`;
+      } else if (/^<style\b/i.test(token)) {
+        const styleMatch = token.match(/^(<style\b[^>]*>)([\s\S]*)(<\/style>)$/i);
+        output += highlightHtmlTag(styleMatch[1]) + highlightCss(styleMatch[2]) + highlightHtmlTag(styleMatch[3]);
+      } else if (token.startsWith('{{')) {
+        output += `<span class="pdf-syntax-handlebars">${escapeCode(token)}</span>`;
+      } else {
+        output += highlightHtmlTag(token);
+      }
+      cursor = match.index + token.length;
+    }
+    return output + highlightHandlebars(source.slice(cursor));
+  }
+
+  function highlightJsonSource(value) {
+    const source = String(value || '');
+    let output = '';
+    let cursor = 0;
+    const pattern = /"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b/g;
+    let match;
+    while ((match = pattern.exec(source))) {
+      output += escapeCode(source.slice(cursor, match.index));
+      const token = match[0];
+      let className = 'pdf-syntax-json-number';
+      if (token.startsWith('"')) className = /^\s*:/.test(source.slice(pattern.lastIndex)) ? 'pdf-syntax-json-key' : 'pdf-syntax-json-string';
+      else if (token === 'null') className = 'pdf-syntax-json-null';
+      else if (token === 'true' || token === 'false') className = 'pdf-syntax-json-boolean';
+      output += `<span class="${className}">${escapeCode(token)}</span>`;
+      cursor = match.index + token.length;
+    }
+    return output + escapeCode(source.slice(cursor));
+  }
+
+  function editorMetrics(editor) {
+    const value = editor.value || '';
+    const lines = value ? value.split('\n').length : 0;
+    const beforeCursor = value.slice(0, editor.selectionStart || 0).split('\n');
+    return {
+      characters: value.length,
+      lines,
+      line: beforeCursor.length,
+      column: beforeCursor[beforeCursor.length - 1].length + 1,
+    };
+  }
+
+  function syncEditor(editor, highlight, highlighter, prefix) {
+    const metrics = editorMetrics(editor);
+    highlight.innerHTML = `${highlighter(editor.value)}\n`;
+    highlight.parentElement.scrollTop = editor.scrollTop;
+    highlight.parentElement.scrollLeft = editor.scrollLeft;
+    document.getElementById(`pdf${prefix}EditorStats`).textContent = `${metrics.lines} ${metrics.lines === 1 ? 'line' : 'lines'} · ${metrics.characters} characters`;
+    document.getElementById(`pdf${prefix}CursorPosition`).textContent = `Line ${metrics.line}, column ${metrics.column}`;
+    document.getElementById(`pdf${prefix}EditorSummaryMeta`).textContent = metrics.characters
+      ? `${metrics.lines} ${metrics.lines === 1 ? 'line' : 'lines'} · ${metrics.characters} characters`
+      : 'Click to open the syntax-coloured editor';
+  }
+
+  function syncHtmlEditorHighlight() {
+    syncEditor(htmlEditor, htmlHighlight, highlightHtmlSource, 'Html');
+  }
+
+  function syncJsonEditorHighlight() {
+    syncEditor(dataEditor, jsonHighlight, highlightJsonSource, 'Json');
+  }
+
+  function bindCodeEditor(editor, highlight, shell, wrapButton, details, sync) {
+    editor.addEventListener('scroll', () => {
+      highlight.parentElement.scrollTop = editor.scrollTop;
+      highlight.parentElement.scrollLeft = editor.scrollLeft;
+    });
+    ['click', 'keyup', 'select'].forEach((eventName) => editor.addEventListener(eventName, sync));
+    editor.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      event.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.setRangeText('  ', start, end, 'end');
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    wrapButton.addEventListener('click', () => {
+      const wrapped = shell.classList.toggle('is-wrapped');
+      editor.wrap = wrapped ? 'soft' : 'off';
+      wrapButton.setAttribute('aria-pressed', String(wrapped));
+      wrapButton.textContent = wrapped ? 'Unwrap lines' : 'Wrap lines';
+      sync();
+      editor.focus();
+    });
+    details.addEventListener('toggle', () => { if (details.open) sync(); });
+  }
+
+  function bindCodeEditors() {
+    bindCodeEditor(htmlEditor, htmlHighlight, htmlCodeShell, document.getElementById('pdfHtmlWrapToggle'), htmlEditorDetails, syncHtmlEditorHighlight);
+    bindCodeEditor(dataEditor, jsonHighlight, jsonCodeShell, document.getElementById('pdfJsonWrapToggle'), jsonEditorDetails, syncJsonEditorHighlight);
+    syncHtmlEditorHighlight();
+    syncJsonEditorHighlight();
+  }
+
   function parseData() {
     const raw = dataEditor.value || '{}';
     try {
@@ -224,6 +404,7 @@
     try {
       const data = parseData();
       dataEditor.value = JSON.stringify(data, null, 2);
+      syncJsonEditorHighlight();
       markRequestChanged();
       setStatus('JSON payload beautified and validated.', 'success');
     } catch (error) {
@@ -1088,6 +1269,8 @@
     htmlEditor.disabled = false;
     htmlEditor.value = sampleHtml;
     dataEditor.value = JSON.stringify(sampleData, null, 2);
+    syncHtmlEditorHighlight();
+    syncJsonEditorHighlight();
     templateName.value = 'Travel booking confirmation v1';
     sourceHtmlFileName = '';
     syncJourneyTemplateDefaults('travel-booking-confirmation.html', true);
@@ -1124,6 +1307,7 @@
     if (templateSelect.value) templateSelect.value = '';
     htmlEditor.disabled = false;
     dropZone.setAttribute('aria-disabled', 'false');
+    syncHtmlEditorHighlight();
     markRequestChanged();
   }
 
@@ -1132,6 +1316,7 @@
     if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') throw new Error('Choose an .html or .htm file.');
     if (file.size > MAX_HTML_BYTES) throw new Error('HTML file exceeds 1.5 MB.');
     htmlEditor.value = await file.text();
+    htmlEditorDetails.open = true;
     sourceHtmlFileName = file.name;
     templateName.value = file.name.replace(/\.html?$/i, '');
     syncJourneyTemplateDefaults(file.name, true);
@@ -1162,6 +1347,8 @@
           }),
         });
         dataEditor.value = JSON.stringify(body.data || {}, null, 2);
+        jsonEditorDetails.open = true;
+        syncJsonEditorHighlight();
         parseData();
         setDropZoneLoaded(jsonDropZone, file.name, file.size, 'DOCX → JSON');
         jsonFileMeta.hidden = true;
@@ -1180,6 +1367,8 @@
     dataEditor.value = await file.text();
     const data = parseData();
     dataEditor.value = JSON.stringify(data, null, 2);
+    jsonEditorDetails.open = true;
+    syncJsonEditorHighlight();
     setDropZoneLoaded(jsonDropZone, file.name, file.size, 'JSON');
     jsonFileMeta.hidden = true;
     if (conversionMode() === 'document') updateDocumentOperation();
@@ -1312,6 +1501,8 @@
       const { body } = await api(`/templates/${encodeURIComponent(templateId)}`, { method: 'GET' });
       htmlEditor.value = body.htmlTemplate || '';
       dataEditor.value = JSON.stringify(body.defaultData || {}, null, 2);
+      syncHtmlEditorHighlight();
+      syncJsonEditorHighlight();
       templateName.value = body.name || '';
       sourceHtmlFileName = body.sourceFileName || '';
       syncJourneyTemplateDefaults(sourceHtmlFileName || `${body.name || 'travel-template'}.html`, true);
@@ -1604,6 +1795,7 @@
   }
 
   async function init() {
+    bindCodeEditors();
     loadSample();
     bindFileDrop();
     bindCustomActionSetup();
@@ -1613,6 +1805,7 @@
     htmlEditor.addEventListener('input', useUnsavedEditor);
     dataEditor.addEventListener('input', () => {
       jsonFileMeta.hidden = true;
+      syncJsonEditorHighlight();
       try { parseData(); } catch (_error) {}
       if (conversionMode() === 'document') updateDocumentOperation();
       markRequestChanged();
