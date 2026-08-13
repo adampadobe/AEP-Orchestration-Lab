@@ -301,6 +301,41 @@ test('uses Gemini to suggest only the selected template personalisation fields',
   assert.deepEqual(calls[0].inputSchema, [{ name: 'flightNumber', dataType: 'string', required: true }]);
 });
 
+test('derives Gemini fields from legacy template mappings when inputSchema is missing', async () => {
+  const calls = [];
+  const handler = service.createHandler({
+    setCors() {},
+    getServiceApiKey: () => '',
+    verifyIdTokenClaimsFromRequest: async () => ({
+      uid: 'user-1', email: 'apalmer@adobe.com', isAnonymous: false,
+    }),
+    resolveJourneyTemplateMetadata: async (name, uid) => ({
+      name, templateName: name, ownerUid: uid, label: 'Legacy boarding pass', documentName: 'pass.pdf',
+      inputSchema: [],
+      fieldMappings: [
+        { target: 'Flight Number', source: 'flightNumber', type: 'text', required: true },
+        { target: 'Seat', source: 'seat', type: 'text', required: false },
+      ],
+      sampleData: { flightNumber: 'RX 123', seat: '24A' },
+    }),
+    suggestJourneyStoryFields: async (input) => {
+      calls.push(input);
+      return { recipient: {}, values: { flightNumber: 'RX 401', seat: '24A' }, missingFields: [], summary: 'Flight extracted.', model: 'gemini-2.5-flash' };
+    },
+  });
+  const req = Object.assign(request({}, '/api/pdf-personalisation/journey-action/story-assist'), {
+    method: 'POST',
+    body: { templateName: 'legacy-pass', story: 'Amelia is flying RX 401 in seat 24A.', sandbox: 'apalmer' },
+  });
+  const res = response();
+  await handler(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(calls[0].inputSchema.map((field) => ({ name: field.name, required: field.required })), [
+    { name: 'flightNumber', required: true },
+    { name: 'seat', required: false },
+  ]);
+});
+
 test('queues a portal test send and exposes only its owner status', async () => {
   const calls = [];
   const handler = service.createHandler({

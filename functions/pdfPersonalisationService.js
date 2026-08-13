@@ -578,13 +578,21 @@ function createHandler(deps) {
           throw new core.PdfPersonalisationError('Gemini story assistance is unavailable.', 503, 'PDF_STORY_ASSIST_UNAVAILABLE');
         }
         try {
+          const storedInputSchema = Array.isArray(resolvedTemplate.inputSchema) ? resolvedTemplate.inputSchema : [];
+          const inputSchema = storedInputSchema.length
+            ? storedInputSchema
+            : journeyTemplateContract.buildInputSchema(
+              resolvedTemplate.fieldMappings || [],
+              resolvedTemplate.sampleData || {},
+              body.recipient || {},
+            );
           const suggestion = await required.suggestJourneyStoryFields({
             ownerUid: principal.ownerUid,
             story: body.story,
             templateName: resolvedTemplate.templateName || resolvedTemplate.name,
             templateLabel: resolvedTemplate.label,
             documentName: resolvedTemplate.documentName,
-            inputSchema: resolvedTemplate.inputSchema || [],
+            inputSchema,
             defaults: resolvedTemplate.sampleData || {},
             recipient: body.recipient,
           });
