@@ -1,14 +1,14 @@
 {
-  "gitSha": "e993ab204ada8f03751674e949d77a0cccd4e933",
-  "gitShortSha": "e993ab20",
+  "gitSha": "d36ad5de454f81c09a52f4d556f277e29eab7250",
+  "gitShortSha": "d36ad5de",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Add PDF transactional test sender",
+  "gitCommitSubject": "[apalmer] Condense PDF source editors",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T09:17:27+03:00",
-  "deployedAt": "2026-08-13T06:18:22.351Z",
+  "gitCommitDate": "2026-08-13T11:07:12+03:00",
+  "deployedAt": "2026-08-13T08:07:56.447Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 1,
+  "aheadOfOrigin": 3,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e993ab204ada8f03751674e949d77a0cccd4e933"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d36ad5de454f81c09a52f4d556f277e29eab7250"
 }
