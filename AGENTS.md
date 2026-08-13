@@ -22,8 +22,9 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 
 - **Before substantive edits:** run `git fetch origin` and `git status`; if the branch is behind, update it before editing (`git pull --ff-only origin main` on `main`, or integrate `origin/main` on a feature branch).
 - **Immediately before push:** repeat the fetch/status check. Rebase or merge if the branch is behind, then rerun affected tests and verifiers.
-- **Immediately before Firebase deploy:** repeat the fetch/status check again. Never deploy while behind `origin/main`; pull first and rebuild any affected vendored sub-apps.
-- **Ship order:** commit → push → final sync check → Firebase deploy. Do not deploy uncommitted work. Skip deployment only when the user explicitly excludes it or a repo gate blocks it.
+- **Production Firebase deploys:** only from a clean `main` whose `HEAD` exactly matches a freshly fetched `origin/main`. Feature branches, ahead/behind branches, tracked changes, and untracked files under deploy roots are blocked by `scripts/predeploy-check.mjs`.
+- **Feature-branch Hosting:** use `npm run deploy:preview -- <channel-name>`. Never run a production Hosting deploy from a feature branch; preview channels expire after seven days.
+- **Ship order:** feature branch → PR → required validation → merge to `main` → production deploy from exact `origin/main`. Do not bypass the predeploy gate except for a documented emergency rollback.
 - **Human policy:** [CONTRIBUTING.md](CONTRIBUTING.md) — especially [Preserved Decisioning Profile Viewer routes](CONTRIBUTING.md#preserved-decisioning-profile-viewer-routes) and [Change workflow](CONTRIBUTING.md#change-workflow-mandatory).
 - After edits under **`web/profile-viewer/`:** run **`npm run verify:profile-viewer-routes`** before PR; run **`npm run sync-profile-viewer-ui`** when the Express mirror must stay aligned (see CONTRIBUTING).
 - **Preserved routes:** keep the `journey-arbitration.html` and `journey-arbitration-v2.html` redirect stubs targeting v3; keep v3 assets and nav wiring. Do not restore `decisioning-overview-v2.html` or `ajo-decisioning-pipeline-v8-demo.html`.

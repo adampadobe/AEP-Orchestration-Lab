@@ -77,9 +77,9 @@ Confirm your remote with **`git remote -v`**. The default clone for this repo is
 
 This is the most often forgotten phase and the most dangerous. Even if your `git push` succeeded a minute ago, a teammate may have pushed in the meantime — and `firebase deploy --only hosting` does not consult Git, it just ships whatever is on your local disk under `web/`.
 
-1. **`git fetch origin`** again.
-2. **`git status`** — must show **`Your branch is up to date with 'origin/main'`**. Anything else (`behind`, `diverged`) means your local working tree does **not** yet match what is on GitHub, and a deploy now would ship stale assets.
-3. If you are behind: **`git pull --ff-only origin main`** (or rebase your feature branch onto `origin/main`). After the pull, re-run `git status` and confirm you are now `up to date`.
+1. **`git switch main`**. Feature branches use `npm run deploy:preview -- <channel-name>` and never publish production.
+2. **`git fetch origin && git pull --ff-only origin main`** again.
+3. **`git status --short --branch`** must be clean and exactly equal to `origin/main`. Tracked changes and untracked files under Firebase deploy roots block production.
 4. **Rebuild any vendored sub-apps** so the deploy carries the teammate's pulled source, not your stale committed build output:
    - `npm run build:edp` — if their commit touched `web/profile-viewer/experience-decisioning-playground/`.
    - `npm run build:eds-quickstart` — if their commit touched the `tools/eds-quickstart` submodule pointer.
@@ -143,7 +143,7 @@ Several people (and sometimes parallel agents) touch the same repo. Most “some
 ### Ship order: commit → push → deploy
 
 1. **`git push origin main`** (or your feature branch, then merge to `main`) so GitHub is the audit trail **before** you rely on Hosting.
-2. **`firebase deploy`** only from a tree that **`git fetch` + `git status`** shows as **up to date with `origin/main`** (Phase C). The predeploy script may still allow deploy when ahead but unpushed — treat that as a warning, not a green light to skip push.
+2. **Production `firebase deploy`** only from clean **`main`** whose `HEAD` exactly matches a freshly fetched **`origin/main`**. The predeploy script blocks feature branches, ahead/behind branches, tracked changes, and untracked files under deploy roots. Use `npm run deploy:preview -- <channel-name>` for feature work.
 
 Never deploy uncommitted work you care about keeping; see [Change workflow (mandatory)](#change-workflow-mandatory).
 
@@ -938,13 +938,11 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 ### Pre-deploy (Phase C — mandatory)
 
 ```bash
-# 1. Re-sync with origin (a teammate may have pushed since your git push)
-git fetch origin                     # refreshes remote refs ONLY — does not move local main
-git status                           # MUST show "Your branch is up to date with 'origin/main'"
-# If status reports "behind by N commits", local main is NOT yet in sync.
-# git pull --ff-only is what actually advances local main:
+# 1. Production always comes from exact protected main
+git switch main
+git fetch origin
 git pull --ff-only origin main
-git status                           # re-verify: must now show "up to date" before continuing
+git status --short --branch          # clean; exactly equal to origin/main
 
 # 2. Rebuild any vendored sub-apps so the deploy carries pulled source
 npm run build:edp                    # if EDP playground source changed upstream
@@ -980,17 +978,17 @@ GitHub Actions runs on push/PR to `main`:
 - JSON validation on `samples/` and `schemas/`
 - **`npm run verify:profile-viewer-routes`** (preserved Decisioning pages under `web/profile-viewer/`)
 
-CI does **not** build or deploy functions. Deployment is manual.
+CI validates all changes. Production Hosting automation remains fail-safe disabled until its dedicated deploy identity receives owner-approved Hosting-only IAM; Functions deployment remains intentional and targeted.
 
 ### Hosting vs Git branch (avoid accidental “rollback”)
 
 `firebase deploy --only hosting` uploads **`web/` from your current working tree**. It does **not** read `origin/main` or GitHub — only the files on disk. Two consequences:
 
-1. **Wrong branch feels like a “rollback”.** If important UI changes exist only on a **feature branch** (for example long-lived work on `cursor/…`) but someone deploys from a checkout of **`main`** that does **not** yet include those commits, Firebase serves **`main`’s `web/`** for every path. The lab then looks “reverted” even though the feature branch still has the newer HTML/CSS/JS on GitHub. **Fix:** merge the feature branch to **`main`**, or **always** run hosting deploy from a checkout that **contains** the commits you intend to ship (then push so others can match `/version.json` to a SHA).
+1. **Wrong branch feels like a “rollback”.** A feature branch can contain one feature while missing another branch's work. Publishing it replaces all Hosting files. The automatic gate now blocks this. **Fix:** merge through protected `main`; use a preview channel before merge.
 
-2. **Phase C does not switch branches for you.** Being “up to date with `origin/main`” on **`main`** still means your accelerator files match **`main`**, not your feature branch. Before deploying accelerator work, **`git checkout`** the branch that has those commits and **`git pull`** it.
+2. **Feature branches are preview-only.** Run `npm run deploy:preview -- <channel-name>`; do not bypass the gate to publish them to production.
 
-**Team norm:** After shipping a feature from a feature branch, **open a PR to `main`** so the default deploy path and CI stay aligned. Until then, agree who may deploy hosting and **from which branch**.
+**Team rule:** open a PR, pass required validation, merge to `main`, then deploy the exact `origin/main` SHA. GitHub protection enforces the PR and validation steps for every collaborator and administrator.
 
 Use **`npm run deploy:status`** and **`https://aep-orchestration-lab.web.app/version.json`** to confirm which **git SHA** is live after any deploy (see [Version control and rollback](#version-control-and-rollback)).
 
@@ -1008,7 +1006,7 @@ Use **`npm run deploy:status`** and **`https://aep-orchestration-lab.web.app/ver
 | **`npm run verify:experimentation-accelerator`** | When **`experimentation-accelerator*`** files should keep required integration points (Customise, shell user line, etc.). Available on branches that include **`scripts/verify-experimentation-accelerator-snapshot.mjs`**; add to CI after that script lands on **`main`**. |
 | **`npm run deploy:check`** | Optional dry-run of the same checks as the **`predeploy`** hook (without deploying). |
 
-The **`predeploy`** hook on hosting runs **`scripts/predeploy-check.mjs`** automatically (refuses deploy if your branch is **behind `origin/main`**; see [Pre-deploy guard](#pre-deploy-guard-automatic)).
+The **`predeploy`** hook runs **`scripts/predeploy-check.mjs`** automatically and refuses production unless the checkout is clean `main`, exactly equal to freshly fetched `origin/main`, with no untracked files under Firebase deploy roots.
 
 ### Diagnosing a stale deploy (edge cache or parallel-agent overwrite)
 
@@ -1145,7 +1143,7 @@ curl -fsSI "https://aep-orchestration-lab.web.app/api/image-hosting/library?cb=$
 
 Each Cloud Run revision corresponds to one `firebase deploy --only functions` run; the revision name (`imagehostinglibrary-NNNNN-xxx`) is opaque to git. The way you know **which** older revision corresponds to **which** git SHA is the `X-Build-Sha` header you've been collecting via `npm run deploy:status` — capture the SHA of every successful deploy somewhere your team can search (chat, ticket, deploy log) and cross-reference at rollback time.
 
-> If you need to roll back to a SHA that's older than any retained Cloud Run revision (default retention is generous but not infinite), the path is: `git checkout <sha>` → `firebase deploy --only functions`. The `predeploy-check.mjs` guard will need `SKIP_PREDEPLOY_CHECKS=1` because `<sha>` is by definition behind `origin/main` — that's the legitimate emergency-override case.
+> If you need to roll back to a SHA that's older than any retained Cloud Run revision (default retention is generous but not infinite), the path is: `git checkout <sha>` → `AEP_PRODUCTION_DEPLOY_OVERRIDE=1 firebase deploy --only functions`. Document and reconcile every emergency override.
 
 ### Quick rollback decision tree
 
@@ -1155,7 +1153,7 @@ Each Cloud Run revision corresponds to one `firebase deploy --only functions` ru
 | Stale-edge cache (`?cb=` shows newer ETag than canonical) | Trigger an edge invalidation: `firebase deploy --only hosting`. No git changes needed. |
 | Stale origin (`/version.json` shows a SHA that doesn't match the latest commit you intended to ship) | Pull, re-sync, redeploy from a clean tree (Phase C). The version stamp on the next deploy will confirm the fix. |
 | The latest deploy itself is broken and you need to revert | Hosting console rollback (UI) for `web/`-only regressions; gcloud `update-traffic --to-revisions` for `functions/`-only regressions; both for combined regressions. |
-| You need to roll back to a commit older than any retained revision | `git checkout <sha>` + `SKIP_PREDEPLOY_CHECKS=1 firebase deploy --only functions,hosting`. Document the SKIP in the commit message. |
+| You need to roll back to a commit older than any retained revision | `git checkout <sha>` + `AEP_PRODUCTION_DEPLOY_OVERRIDE=1 firebase deploy --only functions,hosting`. Document and reconcile the override. |
 
 ### Optional: in-page version pill
 
@@ -1173,9 +1171,9 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 | **Don't use `prefers-color-scheme`** | We use explicit user-chosen themes via localStorage, not OS preference. |
 | **Don't add new CSS frameworks** | The project is vanilla CSS by design. |
 | **Don't commit `.env` files or credentials** | They are gitignored. Never `git add --force` them. |
-| **Don't run `firebase deploy` while behind `origin/main`** | `firebase deploy --only hosting` ships local disk under `web/`, NOT what is on `origin/main`. Skipping the Phase C `git fetch` + `git pull --ff-only` will silently overwrite a teammate's hosted assets even though `git` itself stays clean. See [Phase C — immediately before `firebase deploy`](#phase-c--immediately-before-firebase-deploy). |
+| **Don't production-deploy outside exact clean `main`** | The predeploy gate blocks feature branches, ahead/behind branches, failed fetches, tracked changes, and untracked files under Firebase deploy roots. Use preview channels for feature work. |
 | **Don't deploy hosting from a workspace where another agent or session is also editing in parallel without re-running Phase C first** | This is the most common way Phase C gets violated in practice. Two agents finish their work, both push, both deploy in alternation — and whichever deploys last from a workspace that hasn't pulled the other's commit silently reverts those changes on the live site. Git history stays linear and clean; nothing in `git log` reveals the regression. The `curl -fsSI "<url>?cb=$(date +%s)"` probe in [Diagnosing a stale deploy (edge cache or parallel-agent overwrite)](#diagnosing-a-stale-deploy-edge-cache-or-parallel-agent-overwrite) is the post-mortem tool when this happens. |
-| **Don't assume `main` has your feature-branch `web/` changes** | If UI work lives only on a feature branch, a **`firebase deploy --only hosting` from a checkout of `main`** publishes **`main`'s files** — the live site can look "rolled back" relative to the branch. Merge to **`main`** (PR) or deploy from the branch that contains your commits; see [Hosting vs Git branch](#hosting-vs-git-branch-avoid-accidental-rollback). |
+| **Don't production-deploy a feature branch** | Merge it through the protected PR workflow or publish it to an expiring preview channel. |
 | **Don't `git push --force` to `main`** | Destroys teammate commits irrecoverably. If your push is rejected, pull/rebase from `origin/main` and try again. |
 | **Don't change the `us-central1` region** without updating both `functions/index.js` and every entry in `firebase.json` | Mismatched regions cause 404s on `/api/*` calls. |
 | **Don't edit `firestore.rules` to allow client reads/writes** | All Firestore access goes through Admin SDK in functions. |
@@ -1202,8 +1200,8 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 - [ ] If you touched a **site-clone lab demo** (env strip / drawer): [Shared env bar](#shared-env-bar--do-not-break) + [Shared profile drawer](#shared-profile-drawer--do-not-break) — no inline `#profileDrawer` / Tags markup
 - [ ] **Phase A** sync ran before substantive edits (`git fetch origin` → `git status` → `git pull --ff-only origin main` if behind, then re-`git status` to confirm `up to date`)
 - [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-`git status`, re-integrated via `git pull --ff-only` / `git pull --rebase` if a teammate had pushed)
-- [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, re-`git status`, pulled if behind, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)
-- [ ] If your changes are on a **feature branch** that is **not** merged to `main`: you either **merged (or opened a PR) to `main`** or you **deployed from that feature branch** on purpose — not from a `main` checkout that lacks your commits ([Hosting vs Git branch](#hosting-vs-git-branch-avoid-accidental-rollback))
+- [ ] **Phase C** production deploy runs from clean `main`, exactly matching freshly fetched `origin/main`, with no untracked files under deploy roots
+- [ ] Feature-branch Hosting tests use `npm run deploy:preview -- <channel-name>`; production waits for PR validation and merge
 
 ---
 

@@ -38,21 +38,20 @@ git status                 # re-verify before pushing
 
 Only `git push` once `git status` confirms you are 0 behind `origin/main`.
 
-## Checkpoint 3 — IMMEDIATELY before `firebase deploy`
+## Checkpoint 3 — before a production Firebase deploy
 
 This one is the most often forgotten and the most dangerous:
 
 ```bash
+git switch main
 git fetch origin
-git status                 # MUST show "Your branch is up to date with 'origin/main'"
-# If behind, your local working tree does NOT yet match what is on GitHub:
 git pull --ff-only origin main
-git status                 # re-verify before deploying
+git status --short --branch # MUST be clean and exactly match origin/main
 # Rebuild any built artefacts (e.g. `npm run build:edp`, `npm run build:eds-quickstart`)
 # so the deploy includes the teammate's changes too.
 ```
 
-**Why this matters:** `firebase deploy --only hosting` ships whatever is on YOUR local disk in `web/`. If a teammate pushes to `origin/main` between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets — even though `git` itself stayed clean. Pulling at deploy time is the only protection.
+**Why this matters:** `firebase deploy --only hosting` ships local disk contents. The automatic gate requires clean `main`, a fresh fetch, exact equality with `origin/main`, and no untracked files under Firebase deploy roots. Feature branches must use `npm run deploy:preview -- <channel-name>`.
 
 For built sub-apps (`web/profile-viewer/eds-quickstart/`, `web/profile-viewer/experience-decisioning/`), pulling alone is not enough — you must also re-run the relevant `npm run build:*` after the pull so the freshly-pulled source rebuilds before deploy.
 

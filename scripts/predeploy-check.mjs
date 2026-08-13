@@ -26,7 +26,7 @@
  *
  * Exit codes:
  *   0 — safe to deploy (warnings may have been printed)
- *   1 — refused: behind origin/main and SKIP_PREDEPLOY_CHECKS not set
+ *   1 — refused: production source does not exactly match clean origin/main
  *   2 — refused: failed to read git state (corrupt checkout, no .git, etc.)
  */
 
@@ -104,12 +104,13 @@ const behind   = parseInt(git('rev-list --count HEAD..origin/main', '0'), 10) ||
 // care about modifications/deletions to tracked files — that's what would
 // actually ship.
 const dirty    = git('status --porcelain --untracked-files=no', '').length > 0;
+const untrackedDeployFiles = git('ls-files --others --exclude-standard -- web functions firebase.json', '').length > 0;
 const branch   = git('rev-parse --abbrev-ref HEAD', '');
 const shortSha = git('rev-parse --short HEAD', '');
 
-info(`mode: ${previewDeploy ? 'preview' : 'production'}, branch: ${branch}, HEAD: ${shortSha}, ahead/behind origin/main: +${ahead} / -${behind}, dirty: ${dirty}`);
+info(`mode: ${previewDeploy ? 'preview' : 'production'}, branch: ${branch}, HEAD: ${shortSha}, ahead/behind origin/main: +${ahead} / -${behind}, dirty: ${dirty}, untracked deploy files: ${untrackedDeployFiles}`);
 
-const policy = evaluateDeployPolicy({ previewDeploy, override, fetchedOrigin, branch, ahead, behind, dirty });
+const policy = evaluateDeployPolicy({ previewDeploy, override, fetchedOrigin, branch, ahead, behind, dirty, untrackedDeployFiles });
 
 if (policy.mode === 'preview') {
   ok('feature-branch deploy is isolated to a Firebase Hosting preview channel.');

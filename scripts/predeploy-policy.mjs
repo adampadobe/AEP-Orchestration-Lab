@@ -6,6 +6,7 @@ export function evaluateDeployPolicy({
   ahead = 0,
   behind = 0,
   dirty = false,
+  untrackedDeployFiles = false,
 } = {}) {
   if (previewDeploy) return { allowed: true, mode: 'preview', reasons: [] };
   if (override) return { allowed: true, mode: 'emergency-override', reasons: [] };
@@ -15,6 +16,7 @@ export function evaluateDeployPolicy({
   if (branch !== 'main') reasons.push(`current branch is ${branch || '(detached HEAD)'}, not main`);
   if (ahead !== 0 || behind !== 0) reasons.push(`HEAD does not exactly match origin/main (+${ahead} / -${behind})`);
   if (dirty) reasons.push('tracked files contain uncommitted changes');
+  if (untrackedDeployFiles) reasons.push('untracked files exist under Firebase deploy roots');
 
   return { allowed: reasons.length === 0, mode: 'production', reasons };
 }
