@@ -1672,7 +1672,17 @@
   margin-top: 17px;
 }
 
-.pdf-test-progress-card { position: sticky; top: 18px; }
+.pdf-test-progress-card {
+  position: sticky;
+  z-index: 6;
+  top: 18px;
+  align-self: start;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.09);
+}
 .pdf-test-progress { display: grid; gap: 0; margin: 14px 0 0; padding: 0; list-style: none; }
 .pdf-test-progress li { position: relative; display: grid; grid-template-columns: 29px 1fr; gap: 10px; min-height: 67px; opacity: 0.46; }
 .pdf-test-progress li:not(:last-child)::after { position: absolute; top: 27px; bottom: 0; left: 12px; width: 2px; background: var(--dash-border); content: ""; }
@@ -1732,6 +1742,10 @@
   border-radius: 12px;
   background: var(--dash-bg-soft, rgba(100, 116, 139, 0.035));
 }
+
+/* Sticky descendants need every scrolling ancestor to remain unclipped. */
+#pdfStageReuse[open],
+#pdfJourneyTestDetails[open] { overflow: visible; }
 
 .pdf-reuse-summary,
 .pdf-ajo-setup-summary.pdf-reuse-summary {
@@ -1858,7 +1872,16 @@
   .pdf-key-workspace { grid-template-columns: 1fr; }
   .pdf-template-manager-grid { grid-template-columns: 1fr; }
   .pdf-journey-test-grid { grid-template-columns: 1fr; }
-  .pdf-test-progress-card { position: static; }
+  .pdf-test-progress-card {
+    position: sticky;
+    top: 12px;
+    order: -1;
+    max-height: calc(100vh - 24px);
+    padding: 13px 14px;
+  }
+  .pdf-test-progress { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 11px; }
+  .pdf-test-progress li { grid-template-columns: 25px minmax(0, 1fr); gap: 7px; min-height: 0; }
+  .pdf-test-progress li:not(:last-child)::after { display: none; }
   .pdf-test-campaign-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -1918,6 +1941,9 @@
   .pdf-test-send-actions { align-items: stretch; flex-direction: column; }
   .pdf-test-field-tools { align-items: stretch; flex-direction: column; }
   .pdf-journey-test .pdf-test-cache-toggle { justify-content: center; }
+  .pdf-test-progress-card { top: 8px; max-height: calc(100vh - 16px); }
+  .pdf-test-progress em { display: none; }
+  .pdf-test-progress strong { font-size: 10.5px; }
   .pdf-reuse-summary { align-items: flex-start; flex-direction: column; }
   .pdf-story-assist-heading,
   .pdf-story-assist-footer { align-items: stretch; flex-direction: column; }
