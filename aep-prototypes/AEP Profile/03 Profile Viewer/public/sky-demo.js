@@ -3,38 +3,49 @@
  * Waits for shared/env-bar.js before Tags injection (env bar loads demo-tags-injection.js).
  */
 (function skyDemoBoot(global) {
+  function clearAccountDockPreference() {
+    try {
+      global.sessionStorage.removeItem('aepLabEnvBarDocked');
+    } catch (_e) {
+      /* Keep the account-view default local to this page load. */
+    }
+  }
+
+  function dockAccountEnvBar() {
+    if (!global.envBar || typeof global.envBar.dock !== 'function') return;
+    if (global.envBar.dock()) {
+      clearAccountDockPreference();
+      return;
+    }
+    if (typeof global.envBar.ready === 'function') {
+      void global.envBar.ready().then(function () {
+        if (global.envBar.dock()) clearAccountDockPreference();
+      });
+    }
+  }
+
+  function useAccountViewUrl() {
+    const url = new URL(global.location.href);
+    if (url.searchParams.get('view') !== 'account') {
+      url.searchParams.set('view', 'account');
+      global.history.replaceState({ skyView: 'account' }, '', url.href);
+    }
+    document.title = 'Sky Account Demo | AEP Orchestration Lab';
+    dockAccountEnvBar();
+  }
+
+  const initialAccountView = new URLSearchParams(global.location.search).get('view') === 'account';
+  if (initialAccountView) dockAccountEnvBar();
+
+  global.addEventListener('message', function updateSkyAccountViewUrl(ev) {
+    const data = ev && ev.data;
+    if (!data || data.source !== 'sky-demo-shell' || data.type !== 'login-complete' || !data.found) return;
+    useAccountViewUrl();
+  });
+
   function run() {
     const customerEmail = document.getElementById('customerEmail');
     const skyNs = document.getElementById('skyNs');
-    const accountView = new URLSearchParams(global.location.search).get('view') === 'account';
-
-    function dockAccountEnvBar() {
-      if (!global.envBar || typeof global.envBar.dock !== 'function') return;
-      global.envBar.dock();
-      try {
-        global.sessionStorage.removeItem('aepLabEnvBarDocked');
-      } catch (_e) {
-        /* Keep the account-view default local to this page load. */
-      }
-    }
-
-    function useAccountViewUrl() {
-      const url = new URL(global.location.href);
-      if (url.searchParams.get('view') !== 'account') {
-        url.searchParams.set('view', 'account');
-        global.history.replaceState({ skyView: 'account' }, '', url.href);
-      }
-      document.title = 'Sky Account Demo | AEP Orchestration Lab';
-      dockAccountEnvBar();
-    }
-
-    if (accountView) dockAccountEnvBar();
-
-    global.addEventListener('message', function updateSkyAccountViewUrl(ev) {
-      const data = ev && ev.data;
-      if (!data || data.source !== 'sky-demo-shell' || data.type !== 'login-complete' || !data.found) return;
-      useAccountViewUrl();
-    });
 
     function rememberSkySessionIdentifier(value) {
       if (typeof setSessionIdentifier !== 'function') return;
