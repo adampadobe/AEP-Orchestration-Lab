@@ -73,6 +73,16 @@
     currency: 'GBP',
   };
 
+  const hostedPdfImageOptions = [
+    { field: 'Barcode', label: 'Riyadh boarding-pass barcode', path: 'assets/pdf-personalisation/riyadh-barcode.png' },
+    { field: 'FF_Image', label: 'Riyadh destination feature image', path: 'assets/pdf-personalisation/riyadh-feature-image.png' },
+    { field: 'Offer', label: 'Riyadh special-offer image', path: 'assets/pdf-personalisation/riyadh-offer.png' },
+  ];
+
+  function hostedPdfImageUrl(path) {
+    return new URL(path, window.location.href).href;
+  }
+
   const htmlEditor = document.getElementById('pdfHtmlEditor');
   const dataEditor = document.getElementById('pdfDataEditor');
   const htmlEditorDetails = document.getElementById('pdfHtmlEditorDetails');
@@ -1071,23 +1081,33 @@
       const inputId = `pdfTestData_${field.name.replace(/[^A-Za-z0-9_-]/g, '_')}`;
       label.htmlFor = inputId;
       label.textContent = field.label || field.name;
-      const input = document.createElement('input');
+      const input = document.createElement(field.dataType === 'image' ? 'select' : 'input');
       input.id = inputId;
       input.dataset.pdfTestField = field.name;
       input.dataset.pdfTestType = field.dataType || 'string';
       input.required = field.required === true;
-      input.type = field.dataType === 'decimal' ? 'number' : 'text';
-      if (field.dataType === 'decimal') input.step = 'any';
-      input.placeholder = field.dataType === 'dateTime'
-        ? '2026-08-12T09:15:00+03:00'
-        : field.dataType === 'image'
-          ? 'https://… or data:image/...;base64,…'
-          : '';
+      if (field.dataType === 'image') {
+        input.add(new Option('Choose a hosted image', ''));
+        hostedPdfImageOptions.forEach((asset) => input.add(new Option(asset.label, hostedPdfImageUrl(asset.path))));
+      } else {
+        input.type = field.dataType === 'decimal' ? 'number' : 'text';
+        if (field.dataType === 'decimal') input.step = 'any';
+        input.placeholder = field.dataType === 'dateTime' ? '2026-08-12T09:15:00+03:00' : '';
+      }
       const value = defaults[field.name] == null || defaults[field.name] === ''
         ? field.sampleValue
         : defaults[field.name];
       input.value = value == null ? '' : String(value);
+      if (field.dataType === 'image' && !input.value) {
+        const preferred = hostedPdfImageOptions.find((asset) => asset.field.toLowerCase() === String(field.name).toLowerCase());
+        if (preferred) input.value = hostedPdfImageUrl(preferred.path);
+      }
       wrapper.append(label, input);
+      if (field.dataType === 'image') {
+        const imageHint = document.createElement('small');
+        imageHint.textContent = 'Choose an image already published on AEP Orchestration Lab Hosting.';
+        wrapper.appendChild(imageHint);
+      }
       if (field.targetFields && field.targetFields.length) {
         const hint = document.createElement('small');
         hint.textContent = `Used by: ${field.targetFields.join(', ')}`;
@@ -1215,7 +1235,7 @@
       const story = document.getElementById('pdfTestStory').value.trim();
       if (story.length < 10) throw new Error('Describe the traveller and journey in at least 10 characters.');
       button.disabled = true;
-      button.innerHTML = '<span aria-hidden="true">✦</span> Gemini is reading the story…';
+      button.innerHTML = '<span aria-hidden="true">✦</span> Reading the story…';
       renderStoryMissingFields([]);
       setStoryAssistStatus('Matching the story to the selected template fields…', 'working');
       const { body } = await api('/journey-action/story-assist', {
@@ -1238,14 +1258,15 @@
       if (recipient.firstName) document.getElementById('pdfTestFirstName').value = recipient.firstName;
       if (recipient.lastName) document.getElementById('pdfTestLastName').value = recipient.lastName;
       if (recipient.documentName) document.getElementById('pdfTestDocumentName').value = recipient.documentName;
-      renderStoryMissingFields(body.missingFields);
+      const populatedValues = currentTestFieldValues();
+      renderStoryMissingFields((body.missingFields || []).filter((name) => !populatedValues[name]));
       const filledCount = Object.keys(body.values || {}).length + Object.keys(recipient).length;
-      setStoryAssistStatus(`${body.summary} Populated ${filledCount} field${filledCount === 1 ? '' : 's'} with ${body.model || 'Gemini'}. Review them below before sending.`, 'success');
+      setStoryAssistStatus(`${body.summary} Populated ${filledCount} field${filledCount === 1 ? '' : 's'}. Review them below before sending.`, 'success');
     } catch (error) {
       setStoryAssistStatus(error.message, 'error');
     } finally {
       button.disabled = false;
-      button.innerHTML = '<span aria-hidden="true">✦</span> Populate fields with Gemini';
+      button.innerHTML = '<span aria-hidden="true">✦</span> Populate fields';
     }
   }
 
@@ -1263,7 +1284,7 @@
     story.value = story.defaultValue.trim();
     document.getElementById('pdfTestStoryCount').textContent = `${story.value.length.toLocaleString()} / 8,000`;
     renderStoryMissingFields([]);
-    setStoryAssistStatus('Example restored. Edit any detail or populate the fields with Gemini.');
+    setStoryAssistStatus('Example restored. Edit any detail or populate the fields.');
     story.focus();
   }
 
@@ -1393,7 +1414,7 @@
     document.getElementById('pdfTestTemplate').addEventListener('change', () => {
       renderTestDynamicFields();
       renderStoryMissingFields([]);
-      setStoryAssistStatus('Template changed. Gemini will now target this template’s fields.');
+      setStoryAssistStatus('Template changed. The assistant will now target this template’s fields.');
     });
     document.getElementById('pdfTestCampaign').addEventListener('change', syncTestCampaignManager);
     document.getElementById('pdfTestSaveCampaign').addEventListener('click', saveJourneyCampaign);

@@ -575,7 +575,7 @@ function createHandler(deps) {
           );
         }
         if (typeof required.suggestJourneyStoryFields !== 'function') {
-          throw new core.PdfPersonalisationError('Gemini story assistance is unavailable.', 503, 'PDF_STORY_ASSIST_UNAVAILABLE');
+          throw new core.PdfPersonalisationError('Story assistance is unavailable.', 503, 'PDF_STORY_ASSIST_UNAVAILABLE');
         }
         try {
           const storedInputSchema = Array.isArray(resolvedTemplate.inputSchema) ? resolvedTemplate.inputSchema : [];
@@ -600,7 +600,7 @@ function createHandler(deps) {
         } catch (error) {
           const status = Number(error && error.status) || 502;
           throw new core.PdfPersonalisationError(
-            String(error && error.message || 'Gemini could not interpret this story.'),
+            String(error && error.message || 'The assistant could not interpret this story.'),
             status,
             String(error && error.code || 'PDF_STORY_ASSIST_FAILED'),
           );

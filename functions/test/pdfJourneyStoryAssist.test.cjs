@@ -32,6 +32,25 @@ test('normalizes Gemini output to selected template fields only', async () => {
   assert.equal(result.model, 'gemini-2.5-flash');
 });
 
+test('completes non-image fields from template defaults without auto-selecting images', () => {
+  const result = assist.completeWithDefaults({
+    recipient: {},
+    values: { flightNumber: 'RX 401' },
+    missingFields: ['departureAirportName', 'Offer'],
+    summary: 'Flight extracted.',
+  }, {
+    departureAirportName: 'King Khalid International Airport',
+    Offer: 'https://example.com/offer.png',
+  }, [
+    { name: 'flightNumber', dataType: 'string' },
+    { name: 'departureAirportName', dataType: 'string' },
+    { name: 'Offer', dataType: 'image' },
+  ]);
+  assert.equal(result.values.departureAirportName, 'King Khalid International Airport');
+  assert.equal(result.values.Offer, undefined);
+  assert.deepEqual(result.missingFields, ['Offer']);
+});
+
 test('rejects short stories and templates without a field schema', async () => {
   await assert.rejects(
     assist.suggest({ ownerUid: 'story-user-short', story: 'flight', inputSchema: [{ name: 'seat' }] }),
