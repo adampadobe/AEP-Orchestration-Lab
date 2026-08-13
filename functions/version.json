@@ -1,14 +1,14 @@
 {
-  "gitSha": "ab7ee28d7feb692f78387fc19cd5b1e474712437",
-  "gitShortSha": "ab7ee28d",
+  "gitSha": "a5040dbe3234503c961f9a82b77a79fb53e2a074",
+  "gitShortSha": "a5040dbe",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Stack PDF workspace sections",
+  "gitCommitSubject": "[apalmer] Add Gemini PDF story assistant",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T11:24:01+03:00",
-  "deployedAt": "2026-08-13T08:24:41.392Z",
+  "gitCommitDate": "2026-08-13T11:39:22+03:00",
+  "deployedAt": "2026-08-13T08:40:06.297Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 5,
+  "aheadOfOrigin": 7,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ab7ee28d7feb692f78387fc19cd5b1e474712437"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a5040dbe3234503c961f9a82b77a79fb53e2a074"
 }
