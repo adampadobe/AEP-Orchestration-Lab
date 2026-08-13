@@ -1,14 +1,14 @@
 {
-  "gitSha": "a5040dbe3234503c961f9a82b77a79fb53e2a074",
-  "gitShortSha": "a5040dbe",
+  "gitSha": "e39d4ffd1528757fdc60de70e1f3621f3f091231",
+  "gitShortSha": "e39d4ffd",
   "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Add Gemini PDF story assistant",
+  "gitCommitSubject": "[apalmer] Prepopulate Gemini journey example",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T11:39:22+03:00",
-  "deployedAt": "2026-08-13T08:40:06.297Z",
+  "gitCommitDate": "2026-08-13T11:52:59+03:00",
+  "deployedAt": "2026-08-13T08:53:32.441Z",
   "deployedBy": "adampadobe",
-  "aheadOfOrigin": 7,
+  "aheadOfOrigin": 9,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a5040dbe3234503c961f9a82b77a79fb53e2a074"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e39d4ffd1528757fdc60de70e1f3621f3f091231"
 }
