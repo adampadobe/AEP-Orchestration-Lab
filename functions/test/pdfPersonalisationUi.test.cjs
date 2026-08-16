@@ -43,3 +43,12 @@ test('presents story assistance as complete scenario generation', () => {
   assert.match(script, /currentValues:\s*currentTestFieldValues\(\)/);
   assert.match(script, /Generating a complete scenario for every template field/);
 });
+
+test('lets publishers add, remove, and custom-map template fields', () => {
+  assert.match(html, /id="pdfAddJourneyTemplateField"/);
+  assert.match(html, /existing or new lowerCamelCase AJO/);
+  assert.match(script, /createJourneyTemplateMappingRow/);
+  assert.match(script, /pdf-template-mapping-remove/);
+  assert.match(script, /fieldSelectionMode:\s*'editable'/);
+  assert.match(script, /journeyMappingSourceValid/);
+});

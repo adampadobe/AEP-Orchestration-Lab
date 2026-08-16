@@ -51,6 +51,16 @@ test('detects HTML data arguments without treating helpers as template fields', 
   ]);
 });
 
+test('recognises order-confirmation aliases without changing generic flight mappings', () => {
+  const orderFields = [
+    { name: 'Order ID' }, { name: 'Fno' }, { name: 'Flight' }, { name: 'TravelTime' },
+  ];
+  assert.equal(contract.suggestSource('Order ID', orderFields), 'bookingReference');
+  assert.equal(contract.suggestSource('TravelTime', orderFields), 'travelTime');
+  assert.equal(contract.suggestSource('Flight', orderFields), 'aircraftType');
+  assert.equal(contract.suggestSource('Flight'), 'carrierCode');
+});
+
 test('maps the stable AJO payload into template-specific fields', () => {
   const mappings = [
     { target: 'PassengerName', source: 'passengerName', required: true, type: 'text' },
@@ -65,6 +75,50 @@ test('maps the stable AJO payload into template-specific fields', () => {
   assert.equal(mapped['Flight Number'], 'RX 401');
   assert.equal(mapped.Date, '12 AUG 2026');
   assert.deepEqual(contract.validateMappedData(mapped, mappings), { missing: [] });
+});
+
+test('uses template-shaped sample values when canonical AJO fields are not present', () => {
+  const mappings = contract.normalizeMappings([
+    { name: 'Order ID', type: 'text' },
+    { name: 'TravelTime', type: 'text' },
+    { name: 'Destination_Image', type: 'image' },
+  ], [
+    { target: 'Order ID', source: 'bookingReference', required: true, type: 'text' },
+    { target: 'TravelTime', source: 'travelTime', required: true, type: 'text' },
+    { target: 'Destination_Image', source: 'FF_Image', required: false, type: 'image' },
+  ], { allowFieldSelection: true });
+  const templateSample = {
+    'Order ID': 'RX12236YX28SR',
+    TravelTime: '1hr 40 Mins',
+    Destination_Image: 'https://example.com/riyadh.png',
+  };
+  const mapped = contract.applyMappings(templateSample, mappings);
+  assert.equal(mapped['Order ID'], 'RX12236YX28SR');
+  assert.equal(mapped.TravelTime, '1hr 40 Mins');
+  assert.equal(mapped.Destination_Image, 'https://example.com/riyadh.png');
+  assert.deepEqual(contract.validateMappedData(mapped, mappings), { missing: [] });
+  const canonicalSample = contract.sampleDataForMappings(templateSample, mapped, mappings);
+  assert.equal(canonicalSample.bookingReference, 'RX12236YX28SR');
+  assert.equal(canonicalSample.travelTime, '1hr 40 Mins');
+  assert.equal(canonicalSample.FF_Image, 'https://example.com/riyadh.png');
+});
+
+test('allows editable publication mappings to add custom fields and remove detected fields', () => {
+  const mappings = contract.normalizeMappings([
+    { name: 'Order ID', type: 'text' },
+    { name: 'Unused tag', type: 'text' },
+  ], [
+    { target: 'Order ID', source: 'bookingReference', required: true, type: 'text' },
+    { target: 'Aircraft', source: 'aircraftType', required: false, type: 'text' },
+  ], { allowFieldSelection: true });
+  assert.deepEqual(mappings, [
+    { target: 'Order ID', source: 'bookingReference', required: true, type: 'text' },
+    { target: 'Aircraft', source: 'aircraftType', required: false, type: 'text' },
+  ]);
+  assert.throws(
+    () => contract.normalizeMappings([], [{ target: 'Unsafe', source: 'data.aircraft' }], { allowFieldSelection: true }),
+    (error) => error.code === 'PDF_JOURNEY_TEMPLATE_MAPPING_REQUIRED',
+  );
 });
 
 test('rejects publishing when a required mapped field has no sample value', () => {
@@ -90,4 +144,15 @@ test('builds a deduplicated dynamic input schema from published mappings', () =>
   assert.deepEqual(schema[0].targetFields, ['Flight Number', 'Flight']);
   assert.equal(schema[1].dataType, 'image');
   assert.equal(schema[2].dataType, 'dateTime');
+});
+
+test('builds input schema entries for safe custom AJO fields', () => {
+  const schema = contract.buildInputSchema([
+    { target: 'TravelTime', source: 'travelTime', required: true, type: 'text' },
+    { target: 'Aircraft', source: 'aircraftType', required: false, type: 'text' },
+  ], { travelTime: '1hr 40 Mins', aircraftType: 'Boeing 787-9' });
+  assert.deepEqual(schema.map((field) => ({ name: field.name, label: field.label, required: field.required })), [
+    { name: 'travelTime', label: 'Travel duration', required: true },
+    { name: 'aircraftType', label: 'Aircraft type', required: false },
+  ]);
 });

@@ -183,6 +183,7 @@ test('allows portal users to create, list, and revoke their journey API keys', a
 
 test('allows portal users to manage their custom-action template library', async () => {
   const savedInputs = [];
+  const validationInputs = [];
   const handler = service.createHandler({
     setCors() {},
     getServiceApiKey: () => '',
@@ -194,10 +195,13 @@ test('allows portal users to manage their custom-action template library', async
     analyseJourneyTemplate: () => ({
       kind: 'html', fields: [], suggestedMappings: [], canonicalSources: [],
     }),
-    validateJourneyTemplatePublication: async () => ({
-      analysis: { kind: 'html', fields: [] }, mappings: [], pageCount: 1,
-      expectedPageCount: 1, validatedAt: '2026-08-11T20:00:00.000Z',
-    }),
+    validateJourneyTemplatePublication: async (input) => {
+      validationInputs.push(input);
+      return {
+        analysis: { kind: 'html', fields: [] }, mappings: [], sampleData: {}, recipient: {}, pageCount: 1,
+        expectedPageCount: 1, validatedAt: '2026-08-11T20:00:00.000Z',
+      };
+    },
     saveJourneyTemplate: async (input) => { savedInputs.push(input); return { templateName: input.templateName }; },
     archiveJourneyTemplate: async (uid, name) => ({ uid, templateName: name, archived: true }),
   });
@@ -218,13 +222,18 @@ test('allows portal users to manage their custom-action template library', async
 
   const postReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library'), {
     method: 'POST',
-    body: { templateName: 'airport-welcome', sourceFile: { fileName: 'welcome.html', base64: 'eA==' } },
+    body: {
+      templateName: 'airport-welcome',
+      sourceFile: { fileName: 'welcome.html', base64: 'eA==' },
+      fieldSelectionMode: 'editable',
+    },
   });
   const postRes = response();
   await handler(postReq, postRes);
   assert.equal(postRes.statusCode, 201);
   assert.equal(postRes.body.status, 'published');
   assert.equal(savedInputs[0].ownerUid, 'user-1');
+  assert.equal(validationInputs[0].fieldSelectionMode, 'editable');
 
   const deleteReq = Object.assign(request({}, '/api/pdf-personalisation/journey-action/template-library?templateName=airport-welcome'), {
     method: 'DELETE', query: { templateName: 'airport-welcome' },

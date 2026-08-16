@@ -311,9 +311,13 @@
                   <section id="pdfJourneyTemplateMappingPanel" class="pdf-template-mapping-panel" hidden>
                     <div class="pdf-template-list-heading">
                       <h5>Detected template fields</h5>
-                      <span id="pdfJourneyTemplateMappingCount">0 mapped</span>
+                      <div class="pdf-template-mapping-heading-actions">
+                        <span id="pdfJourneyTemplateMappingCount">0 mapped</span>
+                        <button type="button" class="dashboard-btn-outline" id="pdfAddJourneyTemplateField">Add field</button>
+                      </div>
                     </div>
-                    <p>Confirm how each template field maps to the stable AJO payload. Required fields must have a value in the JSON above.</p>
+                    <p>Keep only the fields this template should expose, map each one to an existing or new lowerCamelCase AJO <code>data</code> field, and choose whether it is required. For validation, the JSON above may use either the AJO field name or the original DOCX tag name.</p>
+                    <datalist id="pdfAjoFieldOptions"></datalist>
                     <div id="pdfJourneyTemplateMappings" class="pdf-template-mappings"></div>
                   </section>
                   <p id="pdfJourneyTemplateStatus" class="pdf-key-status" aria-live="polite"></p>
@@ -767,6 +771,24 @@
       "toBeMapped": true,
       "dataType": "string",
       "label": "Display departure time - optional"
+    },
+    "arrivalTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Display arrival time - optional"
+    },
+    "travelTime": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Travel duration - optional"
+    },
+    "aircraftType": {
+      "optionalMapping": true,
+      "toBeMapped": true,
+      "dataType": "string",
+      "label": "Aircraft type - optional"
     },
     "gate": {
       "optionalMapping": true,
