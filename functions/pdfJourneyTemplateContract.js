@@ -10,6 +10,7 @@ const CANONICAL_SOURCES = Object.freeze([
   'departureAirport', 'arrivalAirport', 'originCity', 'destinationCity',
   'departureAirportName', 'arrivalAirportName', 'departureTerminal', 'arrivalTerminal',
   'departureDateTime', 'arrivalDateTime', 'boardingTime', 'departureTime',
+  'arrivalTime', 'travelTime', 'aircraftType',
   'gate', 'seat', 'zone', 'totalPaid', 'currency',
   'Barcode', 'FF_Image', 'Offer',
 ]);
@@ -35,6 +36,9 @@ const CANONICAL_SOURCE_DEFINITIONS = Object.freeze({
   arrivalDateTime: { label: 'Arrival date and time', dataType: 'dateTime' },
   boardingTime: { label: 'Boarding time', dataType: 'string' },
   departureTime: { label: 'Display departure time', dataType: 'string' },
+  arrivalTime: { label: 'Display arrival time', dataType: 'string' },
+  travelTime: { label: 'Travel duration', dataType: 'string' },
+  aircraftType: { label: 'Aircraft type', dataType: 'string' },
   gate: { label: 'Boarding gate', dataType: 'string' },
   seat: { label: 'Seat number', dataType: 'string' },
   zone: { label: 'Boarding zone', dataType: 'string' },
@@ -52,6 +56,14 @@ const FIELD_ALIASES = Object.freeze({
   passengername: 'passengerName',
   bookingref: 'bookingReference',
   bookingreference: 'bookingReference',
+  orderid: 'bookingReference',
+  origin: 'originCity',
+  traveltime: 'travelTime',
+  time: 'departureTime',
+  arrivaltime: 'arrivalTime',
+  fno: 'flightNumber',
+  guestname: 'passengerName',
+  destinationimage: 'FF_Image',
   boarding: 'originCity',
   destination: 'destinationCity',
   ocode: 'departureAirport',
@@ -80,6 +92,16 @@ function normalizedKey(value) {
 
 function cleanTemplateField(value) {
   return String(value || '').trim().replace(/^`|`$/g, '').trim().slice(0, 120);
+}
+
+function cleanPayloadField(value) {
+  return String(value || '').trim().slice(0, 120);
+}
+
+function validPayloadField(value) {
+  const field = cleanPayloadField(value);
+  return /^[A-Za-z][A-Za-z0-9_]{0,119}$/.test(field)
+    && !['__proto__', 'prototype', 'constructor'].includes(field);
 }
 
 function uniqueFields(fields) {
@@ -176,8 +198,11 @@ function extractHtmlFields(html) {
   return uniqueFields(fields);
 }
 
-function suggestSource(fieldName) {
+function suggestSource(fieldName, templateFields = []) {
   const normalized = normalizedKey(fieldName);
+  const fieldSet = new Set((Array.isArray(templateFields) ? templateFields : [])
+    .map((field) => normalizedKey(field && field.name)));
+  if (normalized === 'flight' && fieldSet.has('orderid') && fieldSet.has('fno')) return 'aircraftType';
   if (FIELD_ALIASES[normalized]) return FIELD_ALIASES[normalized];
   return CANONICAL_SOURCES.find((source) => normalizedKey(source) === normalized) || '';
 }
@@ -195,7 +220,7 @@ function analyseTemplate(sourceFile) {
       fields,
       suggestedMappings: fields.map((field) => ({
         target: field.name,
-        source: suggestSource(field.name),
+        source: suggestSource(field.name, fields),
         required: true,
         type: field.type,
       })),
@@ -210,7 +235,7 @@ function analyseTemplate(sourceFile) {
     fields,
     suggestedMappings: fields.map((field) => ({
       target: field.name,
-      source: suggestSource(field.name),
+      source: suggestSource(field.name, fields),
       required: field.type === 'text',
       type: field.type,
     })),
@@ -218,8 +243,53 @@ function analyseTemplate(sourceFile) {
   };
 }
 
-function normalizeMappings(fields, value) {
+function normalizeMappings(fields, value, options = {}) {
   const supplied = Array.isArray(value) ? value : [];
+  if (options.allowFieldSelection === true) {
+    if (supplied.length > 100) {
+      throw new core.PdfPersonalisationError(
+        'A template can publish at most 100 mapped fields.',
+        400,
+        'PDF_JOURNEY_TEMPLATE_MAPPING_LIMIT',
+      );
+    }
+    const detectedByTarget = new Map((Array.isArray(fields) ? fields : []).map((field) => [field.name, field]));
+    const seen = new Set();
+    return supplied.filter((item) => item && item.enabled !== false).map((item) => {
+      const target = cleanTemplateField(item.target);
+      const detected = detectedByTarget.get(target);
+      const type = ((detected && detected.type === 'image') || item.type === 'image') ? 'image' : 'text';
+      const source = cleanPayloadField(item.source || suggestSource(target));
+      if (!target || /[{}\u0000-\u001f\u007f]/.test(target)) {
+        throw new core.PdfPersonalisationError(
+          'Each mapped template field needs a valid target name.',
+          400,
+          'PDF_JOURNEY_TEMPLATE_TARGET_INVALID',
+        );
+      }
+      if (seen.has(target)) {
+        throw new core.PdfPersonalisationError(
+          `Template field "${target}" is mapped more than once.`,
+          400,
+          'PDF_JOURNEY_TEMPLATE_MAPPING_DUPLICATE',
+        );
+      }
+      seen.add(target);
+      if (!validPayloadField(source)) {
+        throw new core.PdfPersonalisationError(
+          `Map template field "${target}" to a lowerCamelCase AJO data field.`,
+          400,
+          'PDF_JOURNEY_TEMPLATE_MAPPING_REQUIRED',
+        );
+      }
+      return {
+        target,
+        source,
+        required: item.required === undefined ? type === 'text' : item.required === true,
+        type,
+      };
+    });
+  }
   const byTarget = new Map(supplied.map((item) => [String(item && item.target || '').trim(), item || {}]));
   return fields.map((field) => {
     const input = byTarget.get(field.name) || {};
@@ -273,7 +343,28 @@ function applyMappings(data, mappings, recipient = {}) {
   const output = JSON.parse(JSON.stringify(plainObject(data) ? data : {}));
   const context = canonicalContext(output, recipient);
   (Array.isArray(mappings) ? mappings : []).forEach((mapping) => {
-    output[mapping.target] = getPath(context, mapping.source);
+    const mappedValue = getPath(context, mapping.source);
+    if (mappedValue !== undefined && mappedValue !== null && String(mappedValue).trim() !== '') {
+      output[mapping.target] = mappedValue;
+    } else if (!Object.prototype.hasOwnProperty.call(output, mapping.target)) {
+      output[mapping.target] = mappedValue;
+    }
+  });
+  return output;
+}
+
+function sampleDataForMappings(data, mappedData, mappings, recipient = {}) {
+  const output = JSON.parse(JSON.stringify(plainObject(data) ? data : {}));
+  const context = canonicalContext(output, recipient);
+  (Array.isArray(mappings) ? mappings : []).forEach((mapping) => {
+    const source = cleanPayloadField(mapping && mapping.source);
+    if (!validPayloadField(source)) return;
+    const existing = getPath(context, source);
+    const mappedValue = mappedData && mappedData[mapping.target];
+    if ((existing === undefined || existing === null || String(existing).trim() === '')
+      && mappedValue !== undefined && mappedValue !== null && String(mappedValue).trim() !== '') {
+      output[source] = mappedValue;
+    }
   });
   return output;
 }
@@ -299,7 +390,7 @@ function buildInputSchema(mappings, sampleData = {}, recipient = {}) {
   const bySource = new Map();
   (Array.isArray(mappings) ? mappings : []).forEach((mapping) => {
     const source = String(mapping && mapping.source || '').trim();
-    if (!source || !CANONICAL_SOURCES.includes(source)) return;
+    if (!validPayloadField(source)) return;
     const inputName = source === 'carrierCode' ? 'flightNumber' : source === 'flightDate' ? 'departureDateTime' : source;
     const definition = CANONICAL_SOURCE_DEFINITIONS[inputName] || { label: inputName, dataType: 'string' };
     const existing = bySource.get(inputName) || {
@@ -328,6 +419,7 @@ module.exports = {
   normalizeMappings,
   canonicalContext,
   applyMappings,
+  sampleDataForMappings,
   validateMappedData,
   buildInputSchema,
 };

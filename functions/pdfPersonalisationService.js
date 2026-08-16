@@ -41,7 +41,9 @@ function jsonBody(req) {
 
 async function validateJourneyTemplatePublication(input, deps = {}) {
   const analysis = input.analysis || journeyTemplateContract.analyseTemplate(input.sourceFile);
-  const mappings = journeyTemplateContract.normalizeMappings(analysis.fields, input.fieldMappings);
+  const mappings = journeyTemplateContract.normalizeMappings(analysis.fields, input.fieldMappings, {
+    allowFieldSelection: input.fieldSelectionMode === 'editable',
+  });
   const samplePayload = input.samplePayload && typeof input.samplePayload === 'object'
     ? input.samplePayload
     : {};
@@ -54,6 +56,12 @@ async function validateJourneyTemplatePublication(input, deps = {}) {
   };
   const mappedData = journeyTemplateContract.applyMappings(sampleData, mappings, recipient);
   journeyTemplateContract.validateMappedData(mappedData, mappings);
+  const canonicalSampleData = journeyTemplateContract.sampleDataForMappings(
+    sampleData,
+    mappedData,
+    mappings,
+    recipient,
+  );
   const credentials = {
     clientId: deps.getPdfClientId(),
     clientSecret: deps.getPdfClientSecret(),
@@ -84,7 +92,7 @@ async function validateJourneyTemplatePublication(input, deps = {}) {
   return {
     analysis,
     mappings,
-    sampleData,
+    sampleData: canonicalSampleData,
     recipient,
     mappedData,
     pageCount,
@@ -490,6 +498,7 @@ function createHandler(deps) {
           sourceFile: body.sourceFile,
           samplePayload: body.samplePayload,
           fieldMappings: body.fieldMappings,
+          fieldSelectionMode: body.fieldSelectionMode,
           expectedPageCount: body.expectedPageCount,
         }, required);
         const saved = await callJourneyKeyStore(() => required.saveJourneyTemplate({

@@ -1313,7 +1313,7 @@
 
 .pdf-template-mapping-row {
   display: grid;
-  grid-template-columns: minmax(120px, .8fr) minmax(170px, 1fr) auto;
+  grid-template-columns: minmax(140px, .8fr) minmax(190px, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -1333,20 +1333,49 @@
   font: 600 10px "SFMono-Regular", Consolas, monospace;
 }
 
-.pdf-template-mapping-target span {
-  margin-top: 2px;
-  color: var(--dash-muted);
-  font-size: 9px;
-}
-
-.pdf-template-mapping-row select {
+.pdf-template-mapping-row select,
+.pdf-template-mapping-row input[type="text"] {
   min-width: 0;
   min-height: 34px;
+  padding: 0 9px;
   border: 1px solid var(--dash-input-border, var(--dash-border));
   border-radius: 8px;
   color: var(--dash-text);
   background: var(--dash-input-bg, var(--dash-surface));
   font-size: 10px;
+}
+
+.pdf-template-mapping-target {
+  display: grid;
+  gap: 5px;
+}
+
+.pdf-template-mapping-type {
+  width: 112px;
+}
+
+.pdf-template-mapping-type:disabled {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  color: var(--dash-muted);
+  background: transparent;
+  opacity: 1;
+  font-size: 9px;
+  appearance: none;
+}
+
+.pdf-template-mapping-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdf-template-mapping-heading-actions .dashboard-btn-outline,
+.pdf-template-mapping-remove {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 9px;
 }
 
 .pdf-template-mapping-required {

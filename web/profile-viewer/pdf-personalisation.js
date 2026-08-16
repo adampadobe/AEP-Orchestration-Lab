@@ -76,6 +76,7 @@
   const hostedPdfImageOptions = [
     { field: 'Barcode', label: 'Riyadh boarding-pass barcode', path: 'assets/pdf-personalisation/riyadh-barcode.png' },
     { field: 'FF_Image', label: 'Riyadh destination feature image', path: 'assets/pdf-personalisation/riyadh-feature-image.png' },
+    { field: 'FF_Image', label: 'Riyadh night skyline', path: 'assets/pdf-personalisation/riyadh-night-skyline.jpg' },
     { field: 'Offer', label: 'Riyadh special-offer image', path: 'assets/pdf-personalisation/riyadh-offer.png' },
   ];
   const PDF_TEST_CACHE_KEY = 'aepPdfJourneyTestFieldCache.v1';
@@ -874,61 +875,115 @@
     };
   }
 
+  function journeyMappingSourceValid(value) {
+    return /^[A-Za-z][A-Za-z0-9_]{0,119}$/.test(String(value || '').trim());
+  }
+
+  function updateJourneyTemplateMappingState() {
+    const rows = Array.from(journeyTemplateMappings.querySelectorAll('.pdf-template-mapping-row'));
+    const mappings = collectJourneyTemplateMappings();
+    const targets = mappings.map((mapping) => mapping.target);
+    const invalid = mappings.some((mapping) => !mapping.target || !journeyMappingSourceValid(mapping.source));
+    const duplicate = new Set(targets).size !== targets.length;
+    document.getElementById('pdfJourneyTemplateMappingCount').textContent = `${mappings.length} included`;
+    document.getElementById('pdfUploadJourneyTemplate').disabled = !rows.length || invalid || duplicate;
+    return { mappings, invalid, duplicate };
+  }
+
+  function createJourneyTemplateMappingRow(mapping, manual = false) {
+    const row = document.createElement('div');
+    row.className = 'pdf-template-mapping-row';
+    row.dataset.manual = manual ? 'true' : 'false';
+    row.dataset.target = manual ? '' : String(mapping.target || '');
+
+    const target = document.createElement('div');
+    target.className = 'pdf-template-mapping-target';
+    if (manual) {
+      const targetInput = document.createElement('input');
+      targetInput.type = 'text';
+      targetInput.className = 'pdf-template-mapping-target-input';
+      targetInput.maxLength = 120;
+      targetInput.placeholder = 'Exact DOCX or HTML field';
+      targetInput.setAttribute('aria-label', 'Template target field');
+      targetInput.value = String(mapping.target || '');
+      target.appendChild(targetInput);
+    } else {
+      const name = document.createElement('strong');
+      name.textContent = mapping.target;
+      target.appendChild(name);
+    }
+    const type = document.createElement('select');
+    type.className = 'pdf-template-mapping-type';
+    type.setAttribute('aria-label', `Field type for ${mapping.target || 'custom field'}`);
+    type.add(new Option('Text field', 'text'));
+    type.add(new Option('Image field', 'image'));
+    type.value = mapping.type === 'image' ? 'image' : 'text';
+    type.disabled = !manual;
+    target.appendChild(type);
+
+    const source = document.createElement('input');
+    source.type = 'text';
+    source.className = 'pdf-template-mapping-source';
+    source.maxLength = 120;
+    source.setAttribute('list', 'pdfAjoFieldOptions');
+    source.setAttribute('aria-label', `AJO source for ${mapping.target || 'custom field'}`);
+    source.placeholder = 'AJO data field, e.g. bookingReference';
+    source.value = String(mapping.source || '');
+
+    const requiredLabel = document.createElement('label');
+    requiredLabel.className = 'pdf-template-mapping-required';
+    const required = document.createElement('input');
+    required.type = 'checkbox';
+    required.checked = mapping.required === true;
+    requiredLabel.append(required, document.createTextNode('Required'));
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'dashboard-btn-outline pdf-template-mapping-remove';
+    remove.textContent = 'Remove';
+    remove.setAttribute('aria-label', `Remove ${mapping.target || 'custom field'} from the published contract`);
+    remove.addEventListener('click', () => {
+      row.remove();
+      updateJourneyTemplateMappingState();
+    });
+    row.addEventListener('input', updateJourneyTemplateMappingState);
+    row.addEventListener('change', updateJourneyTemplateMappingState);
+    row.append(target, source, requiredLabel, remove);
+    return row;
+  }
+
   function renderJourneyTemplateMappings(analysis) {
     journeyTemplateMappings.replaceChildren();
     const mappings = Array.isArray(analysis.suggestedMappings) ? analysis.suggestedMappings : [];
     const sources = Array.isArray(analysis.canonicalSources) ? analysis.canonicalSources : [];
-    mappings.forEach((mapping) => {
-      const row = document.createElement('div');
-      row.className = 'pdf-template-mapping-row';
-      row.dataset.target = mapping.target;
-      row.dataset.type = mapping.type;
-      const target = document.createElement('div');
-      target.className = 'pdf-template-mapping-target';
-      const name = document.createElement('strong');
-      name.textContent = mapping.target;
-      const type = document.createElement('span');
-      type.textContent = mapping.type === 'image' ? 'Image field' : 'Text field';
-      target.append(name, type);
-      const select = document.createElement('select');
-      select.setAttribute('aria-label', `AJO source for ${mapping.target}`);
-      const empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = 'Choose AJO payload field';
-      select.appendChild(empty);
-      sources.forEach((source) => {
-        const option = document.createElement('option');
-        option.value = source;
-        option.textContent = source;
-        option.selected = source === mapping.source;
-        select.appendChild(option);
-      });
-      select.addEventListener('change', () => {
-        document.getElementById('pdfUploadJourneyTemplate').disabled = Array.from(
-          journeyTemplateMappings.querySelectorAll('select'),
-        ).some((item) => !item.value);
-      });
-      const requiredLabel = document.createElement('label');
-      requiredLabel.className = 'pdf-template-mapping-required';
-      const required = document.createElement('input');
-      required.type = 'checkbox';
-      required.checked = mapping.required === true;
-      requiredLabel.append(required, document.createTextNode('Required'));
-      row.append(target, select, requiredLabel);
-      journeyTemplateMappings.appendChild(row);
-    });
+    const options = document.getElementById('pdfAjoFieldOptions');
+    options.replaceChildren(...sources.map((source) => new Option(source, source)));
+    mappings.forEach((mapping) => journeyTemplateMappings.appendChild(
+      createJourneyTemplateMappingRow(mapping),
+    ));
     journeyTemplateMappingPanel.hidden = false;
-    document.getElementById('pdfJourneyTemplateMappingCount').textContent = `${mappings.length} detected`;
-    document.getElementById('pdfUploadJourneyTemplate').disabled = mappings.some((mapping) => !mapping.source);
+    updateJourneyTemplateMappingState();
   }
 
   function collectJourneyTemplateMappings() {
     return Array.from(journeyTemplateMappings.querySelectorAll('.pdf-template-mapping-row')).map((row) => ({
-      target: row.dataset.target,
-      type: row.dataset.type,
-      source: row.querySelector('select').value,
+      target: row.dataset.manual === 'true'
+        ? row.querySelector('.pdf-template-mapping-target-input').value.trim()
+        : row.dataset.target,
+      type: row.querySelector('.pdf-template-mapping-type').value,
+      source: row.querySelector('.pdf-template-mapping-source').value.trim(),
       required: row.querySelector('input[type="checkbox"]').checked,
     }));
+  }
+
+  function addJourneyTemplateMapping() {
+    journeyTemplateMappingPanel.hidden = false;
+    journeyTemplateMappings.appendChild(createJourneyTemplateMappingRow({
+      target: '', source: '', required: false, type: 'text',
+    }, true));
+    const target = journeyTemplateMappings.lastElementChild.querySelector('.pdf-template-mapping-target-input');
+    updateJourneyTemplateMappingState();
+    target.focus();
   }
 
   async function analyseJourneyTemplate() {
@@ -1033,7 +1088,12 @@
       const samplePayload = parseJourneyTemplateSample();
       const sourceFile = await currentJourneyTemplateSource();
       const fieldMappings = collectJourneyTemplateMappings();
-      if (fieldMappings.some((mapping) => !mapping.source)) throw new Error('Every detected template field needs an AJO mapping.');
+      const targets = fieldMappings.map((mapping) => mapping.target);
+      if (!fieldMappings.length) throw new Error('Keep or add at least one template field before publishing.');
+      if (fieldMappings.some((mapping) => !mapping.target || !journeyMappingSourceValid(mapping.source))) {
+        throw new Error('Every included template field needs an exact target and a lowerCamelCase AJO data field.');
+      }
+      if (new Set(targets).size !== targets.length) throw new Error('Each template target can be mapped only once.');
       const templateName = document.getElementById('pdfJourneyTemplateName').value.trim().toLowerCase();
       if (!/^[a-z0-9][a-z0-9-]{2,79}$/.test(templateName)) {
         throw new Error('Template name must contain 3 to 80 lowercase letters, numbers or hyphens.');
@@ -1050,6 +1110,7 @@
           expectedPageCount: Number(document.getElementById('pdfJourneyTemplateExpectedPages').value) || 1,
           samplePayload,
           fieldMappings,
+          fieldSelectionMode: 'editable',
           replace: true,
           sourceFile,
         }),
@@ -1079,6 +1140,7 @@
   function bindJourneyTemplateLibrary() {
     document.getElementById('pdfUploadJourneyTemplate').addEventListener('click', uploadJourneyTemplate);
     document.getElementById('pdfAnalyseJourneyTemplate').addEventListener('click', analyseJourneyTemplate);
+    document.getElementById('pdfAddJourneyTemplateField').addEventListener('click', addJourneyTemplateMapping);
     document.getElementById('pdfRefreshJourneyTemplates').addEventListener('click', loadJourneyTemplates);
     publishDetails.addEventListener('toggle', () => {
       if (publishDetails.open && !document.getElementById('pdfJourneyTemplateName').value.trim()) {
