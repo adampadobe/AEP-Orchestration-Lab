@@ -36,3 +36,7 @@ functions/version.json
 tools/aep-lab-adobe-mcp/.env.mcp
 # Profile MCP API key (copy .env.mcp.example → .env.mcp)
 tools/aep-lab-profile-mcp/.env.mcp
+
+# Ignore local functions env files and logs
+functions/.env*
+functions/*.log
