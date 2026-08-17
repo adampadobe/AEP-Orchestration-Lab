@@ -3,12 +3,16 @@ import { assertSandboxAllowed } from '../auth.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import {
+  applyDemoCustomerSwitch,
   applyDemoAssets,
+  getBrandScrape,
   inspectDemoAssets,
+  previewDemoConfig,
   previewDemoAssets,
   previewDemoAssetsRestore,
 } from '../labApiClient.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
+import { buildDemoConfigChangesFromScrape } from './demoConfig.mjs';
 
 function checkAllowed(sandbox) {
   const allowed = assertSandboxAllowed(sandbox);
@@ -18,6 +22,88 @@ function checkAllowed(sandbox) {
 
 /** @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer */
 export function registerDemoAssetTools(mcpServer) {
+  mcpServer.registerTool(
+    'lab_demo_customer_switch',
+    {
+      title: 'Preview or apply a complete customer demo switch',
+      description:
+        'Preferred customer-change workflow for demo prep. With confirmed=false, creates one combined preview from a completed brand scrape for RTDB plus all five managed image slots. ' +
+        'After the colleague reviews it, call again with confirmed=true and both returned preflight IDs. The server backs up the prior named customer, publishes and hash-verifies images first, applies RTDB last, verifies alignment, and restores the prior images if the switch fails.',
+      inputSchema: {
+        sandbox: z.string(),
+        scrape_id: z.string().optional().describe('Required for preview mode'),
+        asset_preflight_id: z.string().optional().describe('Returned by preview; required for apply mode'),
+        config_preflight_id: z.string().optional().describe('Returned by preview; required for apply mode'),
+        confirmed: z.boolean().optional().describe('False/omitted previews; true applies after review'),
+        idempotency_key: z.string().min(8).max(120).optional().describe('Required for confirmed apply'),
+        logo_image_index: z.number().int().min(0).optional(),
+        hero_image_index: z.number().int().min(0).optional(),
+      },
+    },
+    async ({ sandbox, scrape_id, asset_preflight_id, config_preflight_id, confirmed, idempotency_key, logo_image_index, hero_image_index }) => {
+      const access = checkAllowed(sandbox);
+      if (access.error) return access.error;
+      const started = Date.now();
+      let result;
+      if (confirmed === true) {
+        if (!asset_preflight_id || !config_preflight_id || !idempotency_key) {
+          return toolError('asset_preflight_id, config_preflight_id and idempotency_key are required for a confirmed customer switch.');
+        }
+        result = await applyDemoCustomerSwitch({
+          sandbox: access.sandbox,
+          asset_preflight_id,
+          config_preflight_id,
+          confirmed: true,
+          idempotency_key,
+        });
+      } else {
+        if (!scrape_id) return toolError('scrape_id is required to preview a complete customer switch.');
+        const assets = await previewDemoAssets({
+          sandbox: access.sandbox,
+          scrape_id,
+          asset_pack: 'core_and_mobile',
+          overrides: { logo_image_index, hero_image_index },
+        });
+        if (!assets.ok) return fromLabApi(assets, { sandbox: access.sandbox, scrapeId: scrape_id });
+        const scrape = await getBrandScrape({ sandbox: access.sandbox, scrapeId: scrape_id });
+        if (!scrape.ok) return fromLabApi(scrape, { sandbox: access.sandbox, scrapeId: scrape_id });
+        const logo = (assets.data?.proposed || []).find((item) => item.slot === 'logo');
+        const changes = buildDemoConfigChangesFromScrape(scrape.data, 'brand_and_industry', { customerLogoUrl: logo?.cdnUrl });
+        const config = await previewDemoConfig({
+          sandbox: access.sandbox,
+          changes,
+          source: `customer-switch:${scrape_id}`,
+        });
+        if (!config.ok) return fromLabApi(config, { sandbox: access.sandbox, scrapeId: scrape_id });
+        result = {
+          ok: true,
+          data: {
+            sandbox: access.sandbox,
+            scrapeId: scrape_id,
+            customerName: assets.data?.customerName || scrape.data?.brandName || null,
+            assetPreflightId: assets.data?.preflightId,
+            configPreflightId: config.data?.preflightId,
+            assets: assets.data,
+            configuration: config.data,
+            confirmation: {
+              required: true,
+              message: 'Review the RTDB diff and all five image previews, then call this tool again with confirmed=true and both preflight IDs.',
+            },
+          },
+        };
+      }
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_demo_customer_switch',
+        sandbox: access.sandbox,
+        identifier: scrape_id || asset_preflight_id || 'switch',
+        result: result.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+      return fromLabApi(result, { sandbox: access.sandbox });
+    },
+  );
+
   mcpServer.registerTool(
     'lab_demo_assets_inspect',
     {

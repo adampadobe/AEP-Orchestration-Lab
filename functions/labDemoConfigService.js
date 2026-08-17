@@ -415,7 +415,12 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
 
   const verifiedRoot = await readWorkspace(workspaceSlug, { ...deps, database });
   const verified = afterChanges.every((item) => JSON.stringify(getPath(verifiedRoot, item.path) ?? null) === JSON.stringify(item.value));
-  if (!verified) throw new DemoConfigError('RTDB readback did not match the applied values.', 500, 'DEMO_CONFIG_VERIFY_FAILED');
+  if (!verified) {
+    const rollback = {};
+    for (const item of beforeChanges) rollback[item.path.replace('.', '/')] = item.value;
+    await database.ref(`ajoLookups/${workspaceSlug}`).update(rollback);
+    throw new DemoConfigError('RTDB readback did not match the applied values; the prior values were restored.', 500, 'DEMO_CONFIG_VERIFY_FAILED');
+  }
 
   const revisionRef = firestore.collection(REVISION_COLLECTION).doc();
   const revision = {
@@ -465,6 +470,28 @@ async function createRestorePreview({ uid, workspaceSlug, sandbox, revisionId },
   }, deps);
 }
 
+async function restoreRevisionDirect({ uid, workspaceSlug, sandbox, revisionId }, deps = {}) {
+  const firestore = deps.firestore || getFirestore();
+  const database = deps.database || getRtdb();
+  const snap = await firestore.collection(REVISION_COLLECTION).doc(String(revisionId || '').trim()).get();
+  if (!snap.exists) throw new DemoConfigError('Unknown revision_id.', 404, 'DEMO_CONFIG_REVISION_NOT_FOUND');
+  const revision = snap.data() || {};
+  if (revision.uid !== uid || revision.workspaceSlug !== workspaceSlug || revision.sandbox !== sandbox) {
+    throw new DemoConfigError('Revision does not belong to this user and sandbox.', 403, 'DEMO_CONFIG_REVISION_FORBIDDEN');
+  }
+  const update = {};
+  for (const item of revision.beforeChanges || []) {
+    update[item.path.replace('.', '/')] = normalizeValue(item.path, item.value, { allowNull: true });
+  }
+  await database.ref(`ajoLookups/${workspaceSlug}`).update(update);
+  const root = await readWorkspace(workspaceSlug, { ...deps, database });
+  const verified = (revision.beforeChanges || []).every(
+    (item) => JSON.stringify(getPath(root, item.path) ?? null) === JSON.stringify(item.value ?? null),
+  );
+  if (!verified) throw new DemoConfigError('Direct RTDB rollback did not verify.', 500, 'DEMO_CONFIG_ROLLBACK_VERIFY_FAILED');
+  return { ok: true, revisionId, verified: true, changes: revision.beforeChanges || [] };
+}
+
 module.exports = {
   PREFLIGHT_COLLECTION,
   REVISION_COLLECTION,
@@ -482,4 +509,5 @@ module.exports = {
   applyPreview,
   createRestorePreview,
   inspect,
+  restoreRevisionDirect,
 };

@@ -559,13 +559,14 @@ function registerLabRoutes(deps) {
           res.status(404).json({ ok: false, error: 'Brand scrape not found.', scrapeId, sandbox });
           return;
         }
+        const inventory = await labDemoAssetService.inspect(context);
         result = await labDemoAssetService.createPreview({
           ...context,
           record,
           scrapeId,
           assetPack: body.asset_pack || body.assetPack,
           overrides: body.overrides,
-          currentCustomerName,
+          currentCustomerName: inventory.activeCustomer || currentCustomerName,
         });
       } else if (action === 'apply') {
         result = await labDemoAssetService.applyPreview({
@@ -582,6 +583,111 @@ function registerLabRoutes(deps) {
           revisionId: body.revision_id || body.revisionId,
           currentCustomerName,
         });
+      } else if (action === 'switch-apply') {
+        const assetPreflightId = body.asset_preflight_id || body.assetPreflightId;
+        const configPreflightId = body.config_preflight_id || body.configPreflightId;
+        const switchKey = String(body.idempotency_key || body.idempotencyKey || '').trim();
+        if (!assetPreflightId || !configPreflightId) {
+          res.status(400).json({ ok: false, error: 'asset_preflight_id and config_preflight_id are required.' });
+          return;
+        }
+        if (body.confirmed !== true || switchKey.length < 8 || switchKey.length > 120) {
+          res.status(400).json({ ok: false, error: 'confirmed=true and an 8–120 character idempotency_key are required.' });
+          return;
+        }
+        let assetResult = null;
+        let configResult = null;
+        try {
+          assetResult = await labDemoAssetService.applyPreview({
+            ...context,
+            preflightId: assetPreflightId,
+            confirmed: body.confirmed,
+            idempotencyKey: `${switchKey}:assets`,
+            imageHostingLibrary,
+          });
+          configResult = await labDemoConfigService.applyPreview({
+            ...context,
+            preflightId: configPreflightId,
+            confirmed: body.confirmed,
+            idempotencyKey: `${switchKey}:config`,
+          });
+          const [assetInspection, configInspection] = await Promise.all([
+            labDemoAssetService.inspect(context),
+            labDemoConfigService.inspect(context),
+          ]);
+          const verifiedCore = (configInspection.sections || []).find((section) => section.name === 'CoreDemoData');
+          const fieldValue = (field) => {
+            const found = verifiedCore && (verifiedCore.fields || []).find((item) => item.field === field);
+            return found && found.value;
+          };
+          const expectedLogo = labDemoAssetService.publicCdnUrl(sandbox, 'logo/logo.png');
+          const allSlotsReady = Object.keys(labDemoAssetService.SLOT_CATALOG).every((slot) => {
+            const item = (assetInspection.slots || []).find((candidate) => candidate.slot === slot);
+            return item && item.exists;
+          });
+          const readyToPresent = Boolean(
+            assetResult.verified && configResult.verified && allSlotsReady
+            && fieldValue('name') === assetResult.customerName
+            && fieldValue('customerLogo') === expectedLogo,
+          );
+          if (!readyToPresent) {
+            const mismatch = new Error('Final customer name, logo, or managed image verification did not align.');
+            mismatch.status = 500;
+            mismatch.code = 'DEMO_CUSTOMER_SWITCH_VERIFY_FAILED';
+            throw mismatch;
+          }
+          result = {
+            ok: true,
+            sandbox,
+            customerName: assetResult.customerName,
+            assetResult,
+            configResult,
+            verification: {
+              readyToPresent,
+              allFiveManagedSlotsReady: allSlotsReady,
+              rtdbCustomerName: fieldValue('name') || null,
+              rtdbCustomerLogo: fieldValue('customerLogo') || null,
+              expectedCustomerLogo: expectedLogo,
+            },
+            nextStep: readyToPresent
+              ? 'The customer configuration and all managed images are aligned and ready to present.'
+              : 'Do not present yet; inspect the returned verification mismatch.',
+          };
+        } catch (switchError) {
+          let switchRollback = null;
+          let configRollback = null;
+          if (configResult && configResult.revisionId) {
+            try {
+              configRollback = await labDemoConfigService.restoreRevisionDirect({
+                ...context,
+                revisionId: configResult.revisionId,
+              });
+            } catch (rollbackError) {
+              configRollback = { ok: false, error: String(rollbackError && rollbackError.message || rollbackError) };
+            }
+          }
+          if (assetResult && assetResult.backupRevisionId) {
+            try {
+              switchRollback = await labDemoAssetService.restoreRevisionDirect({
+                ...context,
+                revisionId: assetResult.backupRevisionId,
+                imageHostingLibrary,
+              });
+            } catch (rollbackError) {
+              switchRollback = { ok: false, error: String(rollbackError && rollbackError.message || rollbackError) };
+            }
+          }
+          const wrapped = new labDemoAssetService.DemoAssetError(
+            `Customer switch failed and rollback was attempted: ${String(switchError && switchError.message || switchError)}`,
+            Number(switchError && switchError.status) || 500,
+            'DEMO_CUSTOMER_SWITCH_FAILED',
+          );
+          wrapped.rollback = {
+            assets: switchRollback,
+            rtdb: configRollback || 'RTDB was not applied, or its own verification rollback ran before a revision was created.',
+          };
+          throw wrapped;
+        }
       } else {
         res.status(400).json({ ok: false, error: `Unknown demo-assets action: ${action}` });
         return;

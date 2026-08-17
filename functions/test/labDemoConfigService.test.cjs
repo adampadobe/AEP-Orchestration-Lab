@@ -232,3 +232,21 @@ test('a revision can be previewed and applied to restore the prior values', asyn
   }, deps);
   assert.equal(database.state.ajoLookups.apalmer.CoreDemoData.name, 'Jet2');
 });
+
+test('a customer-switch failure can directly restore its RTDB revision', async () => {
+  const { database, deps } = fixture();
+  const preview = await service.createPreview({
+    uid: 'uid-apalmer', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    changes: [{ path: 'CoreDemoData.name', value: 'Customer B' }],
+  }, deps);
+  const applied = await service.applyPreview({
+    uid: 'uid-apalmer', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    preflightId: preview.preflightId, confirmed: true, idempotencyKey: 'apply-customer-b',
+  }, deps);
+  assert.equal(database.state.ajoLookups.apalmer.CoreDemoData.name, 'Customer B');
+  const restored = await service.restoreRevisionDirect({
+    uid: 'uid-apalmer', workspaceSlug: 'apalmer', sandbox: 'apalmer', revisionId: applied.revisionId,
+  }, deps);
+  assert.equal(restored.verified, true);
+  assert.equal(database.state.ajoLookups.apalmer.CoreDemoData.name, 'Jet2');
+});

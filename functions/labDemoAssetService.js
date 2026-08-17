@@ -92,7 +92,7 @@ function activeObjectPath(sandbox, relPath) {
 }
 
 function requestedSlots(assetPack) {
-  const pack = String(assetPack || 'core').trim().toLowerCase();
+  const pack = String(assetPack || 'core_and_mobile').trim().toLowerCase();
   const slots = PACKS[pack];
   if (!slots) throw new DemoAssetError(`Unknown asset_pack: ${assetPack}`, 400, 'DEMO_ASSET_PACK_INVALID');
   return { pack, slots };
@@ -369,7 +369,7 @@ async function createRevision({ uid, workspaceSlug, sandbox, customerName, sourc
   const activeBucket = getActiveBucket(deps);
   const revisionId = deps.randomId ? deps.randomId() : randomUUID();
   const customerSlug = safeSlug(customerName, 'unlabelled-current');
-  const root = `demo-asset-backups/${safeSlug(uid, 'user')}/${safeSlug(sandbox, 'default')}/${customerSlug}/${revisionId}`;
+  const root = `demo-customer-backups/${safeSlug(uid, 'user')}/${safeSlug(workspaceSlug, 'workspace')}/${safeSlug(sandbox, 'default')}/${customerSlug}/${revisionId}`;
   const assets = [];
   for (const item of current) {
     if (!item.exists) {
@@ -433,6 +433,37 @@ async function rollbackRevision(revision, imageHostingLibrary, deps = {}) {
     }
   }
   return outcomes;
+}
+
+async function restoreRevisionDirect({ uid, workspaceSlug, sandbox, revisionId, imageHostingLibrary }, deps = {}) {
+  if (!imageHostingLibrary) throw new DemoAssetError('Image hosting service is unavailable.', 500, 'DEMO_ASSET_SERVICE_UNAVAILABLE');
+  const loaded = await loadOwnedDoc(REVISION_COLLECTION, String(revisionId || '').trim(), uid, sandbox, deps);
+  const revision = loaded.data;
+  if (revision.workspaceSlug !== workspaceSlug) {
+    throw new DemoAssetError('Revision belongs to a different workspace.', 403, 'DEMO_ASSET_FORBIDDEN');
+  }
+  const outcomes = await rollbackRevision(revision, imageHostingLibrary, deps);
+  const failedWrites = outcomes.filter((item) => !item.ok);
+  const verified = await Promise.all((revision.assets || []).map((asset) => readActiveSlot(sandbox, asset.slot, deps)));
+  const mismatched = verified.filter((item, index) => {
+    const expected = revision.assets[index];
+    return expected.exists ? item.sha256 !== expected.sha256 : item.exists;
+  });
+  if (failedWrites.length || mismatched.length) {
+    throw new DemoAssetError('Direct asset rollback did not fully verify.', 500, 'DEMO_ASSET_ROLLBACK_VERIFY_FAILED');
+  }
+  const now = deps.now ? deps.now() : new Date();
+  await loaded.firestore.collection(ACTIVE_COLLECTION).doc(scopeId(uid, sandbox)).set({
+    uid,
+    workspaceSlug,
+    sandbox,
+    customerName: revision.customerName,
+    scrapeId: null,
+    restoredFromRevisionId: revisionId,
+    updatedAt: now.toISOString(),
+    slots: verified,
+  });
+  return { ok: true, customerName: revision.customerName, revisionId, verified: true, outcomes };
 }
 
 async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirmed, idempotencyKey, backupCustomerName, imageHostingLibrary }, deps = {}) {
@@ -584,5 +615,6 @@ module.exports = {
   createRestorePreview,
   inspect,
   publicCdnUrl,
+  restoreRevisionDirect,
   selectSources,
 };

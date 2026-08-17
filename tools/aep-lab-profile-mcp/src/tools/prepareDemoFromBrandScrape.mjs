@@ -29,7 +29,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       description:
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
         'optional stable image-hosting preview, governed RTDB preview, experience events per profile, and Client Journey v2 HTML asset. ' +
-        'Assets and RTDB are preview-only here: show both previews and use their apply tools separately after confirmation. ' +
+        'For a complete customer image + RTDB change, prefer lab_demo_customer_switch so one confirmation governs both. ' +
         'Profiles reserve scaled emails + static mobile from Firestore generation prefs (FORMAT: <local>+DDMMYYYY-N@<domain>). ' +
         'Call lab_confirm_profile_generation before first generate. ' +
         'Provide scrape_id OR url — when url is given, resolves an existing complete scrape via lab_resolve_brand_scrape logic. ' +
@@ -69,7 +69,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         asset_pack: z
           .enum(['core', 'core_and_mobile'])
           .optional()
-          .describe('Asset preview pack: core logo+hero, or core_and_mobile with three derived mobile/channel images'),
+          .describe('Asset preview pack: defaults to core_and_mobile (logo, hero and three mobile/channel images); core is an explicit reduced option'),
         logo_image_index: z.number().int().min(0).optional(),
         hero_image_index: z.number().int().min(0).optional(),
         persona_indices: z.array(z.number().int().min(0)).optional().describe('Subset of personas for profiles step'),
@@ -246,7 +246,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         const preview = await previewDemoAssets({
           sandbox: allowed.sandbox,
           scrape_id: scrapeId,
-          asset_pack,
+          asset_pack: asset_pack || 'core_and_mobile',
           overrides: { logo_image_index, hero_image_index },
         });
         pipeline.stepsRun.push('assets_preview');
@@ -395,9 +395,9 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
           next:
             'Verify profiles with lab_get_profile; optional lab_profile_activity after events (allow 30–60s UPS lag).',
           assets:
-            'If demoAssetsPreview is present, review every proposed stable slot and call lab_demo_assets_apply with its previewId plus explicit confirmation.',
+            'For the actual customer change, call lab_demo_customer_switch with this scrapeId so RTDB and all five managed images share one governed confirmation and verification result.',
           demoConfig:
-            'If demoConfigPreview is present, review its allowlisted RTDB changes and call lab_demo_config_apply with its preflightId plus explicit confirmation.',
+            'Use the individual lab_demo_config_apply only when the colleague deliberately wants an RTDB-only partial update.',
           audiences: 'Create RTCDP segments in AEP UI using scrape segment names as a brief — no auto-create API in lab.',
           ajo: 'CJv2 journey is a sales HTML asset; publish real AJO journeys manually in Journey Optimizer.',
         },
