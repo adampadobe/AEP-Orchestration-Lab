@@ -66,8 +66,9 @@ test('focused profile endpoint exposes the complete governed profile lifecycle',
 test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orchestration only', () => {
   const focused = registrationRecorder();
   registerFocusedDemoPrepTools(focused.server);
-  assert.equal(focused.names.length, 20);
-  assert.deepEqual(focused.names.slice(-10), [
+  assert.equal(focused.names.length, 21);
+  assert.deepEqual(focused.names.slice(-11), [
+    'lab_brand_scrape_classify_images',
     'lab_demo_customer_switch',
     'lab_demo_assets_inspect',
     'lab_demo_assets_preview_from_scrape',
@@ -84,7 +85,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 112);
+  assert.equal(full.names.length, 113);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 

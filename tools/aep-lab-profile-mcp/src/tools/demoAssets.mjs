@@ -13,6 +13,7 @@ import {
 } from '../labApiClient.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 import { buildDemoConfigChangesFromScrape } from './demoConfig.mjs';
+import { ensureClassifiedScrapeImages } from '../demoImageClassification.mjs';
 
 function checkAllowed(sandbox) {
   const allowed = assertSandboxAllowed(sandbox);
@@ -22,6 +23,55 @@ function checkAllowed(sandbox) {
 
 /** @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer */
 export function registerDemoAssetTools(mcpServer) {
+  mcpServer.registerTool(
+    'lab_brand_scrape_classify_images',
+    {
+      title: 'Auto-classify customer scrape images for demo prep',
+      description:
+        'Uses the existing Firebase Gemini vision classifier to download, store, and classify up to 20 scraped images as logo, hero banner, lifestyle, product, illustration, portrait, icon, infographic, decorative, tracking pixel, or unknown. ' +
+        'Skips the model call when the saved scrape already has a usable logo and supporting image unless force_reclassify=true. Returns category counts and whether the scrape is ready for managed demo assets.',
+      inputSchema: {
+        sandbox: z.string(),
+        scrape_id: z.string(),
+        force_reclassify: z.boolean().optional().describe('Run Gemini classification again even when the existing classification is sufficient'),
+      },
+    },
+    async ({ sandbox, scrape_id, force_reclassify }) => {
+      const access = checkAllowed(sandbox);
+      if (access.error) return access.error;
+      const started = Date.now();
+      const outcome = await ensureClassifiedScrapeImages({
+        sandbox: access.sandbox,
+        scrapeId: scrape_id,
+        force: force_reclassify === true,
+      });
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_brand_scrape_classify_images',
+        sandbox: access.sandbox,
+        identifier: scrape_id,
+        result: outcome.ok ? 'ok' : 'error',
+        durationMs: Date.now() - started,
+      });
+      if (!outcome.ok) {
+        if (outcome.errorResult) return fromLabApi(outcome.errorResult, { sandbox: access.sandbox, scrapeId: scrape_id });
+        return toolError(outcome.error || 'Image classification failed.', outcome);
+      }
+      return fromLabApi({
+        ok: true,
+        data: {
+          sandbox: access.sandbox,
+          scrapeId: scrape_id,
+          classification: outcome.classification,
+          readyForDemoAssets: outcome.classification.after.readyForDemoAssets,
+          nextStep: outcome.classification.after.readyForDemoAssets
+            ? 'Call lab_demo_customer_switch to preview RTDB and all five managed images.'
+            : 'Use logo_image_index or hero_image_index overrides after reviewing the classified images.',
+        },
+      });
+    },
+  );
+
   mcpServer.registerTool(
     'lab_demo_customer_switch',
     {
@@ -36,11 +86,13 @@ export function registerDemoAssetTools(mcpServer) {
         config_preflight_id: z.string().optional().describe('Returned by preview; required for apply mode'),
         confirmed: z.boolean().optional().describe('False/omitted previews; true applies after review'),
         idempotency_key: z.string().min(8).max(120).optional().describe('Required for confirmed apply'),
+        auto_classify_images: z.boolean().optional().describe('Preview mode default true; automatically classify when usable categories are missing'),
+        force_reclassify: z.boolean().optional().describe('Preview mode only; refresh all image classifications with Gemini vision'),
         logo_image_index: z.number().int().min(0).optional(),
         hero_image_index: z.number().int().min(0).optional(),
       },
     },
-    async ({ sandbox, scrape_id, asset_preflight_id, config_preflight_id, confirmed, idempotency_key, logo_image_index, hero_image_index }) => {
+    async ({ sandbox, scrape_id, asset_preflight_id, config_preflight_id, confirmed, idempotency_key, auto_classify_images, force_reclassify, logo_image_index, hero_image_index }) => {
       const access = checkAllowed(sandbox);
       if (access.error) return access.error;
       const started = Date.now();
@@ -58,6 +110,21 @@ export function registerDemoAssetTools(mcpServer) {
         });
       } else {
         if (!scrape_id) return toolError('scrape_id is required to preview a complete customer switch.');
+        let scrapeRecord;
+        let classification = null;
+        if (auto_classify_images !== false || force_reclassify === true) {
+          const classified = await ensureClassifiedScrapeImages({
+            sandbox: access.sandbox,
+            scrapeId: scrape_id,
+            force: force_reclassify === true,
+          });
+          if (!classified.ok) {
+            if (classified.errorResult) return fromLabApi(classified.errorResult, { sandbox: access.sandbox, scrapeId: scrape_id });
+            return toolError(classified.error || 'Image classification failed.', classified);
+          }
+          scrapeRecord = classified.record;
+          classification = classified.classification;
+        }
         const assets = await previewDemoAssets({
           sandbox: access.sandbox,
           scrape_id,
@@ -65,10 +132,13 @@ export function registerDemoAssetTools(mcpServer) {
           overrides: { logo_image_index, hero_image_index },
         });
         if (!assets.ok) return fromLabApi(assets, { sandbox: access.sandbox, scrapeId: scrape_id });
-        const scrape = await getBrandScrape({ sandbox: access.sandbox, scrapeId: scrape_id });
-        if (!scrape.ok) return fromLabApi(scrape, { sandbox: access.sandbox, scrapeId: scrape_id });
+        if (!scrapeRecord) {
+          const scrape = await getBrandScrape({ sandbox: access.sandbox, scrapeId: scrape_id });
+          if (!scrape.ok) return fromLabApi(scrape, { sandbox: access.sandbox, scrapeId: scrape_id });
+          scrapeRecord = scrape.data;
+        }
         const logo = (assets.data?.proposed || []).find((item) => item.slot === 'logo');
-        const changes = buildDemoConfigChangesFromScrape(scrape.data, 'brand_and_industry', { customerLogoUrl: logo?.cdnUrl });
+        const changes = buildDemoConfigChangesFromScrape(scrapeRecord, 'brand_and_industry', { customerLogoUrl: logo?.cdnUrl });
         const config = await previewDemoConfig({
           sandbox: access.sandbox,
           changes,
@@ -80,7 +150,8 @@ export function registerDemoAssetTools(mcpServer) {
           data: {
             sandbox: access.sandbox,
             scrapeId: scrape_id,
-            customerName: assets.data?.customerName || scrape.data?.brandName || null,
+            customerName: assets.data?.customerName || scrapeRecord?.brandName || null,
+            imageClassification: classification,
             assetPreflightId: assets.data?.preflightId,
             configPreflightId: config.data?.preflightId,
             assets: assets.data,
@@ -133,14 +204,29 @@ export function registerDemoAssetTools(mcpServer) {
         sandbox: z.string(),
         scrape_id: z.string(),
         asset_pack: z.enum(['core', 'core_and_mobile']).optional().describe('core = logo + website hero; core_and_mobile also prepares three mobile/channel slots'),
+        auto_classify_images: z.boolean().optional().describe('Default true; classify with Gemini vision when usable logo/supporting categories are missing'),
+        force_reclassify: z.boolean().optional(),
         logo_image_index: z.number().int().min(0).optional().describe('Override the automatically selected imagesV2 logo index'),
         hero_image_index: z.number().int().min(0).optional().describe('Override the automatically selected imagesV2 hero index'),
       },
     },
-    async ({ sandbox, scrape_id, asset_pack, logo_image_index, hero_image_index }) => {
+    async ({ sandbox, scrape_id, asset_pack, auto_classify_images, force_reclassify, logo_image_index, hero_image_index }) => {
       const access = checkAllowed(sandbox);
       if (access.error) return access.error;
       const started = Date.now();
+      let classification = null;
+      if (auto_classify_images !== false || force_reclassify === true) {
+        const classified = await ensureClassifiedScrapeImages({
+          sandbox: access.sandbox,
+          scrapeId: scrape_id,
+          force: force_reclassify === true,
+        });
+        if (!classified.ok) {
+          if (classified.errorResult) return fromLabApi(classified.errorResult, { sandbox: access.sandbox, scrapeId: scrape_id });
+          return toolError(classified.error || 'Image classification failed.', classified);
+        }
+        classification = classified.classification;
+      }
       const result = await previewDemoAssets({
         sandbox: access.sandbox,
         scrape_id,
@@ -155,7 +241,8 @@ export function registerDemoAssetTools(mcpServer) {
         result: result.ok ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });
-      return fromLabApi(result, { sandbox: access.sandbox, scrapeId: scrape_id });
+      if (!result.ok) return fromLabApi(result, { sandbox: access.sandbox, scrapeId: scrape_id });
+      return fromLabApi({ ok: true, data: { ...result.data, imageClassification: classification } }, { sandbox: access.sandbox, scrapeId: scrape_id });
     },
   );
 

@@ -80,6 +80,7 @@ const DESTRUCTIVE_TOOLS = new Set([
 ]);
 
 const IDEMPOTENT_WRITE_TOOLS = new Set([
+  'lab_brand_scrape_classify_images',
   'lab_demo_config_apply',
   'lab_demo_config_restore',
   'lab_demo_assets_apply',
