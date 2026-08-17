@@ -12,19 +12,22 @@
   --mod-demo-content-max: none;
 }
 
-/* Let clicks reach the iframe; only the sidebar intercepts pointer events */
-.mod-demo-page .dashboard-shell {
+/* Let clicks reach the iframe; only the sidebar intercepts pointer events.
+   :not(.mobile-demo-shell-page) so brands that reuse this full-bleed layout
+   (e.g. Sky) don't fight shared/mobile-demo-shell.css's own fixed/off-canvas
+   dashboard-shell rules when embedded in the phone-bezel simulator. */
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-shell {
   position: relative;
   z-index: 2;
   pointer-events: none;
 }
 
-.mod-demo-page .dashboard-sidebar {
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
   pointer-events: auto;
 }
 
 /* Full-bleed shell: only sidebar participates in layout; main column is collapsed */
-.mod-demo-page .dashboard-main-wrap {
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-main-wrap {
   flex: 1;
   min-width: 0;
   min-height: 100vh;
@@ -34,7 +37,7 @@
   pointer-events: none;
 }
 
-.mod-demo-page .dashboard-main.mod-demo-empty-main {
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-main.mod-demo-empty-main {
   flex: 1;
   padding: 0;
   margin: 0;
@@ -295,9 +298,11 @@
   line-height: 1.35;
 }
 
-/* App sidebar: hidden by default; reveal from left edge (see mod-demo.js) */
+/* App sidebar: hidden by default; reveal from left edge (see mod-demo.js).
+   Excludes .mobile-demo-shell-page — the phone-bezel simulator pages use
+   shared/mobile-demo-shell.css's own off-canvas sidebar rules instead. */
 @media (min-width: 769px) {
-  body.mod-demo-page .dashboard-sidebar {
+  body.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
     position: fixed;
     left: 0;
     top: 0;
@@ -309,20 +314,20 @@
     box-shadow: none;
   }
 
-  body.mod-demo-page--nav-open .dashboard-sidebar {
+  body.mod-demo-page--nav-open:not(.mobile-demo-shell-page) .dashboard-sidebar {
     transform: translateX(0);
     box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    body.mod-demo-page .dashboard-sidebar {
+    body.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
       transition: none;
     }
   }
 }
 
 @media (max-width: 768px) {
-  body.mod-demo-page .dashboard-sidebar {
+  body.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
     position: relative;
     left: auto;
     top: auto;
@@ -332,7 +337,7 @@
     box-shadow: none;
   }
 
-  body.mod-demo-page--nav-open .dashboard-sidebar {
+  body.mod-demo-page--nav-open:not(.mobile-demo-shell-page) .dashboard-sidebar {
     transform: none;
   }
 
