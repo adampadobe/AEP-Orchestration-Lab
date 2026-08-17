@@ -1025,6 +1025,20 @@
                 },
               ],
             },
+            {
+              id: 'skyMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Sky mobile journey (in development)',
+                  href: 'sky-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'skyMobileDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '📱',
+                },
+              ],
+            },
           ],
         },
         {
