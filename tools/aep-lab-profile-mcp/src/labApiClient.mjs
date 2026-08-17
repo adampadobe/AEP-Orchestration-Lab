@@ -12,6 +12,13 @@ export function getLabApiOrigin() {
   return String(process.env.AEP_LAB_API_ORIGIN || DEFAULT_ORIGIN).replace(/\/$/, '');
 }
 
+export function getLabFunctionsOrigin() {
+  return String(
+    process.env.AEP_LAB_FUNCTIONS_ORIGIN
+      || 'https://us-central1-aep-orchestration-lab.cloudfunctions.net',
+  ).replace(/\/$/, '');
+}
+
 /**
  * @param {string} path - e.g. /api/sandboxes
  * @param {object} [opts]
@@ -19,9 +26,10 @@ export function getLabApiOrigin() {
  * @param {Record<string, string | number | boolean | undefined | null>} [opts.query]
  * @param {unknown} [opts.body]
  * @param {number} [opts.timeoutMs]
+ * @param {string} [opts.origin]
  */
 export async function labApiRequest(path, opts = {}) {
-  const origin = getLabApiOrigin();
+  const origin = String(opts.origin || getLabApiOrigin()).replace(/\/$/, '');
   const method = String(opts.method || 'GET').toUpperCase();
   const url = new URL(path.startsWith('/') ? path : `/${path}`, origin);
 
@@ -99,6 +107,16 @@ export async function labApiRequest(path, opts = {}) {
     url: url.toString(),
     data,
   };
+}
+
+export async function classifyBrandScrapeImages({ sandbox, scrape_id }) {
+  return labApiRequest('/brandScraperClassify', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { sandbox, scrapeId: scrape_id },
+    timeoutMs: 330_000,
+  });
 }
 
 export async function listSandboxes() {

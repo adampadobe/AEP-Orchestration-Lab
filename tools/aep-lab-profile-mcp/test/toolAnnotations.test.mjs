@@ -69,3 +69,12 @@ test('classifies PDF inspection, generation, and archive operations', () => {
     openWorldHint: true,
   });
 });
+
+test('classifies image auto-classification as a retry-safe non-destructive write', () => {
+  assert.deepEqual(annotationsForTool('lab_brand_scrape_classify_images'), {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  });
+});

@@ -17,6 +17,7 @@ import {
 } from './generationPrefs.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 import { buildDemoConfigChangesFromScrape } from './demoConfig.mjs';
+import { ensureClassifiedScrapeImages } from '../demoImageClassification.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -70,6 +71,8 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
           .enum(['core', 'core_and_mobile'])
           .optional()
           .describe('Asset preview pack: defaults to core_and_mobile (logo, hero and three mobile/channel images); core is an explicit reduced option'),
+        auto_classify_images: z.boolean().optional().describe('Default true when assets_preview runs; classify missing logo/supporting categories with Gemini vision'),
+        force_reclassify: z.boolean().optional().describe('Refresh all scrape image classifications before assets preview'),
         logo_image_index: z.number().int().min(0).optional(),
         hero_image_index: z.number().int().min(0).optional(),
         persona_indices: z.array(z.number().int().min(0)).optional().describe('Subset of personas for profiles step'),
@@ -114,6 +117,8 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       industry,
       steps,
       asset_pack,
+      auto_classify_images,
+      force_reclassify,
       logo_image_index,
       hero_image_index,
       persona_indices,
@@ -243,6 +248,19 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       const pipeline = { scrapeSummary: loaded.summary, stepsRun: [] };
 
       if (stepFlags.assetsPreview) {
+        if (auto_classify_images !== false || force_reclassify === true) {
+          const classified = await ensureClassifiedScrapeImages({
+            sandbox: allowed.sandbox,
+            scrapeId,
+            force: force_reclassify === true,
+          });
+          pipeline.stepsRun.push('image_classification');
+          if (!classified.ok) {
+            if (classified.errorResult) return fromLabApi(classified.errorResult, { sandbox: allowed.sandbox, scrapeId });
+            return toolError(classified.error || 'Image classification failed.', classified);
+          }
+          pipeline.imageClassification = classified.classification;
+        }
         const preview = await previewDemoAssets({
           sandbox: allowed.sandbox,
           scrape_id: scrapeId,

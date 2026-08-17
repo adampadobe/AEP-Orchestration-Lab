@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.39.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.40.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,9 +10,9 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.39.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.40.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused Coworker endpoints use the same API key: `/mcp/guide` (4 tools), `/mcp/profile` (20), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (20), and `/mcp/pdf` (14). The guide endpoint is a read-only capability directory and workflow recommender; it cannot connect, switch, proxy, or execute another MCP. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
+Focused Coworker endpoints use the same API key: `/mcp/guide` (4 tools), `/mcp/profile` (20), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), and `/mcp/pdf` (14). The guide endpoint is a read-only capability directory and workflow recommender; it cannot connect, switch, proxy, or execute another MCP. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 
@@ -55,7 +55,7 @@ Codex should call these **before** improvising lab conventions:
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
-16. **A complete customer switch is one governed preview and one apply** — prefer **`lab_demo_customer_switch`** for demo prep. Preview from one completed scrape and show the RTDB diff plus all five transformed image slots. After explicit confirmation, apply with both preflight ids and one idempotency key. The server labels and privately backs up the prior customer, verifies image hashes before applying RTDB, checks the final customer name/logo alignment, and restores the prior image set if the switch fails. Use the individual config/asset tools only for deliberate partial updates.
+16. **A complete customer switch auto-classifies then uses one governed preview and apply** — prefer **`lab_demo_customer_switch`** for demo prep. It calls Gemini vision automatically when the saved scrape lacks a usable logo or supporting image classification, then shows the RTDB diff plus all five transformed image slots. Use **`lab_brand_scrape_classify_images`** for an explicit inventory or forced refresh. After explicit confirmation, apply with both preflight ids and one idempotency key. The server labels and privately backs up the prior customer, verifies image hashes before applying RTDB, checks final alignment, and restores the prior image set if the switch fails.
 17. **PDF preparation is inspect → preview/analyse → generate or publish → visually verify** — use **`lab_pdf_capabilities`** first. HTML should pass through **`lab_pdf_html_preview`** before **`lab_pdf_generate`**. Documents are previewed through the generated PDF link. Use a fresh idempotency key for each new PDF and reuse it only for an exact retry. Use **`lab_pdf_job_list`** to recover stored output. Analyse server templates before publishing; publication and archive require explicit confirmation. Never place PDF binary in model context or use the broad operational `X-PDF-API-Key`.
 
 ### How the lab executes
@@ -123,7 +123,7 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 
 2. **Preview from a completed scrape**
 
-   > **lab_demo_customer_switch** sandbox apalmer scrape_id `{id}` confirmed `false`. Show the RTDB diff and every signed preview for logo, hero, mobile entry, mobile exit, and push/in-app. Do not apply yet.
+   > **lab_demo_customer_switch** sandbox apalmer scrape_id `{id}` confirmed `false`, auto_classify_images `true`. If classification runs, summarize categories and confidence; then show the RTDB diff and every signed preview for logo, hero, mobile entry, mobile exit, and push/in-app. Do not apply yet. Use force_reclassify only when the saved classifications are stale or wrong.
 
 3. **Confirm and activate**
 

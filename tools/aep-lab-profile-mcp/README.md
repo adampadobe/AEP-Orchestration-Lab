@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.39.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.40.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -15,7 +15,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
-| `/mcp/demo-prep` | 20 | Brand scrape, governed all-in-one customer switching, stable asset restore, RTDB, and one-shot demo preparation |
+| `/mcp/demo-prep` | 21 | Brand scrape, Gemini image classification, governed all-in-one customer switching, stable asset restore, RTDB, and one-shot demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
@@ -73,6 +73,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_config_apply` | `POST /api/lab/demo-config` (`action=apply`) | Confirmed, conflict-checked, idempotent atomic RTDB update with readback and revision |
 | `lab_demo_config_restore` | `POST /api/lab/demo-config` (`action=restore-preview/apply`) | Preview-first rollback of a prior revision |
 | `lab_demo_assets_inspect` | `GET /api/lab/demo-assets` | Active stable image slots, permanent URLs, hashes, and saved customer revisions |
+| `lab_brand_scrape_classify_images` | `POST brandScraperClassify` | Auto-classify up to 20 scrape images with Gemini vision; skip when usable saved categories already exist unless forced |
 | `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
 | `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
 | `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
