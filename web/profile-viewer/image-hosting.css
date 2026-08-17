@@ -491,6 +491,7 @@
 .image-hosting-lib-card-actions button.danger:hover { border-color: var(--dash-error, #d7373f); color: var(--dash-error, #d7373f); }
 
 .image-hosting-card-publish,
+.image-hosting-card-replace,
 .image-hosting-card-ai {
   margin-top: 0.25rem;
   font-size: 0.65rem;
@@ -501,10 +502,13 @@
   align-self: flex-start;
 }
 .image-hosting-card-publish { background: var(--dash-blue); color: #fff; }
+.image-hosting-card-replace { background: transparent; color: var(--dash-blue); }
 .image-hosting-card-ai { background: transparent; color: var(--dash-text); border-style: dashed; }
 .image-hosting-card-publish:hover { filter: brightness(1.1); }
+.image-hosting-card-replace:hover { border-color: var(--dash-blue); background: color-mix(in srgb, var(--dash-blue) 8%, transparent); }
 .image-hosting-card-ai:hover { border-color: var(--dash-blue); color: var(--dash-blue); border-style: solid; }
 .image-hosting-card-publish[disabled],
+.image-hosting-card-replace[disabled],
 .image-hosting-card-ai[disabled] { opacity: 0.55; cursor: wait; }
 
 .image-hosting-lib-card-ai-badge {
@@ -754,6 +758,53 @@
 .image-hosting-conflict-dialog-actions .dashboard-btn-primary,
 .image-hosting-conflict-dialog-actions .dashboard-btn-outline {
   min-width: 0;
+}
+
+.image-hosting-publish-target-dialog .image-hosting-restore-dialog-inner { width: min(620px, 88vw); }
+.image-hosting-publish-target-intro,
+.image-hosting-publish-target-path {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+.image-hosting-publish-target-path { overflow-wrap: anywhere; }
+.image-hosting-publish-target-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+.image-hosting-publish-target-preview figure { margin: 0; min-width: 0; }
+.image-hosting-publish-target-preview figure > span {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+.image-hosting-publish-target-preview img {
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  background: var(--dash-input-bg, #fff);
+}
+.image-hosting-publish-target-preview img[hidden] { display: block; visibility: hidden; }
+.image-hosting-publish-target-preview figcaption {
+  margin-top: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+.image-hosting-publish-target-arrow { font-size: 1.5rem; color: var(--dash-blue); }
+.image-hosting-publish-target-dialog select { width: 100%; box-sizing: border-box; }
+@media (max-width: 560px) {
+  .image-hosting-publish-target-preview { grid-template-columns: 1fr; }
+  .image-hosting-publish-target-arrow { justify-self: center; transform: rotate(90deg); }
 }
 
 /* Backup — customer name step (replaces window.prompt) */

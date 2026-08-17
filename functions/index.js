@@ -3514,7 +3514,7 @@ exports.demoUseCasePptx = onRequest(
  * brand-scraper classifications.
  *   GET    /api/image-hosting/library/download?sandbox=X&customer=name   ZIP download (must stay before generic GET list)
  *   GET    /api/image-hosting/library?sandbox=X       list current library
- *   POST   /api/image-hosting/library/publish         { sandbox, scrapeId, imageIndex, overrideFolder?, overrideFile? }
+ *   POST   /api/image-hosting/library/publish         { sandbox, scrapeId, imageIndex, overrideFolder?, overrideFile?, replaceRelPath?, confirmed? }
  *   DELETE /api/image-hosting/library?sandbox=X&relPath=...
  *   POST   /api/image-hosting/library/rename          { sandbox, relPath, newRelPath }
  *   POST   /api/image-hosting/library/folder          { sandbox, folder } — empty folder marker
@@ -3601,6 +3601,10 @@ exports.imageHostingLibrary = onRequest(
 
       if (req.method === 'POST' && /\/publish$/.test(path)) {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        if (body.replaceRelPath && body.confirmed !== true) {
+          res.status(400).json({ error: 'confirmed:true is required to replace an existing library file' });
+          return;
+        }
         // scrapeId is optional — callers may publish directly from an
         // uploaded file or a URL with no backing scrape ('_manual'
         // sentinel from the UI, or just omitted entirely).
@@ -3649,6 +3653,8 @@ exports.imageHostingLibrary = onRequest(
             || '',
           overrideFolder: body.overrideFolder,
           overrideFile: body.overrideFile,
+          replaceRelPath: body.replaceRelPath,
+          confirmed: body.confirmed === true,
         });
         res.status(200).json({ sandbox, published });
         return;
