@@ -1027,6 +1027,14 @@
   async function configureAlloyOnce(win, doc) {
     if (!win) return;
     var desiredDatastreamId = getDatastreamId();
+    if (!desiredDatastreamId) {
+      /* SiteCloneBcConfig hasn't resolved the real per-sandbox datastream yet (e.g. this is
+         the automatic DOMContentLoaded sync, racing site-clone-bc-env.js's async load).
+         Alloy only accepts one configure() call per page — skip this attempt entirely
+         rather than let a blank datastream win that one shot and silently strand later
+         (correct) reconfigure attempts once the real datastream is known. */
+      return;
+    }
     if (
       win.__siteCloneBcAlloyConfiguredWin === win &&
       win.__siteCloneBcAlloyDatastreamId === desiredDatastreamId
@@ -1249,7 +1257,7 @@
     if (
       parentCoreReady &&
       ((loadedParentStyleUrl && loadedParentStyleUrl !== styleUrl) ||
-        (loadedParentDatastreamId && loadedParentDatastreamId !== datastreamId))
+        loadedParentDatastreamId !== datastreamId)
     ) {
       parentCoreReady = null;
       loadedParentStyleUrl = null;
@@ -1300,7 +1308,7 @@
     if (
       iframeCoreReady &&
       ((loadedIframeStyleUrl && loadedIframeStyleUrl !== styleUrl) ||
-        (loadedIframeDatastreamId && loadedIframeDatastreamId !== datastreamId))
+        loadedIframeDatastreamId !== datastreamId)
     ) {
       iframeCoreReady = null;
       loadedIframeStyleUrl = null;
