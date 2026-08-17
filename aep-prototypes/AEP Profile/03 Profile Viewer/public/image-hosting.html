@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20260515a">
+  <link rel="stylesheet" href="image-hosting.css?v=20260817-publish-target">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -188,6 +188,32 @@
     </div>
   </dialog>
 
+  <dialog id="imageHostingPublishTargetDialog" class="image-hosting-restore-dialog image-hosting-publish-target-dialog" aria-labelledby="imageHostingPublishTargetTitle" aria-describedby="imageHostingPublishTargetPath">
+    <div class="image-hosting-restore-dialog-inner">
+      <h3 id="imageHostingPublishTargetTitle">Replace a library file</h3>
+      <p class="image-hosting-publish-target-intro">Choose the exact existing file this classified image should replace. The filename and stable CDN URL stay unchanged.</p>
+      <div class="image-hosting-publish-target-preview" aria-label="Source and current target preview">
+        <figure>
+          <span>New classified image</span>
+          <img id="imageHostingPublishTargetSourcePreview" alt="Classified source image" />
+          <figcaption id="imageHostingPublishTargetSourceLabel"></figcaption>
+        </figure>
+        <span class="image-hosting-publish-target-arrow" aria-hidden="true">→</span>
+        <figure>
+          <span>Current library file</span>
+          <img id="imageHostingPublishTargetExistingPreview" alt="Current target image" hidden />
+        </figure>
+      </div>
+      <label for="imageHostingPublishTargetSelect" class="image-hosting-backup-customer-label">Library file to overwrite</label>
+      <select id="imageHostingPublishTargetSelect" class="sandbox-select" aria-describedby="imageHostingPublishTargetPath"></select>
+      <p id="imageHostingPublishTargetPath" class="image-hosting-publish-target-path" role="status" aria-live="polite">Select the exact library file to overwrite.</p>
+      <div class="image-hosting-restore-dialog-actions">
+        <button type="button" id="imageHostingPublishTargetCancel" class="dashboard-btn-outline">Cancel</button>
+        <button type="button" id="imageHostingPublishTargetConfirm" class="dashboard-btn-primary" disabled>Replace file</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="imageHostingBackupDialog" class="image-hosting-restore-dialog" aria-labelledby="imageHostingBackupDialogTitle" aria-describedby="imageHostingBackupDialogStatus">
     <div class="image-hosting-restore-dialog-inner">
       <h3 id="imageHostingBackupDialogTitle">Backing up library to ZIP</h3>
@@ -253,6 +279,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="image-hosting.js?v=20260515a"></script>
+  <script src="image-hosting.js?v=20260817-publish-target"></script>
 </body>
 </html>

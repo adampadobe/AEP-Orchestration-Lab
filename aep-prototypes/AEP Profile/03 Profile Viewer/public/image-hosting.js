@@ -263,6 +263,158 @@
     }
   }
 
+  function preferredReplacementPath(items, img) {
+    var category = String(img && img.classification && img.classification.category || '').toLowerCase();
+    var patterns = category === 'logo'
+      ? [/(^|\/)logo\.[a-z0-9]+$/i, /(^|\/)logo[-_.]/i]
+      : (category === 'hero_banner'
+        ? [/(^|\/)hero-banner\.[a-z0-9]+$/i, /(^|\/)hero[-_.]/i]
+        : []);
+    for (var p = 0; p < patterns.length; p++) {
+      for (var i = 0; i < items.length; i++) {
+        if (patterns[p].test(items[i].relPath || '')) return items[i].relPath;
+      }
+    }
+    return '';
+  }
+
+  function chooseReplacementTarget(sourceUrl, img, items) {
+    var dlg = document.getElementById('imageHostingPublishTargetDialog');
+    var sourcePreview = document.getElementById('imageHostingPublishTargetSourcePreview');
+    var sourceLabel = document.getElementById('imageHostingPublishTargetSourceLabel');
+    var targetSelect = document.getElementById('imageHostingPublishTargetSelect');
+    var targetPreview = document.getElementById('imageHostingPublishTargetExistingPreview');
+    var targetPath = document.getElementById('imageHostingPublishTargetPath');
+    var confirmBtn = document.getElementById('imageHostingPublishTargetConfirm');
+    var cancelBtn = document.getElementById('imageHostingPublishTargetCancel');
+    if (!dlg || !targetSelect || !confirmBtn || !cancelBtn) return Promise.resolve(null);
+
+    var assets = (items || []).filter(function (item) { return item && !item.isFolderMarker && item.relPath; })
+      .sort(function (a, b) { return String(a.relPath).localeCompare(String(b.relPath)); });
+    targetSelect.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = assets.length ? 'Choose an existing library file…' : 'No library files available';
+    targetSelect.appendChild(placeholder);
+    assets.forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = item.relPath;
+      option.textContent = item.relPath;
+      targetSelect.appendChild(option);
+    });
+
+    if (sourcePreview) {
+      sourcePreview.src = sourceUrl || '';
+      sourcePreview.alt = 'Classified source image';
+    }
+    if (sourceLabel) {
+      sourceLabel.textContent = (img && img.classification && img.classification.subject)
+        || (img && img.alt)
+        || 'Classified image';
+    }
+
+    function selectedItem() {
+      var relPath = targetSelect.value;
+      return assets.find(function (item) { return item.relPath === relPath; }) || null;
+    }
+    function updateTargetPreview() {
+      var item = selectedItem();
+      confirmBtn.disabled = !item;
+      confirmBtn.textContent = item ? ('Replace ' + item.file) : 'Replace file';
+      if (targetPath) {
+        targetPath.textContent = item
+          ? ('This overwrites ' + item.relPath + ' and keeps ' + absoluteCdnUrl(item.cdnUrl) + ' unchanged.')
+          : 'Select the exact library file to overwrite.';
+      }
+      if (targetPreview) {
+        targetPreview.src = item ? libraryCdnUrlForDisplay(item) : '';
+        targetPreview.alt = item ? ('Current ' + item.relPath) : 'Current target image';
+        targetPreview.hidden = !item;
+      }
+    }
+
+    var preferred = preferredReplacementPath(assets, img);
+    if (preferred) targetSelect.value = preferred;
+    updateTargetPreview();
+
+    return new Promise(function (resolve) {
+      function close(result) {
+        targetSelect.removeEventListener('change', updateTargetPreview);
+        confirmBtn.removeEventListener('click', onConfirm);
+        cancelBtn.removeEventListener('click', onCancel);
+        dlg.removeEventListener('cancel', onDialogCancel);
+        if (dlg.open) { try { dlg.close(); } catch (_e) { dlg.removeAttribute('open'); } }
+        resolve(result);
+      }
+      function onConfirm() { close(selectedItem()); }
+      function onCancel() { close(null); }
+      function onDialogCancel(e) { e.preventDefault(); close(null); }
+      targetSelect.addEventListener('change', updateTargetPreview);
+      confirmBtn.addEventListener('click', onConfirm);
+      cancelBtn.addEventListener('click', onCancel);
+      dlg.addEventListener('cancel', onDialogCancel);
+      if (typeof dlg.showModal === 'function' && !dlg.open) {
+        try { dlg.showModal(); } catch (_e) { dlg.setAttribute('open', ''); }
+      } else if (!dlg.open) {
+        dlg.setAttribute('open', '');
+      }
+    });
+  }
+
+  async function publishClassifiedAsReplacement(scrapeId, imageIndex, btn, img) {
+    var sb = getSandbox();
+    if (!sb || !scrapeId || imageIndex == null) return;
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading files…'; }
+    try {
+      var items = await fetchLibrary(sb);
+      var assets = (items || []).filter(function (item) { return !item.isFolderMarker; });
+      if (!assets.length) {
+        setStatus('The library is empty. Use Publish to library first, then choose a file to replace.', 'warn');
+        return;
+      }
+      if (btn) { btn.disabled = false; btn.textContent = originalText || 'Replace file…'; }
+      var target = await chooseReplacementTarget(imageUrl(img), img, assets);
+      if (!target) return;
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Replacing…'; }
+      var body = {
+        sandbox: sb,
+        scrapeId: scrapeId,
+        imageIndex: imageIndex,
+        replaceRelPath: target.relPath,
+        confirmed: true,
+      };
+      if (img && img.src) {
+        var bytes = await fetchImageBytesClient(img.src);
+        if (bytes && bytes.base64) {
+          body.imageBase64 = bytes.base64;
+          body.imageContentType = bytes.contentType;
+        }
+        body.imageUrl = img.src;
+        body.classification = img.classification || null;
+        body.srcName = (img.classification && img.classification.subject) || img.alt || '';
+      }
+      var response = await fetch('/api/image-hosting/library/publish?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        setStatus('Replace failed: ' + (data.error || response.statusText || ('HTTP ' + response.status)), 'err');
+        return;
+      }
+      setStatus('Replaced ' + target.relPath + '. Its stable CDN URL is unchanged.', 'ok');
+      setManualMsg('Published the classified image over ' + target.relPath + ' — existing demos keep the same URL.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setStatus('Replace failed: ' + (e.message || e), 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = originalText || 'Replace file…'; }
+    }
+  }
+
   function updateBulkBar() {
     var bar = document.getElementById('imageHostingBulkBar');
     var countEl = document.getElementById('imageHostingBulkCount');
@@ -1538,6 +1690,17 @@
           publishToLibrary(rec.scrapeId, originalIndex, pubBtn, img);
         });
         card.appendChild(pubBtn);
+
+        var replaceBtn = document.createElement('button');
+        replaceBtn.type = 'button';
+        replaceBtn.className = 'image-hosting-card-replace';
+        replaceBtn.textContent = 'Replace file…';
+        replaceBtn.title = 'Choose an existing library file such as logo/logo.png and overwrite its bytes while keeping the same CDN URL.';
+        replaceBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          publishClassifiedAsReplacement(rec.scrapeId, originalIndex, replaceBtn, img);
+        });
+        card.appendChild(replaceBtn);
 
         var aiBtn = document.createElement('button');
         aiBtn.type = 'button';

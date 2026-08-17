@@ -80,6 +80,21 @@ function publicCdnUrl(sandbox, relPath) {
   return `/cdn/${sandboxPrefix(sandbox)}/${relPath}`;
 }
 
+function normalizeExistingReplacementRelPath(value) {
+  const relPath = String(value || '').trim().replace(/^\/+/, '');
+  const segments = relPath.split('/');
+  if (
+    !relPath
+    || relPath.endsWith('/')
+    || relPath.includes('\\')
+    || segments.some(segment => !segment || segment === '.' || segment === '..')
+    || segments[segments.length - 1] === LIBRARY_FOLDER_MARKER
+  ) {
+    throw new Error('replaceRelPath must identify an existing library file');
+  }
+  return relPath;
+}
+
 function extensionFromContentType(ct) {
   const clean = String(ct || '').split(';')[0].trim().toLowerCase();
   const map = {
@@ -685,7 +700,16 @@ async function publishAiImage(sandbox, opts) {
 
 async function publishScrapeImage(sandbox, opts) {
   const { scrapeStoragePath, imageUrl, clientBytes, clientContentType,
-    classification, srcName, overrideFolder, overrideFile } = opts;
+    classification, srcName, overrideFolder, overrideFile,
+    replaceRelPath, confirmed } = opts;
+  let exactReplacementPath = '';
+  if (replaceRelPath) {
+    if (confirmed !== true) throw new Error('confirmed:true is required to replace a library file');
+    exactReplacementPath = normalizeExistingReplacementRelPath(replaceRelPath);
+    const exactTarget = getBucket().file(`${libraryRoot(sandbox)}/${exactReplacementPath}`);
+    const [targetExists] = await exactTarget.exists();
+    if (!targetExists) throw new Error(`replacement target not found: ${exactReplacementPath}`);
+  }
   let buf;
   let contentType = '';
   if (clientBytes && clientBytes.length) {
@@ -714,6 +738,9 @@ async function publishScrapeImage(sandbox, opts) {
     contentType = resp.headers.get('content-type') || '';
   } else {
     throw new Error('no bytes, scrapeStoragePath, or imageUrl provided');
+  }
+  if (exactReplacementPath) {
+    return replaceLibraryObject(sandbox, exactReplacementPath, buf, contentType);
   }
   const target = await resolveTargetName(sandbox, {
     classification,
@@ -1142,6 +1169,7 @@ module.exports = {
   batchUpload,
   classifyFromFilename,
   replaceLibraryObject,
+  normalizeExistingReplacementRelPath,
   aiGenerateReplacement,
   publishAiImage,
 };
