@@ -57,6 +57,20 @@
   background: var(--dash-bg);
 }
 
+/* When this page is itself iframed inside a mobile-simulator shell
+   (?aepSimMobile=1 — see e.g. sky-mobile-demo.html), the shell's own env
+   strip already lives outside the phone bezel, so hide this page's copy
+   to avoid a duplicate banner rendering on top of the site content.
+   Mirrors etihad-demo.css's html.aep-sim-mobile .etihad-demo-top-anchor rule. */
+html.aep-sim-mobile .mod-demo-top-anchor {
+  display: none !important;
+}
+
+html.aep-sim-mobile .mod-demo-site-frame {
+  position: absolute;
+  inset: 0;
+}
+
 /* Hover-reveal identity strip: shared/env-bar-compact.css (all site-clone demos) */
 
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
