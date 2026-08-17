@@ -247,6 +247,11 @@
       '<input type="checkbox" id="siteCloneBcEnabledToggle">' +
       '<span>Enable</span>' +
       '</label>' +
+      '<label class="site-clone-bc-prefs__option" title="Bypass Adobe Brand Concierge and answer with a Gemini model trained on sites/products you drag onto the open chat window, for 100% repeatable demo answers.">' +
+      '<input type="checkbox" id="siteCloneBcGeminiOverrideToggle">' +
+      '<span>Use Gemini (repeatable)</span>' +
+      '</label>' +
+      '<span class="site-clone-bc-prefs__gemini-status" id="siteCloneBcGeminiOverrideStatus" aria-live="polite"></span>' +
       '</div>' +
       '</div>' +
       '<div class="site-clone-bc-prefs__display-modes">' +

@@ -972,6 +972,10 @@
       doc,
     );
     await loadScript(resolveAssetUrl(BASE + AEP_EVENTS_JS) + '?v=' + AEP_EVENTS_CACHE, doc, 'aep-events');
+    /* Gemini override: available on every demo, not just Army — gated at runtime by the
+       "Use Gemini (repeatable)" env-bar checkbox (window.SiteCloneBcConfig.isGeminiOverrideEnabled()),
+       not by a URL flag, so it always loads. */
+    await loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818', doc, 'gemini-override');
     if (shouldUseLocalArmyBcCatalog(win)) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-engine.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-fallback.js'), doc);

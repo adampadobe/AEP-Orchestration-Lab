@@ -121,6 +121,7 @@
   let siteCloneBcBottomDockToggle = null;
   let siteCloneBcModalBarToggle = null;
   let siteCloneBcEnabledToggle = null;
+  let siteCloneBcGeminiOverrideToggle = null;
   let siteCloneDecisioningEnabledToggle = null;
   let stripDomListenersBound = false;
 
@@ -135,6 +136,7 @@
     siteCloneBcBottomDockToggle = document.getElementById('siteCloneBcBottomDockToggle');
     siteCloneBcModalBarToggle = document.getElementById('siteCloneBcModalBarToggle');
     siteCloneBcEnabledToggle = document.getElementById('siteCloneBcEnabledToggle');
+    siteCloneBcGeminiOverrideToggle = document.getElementById('siteCloneBcGeminiOverrideToggle');
     siteCloneDecisioningEnabledToggle = document.getElementById('siteCloneDecisioningEnabledToggle');
   }
 
@@ -1216,6 +1218,7 @@ async function loadSiteCloneBcDatastreams() {
 window.SiteCloneBcConfig = {
   getStyleConfigUrl: getSiteCloneBcStyleConfigUrl,
   getDatastreamId: getSiteCloneBcDatastreamId,
+  isGeminiOverrideEnabled: isBcGeminiOverrideEnabled,
 };
 
 // Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
@@ -1223,6 +1226,7 @@ const SC_BC_PREFS_BY_SANDBOX_KEY = 'siteCloneBcDisplayPrefsBySandbox';
 const SC_BC_PREFS_KEY = 'siteCloneBcDisplayPrefs';
 const SC_BC_ENABLED_BY_SANDBOX_KEY = 'siteCloneBcEnabledPrefsBySandbox';
 const SC_BC_ENABLED_LEGACY_SCALAR = 'siteCloneBcEnabled';
+const SC_BC_GEMINI_OVERRIDE_BY_SANDBOX_KEY = 'siteCloneBcGeminiOverridePrefsBySandbox';
 const SC_DECISIONING_PREFS_BY_SANDBOX_KEY = 'siteCloneDecisioningPrefsBySandbox';
 
 const BC_DISPLAY_MODE_KEYS = ['fullScreen', 'modal', 'injected', 'bottomDock', 'modalBar'];
@@ -1310,6 +1314,30 @@ function saveBcEnabledPrefs(sandboxKey) {
 function applyBcEnabledPrefsToUi() {
   if (!siteCloneBcEnabledToggle) return;
   siteCloneBcEnabledToggle.checked = loadBcEnabledPrefs();
+}
+
+function loadBcGeminiOverridePrefs() {
+  var raw = readStorageMap(SC_BC_GEMINI_OVERRIDE_BY_SANDBOX_KEY)[getSandboxKey()];
+  if (raw === '1' || raw === true) return true;
+  if (raw === '0' || raw === false) return false;
+  return false;
+}
+
+function saveBcGeminiOverridePrefs(sandboxKey) {
+  var map = readStorageMap(SC_BC_GEMINI_OVERRIDE_BY_SANDBOX_KEY);
+  var key = sandboxKey != null ? sandboxKey : getSandboxKey();
+  map[key] = siteCloneBcGeminiOverrideToggle && siteCloneBcGeminiOverrideToggle.checked ? '1' : '0';
+  writeStorageMap(SC_BC_GEMINI_OVERRIDE_BY_SANDBOX_KEY, map);
+}
+
+function applyBcGeminiOverridePrefsToUi() {
+  if (!siteCloneBcGeminiOverrideToggle) return;
+  siteCloneBcGeminiOverrideToggle.checked = loadBcGeminiOverridePrefs();
+}
+
+function isBcGeminiOverrideEnabled() {
+  if (siteCloneBcGeminiOverrideToggle) return !!siteCloneBcGeminiOverrideToggle.checked;
+  return loadBcGeminiOverridePrefs();
 }
 
 function isBcMasterEnabled() {
@@ -1580,6 +1608,16 @@ function setBcDisplayMode(modeKey, options) {
   return true;
 }
 
+function ensureBcGeminiOverrideToggleDelegation() {
+  if (global.__siteCloneBcGeminiOverrideToggleDelegation) return;
+  global.__siteCloneBcGeminiOverrideToggleDelegation = true;
+  document.addEventListener('change', function (ev) {
+    if (!ev || !ev.target || ev.target.id !== 'siteCloneBcGeminiOverrideToggle') return;
+    siteCloneBcGeminiOverrideToggle = ev.target;
+    saveBcGeminiOverridePrefs();
+  });
+}
+
 function ensureBcEnabledToggleDelegation() {
   if (global.__siteCloneBcEnabledToggleDelegation) return;
   global.__siteCloneBcEnabledToggleDelegation = true;
@@ -1676,6 +1714,15 @@ function bindStripDomListenersOnce() {
   }
 
   ensureBcEnabledToggleDelegation();
+
+  if (siteCloneBcGeminiOverrideToggle) {
+    siteCloneBcGeminiOverrideToggle.addEventListener('change', function () {
+      saveBcGeminiOverridePrefs();
+    });
+  }
+
+  ensureBcGeminiOverrideToggleDelegation();
+
   if (siteCloneDecisioningEnabledToggle) {
     siteCloneDecisioningEnabledToggle.addEventListener('change', function () {
       saveDecisioningEnabledPrefs();
@@ -1848,6 +1895,7 @@ function bindStripDomListenersOnce() {
     bootSiteCloneBcDatastreamPicker();
     refreshStripDomRefs();
     applyBcEnabledPrefsToUi();
+    applyBcGeminiOverridePrefsToUi();
     applyDecisioningEnabledPrefsToUi();
     syncBcFromPrefs();
     syncDecisioningFromPrefs();
@@ -1857,6 +1905,7 @@ function bindStripDomListenersOnce() {
   ensureSiteCloneBcDatastreamPickerDelegation();
   ensureDecisioningToggleDelegation();
   ensureBcEnabledToggleDelegation();
+  ensureBcGeminiOverrideToggleDelegation();
 
   global.SiteCloneBcEnv = {
     applyForCurrentSandbox: applyEnvForCurrentSandbox,
