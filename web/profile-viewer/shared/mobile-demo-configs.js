@@ -164,6 +164,20 @@
       pageClass: 'starbucks-mobile-demo-page',
       channelLabel: 'Mobile',
     },
+    sky: {
+      demoId: 'sky',
+      brandName: 'Sky',
+      appEntryUrl: 'sky-demo.html',
+      defaultDevice: 'iphone17pro',
+      deviceToggleDevices: ['iphone17pro', 's24u'],
+      envBar: true,
+      envBarPrefix: 'sky',
+      iframeId: 'skyMobileFrame',
+      webDemoUrl: 'sky-demo.html',
+      mobileDemoUrl: 'sky-mobile-demo.html',
+      pageClass: 'sky-mobile-demo-page',
+      channelLabel: 'Mobile',
+    },
   };
 
   global.MobileDemoConfigs = {

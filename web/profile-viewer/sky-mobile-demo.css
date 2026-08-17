@@ -1,0 +1,10 @@
+body.sky-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
+  background:
+    radial-gradient(ellipse 95% 52% at 50% 108%, rgba(20, 60, 110, 0.14), transparent 55%),
+    radial-gradient(ellipse 130% 65% at 50% -18%, rgba(0, 20, 40, 0.1), transparent 52%),
+    var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.sky-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
+  background: var(--dash-bg);
+}
