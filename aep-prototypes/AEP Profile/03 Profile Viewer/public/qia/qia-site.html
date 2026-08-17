@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A fictional Adobe customer demo modelled on the public QIA website.">
+  <title>Qatar Investment Authority — campaign demo</title>
+  <style>
+    :root {
+      --qia-burgundy: #6b1748;
+      --qia-burgundy-dark: #4e0f34;
+      --qia-gold: #d6ac59;
+      --qia-ink: #16191c;
+      --qia-copy: #4b4f53;
+      --qia-grey: #f5f5f5;
+      --qia-line: #dedede;
+      --qia-white: #fff;
+      --qia-max: 1160px;
+      --shadow: 0 20px 60px rgba(15, 15, 20, 0.2);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--qia-ink);
+      background: var(--qia-white);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.45;
+    }
+    body.drawer-open { overflow: hidden; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: rgba(255, 255, 255, 0.97);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(12px);
+    }
+
+    .header-inner {
+      width: min(var(--qia-max), calc(100% - 36px));
+      min-height: 76px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+    }
+
+    .brand-logo { width: 278px; max-width: 36vw; }
+    .desktop-nav { display: flex; align-items: center; gap: 24px; }
+    .desktop-nav a {
+      padding: 28px 0 24px;
+      border-bottom: 3px solid transparent;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .desktop-nav a:hover, .desktop-nav a:focus-visible {
+      color: var(--qia-burgundy);
+      border-bottom-color: var(--qia-burgundy);
+    }
+    .nav-circle {
+      width: 28px;
+      height: 28px;
+      padding: 0 !important;
+      display: grid;
+      place-items: center;
+      border: 0 !important;
+      border-radius: 50%;
+      background: var(--qia-burgundy);
+      color: #fff !important;
+      font-size: 11px !important;
+    }
+    .nav-subscribe {
+      padding: 10px 16px !important;
+      border: 1px solid var(--qia-burgundy) !important;
+      background: var(--qia-burgundy);
+      color: #fff !important;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .mobile-menu { display: none; border: 0; background: none; color: var(--qia-burgundy); font-size: 26px; }
+
+    #TopRibbon:empty,
+    #ContentCardContainer:empty { display: none; }
+
+    .hero {
+      position: relative;
+      min-height: clamp(480px, 56vw, 720px);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #3e3147;
+      color: #fff;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(20, 8, 16, 0.05), rgba(20, 8, 16, 0.14)),
+        url("assets/hero-funds.webp") center center / cover no-repeat;
+      transform: scale(1.01);
+    }
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+      width: min(1020px, calc(100% - 44px));
+      text-align: center;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.72);
+    }
+    .hero h1 {
+      max-width: 980px;
+      margin: 0 auto;
+      font-size: clamp(25px, 3vw, 42px);
+      font-weight: 400;
+      line-height: 1.08;
+    }
+    .hero-dots {
+      position: absolute;
+      z-index: 3;
+      bottom: 20px;
+      left: 50%;
+      display: flex;
+      gap: 8px;
+      transform: translateX(-50%);
+    }
+    .hero-dots span { width: 26px; height: 3px; background: rgba(255, 255, 255, 0.45); }
+    .hero-dots span:first-child { background: #fff; }
+
+    .section { padding: 78px 0; }
+    .section--grey { background: var(--qia-grey); }
+    .section--white { background: #fff; }
+    .container { width: min(var(--qia-max), calc(100% - 40px)); margin: 0 auto; }
+    .section-title { margin: 0; font-size: clamp(26px, 3vw, 36px); font-weight: 400; }
+    .section-title-row {
+      margin-bottom: 30px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .primary-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--qia-burgundy);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .primary-link::before {
+      content: "→";
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--qia-burgundy);
+      color: #fff;
+      line-height: 1;
+    }
+
+    .focus-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 68px;
+      align-items: center;
+    }
+    .focus-copy p { margin: 0 0 12px; color: var(--qia-copy); font-size: 15px; }
+    .focus-pill {
+      width: min(360px, 100%);
+      margin: 8px 0;
+      padding: 7px 18px;
+      border-radius: 99px;
+      background: var(--qia-burgundy);
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .focus-media {
+      position: relative;
+      min-height: 330px;
+      border-radius: 3px;
+      overflow: hidden;
+      background: #123;
+    }
+    .focus-media img { width: 100%; height: 100%; min-height: 330px; object-fit: cover; }
+    .focus-media::after {
+      content: "";
+      position: absolute;
+      inset: 45% 0 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    }
+    .play-button {
+      position: absolute;
+      z-index: 2;
+      inset: 50% auto auto 50%;
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--qia-burgundy);
+      transform: translate(-50%, -50%);
+      font-size: 22px;
+    }
+
+    .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+    .news-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 3px; }
+    .news-card h3 { margin: 16px 0 9px; font-size: 17px; line-height: 1.18; }
+    .news-card p { margin: 0; color: var(--qia-copy); font-size: 13px; }
+
+    .newsletter-demo {
+      padding: 78px 0;
+      background: var(--qia-burgundy);
+      color: #fff;
+    }
+    .newsletter-intro { max-width: 760px; margin-bottom: 30px; }
+    .newsletter-kicker {
+      margin: 0 0 10px;
+      color: var(--qia-gold);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .newsletter-intro h2 {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 4vw, 46px);
+      font-weight: 400;
+      line-height: 1.08;
+    }
+    .newsletter-intro p { margin: 0; color: rgba(255, 255, 255, 0.82); }
+    .newsletter-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(290px, 0.8fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+    .newsletter-demo .campaign-card {
+      border: 0;
+      background: #fff;
+      color: var(--qia-ink);
+      box-shadow: 0 18px 45px rgba(51, 5, 33, 0.24);
+    }
+    .newsletter-demo .journey-steps {
+      margin: 0;
+      grid-template-columns: 1fr;
+      border: 0;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .newsletter-demo .journey-step {
+      min-height: 74px;
+      padding: 14px 18px 14px 58px;
+      position: relative;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .newsletter-demo .journey-step:last-child { border-bottom: 0; }
+    .newsletter-demo .journey-step::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 18px;
+      top: 15px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.46);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .newsletter-demo .journey-step b { color: #fff; }
+    .newsletter-demo .journey-step.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .newsletter-demo .journey-step.complete::before {
+      content: "✓";
+      border-color: var(--qia-gold);
+      background: var(--qia-gold);
+      color: var(--qia-burgundy-dark);
+    }
+
+    .use-case-overview {
+      padding: 78px 0;
+      background: #fff;
+    }
+    .overview-heading {
+      max-width: 900px;
+      margin-bottom: 34px;
+    }
+    .overview-badges { margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .use-case-badge, .tech-pill {
+      padding: 7px 11px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .use-case-badge { background: var(--qia-burgundy); color: #fff; }
+    .tech-pill { border: 1px solid #d8c7d2; color: var(--qia-burgundy); background: #fff; }
+    .overview-heading h2 {
+      margin: 0 0 16px;
+      color: var(--qia-burgundy);
+      font-size: clamp(31px, 4vw, 52px);
+      font-weight: 400;
+      line-height: 1.08;
+    }
+    .overview-heading blockquote {
+      margin: 0;
+      padding-left: 20px;
+      border-left: 3px solid var(--qia-gold);
+      color: var(--qia-copy);
+      font-size: clamp(18px, 2vw, 24px);
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 26px;
+    }
+    .persona-card, .welcome-card {
+      padding: 28px;
+      border: 1px solid var(--qia-line);
+      background: var(--qia-grey);
+    }
+    .persona-top { display: flex; align-items: center; gap: 18px; }
+    .persona-avatar {
+      width: 68px;
+      height: 68px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--qia-burgundy);
+      color: #fff;
+      font-size: 24px;
+    }
+    .persona-card h3, .welcome-card h3 { margin: 0; font-size: 25px; font-weight: 400; }
+    .persona-role { margin: 4px 0 0; color: var(--qia-copy); }
+    .persona-tags { margin: 18px 0; display: flex; flex-wrap: wrap; gap: 7px; }
+    .persona-tag { padding: 6px 9px; background: #eadde6; color: var(--qia-burgundy); font-size: 10px; font-weight: 800; }
+    .persona-facts {
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .persona-facts div { padding-top: 10px; border-top: 1px solid #d8d8d8; }
+    .persona-facts dt { color: var(--qia-copy); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .persona-facts dd { margin: 3px 0 0; font-size: 13px; font-weight: 700; }
+    .persona-framing { margin: 20px 0 0; color: var(--qia-copy); font-size: 13px; }
+    .notification-mock {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(23, 25, 28, 0.08);
+    }
+    .notification-app { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: 0.08em; }
+    .notification-mock strong { display: block; margin: 7px 0 5px; font-size: 18px; }
+    .notification-mock p { margin: 2px 0; color: var(--qia-copy); font-size: 13px; }
+    .value-grid { margin-top: 26px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--qia-line); }
+    .value-item { min-height: 120px; padding: 20px; background: #fff; }
+    .value-item span { display: block; margin-bottom: 12px; color: var(--qia-burgundy); font-size: 22px; }
+    .value-item strong { font-size: 14px; }
+    .metric-strip { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--qia-burgundy); color: #fff; }
+    .metric-item { padding: 22px; text-align: center; border-right: 1px solid rgba(255,255,255,.18); }
+    .metric-item:last-child { border-right: 0; }
+    .metric-item strong { display: block; color: var(--qia-gold); font-size: 28px; }
+    .metric-item span { font-size: 11px; }
+    .metric-note { margin: 8px 0 0; color: #777; font-size: 10px; text-align: right; }
+
+    .journey-console {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      overflow: hidden;
+      background: #fff;
+      color: var(--qia-ink);
+      box-shadow: 0 22px 58px rgba(54, 4, 35, 0.3);
+    }
+    .journey-nav { background: var(--qia-burgundy-dark); color: #fff; }
+    .journey-nav button {
+      width: 100%;
+      min-height: 78px;
+      padding: 14px 18px 14px 58px;
+      position: relative;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      background: transparent;
+      color: rgba(255,255,255,.64);
+      text-align: left;
+    }
+    .journey-nav button::before {
+      content: attr(data-step-label);
+      position: absolute;
+      left: 18px;
+      top: 20px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.4);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .journey-nav button strong { display: block; color: #fff; font-size: 13px; }
+    .journey-nav button small { display: block; margin-top: 3px; font-size: 10px; }
+    .journey-nav button.active { background: rgba(255,255,255,.12); color: #fff; }
+    .journey-nav button.complete::before { content: "✓"; border-color: var(--qia-gold); background: var(--qia-gold); color: var(--qia-burgundy-dark); }
+    .journey-nav .phase-label {
+      padding: 12px 18px;
+      background: rgba(0,0,0,.16);
+      color: var(--qia-gold);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .journey-stage { min-width: 0; display: flex; flex-direction: column; }
+    .journey-stage-top {
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--qia-line);
+      background: #fbfbfb;
+    }
+    .journey-stage-top strong { color: var(--qia-burgundy); }
+    .journey-progress { color: var(--qia-copy); font-size: 11px; }
+    .journey-scene { min-height: 570px; padding: 34px; }
+    .journey-scene[hidden] { display: none; }
+    .scene-heading { margin-bottom: 24px; display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+    .scene-heading h3 { margin: 0 0 7px; font-size: clamp(27px, 3vw, 38px); font-weight: 400; }
+    .scene-heading p { max-width: 680px; margin: 0; color: var(--qia-copy); }
+    .scene-phase { padding: 6px 9px; flex: 0 0 auto; background: #eadde6; color: var(--qia-burgundy); font-size: 9px; font-weight: 900; text-transform: uppercase; }
+    .scene-triad { margin-bottom: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--qia-line); }
+    .scene-triad div { min-height: 100px; padding: 16px; background: #fff; }
+    .scene-triad b { display: block; margin-bottom: 7px; color: var(--qia-burgundy); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+    .scene-triad span { color: var(--qia-copy); font-size: 12px; }
+    .scene-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+    .scene-card { padding: 22px; border: 1px solid var(--qia-line); background: var(--qia-grey); }
+    .scene-card h4 { margin: 0 0 14px; font-size: 20px; font-weight: 400; }
+    .scene-action-row { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .step-status { margin-top: 14px; padding: 11px 12px; border-left: 3px solid var(--qia-gold); background: #fff; color: var(--qia-copy); font-size: 11px; }
+    .step-status.success { border-left-color: #2f7855; color: #1b5c3d; }
+
+    .laptop {
+      padding: 14px 14px 8px;
+      border-radius: 14px 14px 4px 4px;
+      background: #24272c;
+      box-shadow: 0 16px 34px rgba(0,0,0,.18);
+    }
+    .laptop-screen { min-height: 300px; padding: 20px; overflow: hidden; background: #f2f2f2; }
+    .laptop::after { content: ""; width: 112%; height: 8px; margin: 8px -6% -15px; display: block; border-radius: 0 0 12px 12px; background: #b7bbc1; }
+    .email-mock { max-width: 520px; margin: 0 auto; background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+    .email-brand { padding: 15px 18px; background: var(--qia-burgundy); color: #fff; font-size: 11px; font-weight: 900; letter-spacing: .07em; }
+    .email-body { padding: 22px; }
+    .email-body h4 { margin: 0 0 10px; color: var(--qia-burgundy); font-size: 23px; font-weight: 400; }
+    .email-body p { color: var(--qia-copy); font-size: 12px; }
+    .email-cta { margin-top: 14px; padding: 10px 14px; display: inline-block; background: var(--qia-burgundy); color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .device-caption { margin: 18px 0 0; color: var(--qia-copy); font-size: 10px; text-align: center; }
+
+    .profile-snapshot { display: grid; gap: 12px; }
+    .profile-row { padding: 13px 14px; display: flex; justify-content: space-between; gap: 20px; border: 1px solid var(--qia-line); background: #fff; font-size: 12px; }
+    .profile-row span { color: var(--qia-copy); }
+    .profile-row strong { color: var(--qia-burgundy); text-align: right; }
+    .segment-chip { padding: 7px 10px; display: inline-block; background: #dcecdf; color: #1b5c3d; font-size: 10px; font-weight: 900; }
+    .pivot-card {
+      padding: 34px;
+      border: 1px solid #d2b66e;
+      background: linear-gradient(135deg, #fffaf0, #fff);
+      text-align: center;
+    }
+    .pivot-card .pivot-label { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .pivot-card h4 { max-width: 650px; margin: 12px auto; font-size: clamp(27px, 4vw, 42px); font-weight: 400; line-height: 1.08; }
+    .recognition-flow { margin: 24px auto 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+    .recognition-flow span { padding: 8px 11px; background: #fff; border: 1px solid var(--qia-line); font-size: 10px; }
+    .chat-preview { padding: 18px; border-radius: 16px; background: #eceef2; }
+    .chat-bubble { max-width: 82%; margin: 9px 0; padding: 12px 14px; border-radius: 14px; font-size: 12px; }
+    .chat-bubble.user { margin-left: auto; background: var(--qia-burgundy); color: #fff; }
+    .chat-bubble.system { background: #fff; color: var(--qia-copy); }
+    .customer-initiated { margin-bottom: 14px; padding: 10px 12px; border-left: 3px solid var(--qia-gold); background: #fff8e8; color: #6c5722; font-size: 11px; }
+    .outcome-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .outcome-card { padding: 20px; border: 1px solid var(--qia-line); background: #fff; }
+    .outcome-card strong { display: block; margin-bottom: 6px; color: var(--qia-burgundy); font-size: 21px; }
+    .outcome-card span { color: var(--qia-copy); font-size: 11px; }
+    .cja-path { margin-top: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .cja-path span { padding: 7px 9px; background: #eadde6; color: var(--qia-burgundy); font-size: 9px; font-weight: 800; }
+    .cja-path i { color: var(--qia-gold); font-style: normal; }
+    .journey-controls {
+      margin-top: auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-top: 1px solid var(--qia-line);
+      background: #fbfbfb;
+    }
+    .journey-control-buttons { display: flex; gap: 8px; }
+    .journey-control { padding: 9px 13px; border: 1px solid var(--qia-line); background: #fff; color: var(--qia-burgundy); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .journey-control:disabled { opacity: .35; cursor: default; }
+    .journey-global-status { color: var(--qia-copy); font-size: 11px; }
+    .journey-nav > p {
+      margin: 0;
+      padding: 12px 18px;
+      grid-column: 1 / -1;
+      background: rgba(0,0,0,.16);
+      color: var(--qia-gold);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .journey-nav button > span {
+      position: absolute;
+      left: 18px;
+      top: 20px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.4);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .journey-nav button::before { display: none; }
+    .journey-nav button.complete > span { border-color: var(--qia-gold); background: var(--qia-gold); color: var(--qia-burgundy-dark); font-size: 0; }
+    .journey-nav button.complete > span::after { content: "✓"; font-size: 11px; }
+    .journey-stage-top > div b, .journey-stage-top > div span { display: block; }
+    .journey-stage-top > div span { margin-top: 3px; color: var(--qia-copy); font-size: 11px; }
+    .scene-number { float: left; margin: 2px 12px 0 0; color: var(--qia-gold); font-size: 34px; font-weight: 300; }
+    .scene-heading p { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .scene-triad small { display: block; margin-bottom: 7px; color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .scene-triad b { color: var(--qia-copy); font-size: 12px; font-weight: 600; letter-spacing: 0; line-height: 1.45; text-transform: none; }
+    .device-laptop {
+      margin: 20px auto 32px;
+      padding: 14px 14px 8px;
+      max-width: 720px;
+      border-radius: 14px 14px 4px 4px;
+      background: #24272c;
+      box-shadow: 0 16px 34px rgba(0,0,0,.18);
+    }
+    .device-laptop::after { content: ""; width: 112%; height: 8px; margin: 8px -6% -15px; display: block; border-radius: 0 0 12px 12px; background: #b7bbc1; }
+    .device-screen { min-height: 260px; padding: 24px; display: grid; place-items: center; background: #f2f2f2; }
+    .device-screen .email-mock { padding: 28px; }
+    .device-screen .email-mock small { color: var(--qia-burgundy); font-weight: 900; }
+    .device-screen .email-mock h4 { margin: 10px 0; color: var(--qia-burgundy); font-size: 25px; font-weight: 400; }
+    .device-screen .email-mock p { color: var(--qia-copy); line-height: 1.55; }
+    .notification-mock small, .notification-mock b, .notification-mock span { display: block; }
+    .notification-mock small { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+    .notification-mock b { margin: 7px 0 5px; font-size: 18px; }
+    .notification-mock span { color: var(--qia-copy); font-size: 13px; }
+    .profile-snapshot {
+      padding: 24px;
+      border: 1px solid var(--qia-line);
+      background: var(--qia-grey);
+    }
+    .profile-snapshot > div:first-child { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; }
+    .profile-avatar { width: 52px; height: 52px; display: grid; place-items: center; grid-row: 1 / 3; border-radius: 50%; background: var(--qia-burgundy); color: #fff; }
+    .profile-snapshot h4, .profile-snapshot p { margin: 0; }
+    .profile-snapshot dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--qia-line); }
+    .profile-snapshot dl div { padding: 12px; background: #fff; }
+    .profile-snapshot dt { color: var(--qia-copy); font-size: 9px; text-transform: uppercase; }
+    .profile-snapshot dd { margin: 4px 0 0; color: var(--qia-burgundy); font-size: 12px; font-weight: 800; }
+    .segment-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .segment-chips span { padding: 7px 10px; background: #dcecdf; color: #1b5c3d; font-size: 10px; font-weight: 900; }
+    .organic-pivot {
+      padding: 34px;
+      border: 1px solid #d2b66e;
+      background: linear-gradient(135deg, #fffaf0, #fff);
+      text-align: center;
+    }
+    .organic-pivot > small { color: var(--qia-burgundy); font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .organic-pivot h4 { max-width: 650px; margin: 12px auto; font-size: clamp(27px, 4vw, 42px); font-weight: 400; line-height: 1.08; }
+    .organic-pivot > div { margin: 24px auto; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .organic-pivot > div span { padding: 8px 11px; border: 1px solid var(--qia-line); background: #fff; font-size: 10px; }
+    .chat-preview .chat-top { margin-bottom: 14px; color: var(--qia-burgundy); font-size: 11px; font-weight: 900; }
+    .chat-message { max-width: 82%; margin: 9px 0; padding: 12px 14px; border-radius: 14px; font-size: 12px; }
+    .chat-message.user { margin-left: auto; background: var(--qia-burgundy); color: #fff; }
+    .chat-message.system { background: #fff; color: var(--qia-copy); }
+    .chat-preview .qia-button { margin-top: 12px; }
+    .concierge-note { padding: 12px; border-left: 3px solid var(--qia-gold); background: #fff8e8; color: #6c5722; font-size: 11px; }
+    .outcome-grid > div { padding: 20px; border: 1px solid var(--qia-line); background: #fff; }
+    .outcome-grid small, .outcome-grid b, .outcome-grid span { display: block; }
+    .outcome-grid small { color: var(--qia-burgundy); font-weight: 900; }
+    .outcome-grid b { margin: 8px 0 5px; font-size: 19px; }
+    .outcome-grid span { color: var(--qia-copy); font-size: 11px; }
+    .cja-path b { color: var(--qia-gold); }
+    .journey-controls > button { padding: 9px 13px; border: 1px solid var(--qia-line); background: #fff; color: var(--qia-burgundy); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .journey-controls > button:disabled { opacity: .35; }
+    .journey-controls .status { flex: 1; margin: 0; }
+
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .feature-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 3px; }
+    .feature-card h2 { margin: 18px 0 8px; font-size: 31px; font-weight: 400; }
+
+    .history-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+      border-radius: 3px;
+    }
+    .history-card img { width: 100%; height: 100%; min-height: 330px; object-fit: cover; }
+    .history-copy {
+      min-height: 330px;
+      padding: 58px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: var(--qia-burgundy);
+      color: #fff;
+    }
+    .history-copy h2 { margin: 0 0 18px; font-size: 35px; font-weight: 400; }
+    .history-copy p { max-width: 430px; margin: 0 0 18px; }
+    .history-copy .primary-link { color: #fff; }
+    .history-copy .primary-link::before { background: var(--qia-gold); color: var(--qia-burgundy); }
+
+    .contact-strip { background: var(--qia-grey); }
+    .contact-inner {
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 42px;
+    }
+    .contact-inner h2 { margin: 0 0 6px; font-size: 22px; }
+    .contact-inner p { margin: 0; color: var(--qia-copy); }
+    .qia-button {
+      padding: 14px 28px;
+      border: 1px solid var(--qia-burgundy);
+      background: var(--qia-burgundy);
+      color: #fff;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 12px;
+    }
+    .qia-button:hover { background: var(--qia-burgundy-dark); }
+    .qia-button--light { background: #fff; color: var(--qia-burgundy); }
+
+    .site-footer { background: #171a1d; color: #d6d7d8; }
+    .footer-main {
+      padding: 55px 0 40px;
+      display: grid;
+      grid-template-columns: 1.45fr repeat(5, 1fr);
+      gap: 30px;
+    }
+    .footer-logo { width: 220px; margin-bottom: 28px; }
+    .footer-col h3 { margin: 0 0 12px; color: #fff; font-size: 16px; }
+    .footer-col a { display: block; padding: 2px 0; font-size: 12px; }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom {
+      padding: 18px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 11px;
+    }
+
+    .campaign-launcher {
+      position: fixed;
+      z-index: 75;
+      right: 22px;
+      bottom: 22px;
+      padding: 13px 18px;
+      border: 0;
+      border-radius: 3px;
+      background: var(--qia-burgundy);
+      color: #fff;
+      box-shadow: 0 8px 28px rgba(68, 7, 43, 0.35);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .campaign-launcher span { display: block; font-size: 9px; opacity: 0.75; font-weight: 600; }
+
+    .campaign-backdrop {
+      position: fixed;
+      z-index: 90;
+      inset: 0;
+      background: rgba(15, 15, 20, 0.62);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .campaign-backdrop.open { opacity: 1; pointer-events: auto; }
+    .campaign-drawer {
+      position: fixed;
+      z-index: 91;
+      inset: auto 0 0;
+      max-height: min(88vh, 900px);
+      overflow: auto;
+      background: #fff;
+      box-shadow: var(--shadow);
+      transform: translateY(105%);
+      transition: transform 0.25s ease;
+    }
+    .campaign-drawer.open { transform: translateY(0); }
+    .drawer-top {
+      position: sticky;
+      z-index: 3;
+      top: 0;
+      padding: 17px max(22px, calc((100vw - var(--qia-max)) / 2));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      background: var(--qia-burgundy);
+      color: #fff;
+    }
+    .drawer-top p { margin: 3px 0 0; font-size: 12px; opacity: 0.84; }
+    .drawer-top strong { font-size: 18px; }
+    .drawer-close { width: 38px; height: 38px; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; background: none; color: #fff; font-size: 22px; }
+    .drawer-content { width: min(var(--qia-max), calc(100% - 40px)); margin: 0 auto; padding: 34px 0 46px; }
+    .journey-steps {
+      margin-bottom: 25px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border: 1px solid var(--qia-line);
+    }
+    .journey-step { padding: 15px; border-right: 1px solid var(--qia-line); font-size: 11px; }
+    .journey-step:last-child { border-right: 0; }
+    .journey-step b { display: block; margin-bottom: 4px; color: var(--qia-burgundy); font-size: 14px; }
+    .campaign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .campaign-grid--workspace { grid-template-columns: 1fr; }
+    .campaign-card { padding: 26px; border: 1px solid var(--qia-line); background: var(--qia-grey); }
+    .campaign-card header { margin-bottom: 20px; display: flex; justify-content: space-between; gap: 14px; }
+    .campaign-card h2 { margin: 0; font-size: 25px; font-weight: 400; }
+    .mock-badge { align-self: flex-start; padding: 5px 8px; background: #eadde6; color: var(--qia-burgundy); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+    .field { margin: 14px 0; display: grid; gap: 6px; }
+    .field label, .field legend { font-size: 12px; font-weight: 700; }
+    .field input, .field select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #c9c9c9;
+      border-radius: 0;
+      background: #fff;
+      color: var(--qia-ink);
+    }
+    fieldset.field { padding: 0; border: 0; }
+    .checks { display: flex; flex-wrap: wrap; gap: 8px; }
+    .check { padding: 8px 10px; display: inline-flex; gap: 6px; border: 1px solid #c9c9c9; background: #fff; font-size: 12px; }
+    .consent { margin: 16px 0; padding: 12px; display: flex; align-items: flex-start; gap: 9px; background: #fff; font-size: 11px; }
+    .status {
+      min-height: 42px;
+      margin-top: 16px;
+      padding: 11px 12px;
+      border-left: 3px solid var(--qia-gold);
+      background: #fff;
+      color: var(--qia-copy);
+      font-size: 12px;
+    }
+    .status.success { border-left-color: #2f7855; color: #1b5c3d; }
+    .audience-summary { margin: 14px 0; padding: 16px; border: 1px solid #c9c9c9; background: #fff; }
+    .audience-summary strong { display: block; color: var(--qia-burgundy); font-size: 27px; }
+    .audience-summary p { margin: 5px 0 0; color: var(--qia-copy); font-size: 12px; }
+    .channel { margin: 7px 0; padding: 10px 12px; display: flex; justify-content: space-between; gap: 14px; border: 1px solid #d6d6d6; background: #fff; font-size: 12px; }
+    .channel em { color: #2f7855; font-style: normal; font-weight: 700; }
+    .channel.future em { color: var(--qia-burgundy); }
+    .compliance { color: var(--qia-copy); font-size: 11px; }
+    .campaign-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    @media (max-width: 1040px) {
+      .desktop-nav { gap: 15px; }
+      .desktop-nav a { font-size: 12px; }
+      .footer-main { grid-template-columns: 1.3fr repeat(3, 1fr); }
+      .footer-col:nth-child(n+5) { display: none; }
+    }
+
+    @media (max-width: 780px) {
+      .header-inner { min-height: 66px; }
+      .brand-logo { max-width: 220px; }
+      .desktop-nav { display: none; }
+      .mobile-menu { display: block; }
+      .hero { min-height: 480px; }
+      .hero::before { background-position: 44% center; }
+      .focus-grid, .history-card, .campaign-grid, .newsletter-grid { grid-template-columns: 1fr; }
+      .overview-grid, .scene-body-grid { grid-template-columns: 1fr; }
+      .value-grid { grid-template-columns: 1fr 1fr; }
+      .journey-console { grid-template-columns: 1fr; }
+      .journey-nav { display: grid; grid-template-columns: repeat(2, 1fr); }
+      .journey-nav .phase-label { grid-column: 1 / -1; }
+      .journey-nav button { min-height: 68px; }
+      .journey-scene { min-height: 0; padding: 26px 20px; }
+      .scene-triad, .outcome-grid { grid-template-columns: 1fr; }
+      .news-grid { grid-template-columns: 1fr; }
+      .feature-grid { gap: 18px; }
+      .footer-main { grid-template-columns: 1fr 1fr; }
+      .footer-brand { grid-column: 1 / -1; }
+      .journey-steps { grid-template-columns: 1fr; }
+      .journey-step { border-right: 0; border-bottom: 1px solid var(--qia-line); }
+      .contact-inner { min-height: 180px; flex-direction: column; gap: 20px; text-align: center; }
+      .campaign-launcher { right: 14px; bottom: 14px; }
+    }
+
+    @media (max-width: 520px) {
+      .brand-logo { width: 205px; max-width: 74vw; }
+      .hero { min-height: 420px; }
+      .hero h1 { font-size: 24px; }
+      .section { padding: 58px 0; }
+      .focus-media, .focus-media img { min-height: 240px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .history-copy { min-height: 270px; padding: 34px 28px; }
+      .history-card img { min-height: 240px; }
+      .footer-main { grid-template-columns: 1fr; }
+      .footer-col:nth-child(n+4) { display: none; }
+      .footer-bottom { flex-direction: column; }
+      .campaign-launcher { font-size: 10px; }
+      .persona-facts, .value-grid, .metric-strip, .journey-nav { grid-template-columns: 1fr; }
+      .metric-item { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.18); }
+      .scene-heading, .journey-stage-top, .journey-controls { align-items: flex-start; flex-direction: column; }
+      .journey-control-buttons { width: 100%; }
+      .journey-control { flex: 1; }
+      .laptop-screen { min-height: 260px; padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#home" aria-label="Qatar Investment Authority demo home">
+        <img class="brand-logo" src="assets/qia-logo.svg" alt="Qatar Investment Authority">
+      </a>
+      <nav class="desktop-nav" aria-label="Primary">
+        <a href="#focus">About</a>
+        <a href="#how-we-invest">How we invest</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="https://www.qia.qa/en/Funds-of-Funds/Pages/Default.aspx" target="_blank" rel="noopener">Fund of Funds</a>
+        <a href="#news">Newsroom</a>
+        <a href="https://www.qia.qa/en/Careers/Pages/default.aspx" target="_blank" rel="noopener">Careers</a>
+        <a href="#contact">Contact Us</a>
+        <a class="nav-subscribe" href="#subscriber-journey">Demo journey</a>
+      </nav>
+      <a class="mobile-menu" href="#subscriber-journey" aria-label="Open subscriber journey">✉</a>
+    </div>
+  </header>
+
+  <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+
+  <main id="home">
+    <section class="hero" data-hero-mount aria-label="QIA public homepage hero">
+      <div id="hero-banner" aria-label="Personalized hero" role="region"></div>
+      <div class="hero-copy">
+        <h1>QIA is accelerating the development for Qatar's venture capital and startup ecosystem through its Fund of Funds program.</h1>
+      </div>
+      <div class="hero-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    </section>
+
+    <section class="section section--grey" id="focus">
+      <div class="container focus-grid">
+        <div class="focus-copy">
+          <h2 class="section-title">QIA in Focus</h2>
+          <p>QIA was established in 2005 to protect and grow Qatar’s financial assets, and to help diversify the economy.</p>
+          <p>QIA is a global investment organization, with investments spanning all major global markets, asset classes, sectors and geographies.</p>
+          <p>We are a diverse organization with over 66 nationalities in our teams.</p>
+          <p>We aim to have a positive impact through all our investments.</p>
+          <p>QIA is contributing to the Qatar National Vision.</p>
+          <div class="focus-pill">We invest in Human Capital</div>
+          <div class="focus-pill">We invest in the Region</div>
+          <div class="focus-pill">We invest in Partnerships</div>
+          <p><a class="primary-link" href="https://www.qia.qa/en/About/Pages/default.aspx" target="_blank" rel="noopener">More about QIA</a></p>
+        </div>
+        <div class="focus-media">
+          <img src="assets/focus-poster.jpg" alt="Doha skyline across the water">
+          <a class="play-button" href="#subscriber-journey" aria-label="Open subscriber-to-self-serve demonstration">▶</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="use-case-overview" id="demo-overview" aria-labelledby="demoOverviewTitle">
+      <div class="container">
+        <div class="overview-heading">
+          <div class="overview-badges">
+            <span class="use-case-badge">Acquisition</span>
+            <span class="tech-pill">Real-Time CDP</span>
+            <span class="tech-pill">Journey Optimizer</span>
+            <span class="tech-pill">Brand Concierge</span>
+            <span class="tech-pill">AEM + Target · Future phase</span>
+          </div>
+          <h2 id="demoOverviewTitle">Subscriber to self-serve</h2>
+          <blockquote>“I want every QIA stakeholder who subscribes to our updates to move seamlessly from newsletters to real-time, self-served answers — without ever losing the thread of who they are.”</blockquote>
+        </div>
+
+        <div class="overview-grid">
+          <article class="persona-card">
+            <div class="persona-top">
+              <div class="persona-avatar" aria-hidden="true">EM</div>
+              <div>
+                <h3>Elena Marsh</h3>
+                <p class="persona-role">Senior Analyst · institutional stakeholder · London, UK</p>
+              </div>
+            </div>
+            <div class="persona-tags"><span class="persona-tag">Investor</span><span class="persona-tag">High-intent</span><span class="persona-tag">Returning</span></div>
+            <dl class="persona-facts">
+              <div><dt>Device</dt><dd>MacBook Pro</dd></div>
+              <div><dt>Segment</dt><dd>Institutional Investor</dd></div>
+              <div><dt>Engagement</dt><dd>3 site visits</dd></div>
+              <div><dt>Tenure</dt><dd>45 days subscribed</dd></div>
+            </dl>
+            <p class="persona-framing">A returning institutional analyst tracking QIA’s portfolio — follow how RT-CDP, AJO and an externally injected Brand Concierge turn her newsletter subscription into a self-served, human-backed relationship.</p>
+          </article>
+
+          <article class="welcome-card">
+            <h3>Welcome moment</h3>
+            <p class="persona-role">A concise AJO-style notification confirms Elena’s subscription and creates the first warm touchpoint.</p>
+            <div class="notification-mock" aria-label="Welcome notification mockup">
+              <span class="notification-app">QIA UPDATES</span>
+              <strong>Welcome to QIA Insights</strong>
+              <p>Your subscription is live</p>
+              <p>Explore your first briefing</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="value-grid" aria-label="Business value">
+          <div class="value-item"><span>01</span><strong>Cold sign-up becomes a warm relationship</strong></div>
+          <div class="value-item"><span>02</span><strong>Newsletters and events orchestrated as one journey</strong></div>
+          <div class="value-item"><span>03</span><strong>Self-serve answers without losing context</strong></div>
+          <div class="value-item"><span>04</span><strong>Every touchpoint feeds one unified profile</strong></div>
+        </div>
+
+        <div class="metric-strip" aria-label="QIA context metrics">
+          <div class="metric-item"><strong>~$600B*</strong><span>Assets under management</span></div>
+          <div class="metric-item"><strong>66+</strong><span>Nationalities represented</span></div>
+          <div class="metric-item"><strong>2005</strong><span>Founded · Doha headquarters</span></div>
+        </div>
+        <p class="metric-note">*Presenter-provided demo context; QIA’s referenced public pages do not publish a current AUM figure.</p>
+        <p class="metric-note">AEM and Adobe Target are shown as a phased personalization opportunity, not as a live QIA implementation.</p>
+      </div>
+    </section>
+
+    <section class="section section--white" id="news">
+      <div class="container">
+        <div class="section-title-row">
+          <h2 class="section-title">Latest News &amp; Press Releases</h2>
+          <a class="primary-link" href="https://www.qia.qa/en/Newsroom/Pages/default.aspx" target="_blank" rel="noopener">All updates</a>
+        </div>
+        <div class="news-grid">
+          <article class="news-card">
+            <img src="assets/news-sambanova.jpg" alt="SambaNova data centre illustration" loading="lazy">
+            <h3>QIA Participates in SambaNova’s $1 Billion Series F Funding Round</h3>
+            <p>QIA today announced its participation alongside global investment partners.</p>
+          </article>
+          <article class="news-card">
+            <img src="assets/news-janus.jpg" alt="Janus Henderson Investors building signage" loading="lazy">
+            <h3>QIA Announces Completion of Janus Henderson’s Take-Private Transaction</h3>
+            <p>QIA announced its participation in the completed transaction.</p>
+          </article>
+          <article class="news-card">
+            <img src="assets/news-rwe.jpg" alt="Energy infrastructure workers at an industrial site" loading="lazy">
+            <h3>QIA participates as a cornerstone investor in RWE’s equity capital raise</h3>
+            <p>The investment supports increased ownership in critical energy infrastructure.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="newsletter-demo" id="subscriber-journey" aria-labelledby="journeyTitle">
+      <div class="container">
+        <div class="newsletter-intro">
+          <p class="newsletter-kicker">QIA Demo Flow · Subscriber to Self-Serve · Mock data</p>
+          <h2 id="journeyTitle">Follow Elena from cold sign-up to a warm, self-served relationship</h2>
+          <p>A single presenter-led story shows how consented signals become an RT-CDP profile, an AJO journey and—when Elena returns on her own terms—a customer-initiated Concierge handoff.</p>
+        </div>
+
+        <div class="journey-console">
+          <nav class="journey-nav" aria-label="Seven-step customer journey">
+            <p>Campaign orchestration · RT-CDP + AJO</p>
+            <button class="active" type="button" data-journey-step="1"><span>01</span>Discovers &amp; subscribes</button>
+            <button type="button" data-journey-step="2"><span>02</span>Welcome journey</button>
+            <button type="button" data-journey-step="3"><span>03</span>Segment assigned</button>
+            <button type="button" data-journey-step="4"><span>04</span>Event invited</button>
+            <p>The narrative pivot</p>
+            <button type="button" data-journey-step="5"><span>05</span>Returns organically</button>
+            <p>Self-serve · External Concierge</p>
+            <button type="button" data-journey-step="6"><span>06</span>Asks Concierge</button>
+            <button type="button" data-journey-step="7"><span>07</span>Escalates &amp; measured</button>
+          </nav>
+
+          <div class="journey-stage">
+            <div class="journey-stage-top">
+              <div><b>Elena Marsh</b><span>Senior Analyst · Institutional stakeholder · London</span></div>
+              <strong id="journeyProgress">Step 1 of 7</strong>
+            </div>
+
+            <article class="journey-scene" data-journey-panel="1">
+              <div class="scene-heading"><div><span class="scene-number">01</span><p>Campaign orchestration</p><h3>Discovers &amp; subscribes</h3></div><span class="mock-badge">Background + data</span></div>
+              <div class="scene-triad">
+                <div><small>Customer action</small><b>Elena finds qia.qa via search and chooses the updates relevant to her role.</b></div>
+                <div><small>System response</small><b>RT-CDP captures a consented identity and preference signal.</b></div>
+                <div><small>Outcome</small><b>A cold visit becomes the start of a known relationship.</b></div>
+              </div>
+              <form class="campaign-card" id="subscriberForm">
+                <header><h2>QIA Insights preferences</h2><span class="mock-badge">Elena · Mock persona</span></header>
+                <div class="field"><label for="subscriberEmail">Email address</label><input id="subscriberEmail" type="email" value="elena.marsh@example.com" required></div>
+                <div class="field"><label for="subscriberType">Subscriber type</label><select id="subscriberType"><option>Institutional stakeholder</option><option>Market observer</option><option>Media professional</option><option>Prospective talent</option></select></div>
+                <fieldset class="field"><legend>Content interests</legend><div class="checks">
+                  <label class="check"><input type="checkbox" name="interest" value="Portfolio" checked> Portfolio</label>
+                  <label class="check"><input type="checkbox" name="interest" value="Responsible investment" checked> Responsible investment</label>
+                  <label class="check"><input type="checkbox" name="interest" value="Qatar ecosystem" checked> Qatar ecosystem</label>
+                </div></fieldset>
+                <label class="consent"><input id="marketingConsent" type="checkbox" checked required><span>I agree to receive my selected email updates and understand I can withdraw this preference. <b>Demo consent copy.</b></span></label>
+                <button class="qia-button" type="submit">Subscribe and start journey</button>
+                <div class="status" id="step1Status" role="status">Ready to create Elena’s consented preference signal.</div>
+              </form>
+            </article>
+
+            <article class="journey-scene" data-journey-panel="2" hidden>
+              <div class="scene-heading"><div><span class="scene-number">02</span><p>Journey Optimizer</p><h3>Welcome journey</h3></div><span class="mock-badge">Laptop · Email</span></div>
+              <div class="scene-triad"><div><small>Customer action</small><b>Elena opens the welcome email.</b></div><div><small>System response</small><b>AJO delivers her tailored welcome brief.</b></div><div><small>Outcome</small><b>Her interests and channel preferences are confirmed.</b></div></div>
+              <div class="device-laptop"><div class="device-screen"><div class="email-mock"><small>QIA UPDATES · MOCK EMAIL</small><h4>Welcome to QIA Insights</h4><p>Your subscription is live. Explore a briefing shaped around portfolio, responsible investment and Qatar ecosystem updates.</p><button class="qia-button" id="openWelcome" type="button">Open first briefing</button></div></div></div>
+              <div class="notification-mock"><small>QIA UPDATES</small><b>Welcome to QIA Insights</b><span>Your subscription is live · Explore your first briefing</span></div>
+              <div class="status" id="step2Status" role="status">Ready to record Elena’s welcome-email engagement.</div>
+            </article>
+
+            <article class="journey-scene" data-journey-panel="3" hidden>
+              <div class="scene-heading"><div><span class="scene-number">03</span><p>Real-Time CDP</p><h3>Segment assigned</h3></div><span class="mock-badge">Unified profile</span></div>
+              <div class="scene-triad"><div><small>Customer action</small><b>Elena’s engagement signals intent.</b></div><div><small>System response</small><b>RT-CDP qualifies her for the Institutional Investor audience.</b></div><div><small>Outcome</small><b>Generic mailers give way to relevant content.</b></div></div>
+              <div class="profile-snapshot">
+                <div><span class="profile-avatar">EM</span><h4>Elena Marsh</h4><p>Senior Analyst · London, UK</p></div>
+                <dl><div><dt>Segment</dt><dd>Institutional Investor</dd></div><div><dt>Engagement</dt><dd>3 site visits</dd></div><div><dt>Tenure</dt><dd>45 days</dd></div><div><dt>Consent</dt><dd>Email · Opted in</dd></div></dl>
+                <div class="segment-chips"><span>Investor</span><span>High-Intent</span><span>Returning</span></div>
+                <button class="qia-button" id="viewProfile" type="button">Open unified Profile Viewer</button>
+              </div>
+              <div class="status" id="step3Status" role="status">Mock profile is ready for inspection.</div>
+            </article>
+
+            <article class="journey-scene" data-journey-panel="4" hidden>
+              <div class="scene-heading"><div><span class="scene-number">04</span><p>Journey Optimizer + CJA</p><h3>Event invited</h3></div><span class="mock-badge">Laptop · Email</span></div>
+              <div class="scene-triad"><div><small>Customer action</small><b>Elena opens an event invitation.</b></div><div><small>System response</small><b>AJO sends the eligible sequence with consent and suppression applied.</b></div><div><small>Outcome</small><b>Her engagement is available for journey measurement.</b></div></div>
+              <div class="device-laptop"><div class="device-screen"><div class="email-mock"><small>QIA UPDATES · FICTIONAL DEMO EVENT</small><h4>QIA Global Investor Forum</h4><p>A briefing for institutional stakeholders exploring long-term investment themes and regional opportunity.</p><button class="qia-button" id="openEventInvite" type="button">View event invitation</button></div></div></div>
+              <p class="compliance"><b>Governance:</b> explicit email consent required; withdrawals, invalid addresses and frequency caps suppressed. Event and audience data shown here are fictional.</p>
+              <div class="status" id="step4Status" role="status">Ready to log the invitation engagement to the demo journey.</div>
+            </article>
+
+            <article class="journey-scene" data-journey-panel="5" hidden>
+              <div class="scene-heading"><div><span class="scene-number">05</span><p>The narrative hinge</p><h3>Returns organically</h3></div><span class="mock-badge">Direct visit · No campaign</span></div>
+              <div class="scene-triad"><div><small>Customer action</small><b>Weeks later, Elena types the site address and returns directly.</b></div><div><small>System response</small><b>RT-CDP recognizes the returning profile and its consented context.</b></div><div><small>Outcome</small><b>Her own interest—not an outbound campaign—starts the next moment.</b></div></div>
+              <div class="organic-pivot"><small>Pause here</small><h4>Nothing brought Elena back except her own interest.</h4><p>This is the pivot from orchestrated outreach to self-service, on her terms.</p><div><span>Direct web visit</span><b>→</b><span>Identity recognized</span><b>→</b><span>Known context</span></div><button class="qia-button" id="recordOrganicReturn" type="button">Recognize organic return</button></div>
+              <div class="status" id="step5Status" role="status">Ready to record a campaign-free return signal.</div>
+            </article>
+
+            <article class="journey-scene" data-journey-panel="6" hidden>
+              <div class="scene-heading"><div><span class="scene-number">06</span><p>Customer-initiated self-service</p><h3>Asks Concierge</h3></div><span class="mock-badge">External agent handoff</span></div>
+              <div class="scene-triad"><div><small>Customer action</small><b>Elena opens the Concierge and asks about QIA’s portfolio.</b></div><div><small>System response</small><b>The separately trained informational agent receives her question.</b></div><div><small>Outcome</small><b>A self-serve intent signal can enrich the demo profile.</b></div></div>
+              <div class="chat-preview"><div class="chat-top">Brand Concierge · Public information assistant</div><div class="chat-message user">What are the main areas of QIA’s portfolio?</div><div class="chat-message system">The live response comes from the external Concierge injected through the Lab bar. This page does not train an agent or connect to internal QIA systems.</div><button class="qia-button" id="openConcierge" type="button">Open external Concierge</button></div>
+              <p class="concierge-note"><b>Customer initiated:</b> QIA does not message Elena here. She opens the assistant and asks. Only mock demo signals are sent by this experience.</p>
+              <div class="status" id="conciergeStatus" role="status">Ready to hand off to the externally configured Concierge.</div>
+            </article>
+
+            <article class="journey-scene" data-journey-panel="7" hidden>
+              <div class="scene-heading"><div><span class="scene-number">07</span><p>Human handoff + measurement</p><h3>Escalates &amp; measured</h3></div><span class="mock-badge">Outcome</span></div>
+              <div class="scene-triad"><div><small>Customer action</small><b>Elena asks to speak with the QIA team.</b></div><div><small>System response</small><b>The demo routes a consent-aware request to a representative.</b></div><div><small>Outcome</small><b>CJA can show the full path from subscription to self-service.</b></div></div>
+              <div class="outcome-grid"><div><small>01 · Acquire</small><b>Consented subscriber</b><span>Email preferences retained</span></div><div><small>02 · Serve</small><b>Customer-led question</b><span>Context carried forward</span></div><div><small>03 · Assist</small><b>Human handoff</b><span>Relationship stays connected</span></div></div>
+              <div class="cja-path"><span>Search</span><b>→</b><span>Subscribe</span><b>→</b><span>Welcome</span><b>→</b><span>Event</span><b>→</b><span>Organic return</span><b>→</b><span>Concierge</span><b>→</b><span>Representative</span></div>
+              <button class="qia-button" id="recordMeetingRequest" type="button">Record mock meeting request</button>
+              <div class="status" id="step7Status" role="status">Ready to complete Elena’s measured journey.</div>
+            </article>
+
+            <div class="journey-controls">
+              <button id="journeyPrev" type="button">← Previous</button>
+              <div class="status" id="journeyGlobalStatus" role="status">Begin with Elena’s newsletter subscription.</div>
+              <button id="journeyNext" type="button">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Personalized content cards" role="region"></section>
+
+    <section class="section section--white">
+      <div class="container feature-grid">
+        <article class="feature-card" id="portfolio">
+          <img src="assets/portfolio.jpg" alt="Modern glass financial district architecture" loading="lazy">
+          <h2>Portfolio</h2>
+          <a class="primary-link" href="https://www.qia.qa/en/portfolio/Pages/default.aspx" target="_blank" rel="noopener">Find out more</a>
+        </article>
+        <article class="feature-card" id="how-we-invest">
+          <img src="assets/how-we-invest.jpg" alt="QIA headquarters reception area" loading="lazy">
+          <h2>How we invest</h2>
+          <a class="primary-link" href="https://www.qia.qa/en/how-we-invest/Pages/default.aspx" target="_blank" rel="noopener">Find out more</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section section--white">
+      <div class="container history-card">
+        <img src="assets/history.jpg" alt="Doha skyline and traditional boat at sunrise" loading="lazy">
+        <div class="history-copy">
+          <h2>History</h2>
+          <p>Founded in 2005, we want to generate better jobs, environments and opportunities for future generations.</p>
+          <a class="primary-link" href="https://www.qia.qa/en/About/Pages/History.aspx" target="_blank" rel="noopener">Find out more</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-strip" id="contact">
+      <div class="container contact-inner">
+        <div>
+          <h2>Contact Us</h2>
+          <p>Help us direct your questions to the right place.</p>
+        </div>
+        <a class="qia-button" href="https://www.qia.qa/en/contact-us/Pages/default.aspx" target="_blank" rel="noopener">Get in touch</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-main">
+      <div class="footer-brand">
+        <img class="footer-logo" src="assets/qia-logo-white.svg" alt="Qatar Investment Authority">
+        <p>Connect with us</p>
+      </div>
+      <div class="footer-col"><h3>About</h3><a href="#focus">Leadership</a><a href="#focus">Mandate</a><a href="#focus">History</a><a href="#focus">QIA Values</a><a href="#focus">Governance</a></div>
+      <div class="footer-col"><h3>How we invest</h3><a href="#how-we-invest">Strategy</a><a href="#how-we-invest">Asset Allocation</a><a href="#how-we-invest">Investment Process</a></div>
+      <div class="footer-col"><h3>Portfolio</h3><a href="#portfolio">Real Estate</a><a href="#portfolio">Infrastructure</a><a href="#portfolio">Technology</a><a href="#portfolio">Healthcare</a><a href="#portfolio">Funds</a></div>
+      <div class="footer-col"><h3>Newsroom</h3><a href="#news">News and Announcements</a><a href="#news">Media Enquiries</a></div>
+      <div class="footer-col"><h3>Careers</h3><a href="#">Recruiting International Talent</a><a href="#">The Journey Program</a><a href="#">QIA Scholarship Program</a></div>
+    </div>
+    <div class="container footer-bottom">
+      <span>Fraud Warning &nbsp;&nbsp; Terms of Use and Disclaimer &nbsp;&nbsp; Privacy</span>
+      <span>Public website mimic for an Adobe demonstration · <a href="https://www.qia.qa/en/pages/default.aspx" target="_blank" rel="noopener">Source: qia.qa</a></span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var currentStep = 1;
+      var completedStep = 0;
+      var navButtons = [].slice.call(document.querySelectorAll('[data-journey-step]'));
+      var panels = [].slice.call(document.querySelectorAll('[data-journey-panel]'));
+      var globalStatus = document.getElementById('journeyGlobalStatus');
+
+      function showStep(step) {
+        currentStep = Math.max(1, Math.min(7, step));
+        panels.forEach(function (panel) { panel.hidden = Number(panel.dataset.journeyPanel) !== currentStep; });
+        navButtons.forEach(function (button) {
+          var number = Number(button.dataset.journeyStep);
+          button.classList.toggle('active', number === currentStep);
+          button.classList.toggle('complete', number <= completedStep);
+          button.setAttribute('aria-current', number === currentStep ? 'step' : 'false');
+        });
+        document.getElementById('journeyProgress').textContent = 'Step ' + currentStep + ' of 7';
+        document.getElementById('journeyPrev').disabled = currentStep === 1;
+        document.getElementById('journeyNext').disabled = currentStep === 7;
+      }
+
+      function completeStep(step, message) {
+        completedStep = Math.max(completedStep, step);
+        globalStatus.textContent = message;
+        globalStatus.classList.add('success');
+        showStep(Math.min(7, step + 1));
+      }
+
+      function sendExperience(eventType, viewName, publicData) {
+        parent.postMessage({ source: 'qia-demo-site', type: 'experience', payload: {
+          eventType: eventType,
+          viewName: viewName,
+          public: Object.assign({ persona: 'Elena Marsh', mockData: true }, publicData || {})
+        } }, '*');
+      }
+
+      document.getElementById('subscriberForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        var email = document.getElementById('subscriberEmail').value.trim();
+        var consent = document.getElementById('marketingConsent').checked;
+        var interests = [].slice.call(document.querySelectorAll('input[name="interest"]:checked')).map(function (input) { return input.value; });
+        if (!consent || !email) {
+          document.getElementById('step1Status').textContent = 'A mock email and explicit consent are required.';
+          return;
+        }
+        parent.postMessage({ source: 'qia-demo-site', type: 'set-identifier', identifier: email }, '*');
+        sendExperience('qia.demo.subscription.preferenceSubmit', 'QIA Insights preferences', {
+          subscriberType: document.getElementById('subscriberType').value,
+          interests: interests,
+          marketingConsent: true,
+          consentSource: 'qia-public-site-demo'
+        });
+        document.getElementById('step1Status').textContent = 'Consent and preference signal created for Elena.';
+        document.getElementById('step1Status').classList.add('success');
+        window.setTimeout(function () { completeStep(1, 'Elena is subscribed. AJO can now deliver the welcome moment.'); }, 300);
+      });
+
+      document.getElementById('openWelcome').addEventListener('click', function () {
+        sendExperience('qia.demo.welcome.open', 'Welcome to QIA Insights', { channel: 'email', ajoMoment: true });
+        document.getElementById('step2Status').textContent = 'Welcome engagement recorded; preferences confirmed.';
+        document.getElementById('step2Status').classList.add('success');
+        completeStep(2, 'Welcome opened. RT-CDP can evaluate Elena’s audience membership.');
+      });
+
+      document.getElementById('viewProfile').addEventListener('click', function () {
+        var email = document.getElementById('subscriberEmail').value.trim();
+        parent.postMessage({ source: 'qia-demo-site', type: 'profile-request', identifier: email }, '*');
+        sendExperience('qia.demo.segment.assigned', 'Institutional Investor audience', { segment: 'Institutional Investor', tags: ['Investor', 'High-Intent', 'Returning'] });
+        document.getElementById('step3Status').textContent = 'Profile Viewer requested and audience qualification recorded.';
+        document.getElementById('step3Status').classList.add('success');
+        completeStep(3, 'Elena is in the Institutional Investor audience. The next eligible event journey is ready.');
+      });
+
+      document.getElementById('openEventInvite').addEventListener('click', function () {
+        sendExperience('qia.demo.event.invite.open', 'QIA Global Investor Forum', { channel: 'email', consentRequired: true, cjaLogged: true, fictionalEvent: true });
+        document.getElementById('step4Status').textContent = 'Mock invitation engagement recorded with governance context.';
+        document.getElementById('step4Status').classList.add('success');
+        completeStep(4, 'Event engagement logged. Now pause: Elena’s next visit is entirely organic.');
+      });
+
+      document.getElementById('recordOrganicReturn').addEventListener('click', function () {
+        sendExperience('qia.demo.organic.return', 'QIA public site direct return', { channel: 'web', campaignSource: 'none', recognition: 'returning-subscriber' });
+        document.getElementById('step5Status').textContent = 'Direct return recognized without campaign attribution.';
+        document.getElementById('step5Status').classList.add('success');
+        completeStep(5, 'Organic return recognized. The story now moves from outreach to customer-led self-service.');
+      });
+
+      document.getElementById('openConcierge').addEventListener('click', function () {
+        sendExperience('qia.demo.concierge.open', 'Brand Concierge handoff', { customerInitiated: true, question: 'What are the main areas of QIA’s portfolio?' });
+        parent.postMessage({ source: 'qia-demo-site', type: 'open-brand-concierge' }, '*');
+      });
+
+      document.getElementById('recordMeetingRequest').addEventListener('click', function () {
+        sendExperience('qia.demo.concierge.meetingRequest', 'Representative handoff', { customerInitiated: true, outcome: 'representative-handoff', cjaMeasured: true });
+        completedStep = 7;
+        document.getElementById('step7Status').textContent = 'Journey complete: mock representative request and measurement event recorded.';
+        document.getElementById('step7Status').classList.add('success');
+        globalStatus.textContent = 'Complete: subscription, orchestration, organic return, self-service and human handoff remain connected.';
+        showStep(7);
+      });
+
+      window.addEventListener('message', function (event) {
+        if (!event.data || event.data.source !== 'qia-demo-shell' || event.data.type !== 'brand-concierge-status') return;
+        var status = document.getElementById('conciergeStatus');
+        status.textContent = event.data.opened
+          ? 'External Concierge opened. Elena’s customer-initiated question is ready for the live demonstration.'
+          : 'Concierge handoff is ready. Inject or enable the external agent from the Lab bar, then retry.';
+        status.classList.toggle('success', Boolean(event.data.opened));
+        completeStep(6, event.data.opened ? 'Concierge opened. Continue to the human-handoff outcome.' : 'Concierge integration point demonstrated; continue to the outcome.');
+      });
+
+      navButtons.forEach(function (button) { button.addEventListener('click', function () { showStep(Number(button.dataset.journeyStep)); }); });
+      document.getElementById('journeyPrev').addEventListener('click', function () { showStep(currentStep - 1); });
+      document.getElementById('journeyNext').addEventListener('click', function () { showStep(currentStep + 1); });
+      showStep(1);
+    })();
+  </script>
+</body>
+</html>
