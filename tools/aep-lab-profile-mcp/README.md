@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.38.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.39.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
 
 ## Focused endpoints for Coworker
 
@@ -15,7 +15,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
-| `/mcp/demo-prep` | 19 | Brand scrape, stable customer asset preview/activation/restore, governed RTDB, and one-shot demo preparation |
+| `/mcp/demo-prep` | 20 | Brand scrape, governed all-in-one customer switching, stable asset restore, RTDB, and one-shot demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
@@ -76,6 +76,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
 | `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
 | `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
+| `lab_demo_customer_switch` | `POST /api/lab/demo-assets` (`action=switch-apply`) | Preferred two-phase switch: preview RTDB plus all five image slots, then one confirmed apply with verification and cross-system rollback |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |

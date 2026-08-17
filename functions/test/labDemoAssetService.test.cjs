@@ -115,10 +115,16 @@ test('preview, apply, inspect and restore preserve stable slots and named revisi
   const d = deps(activeBucket, backupBucket, firestore);
   const oldLogo = await png('#111111');
   const oldHero = await png('#222222');
+  const oldMobileEntry = await png('#333333');
+  const oldMobileExit = await png('#444444');
+  const oldPush = await png('#555555');
   const newLogo = await png('#ff0000');
   const newHero = await png('#00ff00');
   await activeBucket.file('apalmer/library/logo/logo.png').save(oldLogo, { contentType: 'image/png' });
   await activeBucket.file('apalmer/library/hero-banner.png').save(oldHero, { contentType: 'image/png' });
+  await activeBucket.file('apalmer/library/mobile/location_entry.png').save(oldMobileEntry, { contentType: 'image/png' });
+  await activeBucket.file('apalmer/library/mobile/location_exit.png').save(oldMobileExit, { contentType: 'image/png' });
+  await activeBucket.file('apalmer/library/mobile/push-inapp.png').save(oldPush, { contentType: 'image/png' });
   await activeBucket.file('scrapes/apalmer/scrape-1/customer-logo.png').save(newLogo, { contentType: 'image/png' });
   await activeBucket.file('scrape-cache-images/apalmer/scrape-1/hero.png').save(newHero, { contentType: 'image/png' });
 
@@ -133,10 +139,13 @@ test('preview, apply, inspect and restore preserve stable slots and named revisi
   };
   const preview = await service.createPreview({
     uid: 'user-1', workspaceSlug: 'apalmer', sandbox: 'apalmer', record,
-    scrapeId: 'scrape-1', assetPack: 'core', currentCustomerName: 'Old Brand',
+    scrapeId: 'scrape-1', currentCustomerName: 'Old Brand',
   }, d);
   assert.equal(preview.preflightId, 'preview-1');
-  assert.deepEqual(preview.proposed.map((item) => item.relPath), ['logo/logo.png', 'hero-banner.png']);
+  assert.deepEqual(preview.proposed.map((item) => item.relPath), [
+    'logo/logo.png', 'hero-banner.png', 'mobile/location_entry.png',
+    'mobile/location_exit.png', 'mobile/push-inapp.png',
+  ]);
   assert.ok(preview.proposed.every((item) => item.previewUrl.startsWith('https://signed.example/')));
 
   const imageHostingLibrary = {
@@ -175,4 +184,15 @@ test('preview, apply, inspect and restore preserve stable slots and named revisi
   assert.equal(restored.customerName, 'Old Brand');
   assert.deepEqual((await activeBucket.file('apalmer/library/logo/logo.png').download())[0], oldLogo);
   assert.deepEqual((await activeBucket.file('apalmer/library/hero-banner.png').download())[0], oldHero);
+  assert.deepEqual((await activeBucket.file('apalmer/library/mobile/location_entry.png').download())[0], oldMobileEntry);
+  assert.deepEqual((await activeBucket.file('apalmer/library/mobile/location_exit.png').download())[0], oldMobileExit);
+  assert.deepEqual((await activeBucket.file('apalmer/library/mobile/push-inapp.png').download())[0], oldPush);
+
+  const direct = await service.restoreRevisionDirect({
+    uid: 'user-1', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    revisionId: 'revision-new', imageHostingLibrary,
+  }, d);
+  assert.equal(direct.verified, true);
+  assert.equal(direct.customerName, 'New Brand');
+  assert.notDeepEqual((await activeBucket.file('apalmer/library/logo/logo.png').download())[0], oldLogo);
 });

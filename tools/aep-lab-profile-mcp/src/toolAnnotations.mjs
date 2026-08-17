@@ -76,6 +76,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'lab_pdf_server_template_archive',
   'lab_demo_assets_apply',
   'lab_demo_assets_restore',
+  'lab_demo_customer_switch',
 ]);
 
 const IDEMPOTENT_WRITE_TOOLS = new Set([
@@ -83,6 +84,7 @@ const IDEMPOTENT_WRITE_TOOLS = new Set([
   'lab_demo_config_restore',
   'lab_demo_assets_apply',
   'lab_demo_assets_restore',
+  'lab_demo_customer_switch',
   'lab_enable_event_profile',
   'lab_enable_profile',
   'lab_live_activity_save_execution_state',

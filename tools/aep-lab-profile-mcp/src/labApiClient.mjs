@@ -806,6 +806,22 @@ export async function previewDemoAssetsRestore({ sandbox, revision_id }) {
   });
 }
 
+export async function applyDemoCustomerSwitch({ sandbox, asset_preflight_id, config_preflight_id, confirmed, idempotency_key }) {
+  return labApiRequest('/api/lab/demo-assets', {
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: {
+      action: 'switch-apply',
+      sandbox,
+      asset_preflight_id,
+      config_preflight_id,
+      confirmed,
+      idempotency_key,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
 export function snowflakeAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
