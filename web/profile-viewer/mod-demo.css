@@ -71,6 +71,19 @@ html.aep-sim-mobile .mod-demo-site-frame {
   inset: 0;
 }
 
+/* Same reasoning as the top-anchor rule above: this page's own floating
+   env-bar controls (hide/dock button, Brand Concierge + Decisioning
+   midrail quick-panel triggers) are independent, body-level fixed
+   elements outside .mod-demo-top-anchor, so hiding the anchor alone
+   doesn't suppress them. Any persisted "Display mode" preference for BC
+   or Decisioning (shared via storagePrefix across the outer shell and
+   this iframed copy) would otherwise render each one twice. */
+html.aep-sim-mobile body.mod-demo-page .env-bar-dock-btn,
+html.aep-sim-mobile body.mod-demo-page .bcp-panel-anchor,
+html.aep-sim-mobile body.mod-demo-page .dpm-panel-anchor {
+  display: none !important;
+}
+
 /* Hover-reveal identity strip: shared/env-bar-compact.css (all site-clone demos) */
 
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
