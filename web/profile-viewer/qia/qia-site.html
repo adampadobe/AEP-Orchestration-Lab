@@ -227,21 +227,12 @@
       color: #fff;
     }
     .newsletter-intro { max-width: 760px; margin-bottom: 30px; }
-    .newsletter-kicker {
-      margin: 0 0 10px;
-      color: var(--qia-gold);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
     .newsletter-intro h2 {
       margin: 0 0 12px;
       font-size: clamp(30px, 4vw, 46px);
       font-weight: 400;
       line-height: 1.08;
     }
-    .newsletter-intro p { margin: 0; color: rgba(255, 255, 255, 0.82); }
     .newsletter-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(290px, 0.8fr);
@@ -254,7 +245,7 @@
       color: var(--qia-ink);
       box-shadow: 0 18px 45px rgba(51, 5, 33, 0.24);
     }
-    .subscribe-panel { max-width: 480px; margin-top: 24px; }
+    .subscribe-panel { max-width: 640px; margin-top: 24px; }
     .newsletter-demo .journey-steps {
       margin: 0;
       grid-template-columns: 1fr;
@@ -487,8 +478,8 @@
       color: var(--qia-ink);
     }
     fieldset.field { padding: 0; border: 0; }
-    .checks { display: flex; flex-wrap: wrap; gap: 8px; }
-    .check { padding: 8px 10px; display: inline-flex; gap: 6px; border: 1px solid #c9c9c9; background: #fff; font-size: 12px; }
+    .checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .check { padding: 8px 10px; display: flex; align-items: center; gap: 6px; border: 1px solid #c9c9c9; background: #fff; font-size: 12px; }
     .consent { margin: 16px 0; padding: 12px; display: flex; align-items: flex-start; gap: 9px; background: #fff; font-size: 11px; }
     .status {
       min-height: 42px;
@@ -633,9 +624,7 @@
     <section class="newsletter-demo" id="subscriber-journey" aria-labelledby="journeyTitle">
       <div class="container">
         <div class="newsletter-intro">
-          <p class="newsletter-kicker">Campaign orchestration · RT-CDP + AJO</p>
           <h2 id="journeyTitle">Subscribe to QIA Insights</h2>
-          <p>Provide an email address, subscriber type and content interests to create a consented identity and preference signal in RT-CDP.</p>
         </div>
 
         <button class="qia-button" id="subscribeToggle" type="button" aria-expanded="false" aria-controls="subscriberPanel">Sign up for updates</button>
