@@ -254,6 +254,7 @@
       color: var(--qia-ink);
       box-shadow: 0 18px 45px rgba(51, 5, 33, 0.24);
     }
+    .subscribe-panel { max-width: 480px; margin-top: 24px; }
     .newsletter-demo .journey-steps {
       margin: 0;
       grid-template-columns: 1fr;
@@ -292,173 +293,6 @@
       background: var(--qia-gold);
       color: var(--qia-burgundy-dark);
     }
-
-    .use-case-overview {
-      padding: 78px 0;
-      background: #fff;
-    }
-    .overview-heading {
-      max-width: 900px;
-      margin-bottom: 34px;
-    }
-    .overview-badges { margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
-    .use-case-badge, .tech-pill {
-      padding: 7px 11px;
-      border-radius: 99px;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-    .use-case-badge { background: var(--qia-burgundy); color: #fff; }
-    .tech-pill { border: 1px solid #d8c7d2; color: var(--qia-burgundy); background: #fff; }
-    .overview-heading h2 {
-      margin: 0 0 16px;
-      color: var(--qia-burgundy);
-      font-size: clamp(31px, 4vw, 52px);
-      font-weight: 400;
-      line-height: 1.08;
-    }
-    .overview-heading blockquote {
-      margin: 0;
-      padding-left: 20px;
-      border-left: 3px solid var(--qia-gold);
-      color: var(--qia-copy);
-      font-size: clamp(18px, 2vw, 24px);
-    }
-    .overview-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 26px;
-    }
-    .persona-card, .welcome-card {
-      padding: 28px;
-      border: 1px solid var(--qia-line);
-      background: var(--qia-grey);
-    }
-    .persona-top { display: flex; align-items: center; gap: 18px; }
-    .persona-avatar {
-      width: 68px;
-      height: 68px;
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-      border-radius: 50%;
-      background: var(--qia-burgundy);
-      color: #fff;
-      font-size: 24px;
-    }
-    .persona-card h3, .welcome-card h3 { margin: 0; font-size: 25px; font-weight: 400; }
-    .persona-role { margin: 4px 0 0; color: var(--qia-copy); }
-    .persona-tags { margin: 18px 0; display: flex; flex-wrap: wrap; gap: 7px; }
-    .persona-tag { padding: 6px 9px; background: #eadde6; color: var(--qia-burgundy); font-size: 10px; font-weight: 800; }
-    .persona-facts {
-      margin: 0;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-    .persona-facts div { padding-top: 10px; border-top: 1px solid #d8d8d8; }
-    .persona-facts dt { color: var(--qia-copy); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .persona-facts dd { margin: 3px 0 0; font-size: 13px; font-weight: 700; }
-    .persona-framing { margin: 20px 0 0; color: var(--qia-copy); font-size: 13px; }
-    .notification-mock {
-      margin-top: 18px;
-      padding: 18px;
-      border-radius: 14px;
-      background: #fff;
-      box-shadow: 0 8px 24px rgba(23, 25, 28, 0.08);
-    }
-    .notification-app { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: 0.08em; }
-    .notification-mock strong { display: block; margin: 7px 0 5px; font-size: 18px; }
-    .notification-mock p { margin: 2px 0; color: var(--qia-copy); font-size: 13px; }
-    .value-grid { margin-top: 26px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--qia-line); }
-    .value-item { min-height: 120px; padding: 20px; background: #fff; }
-    .value-item span { display: block; margin-bottom: 12px; color: var(--qia-burgundy); font-size: 22px; }
-    .value-item strong { font-size: 14px; }
-    .metric-strip { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--qia-burgundy); color: #fff; }
-    .metric-item { padding: 22px; text-align: center; border-right: 1px solid rgba(255,255,255,.18); }
-    .metric-item:last-child { border-right: 0; }
-    .metric-item strong { display: block; color: var(--qia-gold); font-size: 28px; }
-    .metric-item span { font-size: 11px; }
-    .metric-note { margin: 8px 0 0; color: #777; font-size: 10px; text-align: right; }
-
-    .journey-console {
-      display: grid;
-      grid-template-columns: 290px minmax(0, 1fr);
-      overflow: hidden;
-      background: #fff;
-      color: var(--qia-ink);
-      box-shadow: 0 22px 58px rgba(54, 4, 35, 0.3);
-    }
-    .journey-nav { background: var(--qia-burgundy-dark); color: #fff; }
-    .journey-nav button {
-      width: 100%;
-      min-height: 78px;
-      padding: 14px 18px 14px 58px;
-      position: relative;
-      border: 0;
-      border-bottom: 1px solid rgba(255,255,255,.12);
-      background: transparent;
-      color: rgba(255,255,255,.64);
-      text-align: left;
-    }
-    .journey-nav button::before {
-      content: attr(data-step-label);
-      position: absolute;
-      left: 18px;
-      top: 20px;
-      width: 26px;
-      height: 26px;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(255,255,255,.4);
-      border-radius: 50%;
-      color: #fff;
-      font-size: 10px;
-      font-weight: 800;
-    }
-    .journey-nav button strong { display: block; color: #fff; font-size: 13px; }
-    .journey-nav button small { display: block; margin-top: 3px; font-size: 10px; }
-    .journey-nav button.active { background: rgba(255,255,255,.12); color: #fff; }
-    .journey-nav button.complete::before { content: "✓"; border-color: var(--qia-gold); background: var(--qia-gold); color: var(--qia-burgundy-dark); }
-    .journey-nav .phase-label {
-      padding: 12px 18px;
-      background: rgba(0,0,0,.16);
-      color: var(--qia-gold);
-      font-size: 9px;
-      font-weight: 900;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    .journey-stage { min-width: 0; display: flex; flex-direction: column; }
-    .journey-stage-top {
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      border-bottom: 1px solid var(--qia-line);
-      background: #fbfbfb;
-    }
-    .journey-stage-top strong { color: var(--qia-burgundy); }
-    .journey-progress { color: var(--qia-copy); font-size: 11px; }
-    .journey-scene { min-height: 570px; padding: 34px; }
-    .journey-scene[hidden] { display: none; }
-    .scene-heading { margin-bottom: 24px; display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
-    .scene-heading h3 { margin: 0 0 7px; font-size: clamp(27px, 3vw, 38px); font-weight: 400; }
-    .scene-heading p { max-width: 680px; margin: 0; color: var(--qia-copy); }
-    .scene-phase { padding: 6px 9px; flex: 0 0 auto; background: #eadde6; color: var(--qia-burgundy); font-size: 9px; font-weight: 900; text-transform: uppercase; }
-    .scene-triad { margin-bottom: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--qia-line); }
-    .scene-triad div { min-height: 100px; padding: 16px; background: #fff; }
-    .scene-triad b { display: block; margin-bottom: 7px; color: var(--qia-burgundy); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
-    .scene-triad span { color: var(--qia-copy); font-size: 12px; }
-    .scene-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
-    .scene-card { padding: 22px; border: 1px solid var(--qia-line); background: var(--qia-grey); }
-    .scene-card h4 { margin: 0 0 14px; font-size: 20px; font-weight: 400; }
-    .scene-action-row { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
-    .step-status { margin-top: 14px; padding: 11px 12px; border-left: 3px solid var(--qia-gold); background: #fff; color: var(--qia-copy); font-size: 11px; }
-    .step-status.success { border-left-color: #2f7855; color: #1b5c3d; }
 
     .laptop {
       padding: 14px 14px 8px;
@@ -503,112 +337,6 @@
     .cja-path { margin-top: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
     .cja-path span { padding: 7px 9px; background: #eadde6; color: var(--qia-burgundy); font-size: 9px; font-weight: 800; }
     .cja-path i { color: var(--qia-gold); font-style: normal; }
-    .journey-controls {
-      margin-top: auto;
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      border-top: 1px solid var(--qia-line);
-      background: #fbfbfb;
-    }
-    .journey-control-buttons { display: flex; gap: 8px; }
-    .journey-control { padding: 9px 13px; border: 1px solid var(--qia-line); background: #fff; color: var(--qia-burgundy); font-size: 10px; font-weight: 800; text-transform: uppercase; }
-    .journey-control:disabled { opacity: .35; cursor: default; }
-    .journey-global-status { color: var(--qia-copy); font-size: 11px; }
-    .journey-nav > p {
-      margin: 0;
-      padding: 12px 18px;
-      grid-column: 1 / -1;
-      background: rgba(0,0,0,.16);
-      color: var(--qia-gold);
-      font-size: 9px;
-      font-weight: 900;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    .journey-nav button > span {
-      position: absolute;
-      left: 18px;
-      top: 20px;
-      width: 26px;
-      height: 26px;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(255,255,255,.4);
-      border-radius: 50%;
-      color: #fff;
-      font-size: 10px;
-      font-weight: 800;
-    }
-    .journey-nav button::before { display: none; }
-    .journey-nav button.complete > span { border-color: var(--qia-gold); background: var(--qia-gold); color: var(--qia-burgundy-dark); font-size: 0; }
-    .journey-nav button.complete > span::after { content: "✓"; font-size: 11px; }
-    .journey-stage-top > div b, .journey-stage-top > div span { display: block; }
-    .journey-stage-top > div span { margin-top: 3px; color: var(--qia-copy); font-size: 11px; }
-    .scene-number { float: left; margin: 2px 12px 0 0; color: var(--qia-gold); font-size: 34px; font-weight: 300; }
-    .scene-heading p { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-    .scene-triad small { display: block; margin-bottom: 7px; color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
-    .scene-triad b { color: var(--qia-copy); font-size: 12px; font-weight: 600; letter-spacing: 0; line-height: 1.45; text-transform: none; }
-    .device-laptop {
-      margin: 20px auto 32px;
-      padding: 14px 14px 8px;
-      max-width: 720px;
-      border-radius: 14px 14px 4px 4px;
-      background: #24272c;
-      box-shadow: 0 16px 34px rgba(0,0,0,.18);
-    }
-    .device-laptop::after { content: ""; width: 112%; height: 8px; margin: 8px -6% -15px; display: block; border-radius: 0 0 12px 12px; background: #b7bbc1; }
-    .device-screen { min-height: 260px; padding: 24px; display: grid; place-items: center; background: #f2f2f2; }
-    .device-screen .email-mock { padding: 28px; }
-    .device-screen .email-mock small { color: var(--qia-burgundy); font-weight: 900; }
-    .device-screen .email-mock h4 { margin: 10px 0; color: var(--qia-burgundy); font-size: 25px; font-weight: 400; }
-    .device-screen .email-mock p { color: var(--qia-copy); line-height: 1.55; }
-    .notification-mock small, .notification-mock b, .notification-mock span { display: block; }
-    .notification-mock small { color: var(--qia-burgundy); font-size: 10px; font-weight: 900; letter-spacing: .08em; }
-    .notification-mock b { margin: 7px 0 5px; font-size: 18px; }
-    .notification-mock span { color: var(--qia-copy); font-size: 13px; }
-    .profile-snapshot {
-      padding: 24px;
-      border: 1px solid var(--qia-line);
-      background: var(--qia-grey);
-    }
-    .profile-snapshot > div:first-child { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; }
-    .profile-avatar { width: 52px; height: 52px; display: grid; place-items: center; grid-row: 1 / 3; border-radius: 50%; background: var(--qia-burgundy); color: #fff; }
-    .profile-snapshot h4, .profile-snapshot p { margin: 0; }
-    .profile-snapshot dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--qia-line); }
-    .profile-snapshot dl div { padding: 12px; background: #fff; }
-    .profile-snapshot dt { color: var(--qia-copy); font-size: 9px; text-transform: uppercase; }
-    .profile-snapshot dd { margin: 4px 0 0; color: var(--qia-burgundy); font-size: 12px; font-weight: 800; }
-    .segment-chips { display: flex; flex-wrap: wrap; gap: 7px; }
-    .segment-chips span { padding: 7px 10px; background: #dcecdf; color: #1b5c3d; font-size: 10px; font-weight: 900; }
-    .organic-pivot {
-      padding: 34px;
-      border: 1px solid #d2b66e;
-      background: linear-gradient(135deg, #fffaf0, #fff);
-      text-align: center;
-    }
-    .organic-pivot > small { color: var(--qia-burgundy); font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-    .organic-pivot h4 { max-width: 650px; margin: 12px auto; font-size: clamp(27px, 4vw, 42px); font-weight: 400; line-height: 1.08; }
-    .organic-pivot > div { margin: 24px auto; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .organic-pivot > div span { padding: 8px 11px; border: 1px solid var(--qia-line); background: #fff; font-size: 10px; }
-    .chat-preview .chat-top { margin-bottom: 14px; color: var(--qia-burgundy); font-size: 11px; font-weight: 900; }
-    .chat-message { max-width: 82%; margin: 9px 0; padding: 12px 14px; border-radius: 14px; font-size: 12px; }
-    .chat-message.user { margin-left: auto; background: var(--qia-burgundy); color: #fff; }
-    .chat-message.system { background: #fff; color: var(--qia-copy); }
-    .chat-preview .qia-button { margin-top: 12px; }
-    .concierge-note { padding: 12px; border-left: 3px solid var(--qia-gold); background: #fff8e8; color: #6c5722; font-size: 11px; }
-    .outcome-grid > div { padding: 20px; border: 1px solid var(--qia-line); background: #fff; }
-    .outcome-grid small, .outcome-grid b, .outcome-grid span { display: block; }
-    .outcome-grid small { color: var(--qia-burgundy); font-weight: 900; }
-    .outcome-grid b { margin: 8px 0 5px; font-size: 19px; }
-    .outcome-grid span { color: var(--qia-copy); font-size: 11px; }
-    .cja-path b { color: var(--qia-gold); }
-    .journey-controls > button { padding: 9px 13px; border: 1px solid var(--qia-line); background: #fff; color: var(--qia-burgundy); font-size: 10px; font-weight: 800; text-transform: uppercase; }
-    .journey-controls > button:disabled { opacity: .35; }
-    .journey-controls .status { flex: 1; margin: 0; }
-
     .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
     .feature-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 3px; }
     .feature-card h2 { margin: 18px 0 8px; font-size: 31px; font-weight: 400; }
@@ -796,14 +524,6 @@
       .hero { min-height: 480px; }
       .hero::before { background-position: 44% center; }
       .focus-grid, .history-card, .campaign-grid, .newsletter-grid { grid-template-columns: 1fr; }
-      .overview-grid, .scene-body-grid { grid-template-columns: 1fr; }
-      .value-grid { grid-template-columns: 1fr 1fr; }
-      .journey-console { grid-template-columns: 1fr; }
-      .journey-nav { display: grid; grid-template-columns: repeat(2, 1fr); }
-      .journey-nav .phase-label { grid-column: 1 / -1; }
-      .journey-nav button { min-height: 68px; }
-      .journey-scene { min-height: 0; padding: 26px 20px; }
-      .scene-triad, .outcome-grid { grid-template-columns: 1fr; }
       .news-grid { grid-template-columns: 1fr; }
       .feature-grid { gap: 18px; }
       .footer-main { grid-template-columns: 1fr 1fr; }
@@ -827,11 +547,6 @@
       .footer-col:nth-child(n+4) { display: none; }
       .footer-bottom { flex-direction: column; }
       .campaign-launcher { font-size: 10px; }
-      .persona-facts, .value-grid, .metric-strip, .journey-nav { grid-template-columns: 1fr; }
-      .metric-item { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.18); }
-      .scene-heading, .journey-stage-top, .journey-controls { align-items: flex-start; flex-direction: column; }
-      .journey-control-buttons { width: 100%; }
-      .journey-control { flex: 1; }
       .laptop-screen { min-height: 260px; padding: 10px; }
     }
   </style>
@@ -850,9 +565,9 @@
         <a href="#news">Newsroom</a>
         <a href="https://www.qia.qa/en/Careers/Pages/default.aspx" target="_blank" rel="noopener">Careers</a>
         <a href="#contact">Contact Us</a>
-        <a class="nav-subscribe" href="#subscriber-journey">Demo journey</a>
+        <a class="nav-subscribe" href="#subscriber-journey">Subscribe</a>
       </nav>
-      <a class="mobile-menu" href="#subscriber-journey" aria-label="Open subscriber journey">✉</a>
+      <a class="mobile-menu" href="#subscriber-journey" aria-label="Open subscribe form">✉</a>
     </div>
   </header>
 
@@ -883,72 +598,11 @@
         </div>
         <div class="focus-media">
           <img src="assets/focus-poster.jpg" alt="Doha skyline across the water">
-          <a class="play-button" href="#subscriber-journey" aria-label="Open subscriber-to-self-serve demonstration">▶</a>
+          <a class="play-button" href="#subscriber-journey" aria-label="Open the subscribe form">▶</a>
         </div>
       </div>
     </section>
 
-    <section class="use-case-overview" id="demo-overview" aria-labelledby="demoOverviewTitle">
-      <div class="container">
-        <div class="overview-heading">
-          <div class="overview-badges">
-            <span class="use-case-badge">Acquisition</span>
-            <span class="tech-pill">Real-Time CDP</span>
-            <span class="tech-pill">Journey Optimizer</span>
-            <span class="tech-pill">Brand Concierge</span>
-            <span class="tech-pill">AEM + Target · Future phase</span>
-          </div>
-          <h2 id="demoOverviewTitle">Subscriber to self-serve</h2>
-          <blockquote>“I want every QIA stakeholder who subscribes to our updates to move seamlessly from newsletters to real-time, self-served answers — without ever losing the thread of who they are.”</blockquote>
-        </div>
-
-        <div class="overview-grid">
-          <article class="persona-card">
-            <div class="persona-top">
-              <div class="persona-avatar" aria-hidden="true">EM</div>
-              <div>
-                <h3>Elena Marsh</h3>
-                <p class="persona-role">Senior Analyst · institutional stakeholder · London, UK</p>
-              </div>
-            </div>
-            <div class="persona-tags"><span class="persona-tag">Investor</span><span class="persona-tag">High-intent</span><span class="persona-tag">Returning</span></div>
-            <dl class="persona-facts">
-              <div><dt>Device</dt><dd>MacBook Pro</dd></div>
-              <div><dt>Segment</dt><dd>Institutional Investor</dd></div>
-              <div><dt>Engagement</dt><dd>3 site visits</dd></div>
-              <div><dt>Tenure</dt><dd>45 days subscribed</dd></div>
-            </dl>
-            <p class="persona-framing">A returning institutional analyst tracking QIA’s portfolio — follow how RT-CDP, AJO and an externally injected Brand Concierge turn her newsletter subscription into a self-served, human-backed relationship.</p>
-          </article>
-
-          <article class="welcome-card">
-            <h3>Welcome moment</h3>
-            <p class="persona-role">A concise AJO-style notification confirms Elena’s subscription and creates the first warm touchpoint.</p>
-            <div class="notification-mock" aria-label="Welcome notification mockup">
-              <span class="notification-app">QIA UPDATES</span>
-              <strong>Welcome to QIA Insights</strong>
-              <p>Your subscription is live</p>
-              <p>Explore your first briefing</p>
-            </div>
-          </article>
-        </div>
-
-        <div class="value-grid" aria-label="Business value">
-          <div class="value-item"><span>01</span><strong>Cold sign-up becomes a warm relationship</strong></div>
-          <div class="value-item"><span>02</span><strong>Newsletters and events orchestrated as one journey</strong></div>
-          <div class="value-item"><span>03</span><strong>Self-serve answers without losing context</strong></div>
-          <div class="value-item"><span>04</span><strong>Every touchpoint feeds one unified profile</strong></div>
-        </div>
-
-        <div class="metric-strip" aria-label="QIA context metrics">
-          <div class="metric-item"><strong>~$600B*</strong><span>Assets under management</span></div>
-          <div class="metric-item"><strong>66+</strong><span>Nationalities represented</span></div>
-          <div class="metric-item"><strong>2005</strong><span>Founded · Doha headquarters</span></div>
-        </div>
-        <p class="metric-note">*Presenter-provided demo context; QIA’s referenced public pages do not publish a current AUM figure.</p>
-        <p class="metric-note">AEM and Adobe Target are shown as a phased personalization opportunity, not as a live QIA implementation.</p>
-      </div>
-    </section>
 
     <section class="section section--white" id="news">
       <div class="container">
@@ -979,111 +633,27 @@
     <section class="newsletter-demo" id="subscriber-journey" aria-labelledby="journeyTitle">
       <div class="container">
         <div class="newsletter-intro">
-          <p class="newsletter-kicker">QIA Demo Flow · Subscriber to Self-Serve · Mock data</p>
-          <h2 id="journeyTitle">Follow Elena from cold sign-up to a warm, self-served relationship</h2>
-          <p>A single presenter-led story shows how consented signals become an RT-CDP profile, an AJO journey and—when Elena returns on her own terms—a customer-initiated Concierge handoff.</p>
+          <p class="newsletter-kicker">Campaign orchestration · RT-CDP + AJO</p>
+          <h2 id="journeyTitle">Subscribe to QIA Insights</h2>
+          <p>Provide an email address, subscriber type and content interests to create a consented identity and preference signal in RT-CDP.</p>
         </div>
 
-        <div class="journey-console">
-          <nav class="journey-nav" aria-label="Seven-step customer journey">
-            <p>Campaign orchestration · RT-CDP + AJO</p>
-            <button class="active" type="button" data-journey-step="1"><span>01</span>Discovers &amp; subscribes</button>
-            <button type="button" data-journey-step="2"><span>02</span>Welcome journey</button>
-            <button type="button" data-journey-step="3"><span>03</span>Segment assigned</button>
-            <button type="button" data-journey-step="4"><span>04</span>Event invited</button>
-            <p>The narrative pivot</p>
-            <button type="button" data-journey-step="5"><span>05</span>Returns organically</button>
-            <p>Self-serve · External Concierge</p>
-            <button type="button" data-journey-step="6"><span>06</span>Asks Concierge</button>
-            <button type="button" data-journey-step="7"><span>07</span>Escalates &amp; measured</button>
-          </nav>
+        <button class="qia-button" id="subscribeToggle" type="button" aria-expanded="false" aria-controls="subscriberPanel">Sign up for updates</button>
 
-          <div class="journey-stage">
-            <div class="journey-stage-top">
-              <div><b>Elena Marsh</b><span>Senior Analyst · Institutional stakeholder · London</span></div>
-              <strong id="journeyProgress">Step 1 of 7</strong>
-            </div>
-
-            <article class="journey-scene" data-journey-panel="1">
-              <div class="scene-heading"><div><span class="scene-number">01</span><p>Campaign orchestration</p><h3>Discovers &amp; subscribes</h3></div><span class="mock-badge">Background + data</span></div>
-              <div class="scene-triad">
-                <div><small>Customer action</small><b>Elena finds qia.qa via search and chooses the updates relevant to her role.</b></div>
-                <div><small>System response</small><b>RT-CDP captures a consented identity and preference signal.</b></div>
-                <div><small>Outcome</small><b>A cold visit becomes the start of a known relationship.</b></div>
-              </div>
-              <form class="campaign-card" id="subscriberForm">
-                <header><h2>QIA Insights preferences</h2><span class="mock-badge">Elena · Mock persona</span></header>
-                <div class="field"><label for="subscriberEmail">Email address</label><input id="subscriberEmail" type="email" value="elena.marsh@example.com" required></div>
-                <div class="field"><label for="subscriberType">Subscriber type</label><select id="subscriberType"><option>Institutional stakeholder</option><option>Market observer</option><option>Media professional</option><option>Prospective talent</option></select></div>
-                <fieldset class="field"><legend>Content interests</legend><div class="checks">
-                  <label class="check"><input type="checkbox" name="interest" value="Portfolio" checked> Portfolio</label>
-                  <label class="check"><input type="checkbox" name="interest" value="Responsible investment" checked> Responsible investment</label>
-                  <label class="check"><input type="checkbox" name="interest" value="Qatar ecosystem" checked> Qatar ecosystem</label>
-                </div></fieldset>
-                <label class="consent"><input id="marketingConsent" type="checkbox" checked required><span>I agree to receive my selected email updates and understand I can withdraw this preference. <b>Demo consent copy.</b></span></label>
-                <button class="qia-button" type="submit">Subscribe and start journey</button>
-                <div class="status" id="step1Status" role="status">Ready to create Elena’s consented preference signal.</div>
-              </form>
-            </article>
-
-            <article class="journey-scene" data-journey-panel="2" hidden>
-              <div class="scene-heading"><div><span class="scene-number">02</span><p>Journey Optimizer</p><h3>Welcome journey</h3></div><span class="mock-badge">Laptop · Email</span></div>
-              <div class="scene-triad"><div><small>Customer action</small><b>Elena opens the welcome email.</b></div><div><small>System response</small><b>AJO delivers her tailored welcome brief.</b></div><div><small>Outcome</small><b>Her interests and channel preferences are confirmed.</b></div></div>
-              <div class="device-laptop"><div class="device-screen"><div class="email-mock"><small>QIA UPDATES · MOCK EMAIL</small><h4>Welcome to QIA Insights</h4><p>Your subscription is live. Explore a briefing shaped around portfolio, responsible investment and Qatar ecosystem updates.</p><button class="qia-button" id="openWelcome" type="button">Open first briefing</button></div></div></div>
-              <div class="notification-mock"><small>QIA UPDATES</small><b>Welcome to QIA Insights</b><span>Your subscription is live · Explore your first briefing</span></div>
-              <div class="status" id="step2Status" role="status">Ready to record Elena’s welcome-email engagement.</div>
-            </article>
-
-            <article class="journey-scene" data-journey-panel="3" hidden>
-              <div class="scene-heading"><div><span class="scene-number">03</span><p>Real-Time CDP</p><h3>Segment assigned</h3></div><span class="mock-badge">Unified profile</span></div>
-              <div class="scene-triad"><div><small>Customer action</small><b>Elena’s engagement signals intent.</b></div><div><small>System response</small><b>RT-CDP qualifies her for the Institutional Investor audience.</b></div><div><small>Outcome</small><b>Generic mailers give way to relevant content.</b></div></div>
-              <div class="profile-snapshot">
-                <div><span class="profile-avatar">EM</span><h4>Elena Marsh</h4><p>Senior Analyst · London, UK</p></div>
-                <dl><div><dt>Segment</dt><dd>Institutional Investor</dd></div><div><dt>Engagement</dt><dd>3 site visits</dd></div><div><dt>Tenure</dt><dd>45 days</dd></div><div><dt>Consent</dt><dd>Email · Opted in</dd></div></dl>
-                <div class="segment-chips"><span>Investor</span><span>High-Intent</span><span>Returning</span></div>
-                <button class="qia-button" id="viewProfile" type="button">Open unified Profile Viewer</button>
-              </div>
-              <div class="status" id="step3Status" role="status">Mock profile is ready for inspection.</div>
-            </article>
-
-            <article class="journey-scene" data-journey-panel="4" hidden>
-              <div class="scene-heading"><div><span class="scene-number">04</span><p>Journey Optimizer + CJA</p><h3>Event invited</h3></div><span class="mock-badge">Laptop · Email</span></div>
-              <div class="scene-triad"><div><small>Customer action</small><b>Elena opens an event invitation.</b></div><div><small>System response</small><b>AJO sends the eligible sequence with consent and suppression applied.</b></div><div><small>Outcome</small><b>Her engagement is available for journey measurement.</b></div></div>
-              <div class="device-laptop"><div class="device-screen"><div class="email-mock"><small>QIA UPDATES · FICTIONAL DEMO EVENT</small><h4>QIA Global Investor Forum</h4><p>A briefing for institutional stakeholders exploring long-term investment themes and regional opportunity.</p><button class="qia-button" id="openEventInvite" type="button">View event invitation</button></div></div></div>
-              <p class="compliance"><b>Governance:</b> explicit email consent required; withdrawals, invalid addresses and frequency caps suppressed. Event and audience data shown here are fictional.</p>
-              <div class="status" id="step4Status" role="status">Ready to log the invitation engagement to the demo journey.</div>
-            </article>
-
-            <article class="journey-scene" data-journey-panel="5" hidden>
-              <div class="scene-heading"><div><span class="scene-number">05</span><p>The narrative hinge</p><h3>Returns organically</h3></div><span class="mock-badge">Direct visit · No campaign</span></div>
-              <div class="scene-triad"><div><small>Customer action</small><b>Weeks later, Elena types the site address and returns directly.</b></div><div><small>System response</small><b>RT-CDP recognizes the returning profile and its consented context.</b></div><div><small>Outcome</small><b>Her own interest—not an outbound campaign—starts the next moment.</b></div></div>
-              <div class="organic-pivot"><small>Pause here</small><h4>Nothing brought Elena back except her own interest.</h4><p>This is the pivot from orchestrated outreach to self-service, on her terms.</p><div><span>Direct web visit</span><b>→</b><span>Identity recognized</span><b>→</b><span>Known context</span></div><button class="qia-button" id="recordOrganicReturn" type="button">Recognize organic return</button></div>
-              <div class="status" id="step5Status" role="status">Ready to record a campaign-free return signal.</div>
-            </article>
-
-            <article class="journey-scene" data-journey-panel="6" hidden>
-              <div class="scene-heading"><div><span class="scene-number">06</span><p>Customer-initiated self-service</p><h3>Asks Concierge</h3></div><span class="mock-badge">External agent handoff</span></div>
-              <div class="scene-triad"><div><small>Customer action</small><b>Elena opens the Concierge and asks about QIA’s portfolio.</b></div><div><small>System response</small><b>The separately trained informational agent receives her question.</b></div><div><small>Outcome</small><b>A self-serve intent signal can enrich the demo profile.</b></div></div>
-              <div class="chat-preview"><div class="chat-top">Brand Concierge · Public information assistant</div><div class="chat-message user">What are the main areas of QIA’s portfolio?</div><div class="chat-message system">The live response comes from the external Concierge injected through the Lab bar. This page does not train an agent or connect to internal QIA systems.</div><button class="qia-button" id="openConcierge" type="button">Open external Concierge</button></div>
-              <p class="concierge-note"><b>Customer initiated:</b> QIA does not message Elena here. She opens the assistant and asks. Only mock demo signals are sent by this experience.</p>
-              <div class="status" id="conciergeStatus" role="status">Ready to hand off to the externally configured Concierge.</div>
-            </article>
-
-            <article class="journey-scene" data-journey-panel="7" hidden>
-              <div class="scene-heading"><div><span class="scene-number">07</span><p>Human handoff + measurement</p><h3>Escalates &amp; measured</h3></div><span class="mock-badge">Outcome</span></div>
-              <div class="scene-triad"><div><small>Customer action</small><b>Elena asks to speak with the QIA team.</b></div><div><small>System response</small><b>The demo routes a consent-aware request to a representative.</b></div><div><small>Outcome</small><b>CJA can show the full path from subscription to self-service.</b></div></div>
-              <div class="outcome-grid"><div><small>01 · Acquire</small><b>Consented subscriber</b><span>Email preferences retained</span></div><div><small>02 · Serve</small><b>Customer-led question</b><span>Context carried forward</span></div><div><small>03 · Assist</small><b>Human handoff</b><span>Relationship stays connected</span></div></div>
-              <div class="cja-path"><span>Search</span><b>→</b><span>Subscribe</span><b>→</b><span>Welcome</span><b>→</b><span>Event</span><b>→</b><span>Organic return</span><b>→</b><span>Concierge</span><b>→</b><span>Representative</span></div>
-              <button class="qia-button" id="recordMeetingRequest" type="button">Record mock meeting request</button>
-              <div class="status" id="step7Status" role="status">Ready to complete Elena’s measured journey.</div>
-            </article>
-
-            <div class="journey-controls">
-              <button id="journeyPrev" type="button">← Previous</button>
-              <div class="status" id="journeyGlobalStatus" role="status">Begin with Elena’s newsletter subscription.</div>
-              <button id="journeyNext" type="button">Next →</button>
-            </div>
-          </div>
+        <div class="subscribe-panel" id="subscriberPanel" hidden>
+          <form class="campaign-card" id="subscriberForm">
+            <header><h2>QIA Insights preferences</h2></header>
+            <div class="field"><label for="subscriberEmail">Email address</label><input id="subscriberEmail" type="email" value="elena.marsh@example.com" required></div>
+            <div class="field"><label for="subscriberType">Subscriber type</label><select id="subscriberType"><option>Institutional stakeholder</option><option>Market observer</option><option>Media professional</option><option>Prospective talent</option></select></div>
+            <fieldset class="field"><legend>Content interests</legend><div class="checks">
+              <label class="check"><input type="checkbox" name="interest" value="Portfolio" checked> Portfolio</label>
+              <label class="check"><input type="checkbox" name="interest" value="Responsible investment" checked> Responsible investment</label>
+              <label class="check"><input type="checkbox" name="interest" value="Qatar ecosystem" checked> Qatar ecosystem</label>
+            </div></fieldset>
+            <label class="consent"><input id="marketingConsent" type="checkbox" checked required><span>I agree to receive my selected email updates and understand I can withdraw this preference. <b>Demo consent copy.</b></span></label>
+            <button class="qia-button" type="submit">Subscribe</button>
+            <div class="status" id="step1Status" role="status">Ready to create a consented preference signal.</div>
+          </form>
         </div>
       </div>
     </section>
@@ -1147,40 +717,15 @@
 
   <script>
     (function () {
-      var currentStep = 1;
-      var completedStep = 0;
-      var navButtons = [].slice.call(document.querySelectorAll('[data-journey-step]'));
-      var panels = [].slice.call(document.querySelectorAll('[data-journey-panel]'));
-      var globalStatus = document.getElementById('journeyGlobalStatus');
+      var toggle = document.getElementById('subscribeToggle');
+      var panel = document.getElementById('subscriberPanel');
 
-      function showStep(step) {
-        currentStep = Math.max(1, Math.min(7, step));
-        panels.forEach(function (panel) { panel.hidden = Number(panel.dataset.journeyPanel) !== currentStep; });
-        navButtons.forEach(function (button) {
-          var number = Number(button.dataset.journeyStep);
-          button.classList.toggle('active', number === currentStep);
-          button.classList.toggle('complete', number <= completedStep);
-          button.setAttribute('aria-current', number === currentStep ? 'step' : 'false');
-        });
-        document.getElementById('journeyProgress').textContent = 'Step ' + currentStep + ' of 7';
-        document.getElementById('journeyPrev').disabled = currentStep === 1;
-        document.getElementById('journeyNext').disabled = currentStep === 7;
-      }
-
-      function completeStep(step, message) {
-        completedStep = Math.max(completedStep, step);
-        globalStatus.textContent = message;
-        globalStatus.classList.add('success');
-        showStep(Math.min(7, step + 1));
-      }
-
-      function sendExperience(eventType, viewName, publicData) {
-        parent.postMessage({ source: 'qia-demo-site', type: 'experience', payload: {
-          eventType: eventType,
-          viewName: viewName,
-          public: Object.assign({ persona: 'Elena Marsh', mockData: true }, publicData || {})
-        } }, '*');
-      }
+      toggle.addEventListener('click', function () {
+        panel.hidden = false;
+        toggle.hidden = true;
+        toggle.setAttribute('aria-expanded', 'true');
+        document.getElementById('subscriberEmail').focus();
+      });
 
       document.getElementById('subscriberForm').addEventListener('submit', function (event) {
         event.preventDefault();
@@ -1192,75 +737,20 @@
           return;
         }
         parent.postMessage({ source: 'qia-demo-site', type: 'set-identifier', identifier: email }, '*');
-        sendExperience('qia.demo.subscription.preferenceSubmit', 'QIA Insights preferences', {
-          subscriberType: document.getElementById('subscriberType').value,
-          interests: interests,
-          marketingConsent: true,
-          consentSource: 'qia-public-site-demo'
-        });
-        document.getElementById('step1Status').textContent = 'Consent and preference signal created for Elena.';
+        parent.postMessage({ source: 'qia-demo-site', type: 'experience', payload: {
+          eventType: 'qia.demo.subscription.preferenceSubmit',
+          viewName: 'QIA Insights preferences',
+          public: {
+            mockData: true,
+            subscriberType: document.getElementById('subscriberType').value,
+            interests: interests,
+            marketingConsent: true,
+            consentSource: 'qia-public-site-demo'
+          }
+        } }, '*');
+        document.getElementById('step1Status').textContent = 'Consent and preference signal created.';
         document.getElementById('step1Status').classList.add('success');
-        window.setTimeout(function () { completeStep(1, 'Elena is subscribed. AJO can now deliver the welcome moment.'); }, 300);
       });
-
-      document.getElementById('openWelcome').addEventListener('click', function () {
-        sendExperience('qia.demo.welcome.open', 'Welcome to QIA Insights', { channel: 'email', ajoMoment: true });
-        document.getElementById('step2Status').textContent = 'Welcome engagement recorded; preferences confirmed.';
-        document.getElementById('step2Status').classList.add('success');
-        completeStep(2, 'Welcome opened. RT-CDP can evaluate Elena’s audience membership.');
-      });
-
-      document.getElementById('viewProfile').addEventListener('click', function () {
-        var email = document.getElementById('subscriberEmail').value.trim();
-        parent.postMessage({ source: 'qia-demo-site', type: 'profile-request', identifier: email }, '*');
-        sendExperience('qia.demo.segment.assigned', 'Institutional Investor audience', { segment: 'Institutional Investor', tags: ['Investor', 'High-Intent', 'Returning'] });
-        document.getElementById('step3Status').textContent = 'Profile Viewer requested and audience qualification recorded.';
-        document.getElementById('step3Status').classList.add('success');
-        completeStep(3, 'Elena is in the Institutional Investor audience. The next eligible event journey is ready.');
-      });
-
-      document.getElementById('openEventInvite').addEventListener('click', function () {
-        sendExperience('qia.demo.event.invite.open', 'QIA Global Investor Forum', { channel: 'email', consentRequired: true, cjaLogged: true, fictionalEvent: true });
-        document.getElementById('step4Status').textContent = 'Mock invitation engagement recorded with governance context.';
-        document.getElementById('step4Status').classList.add('success');
-        completeStep(4, 'Event engagement logged. Now pause: Elena’s next visit is entirely organic.');
-      });
-
-      document.getElementById('recordOrganicReturn').addEventListener('click', function () {
-        sendExperience('qia.demo.organic.return', 'QIA public site direct return', { channel: 'web', campaignSource: 'none', recognition: 'returning-subscriber' });
-        document.getElementById('step5Status').textContent = 'Direct return recognized without campaign attribution.';
-        document.getElementById('step5Status').classList.add('success');
-        completeStep(5, 'Organic return recognized. The story now moves from outreach to customer-led self-service.');
-      });
-
-      document.getElementById('openConcierge').addEventListener('click', function () {
-        sendExperience('qia.demo.concierge.open', 'Brand Concierge handoff', { customerInitiated: true, question: 'What are the main areas of QIA’s portfolio?' });
-        parent.postMessage({ source: 'qia-demo-site', type: 'open-brand-concierge' }, '*');
-      });
-
-      document.getElementById('recordMeetingRequest').addEventListener('click', function () {
-        sendExperience('qia.demo.concierge.meetingRequest', 'Representative handoff', { customerInitiated: true, outcome: 'representative-handoff', cjaMeasured: true });
-        completedStep = 7;
-        document.getElementById('step7Status').textContent = 'Journey complete: mock representative request and measurement event recorded.';
-        document.getElementById('step7Status').classList.add('success');
-        globalStatus.textContent = 'Complete: subscription, orchestration, organic return, self-service and human handoff remain connected.';
-        showStep(7);
-      });
-
-      window.addEventListener('message', function (event) {
-        if (!event.data || event.data.source !== 'qia-demo-shell' || event.data.type !== 'brand-concierge-status') return;
-        var status = document.getElementById('conciergeStatus');
-        status.textContent = event.data.opened
-          ? 'External Concierge opened. Elena’s customer-initiated question is ready for the live demonstration.'
-          : 'Concierge handoff is ready. Inject or enable the external agent from the Lab bar, then retry.';
-        status.classList.toggle('success', Boolean(event.data.opened));
-        completeStep(6, event.data.opened ? 'Concierge opened. Continue to the human-handoff outcome.' : 'Concierge integration point demonstrated; continue to the outcome.');
-      });
-
-      navButtons.forEach(function (button) { button.addEventListener('click', function () { showStep(Number(button.dataset.journeyStep)); }); });
-      document.getElementById('journeyPrev').addEventListener('click', function () { showStep(currentStep - 1); });
-      document.getElementById('journeyNext').addEventListener('click', function () { showStep(currentStep + 1); });
-      showStep(1);
     })();
   </script>
 </body>
