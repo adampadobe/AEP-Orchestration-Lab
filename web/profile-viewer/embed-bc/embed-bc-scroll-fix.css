@@ -1,14 +1,35 @@
 /*
- * Modal only: keep scroll inside BC chat history, not the dialog shell.
- * Do not style #brand-concierge-mount > * — BC injects a <style> child and
- * display:flex on it can render token CSS as visible page text.
+ * Keep scroll inside BC chat history, not the dialog/page shell, in every
+ * display mode — not just Modal. Do not style #brand-concierge-mount > * —
+ * BC injects a <style> child and display:flex on it can render token CSS as
+ * visible page text.
  */
 .aep-bc-modal .aep-bc-modal__dialog {
   overflow: hidden;
 }
 
-.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
-.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
+#brand-concierge-mount .brand-concierge-container,
+#bcBottomDockMount .brand-concierge-container,
+#bcModalBarMount .brand-concierge-container,
+#siteCloneBcModalMount .brand-concierge-container,
+#siteCloneBcFrameMount .brand-concierge-container {
   overflow-y: auto !important;
   overscroll-behavior: contain;
+}
+
+/*
+ * BC's own .input-section is `position: sticky` in Modal mode but plain
+ * `position: static` in Centre bottom (bc-bottom-dock) and Modal bar mode —
+ * meaning the prompt bar sinks further down the scrollable history with
+ * every reply instead of staying pinned, until it's no longer reachable
+ * without scrolling all the way to the true bottom. Pin it everywhere.
+ */
+#brand-concierge-mount .brand-concierge-container .input-section,
+#bcBottomDockMount .brand-concierge-container .input-section,
+#bcModalBarMount .brand-concierge-container .input-section,
+#siteCloneBcModalMount .brand-concierge-container .input-section,
+#siteCloneBcFrameMount .brand-concierge-container .input-section {
+  position: sticky !important;
+  bottom: 0;
+  z-index: 5;
 }

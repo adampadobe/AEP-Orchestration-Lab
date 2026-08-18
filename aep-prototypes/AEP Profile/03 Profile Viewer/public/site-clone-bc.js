@@ -1270,14 +1270,14 @@
     if (parentCoreReady) return parentCoreReady;
     parentCoreReady = (async function () {
       prepareEmbedBcRuntime(global);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared');
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'sharedDisclaimer');
       loadStylesheet(
         resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-modal-prompt-transparent',
         'promptFlatten',
       );
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260818-bc-scroll-all-modes', 'sharedScrollFix');
       if (shouldUseLocalArmyBcCatalog(global)) {
-        loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared');
+        loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'sharedLocalFallback');
       }
 
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), global, document);
@@ -1324,7 +1324,7 @@
     iframeCoreReady = (async function () {
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260818-bc-scroll-all-modes', 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
@@ -1457,8 +1457,8 @@
     setSnapshotInjectedLayout(doc, !fullscreen);
     teardownIframeInlineSection(doc);
 
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'sharedDisclaimer');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260818-bc-scroll-all-modes', 'sharedScrollFix');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline');
     ensureBcCardImageStyles(document);
 

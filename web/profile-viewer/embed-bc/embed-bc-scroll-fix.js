@@ -4,7 +4,12 @@
  * replies — that leaves a large empty gap above the input.
  */
 (function () {
-  var MOUNT = '#brand-concierge-mount';
+  // Every real BC mount point (site-clone-bc.js mounts Adobe's bundle into
+  // whichever of these matches the active display mode) — not just Modal's
+  // #brand-concierge-mount, or this redirect silently never engages in
+  // Centre bottom / Modal bar mode.
+  var MOUNT =
+    '#brand-concierge-mount, #bcBottomDockMount, #bcModalBarMount, #siteCloneBcModalMount, #siteCloneBcFrameMount';
 
   function getChatHistory(mount) {
     if (!mount) return null;
