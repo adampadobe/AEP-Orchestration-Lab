@@ -248,10 +248,17 @@
     ev.preventDefault();
     ev.stopPropagation();
     collectDroppedFiles(dt).then(function (files) {
-      files.forEach(function (file) {
-        readFileAsText(file).then(function (text) {
-          ingestFileText(file.name, text);
-        });
+      if (files.length) showToast('Reading ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…', 'busy');
+      return Promise.all(
+        files.map(function (file) {
+          return readFileAsText(file).then(function (text) {
+            ingestFileText(file.name, text);
+          });
+        }),
+      ).then(function () {
+        // Train immediately on upload rather than waiting for the first question, so
+        // there's a clear, immediate "received → training → ready" signal to watch for.
+        if (files.length) void ensureTrained();
       });
     });
   }
@@ -365,7 +372,9 @@
           });
         }),
       ).then(function () {
-        if (files.length) showToast('Added to Gemini training — ask a question to train', 'ok', 4000);
+        // Train immediately on upload rather than waiting for the first question, so
+        // there's a clear, immediate "received → training → ready" signal to watch for.
+        if (files.length) void ensureTrained();
       });
       pickerInput.value = '';
     });
