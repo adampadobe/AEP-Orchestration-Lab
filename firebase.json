@@ -138,6 +138,20 @@
         }
       },
       {
+        "source": "/api/bc-gemini-prep-train",
+        "function": {
+          "functionId": "bcGeminiPrepTrain",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/bc-gemini-prep-export",
+        "function": {
+          "functionId": "bcGeminiPrepExport",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/scrapes/**",
         "function": {
           "functionId": "brandScraperScrapes",
