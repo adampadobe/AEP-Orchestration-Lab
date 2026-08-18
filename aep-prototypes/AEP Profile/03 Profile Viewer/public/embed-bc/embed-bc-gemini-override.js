@@ -652,6 +652,15 @@
     window.adobe.concierge.bootstrap.__embedBcGeminiPatched = true;
   }
 
+  function isPatched() {
+    // Alloy itself getting wrapped is what actually matters — patching bootstrap alone isn't
+    // sufficient proof, since there's a real race between Adobe defining bootstrap() and
+    // site-clone-bc.js calling it for the first time (the patch can miss that window).
+    // wrapAlloy('alloy') is called every poll tick regardless of whether bootstrap got
+    // patched in time, so this is the reliable signal that interception is actually live.
+    return !!(window.alloy && window.alloy.__embedBcGeminiWrapped);
+  }
+
   function init() {
     patchBootstrap();
     wrapAlloy('alloy');
@@ -659,4 +668,24 @@
 
   init();
   document.addEventListener('DOMContentLoaded', init);
+
+  /* This script now loads eagerly at page load (see site-clone-bc.js) so drag/drop and the
+     Train-LLM button are available immediately — but that means window.adobe.concierge and
+     window.alloy don't exist yet at this point (Adobe's real bundle only creates them once
+     Brand Concierge is actually bootstrapped, which happens later, lazily, when the user
+     opens the chat). A one-shot init() here would silently never patch anything. Keep
+     retrying until Adobe's bootstrap function actually exists and gets patched, or the demo
+     page has clearly been open long enough that BC was never going to load. */
+  var initPollAttempts = 0;
+  var initPollInterval = setInterval(function () {
+    initPollAttempts++;
+    if (isPatched()) {
+      clearInterval(initPollInterval);
+      return;
+    }
+    init();
+    if (isPatched() || initPollAttempts > 600) {
+      clearInterval(initPollInterval);
+    }
+  }, 500);
 })();
