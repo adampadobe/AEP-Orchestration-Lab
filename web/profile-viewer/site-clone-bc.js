@@ -1541,7 +1541,7 @@
   async function loadModalAssets() {
     loadStylesheet(
       resolveAssetUrl(BASE + 'brand-concierge-bottom-dock/brand-concierge-bottom-dock.css') +
-        '?v=20260614-modal-dock-parity',
+        '?v=20260818-bc-typing-maxheight-fix',
       'modal-dock',
     );
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260615-modal-header-compact', 'modal');

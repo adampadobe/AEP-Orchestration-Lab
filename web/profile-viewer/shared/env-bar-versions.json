@@ -20,7 +20,7 @@
     "siteCloneBcEnv": "20260721-cross-tab-bc-restore",
     "siteCloneBcChrome": "20260614-modal-dock-parity",
     "siteCloneBc": "20260625-bc-incognito-sync-skip",
-    "bottomDockCss": "20260614-modal-dock-parity",
+    "bottomDockCss": "20260818-bc-typing-maxheight-fix",
     "bottomDockJs": "20260614-modal-dock-parity",
     "bottomDockBoot": "20260614-modal-dock-parity",
     "modalBarCss": "20260617-modal-bar-v8",

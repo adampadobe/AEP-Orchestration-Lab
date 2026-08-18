@@ -213,7 +213,20 @@
 .bc-bottom-dock.is-expanded.bc-bottom-dock--typing .bc-bottom-dock__panel-body,
 .bc-bottom-dock.is-expanded.bc-bottom-dock--typing .bc-bottom-dock__mount {
   min-height: 1000px;
-  max-height: none;
+  /*
+   * Must stay bounded (never `none`) — this uncaps once the "typing" class
+   * gets stuck on (it's only cleared by a native `input` event firing with
+   * an empty value, which BC's own programmatic clear-after-send does not
+   * trigger, so it stays applied for the rest of the conversation). Without
+   * a ceiling, .brand-concierge-container grows to fit all history instead
+   * of scrolling internally, pushing the real overflow onto the outer
+   * `overflow: hidden` .bc-bottom-dock__panel — where it becomes completely
+   * unreachable, no scrollbar, no wheel, nothing. Stay comfortably under
+   * .bc-bottom-dock__panel's own `min(92vh, 1180px)` cap so its header/
+   * footer/border always have room and .bc-bottom-dock__panel-body's own
+   * `overflow: auto` keeps doing the scrolling.
+   */
+  max-height: min(78vh, 1060px);
 }
 
 .bc-bottom-dock__panel-body {
