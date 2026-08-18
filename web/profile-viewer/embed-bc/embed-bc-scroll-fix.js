@@ -1,7 +1,19 @@
 /**
  * Keep BC results visible: prevent focus on the input from scrolling the
- * page/modal down to the prompt bar. Do not reposition chat history after
- * replies — that leaves a large empty gap above the input.
+ * page/modal down to the prompt bar, and snap the chat history to its true
+ * bottom whenever BC reveals a new turn — same behaviour as any normal chat
+ * UI (newest reply fully visible, input bar stays put, older turns scroll up
+ * out of view). A previous version here only nudged the view just far enough
+ * to bring the triggering element's edge into range. Because .input-section
+ * is `position: sticky; bottom: 0` (see embed-bc-scroll-fix.css /
+ * embed-bc-popup.css / brand-concierge-bottom-dock.css), a partial nudge can
+ * leave scrollTop short of the true max — at that scroll position the sticky
+ * bar's "stuck" render is visually pinned over the tail of the very message
+ * it was supposed to reveal, exactly the "can't see the full response" bug
+ * reported live. Scrolling to the container's actual scrollHeight removes
+ * that ambiguity: once scrollTop is at (or past) the max, the sticky bar's
+ * stuck position and its normal-flow position are the same place, so it can
+ * never overlap the content above it.
  */
 (function () {
   // Every real BC mount point (site-clone-bc.js mounts Adobe's bundle into
@@ -16,22 +28,9 @@
     return mount.querySelector('.brand-concierge-container');
   }
 
-  function scrollWithinHistory(history, el, behavior) {
-    if (!history || !el) return;
-    var pad = 12;
-    var cr = history.getBoundingClientRect();
-    var er = el.getBoundingClientRect();
-    if (er.bottom > cr.bottom - pad) {
-      history.scrollTo({
-        top: history.scrollTop + (er.bottom - cr.bottom) + pad,
-        behavior: behavior || 'auto',
-      });
-    } else if (er.top < cr.top + pad) {
-      history.scrollTo({
-        top: history.scrollTop + (er.top - cr.top) - pad,
-        behavior: behavior || 'auto',
-      });
-    }
+  function scrollWithinHistory(history, behavior) {
+    if (!history) return;
+    history.scrollTo({ top: history.scrollHeight, behavior: behavior || 'auto' });
   }
 
   function patchScrollIntoView() {
@@ -45,7 +44,7 @@
       if (history && history.contains(this)) {
         var behavior =
           typeof arg === 'object' && arg ? arg.behavior : arg === false ? 'auto' : 'smooth';
-        scrollWithinHistory(history, this, behavior);
+        scrollWithinHistory(history, behavior);
         return;
       }
       return native.apply(this, arguments);
@@ -72,6 +71,40 @@
     HTMLElement.prototype.__embedBcFocusPatched = true;
   }
 
+  /*
+   * Belt-and-braces: don't rely solely on BC's own code calling
+   * scrollIntoView() for every new turn — the Gemini override's fake-
+   * streamed delivery (embed-bc-gemini-override.js) may not trigger the
+   * same internal call real BC does. Watch each mount's chat history
+   * directly and snap to bottom whenever its content changes, so a new
+   * response is always fully visible with the input bar right below it,
+   * regardless of what triggered the DOM update.
+   */
+  var observedHistories = typeof WeakSet === 'function' ? new WeakSet() : null;
+
+  function observeHistory(history) {
+    if (!history || (observedHistories && observedHistories.has(history))) return;
+    if (observedHistories) observedHistories.add(history);
+    var scheduled = false;
+    var observer = new MutationObserver(function () {
+      if (scheduled) return;
+      scheduled = true;
+      (window.requestAnimationFrame || window.setTimeout)(function () {
+        scheduled = false;
+        scrollWithinHistory(history, 'smooth');
+      });
+    });
+    observer.observe(history, { childList: true, subtree: true });
+  }
+
+  function ensureHistoryObservers() {
+    document.querySelectorAll(MOUNT).forEach(function (mount) {
+      observeHistory(getChatHistory(mount));
+    });
+  }
+
   patchScrollIntoView();
   patchFocus();
+  ensureHistoryObservers();
+  setInterval(ensureHistoryObservers, 1000);
 })();
