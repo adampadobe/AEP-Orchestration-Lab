@@ -140,6 +140,8 @@ const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const profileGenerateService = lazyRequireMod('./profileGenerateService');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
+const bcGeminiTrainingService = lazyRequireMod('./bcGeminiTrainingService');
+const bcGeminiAnswerService = lazyRequireMod('./bcGeminiAnswerService');
 const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
@@ -3230,6 +3232,55 @@ exports.brandScraperAnalyze = onRequest(
       }
     }
   }
+);
+
+/**
+ * POST /api/bc-gemini-train — build the Gemini Brand Concierge override's per-demo
+ * corpus (scrapes each website in websiteUrls via the brand scraper, stores it with
+ * productNames/manifestText in Firestore). See functions/bcGeminiTrainingService.js.
+ */
+exports.bcGeminiTrain = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 540,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    try {
+      await bcGeminiTrainingService.handleTrain(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: String((e && e.message) || e) });
+      } else {
+        console.error('[bcGeminiTrain] error after response started', String((e && e.message) || e));
+      }
+    }
+  },
+);
+
+/**
+ * POST /api/bc-gemini-answer — answer one Brand Concierge turn from the stored
+ * per-demo corpus via Gemini (controlled JSON). See functions/bcGeminiAnswerService.js.
+ */
+exports.bcGeminiAnswer = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    try {
+      await bcGeminiAnswerService.handleAnswer(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: String((e && e.message) || e) });
+      } else {
+        console.error('[bcGeminiAnswer] error after response started', String((e && e.message) || e));
+      }
+    }
+  },
 );
 
 /** POST /api/brand-scraper/demo-build — dedicated demo website worker (separate CF budget from analyse). */

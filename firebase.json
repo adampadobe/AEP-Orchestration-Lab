@@ -124,6 +124,20 @@
         }
       },
       {
+        "source": "/api/bc-gemini-train",
+        "function": {
+          "functionId": "bcGeminiTrain",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/bc-gemini-answer",
+        "function": {
+          "functionId": "bcGeminiAnswer",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/scrapes/**",
         "function": {
           "functionId": "brandScraperScrapes",
