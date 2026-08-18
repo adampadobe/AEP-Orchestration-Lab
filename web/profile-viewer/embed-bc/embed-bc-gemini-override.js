@@ -267,6 +267,63 @@
   document.addEventListener('dragover', handleDragOver, true);
   document.addEventListener('drop', handleDrop, true);
 
+  // --- File/folder picker button (more reliable than drag-and-drop over Adobe's chat
+  // widget — browsers have inconsistent native handling of file drops landing directly on
+  // a form input/textarea, which is exactly where BC's own chat box lives) ----------------
+
+  var pickerButton = null;
+  var pickerInput = null;
+
+  function ensurePickerUi() {
+    if (pickerButton) return;
+    pickerButton = document.createElement('button');
+    pickerButton.type = 'button';
+    pickerButton.id = 'siteCloneBcGeminiPickerBtn';
+    pickerButton.title = 'Train Gemini — choose a folder or files (websites CSV, products CSV, notes)';
+    pickerButton.textContent = '➕ Train Gemini';
+    pickerButton.style.cssText =
+      'position:fixed;right:1rem;bottom:1rem;z-index:99999;padding:0.6rem 1rem;' +
+      'border-radius:999px;border:1px solid rgba(0,0,0,0.15);background:#fff;color:#111;' +
+      'font:600 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
+      'box-shadow:0 2px 10px rgba(0,0,0,0.18);cursor:pointer;display:none;';
+
+    pickerInput = document.createElement('input');
+    pickerInput.type = 'file';
+    pickerInput.multiple = true;
+    pickerInput.webkitdirectory = true;
+    pickerInput.directory = true;
+    pickerInput.style.display = 'none';
+
+    pickerButton.addEventListener('click', function () {
+      pickerInput.click();
+    });
+    pickerInput.addEventListener('change', function () {
+      var files = pickerInput.files ? Array.prototype.slice.call(pickerInput.files) : [];
+      files.forEach(function (file) {
+        readFileAsText(file).then(function (text) {
+          ingestFileText(file.webkitRelativePath || file.name, text);
+        });
+      });
+      pickerInput.value = '';
+    });
+
+    document.body.appendChild(pickerButton);
+    document.body.appendChild(pickerInput);
+  }
+
+  function refreshPickerVisibility() {
+    ensurePickerUi();
+    pickerButton.style.display = isEnabled() ? 'block' : 'none';
+  }
+
+  refreshPickerVisibility();
+  document.addEventListener('change', function (ev) {
+    if (ev && ev.target && ev.target.id === 'siteCloneBcGeminiOverrideToggle') {
+      refreshPickerVisibility();
+    }
+  });
+  document.addEventListener('aep-demo-env-strip-mounted', refreshPickerVisibility);
+
   // --- Backend calls -------------------------------------------------------
 
   function ensureTrained() {
