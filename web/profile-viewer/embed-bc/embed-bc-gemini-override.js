@@ -163,18 +163,96 @@
     refreshStatus();
   }
 
+  function readFileAsText(file) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        resolve(String(reader.result || ''));
+      };
+      reader.onerror = function () {
+        resolve('');
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  /** Recursively walks a dropped directory entry, resolving to a flat list of File objects. */
+  function collectFilesFromEntry(entry) {
+    if (!entry) return Promise.resolve([]);
+    if (entry.isFile) {
+      return new Promise(function (resolve) {
+        entry.file(
+          function (file) {
+            resolve([file]);
+          },
+          function () {
+            resolve([]);
+          },
+        );
+      });
+    }
+    if (entry.isDirectory) {
+      var reader = entry.createReader();
+      var allEntries = [];
+      function readBatch() {
+        return new Promise(function (resolve, reject) {
+          reader.readEntries(resolve, reject);
+        }).then(function (batch) {
+          // readEntries() may not return everything in one call — keep going until empty.
+          if (!batch || !batch.length) return allEntries;
+          allEntries = allEntries.concat(batch);
+          return readBatch();
+        });
+      }
+      return readBatch()
+        .then(function (entries) {
+          return Promise.all(entries.map(collectFilesFromEntry));
+        })
+        .then(function (nested) {
+          return nested.reduce(function (flat, files) {
+            return flat.concat(files);
+          }, []);
+        })
+        .catch(function () {
+          return [];
+        });
+    }
+    return Promise.resolve([]);
+  }
+
+  /** Supports dropping a folder (e.g. "QIA BC") as well as individual files — browsers only
+   *  expose a folder's contents via the DataTransferItem.webkitGetAsEntry() directory-walk
+   *  API, not the plain dataTransfer.files list. */
+  function collectDroppedFiles(dt) {
+    if (dt.items && dt.items.length && typeof dt.items[0].webkitGetAsEntry === 'function') {
+      var entries = Array.prototype.map
+        .call(dt.items, function (item) {
+          return typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null;
+        })
+        .filter(Boolean);
+      if (entries.length) {
+        return Promise.all(entries.map(collectFilesFromEntry)).then(function (nested) {
+          return nested.reduce(function (flat, files) {
+            return flat.concat(files);
+          }, []);
+        });
+      }
+    }
+    return Promise.resolve(dt.files ? Array.prototype.slice.call(dt.files) : []);
+  }
+
   function handleDrop(ev) {
     if (!isEnabled()) return;
     var dt = ev.dataTransfer;
-    if (!dt || !dt.files || !dt.files.length) return;
+    if (!dt || (!dt.files || !dt.files.length) && !(dt.items && dt.items.length)) return;
     ev.preventDefault();
     ev.stopPropagation();
-    Array.prototype.forEach.call(dt.files, function (file) {
-      var reader = new FileReader();
-      reader.onload = function () {
-        ingestFileText(file.name, String(reader.result || ''));
-      };
-      reader.readAsText(file);
+    collectDroppedFiles(dt).then(function (files) {
+      files.forEach(function (file) {
+        readFileAsText(file).then(function (text) {
+          ingestFileText(file.name, text);
+        });
+      });
     });
   }
 
