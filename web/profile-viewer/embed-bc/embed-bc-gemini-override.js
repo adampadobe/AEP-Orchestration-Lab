@@ -494,10 +494,13 @@
   function buildTurn(payload) {
     var text = extractUserText(payload);
     var ids = idsFromPayload(payload);
-    showToast('Gemini received your question…', 'busy');
+    // Deliberately silent here — this runs on every real conversation turn, and the whole
+    // point of the override is that it's indistinguishable from real Brand Concierge to
+    // anyone watching the demo. Adobe's own widget already shows its native typing/thinking
+    // indicator; a visible toast on top of that would give the game away. Toasts are only
+    // used for the setup/training action (ensureTrained, the picker), never for live Q&A.
     return ensureTrained()
       .then(function () {
-        showToast('Gemini is thinking…', 'busy');
         return fetch('/api/bc-gemini-answer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -533,7 +536,7 @@
       })
       .catch(function (err) {
         console.warn('[embed-bc-gemini-override] answer failed', err);
-        showToast('Gemini could not answer that — try again', 'error', 5000);
+        hideToast(); // no visible toast during live Q&A — the fallback message below is what the customer sees
         return {
           conversationId: ids.conversationId,
           interactionId: ids.interactionId,
