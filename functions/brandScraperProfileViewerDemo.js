@@ -19,7 +19,7 @@ const RESERVED_DEMO_SLUGS = new Set([
 ]);
 
 /** Matches Global values → Demos sidebar lab owner presets. */
-const LAB_OWNER_PRESETS = new Set(['apalmer', 'sburch', 'kirkham']);
+const LAB_OWNER_PRESETS = new Set(['apalmer', 'sburch', 'kirkham', 'prisacar']);
 
 function normalizeLabOwnerHandle(raw) {
   return String(raw || '')
