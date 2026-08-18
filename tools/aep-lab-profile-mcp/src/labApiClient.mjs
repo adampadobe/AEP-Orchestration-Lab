@@ -124,6 +124,40 @@ export async function listSandboxes() {
 }
 
 /**
+ * Trains the Gemini Brand Concierge override directly from an existing brand scrape
+ * record (reuses its crawled page text + classified product images — no re-crawl,
+ * no manual CSV upload). See functions/bcGeminiPrepService.js.
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} params.demo_prefix
+ * @param {string} params.scrape_id
+ */
+export async function bcGeminiPrepTrain({ sandbox, demo_prefix, scrape_id }) {
+  return labApiRequest('/api/bc-gemini-prep-train', {
+    method: 'POST',
+    body: { sandbox, demoPrefix: demo_prefix, scrapeId: scrape_id },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * Builds a downloadable ZIP (websites.csv, products.csv, notes.txt) from a brand scrape
+ * record for either the Gemini override's Train LLM drop or a direct upload into real
+ * Adobe Brand Concierge's admin console. See functions/bcGeminiPrepService.js.
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {string} params.scrape_id
+ * @param {string} [params.demo_prefix]
+ */
+export async function bcGeminiPrepExport({ sandbox, scrape_id, demo_prefix }) {
+  return labApiRequest('/api/bc-gemini-prep-export', {
+    method: 'POST',
+    body: { sandbox, scrapeId: scrape_id, demoPrefix: demo_prefix },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
  * @param {object} params
  * @param {string} params.sandbox
  * @param {boolean} [params.refresh]

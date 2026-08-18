@@ -4,7 +4,13 @@ import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { checkGenerateRate } from '../rateLimiter.mjs';
 import { resolveBrandScrapeFromList } from '../brandScrapeResolve.mjs';
-import { listBrandScrapes, previewDemoAssets, previewDemoConfig } from '../labApiClient.mjs';
+import {
+  bcGeminiPrepExport,
+  bcGeminiPrepTrain,
+  listBrandScrapes,
+  previewDemoAssets,
+  previewDemoConfig,
+} from '../labApiClient.mjs';
 import {
   createClientJourneyFromScrape,
   generateProfilesFromScrapePersonas,
@@ -29,7 +35,8 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       title: 'Orchestrate demo prep from brand scrape',
       description:
         'End-to-end demo prep from an existing brand scrape: golden profiles from personas (default on), ' +
-        'optional stable image-hosting preview, governed RTDB preview, experience events per profile, and Client Journey v2 HTML asset. ' +
+        'optional stable image-hosting preview, governed RTDB preview, experience events per profile, Client Journey v2 HTML asset, ' +
+        'and optional Gemini Brand Concierge override training + downloadable training ZIP (steps.bc_gemini_prep). ' +
         'For a complete customer image + RTDB change, prefer lab_demo_customer_switch so one confirmation governs both. ' +
         'Profiles reserve scaled emails + static mobile from Firestore generation prefs (FORMAT: <local>+DDMMYYYY-N@<domain>). ' +
         'Call lab_confirm_profile_generation before first generate. ' +
@@ -65,8 +72,23 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
               .boolean()
               .optional()
               .describe('Preview fixed stable Image Hosting slots from the scrape; never replaces public assets'),
+            bc_gemini_prep: z
+              .boolean()
+              .optional()
+              .describe(
+                'Train the Gemini Brand Concierge override (demo env bar "Use Gemini (repeatable)" toggle) directly ' +
+                  'from this scrape — reuses its crawled site text and classified product images, no manual CSV upload. ' +
+                  'Also builds a downloadable ZIP (websites.csv, products.csv, notes.txt) for either the Gemini override ' +
+                  "or a direct upload into real Adobe Brand Concierge's admin console.",
+              ),
           })
           .optional(),
+        bc_gemini_demo_prefix: z
+          .string()
+          .optional()
+          .describe(
+            'Demo prefix key for steps.bc_gemini_prep (matches the env bar demo, e.g. "qia") — required when bc_gemini_prep is true.',
+          ),
         asset_pack: z
           .enum(['core', 'core_and_mobile'])
           .optional()
@@ -116,6 +138,7 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
       prefer_existing,
       industry,
       steps,
+      bc_gemini_demo_prefix,
       asset_pack,
       auto_classify_images,
       force_reclassify,
@@ -187,7 +210,12 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         journey: steps?.journey === true,
         demoConfigPreview: steps?.demo_config_preview === true,
         assetsPreview: steps?.assets_preview === true,
+        bcGeminiPrep: steps?.bc_gemini_prep === true,
       };
+
+      if (stepFlags.bcGeminiPrep && !String(bc_gemini_demo_prefix || '').trim()) {
+        return toolError('bc_gemini_demo_prefix is required when steps.bc_gemini_prep is true.');
+      }
 
       if (stepFlags.profiles || stepFlags.events) {
         const rate = checkGenerateRate(keyId);
@@ -319,6 +347,22 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
         }
       }
 
+      if (stepFlags.bcGeminiPrep) {
+        const demoPrefix = String(bc_gemini_demo_prefix || '').trim();
+        const [trainResult, exportResult] = await Promise.all([
+          bcGeminiPrepTrain({ sandbox: allowed.sandbox, demo_prefix: demoPrefix, scrape_id: scrapeId }),
+          bcGeminiPrepExport({ sandbox: allowed.sandbox, scrape_id: scrapeId, demo_prefix: demoPrefix }),
+        ]);
+        pipeline.stepsRun.push('bc_gemini_prep');
+        pipeline.bcGeminiPrep = {
+          demoPrefix,
+          train: trainResult.ok ? trainResult.data : { ok: false, error: trainResult.error, status: trainResult.status },
+          export: exportResult.ok
+            ? exportResult.data
+            : { ok: false, error: exportResult.error, status: exportResult.status },
+        };
+      }
+
       let profileOutcome = null;
       if (stepFlags.profiles) {
         profileOutcome = await generateProfilesFromScrapePersonas({
@@ -418,6 +462,10 @@ export function registerPrepareDemoFromBrandScrapeTool(mcpServer) {
             'Use the individual lab_demo_config_apply only when the colleague deliberately wants an RTDB-only partial update.',
           audiences: 'Create RTCDP segments in AEP UI using scrape segment names as a brief — no auto-create API in lab.',
           ajo: 'CJv2 journey is a sales HTML asset; publish real AJO journeys manually in Journey Optimizer.',
+          bcGemini:
+            'steps.bc_gemini_prep (with bc_gemini_demo_prefix) trains the Gemini Brand Concierge override for this ' +
+            'demo directly from the scrape and returns a signedUrl ZIP (websites.csv/products.csv/notes.txt) usable ' +
+            "for either the Gemini override or a direct upload into real Adobe Brand Concierge's admin console.",
         },
       });
     },

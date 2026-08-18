@@ -130,6 +130,64 @@ function buildCorpus(siteResults, products, manifestText) {
   };
 }
 
+/**
+ * Core training logic shared by the public HTTP endpoint (`handleTrain`) and any
+ * direct in-process caller (e.g. functions/bcGeminiPrepService.js, which derives
+ * websiteUrls/products/manifestText from an existing brand scrape record instead
+ * of a raw upload). `prebuiltSiteResults` — when given, in the same shape returned
+ * by `scrapeOneSite()` — skips re-crawling those sites.
+ */
+async function runTrain({ sandbox, demoPrefix, websiteUrls, products, manifestText, prebuiltSiteResults }) {
+  const cleanWebsiteUrls = Array.isArray(websiteUrls)
+    ? websiteUrls.map((u) => String(u || '').trim()).filter(Boolean).slice(0, MAX_SITES_PER_TRAIN)
+    : [];
+  const cleanProducts = (Array.isArray(products) ? products : [])
+    .map(sanitiseProduct)
+    .filter(Boolean)
+    .slice(0, MAX_PRODUCTS_STORED);
+  const cleanManifestText = String(manifestText || '');
+
+  if (!cleanWebsiteUrls.length && !cleanProducts.length && !cleanManifestText.trim()) {
+    const err = new Error('Provide at least one of websiteUrls, products, or manifestText');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const siteResults = Array.isArray(prebuiltSiteResults) && prebuiltSiteResults.length
+    ? prebuiltSiteResults.map((value) => ({ status: 'fulfilled', value }))
+    : await Promise.allSettled(
+        cleanWebsiteUrls.map((url) =>
+          scrapeOneSite(url).catch((err) => {
+            err.url = url;
+            throw err;
+          }),
+        ),
+      );
+
+  const corpus = buildCorpus(siteResults, cleanProducts, cleanManifestText);
+  const docId = corpusDocId(sandbox, demoPrefix);
+  const record = stripUndefined({
+    sandbox,
+    demoPrefix,
+    websiteUrls: cleanWebsiteUrls,
+    products: cleanProducts,
+    corpus,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await getDb().collection(COLLECTION).doc(docId).set(record, { merge: false });
+
+  return {
+    ok: true,
+    sandbox,
+    demoPrefix,
+    siteCount: corpus.sitesScraped.length,
+    siteFailures: corpus.sitesFailed,
+    productCount: corpus.products.length,
+    corpusTextChars: corpus.text.length,
+    imageCount: corpus.images.length,
+  };
+}
+
 async function handleTrain(req, res) {
   setCors(res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') {
@@ -149,9 +207,6 @@ async function handleTrain(req, res) {
     return;
   }
 
-  const websiteUrls = Array.isArray(body.websiteUrls)
-    ? body.websiteUrls.map((u) => String(u || '').trim()).filter(Boolean).slice(0, MAX_SITES_PER_TRAIN)
-    : [];
   // Accept the current structured `products` field, falling back to the legacy
   // `productNames` (bare string array) shape in case of client/CDN version skew.
   const rawProducts = Array.isArray(body.products)
@@ -159,50 +214,20 @@ async function handleTrain(req, res) {
     : Array.isArray(body.productNames)
       ? body.productNames
       : [];
-  const products = rawProducts.map(sanitiseProduct).filter(Boolean).slice(0, MAX_PRODUCTS_STORED);
-  const manifestText = String(body.manifestText || '');
-
-  if (!websiteUrls.length && !products.length && !manifestText.trim()) {
-    res.status(400).json({ ok: false, error: 'Provide at least one of websiteUrls, products, or manifestText' });
-    return;
-  }
 
   try {
-    const siteResults = await Promise.allSettled(
-      websiteUrls.map((url) =>
-        scrapeOneSite(url).catch((err) => {
-          err.url = url;
-          throw err;
-        }),
-      ),
-    );
-
-    const corpus = buildCorpus(siteResults, products, manifestText);
-    const docId = corpusDocId(sandbox, demoPrefix);
-    const record = stripUndefined({
+    const result = await runTrain({
       sandbox,
       demoPrefix,
-      websiteUrls,
-      products,
-      corpus,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      websiteUrls: body.websiteUrls,
+      products: rawProducts,
+      manifestText: body.manifestText,
     });
-    await getDb().collection(COLLECTION).doc(docId).set(record, { merge: false });
-
-    res.status(200).json({
-      ok: true,
-      sandbox,
-      demoPrefix,
-      siteCount: corpus.sitesScraped.length,
-      siteFailures: corpus.sitesFailed,
-      productCount: corpus.products.length,
-      corpusTextChars: corpus.text.length,
-      imageCount: corpus.images.length,
-    });
+    res.status(200).json(result);
   } catch (err) {
     console.error('[bcGeminiTrain] error', err);
-    res.status(500).json({ ok: false, error: String((err && err.message) || err) });
+    res.status(err.statusCode || 500).json({ ok: false, error: String((err && err.message) || err) });
   }
 }
 
-module.exports = { handleTrain, corpusDocId, COLLECTION };
+module.exports = { handleTrain, runTrain, sanitiseProduct, corpusDocId, COLLECTION };

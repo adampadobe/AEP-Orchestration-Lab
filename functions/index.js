@@ -142,6 +142,7 @@ const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
 const bcGeminiTrainingService = lazyRequireMod('./bcGeminiTrainingService');
 const bcGeminiAnswerService = lazyRequireMod('./bcGeminiAnswerService');
+const bcGeminiPrepService = lazyRequireMod('./bcGeminiPrepService');
 const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
@@ -3278,6 +3279,58 @@ exports.bcGeminiAnswer = onRequest(
         res.status(500).json({ ok: false, error: String((e && e.message) || e) });
       } else {
         console.error('[bcGeminiAnswer] error after response started', String((e && e.message) || e));
+      }
+    }
+  },
+);
+
+/**
+ * POST /api/bc-gemini-prep-train — derives websiteUrls/products/manifestText from an
+ * already-completed brand scrape record (reusing its crawled page text — no re-crawl)
+ * and trains the Gemini Brand Concierge override directly, without a manual CSV upload.
+ * See functions/bcGeminiPrepService.js.
+ */
+exports.bcGeminiPrepTrain = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    try {
+      await bcGeminiPrepService.handlePrepTrain(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: String((e && e.message) || e) });
+      } else {
+        console.error('[bcGeminiPrepTrain] error after response started', String((e && e.message) || e));
+      }
+    }
+  },
+);
+
+/**
+ * POST /api/bc-gemini-prep-export — builds a downloadable ZIP (websites.csv, products.csv,
+ * notes.txt) from a brand scrape record, for either the Gemini override's Train LLM drop
+ * or a direct upload into Adobe's real Brand Concierge admin console. See
+ * functions/bcGeminiPrepService.js.
+ */
+exports.bcGeminiPrepExport = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    try {
+      await bcGeminiPrepService.handlePrepExport(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: String((e && e.message) || e) });
+      } else {
+        console.error('[bcGeminiPrepExport] error after response started', String((e && e.message) || e));
       }
     }
   },
