@@ -975,7 +975,7 @@
     /* Gemini override: available on every demo, not just Army — gated at runtime by the
        "Use Gemini (repeatable)" env-bar checkbox (window.SiteCloneBcConfig.isGeminiOverrideEnabled()),
        not by a URL flag, so it always loads. */
-    await loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818b', doc, 'gemini-override');
+    await loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818c-image-preload', doc, 'gemini-override');
     if (shouldUseLocalArmyBcCatalog(win)) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-engine.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-fallback.js'), doc);
@@ -1544,7 +1544,7 @@
         '?v=20260818-bc-typing-maxheight-fix',
       'modal-dock',
     );
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260615-modal-header-compact', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260818-modal-maxheight-fix', 'modal');
     if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.upgradeModalShell === 'function') {
       global.SiteCloneBcChrome.upgradeModalShell();
     }
@@ -2004,7 +2004,7 @@
      loadArmyBcHelperScripts (which only runs once BC itself bootstraps, e.g. after the user
      opens the chat) meant dropping a training file before that point silently did nothing. */
   function loadGeminiOverrideEagerly() {
-    void loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818b', document, 'gemini-override');
+    void loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818c-image-preload', document, 'gemini-override');
   }
 
   if (document.readyState === 'loading') {

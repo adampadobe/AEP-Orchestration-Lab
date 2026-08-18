@@ -165,7 +165,19 @@ body.aep-bc-modal-open {
   max-width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
-  max-height: none !important;
+  /*
+   * Must stay bounded, never `none` — this wrapper is BC's own top-level
+   * rendered div. The sibling .brand-concierge-container rule below wins
+   * via specificity ONLY if BC happens to render that class on this exact
+   * element; if BC's bundle ever nests an extra wrapper level here instead,
+   * an unbounded max-height would let content grow past .aep-bc-modal__dialog's
+   * `overflow: hidden` boundary with nothing to stop it — same failure
+   * family as the bc-bottom-dock--typing bug fixed for Centre bottom mode.
+   * Bound it to the same cap as its siblings so it can never itself become
+   * the accidental overflow boundary.
+   */
+  max-height: min(66vh, 906px) !important;
+  overflow: hidden;
   margin: 0 !important;
   pointer-events: auto;
 }

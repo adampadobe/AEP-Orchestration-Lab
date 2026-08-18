@@ -597,6 +597,36 @@
     }
   }
 
+  var IMAGE_PRELOAD_TIMEOUT_MS = 1200;
+
+  /**
+   * Resolves once the image has loaded, failed, or timed out — never rejects, so a slow
+   * or broken product image can't stall delivering the answer. Real Brand Concierge
+   * streams a reply as many incremental chunks, each a fresh chance for its own scroll/
+   * resize logic (and embed-bc-scroll-fix.js's scrollIntoView patch) to correct the view.
+   * This override instead delivers the whole answer in one shot (streamTurnToCallback);
+   * without preloading, product-card <img> tags reflow the chat history AFTER that one
+   * correction has already run, leaving the view scrolled to a stale position with no
+   * second correction to fix it. Preloading means BC renders each <img> at its final
+   * intrinsic size on first paint, so there's nothing left to reflow afterward.
+   */
+  function preloadImage(url) {
+    if (!url) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var img = new Image();
+      var done = false;
+      var finish = function () {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      img.onload = finish;
+      img.onerror = finish;
+      img.src = url;
+      setTimeout(finish, IMAGE_PRELOAD_TIMEOUT_MS);
+    });
+  }
+
   /** Same card shape as ArmyBcLocalEngine.multimodalElements — renders identically. */
   function buildMultimodalElements(products) {
     var list = Array.isArray(products) ? products : [];
@@ -646,21 +676,29 @@
       })
       .then(function (data) {
         hideToast();
-        return {
-          conversationId: ids.conversationId,
-          interactionId: ids.interactionId,
-          request: { message: text, context: { application: 'gemini-override' } },
-          response: {
-            message:
-              (data && data.message) ||
-              'I don’t have that yet — drop a CSV of your sites or products onto this chat and ask me again.',
-            sources: [],
-            promptSuggestions: [],
-            multimodalElements: buildMultimodalElements(data && data.products),
-            widgets: [],
-          },
-          state: 'completed',
-        };
+        var multimodalElements = buildMultimodalElements(data && data.products);
+        var imageUrls = multimodalElements.elements
+          .map(function (el) {
+            return el.entity_info.productImageURL;
+          })
+          .filter(Boolean);
+        return Promise.all(imageUrls.map(preloadImage)).then(function () {
+          return {
+            conversationId: ids.conversationId,
+            interactionId: ids.interactionId,
+            request: { message: text, context: { application: 'gemini-override' } },
+            response: {
+              message:
+                (data && data.message) ||
+                'I don’t have that yet — drop a CSV of your sites or products onto this chat and ask me again.',
+              sources: [],
+              promptSuggestions: [],
+              multimodalElements: multimodalElements,
+              widgets: [],
+            },
+            state: 'completed',
+          };
+        });
       })
       .catch(function (err) {
         console.warn('[embed-bc-gemini-override] answer failed', err);
