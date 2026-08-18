@@ -1333,6 +1333,10 @@ function saveBcGeminiOverridePrefs(sandboxKey) {
 function applyBcGeminiOverridePrefsToUi() {
   if (!siteCloneBcGeminiOverrideToggle) return;
   siteCloneBcGeminiOverrideToggle.checked = loadBcGeminiOverridePrefs();
+  /* Setting .checked in JS doesn't fire a native 'change' event — dispatch one so
+     embed-bc-gemini-override.js's picker-button visibility stays in sync with the
+     restored value regardless of script-load/event-listener ordering on page load. */
+  siteCloneBcGeminiOverrideToggle.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function isBcGeminiOverrideEnabled() {
@@ -1511,6 +1515,7 @@ function enableBcDisplayPrefsRestore() {
 
 function applySiteCloneBcDisplayPrefsToUi() {
   applyBcEnabledPrefsToUi();
+  applyBcGeminiOverridePrefsToUi();
   applyDecisioningEnabledPrefsToUi();
   if (!restoreBcDisplayPrefsFromStorage) {
     resetSiteCloneBcDisplayPrefsOnUi();
@@ -1807,6 +1812,7 @@ function bindStripDomListenersOnce() {
     else applyWebPushOnInjectToggle();
     applyBcOnInjectPrefs();
     applyBcEnabledPrefsToUi();
+    applyBcGeminiOverridePrefsToUi();
     applyDecisioningEnabledPrefsToUi();
     if (siteCloneBcStyleConfigUrl) {
       applySiteCloneBcStyleConfigFieldForSandbox();
