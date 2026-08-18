@@ -975,7 +975,7 @@
     /* Gemini override: available on every demo, not just Army — gated at runtime by the
        "Use Gemini (repeatable)" env-bar checkbox (window.SiteCloneBcConfig.isGeminiOverrideEnabled()),
        not by a URL flag, so it always loads. */
-    await loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818', doc, 'gemini-override');
+    await loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818b', doc, 'gemini-override');
     if (shouldUseLocalArmyBcCatalog(win)) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-engine.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-fallback.js'), doc);
@@ -2000,15 +2000,24 @@
     }
   }
 
+  /* Gemini override must listen for drag/drop from the moment the page loads — waiting for
+     loadArmyBcHelperScripts (which only runs once BC itself bootstraps, e.g. after the user
+     opens the chat) meant dropping a training file before that point silently did nothing. */
+  function loadGeminiOverrideEagerly() {
+    void loadScript(resolveAssetUrl(BASE + 'embed-bc-gemini-override.js') + '?v=20260818b', document, 'gemini-override');
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       refreshDisplayModeToggles();
       updateChromeVisibility();
       scheduleInitialSync();
+      loadGeminiOverrideEagerly();
     });
   } else {
     refreshDisplayModeToggles();
     updateChromeVisibility();
     scheduleInitialSync();
+    loadGeminiOverrideEagerly();
   }
 })(typeof window !== 'undefined' ? window : this);
