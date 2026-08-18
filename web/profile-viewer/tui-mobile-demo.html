@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TUI mobile (demo) – AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="mobile-demo.css?v=20260614-no-browser-fs">
+  <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260622-mobile-env-fs">
+  <link rel="stylesheet" href="tui-demo.css?v=20260818">
+  <link rel="stylesheet" href="tui-mobile-demo.css?v=20260818">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script>
+    window.mobileDemoConfig = {
+      demoId: 'tui',
+      brandName: 'TUI',
+      appEntryUrl: 'tui-demo.html',
+      defaultDevice: 'iphone17pro',
+      deviceToggleDevices: ['iphone17pro', 's24u'],
+      envBar: true,
+      envBarPrefix: 'tui',
+      iframeId: 'tuiMobileFrame',
+      webDemoUrl: 'tui-demo.html',
+      mobileDemoUrl: 'tui-mobile-demo.html',
+      pageClass: 'tui-mobile-demo-page',
+      channelLabel: 'Mobile',
+    };
+  </script>
+</head>
+<body class="tui-mobile-demo-page mobile-demo-shell-page mobile-demo-page home-dashboard-concierge">
+  <div class="mobile-demo-shell-env-anchor" id="tuiMobileDemoEnvAnchor">
+    <section class="tui-demo-id-banner mobile-demo-shell-id-banner" aria-label="TUI mobile demo controls">
+      <div
+        class="tui-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-title="TUI (mobile)"
+        data-demo-env-strip-web-url="tui-demo.html"
+        data-demo-env-strip-mobile-url="tui-mobile-demo.html"
+        data-demo-env-strip-channel="mobile"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-prefix="tui"
+        data-demo-env-strip-selected-script-id="tuiSelectedScript"
+        data-demo-env-strip-script-preview-class="tui-demo-script-preview"
+        data-demo-env-strip-message-id="tuiMessage"
+        data-demo-env-strip-message-class="tui-demo-message"
+        data-demo-env-strip-profile-btn-label="Look up profile"
+        data-demo-env-strip-disclaimer="TUI holiday-booking journey in a phone simulator. Env bar sits outside the device frame — inject Tags, then explore the responsive web journey inside the frame."
+      ></div>
+    </section>
+  </div>
+
+  <div class="mobile-demo-fs-root" id="mobileDemoFsRoot">
+    <div class="mobile-demo-shell-controls">
+      <div class="mobile-demo-shell-device-toggle" id="mobileDemoDeviceToggle" role="group" aria-label="Device frame"></div>
+      <button type="button" class="mobile-demo-fullscreen-btn" id="mobileDemoFullscreenBtn" aria-pressed="false" title="Expand simulator (presentation mode)" aria-label="Expand simulator">
+        Expand simulator
+      </button>
+    </div>
+
+    <div class="mobile-demo-shell-stage-wrap">
+      <p class="mobile-demo-shell-device-label mobile-demo-device-label" id="mobileDemoDeviceLabel">iPhone 17 Pro · simulator</p>
+      <div class="mobile-demo-stage">
+        <div class="mobile-demo-frame-outer">
+          <div class="mobile-demo-bezel mobile-demo-bezel--apple" id="mobileDemoBezel">
+            <div class="mobile-demo-notch mobile-demo-notch--dynamic-island" id="mobileDemoNotch" aria-hidden="true"></div>
+            <div class="mobile-demo-viewport mobile-demo-viewport--with-status" id="mobileDemoViewport">
+              <div class="mobile-demo-status-bar mobile-demo-status-bar--ios" id="mobileDemoStatusBar" aria-hidden="true"></div>
+              <div class="mobile-demo-viewport-clip">
+                <iframe
+                  id="tuiMobileFrame"
+                  title="TUI mobile journey preview"
+                  src="tui-demo.html?aepSimMobile=1"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="mobile-demo-fs-exit-float" id="mobileDemoFsExitFloat" hidden aria-label="Exit presentation">
+      Exit presentation
+    </button>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page tui-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
+  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
+  <script src="shared/env-bar.js?v=20260616-remote-decisioning"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'tui',
+      variant: 'spectrum',
+      features: { webPush: true, bc: true, decisioning: false },
+      storagePrefix: 'tui',
+      iframeIds: ['tuiMobileFrame'],
+      labCoreScript: 'tui-lab-core.js',
+      siteCloneDemoEnv: {
+        storagePrefix: 'tuiDemo',
+        webPushBySandboxKey: 'tuiDemoWebPushOnInjectBySandbox',
+        webPushLegacyKey: 'tuiWebPushOnInjectToggle',
+        webPushToggleId: 'tuiWebPushOnInjectToggle',
+        bcOnInjectToggleId: 'tuiBcOnInjectToggle',
+        bcStyleSelectId: 'tuiBcStyleSelect',
+      },
+    };
+  </script>
+  <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
+  <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
+  <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
+  <script src="shared/mobile-demo-configs.js?v=20260613"></script>
+  <script src="shared/mobile-demo-shell.js?v=20260622-mobile-env-fs"></script>
+  <script src="tui-lab-core.js?v=20260818"></script>
+  <script src="tui-mobile-demo.js?v=20260818"></script>
+  <script defer src="aep-theme.js?v=20260614-no-browser-fs"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260818-tui-demo"></script>
+</body>
+</html>

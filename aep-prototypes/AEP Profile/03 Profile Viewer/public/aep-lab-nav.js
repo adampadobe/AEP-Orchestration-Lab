@@ -591,6 +591,42 @@
           ],
         },
         {
+          id: 'demoTui',
+          label: 'TUI',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'tuiWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'TUI journey (in development)',
+                  href: 'tui-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'tuiHolidayDemo',
+                  demoMeta: { owners: ['prisacar'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 20h20M4 20V9l8-5 8 5v11M9 20v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                },
+              ],
+            },
+            {
+              id: 'tuiMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'TUI mobile journey (in development)',
+                  href: 'tui-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'tuiMobileDemo',
+                  demoMeta: { owners: ['prisacar'] },
+                  ico: '📱',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoKsia',
           label: 'KSIA',
           demoCustomer: true,
