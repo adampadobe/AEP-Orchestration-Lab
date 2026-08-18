@@ -267,25 +267,69 @@
   document.addEventListener('dragover', handleDragOver, true);
   document.addEventListener('drop', handleDrop, true);
 
-  // --- File/folder picker button (more reliable than drag-and-drop over Adobe's chat
-  // widget — browsers have inconsistent native handling of file drops landing directly on
-  // a form input/textarea, which is exactly where BC's own chat box lives) ----------------
+  // --- File/folder picker button, anchored inside Adobe's real chat input ------------------
+  //
+  // Adobe's chat DOM is a third-party black box we don't render, so we can't literally
+  // insert a child node into their input toolbar. Instead: watch the known BC mount
+  // containers (site-clone-bc.js's MODAL/BOTTOM_DOCK/MODAL_BAR/FRAME_OVERLAY/IFRAME mount
+  // selectors) for their text input/textarea to appear, then position our own small "+"
+  // button directly on top of it (fixed position, computed from the real input's
+  // getBoundingClientRect, kept in sync via a ResizeObserver + scroll/resize listeners) so
+  // it reads as part of the input itself. Icon-only by default — the "Train Gemini" label
+  // only reveals after a sustained 5s hover, keeping the chat visually clean for the
+  // customer watching the demo.
+
+  var BC_MOUNT_SELECTORS = [
+    '#brand-concierge-mount',
+    '#bcBottomDockMount',
+    '#bcModalBarMount',
+    '#siteCloneBcFrameMount',
+    '#aepBcModal #brand-concierge-mount',
+    '#siteCloneBcInline #brand-concierge-mount',
+  ];
 
   var pickerButton = null;
   var pickerInput = null;
+  var pickerLabel = null;
+  var hoverRevealTimer = null;
+  var anchoredInputEl = null;
+
+  function findChatInputEl() {
+    for (var i = 0; i < BC_MOUNT_SELECTORS.length; i++) {
+      var mount = document.querySelector(BC_MOUNT_SELECTORS[i]);
+      if (!mount) continue;
+      var candidate = mount.querySelector(
+        'textarea, input[type="text"], input:not([type]), [contenteditable="true"]',
+      );
+      if (candidate && candidate.offsetParent !== null) return candidate;
+    }
+    return null;
+  }
 
   function ensurePickerUi() {
     if (pickerButton) return;
+
     pickerButton = document.createElement('button');
     pickerButton.type = 'button';
     pickerButton.id = 'siteCloneBcGeminiPickerBtn';
-    pickerButton.title = 'Train Gemini — choose a folder or files (websites CSV, products CSV, notes)';
-    pickerButton.textContent = '➕ Train Gemini';
+    pickerButton.setAttribute('aria-label', 'Train Gemini — choose a folder or files');
     pickerButton.style.cssText =
-      'position:fixed;right:1rem;bottom:1rem;z-index:99999;padding:0.6rem 1rem;' +
-      'border-radius:999px;border:1px solid rgba(0,0,0,0.15);background:#fff;color:#111;' +
-      'font:600 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
-      'box-shadow:0 2px 10px rgba(0,0,0,0.18);cursor:pointer;display:none;';
+      'position:fixed;z-index:99999;display:none;align-items:center;gap:0.4rem;' +
+      'height:28px;padding:0 0.5rem;border-radius:999px;border:1px solid rgba(0,0,0,0.15);' +
+      'background:#fff;color:#444;font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
+      'box-shadow:0 1px 4px rgba(0,0,0,0.18);cursor:pointer;overflow:hidden;white-space:nowrap;' +
+      'transition:padding 0.2s ease, background 0.2s ease;';
+
+    var icon = document.createElement('span');
+    icon.textContent = '➕';
+    icon.style.cssText = 'font-size:13px;line-height:1;flex:0 0 auto;';
+
+    pickerLabel = document.createElement('span');
+    pickerLabel.textContent = 'Train Gemini';
+    pickerLabel.style.cssText = 'max-width:0;opacity:0;overflow:hidden;transition:max-width 0.25s ease, opacity 0.2s ease;';
+
+    pickerButton.appendChild(icon);
+    pickerButton.appendChild(pickerLabel);
 
     pickerInput = document.createElement('input');
     pickerInput.type = 'file';
@@ -294,15 +338,34 @@
     pickerInput.directory = true;
     pickerInput.style.display = 'none';
 
+    pickerButton.addEventListener('mouseenter', function () {
+      clearTimeout(hoverRevealTimer);
+      hoverRevealTimer = setTimeout(function () {
+        pickerLabel.style.maxWidth = '120px';
+        pickerLabel.style.opacity = '1';
+        pickerButton.style.padding = '0 0.7rem';
+      }, 5000);
+    });
+    pickerButton.addEventListener('mouseleave', function () {
+      clearTimeout(hoverRevealTimer);
+      pickerLabel.style.maxWidth = '0';
+      pickerLabel.style.opacity = '0';
+      pickerButton.style.padding = '0 0.5rem';
+    });
     pickerButton.addEventListener('click', function () {
       pickerInput.click();
     });
     pickerInput.addEventListener('change', function () {
       var files = pickerInput.files ? Array.prototype.slice.call(pickerInput.files) : [];
-      files.forEach(function (file) {
-        readFileAsText(file).then(function (text) {
-          ingestFileText(file.webkitRelativePath || file.name, text);
-        });
+      if (files.length) showToast('Reading ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…', 'busy');
+      Promise.all(
+        files.map(function (file) {
+          return readFileAsText(file).then(function (text) {
+            ingestFileText(file.webkitRelativePath || file.name, text);
+          });
+        }),
+      ).then(function () {
+        if (files.length) showToast('Added to Gemini training — ask a question to train', 'ok', 4000);
       });
       pickerInput.value = '';
     });
@@ -311,10 +374,49 @@
     document.body.appendChild(pickerInput);
   }
 
+  function positionPickerButton() {
+    if (!pickerButton || !isEnabled()) return;
+    if (!anchoredInputEl || !document.contains(anchoredInputEl)) {
+      anchoredInputEl = findChatInputEl();
+    }
+    if (!anchoredInputEl) {
+      pickerButton.style.display = 'none';
+      return;
+    }
+    var r = anchoredInputEl.getBoundingClientRect();
+    if (!r.width && !r.height) {
+      pickerButton.style.display = 'none';
+      return;
+    }
+    pickerButton.style.display = 'flex';
+    // Sit just inside the input's right edge, vertically centred — reads as an attach icon.
+    pickerButton.style.top = r.top + r.height / 2 - 14 + 'px';
+    pickerButton.style.left = r.right - 42 + 'px';
+  }
+
+  var pickerPositionInterval = null;
+
   function refreshPickerVisibility() {
     ensurePickerUi();
-    pickerButton.style.display = isEnabled() ? 'block' : 'none';
+    if (!isEnabled()) {
+      pickerButton.style.display = 'none';
+      if (pickerPositionInterval) {
+        clearInterval(pickerPositionInterval);
+        pickerPositionInterval = null;
+      }
+      return;
+    }
+    positionPickerButton();
+    if (!pickerPositionInterval) {
+      // Adobe's widget mounts/resizes/opens asynchronously with no public event we can
+      // hook — a light poll keeps the button correctly anchored without needing to know
+      // their internal DOM lifecycle.
+      pickerPositionInterval = setInterval(positionPickerButton, 500);
+    }
   }
+
+  window.addEventListener('resize', positionPickerButton);
+  window.addEventListener('scroll', positionPickerButton, true);
 
   refreshPickerVisibility();
   document.addEventListener('change', function (ev) {
@@ -324,6 +426,45 @@
   });
   document.addEventListener('aep-demo-env-strip-mounted', refreshPickerVisibility);
 
+  // --- Status toast — lets the user see training/answer progress instead of wondering
+  // whether anything happened ---------------------------------------------------------
+
+  var toastEl = null;
+  var toastHideTimer = null;
+
+  function ensureToastUi() {
+    if (toastEl) return;
+    toastEl = document.createElement('div');
+    toastEl.id = 'siteCloneBcGeminiToast';
+    toastEl.setAttribute('role', 'status');
+    toastEl.setAttribute('aria-live', 'polite');
+    toastEl.style.cssText =
+      'position:fixed;z-index:100000;right:1rem;bottom:1rem;display:none;align-items:center;gap:0.5rem;' +
+      'padding:0.55rem 0.85rem;border-radius:10px;background:#1f1f24;color:#fff;' +
+      'font:500 12.5px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.28);max-width:280px;';
+    document.body.appendChild(toastEl);
+  }
+
+  var TOAST_ICONS = { busy: '⏳', ok: '✅', error: '⚠️' };
+
+  function showToast(text, kind, autoHideMs) {
+    ensureToastUi();
+    clearTimeout(toastHideTimer);
+    toastEl.textContent = (TOAST_ICONS[kind] || '⏳') + ' ' + text;
+    toastEl.style.display = 'flex';
+    if (autoHideMs) {
+      toastHideTimer = setTimeout(function () {
+        toastEl.style.display = 'none';
+      }, autoHideMs);
+    }
+  }
+
+  function hideToast() {
+    if (toastEl) toastEl.style.display = 'none';
+    clearTimeout(toastHideTimer);
+  }
+
   // --- Backend calls -------------------------------------------------------
 
   function ensureTrained() {
@@ -332,6 +473,7 @@
       return Promise.resolve(corpus); // nothing dropped yet — Gemini answers generically
     }
     setStatus('Training Gemini…');
+    showToast('Training Gemini on your sites/products…', 'busy');
     return fetch('/api/bc-gemini-train', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -351,11 +493,13 @@
         corpus.trainedAt = Date.now();
         saveCorpus();
         refreshStatus();
+        showToast('Training complete — Gemini is ready', 'ok', 3000);
         return corpus;
       })
       .catch(function (err) {
         console.warn('[embed-bc-gemini-override] training failed', err);
         setStatus('Gemini: training failed — answering from product/site list only');
+        showToast('Training failed — answering from the raw list only', 'error', 5000);
         return corpus;
       });
   }
@@ -401,8 +545,10 @@
   function buildTurn(payload) {
     var text = extractUserText(payload);
     var ids = idsFromPayload(payload);
+    showToast('Gemini received your question…', 'busy');
     return ensureTrained()
       .then(function () {
+        showToast('Gemini is thinking…', 'busy');
         return fetch('/api/bc-gemini-answer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -419,6 +565,7 @@
         return res.json();
       })
       .then(function (data) {
+        hideToast();
         return {
           conversationId: ids.conversationId,
           interactionId: ids.interactionId,
@@ -437,6 +584,7 @@
       })
       .catch(function (err) {
         console.warn('[embed-bc-gemini-override] answer failed', err);
+        showToast('Gemini could not answer that — try again', 'error', 5000);
         return {
           conversationId: ids.conversationId,
           interactionId: ids.interactionId,
