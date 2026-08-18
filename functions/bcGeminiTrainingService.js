@@ -83,7 +83,25 @@ async function scrapeOneSite(url) {
   };
 }
 
-function buildCorpus(siteResults, productNames, manifestText) {
+const PRODUCT_STRING_FIELD_MAX = 2000;
+
+/** Accepts a bare string (legacy "one name per line" shape) or a structured product object. */
+function sanitiseProduct(p) {
+  if (typeof p === 'string') {
+    const name = p.trim();
+    return name ? { productName: name.slice(0, PRODUCT_STRING_FIELD_MAX) } : null;
+  }
+  if (!p || typeof p !== 'object') return null;
+  const out = {};
+  if (p.productID) out.productID = String(p.productID).trim().slice(0, PRODUCT_STRING_FIELD_MAX);
+  if (p.productName) out.productName = String(p.productName).trim().slice(0, PRODUCT_STRING_FIELD_MAX);
+  if (p.productDescription) out.productDescription = String(p.productDescription).trim().slice(0, PRODUCT_STRING_FIELD_MAX);
+  if (p.productPageURL) out.productPageURL = String(p.productPageURL).trim().slice(0, PRODUCT_STRING_FIELD_MAX);
+  if (p.productImageURL) out.productImageURL = String(p.productImageURL).trim().slice(0, PRODUCT_STRING_FIELD_MAX);
+  return out.productName ? out : null;
+}
+
+function buildCorpus(siteResults, products, manifestText) {
   const successfulSites = siteResults.filter((s) => s.status === 'fulfilled').map((s) => s.value);
   const failedSites = siteResults
     .map((s, i) => (s.status === 'rejected' ? { url: s.reason && s.reason.url, error: String(s.reason && s.reason.message || s.reason) } : null))
@@ -107,7 +125,7 @@ function buildCorpus(siteResults, productNames, manifestText) {
     brandNames,
     sitesScraped: successfulSites.map((s) => ({ url: s.url, pageCount: s.pageCount })),
     sitesFailed: failedSites,
-    products: (productNames || []).slice(0, MAX_PRODUCTS_STORED),
+    products: (products || []).slice(0, MAX_PRODUCTS_STORED),
     manifestText: String(manifestText || '').slice(0, MAX_MANIFEST_CHARS),
   };
 }
@@ -134,13 +152,18 @@ async function handleTrain(req, res) {
   const websiteUrls = Array.isArray(body.websiteUrls)
     ? body.websiteUrls.map((u) => String(u || '').trim()).filter(Boolean).slice(0, MAX_SITES_PER_TRAIN)
     : [];
-  const productNames = Array.isArray(body.productNames)
-    ? body.productNames.map((p) => String(p || '').trim()).filter(Boolean)
-    : [];
+  // Accept the current structured `products` field, falling back to the legacy
+  // `productNames` (bare string array) shape in case of client/CDN version skew.
+  const rawProducts = Array.isArray(body.products)
+    ? body.products
+    : Array.isArray(body.productNames)
+      ? body.productNames
+      : [];
+  const products = rawProducts.map(sanitiseProduct).filter(Boolean).slice(0, MAX_PRODUCTS_STORED);
   const manifestText = String(body.manifestText || '');
 
-  if (!websiteUrls.length && !productNames.length && !manifestText.trim()) {
-    res.status(400).json({ ok: false, error: 'Provide at least one of websiteUrls, productNames, or manifestText' });
+  if (!websiteUrls.length && !products.length && !manifestText.trim()) {
+    res.status(400).json({ ok: false, error: 'Provide at least one of websiteUrls, products, or manifestText' });
     return;
   }
 
@@ -154,13 +177,13 @@ async function handleTrain(req, res) {
       ),
     );
 
-    const corpus = buildCorpus(siteResults, productNames, manifestText);
+    const corpus = buildCorpus(siteResults, products, manifestText);
     const docId = corpusDocId(sandbox, demoPrefix);
     const record = stripUndefined({
       sandbox,
       demoPrefix,
       websiteUrls,
-      productNames,
+      products,
       corpus,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });

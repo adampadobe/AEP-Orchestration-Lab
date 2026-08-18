@@ -47,29 +47,45 @@ const RESPONSE_SCHEMA = {
   required: ['message', 'products'],
 };
 
+/** Renders one structured product entry as a labelled block Gemini can copy fields from verbatim. */
+function formatProductForPrompt(p, index) {
+  if (!p || typeof p !== 'object') return null;
+  const name = p.productName || `Product ${index + 1}`;
+  const parts = [`${index + 1}. ${name}`];
+  if (p.productDescription) parts.push(`   Description: ${p.productDescription}`);
+  if (p.productPageURL) parts.push(`   productPageURL: ${p.productPageURL}`);
+  if (p.productImageURL) parts.push(`   productImageURL: ${p.productImageURL}`);
+  return parts.join('\n');
+}
+
 function buildSystemPrompt(corpusRecord) {
   const corpus = (corpusRecord && corpusRecord.corpus) || {};
   const brandNames = Array.isArray(corpus.brandNames) && corpus.brandNames.length ? corpus.brandNames.join(', ') : null;
   const products = Array.isArray(corpus.products) ? corpus.products : [];
   const images = Array.isArray(corpus.images) ? corpus.images : [];
+  const productBlocks = products.map(formatProductForPrompt).filter(Boolean);
 
   const lines = [
     'You are a helpful, on-brand chat concierge for a live sales demo.',
     brandNames ? `You represent: ${brandNames}.` : 'You represent the brand described below.',
     'Answer the user\'s question naturally and conversationally, grounded ONLY in the brand facts, product list, and notes provided below.',
     'If the answer genuinely is not covered by the material below, say so honestly and suggest what related topic you *can* help with — do not invent facts.',
-    'If specific products are relevant to the answer, include them in the "products" array (productName is required; only include productPageURL/productImageURL if you can infer a plausible one from the material below, otherwise omit them).',
+    'If specific products from the PRODUCT LIST are relevant to the answer, include them in the "products" array. Copy productPageURL and productImageURL EXACTLY, character-for-character, from the matching entry below — never invent, guess, or modify a URL. If a product from the list has no productPageURL/productImageURL listed, omit that field entirely rather than making one up. Only include products that are NOT in the list below without page/image URLs.',
     'Keep the "message" concise — a few sentences, not an essay.',
     '',
     '--- BRAND FACTS (scraped from the brand\'s own website) ---',
     corpus.text || '(no site content provided yet)',
     '',
-    '--- PRODUCT LIST ---',
-    products.length ? products.join('\n') : '(no product list provided yet)',
+    '--- PRODUCT LIST (productPageURL/productImageURL are real, verified URLs — copy them exactly) ---',
+    productBlocks.length ? productBlocks.join('\n') : '(no product list provided yet)',
   ];
 
   if (images.length) {
-    lines.push('', '--- KNOWN PRODUCT/SITE IMAGE URLS (use only if relevant to a product you mention) ---', images.join('\n'));
+    lines.push(
+      '',
+      '--- OTHER SITE IMAGE URLS (generic images scraped from the site — only use one of these for a product that has no productImageURL of its own above, and only if clearly relevant) ---',
+      images.join('\n'),
+    );
   }
   if (corpus.manifestText) {
     lines.push('', '--- ADDITIONAL NOTES ---', corpus.manifestText);
