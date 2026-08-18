@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUI — Holidays, Flights &amp; Cruises (demo mockup)</title>
+<!--
+  Original demo mockup inspired by TUI's public brand identity (TUI-Red #e4002b,
+  TUI Blue #06a3e1, "smile" wordmark). Not a scraped copy of tui.co.uk — no real
+  TUI imagery, fonts, or markup are used. Not affiliated with TUI Group.
+-->
+<style>
+  :root{
+    --tui-red:#e4002b;
+    --tui-red-dark:#b5001f;
+    --tui-blue:#06a3e1;
+    --tui-ink:#1a1a1a;
+    --tui-grey:#6b7280;
+    --tui-line:#e5e7eb;
+    --tui-bg:#f7f7f8;
+    --tui-surface:#ffffff;
+    --tui-radius:14px;
+    --tui-shadow:0 8px 24px rgba(20,20,30,.08);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--tui-bg);color:var(--tui-ink);}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+  img,svg{display:block;}
+  .visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+
+  /* ── Top ribbon (decisioning mount) ─────────────────────────── */
+  #TopRibbon{background:var(--tui-ink);color:#fff;font-size:.82rem;text-align:center;padding:.5rem 1rem;}
+  #TopRibbon:empty{display:none;}
+  .tui-generic-ribbon{background:var(--tui-ink);color:#fff;font-size:.82rem;text-align:center;padding:.5rem 1rem;}
+  .tui-generic-ribbon a{text-decoration:underline;}
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  .tui-header{position:sticky;top:0;z-index:40;background:var(--tui-surface);border-bottom:1px solid var(--tui-line);}
+  .tui-header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1.5rem;padding:.85rem 1.25rem;}
+  .tui-logo{display:flex;align-items:center;gap:.4rem;font-weight:800;font-size:1.6rem;color:var(--tui-red);letter-spacing:-0.5px;}
+  .tui-logo-smile{width:34px;height:14px;}
+  .tui-nav{display:flex;gap:1.5rem;flex:1;font-weight:600;font-size:.92rem;color:var(--tui-ink);}
+  .tui-nav a{padding:.4rem 0;border-bottom:2px solid transparent;}
+  .tui-nav a:hover,.tui-nav a.is-active{border-bottom-color:var(--tui-red);}
+  .tui-header-actions{display:flex;align-items:center;gap:.75rem;}
+  .tui-login-btn{background:var(--tui-surface);border:1.5px solid var(--tui-ink);border-radius:999px;padding:.5rem 1.1rem;font-weight:700;font-size:.85rem;}
+  .tui-login-btn.is-signed-in{border-color:var(--tui-blue);color:var(--tui-blue);}
+
+  /* ── Hero / search ───────────────────────────────────────────── */
+  .tui-hero{background:linear-gradient(135deg,#ffe1e8 0%,#e0f4ff 100%);padding:3rem 1.25rem 2.5rem;}
+  .tui-hero-inner{max-width:1200px;margin:0 auto;}
+  .tui-hero h1{font-size:2.1rem;margin:0 0 .35rem;font-weight:800;}
+  .tui-hero p{margin:0 0 1.5rem;color:var(--tui-grey);font-size:1.02rem;}
+  .tui-search{background:var(--tui-surface);border-radius:var(--tui-radius);box-shadow:var(--tui-shadow);padding:1.1rem;display:grid;grid-template-columns:1.4fr 1fr 1fr .9fr auto;gap:.75rem;align-items:end;}
+  .tui-field label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--tui-grey);margin-bottom:.3rem;}
+  .tui-field input,.tui-field select{width:100%;padding:.6rem .7rem;border:1px solid var(--tui-line);border-radius:8px;font-size:.92rem;background:#fff;color:var(--tui-ink);}
+  .tui-search-btn{background:var(--tui-red);color:#fff;border:0;border-radius:8px;padding:.7rem 1.4rem;font-weight:700;font-size:.95rem;white-space:nowrap;}
+  .tui-search-btn:hover{background:var(--tui-red-dark);}
+  @media (max-width:900px){.tui-search{grid-template-columns:1fr 1fr;}.tui-search-btn{grid-column:1/-1;}}
+
+  /* ── Discovery rewards personalisation strip ────────────────── */
+  #tuiDiscoveryStrip{max-width:1200px;margin:1.25rem auto 0;padding:0 1.25rem;display:none;}
+  #tuiDiscoveryStrip.tui-profile-visible{display:block;}
+  .tui-discovery-card{background:linear-gradient(90deg,#fff2f4,#eef9ff);border:1px solid var(--tui-line);border-radius:var(--tui-radius);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+  .tui-discovery-card strong{color:var(--tui-red);}
+  .tui-discovery-cta{background:var(--tui-ink);color:#fff;border:0;border-radius:999px;padding:.55rem 1.1rem;font-weight:700;font-size:.85rem;white-space:nowrap;}
+
+  /* ── Section shells ──────────────────────────────────────────── */
+  .tui-section{max-width:1200px;margin:0 auto;padding:2.25rem 1.25rem;}
+  .tui-section h2{font-size:1.3rem;margin:0 0 1rem;}
+  .ContentCardContainer:empty{display:none;}
+
+  /* ── Destination / package cards ─────────────────────────────── */
+  .tui-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.1rem;}
+  .tui-card{background:var(--tui-surface);border:1px solid var(--tui-line);border-radius:var(--tui-radius);overflow:hidden;box-shadow:var(--tui-shadow);cursor:pointer;transition:transform .15s ease;}
+  .tui-card:hover{transform:translateY(-3px);}
+  .tui-card-media{height:140px;display:flex;align-items:flex-end;padding:.75rem;color:#fff;font-weight:800;font-size:1.05rem;text-shadow:0 1px 4px rgba(0,0,0,.35);}
+  .tui-card-body{padding:.85rem .95rem 1rem;}
+  .tui-card-meta{color:var(--tui-grey);font-size:.8rem;margin:.15rem 0 .5rem;}
+  .tui-card-price{font-size:.78rem;color:var(--tui-grey);}
+  .tui-card-price b{font-size:1.15rem;color:var(--tui-ink);}
+  .tui-stars{color:#f5a623;font-size:.85rem;letter-spacing:1px;}
+
+  /* ── Modal shell (package detail / booking / login) ─────────── */
+  .tui-modal-overlay{position:fixed;inset:0;background:rgba(15,15,20,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
+  .tui-modal-overlay[hidden]{display:none;}
+  .tui-modal{background:var(--tui-surface);border-radius:var(--tui-radius);max-width:560px;width:100%;max-height:90vh;overflow:auto;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.3);}
+  .tui-modal-wide{max-width:760px;}
+  .tui-modal-close{position:absolute;top:.75rem;right:.85rem;background:none;border:0;font-size:1.4rem;line-height:1;color:var(--tui-grey);}
+  .tui-modal-body{padding:1.75rem;}
+  .tui-modal-hero{height:170px;border-radius:10px;margin-bottom:1rem;display:flex;align-items:flex-end;padding:.75rem;color:#fff;font-weight:800;font-size:1.2rem;text-shadow:0 1px 4px rgba(0,0,0,.35);}
+  .tui-modal h2{margin:0 0 .35rem;font-size:1.3rem;}
+  .tui-modal h3{margin:0 0 .5rem;font-size:1rem;}
+  .tui-price-line{display:flex;justify-content:space-between;font-size:.9rem;padding:.4rem 0;border-bottom:1px dashed var(--tui-line);}
+  .tui-price-line.total{font-weight:800;border-bottom:none;font-size:1.05rem;}
+  .tui-btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;background:var(--tui-red);color:#fff;border:0;border-radius:8px;padding:.7rem 1.2rem;font-weight:700;font-size:.92rem;width:100%;margin-top:1rem;}
+  .tui-btn:hover{background:var(--tui-red-dark);}
+  .tui-btn-secondary{background:#fff;color:var(--tui-ink);border:1.5px solid var(--tui-line);}
+  .tui-form-row{margin-bottom:.85rem;}
+  .tui-form-row label{display:block;font-size:.78rem;font-weight:700;color:var(--tui-grey);margin-bottom:.3rem;}
+  .tui-form-row input{width:100%;padding:.6rem .7rem;border:1px solid var(--tui-line);border-radius:8px;font-size:.92rem;}
+  .tui-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+  .tui-steps{display:flex;gap:.5rem;margin-bottom:1.25rem;font-size:.78rem;font-weight:700;color:var(--tui-grey);}
+  .tui-steps span{padding:.3rem .65rem;border-radius:999px;background:var(--tui-bg);}
+  .tui-steps span.is-active{background:var(--tui-red);color:#fff;}
+  .tui-error{color:var(--tui-red);font-size:.82rem;margin-top:.5rem;}
+  .tui-error[hidden]{display:none;}
+  .tui-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:tui-spin .7s linear infinite;}
+  .tui-spinner[hidden]{display:none;}
+  @keyframes tui-spin{to{transform:rotate(360deg);}}
+  .tui-confirm-icon{width:56px;height:56px;border-radius:50%;background:#e8f9ee;color:#1a9d53;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 1rem;}
+  .tui-confirm-ref{font-weight:800;font-size:1.1rem;color:var(--tui-red);}
+  .tui-recent-list{list-style:none;margin:.4rem 0 0;padding:0;}
+  .tui-recent-list li{padding:.4rem .1rem;border-bottom:1px solid var(--tui-line);font-size:.85rem;cursor:pointer;}
+  .tui-recent-list li:hover{color:var(--tui-red);}
+
+  footer.tui-footer{background:var(--tui-ink);color:#c9ccd1;padding:2rem 1.25rem;margin-top:2rem;}
+  .tui-footer-inner{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:space-between;font-size:.82rem;}
+</style>
+</head>
+<body>
+
+  <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+  <div class="tui-generic-ribbon" id="tuiGenericRibbon">
+    Summer Sale — up to 25% off selected package holidays. <a href="#" data-tui-nav="deals">See offers</a>
+  </div>
+
+  <header class="tui-header">
+    <div class="tui-header-inner">
+      <div class="tui-logo" aria-label="TUI">
+        tui
+        <svg class="tui-logo-smile" viewBox="0 0 40 16" aria-hidden="true"><path d="M2 2c4 10 32 10 36 0" stroke="#e4002b" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+      </div>
+      <nav class="tui-nav" id="tuiPrimaryNav" aria-label="Primary">
+        <a href="#" class="is-active" data-tui-nav="holidays">Holidays</a>
+        <a href="#" data-tui-nav="flights">Flights</a>
+        <a href="#" data-tui-nav="cruises">Cruises</a>
+        <a href="#" data-tui-nav="manage">Manage My Booking</a>
+        <a href="#" data-tui-nav="help">Help</a>
+      </nav>
+      <div class="tui-header-actions">
+        <button type="button" class="tui-login-btn" id="tuiLoginBtn">Login / Register</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="tui-hero" data-hero-mount data-hero-mount-fit="contain">
+    <div class="tui-hero-inner">
+      <h1>Where do you want to go?</h1>
+      <p>Search package holidays, flights and cruises across our destinations.</p>
+      <form class="tui-search" id="tuiSearchForm">
+        <div class="tui-field">
+          <label for="tuiDestination">Destination</label>
+          <input id="tuiDestination" list="tuiDestinationList" type="text" placeholder="e.g. Costa del Sol, Cancun" value="Costa del Sol, Spain" autocomplete="off">
+          <datalist id="tuiDestinationList">
+            <option value="Costa del Sol, Spain">
+            <option value="Antalya, Turkey">
+            <option value="Cancun, Mexico">
+            <option value="Palma, Mallorca">
+            <option value="Hurghada, Egypt">
+            <option value="Zante, Greece">
+          </datalist>
+        </div>
+        <div class="tui-field">
+          <label for="tuiDepart">Departing</label>
+          <input id="tuiDepart" type="date">
+        </div>
+        <div class="tui-field">
+          <label for="tuiReturn">Returning</label>
+          <input id="tuiReturn" type="date">
+        </div>
+        <div class="tui-field">
+          <label for="tuiGuests">Guests</label>
+          <select id="tuiGuests">
+            <option>2 adults</option>
+            <option>2 adults, 2 children</option>
+            <option>1 adult</option>
+            <option>4 adults</option>
+          </select>
+        </div>
+        <button type="submit" class="tui-search-btn">Search holidays</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="tuiDiscoveryStrip">
+    <div class="tui-discovery-card">
+      <div>Hi <strong id="tuiDiscoveryFirstName">there</strong> — you're close to unlocking a <strong>TUI Discovery Rewards</strong> upgrade. Book your next holiday to claim it.</div>
+      <button type="button" class="tui-discovery-cta" id="tuiDiscoveryCta">See my offer</button>
+    </div>
+  </div>
+
+  <section class="tui-section" id="tuiDestinationsSection">
+    <h2>Popular holiday destinations</h2>
+    <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region"></section>
+    <div class="tui-card-grid" id="tuiDestinationGrid"></div>
+  </section>
+
+  <section class="tui-section" id="tuiResultsSection" hidden>
+    <h2 id="tuiResultsHeading">Holidays to Costa del Sol, Spain</h2>
+    <div class="tui-card-grid" id="tuiResultsGrid"></div>
+  </section>
+
+  <footer class="tui-footer">
+    <div class="tui-footer-inner">
+      <div>© TUI-style demo mockup — Adobe AEP lab. Not affiliated with TUI Group.</div>
+      <div><a href="#" data-tui-nav="help">Help &amp; support</a></div>
+      <div><a href="#" data-tui-nav="manage">Manage My Booking</a></div>
+    </div>
+  </footer>
+
+  <!-- ══ Package detail modal ══ -->
+  <div class="tui-modal-overlay" id="tuiPackageOverlay" hidden>
+    <div class="tui-modal tui-modal-wide">
+      <button type="button" class="tui-modal-close" data-tui-close aria-label="Close">&times;</button>
+      <div class="tui-modal-body">
+        <div class="tui-modal-hero" id="tuiPackageHero"></div>
+        <h2 id="tuiPackageName">Hotel name</h2>
+        <div class="tui-stars" id="tuiPackageStars">★★★★</div>
+        <p id="tuiPackageDesc" style="color:var(--tui-grey);font-size:.92rem;">All-inclusive beachfront resort with pool, spa and kids' club.</p>
+        <div class="tui-price-line"><span>7 nights, all-inclusive</span><span id="tuiPackagePrice">£649</span></div>
+        <div class="tui-price-line"><span>Flights &amp; transfers</span><span>Included</span></div>
+        <div class="tui-price-line total"><span>Total per person</span><span id="tuiPackageTotal">£649</span></div>
+        <button type="button" class="tui-btn" id="tuiBookNowBtn">Book this holiday</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Booking flow modal ══ -->
+  <div class="tui-modal-overlay" id="tuiBookingOverlay" hidden>
+    <div class="tui-modal">
+      <button type="button" class="tui-modal-close" data-tui-close aria-label="Close">&times;</button>
+      <div class="tui-modal-body">
+        <div class="tui-steps">
+          <span class="is-active" id="tuiStep1Tab">1. Your details</span>
+          <span id="tuiStep2Tab">2. Payment</span>
+          <span id="tuiStep3Tab">3. Confirmation</span>
+        </div>
+
+        <div id="tuiBookingStep1">
+          <h3>Lead traveller details</h3>
+          <div class="tui-form-row"><label for="tuiTravellerName">Full name</label><input id="tuiTravellerName" type="text" placeholder="Jamie Smith"></div>
+          <div class="tui-form-row"><label for="tuiTravellerEmail">Email</label><input id="tuiTravellerEmail" type="email" placeholder="jamie@example.com"></div>
+          <div class="tui-form-grid">
+            <div class="tui-form-row"><label for="tuiTravellerPhone">Phone</label><input id="tuiTravellerPhone" type="tel" placeholder="07700 900000"></div>
+            <div class="tui-form-row"><label for="tuiTravellerGuests">Travelling party</label><input id="tuiTravellerGuests" type="text" placeholder="2 adults" disabled></div>
+          </div>
+          <button type="button" class="tui-btn" id="tuiToStep2Btn">Continue to payment</button>
+        </div>
+
+        <div id="tuiBookingStep2" hidden>
+          <h3>Payment (demo — no real card is processed)</h3>
+          <div class="tui-form-row"><label for="tuiCardNumber">Card number</label><input id="tuiCardNumber" type="text" placeholder="4111 1111 1111 1111" maxlength="19"></div>
+          <div class="tui-form-grid">
+            <div class="tui-form-row"><label for="tuiCardExpiry">Expiry</label><input id="tuiCardExpiry" type="text" placeholder="MM/YY" maxlength="5"></div>
+            <div class="tui-form-row"><label for="tuiCardCvc">CVC</label><input id="tuiCardCvc" type="text" placeholder="123" maxlength="4"></div>
+          </div>
+          <div class="tui-price-line total"><span>Total due today</span><span id="tuiBookingTotal">£649</span></div>
+          <button type="button" class="tui-btn" id="tuiPayBtn">
+            <span id="tuiPayLabel">Pay &amp; confirm booking</span>
+            <span class="tui-spinner" id="tuiPaySpinner" hidden></span>
+          </button>
+          <p class="tui-error" id="tuiPayError" hidden></p>
+        </div>
+
+        <div id="tuiBookingStep3" hidden style="text-align:center;">
+          <div class="tui-confirm-icon">✓</div>
+          <h3>Booking confirmed</h3>
+          <p style="color:var(--tui-grey);">Your booking reference is</p>
+          <p class="tui-confirm-ref" id="tuiBookingRef">TUI-000000</p>
+          <p style="color:var(--tui-grey);font-size:.85rem;">A confirmation has been sent to <span id="tuiConfirmEmail">your email</span>.</p>
+          <button type="button" class="tui-btn tui-btn-secondary" data-tui-close>Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Login modal ══ -->
+  <div class="tui-modal-overlay" id="tuiLoginOverlay" hidden>
+    <div class="tui-modal">
+      <div class="tui-modal-body">
+        <button type="button" class="tui-modal-close" data-tui-close id="tuiLoginClose" aria-label="Close">&times;</button>
+        <div id="tuiLoginForm">
+          <h2>Sign in to TUI Discovery</h2>
+          <div class="tui-form-row"><label for="tuiLoginEmail">Email address</label><input id="tuiLoginEmail" type="email" placeholder="you@example.com" list="tuiRecentEmails"></div>
+          <button type="button" class="tui-btn" id="tuiLoginSubmit">
+            <span id="tuiLoginSubmitLabel">Sign in</span>
+            <span class="tui-spinner" id="tuiLoginSpinner" hidden></span>
+          </button>
+          <p class="tui-error" id="tuiLoginError" hidden></p>
+          <p style="text-align:center;margin-top:1rem;"><a href="#" id="tuiLoginAsGuest">Continue as guest</a></p>
+          <ul class="tui-recent-list" id="tuiLoginRecents" aria-label="Recent emails"></ul>
+        </div>
+        <div id="tuiLoginSuccess" hidden style="text-align:center;">
+          <div class="tui-confirm-icon">✓</div>
+          <h2 id="tuiLoginWelcomeName">Welcome back</h2>
+          <p id="tuiLoginWelcomeMsg" style="color:var(--tui-grey);">You're signed in to TUI Discovery.</p>
+          <button type="button" class="tui-btn tui-btn-secondary" id="tuiLoginDone">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="tui-events.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var DESTINATIONS = [
+    { city: 'Costa del Sol', country: 'Spain', from: 379, color1: '#ff9a76', color2: '#e4002b' },
+    { city: 'Antalya', country: 'Turkey', from: 449, color1: '#ffb703', color2: '#e4002b' },
+    { city: 'Cancun', country: 'Mexico', from: 799, color1: '#06a3e1', color2: '#023e8a' },
+    { city: 'Palma', country: 'Mallorca', from: 329, color1: '#8ecae6', color2: '#06a3e1' },
+    { city: 'Hurghada', country: 'Egypt', from: 519, color1: '#f4a261', color2: '#e4002b' },
+    { city: 'Zante', country: 'Greece', from: 399, color1: '#219ebc', color2: '#023047' },
+  ];
+
+  var PACKAGES = [
+    { name: 'TUI Blue Sensimar Beach', stars: '★★★★★', board: '7 nights, all-inclusive', price: 899, desc: 'Adults-only beachfront resort with infinity pool and spa.' },
+    { name: 'Riu Palace Resort', stars: '★★★★', board: '7 nights, all-inclusive', price: 649, desc: 'All-inclusive beachfront resort with pool, spa and kids’ club.' },
+    { name: 'TUI Suneo Family Club', stars: '★★★', board: '7 nights, half board', price: 499, desc: 'Family-friendly resort with waterpark and evening entertainment.' },
+    { name: 'Magic Life Boutique', stars: '★★★★', board: '10 nights, all-inclusive', price: 1099, desc: 'Sports and activity resort with included excursions.' },
+  ];
+
+  function grad(d){ return 'linear-gradient(135deg,' + d.color1 + ',' + d.color2 + ')'; }
+
+  function renderDestinations(){
+    var grid = document.getElementById('tuiDestinationGrid');
+    grid.innerHTML = '';
+    DESTINATIONS.forEach(function(d, i){
+      var card = document.createElement('div');
+      card.className = 'tui-card';
+      card.setAttribute('data-index', i);
+      card.innerHTML =
+        '<div class="tui-card-media" style="background:' + grad(d) + '">' + d.city + '</div>' +
+        '<div class="tui-card-body">' +
+          '<div class="tui-card-meta">' + d.country + '</div>' +
+          '<div class="tui-card-price">From <b>£' + d.from + '</b> pp</div>' +
+        '</div>';
+      card.addEventListener('click', function(){
+        document.getElementById('tuiDestination').value = d.city + ', ' + d.country;
+        runSearch(d);
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  function renderResults(destLabel){
+    var grid = document.getElementById('tuiResultsGrid');
+    grid.innerHTML = '';
+    PACKAGES.forEach(function(p, i){
+      var d = DESTINATIONS[i % DESTINATIONS.length];
+      var card = document.createElement('div');
+      card.className = 'tui-card';
+      card.innerHTML =
+        '<div class="tui-card-media" style="background:' + grad(d) + '">' + p.name + '</div>' +
+        '<div class="tui-card-body">' +
+          '<div class="tui-stars">' + p.stars + '</div>' +
+          '<div class="tui-card-meta">' + p.board + '</div>' +
+          '<div class="tui-card-price">From <b>£' + p.price + '</b> pp</div>' +
+        '</div>';
+      card.addEventListener('click', function(){ openPackage(p, d); });
+      grid.appendChild(card);
+    });
+  }
+
+  function runSearch(dest){
+    var label = dest ? (dest.city + ', ' + dest.country) : document.getElementById('tuiDestination').value;
+    document.getElementById('tuiResultsHeading').textContent = 'Holidays to ' + label;
+    document.getElementById('tuiResultsSection').hidden = false;
+    renderResults(label);
+    document.getElementById('tuiResultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    tuiEmit('travel.holiday.search', { destination: label, guests: document.getElementById('tuiGuests').value });
+  }
+
+  document.getElementById('tuiSearchForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    runSearch(null);
+  });
+
+  document.getElementById('tuiPrimaryNav').addEventListener('click', function(e){
+    var link = e.target.closest('a[data-tui-nav]');
+    if (!link) return;
+    e.preventDefault();
+    Array.prototype.forEach.call(document.querySelectorAll('#tuiPrimaryNav a'), function(a){ a.classList.remove('is-active'); });
+    link.classList.add('is-active');
+    tuiEmit('travel.navigation.select', { menu: link.getAttribute('data-tui-nav') });
+  });
+
+  // ── Package detail + booking flow ──────────────────────────────
+  var activePackage = null;
+  var packageOverlay = document.getElementById('tuiPackageOverlay');
+  var bookingOverlay = document.getElementById('tuiBookingOverlay');
+  var bookingStarted = false;
+  var bookingCompleted = false;
+
+  function openPackage(p, d){
+    activePackage = p;
+    document.getElementById('tuiPackageHero').style.background = grad(d);
+    document.getElementById('tuiPackageHero').textContent = p.name;
+    document.getElementById('tuiPackageName').textContent = p.name;
+    document.getElementById('tuiPackageStars').textContent = p.stars;
+    document.getElementById('tuiPackageDesc').textContent = p.desc;
+    document.getElementById('tuiPackagePrice').textContent = '£' + p.price;
+    document.getElementById('tuiPackageTotal').textContent = '£' + p.price;
+    packageOverlay.hidden = false;
+    tuiEmit('travel.package.view', { packageName: p.name, price: p.price });
+  }
+
+  function closePackage(){ packageOverlay.hidden = true; }
+
+  document.getElementById('tuiBookNowBtn').addEventListener('click', function(){
+    closePackage();
+    openBooking();
+  });
+
+  function resetBookingSteps(){
+    document.getElementById('tuiBookingStep1').hidden = false;
+    document.getElementById('tuiBookingStep2').hidden = true;
+    document.getElementById('tuiBookingStep3').hidden = true;
+    document.getElementById('tuiStep1Tab').classList.add('is-active');
+    document.getElementById('tuiStep2Tab').classList.remove('is-active');
+    document.getElementById('tuiStep3Tab').classList.remove('is-active');
+    document.getElementById('tuiPayError').hidden = true;
+  }
+
+  function openBooking(){
+    resetBookingSteps();
+    if (activePackage) {
+      document.getElementById('tuiBookingTotal').textContent = '£' + activePackage.price;
+      document.getElementById('tuiTravellerGuests').value = document.getElementById('tuiGuests').value;
+    }
+    bookingStarted = true;
+    bookingCompleted = false;
+    bookingOverlay.hidden = false;
+    tuiEmit('travel.booking.start', { packageName: activePackage ? activePackage.name : null });
+  }
+
+  document.getElementById('tuiToStep2Btn').addEventListener('click', function(){
+    document.getElementById('tuiBookingStep1').hidden = true;
+    document.getElementById('tuiBookingStep2').hidden = false;
+    document.getElementById('tuiStep1Tab').classList.remove('is-active');
+    document.getElementById('tuiStep2Tab').classList.add('is-active');
+  });
+
+  document.getElementById('tuiPayBtn').addEventListener('click', function(){
+    var payBtn = this;
+    var label = document.getElementById('tuiPayLabel');
+    var spinner = document.getElementById('tuiPaySpinner');
+    payBtn.disabled = true;
+    label.textContent = 'Processing…';
+    spinner.hidden = false;
+    window.setTimeout(function(){
+      payBtn.disabled = false;
+      label.textContent = 'Pay & confirm booking';
+      spinner.hidden = true;
+      document.getElementById('tuiBookingStep2').hidden = true;
+      document.getElementById('tuiBookingStep3').hidden = false;
+      document.getElementById('tuiStep2Tab').classList.remove('is-active');
+      document.getElementById('tuiStep3Tab').classList.add('is-active');
+      var ref = 'TUI-' + Math.floor(100000 + Math.random() * 899999);
+      document.getElementById('tuiBookingRef').textContent = ref;
+      var email = document.getElementById('tuiTravellerEmail').value.trim() || 'your email';
+      document.getElementById('tuiConfirmEmail').textContent = email;
+      bookingCompleted = true;
+      tuiEmit('travel.booking.complete', {
+        packageName: activePackage ? activePackage.name : null,
+        price: activePackage ? activePackage.price : null,
+        bookingRef: ref,
+      });
+    }, 900);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-tui-close]'), function(btn){
+    btn.addEventListener('click', function(){
+      var overlay = btn.closest('.tui-modal-overlay');
+      if (overlay === bookingOverlay && bookingStarted && !bookingCompleted) {
+        tuiEmit('travel.booking.abandon', { packageName: activePackage ? activePackage.name : null, step: document.getElementById('tuiBookingStep2').hidden ? 1 : 2 });
+      }
+      overlay.hidden = true;
+      if (overlay === bookingOverlay) { bookingStarted = false; }
+    });
+  });
+
+  function tuiEmit(eventType, publicObj){
+    if (typeof window.TuiLabEvents !== 'undefined') {
+      window.TuiLabEvents.emit(eventType, publicObj, 'TUI site', location.href.split('?')[0]);
+    }
+  }
+
+  // ── Profile personalisation (from outer AEP shell) ─────────────
+  var tuiProfileIsAtRisk = false;
+  window.addEventListener('message', function(ev){
+    if (!ev.data || ev.data.source !== 'tui-demo-shell') return;
+
+    var strip = document.getElementById('tuiDiscoveryStrip');
+    var firstNameEl = document.getElementById('tuiDiscoveryFirstName');
+    var ribbon = document.getElementById('tuiGenericRibbon');
+    var GENERIC_RIBBON_HTML = 'Summer Sale — up to 25% off selected package holidays. <a href="#" data-tui-nav="deals">See offers</a>';
+
+    function showDiscovery(firstName){
+      if (firstNameEl) firstNameEl.textContent = firstName || 'there';
+      if (strip) strip.classList.add('tui-profile-visible');
+      if (ribbon) ribbon.innerHTML = (firstName ? 'Welcome back, ' + firstName + '! ' : '') + 'Your TUI Discovery upgrade offer is ready. <a href="#" data-tui-nav="deals">View offer</a>';
+      var cta = document.getElementById('tuiDiscoveryCta');
+      if (cta && !cta.dataset.wired) {
+        cta.dataset.wired = '1';
+        cta.addEventListener('click', function(){
+          tuiEmit('offer.click', { offerId: 'discovery-upgrade', offerLabel: 'See my offer', personalised: true });
+        });
+      }
+      tuiEmit('offer.view', { offerId: 'discovery-upgrade', personalised: true });
+    }
+
+    function hideDiscovery(){
+      if (strip) strip.classList.remove('tui-profile-visible');
+      if (ribbon) ribbon.innerHTML = GENERIC_RIBBON_HTML;
+    }
+
+    if (ev.data.type === 'profile-loaded') {
+      var p = ev.data.profile || {};
+      var tier = p.loyaltyStatus ? String(p.loyaltyStatus).toLowerCase().trim() : '';
+      var churn = p.churnPrediction != null ? Number(p.churnPrediction) : null;
+      if (churn != null && churn <= 1) churn = churn * 100;
+      var atRisk = (tier === 'bronze' || tier === 'silver') && churn != null && churn >= 60;
+      tuiProfileIsAtRisk = atRisk;
+      if (atRisk) showDiscovery(p.firstName); else hideDiscovery();
+    }
+
+    if (ev.data.type === 'profile-cleared') {
+      tuiProfileIsAtRisk = false;
+      hideDiscovery();
+    }
+  });
+
+  // ── Login modal ─────────────────────────────────────────────────
+  (function(){
+    var overlay = document.getElementById('tuiLoginOverlay');
+    var loginBtn = document.getElementById('tuiLoginBtn');
+    var submitBtn = document.getElementById('tuiLoginSubmit');
+    var emailInput = document.getElementById('tuiLoginEmail');
+    var submitLabel = document.getElementById('tuiLoginSubmitLabel');
+    var spinner = document.getElementById('tuiLoginSpinner');
+    var errorEl = document.getElementById('tuiLoginError');
+    var formEl = document.getElementById('tuiLoginForm');
+    var successEl = document.getElementById('tuiLoginSuccess');
+    var welcomeName = document.getElementById('tuiLoginWelcomeName');
+    var welcomeMsg = document.getElementById('tuiLoginWelcomeMsg');
+    var doneBtn = document.getElementById('tuiLoginDone');
+    var guestLink = document.getElementById('tuiLoginAsGuest');
+
+    function openModal(){
+      overlay.hidden = false;
+      formEl.hidden = false;
+      successEl.hidden = true;
+      errorEl.hidden = true;
+      errorEl.textContent = '';
+      submitBtn.disabled = false;
+      submitLabel.textContent = 'Sign in';
+      spinner.hidden = true;
+      document.body.style.overflow = 'hidden';
+      window.setTimeout(function(){ emailInput && emailInput.focus(); }, 50);
+    }
+    function closeModal(){ overlay.hidden = true; document.body.style.overflow = ''; }
+    function setLoading(on){
+      submitBtn.disabled = on;
+      submitLabel.textContent = on ? 'Signing in…' : 'Sign in';
+      spinner.hidden = !on;
+    }
+    function showError(msg){ errorEl.textContent = msg; errorEl.hidden = false; setLoading(false); }
+    function showSuccess(firstName, atRisk){
+      formEl.hidden = true;
+      successEl.hidden = false;
+      welcomeName.textContent = firstName ? ('Welcome back, ' + firstName) : 'Welcome back';
+      welcomeMsg.textContent = atRisk ? 'We have a special Discovery Rewards offer for you.' : 'You’re signed in to TUI Discovery.';
+      loginBtn.textContent = firstName ? ('Hi, ' + firstName) : 'My Account';
+      loginBtn.classList.add('is-signed-in');
+    }
+
+    loginBtn.addEventListener('click', openModal);
+    document.getElementById('tuiLoginClose').addEventListener('click', closeModal);
+    doneBtn.addEventListener('click', closeModal);
+    guestLink.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !overlay.hidden) closeModal(); });
+
+    submitBtn.addEventListener('click', function(){
+      var email = emailInput.value.trim();
+      if (!email || email.indexOf('@') === -1) { showError('Please enter a valid email address.'); return; }
+      setLoading(true);
+      errorEl.hidden = true;
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ source: 'tui-lab', type: 'login-request', email: email }, '*');
+      }
+      window._tuiLoginTimeout = window.setTimeout(function(){
+        showError('Could not reach the profile service. Try again.');
+      }, 10000);
+    });
+
+    window.addEventListener('message', function(ev){
+      if (!ev.data || ev.data.source !== 'tui-demo-shell') return;
+      if (ev.data.type !== 'login-complete') return;
+      window.clearTimeout(window._tuiLoginTimeout);
+      setLoading(false);
+      if (ev.data.found) {
+        var p = ev.data.profile || {};
+        var tier = p.loyaltyStatus ? String(p.loyaltyStatus).toLowerCase().trim() : '';
+        var churn = p.churnPrediction != null ? Number(p.churnPrediction) : null;
+        if (churn != null && churn <= 1) churn = churn * 100;
+        var atRisk = (tier === 'bronze' || tier === 'silver') && churn != null && churn >= 60;
+        showSuccess(ev.data.firstName, atRisk);
+        tuiEmit('account.login', { method: 'email', loyaltyTier: p.loyaltyStatus || null, personalised: atRisk, memberRecognised: true });
+      } else {
+        showError('No TUI Discovery account found for that email. Check the address and try again.');
+      }
+    });
+  })();
+
+  renderDestinations();
+})();
+</script>
+</body>
+</html>

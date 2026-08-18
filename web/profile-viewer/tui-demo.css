@@ -1,0 +1,145 @@
+.tui-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 1;
+  background: var(--dash-bg);
+}
+
+.tui-demo-page .dashboard-main {
+  padding: 0;
+  max-width: none;
+}
+
+.tui-demo-page .dashboard-shell {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tui-demo-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+.tui-demo-page .dashboard-main-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  pointer-events: none;
+}
+
+.tui-demo-page .dashboard-main.tui-demo-empty-main {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.aep-sim-mobile .tui-demo-top-anchor {
+  display: none !important;
+}
+
+html.aep-sim-mobile body.tui-demo-page .dashboard-sidebar {
+  display: none !important;
+}
+
+html.aep-sim-mobile .tui-demo-site-frame {
+  position: absolute;
+  inset: 0;
+}
+
+.tui-demo-top-anchor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+.tui-demo-top-anchor::before {
+  content: "";
+  display: block;
+  height: 14px;
+  pointer-events: auto;
+}
+
+.tui-demo-id-banner {
+  pointer-events: auto;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  transform: translateY(calc(-100% - 14px));
+  transition: transform 0.2s ease;
+}
+
+.tui-demo-top-anchor:hover .tui-demo-id-banner,
+.tui-demo-top-anchor:focus-within .tui-demo-id-banner {
+  transform: translateY(0);
+}
+
+.tui-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.tui-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.tui-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+/* ── Brand Concierge launcher ─────────────────────────────────── */
+
+.tui-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.tui-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  body.tui-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.tui-demo-page--nav-open .dashboard-sidebar,
+  body.tui-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: var(--dash-shadow-hover);
+  }
+}
+
+@media (max-width: 768px) {
+  body.tui-demo-page .dashboard-sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
+  }
+
+  body.tui-demo-page--nav-open .dashboard-sidebar {
+    transform: none;
+  }
+}

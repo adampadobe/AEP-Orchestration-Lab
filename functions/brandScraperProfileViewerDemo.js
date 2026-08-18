@@ -15,7 +15,7 @@ const NAV_MANIFEST_PATH = `${PV_DEMO_GCS_PREFIX}/brand-scraper-demo-nav.json`;
 const RESERVED_DEMO_SLUGS = new Set([
   'sky', 'mod', 'fnb', 'oldmutual', 'old-mutual', 'etihad', 'ksia', 'starbucks',
   'alshaya', 'race-for-life', 'raceforlife', 'rocco-forte', 'roccoforte', 'jlr',
-  'navigator', 'aviva', 'premier-inn', 'premierinn',
+  'navigator', 'aviva', 'premier-inn', 'premierinn', 'tui',
 ]);
 
 /** Matches Global values → Demos sidebar lab owner presets. */

@@ -1,0 +1,23 @@
+{
+  "demoId": "tui",
+  "prefix": "tui",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": true
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "tuiDemo",
+    "webPushBySandboxKey": "tuiDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "tuiWebPushOnInjectToggle",
+    "webPushToggleId": "tuiWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "tuiBcOnInjectToggle",
+    "bcStyleSelectId": "tuiBcStyleSelect"
+  },
+  "iframeIds": [
+    "tuiSiteFrame"
+  ]
+}
