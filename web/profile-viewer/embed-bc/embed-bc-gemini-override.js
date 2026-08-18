@@ -60,14 +60,33 @@
     return 'bcGeminiCorpus:' + sandboxKey() + ':' + demoPrefix();
   }
 
+  function normaliseProductEntry(p) {
+    // Accept a bare string (legacy "one name per line" shape) or a structured object.
+    if (typeof p === 'string') return { productName: p };
+    if (!p || typeof p !== 'object') return null;
+    var out = {};
+    if (p.productID) out.productID = String(p.productID).trim();
+    if (p.productName) out.productName = String(p.productName).trim();
+    if (p.productDescription) out.productDescription = String(p.productDescription).trim();
+    if (p.productPageURL) out.productPageURL = String(p.productPageURL).trim();
+    if (p.productImageURL) out.productImageURL = String(p.productImageURL).trim();
+    return out.productName ? out : null;
+  }
+
   function loadCorpus() {
     try {
       var raw = window.localStorage.getItem(corpusStorageKey());
       if (raw) {
         var parsed = JSON.parse(raw);
+        // Migrate the old productNames:[string] shape transparently if present.
+        var rawProducts = Array.isArray(parsed.products)
+          ? parsed.products
+          : Array.isArray(parsed.productNames)
+            ? parsed.productNames
+            : [];
         return {
           websiteUrls: Array.isArray(parsed.websiteUrls) ? parsed.websiteUrls : [],
-          productNames: Array.isArray(parsed.productNames) ? parsed.productNames : [],
+          products: rawProducts.map(normaliseProductEntry).filter(Boolean),
           manifestText: typeof parsed.manifestText === 'string' ? parsed.manifestText : '',
           trainedAt: parsed.trainedAt || null,
         };
@@ -75,7 +94,7 @@
     } catch (_e) {
       /* corrupt/blocked storage — start fresh */
     }
-    return { websiteUrls: [], productNames: [], manifestText: '', trainedAt: null };
+    return { websiteUrls: [], products: [], manifestText: '', trainedAt: null };
   }
 
   var corpus = loadCorpus();
@@ -94,13 +113,13 @@
   }
 
   function refreshStatus() {
-    if (!corpus.websiteUrls.length && !corpus.productNames.length && !corpus.manifestText) {
+    if (!corpus.websiteUrls.length && !corpus.products.length && !corpus.manifestText) {
       setStatus('');
       return;
     }
     var bits = [];
     if (corpus.websiteUrls.length) bits.push(corpus.websiteUrls.length + ' site' + (corpus.websiteUrls.length === 1 ? '' : 's'));
-    if (corpus.productNames.length) bits.push(corpus.productNames.length + ' product' + (corpus.productNames.length === 1 ? '' : 's'));
+    if (corpus.products.length) bits.push(corpus.products.length + ' product' + (corpus.products.length === 1 ? '' : 's'));
     if (corpus.manifestText) bits.push('notes');
     var trainedSuffix = corpus.trainedAt ? ' — trained' : ' — ask a question to train';
     setStatus('Gemini: ' + bits.join(', ') + trainedSuffix);
@@ -118,13 +137,107 @@
     return null;
   }
 
+  /** Splits one CSV line into fields, honouring double-quoted fields containing commas. */
+  function parseCsvLine(line) {
+    var out = [];
+    var cur = '';
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line.charAt(i);
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line.charAt(i + 1) === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          cur += ch;
+        }
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        out.push(cur);
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(function (s) {
+      return s.trim();
+    });
+  }
+
   function parseFirstColumnLines(text) {
     return String(text || '')
       .split(/\r?\n/)
+      .filter(function (l) {
+        return l.trim();
+      })
       .map(function (line) {
-        return line.split(',')[0].replace(/^["']|["']$/g, '').trim();
+        return parseCsvLine(line)[0] || '';
       })
       .filter(Boolean);
+  }
+
+  var PRODUCT_COLUMN_ALIASES = {
+    productid: 'productID',
+    id: 'productID',
+    _id: 'productID',
+    sku: 'productID',
+    productname: 'productName',
+    name: 'productName',
+    title: 'productName',
+    productdescription: 'productDescription',
+    description: 'productDescription',
+    productpageurl: 'productPageURL',
+    pageurl: 'productPageURL',
+    url: 'productPageURL',
+    link: 'productPageURL',
+    productimageurl: 'productImageURL',
+    imageurl: 'productImageURL',
+    image: 'productImageURL',
+    imgurl: 'productImageURL',
+  };
+
+  /**
+   * Parses a full product-catalog CSV (matching the sample-catalog.csv schema — productID,
+   * _id, productName, productDescription, productPageURL, productImageURL, productRating)
+   * into structured product objects, so page/image URLs the user already curated survive
+   * all the way through to the answer instead of being discarded down to a bare name.
+   * Returns null if this doesn't look like a header'd product CSV, so the caller can fall
+   * back to treating it as one plain product name per line.
+   */
+  function parseProductsCsv(text) {
+    var lines = String(text || '')
+      .split(/\r?\n/)
+      .filter(function (l) {
+        return l.trim();
+      });
+    if (!lines.length) return null;
+    var header = parseCsvLine(lines[0]).map(function (h) {
+      return String(h || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '');
+    });
+    var mapped = header.map(function (h) {
+      return PRODUCT_COLUMN_ALIASES[h] || null;
+    });
+    if (mapped.indexOf('productName') === -1) return null; // no recognisable header — not a structured CSV
+
+    var products = [];
+    for (var i = 1; i < lines.length; i++) {
+      var cols = parseCsvLine(lines[i]);
+      var obj = {};
+      for (var c = 0; c < mapped.length; c++) {
+        if (mapped[c] && cols[c]) obj[mapped[c]] = cols[c];
+      }
+      var normalised = normaliseProductEntry(obj);
+      if (normalised) products.push(normalised);
+    }
+    return products.length ? products : null;
   }
 
   function isUrlish(line) {
@@ -149,15 +262,30 @@
     return out;
   }
 
+  function mergeUniqueProducts(list, additions) {
+    var seen = {};
+    var out = [];
+    list.concat(additions).forEach(function (p) {
+      var key = String((p && p.productName) || '').trim().toLowerCase();
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      out.push(p);
+    });
+    return out;
+  }
+
   function ingestFileText(name, text) {
     var kind = classifyFilename(name);
-    var lines = parseFirstColumnLines(text);
-    if (!kind) kind = looksLikeUrlList(lines) ? 'websites' : 'manifest';
+    var structuredProducts = kind === 'products' || !kind ? parseProductsCsv(text) : null;
+    if (!kind) kind = structuredProducts ? 'products' : looksLikeUrlList(parseFirstColumnLines(text)) ? 'websites' : 'manifest';
 
     if (kind === 'websites') {
-      corpus.websiteUrls = mergeUnique(corpus.websiteUrls, lines.filter(isUrlish));
+      corpus.websiteUrls = mergeUnique(corpus.websiteUrls, parseFirstColumnLines(text).filter(isUrlish));
     } else if (kind === 'products') {
-      corpus.productNames = mergeUnique(corpus.productNames, lines);
+      var products = structuredProducts || parseFirstColumnLines(text).map(function (n) {
+        return { productName: n };
+      });
+      corpus.products = mergeUniqueProducts(corpus.products, products);
     } else {
       corpus.manifestText = (corpus.manifestText ? corpus.manifestText + '\n\n' : '') + String(text || '').slice(0, 20000);
     }
@@ -418,7 +546,7 @@
 
   function ensureTrained() {
     if (corpus.trainedAt) return Promise.resolve(corpus);
-    if (!corpus.websiteUrls.length && !corpus.productNames.length && !corpus.manifestText) {
+    if (!corpus.websiteUrls.length && !corpus.products.length && !corpus.manifestText) {
       return Promise.resolve(corpus); // nothing dropped yet — Gemini answers generically
     }
     setStatus('Training Gemini…');
@@ -430,7 +558,7 @@
         sandbox: sandboxKey(),
         demoPrefix: demoPrefix(),
         websiteUrls: corpus.websiteUrls,
-        productNames: corpus.productNames,
+        products: corpus.products,
         manifestText: corpus.manifestText,
       }),
     })
