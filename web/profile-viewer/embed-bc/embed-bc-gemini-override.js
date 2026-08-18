@@ -21,13 +21,16 @@
  * renders 100% of the DOM/typing/cards from that object — it cannot
  * tell the difference, so the widget looks and feels identical.
  *
- * Training data ("brain" for this demo) is provided by dragging CSV/text
- * files directly onto the page while this override is enabled — a
- * website list, a product list, and/or free-form notes — rather than a
- * separate upload panel. Files are classified by filename keywords
- * (falling back to content sniffing for a website URL list), merged
- * into a small per-sandbox+demo corpus, and used the next time a
- * question is asked.
+ * Training data ("brain" for this demo) is provided via a "➕ Train LLM" button
+ * inserted into the existing, stable Brand Concierge settings panel
+ * (shared/brand-concierge-midrail-panel.js's display-mode popup — the same
+ * panel regardless of which BC display mode, Full Screen/Modal/Injected/
+ * Centre bottom/Modal bar, is active), which opens a folder/file picker —
+ * a website list, a product list, and/or free-form notes. Dropping files
+ * directly onto the page also still works as a secondary path. Files are
+ * classified by filename keywords (falling back to content sniffing for a
+ * website URL list), merged into a small per-sandbox+demo corpus, and
+ * training starts immediately on upload rather than waiting for a question.
  */
 (function () {
   function isEnabled() {
@@ -274,94 +277,27 @@
   document.addEventListener('dragover', handleDragOver, true);
   document.addEventListener('drop', handleDrop, true);
 
-  // --- File/folder picker button, anchored inside Adobe's real chat input ------------------
+  // --- File/folder picker button, inside the stable Brand Concierge settings panel --------
   //
-  // Adobe's chat DOM is a third-party black box we don't render, so we can't literally
-  // insert a child node into their input toolbar. Instead: watch the known BC mount
-  // containers (site-clone-bc.js's MODAL/BOTTOM_DOCK/MODAL_BAR/FRAME_OVERLAY/IFRAME mount
-  // selectors) for their text input/textarea to appear, then position our own small "+"
-  // button directly on top of it (fixed position, computed from the real input's
-  // getBoundingClientRect, kept in sync via a ResizeObserver + scroll/resize listeners) so
-  // it reads as part of the input itself. Icon-only by default — the "Train Gemini" label
-  // only reveals after a sustained 5s hover, keeping the chat visually clean for the
-  // customer watching the demo.
+  // Adobe's chat DOM (and even our own bcp-panel mode-toggle popup layout) differs across
+  // display modes (Full Screen/Modal/Injected/Centre bottom/Modal bar), which made anchoring
+  // a button to "the chat input" unreliable across all of them. The one thing that IS stable
+  // regardless of display mode is our own Brand Concierge settings popup
+  // (shared/brand-concierge-midrail-panel.js's "Switch how Brand Concierge appears..." panel,
+  // opened via the sparkle trigger) — it's our own DOM, not Adobe's, and always renders the
+  // same way. Insert a plain "Train LLM" button there once, instead of overlaying the chat.
 
-  var BC_MOUNT_SELECTORS = [
-    '#brand-concierge-mount',
-    '#bcBottomDockMount',
-    '#bcModalBarMount',
-    '#siteCloneBcFrameMount',
-    '#aepBcModal #brand-concierge-mount',
-    '#siteCloneBcInline #brand-concierge-mount',
-  ];
-
-  var pickerButton = null;
   var pickerInput = null;
-  var pickerLabel = null;
-  var hoverRevealTimer = null;
-  var anchoredInputEl = null;
+  var trainButtonInserted = false;
 
-  function findChatInputEl() {
-    for (var i = 0; i < BC_MOUNT_SELECTORS.length; i++) {
-      var mount = document.querySelector(BC_MOUNT_SELECTORS[i]);
-      if (!mount) continue;
-      var candidate = mount.querySelector(
-        'textarea, input[type="text"], input:not([type]), [contenteditable="true"]',
-      );
-      if (candidate && candidate.offsetParent !== null) return candidate;
-    }
-    return null;
-  }
-
-  function ensurePickerUi() {
-    if (pickerButton) return;
-
-    pickerButton = document.createElement('button');
-    pickerButton.type = 'button';
-    pickerButton.id = 'siteCloneBcGeminiPickerBtn';
-    pickerButton.setAttribute('aria-label', 'Train Gemini — choose a folder or files');
-    pickerButton.style.cssText =
-      'position:fixed;z-index:99999;display:none;align-items:center;gap:0.4rem;' +
-      'height:28px;padding:0 0.5rem;border-radius:999px;border:1px solid rgba(0,0,0,0.15);' +
-      'background:#fff;color:#444;font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
-      'box-shadow:0 1px 4px rgba(0,0,0,0.18);cursor:pointer;overflow:hidden;white-space:nowrap;' +
-      'transition:padding 0.2s ease, background 0.2s ease;';
-
-    var icon = document.createElement('span');
-    icon.textContent = '➕';
-    icon.style.cssText = 'font-size:13px;line-height:1;flex:0 0 auto;';
-
-    pickerLabel = document.createElement('span');
-    pickerLabel.textContent = 'Train Gemini';
-    pickerLabel.style.cssText = 'max-width:0;opacity:0;overflow:hidden;transition:max-width 0.25s ease, opacity 0.2s ease;';
-
-    pickerButton.appendChild(icon);
-    pickerButton.appendChild(pickerLabel);
-
+  function ensurePickerInput() {
+    if (pickerInput) return;
     pickerInput = document.createElement('input');
     pickerInput.type = 'file';
     pickerInput.multiple = true;
     pickerInput.webkitdirectory = true;
     pickerInput.directory = true;
     pickerInput.style.display = 'none';
-
-    pickerButton.addEventListener('mouseenter', function () {
-      clearTimeout(hoverRevealTimer);
-      hoverRevealTimer = setTimeout(function () {
-        pickerLabel.style.maxWidth = '120px';
-        pickerLabel.style.opacity = '1';
-        pickerButton.style.padding = '0 0.7rem';
-      }, 5000);
-    });
-    pickerButton.addEventListener('mouseleave', function () {
-      clearTimeout(hoverRevealTimer);
-      pickerLabel.style.maxWidth = '0';
-      pickerLabel.style.opacity = '0';
-      pickerButton.style.padding = '0 0.5rem';
-    });
-    pickerButton.addEventListener('click', function () {
-      pickerInput.click();
-    });
     pickerInput.addEventListener('change', function () {
       var files = pickerInput.files ? Array.prototype.slice.call(pickerInput.files) : [];
       if (files.length) showToast('Reading ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…', 'busy');
@@ -378,62 +314,66 @@
       });
       pickerInput.value = '';
     });
-
-    document.body.appendChild(pickerButton);
     document.body.appendChild(pickerInput);
   }
 
-  function positionPickerButton() {
-    if (!pickerButton || !isEnabled()) return;
-    if (!anchoredInputEl || !document.contains(anchoredInputEl)) {
-      anchoredInputEl = findChatInputEl();
-    }
-    if (!anchoredInputEl) {
-      pickerButton.style.display = 'none';
-      return;
-    }
-    var r = anchoredInputEl.getBoundingClientRect();
-    if (!r.width && !r.height) {
-      pickerButton.style.display = 'none';
-      return;
-    }
-    pickerButton.style.display = 'flex';
-    // Sit just inside the input's right edge, vertically centred — reads as an attach icon.
-    pickerButton.style.top = r.top + r.height / 2 - 14 + 'px';
-    pickerButton.style.left = r.right - 42 + 'px';
+  function tryInsertTrainButton() {
+    if (trainButtonInserted) return true;
+    var optionsMount = document.getElementById('bcpPanelModeOptions');
+    if (!optionsMount) return false;
+    ensurePickerInput();
+
+    var row = document.createElement('div');
+    row.id = 'bcpTrainLlmRow';
+    row.style.cssText = 'margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid rgba(0,0,0,0.08);';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'siteCloneBcGeminiPickerBtn';
+    btn.textContent = '➕ Train LLM';
+    btn.style.cssText =
+      'display:inline-flex;align-items:center;gap:0.35rem;height:30px;padding:0 0.75rem;' +
+      'border-radius:999px;border:1px solid rgba(0,0,0,0.15);background:#fff;color:#333;' +
+      'font:600 12.5px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;';
+    btn.addEventListener('click', function () {
+      pickerInput.click();
+    });
+
+    row.appendChild(btn);
+    optionsMount.parentNode.insertBefore(row, optionsMount.nextSibling);
+    trainButtonInserted = true;
+    return true;
   }
 
-  var pickerPositionInterval = null;
-
-  function refreshPickerVisibility() {
-    ensurePickerUi();
+  function refreshTrainButtonVisibility() {
+    var row = document.getElementById('bcpTrainLlmRow');
     if (!isEnabled()) {
-      pickerButton.style.display = 'none';
-      if (pickerPositionInterval) {
-        clearInterval(pickerPositionInterval);
-        pickerPositionInterval = null;
-      }
+      if (row) row.style.display = 'none';
       return;
     }
-    positionPickerButton();
-    if (!pickerPositionInterval) {
-      // Adobe's widget mounts/resizes/opens asynchronously with no public event we can
-      // hook — a light poll keeps the button correctly anchored without needing to know
-      // their internal DOM lifecycle.
-      pickerPositionInterval = setInterval(positionPickerButton, 500);
-    }
+    if (!tryInsertTrainButton()) return; // panel not mounted yet — retried by the poll below
+    document.getElementById('bcpTrainLlmRow').style.display = 'block';
   }
 
-  window.addEventListener('resize', positionPickerButton);
-  window.addEventListener('scroll', positionPickerButton, true);
+  // The midrail panel mounts lazily and asynchronously with no public "ready" event, so a
+  // short bounded poll is the simplest reliable way to catch the moment it first appears —
+  // once inserted, trainButtonInserted short-circuits all further work.
+  var trainButtonPollAttempts = 0;
+  var trainButtonPollInterval = setInterval(function () {
+    trainButtonPollAttempts++;
+    refreshTrainButtonVisibility();
+    if (trainButtonInserted || trainButtonPollAttempts > 40) {
+      clearInterval(trainButtonPollInterval);
+    }
+  }, 500);
 
-  refreshPickerVisibility();
+  refreshTrainButtonVisibility();
   document.addEventListener('change', function (ev) {
     if (ev && ev.target && ev.target.id === 'siteCloneBcGeminiOverrideToggle') {
-      refreshPickerVisibility();
+      refreshTrainButtonVisibility();
     }
   });
-  document.addEventListener('aep-demo-env-strip-mounted', refreshPickerVisibility);
+  document.addEventListener('aep-demo-env-strip-mounted', refreshTrainButtonVisibility);
 
   // --- Status toast — lets the user see training/answer progress instead of wondering
   // whether anything happened ---------------------------------------------------------
