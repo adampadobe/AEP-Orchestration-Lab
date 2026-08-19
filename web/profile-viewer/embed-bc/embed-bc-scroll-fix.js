@@ -28,9 +28,53 @@
     return mount.querySelector('.brand-concierge-container');
   }
 
-  function scrollWithinHistory(history, behavior) {
+  var NEAR_BOTTOM_PX = 48;
+  // After a wheel tick, hold off re-arming auto-follow for this long even if
+  // the resulting position happens to land back within NEAR_BOTTOM_PX — a
+  // single tick landing there shouldn't instantly re-enable auto-scroll and
+  // undo the very scroll the user is mid-gesture on before their next tick.
+  var WHEEL_COOLDOWN_MS = 1500;
+
+  /**
+   * Per-history "should this auto-follow new content" state, shared between
+   * the scrollIntoView patch and the MutationObserver below. A real mouse-
+   * wheel tick is the clearest signal of user intent to read history, so it
+   * always wins immediately — without this, snapping to bottom on every DOM
+   * change (BC re-renders its own internals for reasons that have nothing to
+   * do with a new turn) fights the user's wheel input, making it feel like
+   * the wheel "doesn't work" even though nothing is actually blocking it.
+   */
+  function getStickState(history) {
+    if (!history.__embedBcStick) {
+      var state = { stick: true, programmatic: false, lastWheelAt: 0 };
+      history.addEventListener(
+        'wheel',
+        function () {
+          state.stick = false;
+          state.lastWheelAt = Date.now();
+        },
+        { passive: true },
+      );
+      history.addEventListener('scroll', function () {
+        if (state.programmatic) return;
+        if (Date.now() - state.lastWheelAt < WHEEL_COOLDOWN_MS) return;
+        var distanceFromBottom = history.scrollHeight - history.scrollTop - history.clientHeight;
+        state.stick = distanceFromBottom <= NEAR_BOTTOM_PX;
+      });
+      history.__embedBcStick = state;
+    }
+    return history.__embedBcStick;
+  }
+
+  function scrollWithinHistory(history, behavior, force) {
     if (!history) return;
+    var state = getStickState(history);
+    if (!force && !state.stick) return;
+    state.programmatic = true;
     history.scrollTo({ top: history.scrollHeight, behavior: behavior || 'auto' });
+    setTimeout(function () {
+      state.programmatic = false;
+    }, 500);
   }
 
   function patchScrollIntoView() {
@@ -78,7 +122,11 @@
    * same internal call real BC does. Watch each mount's chat history
    * directly and snap to bottom whenever its content changes, so a new
    * response is always fully visible with the input bar right below it,
-   * regardless of what triggered the DOM update.
+   * regardless of what triggered the DOM update. Debounced with setTimeout
+   * rather than requestAnimationFrame — rAF callbacks are throttled or
+   * paused entirely by the browser when the tab isn't actively rendering
+   * (e.g. backgrounded during screen-share), which would silently make this
+   * whole fallback stop firing.
    */
   var observedHistories = typeof WeakSet === 'function' ? new WeakSet() : null;
 
@@ -89,10 +137,10 @@
     var observer = new MutationObserver(function () {
       if (scheduled) return;
       scheduled = true;
-      (window.requestAnimationFrame || window.setTimeout)(function () {
+      setTimeout(function () {
         scheduled = false;
         scrollWithinHistory(history, 'smooth');
-      });
+      }, 50);
     });
     observer.observe(history, { childList: true, subtree: true });
   }

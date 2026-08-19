@@ -966,7 +966,7 @@
   }
 
   async function loadArmyBcHelperScripts(win, doc) {
-    await loadScript(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.js') + '?v=20260818-snap-to-bottom', doc);
+    await loadScript(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.js') + '?v=20260818f-wheel-respect', doc);
     await loadScript(
       resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.js') + '?v=20260528-bc-disclaimer-frame',
       doc,
