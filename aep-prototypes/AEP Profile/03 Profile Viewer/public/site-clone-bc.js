@@ -1275,7 +1275,7 @@
         resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-modal-prompt-transparent',
         'promptFlatten',
       );
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260818-bc-scroll-all-modes', 'sharedScrollFix');
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260819-card-caption-fix', 'sharedScrollFix');
       if (shouldUseLocalArmyBcCatalog(global)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'sharedLocalFallback');
       }
@@ -1324,7 +1324,7 @@
     iframeCoreReady = (async function () {
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260818-bc-scroll-all-modes', 'shared', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260819-card-caption-fix', 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
@@ -1458,7 +1458,7 @@
     teardownIframeInlineSection(doc);
 
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'sharedDisclaimer');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260818-bc-scroll-all-modes', 'sharedScrollFix');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260819-card-caption-fix', 'sharedScrollFix');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline');
     ensureBcCardImageStyles(document);
 

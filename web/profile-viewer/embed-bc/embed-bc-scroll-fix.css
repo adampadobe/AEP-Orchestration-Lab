@@ -33,3 +33,37 @@
   bottom: 0;
   z-index: 5;
 }
+
+/*
+ * Product-card captions (.bc-multimodal-card__text label) render as an
+ * absolutely-positioned overlay directly on top of their card's photo, with
+ * pointer-events left enabled by BC's own default styling. That makes the
+ * caption strip the topmost hit-tested element wherever it covers a card,
+ * intercepting mouse-wheel scroll input before it can reach the scrollable
+ * .brand-concierge-container underneath — reported live as "the wheel
+ * doesn't work in the centre of the chat window" (dragging the scrollbar
+ * still worked, since that's a separate hit-test target). The Army local-
+ * fallback demo already disables pointer-events on this exact element
+ * (embed-bc-local-fallback.css) for the same reason; extend it to every
+ * mode so any product-card demo — including the Gemini override — gets it.
+ * Also force white text with a shadow/scrim: BC's own default text colour is
+ * already white, but with no contrast guarantee against a bright photo it
+ * can wash out to invisible, which is exactly what was reported.
+ */
+#brand-concierge-mount .bc-multimodal-card__text,
+#bcBottomDockMount .bc-multimodal-card__text,
+#bcModalBarMount .bc-multimodal-card__text,
+#siteCloneBcModalMount .bc-multimodal-card__text,
+#siteCloneBcFrameMount .bc-multimodal-card__text {
+  pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+#brand-concierge-mount .bc-multimodal-card__text label,
+#bcBottomDockMount .bc-multimodal-card__text label,
+#bcModalBarMount .bc-multimodal-card__text label,
+#siteCloneBcModalMount .bc-multimodal-card__text label,
+#siteCloneBcFrameMount .bc-multimodal-card__text label {
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 8px rgba(0, 0, 0, 0.5);
+}
