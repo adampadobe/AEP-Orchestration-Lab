@@ -11,6 +11,7 @@
   var valueListener = null;
   var suppressRemoteUntil = 0;
   var cachedWorkspaceSlug = '';
+  var lastSeenUid = '';
   var syncStatus = 'idle';
   var remoteListeners = [];
 
@@ -126,12 +127,41 @@
       });
   }
 
+  /**
+   * A shared/kiosk browser can carry a previous user's `aepWorkspaceSlug`
+   * localStorage value (set by aep-access-scope.js, scoped to the origin —
+   * not the uid) into a new user's session. Wipe both the in-memory cache
+   * and that localStorage fallback the moment the authenticated uid changes,
+   * so it can never leak one user's workspace/deal data into another's.
+   */
+  function clearStaleScopeIfUidChanged(uid) {
+    if (lastSeenUid && uid && lastSeenUid !== uid) {
+      cachedWorkspaceSlug = '';
+      try {
+        if (global.AepAccessScope && typeof global.AepAccessScope.resetWorkspaceAccess === 'function') {
+          global.AepAccessScope.resetWorkspaceAccess();
+        }
+      } catch (_e) {}
+    }
+    if (uid) lastSeenUid = uid;
+  }
+
   function resolveWorkspaceSlug() {
-    if (cachedWorkspaceSlug) return Promise.resolve(cachedWorkspaceSlug);
     var user = getAuthUser();
     if (!user) return Promise.resolve('');
+    clearStaleScopeIfUidChanged(user.uid);
+    if (cachedWorkspaceSlug) return Promise.resolve(cachedWorkspaceSlug);
 
+    // Authoritative, uid-keyed sources first (RTDB owner record, then the
+    // Firestore-backed workspace-profile API) — the localStorage-based
+    // AepAccessScope.getWorkspaceSlug() is an origin-scoped fallback, not a
+    // uid-scoped one, so it must never be tried ahead of a real per-user
+    // lookup or it can resolve to whichever user last set it in this browser.
     return resolveWorkspaceSlugFromRtdb(user.uid)
+      .then(function (slug) {
+        if (slug) return slug;
+        return fetchWorkspaceProfileSlug();
+      })
       .then(function (slug) {
         if (slug) return slug;
         try {
@@ -140,7 +170,7 @@
             if (slug) return slug;
           }
         } catch (_e) {}
-        return fetchWorkspaceProfileSlug();
+        return '';
       })
       .then(function (slug) {
         if (!slug) slug = ldapFromEmail(user);
@@ -288,6 +318,7 @@
     }
     detachListener();
     cachedWorkspaceSlug = '';
+    lastSeenUid = '';
     setSyncStatus('idle');
   }
 
