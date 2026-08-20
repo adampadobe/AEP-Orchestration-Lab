@@ -53,7 +53,10 @@
   }
 
   function readFileAsImage(file) {
-    if (!file || file.type.indexOf('image/') !== 0) return;
+    if (!file || file.type.indexOf('image/') !== 0) {
+      setStatus("That doesn't look like an image — try a screenshot or image file.", 'error');
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function () {
       var dataUrl = String(reader.result || '');
@@ -63,7 +66,28 @@
       showAttachment(dataUrl);
       setStatus('', null);
     };
+    reader.onerror = function () {
+      setStatus('Could not read that file — try again.', 'error');
+    };
     reader.readAsDataURL(file);
+  }
+
+  // Pull the first image out of a clipboard event, preferring the modern
+  // `items` API but falling back to `files` for browsers (notably Safari in
+  // some versions) that populate one but not the other.
+  function imageFromClipboard(clipboardData) {
+    if (!clipboardData) return null;
+    var items = clipboardData.items || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) {
+        return items[i].getAsFile();
+      }
+    }
+    var files = clipboardData.files || [];
+    for (var j = 0; j < files.length; j++) {
+      if (files[j].type.indexOf('image/') === 0) return files[j];
+    }
+    return null;
   }
 
   function findExistingCustomer(customers, name) {
@@ -215,34 +239,37 @@
     var textEl = $('ccComposerText');
     if (textEl) {
       textEl.addEventListener('input', updateCount);
-      textEl.addEventListener('paste', function (e) {
-        var items = (e.clipboardData && e.clipboardData.items) || [];
-        for (var i = 0; i < items.length; i++) {
-          if (items[i].type.indexOf('image/') === 0) {
-            readFileAsImage(items[i].getAsFile());
-            e.preventDefault();
-            return;
-          }
-        }
-      });
-      textEl.addEventListener('dragover', function (e) {
+      updateCount();
+    }
+
+    // A `paste` event always targets whatever currently has keyboard focus
+    // (not wherever the mouse happens to be), so binding only to the
+    // textarea means Cmd+V does nothing unless that exact field is focused.
+    // Listen at the document level instead, gated on the composer being
+    // open, so pasting a screenshot works regardless of focus.
+    document.addEventListener('paste', function (e) {
+      var composer = $('ccComposer');
+      if (!composer || !composer.open) return;
+      var image = imageFromClipboard(e.clipboardData);
+      if (image) {
+        readFileAsImage(image);
+        e.preventDefault();
+      }
+    });
+
+    var body = $('ccComposer');
+    if (body) {
+      body.addEventListener('dragover', function (e) {
         e.preventDefault();
       });
-      textEl.addEventListener('drop', function (e) {
+      body.addEventListener('drop', function (e) {
         e.preventDefault();
         var files = (e.dataTransfer && e.dataTransfer.files) || [];
         if (files[0]) readFileAsImage(files[0]);
       });
-      updateCount();
     }
 
-    var attachBtn = $('ccComposerAttachBtn');
     var fileInput = $('ccComposerFileInput');
-    if (attachBtn && fileInput) {
-      attachBtn.addEventListener('click', function () {
-        fileInput.click();
-      });
-    }
     if (fileInput) {
       fileInput.addEventListener('change', function () {
         if (fileInput.files && fileInput.files[0]) readFileAsImage(fileInput.files[0]);
