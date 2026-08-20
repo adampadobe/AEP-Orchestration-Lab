@@ -95,22 +95,47 @@
     modal.classList.remove('cc-modal-backdrop--open');
   }
 
+  function findExistingCustomer(customers, name) {
+    var needle = String(name || '').trim().toLowerCase();
+    if (!needle) return null;
+    return (
+      customers.find(function (row) {
+        return String(row.name || '').trim().toLowerCase() === needle;
+      }) || null
+    );
+  }
+
   function mergeExtractedIntoState(extracted) {
     var data = global.HomeCommandData;
-    if (!data) return { customers: 0, tasks: 0, meetings: 0 };
-    var counts = { customers: 0, tasks: 0, meetings: 0 };
+    if (!data) return { customers: 0, tasks: 0, meetings: 0, updated: 0 };
+    var counts = { customers: 0, tasks: 0, meetings: 0, updated: 0 };
 
     (extracted.customers || []).forEach(function (c) {
       if (!c.name) return;
-      data.useCustomers().add({
-        name: c.name,
-        notes: c.notes || '',
-        drLink: c.drLink || '',
-        status: c.status || 'Discovery',
-        nextAction: c.nextAction || '',
-        eta: c.eta || '',
-      });
-      counts.customers++;
+      var customersApi = data.useCustomers();
+      var existing = findExistingCustomer(customersApi.getAll(), c.name);
+      if (existing) {
+        var patch = {};
+        if (c.status) patch.status = c.status;
+        if (c.nextAction) patch.nextAction = c.nextAction;
+        if (c.eta) patch.eta = c.eta;
+        if (c.drLink) patch.drLink = c.drLink;
+        if (c.notes) {
+          patch.notes = existing.notes ? existing.notes + '\n' + c.notes : c.notes;
+        }
+        customersApi.update(existing.id, patch);
+        counts.updated++;
+      } else {
+        customersApi.add({
+          name: c.name,
+          notes: c.notes || '',
+          drLink: c.drLink || '',
+          status: c.status || 'Discovery',
+          nextAction: c.nextAction || '',
+          eta: c.eta || '',
+        });
+        counts.customers++;
+      }
     });
 
     (extracted.tasks || []).forEach(function (t) {
@@ -171,7 +196,7 @@
       })
       .then(function (data) {
         var counts = mergeExtractedIntoState(data);
-        var total = counts.customers + counts.tasks + counts.meetings;
+        var total = counts.customers + counts.tasks + counts.meetings + counts.updated;
         if (!total) {
           setStatus("Didn't find anything to add — try a clearer screenshot or add a note.", 'error');
           if (submitBtn) submitBtn.disabled = false;
@@ -181,9 +206,10 @@
           global.HomeCommandCentre.renderAll();
         }
         setStatus(
-          'Added ' +
+          'Saved — ' +
             [
-              counts.customers ? counts.customers + ' customer' + (counts.customers === 1 ? '' : 's') : '',
+              counts.customers ? 'added ' + counts.customers + ' customer' + (counts.customers === 1 ? '' : 's') : '',
+              counts.updated ? 'updated ' + counts.updated + ' customer' + (counts.updated === 1 ? '' : 's') : '',
               counts.tasks ? counts.tasks + ' task' + (counts.tasks === 1 ? '' : 's') : '',
               counts.meetings ? counts.meetings + ' meeting' + (counts.meetings === 1 ? '' : 's') : '',
             ]
