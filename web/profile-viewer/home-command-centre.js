@@ -676,14 +676,20 @@
     var foot = document.getElementById('ccCustomerTableFoot');
     if (!tbody) return;
     var customers = data.useCustomers().getAll();
-    tbody.innerHTML = customers.map(renderCustomerRow).join('');
+    if (!customers.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" class="cc-empty cc-empty--pad">No customer engagements yet. Use <strong>+ Add customer</strong> or <strong>+ Add from screenshot/notes</strong> above to add your own.</td></tr>';
+    } else {
+      tbody.innerHTML = customers.map(renderCustomerRow).join('');
+    }
     if (foot) {
-      foot.textContent =
-        'Showing ' +
-        customers.length +
-        ' of ' +
-        customers.length +
-        ' active engagements · Click any row for full details';
+      foot.textContent = customers.length
+        ? 'Showing ' +
+          customers.length +
+          ' of ' +
+          customers.length +
+          ' active engagements · Click any row for full details'
+        : '';
     }
     tbody.querySelectorAll('.cc-customer-row').forEach(function (row) {
       var id = row.getAttribute('data-customer-id');
