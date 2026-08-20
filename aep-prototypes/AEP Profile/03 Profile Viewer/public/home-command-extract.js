@@ -10,9 +10,48 @@
   'use strict';
 
   var pendingImage = null; // { base64, mimeType }
+  var transcript = []; // { role: 'user'|'assistant', text, imageDataUrl, status }
 
   function $(id) {
     return document.getElementById(id);
+  }
+
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderTranscript() {
+    var el = $('ccComposerTranscript');
+    if (!el) return;
+    if (!transcript.length) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = transcript
+      .map(function (m) {
+        if (m.role === 'user') {
+          return (
+            '<div class="cc-chat-msg cc-chat-msg--user">' +
+            (m.imageDataUrl ? '<img class="cc-chat-msg__thumb" src="' + m.imageDataUrl + '" alt="Attached screenshot">' : '') +
+            (m.text ? '<div class="cc-chat-msg__text">' + escapeHtml(m.text) + '</div>' : '') +
+            '</div>'
+          );
+        }
+        return (
+          '<div class="cc-chat-msg cc-chat-msg--assistant cc-chat-msg--' + (m.status || 'busy') + '">' +
+          '<span class="cc-chat-msg__icon" aria-hidden="true">✨</span>' +
+          '<div class="cc-chat-msg__text">' + escapeHtml(m.text) + '</div>' +
+          '</div>'
+        );
+      })
+      .join('');
+    el.scrollTop = el.scrollHeight;
   }
 
   function getAuthHeaders() {
@@ -175,8 +214,22 @@
       return;
     }
 
-    setStatus('Reviewing with Gemini — this can take a few seconds…', 'busy');
+    // Send immediately, chat-style: the user's message (text + thumbnail)
+    // appears in the transcript and the input clears right away, before the
+    // network call even starts — the assistant's "reviewing" bubble is
+    // updated in place once Gemini responds.
+    var imagePayload = pendingImage;
+    var userImageDataUrl = imagePayload ? 'data:' + imagePayload.mimeType + ';base64,' + imagePayload.base64 : '';
+    transcript.push({ role: 'user', text: text, imageDataUrl: userImageDataUrl });
+    var assistantMsg = { role: 'assistant', text: 'Reviewing…', status: 'busy' };
+    transcript.push(assistantMsg);
+    renderTranscript();
+
+    setStatus('', null);
     setSubmitBusy(true);
+    if (textEl) textEl.value = '';
+    updateCount();
+    clearAttachment();
 
     getAuthHeaders()
       .then(function (headers) {
@@ -184,9 +237,9 @@
           throw new Error('You need to be signed in to use this — try refreshing the page.');
         }
         var payload = { text: text };
-        if (pendingImage) {
-          payload.imageBase64 = pendingImage.base64;
-          payload.imageMimeType = pendingImage.mimeType;
+        if (imagePayload) {
+          payload.imageBase64 = imagePayload.base64;
+          payload.imageMimeType = imagePayload.mimeType;
         }
         return fetch('/api/home-command/extract-work', {
           method: 'POST',
@@ -204,32 +257,33 @@
         var counts = mergeExtractedIntoState(data);
         var total = counts.customers + counts.tasks + counts.meetings + counts.updated;
         if (!total) {
-          setStatus("Didn't find anything to add — try a clearer screenshot or add a note.", 'error');
+          assistantMsg.text = "Didn't find anything to add — try a clearer screenshot or note.";
+          assistantMsg.status = 'error';
+          renderTranscript();
           return;
         }
         if (global.HomeCommandCentre && typeof global.HomeCommandCentre.renderAll === 'function') {
           global.HomeCommandCentre.renderAll();
         }
-        setStatus(
+        assistantMsg.text =
           'Saved — ' +
-            [
-              counts.customers ? 'added ' + counts.customers + ' customer' + (counts.customers === 1 ? '' : 's') : '',
-              counts.updated ? 'updated ' + counts.updated + ' customer' + (counts.updated === 1 ? '' : 's') : '',
-              counts.tasks ? counts.tasks + ' task' + (counts.tasks === 1 ? '' : 's') : '',
-              counts.meetings ? counts.meetings + ' meeting' + (counts.meetings === 1 ? '' : 's') : '',
-            ]
-              .filter(Boolean)
-              .join(', ') +
-            '.',
-          'ok',
-        );
-        if (textEl) textEl.value = '';
-        updateCount();
-        clearAttachment();
+          [
+            counts.customers ? 'added ' + counts.customers + ' customer' + (counts.customers === 1 ? '' : 's') : '',
+            counts.updated ? 'updated ' + counts.updated + ' customer' + (counts.updated === 1 ? '' : 's') : '',
+            counts.tasks ? counts.tasks + ' task' + (counts.tasks === 1 ? '' : 's') : '',
+            counts.meetings ? counts.meetings + ' meeting' + (counts.meetings === 1 ? '' : 's') : '',
+          ]
+            .filter(Boolean)
+            .join(', ') +
+          '.';
+        assistantMsg.status = 'ok';
+        renderTranscript();
       })
       .catch(function (err) {
         console.warn('[home-command-extract] extraction failed', err);
-        setStatus((err && err.message) || 'Extraction failed — try again.', 'error');
+        assistantMsg.text = (err && err.message) || 'Extraction failed — try again.';
+        assistantMsg.status = 'error';
+        renderTranscript();
       })
       .finally(function () {
         setSubmitBusy(false);
