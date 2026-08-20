@@ -207,29 +207,36 @@
   }
 
   function submitComposer() {
-    var textEl = $('ccComposerText');
-    var text = textEl ? String(textEl.value || '').trim() : '';
-    if (!text && !pendingImage) {
-      setStatus('Type an update or attach a screenshot first.', 'error');
+    var textEl, text;
+    try {
+      textEl = $('ccComposerText');
+      text = textEl ? String(textEl.value || '').trim() : '';
+      if (!text && !pendingImage) {
+        setStatus('Type an update or attach a screenshot first.', 'error');
+        return;
+      }
+
+      // Send immediately, chat-style: the user's message (text + thumbnail)
+      // appears in the transcript and the input clears right away, before
+      // the network call even starts — the assistant's "reviewing" bubble is
+      // updated in place once Gemini responds.
+      var imagePayload = pendingImage;
+      var userImageDataUrl = imagePayload ? 'data:' + imagePayload.mimeType + ';base64,' + imagePayload.base64 : '';
+      transcript.push({ role: 'user', text: text, imageDataUrl: userImageDataUrl });
+      var assistantMsg = { role: 'assistant', text: 'Reviewing…', status: 'busy' };
+      transcript.push(assistantMsg);
+      renderTranscript();
+
+      setStatus('', null);
+      setSubmitBusy(true);
+      if (textEl) textEl.value = '';
+      updateCount();
+      clearAttachment();
+    } catch (e) {
+      console.error('[home-command-extract] submitComposer failed before request', e);
+      setStatus('Something went wrong preparing that — try again (see console for details).', 'error');
       return;
     }
-
-    // Send immediately, chat-style: the user's message (text + thumbnail)
-    // appears in the transcript and the input clears right away, before the
-    // network call even starts — the assistant's "reviewing" bubble is
-    // updated in place once Gemini responds.
-    var imagePayload = pendingImage;
-    var userImageDataUrl = imagePayload ? 'data:' + imagePayload.mimeType + ';base64,' + imagePayload.base64 : '';
-    transcript.push({ role: 'user', text: text, imageDataUrl: userImageDataUrl });
-    var assistantMsg = { role: 'assistant', text: 'Reviewing…', status: 'busy' };
-    transcript.push(assistantMsg);
-    renderTranscript();
-
-    setStatus('', null);
-    setSubmitBusy(true);
-    if (textEl) textEl.value = '';
-    updateCount();
-    clearAttachment();
 
     getAuthHeaders()
       .then(function (headers) {
@@ -354,9 +361,13 @@
     if (submitBtn) submitBtn.addEventListener('click', submitComposer);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindOnce);
-  } else {
+  // Matches pdf-personalisation.js's proven pattern: call unconditionally,
+  // don't gate on document.readyState/DOMContentLoaded. The script tag is
+  // deferred and placed at the very end of <body>, well after this
+  // composer's own markup, so every element it looks up already exists.
+  try {
     bindOnce();
+  } catch (e) {
+    console.error('[home-command-extract] bindOnce failed', e);
   }
 })(typeof window !== 'undefined' ? window : this);
