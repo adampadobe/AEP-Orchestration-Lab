@@ -2495,6 +2495,12 @@ html:not([data-aep-theme='dark']) body.home-new-page .cc-sidebar .cc-section-tit
   gap: 8px;
 }
 
+.cc-composer__attach-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
 .cc-composer__small-btn {
   font-size: 12px;
   padding: 0.4rem 0.8rem;
