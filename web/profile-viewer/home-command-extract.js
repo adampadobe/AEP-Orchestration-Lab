@@ -304,6 +304,12 @@
     var textEl = $('ccComposerText');
     if (textEl) {
       textEl.addEventListener('input', updateCount);
+      // Fallback: some browsers don't reliably fire `input` right after a
+      // paste. The pasted text lands in the field after the `paste` event
+      // itself finishes, so re-check on the next tick.
+      textEl.addEventListener('paste', function () {
+        setTimeout(updateCount, 0);
+      });
       updateCount();
     }
 
