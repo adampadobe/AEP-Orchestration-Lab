@@ -158,6 +158,15 @@
     return counts;
   }
 
+  function setSubmitBusy(busy) {
+    var submitBtn = $('ccComposerSubmitBtn');
+    if (!submitBtn) return;
+    submitBtn.disabled = busy;
+    submitBtn.innerHTML = busy
+      ? '<span aria-hidden="true">✦</span> Reviewing…'
+      : '<span aria-hidden="true">✦</span> Add to tracker';
+  }
+
   function submitComposer() {
     var textEl = $('ccComposerText');
     var text = textEl ? String(textEl.value || '').trim() : '';
@@ -166,12 +175,14 @@
       return;
     }
 
-    setStatus('Extracting with Gemini…', 'busy');
-    var submitBtn = $('ccComposerSubmitBtn');
-    if (submitBtn) submitBtn.disabled = true;
+    setStatus('Reviewing with Gemini — this can take a few seconds…', 'busy');
+    setSubmitBusy(true);
 
     getAuthHeaders()
       .then(function (headers) {
+        if (!headers || !headers.Authorization) {
+          throw new Error('You need to be signed in to use this — try refreshing the page.');
+        }
         var payload = { text: text };
         if (pendingImage) {
           payload.imageBase64 = pendingImage.base64;
@@ -179,13 +190,13 @@
         }
         return fetch('/api/home-command/extract-work', {
           method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}),
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
           body: JSON.stringify(payload),
         });
       })
       .then(function (res) {
         return res.json().then(function (data) {
-          if (!res.ok || !data.ok) throw new Error((data && data.error) || 'Extraction failed');
+          if (!res.ok || !data.ok) throw new Error((data && data.error) || 'Extraction failed (' + res.status + ')');
           return data;
         });
       })
@@ -218,10 +229,10 @@
       })
       .catch(function (err) {
         console.warn('[home-command-extract] extraction failed', err);
-        setStatus('Extraction failed — try again.', 'error');
+        setStatus((err && err.message) || 'Extraction failed — try again.', 'error');
       })
       .finally(function () {
-        if (submitBtn) submitBtn.disabled = false;
+        setSubmitBusy(false);
       });
   }
 
