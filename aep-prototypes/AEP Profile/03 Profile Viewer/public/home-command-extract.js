@@ -1,9 +1,10 @@
 /**
- * "Add from screenshot/notes" — lets an SC paste a screenshot (deal board,
- * email, meeting invite) and/or free text (deal request ID, notes, a brief)
- * and have Gemini (functions/homeCommandExtractWork.js) turn it into
- * Command Centre customers/tasks/meetings, added directly via the existing
- * per-user save path (window.HomeCommandData) — no new persistence layer.
+ * "Add from screenshot/notes" — an always-visible composer on the Command
+ * Centre home page: type an update and/or attach a screenshot (deal board,
+ * email, meeting invite), and Gemini (functions/homeCommandExtractWork.js)
+ * turns it into Command Centre customers/tasks/meetings, added directly via
+ * the existing per-user save path (window.HomeCommandData) — no new
+ * persistence layer.
  */
 (function (global) {
   'use strict';
@@ -22,7 +23,7 @@
   }
 
   function setStatus(text, kind) {
-    var el = $('ccExtractStatus');
+    var el = $('ccComposerStatus');
     if (!el) return;
     if (!text) {
       el.hidden = true;
@@ -31,33 +32,23 @@
     }
     el.hidden = false;
     el.textContent = text;
-    el.className = 'cc-extract-status' + (kind ? ' cc-extract-status--' + kind : '');
+    el.className = 'cc-composer__status' + (kind ? ' cc-composer__status--' + kind : '');
   }
 
-  function showPreview(dataUrl) {
-    var img = $('ccExtractPreviewImg');
-    var label = $('ccExtractDropzoneLabel');
-    var removeBtn = $('ccExtractRemoveImageBtn');
-    if (img) {
-      img.src = dataUrl;
-      img.hidden = false;
-    }
-    if (label) label.hidden = true;
-    if (removeBtn) removeBtn.hidden = false;
+  function showAttachment(dataUrl) {
+    var wrap = $('ccComposerAttachment');
+    var img = $('ccComposerAttachmentImg');
+    if (img) img.src = dataUrl;
+    if (wrap) wrap.hidden = false;
   }
 
-  function clearImage() {
+  function clearAttachment() {
     pendingImage = null;
-    var img = $('ccExtractPreviewImg');
-    var label = $('ccExtractDropzoneLabel');
-    var removeBtn = $('ccExtractRemoveImageBtn');
-    var fileInput = $('ccExtractFileInput');
-    if (img) {
-      img.hidden = true;
-      img.src = '';
-    }
-    if (label) label.hidden = false;
-    if (removeBtn) removeBtn.hidden = true;
+    var wrap = $('ccComposerAttachment');
+    var img = $('ccComposerAttachmentImg');
+    var fileInput = $('ccComposerFileInput');
+    if (wrap) wrap.hidden = true;
+    if (img) img.src = '';
     if (fileInput) fileInput.value = '';
   }
 
@@ -69,30 +60,10 @@
       var match = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
       if (!match) return;
       pendingImage = { base64: match[2], mimeType: match[1] };
-      showPreview(dataUrl);
+      showAttachment(dataUrl);
       setStatus('', null);
     };
     reader.readAsDataURL(file);
-  }
-
-  function openModal() {
-    var modal = $('ccExtractWorkModal');
-    if (!modal) return;
-    clearImage();
-    var textEl = $('ccExtractText');
-    if (textEl) textEl.value = '';
-    setStatus('', null);
-    modal.hidden = false;
-    modal.setAttribute('aria-hidden', 'false');
-    modal.classList.add('cc-modal-backdrop--open');
-  }
-
-  function closeModal() {
-    var modal = $('ccExtractWorkModal');
-    if (!modal) return;
-    modal.hidden = true;
-    modal.setAttribute('aria-hidden', 'true');
-    modal.classList.remove('cc-modal-backdrop--open');
   }
 
   function findExistingCustomer(customers, name) {
@@ -163,16 +134,16 @@
     return counts;
   }
 
-  function submitExtraction() {
-    var textEl = $('ccExtractText');
+  function submitComposer() {
+    var textEl = $('ccComposerText');
     var text = textEl ? String(textEl.value || '').trim() : '';
     if (!text && !pendingImage) {
-      setStatus('Paste a screenshot or add some notes first.', 'error');
+      setStatus('Type an update or attach a screenshot first.', 'error');
       return;
     }
 
     setStatus('Extracting with Gemini…', 'busy');
-    var submitBtn = $('ccExtractSubmitBtn');
+    var submitBtn = $('ccComposerSubmitBtn');
     if (submitBtn) submitBtn.disabled = true;
 
     getAuthHeaders()
@@ -199,7 +170,6 @@
         var total = counts.customers + counts.tasks + counts.meetings + counts.updated;
         if (!total) {
           setStatus("Didn't find anything to add — try a clearer screenshot or add a note.", 'error');
-          if (submitBtn) submitBtn.disabled = false;
           return;
         }
         if (global.HomeCommandCentre && typeof global.HomeCommandCentre.renderAll === 'function') {
@@ -218,7 +188,9 @@
             '.',
           'ok',
         );
-        setTimeout(closeModal, 1200);
+        if (textEl) textEl.value = '';
+        updateCount();
+        clearAttachment();
       })
       .catch(function (err) {
         console.warn('[home-command-extract] extraction failed', err);
@@ -229,59 +201,21 @@
       });
   }
 
+  function updateCount() {
+    var textEl = $('ccComposerText');
+    var countEl = $('ccComposerCount');
+    if (!textEl || !countEl) return;
+    countEl.textContent = String(textEl.value.length) + ' / 8,000';
+  }
+
   function bindOnce() {
     if (bindOnce.done) return;
     bindOnce.done = true;
 
-    var openBtn = $('ccExtractWorkBtn');
-    if (openBtn) openBtn.addEventListener('click', openModal);
-
-    var openBannerBtn = $('ccExtractWorkBannerBtn');
-    if (openBannerBtn) {
-      openBannerBtn.addEventListener('click', openModal);
-      openBannerBtn.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openModal();
-        }
-      });
-    }
-
-    var closeBtn = $('ccExtractWorkModalClose');
-    var cancelBtn = $('ccExtractWorkModalCancel');
-    [closeBtn, cancelBtn].forEach(function (el) {
-      if (el) el.addEventListener('click', closeModal);
-    });
-
-    var modal = $('ccExtractWorkModal');
-    if (modal) {
-      modal.addEventListener('click', function (e) {
-        if (e.target === modal) closeModal();
-      });
-    }
-
-    var submitBtn = $('ccExtractSubmitBtn');
-    if (submitBtn) submitBtn.addEventListener('click', submitExtraction);
-
-    var removeBtn = $('ccExtractRemoveImageBtn');
-    if (removeBtn) removeBtn.addEventListener('click', clearImage);
-
-    var pickBtn = $('ccExtractPickBtn');
-    var fileInput = $('ccExtractFileInput');
-    if (pickBtn && fileInput) {
-      pickBtn.addEventListener('click', function () {
-        fileInput.click();
-      });
-    }
-    if (fileInput) {
-      fileInput.addEventListener('change', function () {
-        if (fileInput.files && fileInput.files[0]) readFileAsImage(fileInput.files[0]);
-      });
-    }
-
-    var dropzone = $('ccExtractDropzone');
-    if (dropzone) {
-      dropzone.addEventListener('paste', function (e) {
+    var textEl = $('ccComposerText');
+    if (textEl) {
+      textEl.addEventListener('input', updateCount);
+      textEl.addEventListener('paste', function (e) {
         var items = (e.clipboardData && e.clipboardData.items) || [];
         for (var i = 0; i < items.length; i++) {
           if (items[i].type.indexOf('image/') === 0) {
@@ -291,35 +225,35 @@
           }
         }
       });
-      dropzone.addEventListener('dragover', function (e) {
+      textEl.addEventListener('dragover', function (e) {
         e.preventDefault();
-        dropzone.classList.add('cc-extract-dropzone--over');
       });
-      dropzone.addEventListener('dragleave', function () {
-        dropzone.classList.remove('cc-extract-dropzone--over');
-      });
-      dropzone.addEventListener('drop', function (e) {
+      textEl.addEventListener('drop', function (e) {
         e.preventDefault();
-        dropzone.classList.remove('cc-extract-dropzone--over');
         var files = (e.dataTransfer && e.dataTransfer.files) || [];
         if (files[0]) readFileAsImage(files[0]);
       });
+      updateCount();
     }
 
-    // Also catch a screenshot pasted anywhere in the modal, not just when the
-    // dropzone itself has focus.
-    document.addEventListener('paste', function (e) {
-      var modalEl = $('ccExtractWorkModal');
-      if (!modalEl || modalEl.hidden) return;
-      var items = (e.clipboardData && e.clipboardData.items) || [];
-      for (var i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image/') === 0) {
-          readFileAsImage(items[i].getAsFile());
-          e.preventDefault();
-          return;
-        }
-      }
-    });
+    var attachBtn = $('ccComposerAttachBtn');
+    var fileInput = $('ccComposerFileInput');
+    if (attachBtn && fileInput) {
+      attachBtn.addEventListener('click', function () {
+        fileInput.click();
+      });
+    }
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) readFileAsImage(fileInput.files[0]);
+      });
+    }
+
+    var removeBtn = $('ccComposerAttachmentRemove');
+    if (removeBtn) removeBtn.addEventListener('click', clearAttachment);
+
+    var submitBtn = $('ccComposerSubmitBtn');
+    if (submitBtn) submitBtn.addEventListener('click', submitComposer);
   }
 
   if (document.readyState === 'loading') {
