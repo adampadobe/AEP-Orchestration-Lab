@@ -13,7 +13,8 @@
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css?v=20260711a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="home-new.css?v=20260711c">
+  <link rel="stylesheet" href="home-new.css?v=20260820a">
+  <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
 </head>
 <body class="home-page home-dashboard-concierge home-dashboard-ajo home-new-page">
@@ -39,7 +40,7 @@
         <section class="home-greeting-bar" id="homeGreetingBar" aria-label="Welcome">
           <div class="home-greeting-bar__main">
             <h2 class="home-greeting-bar__title">Hello <span id="homeGreetingName">there</span></h2>
-            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab — Solutions Consultant Command Centre</p>
+            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab — Solutions Consultant Command Centre<button type="button" class="map-egg-speck" data-map-egg-flavor="home" title="" aria-label="A stray ink dot on the margin"></button></p>
           </div>
           <div class="home-greeting-bar__stats">
             <div class="home-greeting-stat">
@@ -117,6 +118,7 @@
                 <div class="cc-section-title"><span class="cc-section-dot"></span>Customer Engagements</div>
                 <span class="cc-section-meta" id="ccSyncStatus" title="Persistence">Loading…</span>
                 <button type="button" class="cc-section-action" id="ccAddCustomerBtn">+ Add customer</button>
+                <button type="button" class="cc-section-action" id="ccExtractWorkBtn">+ Add from screenshot/notes</button>
               </div>
               <div class="cc-card cc-card--flush">
                 <div class="cc-table-scroll">
@@ -323,6 +325,38 @@
     </div>
   </div>
 
+  <div class="cc-modal-backdrop" id="ccExtractWorkModal" hidden aria-hidden="true" role="dialog" aria-labelledby="ccExtractWorkModalTitle">
+    <div class="cc-modal">
+      <header class="cc-modal__head">
+        <h2 id="ccExtractWorkModalTitle">Add from screenshot/notes</h2>
+        <button type="button" class="cc-modal__close" id="ccExtractWorkModalClose" aria-label="Close">×</button>
+      </header>
+      <div class="cc-modal__body">
+        <div class="cc-extract-warning" role="note">
+          Don't paste confidential customer data (contracts, pricing, personal information). This is for your own work tracking only — screenshots and text are sent to Gemini for parsing.
+        </div>
+        <label class="cc-field">
+          <span class="cc-field__label">Screenshot</span>
+          <div class="cc-extract-dropzone" id="ccExtractDropzone" tabindex="0" role="button" aria-label="Paste, drop, or choose a screenshot">
+            <span id="ccExtractDropzoneLabel">Paste (⌘V), drag a file here, or <button type="button" class="cc-extract-pick-btn" id="ccExtractPickBtn">choose a file</button></span>
+            <img id="ccExtractPreviewImg" alt="" hidden>
+          </div>
+          <input type="file" id="ccExtractFileInput" accept="image/*" hidden>
+          <button type="button" class="cc-extract-remove-btn" id="ccExtractRemoveImageBtn" hidden>Remove image</button>
+        </label>
+        <label class="cc-field">
+          <span class="cc-field__label">Notes / email / deal request ID (optional)</span>
+          <textarea id="ccExtractText" rows="4" placeholder="Paste an email, a deal request ID, meeting details, or a brief…"></textarea>
+        </label>
+        <div class="cc-extract-status" id="ccExtractStatus" hidden></div>
+      </div>
+      <footer class="cc-modal__foot">
+        <button type="button" class="cc-btn cc-btn-ghost" id="ccExtractWorkModalCancel">Cancel</button>
+        <button type="button" class="cc-btn cc-btn-primary" id="ccExtractSubmitBtn">Extract</button>
+      </footer>
+    </div>
+  </div>
+
   <div class="cc-modal-backdrop" id="ccPocModal" hidden aria-hidden="true" role="dialog" aria-labelledby="ccPocModalTitle">
     <div class="cc-modal">
       <header class="cc-modal__head">
@@ -489,13 +523,15 @@
   <script defer src="home-release-summary.js?v=20260625d"></script>
   <script defer src="home-command-products.js?v=20260625m"></script>
   <script defer src="home-command-scrapes.js?v=20260625k"></script>
-  <script defer src="home-command-rtdb.js?v=20260625f"></script>
+  <script defer src="home-command-rtdb.js?v=20260820a-uid-scope"></script>
   <script defer src="home-command-store.js?v=20260625f"></script>
   <script defer src="home-command-seed-data.js?v=20260625m"></script>
-  <script defer src="home-command-data.js?v=20260625n"></script>
+  <script defer src="home-command-data.js?v=20260820a-google-listener"></script>
   <script defer src="home-command-centre.js?v=20260625p"></script>
+  <script defer src="home-command-extract.js?v=20260820a"></script>
   <script defer src="home-new-greeting.js?v=20260711a"></script>
   <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
+  <script defer src="marauders-map-egg.js?v=20260519a"></script>
 </body>
 </html>

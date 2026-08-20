@@ -143,6 +143,7 @@ const brandScraperService = lazyRequireMod('./brandScraperService');
 const bcGeminiTrainingService = lazyRequireMod('./bcGeminiTrainingService');
 const bcGeminiAnswerService = lazyRequireMod('./bcGeminiAnswerService');
 const bcGeminiPrepService = lazyRequireMod('./bcGeminiPrepService');
+const homeCommandExtractWorkService = lazyRequireMod('./homeCommandExtractWork');
 const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
@@ -3331,6 +3332,31 @@ exports.bcGeminiPrepExport = onRequest(
         res.status(500).json({ ok: false, error: String((e && e.message) || e) });
       } else {
         console.error('[bcGeminiPrepExport] error after response started', String((e && e.message) || e));
+      }
+    }
+  },
+);
+
+/**
+ * POST /api/home-command/extract-work — Gemini extraction of Command Centre
+ * work items (customers/tasks/meetings) from a pasted screenshot and/or
+ * text. See functions/homeCommandExtractWork.js.
+ */
+exports.homeCommandExtractWork = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    try {
+      await homeCommandExtractWorkService.handleExtractWork(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: String((e && e.message) || e) });
+      } else {
+        console.error('[homeCommandExtractWork] error after response started', String((e && e.message) || e));
       }
     }
   },
