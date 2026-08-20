@@ -91,26 +91,13 @@
     return item;
   }
 
+  // A new/empty workspace starts genuinely empty rather than pre-filled with
+  // realistic-looking fake companies — auto-seeding placeholder engagements
+  // (even correctly scoped per-user) was repeatedly mistaken for a real
+  // colleague's actual deal data. SCs add their own via "+ Add customer" or
+  // "+ Add from screenshot/notes".
   function seedIfEmpty() {
-    if (seeded || (state.customers && state.customers.length)) {
-      seeded = true;
-      return;
-    }
-    var seedBuilder = global.HomeCommandSeedData;
-    if (!seedBuilder || typeof seedBuilder.buildSeed !== 'function') {
-      seeded = true;
-      return;
-    }
-    var seed = seedBuilder.buildSeed(store, new Date());
-    state.customers = seed.customers || [];
-    state.tasks = seed.tasks || [];
-    state.meetings = seed.meetings || [];
-    state.activity = seed.activity || [];
-    state.pocs = seed.pocs || [];
-    state.knowledgeBase = seed.knowledgeBase || [];
-    state.capacity = seed.capacity || [];
     seeded = true;
-    persist();
   }
 
   function waitForAuth(timeoutMs) {

@@ -27,15 +27,6 @@
     return s;
   }
 
-  function normalizeSandboxKey(raw) {
-    var s = String(raw || 'no-sandbox')
-      .trim()
-      .toLowerCase()
-      .replace(/[.#$\[\]/]/g, '_')
-      .replace(/[^a-z0-9._-]/g, '_');
-    return s.slice(0, 64) || 'no-sandbox';
-  }
-
   function ensureFirebaseApp() {
     if (typeof firebase === 'undefined' || !global.firebaseDatabaseConfig) return false;
     if (
@@ -66,22 +57,6 @@
     } catch (_e) {
       return null;
     }
-  }
-
-  function resolveSandboxKey() {
-    if (global.AepLabSandboxSync && typeof global.AepLabSandboxSync.getSandbox === 'function') {
-      var sb = global.AepLabSandboxSync.getSandbox();
-      if (sb) return normalizeSandboxKey(sb);
-    }
-    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
-      var name = String(global.AepGlobalSandbox.getSandboxName() || '').trim();
-      if (name) return normalizeSandboxKey(name);
-    }
-    try {
-      var ls = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
-      if (ls) return normalizeSandboxKey(ls);
-    } catch (_e2) {}
-    return 'no-sandbox';
   }
 
   function ldapFromEmail(user) {
@@ -173,10 +148,13 @@
       });
   }
 
-  function stateRef(db, workspaceSlug, sandboxKey) {
-    return db.ref(
-      'userWorkspaces/' + workspaceSlug + '/commandCentre/' + sandboxKey
-    );
+  function stateRef(db, workspaceSlug) {
+    // Command Centre content belongs to the signed-in user, not to whichever
+    // AEP sandbox happens to be selected — sandboxes are shared/switched
+    // between SCs in this lab, so a sandboxKey-keyed path meant selecting a
+    // colleague's sandbox (e.g. "kirkham") surfaced a separately-seeded but
+    // identically-templated bucket that read as that colleague's real deals.
+    return db.ref('userWorkspaces/' + workspaceSlug + '/commandCentre/default');
   }
 
   function parseRemoteState(val) {
@@ -231,15 +209,13 @@
         setSyncStatus('offline');
         return null;
       }
-      var sandboxKey = resolveSandboxKey();
-      var ref = stateRef(db, workspaceSlug, sandboxKey);
+      var ref = stateRef(db, workspaceSlug);
       return ref.once('value').then(function (snap) {
         setSyncStatus('ready');
         return {
           state: parseRemoteState(snap.val()),
           ref: ref,
           workspaceSlug: workspaceSlug,
-          sandboxKey: sandboxKey,
         };
       });
     });
@@ -279,8 +255,7 @@
 
     return resolveWorkspaceSlug().then(function (workspaceSlug) {
       if (!workspaceSlug) return false;
-      var sandboxKey = resolveSandboxKey();
-      var ref = stateRef(db, workspaceSlug, sandboxKey);
+      var ref = stateRef(db, workspaceSlug);
       suppressRemoteUntil = Date.now() + SAVE_DEBOUNCE_MS + 400;
       setSyncStatus('saving');
       return ref.set(payload).then(
@@ -342,6 +317,5 @@
     getSyncStatus: getSyncStatus,
     isAuthenticated: isAuthenticated,
     resolveWorkspaceSlug: resolveWorkspaceSlug,
-    resolveSandboxKey: resolveSandboxKey,
   };
 })(window);

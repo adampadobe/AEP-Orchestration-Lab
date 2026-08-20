@@ -50,14 +50,14 @@
   }
 
   function storageKey() {
-    return (
-      'aepCommandCentre:' +
-      STORAGE_VERSION +
-      ':' +
-      resolveUserKey() +
-      ':' +
-      resolveSandboxKey()
-    );
+    // Command Centre content is a property of the SIGNED-IN USER, not of
+    // whichever AEP sandbox happens to be selected in this browser tab —
+    // sandboxes are frequently shared/switched between SCs in this lab, and
+    // keying storage by sandbox name previously meant an SC who selected a
+    // colleague's sandbox saw a bucket of (separately-seeded, but identically
+    // named) placeholder data under that colleague's sandbox name, which read
+    // as "seeing their real deals."
+    return 'aepCommandCentre:' + STORAGE_VERSION + ':' + resolveUserKey();
   }
 
   function generateId(prefix) {
