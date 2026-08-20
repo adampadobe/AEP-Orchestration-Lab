@@ -211,7 +211,15 @@
     if (openBtn) openBtn.addEventListener('click', openModal);
 
     var openBannerBtn = $('ccExtractWorkBannerBtn');
-    if (openBannerBtn) openBannerBtn.addEventListener('click', openModal);
+    if (openBannerBtn) {
+      openBannerBtn.addEventListener('click', openModal);
+      openBannerBtn.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openModal();
+        }
+      });
+    }
 
     var closeBtn = $('ccExtractWorkModalClose');
     var cancelBtn = $('ccExtractWorkModalCancel');
