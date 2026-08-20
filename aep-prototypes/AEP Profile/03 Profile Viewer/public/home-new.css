@@ -2430,6 +2430,10 @@ html:not([data-aep-theme='dark']) body.home-new-page .cc-sidebar .cc-section-tit
   margin-bottom: 10px;
 }
 
+.cc-composer__attachment[hidden] {
+  display: none;
+}
+
 .cc-composer__attachment img {
   max-width: 220px;
   max-height: 140px;
