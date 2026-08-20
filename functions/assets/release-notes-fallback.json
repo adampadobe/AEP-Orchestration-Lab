@@ -19,7 +19,7 @@
   "periods": {
     "june-2026": {
       "id": "june-2026",
-      "label": "June 2026 (current)",
+      "label": "June 2026 (fallback — live data unavailable)",
       "period": "June 2026",
       "fetchedAt": "2026-06-19T14:32:00.000Z",
       "sourceUrl": "https://experienceleague.adobe.com/en/docs/release-notes/experience-cloud/current",

@@ -40,7 +40,7 @@
     "redirects": [
       {
         "source": "/",
-        "destination": "/profile-viewer/home.html",
+        "destination": "/profile-viewer/home-new.html",
         "type": 302
       },
       {
@@ -148,6 +148,13 @@
         "source": "/api/bc-gemini-prep-export",
         "function": {
           "functionId": "bcGeminiPrepExport",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/home-command/extract-work",
+        "function": {
+          "functionId": "homeCommandExtractWork",
           "region": "us-central1"
         }
       },
