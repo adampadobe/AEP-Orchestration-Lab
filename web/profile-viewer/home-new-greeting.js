@@ -135,14 +135,14 @@
 
   function resolveFirstName() {
     return fetchWorkspaceFirstName().then(function (fromProfile) {
-      if (fromProfile) return fromProfile;
+      if (fromProfile) return capitalize(fromProfile);
       try {
         var auth =
           global.firebase && global.firebase.auth && global.firebase.auth();
         var user = auth && auth.currentUser;
         if (user) {
           var fromDn = firstNameFromDisplayName(user.displayName);
-          if (fromDn) return fromDn;
+          if (fromDn) return capitalize(fromDn);
           var fromEmail = firstNameFromEmail(user.email);
           if (fromEmail) return fromEmail;
         }

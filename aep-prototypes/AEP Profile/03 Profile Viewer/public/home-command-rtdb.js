@@ -152,25 +152,18 @@
     clearStaleScopeIfUidChanged(user.uid);
     if (cachedWorkspaceSlug) return Promise.resolve(cachedWorkspaceSlug);
 
-    // Authoritative, uid-keyed sources first (RTDB owner record, then the
-    // Firestore-backed workspace-profile API) — the localStorage-based
-    // AepAccessScope.getWorkspaceSlug() is an origin-scoped fallback, not a
-    // uid-scoped one, so it must never be tried ahead of a real per-user
-    // lookup or it can resolve to whichever user last set it in this browser.
+    // Authoritative, uid-keyed sources only (RTDB owner record, then the
+    // Firestore-backed workspace-profile API), falling straight to a
+    // deterministic slug derived from the CURRENT user's own verified email
+    // if both come up empty. AepAccessScope.getWorkspaceSlug() used to sit
+    // in this chain as a fallback, but it reads an origin-scoped (not
+    // uid-scoped) localStorage value that can carry a previous user's
+    // workspace slug into a new user's session on first load — before any
+    // uid-change is ever detected — so it must never be consulted here.
     return resolveWorkspaceSlugFromRtdb(user.uid)
       .then(function (slug) {
         if (slug) return slug;
         return fetchWorkspaceProfileSlug();
-      })
-      .then(function (slug) {
-        if (slug) return slug;
-        try {
-          if (global.AepAccessScope && typeof global.AepAccessScope.getWorkspaceSlug === 'function') {
-            slug = normalizeSlug(global.AepAccessScope.getWorkspaceSlug());
-            if (slug) return slug;
-          }
-        } catch (_e) {}
-        return '';
       })
       .then(function (slug) {
         if (!slug) slug = ldapFromEmail(user);
