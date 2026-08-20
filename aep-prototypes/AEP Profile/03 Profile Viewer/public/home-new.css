@@ -1516,6 +1516,33 @@ html[data-aep-theme='dark'] body.home-new-page {
 .cc-section-action:hover { text-decoration: underline; }
 .cc-section-meta { color: var(--cc-text-dim); cursor: default; }
 
+.cc-quickadd-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: var(--cc-bg-card);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+}
+
+.cc-quickadd-banner__text {
+  font-size: 13px;
+  color: var(--cc-text-sec);
+  line-height: 1.4;
+}
+
+.cc-quickadd-banner__text strong {
+  color: var(--cc-text-sec);
+  font-weight: 700;
+}
+
+.cc-quickadd-banner .home-release-sp-btn {
+  flex-shrink: 0;
+}
+
 .cc-card {
   background: var(--cc-bg-card);
   border: 1px solid var(--cc-border);

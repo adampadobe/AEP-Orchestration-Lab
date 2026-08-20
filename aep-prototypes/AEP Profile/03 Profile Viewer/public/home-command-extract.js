@@ -210,6 +210,9 @@
     var openBtn = $('ccExtractWorkBtn');
     if (openBtn) openBtn.addEventListener('click', openModal);
 
+    var openBannerBtn = $('ccExtractWorkBannerBtn');
+    if (openBannerBtn) openBannerBtn.addEventListener('click', openModal);
+
     var closeBtn = $('ccExtractWorkModalClose');
     var cancelBtn = $('ccExtractWorkModalCancel');
     [closeBtn, cancelBtn].forEach(function (el) {
