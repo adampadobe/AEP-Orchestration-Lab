@@ -596,6 +596,11 @@
       global.__aepCommandCentreScopeBound = true;
       global.addEventListener('aep-global-sandbox-change', reloadForScope);
       global.addEventListener('aep-lab-email-session-updated', reloadForScope);
+      // Google-authenticated session switches dispatch a separate event
+      // (aep-access-onboarding.js) — without this, an SPA-level identity
+      // switch via Google sign-in never resets the cached workspace slug,
+      // so the previous user's Command Centre data can keep showing.
+      global.addEventListener('aep-lab-google-session-updated', reloadForScope);
     }
 
     return initPromise;
