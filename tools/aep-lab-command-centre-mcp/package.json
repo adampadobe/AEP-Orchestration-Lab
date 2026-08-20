@@ -1,0 +1,18 @@
+{
+  "name": "aep-lab-command-centre-mcp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Stdio MCP server: read/update your own AEP Orchestration Lab Solutions Consultant Command Centre (customer engagements, tasks, meetings) from any MCP-compatible LLM, via /api/home-command/mcp/* on the deployed lab",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.5.0",
+    "zod": "^3.25.76"
+  }
+}

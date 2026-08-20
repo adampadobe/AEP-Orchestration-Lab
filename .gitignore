@@ -36,3 +36,5 @@ functions/version.json
 tools/aep-lab-adobe-mcp/.env.mcp
 # Profile MCP API key (copy .env.mcp.example → .env.mcp)
 tools/aep-lab-profile-mcp/.env.mcp
+# Command Centre MCP API key (copy .env.mcp.example → .env.mcp)
+tools/aep-lab-command-centre-mcp/.env.mcp
