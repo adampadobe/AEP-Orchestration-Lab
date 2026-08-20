@@ -116,6 +116,9 @@ const labProfileGenerationPrefsStore = lazyRequireMod('./labProfileGenerationPre
 const labProfileRecentGeneratedStore = lazyRequireMod('./labProfileRecentGeneratedStore');
 const labGenerationPrefsAuth = lazyRequireMod('./labGenerationPrefsAuth');
 const snowflakePrincipalAuth = lazyRequireMod('./snowflakePrincipalAuth');
+const homeCommandMcpAuth = lazyRequireMod('./homeCommandMcpAuth');
+const homeCommandMcpStore = lazyRequireMod('./homeCommandMcpStore');
+const { registerHomeCommandMcpRoutes } = require('./homeCommandMcpRoutes');
 const { createLabMcpFirstRunService } = require('./labMcpFirstRunService');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
@@ -3360,6 +3363,23 @@ exports.homeCommandExtractWork = onRequest(
       }
     }
   },
+);
+
+Object.assign(
+  exports,
+  registerHomeCommandMcpRoutes({
+    onRequest,
+    HOME_COMMAND_MCP_FN_OPTS: {
+      region: REGION,
+      invoker: 'public',
+      timeoutSeconds: 30,
+      memory: '256MiB',
+    },
+    setCors,
+    homeCommandMcpAuth,
+    mcpApiKeyStore,
+    homeCommandMcpStore,
+  }),
 );
 
 /** POST /api/brand-scraper/demo-build — dedicated demo website worker (separate CF budget from analyse). */
