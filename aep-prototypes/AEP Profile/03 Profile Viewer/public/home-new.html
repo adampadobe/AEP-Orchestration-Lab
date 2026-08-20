@@ -342,6 +342,11 @@
           Don't paste confidential customer data (contracts, pricing, personal information). This is for your own work tracking only — screenshots and text are sent to Gemini for parsing.
         </div>
         <label class="cc-field">
+          <span class="cc-field__label">Type an update or note</span>
+          <textarea id="ccExtractText" rows="4" placeholder="e.g. Sky — governance blocker resolved, move to On track. Or paste an email, a deal request ID, meeting details, or a prompt brief…"></textarea>
+        </label>
+        <p class="cc-extract-or">— and / or —</p>
+        <label class="cc-field">
           <span class="cc-field__label">Screenshot</span>
           <div class="cc-extract-dropzone" id="ccExtractDropzone" tabindex="0" role="button" aria-label="Paste, drop, or choose a screenshot">
             <span id="ccExtractDropzoneLabel">Paste (⌘V), drag a file here, or <button type="button" class="cc-extract-pick-btn" id="ccExtractPickBtn">choose a file</button></span>
@@ -349,10 +354,6 @@
           </div>
           <input type="file" id="ccExtractFileInput" accept="image/*" hidden>
           <button type="button" class="cc-extract-remove-btn" id="ccExtractRemoveImageBtn" hidden>Remove image</button>
-        </label>
-        <label class="cc-field">
-          <span class="cc-field__label">Notes / email / deal request ID (optional)</span>
-          <textarea id="ccExtractText" rows="4" placeholder="Paste an email, a deal request ID, meeting details, or a brief…"></textarea>
         </label>
         <div class="cc-extract-status" id="ccExtractStatus" hidden></div>
       </div>
@@ -533,7 +534,7 @@
   <script defer src="home-command-store.js?v=20260820b-no-sandboxkey"></script>
   <script defer src="home-command-data.js?v=20260820b-no-seed"></script>
   <script defer src="home-command-centre.js?v=20260820b-empty-state"></script>
-  <script defer src="home-command-extract.js?v=20260820d-dropzone"></script>
+  <script defer src="home-command-extract.js?v=20260820e-upsert"></script>
   <script defer src="home-new-greeting.js?v=20260711a"></script>
   <script defer src="home-new-lab-updates.js?v=20260625a"></script>
   <script defer src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
