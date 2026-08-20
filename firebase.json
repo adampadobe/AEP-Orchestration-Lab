@@ -57,6 +57,11 @@
         "source": "/profile-viewer/aep-architecture-interactive.html",
         "destination": "/profile-viewer/aep-architecture-apps.html",
         "type": 301
+      },
+      {
+        "source": "/profile-viewer/home.html",
+        "destination": "/profile-viewer/home-new.html",
+        "type": 301
       }
     ],
     "rewrites": [
