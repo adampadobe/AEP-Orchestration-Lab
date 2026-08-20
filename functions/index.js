@@ -3590,6 +3590,19 @@ exports.releaseNotesSummary = onRequest(
   }
 );
 
+/** Weekly force-refresh of the release-notes cache so it self-heals instead of only refreshing lazily on next request. */
+exports.releaseNotesSummaryWeeklyRefresh = onSchedule(
+  {
+    schedule: 'every monday 06:00',
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async () => {
+    await releaseNotesSummaryService.resolveSummary({ forceRefresh: true });
+  },
+);
+
 /**
  * POST /api/demo-use-case/generate
  * Body: { sandbox, scrapeId, brandColour?, useCase?, personaName?, products?,
