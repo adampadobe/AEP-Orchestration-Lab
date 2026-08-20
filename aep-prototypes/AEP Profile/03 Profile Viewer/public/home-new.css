@@ -2513,6 +2513,29 @@ html:not([data-aep-theme='dark']) body.home-new-page .cc-sidebar .cc-section-tit
   font-size: 10.5px;
 }
 
-.cc-composer__status--busy { color: #315a8a; }
-.cc-composer__status--ok { color: #17633a; }
-.cc-composer__status--error { color: #9d2f26; }
+.cc-composer__status--busy,
+.cc-composer__status--ok,
+.cc-composer__status--error {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cc-composer__status--busy {
+  color: #315a8a;
+  background: rgba(49, 90, 138, 0.12);
+  border: 1px solid rgba(49, 90, 138, 0.25);
+}
+
+.cc-composer__status--ok {
+  color: #17633a;
+  background: rgba(23, 99, 58, 0.12);
+  border: 1px solid rgba(23, 99, 58, 0.25);
+}
+
+.cc-composer__status--error {
+  color: #9d2f26;
+  background: rgba(157, 47, 38, 0.12);
+  border: 1px solid rgba(157, 47, 38, 0.25);
+}
