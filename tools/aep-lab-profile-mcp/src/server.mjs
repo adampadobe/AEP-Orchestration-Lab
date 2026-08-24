@@ -32,6 +32,7 @@ import {
   registerFocusedProfileTools,
   registerFocusedMcpGuideTools,
   registerFocusedPdfTools,
+  registerFocusedCommandCentreTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
@@ -97,6 +98,15 @@ const ENDPOINTS = [
     bodyLimit: '24mb',
     instructions:
       'Focused PDF preparation: inspect capabilities, upload HTML or documents, preview, generate and find stored PDFs, and manage user-owned server templates. Use fresh idempotency keys for new PDFs and exact confirmation before publishing or archiving templates.',
+  },
+  {
+    path: '/mcp/command-centre',
+    toolset: 'command-centre',
+    register: registerFocusedCommandCentreTools,
+    instructions:
+      'Admin layer for the caller\'s own Solutions Consultant Command Centre (opportunities/customer engagements, ' +
+      'tasks, and meetings tracked on their AEP Orchestration Lab home page). List, add, update, and delete — all ' +
+      'scoped to whichever user generated the connected MCP key. Requires a user-generated key, not a shared ops key.',
   },
 ];
 

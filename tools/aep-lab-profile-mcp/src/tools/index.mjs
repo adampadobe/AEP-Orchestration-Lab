@@ -41,6 +41,7 @@ import { registerDemoAssetTools } from './demoAssets.mjs';
 import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
 import { registerMcpGuideTools } from './mcpGuideTools.mjs';
 import { registerPdfTools } from './pdfTools.mjs';
+import { registerCommandCentreTools } from './commandCentreTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -90,6 +91,7 @@ export function registerProfileTools(mcpServer) {
   registerGenerateProfileFromBrandScrapeTools(mcpServer);
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
   registerCreateJourneyFromBrandScrapeTool(mcpServer);
+  registerCommandCentreTools(mcpServer);
 }
 
 /** Read-only capability directory and cross-context planning, plus access check. */
@@ -157,4 +159,10 @@ export function registerFocusedDemoPrepTools(mcpServer) {
 export function registerFocusedPdfTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerPdfTools(mcpServer);
+}
+
+/** Focused Command Centre admin layer: list/add/update/delete your own customer engagements, tasks, meetings. */
+export function registerFocusedCommandCentreTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerCommandCentreTools(mcpServer);
 }

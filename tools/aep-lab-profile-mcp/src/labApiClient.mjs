@@ -1039,6 +1039,94 @@ export async function appendRecentProfile(body) {
   });
 }
 
+const COMMAND_CENTRE_BASE = '/api/home-command/mcp';
+
+/** GET /api/home-command/mcp/state — list all customers/tasks/meetings for this MCP key's principal. */
+export async function homeCommandGetState() {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/state`, {
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandAddCustomer(fields) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/customers`, {
+    method: 'POST',
+    body: fields,
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandUpdateCustomer({ id, ...patch }) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/customers/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: patch,
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandDeleteCustomer({ id }) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/customers/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandAddTask(fields) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/tasks`, {
+    method: 'POST',
+    body: fields,
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandUpdateTask({ id, ...patch }) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/tasks/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: patch,
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandDeleteTask({ id }) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/tasks/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandAddMeeting(fields) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/meetings`, {
+    method: 'POST',
+    body: fields,
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandUpdateMeeting({ id, ...patch }) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/meetings/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: patch,
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
+export async function homeCommandDeleteMeeting({ id }) {
+  return labApiRequest(`${COMMAND_CENTRE_BASE}/meetings/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    timeoutMs: 30_000,
+  });
+}
+
 /**
  * GET /api/snowflake/config?sandbox=
  * @param {object} params
