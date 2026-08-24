@@ -114,7 +114,7 @@
         return (
           '<div class="home-lab-compact-item home-lab-compact-item--scrape">' +
           (logoSrc
-            ? '<img class="home-lab-scrape-logo" src="' + esc(logoSrc) + '" alt="" loading="lazy" />'
+            ? '<img class="home-lab-scrape-logo" src="' + esc(logoSrc) + '" alt="" loading="lazy" onerror="this.remove()" />'
             : '') +
           '<div class="home-lab-compact-item__title">' +
           esc(label) +

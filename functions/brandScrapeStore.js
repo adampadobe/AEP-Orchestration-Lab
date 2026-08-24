@@ -187,7 +187,7 @@ function hydrate(data) {
     runStartedAt: serializeTimestamp(data.runStartedAt),
     payloadRetentionExpiresAt: payloadRetentionExpiresIsoForApi(data),
     payloadRetentionExtendedAt: serializeTimestamp(data.payloadRetentionExtendedAt),
-    scrapeImageRetentionDays: 3,
+    scrapeImageRetentionDays: 14,
     scrapeVersions,
   };
 }
@@ -915,7 +915,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
         ...data,
         scrapeId: data.scrapeId || d.id,
       }),
-      scrapeImageRetentionDays: 3,
+      scrapeImageRetentionDays: 14,
     }));
   });
   items.sort((a, b) => {
