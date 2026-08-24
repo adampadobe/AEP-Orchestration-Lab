@@ -183,11 +183,19 @@ async function persistLogoResult(result, opts = {}) {
   const normalised = await normaliseLogoBytes(buf, contentType);
   if (!normalised) return null;
 
+  // customTime is what the bucket's daysSinceCustomTime lifecycle rule for
+  // the `scrapes/` prefix keys off (docs/image-hosting-lifecycle.json) — the
+  // same rule that governs record.json. Without it, this file has no custom
+  // time at all and falls back to being deleted far sooner than the scrape
+  // record it belongs to (see docs/IMAGE_HOSTING_BUCKET.md).
   let storedPath = `scrapes/${safeSlug(sandbox)}/${safeSlug(scrapeId)}/customer-logo.${normalised.ext}`;
   await getBucket().file(storedPath).save(normalised.buffer, {
     contentType: normalised.contentType,
     resumable: false,
-    metadata: { cacheControl: 'private, max-age=3600' },
+    metadata: {
+      cacheControl: 'private, max-age=3600',
+      customTime: new Date().toISOString(),
+    },
   });
 
   let cachePath = null;

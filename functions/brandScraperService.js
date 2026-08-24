@@ -3077,11 +3077,23 @@ async function handleScrapes(req, res) {
         scopeType: scope.scopeType,
         scopeId: scope.scopeId,
         items: items.map(function (item) {
-          return Object.assign({}, item, {
+          const out = Object.assign({}, item, {
             sandbox: scope.scopeId,
             scopeType: scope.scopeType,
             scopeId: scope.scopeId,
           });
+          // The scraped logo image itself is deleted from GCS after
+          // scrapeImageRetentionDays (14, matching the scrape record's own
+          // customTime-based lifecycle) — an older customerLogoUrl can still
+          // point at an object that no longer exists, rendering as a broken
+          // image. Drop it once past that window rather than have callers
+          // guess from a 404.
+          const retentionDays = Number(out.scrapeImageRetentionDays) || 14;
+          const ageMs = Date.now() - new Date(out.updatedAt || out.createdAt || 0).getTime();
+          if (out.customerLogoUrl && ageMs > retentionDays * 24 * 60 * 60 * 1000) {
+            out.customerLogoUrl = null;
+          }
+          return out;
         }),
       });
       return;
