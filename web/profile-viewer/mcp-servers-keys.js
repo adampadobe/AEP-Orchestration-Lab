@@ -6,17 +6,32 @@
 
   var MCP_HEADER_NAME = 'X-AEP-Lab-Mcp-Key';
   var MCP_BASE_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app';
-  var MCP_ENDPOINTS = [
-    { id: 'aep-lab-guide', label: 'MCP guide and workflow routing (4 tools)', path: '/mcp/guide' },
-    { id: 'aep-lab-general', label: 'General demo prep (121 tools)', path: '/mcp' },
-    { id: 'aep-lab-demo-prep', label: 'Focused demo prep (19 tools)', path: '/mcp/demo-prep' },
-    { id: 'aep-lab-pdf-prep', label: 'PDF preparation and storage (14 tools)', path: '/mcp/pdf' },
-    { id: 'aep-lab-profiles', label: 'Profiles and events (20 tools)', path: '/mcp/profile' },
-    { id: 'aep-lab-decisioning', label: 'Decisioning (9 tools)', path: '/mcp/decisioning' },
-    { id: 'aep-lab-audiences', label: 'Audience audit and delete (4 tools)', path: '/mcp/audiences' },
-    { id: 'aep-lab-ajo-cleanup', label: 'AJO journey and campaign cleanup (7 tools)', path: '/mcp/ajo-cleanup' },
-    { id: 'aep-lab-command-centre', label: 'Command Centre (11 tools)', path: '/mcp/command-centre' },
-  ];
+
+  // Derived from the same MCP_SERVERS catalog mcp-servers.js renders below,
+  // instead of a second hardcoded list — add a lab entry there (with a
+  // dropdownLabel) and it appears here automatically. Falls back to an
+  // empty array (never used in practice: mcp-servers.js loads first, see
+  // script order in mcp-servers.html) so a load-order regression fails
+  // loudly with an empty dropdown rather than silently duplicating data.
+  function buildLabEndpoints() {
+    var catalog = (global.AepMcpServersCatalog && global.AepMcpServersCatalog.MCP_SERVERS) || [];
+    return catalog
+      .filter(function (entry) {
+        return entry && entry.section === 'lab' && entry.dropdownLabel;
+      })
+      .map(function (entry) {
+        var path = String(entry.mcpUrl || '').indexOf(MCP_BASE_URL) === 0
+          ? entry.mcpUrl.slice(MCP_BASE_URL.length)
+          : '/mcp';
+        return {
+          id: entry.configName || entry.id,
+          label: entry.dropdownLabel + ' (' + entry.toolCount + ' tools)',
+          path: path,
+        };
+      });
+  }
+
+  var MCP_ENDPOINTS = buildLabEndpoints();
   var PANEL_ID = 'mcpLabKeyPanel';
   var MODAL_ID = 'mcpLabKeyModal';
   var KEY_PLACEHOLDER = '<paste your key — shown only at generate/rotate>';
