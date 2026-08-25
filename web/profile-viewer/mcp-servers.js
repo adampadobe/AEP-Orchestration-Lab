@@ -27,6 +27,7 @@
       id: 'aep-orchestration-lab-mcp',
       configName: 'aep-lab-general',
       section: 'lab',
+      dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
       product: 'Complete Lab MCP · 121 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
@@ -50,6 +51,7 @@
       id: 'aep-lab-guide',
       configName: 'aep-lab-guide',
       section: 'lab',
+      dropdownLabel: 'MCP guide and workflow routing',
       name: 'AEP Lab — MCP guide',
       product: 'Focused read-only MCP · 4 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/guide',
@@ -72,6 +74,7 @@
       id: 'aep-lab-demo-prep',
       configName: 'aep-lab-demo-prep',
       section: 'lab',
+      dropdownLabel: 'Focused demo prep',
       name: 'AEP Lab — Customer demo preparation',
       product: 'Focused Lab MCP · 19 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep',
@@ -95,6 +98,7 @@
       id: 'aep-lab-profiles',
       configName: 'aep-lab-profiles',
       section: 'lab',
+      dropdownLabel: 'Profiles and events',
       name: 'AEP Lab — Profiles',
       product: 'Focused Lab MCP · 20 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile',
@@ -118,6 +122,7 @@
       id: 'aep-lab-pdf-prep',
       configName: 'aep-lab-pdf-prep',
       section: 'lab',
+      dropdownLabel: 'PDF preparation and storage',
       name: 'AEP Lab — PDF preparation',
       product: 'Focused Lab MCP · 14 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf',
@@ -141,6 +146,7 @@
       id: 'aep-lab-audiences',
       configName: 'aep-lab-audiences',
       section: 'lab',
+      dropdownLabel: 'Audience audit and delete',
       name: 'AEP Lab — Audiences',
       product: 'Focused Lab MCP · 4 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/audiences',
@@ -164,6 +170,7 @@
       id: 'aep-lab-decisioning',
       configName: 'aep-lab-decisioning',
       section: 'lab',
+      dropdownLabel: 'Decisioning',
       name: 'AEP Lab — Decisioning',
       product: 'Focused Lab MCP · 9 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning',
@@ -186,6 +193,7 @@
       id: 'aep-lab-ajo-cleanup',
       configName: 'aep-lab-ajo-cleanup',
       section: 'lab',
+      dropdownLabel: 'AJO journey and campaign cleanup',
       name: 'AEP Lab — AJO cleanup',
       product: 'Focused Lab MCP · 7 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-cleanup',
@@ -209,6 +217,7 @@
       id: 'aep-lab-command-centre',
       configName: 'aep-lab-command-centre',
       section: 'lab',
+      dropdownLabel: 'Command Centre',
       name: 'AEP Lab — Command Centre',
       product: 'Focused Lab MCP · 11 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre',
@@ -525,6 +534,11 @@
       docLabel: 'Firebase MCP (CLI)',
     },
   ];
+
+  // Exposed so mcp-servers-keys.js can derive its key-generation endpoint
+  // dropdown from this same catalog instead of keeping a second hardcoded
+  // list in sync by hand (loads first — see script order in mcp-servers.html).
+  window.AepMcpServersCatalog = { MCP_SERVERS: MCP_SERVERS };
 
   const SECTION_META = [
     {
