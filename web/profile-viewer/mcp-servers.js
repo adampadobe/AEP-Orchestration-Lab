@@ -28,7 +28,7 @@
       configName: 'aep-lab-general',
       section: 'lab',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 111 tools',
+      product: 'Complete Lab MCP · 121 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -41,7 +41,7 @@
       configNotes:
         'Choose this for general demo work or when a workflow spans several areas. Uses X-AEP-Lab-Mcp-Key; the same sandbox key also works with every focused connection below.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 111,
+      toolCount: 121,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -204,6 +204,28 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AJO cleanup tools reference',
+    },
+    {
+      id: 'aep-lab-command-centre',
+      configName: 'aep-lab-command-centre',
+      section: 'lab',
+      name: 'AEP Lab — Command Centre',
+      product: 'Focused Lab MCP · 11 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre',
+      summary:
+        'Admin layer for your own Solutions Consultant Command Centre home page — track opportunities/customer engagements, tasks, and meetings from any MCP client, no browser required.',
+      useCases: [
+        'List your current customer engagements, tasks, and meetings',
+        'Add, update, or remove a customer engagement (status, next action, ETA, DR link)',
+        'Add, update, or remove a task or meeting, optionally linked to a customer',
+      ],
+      configNotes:
+        'Scoped to your own Firebase uid, like Snowflake — requires a user-generated key, not a shared ops key. Changes made here show up in the browser Command Centre on next reload and vice versa.',
+      connectionKind: 'Focused',
+      toolCount: 11,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Command Centre tools reference',
     },
     {
       id: 'cx-coworker-gateway',
