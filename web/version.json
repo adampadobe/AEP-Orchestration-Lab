@@ -1,14 +1,14 @@
 {
-  "gitSha": "811503f0ebf95c145fcf84adcf4deff8640b1850",
-  "gitShortSha": "811503f0",
-  "gitBranch": "codex/pdf-portal-test-send-20260813",
-  "gitCommitSubject": "[apalmer] Record direct PDF send deployment",
+  "gitSha": "ffed840f3b343c1fdf6dce4f2624638fe608b099",
+  "gitShortSha": "ffed840f",
+  "gitBranch": "main",
+  "gitCommitSubject": "[apalmer] Enable Travel profile-bundle readback and unify Snowflake generate UI (#179)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-13T13:39:13+03:00",
-  "deployedAt": "2026-08-13T12:43:05.557Z",
+  "gitCommitDate": "2026-08-25T15:04:02+03:00",
+  "deployedAt": "2026-08-25T22:52:32.139Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/811503f0ebf95c145fcf84adcf4deff8640b1850"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ffed840f3b343c1fdf6dce4f2624638fe608b099"
 }
