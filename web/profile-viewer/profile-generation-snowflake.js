@@ -90,6 +90,8 @@
   var loadedProfiles = [];
   /** Last governed industry manifest returned by the catalog endpoint. */
   var industryCatalog = null;
+  /** Profile bundle last fetched for the "Inspect generated data" picker on the Full Agentic generate panel. */
+  var fullGenBundleCache = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -1330,7 +1332,7 @@
     renderEventTypes(fallback.events);
     if (els.travelAdvanced) els.travelAdvanced.hidden = industry !== 'travel';
     if (els.travelRunnerHint) els.travelRunnerHint.hidden = industry !== 'travel';
-    if (els.profileBundleBtn) els.profileBundleBtn.hidden = industry === 'travel';
+    if (els.profileBundleBtn) els.profileBundleBtn.hidden = false;
   }
 
   function renderIndustryCatalog(result) {
@@ -1398,7 +1400,7 @@
     }
     if (els.travelAdvanced) els.travelAdvanced.hidden = readIndustry() !== 'travel';
     if (els.travelRunnerHint) els.travelRunnerHint.hidden = readIndustry() !== 'travel';
-    if (els.profileBundleBtn) els.profileBundleBtn.hidden = readIndustry() === 'travel';
+    if (els.profileBundleBtn) els.profileBundleBtn.hidden = false;
   }
 
   function loadIndustryCatalog(checkTables) {
@@ -1528,9 +1530,44 @@
     node.textContent = text;
   }
 
+  /** Now only guards the standalone "Describe tables" utility — generate busy-state is shared via setGenerateBusy. */
   function setFullGenBusy(busy) {
-    if (els.fullGenForm) els.fullGenForm.setAttribute('aria-busy', busy ? 'true' : 'false');
-    if (els.fullGenBtn) els.fullGenBtn.disabled = !!busy;
+    if (els.phaseStructureBtn) els.phaseStructureBtn.disabled = !!busy;
+  }
+
+  function readGenerationMode() {
+    return els.genScopeFull && els.genScopeFull.checked ? 'full' : 'single';
+  }
+
+  function applyGenerationScopeVisibility() {
+    var isFull = readGenerationMode() === 'full';
+    if (els.genTargetTableGroup) els.genTargetTableGroup.hidden = isFull;
+    if (els.genBatchSizeGroup) els.genBatchSizeGroup.hidden = isFull;
+    if (els.genBatchHistoryGroup) els.genBatchHistoryGroup.hidden = isFull;
+    if (els.generateBtn) els.generateBtn.textContent = isFull ? 'Run full phased generate' : 'Generate profiles';
+    setGenerateMessage('', 'info');
+    setFullGenMessage('', 'info');
+    if (els.genResult) els.genResult.hidden = true;
+    if (els.fullGenResultDetails) els.fullGenResultDetails.hidden = true;
+    if (els.fullGenInspect) els.fullGenInspect.hidden = true;
+  }
+
+  /** Full phased generate only exists for Travel (the Python runner) — hide/reset the option for other industries. */
+  function reflectGenerationScope() {
+    var isTravel = readIndustry() === 'travel';
+    if (els.genScopeFullLabel) els.genScopeFullLabel.hidden = !isTravel;
+    if (!isTravel && els.genScopeFull && els.genScopeFull.checked && els.genScopeSingle) {
+      els.genScopeSingle.checked = true;
+    }
+    applyGenerationScopeVisibility();
+  }
+
+  function handleGenerateClick() {
+    if (readGenerationMode() === 'full') {
+      runFullPhasedGenerate();
+    } else {
+      generateProfiles();
+    }
   }
 
   function renderProfileRows(rows) {
@@ -1719,10 +1756,6 @@
       setUpdaterMessage('Select exactly one profile row to view its bundle.', 'error');
       return;
     }
-    if (readIndustry() === 'travel') {
-      setUpdaterMessage('Profile bundle readback is available for FSI, retail, telecom, media, and sports.', 'info');
-      return;
-    }
     setUpdaterBusy(true);
     setUpdaterMessage('Loading the complete industry profile bundle…', 'info');
     authHeaders().then(function (h) {
@@ -1758,28 +1791,171 @@
     });
   }
 
+  function copyFullGenResult() {
+    var text = els.fullGenResult ? els.fullGenResult.textContent : '';
+    if (!text) return;
+    var btn = els.fullGenCopyBtn;
+    var originalLabel = btn ? btn.textContent : '';
+    var onCopied = function () {
+      if (!btn) return;
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = originalLabel; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onCopied, function () {
+        setFullGenMessage('Could not copy automatically — select the JSON below and copy manually.', 'error');
+      });
+      return;
+    }
+    var range = document.createRange();
+    range.selectNodeContents(els.fullGenResult);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    try {
+      document.execCommand('copy');
+      onCopied();
+    } catch (_) {
+      setFullGenMessage('Could not copy automatically — select the JSON below and copy manually.', 'error');
+    }
+    selection.removeAllRanges();
+  }
+
+  function setFullGenInspectMessage(text, tone) {
+    var node = els.fullGenInspectMessage;
+    if (!node) return;
+    if (!text) { node.hidden = true; node.textContent = ''; return; }
+    node.hidden = false;
+    node.textContent = text;
+    node.className = 'sf-gen-message' + (tone ? ' sf-gen-message--' + tone : '');
+  }
+
+  /** Populate the "Generated profile" picker from a Full Agentic generate result's crm_ids/ecids/emails. */
+  function populateFullGenProfileSelect(lastResult) {
+    if (!els.fullGenInspect || !els.fullGenProfileSelect) return;
+    var crmIds = Array.isArray(lastResult && lastResult.crm_ids) ? lastResult.crm_ids : [];
+    if (!crmIds.length) {
+      els.fullGenInspect.hidden = true;
+      return;
+    }
+    var emails = Array.isArray(lastResult.emails) ? lastResult.emails : [];
+    els.fullGenProfileSelect.textContent = '';
+    crmIds.forEach(function (crmId, index) {
+      var option = document.createElement('option');
+      option.value = crmId;
+      option.textContent = crmId + (emails[index] ? ' — ' + emails[index] : '');
+      els.fullGenProfileSelect.appendChild(option);
+    });
+    els.fullGenInspect.hidden = false;
+    if (els.fullGenTableSelect) {
+      els.fullGenTableSelect.disabled = true;
+      els.fullGenTableSelect.textContent = '';
+      var placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Loading…';
+      els.fullGenTableSelect.appendChild(placeholder);
+    }
+    if (els.fullGenInspectOut) els.fullGenInspectOut.hidden = true;
+    loadFullGenProfileBundle(crmIds[0]);
+  }
+
+  /** Fetch every table a generated Travel profile touched (base, customer, loyalty, preferences, all event tables). */
+  function loadFullGenProfileBundle(crmId) {
+    if (!crmId) return;
+    fullGenBundleCache = null;
+    setFullGenInspectMessage('Loading tables for ' + crmId + '…', 'info');
+    if (els.fullGenTableSelect) els.fullGenTableSelect.disabled = true;
+    if (els.fullGenInspectOut) els.fullGenInspectOut.hidden = true;
+    authHeaders().then(function (h) {
+      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+      return fetch('/api/snowflake/agentic/profile-bundle', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({
+          sandbox: readSandbox(),
+          industry: 'travel',
+          crmId: crmId,
+          eventLimit: 25,
+        }),
+      });
+    }).then(function (res) {
+      return res.json().then(function (body) {
+        var result = body && body.result;
+        if (!res.ok || !result || !result.ok) {
+          throw new Error((result && result.error && result.error.message) || body.error || 'Bundle lookup failed.');
+        }
+        fullGenBundleCache = result;
+        renderFullGenTableSelect(result);
+        setFullGenInspectMessage(
+          'Loaded ' + Object.keys(result.tables || {}).length + ' table(s), ' +
+            result.totalReturnedRows + ' row(s) total for ' + crmId + '.',
+          'success'
+        );
+      });
+    }).catch(function (error) {
+      setFullGenInspectMessage(error && error.message || String(error), 'error');
+    });
+  }
+
+  /** Registry keys are camelCase (e.g. "loyaltyProfile") — split before title-casing. */
+  function tableKeyLabel(key) {
+    return titleCase(String(key || '').replace(/([a-z0-9])([A-Z])/g, '$1 $2'));
+  }
+
+  function renderFullGenTableSelect(bundle) {
+    if (!els.fullGenTableSelect) return;
+    els.fullGenTableSelect.textContent = '';
+    var tables = (bundle && bundle.tables) || {};
+    var keys = Object.keys(tables);
+    keys.forEach(function (key) {
+      var entry = tables[key];
+      var option = document.createElement('option');
+      option.value = key;
+      option.textContent = tableKeyLabel(key) + ' (' + entry.table + ') — ' + entry.count + ' row' + (entry.count === 1 ? '' : 's');
+      els.fullGenTableSelect.appendChild(option);
+    });
+    els.fullGenTableSelect.disabled = keys.length === 0;
+    if (keys.length) {
+      // Default to the base profile table if present, otherwise the first table.
+      els.fullGenTableSelect.value = keys.includes('baseProfile') ? 'baseProfile' : keys[0];
+      renderFullGenTableRows(els.fullGenTableSelect.value);
+    }
+  }
+
+  function renderFullGenTableRows(key) {
+    if (!els.fullGenInspectOut || !fullGenBundleCache) return;
+    var entry = fullGenBundleCache.tables && fullGenBundleCache.tables[key];
+    if (!entry) {
+      els.fullGenInspectOut.hidden = true;
+      return;
+    }
+    els.fullGenInspectOut.hidden = false;
+    els.fullGenInspectOut.textContent = safeStringify(entry);
+  }
+
   function runFullPhasedGenerate() {
     var sandbox = readSandbox();
     if (!sandbox) {
       setFullGenMessage('Pick a sandbox from Global values first.', 'error');
       return;
     }
-    var count = els.fullGenCount ? parseInt(els.fullGenCount.value, 10) : 5;
+    var count = els.genCount ? parseInt(els.genCount.value, 10) : 5;
     if (!Number.isFinite(count) || count < 1) count = 5;
     if (count > 1000) {
       setFullGenMessage('Maximum 1000 per run.', 'error');
       return;
     }
-    setFullGenBusy(true);
-    if (els.fullGenResult) {
-      els.fullGenResult.hidden = true;
-      els.fullGenResult.textContent = '';
-    }
+    setGenerateBusy(true);
+    if (els.fullGenResultDetails) els.fullGenResultDetails.hidden = true;
+    if (els.fullGenResult) els.fullGenResult.textContent = '';
+    if (els.fullGenResultCount) els.fullGenResultCount.textContent = '';
+    if (els.fullGenInspect) els.fullGenInspect.hidden = true;
+    fullGenBundleCache = null;
     setFullGenMessage('Running full phased generate… This may take several minutes.', 'info');
     authHeaders().then(function (h) {
       if (!h.Authorization) {
         setFullGenMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setFullGenBusy(false);
+        setGenerateBusy(false);
         return;
       }
       var url = '/api/snowflake/agentic/generate-full';
@@ -1802,10 +1978,15 @@
             var st = data.result.data.generation_status || {};
             var lr = st.last_result || {};
             setFullGenMessage(st.message || 'Done.', lr.success === false ? 'error' : 'success');
-            if (els.fullGenResult) {
-              els.fullGenResult.hidden = false;
-              els.fullGenResult.textContent = safeStringify(data.result.data);
+            if (els.fullGenResult) els.fullGenResult.textContent = safeStringify(data.result.data);
+            if (els.fullGenResultCount) {
+              els.fullGenResultCount.textContent = (st.message || '').replace(/^[^\w]*/, '');
             }
+            if (els.fullGenResultDetails) {
+              els.fullGenResultDetails.hidden = false;
+              els.fullGenResultDetails.open = true;
+            }
+            populateFullGenProfileSelect(lr);
           } else {
             setFullGenMessage(
               (data.result && data.result.error && data.result.error.message) || (data && data.error) ||
@@ -1817,7 +1998,7 @@
       }).catch(function (e) {
         setFullGenMessage('Network error: ' + (e && e.message || e), 'error');
       }).then(function () {
-        setFullGenBusy(false);
+        setGenerateBusy(false);
       });
     });
   }
@@ -1994,6 +2175,12 @@
     els.genBatchSize = $('sfGenBatchSize');
     els.generateBtn = $('sfGenerateBtn');
     els.genMessage = $('sfGenerateMessage');
+    els.genScopeSingle = $('sfGenScopeSingle');
+    els.genScopeFull = $('sfGenScopeFull');
+    els.genScopeFullLabel = $('sfGenScopeFullLabel');
+    els.genTargetTableGroup = $('sfGenTargetTableGroup');
+    els.genBatchSizeGroup = $('sfGenBatchSizeGroup');
+    els.genBatchHistoryGroup = $('sfGenBatchHistoryGroup');
     els.genResult = $('sfGenerateResult');
     els.genResultRowcount = $('sfGenResultRowcount');
     els.genResultTable = $('sfGenResultTable');
@@ -2033,7 +2220,10 @@
         refreshConnectionUi();
       });
     }
-    if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
+    if (els.generateBtn) els.generateBtn.addEventListener('click', handleGenerateClick);
+    if (els.genScopeSingle) els.genScopeSingle.addEventListener('change', applyGenerationScopeVisibility);
+    if (els.genScopeFull) els.genScopeFull.addEventListener('change', applyGenerationScopeVisibility);
+    applyGenerationScopeVisibility();
     if (els.genCount && els.genCountDisplay) {
       els.genCount.addEventListener('input', syncSfGenCountDisplay);
       syncSfGenCountDisplay();
@@ -2075,11 +2265,16 @@
     els.profileBundleBtn = $('sfProfileBundleBtn');
     els.profileBundleOut = $('sfProfileBundleOut');
     els.updaterMessage = $('sfUpdaterMessage');
-    els.fullGenForm = $('sfFullGenForm');
-    els.fullGenCount = $('sfFullGenCount');
-    els.fullGenBtn = $('sfFullGenBtn');
     els.fullGenMessage = $('sfFullGenMessage');
+    els.fullGenResultDetails = $('sfFullGenResultDetails');
+    els.fullGenResultCount = $('sfFullGenResultCount');
+    els.fullGenCopyBtn = $('sfFullGenCopyBtn');
     els.fullGenResult = $('sfFullGenResult');
+    els.fullGenInspect = $('sfFullGenInspect');
+    els.fullGenProfileSelect = $('sfFullGenProfileSelect');
+    els.fullGenTableSelect = $('sfFullGenTableSelect');
+    els.fullGenInspectMessage = $('sfFullGenInspectMessage');
+    els.fullGenInspectOut = $('sfFullGenInspectOut');
     els.phaseSelect = $('sfPhaseSelect');
     els.phaseStructureBtn = $('sfPhaseStructureBtn');
     els.phaseStructureOut = $('sfPhaseStructureOut');
@@ -2103,6 +2298,7 @@
       els.industry.addEventListener('change', function () {
         industryCatalog = null;
         reflectIndustrySelection();
+        reflectGenerationScope();
         renderIndustryPreviewTable(null);
         setIndustryPreviewMessage('', 'info');
         setIndustryPreviewBusy(false);
@@ -2113,7 +2309,18 @@
         loadIndustryCatalog(true);
       });
     }
-    if (els.fullGenBtn) els.fullGenBtn.addEventListener('click', runFullPhasedGenerate);
+    reflectGenerationScope();
+    if (els.fullGenCopyBtn) els.fullGenCopyBtn.addEventListener('click', copyFullGenResult);
+    if (els.fullGenProfileSelect) {
+      els.fullGenProfileSelect.addEventListener('change', function () {
+        loadFullGenProfileBundle(els.fullGenProfileSelect.value);
+      });
+    }
+    if (els.fullGenTableSelect) {
+      els.fullGenTableSelect.addEventListener('change', function () {
+        renderFullGenTableRows(els.fullGenTableSelect.value);
+      });
+    }
     if (els.phaseStructureBtn) els.phaseStructureBtn.addEventListener('click', describePhaseTables);
     if (els.selectAll) {
       els.selectAll.addEventListener('change', function () {
