@@ -323,13 +323,38 @@
                   </div>
                   <p class="field-hint">Same control pattern as AgenticAI <code>index_enhanced.html</code>. Maximum 1000 per run.</p>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="sfGenTargetTableGroup">
                   <label>Target table</label>
                   <code id="sfGenerateTargetTable" class="sf-gen-target-table">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>
                   <p class="field-hint">Use the readiness panel to provision this allowlisted table before generation.</p>
                 </div>
               </div>
+
               <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label class="sf-gen-label-block">Generation scope</label>
+                  <div class="sf-gen-radio-group">
+                    <label class="sf-gen-radio">
+                      <input type="radio" name="sfGenScope" id="sfGenScopeSingle" value="single" checked>
+                      Selected table only
+                    </label>
+                    <label class="sf-gen-radio" id="sfGenScopeFullLabel">
+                      <input type="radio" name="sfGenScope" id="sfGenScopeFull" value="full">
+                      Full phased — base, events, customer &amp; enrichment
+                      <span class="sf-gen-pill">Travel only · Python</span>
+                    </label>
+                  </div>
+                  <p class="field-hint" id="sfGenScopeHint">
+                    Full phased runs the same pipeline as AgenticAI <code>web_app.py → generate_data_background</code>
+                    (base + full profile + website/booking + phase 2 loyalty/mobile/call/check-in + phase 3
+                    disruption/in-flight/hotel/loyalty/POS) using the count above. Requires the runner URL on the
+                    function; otherwise you get HTTP 501 with setup instructions. Only available when Travel is
+                    the selected industry.
+                  </p>
+                </div>
+              </div>
+
+              <div class="form-row form-row--inline" id="sfGenBatchSizeGroup">
                 <div class="form-group">
                   <label for="sfGenBatchSize">Batch size <span class="sf-gen-optional">(optional)</span></label>
                   <input type="number" id="sfGenBatchSize" min="1" max="1000" step="1" placeholder="200">
@@ -341,7 +366,7 @@
                 <button type="button" id="sfGenerateBtn" class="btn btn-primary">Generate profiles</button>
               </div>
 
-              <div class="sf-gen-batch-history" aria-label="Base profile batch history">
+              <div class="sf-gen-batch-history" id="sfGenBatchHistoryGroup" aria-label="Base profile batch history">
                 <label for="sfGenBatchHistorySelect" class="field-hint sf-gen-label-block">Batch history</label>
                 <div class="sf-gen-batch-history-row">
                   <select id="sfGenBatchHistorySelect">
@@ -353,6 +378,7 @@
               </div>
 
               <div id="sfGenerateMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+              <div id="sfFullGenMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
 
               <div id="sfGenerateResult" class="sf-gen-result" hidden>
                 <div class="sf-gen-result-summary">
@@ -365,34 +391,39 @@
                 <pre id="sfGenResultSample" class="sf-gen-result-sample"></pre>
               </div>
 
+              <details id="sfFullGenResultDetails" class="sf-gen-result-details" hidden open>
+                <summary class="sf-gen-result-details-summary">
+                  <span>Generated data (JSON)</span>
+                  <span id="sfFullGenResultCount" class="sf-gen-result-details-count"></span>
+                </summary>
+                <div class="sf-gen-result-details-body">
+                  <div class="sf-gen-result-details-actions">
+                    <button type="button" id="sfFullGenCopyBtn" class="btn btn-secondary">Copy JSON</button>
+                  </div>
+                  <pre id="sfFullGenResult" class="sf-gen-sql-pre"></pre>
+                </div>
+              </details>
+              <div id="sfFullGenInspect" class="sf-gen-inspect" hidden>
+                <p class="field-hint sf-gen-label-block">Inspect what was generated, table by table</p>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="sfFullGenProfileSelect">Generated profile</label>
+                    <select id="sfFullGenProfileSelect"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="sfFullGenTableSelect">Table</label>
+                    <select id="sfFullGenTableSelect" disabled>
+                      <option value="">Loading…</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="sfFullGenInspectMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+                <pre id="sfFullGenInspectOut" class="sf-gen-sql-pre" hidden></pre>
+              </div>
+
               <details id="sfTravelAdvanced" class="sf-gen-advanced">
                 <summary>Travel runner and legacy tools</summary>
                 <div class="sf-gen-advanced-body">
-              <hr class="sf-gen-divider" aria-hidden="true">
-
-              <header class="sf-gen-card-header sf-gen-card-header--tight">
-                <h3 id="sfFullGenHeading" class="sf-gen-card-title">Full Agentic generate <span class="sf-gen-pill">Python · Phase 1–3</span></h3>
-                <p class="sf-gen-card-subtitle">
-                  Runs the same pipeline as AgenticAI <code>web_app.py → generate_data_background</code>
-                  (base + full profile + website/booking + phase 2 loyalty/mobile/call/check-in + phase 3 disruption/in-flight/hotel/loyalty/POS).
-                  Requires the runner URL on the function; otherwise you get HTTP 501 with setup instructions.
-                </p>
-              </header>
-              <div class="sf-gen-form" id="sfFullGenForm" aria-busy="false">
-                <div class="form-row form-row--inline">
-                  <div class="form-group">
-                    <label for="sfFullGenCount">Profiles / batch</label>
-                    <input type="number" id="sfFullGenCount" min="1" max="1000" step="1" value="5">
-                    <p class="field-hint">May take several minutes. Keep counts modest until the runner is warm.</p>
-                  </div>
-                </div>
-                <div class="form-row form-row--actions sf-gen-actions">
-                  <button type="button" id="sfFullGenBtn" class="btn btn-primary">Run full phased generate</button>
-                </div>
-                <div id="sfFullGenMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
-                <pre id="sfFullGenResult" class="sf-gen-sql-pre" hidden></pre>
-              </div>
-
               <div class="sf-gen-phase-sql">
                 <label for="sfPhaseSelect" class="field-hint sf-gen-label-block">Table structure (Agentic phase)</label>
                 <div class="form-row form-row--inline">

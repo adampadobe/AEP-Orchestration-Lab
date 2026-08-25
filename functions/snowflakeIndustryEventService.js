@@ -109,7 +109,7 @@ async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50) {
 function validateIndustryAndTypes(industry, eventTypes) {
   const eventConfig = getIndustryEventConfig(industry);
   if (!eventConfig) {
-    throw new Error('industry must be one of fsi, retail, telecom, media, sports');
+    throw new Error('industry must be one of travel, fsi, retail, telecom, media, sports');
   }
   const requested = Array.isArray(eventTypes) && eventTypes.length
     ? eventTypes.map((value) => String(value).trim().toLowerCase())
