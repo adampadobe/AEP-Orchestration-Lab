@@ -66,6 +66,8 @@ const READ_ONLY_TOOLS = new Set([
   'lab_snowflake_table_structure',
   'lab_snowflake_test_connection',
   'lab_snowflake_validate_proposal',
+  'lab_weather_current',
+  'lab_weather_forecast',
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([

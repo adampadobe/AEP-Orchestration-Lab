@@ -17,12 +17,14 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
 | `/mcp/demo-prep` | 21 | Brand scrape, Gemini image classification, governed all-in-one customer switching, stable asset restore, RTDB, and one-shot demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
+| `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
+| `/mcp/weather` | 3 | Current conditions and 5-day/3-hour forecast from OpenWeatherMap by city or lat/lon — no AEP or Lab API calls |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
 ### Entry point (Phase 3.38)
 
-Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
+Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
 **Known limitation — Adobe Coworker:** `lab_load_toolset` correctly registers the new tools and sends the standard MCP `notifications/tools/list_changed` signal, but as tested, Adobe Coworker's tool-discovery layer only reflects the tool inventory captured at session `initialize` and does not re-run `tools/list` in response to that notification mid-session. Newly loaded tools register successfully server-side but never become callable in Coworker. Until Coworker's client adds `list_changed` support, **directly connect the focused endpoint(s) for the domains you actually use** (e.g. `aep-lab-profiles` for profile/event work, `aep-lab-demo-prep` for brand scrape and customer prep) alongside `aep-lab-entry`, rather than relying on `lab_load_toolset` alone in that host. `lab_load_toolset` still works correctly over the raw Streamable HTTP protocol and in any MCP client that honors `list_changed`.
 
@@ -31,7 +33,7 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
-| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
@@ -306,6 +308,10 @@ Advanced: **`lab_send_edge_event`** when you have `datastream_id` directly. **Av
 
 Read-only event history is already available via **`lab_profile_activity`** (GET `/api/profile/events`).
 
+### Weather lookups (OpenWeatherMap)
+
+`lab_weather_current` and `lab_weather_forecast` call the OpenWeatherMap API directly (no AEP or Lab API involved) — useful for demo scenarios that condition on live weather, e.g. a travel disruption or retail footfall journey. Both accept `city` (optionally `"City,CountryCode"`) or `lat`/`lon`, plus an optional `units` (`standard`/`metric`/`imperial`, default `metric`). Requires `OPENWEATHER_API_KEY` — see [Environment](#environment). Error responses never echo the request URL back to the caller, since the API key travels as a query param.
+
 ### Profile Viewer workflows (Phase 2.1)
 
 **Get → discuss → update (full stitch)** — see Phase 2 docs; `lab_update_profile` uses full-snapshot stitch.
@@ -370,6 +376,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `AEP_LAB_MCP_FIRESTORE` | No | Set `off` to skip Firestore audit/ACL reads locally |
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run | `aep-orchestration-lab` |
 | `AEP_LAB_MCP_OAUTH_ISSUER` / `AUDIENCE` | No | Phase 3.5 OAuth scaffold only |
+| `OPENWEATHER_API_KEY` | For `/mcp/weather` | OpenWeatherMap API key — https://openweathermap.org/api |
 | `PORT` / `HOST` | No | HTTP bind |
 
 ## Run locally

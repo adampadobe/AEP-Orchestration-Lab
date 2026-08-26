@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather}
  * Health:   GET /health
  */
 
@@ -34,6 +34,7 @@ import {
   registerFocusedMcpGuideTools,
   registerFocusedPdfTools,
   registerFocusedCommandCentreTools,
+  registerFocusedWeatherTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
@@ -105,6 +106,14 @@ const ENDPOINTS = [
       'Admin layer for the caller\'s own Solutions Consultant Command Centre (opportunities/customer engagements, ' +
       'tasks, and meetings tracked on their AEP Orchestration Lab home page). List, add, update, and delete — all ' +
       'scoped to whichever user generated the connected MCP key. Requires a user-generated key, not a shared ops key.',
+  },
+  {
+    path: '/mcp/weather',
+    toolset: 'weather',
+    register: registerFocusedWeatherTools,
+    instructions:
+      'Focused weather lookups from OpenWeatherMap: current conditions and a 5-day/3-hour forecast by city name or ' +
+      'lat/lon coordinates. No AEP or Lab API calls; useful for demo scenarios that condition on live weather.',
   },
 ];
 
