@@ -7,7 +7,7 @@ import { annotationsForTool } from '../src/toolAnnotations.mjs';
 test('context directory exposes copy-ready unique names and URLs', () => {
   const contexts = listMcpContexts();
   assert.equal(new Set(contexts.map((context) => context.id)).size, contexts.length);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-guide').url.endsWith('/mcp/guide'), true);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 113);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'adobe-cx-coworker-gateway').access.includes('Adobe'), true);

@@ -60,6 +60,7 @@ test('focused profile endpoint exposes the complete governed profile lifecycle',
     'lab_snowflake_get_profile_by_email',
     'lab_snowflake_enrich_profiles',
     'lab_snowflake_get_profile_bundle',
+    'lab_run_playbook',
   ]);
 });
 
@@ -85,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 113);
+  assert.equal(full.names.length, 124);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -105,7 +106,7 @@ test('focused PDF endpoint contains access plus the complete PDF preparation lif
   for (const tool of focused.names.slice(1)) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
-test('focused guide endpoint is access plus three read-only advisory tools', () => {
+test('focused entry endpoint is access plus advisory tools and lab_load_toolset', () => {
   const { names, server } = registrationRecorder();
   registerFocusedMcpGuideTools(server);
   assert.deepEqual(names, [
@@ -113,6 +114,7 @@ test('focused guide endpoint is access plus three read-only advisory tools', () 
     'lab_mcp_contexts',
     'lab_mcp_recommend_context',
     'lab_mcp_workflow',
+    'lab_load_toolset',
   ]);
 });
 

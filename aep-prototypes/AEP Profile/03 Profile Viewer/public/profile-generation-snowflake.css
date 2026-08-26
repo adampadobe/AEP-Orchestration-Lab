@@ -458,6 +458,105 @@
   word-break: break-word;
 }
 
+.sf-gen-result-details {
+  margin-top: 8px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  overflow: hidden;
+}
+
+.sf-gen-result-details-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.sf-gen-result-details-summary::marker {
+  content: '';
+}
+
+.sf-gen-result-details-summary > span:first-child {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.sf-gen-result-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sf-gen-result-details-summary::before {
+  content: '▸';
+  color: var(--dash-text-secondary);
+  transition: transform 0.15s ease;
+}
+
+.sf-gen-result-details[open] > .sf-gen-result-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.sf-gen-result-details[open] > .sf-gen-result-details-summary {
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.sf-gen-result-details-count {
+  font-weight: 400;
+  color: var(--dash-text-secondary);
+  font-size: 0.78rem;
+}
+
+.sf-gen-result-details-body {
+  padding: 10px 12px 12px;
+}
+
+.sf-gen-result-details-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.sf-gen-result-details .sf-gen-sql-pre {
+  margin-top: 0;
+  max-height: 360px;
+}
+
+.sf-gen-inspect {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dash-border);
+}
+
+.sf-gen-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sf-gen-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+.sf-gen-radio input {
+  margin: 0;
+}
+
+.sf-gen-radio--disabled {
+  color: var(--dash-text-secondary);
+  cursor: not-allowed;
+}
+
 .sf-gen-divider {
   border: none;
   border-top: 1px solid var(--dash-border);
