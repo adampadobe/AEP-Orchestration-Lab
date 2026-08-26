@@ -10,7 +10,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
-| `/mcp/guide` | 4 | Read-only access check, capability directory, context recommendation, and cross-context workflow planning |
+| `/mcp/guide` | 5 | Read-only access check, capability directory, context recommendation, cross-context workflow planning, and `lab_load_toolset` to pull another toolset into this same session |
 | `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
@@ -29,6 +29,7 @@ Configure `aep-lab-guide` as a lightweight companion when Coworker has several L
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
@@ -57,6 +58,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_mcp_contexts` | *(static)* | Canonical Lab and Adobe MCP capability directory |
 | `lab_mcp_recommend_context` | *(static)* | Recommends the smallest useful configured MCP context for a goal |
 | `lab_mcp_workflow` | *(static)* | Cross-context handoff plan; never invokes another MCP |
+| `lab_load_toolset` | *(local, no Lab API call)* | Registers another named toolset into the current session (guide endpoint only) |
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |

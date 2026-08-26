@@ -19,59 +19,24 @@ export function getLabFunctionsOrigin() {
   ).replace(/\/$/, '');
 }
 
-/**
- * @param {string} path - e.g. /api/sandboxes
- * @param {object} [opts]
- * @param {string} [opts.method]
- * @param {Record<string, string | number | boolean | undefined | null>} [opts.query]
- * @param {unknown} [opts.body]
- * @param {number} [opts.timeoutMs]
- * @param {string} [opts.origin]
- */
-export async function labApiRequest(path, opts = {}) {
-  const origin = String(opts.origin || getLabApiOrigin()).replace(/\/$/, '');
-  const method = String(opts.method || 'GET').toUpperCase();
-  const url = new URL(path.startsWith('/') ? path : `/${path}`, origin);
+// Retried only for network failures (status 0) and these transient statuses.
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+// 3 retries, ~3.1s worst-case added latency — mirrors the commented
+// backoff-ms arrays in functions/profileInfraFactory.js.
+const DEFAULT_BACKOFF_MS = [400, 900, 1800];
+const SAFE_METHODS = new Set(['GET', 'HEAD']);
 
-  if (opts.query && typeof opts.query === 'object') {
-    for (const [k, v] of Object.entries(opts.query)) {
-      if (v == null || v === '') continue;
-      url.searchParams.set(k, String(v));
-    }
-  }
-
-  const timeoutMs = opts.timeoutMs ?? 120_000;
+async function attemptOnce(url, init, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  /** @type {RequestInit} */
-  const init = {
-    method,
-    headers: {
-      Accept: 'application/json',
-      ...(opts.headers && typeof opts.headers === 'object' ? opts.headers : {}),
-    },
-    signal: controller.signal,
-  };
-
-  if (opts.body !== undefined && opts.body !== null) {
-    init.headers['Content-Type'] = 'application/json';
-    init.body = JSON.stringify(opts.body);
-  }
-
   let response;
   try {
-    response = await fetch(url.toString(), init);
+    response = await fetch(url.toString(), { ...init, signal: controller.signal });
   } catch (err) {
     clearTimeout(timer);
     const msg = err && err.name === 'AbortError' ? `Lab API timeout after ${timeoutMs}ms` : String(err.message || err);
-    return {
-      ok: false,
-      status: 0,
-      url: url.toString(),
-      error: msg,
-      data: null,
-    };
+    return { ok: false, status: 0, url: url.toString(), error: msg, data: null };
   }
   clearTimeout(timer);
 
@@ -92,21 +57,73 @@ export async function labApiRequest(path, opts = {}) {
       (data && typeof data === 'object' && (data.error || data.detail || data.message)) ||
       response.statusText ||
       `HTTP ${response.status}`;
-    return {
-      ok: false,
-      status: response.status,
-      url: url.toString(),
-      error: String(detail),
-      data,
-    };
+    return { ok: false, status: response.status, url: url.toString(), error: String(detail), data };
   }
 
-  return {
-    ok: true,
-    status: response.status,
-    url: url.toString(),
-    data,
+  return { ok: true, status: response.status, url: url.toString(), data };
+}
+
+/**
+ * @param {string} path - e.g. /api/sandboxes
+ * @param {object} [opts]
+ * @param {string} [opts.method]
+ * @param {Record<string, string | number | boolean | undefined | null>} [opts.query]
+ * @param {unknown} [opts.body]
+ * @param {number} [opts.timeoutMs]
+ * @param {string} [opts.origin]
+ * @param {boolean} [opts.idempotent] - allow retrying a non-GET/HEAD call (e.g. a read-only POST).
+ * @param {number} [opts.retries] - set to 0 to force a single attempt regardless of method.
+ * @param {number[]} [opts.retryBackoffMs] - override the default backoff schedule.
+ */
+export async function labApiRequest(path, opts = {}) {
+  const origin = String(opts.origin || getLabApiOrigin()).replace(/\/$/, '');
+  const method = String(opts.method || 'GET').toUpperCase();
+  const url = new URL(path.startsWith('/') ? path : `/${path}`, origin);
+
+  if (opts.query && typeof opts.query === 'object') {
+    for (const [k, v] of Object.entries(opts.query)) {
+      if (v == null || v === '') continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  const timeoutMs = opts.timeoutMs ?? 120_000;
+
+  /** @type {RequestInit} */
+  const init = {
+    method,
+    headers: {
+      Accept: 'application/json',
+      ...(opts.headers && typeof opts.headers === 'object' ? opts.headers : {}),
+    },
   };
+
+  if (opts.body !== undefined && opts.body !== null) {
+    init.headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(opts.body);
+  }
+
+  // Only retry calls that are safe to repeat: GET/HEAD by default, or a
+  // caller-declared idempotent POST. Mutating calls (creates/updates/deletes)
+  // get exactly one attempt unless the caller explicitly opts in, so a
+  // timeout never risks a double-mutation.
+  const allowRetry = opts.retries !== 0 && (SAFE_METHODS.has(method) || opts.idempotent === true);
+  const backoff = Array.isArray(opts.retryBackoffMs) ? opts.retryBackoffMs : DEFAULT_BACKOFF_MS;
+  const maxAttempts = allowRetry ? backoff.length + 1 : 1;
+
+  let result;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    result = await attemptOnce(url, init, timeoutMs);
+    const isLastAttempt = attempt === maxAttempts - 1;
+    const isTransient = result.status === 0 || RETRYABLE_STATUSES.has(result.status);
+    if (result.ok || isLastAttempt || !isTransient) break;
+    console.warn(
+      `[labApiClient] retrying ${method} ${url.pathname} after status ${result.status} `
+        + `(attempt ${attempt + 1}/${maxAttempts}, waiting ${backoff[attempt]}ms): ${result.error}`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, backoff[attempt]));
+  }
+  return result;
 }
 
 export async function classifyBrandScrapeImages({ sandbox, scrape_id }) {

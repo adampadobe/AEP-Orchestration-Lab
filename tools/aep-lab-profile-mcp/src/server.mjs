@@ -21,6 +21,7 @@ import { loadAuthConfig, validateMcpApiKey } from './auth.mjs';
 import { getLabApiOrigin } from './labApiClient.mjs';
 import { requestContext } from './requestContext.mjs';
 import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
+import { registerSession, getSession, deleteSession } from './sessionRegistry.mjs';
 import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { registerMcpGuideResources } from './resources/mcpGuideResources.mjs';
 import { installToolAnnotations } from './toolAnnotations.mjs';
@@ -40,9 +41,6 @@ const MCP_VERSION = '3.40.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
-
-/** @type {Map<string, { transport: StreamableHTTPServerTransport, endpoint: string }>} */
-const transports = new Map();
 
 const ENDPOINTS = [
   {
@@ -187,34 +185,35 @@ async function main() {
 
       const { auth, principalAccess } = req.mcpAuth;
       const mcpKey = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
+      const sessionId = req.headers['mcp-session-id'];
 
-      await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey }, async () => {
+      await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey, sessionId }, async () => {
         try {
-          const sessionId = req.headers['mcp-session-id'];
           let transport;
 
-          if (sessionId && transports.has(sessionId)) {
-            const active = transports.get(sessionId);
+          const active = sessionId ? getSession(sessionId) : undefined;
+          if (active) {
             if (active.endpoint !== endpoint.path) {
               jsonRpcError(res, 400, `MCP session belongs to ${active.endpoint}, not ${endpoint.path}.`);
               return;
             }
             transport = active.transport;
           } else if (!sessionId && isInitializeRequest(req.body)) {
+            let server;
             transport = new StreamableHTTPServerTransport({
               sessionIdGenerator: () => randomUUID(),
               enableJsonResponse: true,
               onsessioninitialized: (id) => {
-                transports.set(id, { transport, endpoint: endpoint.path });
+                registerSession(id, { transport, server, endpoint: endpoint.path, loadedCategories: new Set() });
               },
             });
 
             transport.onclose = () => {
               const sid = transport.sessionId;
-              if (sid) transports.delete(sid);
+              if (sid) deleteSession(sid);
             };
 
-            const server = createMcpServer(endpoint);
+            server = createMcpServer(endpoint);
             await server.connect(transport);
             await transport.handleRequest(req, res, req.body);
             return;
@@ -244,10 +243,10 @@ async function main() {
         return;
       }
       const sessionId = req.headers['mcp-session-id'];
-      const active = sessionId ? transports.get(sessionId) : undefined;
+      const active = sessionId ? getSession(sessionId) : undefined;
       if (active?.endpoint === endpoint.path) {
         await active.transport.close();
-        transports.delete(sessionId);
+        deleteSession(sessionId);
         res.status(200).json({ ok: true });
         return;
       }

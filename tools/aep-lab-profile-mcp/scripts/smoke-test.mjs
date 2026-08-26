@@ -340,6 +340,7 @@ async function run() {
       'lab_mcp_contexts',
       'lab_mcp_recommend_context',
       'lab_mcp_workflow',
+      'lab_load_toolset',
     ]),
     profile: await verifyFocusedEndpoint('/mcp/profile', [
       'lab_mcp_access_info',

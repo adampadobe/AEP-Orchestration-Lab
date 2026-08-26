@@ -36,6 +36,7 @@ const READ_ONLY_TOOLS = new Set([
   'lab_live_activity_list_runs',
   'lab_live_activity_list_templates',
   'lab_live_activity_profile_context',
+  'lab_load_toolset',
   'lab_lookup_profile',
   'lab_mcp_access_info',
   'lab_mcp_contexts',
