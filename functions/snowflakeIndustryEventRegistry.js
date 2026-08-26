@@ -203,7 +203,7 @@ const INDUSTRY_EVENT_CONFIG = Object.freeze({
   // never touch this registry for writes. Column lists are copied verbatim
   // from the runner's own INSERT statements (services/agentic-travel-runner/py/).
   travel: Object.freeze({
-    baseProfile: travelTable('baseProfile', 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE', 'profile', [
+    base_profile: travelTable('base_profile', 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE', 'profile', [
       'CRMID', 'ECID', 'EMAIL', 'EMAILIDSHA256', 'GAID', 'LOYALTYID', 'PASSPORTID', 'PHONENUMBER', 'PUSHTOKENS', 'STACKCHATID',
       'FIRSTNAME', 'LASTNAME', 'BIRTHDATE', 'GENDER',
       'HOMEADDRESS_STREET1', 'HOMEADDRESS_CITY', 'HOMEADDRESS_STATEPROVINCE', 'HOMEADDRESS_POSTALCODE', 'HOMEADDRESS_COUNTRY',
@@ -331,7 +331,7 @@ const INDUSTRY_EVENT_CONFIG = Object.freeze({
       'FUNNEL_NAME', 'FUNNEL_STEP', 'FUNNEL_STEP_NUMBER', 'FUNNEL_COMPLETION_STATUS',
       'ANCILLARY_ITEM_NAME', 'ANCILLARY_ITEM_PRICE', 'ANCILLARY_ITEM_CATEGORY', 'CHANNEL', '_RECORDCREATEDTIMESTAMP',
     ]),
-    loyaltyProfile: travelTable('loyaltyProfile', 'AGENTIC_TRAVEL_PROFILE_LOYALTY', 'enrichment', [
+    loyalty_profile: travelTable('loyalty_profile', 'AGENTIC_TRAVEL_PROFILE_LOYALTY', 'enrichment', [
       'CRMID', 'ECID', 'EMAIL', 'EMAILIDSHA256', 'GAID', 'LOYALTYID', 'PASSPORTID', 'PHONENUMBER', 'PUSHTOKENS', 'STACKCHATID', 'TESTPROFILE',
       'LOYALTY_PROGRAM_NAME', 'LOYALTY_MEMBER_NUMBER', 'LOYALTY_MEMBER_SINCE', 'LOYALTY_PROGRAM_STATUS',
       'LOYALTY_CURRENT_TIER', 'LOYALTY_TIER_START_DATE', 'LOYALTY_TIER_EXPIRY_DATE', 'LOYALTY_LAST_TIER_UPDATE_DATE', 'LOYALTY_PREVIOUS_TIER',
