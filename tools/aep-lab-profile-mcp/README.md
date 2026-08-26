@@ -11,7 +11,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
 | `/mcp/guide` | 5 | Read-only access check, capability directory, context recommendation, cross-context workflow planning, and `lab_load_toolset` to pull another toolset into this same session |
-| `/mcp/profile` | 20 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback |
+| `/mcp/profile` | 21 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, Snowflake dual-load readiness/enrichment/readback, and the `lab_run_playbook` generate+validate coordinator |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 9 | Edge evaluation, explanation, treatment resolution, and catalog health |
@@ -124,7 +124,8 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_send_retail_journey_events` | `POST /api/events/generator` (×4) | Portal-aligned retail commerce journey pack; preflight + staggered timestamps |
 | `lab_send_edge_event` | `POST /api/events/edge` | Advanced: direct datastream_id + optional raw_payload |
 | `lab_generate_profiles_batch` | *(async job)* | 1–100 profiles; `segment_hint`, `delay_ms` |
-| `lab_batch_job_status` | *(job store)* | Poll `profile_batch` or `onboard_all` jobs |
+| `lab_batch_job_status` | *(job store)* | Poll `profile_batch`, `onboard_all`, or `playbook_generate_and_validate` jobs |
+| `lab_run_playbook` | *(async job)* | `generate_and_validate`: generate 1–20 profiles, then read each back (AEP, optionally Snowflake) — one consolidated report |
 | `lab_provision_profile_infra_step` | infra step API | Provisioning wizard step |
 | `lab_enable_profile` | enable-profile API | Enable profile on infra |
 | `lab_sandbox_profile_config` | status-all + connection APIs | `ready`, `missing_steps`, `next_action` |

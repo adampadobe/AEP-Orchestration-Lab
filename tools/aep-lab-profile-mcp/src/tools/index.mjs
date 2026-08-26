@@ -8,6 +8,7 @@ import { registerUpdateProfileTool } from './updateProfile.mjs';
 import { registerProfileActivityTool } from './profileActivity.mjs';
 import { registerGenerateProfilesBatchTool } from './generateProfilesBatch.mjs';
 import { registerBatchJobStatusTool } from './batchJobStatus.mjs';
+import { registerRunPlaybookTool } from './runPlaybook.mjs';
 import { registerProvisionProfileInfraStepTool } from './provisionProfileInfraStep.mjs';
 import { registerEnableProfileTool } from './enableProfile.mjs';
 import { registerSandboxProfileConfigTool } from './sandboxProfileConfig.mjs';
@@ -84,6 +85,7 @@ export function registerProfileTools(mcpServer) {
   registerSendProfileEventsBatchTool(mcpServer);
   registerGenerateProfilesBatchTool(mcpServer);
   registerBatchJobStatusTool(mcpServer);
+  registerRunPlaybookTool(mcpServer);
   registerProvisionProfileInfraStepTool(mcpServer);
   registerEnableProfileTool(mcpServer);
   registerSandboxProfileConfigTool(mcpServer);
@@ -125,6 +127,7 @@ function registerProfileDomainTools(mcpServer) {
       'lab_snowflake_get_profile_bundle',
     ]),
   });
+  registerRunPlaybookTool(mcpServer);
 }
 
 function registerDemoPrepDomainTools(mcpServer) {
