@@ -1,14 +1,14 @@
 {
-  "gitSha": "0888160e75137efd66c33adbba4bfbe618e83769",
-  "gitShortSha": "0888160e",
+  "gitSha": "214f7bd951d2c3c0958d926627ea11ebe54cefc3",
+  "gitShortSha": "214f7bd9",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Rename MCP guide to aep-lab-entry and add connect-once flow diagram (#187)",
+  "gitCommitSubject": "[apalmer] Add OpenWeatherMap weather tools and /mcp/weather endpoint (#190)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-26T15:27:59+03:00",
-  "deployedAt": "2026-08-26T12:30:08.927Z",
+  "gitCommitDate": "2026-08-26T17:21:47+03:00",
+  "deployedAt": "2026-08-26T14:30:56.708Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0888160e75137efd66c33adbba4bfbe618e83769"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/214f7bd951d2c3c0958d926627ea11ebe54cefc3"
 }
