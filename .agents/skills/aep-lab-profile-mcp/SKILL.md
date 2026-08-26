@@ -12,7 +12,7 @@ description: >-
 
 MCP server: **AEP Orchestration Lab MCP v3.40.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused Coworker endpoints use the same API key: `/mcp/guide` (4 tools), `/mcp/profile` (20), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), and `/mcp/pdf` (14). The guide endpoint is a read-only capability directory and workflow recommender; it cannot connect, switch, proxy, or execute another MCP. Prefer a focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
+Focused Coworker endpoints use the same API key: `/mcp/entry` (5 tools, start here), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), and `/mcp/pdf` (14). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. Prefer connecting only `/mcp/entry` and loading toolsets on demand, or a single focused endpoint when Coworker can discover the full `/mcp` catalog but cannot promote a deferred tool into a callable tool.
 
 Configure in Codex or another MCP client with a **single** header:
 

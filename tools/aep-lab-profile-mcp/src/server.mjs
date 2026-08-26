@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{guide,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf}
  * Health:   GET /health
  */
 
@@ -44,8 +44,8 @@ dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
 
 const ENDPOINTS = [
   {
-    path: '/mcp/guide',
-    toolset: 'guide',
+    path: '/mcp/entry',
+    toolset: 'entry',
     register: registerFocusedMcpGuideTools,
     instructions:
       'Read-only AEP Lab MCP capability directory. Recommend the smallest configured context and cross-context workflow; never claim to connect, switch, proxy, or execute another MCP server.',
@@ -117,7 +117,7 @@ export function createMcpServer(endpoint = ENDPOINTS[0]) {
   });
   installToolAnnotations(server);
   if (endpoint.toolset === 'full') registerFrameworkResources(server);
-  if (endpoint.toolset === 'full' || endpoint.toolset === 'guide') registerMcpGuideResources(server);
+  if (endpoint.toolset === 'full' || endpoint.toolset === 'entry') registerMcpGuideResources(server);
   endpoint.register(server);
   return server;
 }

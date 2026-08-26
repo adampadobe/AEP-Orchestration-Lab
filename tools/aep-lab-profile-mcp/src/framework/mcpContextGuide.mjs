@@ -2,9 +2,9 @@ const LAB_BASE_URL = 'https://aep-lab-profile-mcp-109406613852.us-central1.run.a
 
 export const MCP_CONTEXTS = Object.freeze([
   {
-    id: 'aep-lab-guide',
-    name: 'AEP Lab MCP guide',
-    url: `${LAB_BASE_URL}/mcp/guide`,
+    id: 'aep-lab-entry',
+    name: 'AEP Lab MCP entry point',
+    url: `${LAB_BASE_URL}/mcp/entry`,
     kind: 'lab-focused',
     toolCount: 4,
     access: 'X-AEP-Lab-Mcp-Key',

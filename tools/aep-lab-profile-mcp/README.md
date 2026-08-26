@@ -10,7 +10,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
-| `/mcp/guide` | 5 | Read-only access check, capability directory, context recommendation, cross-context workflow planning, and `lab_load_toolset` to pull another toolset into this same session |
+| `/mcp/entry` | 5 | **Start here.** Read-only access check, capability directory, context recommendation, cross-context workflow planning, and `lab_load_toolset` to pull a domain toolset into this same session |
 | `/mcp/profile` | 21 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, Snowflake dual-load readiness/enrichment/readback, and the `lab_run_playbook` generate+validate coordinator |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
@@ -20,11 +20,11 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-### Read-only MCP guide (Phase 3.38)
+### Entry point (Phase 3.38)
 
-Configure `aep-lab-guide` as a lightweight companion when Coworker has several Lab MCPs. It describes the available contexts and recommends the smallest useful one, but deliberately does **not** expose a generic proxy or `call_any_tool` operation. The Coworker host must already have each recommended server configured.
+Configure `aep-lab-entry` as the one connection to add to Coworker: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
-| Guide tool / resource | Purpose |
+| Entry-point tool / resource | Purpose |
 |---|---|
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
@@ -58,7 +58,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_mcp_contexts` | *(static)* | Canonical Lab and Adobe MCP capability directory |
 | `lab_mcp_recommend_context` | *(static)* | Recommends the smallest useful configured MCP context for a goal |
 | `lab_mcp_workflow` | *(static)* | Cross-context handoff plan; never invokes another MCP |
-| `lab_load_toolset` | *(local, no Lab API call)* | Registers another named toolset into the current session (guide endpoint only) |
+| `lab_load_toolset` | *(local, no Lab API call)* | Registers another named toolset into the current session (entry endpoint only) |
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
@@ -398,12 +398,12 @@ AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=
 }
 ```
 
-Recommended read-only guide companion:
+Recommended entry-point connection — connect this one first, then call `lab_load_toolset` for whichever domain a task needs:
 
 ```json
-"aep-lab-guide": {
+"aep-lab-entry": {
   "type": "streamable-http",
-  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/guide",
+  "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
   "headers": {
     "X-AEP-Lab-Mcp-Key": "<same user-generated key>"
   }

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260805-delete-red">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260826-entry-flow">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -84,69 +84,110 @@
 
               <div class="mcp-connection-guidance" aria-labelledby="mcpConnectionGuidanceHeading">
                 <div>
-                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, nine connection choices</h4>
+                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, one recommended connection</h4>
                   <p>
-                    Generate one sandbox-scoped key below and reuse it with any Lab endpoint. The focused connections are governed views of the same MCP server, not separate services or credentials.
+                    Generate one sandbox-scoped key below and reuse it with any Lab endpoint. Every connection choice on this page is a governed view of the same MCP server, not a separate service or credential.
                   </p>
                 </div>
                 <a class="dashboard-btn-primary mcp-generate-key-link" href="#mcpLabKeyPanel">Generate or manage keys</a>
               </div>
 
-              <div class="mcp-connection-choice-grid" aria-label="How to choose an AEP Lab MCP connection">
-                <article class="mcp-connection-choice mcp-connection-choice--recommended">
-                  <span class="mcp-connection-badge">Recommended companion</span>
-                  <h4>MCP guide</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-guide</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-guide">Copy name</button></div>
-                  <p>Use this small read-only context to explain the other MCPs, recommend the best configured context for a prompt, and plan cross-context handoffs. It does not proxy other tools.</p>
+              <div class="mcp-start-here" aria-labelledby="mcpStartHereHeading">
+                <article class="mcp-connection-choice mcp-connection-choice--start-here">
+                  <span class="mcp-connection-badge">Start here</span>
+                  <h4 id="mcpStartHereHeading">Entry point</h4>
+                  <div class="mcp-choice-config-name"><code>aep-lab-entry</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-entry">Copy name</button></div>
+                  <p>Connect this one context to Coworker. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, or <code>command-centre</code> — into the same session with <code>lab_load_toolset</code>, instead of adding every focused connection below up front.</p>
                 </article>
-                <article class="mcp-connection-choice mcp-connection-choice--recommended">
-                  <span class="mcp-connection-badge">Recommended for broad work</span>
-                  <h4>General demo preparation</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-general</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-orchestration-lab-mcp">Copy name</button></div>
-                  <p>Use for multi-step customer demos, brand setup, profiles, events, infrastructure, Snowflake, and lab configuration. This is the unchanged full endpoint for existing users.</p>
-                </article>
-                <article class="mcp-connection-choice">
-                  <span class="mcp-connection-badge">Focused</span>
-                  <h4>Customer demo preparation</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-demo-prep</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-demo-prep">Copy name</button></div>
-                  <p>Use to research a customer, select and stage stable logo and hero assets, preview RTDB customer data, then apply either change only after review.</p>
-                </article>
-                <article class="mcp-connection-choice">
-                  <span class="mcp-connection-badge">Focused</span>
-                  <h4>Profiles</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-profiles</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-profiles">Copy name</button></div>
-                  <p>Use for the complete profile lifecycle: readiness, creation and updates, industry events, activity, and Snowflake dual-load verification.</p>
-                </article>
-                <article class="mcp-connection-choice">
-                  <span class="mcp-connection-badge">Focused</span>
-                  <h4>PDF preparation</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-pdf-prep</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-pdf-prep">Copy name</button></div>
-                  <p>Use to upload HTML or documents, preview personalised content, generate and retrieve stored PDFs, and publish user-owned server templates.</p>
-                </article>
-                <article class="mcp-connection-choice mcp-connection-choice--caution">
-                  <span class="mcp-connection-badge">Focused · controlled delete</span>
-                  <h4>Audiences</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-audiences</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-audiences">Copy name</button></div>
-                  <p>Use to list and audit audiences, then delete one exact audience only after explicit confirmation.</p>
-                </article>
-                <article class="mcp-connection-choice">
-                  <span class="mcp-connection-badge">Focused</span>
-                  <h4>Decisioning</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-decisioning</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-decisioning">Copy name</button></div>
-                  <p>Use for Edge decision evaluation, catalog inspection, health checks, and decision explanations.</p>
-                </article>
-                <article class="mcp-connection-choice mcp-connection-choice--caution">
-                  <span class="mcp-connection-badge">Focused · controlled delete</span>
-                  <h4>AJO cleanup</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-ajo-cleanup</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-ajo-cleanup">Copy name</button></div>
-                  <p>Use to list and audit journeys or campaigns, then delete one lifecycle-eligible asset only after exact confirmation.</p>
-                </article>
-                <article class="mcp-connection-choice">
-                  <span class="mcp-connection-badge">Focused</span>
-                  <h4>Command Centre</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-command-centre</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-command-centre">Copy name</button></div>
-                  <p>Use to track your own customer engagements, tasks, and meetings — the same admin layer behind your AEP Orchestration Lab home page, updatable from any MCP client.</p>
-                </article>
+              </div>
+
+              <div class="mcp-flow" aria-label="How the entry point connects to Lab capabilities">
+                <div class="mcp-flow-step">
+                  <span class="mcp-flow-step-label">MCP client</span>
+                  <p>Coworker or Cursor</p>
+                </div>
+                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
+                <div class="mcp-flow-step mcp-flow-step--accent">
+                  <span class="mcp-flow-step-label">aep-lab-entry session</span>
+                  <p>One connection, one key</p>
+                </div>
+                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
+                <div class="mcp-flow-step">
+                  <span class="mcp-flow-step-label">lab_load_toolset(category)</span>
+                  <p>Loaded on demand</p>
+                </div>
+                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
+                <div class="mcp-flow-step">
+                  <span class="mcp-flow-step-label">Expanded toolset</span>
+                  <p>profile · audiences · pdf · decisioning · demo-prep · ajo-cleanup · command-centre</p>
+                </div>
+                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
+                <div class="mcp-flow-step">
+                  <span class="mcp-flow-step-label">Lab API</span>
+                  <p>Firebase Functions</p>
+                </div>
+                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
+                <div class="mcp-flow-step">
+                  <span class="mcp-flow-step-label">Platform APIs</span>
+                  <p>AEP · Snowflake · Firestore · Adobe APIs</p>
+                </div>
+              </div>
+
+              <div class="mcp-direct-connections" aria-labelledby="mcpDirectConnectionsHeading">
+                <h4 id="mcpDirectConnectionsHeading" class="mcp-direct-connections-title">Direct connections (advanced)</h4>
+                <p class="mcp-direct-connections-lead">
+                  Only connect these directly if your MCP host can't call tools dynamically mid-session, or you specifically want a narrower, fixed toolset instead of loading one on demand from the entry point above.
+                </p>
+                <div class="mcp-connection-choice-grid" aria-label="Direct AEP Lab MCP connections">
+                  <article class="mcp-connection-choice mcp-connection-choice--recommended">
+                    <span class="mcp-connection-badge">Recommended for broad work</span>
+                    <h4>General demo preparation</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-general</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-orchestration-lab-mcp">Copy name</button></div>
+                    <p>Use for multi-step customer demos, brand setup, profiles, events, infrastructure, Snowflake, and lab configuration. This is the unchanged full endpoint for existing users.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused</span>
+                    <h4>Customer demo preparation</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-demo-prep</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-demo-prep">Copy name</button></div>
+                    <p>Use to research a customer, select and stage stable logo and hero assets, preview RTDB customer data, then apply either change only after review.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused</span>
+                    <h4>Profiles</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-profiles</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-profiles">Copy name</button></div>
+                    <p>Use for the complete profile lifecycle: readiness, creation and updates, industry events, activity, and Snowflake dual-load verification.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused</span>
+                    <h4>PDF preparation</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-pdf-prep</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-pdf-prep">Copy name</button></div>
+                    <p>Use to upload HTML or documents, preview personalised content, generate and retrieve stored PDFs, and publish user-owned server templates.</p>
+                  </article>
+                  <article class="mcp-connection-choice mcp-connection-choice--caution">
+                    <span class="mcp-connection-badge">Focused · controlled delete</span>
+                    <h4>Audiences</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-audiences</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-audiences">Copy name</button></div>
+                    <p>Use to list and audit audiences, then delete one exact audience only after explicit confirmation.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused</span>
+                    <h4>Decisioning</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-decisioning</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-decisioning">Copy name</button></div>
+                    <p>Use for Edge decision evaluation, catalog inspection, health checks, and decision explanations.</p>
+                  </article>
+                  <article class="mcp-connection-choice mcp-connection-choice--caution">
+                    <span class="mcp-connection-badge">Focused · controlled delete</span>
+                    <h4>AJO cleanup</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-ajo-cleanup</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-ajo-cleanup">Copy name</button></div>
+                    <p>Use to list and audit journeys or campaigns, then delete one lifecycle-eligible asset only after exact confirmation.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused</span>
+                    <h4>Command Centre</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-command-centre</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-command-centre">Copy name</button></div>
+                    <p>Use to track your own customer engagements, tasks, and meetings — the same admin layer behind your AEP Orchestration Lab home page, updatable from any MCP client.</p>
+                  </article>
+                </div>
               </div>
 
               <div class="mcp-lab-overview-cols">
@@ -257,14 +298,14 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260825b-derived-dropdown"></script>
+  <script src="mcp-servers.js?v=20260826-entry-point"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
   <script src="aep-access-onboarding.js?v=20260527b"></script>
-  <script src="mcp-servers-keys.js?v=20260825b-derived-dropdown"></script>
+  <script src="mcp-servers-keys.js?v=20260826-entry-point"></script>
   <script src="mcp-key-recovery.js?v=20260805"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
