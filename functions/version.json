@@ -1,14 +1,14 @@
 {
-  "gitSha": "1a2a78410d7e36e198b8c6fdf530c02f97c0e2a1",
-  "gitShortSha": "1a2a7841",
+  "gitSha": "8f2983606028acf40fc07d5ce2270b1e7552cfdc",
+  "gitShortSha": "8f298360",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Record functions deployment (#180)",
+  "gitCommitSubject": "[apalmer] Fix camelCase registry keys breaking Travel bundle table lookup (#182)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-26T02:02:26+03:00",
-  "deployedAt": "2026-08-25T23:03:28.272Z",
+  "gitCommitDate": "2026-08-26T09:23:18+03:00",
+  "deployedAt": "2026-08-26T06:27:00.268Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1a2a78410d7e36e198b8c6fdf530c02f97c0e2a1"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8f2983606028acf40fc07d5ce2270b1e7552cfdc"
 }
