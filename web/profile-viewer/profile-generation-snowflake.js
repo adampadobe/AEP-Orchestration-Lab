@@ -1897,11 +1897,6 @@
     });
   }
 
-  /** Registry keys are camelCase (e.g. "loyaltyProfile") — split before title-casing. */
-  function tableKeyLabel(key) {
-    return titleCase(String(key || '').replace(/([a-z0-9])([A-Z])/g, '$1 $2'));
-  }
-
   function renderFullGenTableSelect(bundle) {
     if (!els.fullGenTableSelect) return;
     els.fullGenTableSelect.textContent = '';
@@ -1911,13 +1906,13 @@
       var entry = tables[key];
       var option = document.createElement('option');
       option.value = key;
-      option.textContent = tableKeyLabel(key) + ' (' + entry.table + ') — ' + entry.count + ' row' + (entry.count === 1 ? '' : 's');
+      option.textContent = titleCase(key) + ' (' + entry.table + ') — ' + entry.count + ' row' + (entry.count === 1 ? '' : 's');
       els.fullGenTableSelect.appendChild(option);
     });
     els.fullGenTableSelect.disabled = keys.length === 0;
     if (keys.length) {
       // Default to the base profile table if present, otherwise the first table.
-      els.fullGenTableSelect.value = keys.includes('baseProfile') ? 'baseProfile' : keys[0];
+      els.fullGenTableSelect.value = keys.includes('base_profile') ? 'base_profile' : keys[0];
       renderFullGenTableRows(els.fullGenTableSelect.value);
     }
   }
