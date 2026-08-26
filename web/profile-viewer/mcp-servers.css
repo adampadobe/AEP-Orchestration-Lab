@@ -210,6 +210,15 @@
   font-size: 0.85rem;
 }
 
+.mcp-connection-choice p.mcp-connection-choice-caveat {
+  margin-top: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--dash-warning-text, #b45309) 35%, var(--dash-border, #e2e2e2));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--dash-warning-text, #b45309) 8%, transparent);
+  color: var(--dash-text, #2c2c2c);
+}
+
 .mcp-flow {
   display: flex;
   flex-wrap: wrap;

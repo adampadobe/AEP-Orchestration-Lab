@@ -84,7 +84,7 @@
 
               <div class="mcp-connection-guidance" aria-labelledby="mcpConnectionGuidanceHeading">
                 <div>
-                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, one recommended connection</h4>
+                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, several connection choices</h4>
                   <p>
                     Generate one sandbox-scoped key below and reuse it with any Lab endpoint. Every connection choice on this page is a governed view of the same MCP server, not a separate service or credential.
                   </p>
@@ -97,7 +97,8 @@
                   <span class="mcp-connection-badge">Start here</span>
                   <h4 id="mcpStartHereHeading">Entry point</h4>
                   <div class="mcp-choice-config-name"><code>aep-lab-entry</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-entry">Copy name</button></div>
-                  <p>Connect this one context to Coworker. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, or <code>command-centre</code> — into the same session with <code>lab_load_toolset</code>, instead of adding every focused connection below up front.</p>
+                  <p>Connect this small directory alongside your other connections. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, or <code>command-centre</code> — into the same session with <code>lab_load_toolset</code>, on clients that honor the MCP tool-list-changed refresh.</p>
+                  <p class="mcp-connection-choice-caveat"><strong>Known limitation in Adobe Coworker:</strong> as tested, Coworker's tool discovery only reflects the tools present when a session starts and does not re-check the list after <code>lab_load_toolset</code> runs, so newly loaded tools register but never become callable there. In Coworker, also directly connect the focused endpoint(s) below for the domains you actually use — for example <code>aep-lab-profiles</code> for profile and event work, or <code>aep-lab-demo-prep</code> for brand scraping and customer prep.</p>
                 </article>
               </div>
 
@@ -134,9 +135,9 @@
               </div>
 
               <div class="mcp-direct-connections" aria-labelledby="mcpDirectConnectionsHeading">
-                <h4 id="mcpDirectConnectionsHeading" class="mcp-direct-connections-title">Direct connections (advanced)</h4>
+                <h4 id="mcpDirectConnectionsHeading" class="mcp-direct-connections-title">Direct connections</h4>
                 <p class="mcp-direct-connections-lead">
-                  Only connect these directly if your MCP host can't call tools dynamically mid-session, or you specifically want a narrower, fixed toolset instead of loading one on demand from the entry point above.
+                  Connect these directly for the domains you actually use — required today in Adobe Coworker (see the entry-point caveat above), and also useful in any host that can't refresh its tool list mid-session or where you specifically want a narrower, fixed toolset.
                 </p>
                 <div class="mcp-connection-choice-grid" aria-label="Direct AEP Lab MCP connections">
                   <article class="mcp-connection-choice mcp-connection-choice--recommended">
