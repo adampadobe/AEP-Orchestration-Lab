@@ -363,6 +363,7 @@ async function run() {
       'lab_snowflake_get_profile_by_email',
       'lab_snowflake_enrich_profiles',
       'lab_snowflake_get_profile_bundle',
+      'lab_run_playbook',
     ]),
     audiences: await verifyFocusedEndpoint('/mcp/audiences', [
       'lab_mcp_access_info',
