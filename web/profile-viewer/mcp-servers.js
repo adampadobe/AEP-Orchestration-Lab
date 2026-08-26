@@ -56,7 +56,7 @@
       product: 'Focused read-only MCP · 5 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry',
       summary:
-        'The recommended single connection for this lab: a capability directory that explains each Lab context, recommends the smallest one for a prompt, and can load a domain toolset (profile, audiences, ajo-cleanup, decisioning, demo-prep, pdf, command-centre) into the same session on demand.',
+        'The recommended single connection for this lab: a capability directory that explains each Lab context, recommends the smallest one for a prompt, and can load a domain toolset (profile, audiences, ajo-cleanup, decisioning, demo-prep, pdf, command-centre, weather) into the same session on demand.',
       useCases: [
         'Discover which MCP context owns a capability',
         'Load only the domain toolset a task actually needs via lab_load_toolset',
@@ -235,6 +235,28 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Command Centre tools reference',
+    },
+    {
+      id: 'aep-lab-weather',
+      configName: 'aep-lab-weather',
+      section: 'lab',
+      dropdownLabel: 'Weather (OpenWeatherMap)',
+      name: 'AEP Lab — Weather',
+      product: 'Focused Lab MCP · 3 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/weather',
+      summary:
+        'Current conditions and a 5-day/3-hour forecast from OpenWeatherMap by city name or lat/lon — no AEP or Lab API calls. Useful for demo scenarios that condition on live weather, e.g. travel disruption or retail footfall journeys.',
+      useCases: [
+        'Look up current weather for a customer demo location',
+        'Pull a 5-day/3-hour forecast to script a weather-driven journey moment',
+      ],
+      configNotes:
+        'Uses the same X-AEP-Lab-Mcp-Key as every other Lab connection; the server holds its own separate OpenWeatherMap API key.',
+      connectionKind: 'Focused',
+      toolCount: 3,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Weather tools reference',
     },
     {
       id: 'cx-coworker-gateway',

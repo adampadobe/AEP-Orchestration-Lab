@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAjoCleanupTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAjoCleanupTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 124);
+  assert.equal(full.names.length, 126);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -126,4 +126,10 @@ test('focused AJO cleanup endpoint contains access plus six governed tools', () 
     'lab_ajo_journey_list', 'lab_ajo_journey_audit', 'lab_ajo_journey_delete',
     'lab_ajo_campaign_list', 'lab_ajo_campaign_audit', 'lab_ajo_campaign_delete',
   ]);
+});
+
+test('focused weather endpoint is access plus current and forecast lookups', () => {
+  const { names, server } = registrationRecorder();
+  registerFocusedWeatherTools(server);
+  assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast']);
 });

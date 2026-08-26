@@ -97,7 +97,7 @@
                   <span class="mcp-connection-badge">Start here</span>
                   <h4 id="mcpStartHereHeading">Entry point</h4>
                   <div class="mcp-choice-config-name"><code>aep-lab-entry</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-entry">Copy name</button></div>
-                  <p>Connect this small directory alongside your other connections. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, or <code>command-centre</code> — into the same session with <code>lab_load_toolset</code>, on clients that honor the MCP tool-list-changed refresh.</p>
+                  <p>Connect this small directory alongside your other connections. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, <code>command-centre</code>, or <code>weather</code> — into the same session with <code>lab_load_toolset</code>, on clients that honor the MCP tool-list-changed refresh.</p>
                   <p class="mcp-connection-choice-caveat"><strong>Known limitation in Adobe Coworker:</strong> as tested, Coworker's tool discovery only reflects the tools present when a session starts and does not re-check the list after <code>lab_load_toolset</code> runs, so newly loaded tools register but never become callable there. In Coworker, also directly connect the focused endpoint(s) below for the domains you actually use — for example <code>aep-lab-profiles</code> for profile and event work, or <code>aep-lab-demo-prep</code> for brand scraping and customer prep.</p>
                 </article>
               </div>
@@ -187,6 +187,12 @@
                     <h4>Command Centre</h4>
                     <div class="mcp-choice-config-name"><code>aep-lab-command-centre</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-command-centre">Copy name</button></div>
                     <p>Use to track your own customer engagements, tasks, and meetings — the same admin layer behind your AEP Orchestration Lab home page, updatable from any MCP client.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused</span>
+                    <h4>Weather</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-weather</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-weather">Copy name</button></div>
+                    <p>Use for current conditions and a 5-day/3-hour forecast from OpenWeatherMap by city or lat/lon — useful for a weather-driven demo moment. No AEP or Lab API calls.</p>
                   </article>
                 </div>
               </div>

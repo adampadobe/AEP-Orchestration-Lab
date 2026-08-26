@@ -44,6 +44,7 @@ import { registerMcpGuideTools } from './mcpGuideTools.mjs';
 import { registerPdfTools } from './pdfTools.mjs';
 import { registerCommandCentreTools } from './commandCentreTools.mjs';
 import { registerLoadToolsetTool } from './loadToolset.mjs';
+import { registerWeatherTools } from './weatherTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -95,6 +96,7 @@ export function registerProfileTools(mcpServer) {
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
   registerCreateJourneyFromBrandScrapeTool(mcpServer);
   registerCommandCentreTools(mcpServer);
+  registerWeatherTools(mcpServer);
 }
 
 /**
@@ -146,6 +148,7 @@ const LOADABLE_TOOLSETS = {
   'demo-prep': registerDemoPrepDomainTools,
   pdf: registerPdfTools,
   'command-centre': registerCommandCentreTools,
+  weather: registerWeatherTools,
 };
 
 /**
@@ -202,4 +205,10 @@ export function registerFocusedPdfTools(mcpServer) {
 export function registerFocusedCommandCentreTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerCommandCentreTools(mcpServer);
+}
+
+/** Focused weather lookups from OpenWeatherMap: current conditions and 5-day/3-hour forecast. */
+export function registerFocusedWeatherTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerWeatherTools(mcpServer);
 }
