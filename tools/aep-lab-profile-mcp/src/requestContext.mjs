@@ -14,3 +14,7 @@ export function getRequestMcpApiKey() {
 export function getPrincipalAccess() {
   return requestContext.getStore()?.principalAccess ?? null;
 }
+
+export function getRequestSessionId() {
+  return requestContext.getStore()?.sessionId ?? '';
+}

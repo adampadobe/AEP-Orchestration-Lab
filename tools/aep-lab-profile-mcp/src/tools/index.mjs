@@ -42,6 +42,7 @@ import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
 import { registerMcpGuideTools } from './mcpGuideTools.mjs';
 import { registerPdfTools } from './pdfTools.mjs';
 import { registerCommandCentreTools } from './commandCentreTools.mjs';
+import { registerLoadToolsetTool } from './loadToolset.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -94,15 +95,13 @@ export function registerProfileTools(mcpServer) {
   registerCommandCentreTools(mcpServer);
 }
 
-/** Read-only capability directory and cross-context planning, plus access check. */
-export function registerFocusedMcpGuideTools(mcpServer) {
-  registerMcpAccessInfoTool(mcpServer);
-  registerMcpGuideTools(mcpServer);
-}
-
-/** Small, high-frequency catalog for clients that eagerly load only a few tools. */
-export function registerFocusedProfileTools(mcpServer) {
-  registerMcpAccessInfoTool(mcpServer);
+/**
+ * Domain-only composers (no lab_mcp_access_info) — shared between the
+ * `registerFocused*` endpoint composites below and the `lab_load_toolset`
+ * category map, so a tool already present in a session (like the access-info
+ * tool every focused endpoint starts with) never gets registered twice.
+ */
+function registerProfileDomainTools(mcpServer) {
   registerListIndustriesTool(mcpServer);
   registerProfileInfraStatusTool(mcpServer);
   registerPreflightProfileGenerateTool(mcpServer);
@@ -128,6 +127,44 @@ export function registerFocusedProfileTools(mcpServer) {
   });
 }
 
+function registerDemoPrepDomainTools(mcpServer) {
+  registerBrandScrapeTools(mcpServer);
+  registerDemoAssetTools(mcpServer);
+  registerDemoConfigTools(mcpServer);
+  registerPrepareDemoFromBrandScrapeTool(mcpServer);
+}
+
+/** Categories `lab_load_toolset` can pull into an already-open session. */
+const LOADABLE_TOOLSETS = {
+  profile: registerProfileDomainTools,
+  audiences: registerAudienceTools,
+  'ajo-cleanup': registerAjoCleanupTools,
+  decisioning: registerDecisioningTools,
+  'demo-prep': registerDemoPrepDomainTools,
+  pdf: registerPdfTools,
+  'command-centre': registerCommandCentreTools,
+};
+
+/**
+ * Read-only capability directory and cross-context planning, plus access
+ * check and lab_load_toolset — this is the one endpoint meant to start
+ * small and grow, so it's the only place lab_load_toolset is exposed (the
+ * full `/mcp` catalog already has every category loaded; the other focused
+ * endpoints are intentionally scoped and shouldn't be able to widen
+ * themselves).
+ */
+export function registerFocusedMcpGuideTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerMcpGuideTools(mcpServer);
+  registerLoadToolsetTool(mcpServer, LOADABLE_TOOLSETS);
+}
+
+/** Small, high-frequency catalog for clients that eagerly load only a few tools. */
+export function registerFocusedProfileTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerProfileDomainTools(mcpServer);
+}
+
 /** Governed audience cleanup catalog: access check, list, audit, one delete. */
 export function registerFocusedAudienceTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
@@ -149,10 +186,7 @@ export function registerFocusedDecisioningTools(mcpServer) {
 /** Focused customer demo preparation: scrape, stable assets, and governed RTDB. */
 export function registerFocusedDemoPrepTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
-  registerBrandScrapeTools(mcpServer);
-  registerDemoAssetTools(mcpServer);
-  registerDemoConfigTools(mcpServer);
-  registerPrepareDemoFromBrandScrapeTool(mcpServer);
+  registerDemoPrepDomainTools(mcpServer);
 }
 
 /** Focused PDF preparation, stored output, and server-template catalog. */
