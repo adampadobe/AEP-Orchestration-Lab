@@ -1,14 +1,14 @@
 {
-  "gitSha": "8f2983606028acf40fc07d5ce2270b1e7552cfdc",
-  "gitShortSha": "8f298360",
+  "gitSha": "0888160e75137efd66c33adbba4bfbe618e83769",
+  "gitShortSha": "0888160e",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Fix camelCase registry keys breaking Travel bundle table lookup (#182)",
+  "gitCommitSubject": "[apalmer] Rename MCP guide to aep-lab-entry and add connect-once flow diagram (#187)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-26T09:23:18+03:00",
-  "deployedAt": "2026-08-26T06:27:00.268Z",
+  "gitCommitDate": "2026-08-26T15:27:59+03:00",
+  "deployedAt": "2026-08-26T12:30:08.927Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8f2983606028acf40fc07d5ce2270b1e7552cfdc"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0888160e75137efd66c33adbba4bfbe618e83769"
 }
