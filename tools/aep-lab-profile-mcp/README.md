@@ -312,13 +312,14 @@ Read-only event history is already available via **`lab_profile_activity`** (GET
 
 `lab_weather_current` and `lab_weather_forecast` call the OpenWeatherMap API directly (no AEP or Lab API involved) — useful for demo scenarios that condition on live weather, e.g. a travel disruption or retail footfall journey. Both accept `city` (optionally `"City,CountryCode"`) or `lat`/`lon`, plus an optional `units` (`standard`/`metric`/`imperial`, default `metric`). Requires `OPENWEATHER_API_KEY` — see [Environment](#environment). Error responses never echo the request URL back to the caller, since the API key travels as a query param.
 
-`lab_weather_map` looks up current weather (same params as above, plus optional `zoom` 1-20) and returns the location three ways, most to least reliable across MCP hosts:
+`lab_weather_map` looks up current weather (same params as above, plus optional `zoom` 1-20) and returns the location four ways, most to least reliable across MCP hosts:
 
 1. A plain `[Open <place> in Google Maps](https://www.google.com/maps?q=<lat>,<lon>)` link — a real, fully interactive Google Maps page (pan/zoom/street view), and just a hyperlink, so it renders in any host that supports Markdown at all.
-2. A Markdown image link (`![...](https://storage.googleapis.com/...)`) to a static map PNG uploaded to the dedicated `aep-orchestration-lab-weather-maps` GCS bucket — object names are random and unguessable, the bucket grants object-level public read only (no listing), and every object auto-deletes after 1 day.
-3. An embedded MCP image content block with the same PNG.
+2. `embed_url` — a pre-authorized Google Maps Embed API URL (`https://www.google.com/maps/embed/v1/view?key=...`). If a client builds its own `<iframe>`, this is the exact `src` to use; an unauthorized `output=embed` URL a client invents on its own gets blocked by Google. Uses a separate `GOOGLE_MAPS_EMBED_API_KEY`, scoped only to the Maps Embed API, since this key is designed to be exposed publicly in the iframe itself — unlike `GOOGLE_MAPS_API_KEY` below, which never leaves the server.
+3. A Markdown image link (`![...](https://storage.googleapis.com/...)`) to a static map PNG uploaded to the dedicated `aep-orchestration-lab-weather-maps` GCS bucket — object names are random and unguessable, the bucket grants object-level public read only (no listing), and every object auto-deletes after 1 day.
+4. An embedded MCP image content block with the same PNG.
 
-As tested against Adobe Coworker: neither (2) nor (3) actually render in that host — the hosted URL is independently confirmed reachable and correct (verified with a direct `curl`), but Coworker's chat surface does not display external images or inline MCP image content at all. Only (1) is confirmed to work there. The tool description tells the model to always surface the Google Maps link for that reason. Requires `GOOGLE_MAPS_API_KEY`, restricted to the Static Maps and Geocoding APIs only. The raw Static Maps request itself never returns a URL to the caller, since that URL carries the API key as a query param — only the hosted copy's URL (which carries no API key) is exposed.
+As tested against Adobe Coworker: (3) and (4) don't render there — the hosted URL is independently confirmed reachable and correct (verified with a direct `curl`), but Coworker's chat surface doesn't display external images or inline MCP image content at all. Coworker's own "visual-artifacts" skill also attempted to build an iframe on its own from (1)'s coordinates using an unauthorized `output=embed` URL, which Google blocked — `embed_url` exists specifically so a client can use a correctly-authorized embed URL instead of guessing one. Only (1) is confirmed to reliably render as-is. The tool description tells the model to always surface the Google Maps link, and to use `embed_url` verbatim rather than constructing its own if it builds an iframe. Requires `GOOGLE_MAPS_API_KEY`, restricted to the Static Maps and Geocoding APIs only. The raw Static Maps request itself never returns a URL to the caller, since that URL carries the API key as a query param — only the hosted copy's URL (which carries no API key) is exposed.
 
 ### Profile Viewer workflows (Phase 2.1)
 
@@ -385,7 +386,8 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run | `aep-orchestration-lab` |
 | `AEP_LAB_MCP_OAUTH_ISSUER` / `AUDIENCE` | No | Phase 3.5 OAuth scaffold only |
 | `OPENWEATHER_API_KEY` | For `/mcp/weather` | OpenWeatherMap API key — https://openweathermap.org/api |
-| `GOOGLE_MAPS_API_KEY` | For `lab_weather_map` | Google Maps API key restricted to Static Maps + Geocoding APIs only |
+| `GOOGLE_MAPS_API_KEY` | For `lab_weather_map` | Google Maps API key restricted to Static Maps + Geocoding APIs only; never leaves the server |
+| `GOOGLE_MAPS_EMBED_API_KEY` | For `lab_weather_map`'s `embed_url` | Separate Google Maps API key restricted to the Maps Embed API only; designed to be exposed publicly in the iframe it authorizes |
 | `PORT` / `HOST` | No | HTTP bind |
 
 ## Run locally

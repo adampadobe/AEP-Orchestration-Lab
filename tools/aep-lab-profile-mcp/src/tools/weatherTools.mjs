@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { getCurrentWeather, getWeatherForecast } from '../weatherApiClient.mjs';
-import { fetchStaticMapPng } from '../googleMapsClient.mjs';
+import { fetchStaticMapPng, buildEmbedMapUrl } from '../googleMapsClient.mjs';
 import { uploadWeatherMapImage } from '../weatherMapStorage.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
@@ -74,9 +74,12 @@ export function registerWeatherTools(mcpServer) {
         + 'for a city name or lat/lon coordinates, then renders a Google Static Maps image with a marker at that '
         + 'location. The response includes, in order of reliability: (1) a plain "Open in Google Maps" link — a real, '
         + 'fully interactive Google Maps page the colleague can click, pan, zoom, and explore, guaranteed to render '
-        + 'in any MCP host since it is just a hyperlink; (2) a Markdown image link to a static rendered map; (3) an '
-        + 'inline MCP image content block. Always surface the Google Maps link — it is the most dependable way to '
-        + 'actually show the location, since some hosts do not render inline images or Markdown image links at all.',
+        + 'in any MCP host since it is just a hyperlink; (2) an embed_url, a pre-authorized Google Maps Embed API URL '
+        + '— if you build an <iframe>, use this exact URL as its src, since it already carries a valid, correctly '
+        + 'scoped API key; never construct your own maps.google.com embed URL, since an unauthorized one will be '
+        + 'blocked; (3) a Markdown image link to a static rendered map; (4) an inline MCP image content block. Always '
+        + 'surface the Google Maps link — it is the most dependable way to actually show the location, since some '
+        + 'hosts do not render inline images, Markdown image links, or iframes at all.',
       inputSchema: {
         ...locationSchema,
         zoom: z.number().int().min(1).max(20).optional().describe('Map zoom level, 1 (world) to 20 (building), default 11.'),
@@ -102,11 +105,13 @@ export function registerWeatherTools(mcpServer) {
       const upload = await uploadWeatherMapImage({ base64: mapResult.base64, mimeType: mapResult.mimeType });
       const displayName = placeName || `${coordLat},${coordLon}`;
       const googleMapsUrl = `https://www.google.com/maps?q=${coordLat},${coordLon}`;
+      const embedUrl = buildEmbedMapUrl({ lat: coordLat, lon: coordLon, zoom });
 
       const textPayload = {
         ok: true,
         weather: weatherResult.data,
         google_maps_url: googleMapsUrl,
+        embed_url: embedUrl,
         map_image_url: upload.ok ? upload.url : null,
         map_image_error: upload.ok ? null : upload.error,
       };
