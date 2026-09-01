@@ -48,7 +48,9 @@ describe('audienceManagementService', () => {
       const requestUrl = new URL(calls[0].url);
       assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, AUDIENCES_BASE);
       assert.equal(requestUrl.searchParams.get('name'), 'One');
-      assert.equal(requestUrl.searchParams.get('property'), 'audienceId');
+      // No bare `property=audienceId` filter: that's invalid RSQL (missing operator/value)
+      // and Adobe rejects it with a 400 on every call — see listAudiences() comment.
+      assert.equal(requestUrl.searchParams.get('property'), null);
       assert.equal(calls[0].init.headers['x-sandbox-name'], 'apalmer');
     } finally {
       global.fetch = previousFetch;

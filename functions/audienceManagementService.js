@@ -79,14 +79,18 @@ async function readPlatformResponse(response) {
   return data;
 }
 
-async function listAudiences({ token, clientId, orgId, sandbox, start = 0, limit = 50, name, includeInactive = true }) {
+async function listAudiences({ token, clientId, orgId, sandbox, start = 0, limit = 50, name }) {
   const url = new URL(AUDIENCES_BASE);
   url.searchParams.set('start', String(Math.max(0, Number(start) || 0)));
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, Number(limit) || 50))));
   url.searchParams.set('sort', 'updateTime:desc');
   if (name) url.searchParams.set('name', String(name).trim().slice(0, 200));
-  // Adobe documents property=audienceId as the way to include inactive audiences.
-  if (includeInactive) url.searchParams.set('property', 'audienceId');
+  // No includeInactive filter here: Adobe's `property` param is an RSQL exact-match
+  // filter (e.g. property=audienceId==<value>) used to look up one known audience by
+  // ID, not a bulk "include inactive" toggle. A bare `property=audienceId` (no
+  // operator/value) is invalid RSQL and Adobe rejects it with a 400 on every call.
+  // This list endpoint only surfaces active audiences; use lab_audience_audit with an
+  // exact ID to check one audience regardless of its lifecycle state.
 
   const response = await fetch(url, {
     method: 'GET',
