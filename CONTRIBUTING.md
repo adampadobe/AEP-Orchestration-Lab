@@ -34,7 +34,7 @@ Read this fully before making your first change.
 
 ## Collaboration, Git, and environment
 
-Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. Use **Phase A** at the start of a substantive work session, **Phase B** immediately before every `git push`, **and Phase C** immediately before every `firebase deploy`, so you do not build or deploy on stale `main` and you do not silently overwrite a teammate's hosted assets.
+Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. The normal production path is **feature branch → pull request → required validation → review → merge to `main` → deploy the exact merged `origin/main` SHA**. Use **Phase A** at the start of a substantive work session, **Phase B** immediately before every `git push`, **and Phase C** immediately before every production deploy, so you do not build or deploy on stale `main` and you do not silently overwrite a teammate's Hosting or Functions release.
 
 > **Why three phases (and not two)?** `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushes between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets even though `git` itself stayed clean. Phase C is the only protection.
 
@@ -85,6 +85,18 @@ This is the most often forgotten phase and the most dangerous. Even if your `git
    - `npm run build:eds-quickstart` — if their commit touched the `tools/eds-quickstart` submodule pointer.
 5. Re-run `npm run verify:profile-viewer-routes` if `web/profile-viewer/` was touched by either side.
 6. **Only then** run `firebase deploy --only hosting` (and/or `--only functions`).
+
+Phase C is a last-line safety gate, not a substitute for review. Production changes must already be merged through a pull request. If a build, mirror, dependency install, or verifier changes a tracked file after you switch to `main`, **stop**: commit that generated change on a feature branch and merge it through a new pull request before deploying.
+
+### Production release ownership and serialization
+
+Only one person or automation run owns a production release at a time. Announce the release in the team's normal coordination channel, include the merged Git SHA and intended scope (`hosting`, named functions, or both), and do not start another production deploy until the owner reports verification complete or failed.
+
+- **Hosting:** prefer `.github/workflows/deploy-production.yml` once its production identity is enabled. Its `firebase-production` concurrency group serializes automated Hosting releases and refuses a validation run that has been superseded by a newer `main` commit.
+- **Cloud Functions:** the current GitHub workflow does **not** deploy Functions. A designated release owner deploys them intentionally from exact clean `origin/main`, preferably targeting only the changed functions. Do not overlap a manual Functions deploy with any Hosting or Functions production deploy.
+- **Manual fallback:** use the repo scripts/commands below so `scripts/predeploy-check.mjs` runs. Never use the emergency override for normal work.
+
+The repository documentation cannot prove or configure GitHub organization settings. A repository administrator must keep a `main` branch protection rule or ruleset enabled that requires pull requests, the **Validate / check** status, resolved review conversations, and blocks force pushes and branch deletion. Apply the rule to administrators too. Re-check these settings whenever repository ownership or GitHub rulesets change.
 
 **Cursor:** **`.cursor/rules/sync-origin-main.mdc`** and **`.cursor/rules/ship-git-and-firebase.mdc`** encode all three phases as `alwaysApply: true` so any agent in this workspace is required to follow them on every commit-and-deploy cycle.
 
@@ -140,10 +152,12 @@ The interactive SVG diagram uses **`data/architecture-logos.json`** for the icon
 
 Several people (and sometimes parallel agents) touch the same repo. Most “someone reverted my work” or “the live site is wrong” incidents are **not mysterious Git bugs** — they are **diverged clones**, **deploy without Phase C**, or **merge conflicts in shared files**. The three phases in [Collaboration, Git, and environment](#collaboration-git-and-environment) are the primary defense; the norms below reduce **breaking changes** for teammates.
 
-### Ship order: commit → push → deploy
+### Ship order: branch → PR → merge → deploy
 
-1. **`git push origin main`** (or your feature branch, then merge to `main`) so GitHub is the audit trail **before** you rely on Hosting.
-2. **Production `firebase deploy`** only from clean **`main`** whose `HEAD` exactly matches a freshly fetched **`origin/main`**. The predeploy script blocks feature branches, ahead/behind branches, tracked changes, and untracked files under deploy roots. Use `npm run deploy:preview -- <channel-name>` for feature work.
+1. Commit on a **feature branch** and push that branch. Do not push change commits directly to `main`.
+2. Open a pull request, wait for required validation and review, resolve conversations, and merge it to `main`.
+3. **Production deploy** only from clean **`main`** whose `HEAD` exactly matches a freshly fetched **`origin/main`**. The predeploy script blocks feature branches, ahead/behind branches, tracked changes, and untracked files under deploy roots. Use `npm run deploy:preview -- <channel-name>` for feature work.
+4. Verify the live Git SHA and affected routes/functions before releasing the production lock.
 
 Never deploy uncommitted work you care about keeping; see [Change workflow (mandatory)](#change-workflow-mandatory).
 
@@ -925,11 +939,13 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` / `journey-arbitration-v2.html` redirects**, **`journey-arbitration-v3`** (and embeds), or **eds-quickstart** files or nav wiring are wrong, OR if the hard-deleted **`decisioning-overview-v2.html`** or **`ajo-decisioning-pipeline-v8-demo.html`** is resurrected (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
 | 5. **Commit** | `git add` (focused scope) → `git commit -m "[<github-handle>] …"` (see [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)) | Atomic, reviewable units; handle prefix makes ownership obvious in history |
 | 6. **Phase B sync** | `git fetch origin && git status` — pull/rebase if behind | Don't push on top of a teammate's commit (see [Phase B](#phase-b--immediately-before-git-push)) |
-| 7. **Push** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
-| 8. **Phase C sync** | `git fetch origin && git status` — pull AND rebuild sub-apps if behind | Don't silently overwrite a teammate's hosted assets (see [Phase C](#phase-c--immediately-before-firebase-deploy)) |
-| 9. **Deploy** | `npx -y firebase-tools@latest deploy --only hosting` and/or `--only functions` | Ships **`web/`** and **`functions/`** from **your local checkout at `HEAD`**, not from `origin/main`. Whatever branch you have checked in is what goes live (see [Hosting vs Git branch](#hosting-vs-git-branch-avoid-accidental-rollback)). |
+| 7. **Push feature branch** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
+| 8. **PR, validate, review, merge** | Open a pull request to `main`; wait for **Validate / check**, review, and resolved conversations | Prevents direct or unreviewed production changes and catches integration conflicts before release |
+| 9. **Claim release ownership** | Announce the merged SHA and deploy scope; confirm no production deploy is in progress | Prevents two valid deploys from racing and leaving Hosting/Functions on different revisions |
+| 10. **Phase C sync** | Switch to `main`; `git fetch origin && git pull --ff-only origin main`; confirm clean and exact SHA | Don't silently overwrite a teammate's Hosting or Functions release (see [Phase C](#phase-c--immediately-before-firebase-deploy)) |
+| 11. **Deploy and verify** | Prefer the serialized GitHub Hosting workflow; designated owner deploys changed Functions from exact `origin/main`; run `npm run deploy:status` and endpoint checks | Ships reviewed code and confirms the live revision before releasing the production lock |
 
-> **Never** deploy work you care about before it is **committed and pushed**. **Never** deploy without re-syncing in Phase C — `firebase deploy` does not consult Git, only your local disk under `web/`. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
+> **Never** production-deploy before the change is **merged to `main` through a validated pull request**. **Never** deploy without re-syncing in Phase C — Firebase deploys local files, not an abstract GitHub branch. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
 
 ---
 
@@ -951,25 +967,31 @@ npm run build:eds-quickstart         # if eds-quickstart submodule pointer chang
 # 3. Mirror + verify
 npm run sync-profile-viewer-ui       # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
 npm run verify:profile-viewer-routes # fail if preserved Decisioning + EDS Quickstart routes are broken
-cd functions && npm install && cd ..
+cd functions && npm ci && cd ..
 ```
 
 **Why every step matters:** `firebase deploy --only hosting` ships whatever is on your local disk under `web/`, NOT what is on `origin/main`. Skip step 1 and you may silently overwrite a teammate's hosted assets. Skip step 2 and your deploy will carry stale built artefacts that don't match the freshly-pulled source.
+
+After the build, mirror, install, and verification commands, run `git status --short --branch` again. If any tracked file changed, do not deploy it from `main`; move the correction to a feature branch and merge it through a pull request.
 
 > Reminder: **`git fetch` alone does not update your local branch** — it only refreshes `refs/remotes/origin/*` so `git status` can compare. **`git pull --ff-only`** is what actually advances local `main` to match `origin/main`. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
 
 ### Deploy
 
+For a coordinated manual combined release from exact clean `origin/main`:
+
 ```bash
-firebase deploy --only functions,hosting
+npm run deploy:production
 ```
 
 Or selectively:
 
 ```bash
-firebase deploy --only hosting
-firebase deploy --only functions:aepProxy
+npx -y firebase-tools@latest deploy --only hosting --project aep-orchestration-lab
+npx -y firebase-tools@latest deploy --only functions:aepProxy --project aep-orchestration-lab
 ```
+
+Prefer targeted Functions deployment when only a subset changed. Record the merged SHA and exact function names in the release coordination message. The Firebase predeploy hook still checks that the local source is clean `main` at exact freshly fetched `origin/main`.
 
 ### CI
 
@@ -988,7 +1010,7 @@ CI validates all changes. Production Hosting automation remains fail-safe disabl
 
 2. **Feature branches are preview-only.** Run `npm run deploy:preview -- <channel-name>`; do not bypass the gate to publish them to production.
 
-**Team rule:** open a PR, pass required validation, merge to `main`, then deploy the exact `origin/main` SHA. GitHub protection enforces the PR and validation steps for every collaborator and administrator.
+**Team rule:** open a PR, pass required validation, merge to `main`, then deploy the exact `origin/main` SHA. Configure GitHub branch protection or a ruleset to enforce the PR and validation steps for every collaborator and administrator; repository files alone cannot guarantee that organization-level setting remains enabled.
 
 Use **`npm run deploy:status`** and **`https://aep-orchestration-lab.web.app/version.json`** to confirm which **git SHA** is live after any deploy (see [Version control and rollback](#version-control-and-rollback)).
 
