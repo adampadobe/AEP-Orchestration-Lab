@@ -1,14 +1,14 @@
 {
-  "gitSha": "214f7bd951d2c3c0958d926627ea11ebe54cefc3",
-  "gitShortSha": "214f7bd9",
+  "gitSha": "1cf8479d97c458f46bbe849605d73d78e8192a7b",
+  "gitShortSha": "1cf8479d",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Add OpenWeatherMap weather tools and /mcp/weather endpoint (#190)",
+  "gitCommitSubject": "[apalmer] Add Google Maps weather rendering to the aep-lab-weather MCP toolset (#192)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-08-26T17:21:47+03:00",
-  "deployedAt": "2026-08-26T14:30:56.708Z",
+  "gitCommitDate": "2026-09-01T07:53:28+03:00",
+  "deployedAt": "2026-09-01T04:57:46.355Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/214f7bd951d2c3c0958d926627ea11ebe54cefc3"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1cf8479d97c458f46bbe849605d73d78e8192a7b"
 }
