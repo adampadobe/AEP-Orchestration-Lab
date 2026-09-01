@@ -72,9 +72,11 @@ export function registerWeatherTools(mcpServer) {
         'The ONLY weather tool that produces a map — call this, not lab_weather_current, whenever a request asks to '
         + 'see, show, plot, render, view, or visualize weather on a map. Looks up current weather from OpenWeatherMap '
         + 'for a city name or lat/lon coordinates, then renders a Google Static Maps image with a marker at that '
-        + 'location. The response always includes a Markdown image link (a plain HTTPS URL to the rendered map) in '
-        + 'the text — display that image to the colleague using the Markdown as given, in addition to any inline '
-        + 'MCP image content also present, since some hosts only render one or the other.',
+        + 'location. The response includes, in order of reliability: (1) a plain "Open in Google Maps" link — a real, '
+        + 'fully interactive Google Maps page the colleague can click, pan, zoom, and explore, guaranteed to render '
+        + 'in any MCP host since it is just a hyperlink; (2) a Markdown image link to a static rendered map; (3) an '
+        + 'inline MCP image content block. Always surface the Google Maps link — it is the most dependable way to '
+        + 'actually show the location, since some hosts do not render inline images or Markdown image links at all.',
       inputSchema: {
         ...locationSchema,
         zoom: z.number().int().min(1).max(20).optional().describe('Map zoom level, 1 (world) to 20 (building), default 11.'),
@@ -98,20 +100,22 @@ export function registerWeatherTools(mcpServer) {
       }
 
       const upload = await uploadWeatherMapImage({ base64: mapResult.base64, mimeType: mapResult.mimeType });
+      const displayName = placeName || `${coordLat},${coordLon}`;
+      const googleMapsUrl = `https://www.google.com/maps?q=${coordLat},${coordLon}`;
 
       const textPayload = {
         ok: true,
         weather: weatherResult.data,
+        google_maps_url: googleMapsUrl,
         map_image_url: upload.ok ? upload.url : null,
         map_image_error: upload.ok ? null : upload.error,
       };
-      const markdown = upload.ok
-        ? `![Map of ${placeName || `${coordLat},${coordLon}`}](${upload.url})\n\n`
-        : '';
+      const imageMarkdown = upload.ok ? `![Map of ${displayName}](${upload.url})\n\n` : '';
+      const mapsLink = `[Open ${displayName} in Google Maps](${googleMapsUrl})\n\n`;
 
       return {
         content: [
-          { type: 'text', text: `${markdown}${JSON.stringify(textPayload, null, 2)}` },
+          { type: 'text', text: `${mapsLink}${imageMarkdown}${JSON.stringify(textPayload, null, 2)}` },
           { type: 'image', data: mapResult.base64, mimeType: mapResult.mimeType },
         ],
       };
