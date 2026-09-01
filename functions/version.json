@@ -1,14 +1,14 @@
 {
-  "gitSha": "1cf8479d97c458f46bbe849605d73d78e8192a7b",
-  "gitShortSha": "1cf8479d",
+  "gitSha": "ee07f7108f25a2b4d4471f02d19f6d9b8cce7622",
+  "gitShortSha": "ee07f710",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Add Google Maps weather rendering to the aep-lab-weather MCP toolset (#192)",
+  "gitCommitSubject": "[apalmer] Fix lab_audience_list 400 error caused by invalid RSQL filter syntax (#194)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-09-01T07:53:28+03:00",
-  "deployedAt": "2026-09-01T04:57:46.355Z",
+  "gitCommitDate": "2026-09-01T10:23:00+03:00",
+  "deployedAt": "2026-09-01T07:23:26.754Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1cf8479d97c458f46bbe849605d73d78e8192a7b"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ee07f7108f25a2b4d4471f02d19f6d9b8cce7622"
 }
