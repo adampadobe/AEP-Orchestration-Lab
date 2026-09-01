@@ -18,7 +18,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/demo-prep` | 21 | Brand scrape, Gemini image classification, governed all-in-one customer switching, stable asset restore, RTDB, and one-shot demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
-| `/mcp/weather` | 3 | Current conditions and 5-day/3-hour forecast from OpenWeatherMap by city or lat/lon — no AEP or Lab API calls |
+| `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
@@ -308,9 +308,11 @@ Advanced: **`lab_send_edge_event`** when you have `datastream_id` directly. **Av
 
 Read-only event history is already available via **`lab_profile_activity`** (GET `/api/profile/events`).
 
-### Weather lookups (OpenWeatherMap)
+### Weather lookups (OpenWeatherMap + Google Maps)
 
 `lab_weather_current` and `lab_weather_forecast` call the OpenWeatherMap API directly (no AEP or Lab API involved) — useful for demo scenarios that condition on live weather, e.g. a travel disruption or retail footfall journey. Both accept `city` (optionally `"City,CountryCode"`) or `lat`/`lon`, plus an optional `units` (`standard`/`metric`/`imperial`, default `metric`). Requires `OPENWEATHER_API_KEY` — see [Environment](#environment). Error responses never echo the request URL back to the caller, since the API key travels as a query param.
+
+`lab_weather_map` looks up current weather (same params as above, plus optional `zoom` 1-20) and additionally renders a Google Static Maps image with a marker at that location, returning the map as an embedded MCP image content block alongside the weather text — no separate URL is returned, since a Static Maps URL carries the API key as a query param. Requires `GOOGLE_MAPS_API_KEY`, restricted to the Static Maps and Geocoding APIs only.
 
 ### Profile Viewer workflows (Phase 2.1)
 
@@ -377,6 +379,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run | `aep-orchestration-lab` |
 | `AEP_LAB_MCP_OAUTH_ISSUER` / `AUDIENCE` | No | Phase 3.5 OAuth scaffold only |
 | `OPENWEATHER_API_KEY` | For `/mcp/weather` | OpenWeatherMap API key — https://openweathermap.org/api |
+| `GOOGLE_MAPS_API_KEY` | For `lab_weather_map` | Google Maps API key restricted to Static Maps + Geocoding APIs only |
 | `PORT` / `HOST` | No | HTTP bind |
 
 ## Run locally
