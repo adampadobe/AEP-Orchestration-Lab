@@ -240,20 +240,21 @@
       id: 'aep-lab-weather',
       configName: 'aep-lab-weather',
       section: 'lab',
-      dropdownLabel: 'Weather (OpenWeatherMap)',
+      dropdownLabel: 'Weather (OpenWeatherMap + Maps)',
       name: 'AEP Lab — Weather',
-      product: 'Focused Lab MCP · 3 tools',
+      product: 'Focused Lab MCP · 4 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/weather',
       summary:
-        'Current conditions and a 5-day/3-hour forecast from OpenWeatherMap by city name or lat/lon — no AEP or Lab API calls. Useful for demo scenarios that condition on live weather, e.g. travel disruption or retail footfall journeys.',
+        'Current conditions, a 5-day/3-hour forecast, and a map-rendered current-conditions lookup from OpenWeatherMap and Google Static Maps by city name or lat/lon — no AEP or Lab API calls. Useful for demo scenarios that condition on live weather, e.g. travel disruption or retail footfall journeys.',
       useCases: [
         'Look up current weather for a customer demo location',
         'Pull a 5-day/3-hour forecast to script a weather-driven journey moment',
+        'Render current conditions on a map image for a visual demo moment',
       ],
       configNotes:
-        'Uses the same X-AEP-Lab-Mcp-Key as every other Lab connection; the server holds its own separate OpenWeatherMap API key.',
+        'Uses the same X-AEP-Lab-Mcp-Key as every other Lab connection; the server holds its own separate OpenWeatherMap and Google Maps API keys.',
       connectionKind: 'Focused',
-      toolCount: 3,
+      toolCount: 4,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Weather tools reference',

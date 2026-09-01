@@ -411,6 +411,7 @@ async function run() {
       'lab_mcp_access_info',
       'lab_weather_current',
       'lab_weather_forecast',
+      'lab_weather_map',
     ]),
   };
 

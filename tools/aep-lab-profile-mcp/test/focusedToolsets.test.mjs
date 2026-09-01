@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 126);
+  assert.equal(full.names.length, 127);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -128,8 +128,8 @@ test('focused AJO cleanup endpoint contains access plus six governed tools', () 
   ]);
 });
 
-test('focused weather endpoint is access plus current and forecast lookups', () => {
+test('focused weather endpoint is access plus current, forecast, and map lookups', () => {
   const { names, server } = registrationRecorder();
   registerFocusedWeatherTools(server);
-  assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast']);
+  assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast', 'lab_weather_map']);
 });
