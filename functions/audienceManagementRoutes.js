@@ -133,7 +133,6 @@ function registerAudienceManagementRoutes(deps) {
           start: req.query.start,
           limit: req.query.limit,
           name: req.query.name,
-          includeInactive: String(req.query.include_inactive || 'true').toLowerCase() !== 'false',
         });
         res.status(200).json({ ok: true, ...payload });
         return;

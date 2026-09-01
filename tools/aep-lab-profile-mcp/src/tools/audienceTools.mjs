@@ -34,7 +34,14 @@ export function registerAudienceTools(mcpServer) {
         name: z.string().max(200).optional().describe('Case-insensitive audience name search'),
         start: z.number().int().min(0).optional().describe('Page start offset (default 0)'),
         limit: z.number().int().min(1).max(100).optional().describe('Page size (default 50, max 100)'),
-        include_inactive: z.boolean().optional().describe('Include inactive audiences (default true)'),
+        include_inactive: z
+          .boolean()
+          .optional()
+          .describe(
+            'Accepted for backward compatibility but currently has no effect: Adobe\'s /audiences endpoint has no bulk '
+            + 'filter for inactive audiences, so this list only ever returns active ones. Use lab_audience_audit with an '
+            + 'exact ID to check one audience regardless of its lifecycle state.',
+          ),
       },
     },
     async (params) => {
