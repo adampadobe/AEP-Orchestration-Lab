@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { getCurrentWeather, getWeatherForecast } from '../weatherApiClient.mjs';
 import { fetchStaticMapPng } from '../googleMapsClient.mjs';
+import { uploadWeatherMapImage } from '../weatherMapStorage.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
@@ -34,10 +35,12 @@ export function registerWeatherTools(mcpServer) {
   mcpServer.registerTool(
     'lab_weather_current',
     {
-      title: 'Get current weather for a location',
+      title: 'Get current weather for a location (text only, no map)',
       description:
         'Current conditions from OpenWeatherMap for a city name or lat/lon coordinates — useful for demo scenarios '
-        + 'that condition on live weather (e.g. travel disruption or retail footfall journeys).',
+        + 'that condition on live weather (e.g. travel disruption or retail footfall journeys). Returns text data only '
+        + '— no map or image. If the request asks to see, show, plot, render, or visualize the weather on a map, call '
+        + 'lab_weather_map instead.',
       inputSchema: locationSchema,
     },
     async ({ city, lat, lon, units }) => {
@@ -64,11 +67,14 @@ export function registerWeatherTools(mcpServer) {
   mcpServer.registerTool(
     'lab_weather_map',
     {
-      title: 'Get current weather for a location and render it on a map',
+      title: 'Get current weather for a location and show it on a map',
       description:
-        'Looks up current weather from OpenWeatherMap for a city name or lat/lon coordinates, then renders a Google '
-        + 'Static Maps image with a marker at that location. Returns the weather summary as text plus an embedded '
-        + 'map image — useful when a demo scenario should visually show where a weather-conditioned event occurred.',
+        'The ONLY weather tool that produces a map — call this, not lab_weather_current, whenever a request asks to '
+        + 'see, show, plot, render, view, or visualize weather on a map. Looks up current weather from OpenWeatherMap '
+        + 'for a city name or lat/lon coordinates, then renders a Google Static Maps image with a marker at that '
+        + 'location. The response always includes a Markdown image link (a plain HTTPS URL to the rendered map) in '
+        + 'the text — display that image to the colleague using the Markdown as given, in addition to any inline '
+        + 'MCP image content also present, since some hosts only render one or the other.',
       inputSchema: {
         ...locationSchema,
         zoom: z.number().int().min(1).max(20).optional().describe('Map zoom level, 1 (world) to 20 (building), default 11.'),
@@ -91,9 +97,21 @@ export function registerWeatherTools(mcpServer) {
         });
       }
 
+      const upload = await uploadWeatherMapImage({ base64: mapResult.base64, mimeType: mapResult.mimeType });
+
+      const textPayload = {
+        ok: true,
+        weather: weatherResult.data,
+        map_image_url: upload.ok ? upload.url : null,
+        map_image_error: upload.ok ? null : upload.error,
+      };
+      const markdown = upload.ok
+        ? `![Map of ${placeName || `${coordLat},${coordLon}`}](${upload.url})\n\n`
+        : '';
+
       return {
         content: [
-          { type: 'text', text: JSON.stringify({ ok: true, weather: weatherResult.data }, null, 2) },
+          { type: 'text', text: `${markdown}${JSON.stringify(textPayload, null, 2)}` },
           { type: 'image', data: mapResult.base64, mimeType: mapResult.mimeType },
         ],
       };
