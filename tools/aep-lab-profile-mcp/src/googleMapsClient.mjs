@@ -6,9 +6,34 @@
  */
 
 const STATIC_MAP_ORIGIN = 'https://maps.googleapis.com/maps/api/staticmap';
+const EMBED_ORIGIN = 'https://www.google.com/maps/embed/v1/view';
 const DEFAULT_SIZE = '600x400';
 const DEFAULT_ZOOM = 11;
 const FETCH_TIMEOUT_MS = 15_000;
+
+function embedApiKey() {
+  return String(process.env.GOOGLE_MAPS_EMBED_API_KEY || '').trim();
+}
+
+/**
+ * The Maps Embed API key is designed to be exposed publicly in the iframe
+ * `src` it produces — unlike GOOGLE_MAPS_API_KEY above, which stays
+ * server-side only. Keep them as two separate, narrowly-scoped keys so a
+ * key that ends up visible in a client's HTML never carries Static
+ * Maps/Geocoding privileges.
+ *
+ * @param {{ lat: number, lon: number, zoom?: number }} params
+ * @returns {string | null} an authorized iframe src, or null if unconfigured
+ */
+export function buildEmbedMapUrl({ lat, lon, zoom }) {
+  const key = embedApiKey();
+  if (!key || lat == null || lon == null) return null;
+  const url = new URL(EMBED_ORIGIN);
+  url.searchParams.set('key', key);
+  url.searchParams.set('center', `${lat},${lon}`);
+  url.searchParams.set('zoom', String(zoom || DEFAULT_ZOOM));
+  return url.toString();
+}
 
 function apiKey() {
   return String(process.env.GOOGLE_MAPS_API_KEY || '').trim();
