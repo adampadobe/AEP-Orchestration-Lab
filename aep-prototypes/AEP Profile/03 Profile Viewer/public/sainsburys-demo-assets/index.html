@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A static Sainsbury's-inspired retail experience for the AEP Orchestration Lab.">
+  <title>Sainsbury's retail demo</title>
+  <link rel="stylesheet" href="sainsburys-site.css?v=20260730">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="utility-bar">
+      <div class="page-width utility-bar__inner">
+        <nav aria-label="Help links">
+          <a href="#help">Help centre</a>
+          <a href="#stores">Store locator</a>
+        </nav>
+        <button class="text-button" type="button" data-demo-action="Log in">Log in</button>
+      </div>
+    </div>
+
+    <div class="page-width masthead">
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav">
+        <span aria-hidden="true"></span>
+        <span class="visually-hidden">Open menu</span>
+      </button>
+      <a class="brand" href="#main-content" aria-label="Sainsbury's home">
+        <img src="assets/sainsburys-logo.png" alt="Sainsbury's" width="204" height="40">
+      </a>
+
+      <form class="search" role="search">
+        <label class="visually-hidden" for="site-search">Search for products</label>
+        <input id="site-search" type="search" placeholder="Search for products" autocomplete="off">
+        <button type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.6 19.2-4.8-4.8a7 7 0 1 0-1.4 1.4l4.8 4.8 1.4-1.4ZM5 10a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z"/></svg>
+        </button>
+      </form>
+
+      <div class="quick-actions" aria-label="Account shortcuts">
+        <button type="button" data-demo-action="Favourites">
+          <img src="assets/favourites.svg" alt="" width="24" height="24">
+          <span>Favourites</span>
+        </button>
+        <button type="button" data-demo-action="Nectar">
+          <img src="assets/nectar.svg" alt="" width="24" height="24">
+          <span>Nectar</span>
+        </button>
+        <button type="button" data-demo-action="Basket">
+          <img src="assets/basket.svg" alt="" width="24" height="24">
+          <span>Basket</span>
+        </button>
+      </div>
+    </div>
+
+    <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
+      <div class="page-width primary-nav__inner">
+        <a href="#start-shop">Groceries</a>
+        <a href="#occasions">Occasions</a>
+        <a href="#recipes">Recipes</a>
+        <a href="#money">Money</a>
+        <a href="#brands">Tu</a>
+        <a href="#brands">Argos</a>
+        <a href="#brands">Habitat</a>
+        <a href="#discover">Energy</a>
+      </div>
+    </nav>
+  </header>
+
+  <div id="TopRibbon" class="decisioning-zone decisioning-zone--ribbon" aria-live="polite"></div>
+
+  <main id="main-content">
+    <section class="welcome">
+      <div class="page-width welcome__inner">
+        <div>
+          <p class="eyebrow">Welcome to Sainsbury's</p>
+          <h1>Good food for all of us</h1>
+        </div>
+        <div class="welcome__actions">
+          <button class="button button--primary" type="button" data-demo-action="Book a slot">Book a slot</button>
+          <button class="button button--secondary" type="button" data-demo-action="Register">Register</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-width shop-section" id="start-shop" aria-labelledby="shop-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Ideas for right now</p>
+        <h2 id="shop-heading">Start your shop with Sainsbury's</h2>
+      </div>
+
+      <div class="hero-grid">
+        <article class="promo-card promo-card--feature" id="hero-banner" data-hero-mount>
+          <img src="assets/summer-bbq.jpg" alt="A summer barbecue spread with burgers, grilled chicken and vegetables">
+          <div class="promo-card__body">
+            <span class="promo-card__tag">Summer</span>
+            <h3>Bring everyone together</h3>
+            <p>From brilliant BBQ favourites to refreshing drinks, make the most of long summer days.</p>
+            <button class="button button--primary" type="button" data-demo-action="Shop summer">Shop summer</button>
+          </div>
+        </article>
+
+        <article class="promo-card">
+          <img src="assets/good-food.jpg" alt="A Sainsbury's colleague delivering groceries and a customer enjoying a meal">
+          <div class="promo-card__body">
+            <span class="promo-card__tag">Your groceries, your way</span>
+            <h3>Good food, made easy</h3>
+            <p>Choose home delivery, Click &amp; Collect or speedy delivery when you need it.</p>
+            <button class="text-link" type="button" data-demo-action="Start shopping">Start shopping <span aria-hidden="true">→</span></button>
+          </div>
+        </article>
+
+        <article class="promo-card">
+          <img src="assets/back-to-school.jpg" alt="Children wearing colourful school uniforms">
+          <div class="promo-card__body">
+            <span class="promo-card__tag">Back to school</span>
+            <h3>Uniforms that perform</h3>
+            <p>Smart, comfortable schoolwear ready for every playground adventure.</p>
+            <button class="text-link" type="button" data-demo-action="Shop schoolwear">Shop schoolwear <span aria-hidden="true">→</span></button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="why-section" aria-labelledby="why-heading">
+      <div class="page-width">
+        <div class="section-heading section-heading--center">
+          <p class="eyebrow">Simple, rewarding shopping</p>
+          <h2 id="why-heading">Why choose Sainsbury's</h2>
+        </div>
+        <div class="benefit-grid">
+          <article>
+            <span class="benefit-icon" aria-hidden="true">✓</span>
+            <h3>Everything in one easy shop</h3>
+            <p>Fresh food, family favourites and household essentials, all in one place.</p>
+          </article>
+          <article>
+            <span class="benefit-icon benefit-icon--nectar" aria-hidden="true">N</span>
+            <h3>Collect, spend and save</h3>
+            <p>Unlock Nectar Prices and personalised offers every time you shop.</p>
+          </article>
+          <article>
+            <span class="benefit-icon" aria-hidden="true">↻</span>
+            <h3>Your previous shop, one click away</h3>
+            <p>Make the weekly shop quicker by adding your usual items again.</p>
+          </article>
+          <article>
+            <span class="benefit-icon" aria-hidden="true">⌂</span>
+            <h3>Delivery that fits your day</h3>
+            <p>Book a convenient slot or choose fast delivery from selected stores.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-width discovery-section" id="occasions" aria-labelledby="discover-food-heading">
+      <div class="section-heading">
+        <p class="eyebrow">A little inspiration</p>
+        <h2 id="discover-food-heading">Discover more to enjoy</h2>
+      </div>
+      <div class="tile-grid" id="ContentCardContainer">
+        <article class="image-tile">
+          <img src="assets/taste-the-difference.jpg" alt="Taste the Difference tomato tart">
+          <div><h3>Taste the Difference</h3><p>Specially selected ingredients and expertly crafted favourites.</p></div>
+        </article>
+        <article class="image-tile">
+          <img src="assets/in-season.jpg" alt="A basket of colourful seasonal vegetables">
+          <div><h3>Shop in season</h3><p>Fill your basket with produce at its best right now.</p></div>
+        </article>
+        <article class="image-tile">
+          <img src="assets/feed-the-family.jpg" alt="A family-sized cottage pie">
+          <div><h3>Feed your family for a fiver</h3><p>Delicious meal ideas that help the weekly budget go further.</p></div>
+        </article>
+        <article class="image-tile">
+          <img src="assets/healthy-choice.jpg" alt="Sainsbury's Healthy Choice mark">
+          <div><h3>Healthy Choices</h3><p>An easier way to spot balanced choices across the shop.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="nectar-banner">
+      <div class="page-width nectar-banner__inner">
+        <img src="assets/nectar-save.jpg" alt="Save over £450 a year with Nectar Prices">
+        <div>
+          <p class="eyebrow">Nectar Prices</p>
+          <h2>Great prices are just the start</h2>
+          <p>Collect points, enjoy member-only prices and receive offers picked for you.</p>
+          <button class="button button--light" type="button" data-demo-action="Join Nectar">Join Nectar</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-width brands-section" id="brands" aria-labelledby="brands-heading">
+      <div class="section-heading">
+        <p class="eyebrow">All together</p>
+        <h2 id="brands-heading">Shop our brands</h2>
+      </div>
+      <div class="brand-grid">
+        <article class="brand-card">
+          <img src="assets/back-to-school.jpg" alt="Children modelling Tu school uniforms">
+          <div><span class="brand-label">Tu</span><h3>Style for every school day</h3><button class="text-link" type="button" data-demo-action="Shop Tu">Shop Tu →</button></div>
+        </article>
+        <article class="brand-card">
+          <img src="assets/habitat.jpg" alt="A Habitat dining table with a striped throw">
+          <div><span class="brand-label">Habitat</span><h3>Original design for every room</h3><button class="text-link" type="button" data-demo-action="Shop Habitat">Shop Habitat →</button></div>
+        </article>
+        <article class="brand-card">
+          <img src="assets/teacher-gifts.jpg" alt="A child giving a teacher a handmade gift">
+          <div><span class="brand-label">Argos</span><h3>Thoughtful gifts, ready fast</h3><button class="text-link" type="button" data-demo-action="Shop Argos">Shop Argos →</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="good-section" id="discover" aria-labelledby="good-heading">
+      <div class="page-width">
+        <div class="section-heading section-heading--center">
+          <p class="eyebrow">More than a supermarket</p>
+          <h2 id="good-heading">Good to know</h2>
+        </div>
+        <div class="good-grid">
+          <article>
+            <img src="assets/plan-for-better.jpg" alt="Illustration of carrots and the words Relationships grow with British farmers">
+            <div><h3>Working towards our Plan for Better</h3><p>Supporting farmers, communities and a more resilient food system.</p></div>
+          </article>
+          <article>
+            <img src="assets/comic-relief.jpg" alt="Sainsbury's and Comic Relief helping children access good food">
+            <div><h3>Helping to tackle holiday hunger</h3><p>Working with Comic Relief to help ensure no child goes hungry.</p></div>
+          </article>
+          <article>
+            <img src="assets/freebies.jpg" alt="A customer using a phone with Free and Win graphics">
+            <div><h3>Freebies and competitions</h3><p>Discover giveaways, rewards and more reasons to smile.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" id="help">
+    <div class="page-width footer-grid">
+      <div>
+        <img class="footer-logo" src="assets/sainsburys-logo.png" alt="Sainsbury's" width="180" height="35">
+        <p>Helping everyone eat better.</p>
+      </div>
+      <nav aria-label="Customer service">
+        <h2>Help &amp; support</h2>
+        <a href="#help">Help centre</a>
+        <a href="#stores">Store locator</a>
+        <a href="#accessibility">Accessibility</a>
+      </nav>
+      <nav aria-label="About Sainsbury's">
+        <h2>About us</h2>
+        <a href="#discover">Plan for Better</a>
+        <a href="#careers">Careers</a>
+        <a href="#privacy">Privacy</a>
+      </nav>
+      <div>
+        <h2>Get updates</h2>
+        <p>Offers, recipes and inspiration, delivered to your inbox.</p>
+        <button class="button button--secondary" type="button" data-demo-action="Sign up for updates">Sign up</button>
+      </div>
+    </div>
+    <div class="page-width footer-bottom">
+      <span>© J Sainsbury plc 2026</span>
+      <span>AEP Orchestration Lab mockup</span>
+    </div>
+  </footer>
+
+  <div class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+  <script src="sainsburys-site.js?v=20260730"></script>
+</body>
+</html>

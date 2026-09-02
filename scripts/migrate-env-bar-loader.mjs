@@ -30,6 +30,7 @@ const SITE_CLONE_DEMO_HTML = [
   'oldmutual-business-quote-thank-you.html',
   'saga-demo.html',
   'aviva-target-demo.html',
+  'sainsburys-demo.html',
   'social/facebook.html',
   'social/tiktok.html',
   'ferrari-world-abu-dhabi/index.html',
