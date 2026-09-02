@@ -901,6 +901,12 @@ For any `POST /ajo/content/templates` call you must send a **single** request `C
 **Never commit credentials.** The `.gitignore` blocks `.env` files, but
 double-check before every commit.
 
+### Firebase CLI reauthentication (PowerShell only)
+
+Start Firebase authentication from a PowerShell terminal in the repository. Do not have an agent launch or control the browser, open an authentication URL, or request an authorization code in chat. Run `npx -y firebase-tools@latest login` when no account is authorized, or add `--reauth` when an existing session is invalid. Firebase may complete its own local OAuth callback without displaying a code; that is expected.
+
+Verify with plain `npx -y firebase-tools@latest login:list` and `npx -y firebase-tools@latest projects:list`. Confirm that the team-authorized account can see `aep-orchestration-lab` before deploying. **Never use `firebase login:list --json`** because its output can contain access and refresh tokens. Agents must follow `.agents/skills/firebase-powershell-auth/SKILL.md`.
+
 ### Firebase Functions secrets (production)
 
 Set via `firebase functions:secrets:set <NAME>`. The four Adobe secrets are:
