@@ -15,6 +15,14 @@
     return String(env.storagePrefix || (prefix ? prefix + 'Demo' : 'brandScraperDemo')).trim();
   }
 
+  function resolveIframeIds() {
+    const cfg = global.envBarConfig || {};
+    if (!Array.isArray(cfg.iframeIds)) return [];
+    return cfg.iframeIds
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+  }
+
   function run() {
     if (global.__brandScraperLabCoreRan) return;
     global.__brandScraperLabCoreRan = true;
@@ -104,7 +112,7 @@
             changeConfigButtonId: prefix + 'ChangeSdkConfigBtn',
             getSelectedGeneratorTarget: getSelectedGeneratorTarget,
             getEmail: getEmail,
-            iframeIds: [],
+            iframeIds: resolveIframeIds(),
             hideTagsCompanyUi: true,
             webPush: {
               enabled: true,
