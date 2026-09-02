@@ -37,12 +37,15 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 
 Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local JSON, or team-documented env vars. See [Credentials, secrets and .env files](CONTRIBUTING.md#credentials-secrets-and-env-files).
 
+- **Firebase CLI authentication:** initiate and complete reauthentication from a user-run PowerShell session. Agents must not launch or control authentication pages with browser tools, `Start-Process`, or `open_in_codex`, and must not ask users to paste authorization codes or tokens into chat. Verify only with plain `firebase login:list` and `firebase projects:list`; never use `firebase login:list --json`. Follow **`.agents/skills/firebase-powershell-auth/SKILL.md`**.
+
 ## Codex skills in this workspace
 
 Project skills live under `.agents/skills/`:
 
 - `aep-demo-use-case` — researched, self-contained use-case and journey HTML.
 - `aep-lab-profile-mcp` — lab profile, event, brand scrape, and infrastructure workflows. Adobe Coworker `dx-api` steps remain explicit handoffs because this Codex setup has no equivalent connector.
+- `firebase-powershell-auth` — safe Firebase CLI login/reauthentication through a user-run PowerShell session; forbids agent-launched browser authentication and token-bearing output.
 - `profile-viewer-lab-demo-strip` — canonical demo environment/profile strip.
 - `sync-with-origin-main` — the shared-repo sync workflow used at all three checkpoints.
 
