@@ -27,7 +27,7 @@
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
       aepLabConsole: '20260720-global-lab-console',
       compactCss: '20260714-env-bar-config-fileconvert',
-      compactJs: '20260721-linkedin-env-bar-fix',
+      compactJs: '20260902-settings-button-only',
       bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260721-cross-tab-bc-prefs',
       prefsSync: '20260616-tags-incognito-load',
@@ -87,6 +87,7 @@
    * @property {boolean} [autoInit=true] — Auto-init on DOMContentLoaded when envBarConfig is set
    * @property {string} [storagePrefix] — SiteCloneDemoEnv storage prefix override
    * @property {object} [siteCloneDemoEnv] — Merge into window.SiteCloneDemoEnv
+   * @property {boolean} [settingsButtonOnly=false] — Keep configuration closed until the right-side settings button is used
    * @property {string} [defaultBcStyle] — BC style default for Tags remount
    * @property {object} [envBar] — Extra passthrough to initLabDemoEnvBar → AepDemoEnvStrip
    * @property {string} [demoId] — Firestore envBarConfigs doc id (defaults to prefix)

@@ -11,7 +11,7 @@
     "aepLabDebugCss": "20260616-hide-lab-debug-ui",
     "aepLabConsole": "20260720-global-lab-console",
     "compactCss": "20260721-presenter-strip-hide",
-    "compactJs": "20260721-presenter-connect-silent",
+    "compactJs": "20260902-settings-button-only",
     "bootstrap": "20260720-global-lab-console",
     "prefsLocal": "20260721-linkedin-prefs-loop-fix",
     "prefsSync": "20260616-tags-incognito-load",
