@@ -31,6 +31,8 @@
   var toolbarResizeObserver = null;
   /** Guards against closeOverlay ↔ applySandboxConfigState ↔ aep-demo-env-configured loops. */
   var closeOverlayInProgress = false;
+  /** True only while the right-side settings button is opening an opt-in panel. */
+  var settingsButtonActivationInProgress = false;
   var collapseEnvBarInProgress = false;
   var envConfiguredCollapseInProgress = false;
   /** Spectrum 2 workflow icon: Settings (S2_Icon_Settings_20_N.svg) from vendor/spectrum-workflow-icons/. */
@@ -566,6 +568,10 @@
 
   function collapseEnvBarForConfiguredState(anchor) {
     anchor = anchor || resolveAnchor();
+    if (isSettingsButtonOnly()) {
+      closeOverlay(anchor, { force: true });
+      return true;
+    }
     if (
       !anchor ||
       anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
@@ -625,6 +631,7 @@
   }
 
   function openProfilePeek(anchor) {
+    if (isSettingsButtonOnly()) return;
     if (shouldSuppressPresenterOverlay()) return;
     setExpanded(anchor, false, false, true);
   }
@@ -763,6 +770,7 @@
 
   function openOverlay(anchor, pin) {
     if (shouldSuppressPresenterOverlay()) return;
+    if (isSettingsButtonOnly() && !settingsButtonActivationInProgress && !isOverlayOpen(anchor)) return;
     if (
       anchor &&
       (anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
@@ -817,6 +825,7 @@
   }
 
   function openOverlayPublic(opts) {
+    if (isSettingsButtonOnly()) return false;
     var anchor = resolveAnchor();
     if (!anchor) return false;
     if (
@@ -841,6 +850,19 @@
   }
 
   function toggleOverlay(anchor) {
+    if (isSettingsButtonOnly()) {
+      if (isOverlayOpen(anchor)) {
+        closeOverlay(anchor, { force: true });
+        return;
+      }
+      settingsButtonActivationInProgress = true;
+      try {
+        openOverlay(anchor, false);
+      } finally {
+        settingsButtonActivationInProgress = false;
+      }
+      return;
+    }
     if (anchor.classList.contains('lab-env-top-anchor--pinned')) {
       closeOverlay(anchor, { force: true });
       writePinnedToStorage(false);
@@ -991,7 +1013,7 @@
     bindOverlayInteractionGuards(anchor);
     syncConfigBtn(anchor);
 
-    if (!isDocked && !readPinnedFromStorage() && isLabEnvConfiguredForCollapse()) {
+    if (!settingsButtonOnly && !isDocked && !readPinnedFromStorage() && isLabEnvConfiguredForCollapse()) {
       global.setTimeout(function () {
         if (isArmcomPresenterMode()) {
           closeOverlay(anchor, { force: true });

@@ -15,7 +15,7 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20260714-env-bar-config-fileconvert',
+    manifestVersion: '20260903-settings-button-gated',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260713e-armcom-env-bar',
@@ -27,7 +27,7 @@
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
       aepLabConsole: '20260720-global-lab-console',
       compactCss: '20260714-env-bar-config-fileconvert',
-      compactJs: '20260902-settings-button-only',
+      compactJs: '20260903-settings-button-gated',
       bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260721-cross-tab-bc-prefs',
       prefsSync: '20260616-tags-incognito-load',
