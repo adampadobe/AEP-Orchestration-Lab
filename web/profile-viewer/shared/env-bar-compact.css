@@ -509,6 +509,23 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   display: none !important;
 }
 
+/* Opt-in demos expose the left menu only through the configuration-panel control. */
+body[data-lab-menu-button-only]:not([data-lab-menu-user-open]).mod-demo-page .dashboard-sidebar {
+  transform: translateX(-100%) !important;
+  pointer-events: none !important;
+}
+
+body[data-lab-menu-button-only][data-lab-menu-user-open].mod-demo-page .dashboard-sidebar {
+  transform: translateX(0) !important;
+  pointer-events: auto !important;
+}
+
+.lab-env-menu-control {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.45rem 0;
+}
+
 .mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
 [class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)

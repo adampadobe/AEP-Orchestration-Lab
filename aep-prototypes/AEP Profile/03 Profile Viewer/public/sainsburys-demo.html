@@ -21,7 +21,7 @@
     };
   </script>
 </head>
-<body class="mod-demo-page sainsburys-demo-page home-dashboard-concierge">
+<body class="mod-demo-page sainsburys-demo-page home-dashboard-concierge" data-lab-menu-button-only>
   <div class="mod-demo-top-anchor lab-env-top-anchor" id="sainsburysDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
       <div class="mod-demo-id-inner aep-demo-id-inner"
@@ -90,6 +90,7 @@
       prefix: 'sainsburys',
       variant: 'spectrum',
       settingsButtonOnly: true,
+      menuButtonOnly: true,
       features: { webPush: true, bc: true, decisioning: true, },
       iframeIds: ['sainsburysDemoSiteFrame'],
       decisioning: {
@@ -99,7 +100,7 @@
       }
     };
   </script>
-  <script src="shared/env-bar.js?v=20260903-settings-button-gated"></script>
+  <script src="shared/env-bar.js?v=20260903-menu-button-only"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
