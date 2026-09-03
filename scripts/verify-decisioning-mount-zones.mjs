@@ -55,6 +55,9 @@ const MOUNT_ZONES_MIGRATION_PENDING = new Set([
 
 /** Lowercase-only spellings — do not match canonical #TopRibbon / #ContentCardContainer */
 const FORBIDDEN_ID_RE = /id=["']topribbon["']|id=["']contentcardarea["']/;
+const VISUAL_AUTHORING_TOP_DOCUMENT_DEMOS = new Map([
+  ['sainsburys-demo.html', ['sainsburys-header', 'welcome-section', 'start-shop', 'why-choose', 'occasions', 'nectar-section', 'brands', 'discover', 'help']],
+]);
 
 let failed = false;
 
@@ -130,6 +133,20 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   }
 
   const shellHtml = read(rel);
+
+  const requiredAuthoringSections = VISUAL_AUTHORING_TOP_DOCUMENT_DEMOS.get(rel);
+  if (requiredAuthoringSections) {
+    if (/<iframe\b/i.test(shellHtml)) {
+      fail(`${rel}: AJO visual-authoring sections must stay in the top document, not inside an iframe`);
+    }
+    if (!usesParentDocument(shellHtml)) {
+      fail(`${rel}: AJO visual-authoring page must set decisioning.useParentDocument: true`);
+    }
+    for (const id of requiredAuthoringSections) {
+      const idPattern = new RegExp(`id=["']${id}["']`, 'i');
+      if (!idPattern.test(shellHtml)) fail(`${rel}: missing stable AJO visual-authoring section #${id}`);
+    }
+  }
 
   if (FORBIDDEN_ID_RE.test(shellHtml)) {
     fail(`${rel}: forbidden mount id spelling (#topribbon / #contentcardarea) — use #TopRibbon / #ContentCardContainer`);

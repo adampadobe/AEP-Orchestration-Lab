@@ -617,6 +617,8 @@ When decisioning is not disabled, `shared/env-bar.js` loads the decisioning scri
 
 Site-clone demos that enable decisioning need **stable DOM targets** for Edge / AJO code-based experiences. Runtime injection (`decisioning-edge-inject.js`) can create mounts dynamically, but explicit placeholders keep `generic` layout positioning predictable.
 
+For **AJO visual web authoring**, keep the editable site sections in the page's top document. Do not place the entire editable experience inside a nested iframe: AJO then sees the iframe as one element and cannot reliably offer Insert before / Insert after on its internal sections. Give each major semantic section a stable `id`; `data-ajo-insert-section` is recommended as a human-readable authoring marker. When the page has no site iframe, omit `envBarConfig.iframeIds` and set `envBarConfig.decisioning.useParentDocument: true`.
+
 #### When required
 
 - Any demo with `features.decisioning: true` (or default-on site-clone shell without `data-demo-env-strip-decisioning="0"`).
