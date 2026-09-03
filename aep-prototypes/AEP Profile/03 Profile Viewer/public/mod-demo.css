@@ -57,6 +57,24 @@
   background: var(--dash-bg);
 }
 
+/* Top-document site clones expose their semantic sections directly to AJO's
+   visual authoring overlay instead of hiding the page behind an iframe. */
+.mod-demo-site-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  background: var(--surface, #fff);
+}
+
+body.mod-demo-page:not(.mobile-demo-shell-page) .mod-demo-site-content ~ .dashboard-shell {
+  position: fixed;
+  inset: 0;
+}
+
+body.site-clone-bc-bottom-dock-armed .mod-demo-site-content {
+  padding-bottom: 5.5rem;
+}
+
 /* When this page is itself iframed inside a mobile-simulator shell
    (?aepSimMobile=1 — see e.g. sky-mobile-demo.html), the shell's own env
    strip already lives outside the phone bezel, so hide this page's copy
