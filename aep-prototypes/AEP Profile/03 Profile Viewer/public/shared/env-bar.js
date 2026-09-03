@@ -15,7 +15,7 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20260903-settings-button-gated',
+    manifestVersion: '20260903-menu-button-only',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260713e-armcom-env-bar',
@@ -26,8 +26,8 @@
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
       aepLabConsole: '20260720-global-lab-console',
-      compactCss: '20260714-env-bar-config-fileconvert',
-      compactJs: '20260903-settings-button-gated',
+      compactCss: '20260903-menu-button-only',
+      compactJs: '20260903-menu-button-only',
       bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260721-cross-tab-bc-prefs',
       prefsSync: '20260616-tags-incognito-load',
@@ -88,6 +88,7 @@
    * @property {string} [storagePrefix] — SiteCloneDemoEnv storage prefix override
    * @property {object} [siteCloneDemoEnv] — Merge into window.SiteCloneDemoEnv
    * @property {boolean} [settingsButtonOnly=false] — Keep configuration closed until the right-side settings button is used
+   * @property {boolean} [menuButtonOnly=false] — Keep the left menu hidden except when toggled inside configuration
    * @property {string} [defaultBcStyle] — BC style default for Tags remount
    * @property {object} [envBar] — Extra passthrough to initLabDemoEnvBar → AepDemoEnvStrip
    * @property {string} [demoId] — Firestore envBarConfigs doc id (defaults to prefix)

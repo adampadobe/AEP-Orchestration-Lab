@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "20260903-settings-button-gated",
+  "manifestVersion": "20260903-menu-button-only",
   "moduleVersion": "1.1.0",
   "assets": {
     "bundleCss": "20260713e-armcom-env-bar",
@@ -10,8 +10,8 @@
     "aepLabDebug": "20260616-hide-lab-debug-ui",
     "aepLabDebugCss": "20260616-hide-lab-debug-ui",
     "aepLabConsole": "20260720-global-lab-console",
-    "compactCss": "20260721-presenter-strip-hide",
-    "compactJs": "20260903-settings-button-gated",
+    "compactCss": "20260903-menu-button-only",
+    "compactJs": "20260903-menu-button-only",
     "bootstrap": "20260720-global-lab-console",
     "prefsLocal": "20260721-linkedin-prefs-loop-fix",
     "prefsSync": "20260616-tags-incognito-load",

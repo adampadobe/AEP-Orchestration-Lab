@@ -23,6 +23,8 @@
   var OVERLAY_PANEL_ID = 'aepLabEnvOverlayPanel';
   var EXPAND_BTN_ID = 'aepDemoEnvExpandBtn';
   var FULL_OPEN_BTN_ID = 'aepLabEnvFullOpenBtn';
+  var MENU_TOGGLE_BTN_ID = 'aepLabMenuToggleBtn';
+  var MENU_OPEN_CLASS = 'mod-demo-page--nav-open';
   var PROFILE_ONLY_CLASS = 'lab-env-top-anchor--profile-only';
   var CONFIGURING_CLASS = 'lab-env-top-anchor--configuring';
   var PRESENTER_STRIP_HIDDEN_CLASS = 'lab-env-top-anchor--presenter-strip-hidden';
@@ -677,6 +679,55 @@
     return !!(global.envBarConfig && global.envBarConfig.settingsButtonOnly === true);
   }
 
+  function isMenuButtonOnly() {
+    return !!(global.envBarConfig && global.envBarConfig.menuButtonOnly === true);
+  }
+
+  function syncMenuToggleBtn() {
+    var btn = byId(MENU_TOGGLE_BTN_ID);
+    if (!btn) return;
+    var isOpen = document.body.hasAttribute('data-lab-menu-user-open');
+    btn.textContent = isOpen ? 'Hide menu' : 'Show menu';
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    btn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+  }
+
+  function setMenuOpenFromControl(open) {
+    if (!isMenuButtonOnly() || !document.body) return false;
+    document.body.toggleAttribute('data-lab-menu-user-open', !!open);
+    document.body.classList.toggle(MENU_OPEN_CLASS, !!open);
+    syncMenuToggleBtn();
+    return true;
+  }
+
+  function initMenuButtonOnly(anchor) {
+    if (!isMenuButtonOnly() || !document.body) return;
+    document.body.setAttribute('data-lab-menu-button-only', '');
+    setMenuOpenFromControl(false);
+    var sidebar = document.querySelector('.dashboard-sidebar');
+    if (sidebar && !sidebar.id) sidebar.id = 'aepLabPrimaryMenu';
+
+    var panel = byId(OVERLAY_PANEL_ID) || (anchor && anchor.querySelector('.lab-env-overlay-panel'));
+    if (!panel || byId(MENU_TOGGLE_BTN_ID)) return;
+    var host = panel.querySelector('[data-env-overlay-footer]') || panel;
+    var wrap = document.createElement('div');
+    wrap.className = 'lab-env-menu-control';
+    wrap.setAttribute('data-env-overlay-footer-item', '');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = MENU_TOGGLE_BTN_ID;
+    btn.className = 'btn-lookup spectrum-btn spectrum-btn--secondary';
+    btn.setAttribute('aria-controls', 'aepLabPrimaryMenu');
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setMenuOpenFromControl(!document.body.hasAttribute('data-lab-menu-user-open'));
+    });
+    wrap.appendChild(btn);
+    host.insertBefore(wrap, host.firstChild);
+    syncMenuToggleBtn();
+  }
+
   /** @type {HTMLButtonElement|null} */
   var floatingDockBtn = null;
 
@@ -924,6 +975,7 @@
     getOrCreateFloatingDockBtn();
     if (isDocked) applyDockState(anchor, true);
     else updateFloatingDockBtn(false);
+    initMenuButtonOnly(anchor);
 
     if (isArmcomPresenterMode() || readLabEnvConfiguredLocalMirror() || readUnifiedTagsConfiguredForCurrentSandbox()) {
       seedLabEnvConfiguredSessionFromLocal();
