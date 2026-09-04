@@ -760,7 +760,17 @@
       ev.preventDefault();
       ev.stopPropagation();
       if (isSettingsButtonOnly()) {
-        toggleOverlay(resolveAnchor());
+        var anchor = resolveAnchor();
+        if (isOverlayOpen(anchor)) {
+          closeOverlay(anchor, { force: true });
+          /* A document-level click guard may run before this handler. Ensure
+             the requested close remains authoritative after that event turn. */
+          global.setTimeout(function () {
+            if (isOverlayOpen(anchor)) closeOverlay(anchor, { force: true });
+          }, 0);
+        } else {
+          toggleOverlay(anchor);
+        }
         return;
       }
       toggleDockPublic();
