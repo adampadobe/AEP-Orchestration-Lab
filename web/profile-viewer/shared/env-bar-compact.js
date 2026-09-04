@@ -736,6 +736,7 @@
     var existing = byId(FLOATING_DOCK_BTN_ID);
     if (existing) {
       floatingDockBtn = existing;
+      bindFloatingDockBtn(existing);
       return floatingDockBtn;
     }
     var btn = document.createElement('button');
@@ -745,6 +746,15 @@
     btn.innerHTML = DOCK_ICON_SVG;
     btn.setAttribute('aria-label', 'Hide environment bar');
     btn.setAttribute('title', 'Hide environment bar');
+    bindFloatingDockBtn(btn);
+    document.body.appendChild(btn);
+    floatingDockBtn = btn;
+    return floatingDockBtn;
+  }
+
+  function bindFloatingDockBtn(btn) {
+    if (!btn || btn.getAttribute('data-env-floating-dock-bound') === '1') return;
+    btn.setAttribute('data-env-floating-dock-bound', '1');
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -754,9 +764,6 @@
       }
       toggleDockPublic();
     });
-    document.body.appendChild(btn);
-    floatingDockBtn = btn;
-    return floatingDockBtn;
   }
 
   function updateFloatingDockBtn(docked) {
