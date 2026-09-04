@@ -252,6 +252,7 @@
 
   function isOverlayInteractionTarget(node, anchor) {
     if (!node || !anchor) return false;
+    if (node.closest && node.closest('#' + FLOATING_DOCK_BTN_ID)) return true;
     if (anchor.contains(node)) return true;
     var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
     if (panel && panel.contains(node)) return true;
