@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260906-marketplace-callout">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260906-marketplace-first">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -79,78 +79,43 @@
                 <span class="mcp-lab-version">v3.38.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
-                Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor. Use the complete connection for broad demo preparation, or a focused connection when the task needs a smaller, more reliable tool context.
+                Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor, covering profile generation, brand-scrape demo prep, decisioning, PDF prep, audience/AJO cleanup, Command Centre, and live weather + map lookups.
               </p>
 
-              <div class="mcp-connection-guidance" aria-labelledby="mcpConnectionGuidanceHeading">
-                <div>
-                  <h4 id="mcpConnectionGuidanceHeading" class="mcp-connection-guidance-title">One key, several connection choices</h4>
-                  <p>
-                    Generate one sandbox-scoped key below and reuse it with any Lab endpoint. Every connection choice on this page is a governed view of the same MCP server, not a separate service or credential.
-                  </p>
-                </div>
-                <a class="dashboard-btn-primary mcp-generate-key-link" href="#mcpLabKeyPanel">Generate or manage keys</a>
-              </div>
-
-              <div class="mcp-start-here" aria-labelledby="mcpStartHereHeading">
-                <article class="mcp-connection-choice mcp-connection-choice--start-here">
-                  <span class="mcp-connection-badge">Start here</span>
-                  <h4 id="mcpStartHereHeading">Entry point</h4>
-                  <div class="mcp-choice-config-name"><code>aep-lab-entry</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-entry">Copy name</button></div>
-                  <p>Connect this small directory alongside your other connections. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, <code>command-centre</code>, or <code>weather</code> — into the same session with <code>lab_load_toolset</code>, on clients that honor the MCP tool-list-changed refresh.</p>
-                  <p class="mcp-connection-choice-caveat"><strong>Known limitation in Adobe Coworker:</strong> as tested, Coworker's tool discovery only reflects the tools present when a session starts and does not re-check the list after <code>lab_load_toolset</code> runs, so newly loaded tools register but never become callable there. In Coworker, also directly connect the focused endpoint(s) below for the domains you actually use — for example <code>aep-lab-profiles</code> for profile and event work, or <code>aep-lab-demo-prep</code> for brand scraping and customer prep.</p>
-                </article>
-              </div>
-
-              <div class="mcp-marketplace-callout" aria-labelledby="mcpMarketplaceCalloutHeading">
-                <span class="mcp-connection-badge">Recommended install path for Coworker</span>
-                <h4 id="mcpMarketplaceCalloutHeading">Install all nine direct connections in one click</h4>
-                <p>Instead of adding each connection below by hand, add this repo as a Coworker Marketplace and install the bundled <code>aep-lab</code> plugin — it registers all nine focused connections (and their workflow guidance) at once, prompting once for your MCP key.</p>
+              <div class="mcp-marketplace-callout mcp-marketplace-callout--primary" aria-labelledby="mcpMarketplaceCalloutHeading">
+                <span class="mcp-connection-badge">Start here</span>
+                <h4 id="mcpMarketplaceCalloutHeading">Add the Coworker Marketplace — installs everything in one click</h4>
+                <p>One marketplace, one plugin, one key prompt — no manual JSON pasting per connection.</p>
                 <ol>
                   <li>In Coworker: <strong>Marketplaces → + Add Marketplace</strong></li>
                   <li><strong>Source Type:</strong> GitHub</li>
                   <li><strong>GitHub Repository:</strong> <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code></li>
                   <li><strong>Subdirectory:</strong> <code>tools/coworker-marketplace</code></li>
-                  <li>Click <strong>Add Marketplace</strong>, then install the <strong>AEP Orchestration Lab</strong> plugin and set <code>AEP_LAB_MCP_KEY</code> when prompted (generate it below first)</li>
+                  <li>Click <strong>Add Marketplace</strong>, then install the <strong>AEP Orchestration Lab</strong> plugin and set <code>AEP_LAB_MCP_KEY</code> when prompted — generate a key below first</li>
                 </ol>
+                <a class="dashboard-btn-primary mcp-generate-key-link" href="#mcpLabKeyPanel">Generate or manage keys</a>
               </div>
 
-              <div class="mcp-flow" aria-label="How the entry point connects to Lab capabilities">
-                <div class="mcp-flow-step">
-                  <span class="mcp-flow-step-label">MCP client</span>
-                  <p>Coworker or Cursor</p>
-                </div>
-                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
-                <div class="mcp-flow-step mcp-flow-step--accent">
-                  <span class="mcp-flow-step-label">aep-lab-entry session</span>
-                  <p>One connection, one key</p>
-                </div>
-                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
-                <div class="mcp-flow-step">
-                  <span class="mcp-flow-step-label">lab_load_toolset(category)</span>
-                  <p>Loaded on demand</p>
-                </div>
-                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
-                <div class="mcp-flow-step">
-                  <span class="mcp-flow-step-label">Expanded toolset</span>
-                  <p>profile · audiences · pdf · decisioning · demo-prep · ajo-cleanup · command-centre</p>
-                </div>
-                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
-                <div class="mcp-flow-step">
-                  <span class="mcp-flow-step-label">Lab API</span>
-                  <p>Firebase Functions</p>
-                </div>
-                <span class="mcp-flow-arrow" aria-hidden="true">&rarr;</span>
-                <div class="mcp-flow-step">
-                  <span class="mcp-flow-step-label">Platform APIs</span>
-                  <p>AEP · Snowflake · Firestore · Adobe APIs</p>
-                </div>
+              <div class="mcp-included-list" aria-labelledby="mcpIncludedHeading">
+                <h4 id="mcpIncludedHeading" class="mcp-included-title">What this installs</h4>
+                <ul class="mcp-included-items">
+                  <li><strong>Entry point</strong> <code>aep-lab-entry</code> — capability directory and workflow recommender</li>
+                  <li><strong>Profiles</strong> <code>aep-lab-profiles</code> — profile lifecycle, industry events, Snowflake dual-load</li>
+                  <li><strong>Demo prep</strong> <code>aep-lab-demo-prep</code> — brand scrape, customer switch, RTDB demo config</li>
+                  <li><strong>PDF prep</strong> <code>aep-lab-pdf-prep</code> — HTML/document to PDF, storage, server templates</li>
+                  <li><strong>Audiences</strong> <code>aep-lab-audiences</code> — governed audience list, audit, and delete</li>
+                  <li><strong>Decisioning</strong> <code>aep-lab-decisioning</code> — Edge decision evaluation and catalog</li>
+                  <li><strong>AJO cleanup</strong> <code>aep-lab-ajo-cleanup</code> — governed AJO journey/campaign list, audit, and delete</li>
+                  <li><strong>Command Centre</strong> <code>aep-lab-command-centre</code> — your own customer engagements, tasks, and meetings</li>
+                  <li><strong>Weather</strong> <code>aep-lab-weather</code> — live weather and Google Maps for demo scenarios</li>
+                </ul>
+                <p class="mcp-included-note">Not included: <code>aep-lab-general</code>, the full catch-all connection — every tool it exposes is already covered above. See <strong>Advanced</strong> below if you want it as a standalone connection instead.</p>
               </div>
 
-              <div class="mcp-direct-connections" aria-labelledby="mcpDirectConnectionsHeading">
-                <h4 id="mcpDirectConnectionsHeading" class="mcp-direct-connections-title">Direct connections</h4>
+              <details class="mcp-advanced-details">
+                <summary>Advanced: connect individually instead of using the marketplace</summary>
                 <p class="mcp-direct-connections-lead">
-                  Connect these directly for the domains you actually use — required today in Adobe Coworker (see the entry-point caveat above), and also useful in any host that can't refresh its tool list mid-session or where you specifically want a narrower, fixed toolset.
+                  Connect these directly only if you don't want the marketplace bundle — for example to use just one domain, to connect the full catch-all <code>aep-lab-general</code>, or on a host that can't install Coworker Marketplace plugins.
                 </p>
                 <div class="mcp-connection-choice-grid" aria-label="Direct AEP Lab MCP connections">
                   <article class="mcp-connection-choice mcp-connection-choice--recommended">
@@ -208,7 +173,7 @@
                     <p>Use for current conditions, a 5-day/3-hour forecast, and a map-rendered current-conditions lookup from OpenWeatherMap and Google Static Maps by city or lat/lon — useful for a weather-driven demo moment. No AEP or Lab API calls.</p>
                   </article>
                 </div>
-              </div>
+              </details>
 
               <div class="mcp-lab-overview-cols">
                 <div class="mcp-lab-overview-block">
@@ -232,7 +197,7 @@
                   <ol class="mcp-lab-overview-list mcp-lab-overview-list--ordered">
                     <li>Select your sandbox in the Profile Viewer nav</li>
                     <li>Sign in and <strong>Generate key</strong> below — workspace slug is <em>not</em> required first</li>
-                    <li>Add to Coworker: install the <strong>Coworker Marketplace plugin</strong> above (recommended, all 9 connections in one click) — or add individually: endpoint in the table, header <code>X-AEP-Lab-Mcp-Key</code>, using <strong>Copy Coworker config</strong></li>
+                    <li>Add the <strong>Coworker Marketplace</strong> above and install the plugin (see <strong>Advanced</strong> below to connect individually instead)</li>
                     <li>First Coworker session: call <code>lab_mcp_first_run_setup</code> for your sandbox (pass <code>workspace_slug</code> when prompted)</li>
                     <li>Then <code>lab_get_execution_framework</code> before other lab tasks</li>
                     <li>Missing HTTP dataflow after schema/dataset provision? Coworker <strong>dx-api</strong> — see <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_HTTP_STREAMING_FLOWS.md" target="_blank" rel="noopener noreferrer">HTTP streaming flows doc</a></li>
