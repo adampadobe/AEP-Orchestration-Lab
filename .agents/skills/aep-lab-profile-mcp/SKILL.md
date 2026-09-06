@@ -14,6 +14,8 @@ MCP server: **AEP Orchestration Lab MCP v3.40.0** (`aep-orchestration-lab-mcp`; 
 
 Focused Coworker endpoints use the same API key: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Directly connect the focused endpoint(s) for the domains actually used (e.g. `/mcp/profile`, `/mcp/demo-prep`) alongside `/mcp/entry`, rather than relying on `lab_load_toolset` alone in Coworker.
 
+**One-click Coworker install:** `tools/coworker-marketplace/` packages all nine focused endpoints above (everything except `/mcp`) into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
+
 Configure in Codex or another MCP client with a **single** header:
 
 - `X-AEP-Lab-Mcp-Key` — required for all tools (including provisioning)
