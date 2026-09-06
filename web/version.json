@@ -1,14 +1,14 @@
 {
-  "gitSha": "ee07f7108f25a2b4d4471f02d19f6d9b8cce7622",
-  "gitShortSha": "ee07f710",
+  "gitSha": "9bc09beea9c59ca4e58eb5efea3d12d35d74d555",
+  "gitShortSha": "9bc09bee",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Fix lab_audience_list 400 error caused by invalid RSQL filter syntax (#194)",
+  "gitCommitSubject": "[apalmer] Add a Coworker Marketplace plugin for one-click Lab MCP install (#210)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-09-01T10:23:00+03:00",
-  "deployedAt": "2026-09-01T07:23:26.754Z",
+  "gitCommitDate": "2026-09-06T09:30:16+03:00",
+  "deployedAt": "2026-09-06T06:30:32.531Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ee07f7108f25a2b4d4471f02d19f6d9b8cce7622"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9bc09beea9c59ca4e58eb5efea3d12d35d74d555"
 }
