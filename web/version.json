@@ -1,14 +1,14 @@
 {
-  "gitSha": "a679d9701b4cef18518bcab872e6ad8919b5b502",
-  "gitShortSha": "a679d970",
+  "gitSha": "b4acf8cacb5688dee6e28e9c1f57fe014ebc0c3f",
+  "gitShortSha": "b4acf8ca",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Mention the Coworker Marketplace plugin in Getting started and the skill doc (#212)",
+  "gitCommitSubject": "[apalmer] Restructure MCP servers page around the Coworker Marketplace plugin (#214)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-09-06T09:55:29+03:00",
-  "deployedAt": "2026-09-06T06:55:43.449Z",
+  "gitCommitDate": "2026-09-06T10:07:32+03:00",
+  "deployedAt": "2026-09-06T07:07:48.347Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a679d9701b4cef18518bcab872e6ad8919b5b502"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b4acf8cacb5688dee6e28e9c1f57fe014ebc0c3f"
 }
