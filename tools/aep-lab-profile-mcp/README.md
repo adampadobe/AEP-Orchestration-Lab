@@ -22,6 +22,8 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
+**One-click Coworker install:** instead of manually adding each connection above, add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin — it registers all nine focused connections above (everything except `/mcp`, since it's already fully covered by them) plus their workflow guidance, prompting once for the same `X-AEP-Lab-Mcp-Key`. See `tools/coworker-marketplace/README.md`.
+
 ### Entry point (Phase 3.38)
 
 Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.

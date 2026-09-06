@@ -282,6 +282,45 @@
   color: var(--dash-text-secondary, #6e6e6e);
 }
 
+.mcp-marketplace-callout {
+  margin: 0 0 1.1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--dash-blue, #1473e6) 30%, var(--dash-border, #e2e2e2));
+  border-radius: var(--dash-radius-sm, 12px);
+  background: color-mix(in srgb, var(--dash-blue, #1473e6) 5%, var(--dash-surface, #fff));
+}
+
+.mcp-marketplace-callout h4 {
+  margin: 0.4rem 0 0.4rem;
+  font-size: 0.95rem;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.mcp-marketplace-callout p {
+  margin: 0 0 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-marketplace-callout ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-marketplace-callout ol li + li {
+  margin-top: 0.2rem;
+}
+
+.mcp-marketplace-callout code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  color: var(--dash-text, #2c2c2c);
+}
+
 .mcp-connection-badge {
   display: inline-block;
   margin-bottom: 0.45rem;

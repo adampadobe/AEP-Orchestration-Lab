@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260826-entry-flow">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260906-marketplace-callout">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -100,6 +100,19 @@
                   <p>Connect this small directory alongside your other connections. It explains the other Lab domains, recommends the smallest one for a prompt, and can load a domain toolset — <code>profile</code>, <code>audiences</code>, <code>ajo-cleanup</code>, <code>decisioning</code>, <code>demo-prep</code>, <code>pdf</code>, <code>command-centre</code>, or <code>weather</code> — into the same session with <code>lab_load_toolset</code>, on clients that honor the MCP tool-list-changed refresh.</p>
                   <p class="mcp-connection-choice-caveat"><strong>Known limitation in Adobe Coworker:</strong> as tested, Coworker's tool discovery only reflects the tools present when a session starts and does not re-check the list after <code>lab_load_toolset</code> runs, so newly loaded tools register but never become callable there. In Coworker, also directly connect the focused endpoint(s) below for the domains you actually use — for example <code>aep-lab-profiles</code> for profile and event work, or <code>aep-lab-demo-prep</code> for brand scraping and customer prep.</p>
                 </article>
+              </div>
+
+              <div class="mcp-marketplace-callout" aria-labelledby="mcpMarketplaceCalloutHeading">
+                <span class="mcp-connection-badge">Recommended install path for Coworker</span>
+                <h4 id="mcpMarketplaceCalloutHeading">Install all nine direct connections in one click</h4>
+                <p>Instead of adding each connection below by hand, add this repo as a Coworker Marketplace and install the bundled <code>aep-lab</code> plugin — it registers all nine focused connections (and their workflow guidance) at once, prompting once for your MCP key.</p>
+                <ol>
+                  <li>In Coworker: <strong>Marketplaces → + Add Marketplace</strong></li>
+                  <li><strong>Source Type:</strong> GitHub</li>
+                  <li><strong>GitHub Repository:</strong> <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code></li>
+                  <li><strong>Subdirectory:</strong> <code>tools/coworker-marketplace</code></li>
+                  <li>Click <strong>Add Marketplace</strong>, then install the <strong>AEP Orchestration Lab</strong> plugin and set <code>AEP_LAB_MCP_KEY</code> when prompted (generate it below first)</li>
+                </ol>
               </div>
 
               <div class="mcp-flow" aria-label="How the entry point connects to Lab capabilities">

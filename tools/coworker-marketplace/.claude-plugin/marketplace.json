@@ -1,0 +1,15 @@
+{
+  "name": "aep-orchestration-lab",
+  "owner": { "name": "Adam Palmer" },
+  "metadata": {
+    "description": "AEP Orchestration Lab MCP connections for Adobe CX Coworker"
+  },
+  "plugins": [
+    {
+      "name": "aep-lab",
+      "displayName": "AEP Orchestration Lab",
+      "description": "Profile generation, brand-scrape demo prep, decisioning, PDF prep, audience/AJO cleanup, Command Centre, and live weather+map lookups against the AEP Orchestration Lab.",
+      "source": "./aep-lab"
+    }
+  ]
+}
