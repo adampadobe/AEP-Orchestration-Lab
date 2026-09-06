@@ -1,7 +1,8 @@
 {
   "name": "aep-lab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AEP Orchestration Lab MCP connections and workflow guidance for Adobe CX Coworker",
   "author": { "name": "Adam Palmer" },
-  "homepage": "https://github.com/adampadobe/AEP-Orchestration-Lab/tree/main/tools/aep-lab-profile-mcp"
+  "homepage": "https://github.com/adampadobe/AEP-Orchestration-Lab/tree/main/tools/aep-lab-profile-mcp",
+  "mcpServers": "./.mcp.json"
 }
