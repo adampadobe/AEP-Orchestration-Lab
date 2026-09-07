@@ -461,6 +461,8 @@ Focused PDF preparation uses the same key:
 
 GCP project: **`aep-orchestration-lab`**, region: **`us-central1`**.
 
+All production releases follow the repository workflow: feature branch → PR → validation/review → merge → deploy from clean `main` at the exact freshly fetched `origin/main` SHA.
+
 Cloud Run service account needs **Cloud Datastore User** for Firestore collections:
 
 - `mcpProfileBatchJobs`
@@ -474,14 +476,46 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 - `labDemoAssetIdempotency`
 - `labDemoAssetActive`
 
+### Normal code-only release
+
+Inspect the live service first, build an immutable image, and update **only** the image. `gcloud run services update` preserves the existing environment variables, secret bindings, service account, ingress, timeout, memory, and scaling configuration.
+
 ```bash
 cd tools/aep-lab-profile-mcp
 
 export PROJECT_ID=aep-orchestration-lab
 export REGION=us-central1
 export SERVICE=aep-lab-profile-mcp
+export IMAGE="gcr.io/${PROJECT_ID}/${SERVICE}:$(git rev-parse --short HEAD)"
 
-gcloud builds submit --tag "gcr.io/${PROJECT_ID}/${SERVICE}" .
+gcloud run services describe "${SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}"
+
+gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}" .
+
+gcloud run services update "${SERVICE}" \
+  --image "${IMAGE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --platform managed
+```
+
+Read the service back after deployment. Confirm the intended revision receives 100% of traffic and that all expected environment-variable and secret-binding **names** remain present; never print secret values. Then verify `/health` and the affected MCP endpoints.
+
+### Initial provisioning or intentional full configuration change
+
+Only use `gcloud run deploy` with configuration flags when intentionally managing the complete service configuration. `--env-vars-file`, `--set-secrets`, and `--clear-*` flags can replace or clear existing settings. The current service requires all four secret bindings below.
+
+```bash
+cd tools/aep-lab-profile-mcp
+
+export PROJECT_ID=aep-orchestration-lab
+export REGION=us-central1
+export SERVICE=aep-lab-profile-mcp
+export IMAGE="gcr.io/${PROJECT_ID}/${SERVICE}:$(git rev-parse --short HEAD)"
+
+gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}" .
 
 cat > /tmp/aep-lab-profile-mcp-env.yaml <<'EOF'
 AEP_LAB_API_ORIGIN: https://aep-orchestration-lab.web.app
@@ -490,13 +524,13 @@ GOOGLE_CLOUD_PROJECT: aep-orchestration-lab
 EOF
 
 gcloud run deploy "${SERVICE}" \
-  --image "gcr.io/${PROJECT_ID}/${SERVICE}" \
+  --image "${IMAGE}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --platform managed \
   --allow-unauthenticated \
   --env-vars-file /tmp/aep-lab-profile-mcp-env.yaml \
-  --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest" \
+  --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest,OPENWEATHER_API_KEY=aep-lab-weather-openweather-api-key:latest,GOOGLE_MAPS_API_KEY=aep-lab-weather-google-maps-api-key:latest,GOOGLE_MAPS_EMBED_API_KEY=aep-lab-weather-google-maps-embed-api-key:latest" \
   --memory 512Mi \
   --timeout 540 \
   --min-instances 0 \

@@ -36,6 +36,8 @@ Read this fully before making your first change.
 
 Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. The normal production path is **feature branch → pull request → required validation → review → merge to `main` → deploy the exact merged `origin/main` SHA**. Use **Phase A** at the start of a substantive work session, **Phase B** immediately before every `git push`, **and Phase C** immediately before every production deploy, so you do not build or deploy on stale `main` and you do not silently overwrite a teammate's Hosting or Functions release.
 
+This file is the model-neutral source of truth for humans and coding agents. Repository-specific entry points make the same rules automatic in supported tools: **Claude Code reads `CLAUDE.md`**, **Codex reads `AGENTS.md`**, and **Cursor applies `.cursor/rules/`**. Those files must remain aligned with this section. An agent must apply the relevant entry point without waiting for the user to repeat the sync, branch, PR, merge, deploy, secret-preservation, or verification instructions in each prompt.
+
 > **Why three phases (and not two)?** `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushes between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets even though `git` itself stayed clean. Phase C is the only protection.
 
 > **`git fetch` is not `git pull`.** **`git fetch origin`** only refreshes your local copy of the remote refs (`refs/remotes/origin/*`). It does **not** touch your local `main` branch or your working tree. Your local branch is only truly "up to date" once **either** (a) **`git status`** reports **`Your branch is up to date with 'origin/main'`** after a fresh fetch, **or** (b) you have run **`git pull --ff-only origin main`** to fast-forward your local `main` to match. Every phase below therefore runs **`git fetch` + `git status` + (only if behind) `git pull --ff-only`** in that order.
@@ -936,7 +938,7 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | Step | Command / action | Why |
 |------|-----------------|-----|
 | 1. **Phase A sync** | `git fetch origin && git status` — pull if behind | Don't build on stale `main` (see [Phase A](#phase-a--start-of-session-before-substantive-edits)) |
-| 2. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
+| 2. **Make changes** | Edit only the files required for the task; preserve unrelated tracked and untracked work | Keeps each branch and PR scoped and prevents cross-session loss |
 | 3. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
 | 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` / `journey-arbitration-v2.html` redirects**, **`journey-arbitration-v3`** (and embeds), or **eds-quickstart** files or nav wiring are wrong, OR if the hard-deleted **`decisioning-overview-v2.html`** or **`ajo-decisioning-pipeline-v8-demo.html`** is resurrected (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
 | 5. **Commit** | `git add` (focused scope) → `git commit -m "[<github-handle>] …"` (see [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)) | Atomic, reviewable units; handle prefix makes ownership obvious in history |
@@ -948,6 +950,12 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | 11. **Deploy and verify** | Prefer the serialized GitHub Hosting workflow; designated owner deploys changed Functions from exact `origin/main`; run `npm run deploy:status` and endpoint checks | Ships reviewed code and confirms the live revision before releasing the production lock |
 
 > **Never** production-deploy before the change is **merged to `main` through a validated pull request**. **Never** deploy without re-syncing in Phase C — Firebase deploys local files, not an abstract GitHub branch. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
+
+### Dedicated Cloud Run services: preserve runtime configuration
+
+The same branch → PR → merge → exact `origin/main` rule applies to repository-managed Cloud Run services that are deployed outside Firebase, including `aep-lab-profile-mcp`. Before changing a service, inspect its current image, environment-variable names, secret bindings, service account, ingress, timeout, memory, and scaling settings. Never print secret values.
+
+For a **code-only release**, build an immutable image tag and update only the image with `gcloud run services update --image ...`; this preserves the service's existing runtime configuration. Do not use `gcloud run deploy` with `--set-env-vars`, `--env-vars-file`, `--set-secrets`, or `--clear-*` flags unless the task explicitly changes the complete runtime configuration. Those flags can replace or clear existing settings, including independently managed weather, Maps, and Lab API-key secret bindings. After deployment, read the service back, confirm the expected bindings still exist, verify 100% traffic on the intended revision, and test `/health` plus the affected MCP endpoint without exposing credentials.
 
 ---
 
