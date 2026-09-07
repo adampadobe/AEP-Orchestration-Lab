@@ -17,7 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 
-import { loadAuthConfig, validateMcpApiKey } from './auth.mjs';
+import { loadAuthConfig, validateMcpRequest } from './auth.mjs';
 import { getLabApiOrigin } from './labApiClient.mjs';
 import { requestContext } from './requestContext.mjs';
 import { resolvePrincipalAccess } from './sandboxAllowlist.mjs';
@@ -38,7 +38,7 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.40.0';
+const MCP_VERSION = '3.41.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -159,6 +159,7 @@ async function main() {
       version: MCP_VERSION,
       labOrigin: getLabApiOrigin(),
       allowedSandboxes: cfg.allowedSandboxes,
+      authentication: ['api-key', 'adobe-ims'],
       mcpEndpoints: ENDPOINTS.map(({ path, toolset }) => ({ path, toolset })),
       note: 'Per-principal allowlist may override via Firestore mcpSandboxAllowlist/{keyId}',
     });
@@ -166,12 +167,13 @@ async function main() {
 
   function registerEndpoint(endpoint) {
     const authenticate = async (req, res, next) => {
-      const auth = await validateMcpApiKey(req);
+      const auth = await validateMcpRequest(req);
       if (!auth.ok) {
         jsonRpcError(res, auth.status, auth.message);
         return;
       }
-      const principalAccess = await resolvePrincipalAccess(auth.keyId, { source: auth.source });
+      const principalAccess = auth.principalAccess
+        || await resolvePrincipalAccess(auth.keyId, { source: auth.source });
       req.mcpAuth = { auth, principalAccess };
       next();
     };
@@ -193,7 +195,8 @@ async function main() {
       });
 
       const { auth, principalAccess } = req.mcpAuth;
-      const mcpKey = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
+      const mcpKey = auth.forwardMcpApiKey
+        || String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
       const sessionId = req.headers['mcp-session-id'];
 
       await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey, sessionId }, async () => {
@@ -246,7 +249,7 @@ async function main() {
     });
 
     app.delete(endpoint.path, async (req, res) => {
-      const auth = await validateMcpApiKey(req);
+      const auth = await validateMcpRequest(req);
       if (!auth.ok) {
         res.status(auth.status).json({ error: auth.message });
         return;

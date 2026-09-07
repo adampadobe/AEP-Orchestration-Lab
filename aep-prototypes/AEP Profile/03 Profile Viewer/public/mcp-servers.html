@@ -76,7 +76,7 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.38.0</span>
+                <span class="mcp-lab-version">v3.41.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
                 Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor, covering profile generation, brand-scrape demo prep, decisioning, PDF prep, audience/AJO cleanup, Command Centre, and live weather + map lookups.
@@ -85,13 +85,13 @@
               <div class="mcp-marketplace-callout mcp-marketplace-callout--primary" aria-labelledby="mcpMarketplaceCalloutHeading">
                 <span class="mcp-connection-badge">Start here</span>
                 <h4 id="mcpMarketplaceCalloutHeading">Add the Coworker Marketplace — installs everything in one click</h4>
-                <p>One marketplace, one plugin, one key prompt — no manual JSON pasting per connection.</p>
+                <p>One marketplace and one plugin — Coworker uses your signed-in Adobe identity, with no key pasted into the plugin.</p>
                 <ol>
                   <li>In Coworker: <strong>Marketplaces → + Add Marketplace</strong></li>
                   <li><strong>Source Type:</strong> GitHub</li>
                   <li><strong>GitHub Repository:</strong> <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code></li>
                   <li><strong>Subdirectory:</strong> <code>tools/coworker-marketplace</code></li>
-                  <li>Click <strong>Add Marketplace</strong>, then install the <strong>AEP Orchestration Lab</strong> plugin and set <code>AEP_LAB_MCP_KEY</code> when prompted — generate a key below first</li>
+                  <li>Generate at least one sandbox-scoped key below to establish your enrollment, then install the <strong>AEP Orchestration Lab</strong> plugin. Keep the plaintext key for Codex/Cursor; Coworker authenticates with your Adobe sign-in.</li>
                 </ol>
                 <a class="dashboard-btn-primary mcp-generate-key-link" href="#mcpLabKeyPanel">Generate or manage keys</a>
               </div>
@@ -177,8 +177,8 @@
 
               <div class="mcp-lab-overview-cols">
                 <div class="mcp-lab-overview-block">
-                  <h4 class="mcp-lab-overview-block-title">Your API key</h4>
-                  <p>One personal key per Adobe sandbox. Keys follow your <strong>global sandbox</strong> in the nav — switch sandbox to manage another. Authenticate with header <code>X-AEP-Lab-Mcp-Key</code>.</p>
+                  <h4 class="mcp-lab-overview-block-title">Your sandbox enrollment and API key</h4>
+                  <p>Create one key per Adobe sandbox to establish enrollment. Coworker uses your Adobe sign-in and does not need the plaintext key; Codex, Cursor, and other key-based clients authenticate with <code>X-AEP-Lab-Mcp-Key</code>.</p>
                 </div>
                 <div class="mcp-lab-overview-block">
                   <h4 class="mcp-lab-overview-block-title">Main workflows</h4>

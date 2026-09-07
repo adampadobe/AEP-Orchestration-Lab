@@ -20,17 +20,17 @@ Nine MCP connections, one per Lab capability:
 
 This is deliberately **not** the full `/mcp` catch-all connection — every tool it would add is already covered by the nine above, so bundling it too would only add duplicate tool names with no new capability. It's still available as a standalone manual connection; see `tools/aep-lab-profile-mcp/README.md`.
 
-## Setup: one required connection header
+## Setup: signed-in Adobe IMS
 
-All nine connections share a single passthrough header, `X-AEP-Lab-Mcp-Key`.
+All nine connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted.
 
-Generate a sandbox-scoped key from the Profile Viewer's MCP key panel (the same self-service flow used for manual setup today), then provide it as the `X-AEP-Lab-Mcp-Key` connection header when Coworker configures the plugin's Integrations. The plugin declares the header as passthrough auth; it never stores the key in this repository.
+Before first use, create at least one sandbox-scoped MCP key from the Profile Viewer's MCP key panel. That creates the server-side enrollment tying your verified Adobe email to the permitted sandbox. You do **not** paste that key into Coworker; Coworker needs only your existing Adobe sign-in.
 
-`aep-lab-command-centre`, and any Snowflake-backed tools reached through `aep-lab-profiles`, require a **user-generated** key (not a shared ops key) — the key you generate from your own Profile Viewer session already satisfies this.
+API-key clients such as Codex or Cursor continue to send the generated key as `X-AEP-Lab-Mcp-Key`. Existing API-key connections remain compatible.
 
 ## Security
 
-This plugin only changes *how the connection gets added* to Coworker. The underlying MCP server's auth model is unchanged: every request still requires a valid, sandbox-scoped `X-AEP-Lab-Mcp-Key`, validated server-side exactly as it is for a manually-configured connection. The key itself is never stored in this repo — it lives only in the environment variable you set at install time.
+The plugin stores no user secrets. Coworker's bearer token is validated against Adobe IMS UserInfo, the verified identity must be an `@adobe.com` account, and the identity must have an active Portal MCP-key enrollment. The enrollment supplies the sandbox allowlist; the plaintext Portal key is never recoverable or needed by Coworker.
 
 ## Further reading
 

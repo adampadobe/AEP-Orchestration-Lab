@@ -38,9 +38,9 @@ Detailed numbered workflows and copy-ready example Coworker prompts, referenced 
 
    > Take `revisionId` from **lab_demo_assets_inspect**. Call **lab_demo_assets_restore** with `revision_id` and `confirmed:false`; show the preview. After confirmation call it again with returned `preflight_id`, `confirmed:true`, and a new idempotency key.
 
-**Focused Coworker config:** connection `aep-lab-demo-prep`, URL ending `/mcp/demo-prep`, same `X-AEP-Lab-Mcp-Key` as the other connections in this plugin.
+**Focused Coworker config:** connection `aep-lab-demo-prep`, URL ending `/mcp/demo-prep`, using the plugin's Adobe IMS passthrough provider.
 
-**Focused PDF Coworker config:** connection `aep-lab-pdf-prep`, URL ending `/mcp/pdf`, same sandbox-scoped `X-AEP-Lab-Mcp-Key`. See `docs/COWORKER_PDF_PREP_MCP.md` for copy-ready workflows, limits, and prompts.
+**Focused PDF Coworker config:** connection `aep-lab-pdf-prep`, URL ending `/mcp/pdf`, using the plugin's Adobe IMS passthrough provider. See `docs/COWORKER_PDF_PREP_MCP.md` for copy-ready workflows, limits, and prompts.
 
 ## Workflow 0a — Confirm email format before first generate
 

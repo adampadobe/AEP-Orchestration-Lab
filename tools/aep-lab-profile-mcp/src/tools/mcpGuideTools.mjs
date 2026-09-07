@@ -17,7 +17,7 @@ export function registerMcpGuideTools(mcpServer) {
     return jsonResult({
       ok: true,
       contexts: listMcpContexts({ includeAdobe: include_adobe }),
-      note: 'All aep-lab-* contexts are views of one Cloud Run service and reuse the same sandbox-scoped X-AEP-Lab-Mcp-Key. Adobe-hosted contexts use Adobe sign-in.',
+      note: 'All aep-lab-* contexts are views of one Cloud Run service. The Coworker marketplace uses validated Adobe IMS passthrough; other clients use the same sandbox-scoped X-AEP-Lab-Mcp-Key.',
     });
   });
 

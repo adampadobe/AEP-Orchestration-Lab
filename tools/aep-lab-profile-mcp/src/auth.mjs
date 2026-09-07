@@ -6,8 +6,11 @@ import { getFirestoreDb } from './firestoreAdmin.mjs';
 
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 const KEYS_COLLECTION = 'mcpApiKeys';
+const IMS_USERINFO_URL = 'https://ims-na1.adobelogin.com/ims/userinfo/v2';
+const IMS_CACHE_TTL_MS = 5 * 60_000;
 
 let configCache = null;
+const imsPrincipalCache = new Map();
 
 function hashApiKey(apiKey) {
   return createHash('sha256').update(String(apiKey || ''), 'utf8').digest('hex');
@@ -83,6 +86,142 @@ async function validateUserGeneratedKey(provided) {
   }
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase().slice(0, 160);
+}
+
+function normalizeSandboxList(raw) {
+  const values = Array.isArray(raw) ? raw : [raw];
+  return [...new Set(values
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter((value) => /^[a-z0-9][a-z0-9_-]{0,47}$/.test(value)))];
+}
+
+function imsKeyId(subject, email) {
+  return `ims-${createHash('sha256').update(String(subject || email), 'utf8').digest('hex').slice(0, 12)}`;
+}
+
+async function resolveImsEnrollment(email, db) {
+  if (!db) {
+    return { ok: false, status: 503, message: 'IMS enrollment lookup is temporarily unavailable.' };
+  }
+
+  try {
+    const snap = await db.collection(KEYS_COLLECTION).where('principalEmail', '==', email).get();
+    const active = snap.docs
+      .map((doc) => ({ id: doc.id, ...(doc.data() || {}) }))
+      .filter((entry) => !entry.revoked);
+    if (active.length === 0) {
+      return {
+        ok: false,
+        status: 403,
+        message: 'No active AEP Lab enrollment was found for this Adobe user. Generate one sandbox-scoped MCP key in the AEP Lab Portal, then retry; the key itself is not entered in Coworker.',
+      };
+    }
+
+    const allowedSandboxes = normalizeSandboxList(active.flatMap((entry) => (
+      entry.sandbox ? [entry.sandbox] : entry.allowedSandboxes
+    )));
+    if (allowedSandboxes.length === 0) {
+      return { ok: false, status: 403, message: 'The AEP Lab enrollment has no active sandbox scope.' };
+    }
+
+    const principalUid = String(active.find((entry) => entry.principalUid)?.principalUid || '').trim().slice(0, 128);
+    const principalLabel = String(active.find((entry) => entry.principalLabel)?.principalLabel || email).trim().slice(0, 120);
+    return {
+      ok: true,
+      principalUid: principalUid || null,
+      principalLabel,
+      allowedSandboxes,
+      allowedSet: new Set(allowedSandboxes),
+    };
+  } catch (err) {
+    console.warn('[aep-lab-profile-mcp] IMS enrollment lookup failed:', err?.message || err);
+    return { ok: false, status: 503, message: 'IMS enrollment lookup is temporarily unavailable.' };
+  }
+}
+
+/**
+ * Validate Coworker's Adobe IMS bearer token and resolve sandbox enrollment.
+ * The bearer token is checked with IMS UserInfo; forwarded identity headers are
+ * treated only as consistency checks, never as proof of identity.
+ *
+ * @param {import('express').Request} req
+ * @param {{ fetchImpl?: typeof fetch, db?: object | null, now?: number }} [options]
+ */
+export async function validateImsBearer(req, options = {}) {
+  const authHeader = String(req.headers.authorization || '').trim();
+  if (!/^Bearer\s+\S+$/i.test(authHeader)) {
+    return { ok: false, status: 401, message: 'Missing Authorization: Bearer IMS token.' };
+  }
+
+  const orgId = String(req.headers['x-gw-ims-org-id'] || '').trim();
+  if (!/^[A-Za-z0-9]+@AdobeOrg$/.test(orgId)) {
+    return { ok: false, status: 401, message: 'Missing or invalid x-gw-ims-org-id header.' };
+  }
+
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  const forwardedEmail = normalizeEmail(req.headers['x-gw-ims-email']);
+  const cacheKey = hashApiKey(`${token}\n${orgId}\n${forwardedEmail}`);
+  const now = Number(options.now ?? Date.now());
+  const cached = imsPrincipalCache.get(cacheKey);
+  if (cached && now - cached.cachedAt < IMS_CACHE_TTL_MS) return cached.result;
+
+  const fetchImpl = options.fetchImpl || globalThis.fetch;
+  let response;
+  try {
+    response = await fetchImpl(IMS_USERINFO_URL, {
+      headers: { accept: 'application/json', authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch (err) {
+    console.warn('[aep-lab-profile-mcp] IMS UserInfo request failed:', err?.message || err);
+    return { ok: false, status: 503, message: 'Adobe IMS authentication is temporarily unavailable.' };
+  }
+
+  if (!response.ok) {
+    return { ok: false, status: response.status === 401 ? 401 : 403, message: 'Invalid or expired Adobe IMS token.' };
+  }
+
+  let profile;
+  try {
+    profile = await response.json();
+  } catch {
+    return { ok: false, status: 502, message: 'Adobe IMS returned an invalid identity response.' };
+  }
+
+  const email = normalizeEmail(profile?.email);
+  if (!email || !email.endsWith('@adobe.com') || profile?.email_verified === false) {
+    return { ok: false, status: 403, message: 'A verified Adobe corporate identity is required.' };
+  }
+  if (forwardedEmail && forwardedEmail !== email) {
+    return { ok: false, status: 403, message: 'Forwarded IMS identity does not match the validated bearer token.' };
+  }
+
+  const db = Object.hasOwn(options, 'db') ? options.db : await getFirestoreDb();
+  const enrollment = await resolveImsEnrollment(email, db);
+  if (!enrollment.ok) return enrollment;
+
+  const keyId = imsKeyId(profile?.sub, email);
+  const result = {
+    ok: true,
+    keyId,
+    source: 'ims',
+    principalEmail: email,
+    principalUid: enrollment.principalUid,
+    principalAccess: {
+      keyId,
+      allowedSandboxes: enrollment.allowedSandboxes,
+      allowedSet: enrollment.allowedSet,
+      principalLabel: enrollment.principalLabel,
+      source: 'ims-enrollment',
+    },
+    forwardMcpApiKey: loadAuthConfig().apiKey,
+  };
+  imsPrincipalCache.set(cacheKey, { cachedAt: now, result });
+  return result;
+}
+
 /**
  * Validate incoming MCP HTTP request API key.
  * Ops shared key (env) OR per-user Firestore mcpApiKeys.
@@ -118,6 +257,13 @@ export async function validateMcpApiKey(req) {
   };
 }
 
+/** Accept the existing MCP API key or Coworker's signed-in Adobe IMS session. */
+export async function validateMcpRequest(req, options = {}) {
+  const provided = String(req.headers[MCP_KEY_HEADER] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
+  if (provided) return validateMcpApiKey(req);
+  return validateImsBearer(req, options);
+}
+
 /**
  * Ensure sandbox is on the MCP allowlist for the current principal (case-insensitive).
  * Uses Firestore mcpSandboxAllowlist/{keyId} when present, else env fallback.
@@ -138,33 +284,5 @@ export function assertSandboxAllowed(sandbox) {
   });
 }
 
-/**
- * Phase 3.5 OAuth scaffold — not wired for Coworker OIDC yet.
- * When AEP_LAB_MCP_OAUTH_ISSUER and AEP_LAB_MCP_OAUTH_AUDIENCE are set, validate Bearer JWT (stub).
- *
- * @param {import('express').Request} req
- * @returns {{ ok: true } | { ok: false, message: string }}
- */
-export function validateOAuthBearer(req) {
-  const issuer = String(process.env.AEP_LAB_MCP_OAUTH_ISSUER || '').trim();
-  const audience = String(process.env.AEP_LAB_MCP_OAUTH_AUDIENCE || '').trim();
-
-  if (!issuer || !audience) {
-    return {
-      ok: false,
-      message:
-        'OAuth bearer auth is not configured. Set AEP_LAB_MCP_OAUTH_ISSUER and AEP_LAB_MCP_OAUTH_AUDIENCE (Phase 3.5). Use X-AEP-Lab-Mcp-Key today.',
-    };
-  }
-
-  const authHeader = String(req.headers.authorization || '').trim();
-  if (!authHeader.startsWith('Bearer ')) {
-    return { ok: false, message: 'Missing Authorization: Bearer token.' };
-  }
-
-  return {
-    ok: false,
-    message:
-      'OAuth issuer/audience env vars are set but JWT validation is not implemented yet (Phase 3.5). Use X-AEP-Lab-Mcp-Key.',
-  };
-}
+/** Backward-compatible export name for callers of the former OAuth scaffold. */
+export const validateOAuthBearer = validateImsBearer;
