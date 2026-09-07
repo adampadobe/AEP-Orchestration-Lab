@@ -4,7 +4,7 @@ import test from 'node:test';
 process.env.AEP_LAB_MCP_API_KEY = 'server-held-test-key';
 process.env.AEP_LAB_MCP_ALLOWED_SANDBOXES = 'apalmer,kirkham';
 
-const { validateImsBearer, validateMcpRequest } = await import('../src/auth.mjs');
+const { describeImsBearerForLog, validateImsBearer, validateMcpRequest } = await import('../src/auth.mjs');
 
 function request(headers = {}) {
   return { headers };
@@ -133,4 +133,42 @@ test('dual auth keeps API-key clients on the existing path', async () => {
   const result = await validateMcpRequest(request({ 'x-aep-lab-mcp-key': 'server-held-test-key' }));
   assert.equal(result.ok, true);
   assert.equal(result.source, 'env');
+});
+
+test('IMS rejection diagnostics report token shape without credential or identity values', async () => {
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'secret-kid' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    sub: 'sensitive-user-id',
+    email: 'apalmer@adobe.com',
+    exp: Math.floor(Date.now() / 1000) + 300,
+    custom_claim: 'sensitive-value',
+  })).toString('base64url');
+  const token = `${header}.${payload}.sensitive-signature`;
+  const diagnostics = describeImsBearerForLog(token, request(imsHeaders({
+    authorization: `Bearer ${token}`,
+    'x-gw-ims-user-id': 'sensitive-user-id',
+  })));
+
+  assert.equal(diagnostics.format, 'jwt');
+  assert.equal(diagnostics.algorithm, 'RS256');
+  assert.equal(diagnostics.kidPresent, true);
+  assert.equal(diagnostics.hasEmailClaim, true);
+  assert.equal(diagnostics.forwardedEmailMatchesTokenClaim, true);
+  assert.equal(diagnostics.forwardedUserIdMatchesTokenClaim, true);
+  assert.ok(diagnostics.claimNames.includes('custom_claim'));
+
+  const warnings = [];
+  const rejected = await validateImsBearer(request(imsHeaders({
+    authorization: `Bearer ${token}`,
+    'x-gw-ims-user-id': 'sensitive-user-id',
+  })), {
+    db: enrollmentDb(),
+    fetchImpl: async () => ({ ok: false, status: 403 }),
+    logger: { warn: (...args) => warnings.push(args.join(' ')) },
+  });
+  assert.equal(rejected.status, 403);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /userinfo-http-status/);
+  assert.match(warnings[0], /"format":"jwt"/);
+  assert.doesNotMatch(warnings[0], /sensitive-user-id|sensitive-signature|sensitive-value|apalmer@adobe\.com|secret-kid/);
 });

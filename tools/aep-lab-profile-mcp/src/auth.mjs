@@ -90,6 +90,55 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase().slice(0, 160);
 }
 
+function decodeJwtPart(value) {
+  try {
+    return JSON.parse(Buffer.from(String(value || ''), 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Return credential-safe bearer metadata for auth troubleshooting.
+ * Never include token bytes or identity/header values in this object.
+ */
+export function describeImsBearerForLog(token, req = {}) {
+  const parts = String(token || '').split('.');
+  const header = parts.length === 3 ? decodeJwtPart(parts[0]) : null;
+  const payload = parts.length === 3 ? decodeJwtPart(parts[1]) : null;
+  const forwardedEmail = normalizeEmail(req.headers?.['x-gw-ims-email']);
+  const forwardedUserId = String(req.headers?.['x-gw-ims-user-id'] || '').trim();
+  const tokenEmail = normalizeEmail(payload?.email || payload?.user_email || payload?.preferred_username);
+  const tokenSubject = String(payload?.sub || payload?.user_id || '').trim();
+  const exp = Number(payload?.exp);
+
+  return {
+    format: header && payload ? 'jwt' : 'opaque',
+    algorithm: typeof header?.alg === 'string' ? header.alg.slice(0, 16) : null,
+    kidPresent: Boolean(header?.kid),
+    claimNames: payload && typeof payload === 'object' ? Object.keys(payload).sort().slice(0, 80) : [],
+    hasEmailClaim: Boolean(tokenEmail),
+    hasSubjectClaim: Boolean(tokenSubject),
+    hasExpiryClaim: Number.isFinite(exp),
+    expired: Number.isFinite(exp) ? exp * 1000 <= Date.now() : null,
+    forwardedEmailPresent: Boolean(forwardedEmail),
+    forwardedUserIdPresent: Boolean(forwardedUserId),
+    forwardedEmailMatchesTokenClaim: tokenEmail ? safeEqual(forwardedEmail, tokenEmail) : null,
+    forwardedUserIdMatchesTokenClaim: tokenSubject && forwardedUserId
+      ? safeEqual(forwardedUserId, tokenSubject)
+      : null,
+  };
+}
+
+function logImsRejection(reason, req, token, options = {}, details = {}) {
+  const logger = options.logger || console;
+  logger.warn?.('[aep-lab-profile-mcp] ims-auth-rejected', JSON.stringify({
+    reason,
+    ...details,
+    bearer: describeImsBearerForLog(token, req),
+  }));
+}
+
 function normalizeSandboxList(raw) {
   const values = Array.isArray(raw) ? raw : [raw];
   return [...new Set(values
@@ -180,6 +229,7 @@ export async function validateImsBearer(req, options = {}) {
   }
 
   if (!response.ok) {
+    logImsRejection('userinfo-http-status', req, token, options, { userinfoStatus: response.status });
     return { ok: false, status: response.status === 401 ? 401 : 403, message: 'Invalid or expired Adobe IMS token.' };
   }
 
@@ -192,15 +242,23 @@ export async function validateImsBearer(req, options = {}) {
 
   const email = normalizeEmail(profile?.email);
   if (!email || !email.endsWith('@adobe.com') || profile?.email_verified === false) {
+    logImsRejection('userinfo-corporate-identity', req, token, options, {
+      userinfoEmailPresent: Boolean(email),
+      userinfoEmailVerified: profile?.email_verified !== false,
+    });
     return { ok: false, status: 403, message: 'A verified Adobe corporate identity is required.' };
   }
   if (forwardedEmail && forwardedEmail !== email) {
+    logImsRejection('forwarded-email-mismatch', req, token, options);
     return { ok: false, status: 403, message: 'Forwarded IMS identity does not match the validated bearer token.' };
   }
 
   const db = Object.hasOwn(options, 'db') ? options.db : await getFirestoreDb();
   const enrollment = await resolveImsEnrollment(email, db);
-  if (!enrollment.ok) return enrollment;
+  if (!enrollment.ok) {
+    logImsRejection('enrollment-rejected', req, token, options, { enrollmentStatus: enrollment.status });
+    return enrollment;
+  }
 
   const keyId = imsKeyId(profile?.sub, email);
   const result = {
