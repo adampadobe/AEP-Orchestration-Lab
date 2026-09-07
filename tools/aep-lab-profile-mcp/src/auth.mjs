@@ -7,7 +7,7 @@ import { getFirestoreDb } from './firestoreAdmin.mjs';
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 const KEYS_COLLECTION = 'mcpApiKeys';
 const IMS_USERINFO_URL = 'https://ims-na1.adobelogin.com/ims/userinfo/v2';
-const IMS_PROFILE_URL = 'https://ims-na1.adobelogin.com/ims/profile/v3';
+const IMS_PROFILE_URL = 'https://ims-na1.adobelogin.com/ims/profile/v1';
 const IMS_CACHE_TTL_MS = 5 * 60_000;
 
 let configCache = null;
@@ -166,8 +166,9 @@ function imsIdentityFromProfile(raw) {
   return { email: '', emailVerified: false, subject: '' };
 }
 
-async function fetchImsJson(fetchImpl, url, token) {
+async function fetchImsJson(fetchImpl, url, token, method = 'GET') {
   const response = await fetchImpl(url, {
+    method,
     headers: { accept: 'application/json', authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(5_000),
   });
@@ -267,7 +268,7 @@ export async function validateImsBearer(req, options = {}) {
   if (!identity.email) {
     let profileResult;
     try {
-      profileResult = await fetchImsJson(fetchImpl, IMS_PROFILE_URL, token);
+      profileResult = await fetchImsJson(fetchImpl, IMS_PROFILE_URL, token, 'POST');
     } catch (err) {
       console.warn('[aep-lab-profile-mcp] IMS Profile request failed:', err?.message || err);
       return { ok: false, status: 503, message: 'Adobe IMS authentication is temporarily unavailable.' };

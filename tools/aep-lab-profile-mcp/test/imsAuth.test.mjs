@@ -123,12 +123,14 @@ test('IMS auth falls back to the authenticated IMS profile when UserInfo has no 
       sandbox: 'apalmer',
       revoked: false,
     }]),
-    fetchImpl: async (url) => {
+    fetchImpl: async (url, options) => {
       requestedUrls.push(url);
       if (url.endsWith('/ims/userinfo/v2')) {
+        assert.equal(options.method, 'GET');
         return { ok: true, status: 200, async json() { return { email_verified: true }; } };
       }
-      assert.equal(url, 'https://ims-na1.adobelogin.com/ims/profile/v3');
+      assert.equal(url, 'https://ims-na1.adobelogin.com/ims/profile/v1');
+      assert.equal(options.method, 'POST');
       return {
         ok: true,
         status: 200,
@@ -141,7 +143,7 @@ test('IMS auth falls back to the authenticated IMS profile when UserInfo has no 
 
   assert.deepEqual(requestedUrls, [
     'https://ims-na1.adobelogin.com/ims/userinfo/v2',
-    'https://ims-na1.adobelogin.com/ims/profile/v3',
+    'https://ims-na1.adobelogin.com/ims/profile/v1',
   ]);
   assert.equal(result.ok, true);
   assert.equal(result.principalEmail, 'apalmer@adobe.com');
