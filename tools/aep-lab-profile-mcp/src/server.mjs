@@ -38,7 +38,7 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.41.0';
+const MCP_VERSION = '3.41.1';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
