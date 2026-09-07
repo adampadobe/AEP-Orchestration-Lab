@@ -110,6 +110,56 @@ test('IMS auth validates token identity and uses active Portal enrollment', asyn
   assert.match(result.keyId, /^ims-[a-f0-9]{12}$/);
 });
 
+test('IMS auth falls back to the authenticated IMS profile when UserInfo has no email scope', async () => {
+  const requestedUrls = [];
+  const result = await validateImsBearer(request(imsHeaders({
+    authorization: 'Bearer cowork-scoped-token',
+    'x-gw-ims-user-id': 'ims-user-123',
+  })), {
+    now: 200,
+    db: enrollmentDb([{
+      principalUid: 'firebase-user-1',
+      principalEmail: 'apalmer@adobe.com',
+      sandbox: 'apalmer',
+      revoked: false,
+    }]),
+    fetchImpl: async (url) => {
+      requestedUrls.push(url);
+      if (url.endsWith('/ims/userinfo/v2')) {
+        return { ok: true, status: 200, async json() { return { email_verified: true }; } };
+      }
+      assert.equal(url, 'https://ims-na1.adobelogin.com/ims/profile/v3');
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { userId: 'ims-user-123', email: 'apalmer@adobe.com', emailVerified: true };
+        },
+      };
+    },
+  });
+
+  assert.deepEqual(requestedUrls, [
+    'https://ims-na1.adobelogin.com/ims/userinfo/v2',
+    'https://ims-na1.adobelogin.com/ims/profile/v3',
+  ]);
+  assert.equal(result.ok, true);
+  assert.equal(result.principalEmail, 'apalmer@adobe.com');
+});
+
+test('IMS auth does not trust a forwarded email when authenticated IMS endpoints omit it', async () => {
+  const rejected = await validateImsBearer(request(imsHeaders({
+    authorization: 'Bearer no-email-token',
+  })), {
+    db: enrollmentDb([{ principalUid: 'firebase-user-1', sandbox: 'apalmer', revoked: false }]),
+    fetchImpl: async () => ({ ok: true, status: 200, async json() { return { userId: 'ims-user-123' }; } }),
+    logger: { warn() {} },
+  });
+
+  assert.equal(rejected.status, 403);
+  assert.match(rejected.message, /verified Adobe corporate identity/);
+});
+
 test('IMS auth rejects identity mismatch and missing enrollment', async () => {
   const mismatch = await validateImsBearer(request(imsHeaders({
     authorization: 'Bearer mismatch-token',

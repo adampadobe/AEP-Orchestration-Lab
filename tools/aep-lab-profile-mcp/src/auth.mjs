@@ -7,6 +7,7 @@ import { getFirestoreDb } from './firestoreAdmin.mjs';
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 const KEYS_COLLECTION = 'mcpApiKeys';
 const IMS_USERINFO_URL = 'https://ims-na1.adobelogin.com/ims/userinfo/v2';
+const IMS_PROFILE_URL = 'https://ims-na1.adobelogin.com/ims/profile/v3';
 const IMS_CACHE_TTL_MS = 5 * 60_000;
 
 let configCache = null;
@@ -150,6 +151,34 @@ function imsKeyId(subject, email) {
   return `ims-${createHash('sha256').update(String(subject || email), 'utf8').digest('hex').slice(0, 12)}`;
 }
 
+function imsIdentityFromProfile(raw) {
+  const candidates = [raw, raw?.profile, raw?.user, ...(Array.isArray(raw?.profiles) ? raw.profiles : [])]
+    .filter((value) => value && typeof value === 'object');
+  for (const profile of candidates) {
+    const email = normalizeEmail(profile.email || profile.emailAddress || profile.user_email);
+    if (!email) continue;
+    return {
+      email,
+      emailVerified: profile.email_verified !== false && profile.emailVerified !== false,
+      subject: String(profile.sub || profile.user_id || profile.userId || profile.id || '').trim(),
+    };
+  }
+  return { email: '', emailVerified: false, subject: '' };
+}
+
+async function fetchImsJson(fetchImpl, url, token) {
+  const response = await fetchImpl(url, {
+    headers: { accept: 'application/json', authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!response.ok) return { ok: false, status: response.status, body: null };
+  try {
+    return { ok: true, status: response.status, body: await response.json() };
+  } catch {
+    return { ok: false, status: 502, body: null };
+  }
+}
+
 async function resolveImsEnrollment(email, db) {
   if (!db) {
     return { ok: false, status: 503, message: 'IMS enrollment lookup is temporarily unavailable.' };
@@ -217,34 +246,52 @@ export async function validateImsBearer(req, options = {}) {
   if (cached && now - cached.cachedAt < IMS_CACHE_TTL_MS) return cached.result;
 
   const fetchImpl = options.fetchImpl || globalThis.fetch;
-  let response;
+  let userInfoResult;
   try {
-    response = await fetchImpl(IMS_USERINFO_URL, {
-      headers: { accept: 'application/json', authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(5_000),
-    });
+    userInfoResult = await fetchImsJson(fetchImpl, IMS_USERINFO_URL, token);
   } catch (err) {
     console.warn('[aep-lab-profile-mcp] IMS UserInfo request failed:', err?.message || err);
     return { ok: false, status: 503, message: 'Adobe IMS authentication is temporarily unavailable.' };
   }
 
-  if (!response.ok) {
-    logImsRejection('userinfo-http-status', req, token, options, { userinfoStatus: response.status });
-    return { ok: false, status: response.status === 401 ? 401 : 403, message: 'Invalid or expired Adobe IMS token.' };
+  if (!userInfoResult.ok) {
+    logImsRejection('userinfo-http-status', req, token, options, { userinfoStatus: userInfoResult.status });
+    if (userInfoResult.status === 502) {
+      return { ok: false, status: 502, message: 'Adobe IMS returned an invalid identity response.' };
+    }
+    return { ok: false, status: userInfoResult.status === 401 ? 401 : 403, message: 'Invalid or expired Adobe IMS token.' };
   }
 
-  let profile;
-  try {
-    profile = await response.json();
-  } catch {
-    return { ok: false, status: 502, message: 'Adobe IMS returned an invalid identity response.' };
+  let identity = imsIdentityFromProfile(userInfoResult.body);
+  let identitySource = 'userinfo';
+  if (!identity.email) {
+    let profileResult;
+    try {
+      profileResult = await fetchImsJson(fetchImpl, IMS_PROFILE_URL, token);
+    } catch (err) {
+      console.warn('[aep-lab-profile-mcp] IMS Profile request failed:', err?.message || err);
+      return { ok: false, status: 503, message: 'Adobe IMS authentication is temporarily unavailable.' };
+    }
+    if (!profileResult.ok) {
+      logImsRejection('profile-http-status', req, token, options, { profileStatus: profileResult.status });
+      return {
+        ok: false,
+        status: profileResult.status === 502 ? 502 : (profileResult.status === 401 ? 401 : 403),
+        message: profileResult.status === 502
+          ? 'Adobe IMS returned an invalid identity response.'
+          : 'Adobe IMS did not provide a usable corporate profile for this session.',
+      };
+    }
+    identity = imsIdentityFromProfile(profileResult.body);
+    identitySource = 'profile';
   }
 
-  const email = normalizeEmail(profile?.email);
-  if (!email || !email.endsWith('@adobe.com') || profile?.email_verified === false) {
+  const email = identity.email;
+  if (!email || !email.endsWith('@adobe.com') || !identity.emailVerified) {
     logImsRejection('userinfo-corporate-identity', req, token, options, {
       userinfoEmailPresent: Boolean(email),
-      userinfoEmailVerified: profile?.email_verified !== false,
+      userinfoEmailVerified: identity.emailVerified,
+      identitySource,
     });
     return { ok: false, status: 403, message: 'A verified Adobe corporate identity is required.' };
   }
@@ -260,7 +307,7 @@ export async function validateImsBearer(req, options = {}) {
     return enrollment;
   }
 
-  const keyId = imsKeyId(profile?.sub, email);
+  const keyId = imsKeyId(identity.subject, email);
   const result = {
     ok: true,
     keyId,
