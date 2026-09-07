@@ -38,7 +38,7 @@ npm run validate:ecosystem-vendor-index
 # Create AJO HTML content template on platform.adobe.io (direct API from this repo — do not use Firebase for template/fragment authoring; IMS from credentials.env; see docs/AJO_CONTENT_TEMPLATE_API.md)
 npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html --sandbox apalmer
 
-# Deploy (from repo root — always commit and push first)
+# Firebase deploy (production only after PR validation + merge, from clean main at exact origin/main)
 npx -y firebase-tools@latest deploy --only functions,hosting
 npx -y firebase-tools@latest deploy --only hosting
 npx -y firebase-tools@latest deploy --only functions
@@ -71,14 +71,15 @@ Browser → Firebase Hosting (web/)
 
 ## Git workflow
 
-Before substantive edits:
-1. `git fetch origin`
-2. If behind `origin/main`: `git pull --ff-only origin main` (stash WIP first if needed)
-3. On a feature branch: rebase or merge `origin/main` in
+`CONTRIBUTING.md` is the model-neutral source of truth. Apply its workflow automatically without waiting for the user to restate it.
 
-Immediately before `git push`: fetch and integrate again if anyone else may have pushed.
+1. **Before substantive edits:** `git fetch origin`, inspect `git status`, and update from `origin/main`. Preserve unrelated tracked and untracked work. Make changes on a feature branch, not `main`.
+2. **Before every push:** fetch again, integrate any newer `origin/main`, rerun affected tests, then push the feature branch. Never force-push `main`.
+3. **Ship order:** feature branch → focused commit → push → pull request → required validation/review → merge to `main`.
+4. **Before production deploy:** switch to `main`, fetch and `git pull --ff-only origin main`, then confirm the tree is clean and `HEAD` exactly equals freshly fetched `origin/main`. Never production-deploy a feature branch or uncommitted work.
+5. **After deploy:** verify the live Git SHA, revision, affected routes/endpoints, and required runtime bindings.
 
-Ship order: **commit → push → deploy**. Never deploy uncommitted work. Never force-push `main`.
+For dedicated Cloud Run services such as `aep-lab-profile-mcp`, inspect the current service before deployment. A code-only release must use `gcloud run services update --image ...` so existing environment variables, secret bindings, service account, ingress, timeout, memory, and scaling are preserved. Use `gcloud run deploy` configuration flags only when the task explicitly changes the complete service configuration. Read the service back after deployment and verify its revision, traffic, bindings, and health without printing secret values.
 
 Commit subjects: prefix with **`[<github-handle>]`** (e.g. **`[apalmer]`**) so history shows who shipped each change — see **CONTRIBUTING.md** → *Commit messages (GitHub handle prefix)*.
 
