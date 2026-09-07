@@ -7,7 +7,7 @@ description: >-
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows
