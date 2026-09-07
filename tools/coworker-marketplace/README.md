@@ -14,7 +14,7 @@ A Claude/Cowork-format plugin marketplace so Adobe CX Coworker users can install
    - **Subdirectory** *(optional)*: `tools/coworker-marketplace`
 5. Click **Add Marketplace**.
 
-Once added, install the **AEP Orchestration Lab** plugin from the marketplace's Available list. You'll be prompted for one environment variable, `AEP_LAB_MCP_KEY` — see `aep-lab/README.md` for how to generate it.
+Once added, install the **AEP Orchestration Lab** plugin from the marketplace's Available list. Coworker forwards your signed-in Adobe IMS session automatically; no key is pasted into the plugin. Create at least one sandbox-scoped MCP key in the AEP Lab Portal once to establish your sandbox enrollment, but keep the plaintext key for non-Coworker clients only.
 
 ## Structure
 
@@ -28,4 +28,4 @@ tools/coworker-marketplace/
     └── README.md
 ```
 
-This is a `.claude-plugin/` marketplace/plugin format (the same schema Claude Code plugins use — Adobe CX Coworker is Adobe's deployment of Claude's Cowork app and shares it unmodified). See `aep-lab/README.md` for what gets installed and the required environment variable.
+This is a `.claude-plugin/` marketplace/plugin format. See `aep-lab/README.md` for what gets installed and how Coworker IMS authentication maps to the Portal enrollment.

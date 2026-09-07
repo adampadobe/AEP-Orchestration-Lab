@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.40.0.** All Lab tools authenticate with a **single** `X-AEP-Lab-Mcp-Key` header.
+**Version 3.41.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin).
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete catalog. Clients that struggle to invoke tools from a large deferred catalog can connect to a focused endpoint using the same API key header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete catalog. API-key clients that struggle to invoke tools from a large deferred catalog can connect to a focused endpoint using the same header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -22,7 +22,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** instead of manually adding each connection above, add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin — it registers all nine focused connections above (everything except `/mcp`, since it's already fully covered by them) plus their workflow guidance, prompting once for the same `X-AEP-Lab-Mcp-Key`. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** instead of manually adding each connection above, add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers all nine focused connections above (everything except `/mcp`, since it's already fully covered by them) plus their workflow guidance, and authenticates with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. See `tools/coworker-marketplace/README.md`.
 
 ### Entry point (Phase 3.38)
 
@@ -386,7 +386,6 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `AEP_LAB_MCP_BATCH_DELAY_MS` | No | Default batch delay (500ms, max 5000) |
 | `AEP_LAB_MCP_FIRESTORE` | No | Set `off` to skip Firestore audit/ACL reads locally |
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run | `aep-orchestration-lab` |
-| `AEP_LAB_MCP_OAUTH_ISSUER` / `AUDIENCE` | No | Phase 3.5 OAuth scaffold only |
 | `OPENWEATHER_API_KEY` | For `/mcp/weather` | OpenWeatherMap API key — https://openweathermap.org/api |
 | `GOOGLE_MAPS_API_KEY` | For `lab_weather_map` | Google Maps API key restricted to Static Maps + Geocoding APIs only; never leaves the server |
 | `GOOGLE_MAPS_EMBED_API_KEY` | For `lab_weather_map`'s `embed_url` | Separate Google Maps API key restricted to the Maps Embed API only; designed to be exposed publicly in the iframe it authorizes |
@@ -526,12 +525,12 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 - Up to 10 active keys per user **per sandbox** so each client can have its own independently rotatable/revocable credential. `allowedSandboxes` on each key is always `[sandbox]`. Legacy multi-sandbox keys still work via `allowedSandboxes[0]`.
 - Firestore: `mcpApiKeys/{keyId}` stores `keyHash` (SHA-256), `keyPrefix`, `keyLabel`, `allowedSandboxes`, `principalUid`, `revoked`.
-- MCP Cloud Run auth: shared ops key (`AEP_LAB_MCP_API_KEY`) **or** user key via `keyHash` query on `mcpApiKeys`.
+- MCP Cloud Run auth: shared ops key (`AEP_LAB_MCP_API_KEY`), user key via `keyHash` query on `mcpApiKeys`, or validated Coworker Adobe IMS bearer auth.
 - Ops seed script `scripts/seed-mcp-sandbox-allowlist.mjs` remains for shared / legacy keys.
 
-## Phase 3.5 OAuth (future)
+## Coworker Adobe IMS authentication
 
-`validateOAuthBearer` in `src/auth.mjs` checks `AEP_LAB_MCP_OAUTH_ISSUER` and `AEP_LAB_MCP_OAUTH_AUDIENCE`. When both are set, a stub returns *not implemented* until Coworker OIDC docs land. **Today:** use `X-AEP-Lab-Mcp-Key` only.
+The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment; Coworker never receives or stores the plaintext key. Existing API-key clients are unchanged.
 
 The audience-management route is authenticated with a user-generated MCP key and is not an anonymous profile API. Existing public profile read routes remain unchanged.
 

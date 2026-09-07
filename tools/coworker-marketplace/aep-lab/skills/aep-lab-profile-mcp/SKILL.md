@@ -2,25 +2,23 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.40.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.41.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.40.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.41.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-This plugin installs nine focused Coworker connections that share the same API key: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, and `aep-lab-weather`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. That's exactly why this plugin installs the other eight connections directly rather than relying on `lab_load_toolset` alone.
+This plugin installs nine focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, and `aep-lab-weather`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. That's exactly why this plugin installs the other eight connections directly rather than relying on `lab_load_toolset` alone.
 
-Configure in Coworker with a **single** header, already wired into this plugin's `.mcp.json`:
+Coworker forwards `Authorization` and IMS identity headers automatically. Do not ask the user to paste a key into Coworker or the plugin manifest.
 
-- `X-AEP-Lab-Mcp-Key` — required for all tools (including provisioning)
-
-**Portal:** generate an MCP key per sandbox **without** completing workspace slug first. The MCP client completes foundations via **`lab_mcp_first_run_setup`** on first connect.
+**Portal:** create at least one MCP key per sandbox to establish the signed-in Adobe user's sandbox enrollment. The plaintext key is only for API-key clients such as Codex or Cursor; Coworker does not use it. The MCP client completes foundations via **`lab_mcp_first_run_setup`** on first connect.
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
 

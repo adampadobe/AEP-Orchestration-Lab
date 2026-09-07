@@ -887,13 +887,8 @@ async function run() {
   const { eventConfigDocId } = await import('../src/eventConfigStore.mjs');
   assert(eventConfigDocId('prisacar') === 'prisacar', 'eventConfigDocId simple sandbox');
 
-  const oauthOff = validateOAuthBearer(mockReq());
-  assert(!oauthOff.ok && oauthOff.message.includes('not configured'), 'oauth off by default');
-
-  process.env.AEP_LAB_MCP_OAUTH_ISSUER = 'https://issuer.example';
-  process.env.AEP_LAB_MCP_OAUTH_AUDIENCE = 'mcp-audience';
-  const oauthStub = validateOAuthBearer(mockReq({ authorization: 'Bearer fake' }));
-  assert(!oauthStub.ok && oauthStub.message.includes('not implemented'), 'oauth stub when env set');
+  const oauthMissing = await validateOAuthBearer(mockReq());
+  assert(!oauthMissing.ok && oauthMissing.message.includes('Authorization'), 'IMS bearer is required');
 
   const goodKey = await validateMcpApiKey(mockReq({ 'x-aep-lab-mcp-key': 'phase3-test-key' }));
   assert(goodKey.ok, 'api key ok');

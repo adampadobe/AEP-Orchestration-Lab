@@ -39,10 +39,18 @@ test('Coworker MCP manifest uses Integration schema for all focused endpoints', 
   assert.ok(Array.isArray(providers));
   assert.deepEqual(providers, [
     {
-      name: 'aep-lab-key-passthrough',
+      name: 'aep-lab-ims-passthrough',
       provider: {
         type: 'passthrough',
-        headers: { 'x-aep-lab-mcp-key': 'x-aep-lab-mcp-key' },
+        headers: {
+          authorization: 'authorization',
+          'x-gw-ims-org-id': 'x-gw-ims-org-id',
+          'x-gw-ims-user-id': 'x-gw-ims-user-id',
+          'x-gw-ims-email': 'x-gw-ims-email',
+          'x-gw-ims-first-name': 'x-gw-ims-first-name',
+          'x-gw-ims-last-name': 'x-gw-ims-last-name',
+          'x-gw-ims-display-name': 'x-gw-ims-display-name',
+        },
       },
     },
   ]);
@@ -57,7 +65,7 @@ test('Coworker MCP manifest uses Integration schema for all focused endpoints', 
       `https://aep-lab-profile-mcp-109406613852.us-central1.run.app${endpoint}`,
     );
     assert.equal(server.transport, 'streamable_http');
-    assert.equal(server.auth, 'aep-lab-key-passthrough');
+    assert.equal(server.auth, 'aep-lab-ims-passthrough');
     assert.ok(Number.isInteger(server.tool_timeout_seconds));
     expectedEndpoints.delete(server.name);
   }
