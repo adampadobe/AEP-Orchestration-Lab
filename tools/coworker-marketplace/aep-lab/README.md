@@ -20,11 +20,11 @@ Nine MCP connections, one per Lab capability:
 
 This is deliberately **not** the full `/mcp` catch-all connection — every tool it would add is already covered by the nine above, so bundling it too would only add duplicate tool names with no new capability. It's still available as a standalone manual connection; see `tools/aep-lab-profile-mcp/README.md`.
 
-## Setup: one required environment variable
+## Setup: one required connection header
 
-All nine connections share a single header, `X-AEP-Lab-Mcp-Key`, sourced from one environment variable:
+All nine connections share a single passthrough header, `X-AEP-Lab-Mcp-Key`.
 
-**`AEP_LAB_MCP_KEY`** — generate a sandbox-scoped key from the Profile Viewer's MCP key panel (same self-service flow used for manual setup today), then set it as this variable when Coworker prompts for it during install.
+Generate a sandbox-scoped key from the Profile Viewer's MCP key panel (the same self-service flow used for manual setup today), then provide it as the `X-AEP-Lab-Mcp-Key` connection header when Coworker configures the plugin's Integrations. The plugin declares the header as passthrough auth; it never stores the key in this repository.
 
 `aep-lab-command-centre`, and any Snowflake-backed tools reached through `aep-lab-profiles`, require a **user-generated** key (not a shared ops key) — the key you generate from your own Profile Viewer session already satisfies this.
 
