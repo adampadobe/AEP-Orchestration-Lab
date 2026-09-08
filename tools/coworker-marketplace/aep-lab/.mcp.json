@@ -26,6 +26,13 @@
         "tool_timeout_seconds": 60
       },
       {
+        "name": "aep-lab-general",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
+        "transport": "streamable_http",
+        "auth": "aep-lab-ims-passthrough",
+        "tool_timeout_seconds": 650
+      },
+      {
         "name": "aep-lab-profiles",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile",
         "transport": "streamable_http",

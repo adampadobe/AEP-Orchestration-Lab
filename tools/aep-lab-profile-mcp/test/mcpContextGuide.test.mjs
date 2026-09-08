@@ -53,7 +53,7 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
   assert.match(html, /v3\.41\.3/);
-  assert.match(html, /installs nine focused integrations/i);
+  assert.match(html, /installs General plus nine focused integrations/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
   assert.match(catalog, /Complete Lab MCP · 127 tools/);
   assert.match(catalog, /Focused Lab MCP · 21 tools/);

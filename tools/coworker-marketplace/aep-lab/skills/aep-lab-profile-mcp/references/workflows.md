@@ -2,7 +2,7 @@
 
 Detailed numbered workflows and copy-ready example Coworker prompts, referenced from the parent `SKILL.md`. Load this file when a task matches one of the areas below.
 
-Some advanced workflows use tools available only on the optional key-based `aep-lab-general` endpoint. If a named tool is not present in the nine focused marketplace integrations, direct the user to General or the Portal instead of relying on dynamic tool loading in Coworker.
+Some advanced workflows use tools available only on the installed `aep-lab-general` integration. If a named tool is not present in a focused integration, use General instead of relying on dynamic tool loading in Coworker.
 
 ## Workflow 0c — Prepare the user-scoped RTDB for a customer demo
 
@@ -62,7 +62,7 @@ Some advanced workflows use tools available only on the optional key-based `aep-
 
 > Call **lab_mcp_access_info**. Report keyId, allowed sandboxes, principal label, and allowlist source.
 
-## Workflow 0b — First-run foundations (General endpoint or Portal only)
+## Workflow 0b — First-run foundations (General integration or Portal)
 
 Run **once** after connecting — replaces Portal workspace-slug gate before key generation. **`lab_mcp_first_run_setup`** reports `readiness.generation_prefs` — when `ready:false`, run **Workflow 0a** (`lab_confirm_profile_generation`) before any generate or **`lab_prepare_demo_from_brand_scrape`** profiles step.
 

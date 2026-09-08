@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 127-tool catalog. The Coworker marketplace installs the nine focused endpoints with Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 127-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the nine focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -22,7 +22,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers all nine focused connections above plus their workflow guidance and authenticates with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. The optional `/mcp` General endpoint includes advanced onboarding, infrastructure, Snowflake, and administration tools that are not duplicated in the focused plugin; add it separately with a sandbox key only when needed. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all nine focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
 ### Entry point (Phase 3.38)
 
@@ -43,7 +43,7 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 
 **Dual-stream generate (v3.6):** `lab_generate_profile` / `lab_generate_profiles_batch` with `industry` ≠ `generic` POST twice — generic-owned paths to `industry=generic`, then industry-owned paths to the target industry with `appendIfExisting:true` (same email/ECID). Response includes `dual_stream`, `generate_plan`, `generate_step_results`.
 
-On the optional General endpoint, call **`lab_get_execution_framework`** before advanced work. The focused Coworker plugin does not expose this tool; its skill carries the essential rules instead.
+On the General integration, call **`lab_get_execution_framework`** before advanced work. Focused integrations do not expose this tool; the bundled skill carries the essential rules when working in those contexts.
 
 | Tool / URI | Purpose |
 |------------|---------|

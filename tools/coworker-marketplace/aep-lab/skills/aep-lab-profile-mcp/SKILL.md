@@ -7,26 +7,26 @@ description: >-
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "1.2.1"
+  version: "1.3.0"
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
 MCP server: **AEP Orchestration Lab MCP v3.41.3** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-This plugin installs nine focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, and `aep-lab-weather`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. That's exactly why this plugin installs the other eight connections directly rather than relying on `lab_load_toolset` alone.
+This plugin installs the complete 127-tool `aep-lab-general` connection plus nine focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, and `aep-lab-weather`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
 
-Use the focused integration that owns the task. The optional key-based `aep-lab-general` endpoint has 127 tools, including first-run setup, infrastructure, Snowflake, and administration tools that are not in this plugin. If an advanced tool named below is unavailable, say that it requires General or the Portal; do not imply that `aep-lab-entry` can make it callable in Coworker.
+Use the focused integration that owns the task. Use the installed `aep-lab-general` integration for first-run setup, infrastructure, full Snowflake workflows, administration, or any named tool absent from a focused integration. Do not imply that `aep-lab-entry` can make dynamically loaded tools callable in Coworker.
 
 Coworker forwards `Authorization` and IMS identity headers automatically. Do not ask the user to paste a key into Coworker or the plugin manifest.
 
-**Portal:** create at least one MCP key per sandbox to establish the signed-in Adobe user's sandbox enrollment. The plaintext key is only for API-key clients such as Codex or Cursor; Coworker does not use it. In Coworker, begin with **`lab_mcp_access_info`**. First-run foundations require the optional General endpoint or the Portal.
+**Portal:** create at least one MCP key per sandbox to establish the signed-in Adobe user's sandbox enrollment. The plaintext key is only for API-key clients such as Codex or Cursor; Coworker does not use it. In Coworker, begin with **`lab_mcp_access_info`**. Use the installed General integration for first-run foundations.
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
 
 ## Framework knowledge (server-side — no manual retraining)
 
-Use the focused tools that are available. Rows marked **General only** require the optional full endpoint:
+Use focused tools when available. Rows marked **General only** use the installed full-catalog integration:
 
 | Tool / resource | Purpose |
 |-----------------|--------|

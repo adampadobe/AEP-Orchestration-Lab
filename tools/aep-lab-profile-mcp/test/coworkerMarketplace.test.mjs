@@ -13,6 +13,7 @@ async function readJson(path) {
 
 const expectedEndpoints = new Map([
   ['aep-lab-entry', '/mcp/entry'],
+  ['aep-lab-general', '/mcp'],
   ['aep-lab-profiles', '/mcp/profile'],
   ['aep-lab-demo-prep', '/mcp/demo-prep'],
   ['aep-lab-pdf-prep', '/mcp/pdf'],
@@ -31,7 +32,7 @@ test('Coworker plugin manifest explicitly preserves the workflow skill', async (
   assert.equal(manifest.mcpServers, undefined);
 });
 
-test('Coworker MCP manifest uses Integration schema for all focused endpoints', async () => {
+test('Coworker MCP manifest uses Integration schema for General and all focused endpoints', async () => {
   const config = await readJson(join(pluginRoot, '.mcp.json'));
   const providers = config.auth_providers;
   const servers = config.mcp_servers?.servers;
