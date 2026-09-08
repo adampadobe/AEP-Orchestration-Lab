@@ -5,7 +5,17 @@
 
 const IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v2';
 
-let cache = { accessToken: null, expiresAtMs: 0 };
+const tokenCache = new Map();
+
+function cacheKey({ clientId, scopes }) {
+  const normalizedScopes = String(scopes || '')
+    .split(/[\s,]+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+  return `${clientId}:${normalizedScopes}`;
+}
 
 function requireEnv(name) {
   const v = process.env[name];
@@ -28,8 +38,10 @@ export function loadAdobeCredentials() {
 export async function getAdobeAccessToken(creds) {
   const { clientId, clientSecret, scopes } = creds || loadAdobeCredentials();
   const now = Date.now();
-  if (cache.accessToken && now < cache.expiresAtMs - 5 * 60 * 1000) {
-    return cache.accessToken;
+  const key = cacheKey({ clientId, scopes });
+  const cached = tokenCache.get(key);
+  if (cached?.accessToken && now < cached.expiresAtMs - 5 * 60 * 1000) {
+    return cached.accessToken;
   }
 
   const body = new URLSearchParams({
@@ -51,9 +63,9 @@ export async function getAdobeAccessToken(creds) {
   }
   const accessToken = data.access_token;
   const expiresIn = Number(data.expires_in) || 3600;
-  cache = {
+  tokenCache.set(key, {
     accessToken,
     expiresAtMs: now + expiresIn * 1000,
-  };
+  });
   return accessToken;
 }
