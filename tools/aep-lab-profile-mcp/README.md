@@ -1,12 +1,12 @@
 # AEP Orchestration Lab MCP (Phase 3.38)
 
-Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including a read-only Adobe Commerce context, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
+Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including read-only Adobe Commerce and Commerce Optimizer contexts, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.42.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.43.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 136-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the ten focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 146-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the eleven focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -20,12 +20,13 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
 | `/mcp/commerce` | 10 | Access check plus nine read-only ACCS tools for stores, catalog summary/search, exact products, categories, inventory, and storefront GraphQL |
+| `/mcp/commerce-optimizer` | 11 | Access check plus ten read-only ACO tools for tenant validation, catalog views, attributes, products, categories, navigation, recommendations, and GraphQL |
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all ten focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all eleven focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same eleven connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same twelve connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 ### Entry point (Phase 3.38)
 
@@ -383,6 +384,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 |----------|----------|-------------|
 | `AEP_LAB_MCP_API_KEY` | Yes | Secret sent as `X-AEP-Lab-Mcp-Key` |
 | `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
+| `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
 | `AEP_LAB_MCP_ALLOWED_SANDBOXES` | No | Env fallback allowlist (default `apalmer,kirkham`) |
@@ -514,7 +516,6 @@ gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}" .
 
 gcloud run services update "${SERVICE}" \
   --image "${IMAGE}" \
-  --update-secrets "AEP_LAB_COMMERCE_INTERNAL_KEY=AEP_LAB_COMMERCE_INTERNAL_KEY:latest" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --platform managed
@@ -549,7 +550,7 @@ gcloud run deploy "${SERVICE}" \
   --platform managed \
   --allow-unauthenticated \
   --env-vars-file /tmp/aep-lab-profile-mcp-env.yaml \
-  --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest,AEP_LAB_COMMERCE_INTERNAL_KEY=AEP_LAB_COMMERCE_INTERNAL_KEY:latest,OPENWEATHER_API_KEY=aep-lab-weather-openweather-api-key:latest,GOOGLE_MAPS_API_KEY=aep-lab-weather-google-maps-api-key:latest,GOOGLE_MAPS_EMBED_API_KEY=aep-lab-weather-google-maps-embed-api-key:latest" \
+  --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest,AEP_LAB_COMMERCE_INTERNAL_KEY=AEP_LAB_COMMERCE_INTERNAL_KEY:latest,AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY=AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY:latest,OPENWEATHER_API_KEY=aep-lab-weather-openweather-api-key:latest,GOOGLE_MAPS_API_KEY=aep-lab-weather-google-maps-api-key:latest,GOOGLE_MAPS_EMBED_API_KEY=aep-lab-weather-google-maps-embed-api-key:latest" \
   --memory 512Mi \
   --timeout 540 \
   --min-instances 0 \

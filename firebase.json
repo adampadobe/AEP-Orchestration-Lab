@@ -367,6 +367,13 @@
         }
       },
       {
+        "source": "/api/commerce-optimizer-prep",
+        "function": {
+          "functionId": "commerceOptimizerPrepProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/consent",
         "function": {
           "functionId": "profileConsentProxy",

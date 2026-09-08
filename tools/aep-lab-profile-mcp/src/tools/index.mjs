@@ -46,6 +46,7 @@ import { registerCommandCentreTools } from './commandCentreTools.mjs';
 import { registerLoadToolsetTool } from './loadToolset.mjs';
 import { registerWeatherTools } from './weatherTools.mjs';
 import { registerCommerceTools } from './commerceTools.mjs';
+import { registerCommerceOptimizerTools } from './commerceOptimizerTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -99,6 +100,7 @@ export function registerProfileTools(mcpServer) {
   registerCommandCentreTools(mcpServer);
   registerWeatherTools(mcpServer);
   registerCommerceTools(mcpServer);
+  registerCommerceOptimizerTools(mcpServer);
 }
 
 /**
@@ -145,6 +147,10 @@ function registerCommerceDomainTools(mcpServer) {
   registerCommerceTools(mcpServer);
 }
 
+function registerCommerceOptimizerDomainTools(mcpServer) {
+  registerCommerceOptimizerTools(mcpServer);
+}
+
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
@@ -156,6 +162,7 @@ const LOADABLE_TOOLSETS = {
   'command-centre': registerCommandCentreTools,
   weather: registerWeatherTools,
   commerce: registerCommerceDomainTools,
+  'commerce-optimizer': registerCommerceOptimizerDomainTools,
 };
 
 /**
@@ -224,4 +231,10 @@ export function registerFocusedWeatherTools(mcpServer) {
 export function registerFocusedCommerceTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerCommerceDomainTools(mcpServer);
+}
+
+/** Focused, read-only Adobe Commerce Optimizer demo preparation. */
+export function registerFocusedCommerceOptimizerTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerCommerceOptimizerDomainTools(mcpServer);
 }

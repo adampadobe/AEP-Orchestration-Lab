@@ -15,6 +15,8 @@ const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 const ADOBE_COMMERCE_REST_ENDPOINT = defineSecret('ADOBE_COMMERCE_REST_ENDPOINT');
 const AEP_LAB_COMMERCE_INTERNAL_KEY = defineSecret('AEP_LAB_COMMERCE_INTERNAL_KEY');
+const ADOBE_COMMERCE_OPTIMIZER_ENDPOINT = defineSecret('ADOBE_COMMERCE_OPTIMIZER_ENDPOINT');
+const AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY = defineSecret('AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY');
 /** Optional machine-to-machine key used by a future AJO custom action. */
 const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
 /** Dedicated least-privilege AWS identity for private PDF output storage. */
@@ -96,6 +98,8 @@ const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
 const { registerCommerceRoutes } = require('./commerceRoutes');
 const { createCommerceService } = require('./commerceService');
+const { registerCommerceOptimizerRoutes } = require('./commerceOptimizerRoutes');
+const { createCommerceOptimizerService } = require('./commerceOptimizerService');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
@@ -366,6 +370,14 @@ const commerceService = createCommerceService({
   getImsOrg: () => ADOBE_IMS_ORG.value(),
   getBaseScopes: () => ADOBE_SCOPES.value(),
   getRestEndpoint: () => ADOBE_COMMERCE_REST_ENDPOINT.value(),
+});
+
+const commerceOptimizerService = createCommerceOptimizerService({
+  getAccessToken: getAdobeAccessToken,
+  getClientId: () => ADOBE_CLIENT_ID.value(),
+  getImsOrg: () => ADOBE_IMS_ORG.value(),
+  getBaseScopes: () => ADOBE_SCOPES.value(),
+  getEndpoint: () => ADOBE_COMMERCE_OPTIMIZER_ENDPOINT.value(),
 });
 
 exports.aepProxy = onRequest(
@@ -676,6 +688,15 @@ const profileFnOpts = {
 const commerceFnOpts = {
   ...profileFnOpts,
   secrets: [...PROFILE_FN_SECRETS, ADOBE_COMMERCE_REST_ENDPOINT, AEP_LAB_COMMERCE_INTERNAL_KEY],
+};
+
+const commerceOptimizerFnOpts = {
+  ...profileFnOpts,
+  secrets: [
+    ...PROFILE_FN_SECRETS,
+    ADOBE_COMMERCE_OPTIMIZER_ENDPOINT,
+    AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY,
+  ],
 };
 
 Object.assign(
@@ -1026,6 +1047,18 @@ Object.assign(
     internalMcpKey: AEP_LAB_COMMERCE_INTERNAL_KEY,
     mcpApiKeyStore,
     commerceService,
+  }),
+);
+
+Object.assign(
+  exports,
+  registerCommerceOptimizerRoutes({
+    onRequest,
+    optimizerFnOpts: commerceOptimizerFnOpts,
+    setCors,
+    internalMcpKey: AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY,
+    mcpApiKeyStore,
+    commerceOptimizerService,
   }),
 );
 
