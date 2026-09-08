@@ -58,6 +58,10 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   assert.match(catalog, /Complete Lab MCP · 127 tools/);
   assert.match(catalog, /Focused Lab MCP · 21 tools/);
   assert.doesNotMatch(catalog, /recommended single connection/i);
+  assert.match(catalog, /id: 'adobe-commerce-extensibility'/);
+  assert.match(catalog, /Adobe Commerce Extensibility MCP/);
+  assert.match(catalog, /@adobe-commerce\/commerce-extensibility-tools\/index\.js/);
+  assert.match(catalog, /not a hosted catalog\/order operations endpoint/i);
   assert.doesNotMatch(keys, /Copy Coworker config/);
   assert.match(keys, /Copy key-based config/);
 });

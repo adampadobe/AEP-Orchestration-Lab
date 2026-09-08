@@ -280,6 +280,26 @@
       docLabel: 'CX Coworker Gateway overview',
     },
     {
+      id: 'adobe-commerce-extensibility',
+      section: 'adobe',
+      name: 'Adobe Commerce Extensibility MCP',
+      product: 'Adobe Commerce · App Builder development',
+      mcpUrl: 'N/A (stdio)',
+      summary:
+        'Adobe-maintained local MCP for developing Commerce extensions with App Builder: documentation search, Adobe I/O application workflows, project configuration, and Commerce event subscriptions.',
+      useCases: [
+        'Design and build Commerce App Builder extensions',
+        'Search current Commerce, storefront, core, and App Builder documentation',
+        'Configure Adobe I/O projects and deploy or invoke Runtime actions',
+        'Onboard Commerce event providers and subscribe applications to events',
+      ],
+      configNotes:
+        'Local stdio developer tool, not a hosted catalog/order operations endpoint. Requires Node.js 22+, Adobe I/O CLI, and a Commerce project. Run aio commerce extensibility tools-setup; generated config runs node with args ["node_modules/@adobe-commerce/commerce-extensibility-tools/index.js"]. Run aio auth login for authenticated documentation search. AEM Boilerplate Commerce setup can also install the separate @dropins/mcp server.',
+      docUrl:
+        'https://developer.adobe.com/commerce/extensibility/developer-agent/coding-tools',
+      docLabel: 'Commerce development MCP setup',
+    },
+    {
       id: 'aa',
       section: 'adobe',
       name: 'Adobe Analytics',
