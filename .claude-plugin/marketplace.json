@@ -1,0 +1,15 @@
+{
+  "name": "aep-orchestration-lab",
+  "owner": { "name": "Adam Palmer" },
+  "metadata": {
+    "description": "AEP Orchestration Lab plugins for Claude"
+  },
+  "plugins": [
+    {
+      "name": "aep-lab",
+      "displayName": "AEP Orchestration Lab",
+      "description": "Complete AEP Orchestration Lab catalog plus focused MCP connections for Claude.",
+      "source": "./tools/claude-marketplace/aep-lab"
+    }
+  ]
+}

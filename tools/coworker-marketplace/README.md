@@ -2,6 +2,8 @@
 
 A Claude/Cowork-format plugin marketplace so Adobe CX Coworker users can install the AEP Orchestration Lab's MCP connections in one click, instead of manually pasting a JSON snippet per connection.
 
+This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. Claude uses the repository-root marketplace and the separate `tools/claude-marketplace` package, which prompts for a sandbox-scoped Portal MCP key.
+
 ## Add this marketplace in Coworker
 
 1. Open **CX Coworker**.

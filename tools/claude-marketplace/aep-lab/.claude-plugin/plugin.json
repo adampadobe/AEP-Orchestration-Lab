@@ -1,0 +1,33 @@
+{
+  "name": "aep-lab",
+  "displayName": "AEP Orchestration Lab",
+  "version": "1.0.0",
+  "description": "AEP Orchestration Lab MCP connections and workflow guidance for Claude",
+  "author": { "name": "Adam Palmer" },
+  "homepage": "https://github.com/adampadobe/AEP-Orchestration-Lab/tree/main/tools/aep-lab-profile-mcp",
+  "repository": "https://github.com/adampadobe/AEP-Orchestration-Lab",
+  "skills": [
+    "./skills/aep-lab-profile-mcp/"
+  ],
+  "keywords": [
+    "aep",
+    "adobe-experience-platform",
+    "profile",
+    "decisioning",
+    "demo-prep",
+    "mcp"
+  ],
+  "userConfig": {
+    "aep_lab_mcp_key": {
+      "type": "string",
+      "title": "AEP Lab MCP key",
+      "description": "Generate this sandbox-scoped key in the AEP Orchestration Lab Portal.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "metadata": {
+    "lifecycle": "experimental",
+    "runtime": "claude"
+  }
+}
