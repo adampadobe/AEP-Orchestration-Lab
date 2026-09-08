@@ -1,14 +1,15 @@
 {
   "name": "aep-lab-adobe-mcp",
   "private": true,
-  "version": "1.0.0",
-  "description": "MCP server: IMS auth + AEP sandboxes, platform proxy, Tags (Reactor), Edge — wraps functions/joLookups, tagsReactorService, eventEdgeService, sandboxesList",
+  "version": "1.1.0",
+  "description": "MCP server: IMS-authenticated Adobe Experience Platform and governed Adobe Commerce demo-prep tools",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "start": "node src/server.mjs"
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

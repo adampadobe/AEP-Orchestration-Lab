@@ -5,6 +5,8 @@
  *
  * Env: ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES
  * Optional: ADOBE_SANDBOX_NAME (default sandbox when a tool omits sandbox)
+ * Commerce: ADOBE_COMMERCE_REST_ENDPOINT, optional ADOBE_COMMERCE_GRAPHQL_ENDPOINT,
+ * ADOBE_COMMERCE_STORE (default: default)
  *
  * Local file (gitignored): tools/aep-lab-adobe-mcp/.env.mcp — loaded automatically.
  */
@@ -22,6 +24,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import * as z from 'zod';
 
 import { getAdobeAccessToken, loadAdobeCredentials } from './imsAuth.mjs';
+import { registerCommerceTools } from './commerceTools.mjs';
 
 const require = createRequire(import.meta.url);
 const functionsDir = join(__dirname, '../../../functions');
@@ -151,8 +154,10 @@ function toolError(message, detail) {
 
 const mcpServer = new McpServer({
   name: 'aep-lab-adobe',
-  version: '1.0.0',
+  version: '1.1.0',
 });
+
+registerCommerceTools(mcpServer);
 
 mcpServer.registerTool(
   'aep_platform_request',
