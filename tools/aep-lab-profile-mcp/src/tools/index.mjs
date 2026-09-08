@@ -45,6 +45,7 @@ import { registerPdfTools } from './pdfTools.mjs';
 import { registerCommandCentreTools } from './commandCentreTools.mjs';
 import { registerLoadToolsetTool } from './loadToolset.mjs';
 import { registerWeatherTools } from './weatherTools.mjs';
+import { registerCommerceTools } from './commerceTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -97,6 +98,7 @@ export function registerProfileTools(mcpServer) {
   registerCreateJourneyFromBrandScrapeTool(mcpServer);
   registerCommandCentreTools(mcpServer);
   registerWeatherTools(mcpServer);
+  registerCommerceTools(mcpServer);
 }
 
 /**
@@ -139,6 +141,10 @@ function registerDemoPrepDomainTools(mcpServer) {
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
 }
 
+function registerCommerceDomainTools(mcpServer) {
+  registerCommerceTools(mcpServer);
+}
+
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
@@ -149,6 +155,7 @@ const LOADABLE_TOOLSETS = {
   pdf: registerPdfTools,
   'command-centre': registerCommandCentreTools,
   weather: registerWeatherTools,
+  commerce: registerCommerceDomainTools,
 };
 
 /**
@@ -211,4 +218,10 @@ export function registerFocusedCommandCentreTools(mcpServer) {
 export function registerFocusedWeatherTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerWeatherTools(mcpServer);
+}
+
+/** Focused, read-only Adobe Commerce as a Cloud Service demo preparation. */
+export function registerFocusedCommerceTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerCommerceDomainTools(mcpServer);
 }

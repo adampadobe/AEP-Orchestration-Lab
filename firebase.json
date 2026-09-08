@@ -360,6 +360,13 @@
         }
       },
       {
+        "source": "/api/commerce-prep",
+        "function": {
+          "functionId": "commercePrepProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/consent",
         "function": {
           "functionId": "profileConsentProxy",

@@ -9,6 +9,6 @@ Claude-compatible packaging for the AEP Orchestration Lab MCP. The repository-ro
 
 The key is declared as sensitive plugin configuration and is sent only as `X-AEP-Lab-Mcp-Key` to the Lab's Cloud Run MCP endpoints. It is never stored in this repository.
 
-The plugin installs `aep-lab-general` (the complete 127-tool catalog) plus the nine focused connections. Prefer a focused connection for ordinary tasks and General for advanced or cross-domain workflows.
+The plugin installs `aep-lab-general` (the complete 136-tool catalog) plus the ten focused connections, including read-only Adobe Commerce preparation. Prefer a focused connection for ordinary tasks and General for advanced or cross-domain workflows.
 
 Adobe CX Coworker uses the separate `tools/coworker-marketplace` package and Adobe IMS passthrough. Do not point Coworker at this Claude-specific package.

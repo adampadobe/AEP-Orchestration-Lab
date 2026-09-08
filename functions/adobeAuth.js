@@ -29,16 +29,17 @@ function createAdobeAuth(cfg) {
     throw new Error('createAdobeAuth: getClientId, getClientSecret, getScopes, getImsOrg required');
   }
 
-  let tokenCache = { accessToken: null, expiresAtMs: 0 };
+  const tokenCache = new Map();
 
-  async function getAdobeAccessToken() {
+  async function getAdobeAccessToken(scopesOverride) {
     const now = Date.now();
-    if (tokenCache.accessToken && now < tokenCache.expiresAtMs - TOKEN_REFRESH_BUFFER_MS) {
-      return tokenCache.accessToken;
+    const scopes = String(scopesOverride || cfg.getScopes()).trim();
+    const cached = tokenCache.get(scopes);
+    if (cached?.accessToken && now < cached.expiresAtMs - TOKEN_REFRESH_BUFFER_MS) {
+      return cached.accessToken;
     }
     const clientId = cfg.getClientId();
     const clientSecret = cfg.getClientSecret();
-    const scopes = cfg.getScopes();
     const body = new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: clientId,
@@ -57,10 +58,10 @@ function createAdobeAuth(cfg) {
     }
     const accessToken = data.access_token;
     const expiresIn = Number(data.expires_in) || 3600;
-    tokenCache = {
+    tokenCache.set(scopes, {
       accessToken,
       expiresAtMs: now + expiresIn * 1000,
-    };
+    });
     return accessToken;
   }
 

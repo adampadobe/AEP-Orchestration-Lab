@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.41.3). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.42.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,11 +10,11 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.41.3** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.42.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Directly connect the focused endpoint(s) for the domains actually used (e.g. `/mcp/profile`, `/mcp/demo-prep`) alongside `/mcp/entry`, rather than relying on `lab_load_toolset` alone in Coworker.
 
-**One-click Coworker install:** `tools/coworker-marketplace/` packages all nine focused endpoints above (everything except `/mcp`) into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** `tools/coworker-marketplace/` packages all ten focused endpoints, including read-only Commerce preparation at `/mcp/commerce`, into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
 
 Configure in Codex or another API-key MCP client with a **single** header:
 
