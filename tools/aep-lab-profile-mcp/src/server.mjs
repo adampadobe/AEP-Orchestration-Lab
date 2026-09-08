@@ -40,7 +40,7 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.43.0';
+const MCP_VERSION = '3.44.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -122,8 +122,9 @@ const ENDPOINTS = [
     toolset: 'commerce',
     register: registerFocusedCommerceTools,
     instructions:
-      'Focused, read-only Adobe Commerce as a Cloud Service demo preparation: verify organization and instance access, ' +
-      'inspect stores, products, categories, and inventory, and run storefront GraphQL queries. REST writes and GraphQL mutations are prohibited.',
+      'Focused Adobe Commerce as a Cloud Service storefront preparation: inspect stores, products, attributes, media, categories, ' +
+      'inventory, and the live GraphQL schema. Curated REST changes require preview plus exact confirmation and return a readback; ' +
+      'deletions require a separate audit. Arbitrary REST calls and GraphQL mutations are prohibited.',
   },
   {
     path: '/mcp/commerce-optimizer',

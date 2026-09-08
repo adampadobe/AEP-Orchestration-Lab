@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 146 tools',
+      product: 'Complete Lab MCP · 155 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -42,7 +42,7 @@
       configNotes:
         'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all eleven focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 146,
+      toolCount: 155,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -124,20 +124,21 @@
       section: 'lab',
       dropdownLabel: 'Adobe Commerce demo preparation',
       name: 'AEP Lab — Adobe Commerce preparation',
-      product: 'Focused read-only MCP · 10 tools',
+      product: 'Focused governed MCP · 19 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce',
       summary:
-        'A focused, read-only Adobe Commerce as a Cloud Service context for validating access and preparing catalog-driven demos.',
+        'A focused Adobe Commerce as a Cloud Service context for inspecting, building, validating, and safely cleaning up catalog-driven demos.',
       useCases: [
         'Verify the configured Commerce organization and ACCS instance',
-        'Inspect stores, product counts, exact SKUs, and category hierarchy',
-        'Check inventory before a catalog or journey demonstration',
-        'Validate storefront data with guarded GraphQL queries',
+        'Inspect stores, products, attributes, categories, assignments, inventory sources, and media',
+        'Preview and explicitly confirm curated product, category, assignment, or inventory changes',
+        'Audit exact deletion targets before a separately confirmed delete',
+        'Discover and validate shopper-facing storefront data with guarded GraphQL queries',
       ],
       configNotes:
-        'REST is restricted to GET operations and GraphQL mutations/subscriptions are rejected. Adobe credentials remain in Firebase Functions secrets. Coworker uses Adobe IMS; key-based clients reuse the Portal MCP key.',
-      connectionKind: 'Focused · read-only',
-      toolCount: 10,
+        'REST writes use a closed operation allowlist, fresh-state preflight IDs, exact confirmation, one non-retried request, and readback. Arbitrary REST calls and GraphQL mutations/subscriptions are rejected. Adobe credentials remain in Firebase Functions secrets.',
+      connectionKind: 'Focused · governed writes',
+      toolCount: 19,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Commerce preparation tools reference',

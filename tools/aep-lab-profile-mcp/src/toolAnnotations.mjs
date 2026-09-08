@@ -12,12 +12,19 @@ const READ_ONLY_TOOLS = new Set([
   'commerce_access_info',
   'commerce_capabilities',
   'commerce_catalog_summary',
+  'commerce_category_products',
   'commerce_category_tree',
+  'commerce_graphql_schema',
   'commerce_graphql_query',
+  'commerce_inventory_sources',
   'commerce_inventory_status',
+  'commerce_product_attributes',
   'commerce_product_get',
+  'commerce_product_media',
   'commerce_product_search',
   'commerce_store_configs',
+  'commerce_admin_change_preview',
+  'commerce_admin_delete_audit',
   'lab_audience_audit',
   'lab_audience_list',
   'lab_ajo_campaign_audit',
@@ -90,6 +97,7 @@ const READ_ONLY_TOOLS = new Set([
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([
+  'commerce_admin_delete_apply',
   'lab_audience_delete',
   'lab_ajo_campaign_delete',
   'lab_ajo_journey_delete',

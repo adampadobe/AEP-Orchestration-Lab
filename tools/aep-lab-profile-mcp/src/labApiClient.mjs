@@ -3,7 +3,7 @@
  * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
  */
 
-import { getRequestMcpApiKey } from './requestContext.mjs';
+import { getRequestKeyId, getRequestMcpApiKey } from './requestContext.mjs';
 import { buildGeneratorPostBody } from './framework/buildGeneratorPostBody.mjs';
 
 const DEFAULT_ORIGIN = 'https://aep-orchestration-lab.web.app';
@@ -718,6 +718,49 @@ export function commerceInventoryStatus({ sku, store }) {
   return commerceRead('inventory', { sku, store });
 }
 
+export function commerceProductAttributes({ page, page_size, store }) {
+  return commerceRead('product_attributes', { page, pageSize: page_size, store });
+}
+
+export function commerceInventorySources({ page, page_size, store }) {
+  return commerceRead('inventory_sources', { page, pageSize: page_size, store });
+}
+
+export function commerceProductMedia({ sku, store }) {
+  return commerceRead('product_media', { sku, store });
+}
+
+export function commerceCategoryProducts({ category_id, store }) {
+  return commerceRead('category_products', { categoryId: category_id, store });
+}
+
+function commercePost(action, body, { idempotent = false } = {}) {
+  return labApiRequest(COMMERCE_API_BASE, {
+    method: 'POST', query: { action }, body,
+    headers: commerceInternalAuthHeaders(), timeoutMs: 120_000, idempotent,
+  });
+}
+
+export function commerceGraphqlSchema({ store }) {
+  return commercePost('graphql_schema', { store }, { idempotent: true });
+}
+
+export function commerceAdminChangePreview(params) {
+  return commercePost('admin_change_preview', params, { idempotent: true });
+}
+
+export function commerceAdminChangeApply(params) {
+  return commercePost('admin_change_apply', params);
+}
+
+export function commerceAdminDeleteAudit(params) {
+  return commercePost('admin_delete_audit', params, { idempotent: true });
+}
+
+export function commerceAdminDeleteApply(params) {
+  return commercePost('admin_delete_apply', params);
+}
+
 export function commerceGraphqlQuery({ query, variables, store }) {
   return labApiRequest(COMMERCE_API_BASE, {
     method: 'POST',
@@ -730,8 +773,12 @@ export function commerceGraphqlQuery({ query, variables, store }) {
 }
 
 function commerceInternalAuthHeaders() {
-  const key = String(process.env.AEP_LAB_COMMERCE_INTERNAL_KEY || '').trim();
-  return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
+  const userKey = getRequestMcpApiKey();
+  const key = userKey || String(process.env.AEP_LAB_COMMERCE_INTERNAL_KEY || '').trim();
+  return key ? {
+    'X-AEP-Lab-Mcp-Key': key,
+    'X-AEP-Lab-Principal-Id': getRequestKeyId(),
+  } : {};
 }
 
 const COMMERCE_OPTIMIZER_API_BASE = '/api/commerce-optimizer-prep';
