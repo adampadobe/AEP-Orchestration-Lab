@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 146);
+  assert.equal(full.names.length, 155);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -143,5 +143,18 @@ test('focused Commerce Optimizer endpoint is access plus ten read-only tools', (
     'commerce_optimizer_attribute_metadata', 'commerce_optimizer_product_search', 'commerce_optimizer_product_get',
     'commerce_optimizer_category_tree', 'commerce_optimizer_navigation', 'commerce_optimizer_recommendations',
     'commerce_optimizer_graphql_query',
+  ]);
+});
+
+test('focused Commerce endpoint exposes access plus eighteen storefront-prep tools', () => {
+  const focused = registrationRecorder();
+  registerFocusedCommerceTools(focused.server);
+  assert.deepEqual(focused.names, [
+    'lab_mcp_access_info',
+    'commerce_access_info', 'commerce_capabilities', 'commerce_store_configs', 'commerce_catalog_summary',
+    'commerce_product_search', 'commerce_product_get', 'commerce_category_tree', 'commerce_inventory_status',
+    'commerce_product_attributes', 'commerce_inventory_sources', 'commerce_product_media', 'commerce_category_products',
+    'commerce_graphql_schema', 'commerce_graphql_query', 'commerce_admin_change_preview', 'commerce_admin_change_apply',
+    'commerce_admin_delete_audit', 'commerce_admin_delete_apply',
   ]);
 });

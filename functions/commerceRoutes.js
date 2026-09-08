@@ -49,7 +49,16 @@ function registerCommerceRoutes(deps) {
       product_get: { method: 'GET', run: () => commerceService.productGet(params) },
       categories: { method: 'GET', run: () => commerceService.categoryTree(params) },
       inventory: { method: 'GET', run: () => commerceService.inventoryStatus(params) },
+      product_attributes: { method: 'GET', run: () => commerceService.productAttributes(params) },
+      inventory_sources: { method: 'GET', run: () => commerceService.inventorySources(params) },
+      product_media: { method: 'GET', run: () => commerceService.productMedia(params) },
+      category_products: { method: 'GET', run: () => commerceService.categoryProducts(params) },
+      graphql_schema: { method: 'POST', run: () => commerceService.graphqlSchema(params) },
       graphql: { method: 'POST', run: () => commerceService.graphql(params) },
+      admin_change_preview: { method: 'POST', run: () => commerceService.adminChangePreview(params) },
+      admin_change_apply: { method: 'POST', run: () => commerceService.adminChangeApply(params) },
+      admin_delete_audit: { method: 'POST', run: () => commerceService.adminDeleteAudit(params) },
+      admin_delete_apply: { method: 'POST', run: () => commerceService.adminDeleteApply(params) },
     };
     const selected = handlers[action];
     if (!selected) return res.status(400).json({ ok: false, error: 'Unknown Commerce action.' });

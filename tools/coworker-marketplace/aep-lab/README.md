@@ -9,7 +9,7 @@ Twelve MCP connections: the complete General catalog plus eleven focused capabil
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `aep-lab-general` | `/mcp` | Complete 146-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, and administration |
+| `aep-lab-general` | `/mcp` | Complete 155-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, and administration |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
 | `aep-lab-pdf-prep` | `/mcp/pdf` | HTML/document to PDF, storage, server templates |
@@ -18,7 +18,7 @@ Twelve MCP connections: the complete General catalog plus eleven focused capabil
 | `aep-lab-ajo-cleanup` | `/mcp/ajo-cleanup` | Governed AJO journey/campaign list/audit/delete |
 | `aep-lab-command-centre` | `/mcp/command-centre` | Your own Command Centre engagements, tasks, meetings |
 | `aep-lab-weather` | `/mcp/weather` | Live weather + Google Maps for demo scenarios |
-| `aep-lab-commerce` | `/mcp/commerce` | Read-only ACCS access, stores, products, categories, inventory, and GraphQL |
+| `aep-lab-commerce` | `/mcp/commerce` | Governed ACCS storefront preparation: products, attributes, categories, assignments, inventory, media, GraphQL discovery, preview/apply, and audited deletion |
 | `aep-lab-commerce-optimizer` | `/mcp/commerce-optimizer` | Read-only ACO tenant, catalog views, products, navigation, recommendations, and GraphQL |
 
 Use a focused connection for ordinary tasks and `aep-lab-general` when a required advanced tool is not present there. General overlaps with the focused connections, but ensures the marketplace exposes the complete Lab catalog.

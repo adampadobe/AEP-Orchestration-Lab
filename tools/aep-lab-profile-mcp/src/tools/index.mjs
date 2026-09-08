@@ -227,7 +227,7 @@ export function registerFocusedWeatherTools(mcpServer) {
   registerWeatherTools(mcpServer);
 }
 
-/** Focused, read-only Adobe Commerce as a Cloud Service demo preparation. */
+/** Focused, governed Adobe Commerce as a Cloud Service demo preparation. */
 export function registerFocusedCommerceTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerCommerceDomainTools(mcpServer);
