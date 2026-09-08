@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab **profile** APIs to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.41.2.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.41.3.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete catalog. API-key clients that struggle to invoke tools from a large deferred catalog can connect to a focused endpoint using the same header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 127-tool catalog. The Coworker marketplace installs the nine focused endpoints with Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -22,7 +22,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** instead of manually adding each connection above, add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers all nine focused connections above (everything except `/mcp`, since it's already fully covered by them) plus their workflow guidance, and authenticates with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers all nine focused connections above plus their workflow guidance and authenticates with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. The optional `/mcp` General endpoint includes advanced onboarding, infrastructure, Snowflake, and administration tools that are not duplicated in the focused plugin; add it separately with a sandbox key only when needed. See `tools/coworker-marketplace/README.md`.
 
 ### Entry point (Phase 3.38)
 
@@ -43,7 +43,7 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 
 **Dual-stream generate (v3.6):** `lab_generate_profile` / `lab_generate_profiles_batch` with `industry` ≠ `generic` POST twice — generic-owned paths to `industry=generic`, then industry-owned paths to the target industry with `appendIfExisting:true` (same email/ECID). Response includes `dual_stream`, `generate_plan`, `generate_step_results`.
 
-Coworker should call **`lab_get_execution_framework`** first — encodes **criticalRules** (testProfile, preferredLanguage, sandbox preflight) plus lab execution knowledge:
+On the optional General endpoint, call **`lab_get_execution_framework`** before advanced work. The focused Coworker plugin does not expose this tool; its skill carries the essential rules instead.
 
 | Tool / URI | Purpose |
 |------------|---------|
@@ -75,7 +75,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_list_industries` | *(static)* | Canonical keys + alias notes |
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
-| `lab_mcp_first_run_setup` | `POST /api/lab/mcp-first-run-setup` + readiness | **First Coworker session** — workspace profile, RTDB ldapSlug, infra/event checklist |
+| `lab_mcp_first_run_setup` | `POST /api/lab/mcp-first-run-setup` + readiness | **General only** — workspace profile, RTDB ldapSlug, infra/event checklist |
 | `lab_demo_config_inspect` | `GET /api/lab/demo-config` | Read-only structure and current values for the MCP key owner's RTDB workspace; protected values redacted |
 | `lab_demo_config_preview` | `POST /api/lab/demo-config` (`action=preview`) | Before/after diff for allowlisted manual changes or evidence-backed mappings from a completed brand scrape |
 | `lab_demo_config_apply` | `POST /api/lab/demo-config` (`action=apply`) | Confirmed, conflict-checked, idempotent atomic RTDB update with readback and revision |
