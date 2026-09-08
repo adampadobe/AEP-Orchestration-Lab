@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce}
  * Health:   GET /health
  */
 
@@ -35,10 +35,11 @@ import {
   registerFocusedPdfTools,
   registerFocusedCommandCentreTools,
   registerFocusedWeatherTools,
+  registerFocusedCommerceTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.41.3';
+const MCP_VERSION = '3.42.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -114,6 +115,14 @@ const ENDPOINTS = [
     instructions:
       'Focused weather lookups from OpenWeatherMap: current conditions and a 5-day/3-hour forecast by city name or ' +
       'lat/lon coordinates. No AEP or Lab API calls; useful for demo scenarios that condition on live weather.',
+  },
+  {
+    path: '/mcp/commerce',
+    toolset: 'commerce',
+    register: registerFocusedCommerceTools,
+    instructions:
+      'Focused, read-only Adobe Commerce as a Cloud Service demo preparation: verify organization and instance access, ' +
+      'inspect stores, products, categories, and inventory, and run storefront GraphQL queries. REST writes and GraphQL mutations are prohibited.',
   },
 ];
 

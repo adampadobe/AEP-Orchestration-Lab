@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 121 tools',
+      product: 'Complete Lab MCP · 136 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -40,9 +40,9 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this for general demo work or when a workflow spans several areas. Uses X-AEP-Lab-Mcp-Key; the same sandbox key also works with every focused connection below.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace intentionally installs the ten focused integrations instead.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 121,
+      toolCount: 136,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -51,19 +51,19 @@
       id: 'aep-lab-entry',
       configName: 'aep-lab-entry',
       section: 'lab',
-      dropdownLabel: 'Entry point — start here, then lab_load_toolset',
+      dropdownLabel: 'Entry point — capability directory',
       name: 'AEP Lab — Entry point',
       product: 'Focused read-only MCP · 5 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry',
       summary:
-        'The recommended single connection for this lab: a capability directory that explains each Lab context, recommends the smallest one for a prompt, and can load a domain toolset (profile, audiences, ajo-cleanup, decisioning, demo-prep, pdf, command-centre, weather) into the same session on demand.',
+        'A read-only capability directory that explains each Lab context, recommends the smallest one for a prompt, and plans cross-context workflows.',
       useCases: [
         'Discover which MCP context owns a capability',
-        'Load only the domain toolset a task actually needs via lab_load_toolset',
-        'Plan a customer demo workflow across several Lab domains without adding every focused connection',
+        'Choose the focused integration that matches the task',
+        'Plan a customer demo workflow across several Lab domains',
       ],
       configNotes:
-        'Recommended as the one Lab connection to add to Coworker. It is advisory and session-expanding only: it cannot connect, switch, proxy, or execute another MCP server. Reuse the same X-AEP-Lab-Mcp-Key.',
+        'The marketplace installs this directory plus all eight focused task integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
       connectionKind: 'Focused · read-only entry point',
       toolCount: 5,
       docUrl:
@@ -76,7 +76,7 @@
       section: 'lab',
       dropdownLabel: 'Focused demo prep',
       name: 'AEP Lab — Customer demo preparation',
-      product: 'Focused Lab MCP · 19 tools',
+      product: 'Focused Lab MCP · 21 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep',
       summary:
         'A focused customer-preparation context for research, stable hosted imagery, governed demo configuration, and end-to-end orchestration.',
@@ -87,9 +87,9 @@
         'Preview allowlisted RTDB customer values before applying them',
       ],
       configNotes:
-        'Choose this for repeatable customer swaps. Image and RTDB writes are separately previewed and confirmation-gated. Reuse the same X-AEP-Lab-Mcp-Key.',
+        'Choose this for repeatable customer swaps. Image and RTDB writes are separately previewed and confirmation-gated. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
       connectionKind: 'Focused',
-      toolCount: 19,
+      toolCount: 21,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Demo preparation tools reference',
@@ -100,7 +100,7 @@
       section: 'lab',
       dropdownLabel: 'Profiles and events',
       name: 'AEP Lab — Profiles',
-      product: 'Focused Lab MCP · 20 tools',
+      product: 'Focused Lab MCP · 21 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile',
       summary:
         'A focused profile lifecycle context for dependable discovery and invocation in Coworker.',
@@ -111,12 +111,36 @@
         'Verify and enrich Snowflake dual-loaded profiles',
       ],
       configNotes:
-        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Reuse the same X-AEP-Lab-Mcp-Key generated below.',
+        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
       connectionKind: 'Focused',
-      toolCount: 20,
+      toolCount: 21,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Profile tools reference',
+    },
+    {
+      id: 'aep-lab-commerce',
+      configName: 'aep-lab-commerce',
+      section: 'lab',
+      dropdownLabel: 'Adobe Commerce demo preparation',
+      name: 'AEP Lab — Adobe Commerce preparation',
+      product: 'Focused read-only MCP · 10 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce',
+      summary:
+        'A focused, read-only Adobe Commerce as a Cloud Service context for validating access and preparing catalog-driven demos.',
+      useCases: [
+        'Verify the configured Commerce organization and ACCS instance',
+        'Inspect stores, product counts, exact SKUs, and category hierarchy',
+        'Check inventory before a catalog or journey demonstration',
+        'Validate storefront data with guarded GraphQL queries',
+      ],
+      configNotes:
+        'REST is restricted to GET operations and GraphQL mutations/subscriptions are rejected. Adobe credentials remain in Firebase Functions secrets. Coworker uses Adobe IMS; key-based clients reuse the Portal MCP key.',
+      connectionKind: 'Focused · read-only',
+      toolCount: 10,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Commerce preparation tools reference',
     },
     {
       id: 'aep-lab-pdf-prep',
@@ -135,7 +159,7 @@
         'Analyse, validate, publish, and archive user-owned server templates',
       ],
       configNotes:
-        'Choose this for PDF demo preparation. Generated files are private and retained for 14 days; publishing and archiving require explicit confirmation. Reuse the same sandbox-scoped X-AEP-Lab-Mcp-Key.',
+        'Choose this for PDF demo preparation. Generated files are private for 14 days; publishing and archiving require explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
       connectionKind: 'Focused · private PDF workspace',
       toolCount: 14,
       docUrl:
@@ -158,7 +182,7 @@
         'Delete one exact audience after explicit confirmation',
       ],
       configNotes:
-        'Choose this for audience inventory and cleanup. Destructive calls still require an exact audience id and explicit confirmation. Reuse the same sandbox key.',
+        'Choose this for audience inventory and cleanup. Destructive calls require an exact audience id and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
       connectionKind: 'Focused · controlled delete',
       toolCount: 4,
       caution: true,
@@ -182,7 +206,7 @@
         'Check health and explain decision results',
       ],
       configNotes:
-        'Choose this for Decision Lab and Edge decisioning work. Reuse the same X-AEP-Lab-Mcp-Key generated below.',
+        'Choose this for Decision Lab and Edge decisioning work. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
       connectionKind: 'Focused',
       toolCount: 9,
       docUrl:
@@ -205,7 +229,7 @@
         'Delete one eligible journey or Draft campaign after explicit confirmation',
       ],
       configNotes:
-        'Choose this for AJO inventory and controlled cleanup. Deletes require an exact ID, name, status, and explicit confirmation. Reuse the same sandbox key.',
+        'Choose this for AJO inventory and controlled cleanup. Deletes require an exact ID, name, status, and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
       connectionKind: 'Focused · controlled delete',
       toolCount: 7,
       caution: true,
@@ -229,7 +253,7 @@
         'Add, update, or remove a task or meeting, optionally linked to a customer',
       ],
       configNotes:
-        'Scoped to your own Firebase uid, like Snowflake — requires a user-generated key, not a shared ops key. Changes made here show up in the browser Command Centre on next reload and vice versa.',
+        'Scoped to your own Firebase uid. Coworker uses Adobe IMS; key-based clients require a user-generated key, not a shared ops key. Changes appear in the browser Command Centre on reload and vice versa.',
       connectionKind: 'Focused',
       toolCount: 11,
       docUrl:
@@ -252,7 +276,7 @@
         'Render current conditions on a map image for a visual demo moment',
       ],
       configNotes:
-        'Uses the same X-AEP-Lab-Mcp-Key as every other Lab connection; the server holds its own separate OpenWeatherMap and Google Maps API keys.',
+        'Coworker uses Adobe IMS; key-based clients reuse the sandbox key. OpenWeatherMap and Google Maps keys stay server-side and are never configured in the plugin.',
       connectionKind: 'Focused',
       toolCount: 4,
       docUrl:
@@ -278,6 +302,26 @@
       docUrl:
         'https://experienceleague.adobe.com/en/docs/cx-enterprise-ai/experience-cloud-ai/mcp/overview',
       docLabel: 'CX Coworker Gateway overview',
+    },
+    {
+      id: 'adobe-commerce-extensibility',
+      section: 'adobe',
+      name: 'Adobe Commerce Extensibility MCP',
+      product: 'Adobe Commerce · App Builder development',
+      mcpUrl: 'N/A (stdio)',
+      summary:
+        'Adobe-maintained local MCP for developing Commerce extensions with App Builder: documentation search, Adobe I/O application workflows, project configuration, and Commerce event subscriptions.',
+      useCases: [
+        'Design and build Commerce App Builder extensions',
+        'Search current Commerce, storefront, core, and App Builder documentation',
+        'Configure Adobe I/O projects and deploy or invoke Runtime actions',
+        'Onboard Commerce event providers and subscribe applications to events',
+      ],
+      configNotes:
+        'Local stdio developer tool, not a hosted catalog/order operations endpoint. Requires Node.js 22+, Adobe I/O CLI, and a Commerce project. Run aio commerce extensibility tools-setup; generated config runs node with args ["node_modules/@adobe-commerce/commerce-extensibility-tools/index.js"]. Run aio auth login for authenticated documentation search. AEM Boilerplate Commerce setup can also install the separate @dropins/mcp server.',
+      docUrl:
+        'https://developer.adobe.com/commerce/extensibility/developer-agent/coding-tools',
+      docLabel: 'Commerce development MCP setup',
     },
     {
       id: 'aa',
@@ -639,7 +683,7 @@
         '">Copy URL</button>' +
         '<button type="button" class="mcp-copy-action" data-mcp-copy="config" data-server-id="' +
         escapeHtml(entry.id) +
-        '">Copy Coworker config</button>' +
+        '">Copy key-based config</button>' +
         '</div>'
       );
     }
@@ -722,14 +766,14 @@
     copyText(text)
       .then(function () {
         const defaultLabel =
-          action === 'config' ? 'Copy Coworker config' : action === 'name' ? 'Copy name' : 'Copy URL';
+          action === 'config' ? 'Copy key-based config' : action === 'name' ? 'Copy name' : 'Copy URL';
         button.textContent = 'Copied';
         setCopyStatus(
           entry.name +
             (action === 'config'
               ? ' config copied — paste your generated key into the placeholder.'
               : action === 'name'
-                ? ' Coworker config name copied.'
+                ? ' Key-based config name copied.'
                 : ' URL copied.'),
         );
         setTimeout(function () {

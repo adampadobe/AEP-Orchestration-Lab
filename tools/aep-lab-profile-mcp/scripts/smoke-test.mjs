@@ -79,7 +79,7 @@ async function run() {
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather']) {
+  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 
@@ -412,6 +412,18 @@ async function run() {
       'lab_weather_current',
       'lab_weather_forecast',
       'lab_weather_map',
+    ]),
+    commerce: await verifyFocusedEndpoint('/mcp/commerce', [
+      'lab_mcp_access_info',
+      'commerce_access_info',
+      'commerce_capabilities',
+      'commerce_store_configs',
+      'commerce_catalog_summary',
+      'commerce_product_search',
+      'commerce_product_get',
+      'commerce_category_tree',
+      'commerce_inventory_status',
+      'commerce_graphql_query',
     ]),
   };
 

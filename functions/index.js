@@ -13,6 +13,8 @@ const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
 const ADOBE_CLIENT_SECRET = defineSecret('ADOBE_CLIENT_SECRET');
 const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
+const ADOBE_COMMERCE_REST_ENDPOINT = defineSecret('ADOBE_COMMERCE_REST_ENDPOINT');
+const AEP_LAB_COMMERCE_INTERNAL_KEY = defineSecret('AEP_LAB_COMMERCE_INTERNAL_KEY');
 /** Optional machine-to-machine key used by a future AJO custom action. */
 const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
 /** Dedicated least-privilege AWS identity for private PDF output storage. */
@@ -92,6 +94,8 @@ const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { registerProfileRoutes } = require('./profileRoutes');
 const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes');
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
+const { registerCommerceRoutes } = require('./commerceRoutes');
+const { createCommerceService } = require('./commerceService');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
@@ -354,6 +358,14 @@ const { getAdobeAccessToken, aepHeaders } = createAdobeAuth({
   getClientSecret: () => ADOBE_CLIENT_SECRET.value(),
   getScopes: () => ADOBE_SCOPES.value(),
   getImsOrg: () => ADOBE_IMS_ORG.value(),
+});
+
+const commerceService = createCommerceService({
+  getAccessToken: getAdobeAccessToken,
+  getClientId: () => ADOBE_CLIENT_ID.value(),
+  getImsOrg: () => ADOBE_IMS_ORG.value(),
+  getBaseScopes: () => ADOBE_SCOPES.value(),
+  getRestEndpoint: () => ADOBE_COMMERCE_REST_ENDPOINT.value(),
 });
 
 exports.aepProxy = onRequest(
@@ -659,6 +671,11 @@ const profileFnOpts = {
   invoker: 'public',
   timeoutSeconds: 120,
   memory: '512MiB',
+};
+
+const commerceFnOpts = {
+  ...profileFnOpts,
+  secrets: [...PROFILE_FN_SECRETS, ADOBE_COMMERCE_REST_ENDPOINT, AEP_LAB_COMMERCE_INTERNAL_KEY],
 };
 
 Object.assign(
@@ -998,6 +1015,18 @@ Object.assign(
     mcpApiKeyStore,
     ajoCleanupService,
   })
+);
+
+Object.assign(
+  exports,
+  registerCommerceRoutes({
+    onRequest,
+    commerceFnOpts,
+    setCors,
+    internalMcpKey: AEP_LAB_COMMERCE_INTERNAL_KEY,
+    mcpApiKeyStore,
+    commerceService,
+  }),
 );
 
 /** GET /api/sandboxes */

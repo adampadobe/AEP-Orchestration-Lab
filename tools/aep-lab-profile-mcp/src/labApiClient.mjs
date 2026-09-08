@@ -676,6 +676,64 @@ export function principalAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
 
+const COMMERCE_API_BASE = '/api/commerce-prep';
+
+function commerceRead(action, query = {}) {
+  return labApiRequest(COMMERCE_API_BASE, {
+    query: { action, ...query },
+    headers: commerceInternalAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+export function commerceAccessInfo({ store }) {
+  return commerceRead('access', { store });
+}
+
+export function commerceCapabilities() {
+  return commerceRead('capabilities');
+}
+
+export function commerceStoreConfigs({ store }) {
+  return commerceRead('stores', { store });
+}
+
+export function commerceCatalogSummary({ store, category_depth }) {
+  return commerceRead('catalog_summary', { store, categoryDepth: category_depth });
+}
+
+export function commerceProductSearch({ term, field, page, page_size, store }) {
+  return commerceRead('product_search', { term, field, page, pageSize: page_size, store });
+}
+
+export function commerceProductGet({ sku, store }) {
+  return commerceRead('product_get', { sku, store });
+}
+
+export function commerceCategoryTree({ depth, root_category_id, store }) {
+  return commerceRead('categories', { depth, rootCategoryId: root_category_id, store });
+}
+
+export function commerceInventoryStatus({ sku, store }) {
+  return commerceRead('inventory', { sku, store });
+}
+
+export function commerceGraphqlQuery({ query, variables, store }) {
+  return labApiRequest(COMMERCE_API_BASE, {
+    method: 'POST',
+    query: { action: 'graphql' },
+    body: { query, variables, store },
+    headers: commerceInternalAuthHeaders(),
+    timeoutMs: 120_000,
+    idempotent: true,
+  });
+}
+
+function commerceInternalAuthHeaders() {
+  const key = String(process.env.AEP_LAB_COMMERCE_INTERNAL_KEY || '').trim();
+  return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
+}
+
 const PDF_API_BASE = '/api/pdf-personalisation';
 
 export async function pdfDraftList({ sandbox }) {

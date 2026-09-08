@@ -310,7 +310,7 @@
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyRevealBtn">Reveal key</button>' +
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyRotateBtn">Rotate key</button>' +
       '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyRevokeBtn">Revoke key</button>' +
-      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyCoworkerBtn">Copy Coworker config</button>' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyCoworkerBtn">Copy key-based config</button>' +
       '</div>';
 
     var revealBtn = document.getElementById('mcpLabKeyRevealBtn');
@@ -367,7 +367,7 @@
         copyTextToClipboard(
           secret ? coworkerSnippet(secret) : coworkerSnippetPlaceholder(),
           copyBtn,
-          'Copy Coworker config',
+          'Copy key-based config',
         );
       });
     }
@@ -426,7 +426,7 @@
       '<h3 id="mcpLabKeyModalTitle" class="mcp-key-modal-title">' +
       escapeHtml(title) +
       '</h3>' +
-      '<button type="button" class="dashboard-btn-outline mcp-key-modal-header-copy" id="mcpLabKeyCopyConfigBtn" aria-label="Copy Coworker config without API key (paste key separately)">Copy Coworker config</button>' +
+      '<button type="button" class="dashboard-btn-outline mcp-key-modal-header-copy" id="mcpLabKeyCopyConfigBtn" aria-label="Copy key-based config without API key (paste key separately)">Copy key-based config</button>' +
       '</div>' +
       '<p class="mcp-key-modal-warning">' +
       escapeHtml(warning || 'Copy this key now. It will not be shown again.') +
@@ -451,13 +451,13 @@
       modalCopyField('mcpLabKeyPlaintext', 'API key', apiKey, 'mcpLabKeyCopySecretBtn', 'Copy key') +
       '</div>' +
       '<details class="mcp-key-modal-snippet-details">' +
-      '<summary class="mcp-key-modal-snippet-summary">Coworker / Cursor mcp.json preview</summary>' +
-      '<textarea id="mcpLabKeySnippet" class="mcp-key-modal-snippet" readonly rows="8" aria-label="Coworker MCP config preview without secret">' +
+      '<summary class="mcp-key-modal-snippet-summary">Cursor / other key-based client mcp.json preview</summary>' +
+      '<textarea id="mcpLabKeySnippet" class="mcp-key-modal-snippet" readonly rows="8" aria-label="Key-based MCP config preview without secret">' +
       escapeHtml(coworkerSnippetPlaceholder(selectedEndpoint)) +
       '</textarea>' +
       '</details>' +
       '<div class="mcp-key-modal-actions">' +
-      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyAllBtn" aria-label="Copy complete Coworker config with API key filled in">Copy all</button>' +
+      '<button type="button" class="dashboard-btn-outline" id="mcpLabKeyCopyAllBtn" aria-label="Copy complete key-based config with API key filled in">Copy all</button>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeyModalClose">Done</button>' +
       '</div>' +
       '</div>';
@@ -485,8 +485,8 @@
         copyTextToClipboard(
           coworkerSnippetPlaceholder(selectedEndpoint),
           copyConfigBtn,
-          'Copy Coworker config',
-          'Coworker config copied (no secret) — paste your key into ' + MCP_HEADER_NAME,
+          'Copy key-based config',
+          'Key-based config copied (no secret) — paste your key into ' + MCP_HEADER_NAME,
         );
       });
     }
@@ -526,7 +526,7 @@
           coworkerSnippet(apiKey, selectedEndpoint),
           copyAllBtn,
           'Copy all',
-          'Complete Coworker config copied (includes secret)',
+          'Complete key-based config copied (includes secret)',
         );
       });
     }

@@ -18,7 +18,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 127,
+    toolCount: 136,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
@@ -113,6 +113,17 @@ export const MCP_CONTEXTS = Object.freeze([
     useWhen: 'Use for live weather or map context in a demo scenario; it does not call AEP or Lab APIs.',
   },
   {
+    id: 'aep-lab-commerce',
+    name: 'AEP Lab Commerce demo preparation',
+    url: `${LAB_BASE_URL}/mcp/commerce`,
+    kind: 'lab-focused',
+    toolCount: 10,
+    access: LAB_ACCESS,
+    risk: 'read-only Adobe Commerce access',
+    capabilities: ['ACCS access verification', 'store configuration', 'catalog summary', 'product search', 'category tree', 'inventory status', 'storefront GraphQL'],
+    useWhen: 'Use to inspect and prepare the configured Adobe Commerce as a Cloud Service instance for a demo without changing catalog data.',
+  },
+  {
     id: 'adobe-cx-coworker-gateway',
     name: 'Adobe CX Coworker Gateway',
     url: 'https://cx-coworker-gateway.adobe.io/mcp',
@@ -162,6 +173,16 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Use the recent-job inventory to retrieve the stored PDF until expiry; publish a server template only after explicit confirmation.',
     ],
   },
+  commerce_demo_preparation: {
+    title: 'Inspect and prepare an Adobe Commerce demo',
+    contexts: ['aep-lab-commerce'],
+    steps: [
+      'Verify the configured ACCS organization, instance, region, environment, and stores.',
+      'Summarize products and categories, then inspect exact SKUs and inventory needed for the demo.',
+      'Use bounded storefront GraphQL queries to validate the shopper-facing catalog response.',
+      'Keep this phase read-only; add preview and explicit confirmation gates before any future catalog write tools.',
+    ],
+  },
   platform_authoring: {
     title: 'Perform product-native Adobe authoring',
     contexts: ['adobe-cx-coworker-gateway'],
@@ -178,6 +199,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-ajo-cleanup': ['journey delete', 'campaign delete', 'journey cleanup', 'campaign cleanup', 'delete journey', 'delete campaign'],
   'aep-lab-command-centre': ['command centre', 'customer engagement', 'meeting', 'task list', 'next action'],
   'aep-lab-weather': ['weather', 'forecast', 'temperature', 'rain', 'weather map'],
+  'aep-lab-commerce': ['commerce', 'accs', 'product catalog', 'product sku', 'inventory', 'store view', 'storefront graphql'],
   'adobe-cx-coworker-gateway': ['schema', 'dataset', 'destination', 'source', 'query service', 'cja', 'analytics', 'workfront', 'authoring', 'native adobe'],
 });
 

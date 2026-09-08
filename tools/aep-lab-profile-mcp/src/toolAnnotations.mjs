@@ -1,4 +1,13 @@
 const READ_ONLY_TOOLS = new Set([
+  'commerce_access_info',
+  'commerce_capabilities',
+  'commerce_catalog_summary',
+  'commerce_category_tree',
+  'commerce_graphql_query',
+  'commerce_inventory_status',
+  'commerce_product_get',
+  'commerce_product_search',
+  'commerce_store_configs',
   'lab_audience_audit',
   'lab_audience_list',
   'lab_ajo_campaign_audit',
