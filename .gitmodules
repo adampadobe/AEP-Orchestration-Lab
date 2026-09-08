@@ -2,3 +2,4 @@
 	path = tools/eds-quickstart
 	url = https://github.com/adampadobe/eds-quickstart.git
 	branch = main
+	update = none
