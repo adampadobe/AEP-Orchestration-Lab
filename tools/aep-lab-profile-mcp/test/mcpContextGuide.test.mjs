@@ -54,6 +54,8 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
 
   assert.match(html, /v3\.41\.3/);
   assert.match(html, /installs General plus nine focused integrations/i);
+  assert.match(html, /Add the same repository directly to Claude/i);
+  assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
   assert.match(catalog, /Complete Lab MCP · 127 tools/);
   assert.match(catalog, /Focused Lab MCP · 21 tools/);

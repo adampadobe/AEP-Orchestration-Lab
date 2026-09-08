@@ -1,0 +1,85 @@
+{
+  "mcpServers": {
+    "aep-lab-entry": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 60000,
+      "alwaysLoad": true
+    },
+    "aep-lab-general": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 650000
+    },
+    "aep-lab-profiles": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 300000
+    },
+    "aep-lab-demo-prep": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 650000
+    },
+    "aep-lab-pdf-prep": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 650000
+    },
+    "aep-lab-audiences": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/audiences",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 300000
+    },
+    "aep-lab-decisioning": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 300000
+    },
+    "aep-lab-ajo-cleanup": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-cleanup",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 300000
+    },
+    "aep-lab-command-centre": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 300000
+    },
+    "aep-lab-weather": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/weather",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 60000
+    }
+  }
+}
