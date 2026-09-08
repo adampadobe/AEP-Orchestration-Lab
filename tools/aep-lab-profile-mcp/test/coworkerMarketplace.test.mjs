@@ -86,6 +86,17 @@ test('repository root exposes a Claude marketplace with a runtime-specific plugi
   assert.equal(marketplace.plugins[0].source, './tools/claude-marketplace/aep-lab');
 });
 
+test('optional EDS source does not block recursive Claude marketplace clones', async () => {
+  const gitmodules = await readFile(join(repoRoot, '.gitmodules'), 'utf8');
+  const packageJson = await readJson(join(repoRoot, 'package.json'));
+
+  assert.match(gitmodules, /\[submodule "tools\/eds-quickstart"\][\s\S]*?\n\s*update = none(?:\n|$)/);
+  assert.match(
+    packageJson.scripts?.['build:eds-quickstart'] ?? '',
+    /submodule\.tools\/eds-quickstart\.update=checkout submodule update --init tools\/eds-quickstart/,
+  );
+});
+
 test('Claude plugin prompts securely for one Portal key and preserves the workflow skill', async () => {
   const manifest = await readJson(join(claudePluginRoot, '.claude-plugin', 'plugin.json'));
   const keyConfig = manifest.userConfig?.aep_lab_mcp_key;

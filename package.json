@@ -22,7 +22,7 @@
     "fake-loyalty:test": "npm run loyalty-provider:test",
     "build:edp": "cd \"web/profile-viewer/experience-decisioning-playground\" && npm install && npm run build",
     "build:eds-doc-starter-zip": "python3 scripts/build_eds_doc_starter_zip.py",
-    "build:eds-quickstart": "([ -f tools/eds-quickstart/package.json ] || git submodule update --init tools/eds-quickstart) && cd tools/eds-quickstart && npm install && npm run build:standalone && rsync -a --delete --exclude='*.map' --exclude='*.LICENSE.txt' dist/ ../../web/profile-viewer/eds-quickstart/",
+    "build:eds-quickstart": "([ -f tools/eds-quickstart/package.json ] || git -c submodule.tools/eds-quickstart.update=checkout submodule update --init tools/eds-quickstart) && cd tools/eds-quickstart && npm install && npm run build:standalone && rsync -a --delete --exclude='*.map' --exclude='*.LICENSE.txt' dist/ ../../web/profile-viewer/eds-quickstart/",
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",

@@ -1248,6 +1248,7 @@ private `vaneeghemk/eds-quickstart` Adobe I/O App Builder project.
 - **Built static output** (committed): `web/profile-viewer/eds-quickstart/{index.html,static/js/main.<hash>.js}`.
 - **Wrapper page**: [`web/profile-viewer/eds-quickstart.html`](web/profile-viewer/eds-quickstart.html) — iframes the SPA inside the lab dashboard shell.
 - **Build**: `npm run build:eds-quickstart` (initialises submodule on first run, runs the fork's webpack 5 standalone config, rsyncs `dist/` → `web/profile-viewer/eds-quickstart/`).
+- **Clone behaviour**: the optional source submodule uses `update = none`, so recursive clones used by the Claude marketplace do not require access to the fork. `npm run build:eds-quickstart` explicitly opts into checking it out when a developer needs to rebuild the committed static output.
 - **GitHub PAT (Repository cleanup)**: deleting a repo via the app’s GitHub API requires a **classic** token that includes **`delete_repo`** as well as **`repo`** (see in-app Settings / Repository cleanup guidance).
 - **Upstream-promotion workflow**: read [`docs/EDS_QUICKSTART_INTEGRATION.md`](docs/EDS_QUICKSTART_INTEGRATION.md) before merging upstream changes from `vaneeghemk` into our fork.
 
