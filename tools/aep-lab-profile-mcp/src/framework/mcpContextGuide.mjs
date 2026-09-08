@@ -7,22 +7,22 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab MCP entry point',
     url: `${LAB_BASE_URL}/mcp/entry`,
     kind: 'lab-focused',
-    toolCount: 4,
+    toolCount: 5,
     access: LAB_ACCESS,
     risk: 'read-only',
-    capabilities: ['mcp discovery', 'context recommendation', 'cross-context workflow planning'],
-    useWhen: 'Start here when the best Lab or Adobe MCP context is unclear.',
+    capabilities: ['mcp discovery', 'context recommendation', 'cross-context workflow planning', 'optional dynamic tool loading for compatible clients'],
+    useWhen: 'Start here when the best Lab or Adobe MCP context is unclear. In Coworker, use the focused integrations already installed by the marketplace rather than dynamically loading tools.',
   },
   {
     id: 'aep-lab-general',
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 113,
+    toolCount: 127,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
-    capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities'],
-    useWhen: 'Use for broad work that spans several Lab domains or for existing configurations.',
+    capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
+    useWhen: 'Use for broad work, first-run setup, infrastructure, Snowflake, administration, or existing key-based configurations.',
   },
   {
     id: 'aep-lab-demo-prep',
@@ -51,7 +51,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab profiles and events',
     url: `${LAB_BASE_URL}/mcp/profile`,
     kind: 'lab-focused',
-    toolCount: 20,
+    toolCount: 21,
     access: LAB_ACCESS,
     risk: 'governed profile and event writes',
     capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment'],
@@ -89,6 +89,28 @@ export const MCP_CONTEXTS = Object.freeze([
     risk: 'controlled delete; lifecycle audit and exact confirmation required',
     capabilities: ['AJO journey inventory', 'AJO campaign inventory', 'journey audit and deletion', 'campaign audit and deletion'],
     useWhen: 'Use for governed AJO journey and campaign cleanup.',
+  },
+  {
+    id: 'aep-lab-command-centre',
+    name: 'AEP Lab Command Centre',
+    url: `${LAB_BASE_URL}/mcp/command-centre`,
+    kind: 'lab-focused',
+    toolCount: 11,
+    access: LAB_ACCESS,
+    risk: 'user-scoped writes; delete operations require exact targets',
+    capabilities: ['customer engagement tracking', 'task management', 'meeting management'],
+    useWhen: 'Use to manage the signed-in user\'s Command Centre engagements, tasks, and meetings.',
+  },
+  {
+    id: 'aep-lab-weather',
+    name: 'AEP Lab weather and maps',
+    url: `${LAB_BASE_URL}/mcp/weather`,
+    kind: 'lab-focused',
+    toolCount: 4,
+    access: LAB_ACCESS,
+    risk: 'read-only third-party weather and map lookups',
+    capabilities: ['current weather', 'weather forecast', 'weather map'],
+    useWhen: 'Use for live weather or map context in a demo scenario; it does not call AEP or Lab APIs.',
   },
   {
     id: 'adobe-cx-coworker-gateway',
@@ -154,6 +176,8 @@ const KEYWORDS = Object.freeze({
   'aep-lab-decisioning': ['decision', 'decisioning', 'offer', 'treatment', 'edge evaluate', 'catalog'],
   'aep-lab-audiences': ['audience', 'segment', 'delete audience', 'audience cleanup'],
   'aep-lab-ajo-cleanup': ['journey delete', 'campaign delete', 'journey cleanup', 'campaign cleanup', 'delete journey', 'delete campaign'],
+  'aep-lab-command-centre': ['command centre', 'customer engagement', 'meeting', 'task list', 'next action'],
+  'aep-lab-weather': ['weather', 'forecast', 'temperature', 'rain', 'weather map'],
   'adobe-cx-coworker-gateway': ['schema', 'dataset', 'destination', 'source', 'query service', 'cja', 'analytics', 'workfront', 'authoring', 'native adobe'],
 });
 
@@ -188,6 +212,6 @@ export function recommendMcpContexts(goal) {
     suggestedPrompt: contexts.length === 1
       ? `Use the ${contexts[0].id} MCP for this task. Begin with its access/readiness check and follow its governed workflow.`
       : `Use these configured MCPs in order: ${contexts.map((context) => context.id).join(' -> ')}. Keep outputs from each step as context for the next.`,
-    hostLimitation: 'This guide recommends contexts but cannot connect, switch, or invoke another MCP server on behalf of the Coworker host. Configure each recommended server first.',
+    hostLimitation: 'This guide cannot connect, switch, or invoke another MCP server. The Coworker marketplace already installs all focused Lab contexts; use the matching integration directly because Coworker does not refresh dynamically loaded tools.',
   };
 }

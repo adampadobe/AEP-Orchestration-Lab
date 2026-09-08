@@ -2,36 +2,38 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.41.2). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.41.3). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.41.2** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.41.3** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 This plugin installs nine focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, and `aep-lab-weather`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. That's exactly why this plugin installs the other eight connections directly rather than relying on `lab_load_toolset` alone.
 
+Use the focused integration that owns the task. The optional key-based `aep-lab-general` endpoint has 127 tools, including first-run setup, infrastructure, Snowflake, and administration tools that are not in this plugin. If an advanced tool named below is unavailable, say that it requires General or the Portal; do not imply that `aep-lab-entry` can make it callable in Coworker.
+
 Coworker forwards `Authorization` and IMS identity headers automatically. Do not ask the user to paste a key into Coworker or the plugin manifest.
 
-**Portal:** create at least one MCP key per sandbox to establish the signed-in Adobe user's sandbox enrollment. The plaintext key is only for API-key clients such as Codex or Cursor; Coworker does not use it. The MCP client completes foundations via **`lab_mcp_first_run_setup`** on first connect.
+**Portal:** create at least one MCP key per sandbox to establish the signed-in Adobe user's sandbox enrollment. The plaintext key is only for API-key clients such as Codex or Cursor; Coworker does not use it. In Coworker, begin with **`lab_mcp_access_info`**. First-run foundations require the optional General endpoint or the Portal.
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
 
 ## Framework knowledge (server-side — no manual retraining)
 
-Call these **before** improvising lab conventions:
+Use the focused tools that are available. Rows marked **General only** require the optional full endpoint:
 
 | Tool / resource | Purpose |
 |-----------------|--------|
-| **`lab_get_execution_framework`** | **criticalRules** at top + workflows, dataflow pattern, when to use generate vs update vs event |
-| **`lab_get_industry_playbook`** | Per-industry persona paths, language/testProfile rules, dataflow manifest shape, failure_modes |
+| **`lab_get_execution_framework`** — General only | **criticalRules** at top + workflows, dataflow pattern, when to use generate vs update vs event |
+| **`lab_get_industry_playbook`** — General only | Per-industry persona paths, language/testProfile rules, dataflow manifest shape, failure_modes |
 | **`lab_confirm_profile_generation`** | **Ask colleague first** — format rules, questions, prefs preview; `confirmed:true` persists base email + mobile |
-| **`lab_confirm_generation_plan`** | Read-only preview of next scaled email (does not consume counter) |
+| **`lab_confirm_generation_plan`** — General only | Read-only preview of next scaled email (does not consume counter) |
 | **`lab_preflight_profile_generate`** | Dry-run: sandbox config ready + what will be sent (testProfile, language, connection, format rules) without streaming |
 | `lab://framework/overview` | Markdown execution overview (MCP resource) |
 | `lab://framework/conventions` | Email, phone, testProfile, preferredLanguage, stitching rules |
@@ -78,24 +80,24 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 | **Mobile** (static) | `+447425627462` | E.164 from prefs; applied to every generated profile |
 | **How to reserve** | Omit `email` on `lab_generate_profile` | Default `use_stored_prefs:true` atomically reserves next counter via `POST /api/lab/generation-prefs/next-email` |
 
-**Before first generate on a sandbox:** call **`lab_confirm_profile_generation`** — read `questionsForColleague` + `formatRules`, ask the colleague, then persist with `confirmed:true` + `base_email`. **`lab_mcp_first_run_setup`** and **`lab_prepare_demo_from_brand_scrape`** block the profiles step when prefs are missing and return the same confirm hints.
+**Before first generate on a sandbox:** call **`lab_confirm_profile_generation`** — read `questionsForColleague` + `formatRules`, ask the colleague, then persist with `confirmed:true` + `base_email`. **`lab_prepare_demo_from_brand_scrape`** blocks the profiles step when prefs are missing and returns the same hints. General-only **`lab_mcp_first_run_setup`** does too.
 
 - **Email format (required)**: `<local>+DDMMYYYY-N@<domain>` — e.g. `apalmer+14072026-3@adobetest.com` (today's date + daily counter N). Legacy `travel.demo+001@adobetest.com` is **rejected** by MCP guardrails.
 - **Base email**: stored in Firestore `labProfileGenerationPrefs` (Profile Viewer Profile Generation field or `lab_set_generation_prefs`). MCP `lab_generate_profile` **omits email** to auto-reserve the next counter value.
 - **Mobile**: static E.164 from prefs — lab default **`+447425627462`** (visible in Portal + MCP responses).
 - **segment_hint** (with `randomize:true`): travel `hotel_high_value` \| `hotel_reactivation`; fsi `high_net_worth` \| `credit_rebuild`; retail `loyalty_vip` \| `cart_abandoner`.
 - **Industry aliases**: `telco` / `telecommunications` → `telecom`; `public` → `generic`.
-- **Known-profile events** (MCP / Event tool): after `lab_generate_profile`, capture **ecid** from response. Send with **both** email + ecid so `identityMap.ECID` is primary and `identityMap.Email` secondary; `_demoemea.identification.core` carries the same strings. See `lab_get_execution_framework` → `criticalRules.event_identity_stitch`.
+- **Known-profile events** (MCP / Event tool): after `lab_generate_profile`, capture **ecid** from response. Send with **both** email + ecid so `identityMap.ECID` is primary and `identityMap.Email` secondary; `_demoemea.identification.core` carries the same strings. The General endpoint's `lab_get_execution_framework` contains the full rule.
 - **Anonymous Edge** (Web SDK demos): `getIdentity` then `sendEvent` with `identityMap.ECID` **and** `_<tenant>.identification.core.ecid` (same ECID string). See `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`.
 - **Profile Core v2 top-up**: travel sandboxes need `travelReservations.*` + `hotel.*` tenant leaves — provision step 2 runs ADD-only patch from `profileCoreV2Manifest.js`.
 
 ### Example prompt that needs zero manual context
 
-> Call **lab_get_execution_framework** (read criticalRules). **lab_confirm_profile_generation** for sandbox apalmer — show colleague format rules and next preview email. When confirmed, **lab_preflight_profile_generate** industry travel. If ready, **lab_generate_profile** sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should be `+DDMMYYYY-N` scaled form.
+> Call **lab_mcp_access_info**. Then **lab_confirm_profile_generation** for sandbox apalmer — show the format rules and next preview email. When confirmed, **lab_preflight_profile_generate** industry travel. If ready, **lab_generate_profile** sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should use the `+DDMMYYYY-N` scaled form.
 
 ### One-shot full demo prep (confirm → scrape → profiles → events)
 
-> Sandbox **apalmer**, customer site **https://example-brand.com**. (1) **lab_mcp_access_info**. (2) **lab_mcp_first_run_setup** if new key — if `readiness.generation_prefs.ready` is false, **lab_confirm_profile_generation** and ask colleague for base email (e.g. apalmer@adobetest.com), then `confirmed:true`. (3) **lab_resolve_brand_scrape** url — if `need_new_scrape`, one **lab_brand_scrape** with `include: { personas: true, segments: true, demoWebsite: true }`, `wait_for_complete: true`. (4) **lab_prepare_demo_from_brand_scrape** with `steps: { profiles: true, events: true }` — omit industry and email (scrape-inferred industry + stored prefs). (5) Open demo URL from `profileViewerDemoHref` / `lab_list_brand_scrapes`. (6) **lab_get_profile** + **lab_profile_activity** per scaled email (allow 30–60s UPS lag).
+> Sandbox **apalmer**, customer site **https://example-brand.com**. (1) **lab_mcp_access_info**. (2) **lab_resolve_brand_scrape** url — if `need_new_scrape`, run one **lab_brand_scrape** with `include: { personas: true, segments: true, demoWebsite: true }`, `wait_for_complete: true`. (3) **lab_prepare_demo_from_brand_scrape** with `steps: { profiles: true, events: true }` — omit industry and email. If it reports missing generation preferences, use **lab_confirm_profile_generation**, ask for the base email, then retry. (4) Open the returned demo URL. (5) Verify each scaled email with **lab_get_profile** and **lab_profile_activity** after the normal UPS delay.
 
 ## Full workflow playbook
 

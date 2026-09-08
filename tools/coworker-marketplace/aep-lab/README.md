@@ -18,7 +18,7 @@ Nine MCP connections, one per Lab capability:
 | `aep-lab-command-centre` | `/mcp/command-centre` | Your own Command Centre engagements, tasks, meetings |
 | `aep-lab-weather` | `/mcp/weather` | Live weather + Google Maps for demo scenarios |
 
-This is deliberately **not** the full `/mcp` catch-all connection — every tool it would add is already covered by the nine above, so bundling it too would only add duplicate tool names with no new capability. It's still available as a standalone manual connection; see `tools/aep-lab-profile-mcp/README.md`.
+This deliberately omits the full `/mcp` General connection. General has 127 tools, including advanced first-run, infrastructure, Snowflake, and administration capabilities that are not duplicated in the focused plugin. Add it separately with a sandbox key only when you need those workflows; see `tools/aep-lab-profile-mcp/README.md`.
 
 ## Setup: signed-in Adobe IMS
 

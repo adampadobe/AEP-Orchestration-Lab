@@ -71,20 +71,20 @@
 
           <div class="mcp-section" data-mcp-section="lab" aria-labelledby="mcpSectionLabHeading">
             <h2 id="mcpSectionLabHeading" class="mcp-section-heading">AEP Orchestration Lab</h2>
-            <p class="mcp-section-lead">Lab-hosted MCP on Cloud Run — automates Profile Viewer workflows for Coworker and Cursor. Not an Adobe product MCP.</p>
+            <p class="mcp-section-lead">Lab-hosted MCP on Cloud Run for preparing and operating AEP demos. Not an Adobe product MCP.</p>
 
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.41.0</span>
+                <span class="mcp-lab-version">v3.41.3</span>
               </h3>
               <p class="mcp-lab-overview-lead">
-                Streamable HTTP MCP for <strong>Adobe AI Coworker</strong> and Cursor, covering profile generation, brand-scrape demo prep, decisioning, PDF prep, audience/AJO cleanup, Command Centre, and live weather + map lookups.
+                A sandbox-scoped toolkit for preparing AEP demonstrations: generate test profiles, send events, stage customer branding, evaluate decisions, create PDFs, and perform confirmation-gated cleanup. Coworker uses your Adobe sign-in; key-based clients use a Portal-generated key.
               </p>
 
               <div class="mcp-marketplace-callout mcp-marketplace-callout--primary" aria-labelledby="mcpMarketplaceCalloutHeading">
                 <span class="mcp-connection-badge">Start here</span>
-                <h4 id="mcpMarketplaceCalloutHeading">Add the Coworker Marketplace — installs everything in one click</h4>
+                <h4 id="mcpMarketplaceCalloutHeading">Add the Coworker Marketplace — installs nine focused integrations</h4>
                 <p>One marketplace and one plugin — Coworker uses your signed-in Adobe identity, with no key pasted into the plugin.</p>
                 <ol>
                   <li>In Coworker: <strong>Marketplaces → + Add Marketplace</strong></li>
@@ -109,7 +109,7 @@
                   <li><strong>Command Centre</strong> <code>aep-lab-command-centre</code> — your own customer engagements, tasks, and meetings</li>
                   <li><strong>Weather</strong> <code>aep-lab-weather</code> — live weather and Google Maps for demo scenarios</li>
                 </ul>
-                <p class="mcp-included-note">Not included: <code>aep-lab-general</code>, the full catch-all connection — every tool it exposes is already covered above. See <strong>Advanced</strong> below if you want it as a standalone connection instead.</p>
+                <p class="mcp-included-note">Not included: <code>aep-lab-general</code>, the optional full catalog. It has 127 tools, including advanced onboarding, infrastructure, Snowflake, and administration tools that are not duplicated in the focused plugin. See <strong>Advanced</strong> to connect it separately with a sandbox key.</p>
               </div>
 
               <details class="mcp-advanced-details">
@@ -187,9 +187,7 @@
                     <li><strong>Brand scrape → demo prep</strong> — crawl a site, map personas to profiles, optional events and Client Journey asset</li>
                     <li><strong>Events</strong> — send any experience event type (same as Event tool), verify on profile activity</li>
                     <li><strong>PDF preparation</strong> — preview HTML or document data, generate and store PDFs, then retrieve private preview links</li>
-                    <li><strong>Sandbox config</strong> — infra readiness, onboard industries, verify MCP access</li>
-                    <li><strong>HTTP streaming flows</strong> — lab MCP creates schema + dataset; use Coworker <strong>dx-api</strong> (Flow Service) for profile dataflows, then save connection in Profile Viewer</li>
-                    <li><strong>Edge datastreams</strong> — <code>lab_setup_event_infra</code> + <code>lab_enable_event_profile</code>; Coworker <strong>dx-api</strong> for the datastream; <code>lab_save_event_datastream</code> to wire Event tool sends</li>
+                    <li><strong>Advanced via General</strong> — first-run setup, sandbox infrastructure, Snowflake, HTTP streaming, and Edge datastream setup</li>
                   </ul>
                 </div>
                 <div class="mcp-lab-overview-block">
@@ -198,10 +196,9 @@
                     <li>Select your sandbox in the Profile Viewer nav</li>
                     <li>Sign in and <strong>Generate key</strong> below — workspace slug is <em>not</em> required first</li>
                     <li>Add the <strong>Coworker Marketplace</strong> above and install the plugin (see <strong>Advanced</strong> below to connect individually instead)</li>
-                    <li>First Coworker session: call <code>lab_mcp_first_run_setup</code> for your sandbox (pass <code>workspace_slug</code> when prompted)</li>
-                    <li>Then <code>lab_get_execution_framework</code> before other lab tasks</li>
-                    <li>Missing HTTP dataflow after schema/dataset provision? Coworker <strong>dx-api</strong> — see <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_HTTP_STREAMING_FLOWS.md" target="_blank" rel="noopener noreferrer">HTTP streaming flows doc</a></li>
-                    <li>Event tool needs a datastream? <code>lab_setup_event_infra</code> then dx-api — see <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_EDGE_DATASTREAMS.md" target="_blank" rel="noopener noreferrer">Edge datastreams doc</a></li>
+                    <li>Test <code>aep-lab-entry</code>, then use the installed focused integration that matches your task</li>
+                    <li>Begin focused work with <code>lab_mcp_access_info</code> to confirm your identity and sandbox access</li>
+                    <li>For first-run setup, infrastructure, Snowflake, or the full execution framework, connect optional <code>aep-lab-general</code> from <strong>Advanced</strong>. For Adobe setup handoffs, see the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_HTTP_STREAMING_FLOWS.md" target="_blank" rel="noopener noreferrer">HTTP streaming</a> and <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_EDGE_DATASTREAMS.md" target="_blank" rel="noopener noreferrer">Edge datastream</a> guides</li>
                   </ol>
                 </div>
               </div>
@@ -283,14 +280,14 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260826-entry-point"></script>
+  <script src="mcp-servers.js?v=20260908-focused-copy"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
   <script src="aep-access-onboarding.js?v=20260527b"></script>
-  <script src="mcp-servers-keys.js?v=20260826-entry-point"></script>
+  <script src="mcp-servers-keys.js?v=20260908-focused-copy"></script>
   <script src="mcp-key-recovery.js?v=20260805"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
