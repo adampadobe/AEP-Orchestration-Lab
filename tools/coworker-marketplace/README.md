@@ -21,7 +21,7 @@ Once added, install the **AEP Orchestration Lab** plugin from the marketplace's 
 ```
 tools/coworker-marketplace/
 ├── .claude-plugin/marketplace.json   # marketplace manifest — lists installable plugins
-└── aep-lab/                          # the one bundled plugin (all 9 focused Lab connections)
+└── aep-lab/                          # General plus all 9 focused Lab connections
     ├── .claude-plugin/plugin.json
     ├── .mcp.json                     # MCP server definitions (URL + header per connection)
     ├── skills/aep-lab-profile-mcp/   # workflow guidance, mirrored from .agents/skills/

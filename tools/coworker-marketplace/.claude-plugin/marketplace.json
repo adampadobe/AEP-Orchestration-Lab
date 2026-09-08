@@ -8,7 +8,7 @@
     {
       "name": "aep-lab",
       "displayName": "AEP Orchestration Lab",
-      "description": "Profile generation, brand-scrape demo prep, decisioning, PDF prep, audience/AJO cleanup, Command Centre, and live weather+map lookups against the AEP Orchestration Lab.",
+      "description": "Complete AEP Orchestration Lab catalog plus focused integrations for profiles, demo prep, decisioning, PDFs, cleanup, Command Centre, and weather.",
       "source": "./aep-lab"
     }
   ]
