@@ -18,7 +18,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 136,
+    toolCount: 146,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
@@ -124,6 +124,17 @@ export const MCP_CONTEXTS = Object.freeze([
     useWhen: 'Use to inspect and prepare the configured Adobe Commerce as a Cloud Service instance for a demo without changing catalog data.',
   },
   {
+    id: 'aep-lab-commerce-optimizer',
+    name: 'AEP Lab Commerce Optimizer demo preparation',
+    url: `${LAB_BASE_URL}/mcp/commerce-optimizer`,
+    kind: 'lab-focused',
+    toolCount: 11,
+    access: LAB_ACCESS,
+    risk: 'read-only Adobe Commerce Optimizer access',
+    capabilities: ['ACO tenant access verification', 'catalog-view validation', 'product search', 'attribute metadata', 'category tree', 'navigation', 'recommendations', 'storefront GraphQL'],
+    useWhen: 'Use to inspect and prepare a public Adobe Commerce Optimizer catalog view for a demo without ingesting or changing catalog data.',
+  },
+  {
     id: 'adobe-cx-coworker-gateway',
     name: 'Adobe CX Coworker Gateway',
     url: 'https://cx-coworker-gateway.adobe.io/mcp',
@@ -183,6 +194,16 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Keep this phase read-only; add preview and explicit confirmation gates before any future catalog write tools.',
     ],
   },
+  commerce_optimizer_demo_preparation: {
+    title: 'Inspect and prepare an Adobe Commerce Optimizer demo',
+    contexts: ['aep-lab-commerce-optimizer'],
+    steps: [
+      'Verify the configured ACO organization, tenant, region, and readiness.',
+      'Provide a public catalog view ID and validate its price-book context.',
+      'Inspect searchable attributes, products, categories, navigation, and recommendation units needed for the demo.',
+      'Keep all operations read-only; catalog ingestion is outside this MCP.',
+    ],
+  },
   platform_authoring: {
     title: 'Perform product-native Adobe authoring',
     contexts: ['adobe-cx-coworker-gateway'],
@@ -200,6 +221,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-command-centre': ['command centre', 'customer engagement', 'meeting', 'task list', 'next action'],
   'aep-lab-weather': ['weather', 'forecast', 'temperature', 'rain', 'weather map'],
   'aep-lab-commerce': ['commerce', 'accs', 'product catalog', 'product sku', 'inventory', 'store view', 'storefront graphql'],
+  'aep-lab-commerce-optimizer': ['commerce optimizer', 'aco', 'catalog view', 'price book', 'recommendation unit', 'merchandising services'],
   'adobe-cx-coworker-gateway': ['schema', 'dataset', 'destination', 'source', 'query service', 'cja', 'analytics', 'workfront', 'authoring', 'native adobe'],
 });
 

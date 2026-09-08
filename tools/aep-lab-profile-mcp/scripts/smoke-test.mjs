@@ -79,7 +79,7 @@ async function run() {
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce']) {
+  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce', '/mcp/commerce-optimizer']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 
@@ -424,6 +424,19 @@ async function run() {
       'commerce_category_tree',
       'commerce_inventory_status',
       'commerce_graphql_query',
+    ]),
+    commerceOptimizer: await verifyFocusedEndpoint('/mcp/commerce-optimizer', [
+      'lab_mcp_access_info',
+      'commerce_optimizer_access_info',
+      'commerce_optimizer_capabilities',
+      'commerce_optimizer_view_check',
+      'commerce_optimizer_attribute_metadata',
+      'commerce_optimizer_product_search',
+      'commerce_optimizer_product_get',
+      'commerce_optimizer_category_tree',
+      'commerce_optimizer_navigation',
+      'commerce_optimizer_recommendations',
+      'commerce_optimizer_graphql_query',
     ]),
   };
 

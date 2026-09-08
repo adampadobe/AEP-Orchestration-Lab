@@ -734,6 +734,36 @@ function commerceInternalAuthHeaders() {
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
 }
 
+const COMMERCE_OPTIMIZER_API_BASE = '/api/commerce-optimizer-prep';
+
+function commerceOptimizerInternalAuthHeaders() {
+  const key = String(process.env.AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY || '').trim();
+  return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
+}
+
+export function commerceOptimizerAccessInfo() {
+  return labApiRequest(COMMERCE_OPTIMIZER_API_BASE, {
+    query: { action: 'access' }, headers: commerceOptimizerInternalAuthHeaders(), timeoutMs: 120_000,
+  });
+}
+
+export function commerceOptimizerCapabilities() {
+  return labApiRequest(COMMERCE_OPTIMIZER_API_BASE, {
+    query: { action: 'capabilities' }, headers: commerceOptimizerInternalAuthHeaders(), timeoutMs: 120_000,
+  });
+}
+
+export function commerceOptimizerQuery(action, params = {}) {
+  return labApiRequest(COMMERCE_OPTIMIZER_API_BASE, {
+    method: 'POST',
+    query: { action },
+    body: params,
+    headers: commerceOptimizerInternalAuthHeaders(),
+    timeoutMs: 120_000,
+    idempotent: true,
+  });
+}
+
 const PDF_API_BASE = '/api/pdf-personalisation';
 
 export async function pdfDraftList({ sandbox }) {

@@ -94,6 +94,13 @@
         "transport": "streamable_http",
         "auth": "aep-lab-ims-passthrough",
         "tool_timeout_seconds": 120
+      },
+      {
+        "name": "aep-lab-commerce-optimizer",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce-optimizer",
+        "transport": "streamable_http",
+        "auth": "aep-lab-ims-passthrough",
+        "tool_timeout_seconds": 120
       }
     ]
   }

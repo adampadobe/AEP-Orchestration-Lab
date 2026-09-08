@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer}
  * Health:   GET /health
  */
 
@@ -36,10 +36,11 @@ import {
   registerFocusedCommandCentreTools,
   registerFocusedWeatherTools,
   registerFocusedCommerceTools,
+  registerFocusedCommerceOptimizerTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.42.0';
+const MCP_VERSION = '3.43.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -123,6 +124,13 @@ const ENDPOINTS = [
     instructions:
       'Focused, read-only Adobe Commerce as a Cloud Service demo preparation: verify organization and instance access, ' +
       'inspect stores, products, categories, and inventory, and run storefront GraphQL queries. REST writes and GraphQL mutations are prohibited.',
+  },
+  {
+    path: '/mcp/commerce-optimizer',
+    toolset: 'commerce-optimizer',
+    register: registerFocusedCommerceOptimizerTools,
+    instructions:
+      'Focused, read-only Adobe Commerce Optimizer demo preparation: verify organization and tenant access, validate a public catalog view, inspect shopper-visible products, attributes, categories, navigation, and recommendations, and run read-only GraphQL. Catalog ingestion and GraphQL mutations are prohibited.',
   },
 ];
 

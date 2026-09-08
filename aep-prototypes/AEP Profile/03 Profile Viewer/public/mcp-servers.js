@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 136 tools',
+      product: 'Complete Lab MCP · 146 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -40,9 +40,9 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace intentionally installs the ten focused integrations instead.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all eleven focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 136,
+      toolCount: 146,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -141,6 +141,27 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Commerce preparation tools reference',
+    },
+    {
+      id: 'aep-lab-commerce-optimizer',
+      configName: 'aep-lab-commerce-optimizer',
+      section: 'lab',
+      dropdownLabel: 'Commerce Optimizer preparation',
+      name: 'AEP Lab — Commerce Optimizer preparation',
+      product: 'Focused read-only MCP · 11 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce-optimizer',
+      summary: 'A focused, read-only Adobe Commerce Optimizer context for validating tenant access and preparing public catalog-view demos.',
+      useCases: [
+        'Verify the configured Commerce Optimizer organization and tenant',
+        'Validate a public catalog view and price-book context',
+        'Inspect searchable attributes, products, categories, and navigation',
+        'Test recommendation units and guarded storefront GraphQL',
+      ],
+      configNotes: 'Every catalog query requires a public catalog view ID. Ingestion APIs and GraphQL mutations are excluded, and private-view access tokens are never accepted in MCP arguments. Adobe credentials and the instance endpoint remain in Firebase secrets.',
+      connectionKind: 'Focused · read-only',
+      toolCount: 11,
+      docUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Commerce Optimizer preparation reference',
     },
     {
       id: 'aep-lab-pdf-prep',
