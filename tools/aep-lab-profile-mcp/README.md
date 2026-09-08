@@ -475,7 +475,7 @@ Focused Adobe Commerce preparation uses the same key and is read-only:
 }
 ```
 
-The Commerce tools call the authenticated Firebase route `/api/commerce-prep`. Firebase Functions owns the Adobe client credential and `ADOBE_COMMERCE_REST_ENDPOINT` secret; Cloud Run never receives either value. REST is fixed to GET operations and storefront GraphQL rejects mutations and subscriptions.
+The Commerce tools call the authenticated Firebase route `/api/commerce-prep`. Firebase Functions owns the Adobe client credential and `ADOBE_COMMERCE_REST_ENDPOINT` secret; Cloud Run never receives either value. REST is limited to the documented read catalog and curated preview/apply or audit/delete operations; arbitrary paths are unavailable. Storefront GraphQL mutations and subscriptions are rejected.
 
 **Tool timeouts:** ≥ **300s** for infra, get/update/activity, provisioning, PDF generation/publishing, and `execute_all` polling. ≥ **540s** for **`lab_brand_scrape`** when waiting for completion.
 
