@@ -1,12 +1,12 @@
 # AEP Orchestration Lab MCP (Phase 3.38)
 
-Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce storefront building and read-only Commerce Optimizer contexts, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
+Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce and Commerce Optimizer catalog building, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.44.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.45.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 155-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the eleven focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 159-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the eleven focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -20,9 +20,11 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
-| `/mcp/commerce-optimizer` | 11 | Access check plus ten read-only ACO tools for tenant validation, catalog views, attributes, products, categories, navigation, recommendations, and GraphQL |
+| `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 
 The Commerce context separates storefront reads from administration. `commerce_graphql_query` remains query-only and `commerce_graphql_schema` reports the live storefront schema. REST administration is a closed allowlist: products (including price, custom attributes, and embedded media payloads), categories, category assignments, and inventory source items. Every change starts with `commerce_admin_change_preview`; apply requires its fresh preflight ID and exact confirmation, makes one non-retried request, and returns a readback. Product, category, assignment, and media removal use the separate audit/delete pair.
+
+The Commerce Optimizer context similarly keeps the Merchandising GraphQL API read-only and routes catalog changes through Adobe's Data Ingestion REST API. Its allowlist covers products, product and category metadata, categories, price books, prices, and product layers using the documented create, update, and delete endpoints. Changes require `commerce_optimizer_ingestion_change_preview` before apply; deletions require a separate audit. Apply sends one non-retried batch and returns Adobe's acceptance response. Optimizer indexing is asynchronous, so the result explicitly remains pending until a catalog-view GraphQL read verifies shopper-visible state.
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 

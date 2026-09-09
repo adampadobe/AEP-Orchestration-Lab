@@ -48,6 +48,10 @@ function registerCommerceOptimizerRoutes({ onRequest, optimizerFnOpts, setCors, 
         if (action === 'capabilities') return res.json(commerceOptimizerService.capabilities());
         if (req.method !== 'POST') return res.status(405).json({ error: 'Catalog queries require POST.' });
         const body = req.body && typeof req.body === 'object' ? req.body : {};
+        if (action === 'ingestion_change_preview') return res.json(commerceOptimizerService.ingestionChangePreview(body));
+        if (action === 'ingestion_change_apply') return res.json(await commerceOptimizerService.ingestionChangeApply(body));
+        if (action === 'ingestion_delete_audit') return res.json(commerceOptimizerService.ingestionDeleteAudit(body));
+        if (action === 'ingestion_delete_apply') return res.json(await commerceOptimizerService.ingestionDeleteApply(body));
         const operation = queryFor(action, body);
         if (!operation) return res.status(400).json({ error: 'Unsupported Commerce Optimizer action.' });
         return res.json(await commerceOptimizerService.graphql({

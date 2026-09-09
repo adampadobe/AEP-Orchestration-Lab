@@ -4,6 +4,8 @@ const READ_ONLY_TOOLS = new Set([
   'commerce_optimizer_capabilities',
   'commerce_optimizer_category_tree',
   'commerce_optimizer_graphql_query',
+  'commerce_optimizer_ingestion_change_preview',
+  'commerce_optimizer_ingestion_delete_audit',
   'commerce_optimizer_navigation',
   'commerce_optimizer_product_get',
   'commerce_optimizer_product_search',
@@ -97,6 +99,7 @@ const READ_ONLY_TOOLS = new Set([
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([
+  'commerce_optimizer_ingestion_delete_apply',
   'commerce_admin_delete_apply',
   'lab_audience_delete',
   'lab_ajo_campaign_delete',

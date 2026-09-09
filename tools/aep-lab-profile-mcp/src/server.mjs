@@ -40,7 +40,7 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.44.0';
+const MCP_VERSION = '3.45.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -131,7 +131,7 @@ const ENDPOINTS = [
     toolset: 'commerce-optimizer',
     register: registerFocusedCommerceOptimizerTools,
     instructions:
-      'Focused, read-only Adobe Commerce Optimizer demo preparation: verify organization and tenant access, validate a public catalog view, inspect shopper-visible products, attributes, categories, navigation, and recommendations, and run read-only GraphQL. Catalog ingestion and GraphQL mutations are prohibited.',
+      'Focused Adobe Commerce Optimizer demo preparation: verify organization and tenant access; inspect shopper-visible products, attributes, categories, navigation, recommendations, and read-only GraphQL; and use confirmation-gated Data Ingestion API operations for products, metadata, categories, price books, prices, and product layers. Storefront GraphQL mutations and arbitrary ingestion paths are prohibited.',
   },
 ];
 
