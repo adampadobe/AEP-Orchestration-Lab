@@ -233,7 +233,7 @@ export function registerFocusedCommerceTools(mcpServer) {
   registerCommerceDomainTools(mcpServer);
 }
 
-/** Focused, read-only Adobe Commerce Optimizer demo preparation. */
+/** Focused, governed Adobe Commerce Optimizer demo preparation. */
 export function registerFocusedCommerceOptimizerTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerCommerceOptimizerDomainTools(mcpServer);

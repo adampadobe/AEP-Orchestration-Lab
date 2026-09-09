@@ -16,7 +16,7 @@ const contextSchema = {
 function result(value) { return fromLabApi(value); }
 function run(action, params) { return commerceOptimizerQuery(action, params).then(result); }
 
-/** Register the read-only Adobe Commerce Optimizer demo-preparation catalog. */
+/** Register the governed Adobe Commerce Optimizer demo-preparation catalog. */
 export function registerCommerceOptimizerTools(mcpServer) {
   mcpServer.registerTool('commerce_optimizer_access_info', {
     title: 'Verify Commerce Optimizer access',
@@ -26,7 +26,7 @@ export function registerCommerceOptimizerTools(mcpServer) {
 
   mcpServer.registerTool('commerce_optimizer_capabilities', {
     title: 'List Commerce Optimizer capabilities',
-    description: 'Lists available read-only query families, endpoint readiness, catalog-view requirements, and enforced guardrails.',
+    description: 'Lists storefront query families, documented ingestion operations and limits, endpoint readiness, catalog-view requirements, and enforced guardrails.',
     inputSchema: {},
   }, async () => result(await commerceOptimizerCapabilities()));
 
@@ -86,4 +86,61 @@ export function registerCommerceOptimizerTools(mcpServer) {
       variables: z.record(z.unknown()).optional(),
     },
   }, async (params) => run('graphql', params));
+
+  const changeOperations = z.enum([
+    'product_create', 'product_update',
+    'product_metadata_create', 'product_metadata_update',
+    'category_create', 'category_update',
+    'category_metadata_create', 'category_metadata_update',
+    'price_book_create', 'price_book_update',
+    'price_create', 'price_update',
+    'product_layer_create',
+  ]);
+  const deleteOperations = z.enum([
+    'product_delete', 'product_metadata_delete', 'category_delete', 'category_metadata_delete',
+    'price_book_delete', 'price_delete', 'product_layer_delete',
+  ]);
+  const records = z.array(z.record(z.unknown())).min(1).max(500);
+
+  mcpServer.registerTool('commerce_optimizer_ingestion_change_preview', {
+    title: 'Preview a Commerce Optimizer catalog change',
+    description:
+      'Validates and previews one allowlisted Data Ingestion API create or update batch without writing. Covers products, ' +
+      'product/category metadata, categories, price books, prices, and product layers. Returns exact targets, preflight ID, and confirmation.',
+    inputSchema: { operation: changeOperations, items: records },
+  }, async (params) => run('ingestion_change_preview', params));
+
+  mcpServer.registerTool('commerce_optimizer_ingestion_change_apply', {
+    title: 'Submit a previewed Commerce Optimizer catalog change',
+    description:
+      'Submits exactly one previewed ingestion batch with no automatic retry. Requires unchanged items, preflight_id, and exact confirmation. ' +
+      'Returns Adobe acceptance and explicitly marks storefront verification as pending asynchronous indexing.',
+    inputSchema: {
+      operation: changeOperations,
+      items: records,
+      preflight_id: z.string().length(64),
+      confirmation: z.string().min(1),
+    },
+  }, async (params) => run('ingestion_change_apply', params));
+
+  mcpServer.registerTool('commerce_optimizer_ingestion_delete_audit', {
+    title: 'Audit a Commerce Optimizer catalog deletion',
+    description:
+      'Validates and displays exact identifiers for one allowlisted Data Ingestion API delete batch without writing. ' +
+      'Covers products, metadata, categories, price books, prices, and product layers and returns a preflight ID and exact confirmation.',
+    inputSchema: { operation: deleteOperations, items: records },
+  }, async (params) => run('ingestion_delete_audit', params));
+
+  mcpServer.registerTool('commerce_optimizer_ingestion_delete_apply', {
+    title: 'Submit an audited Commerce Optimizer catalog deletion',
+    description:
+      'Submits exactly one audited delete batch with no automatic retry after matching the unchanged identifiers, preflight_id, ' +
+      'and exact confirmation. Adobe processes accepted deletions asynchronously.',
+    inputSchema: {
+      operation: deleteOperations,
+      items: records,
+      preflight_id: z.string().length(64),
+      confirmation: z.string().min(1),
+    },
+  }, async (params) => run('ingestion_delete_apply', params));
 }

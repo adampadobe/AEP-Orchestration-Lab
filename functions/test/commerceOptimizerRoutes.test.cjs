@@ -18,7 +18,7 @@ test('Optimizer internal auth trims and compares timing-safely', async () => {
   assert.equal((await authorize(req('wrong'), deps)).status, 403);
 });
 
-test('Optimizer action catalog contains reads only and bounds arrays', () => {
+test('Optimizer storefront action catalog contains reads only and bounds arrays', () => {
   assert.match(queryFor('view_check', {}).query, /commerceOptimizer/);
   assert.equal(queryFor('navigation', { family: 'categories' }).variables.family, 'categories');
   assert.equal(queryFor('products', { skus: Array.from({ length: 30 }, (_, i) => `s${i}`) }).variables.skus.length, 20);

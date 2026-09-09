@@ -10,7 +10,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(new Set(contexts.map((context) => context.id)).size, contexts.length);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 155);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 159);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 21);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);
@@ -18,7 +18,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce').url.endsWith('/mcp/commerce'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce').toolCount, 19);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').url.endsWith('/mcp/commerce-optimizer'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').toolCount, 11);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').toolCount, 15);
   assert.equal(contexts.find((context) => context.id === 'adobe-cx-coworker-gateway').access.includes('Adobe'), true);
 });
 
@@ -85,18 +85,23 @@ test('Commerce inspection and preview tools are read-only and apply/delete tools
   assert.equal(annotationsForTool('commerce_admin_delete_apply').destructiveHint, true);
 });
 
-test('all Commerce Optimizer tools are read-only and non-destructive', () => {
+test('Commerce Optimizer reads and previews are read-only while applies are governed', () => {
   for (const name of [
     'commerce_optimizer_access_info', 'commerce_optimizer_capabilities', 'commerce_optimizer_view_check',
     'commerce_optimizer_attribute_metadata', 'commerce_optimizer_product_search', 'commerce_optimizer_product_get',
     'commerce_optimizer_category_tree', 'commerce_optimizer_navigation', 'commerce_optimizer_recommendations',
-    'commerce_optimizer_graphql_query',
+    'commerce_optimizer_graphql_query', 'commerce_optimizer_ingestion_change_preview',
+    'commerce_optimizer_ingestion_delete_audit',
   ]) {
     const annotations = annotationsForTool(name);
     assert.equal(annotations.readOnlyHint, true);
     assert.equal(annotations.destructiveHint, false);
     assert.equal(annotations.idempotentHint, true);
   }
+  assert.equal(annotationsForTool('commerce_optimizer_ingestion_change_apply').readOnlyHint, false);
+  assert.equal(annotationsForTool('commerce_optimizer_ingestion_change_apply').destructiveHint, false);
+  assert.equal(annotationsForTool('commerce_optimizer_ingestion_delete_apply').readOnlyHint, false);
+  assert.equal(annotationsForTool('commerce_optimizer_ingestion_delete_apply').destructiveHint, true);
 });
 
 test('Profile Viewer MCP page matches the deployed catalog and separates Coworker from key-based setup', () => {
@@ -104,12 +109,12 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const catalog = readFileSync(new URL('../../../web/profile-viewer/mcp-servers.js', import.meta.url), 'utf8');
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
-  assert.match(html, /v3\.44\.0/);
+  assert.match(html, /v3\.45\.0/);
   assert.match(html, /installs General plus eleven focused integrations/i);
   assert.match(html, /Add the same repository directly to Claude/i);
   assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 155 tools/);
+  assert.match(catalog, /Complete Lab MCP · 159 tools/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);
   assert.match(catalog, /\/mcp\/commerce/);
   assert.match(catalog, /id: 'aep-lab-commerce-optimizer'/);

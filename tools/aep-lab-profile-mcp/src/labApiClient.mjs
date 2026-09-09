@@ -784,8 +784,12 @@ function commerceInternalAuthHeaders() {
 const COMMERCE_OPTIMIZER_API_BASE = '/api/commerce-optimizer-prep';
 
 function commerceOptimizerInternalAuthHeaders() {
-  const key = String(process.env.AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY || '').trim();
-  return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
+  const userKey = getRequestMcpApiKey();
+  const key = userKey || String(process.env.AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY || '').trim();
+  return key ? {
+    'X-AEP-Lab-Mcp-Key': key,
+    'X-AEP-Lab-Principal-Id': getRequestKeyId(),
+  } : {};
 }
 
 export function commerceOptimizerAccessInfo() {
@@ -801,13 +805,14 @@ export function commerceOptimizerCapabilities() {
 }
 
 export function commerceOptimizerQuery(action, params = {}) {
+  const mutating = action === 'ingestion_change_apply' || action === 'ingestion_delete_apply';
   return labApiRequest(COMMERCE_OPTIMIZER_API_BASE, {
     method: 'POST',
     query: { action },
     body: params,
     headers: commerceOptimizerInternalAuthHeaders(),
     timeoutMs: 120_000,
-    idempotent: true,
+    idempotent: !mutating,
   });
 }
 

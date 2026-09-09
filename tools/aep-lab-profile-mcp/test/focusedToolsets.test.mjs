@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 155);
+  assert.equal(full.names.length, 159);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -134,7 +134,7 @@ test('focused weather endpoint is access plus current, forecast, and map lookups
   assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast', 'lab_weather_map']);
 });
 
-test('focused Commerce Optimizer endpoint is access plus ten read-only tools', () => {
+test('focused Commerce Optimizer endpoint is access plus fourteen governed tools', () => {
   const { names, server } = registrationRecorder();
   registerFocusedCommerceOptimizerTools(server);
   assert.deepEqual(names, [
@@ -142,7 +142,9 @@ test('focused Commerce Optimizer endpoint is access plus ten read-only tools', (
     'commerce_optimizer_access_info', 'commerce_optimizer_capabilities', 'commerce_optimizer_view_check',
     'commerce_optimizer_attribute_metadata', 'commerce_optimizer_product_search', 'commerce_optimizer_product_get',
     'commerce_optimizer_category_tree', 'commerce_optimizer_navigation', 'commerce_optimizer_recommendations',
-    'commerce_optimizer_graphql_query',
+    'commerce_optimizer_graphql_query', 'commerce_optimizer_ingestion_change_preview',
+    'commerce_optimizer_ingestion_change_apply', 'commerce_optimizer_ingestion_delete_audit',
+    'commerce_optimizer_ingestion_delete_apply',
   ]);
 });
 
