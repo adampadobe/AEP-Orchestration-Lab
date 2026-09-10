@@ -1,14 +1,14 @@
 {
-  "gitSha": "b4acf8cacb5688dee6e28e9c1f57fe014ebc0c3f",
-  "gitShortSha": "b4acf8ca",
+  "gitSha": "23523bf57a30c437465da5999fa4cfbc6cd505b6",
+  "gitShortSha": "23523bf5",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] Restructure MCP servers page around the Coworker Marketplace plugin (#214)",
+  "gitCommitSubject": "[apalmer] Add governed Firefly Image MCP (#234)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-09-06T10:07:32+03:00",
-  "deployedAt": "2026-09-06T07:07:48.347Z",
+  "gitCommitDate": "2026-09-10T16:01:58+03:00",
+  "deployedAt": "2026-09-10T13:08:37.549Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b4acf8cacb5688dee6e28e9c1f57fe014ebc0c3f"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/23523bf57a30c437465da5999fa4cfbc6cd505b6"
 }
