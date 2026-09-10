@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedDemoPrepTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 159);
+  assert.equal(full.names.length, 164);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -132,6 +132,16 @@ test('focused weather endpoint is access plus current, forecast, and map lookups
   const { names, server } = registrationRecorder();
   registerFocusedWeatherTools(server);
   assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast', 'lab_weather_map']);
+});
+
+test('focused Firefly endpoint exposes access plus the governed async generation lifecycle', () => {
+  const { names, server } = registrationRecorder();
+  registerFocusedFireflyTools(server);
+  assert.deepEqual(names, [
+    'lab_mcp_access_info',
+    'lab_firefly_capabilities', 'lab_firefly_generate_preview', 'lab_firefly_generate_apply',
+    'lab_firefly_job_status', 'lab_firefly_job_cancel',
+  ]);
 });
 
 test('focused Commerce Optimizer endpoint is access plus fourteen governed tools', () => {

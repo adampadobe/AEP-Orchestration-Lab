@@ -8,7 +8,7 @@
     {
       "name": "aep-lab",
       "displayName": "AEP Orchestration Lab",
-      "description": "Complete AEP Orchestration Lab catalog plus focused integrations for profiles, demo prep, decisioning, PDFs, cleanup, Command Centre, and weather.",
+      "description": "Complete AEP Orchestration Lab catalog plus focused integrations for profiles, demo prep, decisioning, PDFs, cleanup, Commerce, Firefly, Command Centre, and weather.",
       "source": "./aep-lab"
     }
   ]

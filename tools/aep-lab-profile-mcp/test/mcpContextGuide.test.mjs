@@ -10,7 +10,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(new Set(contexts.map((context) => context.id)).size, contexts.length);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 159);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 164);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 21);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);
@@ -19,6 +19,8 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce').toolCount, 19);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').url.endsWith('/mcp/commerce-optimizer'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').toolCount, 15);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').url.endsWith('/mcp/firefly'), true);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').toolCount, 6);
   assert.equal(contexts.find((context) => context.id === 'adobe-cx-coworker-gateway').access.includes('Adobe'), true);
 });
 
@@ -32,6 +34,7 @@ test('recommender selects narrow contexts and reports cross-context work', () =>
   assert.equal(recommendMcpContexts('update my command centre task list').primary.id, 'aep-lab-command-centre');
   assert.equal(recommendMcpContexts('inspect ACCS product inventory').primary.id, 'aep-lab-commerce');
   assert.equal(recommendMcpContexts('inspect ACO catalog view recommendations').primary.id, 'aep-lab-commerce-optimizer');
+  assert.equal(recommendMcpContexts('generate a Firefly image').primary.id, 'aep-lab-firefly');
 });
 
 test('workflow plans retain confirmation gates', () => {
@@ -42,6 +45,7 @@ test('workflow plans retain confirmation gates', () => {
   assert.deepEqual(getMcpWorkflow('pdf_preparation').contexts, ['aep-lab-pdf-prep']);
   assert.deepEqual(getMcpWorkflow('commerce_demo_preparation').contexts, ['aep-lab-commerce']);
   assert.deepEqual(getMcpWorkflow('commerce_optimizer_demo_preparation').contexts, ['aep-lab-commerce-optimizer']);
+  assert.deepEqual(getMcpWorkflow('firefly_image_generation').contexts, ['aep-lab-firefly']);
 });
 
 test('guide tools are closed-world and read-only', () => {
@@ -109,16 +113,18 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const catalog = readFileSync(new URL('../../../web/profile-viewer/mcp-servers.js', import.meta.url), 'utf8');
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
-  assert.match(html, /v3\.45\.0/);
-  assert.match(html, /installs General plus eleven focused integrations/i);
+  assert.match(html, /v3\.46\.0/);
+  assert.match(html, /installs General plus twelve focused integrations/i);
   assert.match(html, /Add the same repository directly to Claude/i);
   assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 159 tools/);
+  assert.match(catalog, /Complete Lab MCP · 164 tools/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);
   assert.match(catalog, /\/mcp\/commerce/);
   assert.match(catalog, /id: 'aep-lab-commerce-optimizer'/);
   assert.match(catalog, /\/mcp\/commerce-optimizer/);
+  assert.match(catalog, /id: 'aep-lab-firefly'/);
+  assert.match(catalog, /\/mcp\/firefly/);
   assert.match(catalog, /Focused Lab MCP · 21 tools/);
   assert.doesNotMatch(catalog, /recommended single connection/i);
   assert.match(catalog, /id: 'adobe-commerce-extensibility'/);

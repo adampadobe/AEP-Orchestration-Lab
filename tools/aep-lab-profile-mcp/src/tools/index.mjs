@@ -47,6 +47,7 @@ import { registerLoadToolsetTool } from './loadToolset.mjs';
 import { registerWeatherTools } from './weatherTools.mjs';
 import { registerCommerceTools } from './commerceTools.mjs';
 import { registerCommerceOptimizerTools } from './commerceOptimizerTools.mjs';
+import { registerFireflyTools } from './fireflyTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -101,6 +102,7 @@ export function registerProfileTools(mcpServer) {
   registerWeatherTools(mcpServer);
   registerCommerceTools(mcpServer);
   registerCommerceOptimizerTools(mcpServer);
+  registerFireflyTools(mcpServer);
 }
 
 /**
@@ -151,6 +153,10 @@ function registerCommerceOptimizerDomainTools(mcpServer) {
   registerCommerceOptimizerTools(mcpServer);
 }
 
+function registerFireflyDomainTools(mcpServer) {
+  registerFireflyTools(mcpServer);
+}
+
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
@@ -163,6 +169,7 @@ const LOADABLE_TOOLSETS = {
   weather: registerWeatherTools,
   commerce: registerCommerceDomainTools,
   'commerce-optimizer': registerCommerceOptimizerDomainTools,
+  firefly: registerFireflyDomainTools,
 };
 
 /**
@@ -237,4 +244,10 @@ export function registerFocusedCommerceTools(mcpServer) {
 export function registerFocusedCommerceOptimizerTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerCommerceOptimizerDomainTools(mcpServer);
+}
+
+/** Focused, governed Adobe Firefly Image 5 generation. */
+export function registerFocusedFireflyTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerFireflyDomainTools(mcpServer);
 }

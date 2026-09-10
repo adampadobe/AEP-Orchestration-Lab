@@ -96,6 +96,9 @@ const READ_ONLY_TOOLS = new Set([
   'lab_snowflake_validate_proposal',
   'lab_weather_current',
   'lab_weather_forecast',
+  'lab_firefly_capabilities',
+  'lab_firefly_generate_preview',
+  'lab_firefly_job_status',
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([
@@ -110,6 +113,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'lab_demo_assets_apply',
   'lab_demo_assets_restore',
   'lab_demo_customer_switch',
+  'lab_firefly_job_cancel',
 ]);
 
 const IDEMPOTENT_WRITE_TOOLS = new Set([

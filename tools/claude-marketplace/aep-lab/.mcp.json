@@ -96,6 +96,14 @@
         "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
       },
       "timeout": 120000
+    },
+    "aep-lab-firefly": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/firefly",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 120000
     }
   }
 }
