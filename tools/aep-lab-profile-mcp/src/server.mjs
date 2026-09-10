@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly}
  * Health:   GET /health
  */
 
@@ -37,10 +37,11 @@ import {
   registerFocusedWeatherTools,
   registerFocusedCommerceTools,
   registerFocusedCommerceOptimizerTools,
+  registerFocusedFireflyTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.45.0';
+const MCP_VERSION = '3.46.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -132,6 +133,13 @@ const ENDPOINTS = [
     register: registerFocusedCommerceOptimizerTools,
     instructions:
       'Focused Adobe Commerce Optimizer demo preparation: verify organization and tenant access; inspect shopper-visible products, attributes, categories, navigation, recommendations, and read-only GraphQL; and use confirmation-gated Data Ingestion API operations for products, metadata, categories, price books, prices, and product layers. Storefront GraphQL mutations and arbitrary ingestion paths are prohibited.',
+  },
+  {
+    path: '/mcp/firefly',
+    toolset: 'firefly',
+    register: registerFocusedFireflyTools,
+    instructions:
+      'Focused Adobe Firefly Image 5 text-to-image generation. Preview first, obtain the exact confirmation before one billable non-idempotent submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
   },
 ];
 

@@ -1,7 +1,7 @@
 {
   "name": "aep-lab",
   "displayName": "AEP Orchestration Lab",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AEP Orchestration Lab MCP connections and workflow guidance for Claude",
   "author": { "name": "Adam Palmer" },
   "homepage": "https://github.com/adampadobe/AEP-Orchestration-Lab/tree/main/tools/aep-lab-profile-mcp",
@@ -15,7 +15,8 @@
     "profile",
     "decisioning",
     "demo-prep",
-    "mcp"
+    "mcp",
+    "firefly"
   ],
   "userConfig": {
     "aep_lab_mcp_key": {

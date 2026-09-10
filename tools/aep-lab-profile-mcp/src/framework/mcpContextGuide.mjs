@@ -18,7 +18,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 159,
+    toolCount: 164,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
@@ -135,6 +135,17 @@ export const MCP_CONTEXTS = Object.freeze([
     useWhen: 'Use to inspect, build, update, validate, or safely clean up the configured Adobe Commerce Optimizer demo catalog.',
   },
   {
+    id: 'aep-lab-firefly',
+    name: 'AEP Lab Adobe Firefly generation',
+    url: `${LAB_BASE_URL}/mcp/firefly`,
+    kind: 'lab-focused',
+    toolCount: 6,
+    access: LAB_ACCESS,
+    risk: 'billable non-idempotent generation; preview and exact confirmation required',
+    capabilities: ['Firefly Image 5 text-to-image', 'async job status', 'generated image URLs', 'job cancellation'],
+    useWhen: 'Use to preview, submit, monitor, or cancel an Adobe Firefly Image 5 text-to-image generation.',
+  },
+  {
     id: 'adobe-cx-coworker-gateway',
     name: 'Adobe CX Coworker Gateway',
     url: 'https://cx-coworker-gateway.adobe.io/mcp',
@@ -206,6 +217,17 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Keep all operations read-only; catalog ingestion is outside this MCP.',
     ],
   },
+  firefly_image_generation: {
+    title: 'Generate an image with Adobe Firefly',
+    contexts: ['aep-lab-firefly'],
+    steps: [
+      'Inspect Firefly readiness and supported aspect ratios.',
+      'Preview one prompt and review the exact request, preflight ID, and billable-operation warning.',
+      'Obtain the exact confirmation and submit once without automatic retry.',
+      'Check the Adobe job URL until it succeeds or fails, then use the returned output URL.',
+      'Cancel only with the Adobe cancel URL and exact job confirmation.',
+    ],
+  },
   platform_authoring: {
     title: 'Perform product-native Adobe authoring',
     contexts: ['adobe-cx-coworker-gateway'],
@@ -224,6 +246,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-weather': ['weather', 'forecast', 'temperature', 'rain', 'weather map'],
   'aep-lab-commerce': ['commerce', 'accs', 'product catalog', 'product sku', 'inventory', 'store view', 'storefront graphql'],
   'aep-lab-commerce-optimizer': ['commerce optimizer', 'aco', 'catalog view', 'price book', 'recommendation unit', 'merchandising services'],
+  'aep-lab-firefly': ['firefly', 'firefly image', 'generate image', 'text to image', 'image 5', 'creative generation'],
   'adobe-cx-coworker-gateway': ['schema', 'dataset', 'destination', 'source', 'query service', 'cja', 'analytics', 'workfront', 'authoring', 'native adobe'],
 });
 

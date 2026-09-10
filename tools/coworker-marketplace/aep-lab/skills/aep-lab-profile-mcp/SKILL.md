@@ -2,19 +2,19 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.45.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.46.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
-  provisioning profile pipelines, or reading lab execution framework / industry playbooks.
+  provisioning profile pipelines, generating images with Adobe Firefly, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.45.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.46.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-This plugin installs the complete 159-tool `aep-lab-general` connection plus eleven focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-commerce`, and `aep-lab-commerce-optimizer`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
+This plugin installs the complete 164-tool `aep-lab-general` connection plus twelve focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-commerce`, `aep-lab-commerce-optimizer`, and `aep-lab-firefly`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
 
 Use the focused integration that owns the task. Use the installed `aep-lab-general` integration for first-run setup, infrastructure, full Snowflake workflows, administration, or any named tool absent from a focused integration. Do not imply that `aep-lab-entry` can make dynamically loaded tools callable in Coworker.
 
@@ -59,6 +59,7 @@ Use focused tools when available. Rows marked **General only** use the installed
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
 16. **A complete customer switch auto-classifies then uses one governed preview and apply** — prefer **`lab_demo_customer_switch`** for demo prep. It calls Gemini vision automatically when the saved scrape lacks a usable logo or supporting image classification, then shows the RTDB diff plus all five transformed image slots. Use **`lab_brand_scrape_classify_images`** for an explicit inventory or forced refresh. After explicit confirmation, apply with both preflight ids and one idempotency key. The server labels and privately backs up the prior customer, verifies image hashes before applying RTDB, checks final alignment, and restores the prior image set if the switch fails.
 17. **PDF preparation is inspect → preview/analyse → generate or publish → visually verify** — use **`lab_pdf_capabilities`** first. HTML should pass through **`lab_pdf_html_preview`** before **`lab_pdf_generate`**. Documents are previewed through the generated PDF link. Use a fresh idempotency key for each new PDF and reuse it only for an exact retry. Use **`lab_pdf_job_list`** to recover stored output. Analyse server templates before publishing; publication and archive require explicit confirmation. Never place PDF binary in model context or use the broad operational `X-PDF-API-Key`.
+18. **Firefly generation is capabilities → preview → exact confirmation → one submit → status** — use **`lab_firefly_capabilities`**, then **`lab_firefly_generate_preview`**. Show the prompt, aspect ratio, preflight ID, and billable warning; call **`lab_firefly_generate_apply`** only with the unchanged request and exact confirmation. Never automatically retry a submit because Firefly generation is billable and non-idempotent. Poll only with **`lab_firefly_job_status`** and surface its output image URLs. Cancel only with **`lab_firefly_job_cancel`** and its exact job confirmation. Firefly credentials are server-side; never ask the colleague for a client secret.
 
 ### How the lab executes
 

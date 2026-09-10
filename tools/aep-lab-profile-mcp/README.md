@@ -1,12 +1,12 @@
 # AEP Orchestration Lab MCP (Phase 3.38)
 
-Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce and Commerce Optimizer catalog building, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
+Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly Image 5 workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.45.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.46.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 159-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the eleven focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 164-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the twelve focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -21,20 +21,23 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
+| `/mcp/firefly` | 6 | Access check plus Firefly Image 5 preview/apply, async job status, generated image URLs, and exact-confirmation cancellation |
 
 The Commerce context separates storefront reads from administration. `commerce_graphql_query` remains query-only and `commerce_graphql_schema` reports the live storefront schema. REST administration is a closed allowlist: products (including price, custom attributes, and embedded media payloads), categories, category assignments, and inventory source items. Every change starts with `commerce_admin_change_preview`; apply requires its fresh preflight ID and exact confirmation, makes one non-retried request, and returns a readback. Product, category, assignment, and media removal use the separate audit/delete pair.
 
 The Commerce Optimizer context similarly keeps the Merchandising GraphQL API read-only and routes catalog changes through Adobe's Data Ingestion REST API. Its allowlist covers products, product and category metadata, categories, price books, prices, and product layers using the documented create, update, and delete endpoints. Changes require `commerce_optimizer_ingestion_change_preview` before apply; deletions require a separate audit. Apply sends one non-retried batch and returns Adobe's acceptance response. Optimizer indexing is asynchronous, so the result explicitly remains pending until a catalog-view GraphQL read verifies shopper-visible state.
 
+The Firefly context uses server-side OAuth credentials from Cloud Run Secret Manager; no Firefly credential is sent to Coworker or accepted as a tool argument. `lab_firefly_generate_preview` validates and hashes one prompt without consuming credits. `lab_firefly_generate_apply` requires the unchanged hash and exact confirmation, submits one non-retried Image 5 async job, and returns Adobe status/cancel URLs. Use `lab_firefly_job_status` to retrieve generated image URLs and `lab_firefly_job_cancel` only with exact job confirmation.
+
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all eleven focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all twelve focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same twelve connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same thirteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 ### Entry point (Phase 3.38)
 
-Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
+Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
 **Known limitation — Adobe Coworker:** `lab_load_toolset` correctly registers the new tools and sends the standard MCP `notifications/tools/list_changed` signal, but as tested, Adobe Coworker's tool-discovery layer only reflects the tool inventory captured at session `initialize` and does not re-run `tools/list` in response to that notification mid-session. Newly loaded tools register successfully server-side but never become callable in Coworker. Until Coworker's client adds `list_changed` support, **directly connect the focused endpoint(s) for the domains you actually use** (e.g. `aep-lab-profiles` for profile/event work, `aep-lab-demo-prep` for brand scrape and customer prep) alongside `aep-lab-entry`, rather than relying on `lab_load_toolset` alone in that host. `lab_load_toolset` still works correctly over the raw Streamable HTTP protocol and in any MCP client that honors `list_changed`.
 
@@ -43,7 +46,7 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
-| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
@@ -73,6 +76,11 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_mcp_recommend_context` | *(static)* | Recommends the smallest useful configured MCP context for a goal |
 | `lab_mcp_workflow` | *(static)* | Cross-context handoff plan; never invokes another MCP |
 | `lab_load_toolset` | *(local, no Lab API call)* | Registers another named toolset into the current session (entry endpoint only) |
+| `lab_firefly_capabilities` | *(server-side Firefly config)* | Readiness, Image 5 contract, aspect ratios, and async/billing guardrails; no credentials returned |
+| `lab_firefly_generate_preview` | *(local, no Firefly call)* | Validates and SHA-256 binds one prompt and aspect ratio; returns exact confirmation |
+| `lab_firefly_generate_apply` | `POST /v4/images/generate-async` | One confirmed, billable, non-idempotent Image 5 submit; never automatically retried |
+| `lab_firefly_job_status` | Adobe-provided status URL | Current job state and generated output image URLs |
+| `lab_firefly_job_cancel` | Adobe-provided cancel URL | Exact-confirmation cancellation of one Firefly job |
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
@@ -529,7 +537,7 @@ Read the service back after deployment. Confirm the intended revision receives 1
 
 ### Initial provisioning or intentional full configuration change
 
-Only use `gcloud run deploy` with configuration flags when intentionally managing the complete service configuration. `--env-vars-file`, `--set-secrets`, and `--clear-*` flags can replace or clear existing settings. The current service requires all five secret bindings below.
+Only use `gcloud run deploy` with configuration flags when intentionally managing the complete service configuration. `--env-vars-file`, `--set-secrets`, and `--clear-*` flags can replace or clear existing settings. The current service requires all nine secret bindings below.
 
 ```bash
 cd tools/aep-lab-profile-mcp
@@ -554,7 +562,7 @@ gcloud run deploy "${SERVICE}" \
   --platform managed \
   --allow-unauthenticated \
   --env-vars-file /tmp/aep-lab-profile-mcp-env.yaml \
-  --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest,AEP_LAB_COMMERCE_INTERNAL_KEY=AEP_LAB_COMMERCE_INTERNAL_KEY:latest,AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY=AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY:latest,OPENWEATHER_API_KEY=aep-lab-weather-openweather-api-key:latest,GOOGLE_MAPS_API_KEY=aep-lab-weather-google-maps-api-key:latest,GOOGLE_MAPS_EMBED_API_KEY=aep-lab-weather-google-maps-embed-api-key:latest" \
+  --set-secrets "AEP_LAB_MCP_API_KEY=aep-lab-profile-mcp-api-key:latest,AEP_LAB_COMMERCE_INTERNAL_KEY=AEP_LAB_COMMERCE_INTERNAL_KEY:latest,AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY=AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY:latest,OPENWEATHER_API_KEY=aep-lab-weather-openweather-api-key:latest,GOOGLE_MAPS_API_KEY=aep-lab-weather-google-maps-api-key:latest,GOOGLE_MAPS_EMBED_API_KEY=aep-lab-weather-google-maps-embed-api-key:latest,FIREFLY_CLIENT_ID=AEP_LAB_FIREFLY_CLIENT_ID:latest,FIREFLY_CLIENT_SECRET=AEP_LAB_FIREFLY_CLIENT_SECRET:latest,FIREFLY_SCOPES=AEP_LAB_FIREFLY_SCOPES:latest" \
   --memory 512Mi \
   --timeout 540 \
   --min-instances 0 \
