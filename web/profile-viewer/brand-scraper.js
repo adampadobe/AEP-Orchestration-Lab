@@ -2776,6 +2776,8 @@
   let pendingAsyncScrapeId = null;
   /** Sync 200 returned before GET payload was fully merged — blocks submit `finally` from re-enabling the button early. */
   let analyzeAwaitingDetailHydrate = false;
+  /** Blocks a second form submit while uploaded HTML/ZIP files are still being prepared. */
+  let analyzeSubmitInFlight = false;
 
   function focusScrapeCard(scrapeId, opts) {
     opts = opts || {};
@@ -3529,6 +3531,7 @@
 
   form.addEventListener('submit', async function (evt) {
     evt.preventDefault();
+    if (analyzeSubmitInFlight || pendingAsyncScrapeId) return;
     const uploadOnly = !!(uploadOnlyCb && uploadOnlyCb.checked);
     let url = normaliseUrl(urlInput.value);
     if (!uploadOnly) {
@@ -3569,9 +3572,17 @@
       return;
     }
 
-    const uploadedHtml = await buildUploadedHtmlPayload();
-
+    analyzeSubmitInFlight = true;
     if (runBtn) runBtn.disabled = true;
+    let uploadedHtml;
+    try {
+      uploadedHtml = await buildUploadedHtmlPayload();
+    } catch (e) {
+      analyzeSubmitInFlight = false;
+      if (runBtn) runBtn.disabled = false;
+      setStatus('Could not prepare uploaded files: ' + (e && e.message || e), 'error');
+      return;
+    }
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
     setStatus((uploadOnly ? 'Processing upload for ' : 'Crawling ') + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
     resultsEl.hidden = true;
@@ -3733,6 +3744,7 @@
       setStatus('Network error: ' + (e && e.message || e), 'error');
       stopProgress();
     } finally {
+      analyzeSubmitInFlight = false;
       if (!pendingAsyncScrapeId) stopScrapePoll();
       if (!pendingAsyncScrapeId && !analyzeAwaitingDetailHydrate && runBtn) runBtn.disabled = false;
     }
