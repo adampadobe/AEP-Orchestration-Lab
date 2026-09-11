@@ -82,7 +82,9 @@ test('classifies image auto-classification as a retry-safe non-destructive write
 test('classifies Firefly preview/status as reads and generation/cancel as non-idempotent writes', () => {
   assert.equal(annotationsForTool('lab_firefly_capabilities').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_generate_preview').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_firefly_generate_video_preview').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_job_status').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_generate_apply').idempotentHint, false);
+  assert.equal(annotationsForTool('lab_firefly_generate_video_apply').idempotentHint, false);
   assert.equal(annotationsForTool('lab_firefly_job_cancel').destructiveHint, true);
 });

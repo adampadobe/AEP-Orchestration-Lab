@@ -1,4 +1,7 @@
 const READ_ONLY_TOOLS = new Set([
+  'adobe_api_catalog',
+  'ajo_suppression_addresses',
+  'genstudio_experience_list',
   'commerce_optimizer_access_info',
   'commerce_optimizer_attribute_metadata',
   'commerce_optimizer_capabilities',
@@ -98,7 +101,13 @@ const READ_ONLY_TOOLS = new Set([
   'lab_weather_forecast',
   'lab_firefly_capabilities',
   'lab_firefly_generate_preview',
+  'lab_firefly_generate_video_preview',
   'lab_firefly_job_status',
+  'assurance_session_list',
+  'assurance_event_inspect',
+  'launch_property_audit',
+  'launch_environment_list',
+  'status_incident_correlate',
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([

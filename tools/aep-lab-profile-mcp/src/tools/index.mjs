@@ -48,6 +48,8 @@ import { registerWeatherTools } from './weatherTools.mjs';
 import { registerCommerceTools } from './commerceTools.mjs';
 import { registerCommerceOptimizerTools } from './commerceOptimizerTools.mjs';
 import { registerFireflyTools } from './fireflyTools.mjs';
+import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
+import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -103,6 +105,8 @@ export function registerProfileTools(mcpServer) {
   registerCommerceTools(mcpServer);
   registerCommerceOptimizerTools(mcpServer);
   registerFireflyTools(mcpServer);
+  registerAdobeCapabilityTools(mcpServer);
+  registerMeasurementQualityTools(mcpServer);
 }
 
 /**
@@ -157,6 +161,14 @@ function registerFireflyDomainTools(mcpServer) {
   registerFireflyTools(mcpServer);
 }
 
+function registerAdobeCapabilityDomainTools(mcpServer) {
+  registerAdobeCapabilityTools(mcpServer);
+}
+
+function registerMeasurementQualityDomainTools(mcpServer) {
+  registerMeasurementQualityTools(mcpServer);
+}
+
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
@@ -170,6 +182,8 @@ const LOADABLE_TOOLSETS = {
   commerce: registerCommerceDomainTools,
   'commerce-optimizer': registerCommerceOptimizerDomainTools,
   firefly: registerFireflyDomainTools,
+  'adobe-capabilities': registerAdobeCapabilityDomainTools,
+  'measurement-quality': registerMeasurementQualityDomainTools,
 };
 
 /**
@@ -250,4 +264,16 @@ export function registerFocusedCommerceOptimizerTools(mcpServer) {
 export function registerFocusedFireflyTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerFireflyDomainTools(mcpServer);
+}
+
+/** Read-only Adobe Developer Console capability catalog plus bounded AJO and GenStudio probes. */
+export function registerFocusedAdobeCapabilityTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerAdobeCapabilityDomainTools(mcpServer);
+}
+
+/** Read-only Assurance, Tags audit, and Adobe Status correlation. */
+export function registerFocusedMeasurementQualityTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerMeasurementQualityDomainTools(mcpServer);
 }

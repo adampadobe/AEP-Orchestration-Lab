@@ -676,6 +676,64 @@ export function principalAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
 
+const ADOBE_CAPABILITIES_API_BASE = '/api/adobe-capabilities';
+
+export function adobeCapabilityCatalog({ sandbox } = {}) {
+  return labApiRequest(ADOBE_CAPABILITIES_API_BASE, {
+    query: { action: 'catalog', sandbox }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+  });
+}
+
+export function ajoSuppressionAddresses({ sandbox, type, limit } = {}) {
+  return labApiRequest(ADOBE_CAPABILITIES_API_BASE, {
+    query: { action: 'ajo_addresses', sandbox, type, limit }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+  });
+}
+
+export function genstudioExperienceList({ sandbox, limit, cursor, channel, language } = {}) {
+  return labApiRequest(ADOBE_CAPABILITIES_API_BASE, {
+    query: { action: 'genstudio_experiences', sandbox, limit, cursor, channel, language },
+    headers: principalAuthHeaders(), timeoutMs: 60_000,
+  });
+}
+
+const MEASUREMENT_QUALITY_API_BASE = '/api/measurement-quality';
+
+function measurementQualityRead(action, query = {}) {
+  return labApiRequest(MEASUREMENT_QUALITY_API_BASE, {
+    query: { action, ...query },
+    headers: principalAuthHeaders(),
+    timeoutMs: 120_000,
+  });
+}
+
+export function assuranceSessionList({ sandbox, limit } = {}) {
+  return measurementQualityRead('assurance_sessions', { sandbox, limit });
+}
+
+export function assuranceEventInspect({ sandbox, session_uuid, page, limit } = {}) {
+  return measurementQualityRead('assurance_events', { sandbox, session_uuid, page, limit });
+}
+
+export function launchPropertyAudit({ sandbox, property_id, limit } = {}) {
+  return measurementQualityRead('launch_property_audit', { sandbox, property_id, limit });
+}
+
+export function launchEnvironmentList({ sandbox, property_id } = {}) {
+  return measurementQualityRead('launch_environments', { sandbox, property_id });
+}
+
+export function statusIncidentCorrelate({ sandbox, from, to, product_ids, keywords, limit } = {}) {
+  return measurementQualityRead('status_incidents', {
+    sandbox,
+    from,
+    to,
+    product_ids: Array.isArray(product_ids) ? product_ids.join(',') : undefined,
+    keywords: Array.isArray(keywords) ? keywords.join(',') : undefined,
+    limit,
+  });
+}
+
 const COMMERCE_API_BASE = '/api/commerce-prep';
 
 function commerceRead(action, query = {}) {

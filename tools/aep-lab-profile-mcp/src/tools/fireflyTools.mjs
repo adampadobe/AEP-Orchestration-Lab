@@ -7,9 +7,36 @@ import { getRequestKeyId } from '../requestContext.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 const ASPECT_RATIOS = ['auto', '1:1', '4:3', '3:4', '16:9', '9:16'];
+const VIDEO_SIZES = ['1920x1080', '1280x720', '960x540', '1080x1920', '720x1280', '540x960', '1080x1080', '720x720', '540x540'];
+const CAMERA_MOTIONS = ['camera pan left', 'camera pan right', 'camera zoom in', 'camera zoom out', 'camera tilt up', 'camera tilt down', 'camera locked down', 'camera handheld'];
+const PROMPT_STYLES = ['anime', '3d', 'fantasy', 'cinematic', 'claymation', 'line art', 'stop motion', '2d', 'vector art', 'black and white'];
+const SHOT_ANGLES = ['aerial shot', 'eye_level shot', 'high angle shot', 'low angle shot', 'top-down shot'];
+const SHOT_SIZES = ['close-up shot', 'extreme close-up', 'medium shot', 'long shot', 'extreme long shot'];
+const KEYFRAME_HOSTS = ['amazonaws.com', 'windows.net', 'dropboxusercontent.com', 'storage.googleapis.com'];
+const keyframeUrlSchema = z.string().url().max(2083).refine((rawUrl) => {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    return parsed.protocol === 'https:' && KEYFRAME_HOSTS.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+  } catch {
+    return false;
+  }
+}, 'Keyframe URL must use HTTPS on an Adobe-supported storage domain');
 const generateSchema = {
   prompt: z.string().trim().min(1).max(1024).describe('The image prompt. Do not include credentials or personal data.'),
   aspect_ratio: z.enum(ASPECT_RATIOS).optional().describe('Output aspect ratio; default auto.'),
+};
+const videoGenerateSchema = {
+  prompt: z.string().trim().min(1).max(1024).describe('Prompt for one five-second video. Do not include credentials or personal data.'),
+  size: z.enum(VIDEO_SIZES).optional().describe('Output dimensions; default 1920x1080.'),
+  bit_rate_factor: z.number().int().min(0).max(63).optional().describe('Encoding constant-rate factor; default 18. Adobe suggests 17-23.'),
+  seed: z.number().int().min(0).max(4294967295).optional().describe('Optional single deterministic seed.'),
+  camera_motion: z.enum(CAMERA_MOTIONS).optional(),
+  prompt_style: z.enum(PROMPT_STYLES).optional(),
+  shot_angle: z.enum(SHOT_ANGLES).optional(),
+  shot_size: z.enum(SHOT_SIZES).optional(),
+  start_frame_url: keyframeUrlSchema.optional().describe('Optional HTTPS pre-signed first-frame URL on an Adobe-supported storage domain.'),
+  end_frame_url: keyframeUrlSchema.optional().describe('Optional HTTPS pre-signed final-frame URL on an Adobe-supported storage domain.'),
 };
 
 function canonicalRequest({ prompt, aspect_ratio = 'auto' }) {
@@ -24,6 +51,44 @@ function preflight(request) {
     request: canonical,
     preflight_id: preflightId,
     confirmation: `GENERATE FIREFLY IMAGE ${preflightId.slice(0, 12).toUpperCase()}`,
+  };
+}
+
+function canonicalVideoRequest({
+  prompt,
+  size = '1920x1080',
+  bit_rate_factor = 18,
+  seed,
+  camera_motion,
+  prompt_style,
+  shot_angle,
+  shot_size,
+  start_frame_url,
+  end_frame_url,
+}) {
+  return {
+    prompt: String(prompt).trim(),
+    size,
+    bit_rate_factor,
+    ...(seed === undefined ? {} : { seed }),
+    ...(camera_motion ? { camera_motion } : {}),
+    ...(prompt_style ? { prompt_style } : {}),
+    ...(shot_angle ? { shot_angle } : {}),
+    ...(shot_size ? { shot_size } : {}),
+    ...(start_frame_url ? { start_frame_url } : {}),
+    ...(end_frame_url ? { end_frame_url } : {}),
+  };
+}
+
+function videoPreflight(request) {
+  const canonical = canonicalVideoRequest(request);
+  const preflightId = createHash('sha256')
+    .update(JSON.stringify({ version: 1, operation: 'firefly_video1_generate', ...canonical }))
+    .digest('hex');
+  return {
+    request: canonical,
+    preflight_id: preflightId,
+    confirmation: `GENERATE FIREFLY VIDEO ${preflightId.slice(0, 12).toUpperCase()}`,
   };
 }
 
@@ -82,9 +147,51 @@ export function registerFireflyTools(mcpServer, { client = createFireflyApiClien
     } catch (error) { return fireflyError(error); }
   });
 
+  mcpServer.registerTool('lab_firefly_generate_video_preview', {
+    title: 'Preview a Firefly Video generation',
+    description: 'Validates and hash-binds one five-second text-to-video or keyframe-guided request without consuming Firefly credits. Returns the exact confirmation phrase required for submission.',
+    inputSchema: videoGenerateSchema,
+  }, async (params) => jsonResult({
+    ok: true,
+    operation: 'firefly_video1_generate',
+    ...videoPreflight(params),
+    billable: false,
+    duration_seconds: 5,
+  }));
+
+  mcpServer.registerTool('lab_firefly_generate_video_apply', {
+    title: 'Submit a previewed Firefly Video generation',
+    description: 'Submits exactly one unchanged five-second video request. This is billable and non-idempotent, is never retried automatically, and requires the preflight ID plus exact confirmation.',
+    inputSchema: {
+      ...videoGenerateSchema,
+      preflight_id: z.string().length(64),
+      confirmation: z.string().min(1),
+    },
+  }, async (params) => {
+    const expected = videoPreflight(params);
+    if (params.preflight_id !== expected.preflight_id || params.confirmation !== expected.confirmation) {
+      return toolError('Firefly video generation confirmation did not match the unchanged preview', {
+        expected_preflight_id: expected.preflight_id,
+        expected_confirmation: expected.confirmation,
+      });
+    }
+    writeAuditLog({ keyId: getRequestKeyId(), tool: 'lab_firefly_generate_video_apply', preflightId: expected.preflight_id });
+    try {
+      const job = await client.submitVideoGenerate(expected.request);
+      return jsonResult({
+        ok: true,
+        submitted: true,
+        billable: true,
+        duration_seconds: 5,
+        job,
+        next_step: 'Call lab_firefly_job_status with job.status_url until the status is succeeded or failed.',
+      });
+    } catch (error) { return fireflyError(error); }
+  });
+
   mcpServer.registerTool('lab_firefly_job_status', {
     title: 'Check a Firefly generation job',
-    description: 'Checks one Adobe-provided Firefly status URL. Returns current status, generated output URLs when complete, and the exact cancellation phrase.',
+    description: 'Checks one Adobe-provided Firefly image or video status URL. Returns current status, generated output URLs when complete, and the exact cancellation phrase.',
     inputSchema: { status_url: z.string().url().max(2048) },
   }, async ({ status_url }) => {
     writeAuditLog({ keyId: getRequestKeyId(), tool: 'lab_firefly_job_status' });

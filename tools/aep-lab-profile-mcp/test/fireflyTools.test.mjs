@@ -21,9 +21,55 @@ test('registers the focused Firefly generation lifecycle', () => {
     'lab_firefly_capabilities',
     'lab_firefly_generate_preview',
     'lab_firefly_generate_apply',
+    'lab_firefly_generate_video_preview',
+    'lab_firefly_generate_video_apply',
     'lab_firefly_job_status',
     'lab_firefly_job_cancel',
   ]);
+});
+
+test('video preview is deterministic and apply submits one unchanged request', async () => {
+  const submissions = [];
+  const tools = recorder({
+    submitVideoGenerate: async (request) => {
+      submissions.push(request);
+      return { job_id: 'video-1', status_url: 'https://firefly-api.adobe.io/v3/status/video-1' };
+    },
+  });
+  const request = {
+    prompt: 'A slow cinematic pan across a desert resort',
+    size: '1920x1080',
+    camera_motion: 'camera pan right',
+    prompt_style: 'cinematic',
+  };
+  const preview = body(await tools.get('lab_firefly_generate_video_preview').handler(request));
+  assert.equal(preview.ok, true);
+  assert.equal(preview.billable, false);
+  assert.equal(preview.duration_seconds, 5);
+  assert.match(preview.confirmation, /^GENERATE FIREFLY VIDEO /);
+
+  const rejected = await tools.get('lab_firefly_generate_video_apply').handler({
+    ...request,
+    preflight_id: preview.preflight_id,
+    confirmation: 'yes',
+  });
+  assert.equal(rejected.isError, true);
+  assert.equal(submissions.length, 0);
+
+  const accepted = body(await tools.get('lab_firefly_generate_video_apply').handler({
+    ...request,
+    preflight_id: preview.preflight_id,
+    confirmation: preview.confirmation,
+  }));
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.job.job_id, 'video-1');
+  assert.deepEqual(submissions, [{
+    prompt: request.prompt,
+    size: request.size,
+    bit_rate_factor: 18,
+    camera_motion: request.camera_motion,
+    prompt_style: request.prompt_style,
+  }]);
 });
 test('preview is deterministic and apply requires the unchanged request and exact confirmation', async () => {
   const submissions = [];
