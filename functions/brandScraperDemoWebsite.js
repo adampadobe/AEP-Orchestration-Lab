@@ -9,6 +9,7 @@ const path = require('path');
 const admin = require('firebase-admin');
 const demoFromUpload = require('./brandScraperDemoFromUpload');
 const demoPolish = require('./brandScraperDemoHtmlPolish');
+const htmlNormalize = require('./brandScraperHtmlNormalize');
 const pvDemo = require('./brandScraperProfileViewerDemo');
 const siteCloneLogin = require('./brandScraperSiteCloneLogin');
 const uploadAssets = require('./brandScraperUploadAssets');
@@ -419,7 +420,7 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
     entries = await uploadAssets.resolveDemoUploadEntries(record, opts);
   }
 
-  const hadUploadedHtml = !!(record.uploadedHtmlSummary && record.uploadedHtmlSummary.validHtmlFiles > 0)
+  const hadCapturedHtml = !!(record.uploadedHtmlSummary && record.uploadedHtmlSummary.validHtmlFiles > 0)
     || !!(record.uploadAssetsPrefix)
     || (Array.isArray(record.fallbackSources) && record.fallbackSources.some((s) => s && s.type === 'uploaded_html'));
 
@@ -439,17 +440,19 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
     if (uploadBuilt && uploadBuilt.files && uploadBuilt.files.length) {
       return {
         files: pvDemo.mapInnerFilesToAssetPaths(fileSlug, uploadBuilt.files),
-        source: 'uploaded_html',
+        source: record.captureSource === 'live_capture' ? 'live_capture' : 'uploaded_html',
         sourceHtmlPath: uploadBuilt.sourceHtmlPath,
+        usesUploadedLogo: !!uploadBuilt.usesUploadedLogo,
+        uploadedLogoPath: uploadBuilt.uploadedLogoPath || null,
       };
     }
-    if (hadUploadedHtml) {
-      throw new Error('Uploaded HTML was saved for this scrape but the demo builder could not produce a snapshot from it.');
+    if (hadCapturedHtml) {
+      throw new Error('Captured HTML was saved for this scrape but the demo builder could not produce a snapshot from it.');
     }
   }
 
-  if (hadUploadedHtml && opts.enabled !== false) {
-    throw new Error('This scrape included uploaded HTML for site clone, but no upload bundle was found in storage. Re-run the scrape with the same ZIP attached, or use Regenerate demo after a fresh scrape with uploads.');
+  if (hadCapturedHtml && opts.enabled !== false) {
+    throw new Error('This scrape included captured HTML for the site clone, but no capture bundle was found in storage. Re-run the scrape or attach the ZIP again, then regenerate the demo.');
   }
 
   const pages = (record.crawlSummary && record.crawlSummary.pages) || [];
@@ -474,13 +477,27 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
   const templateFiles = [
     {
       name: `${assetsDir}/index.html`,
-      content: Buffer.from(buildIframeSnapshotHtml(record, fileSlug, nav, hero, campaigns, partial, logoRelPath), 'utf8'),
+      content: Buffer.from(siteCloneLogin.injectSiteCloneLogin(
+        htmlNormalize.normalizeCapturedHtml(
+          buildIframeSnapshotHtml(record, fileSlug, nav, hero, campaigns, partial, logoRelPath),
+        ),
+        siteCloneLogin.buildSiteCloneLoginConfig({
+          fileSlug,
+          record,
+          logoSrc: logoRelPath || '',
+          accentColor: colours.primary,
+        }),
+      ), 'utf8'),
       contentType: 'text/html; charset=utf-8',
     },
     {
       name: `${assetsDir}/styles.css`,
       content: Buffer.from(buildStylesCss(record, colours, fontFamily, fileSlug), 'utf8'),
       contentType: 'text/css; charset=utf-8',
+    },
+    {
+      ...htmlNormalize.genericSiteGlueFile(),
+      name: `${assetsDir}/${htmlNormalize.GENERIC_SITE_GLUE_NAME}`,
     },
   ];
   if (logoAsset && logoFileRel) {
@@ -529,13 +546,15 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
     },
   ];
 
-  await demoPolish.ensureCustomerLogoDemoFile({
-    record,
-    fileSlug,
-    sandbox,
-    scrapeId,
-    files,
-  });
+  if (!innerResult.usesUploadedLogo) {
+    await demoPolish.ensureCustomerLogoDemoFile({
+      record,
+      fileSlug,
+      sandbox,
+      scrapeId,
+      files,
+    });
+  }
 
   await pvDemo.uploadProfileViewerDemoFiles(fileSlug, files, {
     onProgress: opts.onProgress,
@@ -574,7 +593,9 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
       `Profile Viewer demo at ${publicPath} (same pattern as sky-demo.html).`,
       innerResult.source === 'uploaded_html'
         ? `Iframe snapshot from uploaded HTML (${innerResult.sourceHtmlPath}).`
-        : 'Iframe snapshot generated from scrape content.',
+        : innerResult.source === 'live_capture'
+          ? `Iframe snapshot from the live rendered DOM (${innerResult.sourceHtmlPath}).`
+          : 'Iframe snapshot generated from scrape content.',
       'Demos sidebar entry added via brand-scraper demo nav manifest.',
       wroteLocal
         ? `Also written under web/profile-viewer/${pvDemo.demoHtmlName(fileSlug)} when LAB_REPO_ROOT is set.`

@@ -68,6 +68,7 @@ const ANALYZE_DEMO_BUILD_TIMEOUT_MS = 3600000;
 const BRAND_SCRAPER_LAB_ORIGIN = String(process.env.BRAND_SCRAPER_LAB_ORIGIN || 'https://aep-orchestration-lab.web.app').replace(/\/+$/, '');
 const ANALYZE_POST_CRAWL_RESERVE_BASE_MS = 200000;
 const ANALYZE_MIN_CRAWL_BUDGET_MS = 120000;
+const MAX_LIVE_CAPTURE_HTML_BYTES = 6 * 1024 * 1024;
 
 /** Wall time reserved after crawl for LLM, demo website, competitor analysis, and persist. */
 function resolvePostCrawlReserveMs(body, inc) {
@@ -494,6 +495,9 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit =
       _colours: extractColours(html),
       _fonts: extractFonts(html),
     };
+    if (!pages.length && Buffer.byteLength(html, 'utf8') <= MAX_LIVE_CAPTURE_HTML_BYTES) {
+      pageRow.capturedHtml = html;
+    }
     if (runTagAudit) pageRow.tagAudit = tagAudit.buildFetchPageAudit(html, current);
     pages.push(pageRow);
   }
@@ -1991,12 +1995,24 @@ async function resolveCrawlWithFallbacks({
   const fallbackUsed = shouldUseUpload && uploadedResult.pages.length > 0;
   const blockedPages = uploadedHtml.buildBlockedPages(liveCrawl.failures || [], { fallbackUsed });
 
+  const uploadedEntries = uploadedResult.uploadEntries || [];
+  const liveCapturePage = merged.pages.find((page) => page && page.sourceType === 'live_url'
+    && typeof page.capturedHtml === 'string' && page.capturedHtml.trim());
+  const liveCaptureEntries = liveCapturePage ? [{
+    name: 'index.html',
+    content: Buffer.from(liveCapturePage.capturedHtml, 'utf8'),
+    isHtml: true,
+    sourceType: 'live_capture',
+  }] : [];
+  const captureEntries = uploadedEntries.length ? uploadedEntries : liveCaptureEntries;
+
   return {
     crawl: merged,
     blockedPages,
     fallbackSources: uploadedResult.fallbackSources || [],
     uploadedHtmlSummary: uploadedResult.summary,
-    uploadEntries: uploadedResult.uploadEntries || [],
+    uploadEntries: captureEntries,
+    captureSource: uploadedEntries.length ? 'uploaded_html' : (liveCaptureEntries.length ? 'live_capture' : null),
     uploadOnly,
     fallbackUsed,
     livePageCount: merged._livePageCount || 0,
@@ -2062,6 +2078,7 @@ async function executeAnalyzePipeline({
   let fallbackSources = [];
   let uploadedHtmlSummary = null;
   let uploadEntries = [];
+  let captureSource = null;
   let uploadAssetsPrefixPath = null;
   let warnings = [];
   let appendBaseline = null;
@@ -2096,6 +2113,7 @@ async function executeAnalyzePipeline({
     fallbackSources = storedBaseline.fallbackSources || [];
     uploadedHtmlSummary = storedBaseline.uploadedHtmlSummary || null;
     uploadAssetsPrefixPath = storedBaseline.uploadAssetsPrefix || null;
+    captureSource = storedBaseline.captureSource || null;
     warnings = storedBaseline.warnings || [];
     runSteps.push(runStepOk(
       'crawl',
@@ -2226,6 +2244,7 @@ async function executeAnalyzePipeline({
     fallbackSources = crawlMeta.fallbackSources || [];
     uploadedHtmlSummary = crawlMeta.uploadedHtmlSummary || null;
     uploadEntries = crawlMeta.uploadEntries || [];
+    captureSource = crawlMeta.captureSource || null;
     warnings = warningsLocal.slice();
     if (uploadEntries.length) {
       try {
@@ -2322,6 +2341,8 @@ async function executeAnalyzePipeline({
   };
   if (identity.resolvedCustomerName) checkpointRecord.customerName = identity.resolvedCustomerName;
   if (identity.customerLogo) checkpointRecord.customerLogo = identity.customerLogo;
+  checkpointRecord.captureSource = captureSource;
+  checkpointRecord.uploadAssetsPrefix = uploadAssetsPrefixPath || (storedBaseline && storedBaseline.uploadAssetsPrefix) || null;
   if (!analysisOnly && appendMode && appendBaseline) {
     checkpointRecord = mergeScrapeRecords(appendBaseline, checkpointRecord);
     checkpointRecord.scrapeId = appendBaseline.scrapeId;
@@ -2570,6 +2591,7 @@ async function executeAnalyzePipeline({
   recordToPersist.fallbackSources = fallbackSources;
   recordToPersist.uploadedHtmlSummary = uploadedHtmlSummary;
   recordToPersist.uploadAssetsPrefix = uploadAssetsPrefixPath || (storedBaseline && storedBaseline.uploadAssetsPrefix) || null;
+  recordToPersist.captureSource = captureSource || (storedBaseline && storedBaseline.captureSource) || null;
   recordToPersist.scrapeConfidence = confidence;
   recordToPersist.sourceBadges = sourceBadges;
   recordToPersist.warnings = warnings;
