@@ -524,11 +524,21 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
     record,
     snapshotRelPath: `${pvDemo.demoAssetsDirName(fileSlug)}/index.html`,
   });
+  const mobileShellHtml = pvDemo.buildMobileShellHtml({
+    fileSlug,
+    record,
+    snapshotRelPath: `${pvDemo.demoAssetsDirName(fileSlug)}/index.html`,
+  });
 
   const files = [
     {
       name: pvDemo.demoHtmlName(fileSlug),
       content: Buffer.from(shellHtml, 'utf8'),
+      contentType: 'text/html; charset=utf-8',
+    },
+    {
+      name: pvDemo.mobileDemoHtmlName(fileSlug),
+      content: Buffer.from(mobileShellHtml, 'utf8'),
       contentType: 'text/html; charset=utf-8',
     },
     ...(innerResult.files || []),
@@ -578,6 +588,8 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
     path: publicPath,
     publicUrl: publicPath,
     profileViewerDemoHref: pvDemo.profileViewerDemoHref(fileSlug),
+    mobilePath: pvDemo.profileViewerMobileDemoUrl(fileSlug),
+    profileViewerMobileDemoHref: pvDemo.mobileDemoHtmlName(fileSlug),
     fileSlug,
     navEntry,
     alreadyExisted: !!statusFlags.existing,
@@ -591,6 +603,7 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
     },
     notes: [
       `Profile Viewer demo at ${publicPath} (same pattern as sky-demo.html).`,
+      `Responsive mobile simulator at ${pvDemo.profileViewerMobileDemoUrl(fileSlug)}.`,
       innerResult.source === 'uploaded_html'
         ? `Iframe snapshot from uploaded HTML (${innerResult.sourceHtmlPath}).`
         : innerResult.source === 'live_capture'
@@ -668,10 +681,12 @@ async function generateDemoWebsite(record, opts = {}) {
       path: pvDemo.profileViewerDemoUrl(fileSlug),
       publicUrl: pvDemo.profileViewerDemoUrl(fileSlug),
       profileViewerDemoHref: href,
+      mobilePath: pvDemo.profileViewerMobileDemoUrl(fileSlug),
+      profileViewerMobileDemoHref: pvDemo.mobileDemoHtmlName(fileSlug),
       fileSlug,
       alreadyExisted: true,
       regenerated: false,
-      generatedFiles: [href, `${pvDemo.demoAssetsDirName(fileSlug)}/index.html`],
+      generatedFiles: [href, pvDemo.mobileDemoHtmlName(fileSlug), `${pvDemo.demoAssetsDirName(fileSlug)}/index.html`],
       requiredModules: { profileEnvironmentPanel: true, profileViewerModule: true },
       notes: [
         'Profile Viewer demo already existed, so re-analyse did not recreate it.',

@@ -196,12 +196,19 @@ async function tryServeCustomerLogoFallback(req, fileSlug, res) {
 }
 
 /**
- * Parse /profile-viewer/<slug>-demo.html or …/<slug>-demo-assets/**
+ * Parse paired /profile-viewer/<slug>-demo.html, <slug>-mobile-demo.html,
+ * or …/<slug>-demo-assets/** scraper output.
  * @returns {{ fileSlug: string, relFile: string } | null}
  */
 function parseProfileViewerDemoPath(reqPath) {
   const p = String(reqPath || '').replace(/\/+$/, '');
-  let m = p.match(/^\/profile-viewer\/([a-z0-9-]+)-demo\.html$/i);
+  let m = p.match(/^\/profile-viewer\/([a-z0-9-]+)-mobile-demo\.html$/i);
+  if (m) {
+    const fileSlug = safeSlugPart(m[1]);
+    if (!fileSlug) return null;
+    return { fileSlug, relFile: `${fileSlug}-mobile-demo.html` };
+  }
+  m = p.match(/^\/profile-viewer\/([a-z0-9-]+)-demo\.html$/i);
   if (m) {
     const fileSlug = safeSlugPart(m[1]);
     if (!fileSlug) return null;

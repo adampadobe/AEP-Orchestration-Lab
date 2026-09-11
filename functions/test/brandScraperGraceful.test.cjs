@@ -359,6 +359,8 @@ describe('brandScraperProfileViewerDemo', () => {
     assert.equal(pvDemo.normalizeFileSlug('British Army'), 'british-army');
     assert.equal(pvDemo.profileViewerDemoHref('british-army'), 'british-army-demo.html');
     assert.equal(pvDemo.profileViewerDemoUrl('sky'), '/profile-viewer/sky-demo.html');
+    assert.equal(pvDemo.mobileDemoHtmlName('british-army'), 'british-army-mobile-demo.html');
+    assert.equal(pvDemo.profileViewerMobileDemoUrl('sky'), '/profile-viewer/sky-mobile-demo.html');
   });
 
   it('builds shell html with iframe snapshot path', () => {
@@ -372,6 +374,25 @@ describe('brandScraperProfileViewerDemo', () => {
     assert.match(html, /brand-scraper-site-clone-lab-core\.js/);
     assert.match(html, /site-clone-login-shell\.js/);
     assert.match(html, /fileSlug: 'acme'/);
+    assert.match(html, /data-demo-env-strip-web-url="acme-demo\.html"/);
+    assert.match(html, /data-demo-env-strip-mobile-url="acme-mobile-demo\.html"/);
+    assert.match(html, /data-demo-env-strip-channel="web"/);
+  });
+
+  it('builds a paired mobile shell around the same responsive captured page', () => {
+    const html = pvDemo.buildMobileShellHtml({
+      fileSlug: 'acme',
+      record: { customerName: 'Acme Corp', url: 'https://acme.example/' },
+    });
+    assert.match(html, /acme-demo-assets\/index\.html/);
+    assert.match(html, /Acme Corp \(mobile\)/);
+    assert.match(html, /data-demo-env-strip-web-url="acme-demo\.html"/);
+    assert.match(html, /data-demo-env-strip-mobile-url="acme-mobile-demo\.html"/);
+    assert.match(html, /data-demo-env-strip-channel="mobile"/);
+    assert.match(html, /deviceToggleDevices: \['iphone17pro', 's24u'\]/);
+    assert.match(html, /MobileDemoShell\.init/);
+    assert.match(html, /iframeIds: \['acmeMobileFrame'\]/);
+    assert.match(html, /brand-scraper-site-clone-lab-core\.js/);
   });
 });
 
@@ -411,6 +432,9 @@ describe('brandScraperDemoHost profile-viewer paths', () => {
     assert.equal(page.relFile, 'british-army-demo.html');
     const asset = demoHost.parseProfileViewerDemoPath('/profile-viewer/british-army-demo-assets/index.html');
     assert.equal(asset.relFile, 'british-army-demo-assets/index.html');
+    const mobile = demoHost.parseProfileViewerDemoPath('/profile-viewer/british-army-mobile-demo.html');
+    assert.equal(mobile.fileSlug, 'british-army');
+    assert.equal(mobile.relFile, 'british-army-mobile-demo.html');
   });
 });
 
