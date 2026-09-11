@@ -8,6 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const demoPolish = require('./brandScraperDemoHtmlPolish');
+const htmlNormalize = require('./brandScraperHtmlNormalize');
 const siteCloneLogin = require('./brandScraperSiteCloneLogin');
 
 const PV_REL = '../../../profile-viewer';
@@ -656,6 +657,57 @@ function attrValue(tag, name) {
   return m ? m[2] : '';
 }
 
+/**
+ * Prefer a logo deliberately bundled with uploaded HTML over a separately
+ * scraped brand logo (for example, a bad Wikipedia match).
+ * @returns {{ found: boolean, src: string, sourcePath?: string }}
+ */
+function findUploadedLogo(html, htmlPath, entryMap) {
+  const source = String(html || '');
+  const landmarkRanges = [];
+  const landmarkRe = /<(header|nav)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  let landmark;
+  while ((landmark = landmarkRe.exec(source)) !== null) {
+    landmarkRanges.push([landmark.index, landmark.index + landmark[0].length]);
+  }
+
+  const candidates = [];
+  const imageRe = /<img\b[^>]*>/gi;
+  let match;
+  while ((match = imageRe.exec(source)) !== null) {
+    const tag = match[0];
+    const href = attrValue(tag, 'src') || attrValue(tag, 'data-src');
+    const directHit = lookupEntry(entryMap, href);
+    const zipPath = resolveHrefToZipPath(href, htmlPath, entryMap) || (directHit && directHit.path);
+    if (!zipPath) continue;
+    const semantic = [
+      attrValue(tag, 'alt'), attrValue(tag, 'class'), attrValue(tag, 'id'), href,
+    ].join(' ');
+    const inLandmark = landmarkRanges.some(([start, end]) => match.index >= start && match.index < end);
+    let score = /(?:^|[^a-z])(?:brand[-_ ]?)?logo(?:[^a-z]|$)/i.test(semantic) ? 120 : 0;
+    if (inLandmark) score += 60;
+    if (/header|masthead|navbar|site-mark/i.test(semantic)) score += 35;
+    if (/favicon|social|payment|partner|sponsor|rating/i.test(semantic)) score -= 100;
+    const width = Number(attrValue(tag, 'width')) || 0;
+    const height = Number(attrValue(tag, 'height')) || 0;
+    if ((width && width <= 500) || (height && height <= 220)) score += 10;
+    candidates.push({ score, index: match.index, src: demoRelativeUrl(zipPath), sourcePath: zipPath });
+  }
+
+  candidates.sort((a, b) => b.score - a.score || a.index - b.index);
+  if (candidates.length && candidates[0].score >= 50) {
+    return { found: true, src: candidates[0].src, sourcePath: candidates[0].sourcePath };
+  }
+
+  // Inline SVG brand marks need no copied asset, but their presence should still
+  // suppress replacement with the unrelated scraped/Wikipedia logo.
+  const landmarkMarkup = landmarkRanges.map(([start, end]) => source.slice(start, end)).join('\n');
+  if (/<svg\b[\s\S]*?(?:logo|brand|site-mark)[\s\S]*?<\/svg>/i.test(landmarkMarkup)) {
+    return { found: true, src: '' };
+  }
+  return { found: false, src: '' };
+}
+
 function escapeAttrValue(val) {
   return String(val || '').replace(/"/g, '&quot;');
 }
@@ -763,12 +815,14 @@ function promoteParticleVideoPosters(html, htmlPath, entryMap, baseUrl) {
   );
 }
 
-function fillMissingMetadata(html, record) {
+function fillMissingMetadata(html, record, preferredLogo) {
   let out = html;
   const brand = record.brandName || record.customerName || 'Brand';
   const about = (record.analysis && !record.analysis.skipped && record.analysis.about) || '';
   const page = (record.crawlSummary && record.crawlSummary.pages && record.crawlSummary.pages[0]) || {};
-  const logo = record.customerLogo && (record.customerLogo.url || record.customerLogo.thumbnailUrl);
+  const logo = preferredLogo !== undefined
+    ? preferredLogo
+    : record.customerLogo && (record.customerLogo.url || record.customerLogo.thumbnailUrl);
 
   if (!/<title[^>]*>[\s\S]*?<\/title>/i.test(out) && (page.title || brand)) {
     out = out.replace(/<head([^>]*)>/i, `<head$1>\n  <title>${escapeHtml(page.title || brand)}</title>`);
@@ -900,13 +954,17 @@ async function buildDemoFromUpload(opts) {
     });
   }
   html = external.html;
-  if (typeof opts.onProgress === 'function') opts.onProgress('Polishing HTML and injecting lab chrome…');
+  if (typeof opts.onProgress === 'function') opts.onProgress('Polishing and normalizing captured HTML…');
   html = demoPolish.polishDemoHtml(html);
 
-  const logoAsset = await demoPolish.resolveCustomerLogoAsset(opts.record || {}, {
-    sandbox: opts.sandbox,
-    scrapeId: opts.scrapeId,
-  });
+  const uploadedLogo = findUploadedLogo(html, htmlPath, entryMap);
+
+  const logoAsset = uploadedLogo.found
+    ? null
+    : await demoPolish.resolveCustomerLogoAsset(opts.record || {}, {
+      sandbox: opts.sandbox,
+      scrapeId: opts.scrapeId,
+    });
   if (logoAsset) {
     const logoRel = `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`;
     const logoSrc = opts.slug
@@ -926,12 +984,19 @@ async function buildDemoFromUpload(opts) {
     );
   }
 
-  html = fillMissingMetadata(html, opts.record || {});
+  html = fillMissingMetadata(
+    html,
+    opts.record || {},
+    uploadedLogo.found ? uploadedLogo.src : undefined,
+  );
+  // This is deliberately the last captured-page pass and the first script injection:
+  // remove production JS, add deterministic AJO anchors, then add offline-only glue.
+  html = htmlNormalize.normalizeCapturedHtml(html);
   if (!opts.skipLabChrome) {
     html = injectLabChrome(html, opts.slug, opts.prefix);
   } else {
-    let logoSrcForLogin = '';
-    if (logoAsset) {
+    let logoSrcForLogin = uploadedLogo.src || '';
+    if (!logoSrcForLogin && logoAsset) {
       const logoRelPath = `${demoPolish.LOGO_REL_PREFIX}${logoAsset.ext}`;
       logoSrcForLogin = opts.slug
         ? demoPolish.profileViewerDemoAssetUrl(opts.slug, logoRelPath)
@@ -953,6 +1018,7 @@ async function buildDemoFromUpload(opts) {
     content: Buffer.from(html, 'utf8'),
     contentType: 'text/html; charset=utf-8',
   });
+  files.push(htmlNormalize.genericSiteGlueFile());
   if (!opts.skipLabChrome) {
     files.push({
       name: 'demo-lab.js',
@@ -966,7 +1032,7 @@ async function buildDemoFromUpload(opts) {
     if (/\.html?$/i.test(e.name)) continue;
     if (demoPolish.isAdBundleEntry(e.name, e.content)) continue;
     const name = posixNorm(e.name);
-    if (!name || name === 'index.html') continue;
+    if (!name || name === 'index.html' || name === htmlNormalize.GENERIC_SITE_GLUE_NAME) continue;
     files.push({
       name,
       content: e.content,
@@ -982,6 +1048,8 @@ async function buildDemoFromUpload(opts) {
     files,
     primaryHtmlPath: 'index.html',
     sourceHtmlPath: htmlPath,
+    usesUploadedLogo: uploadedLogo.found,
+    uploadedLogoPath: uploadedLogo.sourcePath || null,
   };
 }
 
@@ -1002,6 +1070,7 @@ module.exports = {
   pickParticlePosterUrl,
   shouldSkipExternalAssetFetch,
   collectExternalAssetCandidates,
+  findUploadedLogo,
   fetchAndRewriteCandidates,
   buildDemoFromUpload,
   demoRelativeUrl,

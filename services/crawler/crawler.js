@@ -13,6 +13,9 @@ const tagAudit = require('./tagAudit');
 const DEFAULT_PAGE_TIMEOUT_MS = 25000;
 const MAX_DISCOVERED = 200;
 const MAX_QUEUE_URLS = 120;
+// Keep one primary rendered DOM for the demo builder without making the
+// Cloud Run response unbounded. Oversized pages retain the existing template fallback.
+const MAX_CAPTURE_HTML_BYTES = 6 * 1024 * 1024;
 const MAX_CRAWL_WALL_MS = 240000;
 const PRIORITY_PATHS = ['/', '/about', '/about-us', '/products', '/services', '/solutions', '/brand', '/company', '/leadership', '/team', '/our-team', '/management', '/people'];
 
@@ -232,7 +235,7 @@ async function crawl(rawUrl, { maxPages = 3, pageTimeout = DEFAULT_PAGE_TIMEOUT_
               visited.add(altUrl);
               if (alt.reason === 'ok' && alt.html) {
                 discovered.add(altUrl);
-                pages.push(buildPage(altUrl, alt.status, alt.html, baseUrl, alt.tagAudit));
+                pages.push(buildPage(altUrl, alt.status, alt.html, baseUrl, alt.tagAudit, pages.length === 0));
                 if (!brandName) brandName = E.extractBrandName(alt.html, baseUrl);
                 for (const l of E.extractLinks(alt.html, altUrl, baseUrl)) tryEnqueue(l);
                 continue;
@@ -245,7 +248,7 @@ async function crawl(rawUrl, { maxPages = 3, pageTimeout = DEFAULT_PAGE_TIMEOUT_
         continue;
       }
 
-      pages.push(buildPage(current, status, html, baseUrl, pageTagAudit));
+      pages.push(buildPage(current, status, html, baseUrl, pageTagAudit, pages.length === 0));
       if (!brandName) brandName = E.extractBrandName(html, baseUrl);
       const links = E.extractLinks(html, current, baseUrl);
       for (const l of links) tryEnqueue(l);
@@ -274,7 +277,7 @@ async function crawl(rawUrl, { maxPages = 3, pageTimeout = DEFAULT_PAGE_TIMEOUT_
   }
 }
 
-function buildPage(url, status, html, baseUrl, pageTagAudit) {
+function buildPage(url, status, html, baseUrl, pageTagAudit, includeCapture = false) {
   const text = E.extractText(html);
   const row = {
     url,
@@ -289,6 +292,9 @@ function buildPage(url, status, html, baseUrl, pageTagAudit) {
     _colours: E.extractColours(html),
     _fonts: E.extractFonts(html),
   };
+  if (includeCapture && Buffer.byteLength(html, 'utf8') <= MAX_CAPTURE_HTML_BYTES) {
+    row.capturedHtml = html;
+  }
   if (pageTagAudit) row.tagAudit = pageTagAudit;
   return row;
 }
