@@ -10,7 +10,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(new Set(contexts.map((context) => context.id)).size, contexts.length);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 174);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 181);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 21);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);
@@ -20,7 +20,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').url.endsWith('/mcp/commerce-optimizer'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').toolCount, 15);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').url.endsWith('/mcp/firefly'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').toolCount, 8);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').toolCount, 15);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-adobe-capabilities').url.endsWith('/mcp/adobe-capabilities'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-adobe-capabilities').toolCount, 4);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-measurement-quality').url.endsWith('/mcp/measurement-quality'), true);
@@ -133,7 +133,7 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   assert.match(html, /Add the same repository directly to Claude/i);
   assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 174 tools/);
+  assert.match(catalog, /Complete Lab MCP · 181 tools/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);
   assert.match(catalog, /\/mcp\/commerce/);
   assert.match(catalog, /id: 'aep-lab-commerce-optimizer'/);

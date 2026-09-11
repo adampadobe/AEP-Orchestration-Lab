@@ -79,6 +79,61 @@ test('status normalizes output URLs and cancel uses only trusted Adobe job URLs'
     () => client.getJobStatus('https://attacker.example/steal'),
     /untrusted Adobe job URL/,
   );
+  await assert.rejects(
+    () => client.cancelJob('https://audio-video-api.adobe.io/v1/status/audio-job'),
+    /untrusted Adobe job URL/,
+  );
+});
+
+test('lists voices and submits Firefly speech, transcription, and dubbing jobs', async () => {
+  const requests = [];
+  const client = createFireflyApiClient({
+    env,
+    fetchImpl: async (url, options = {}) => {
+      requests.push({ url: String(url), options });
+      if (String(url).includes('/ims/token/v3')) return jsonResponse({ access_token: 'audio-token', expires_in: 3600 });
+      if (String(url).endsWith('/v1/voices')) return jsonResponse({ voices: [{ voiceId: 'voice-1', displayName: 'Ava', localeCode: 'en-US' }] });
+      return jsonResponse({ jobId: 'audio-job-1', statusUrl: 'https://audio-video-api.adobe.io/v1/status/audio-job-1' }, 202);
+    },
+  });
+
+  assert.deepEqual(await client.listAudioVoices(), [{ id: 'voice-1', name: 'Ava', locale: 'en-US', gender: '', style: '' }]);
+  await client.submitSpeech({ text: 'Welcome', voice_id: 'voice-1' });
+  await client.submitTranscribe({
+    media_kind: 'audio', source_url: 'https://demo.storage.googleapis.com/input.mp3?sig=redacted',
+    media_type: 'audio/mp3', target_locale_codes: ['es-419'], captions_format: 'srt',
+  });
+  await client.submitDub({
+    media_kind: 'video', source_url: 'https://demo.windows.net/input.mp4?sig=redacted',
+    media_type: 'video/mp4', target_locale_codes: ['fr-FR'], lip_sync: true,
+  });
+
+  const speech = requests.find(({ url }) => url.endsWith('/v1/generate-speech'));
+  assert.deepEqual(JSON.parse(speech.options.body), {
+    script: { text: 'Welcome', mediaType: 'text/plain', localeCode: 'en-US' },
+    voiceId: 'voice-1', output: { mediaType: 'audio/wav' },
+  });
+  const transcribe = requests.find(({ url }) => url.endsWith('/v1/transcribe'));
+  assert.deepEqual(JSON.parse(transcribe.options.body), {
+    audio: { source: { url: 'https://demo.storage.googleapis.com/input.mp3?sig=redacted' }, mediaType: 'audio/mp3' },
+    targetLocaleCodes: ['es-419'], captions: { targetFormats: ['srt'] },
+  });
+  const dub = requests.find(({ url }) => url.endsWith('/v1/dub'));
+  assert.deepEqual(JSON.parse(dub.options.body), {
+    video: { source: { url: 'https://demo.windows.net/input.mp4?sig=redacted' }, mediaType: 'video/mp4' },
+    targetLocaleCodes: ['fr-FR'], lipSync: 'true',
+  });
+});
+
+test('audio/video job status accepts the Adobe status host and extracts its output destination', async () => {
+  const client = createFireflyApiClient({
+    env,
+    fetchImpl: async (url) => String(url).includes('/ims/token/v3')
+      ? jsonResponse({ access_token: 'token', expires_in: 3600 })
+      : jsonResponse({ status: 'succeeded', output: { destination: { url: 'https://demo.storage.googleapis.com/speech.wav' } } }),
+  });
+  const status = await client.getJobStatus('https://audio-video-api.adobe.io/v1/status/audio-job-1');
+  assert.deepEqual(status.output_urls, ['https://demo.storage.googleapis.com/speech.wav']);
 });
 
 test('submits an official Firefly Video v3 request with controls and keyframes', async () => {

@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 174);
+  assert.equal(full.names.length, 181);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -134,13 +134,17 @@ test('focused weather endpoint is access plus current, forecast, and map lookups
   assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast', 'lab_weather_map']);
 });
 
-test('focused Firefly endpoint exposes access plus governed image and video generation', () => {
+test('focused Firefly endpoint exposes access plus governed image, video, and audio operations', () => {
   const { names, server } = registrationRecorder();
   registerFocusedFireflyTools(server);
   assert.deepEqual(names, [
     'lab_mcp_access_info',
     'lab_firefly_capabilities', 'lab_firefly_generate_preview', 'lab_firefly_generate_apply',
     'lab_firefly_generate_video_preview', 'lab_firefly_generate_video_apply',
+    'lab_firefly_audio_voice_list',
+    'lab_firefly_audio_speech_preview', 'lab_firefly_audio_speech_apply',
+    'lab_firefly_audio_transcribe_preview', 'lab_firefly_audio_transcribe_apply',
+    'lab_firefly_audio_dub_preview', 'lab_firefly_audio_dub_apply',
     'lab_firefly_job_status', 'lab_firefly_job_cancel',
   ]);
 });

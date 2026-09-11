@@ -32,7 +32,7 @@ The Firebase bridge is `GET /api/adobe-capabilities?action=...`. It requires a v
 
 ## Phase 3 implementation
 
-The existing `/mcp/firefly` endpoint now owns both Image 5 and five-second Video generation. Video uses `lab_firefly_generate_video_preview` followed by `lab_firefly_generate_video_apply`, while image and video share job status and cancellation. Requests are hash-bound, confirmation-gated, billable submissions are sent once without automatic retry, and keyframe URLs are restricted to documented HTTPS storage hosts.
+The existing `/mcp/firefly` endpoint owns Image 5, five-second Video, Text to Speech, audio/video transcription with optional translated SRT captions, and audio/video dubbing with optional video lip sync. The seven audio tools cover voice discovery plus preview/apply pairs for speech, transcription, and dubbing. Every mutation is hash-bound and confirmation-gated, submits once without automatic retry, accepts media only from supported HTTPS storage hosts, and shares `lab_firefly_job_status`. Generation cancellation remains limited to jobs for which Adobe provides a Firefly API cancel URL.
 
 The new `/mcp/measurement-quality` endpoint groups five coherent read-only diagnostics:
 
@@ -42,7 +42,7 @@ The new `/mcp/measurement-quality` endpoint groups five coherent read-only diagn
 
 The marketplace source now contains 15 connections: General plus 14 focused MCPs. The deployed Coworker count remains a separate fact until the branch is merged, Cloud Run and Firebase are deployed, and the marketplace is refreshed.
 
-Duplicate capabilities deliberately not built in this slice include a separate Firefly Video MCP, a second job-status tool, Target wrappers already owned by product-native or Decisioning workflows, a content-supply-chain MCP already covered natively, and broad creative-production proxies. I/O Events, I/O Management, and App Builder Data remain backend infrastructure candidates rather than marketplace connections.
+Duplicate capabilities deliberately not built in this slice include separate Firefly Video or Audio MCPs, a second job-status tool, Target wrappers already owned by product-native or Decisioning workflows, a content-supply-chain MCP already covered natively, and broad creative-production proxies. Avatar, reframe, and dynamic graphics remain later Firefly expansions. I/O Events, I/O Management, and App Builder Data remain backend infrastructure candidates rather than marketplace connections.
 
 ## Guardrails for later phases
 

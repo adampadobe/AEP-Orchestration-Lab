@@ -9,7 +9,7 @@ Fifteen MCP connections: the complete General catalog plus fourteen focused capa
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `aep-lab-general` | `/mcp` | Complete 174-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, Adobe API discovery, measurement diagnostics, and administration |
+| `aep-lab-general` | `/mcp` | Complete 181-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, Adobe API discovery, measurement diagnostics, and administration |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
 | `aep-lab-pdf-prep` | `/mcp/pdf` | HTML/document to PDF, storage, server templates |
@@ -20,7 +20,7 @@ Fifteen MCP connections: the complete General catalog plus fourteen focused capa
 | `aep-lab-weather` | `/mcp/weather` | Live weather + Google Maps for demo scenarios |
 | `aep-lab-commerce` | `/mcp/commerce` | Governed ACCS storefront preparation: products, attributes, categories, assignments, inventory, media, GraphQL discovery, preview/apply, and audited deletion |
 | `aep-lab-commerce-optimizer` | `/mcp/commerce-optimizer` | ACO storefront reads plus confirmation-gated products, metadata, categories, price books, prices, and product-layer ingestion |
-| `aep-lab-firefly` | `/mcp/firefly` | Governed Firefly Image 5 and five-second Video generation, shared async job status, and cancellation |
+| `aep-lab-firefly` | `/mcp/firefly` | Governed Firefly image, video, Text to Speech, transcription/captions, dubbing/lip sync, and shared async status |
 | `aep-lab-adobe-capabilities` | `/mcp/adobe-capabilities` | Read-only 35-service scope catalog plus bounded AJO suppression and GenStudio Experience probes |
 | `aep-lab-measurement-quality` | `/mcp/measurement-quality` | Read-only Assurance metadata, Tags property/environment audit, and Adobe Status incident correlation |
 
