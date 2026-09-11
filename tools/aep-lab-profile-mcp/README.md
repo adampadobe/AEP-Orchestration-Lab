@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.49.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.50.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 181-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the fourteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 196-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the fifteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -22,6 +22,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 | `/mcp/firefly` | 15 | Access check plus governed Image 5, five-second Video, Text to Speech, transcription/captions, and dubbing/lip-sync workflows with shared async status |
+| `/mcp/creativity` | 16 | Access check plus Photoshop v2 Lightroom-style edits, InDesign data merge, Substance 3D rendering, Express tagged-template variations, Illustrator Image Trace, and shared async status |
 | `/mcp/adobe-capabilities` | 4 | Access check plus the 35-service scope/use-case registry, redacted AJO suppression/allow-list reads, and approved GenStudio Experience summaries |
 | `/mcp/measurement-quality` | 6 | Access check plus read-only Assurance session/event metadata, Tags property/environment audit, and Adobe Status incident correlation |
 
@@ -31,19 +32,21 @@ The Commerce Optimizer context similarly keeps the Merchandising GraphQL API rea
 
 The Firefly context uses server-side OAuth credentials from Cloud Run Secret Manager; no Firefly credential is sent to Coworker or accepted as a tool argument. Image, Video, Text to Speech, transcription, and dubbing each use a local hash-bound preview followed by exact confirmation and one non-retried submit. Video supports Adobe's documented five-second Video 1 sizes, camera controls, seed, and trusted HTTPS keyframes. Audio/video inputs use trusted pre-signed HTTPS storage URLs. All asynchronous operations share `lab_firefly_job_status`; cancellation remains available only where Adobe returns a generation cancel URL.
 
+The Creativity context reuses those server-side Adobe OAuth credentials but requests a narrow scope profile for each product. Lightroom is intentionally represented through Photoshop API v2 rather than a duplicate legacy adapter. Every processing write has a local SHA-256 preview, exact confirmation, one non-retried submit, and trusted Adobe job polling. Token-only access probes and Express tagged-document reads do not create media. Express Review remains catalogued but unimplemented because a public operation contract has not been verified.
+
 The Measurement Quality context is read-only. It uses fixed Adobe hosts and bounded requests, requests only Assurance session/event scopes for those reads, omits raw Assurance payload values, reuses the existing Reactor client for Tags audits, and caps Adobe Status correlation to a 31-day window. Connected services are not described as tenant-verified until one of these reads succeeds.
 
 The Adobe capabilities context is read-only. `adobe_api_catalog` exposes a reviewed, versioned Console snapshot and explicitly separates connected services from token, tenant, and operation verification. `ajo_suppression_addresses` requests only the read scope, bounds results, and redacts address/domain values. `genstudio_experience_list` returns approved Experience summaries without retrieving signed asset renditions.
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all fourteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all fifteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same fifteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same sixteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 ### Entry point (Phase 3.38)
 
-Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `adobe-capabilities`, `measurement-quality`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
+Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
 **Known limitation — Adobe Coworker:** `lab_load_toolset` correctly registers the new tools and sends the standard MCP `notifications/tools/list_changed` signal, but as tested, Adobe Coworker's tool-discovery layer only reflects the tool inventory captured at session `initialize` and does not re-run `tools/list` in response to that notification mid-session. Newly loaded tools register successfully server-side but never become callable in Coworker. Until Coworker's client adds `list_changed` support, **directly connect the focused endpoint(s) for the domains you actually use** (e.g. `aep-lab-profiles` for profile/event work, `aep-lab-demo-prep` for brand scrape and customer prep) alongside `aep-lab-entry`, rather than relying on `lab_load_toolset` alone in that host. `lab_load_toolset` still works correctly over the raw Streamable HTTP protocol and in any MCP client that honors `list_changed`.
 
@@ -52,7 +55,7 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
-| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `adobe-capabilities`, `measurement-quality`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
@@ -96,6 +99,16 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_firefly_audio_dub_apply` | `POST /v1/dub` | One exactly confirmed dubbing submit |
 | `lab_firefly_job_status` | Adobe-provided status URL | Current job state and generated output asset URLs |
 | `lab_firefly_job_cancel` | Adobe-provided cancel URL | Exact-confirmation cancellation of one Firefly job |
+| `lab_creativity_capabilities` | *(local)* | Implemented creative APIs, ownership boundaries, and server readiness |
+| `lab_creativity_access_probe` | Adobe IMS | Token issuance for one narrow product profile; no creative job and no claim of operation access |
+| `lab_creativity_photoshop_edit_preview/apply` | `POST /v2/edit` | Combined Photoshop v2 auto tone, auto straighten, light, and colour edits; preview-first |
+| `lab_creativity_indesign_merge_preview/apply` | `POST /v3/merge-data` | CSV + INDD template to a PDF rendition; preview-first |
+| `lab_creativity_substance_render_preview/apply` | `POST /v1/scenes/render-basic` | Basic 3D model rendering; preview-first |
+| `lab_creativity_express_documents` | `GET /beta/tagged-documents` | Bounded owned template discovery with transient thumbnail URLs removed |
+| `lab_creativity_express_document_get` | `GET /beta/tagged-documents/{id}` | Inspect tag names/types before mapping a variation |
+| `lab_creativity_express_variation_preview/apply` | `POST /beta/create-variation` | Tagged text/image/video replacement with image, PDF, video, or document output |
+| `lab_creativity_illustrator_trace_preview/apply` | `POST /v1/trace-image` | PNG/JPEG raster to SVG Image Trace; preview-first |
+| `lab_creativity_job_status` | Adobe-provided status URL | Poll a fixed, allowlisted Photoshop, InDesign, Substance, Express, or Illustrator host |
 | `assurance_session_list` | Assurance GraphQL | Bounded session IDs and names using a narrow read profile |
 | `assurance_event_inspect` | Assurance GraphQL | Event metadata and top-level payload keys only; raw values omitted |
 | `launch_property_audit` | Reactor API | Visible properties with bounded extension and rule summaries |
@@ -427,6 +440,9 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `OPENWEATHER_API_KEY` | For `/mcp/weather` | OpenWeatherMap API key — https://openweathermap.org/api |
 | `GOOGLE_MAPS_API_KEY` | For `lab_weather_map` | Google Maps API key restricted to Static Maps + Geocoding APIs only; never leaves the server |
 | `GOOGLE_MAPS_EMBED_API_KEY` | For `lab_weather_map`'s `embed_url` | Separate Google Maps API key restricted to the Maps Embed API only; designed to be exposed publicly in the iframe it authorizes |
+| `FIREFLY_CLIENT_ID` / `FIREFLY_CLIENT_SECRET` | For `/mcp/firefly` and `/mcp/creativity` | Server-side OAuth credentials from the Adobe Developer Console project; bind through Secret Manager in production |
+| `FIREFLY_SCOPES` | For `/mcp/firefly` | Firefly media scope set generated by Developer Console |
+| `CREATIVITY_<PRODUCT>_SCOPES` | Optional | Override one default Photoshop, InDesign, Substance, Express, or Illustrator token profile when the Console-generated scope list differs |
 | `PORT` / `HOST` | No | HTTP bind |
 
 ## Run locally

@@ -48,6 +48,7 @@ import { registerWeatherTools } from './weatherTools.mjs';
 import { registerCommerceTools } from './commerceTools.mjs';
 import { registerCommerceOptimizerTools } from './commerceOptimizerTools.mjs';
 import { registerFireflyTools } from './fireflyTools.mjs';
+import { registerCreativityTools } from './creativityTools.mjs';
 import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
 
@@ -105,6 +106,7 @@ export function registerProfileTools(mcpServer) {
   registerCommerceTools(mcpServer);
   registerCommerceOptimizerTools(mcpServer);
   registerFireflyTools(mcpServer);
+  registerCreativityTools(mcpServer);
   registerAdobeCapabilityTools(mcpServer);
   registerMeasurementQualityTools(mcpServer);
 }
@@ -161,6 +163,10 @@ function registerFireflyDomainTools(mcpServer) {
   registerFireflyTools(mcpServer);
 }
 
+function registerCreativityDomainTools(mcpServer) {
+  registerCreativityTools(mcpServer);
+}
+
 function registerAdobeCapabilityDomainTools(mcpServer) {
   registerAdobeCapabilityTools(mcpServer);
 }
@@ -182,6 +188,7 @@ const LOADABLE_TOOLSETS = {
   commerce: registerCommerceDomainTools,
   'commerce-optimizer': registerCommerceOptimizerDomainTools,
   firefly: registerFireflyDomainTools,
+  creativity: registerCreativityDomainTools,
   'adobe-capabilities': registerAdobeCapabilityDomainTools,
   'measurement-quality': registerMeasurementQualityDomainTools,
 };
@@ -264,6 +271,11 @@ export function registerFocusedCommerceOptimizerTools(mcpServer) {
 export function registerFocusedFireflyTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerFireflyDomainTools(mcpServer);
+}
+
+export function registerFocusedCreativityTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerCreativityDomainTools(mcpServer);
 }
 
 /** Read-only Adobe Developer Console capability catalog plus bounded AJO and GenStudio probes. */

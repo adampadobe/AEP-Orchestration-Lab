@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly,adobe-capabilities,measurement-quality}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality}
  * Health:   GET /health
  */
 
@@ -38,12 +38,13 @@ import {
   registerFocusedCommerceTools,
   registerFocusedCommerceOptimizerTools,
   registerFocusedFireflyTools,
+  registerFocusedCreativityTools,
   registerFocusedAdobeCapabilityTools,
   registerFocusedMeasurementQualityTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.49.0';
+const MCP_VERSION = '3.50.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -142,6 +143,13 @@ const ENDPOINTS = [
     register: registerFocusedFireflyTools,
     instructions:
       'Focused Adobe Firefly image, video, speech, transcription, and dubbing. Preview first, obtain the exact confirmation before one billable or media-processing submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
+  },
+  {
+    path: '/mcp/creativity',
+    toolset: 'creativity',
+    register: registerFocusedCreativityTools,
+    instructions:
+      'Focused Adobe creative production: Photoshop v2 including Lightroom-style edits, InDesign data merge, Substance 3D rendering, Express tagged-template variations, and Illustrator Image Trace. Preview first, obtain exact confirmation before one processing submit, and never retry an ambiguous submit automatically. Firefly generation remains in /mcp/firefly.',
   },
   {
     path: '/mcp/adobe-capabilities',
