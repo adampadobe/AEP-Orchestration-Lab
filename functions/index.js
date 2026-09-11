@@ -102,6 +102,8 @@ const { registerCommerceOptimizerRoutes } = require('./commerceOptimizerRoutes')
 const { createCommerceOptimizerService } = require('./commerceOptimizerService');
 const { registerAdobeApiCapabilityRoutes } = require('./adobeApiCapabilityRoutes');
 const { createAdobeApiCapabilityService } = require('./adobeApiCapabilityService');
+const { registerMeasurementQualityRoutes } = require('./measurementQualityRoutes');
+const { createMeasurementQualityService } = require('./measurementQualityService');
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
@@ -386,6 +388,13 @@ const adobeApiCapabilityService = createAdobeApiCapabilityService({
   getAccessToken: getAdobeAccessToken,
   getClientId: () => ADOBE_CLIENT_ID.value(),
   getImsOrg: () => ADOBE_IMS_ORG.value(),
+});
+
+const measurementQualityService = createMeasurementQualityService({
+  getAccessToken: getAdobeAccessToken,
+  getClientId: () => ADOBE_CLIENT_ID.value(),
+  getImsOrg: () => ADOBE_IMS_ORG.value(),
+  tagsService: tagsReactorService,
 });
 
 exports.aepProxy = onRequest(
@@ -1078,6 +1087,17 @@ Object.assign(
     setCors,
     mcpApiKeyStore,
     capabilityService: adobeApiCapabilityService,
+  }),
+);
+
+Object.assign(
+  exports,
+  registerMeasurementQualityRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    mcpApiKeyStore,
+    measurementService: measurementQualityService,
   }),
 );
 

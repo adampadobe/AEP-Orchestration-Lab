@@ -56,6 +56,8 @@ const ADOBE_API_CAPABILITIES = Object.freeze([
 const TOKEN_PROFILES = Object.freeze({
   ajoSuppressionRead: Object.freeze([...BASE_IMS_SCOPES, 'cjm.suppression_service.client.all']),
   genstudioRead: Object.freeze([...BASE_IMS_SCOPES, 'aem.experimental']),
+  assuranceSessionEventRead: Object.freeze([...BASE_IMS_SCOPES, 'assurance_manage_sessions', 'assurance_read_events']),
+  adobeStatusRead: Object.freeze([...BASE_IMS_SCOPES]),
 });
 
 function capabilityCatalog() {
@@ -73,7 +75,7 @@ function capabilityCatalog() {
     implementation: {
       phase1: ['Capability and scope registry', 'AJO suppression and allow-list reads', 'GenStudio approved-experience discovery'],
       phase2: ['Frame.io approval gate', 'I/O Events synchronization', 'Commerce and Commerce Optimizer workflow composition'],
-      phase3: ['Creative pipeline adapters', 'AEM asset and content delivery', 'Target and measurement activation'],
+      phase3: ['Firefly Video generation', 'Assurance and Tags measurement diagnostics', 'Adobe Status incident correlation', 'Later creative and AEM adapters'],
       phase4: ['Administrative, beta, high-risk, and specialist APIs'],
     },
     totals: { services: ADOBE_API_CAPABILITIES.length, groups, phases },

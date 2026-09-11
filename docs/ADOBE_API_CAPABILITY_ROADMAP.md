@@ -17,8 +17,8 @@ The machine-readable registry is `functions/adobeApiCapabilityRegistry.js`. It o
 |---|---|---|
 | 1 | Inventory plus useful read-only operations | Developer Console registry, AJO suppression/allow list, GenStudio Experience API |
 | 2 | Approval and event-driven orchestration | Frame.io, Adobe I/O Events, Commerce, Commerce Optimizer |
-| 3 | Governed content-to-activation pipeline | Firefly, Express beta, Photoshop, Content Tagging, AEM Assets/Dynamic Media/Sites, Target, CJA, Assurance, Launch |
-| 4 | Isolated specialist or administrative workflows | Privacy Service, Campaign, Fusion, I/O Management, App Builder Data, Status, Places, Lightroom, audio/video, Illustrator, InDesign, Substance 3D, Smart Content, Express Review |
+| 3 | Governed Firefly Video plus read-only measurement diagnostics | Firefly Video, Assurance, Launch/Reactor, Adobe Status |
+| 4 | Isolated specialist, duplicate-sensitive, or administrative workflows | Privacy Service, Campaign, Fusion, I/O Management, App Builder Data, Places, Lightroom, audio workflows, Illustrator, InDesign, Substance 3D, Smart Content, Express Review |
 
 ## Phase 1 implementation
 
@@ -29,6 +29,20 @@ The focused MCP endpoint is `/mcp/adobe-capabilities`:
 - `genstudio_experience_list` — bounded summaries of approved GenStudio Experiences; signed rendition URLs are not retrieved.
 
 The Firebase bridge is `GET /api/adobe-capabilities?action=...`. It requires a valid user-generated, single-sandbox MCP key. The route exposes no generic Adobe proxy and accepts no caller-supplied host or path.
+
+## Phase 3 implementation
+
+The existing `/mcp/firefly` endpoint now owns both Image 5 and five-second Video generation. Video uses `lab_firefly_generate_video_preview` followed by `lab_firefly_generate_video_apply`, while image and video share job status and cancellation. Requests are hash-bound, confirmation-gated, billable submissions are sent once without automatic retry, and keyframe URLs are restricted to documented HTTPS storage hosts.
+
+The new `/mcp/measurement-quality` endpoint groups five coherent read-only diagnostics:
+
+- `assurance_session_list` and `assurance_event_inspect` use narrow session/event scopes and never return raw event payload values.
+- `launch_property_audit` and `launch_environment_list` reuse the existing Reactor client and expose bounded configuration summaries only.
+- `status_incident_correlate` reads a maximum 31-day Adobe Status window and performs optional keyword filtering locally.
+
+The marketplace source now contains 15 connections: General plus 14 focused MCPs. The deployed Coworker count remains a separate fact until the branch is merged, Cloud Run and Firebase are deployed, and the marketplace is refreshed.
+
+Duplicate capabilities deliberately not built in this slice include a separate Firefly Video MCP, a second job-status tool, Target wrappers already owned by product-native or Decisioning workflows, a content-supply-chain MCP already covered natively, and broad creative-production proxies. I/O Events, I/O Management, and App Builder Data remain backend infrastructure candidates rather than marketplace connections.
 
 ## Guardrails for later phases
 
@@ -47,3 +61,7 @@ The Firebase bridge is `GET /api/adobe-capabilities?action=...`. It requires a v
 - [Journey Optimizer suppression list](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/monitor/deliverability/suppression-list)
 - [Journey Optimizer allowed list](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/configuration/monitor-reputation/allow-list)
 - [Adobe I/O Events](https://developer.adobe.com/events/docs/guides/)
+- [Adobe Firefly API usage notes](https://developer.adobe.com/firefly-services/docs/firefly-api/getting-started/usage-notes/)
+- [Adobe Assurance public API](https://developer.adobe.com/adobe-assurance-public-apis/)
+- [Adobe Assurance usage](https://developer.adobe.com/adobe-assurance-public-apis/usage/)
+- [Adobe Status API](https://developer.adobe.com/adobe-status/)

@@ -115,6 +115,13 @@
         "transport": "streamable_http",
         "auth": "aep-lab-ims-passthrough",
         "tool_timeout_seconds": 120
+      },
+      {
+        "name": "aep-lab-measurement-quality",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/measurement-quality",
+        "transport": "streamable_http",
+        "auth": "aep-lab-ims-passthrough",
+        "tool_timeout_seconds": 120
       }
     ]
   }

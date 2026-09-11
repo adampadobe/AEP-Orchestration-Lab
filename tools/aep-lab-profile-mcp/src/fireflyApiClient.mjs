@@ -3,6 +3,24 @@
 const DEFAULT_IMS_URL = 'https://ims-na1.adobelogin.com/ims/token/v3';
 const DEFAULT_API_BASE = 'https://firefly-api.adobe.io';
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
+const VIDEO_MODEL_VERSION = 'video1_standard';
+const VIDEO_SIZES = Object.freeze({
+  '1920x1080': Object.freeze({ width: 1920, height: 1080 }),
+  '1280x720': Object.freeze({ width: 1280, height: 720 }),
+  '960x540': Object.freeze({ width: 960, height: 540 }),
+  '1080x1920': Object.freeze({ width: 1080, height: 1920 }),
+  '720x1280': Object.freeze({ width: 720, height: 1280 }),
+  '540x960': Object.freeze({ width: 540, height: 960 }),
+  '1080x1080': Object.freeze({ width: 1080, height: 1080 }),
+  '720x720': Object.freeze({ width: 720, height: 720 }),
+  '540x540': Object.freeze({ width: 540, height: 540 }),
+});
+const KEYFRAME_HOSTS = Object.freeze([
+  'amazonaws.com',
+  'windows.net',
+  'dropboxusercontent.com',
+  'storage.googleapis.com',
+]);
 
 export class FireflyApiError extends Error {}
 
@@ -28,6 +46,17 @@ function validateAdobeJobUrl(rawUrl) {
   const host = parsed.hostname.toLowerCase();
   if (parsed.protocol !== 'https:' || !(host === 'adobe.io' || host.endsWith('.adobe.io'))) {
     throw new FireflyApiError('untrusted Adobe job URL');
+  }
+  return parsed.toString();
+}
+
+function validateKeyframeUrl(rawUrl) {
+  let parsed;
+  try { parsed = new URL(rawUrl); } catch { throw new FireflyApiError('invalid Firefly video keyframe URL'); }
+  const host = parsed.hostname.toLowerCase();
+  const allowed = KEYFRAME_HOSTS.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+  if (parsed.protocol !== 'https:' || !allowed) {
+    throw new FireflyApiError('Firefly video keyframe URL must use HTTPS on an Adobe-supported storage domain');
   }
   return parsed.toString();
 }
@@ -143,11 +172,25 @@ export function createFireflyApiClient({ env = process.env, fetchImpl = fetch, n
       return {
         configured: Boolean(env.FIREFLY_CLIENT_ID && env.FIREFLY_CLIENT_SECRET && env.FIREFLY_SCOPES),
         provider: 'Adobe Firefly Services',
-        operation: 'Firefly Image 5 text-to-image',
+        operation: 'Firefly Image 5 and Firefly Video generation',
         model_id: 'firefly_image',
         asynchronous: true,
         aspect_ratios: ['auto', '1:1', '4:3', '3:4', '16:9', '9:16'],
         max_prompt_characters: 1024,
+        operations: {
+          image: {
+            model_id: 'firefly_image',
+            model_version: 'image5',
+            input: 'text',
+          },
+          video: {
+            model_version: VIDEO_MODEL_VERSION,
+            duration_seconds: 5,
+            inputs: ['text', 'optional start/end keyframe URLs'],
+            sizes: Object.keys(VIDEO_SIZES),
+            supported_keyframe_hosts: KEYFRAME_HOSTS,
+          },
+        },
         notes: ['Generation consumes Firefly API entitlement/credits.', 'Submit calls are never retried automatically.'],
       };
     },
@@ -169,6 +212,60 @@ export function createFireflyApiClient({ env = process.env, fetchImpl = fetch, n
       const data = await readJson(response, 'Adobe Firefly operation response');
       const statusUrl = data.statusUrl || linkHref(data, 'result');
       if (typeof statusUrl !== 'string') throw new FireflyApiError('Adobe Firefly response did not contain a job handle');
+      const trustedStatusUrl = validateAdobeJobUrl(statusUrl);
+      const cancelUrl = data.cancelUrl || linkHref(data, 'cancel');
+      return {
+        job_id: jobIdFrom(data, trustedStatusUrl),
+        status_url: trustedStatusUrl,
+        cancel_url: typeof cancelUrl === 'string' ? validateAdobeJobUrl(cancelUrl) : null,
+      };
+    },
+
+    async submitVideoGenerate({
+      prompt,
+      size = '1920x1080',
+      bit_rate_factor = 18,
+      seed,
+      camera_motion,
+      prompt_style,
+      shot_angle,
+      shot_size,
+      start_frame_url,
+      end_frame_url,
+    }) {
+      const config = loadConfig(env);
+      const dimensions = VIDEO_SIZES[size];
+      if (!dimensions) throw new FireflyApiError('unsupported Firefly video size');
+
+      const conditions = [];
+      if (start_frame_url) {
+        conditions.push({ source: { url: validateKeyframeUrl(start_frame_url) }, placement: { position: 0 } });
+      }
+      if (end_frame_url) {
+        conditions.push({ source: { url: validateKeyframeUrl(end_frame_url) }, placement: { position: 1 } });
+      }
+      const videoSettings = {
+        ...(camera_motion ? { cameraMotion: camera_motion } : {}),
+        ...(prompt_style ? { promptStyle: prompt_style } : {}),
+        ...(shot_angle ? { shotAngle: shot_angle } : {}),
+        ...(shot_size ? { shotSize: shot_size } : {}),
+      };
+      const body = {
+        prompt,
+        sizes: [dimensions],
+        bitRateFactor: bit_rate_factor,
+        ...(seed === undefined ? {} : { seeds: [seed] }),
+        ...(conditions.length ? { image: { conditions } } : {}),
+        ...(Object.keys(videoSettings).length ? { videoSettings } : {}),
+      };
+      const response = await adobeRequest(`${config.apiBase}/v3/videos/generate`, {
+        method: 'POST',
+        headers: { 'x-model-version': VIDEO_MODEL_VERSION },
+        body,
+      });
+      const data = await readJson(response, 'Adobe Firefly video operation response');
+      const statusUrl = data.statusUrl || linkHref(data, 'result');
+      if (typeof statusUrl !== 'string') throw new FireflyApiError('Adobe Firefly video response did not contain a job handle');
       const trustedStatusUrl = validateAdobeJobUrl(statusUrl);
       const cancelUrl = data.cancelUrl || linkHref(data, 'cancel');
       return {

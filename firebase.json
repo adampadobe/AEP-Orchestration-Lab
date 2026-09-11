@@ -381,6 +381,13 @@
         }
       },
       {
+        "source": "/api/measurement-quality",
+        "function": {
+          "functionId": "measurementQualityProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/consent",
         "function": {
           "functionId": "profileConsentProxy",

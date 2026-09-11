@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly,adobe-capabilities}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly,adobe-capabilities,measurement-quality}
  * Health:   GET /health
  */
 
@@ -39,10 +39,11 @@ import {
   registerFocusedCommerceOptimizerTools,
   registerFocusedFireflyTools,
   registerFocusedAdobeCapabilityTools,
+  registerFocusedMeasurementQualityTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.47.0';
+const MCP_VERSION = '3.48.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -140,7 +141,7 @@ const ENDPOINTS = [
     toolset: 'firefly',
     register: registerFocusedFireflyTools,
     instructions:
-      'Focused Adobe Firefly Image 5 text-to-image generation. Preview first, obtain the exact confirmation before one billable non-idempotent submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
+      'Focused Adobe Firefly Image 5 and five-second Video generation. Preview first, obtain the exact confirmation before one billable non-idempotent submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
   },
   {
     path: '/mcp/adobe-capabilities',
@@ -148,6 +149,13 @@ const ENDPOINTS = [
     register: registerFocusedAdobeCapabilityTools,
     instructions:
       'Read-only Adobe API capability inventory with service-specific scopes and bounded Journey Optimizer suppression and GenStudio Experience probes. Never equate a connected service or issued token with verified tenant access.',
+  },
+  {
+    path: '/mcp/measurement-quality',
+    toolset: 'measurement-quality',
+    register: registerFocusedMeasurementQualityTools,
+    instructions:
+      'Read-only measurement diagnostics across Adobe Assurance session metadata, Experience Platform Tags property/environment audits, and Adobe Status incident correlation. Raw Assurance payload values are never returned.',
   },
 ];
 

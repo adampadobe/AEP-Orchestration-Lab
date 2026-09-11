@@ -10,7 +10,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(new Set(contexts.map((context) => context.id)).size, contexts.length);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 167);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 174);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 21);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);
@@ -20,9 +20,11 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').url.endsWith('/mcp/commerce-optimizer'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-commerce-optimizer').toolCount, 15);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').url.endsWith('/mcp/firefly'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').toolCount, 6);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-firefly').toolCount, 8);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-adobe-capabilities').url.endsWith('/mcp/adobe-capabilities'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-adobe-capabilities').toolCount, 4);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-measurement-quality').url.endsWith('/mcp/measurement-quality'), true);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-measurement-quality').toolCount, 6);
   assert.equal(contexts.find((context) => context.id === 'adobe-cx-coworker-gateway').access.includes('Adobe'), true);
 });
 
@@ -126,12 +128,12 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const catalog = readFileSync(new URL('../../../web/profile-viewer/mcp-servers.js', import.meta.url), 'utf8');
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
-  assert.match(html, /v3\.47\.0/);
-  assert.match(html, /installs General plus thirteen focused integrations/i);
+  assert.match(html, /v3\.48\.0/);
+  assert.match(html, /installs General plus fourteen focused integrations/i);
   assert.match(html, /Add the same repository directly to Claude/i);
   assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 167 tools/);
+  assert.match(catalog, /Complete Lab MCP · 174 tools/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);
   assert.match(catalog, /\/mcp\/commerce/);
   assert.match(catalog, /id: 'aep-lab-commerce-optimizer'/);
@@ -140,6 +142,8 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   assert.match(catalog, /\/mcp\/firefly/);
   assert.match(catalog, /id: 'aep-lab-adobe-capabilities'/);
   assert.match(catalog, /\/mcp\/adobe-capabilities/);
+  assert.match(catalog, /id: 'aep-lab-measurement-quality'/);
+  assert.match(catalog, /\/mcp\/measurement-quality/);
   assert.match(catalog, /Focused Lab MCP · 21 tools/);
   assert.doesNotMatch(catalog, /recommended single connection/i);
   assert.match(catalog, /id: 'adobe-commerce-extensibility'/);

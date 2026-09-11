@@ -112,6 +112,14 @@
         "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
       },
       "timeout": 120000
+    },
+    "aep-lab-measurement-quality": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/measurement-quality",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 120000
     }
   }
 }
