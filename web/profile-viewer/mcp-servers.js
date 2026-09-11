@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 164 tools',
+      product: 'Complete Lab MCP · 167 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -40,9 +40,9 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all twelve focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all thirteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 164,
+      toolCount: 167,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -188,6 +188,27 @@
       caution: true,
       docUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Firefly MCP workflow reference',
+    },
+    {
+      id: 'aep-lab-adobe-capabilities',
+      configName: 'aep-lab-adobe-capabilities',
+      section: 'lab',
+      dropdownLabel: 'Adobe API capabilities',
+      name: 'AEP Lab — Adobe API capabilities',
+      product: 'Focused read-only MCP · 4 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/adobe-capabilities',
+      summary: 'A reviewed 35-service Developer Console inventory with service-specific scopes, delivery phases, use cases, and bounded AJO and GenStudio access probes.',
+      useCases: [
+        'Understand which Adobe APIs are connected and what each can add to the Lab',
+        'Choose narrow, task-specific IMS token scopes',
+        'Inspect redacted AJO suppression or allow-list entries',
+        'List approved GenStudio Experience summaries for orchestration',
+      ],
+      configNotes: 'All tools are read-only. The catalog distinguishes a connected service from token issuance, tenant verification, and operation verification. Suppression address and domain values are redacted server-side.',
+      connectionKind: 'Focused · read-only',
+      toolCount: 4,
+      docUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/ADOBE_API_CAPABILITY_ROADMAP.md',
+      docLabel: 'Adobe API capability roadmap',
     },
     {
       id: 'aep-lab-pdf-prep',

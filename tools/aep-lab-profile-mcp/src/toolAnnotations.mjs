@@ -1,4 +1,7 @@
 const READ_ONLY_TOOLS = new Set([
+  'adobe_api_catalog',
+  'ajo_suppression_addresses',
+  'genstudio_experience_list',
   'commerce_optimizer_access_info',
   'commerce_optimizer_attribute_metadata',
   'commerce_optimizer_capabilities',

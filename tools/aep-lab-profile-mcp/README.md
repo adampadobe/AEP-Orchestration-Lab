@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly Image 5 workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.46.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.47.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 164-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the twelve focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 167-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the thirteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -22,6 +22,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 | `/mcp/firefly` | 6 | Access check plus Firefly Image 5 preview/apply, async job status, generated image URLs, and exact-confirmation cancellation |
+| `/mcp/adobe-capabilities` | 4 | Access check plus the 35-service scope/use-case registry, redacted AJO suppression/allow-list reads, and approved GenStudio Experience summaries |
 
 The Commerce context separates storefront reads from administration. `commerce_graphql_query` remains query-only and `commerce_graphql_schema` reports the live storefront schema. REST administration is a closed allowlist: products (including price, custom attributes, and embedded media payloads), categories, category assignments, and inventory source items. Every change starts with `commerce_admin_change_preview`; apply requires its fresh preflight ID and exact confirmation, makes one non-retried request, and returns a readback. Product, category, assignment, and media removal use the separate audit/delete pair.
 
@@ -29,15 +30,17 @@ The Commerce Optimizer context similarly keeps the Merchandising GraphQL API rea
 
 The Firefly context uses server-side OAuth credentials from Cloud Run Secret Manager; no Firefly credential is sent to Coworker or accepted as a tool argument. `lab_firefly_generate_preview` validates and hashes one prompt without consuming credits. `lab_firefly_generate_apply` requires the unchanged hash and exact confirmation, submits one non-retried Image 5 async job, and returns Adobe status/cancel URLs. Use `lab_firefly_job_status` to retrieve generated image URLs and `lab_firefly_job_cancel` only with exact job confirmation.
 
+The Adobe capabilities context is read-only. `adobe_api_catalog` exposes a reviewed, versioned Console snapshot and explicitly separates connected services from token, tenant, and operation verification. `ajo_suppression_addresses` requests only the read scope, bounds results, and redacts address/domain values. `genstudio_experience_list` returns approved Experience summaries without retrieving signed asset renditions.
+
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all twelve focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all thirteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same thirteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same fourteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 ### Entry point (Phase 3.38)
 
-Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
+Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `adobe-capabilities`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
 **Known limitation — Adobe Coworker:** `lab_load_toolset` correctly registers the new tools and sends the standard MCP `notifications/tools/list_changed` signal, but as tested, Adobe Coworker's tool-discovery layer only reflects the tool inventory captured at session `initialize` and does not re-run `tools/list` in response to that notification mid-session. Newly loaded tools register successfully server-side but never become callable in Coworker. Until Coworker's client adds `list_changed` support, **directly connect the focused endpoint(s) for the domains you actually use** (e.g. `aep-lab-profiles` for profile/event work, `aep-lab-demo-prep` for brand scrape and customer prep) alongside `aep-lab-entry`, rather than relying on `lab_load_toolset` alone in that host. `lab_load_toolset` still works correctly over the raw Streamable HTTP protocol and in any MCP client that honors `list_changed`.
 
@@ -46,7 +49,7 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
-| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `adobe-capabilities`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 

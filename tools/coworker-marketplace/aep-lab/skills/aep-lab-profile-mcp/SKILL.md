@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.46.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.47.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, generating images with Adobe Firefly, or reading lab execution framework / industry playbooks.
@@ -12,9 +12,9 @@ metadata:
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.46.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.47.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-This plugin installs the complete 164-tool `aep-lab-general` connection plus twelve focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-commerce`, `aep-lab-commerce-optimizer`, and `aep-lab-firefly`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
+This plugin installs the complete 167-tool `aep-lab-general` connection plus thirteen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-commerce`, `aep-lab-commerce-optimizer`, `aep-lab-firefly`, and `aep-lab-adobe-capabilities`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
 
 Use the focused integration that owns the task. Use the installed `aep-lab-general` integration for first-run setup, infrastructure, full Snowflake workflows, administration, or any named tool absent from a focused integration. Do not imply that `aep-lab-entry` can make dynamically loaded tools callable in Coworker.
 

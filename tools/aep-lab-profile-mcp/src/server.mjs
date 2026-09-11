@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly,adobe-capabilities}
  * Health:   GET /health
  */
 
@@ -38,10 +38,11 @@ import {
   registerFocusedCommerceTools,
   registerFocusedCommerceOptimizerTools,
   registerFocusedFireflyTools,
+  registerFocusedAdobeCapabilityTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.46.0';
+const MCP_VERSION = '3.47.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -140,6 +141,13 @@ const ENDPOINTS = [
     register: registerFocusedFireflyTools,
     instructions:
       'Focused Adobe Firefly Image 5 text-to-image generation. Preview first, obtain the exact confirmation before one billable non-idempotent submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
+  },
+  {
+    path: '/mcp/adobe-capabilities',
+    toolset: 'adobe-capabilities',
+    register: registerFocusedAdobeCapabilityTools,
+    instructions:
+      'Read-only Adobe API capability inventory with service-specific scopes and bounded Journey Optimizer suppression and GenStudio Experience probes. Never equate a connected service or issued token with verified tenant access.',
   },
 ];
 

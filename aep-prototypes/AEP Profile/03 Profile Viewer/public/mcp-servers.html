@@ -76,15 +76,15 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.45.0</span>
+                <span class="mcp-lab-version">v3.47.0</span>
               </h3>
               <p class="mcp-lab-overview-lead">
-                A sandbox-scoped toolkit for preparing AEP demonstrations: generate test profiles, send events, stage customer branding, inspect or safely build Adobe Commerce demos, inspect Commerce Optimizer catalogs, evaluate decisions, create PDFs, and perform confirmation-gated cleanup. Coworker uses your Adobe sign-in; key-based clients use a Portal-generated key.
+                A sandbox-scoped toolkit for preparing AEP demonstrations: generate test profiles, send events, create images with Adobe Firefly, stage customer branding, build Adobe Commerce demos, evaluate decisions, create PDFs, and perform governed cleanup. Coworker uses your Adobe sign-in; key-based clients use a Portal-generated key.
               </p>
 
               <div class="mcp-marketplace-callout mcp-marketplace-callout--primary" aria-labelledby="mcpMarketplaceCalloutHeading">
                 <span class="mcp-connection-badge">Start here</span>
-                <h4 id="mcpMarketplaceCalloutHeading">Add the Coworker Marketplace — installs General plus eleven focused integrations</h4>
+                <h4 id="mcpMarketplaceCalloutHeading">Add the Coworker Marketplace — installs General plus thirteen focused integrations</h4>
                 <p>One marketplace and one plugin — Coworker uses your signed-in Adobe identity, with no key pasted into the plugin.</p>
                 <ol>
                   <li>In Coworker: <strong>Marketplaces → + Add Marketplace</strong></li>
@@ -106,7 +106,7 @@
                 <h4 id="mcpIncludedHeading" class="mcp-included-title">What this installs</h4>
                 <ul class="mcp-included-items">
                   <li><strong>Entry point</strong> <code>aep-lab-entry</code> — capability directory and workflow recommender</li>
-                  <li><strong>General</strong> <code>aep-lab-general</code> — complete 159-tool catalog for advanced and cross-domain work</li>
+                  <li><strong>General</strong> <code>aep-lab-general</code> — complete 167-tool catalog for advanced and cross-domain work</li>
                   <li><strong>Profiles</strong> <code>aep-lab-profiles</code> — profile lifecycle, industry events, Snowflake dual-load</li>
                   <li><strong>Demo prep</strong> <code>aep-lab-demo-prep</code> — brand scrape, customer switch, RTDB demo config</li>
                   <li><strong>PDF prep</strong> <code>aep-lab-pdf-prep</code> — HTML/document to PDF, storage, server templates</li>
@@ -117,6 +117,8 @@
                   <li><strong>Weather</strong> <code>aep-lab-weather</code> — live weather and Google Maps for demo scenarios</li>
                   <li><strong>Commerce</strong> <code>aep-lab-commerce</code> — governed ACCS storefront preparation across catalog, categories, inventory, media, and storefront GraphQL</li>
                   <li><strong>Commerce Optimizer</strong> <code>aep-lab-commerce-optimizer</code> — storefront reads plus governed products, metadata, categories, price books, prices, and product-layer ingestion</li>
+                  <li><strong>Firefly</strong> <code>aep-lab-firefly</code> — governed Image 5 text-to-image generation, job status, and cancellation</li>
+                  <li><strong>Adobe API capabilities</strong> <code>aep-lab-adobe-capabilities</code> — 35-service scope catalog plus read-only AJO and GenStudio probes</li>
                 </ul>
                 <p class="mcp-included-note">Use the focused integration that matches the task. Use <code>aep-lab-general</code> when you need advanced onboarding, infrastructure, complete Snowflake workflows, administration, or another tool absent from a focused catalog.</p>
               </div>
@@ -296,7 +298,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260908-commerce-optimizer"></script>
+  <script src="mcp-servers.js?v=20260910-firefly"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

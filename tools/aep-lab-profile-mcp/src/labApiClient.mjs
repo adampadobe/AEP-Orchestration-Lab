@@ -676,6 +676,27 @@ export function principalAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
 
+const ADOBE_CAPABILITIES_API_BASE = '/api/adobe-capabilities';
+
+export function adobeCapabilityCatalog({ sandbox } = {}) {
+  return labApiRequest(ADOBE_CAPABILITIES_API_BASE, {
+    query: { action: 'catalog', sandbox }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+  });
+}
+
+export function ajoSuppressionAddresses({ sandbox, type, limit } = {}) {
+  return labApiRequest(ADOBE_CAPABILITIES_API_BASE, {
+    query: { action: 'ajo_addresses', sandbox, type, limit }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+  });
+}
+
+export function genstudioExperienceList({ sandbox, limit, cursor, channel, language } = {}) {
+  return labApiRequest(ADOBE_CAPABILITIES_API_BASE, {
+    query: { action: 'genstudio_experiences', sandbox, limit, cursor, channel, language },
+    headers: principalAuthHeaders(), timeoutMs: 60_000,
+  });
+}
+
 const COMMERCE_API_BASE = '/api/commerce-prep';
 
 function commerceRead(action, query = {}) {

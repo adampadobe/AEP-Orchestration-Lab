@@ -48,6 +48,7 @@ import { registerWeatherTools } from './weatherTools.mjs';
 import { registerCommerceTools } from './commerceTools.mjs';
 import { registerCommerceOptimizerTools } from './commerceOptimizerTools.mjs';
 import { registerFireflyTools } from './fireflyTools.mjs';
+import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -103,6 +104,7 @@ export function registerProfileTools(mcpServer) {
   registerCommerceTools(mcpServer);
   registerCommerceOptimizerTools(mcpServer);
   registerFireflyTools(mcpServer);
+  registerAdobeCapabilityTools(mcpServer);
 }
 
 /**
@@ -157,6 +159,10 @@ function registerFireflyDomainTools(mcpServer) {
   registerFireflyTools(mcpServer);
 }
 
+function registerAdobeCapabilityDomainTools(mcpServer) {
+  registerAdobeCapabilityTools(mcpServer);
+}
+
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
@@ -170,6 +176,7 @@ const LOADABLE_TOOLSETS = {
   commerce: registerCommerceDomainTools,
   'commerce-optimizer': registerCommerceOptimizerDomainTools,
   firefly: registerFireflyDomainTools,
+  'adobe-capabilities': registerAdobeCapabilityDomainTools,
 };
 
 /**
@@ -250,4 +257,10 @@ export function registerFocusedCommerceOptimizerTools(mcpServer) {
 export function registerFocusedFireflyTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerFireflyDomainTools(mcpServer);
+}
+
+/** Read-only Adobe Developer Console capability catalog plus bounded AJO and GenStudio probes. */
+export function registerFocusedAdobeCapabilityTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerAdobeCapabilityDomainTools(mcpServer);
 }

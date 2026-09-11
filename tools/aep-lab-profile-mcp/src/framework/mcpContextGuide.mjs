@@ -18,7 +18,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 164,
+    toolCount: 167,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
@@ -146,6 +146,17 @@ export const MCP_CONTEXTS = Object.freeze([
     useWhen: 'Use to preview, submit, monitor, or cancel an Adobe Firefly Image 5 text-to-image generation.',
   },
   {
+    id: 'aep-lab-adobe-capabilities',
+    name: 'AEP Lab Adobe API capabilities',
+    url: `${LAB_BASE_URL}/mcp/adobe-capabilities`,
+    kind: 'lab-focused',
+    toolCount: 4,
+    access: LAB_ACCESS,
+    risk: 'read-only catalog and bounded entitlement probes',
+    capabilities: ['35-service API inventory', 'service-specific scope registry', 'AJO suppression and allow-list inspection', 'GenStudio approved Experience discovery'],
+    useWhen: 'Use to understand the connected Adobe APIs, choose a narrow token profile, or verify the first AJO and GenStudio read operations.',
+  },
+  {
     id: 'adobe-cx-coworker-gateway',
     name: 'Adobe CX Coworker Gateway',
     url: 'https://cx-coworker-gateway.adobe.io/mcp',
@@ -228,6 +239,16 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Cancel only with the Adobe cancel URL and exact job confirmation.',
     ],
   },
+  adobe_api_discovery: {
+    title: 'Discover and verify connected Adobe APIs',
+    contexts: ['aep-lab-adobe-capabilities'],
+    steps: [
+      'Read the 35-service catalog and separate connected services from verified operations.',
+      'Choose the smallest delivery phase and narrowest token profile for the use case.',
+      'Run only the bounded read-only AJO or GenStudio probe needed for current evidence.',
+      'Add mutation or billable adapters later with preview, exact confirmation, and readback.',
+    ],
+  },
   platform_authoring: {
     title: 'Perform product-native Adobe authoring',
     contexts: ['adobe-cx-coworker-gateway'],
@@ -247,6 +268,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-commerce': ['commerce', 'accs', 'product catalog', 'product sku', 'inventory', 'store view', 'storefront graphql'],
   'aep-lab-commerce-optimizer': ['commerce optimizer', 'aco', 'catalog view', 'price book', 'recommendation unit', 'merchandising services'],
   'aep-lab-firefly': ['firefly', 'firefly image', 'generate image', 'text to image', 'image 5', 'creative generation'],
+  'aep-lab-adobe-capabilities': ['adobe api', 'api capability', 'developer console', 'scope inventory', 'suppression list', 'allowed list', 'genstudio experience'],
   'adobe-cx-coworker-gateway': ['schema', 'dataset', 'destination', 'source', 'query service', 'cja', 'analytics', 'workfront', 'authoring', 'native adobe'],
 });
 

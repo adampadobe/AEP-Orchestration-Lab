@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedMcpGuideTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 164);
+  assert.equal(full.names.length, 167);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -141,6 +141,14 @@ test('focused Firefly endpoint exposes access plus the governed async generation
     'lab_mcp_access_info',
     'lab_firefly_capabilities', 'lab_firefly_generate_preview', 'lab_firefly_generate_apply',
     'lab_firefly_job_status', 'lab_firefly_job_cancel',
+  ]);
+});
+
+test('focused Adobe capabilities endpoint is read-only inventory plus bounded probes', () => {
+  const { names, server } = registrationRecorder();
+  registerFocusedAdobeCapabilityTools(server);
+  assert.deepEqual(names, [
+    'lab_mcp_access_info', 'adobe_api_catalog', 'ajo_suppression_addresses', 'genstudio_experience_list',
   ]);
 });
 

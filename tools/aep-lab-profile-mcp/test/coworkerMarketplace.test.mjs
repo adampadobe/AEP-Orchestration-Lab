@@ -27,6 +27,7 @@ const expectedEndpoints = new Map([
   ['aep-lab-commerce', '/mcp/commerce'],
   ['aep-lab-commerce-optimizer', '/mcp/commerce-optimizer'],
   ['aep-lab-firefly', '/mcp/firefly'],
+  ['aep-lab-adobe-capabilities', '/mcp/adobe-capabilities'],
 ]);
 
 test('Coworker plugin manifest explicitly preserves the workflow skill', async () => {
@@ -118,7 +119,7 @@ test('Claude plugin prompts securely for one Portal key and preserves the workfl
   assert.equal(target, join(pluginRoot, 'skills', 'aep-lab-profile-mcp'));
 });
 
-test('Claude and Coworker packages expose the same thirteen endpoints with runtime-specific auth', async () => {
+test('Claude and Coworker packages expose the same fourteen endpoints with runtime-specific auth', async () => {
   const coworker = await readJson(join(pluginRoot, '.mcp.json'));
   const claude = await readJson(join(claudePluginRoot, '.mcp.json'));
   const coworkerServers = new Map(coworker.mcp_servers.servers.map((server) => [server.name, server]));
