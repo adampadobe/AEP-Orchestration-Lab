@@ -17,7 +17,7 @@ This is a **read-only architecture review**. Do not create, update, delete, publ
 1. Inspect the capabilities and tools actually available in this Coworker session. Do not assume that a marketplace manifest has already been refreshed.
 2. If `aep-lab-entry` is available, begin with `lab_mcp_access_info`, `lab_mcp_contexts`, and `lab_mcp_recommend_context`.
 3. If `aep-lab-adobe-capabilities` or `adobe_api_catalog` is available, use it for the 35-service inventory. If it is not available, use the inventory in this prompt and label it as a supplied snapshot.
-4. Coworker may expose only 13 Lab connections until pending marketplace updates are deployed. The reviewed source target is 15 connections, adding `aep-lab-adobe-capabilities` and `aep-lab-measurement-quality`; absence in the installed plugin is not proof that either must be designed again.
+4. An installed Coworker plugin can lag the repository marketplace. The reviewed source target is 16 connections, including `aep-lab-adobe-capabilities`, `aep-lab-measurement-quality`, and `aep-lab-creativity`; absence in the installed plugin is not proof that any must be designed again.
 5. Prefer a focused Lab MCP for ordinary work. Use `aep-lab-general` only when an exact tool is missing from a focused connection.
 6. Also inspect the native **Adobe CX Coworker Gateway** tools. Prefer a native Adobe tool when it already performs the required product-native operation safely.
 7. Match by **business outcome**, not merely by API or tool name. Two tools are duplicates when they produce substantially the same result with the same authority and guardrails.
@@ -35,7 +35,7 @@ This is a **read-only architecture review**. Do not create, update, delete, publ
 
 ## Known Lab MCP connections to check
 
-The target marketplace configuration contains the following 15 connections, but the installed Coworker plugin may still expose only 13. Verify what is actually callable.
+The target marketplace configuration contains the following 16 connections. Verify what is actually callable in the installed Coworker plugin.
 
 | Connection | Existing responsibility |
 |---|---|
@@ -52,6 +52,7 @@ The target marketplace configuration contains the following 15 connections, but 
 | `aep-lab-commerce` | Adobe Commerce as a Cloud Service storefront and governed administration |
 | `aep-lab-commerce-optimizer` | Commerce Optimizer reads and governed ingestion |
 | `aep-lab-firefly` | Governed Firefly image, video, Text to Speech, transcription/captions, dubbing/lip sync, and shared asynchronous job handling |
+| `aep-lab-creativity` | Governed Photoshop v2 Lightroom-style edits, InDesign data merge, Substance 3D render, Express tagged-template variations, Illustrator Image Trace, and shared asynchronous status |
 | `aep-lab-adobe-capabilities` | Read-only 35-service catalog plus bounded AJO and GenStudio probes |
 | `aep-lab-measurement-quality` | Read-only Assurance metadata, Tags property/environment audit, and Adobe Status correlation |
 
@@ -70,14 +71,14 @@ Use this table as the starting hypothesis. Confirm or correct every row using th
 | Adobe Places | Existing profile/event tools and native Adobe gateway | Defer until a location-aware mobile journey has a real requirement |
 | Adobe Firefly API | `aep-lab-firefly` | Already owns governed Image 5 and text/keyframe-to-video generation; do not create a separate video MCP |
 | Adobe Firefly Audio and Video API | `aep-lab-firefly` | Already owns voice listing, Text to Speech, transcription/translated SRT captions, and dubbing/lip sync; only add reframe, avatar, or dynamic graphics when a concrete use case is approved |
-| Adobe Photoshop API | `aep-lab-firefly`, `aep-lab-demo-prep`, any native creative tool | Add curated Photoshop v2 production operations to a Creative Production workflow |
-| Adobe Lightroom API | `aep-lab-demo-prep`, any native creative tool | Add auto-tone, straighten, preset, and controlled edit operations to Creative Production |
+| Adobe Photoshop API | `aep-lab-creativity`, `aep-lab-demo-prep`, any native creative tool | Reuse the preview-first Photoshop v2 edit tools; extend only for a demonstrated missing operation |
+| Adobe Lightroom API | `aep-lab-creativity`, any native creative tool | Reuse unified Photoshop v2 Lightroom-style adjustments; do not build a standalone Lightroom MCP |
 | Adobe Content Tagging API | `aep-lab-demo-prep`, Firefly asset outputs, AEM/GenStudio tools | Add tagging as a supply-chain step, not as its own MCP |
-| Adobe Express API beta | Native Express capabilities and template tools | Add tagged-document variations to Creative Production only after entitlement is verified; keep visibly beta |
+| Adobe Express API beta | `aep-lab-creativity`, native Express capabilities and template tools | Reuse tagged-document discovery and Create Variation; keep visibly beta |
 | Adobe Express Review API | Frame.io/native review tools | Use only if it fills a review gap not already covered by Frame.io |
-| Adobe Illustrator API | Existing PDF/demo-prep tools and native creative tools | Add selected data merge, rendition, or image trace operations to Creative Production |
-| Adobe InDesign API | `aep-lab-pdf-prep`, native document tools | Add data merge or rendition only when it extends, rather than duplicates, PDF preparation |
-| Adobe Substance 3D API | Commerce product media and Firefly creative tools | Add 3D product rendering/compositing to Creative Production as a specialist later phase |
+| Adobe Illustrator API | `aep-lab-creativity`, existing PDF/demo-prep tools, native creative tools | Reuse Image Trace; extend only for a distinct rendition, recolor, or data-merge outcome |
+| Adobe InDesign API | `aep-lab-creativity`, `aep-lab-pdf-prep`, native document tools | Reuse Data Merge; keep generic PDF conversion in the existing PDF MCP |
+| Adobe Substance 3D API | `aep-lab-creativity`, Commerce product media, Firefly creative tools | Reuse basic render; extend only for a demonstrated compositing or scene workflow |
 | Adobe PDF Services | `aep-lab-pdf-prep` | Already owned; extend the existing PDF MCP only |
 | GenStudio for Performance Marketing API | `aep-lab-adobe-capabilities`, native GenStudio tools | Place approved-experience discovery in a Content Supply Chain workflow |
 | Frame.io API | Native Frame.io tools, GenStudio and review capabilities | Use as the human review/approval gate in Content Supply Chain |
@@ -125,13 +126,13 @@ Coherent outcome:
 
 Create this only if native Coworker tools do not already support the complete governed handoff.
 
-### Potential new `aep-lab-creative-production`
+### Reuse deployed-source `aep-lab-creativity`
 
 Coherent outcome:
 
 `approved brief or source asset -> deterministic edit/template variation -> tagging -> review-ready output`
 
-Begin with Photoshop v2, Lightroom, Content Tagging, and Express beta. Add Illustrator, InDesign, and Substance 3D only for demonstrated use cases.
+The first implementation contains Photoshop v2 with Lightroom-style adjustments, InDesign Data Merge, Substance 3D basic render, Express beta Create Variation, and Illustrator Image Trace. Content Tagging remains a possible later supply-chain step. Do not propose another creative-production MCP with the same outcome.
 
 ### Verify planned `aep-lab-measurement-quality`
 

@@ -17,6 +17,7 @@ dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
 const PORT = Number(process.env.SMOKE_PORT || 18080);
 const BASE = `http://127.0.0.1:${PORT}`;
 const API_KEY = String(process.env.AEP_LAB_MCP_API_KEY || 'local-smoke-test-key').trim();
+let smokeStage = 'startup';
 
 async function mcpRequest(sessionId, body, endpoint = '/mcp') {
   const headers = {
@@ -76,10 +77,11 @@ async function run() {
   }
 
   const health = await fetch(`${BASE}/health`);
+  smokeStage = 'health';
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce', '/mcp/commerce-optimizer']) {
+  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce', '/mcp/commerce-optimizer', '/mcp/firefly', '/mcp/creativity', '/mcp/adobe-capabilities', '/mcp/measurement-quality']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 
@@ -93,6 +95,7 @@ async function run() {
       clientInfo: { name: 'smoke-test', version: '1.0.0' },
     },
   });
+  smokeStage = 'full-initialize';
 
   if (init.status !== 200) {
     throw new Error(`Initialize failed: ${init.status} ${JSON.stringify(init.json)}`);
@@ -446,6 +449,20 @@ async function run() {
       'commerce_optimizer_navigation',
       'commerce_optimizer_recommendations',
       'commerce_optimizer_graphql_query',
+      'commerce_optimizer_ingestion_change_preview',
+      'commerce_optimizer_ingestion_change_apply',
+      'commerce_optimizer_ingestion_delete_audit',
+      'commerce_optimizer_ingestion_delete_apply',
+    ]),
+    creativity: await verifyFocusedEndpoint('/mcp/creativity', [
+      'lab_mcp_access_info', 'lab_creativity_capabilities', 'lab_creativity_access_probe',
+      'lab_creativity_photoshop_edit_preview', 'lab_creativity_photoshop_edit_apply',
+      'lab_creativity_indesign_merge_preview', 'lab_creativity_indesign_merge_apply',
+      'lab_creativity_substance_render_preview', 'lab_creativity_substance_render_apply',
+      'lab_creativity_express_documents', 'lab_creativity_express_document_get',
+      'lab_creativity_express_variation_preview', 'lab_creativity_express_variation_apply',
+      'lab_creativity_illustrator_trace_preview', 'lab_creativity_illustrator_trace_apply',
+      'lab_creativity_job_status',
     ]),
   };
 
@@ -463,6 +480,6 @@ async function run() {
 }
 
 run().catch((err) => {
-  console.error(JSON.stringify({ ok: false, error: String(err.message || err) }));
+  console.error(JSON.stringify({ ok: false, stage: smokeStage, error: String(err.message || err), cause: String(err?.cause?.code || '') }));
   process.exit(1);
 });

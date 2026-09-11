@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedMcpGuideTools, registerFocusedMeasurementQualityTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedCreativityTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedMcpGuideTools, registerFocusedMeasurementQualityTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 181);
+  assert.equal(full.names.length, 196);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -147,6 +147,22 @@ test('focused Firefly endpoint exposes access plus governed image, video, and au
     'lab_firefly_audio_dub_preview', 'lab_firefly_audio_dub_apply',
     'lab_firefly_job_status', 'lab_firefly_job_cancel',
   ]);
+});
+
+test('focused creativity endpoint exposes governed production APIs without duplicating Firefly', () => {
+  const { names, server } = registrationRecorder();
+  registerFocusedCreativityTools(server);
+  assert.deepEqual(names, [
+    'lab_mcp_access_info', 'lab_creativity_capabilities', 'lab_creativity_access_probe',
+    'lab_creativity_photoshop_edit_preview', 'lab_creativity_photoshop_edit_apply',
+    'lab_creativity_indesign_merge_preview', 'lab_creativity_indesign_merge_apply',
+    'lab_creativity_substance_render_preview', 'lab_creativity_substance_render_apply',
+    'lab_creativity_express_documents', 'lab_creativity_express_document_get',
+    'lab_creativity_express_variation_preview', 'lab_creativity_express_variation_apply',
+    'lab_creativity_illustrator_trace_preview', 'lab_creativity_illustrator_trace_apply',
+    'lab_creativity_job_status',
+  ]);
+  assert.equal(names.some((name) => name.startsWith('lab_firefly_')), false);
 });
 
 test('focused Adobe capabilities endpoint is read-only inventory plus bounded probes', () => {

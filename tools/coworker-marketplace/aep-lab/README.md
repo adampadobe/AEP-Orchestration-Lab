@@ -4,12 +4,12 @@ One-click Adobe CX Coworker install for the AEP Orchestration Lab's MCP connecti
 
 ## What this installs
 
-Fifteen MCP connections: the complete General catalog plus fourteen focused capabilities:
+Sixteen MCP connections: the complete General catalog plus fifteen focused capabilities:
 
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `aep-lab-general` | `/mcp` | Complete 181-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, Adobe API discovery, measurement diagnostics, and administration |
+| `aep-lab-general` | `/mcp` | Complete 196-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, and administration |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
 | `aep-lab-pdf-prep` | `/mcp/pdf` | HTML/document to PDF, storage, server templates |
@@ -21,6 +21,7 @@ Fifteen MCP connections: the complete General catalog plus fourteen focused capa
 | `aep-lab-commerce` | `/mcp/commerce` | Governed ACCS storefront preparation: products, attributes, categories, assignments, inventory, media, GraphQL discovery, preview/apply, and audited deletion |
 | `aep-lab-commerce-optimizer` | `/mcp/commerce-optimizer` | ACO storefront reads plus confirmation-gated products, metadata, categories, price books, prices, and product-layer ingestion |
 | `aep-lab-firefly` | `/mcp/firefly` | Governed Firefly image, video, Text to Speech, transcription/captions, dubbing/lip sync, and shared async status |
+| `aep-lab-creativity` | `/mcp/creativity` | Governed Photoshop v2 Lightroom-style edits, InDesign data merge, Substance 3D render, Express variations, Illustrator Image Trace, and shared status |
 | `aep-lab-adobe-capabilities` | `/mcp/adobe-capabilities` | Read-only 35-service scope catalog plus bounded AJO suppression and GenStudio Experience probes |
 | `aep-lab-measurement-quality` | `/mcp/measurement-quality` | Read-only Assurance metadata, Tags property/environment audit, and Adobe Status incident correlation |
 
@@ -28,7 +29,7 @@ Use a focused connection for ordinary tasks and `aep-lab-general` when a require
 
 ## Setup: signed-in Adobe IMS
 
-All fifteen connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted. Firefly's server credentials remain in Cloud Run Secret Manager and are never sent to Coworker.
+All sixteen connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted. Adobe creative service credentials remain in Cloud Run Secret Manager and are never sent to Coworker.
 
 Before first use, create at least one sandbox-scoped MCP key from the Profile Viewer's MCP key panel. That creates the server-side enrollment tying your verified Adobe email to the permitted sandbox. You do **not** paste that key into Coworker; Coworker needs only your existing Adobe sign-in.
 

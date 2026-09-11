@@ -93,3 +93,25 @@ test('classifies Firefly preview/status as reads and generation/cancel as non-id
   assert.equal(annotationsForTool('lab_firefly_audio_speech_apply').idempotentHint, false);
   assert.equal(annotationsForTool('lab_firefly_job_cancel').destructiveHint, true);
 });
+
+test('classifies creativity discovery and previews as reads and processing submits as non-idempotent writes', () => {
+  for (const name of [
+    'lab_creativity_capabilities', 'lab_creativity_access_probe',
+    'lab_creativity_photoshop_edit_preview', 'lab_creativity_indesign_merge_preview',
+    'lab_creativity_substance_render_preview', 'lab_creativity_express_documents',
+    'lab_creativity_express_document_get', 'lab_creativity_express_variation_preview',
+    'lab_creativity_illustrator_trace_preview', 'lab_creativity_job_status',
+  ]) {
+    assert.equal(annotationsForTool(name).readOnlyHint, true);
+    assert.equal(annotationsForTool(name).idempotentHint, true);
+  }
+  for (const name of [
+    'lab_creativity_photoshop_edit_apply', 'lab_creativity_indesign_merge_apply',
+    'lab_creativity_substance_render_apply', 'lab_creativity_express_variation_apply',
+    'lab_creativity_illustrator_trace_apply',
+  ]) {
+    assert.equal(annotationsForTool(name).readOnlyHint, false);
+    assert.equal(annotationsForTool(name).idempotentHint, false);
+    assert.equal(annotationsForTool(name).destructiveHint, false);
+  }
+});
