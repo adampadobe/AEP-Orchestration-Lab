@@ -1,6 +1,6 @@
 /**
  * Build demo websites from uploaded HTML/ZIP — preserve source markup, inline zip CSS,
- * rewrite asset paths, and fetch missing assets from the brand domain.
+ * rewrite asset paths, and best-effort fetch only assets referenced by the upload.
  */
 'use strict';
 
@@ -13,6 +13,8 @@ const siteCloneLogin = require('./brandScraperSiteCloneLogin');
 
 const PV_REL = '../../../profile-viewer';
 const FETCH_TIMEOUT_MS = 6000;
+const EXTERNAL_FETCH_RETRIES = 1;
+const EXTERNAL_FETCH_CONCURRENCY = 4;
 const MAX_EXTERNAL_FETCHES = 20;
 const MAX_EXTERNAL_IMAGE_FETCHES = 100;
 const EXTERNAL_FETCH_WALL_MS = 45000;
@@ -31,8 +33,6 @@ const AD_IFRAME_HTML_HEAD_RE = /2mdn\.net|sadbundle|doubleclick|Template_H5|Enab
 const SAVE_PAGE_FILES_DIR_RE = /_files\//i;
 /** Short GCS-safe folder for browser "Web Page, Complete" companion assets. */
 const SAVE_PAGE_CANON_DIR = 'page-files';
-/** Save-page ZIPs already include a local asset folder — skip slow live-site fetches. */
-const MIN_SAVE_PAGE_ASSETS_TO_SKIP_EXTERNAL = 15;
 
 function htmlEntryHead(entry) {
   if (!entry || !entry.content || !entry.content.length) return '';
@@ -321,22 +321,33 @@ function rewriteAttrUrls(html, htmlPath, entryMap, baseUrl) {
 }
 
 async function fetchRemoteAsset(url, opts = {}) {
-  try {
-    const headers = { 'User-Agent': USER_AGENT, Accept: 'image/*,*/*;q=0.8' };
-    if (opts.referer) headers.Referer = String(opts.referer);
-    const res = await fetch(url, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers,
-    });
-    if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (!buf.length) return null;
-    const ct = (res.headers.get('content-type') || '').split(';')[0].trim();
-    return { buffer: buf, contentType: ct || 'application/octet-stream' };
-  } catch (_e) {
-    return null;
+  const fetchImpl = opts.fetchImpl || fetch;
+  const retries = Number.isInteger(opts.retries) ? Math.max(0, opts.retries) : EXTERNAL_FETCH_RETRIES;
+  const sleep = opts.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const headers = { 'User-Agent': USER_AGENT, Accept: 'image/*,*/*;q=0.8' };
+  if (opts.referer) headers.Referer = String(opts.referer);
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetchImpl(url, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(opts.timeoutMs || FETCH_TIMEOUT_MS),
+        headers,
+      });
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        if (!buf.length) return null;
+        const ct = (res.headers.get('content-type') || '').split(';')[0].trim();
+        return { buffer: buf, contentType: ct || 'application/octet-stream' };
+      }
+      const transient = res.status === 408 || res.status === 425 || res.status === 429 || res.status >= 500;
+      if (!transient || attempt >= retries) return null;
+    } catch (_e) {
+      if (attempt >= retries) return null;
+    }
+    await sleep(250 * (attempt + 1));
   }
+  return null;
 }
 
 function externalAssetKey(url) {
@@ -406,27 +417,96 @@ function collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl) {
   return { images: [...images], other: [...other] };
 }
 
-/**
- * Browser "Web Page, Complete" uploads ship hundreds of local assets — fetching
- * remaining live-site URLs is slow and causes demo-phase timeouts.
- */
-function shouldSkipExternalAssetFetch(entries, picked) {
-  if (!picked || !picked.name) return false;
-  const filtered = filterSavePageEntries(entries || [], picked);
-  const rootName = posixNorm(picked.name);
-  if (!rootName || rootName.includes('/')) return false;
-  const hasLocalAssetFolder = filtered.some((e) => {
-    const n = posixNorm(e && e.name);
-    return n && (n.includes('_files/') || n.startsWith(`${SAVE_PAGE_CANON_DIR}/`));
-  });
-  if (!hasLocalAssetFolder) return false;
-  const localAssets = filtered.filter((e) => {
-    if (!e || !e.name || !e.content || !e.content.length) return false;
-    const n = posixNorm(e.name);
-    if (n === rootName) return false;
-    return n.includes('_files/') || n.startsWith(`${SAVE_PAGE_CANON_DIR}/`);
-  });
-  return localAssets.length >= MIN_SAVE_PAGE_ASSETS_TO_SKIP_EXTERNAL;
+function collectUploadedAssetCandidates(entries, primaryHtmlPath, entryMap, baseUrl, opts = {}) {
+  const images = new Set();
+  const other = new Set();
+  const local = new Set();
+
+  function consider(raw, sourcePath, forceImage = false) {
+    const val = String(raw || '').trim();
+    if (!val || val.startsWith('#') || /^data:/i.test(val) || /^javascript:/i.test(val)
+      || /^mailto:/i.test(val) || /^tel:/i.test(val)) return;
+    const zipPath = resolveHrefToZipPath(val, sourcePath, entryMap);
+    if (zipPath) {
+      local.add(zipPath);
+      return;
+    }
+    const abs = resolveAbsoluteAssetUrl(val, sourcePath, baseUrl);
+    if (!abs || !/^https?:\/\//i.test(abs)) return;
+    if (forceImage || isLikelyImageUrl(abs)) images.add(abs);
+    else other.add(abs);
+  }
+
+  function collectSrcset(value, sourcePath) {
+    String(value || '').split(',').forEach((part) => consider(part.trim().split(/\s+/)[0], sourcePath, true));
+  }
+
+  function collectCss(text, sourcePath) {
+    let match;
+    const cssUrlRe = /url\(\s*['"]?([^'")]+)['"]?\s*\)/gi;
+    while ((match = cssUrlRe.exec(text)) !== null) consider(match[1], sourcePath, false);
+    const importRe = /@import\s+(?:url\(\s*)?['"]([^'"]+)['"]/gi;
+    while ((match = importRe.exec(text)) !== null) consider(match[1], sourcePath, false);
+  }
+
+  function collectHtml(text, sourcePath) {
+    let tagMatch;
+    const tagRe = /<([a-z][\w:-]*)\b[^>]*>/gi;
+    while ((tagMatch = tagRe.exec(text)) !== null) {
+      const tagName = String(tagMatch[1] || '').toLowerCase();
+      const tag = tagMatch[0];
+      let attrMatch;
+      const attrRe = /\b([\w:-]+)\s*=\s*(["'])(.*?)\2/gi;
+      while ((attrMatch = attrRe.exec(tag)) !== null) {
+        const attr = String(attrMatch[1] || '').toLowerCase();
+        const value = attrMatch[3];
+        if (attr === 'srcset' || attr === 'data-srcset') {
+          collectSrcset(value, sourcePath);
+        } else if (attr === 'src' && (tagName === 'script' || tagName === 'iframe')) {
+          // Production scripts/frames are removed by destaticization and must not
+          // create network work for an otherwise static uploaded capture.
+          continue;
+        } else if (['src', 'poster', 'data-src', 'data-lazy-src', 'data-original', 'data-image',
+          'data-background', 'data-bg', 'data-poster', 'data-thumbnail', 'data-video-poster'].includes(attr)) {
+          const forceImage = tagName === 'img' || tagName === 'picture'
+            || /(?:poster|image|background|thumbnail)/.test(attr);
+          consider(value, sourcePath, forceImage);
+        } else if (attr === 'href' && (tagName === 'link' || tagName === 'use' || tagName === 'image')) {
+          consider(value, sourcePath, tagName === 'image');
+        } else if (attr === 'content' && tagName === 'meta' && /(?:og:image|twitter:image)/i.test(tag)) {
+          consider(value, sourcePath, true);
+        }
+      }
+    }
+    collectCss(text, sourcePath);
+  }
+
+  function collectJs(text, sourcePath) {
+    let match;
+    const jsAssetRe = /["'`]((?:https?:\/\/|\/|\.\.?\/)[^"'`\s]+?\.(?:css|m?js|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp4|webm)(?:[?#][^"'`\s]*)?)["'`]/gi;
+    while ((match = jsAssetRe.exec(text)) !== null) consider(match[1], sourcePath, isLikelyImageUrl(match[1]));
+  }
+
+  for (const entry of entries || []) {
+    if (!entry || !entry.name || !entry.content || !entry.content.length) continue;
+    const sourcePath = posixNorm(entry.name);
+    const ext = path.posix.extname(sourcePath).toLowerCase();
+    let text;
+    if (sourcePath === posixNorm(primaryHtmlPath) && typeof opts.primaryHtml === 'string') {
+      text = opts.primaryHtml;
+    } else if (entry.isHtml || ext === '.html' || ext === '.htm' || ext === '.css'
+      || ext === '.js' || ext === '.mjs' || ext === '.cjs') {
+      text = entry.content.toString('utf8');
+    } else {
+      continue;
+    }
+    if (entry.isHtml || ext === '.html' || ext === '.htm') collectHtml(text, sourcePath);
+    else if (ext === '.css') collectCss(text, sourcePath);
+    else collectJs(text, sourcePath);
+  }
+
+  for (const image of images) other.delete(image);
+  return { images: [...images], other: [...other], local: [...local] };
 }
 
 async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
@@ -439,6 +519,8 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
   let attempted = 0;
   const total = candidates.length;
   let lastProgressAt = 0;
+  let nextIndex = 0;
+  const hits = [];
 
   const reportProgress = (force) => {
     if (typeof opts.onProgress !== 'function' || !total) return;
@@ -451,21 +533,37 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
 
   reportProgress(true);
 
-  for (const absUrl of candidates) {
-    if (fetched >= max) break;
-    if (Date.now() - started > wallMs) break;
-    attempted += 1;
-    reportProgress(false);
-    const hit = await fetchRemoteAsset(absUrl, { referer: opts.referer });
-    if (!hit) continue;
-    fetched += 1;
-    reportProgress(true);
+  const queue = candidates.slice(0, max);
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= queue.length || Date.now() - started > wallMs) return;
+      const absUrl = queue[index];
+      attempted += 1;
+      reportProgress(false);
+      const hit = await fetchRemoteAsset(absUrl, {
+        referer: opts.referer,
+        fetchImpl: opts.fetchImpl,
+        retries: opts.retries,
+        timeoutMs: opts.timeoutMs,
+        sleep: opts.sleep,
+      });
+      if (!hit) continue;
+      fetched += 1;
+      reportProgress(true);
+      hits.push({ index, absUrl, hit });
+    }
+  }
+
+  const concurrency = Math.max(1, Math.min(opts.concurrency || EXTERNAL_FETCH_CONCURRENCY, queue.length || 1));
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+
+  const replacements = {};
+  for (const { index, absUrl, hit } of hits.sort((a, b) => a.index - b.index)) {
     const rel = `_external/${externalAssetKey(absUrl)}${extFromUrl(absUrl, hit.contentType)}`;
-    extraFiles.push({
-      name: rel,
-      content: hit.buffer,
-      contentType: hit.contentType,
-    });
+    replacements[absUrl] = rel;
+    extraFiles.push({ name: rel, content: hit.buffer, contentType: hit.contentType });
     const esc = absUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     rewritten = rewritten.replace(new RegExp(esc, 'g'), rel);
   }
@@ -477,17 +575,18 @@ async function fetchAndRewriteCandidates(html, candidates, opts = {}) {
     extraFiles,
     fetched,
     attempted,
-    skipped: Math.max(0, total - attempted),
+    failed: Math.max(0, attempted - fetched),
+    skipped: Math.max(0, total - fetched),
     remaining: Math.max(0, total - attempted),
+    replacements,
   };
 }
 
 async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opts = {}) {
-  if (opts.skipExternalFetch) {
-    return { html, extraFiles: [], skippedExternalCount: 0, fetchedImageCount: 0, externalFetchSkipped: true };
+  const { images, other } = opts.candidates || collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl);
+  if (!images.length && !other.length) {
+    return { html, extraFiles: [], fetchedImageCount: 0, fetchedLiveCount: 0, skippedExternalCount: 0, replacements: {} };
   }
-  const { images, other } = collectExternalAssetCandidates(html, htmlPath, entryMap, baseUrl);
-  if (!images.length && !other.length) return { html, extraFiles: [] };
 
   const extraFiles = [];
   let rewritten = html;
@@ -507,15 +606,6 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opt
   extraFiles.push(...imagePass.extraFiles);
 
   const remainingOther = other.filter((url) => !rewritten.includes(url));
-  if (remainingOther.length > MAX_EXTERNAL_FETCHES) {
-    return {
-      html: rewritten,
-      extraFiles,
-      skippedExternalCount: remainingOther.length,
-      fetchedImageCount: imagePass.fetched,
-    };
-  }
-
   const otherPass = await fetchAndRewriteCandidates(rewritten, remainingOther, {
     max: MAX_EXTERNAL_FETCHES,
     wallMs: EXTERNAL_FETCH_WALL_MS,
@@ -525,18 +615,30 @@ async function fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, opt
   rewritten = otherPass.html;
   extraFiles.push(...otherPass.extraFiles);
 
-  if (typeof opts.onProgress === 'function' && (imagePass.fetched || otherPass.fetched)) {
+  if (typeof opts.onProgress === 'function') {
     const checked = (imagePass.attempted || 0) + (otherPass.attempted || 0);
     const got = (imagePass.fetched || 0) + (otherPass.fetched || 0);
-    opts.onProgress(`Live-site fetch done (${got} fetched, ${checked} URLs checked)…`);
+    const skipped = images.length + other.length - got;
+    opts.onProgress(`Referenced-asset fetch done (${got} fetched live, ${skipped} skipped, ${checked} checked)…`);
   }
 
   return {
     html: rewritten,
     extraFiles,
     fetchedImageCount: imagePass.fetched,
-    skippedExternalCount: otherPass.skipped,
+    fetchedLiveCount: imagePass.fetched + otherPass.fetched,
+    skippedExternalCount: Math.max(0, images.length + other.length - imagePass.fetched - otherPass.fetched),
+    replacements: { ...(imagePass.replacements || {}), ...(otherPass.replacements || {}) },
   };
+}
+
+function applyExternalReplacements(text, replacements) {
+  let out = String(text || '');
+  for (const [url, rel] of Object.entries(replacements || {})) {
+    const esc = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(esc, 'g'), rel);
+  }
+  return out;
 }
 
 /**
@@ -932,23 +1034,26 @@ async function buildDemoFromUpload(opts) {
   html = demoPolish.stripDocumentBaseTags(html);
   html = demoPolish.promoteLazyImages(html);
   html = demoPolish.promotePictureSources(html);
+  const referencedAssets = collectUploadedAssetCandidates(entries, htmlPath, entryMap, baseUrl, {
+    primaryHtml: html,
+  });
   if (typeof opts.onProgress === 'function') opts.onProgress('Inlining CSS and rewriting asset paths…');
   html = inlineStylesheets(html, htmlPath, entryMap, baseUrl);
   html = rewriteAttrUrls(html, htmlPath, entryMap, baseUrl);
   html = promoteParticleVideoPosters(html, htmlPath, entryMap, baseUrl);
-  const skipExternalFetch = shouldSkipExternalAssetFetch(allEntries, picked);
   if (typeof opts.onProgress === 'function') {
-    opts.onProgress(skipExternalFetch
-      ? 'Using bundled upload assets (skipping live-site fetch)…'
-      : 'Fetching missing images from the live site…');
+    const missingCount = referencedAssets.images.length + referencedAssets.other.length;
+    opts.onProgress(missingCount
+      ? `Checking ${missingCount} missing assets referenced by the upload…`
+      : 'All uploaded-file asset references resolve locally…');
   }
   const external = await fetchMissingExternalAssets(html, htmlPath, entryMap, baseUrl, {
     referer: baseUrl,
     onProgress: opts.onProgress,
-    skipExternalFetch,
+    candidates: referencedAssets,
   });
   if (external.skippedExternalCount) {
-    console.log('[brandScraperDemoFromUpload] skipped external asset fetch', {
+    console.log('[brandScraperDemoFromUpload] referenced assets unavailable', {
       count: external.skippedExternalCount,
       htmlPath,
     });
@@ -1027,22 +1132,39 @@ async function buildDemoFromUpload(opts) {
     });
   }
 
+  let includedLocalAssetCount = 0;
   for (const e of entries) {
     if (!e || !e.name || !e.content || !e.content.length) continue;
     if (/\.html?$/i.test(e.name)) continue;
     if (demoPolish.isAdBundleEntry(e.name, e.content)) continue;
     const name = posixNorm(e.name);
     if (!name || name === 'index.html' || name === htmlNormalize.GENERIC_SITE_GLUE_NAME) continue;
+    let content = e.content;
+    if (/\.(?:css|m?js|cjs)$/i.test(name) && external.replacements && Object.keys(external.replacements).length) {
+      content = Buffer.from(applyExternalReplacements(content.toString('utf8'), external.replacements), 'utf8');
+    }
     files.push({
       name,
-      content: e.content,
+      content,
       contentType: contentTypeForPath(name),
     });
+    includedLocalAssetCount += 1;
   }
 
   for (const f of external.extraFiles) {
     files.push(f);
   }
+
+  const assetSummary = {
+    localAssets: includedLocalAssetCount,
+    totalLocalAssets: includedLocalAssetCount,
+    referencedLocalAssets: referencedAssets.local.length,
+    referencedMissingAssets: referencedAssets.images.length + referencedAssets.other.length,
+    fetchedLive: external.fetchedLiveCount || 0,
+    skipped: external.skippedExternalCount || 0,
+  };
+  assetSummary.message = `${assetSummary.localAssets}/${assetSummary.totalLocalAssets} local, ${assetSummary.fetchedLive} fetched live, ${assetSummary.skipped} skipped`;
+  if (typeof opts.onProgress === 'function') opts.onProgress(`Upload assets complete — ${assetSummary.message}`);
 
   return {
     files,
@@ -1050,6 +1172,7 @@ async function buildDemoFromUpload(opts) {
     sourceHtmlPath: htmlPath,
     usesUploadedLogo: uploadedLogo.found,
     uploadedLogoPath: uploadedLogo.sourcePath || null,
+    assetSummary,
   };
 }
 
@@ -1068,8 +1191,9 @@ module.exports = {
   sanitizeAssetRelPath,
   promoteParticleVideoPosters,
   pickParticlePosterUrl,
-  shouldSkipExternalAssetFetch,
   collectExternalAssetCandidates,
+  collectUploadedAssetCandidates,
+  fetchRemoteAsset,
   findUploadedLogo,
   fetchAndRewriteCandidates,
   buildDemoFromUpload,

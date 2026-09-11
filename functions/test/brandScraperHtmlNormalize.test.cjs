@@ -80,6 +80,8 @@ describe('brandScraperHtmlNormalize', () => {
     assert.equal(result.files.filter((file) => file.name === 'generic-site-glue.js').length, 1);
     assert.doesNotMatch(html, /\/_next\/app\.js/);
     assert.match(html, /id="TopRibbon"/);
+    assert.ok(result.assetSummary);
+    assert.match(result.assetSummary.message, /^1\/1 local, \d+ fetched live, \d+ skipped$/);
   });
 
   it('applies the same normalization to the generated live-scrape fallback', async () => {

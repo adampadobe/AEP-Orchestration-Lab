@@ -1671,6 +1671,9 @@ async function runDemoWebsitePhase({
     });
     recordToPersist.demoWebsite = demoResult;
     recordToPersist.demoGenerationStatus = demoResult.demoGenerationStatus || demoResult.status || 'not_requested';
+    if (demoResult.assetSummary && demoResult.assetSummary.message) {
+      runSteps.push(runStepOk('demo_assets', 'Uploaded asset resolution', demoResult.assetSummary.message));
+    }
     if (demoResult.status === 'reused' || demoResult.demoGenerationStatus === 'reused') {
       runSteps.push(runStepOk('demo_status', 'Demo website reused', demoResult.path || ''));
     } else if (demoResult.demoGenerationStatus === 'created' || demoResult.demoGenerationStatus === 'regenerated') {
@@ -1915,22 +1918,39 @@ async function resolveCrawlWithFallbacks({
   wantTagAudit,
   crawlDeadlineMs,
   runSteps,
+  crawlRunner = runCrawlWithRetries,
 }) {
   const uploadPayload = body.uploadedHtml || body.uploadedFiles || null;
-  const useUploadFallback = body.useUploadedHtmlFallback === true
-    || body.useUploadedHtmlFallback === 'true'
-    || (uploadPayload && uploadPayload.useAsFallback !== false);
-  const uploadOnly = body.uploadOnly === true
+  const requestedUploadOnly = body.uploadOnly === true
     || body.crawlMode === 'upload_only'
     || (uploadPayload && uploadPayload.uploadOnly === true);
+  // A supplied archive is authoritative. Never run network discovery first and
+  // then use its larger manifest to expand an uploaded capture.
+  const uploadOnly = requestedUploadOnly || !!uploadPayload;
 
   let liveCrawl = uploadedHtml.emptyCrawl(url, inferBrandNameFromUrl(url));
   let uploadedResult = { pages: [], summary: null, fallbackSources: [], assetPaths: [], uploadEntries: [] };
 
+  if (uploadPayload) {
+    uploadedResult = await uploadedHtml.parseUploadedPayload(uploadPayload, {
+      baseUrl: normaliseUrl(url),
+      runTagAudit: wantTagAudit,
+    });
+    if (uploadedResult.summary && uploadedResult.summary.validHtmlFiles > 0) {
+      runSteps.push(runStepOk(
+        'upload_html',
+        'Authoritative uploaded capture',
+        `${uploadedResult.summary.validHtmlFiles} HTML file(s) parsed · no live discovery crawl`,
+      ));
+    } else {
+      runSteps.push(runStepSkipped('upload_html', 'Uploaded HTML', 'No valid HTML files in upload'));
+    }
+  }
+
   if (!uploadOnly) {
     runSteps.push(runStepOk('crawl_live', 'Live crawl started', wantJs ? 'JS renderer' : 'fetch'));
     try {
-      liveCrawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, crawlDeadlineMs });
+      liveCrawl = await crawlRunner(url, { wantJs, maxPages, wantTagAudit, crawlDeadlineMs });
     } catch (e) {
       const msg = 'Crawler failed: ' + String((e && e.message) || e);
       liveCrawl = uploadedHtml.emptyCrawl(url, inferBrandNameFromUrl(url));
@@ -1954,28 +1974,10 @@ async function resolveCrawlWithFallbacks({
       ));
     }
   } else {
-    runSteps.push(runStepSkipped('crawl_live', 'Live crawl', 'Uploaded HTML only — live URL not crawled'));
+    runSteps.push(runStepSkipped('crawl_live', 'Live discovery crawl', 'Upload supplied — archive references are authoritative'));
   }
 
-  if (uploadPayload) {
-    uploadedResult = await uploadedHtml.parseUploadedPayload(uploadPayload, {
-      baseUrl: normaliseUrl(url),
-      runTagAudit: wantTagAudit,
-    });
-    if (uploadedResult.summary && uploadedResult.summary.validHtmlFiles > 0) {
-      runSteps.push(runStepOk(
-        'upload_html',
-        uploadOnly ? 'Uploaded-only scrape' : 'Fallback HTML used',
-        `${uploadedResult.summary.validHtmlFiles} HTML file(s) parsed`,
-      ));
-    } else if (uploadPayload) {
-      runSteps.push(runStepSkipped('upload_html', 'Uploaded HTML', 'No valid HTML files in upload'));
-    }
-  }
-
-  const shouldUseUpload = uploadOnly
-    || (useUploadFallback && uploadedResult.pages.length > 0
-      && (!(liveCrawl.pages && liveCrawl.pages.length) || (liveCrawl.failures && liveCrawl.failures.length)));
+  const shouldUseUpload = uploadOnly && uploadedResult.pages.length > 0;
 
   const merged = uploadedHtml.mergeCrawlSources(
     liveCrawl,
@@ -1985,6 +1987,11 @@ async function resolveCrawlWithFallbacks({
 
   if (merged.pages.length) {
     merged.assets = aggregateAssets(merged.pages);
+    if (uploadOnly) {
+      merged.engine = 'upload';
+      merged._crawlEngineUsed = 'upload';
+      merged.totalDiscovered = merged.pages.length;
+    }
     if (wantTagAudit) merged.tagAuditSummary = tagAudit.summarizeAcrossPages(merged.pages);
     for (const p of merged.pages) {
       if (!p.sourceType) p.sourceType = 'live_url';
