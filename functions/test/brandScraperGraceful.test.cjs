@@ -617,15 +617,26 @@ describe('brandScraperDemoFromUpload', () => {
     assert.equal(resolved, 'page-files/Iran_-Utility-Bar.jpg');
   });
 
-  it('shouldSkipExternalAssetFetch for save-page ZIP bundles', () => {
-    const prefix = 'The Telegraph_files/';
-    const entries = [{ name: 'The Telegraph.html', content: Buffer.from('<html></html>'), isHtml: true }];
-    for (let i = 0; i < 20; i += 1) {
-      entries.push({ name: `${prefix}asset-${i}.jpg`, content: Buffer.from('x') });
-    }
-    const picked = { name: 'The Telegraph.html', entry: entries[0] };
-    assert.equal(demoFromUpload.shouldSkipExternalAssetFetch(entries, picked), true);
-    assert.equal(demoFromUpload.shouldSkipExternalAssetFetch([entries[0]], picked), false);
+  it('discovers assets only from uploaded HTML, CSS, and JS references', () => {
+    const entries = [
+      { name: 'index.html', content: Buffer.from('<link rel="stylesheet" href="assets/site.css"><img src="assets/local.png"><a href="/account">Account</a>'), isHtml: true },
+      { name: 'assets/site.css', content: Buffer.from('.hero{background:url("../missing.jpg")}') },
+      { name: 'assets/app.js', content: Buffer.from('const icon = "/media/icon.svg"; const api = "/api/search";') },
+      { name: 'assets/local.png', content: Buffer.from('png') },
+    ];
+    const refs = demoFromUpload.collectUploadedAssetCandidates(
+      entries,
+      'index.html',
+      demoFromUpload.buildEntryMap(entries),
+      'https://example.com/',
+    );
+    assert.deepEqual(new Set(refs.local), new Set(['assets/site.css', 'assets/local.png']));
+    assert.deepEqual(new Set(refs.images), new Set([
+      'https://example.com/missing.jpg',
+      'https://example.com/media/icon.svg',
+    ]));
+    assert.equal(refs.other.includes('https://example.com/account'), false);
+    assert.equal(refs.other.includes('https://example.com/api/search'), false);
   });
 
   it('fetchAndRewriteCandidates reports attempt progress not just successes', async () => {
@@ -667,6 +678,85 @@ describe('brandScraperDemoFromUpload', () => {
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  it('retries one transient asset response and then continues successfully', async () => {
+    let calls = 0;
+    const result = await demoFromUpload.fetchAndRewriteCandidates(
+      '<img src="https://example.com/retry.png">',
+      ['https://example.com/retry.png'],
+      {
+        fetchImpl: async () => {
+          calls += 1;
+          if (calls === 1) return { ok: false, status: 429, headers: { get: () => '' } };
+          return {
+            ok: true,
+            status: 200,
+            arrayBuffer: async () => Buffer.from('png'),
+            headers: { get: () => 'image/png' },
+          };
+        },
+        sleep: async () => {},
+      },
+    );
+    assert.equal(calls, 2);
+    assert.equal(result.fetched, 1);
+    assert.equal(result.skipped, 0);
+    assert.match(result.html, /_external\/[a-f0-9]{16}\.png/);
+  });
+
+  it('caps best-effort asset fetch concurrency', async () => {
+    let active = 0;
+    let maxActive = 0;
+    await demoFromUpload.fetchAndRewriteCandidates('', [
+      'https://example.com/1.png',
+      'https://example.com/2.png',
+      'https://example.com/3.png',
+      'https://example.com/4.png',
+    ], {
+      concurrency: 2,
+      fetchImpl: async () => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active -= 1;
+        return { ok: false, status: 404, headers: { get: () => '' } };
+      },
+    });
+    assert.equal(maxActive, 2);
+  });
+
+  it('treats any supplied upload as authoritative and never calls the live crawler', async () => {
+    const brandScraper = require('../brandScraperService');
+    let crawlCalls = 0;
+    const runSteps = [];
+    const result = await brandScraper.resolveCrawlWithFallbacks({
+      url: 'https://blocked.example/',
+      body: {
+        uploadedHtml: {
+          useAsFallback: true,
+          files: [{
+            name: 'index.html',
+            contentBase64: Buffer.from('<html><head><title>Uploaded</title></head><body><h1>Captured page</h1></body></html>').toString('base64'),
+          }],
+        },
+      },
+      wantJs: false,
+      maxPages: 3,
+      wantTagAudit: false,
+      crawlDeadlineMs: Date.now() + 60000,
+      runSteps,
+      crawlRunner: async () => {
+        crawlCalls += 1;
+        throw new Error('live crawler must not run');
+      },
+    });
+    assert.equal(crawlCalls, 0);
+    assert.equal(result.uploadOnly, true);
+    assert.equal(result.livePageCount, 0);
+    assert.equal(result.uploadedPageCount, 1);
+    assert.equal(result.crawl._crawlEngineUsed, 'upload');
+    assert.ok(runSteps.some((step) => step.id === 'crawl_live' && step.status === 'skipped'));
   });
 
   it('promoteParticleVideoPosters replaces particle iframe shells with bundled poster images', () => {

@@ -444,6 +444,7 @@ async function buildInnerSnapshotFiles(record, fileSlug, prefix, uploadEntries, 
         sourceHtmlPath: uploadBuilt.sourceHtmlPath,
         usesUploadedLogo: !!uploadBuilt.usesUploadedLogo,
         uploadedLogoPath: uploadBuilt.uploadedLogoPath || null,
+        assetSummary: uploadBuilt.assetSummary || null,
       };
     }
     if (hadCapturedHtml) {
@@ -597,6 +598,7 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
     generatedFiles: files.map((f) => f.name),
     source: innerResult.source,
     sourceHtmlPath: innerResult.sourceHtmlPath,
+    assetSummary: innerResult.assetSummary || null,
     requiredModules: {
       profileEnvironmentPanel: true,
       profileViewerModule: true,
@@ -605,7 +607,7 @@ async function finalizeProfileViewerDemo(record, opts, innerResult, statusFlags)
       `Profile Viewer demo at ${publicPath} (same pattern as sky-demo.html).`,
       `Responsive mobile simulator at ${pvDemo.profileViewerMobileDemoUrl(fileSlug)}.`,
       innerResult.source === 'uploaded_html'
-        ? `Iframe snapshot from uploaded HTML (${innerResult.sourceHtmlPath}).`
+        ? `Iframe snapshot from uploaded HTML (${innerResult.sourceHtmlPath}).${innerResult.assetSummary ? ` Assets: ${innerResult.assetSummary.message}.` : ''}`
         : innerResult.source === 'live_capture'
           ? `Iframe snapshot from the live rendered DOM (${innerResult.sourceHtmlPath}).`
           : 'Iframe snapshot generated from scrape content.',
