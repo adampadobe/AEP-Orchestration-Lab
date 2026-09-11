@@ -803,4 +803,12 @@ describe('brandScraper demo build dispatch', () => {
     assert.equal(body.customerName, 'The Telegraph');
     assert.equal(body.labOwnerHandle, 'kirkham');
   });
+
+  it('routes demo-build requests to the dedicated worker', () => {
+    const path = require('node:path');
+    const firebaseConfig = require(path.resolve(__dirname, '../../firebase.json'));
+    const rewrite = firebaseConfig.hosting.rewrites.find((row) => row.source === '/api/brand-scraper/demo-build');
+    assert.ok(rewrite, 'demo-build Hosting rewrite is required');
+    assert.equal(rewrite.function.functionId, 'brandScraperDemoBuild');
+  });
 });
