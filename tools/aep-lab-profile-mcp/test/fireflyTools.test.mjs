@@ -23,9 +23,64 @@ test('registers the focused Firefly generation lifecycle', () => {
     'lab_firefly_generate_apply',
     'lab_firefly_generate_video_preview',
     'lab_firefly_generate_video_apply',
+    'lab_firefly_audio_voice_list',
+    'lab_firefly_audio_speech_preview',
+    'lab_firefly_audio_speech_apply',
+    'lab_firefly_audio_transcribe_preview',
+    'lab_firefly_audio_transcribe_apply',
+    'lab_firefly_audio_dub_preview',
+    'lab_firefly_audio_dub_apply',
     'lab_firefly_job_status',
     'lab_firefly_job_cancel',
   ]);
+});
+
+test('audio previews bind exact requests and applies submit only after matching confirmation', async () => {
+  const submissions = [];
+  const tools = recorder({
+    submitSpeech: async (request) => { submissions.push(['speech', request]); return { job_id: 'speech-1' }; },
+    submitTranscribe: async (request) => { submissions.push(['transcribe', request]); return { job_id: 'transcribe-1' }; },
+    submitDub: async (request) => { submissions.push(['dub', request]); return { job_id: 'dub-1' }; },
+  });
+  const speechRequest = { text: 'Welcome to the resort', voice_id: 'voice-1' };
+  const speechPreview = body(await tools.get('lab_firefly_audio_speech_preview').handler(speechRequest));
+  assert.match(speechPreview.confirmation, /^GENERATE FIREFLY SPEECH /);
+  const rejected = await tools.get('lab_firefly_audio_speech_apply').handler({
+    ...speechRequest, preflight_id: speechPreview.preflight_id, confirmation: 'yes',
+  });
+  assert.equal(rejected.isError, true);
+  assert.equal(submissions.length, 0);
+  await tools.get('lab_firefly_audio_speech_apply').handler({
+    ...speechRequest, preflight_id: speechPreview.preflight_id, confirmation: speechPreview.confirmation,
+  });
+
+  const transcribeRequest = {
+    media_kind: 'audio', source_url: 'https://demo.storage.googleapis.com/input.mp3',
+    media_type: 'audio/mp3', target_locale_codes: ['es-419'], captions_format: 'srt',
+  };
+  const transcribePreview = body(await tools.get('lab_firefly_audio_transcribe_preview').handler(transcribeRequest));
+  await tools.get('lab_firefly_audio_transcribe_apply').handler({
+    ...transcribeRequest, preflight_id: transcribePreview.preflight_id, confirmation: transcribePreview.confirmation,
+  });
+
+  const dubRequest = {
+    media_kind: 'video', source_url: 'https://demo.windows.net/input.mp4',
+    media_type: 'video/mp4', target_locale_codes: ['fr-FR'], lip_sync: true,
+  };
+  const dubPreview = body(await tools.get('lab_firefly_audio_dub_preview').handler(dubRequest));
+  await tools.get('lab_firefly_audio_dub_apply').handler({
+    ...dubRequest, preflight_id: dubPreview.preflight_id, confirmation: dubPreview.confirmation,
+  });
+  assert.deepEqual(submissions.map(([kind]) => kind), ['speech', 'transcribe', 'dub']);
+});
+
+test('audio preview rejects a media type that does not match its media kind', async () => {
+  const tools = recorder({});
+  const result = await tools.get('lab_firefly_audio_transcribe_preview').handler({
+    media_kind: 'audio', source_url: 'https://demo.storage.googleapis.com/input.mp4', media_type: 'video/mp4',
+  });
+  assert.equal(result.isError, true);
+  assert.match(body(result).error, /media_type must match media_kind audio/);
 });
 
 test('video preview is deterministic and apply submits one unchanged request', async () => {

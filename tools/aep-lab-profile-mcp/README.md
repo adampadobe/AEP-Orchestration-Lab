@@ -1,12 +1,12 @@
 # AEP Orchestration Lab MCP (Phase 3.38)
 
-Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly Image 5 workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
+Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.48.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.49.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 174-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the fourteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 181-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the fourteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -21,7 +21,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
-| `/mcp/firefly` | 8 | Access check plus governed Firefly Image 5 and five-second Video preview/apply, shared async job status, generated asset URLs, and exact-confirmation cancellation |
+| `/mcp/firefly` | 15 | Access check plus governed Image 5, five-second Video, Text to Speech, transcription/captions, and dubbing/lip-sync workflows with shared async status |
 | `/mcp/adobe-capabilities` | 4 | Access check plus the 35-service scope/use-case registry, redacted AJO suppression/allow-list reads, and approved GenStudio Experience summaries |
 | `/mcp/measurement-quality` | 6 | Access check plus read-only Assurance session/event metadata, Tags property/environment audit, and Adobe Status incident correlation |
 
@@ -29,7 +29,7 @@ The Commerce context separates storefront reads from administration. `commerce_g
 
 The Commerce Optimizer context similarly keeps the Merchandising GraphQL API read-only and routes catalog changes through Adobe's Data Ingestion REST API. Its allowlist covers products, product and category metadata, categories, price books, prices, and product layers using the documented create, update, and delete endpoints. Changes require `commerce_optimizer_ingestion_change_preview` before apply; deletions require a separate audit. Apply sends one non-retried batch and returns Adobe's acceptance response. Optimizer indexing is asynchronous, so the result explicitly remains pending until a catalog-view GraphQL read verifies shopper-visible state.
 
-The Firefly context uses server-side OAuth credentials from Cloud Run Secret Manager; no Firefly credential is sent to Coworker or accepted as a tool argument. Image and Video each use a local hash-bound preview followed by exact confirmation and one non-retried billable submit. Video supports Adobe's documented five-second Video 1 sizes, camera controls, seed, and trusted HTTPS keyframes. Both media types share `lab_firefly_job_status` and `lab_firefly_job_cancel`.
+The Firefly context uses server-side OAuth credentials from Cloud Run Secret Manager; no Firefly credential is sent to Coworker or accepted as a tool argument. Image, Video, Text to Speech, transcription, and dubbing each use a local hash-bound preview followed by exact confirmation and one non-retried submit. Video supports Adobe's documented five-second Video 1 sizes, camera controls, seed, and trusted HTTPS keyframes. Audio/video inputs use trusted pre-signed HTTPS storage URLs. All asynchronous operations share `lab_firefly_job_status`; cancellation remains available only where Adobe returns a generation cancel URL.
 
 The Measurement Quality context is read-only. It uses fixed Adobe hosts and bounded requests, requests only Assurance session/event scopes for those reads, omits raw Assurance payload values, reuses the existing Reactor client for Tags audits, and caps Adobe Status correlation to a 31-day window. Connected services are not described as tenant-verified until one of these reads succeeds.
 
@@ -82,11 +82,18 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_mcp_recommend_context` | *(static)* | Recommends the smallest useful configured MCP context for a goal |
 | `lab_mcp_workflow` | *(static)* | Cross-context handoff plan; never invokes another MCP |
 | `lab_load_toolset` | *(local, no Lab API call)* | Registers another named toolset into the current session (entry endpoint only) |
-| `lab_firefly_capabilities` | *(server-side Firefly config)* | Readiness, Image 5 contract, aspect ratios, and async/billing guardrails; no credentials returned |
+| `lab_firefly_capabilities` | *(server-side Firefly config)* | Readiness and guardrails for image, video, speech, transcription, and dubbing; no credentials returned |
 | `lab_firefly_generate_preview` | *(local, no Firefly call)* | Validates and SHA-256 binds one prompt and aspect ratio; returns exact confirmation |
 | `lab_firefly_generate_apply` | `POST /v4/images/generate-async` | One confirmed, billable, non-idempotent Image 5 submit; never automatically retried |
 | `lab_firefly_generate_video_preview` | *(local, no Firefly call)* | Validates and SHA-256 binds one five-second Video 1 request; returns exact confirmation |
 | `lab_firefly_generate_video_apply` | `POST /v3/videos/generate` | One confirmed, billable, non-idempotent Video 1 submit; never automatically retried |
+| `lab_firefly_audio_voice_list` | `GET /v1/voices` | Bounded stock voice catalog; no generation |
+| `lab_firefly_audio_speech_preview` | *(local, no Firefly call)* | Validates and SHA-256 binds a script, voice, locale, and WAV output request |
+| `lab_firefly_audio_speech_apply` | `POST /v1/generate-speech` | One exactly confirmed Text to Speech submit |
+| `lab_firefly_audio_transcribe_preview` | *(local, no Firefly call)* | Validates and binds transcription, translation, and optional SRT captions |
+| `lab_firefly_audio_transcribe_apply` | `POST /v1/transcribe` | One exactly confirmed transcription submit |
+| `lab_firefly_audio_dub_preview` | *(local, no Firefly call)* | Validates and binds dubbing with optional video lip sync |
+| `lab_firefly_audio_dub_apply` | `POST /v1/dub` | One exactly confirmed dubbing submit |
 | `lab_firefly_job_status` | Adobe-provided status URL | Current job state and generated output asset URLs |
 | `lab_firefly_job_cancel` | Adobe-provided cancel URL | Exact-confirmation cancellation of one Firefly job |
 | `assurance_session_list` | Assurance GraphQL | Bounded session IDs and names using a narrow read profile |

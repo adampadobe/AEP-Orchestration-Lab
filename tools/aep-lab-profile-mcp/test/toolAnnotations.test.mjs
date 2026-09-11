@@ -83,8 +83,13 @@ test('classifies Firefly preview/status as reads and generation/cancel as non-id
   assert.equal(annotationsForTool('lab_firefly_capabilities').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_generate_preview').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_generate_video_preview').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_firefly_audio_voice_list').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_firefly_audio_speech_preview').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_firefly_audio_transcribe_preview').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_firefly_audio_dub_preview').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_job_status').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_firefly_generate_apply').idempotentHint, false);
   assert.equal(annotationsForTool('lab_firefly_generate_video_apply').idempotentHint, false);
+  assert.equal(annotationsForTool('lab_firefly_audio_speech_apply').idempotentHint, false);
   assert.equal(annotationsForTool('lab_firefly_job_cancel').destructiveHint, true);
 });

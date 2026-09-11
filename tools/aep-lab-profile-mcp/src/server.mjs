@@ -43,7 +43,7 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.48.0';
+const MCP_VERSION = '3.49.0';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
@@ -141,7 +141,7 @@ const ENDPOINTS = [
     toolset: 'firefly',
     register: registerFocusedFireflyTools,
     instructions:
-      'Focused Adobe Firefly Image 5 and five-second Video generation. Preview first, obtain the exact confirmation before one billable non-idempotent submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
+      'Focused Adobe Firefly image, video, speech, transcription, and dubbing. Preview first, obtain the exact confirmation before one billable or media-processing submit, then check the returned Adobe job URL until complete. Never retry an ambiguous submit automatically.',
   },
   {
     path: '/mcp/adobe-capabilities',

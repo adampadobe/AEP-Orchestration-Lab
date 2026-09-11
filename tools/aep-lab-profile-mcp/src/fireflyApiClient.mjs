@@ -2,6 +2,7 @@
 
 const DEFAULT_IMS_URL = 'https://ims-na1.adobelogin.com/ims/token/v3';
 const DEFAULT_API_BASE = 'https://firefly-api.adobe.io';
+const AUDIO_VIDEO_API_BASE = 'https://audio-video-api.adobe.io';
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
 const VIDEO_MODEL_VERSION = 'video1_standard';
 const VIDEO_SIZES = Object.freeze({
@@ -40,12 +41,24 @@ function loadConfig(env) {
   };
 }
 
-function validateAdobeJobUrl(rawUrl) {
+function validateAdobeJobUrl(rawUrl, { cancel = false } = {}) {
   let parsed;
   try { parsed = new URL(rawUrl); } catch { throw new FireflyApiError('invalid Adobe job URL'); }
   const host = parsed.hostname.toLowerCase();
-  if (parsed.protocol !== 'https:' || !(host === 'adobe.io' || host.endsWith('.adobe.io'))) {
+  const allowedHosts = cancel ? ['firefly-api.adobe.io'] : ['firefly-api.adobe.io', 'audio-video-api.adobe.io'];
+  if (parsed.protocol !== 'https:' || !allowedHosts.includes(host)) {
     throw new FireflyApiError('untrusted Adobe job URL');
+  }
+  return parsed.toString();
+}
+
+function validateMediaUrl(rawUrl) {
+  let parsed;
+  try { parsed = new URL(rawUrl); } catch { throw new FireflyApiError('invalid Firefly media URL'); }
+  const host = parsed.hostname.toLowerCase();
+  const allowed = KEYFRAME_HOSTS.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+  if (parsed.protocol !== 'https:' || !allowed) {
+    throw new FireflyApiError('Firefly media URL must use HTTPS on an Adobe-supported storage domain');
   }
   return parsed.toString();
 }
@@ -98,13 +111,14 @@ function extractOutputUrls(payload) {
   }
   const urls = [];
   collectHttpsUrls(containers, urls);
+  if (result?.output) collectHttpsUrls(result.output, urls);
   return urls;
 }
 
-async function readJson(response, label) {
+async function readJson(response, label, { allowArray = false } = {}) {
   let body;
   try { body = await response.json(); } catch { throw new FireflyApiError(`${label} was not valid JSON`); }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+  if (!body || typeof body !== 'object' || (!allowArray && Array.isArray(body))) {
     throw new FireflyApiError(`${label} was not a JSON object`);
   }
   return body;
@@ -167,12 +181,21 @@ export function createFireflyApiClient({ env = process.env, fetchImpl = fetch, n
     return response;
   }
 
+  async function audioVideoSubmit(path, body, label) {
+    const response = await adobeRequest(`${AUDIO_VIDEO_API_BASE}${path}`, { method: 'POST', body });
+    const data = await readJson(response, label);
+    const statusUrl = data.statusUrl;
+    if (typeof statusUrl !== 'string') throw new FireflyApiError(`${label} did not contain a job handle`);
+    const trustedStatusUrl = validateAdobeJobUrl(statusUrl);
+    return { job_id: jobIdFrom(data, trustedStatusUrl), status_url: trustedStatusUrl, cancel_url: null };
+  }
+
   return {
     capabilities() {
       return {
         configured: Boolean(env.FIREFLY_CLIENT_ID && env.FIREFLY_CLIENT_SECRET && env.FIREFLY_SCOPES),
         provider: 'Adobe Firefly Services',
-        operation: 'Firefly Image 5 and Firefly Video generation',
+        operation: 'Firefly image, video, speech, transcription, and dubbing',
         model_id: 'firefly_image',
         asynchronous: true,
         aspect_ratios: ['auto', '1:1', '4:3', '3:4', '16:9', '9:16'],
@@ -190,8 +213,15 @@ export function createFireflyApiClient({ env = process.env, fetchImpl = fetch, n
             sizes: Object.keys(VIDEO_SIZES),
             supported_keyframe_hosts: KEYFRAME_HOSTS,
           },
+          audio: {
+            operations: ['voice catalog', 'text to speech', 'audio/video transcription and captions', 'audio/video dubbing with optional video lip sync'],
+            max_script_characters: 20000,
+            input_audio_types: ['audio/mp3', 'audio/wav', 'audio/aac'],
+            input_video_types: ['video/mp4', 'video/quicktime'],
+            asynchronous: true,
+          },
         },
-        notes: ['Generation consumes Firefly API entitlement/credits.', 'Submit calls are never retried automatically.'],
+    notes: ['Generative and media-processing operations may consume Firefly entitlement/credits.', 'Submit calls are never retried automatically.'],
       };
     },
 
@@ -275,6 +305,43 @@ export function createFireflyApiClient({ env = process.env, fetchImpl = fetch, n
       };
     },
 
+    async listAudioVoices() {
+      const response = await adobeRequest(`${AUDIO_VIDEO_API_BASE}/v1/voices`);
+      const data = await readJson(response, 'Adobe Firefly voice catalog response', { allowArray: true });
+      const raw = Array.isArray(data) ? data : Array.isArray(data.voices) ? data.voices : Array.isArray(data.data) ? data.data : [];
+      return raw.slice(0, 200).map((voice) => ({
+        id: String(voice.voiceId || voice.id || ''),
+        name: String(voice.displayName || voice.name || ''),
+        locale: String(voice.localeCode || voice.locale || ''),
+        gender: String(voice.gender || ''),
+        style: String(voice.style || voice.speakingStyle || ''),
+      }));
+    },
+
+    async submitSpeech({ text, voice_id, locale_code = 'en-US', output_media_type = 'audio/wav' }) {
+      return audioVideoSubmit('/v1/generate-speech', {
+        script: { text, mediaType: 'text/plain', localeCode: locale_code },
+        voiceId: voice_id,
+        output: { mediaType: output_media_type },
+      }, 'Adobe Firefly speech response');
+    },
+
+    async submitTranscribe({ media_kind, source_url, media_type, target_locale_codes = [], captions_format }) {
+      return audioVideoSubmit('/v1/transcribe', {
+        [media_kind]: { source: { url: validateMediaUrl(source_url) }, mediaType: media_type },
+        ...(target_locale_codes.length ? { targetLocaleCodes: target_locale_codes } : {}),
+        ...(captions_format ? { captions: { targetFormats: [captions_format] } } : {}),
+      }, 'Adobe Firefly transcription response');
+    },
+
+    async submitDub({ media_kind, source_url, media_type, target_locale_codes, lip_sync = false }) {
+      return audioVideoSubmit('/v1/dub', {
+        [media_kind]: { source: { url: validateMediaUrl(source_url) }, mediaType: media_type },
+        targetLocaleCodes: target_locale_codes,
+        lipSync: String(Boolean(lip_sync)),
+      }, 'Adobe Firefly dubbing response');
+    },
+
     async getJobStatus(statusUrl) {
       const trustedUrl = validateAdobeJobUrl(statusUrl);
       const response = await adobeRequest(trustedUrl);
@@ -288,7 +355,7 @@ export function createFireflyApiClient({ env = process.env, fetchImpl = fetch, n
     },
 
     async cancelJob(cancelUrl) {
-      const trustedUrl = validateAdobeJobUrl(cancelUrl);
+      const trustedUrl = validateAdobeJobUrl(cancelUrl, { cancel: true });
       await adobeRequest(trustedUrl, { method: 'PUT' });
       return { cancelled: true, job_id: jobIdFrom({}, trustedUrl) };
     },

@@ -51,7 +51,7 @@ The target marketplace configuration contains the following 15 connections, but 
 | `aep-lab-weather` | Weather and map context for demos |
 | `aep-lab-commerce` | Adobe Commerce as a Cloud Service storefront and governed administration |
 | `aep-lab-commerce-optimizer` | Commerce Optimizer reads and governed ingestion |
-| `aep-lab-firefly` | Governed Firefly Image 5 and five-second Video generation with shared asynchronous job handling |
+| `aep-lab-firefly` | Governed Firefly image, video, Text to Speech, transcription/captions, dubbing/lip sync, and shared asynchronous job handling |
 | `aep-lab-adobe-capabilities` | Read-only 35-service catalog plus bounded AJO and GenStudio probes |
 | `aep-lab-measurement-quality` | Read-only Assurance metadata, Tags property/environment audit, and Adobe Status correlation |
 
@@ -68,8 +68,8 @@ Use this table as the starting hypothesis. Confirm or correct every row using th
 | Adobe Target | `aep-lab-decisioning`, native Adobe gateway | Extend Decisioning with bounded Target delivery evaluation and AEP-versus-Target comparison |
 | Adobe Campaign | Native Adobe gateway and existing AJO capabilities | Defer unless a concrete Campaign coexistence or migration workflow is required |
 | Adobe Places | Existing profile/event tools and native Adobe gateway | Defer until a location-aware mobile journey has a real requirement |
-| Adobe Firefly API | `aep-lab-firefly` | Extend Firefly with governed text/image-to-video generation; do not create a separate video MCP |
-| Adobe Firefly Audio and Video API | `aep-lab-firefly` | Extend Firefly with transcription, dubbing/lip-sync, reframe, text-to-speech, avatar, and dynamic graphics in phased slices |
+| Adobe Firefly API | `aep-lab-firefly` | Already owns governed Image 5 and text/keyframe-to-video generation; do not create a separate video MCP |
+| Adobe Firefly Audio and Video API | `aep-lab-firefly` | Already owns voice listing, Text to Speech, transcription/translated SRT captions, and dubbing/lip sync; only add reframe, avatar, or dynamic graphics when a concrete use case is approved |
 | Adobe Photoshop API | `aep-lab-firefly`, `aep-lab-demo-prep`, any native creative tool | Add curated Photoshop v2 production operations to a Creative Production workflow |
 | Adobe Lightroom API | `aep-lab-demo-prep`, any native creative tool | Add auto-tone, straighten, preset, and controlled edit operations to Creative Production |
 | Adobe Content Tagging API | `aep-lab-demo-prep`, Firefly asset outputs, AEM/GenStudio tools | Add tagging as a supply-chain step, not as its own MCP |
