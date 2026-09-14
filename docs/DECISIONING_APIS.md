@@ -46,19 +46,33 @@ no persisted "pending preview" record):
 
 | Cloud Function route | MCP tool | Notes |
 |---|---|---|
-| `POST /api/decisioning/catalog/change-preview` | `lab_decisioning_catalog_change_preview` | Local hash-bound preview for create/update; no Adobe call. Returns `preflight_id` + `required_confirmation`. |
-| `POST /api/decisioning/catalog/change-apply` | `lab_decisioning_catalog_change_apply` | One non-retried create/update. Requires the unchanged `item`, `preflight_id`, and exact `confirmation`. |
+| `POST /api/decisioning/catalog/change-preview` | `lab_decisioning_catalog_change_preview` | Local hash-bound preview for create (`item`) or update (`patches`); no Adobe call. Returns `preflight_id` + `required_confirmation`. |
+| `POST /api/decisioning/catalog/change-apply` | `lab_decisioning_catalog_change_apply` | One non-retried create/update. Requires the unchanged `item`/`patches`, `preflight_id`, and exact `confirmation`. |
 | `POST /api/decisioning/catalog/delete-audit` | `lab_decisioning_catalog_delete_audit` | Re-reads current state, runs a best-effort dependency scan (`referencedBy` — currently checks `selection-strategies` referencing an `item-collections` or `ranking-formulas` id), returns `expected_name`. |
 | `POST /api/decisioning/catalog/delete-apply` | `lab_decisioning_catalog_delete_apply` | Re-reads and fails closed (409) if the entity changed since audit, then one DELETE. |
 | *(none — MCP-side orchestration only)* | `lab_decisioning_catalog_bulk_apply` | Async, resumable create/update for 1–200 items. DPS has no array-body batch endpoint, so this loops sequentially (preview+apply per item, small retry on 429/5xx) via a Firestore job (`decisioning_bulk_write`), pollable with the existing `lab_batch_job_status`. |
 
 Backend implementation: `functions/decisioningCatalogWriteService.js` (write operations) and
 `functions/decisioningCatalogService.js` (read + shared `platformFetch`/allowlist, now with
-`body` support for POST/PUT/DELETE). Write verbs, confirmed live against sandbox `apalmer`
-(create + update + delete on a disposable `ranking-formulas` object) are `POST` (create),
-`PUT` (update — full-object replace) and `DELETE` (delete) against the same single-resource
-paths as the read side. DPS's `PATCH` is RFC 6902 JSON Patch (an array of operations), not a
-full-object body, so it is deliberately not used here.
+`body` support for POST/PATCH/DELETE, and `resolveEntityIdOrName` for id-or-name lookups).
+Write verbs, confirmed live against sandbox `apalmer` (create + update + delete on a
+disposable `ranking-formulas` object) are `POST` (create), `PATCH` (update) and `DELETE`
+(delete) against the same single-resource paths as the read side. **Update uses `PATCH`
+with an RFC 6902 JSON Patch body** (`[{op, path, value}]`, `Content-Type:
+application/json-patch+json`) — a full-object `PUT` also works on DPS, but a JSON Patch is
+safer: it only touches the fields it names, where a full-object `PUT` silently nulls out
+anything the caller omits. (An earlier version of this doc said update was `PUT`; that
+shipped, then got corrected to `PATCH` after inspecting a competing MCP's tool schemas,
+which all use JSON Patch for updates.)
+
+**id-or-name resolution.** Every write/delete/get tool accepts either a literal DPS id or an
+exact display name — `resolveEntityIdOrName` tries the value as an id first, and on 404
+falls back to a case-insensitive exact-name search against the **first page only**
+(`MAX_LIMIT` = 50 items). This is a deliberate v1 limit: DPS's `_links.next` cursor format
+for these endpoints has never been exercised (result counts in testing were always small),
+so pagination is unverified — scanning only page 1 keeps this honest rather than guessing at
+an unconfirmed cursor shape. A name matching more than one entity fails with a 409 listing
+every match so the caller can retry with the exact id.
 
 ## Required headers (Platform REST)
 
@@ -68,7 +82,7 @@ full-object body, so it is deliberately not used here.
 | `x-api-key` | Adobe Developer Console integration API key |
 | `x-gw-ims-org-id` | IMS org |
 | `x-sandbox-name` | Sandbox technical name |
-| `Content-Type: application/json` | For POST/PUT/PATCH |
+| `Content-Type: application/json` | For POST (create); `application/json-patch+json` for PATCH (update) |
 | `x-schema-id` | Often required for **`/offer-items`** and related decision-item operations |
 
 Auth setup: Cursor skill at `/Users/apalmer/.cursor/skills/adobe-ims-auth/SKILL.md`.

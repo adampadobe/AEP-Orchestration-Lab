@@ -75,6 +75,7 @@ export async function processDecisioningBulkJob(jobId, { keyId }) {
         action: params.action,
         id: op.id,
         item: op.item,
+        patches: op.patches,
         schema_id: params.schema_id,
         auto_detect: params.auto_detect,
       });

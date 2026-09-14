@@ -1388,22 +1388,32 @@ exports.decisioningCatalogGetProxy = onRequest(profileFnOpts, async (req, res) =
   }
 
   try {
-    const result = await decisioningCatalogService.getCatalogEntity({
+    const resolved = await decisioningCatalogService.resolveEntityIdOrName({
       sandbox,
       accessToken,
       clientId: ADOBE_CLIENT_ID.value(),
       orgId: ADOBE_IMS_ORG.value(),
       entityType,
-      id,
+      idOrName: id,
       schemaId: body.schemaId || body.schema_id || req.query.schema_id,
       autoDetect: body.autoDetect !== false && body.auto_detect !== false && req.query.auto_detect !== 'false',
       getCatalogConfig: catalogConfigStore.getCatalogConfig,
     });
-    if (!result.ok) {
-      res.status(result.status === 404 ? 404 : result.status === 400 ? 400 : 502).json({ sandbox, ...result });
+    if (!resolved.ok) {
+      const status = resolved.status === 404 ? 404 : resolved.status === 409 ? 409 : resolved.status === 400 ? 400 : 502;
+      res.status(status).json({ sandbox, ...resolved });
       return;
     }
-    res.status(200).json({ sandbox, ...result });
+    res.status(200).json({
+      sandbox,
+      ok: true,
+      entityType,
+      id: resolved.id,
+      resolvedFrom: resolved.resolvedFrom,
+      schema: resolved.schema,
+      item: resolved.item,
+      raw: resolved.raw,
+    });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
   }
@@ -1533,6 +1543,7 @@ exports.decisioningCatalogChangePreviewProxy = onRequest(profileFnOpts, async (r
       action: body.action,
       id: body.id,
       item: body.item,
+      patches: body.patches,
     });
     res.status(200).json(result);
   } catch (e) {
@@ -1580,6 +1591,7 @@ exports.decisioningCatalogChangeApplyProxy = onRequest(profileFnOpts, async (req
       action: body.action,
       id: body.id,
       item: body.item,
+      patches: body.patches,
       schemaId: body.schemaId || body.schema_id,
       autoDetect: body.autoDetect !== false && body.auto_detect !== false,
       getCatalogConfig: catalogConfigStore.getCatalogConfig,
