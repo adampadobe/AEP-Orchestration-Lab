@@ -385,6 +385,7 @@ async function run() {
     ]),
     decisioning: await verifyFocusedEndpoint('/mcp/decisioning', [
       'lab_mcp_access_info',
+      'lab_decisioning_capabilities',
       'lab_decision_lab_config',
       'lab_decisioning_edge_evaluate',
       'lab_explain_decision_response',

@@ -48,6 +48,50 @@ const jsonPatchSchema = z
  */
 export function registerDecisioningTools(mcpServer) {
   mcpServer.registerTool(
+    'lab_decisioning_capabilities',
+    {
+      title: 'Inspect Decisioning catalog capabilities',
+      description: 'Shows the implemented Experience Decisioning surfaces, write/delete guardrails, and id-or-name resolution behavior without making an Adobe API call.',
+      inputSchema: {},
+    },
+    async () =>
+      jsonResult({
+        ok: true,
+        decisioning: {
+          entity_types: {
+            'offer-items': { label: 'Decision items', requires_x_schema_id: true, read: true, write: true, delete: true },
+            'item-collections': { label: 'Item collections', requires_x_schema_id: false, read: true, write: true, delete: true },
+            'selection-strategies': { label: 'Selection strategies', requires_x_schema_id: false, read: true, write: true, delete: true },
+            'offer-rules': { label: 'Eligibility rules', requires_x_schema_id: false, read: true, write: true, delete: true },
+            'ranking-formulas': { label: 'Ranking formulas', requires_x_schema_id: false, read: true, write: true, delete: true },
+            placements: { label: 'Placements', requires_x_schema_id: false, read: true, write: true, delete: true },
+          },
+          personalization_and_diagnostics: [
+            'lab_decision_lab_config', 'lab_decisioning_edge_evaluate', 'lab_explain_decision_response', 'lab_decisioning_resolve_treatment_name',
+          ],
+          catalog_read: ['lab_decisioning_catalog_list', 'lab_decisioning_catalog_get', 'lab_decisioning_catalog_schema', 'lab_decisioning_catalog_assess'],
+          catalog_write: {
+            tools: ['lab_decisioning_catalog_change_preview', 'lab_decisioning_catalog_change_apply'],
+            create: 'POST with a full item payload',
+            update: 'PATCH with an RFC 6902 JSON Patch array — only the named fields are touched, unlike resending a full object',
+            guardrail: 'local hash-bound preview → exact unchanged confirmation → one non-retried request',
+          },
+          catalog_delete: {
+            tools: ['lab_decisioning_catalog_delete_audit', 'lab_decisioning_catalog_delete_apply'],
+            guardrail: 'audit (dependency scan + expected_name) → exact confirmation → re-read fails closed if changed since audit',
+          },
+          bulk: {
+            tool: 'lab_decisioning_catalog_bulk_apply',
+            note: `Resumable async create/update for 1–${BULK_MAX} items; DPS has no array-body batch endpoint, so this loops sequentially with retry. Never used for deletes.`,
+          },
+          id_or_name_resolution: 'Every write/delete/get tool accepts an exact DPS id or an exact display name; a name matching more than one entity fails with a disambiguation list instead of guessing.',
+          audience_discovery: 'Use lab_audience_list / lab_audience_audit (Audiences context) for RT-CDP audiences — not duplicated here.',
+          credentials: 'Server-side Adobe IMS token; never accepted as a tool argument.',
+        },
+      }),
+  );
+
+  mcpServer.registerTool(
     'lab_decision_lab_config',
     {
       title: 'Get Decision lab + catalog config',

@@ -16,6 +16,7 @@ describe('decisioning MCP tools', () => {
   it('registers the write, delete, and bulk tools alongside the existing read-only ones', () => {
     const tools = registerAll();
     for (const name of [
+      'lab_decisioning_capabilities',
       'lab_decisioning_catalog_list',
       'lab_decisioning_catalog_get',
       'lab_decisioning_catalog_change_preview',
@@ -93,5 +94,17 @@ describe('decisioning MCP tools', () => {
     for (const name of ['lab_decisioning_catalog_get', 'lab_decisioning_catalog_delete_audit', 'lab_decisioning_catalog_delete_apply']) {
       assert.doesNotThrow(() => tools.get(name).definition.inputSchema.id.parse('My Weather Formula'));
     }
+  });
+
+  it('lab_decisioning_capabilities is a local, no-Adobe-call inventory of every entity type and guardrail', async () => {
+    const tools = registerAll();
+    const result = await tools.get('lab_decisioning_capabilities').handler({});
+    const text = JSON.stringify(result);
+    for (const entityType of ['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements']) {
+      assert.match(text, new RegExp(entityType));
+    }
+    assert.match(text, /lab_decisioning_catalog_bulk_apply/);
+    assert.match(text, /JSON Patch/);
+    assert.match(text, /id_or_name_resolution/);
   });
 });
