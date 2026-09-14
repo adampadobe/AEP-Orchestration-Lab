@@ -167,6 +167,23 @@ test('resolveEntityIdOrName falls back to an exact name match on 404', async () 
   );
 });
 
+test('resolveEntityIdOrName also falls back on 400 — confirmed live that DPS rejects a spaced id-shaped path with 400, not 404', async () => {
+  await withFetch(
+    async (url) => {
+      const href = String(url);
+      if (href.endsWith('/offer-rules/High%20Churn%20Risk')) return response({}, 400);
+      if (href.includes('/offer-rules?')) return response({ results: [{ id: 'dps:eligibility-rule:hcr-1', name: 'High Churn Risk' }] });
+      return response({ id: 'dps:eligibility-rule:hcr-1', name: 'High Churn Risk' });
+    },
+    async () => {
+      const resolved = await resolveEntityIdOrName({ ...AUTH, entityType: 'offer-rules', idOrName: 'High Churn Risk' });
+      assert.equal(resolved.ok, true);
+      assert.equal(resolved.resolvedFrom, 'name');
+      assert.equal(resolved.id, 'dps:eligibility-rule:hcr-1');
+    },
+  );
+});
+
 test('resolveEntityIdOrName reports ambiguous name matches and not-found', async () => {
   await withFetch(
     async (url) => {

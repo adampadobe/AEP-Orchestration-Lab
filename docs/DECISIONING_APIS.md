@@ -66,9 +66,11 @@ shipped, then got corrected to `PATCH` after inspecting a competing MCP's tool s
 which all use JSON Patch for updates.)
 
 **id-or-name resolution.** Every write/delete/get tool accepts either a literal DPS id or an
-exact display name — `resolveEntityIdOrName` tries the value as an id first, and on 404
-falls back to a case-insensitive exact-name search against the **first page only**
-(`MAX_LIMIT` = 50 items). This is a deliberate v1 limit: DPS's `_links.next` cursor format
+exact display name — `resolveEntityIdOrName` tries the value as an id first, and on either
+404 (not found) or 400 (confirmed live: DPS rejects an id-shaped path segment containing
+spaces — e.g. a plain display name — with 400, not 404) falls back to a case-insensitive
+exact-name search against the **first page only** (`MAX_LIMIT` = 50 items). This is a
+deliberate v1 limit: DPS's `_links.next` cursor format
 for these endpoints has never been exercised (result counts in testing were always small),
 so pagination is unverified — scanning only page 1 keeps this honest rather than guessing at
 an unconfirmed cursor shape. A name matching more than one entity fails with a 409 listing
