@@ -451,6 +451,34 @@
         }
       },
       {
+        "source": "/api/decisioning/catalog/change-preview",
+        "function": {
+          "functionId": "decisioningCatalogChangePreviewProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/catalog/change-apply",
+        "function": {
+          "functionId": "decisioningCatalogChangeApplyProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/catalog/delete-audit",
+        "function": {
+          "functionId": "decisioningCatalogDeleteAuditProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/catalog/delete-apply",
+        "function": {
+          "functionId": "decisioningCatalogDeleteApplyProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/campaign-name",
         "function": {
           "functionId": "campaignNameProxy",

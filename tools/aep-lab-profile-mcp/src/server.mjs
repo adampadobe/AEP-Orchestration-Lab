@@ -87,7 +87,7 @@ const ENDPOINTS = [
     path: '/mcp/decisioning',
     toolset: 'decisioning',
     register: registerFocusedDecisioningTools,
-    instructions: 'Focused decisioning evaluation, response explanation, treatment resolution, and catalog assessment.',
+    instructions: 'Focused decisioning evaluation, response explanation, treatment resolution, catalog assessment, and governed catalog create/update/delete plus async bulk migration.',
   },
   {
     path: '/mcp/demo-prep',

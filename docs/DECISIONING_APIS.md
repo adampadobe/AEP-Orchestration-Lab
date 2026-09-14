@@ -25,16 +25,40 @@ Base: `https://platform.adobe.io/data/core/dps`
 
 Common read paths (see Experience League for filters, paging, `x-schema-id`, and bodies):
 
-| Concept | Typical path (after `/data/core/dps`) |
-|---------|--------------------------------------|
-| Decision items | `/offer-items` |
-| Item collections | `/item-collections` |
-| Selection strategies | `/selection-strategies` |
-| Eligibility rules | Documented under [eligibility rules](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/decisioning/experience-decisioning/experience-decisioning-api-reference/eligibility-rules/create) (exact list path in that section) |
-| Ranking formulas | Documented under [ranking formulas](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/decisioning/experience-decisioning/experience-decisioning-api-reference/ranking-formulas/create) |
-| Placements (new model) | Documented under [placements](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/decisioning/experience-decisioning/experience-decisioning-api-reference/placements/create) |
+| Concept | Path (after `/data/core/dps`) | `x-schema-id` required |
+|---------|--------------------------------|------------------------|
+| Decision items | `/offer-items` | Yes |
+| Item collections | `/item-collections` | No |
+| Selection strategies | `/selection-strategies` | No |
+| Eligibility rules | **`/offer-rules`** | No |
+| Ranking formulas | `/ranking-formulas` | No |
+| Placements (new model) | `/placements` | No |
+
+Paths above were confirmed with a live GET against sandbox `apalmer` — note that eligibility rules live at **`/offer-rules`**, not `/eligibility-rules` (the Experience League docs for this section were unreachable at the time of writing; the docs-linked slugs for eligibility rules/ranking formulas/placements 404'd, so this table is the source of truth until re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibility-rule`, `ranking-formulas` → `.../offer-management/ranking-function`, `placements` → `.../offer-management/placement`.
 
 Many **list decision items** calls require header **`x-schema-id`** (your decision item schema). Pass it through the local proxy as `platform_headers` (see below).
+
+## MCP write/bulk layer (`tools/aep-lab-profile-mcp`, `/mcp/decisioning`)
+
+The Decisioning MCP context wraps all six resource types above with a governed, two-phase
+write model (mirrors `functions/commerceOptimizerService.js`'s ingestion plan — stateless,
+no persisted "pending preview" record):
+
+| Cloud Function route | MCP tool | Notes |
+|---|---|---|
+| `POST /api/decisioning/catalog/change-preview` | `lab_decisioning_catalog_change_preview` | Local hash-bound preview for create/update; no Adobe call. Returns `preflight_id` + `required_confirmation`. |
+| `POST /api/decisioning/catalog/change-apply` | `lab_decisioning_catalog_change_apply` | One non-retried create/update. Requires the unchanged `item`, `preflight_id`, and exact `confirmation`. |
+| `POST /api/decisioning/catalog/delete-audit` | `lab_decisioning_catalog_delete_audit` | Re-reads current state, runs a best-effort dependency scan (`referencedBy` — currently checks `selection-strategies` referencing an `item-collections` or `ranking-formulas` id), returns `expected_name`. |
+| `POST /api/decisioning/catalog/delete-apply` | `lab_decisioning_catalog_delete_apply` | Re-reads and fails closed (409) if the entity changed since audit, then one DELETE. |
+| *(none — MCP-side orchestration only)* | `lab_decisioning_catalog_bulk_apply` | Async, resumable create/update for 1–200 items. DPS has no array-body batch endpoint, so this loops sequentially (preview+apply per item, small retry on 429/5xx) via a Firestore job (`decisioning_bulk_write`), pollable with the existing `lab_batch_job_status`. |
+
+Backend implementation: `functions/decisioningCatalogWriteService.js` (write operations) and
+`functions/decisioningCatalogService.js` (read + shared `platformFetch`/allowlist, now with
+`body` support for POST/PUT/DELETE). Write verbs, confirmed live against sandbox `apalmer`
+(create + update + delete on a disposable `ranking-formulas` object) are `POST` (create),
+`PUT` (update — full-object replace) and `DELETE` (delete) against the same single-resource
+paths as the read side. DPS's `PATCH` is RFC 6902 JSON Patch (an array of operations), not a
+full-object body, so it is deliberately not used here.
 
 ## Required headers (Platform REST)
 

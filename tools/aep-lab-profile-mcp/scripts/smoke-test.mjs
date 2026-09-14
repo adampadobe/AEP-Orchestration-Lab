@@ -393,6 +393,11 @@ async function run() {
       'lab_decisioning_catalog_get',
       'lab_decisioning_catalog_schema',
       'lab_decisioning_catalog_assess',
+      'lab_decisioning_catalog_change_preview',
+      'lab_decisioning_catalog_change_apply',
+      'lab_decisioning_catalog_delete_audit',
+      'lab_decisioning_catalog_delete_apply',
+      'lab_decisioning_catalog_bulk_apply',
     ]),
     pdf: await verifyFocusedEndpoint('/mcp/pdf', [
       'lab_mcp_access_info',

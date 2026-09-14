@@ -13,7 +13,8 @@ export function registerBatchJobStatusTool(mcpServer) {
     {
       title: 'Poll async MCP job',
       description:
-        'Returns status, progress, and results for lab_generate_profiles_batch (profile_batch) or lab_onboard_sandbox mode=execute_all (onboard_all) job_id.',
+        'Returns status, progress, and results for lab_generate_profiles_batch (profile_batch), lab_onboard_sandbox ' +
+        'mode=execute_all (onboard_all), or lab_decisioning_catalog_bulk_apply (decisioning_bulk_write) job_id.',
       inputSchema: {
         job_id: z.string().uuid().describe('Job ID returned by lab_generate_profiles_batch'),
       },
