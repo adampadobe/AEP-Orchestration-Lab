@@ -497,12 +497,15 @@ async function getCatalogEntity(opts) {
 
 /**
  * Resolve a caller-supplied id-or-name to a real DPS id. Tries `idOrName` as a
- * literal id first; on 404 falls back to an exact case-insensitive name match
- * against the first page only (MAX_LIMIT items — DPS's `_links.next` cursor
- * format for these endpoints is unverified, so this deliberately does not
- * paginate further; see docs/DECISIONING_APIS.md). Any non-404 error from the
- * direct lookup (403, 500, etc.) is returned as-is — a name fallback must never
- * mask a real permissions/server error as "not found".
+ * literal id first; falls back to an exact case-insensitive name match against
+ * the first page only (MAX_LIMIT items — DPS's `_links.next` cursor format for
+ * these endpoints is unverified, so this deliberately does not paginate
+ * further; see docs/DECISIONING_APIS.md) on either 404 (not found) or 400
+ * (confirmed live: DPS rejects an id-shaped path segment containing spaces —
+ * e.g. a display name — with 400, not 404, so a plain-name lookup would
+ * otherwise never reach the fallback). Any other error from the direct lookup
+ * (403, 500, etc.) is returned as-is — a name fallback must never mask a real
+ * permissions/server error as "not found".
  * @param {object} opts — same shape as getCatalogEntity, plus opts.idOrName
  */
 async function resolveEntityIdOrName(opts) {
@@ -521,7 +524,7 @@ async function resolveEntityIdOrName(opts) {
       schema: direct.schema,
     };
   }
-  if (direct.status !== 404) return direct;
+  if (direct.status !== 404 && direct.status !== 400) return direct;
 
   const listResult = await listCatalogEntities({ ...opts, limit: MAX_LIMIT });
   if (!listResult.ok) return listResult;
