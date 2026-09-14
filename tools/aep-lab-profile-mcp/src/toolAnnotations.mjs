@@ -39,6 +39,7 @@ const READ_ONLY_TOOLS = new Set([
   'lab_batch_job_status',
   'lab_brand_scrape_brief',
   'lab_confirm_generation_plan',
+  'lab_decisioning_capabilities',
   'lab_decision_lab_config',
   'lab_decisioning_catalog_assess',
   'lab_decisioning_catalog_change_preview',
