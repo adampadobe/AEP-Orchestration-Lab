@@ -9,8 +9,23 @@ const {
   normalizeSelectionStrategy,
   isAllowedPath,
   clampLimit,
+  resolveEntityIdOrName,
 } = require('../decisioningCatalogService');
 const { assessCatalogHealth } = require('../decisioningCatalogAssessService');
+
+function response(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
+}
+
+function withFetch(impl, fn) {
+  const original = globalThis.fetch;
+  globalThis.fetch = impl;
+  return Promise.resolve(fn()).finally(() => {
+    globalThis.fetch = original;
+  });
+}
+
+const AUTH = { sandbox: 'apalmer', accessToken: 'tok', clientId: 'cid', orgId: 'org@AdobeOrg' };
 
 test('extractItems handles results, _embedded, and arrays', () => {
   assert.equal(extractItems({ results: [{ id: 'a' }] }).length, 1);
@@ -116,4 +131,81 @@ test('assessCatalogHealth healthy when active offers and ranked strategies', () 
   });
   assert.equal(report.summary.healthy, true);
   assert.equal(report.summary.issueCount, 0);
+});
+
+test('resolveEntityIdOrName resolves a literal id with a single lookup, no list call', async () => {
+  const calls = [];
+  await withFetch(
+    async (url) => {
+      calls.push(String(url));
+      return response({ id: 'dps:ranking-function:rf-1', name: 'Weather boost' });
+    },
+    async () => {
+      const resolved = await resolveEntityIdOrName({ ...AUTH, entityType: 'ranking-formulas', idOrName: 'dps:ranking-function:rf-1' });
+      assert.equal(resolved.ok, true);
+      assert.equal(resolved.resolvedFrom, 'id');
+      assert.equal(resolved.id, 'dps:ranking-function:rf-1');
+      assert.equal(calls.length, 1);
+    },
+  );
+});
+
+test('resolveEntityIdOrName falls back to an exact name match on 404', async () => {
+  await withFetch(
+    async (url) => {
+      const href = String(url);
+      if (href.endsWith('/ranking-formulas/Weather%20Boost')) return response({}, 404);
+      if (href.includes('/ranking-formulas?')) return response({ results: [{ id: 'dps:ranking-function:rf-1', name: 'Weather Boost' }] });
+      return response({ id: 'dps:ranking-function:rf-1', name: 'Weather Boost' });
+    },
+    async () => {
+      const resolved = await resolveEntityIdOrName({ ...AUTH, entityType: 'ranking-formulas', idOrName: 'Weather Boost' });
+      assert.equal(resolved.ok, true);
+      assert.equal(resolved.resolvedFrom, 'name');
+      assert.equal(resolved.id, 'dps:ranking-function:rf-1');
+    },
+  );
+});
+
+test('resolveEntityIdOrName reports ambiguous name matches and not-found', async () => {
+  await withFetch(
+    async (url) => {
+      const href = String(url);
+      if (href.includes('?')) {
+        return response({
+          results: [
+            { id: 'dps:ranking-function:rf-1', name: 'Weather Boost' },
+            { id: 'dps:ranking-function:rf-2', name: 'Weather Boost' },
+          ],
+        });
+      }
+      return response({}, 404);
+    },
+    async () => {
+      const ambiguous = await resolveEntityIdOrName({ ...AUTH, entityType: 'ranking-formulas', idOrName: 'Weather Boost' });
+      assert.equal(ambiguous.ok, false);
+      assert.equal(ambiguous.status, 409);
+      assert.equal(ambiguous.matches.length, 2);
+
+      const notFound = await resolveEntityIdOrName({ ...AUTH, entityType: 'ranking-formulas', idOrName: 'Nonexistent' });
+      assert.equal(notFound.ok, false);
+      assert.equal(notFound.status, 404);
+    },
+  );
+});
+
+test('resolveEntityIdOrName never masks a non-404 error (e.g. 403) as not-found', async () => {
+  const calls = [];
+  await withFetch(
+    async (url) => {
+      calls.push(String(url));
+      return response({ error: 'forbidden' }, 403);
+    },
+    async () => {
+      const resolved = await resolveEntityIdOrName({ ...AUTH, entityType: 'ranking-formulas', idOrName: 'anything' });
+      assert.equal(resolved.ok, false);
+      assert.equal(resolved.status, 403);
+      assert.equal(calls.length, 1);
+    },
+  );
 });

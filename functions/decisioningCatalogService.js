@@ -278,7 +278,7 @@ async function platformFetch(opts) {
   }
 
   const hasBody = opts.body !== undefined;
-  if (hasBody) headers['Content-Type'] = 'application/json';
+  if (hasBody && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
   const res = await fetch(url, {
     method: opts.method || 'GET',
@@ -495,6 +495,68 @@ async function getCatalogEntity(opts) {
   };
 }
 
+/**
+ * Resolve a caller-supplied id-or-name to a real DPS id. Tries `idOrName` as a
+ * literal id first; on 404 falls back to an exact case-insensitive name match
+ * against the first page only (MAX_LIMIT items — DPS's `_links.next` cursor
+ * format for these endpoints is unverified, so this deliberately does not
+ * paginate further; see docs/DECISIONING_APIS.md). Any non-404 error from the
+ * direct lookup (403, 500, etc.) is returned as-is — a name fallback must never
+ * mask a real permissions/server error as "not found".
+ * @param {object} opts — same shape as getCatalogEntity, plus opts.idOrName
+ */
+async function resolveEntityIdOrName(opts) {
+  const idOrName = String(opts.idOrName || '').trim();
+  if (!idOrName) return { ok: false, status: 400, error: 'id is required' };
+
+  const direct = await getCatalogEntity({ ...opts, id: idOrName });
+  if (direct.ok) {
+    return {
+      ok: true,
+      id: direct.item.id || idOrName,
+      name: direct.item.name,
+      resolvedFrom: 'id',
+      item: direct.item,
+      raw: direct.raw,
+      schema: direct.schema,
+    };
+  }
+  if (direct.status !== 404) return direct;
+
+  const listResult = await listCatalogEntities({ ...opts, limit: MAX_LIMIT });
+  if (!listResult.ok) return listResult;
+
+  const needle = idOrName.toLowerCase();
+  const matches = listResult.items.filter((item) => String(item.name || '').toLowerCase() === needle);
+  if (matches.length === 0) {
+    return {
+      ok: false,
+      status: 404,
+      error: `No ${opts.entityType} found with id or exact name "${idOrName}" in the first ${MAX_LIMIT}.`,
+    };
+  }
+  if (matches.length > 1) {
+    return {
+      ok: false,
+      status: 409,
+      error: `Name "${idOrName}" matches ${matches.length} ${opts.entityType} — specify the exact id.`,
+      matches: matches.map((m) => ({ id: m.id, name: m.name })),
+    };
+  }
+
+  const byId = await getCatalogEntity({ ...opts, id: matches[0].id });
+  if (!byId.ok) return byId;
+  return {
+    ok: true,
+    id: matches[0].id,
+    name: matches[0].name,
+    resolvedFrom: 'name',
+    item: byId.item,
+    raw: byId.raw,
+    schema: byId.schema,
+  };
+}
+
 module.exports = {
   OFFER_SCHEMA_TITLE,
   DEFAULT_LIMIT,
@@ -513,6 +575,7 @@ module.exports = {
   normalizeEntity,
   resolveCatalogSchema,
   autoDetectSchemaId,
+  resolveEntityIdOrName,
   listCatalogEntities,
   getCatalogEntity,
   platformFetch,

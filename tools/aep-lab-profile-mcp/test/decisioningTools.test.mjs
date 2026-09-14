@@ -64,4 +64,34 @@ describe('decisioning MCP tools', () => {
     assert.throws(() => schema.confirmed.parse(false));
     assert.doesNotThrow(() => schema.confirmed.parse(true));
   });
+
+  it('bulk_apply items accept a JSON Patch array for update rows', () => {
+    const tools = registerAll();
+    const schema = tools.get('lab_decisioning_catalog_bulk_apply').definition.inputSchema;
+    assert.doesNotThrow(() => schema.items.parse([{ id: 'x', patches: [{ op: 'replace', path: '/name', value: 'y' }] }]));
+    assert.throws(() => schema.items.parse([{ id: 'x', patches: [{ op: 'bogus', path: '/name' }] }]));
+  });
+
+  it('change_preview/change_apply take item for create and patches for update, and accept a display name for id', async () => {
+    const tools = registerAll();
+    for (const name of ['lab_decisioning_catalog_change_preview', 'lab_decisioning_catalog_change_apply']) {
+      const schema = tools.get(name).definition.inputSchema;
+      assert.doesNotThrow(() => schema.item.parse({ name: 'a' }));
+      assert.doesNotThrow(() => schema.patches.parse([{ op: 'add', path: '/tags', value: [] }]));
+      assert.doesNotThrow(() => schema.id.parse('My Weather Formula'));
+    }
+
+    const previewHandler = tools.get('lab_decisioning_catalog_change_preview').handler;
+    const missingItem = await previewHandler({ entity_type: 'ranking-formulas', action: 'create' });
+    assert.match(JSON.stringify(missingItem), /item is required/);
+    const missingPatches = await previewHandler({ entity_type: 'ranking-formulas', action: 'update', id: 'x' });
+    assert.match(JSON.stringify(missingPatches), /patches is required/);
+  });
+
+  it('get/delete_audit/delete_apply accept a display name, not just an exact id', () => {
+    const tools = registerAll();
+    for (const name of ['lab_decisioning_catalog_get', 'lab_decisioning_catalog_delete_audit', 'lab_decisioning_catalog_delete_apply']) {
+      assert.doesNotThrow(() => tools.get(name).definition.inputSchema.id.parse('My Weather Formula'));
+    }
+  });
 });

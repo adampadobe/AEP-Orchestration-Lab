@@ -617,6 +617,7 @@ export async function decisioningCatalogChangePreview(params) {
       action: params.action,
       id: params.id,
       item: params.item,
+      patches: params.patches,
     },
     timeoutMs: 60_000,
   });
@@ -635,6 +636,7 @@ export async function decisioningCatalogChangeApply(params) {
       action: params.action,
       id: params.id,
       item: params.item,
+      patches: params.patches,
       schemaId: params.schema_id,
       autoDetect: params.auto_detect,
       preflight_id: params.preflight_id,

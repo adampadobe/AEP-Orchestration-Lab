@@ -30,6 +30,19 @@ import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 const WRITABLE_ENTITY_TYPES = ['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements'];
 const BULK_MAX = 200;
 
+const idOrNameSchema = z.string().min(1).describe('Exact entity id, or exact display name (auto-resolved; a name matching more than one entity fails with a disambiguation list).');
+
+const jsonPatchSchema = z
+  .array(
+    z.object({
+      op: z.enum(['add', 'replace', 'remove']),
+      path: z.string().min(1).describe('JSON Pointer path, e.g. /description'),
+      value: z.unknown().optional(),
+    }),
+  )
+  .min(1)
+  .describe('RFC 6902 JSON Patch operations — only the named fields are touched, unlike resending a full object.');
+
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
  */
@@ -336,13 +349,15 @@ export function registerDecisioningTools(mcpServer) {
   mcpServer.registerTool(
     'lab_decisioning_catalog_get',
     {
-      title: 'Get Decisioning catalog entity by id',
+      title: 'Get Decisioning catalog entity by id or name',
       description:
-        'POST /api/decisioning/catalog/get — allowlisted DPS GET by id. offer-items requires x-schema-id. Sandbox allowlist required.',
+        'POST /api/decisioning/catalog/get — allowlisted DPS GET by id, or by exact display name (auto-resolved; ' +
+        'a name matching more than one entity fails with a disambiguation list). offer-items requires x-schema-id. ' +
+        'Sandbox allowlist required.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z.enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements']),
-        id: z.string().describe('Entity UUID'),
+        id: idOrNameSchema,
         schema_id: z.string().optional(),
         auto_detect: z.boolean().optional(),
       },
@@ -461,17 +476,26 @@ export function registerDecisioningTools(mcpServer) {
       title: 'Preview a Decisioning catalog create/update',
       description:
         'Local hash-bound preview (no Adobe call) for creating or updating one offer-item, item-collection, ' +
-        'selection-strategy, offer-rule (eligibility rule), ranking-formula, or placement. Returns preflight_id and ' +
+        'selection-strategy, offer-rule (eligibility rule), ranking-formula, or placement. action=create takes a full ' +
+        'item; action=update takes patches (JSON Patch — only the named fields are touched). Returns preflight_id and ' +
         'the exact confirmation phrase required by lab_decisioning_catalog_change_apply. Use lab_audience_list first ' +
         'if an offer-rule condition needs to reference an RT-CDP audience id.',
       inputSchema: {
         entity_type: z.enum(WRITABLE_ENTITY_TYPES),
         action: z.enum(['create', 'update']),
-        id: z.string().optional().describe('Required for action=update'),
-        item: z.record(z.unknown()).describe('Proposed entity payload (DPS shape for the chosen entity_type)'),
+        id: idOrNameSchema.optional().describe('Required for action=update; id or exact display name'),
+        item: z.record(z.unknown()).optional().describe('Required for action=create — proposed entity payload (DPS shape for the chosen entity_type)'),
+        patches: jsonPatchSchema.optional().describe('Required for action=update'),
       },
     },
     async (params) => {
+      if (params.action === 'create' && !params.item) {
+        return toolError('item is required for action=create.');
+      }
+      if (params.action === 'update' && (!params.patches || params.patches.length === 0)) {
+        return toolError('patches is required for action=update — a non-empty array of {op, path, value?}.');
+      }
+
       writeAuditLog({
         keyId: getRequestKeyId(),
         tool: 'lab_decisioning_catalog_change_preview',
@@ -488,14 +512,16 @@ export function registerDecisioningTools(mcpServer) {
     {
       title: 'Submit a previewed Decisioning catalog create/update',
       description:
-        'Submits exactly one previewed create or update with no automatic retry. Requires an unchanged item, ' +
-        'preflight_id, and exact confirmation from lab_decisioning_catalog_change_preview. Sandbox allowlist required.',
+        'Submits exactly one previewed create or update with no automatic retry. Requires an unchanged item/patches, ' +
+        'preflight_id, and exact confirmation from lab_decisioning_catalog_change_preview. Update sends a JSON Patch ' +
+        '(PATCH) — only the named fields are touched, unlike resending a full object. Sandbox allowlist required.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z.enum(WRITABLE_ENTITY_TYPES),
         action: z.enum(['create', 'update']),
-        id: z.string().optional().describe('Required for action=update'),
-        item: z.record(z.unknown()),
+        id: idOrNameSchema.optional().describe('Required for action=update; id or exact display name'),
+        item: z.record(z.unknown()).optional().describe('Required for action=create'),
+        patches: jsonPatchSchema.optional().describe('Required for action=update'),
         schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
         auto_detect: z.boolean().optional(),
         preflight_id: z.string().length(64),
@@ -506,6 +532,12 @@ export function registerDecisioningTools(mcpServer) {
       const allowed = assertSandboxAllowed(params.sandbox);
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+      if (params.action === 'create' && !params.item) {
+        return toolError('item is required for action=create.');
+      }
+      if (params.action === 'update' && (!params.patches || params.patches.length === 0)) {
+        return toolError('patches is required for action=update — a non-empty array of {op, path, value?}.');
       }
 
       const apiResult = await decisioningCatalogChangeApply({ ...params, sandbox: allowed.sandbox });
@@ -535,7 +567,7 @@ export function registerDecisioningTools(mcpServer) {
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z.enum(WRITABLE_ENTITY_TYPES),
-        id: z.string().min(1).describe('Exact entity id'),
+        id: idOrNameSchema,
         schema_id: z.string().optional(),
         auto_detect: z.boolean().optional(),
       },
@@ -570,7 +602,7 @@ export function registerDecisioningTools(mcpServer) {
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z.enum(WRITABLE_ENTITY_TYPES),
-        id: z.string().min(1).describe('Exact id returned by lab_decisioning_catalog_delete_audit'),
+        id: idOrNameSchema.describe('Exact id or display name returned by lab_decisioning_catalog_delete_audit'),
         expected_name: z.string().min(1).describe('Exact current name returned by lab_decisioning_catalog_delete_audit'),
         schema_id: z.string().optional(),
         auto_detect: z.boolean().optional(),
@@ -606,14 +638,21 @@ export function registerDecisioningTools(mcpServer) {
       description:
         `Resumable async bulk create or update for 1–${BULK_MAX} entities of one entity_type. DPS has no batch ` +
         'endpoint, so this runs sequentially in the background with retry on transient failures and per-item progress. ' +
-        'No per-item preview/confirmation — this single call is the confirmation for the whole batch. ' +
-        'Poll with lab_batch_job_status using the returned job_id. Never use for deletes.',
+        'action=create: each item carries item (full payload). action=update: each item carries id (or exact display ' +
+        'name) plus patches (JSON Patch). No per-item preview/confirmation — this single call is the confirmation for ' +
+        'the whole batch. Poll with lab_batch_job_status using the returned job_id. Never use for deletes.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z.enum(WRITABLE_ENTITY_TYPES),
         action: z.enum(['create', 'update']),
         items: z
-          .array(z.object({ id: z.string().optional().describe('Required when action=update'), item: z.record(z.unknown()) }))
+          .array(
+            z.object({
+              id: idOrNameSchema.optional().describe('Required when action=update'),
+              item: z.record(z.unknown()).optional().describe('Required when action=create'),
+              patches: jsonPatchSchema.optional().describe('Required when action=update'),
+            }),
+          )
           .min(1)
           .max(BULK_MAX),
         schema_id: z.string().optional(),
@@ -635,8 +674,11 @@ export function registerDecisioningTools(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
-      if (params.action === 'update' && params.items.some((op) => !op.id)) {
-        return toolError('Every item requires id when action=update.');
+      if (params.action === 'create' && params.items.some((op) => !op.item)) {
+        return toolError('Every item requires item when action=create.');
+      }
+      if (params.action === 'update' && params.items.some((op) => !op.id || !op.patches || op.patches.length === 0)) {
+        return toolError('Every item requires id and a non-empty patches array when action=update.');
       }
 
       const job = await createBatchJob({

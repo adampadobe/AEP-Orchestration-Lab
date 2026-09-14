@@ -28,7 +28,15 @@ test('buildPlan validates entity_type, action, and required fields', () => {
   assert.throws(() => buildPlan({ entityType: 'not-a-thing', action: 'create', item: {} }), /entity_type must be one of/);
   assert.throws(() => buildPlan({ entityType: 'offer-rules', action: 'bogus', item: {} }), /action must be one of/);
   assert.throws(() => buildPlan({ entityType: 'offer-rules', action: 'create' }), /item is required/);
-  assert.throws(() => buildPlan({ entityType: 'ranking-formulas', action: 'update', item: { name: 'x' } }), /id is required/);
+  assert.throws(() => buildPlan({ entityType: 'ranking-formulas', action: 'update', id: 'rf-1' }), /patches is required/);
+  assert.throws(
+    () => buildPlan({ entityType: 'ranking-formulas', action: 'update', id: 'rf-1', patches: [{ op: 'bogus', path: '/name' }] }),
+    /patch\.op must be one of/,
+  );
+  assert.throws(
+    () => buildPlan({ entityType: 'ranking-formulas', action: 'update', id: 'rf-1', patches: [{ op: 'replace', path: 'name' }] }),
+    /patch\.path must be a string starting with/,
+  );
   assert.throws(() => buildPlan({ entityType: 'placements', action: 'delete' }), /id is required/);
 });
 
@@ -44,10 +52,23 @@ test('buildPlan is deterministic and confirmationPhrase matches the action', () 
   assert.equal(confirmationPhrase(deletePlan), 'DELETE DECISIONING PLACEMENTS p-1');
 });
 
-test('update uses PUT with the full object, confirmed live against DPS — PATCH there means JSON Patch, not a full replace', () => {
-  const plan = buildPlan({ entityType: 'ranking-formulas', action: 'update', id: 'rf-1', item: { name: 'x' } });
-  assert.equal(plan.actionDef.method, 'PUT');
+test('update uses PATCH with a JSON Patch array, confirmed live against DPS — a full-object PUT also works but silently nulls omitted fields', () => {
+  const plan = buildPlan({
+    entityType: 'ranking-formulas',
+    action: 'update',
+    id: 'rf-1',
+    patches: [{ op: 'replace', path: '/description', value: 'new' }],
+  });
+  assert.equal(plan.actionDef.method, 'PATCH');
   assert.equal(plan.path, '/data/core/dps/ranking-formulas/rf-1');
+  assert.deepEqual(plan.body, [{ op: 'replace', path: '/description', value: 'new' }]);
+});
+
+test('buildPlan hashes the raw id-or-name, not a resolved id, so preview and apply match even when apply later resolves a name', () => {
+  const byId = buildPlan({ entityType: 'ranking-formulas', action: 'update', id: 'rf-1', patches: [{ op: 'replace', path: '/description', value: 'x' }] });
+  const byName = buildPlan({ entityType: 'ranking-formulas', action: 'update', id: 'My Formula', patches: [{ op: 'replace', path: '/description', value: 'x' }] });
+  assert.notEqual(byId.preflightId, byName.preflightId);
+  assert.equal(confirmationPhrase(byName), 'UPDATE DECISIONING RANKING-FORMULAS My Formula');
 });
 
 test('changePreview never calls the platform and rejects delete', () => {
@@ -100,6 +121,42 @@ test('changeApply requires an unchanged item, matching preflight_id, and exact c
       assert.equal(calls.length, 1);
       assert.equal(calls[0].init.method, 'POST');
       assert.match(calls[0].url, /\/offer-rules$/);
+    },
+  );
+});
+
+test('changeApply update resolves a display name to a real id, PATCHes with a JSON Patch content type, exactly once', async () => {
+  const calls = [];
+  await withFetch(
+    async (url, init) => {
+      const href = String(url);
+      calls.push({ url: href, method: init.method, contentType: init.headers['Content-Type'] });
+      if (init.method === 'PATCH') return response({ id: 'dps:ranking-function:real-id', name: 'My Formula', etag: 2 });
+      if (href.endsWith('/ranking-formulas/My%20Formula')) return response({}, 404);
+      if (href.endsWith(`/ranking-formulas/${encodeURIComponent('dps:ranking-function:real-id')}`)) {
+        return response({ id: 'dps:ranking-function:real-id', name: 'My Formula' });
+      }
+      if (href.includes('/ranking-formulas?')) {
+        return response({ results: [{ id: 'dps:ranking-function:real-id', name: 'My Formula' }] });
+      }
+      return response({}, 404);
+    },
+    async () => {
+      const patches = [{ op: 'replace', path: '/description', value: 'updated' }];
+      const preview = changePreview({ entityType: 'ranking-formulas', action: 'update', id: 'My Formula', patches });
+
+      const applied = await changeApply({
+        sandbox: 'apalmer', accessToken: 'tok', clientId: 'cid', orgId: 'org@AdobeOrg',
+        entityType: 'ranking-formulas', action: 'update', id: 'My Formula', patches,
+        preflight_id: preview.preflight_id, confirmation: preview.required_confirmation,
+      });
+
+      assert.equal(applied.ok, true);
+      assert.equal(applied.id, 'dps:ranking-function:real-id');
+      const patchCall = calls.find((c) => c.method === 'PATCH');
+      assert.ok(patchCall);
+      assert.equal(patchCall.contentType, 'application/json-patch+json');
+      assert.match(patchCall.url, /\/ranking-formulas\/dps%3Aranking-function%3Areal-id$/);
     },
   );
 });

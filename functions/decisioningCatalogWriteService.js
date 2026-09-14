@@ -13,17 +13,47 @@
 const crypto = require('node:crypto');
 const decisioningCatalogService = require('./decisioningCatalogService');
 
-const { ENTITY_TYPES, platformFetch, resolveCatalogSchema, normalizeEntity, listCatalogEntities, MAX_LIMIT } =
-  decisioningCatalogService;
+const {
+  ENTITY_TYPES,
+  platformFetch,
+  resolveCatalogSchema,
+  normalizeEntity,
+  listCatalogEntities,
+  resolveEntityIdOrName,
+  MAX_LIMIT,
+} = decisioningCatalogService;
 
-// update uses PUT (full-object replace) — confirmed live against sandbox apalmer.
-// DPS's PATCH is RFC 6902 JSON Patch (an array of {op,path,value} operations),
-// not a full-object body, and this MCP sends the full previewed item.
+const JSON_PATCH_OPS = new Set(['add', 'replace', 'remove']);
+const JSON_PATCH_CONTENT_TYPE = 'application/json-patch+json';
+
+// update uses PATCH with an RFC 6902 JSON Patch body (array of {op,path,value}
+// operations) — confirmed live against sandbox apalmer. A full-object PUT also
+// works on DPS, but a JSON Patch is safer: it only touches the fields named in
+// the patch, where a full-object PUT silently nulls out anything the caller
+// omits.
 const WRITE_ACTIONS = Object.freeze({
   create: { method: 'POST', destructive: false },
-  update: { method: 'PUT', destructive: false },
+  update: { method: 'PATCH', destructive: false },
   delete: { method: 'DELETE', destructive: true },
 });
+
+function validatePatches(patches) {
+  if (!Array.isArray(patches) || patches.length === 0) {
+    throw badRequest('patches is required for update — a non-empty array of {op, path, value?}.');
+  }
+  for (const patch of patches) {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+      throw badRequest('Each patch must be an object with op and path.');
+    }
+    if (!JSON_PATCH_OPS.has(patch.op)) {
+      throw badRequest(`patch.op must be one of: ${[...JSON_PATCH_OPS].join(', ')}`);
+    }
+    if (typeof patch.path !== 'string' || !patch.path.startsWith('/')) {
+      throw badRequest('patch.path must be a string starting with "/".');
+    }
+  }
+  return patches;
+}
 
 /** Best-effort reverse-reference scan using fields decisioningCatalogService already normalizes. */
 const REFERENCE_CHECKS = Object.freeze([
@@ -60,14 +90,19 @@ function resolveEntityConfig(entityType) {
 }
 
 /**
- * Build a stateless write plan shared by preview and apply.
+ * Build a stateless write plan shared by preview and apply. `id` is the raw,
+ * caller-supplied id-or-name — never the name-resolved DPS id. This keeps the
+ * hash (and the human-facing confirmation phrase) identical between preview and
+ * apply even when apply later resolves a display name to a real id; only the
+ * actual network target uses the resolved id (see changeApply/deleteApply).
  * @param {object} opts
  * @param {string} opts.entityType
  * @param {'create'|'update'|'delete'} opts.action
- * @param {string} [opts.id] — required for update/delete
- * @param {object} [opts.item] — required for create/update
+ * @param {string} [opts.id] — required for update/delete; id or exact display name
+ * @param {object} [opts.item] — required for create
+ * @param {Array<{op:string,path:string,value?:unknown}>} [opts.patches] — required for update
  */
-function buildPlan({ entityType, action, id, item }) {
+function buildPlan({ entityType, action, id, item, patches }) {
   const actionDef = WRITE_ACTIONS[action];
   if (!actionDef) throw badRequest(`action must be one of: ${Object.keys(WRITE_ACTIONS).join(', ')}`);
   const config = resolveEntityConfig(entityType);
@@ -83,11 +118,8 @@ function buildPlan({ entityType, action, id, item }) {
     body = item;
   } else if (action === 'update') {
     targetId = requiredString(id, 'id');
-    if (!item || typeof item !== 'object' || Array.isArray(item) || Object.keys(item).length === 0) {
-      throw badRequest('item is required for update.');
-    }
+    body = validatePatches(patches);
     path = `${config.singlePrefix}${encodeURIComponent(targetId)}`;
-    body = item;
   } else {
     targetId = requiredString(id, 'id');
     path = `${config.singlePrefix}${encodeURIComponent(targetId)}`;
@@ -180,6 +212,24 @@ function changePreview(params) {
   return previewResult(plan, 'preview');
 }
 
+/** Resolve the raw id-or-name on `plan` to a real DPS id and its request path. */
+async function resolvePlanPath(params, plan, config) {
+  if (plan.action === 'create') return plan.path;
+  const resolved = await resolveEntityIdOrName({
+    sandbox: params.sandbox,
+    accessToken: params.accessToken,
+    clientId: params.clientId,
+    orgId: params.orgId,
+    schemaId: params.schemaId,
+    autoDetect: params.autoDetect,
+    getCatalogConfig: params.getCatalogConfig,
+    entityType: plan.entityType,
+    idOrName: plan.id,
+  });
+  if (!resolved.ok) throw Object.assign(new Error(resolved.error), { status: resolved.status || 404, matches: resolved.matches });
+  return { path: `${config.singlePrefix}${encodeURIComponent(resolved.id)}`, resolvedId: resolved.id };
+}
+
 async function changeApply(params) {
   const plan = buildPlan(params);
   if (plan.action === 'delete') throw badRequest('Use deleteApply for delete actions.');
@@ -192,13 +242,21 @@ async function changeApply(params) {
 
   const config = resolveEntityConfig(plan.entityType);
   const extraHeaders = await resolveSchemaHeaders(config, params);
+  if (plan.action === 'update') extraHeaders['Content-Type'] = JSON_PATCH_CONTENT_TYPE;
+
+  let requestPath = plan.path;
+  if (plan.action === 'update') {
+    const resolved = await resolvePlanPath(params, plan, config);
+    requestPath = resolved.path;
+  }
+
   const fetchResult = await platformFetch({
     sandbox: params.sandbox,
     accessToken: params.accessToken,
     clientId: params.clientId,
     orgId: params.orgId,
     method: plan.actionDef.method,
-    path: plan.path,
+    path: requestPath,
     body: plan.body,
     extraHeaders,
   });
@@ -221,6 +279,7 @@ async function deleteAudit(params) {
   const plan = buildPlan({ ...params, action: 'delete' });
   const config = resolveEntityConfig(plan.entityType);
   const extraHeaders = await resolveSchemaHeaders(config, params);
+  const { path: requestPath, resolvedId } = await resolvePlanPath(params, plan, config);
 
   const currentResult = await platformFetch({
     sandbox: params.sandbox,
@@ -228,7 +287,7 @@ async function deleteAudit(params) {
     clientId: params.clientId,
     orgId: params.orgId,
     method: 'GET',
-    path: plan.path,
+    path: requestPath,
     extraHeaders,
   });
   if (!currentResult.ok) {
@@ -236,7 +295,7 @@ async function deleteAudit(params) {
   }
 
   const current = normalizeEntity(plan.entityType, currentResult.data);
-  const referencedBy = await findReferences(params, plan.entityType, plan.id);
+  const referencedBy = await findReferences(params, plan.entityType, resolvedId);
 
   return previewResult(plan, 'audit', {
     current,
@@ -260,6 +319,7 @@ async function deleteApply(params) {
 
   const config = resolveEntityConfig(plan.entityType);
   const extraHeaders = await resolveSchemaHeaders(config, params);
+  const { path: requestPath } = await resolvePlanPath(params, plan, config);
 
   const currentResult = await platformFetch({
     sandbox: params.sandbox,
@@ -267,7 +327,7 @@ async function deleteApply(params) {
     clientId: params.clientId,
     orgId: params.orgId,
     method: 'GET',
-    path: plan.path,
+    path: requestPath,
     extraHeaders,
   });
   if (!currentResult.ok) {
@@ -286,7 +346,7 @@ async function deleteApply(params) {
     clientId: params.clientId,
     orgId: params.orgId,
     method: 'DELETE',
-    path: plan.path,
+    path: requestPath,
     extraHeaders,
   });
   if (!deleteResult.ok) {
