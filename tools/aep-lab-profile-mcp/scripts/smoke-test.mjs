@@ -399,6 +399,10 @@ async function run() {
       'lab_decisioning_catalog_delete_audit',
       'lab_decisioning_catalog_delete_apply',
       'lab_decisioning_catalog_bulk_apply',
+      'lab_decisioning_catalog_clone_preview',
+      'lab_decisioning_ranking_formula_preview',
+      'lab_decisioning_selection_strategy_preview',
+      'lab_decisioning_attach_offer_eligibility_preview',
     ]),
     pdf: await verifyFocusedEndpoint('/mcp/pdf', [
       'lab_mcp_access_info',

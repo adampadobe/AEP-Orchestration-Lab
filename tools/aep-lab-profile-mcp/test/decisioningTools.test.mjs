@@ -24,6 +24,10 @@ describe('decisioning MCP tools', () => {
       'lab_decisioning_catalog_delete_audit',
       'lab_decisioning_catalog_delete_apply',
       'lab_decisioning_catalog_bulk_apply',
+      'lab_decisioning_catalog_clone_preview',
+      'lab_decisioning_ranking_formula_preview',
+      'lab_decisioning_selection_strategy_preview',
+      'lab_decisioning_attach_offer_eligibility_preview',
     ]) {
       assert.ok(tools.has(name), `expected ${name} to be registered`);
     }
@@ -106,5 +110,57 @@ describe('decisioning MCP tools', () => {
     assert.match(text, /lab_decisioning_catalog_bulk_apply/);
     assert.match(text, /JSON Patch/);
     assert.match(text, /id_or_name_resolution/);
+    assert.match(text, /tags/);
+    assert.match(text, /known_gaps/);
+  });
+
+  it('list/get/change_preview accept tags as a seventh entity type', () => {
+    const tools = registerAll();
+    for (const name of ['lab_decisioning_catalog_list', 'lab_decisioning_catalog_get', 'lab_decisioning_catalog_change_preview']) {
+      assert.doesNotThrow(() => tools.get(name).definition.inputSchema.entity_type.parse('tags'));
+    }
+  });
+
+  it('selection_strategy_preview refuses to set strategy-level eligibility without explicit user choice', async () => {
+    const tools = registerAll();
+    const handler = tools.get('lab_decisioning_selection_strategy_preview').handler;
+    const refused = await handler({
+      sandbox: 'apalmer', name: 'x', collection_id_or_name: 'c1', eligibility_rule_id_or_name: 'r1',
+    });
+    assert.match(JSON.stringify(refused), /OFFER level.*STRATEGY level/s);
+  });
+
+  it('attach_offer_eligibility_preview refuses to set offer-level eligibility without explicit user choice', async () => {
+    const tools = registerAll();
+    const handler = tools.get('lab_decisioning_attach_offer_eligibility_preview').handler;
+    const refused = await handler({
+      sandbox: 'apalmer', offer_id_or_name: 'o1', eligibility_rule_id_or_name: 'r1',
+    });
+    assert.match(JSON.stringify(refused), /OFFER level.*STRATEGY level/s);
+  });
+
+  it('attach_offer_eligibility_preview and selection_strategy_preview allow detach/no-eligibility without the guard', () => {
+    const tools = registerAll();
+    // Omitting eligibility_rule_id_or_name never requires the guard — only setting one does.
+    assert.equal(tools.get('lab_decisioning_attach_offer_eligibility_preview').definition.inputSchema.eligibility_rule_id_or_name.isOptional(), true);
+    assert.equal(tools.get('lab_decisioning_selection_strategy_preview').definition.inputSchema.eligibility_rule_id_or_name.isOptional(), true);
+  });
+
+  it('ranking_formula_preview validates the field required by each formula_type', async () => {
+    const tools = registerAll();
+    const handler = tools.get('lab_decisioning_ranking_formula_preview').handler;
+    const missingField = await handler({ name: 'x', formula_type: 'custom_field' });
+    assert.match(JSON.stringify(missingField), /custom_field_name is required/);
+    const missingPql = await handler({ name: 'x', formula_type: 'custom_pql' });
+    assert.match(JSON.stringify(missingPql), /custom_pql is required/);
+  });
+
+  it('clone_preview accepts substitutions as a string record across all seven entity types', () => {
+    const tools = registerAll();
+    const schema = tools.get('lab_decisioning_catalog_clone_preview').definition.inputSchema;
+    for (const entityType of ['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements', 'tags']) {
+      assert.doesNotThrow(() => schema.entity_type.parse(entityType));
+    }
+    assert.doesNotThrow(() => schema.substitutions.parse({ C3: 'C4' }));
   });
 });

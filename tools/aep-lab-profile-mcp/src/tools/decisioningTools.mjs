@@ -27,7 +27,7 @@ import {
 } from '../framework/eventIdentity.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 
-const WRITABLE_ENTITY_TYPES = ['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements'];
+const WRITABLE_ENTITY_TYPES = ['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements', 'tags'];
 const BULK_MAX = 200;
 
 const idOrNameSchema = z.string().min(1).describe('Exact entity id, or exact display name (auto-resolved; a name matching more than one entity fails with a disambiguation list).');
@@ -65,6 +65,7 @@ export function registerDecisioningTools(mcpServer) {
             'offer-rules': { label: 'Eligibility rules', requires_x_schema_id: false, read: true, write: true, delete: true },
             'ranking-formulas': { label: 'Ranking formulas', requires_x_schema_id: false, read: true, write: true, delete: true },
             placements: { label: 'Placements', requires_x_schema_id: false, read: true, write: true, delete: true },
+            tags: { label: 'Tags', requires_x_schema_id: false, read: true, write: true, delete: true },
           },
           personalization_and_diagnostics: [
             'lab_decision_lab_config', 'lab_decisioning_edge_evaluate', 'lab_explain_decision_response', 'lab_decisioning_resolve_treatment_name',
@@ -84,9 +85,26 @@ export function registerDecisioningTools(mcpServer) {
             tool: 'lab_decisioning_catalog_bulk_apply',
             note: `Resumable async create/update for 1–${BULK_MAX} items; DPS has no array-body batch endpoint, so this loops sequentially with retry. Never used for deletes.`,
           },
+          clone: {
+            tool: 'lab_decisioning_catalog_clone_preview',
+            note: 'Duplicates any entity type with recursive find/replace substitutions, then hands off to the existing change_apply — no separate apply tool.',
+          },
+          compound_builders: {
+            tools: ['lab_decisioning_ranking_formula_preview', 'lab_decisioning_selection_strategy_preview'],
+            note: 'Build the correct raw DPS payload from simpler params, then hand off to the existing change_apply. selection_strategy_preview enforces the same offer-vs-strategy-level eligibility guard as lab_decisioning_attach_offer_eligibility_preview.',
+          },
+          offer_eligibility: {
+            tool: 'lab_decisioning_attach_offer_eligibility_preview',
+            note: 'Attaches or detaches offer-level eligibility. Requires the caller to have explicitly stated offer-level vs strategy-level — refuses and returns the exact question otherwise.',
+          },
           id_or_name_resolution: 'Every write/delete/get tool accepts an exact DPS id or an exact display name; a name matching more than one entity fails with a disambiguation list instead of guessing.',
           audience_discovery: 'Use lab_audience_list / lab_audience_audit (Audiences context) for RT-CDP audiences — not duplicated here.',
           credentials: 'Server-side Adobe IMS token; never accepted as a tool argument.',
+          known_gaps: [
+            'No bulk tag-to-offer tool yet — the itemTags write field format on offer-items is unresolved (confirmed live: it rejects both the tag id and its raw suffix).',
+            'No collection filter builder — item-collections constraints use a raw SQL-like predicate plus a UI model keyed to per-field schema metadata; use lab_decisioning_catalog_change_apply with a raw item for now.',
+            'No audience-to-eligibility-rule auto-wrap — attach an eligibility rule to an audience via a manually authored PQL condition instead.',
+          ],
         },
       }),
   );
@@ -355,7 +373,7 @@ export function registerDecisioningTools(mcpServer) {
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z
-          .enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements'])
+          .enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements', 'tags'])
           .describe('DPS entity type to list. offer-rules = eligibility rules.'),
         limit: z.number().int().min(1).max(50).optional().describe('Page size (default 50, max 50)'),
         schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
@@ -400,7 +418,7 @@ export function registerDecisioningTools(mcpServer) {
         'Sandbox allowlist required.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
-        entity_type: z.enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements']),
+        entity_type: z.enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements', 'tags']),
         id: idOrNameSchema,
         schema_id: z.string().optional(),
         auto_detect: z.boolean().optional(),
@@ -767,6 +785,272 @@ export function registerDecisioningTools(mcpServer) {
         pollTool: 'lab_batch_job_status',
         note: 'Job runs in background. Poll lab_batch_job_status with job_id.',
       });
+    },
+  );
+
+  const SERVER_ASSIGNED_FIELDS = ['id', 'etag', 'created', 'modified', 'createdBy', 'lastModifiedBy', 'instanceId', 'sandboxId', 'createdByClientId', 'lastModifiedByClientId'];
+
+  function applySubstitutions(value, substitutions) {
+    if (!substitutions || Object.keys(substitutions).length === 0) return value;
+    if (typeof value === 'string') {
+      let result = value;
+      for (const [find, replace] of Object.entries(substitutions)) {
+        result = result.split(find).join(replace);
+      }
+      return result;
+    }
+    if (Array.isArray(value)) return value.map((v) => applySubstitutions(v, substitutions));
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, applySubstitutions(v, substitutions)]));
+    }
+    return value;
+  }
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_clone_preview',
+    {
+      title: 'Preview cloning a Decisioning catalog entity',
+      description:
+        'Fetches one entity by id or name, strips server-assigned fields, sets new_name, applies recursive literal ' +
+        'find/replace substitutions across every remaining string value (covers nested condition/segmentModel/expression ' +
+        'for rules and formulas), and returns the same preflight_id/required_confirmation shape as ' +
+        'lab_decisioning_catalog_change_preview action=create. Apply with the existing lab_decisioning_catalog_change_apply ' +
+        '(action=create) — there is no separate clone-apply tool. Works across all seven entity types.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z.enum(WRITABLE_ENTITY_TYPES),
+        source_id_or_name: idOrNameSchema,
+        new_name: z.string().min(1),
+        description: z.string().optional().describe('Override description; omit to keep the source description (with substitutions applied)'),
+        substitutions: z.record(z.string()).optional().describe('Literal (not regex), case-sensitive find/replace pairs applied recursively, e.g. {"C3": "C4"}'),
+        schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
+        auto_detect: z.boolean().optional(),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const sourceResult = await decisioningCatalogGet({
+        sandbox: allowed.sandbox,
+        entity_type: params.entity_type,
+        id: params.source_id_or_name,
+        schema_id: params.schema_id,
+        auto_detect: params.auto_detect,
+      });
+      if (!sourceResult.ok) {
+        return fromLabApi(sourceResult, { sandbox: allowed.sandbox, entity_type: params.entity_type });
+      }
+
+      const raw = sourceResult.data?.raw;
+      if (!raw || typeof raw !== 'object') {
+        return toolError('Source entity has no raw payload to clone.');
+      }
+
+      const stripped = Object.fromEntries(Object.entries(raw).filter(([key]) => !SERVER_ASSIGNED_FIELDS.includes(key)));
+      const substituted = applySubstitutions(stripped, params.substitutions);
+      const item = { ...substituted, name: params.new_name, ...(params.description !== undefined ? { description: params.description } : {}) };
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_clone_preview',
+        sandbox: allowed.sandbox,
+        entityType: params.entity_type,
+        identifier: params.source_id_or_name,
+      });
+
+      const apiResult = await decisioningCatalogChangePreview({ entity_type: params.entity_type, action: 'create', item });
+      return fromLabApi(apiResult, {
+        sandbox: allowed.sandbox,
+        entity_type: params.entity_type,
+        cloned_from: params.source_id_or_name,
+        applyTool: 'lab_decisioning_catalog_change_apply',
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_ranking_formula_preview',
+    {
+      title: 'Preview creating a ranking formula',
+      description:
+        'Builds the raw DPS ranking-formula payload (returnType/expression/definedOn — confirmed live against sandbox ' +
+        'apalmer) from simpler params and returns the same shape as lab_decisioning_catalog_change_preview action=create. ' +
+        'Apply with lab_decisioning_catalog_change_apply.',
+      inputSchema: {
+        name: z.string().min(1),
+        formula_type: z.enum(['static_priority', 'custom_field', 'recency_priority_hybrid', 'custom_pql']),
+        custom_field_name: z.string().optional().describe('Required for formula_type=custom_field'),
+        custom_pql: z.string().optional().describe('Required for formula_type=custom_pql — full PQL expression'),
+        description: z.string().optional(),
+      },
+    },
+    async (params) => {
+      let value;
+      if (params.formula_type === 'static_priority') {
+        value = 'if(offer.rank.priority.isNotNull(), offer.rank.priority, 0)';
+      } else if (params.formula_type === 'custom_field') {
+        if (!params.custom_field_name) return toolError('custom_field_name is required for formula_type=custom_field.');
+        value = `offer.${params.custom_field_name}`;
+      } else if (params.formula_type === 'recency_priority_hybrid') {
+        value = 'if(offer.rank.priority.isNotNull(), offer.rank.priority, 0) * daysSince(offer.modified)';
+      } else {
+        if (!params.custom_pql) return toolError('custom_pql is required for formula_type=custom_pql.');
+        value = params.custom_pql;
+      }
+
+      const item = {
+        name: params.name,
+        description: params.description || '',
+        exdFunction: true,
+        returnType: { type: 'integer' },
+        expression: { type: 'PQL', format: 'pql/text', value },
+        definedOn: { offer: { schema: { altId: '_experience.offer-management.personalized-offer', version: '0' } } },
+      };
+
+      writeAuditLog({ keyId: getRequestKeyId(), tool: 'lab_decisioning_ranking_formula_preview', formulaType: params.formula_type });
+
+      const apiResult = await decisioningCatalogChangePreview({ entity_type: 'ranking-formulas', action: 'create', item });
+      return fromLabApi(apiResult, { entity_type: 'ranking-formulas', applyTool: 'lab_decisioning_catalog_change_apply' });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_selection_strategy_preview',
+    {
+      title: 'Preview creating a selection strategy',
+      description:
+        'STOP AND CHECK BEFORE setting eligibility_rule_id_or_name — this gates the WHOLE collection under one rule ' +
+        '(strategy-level eligibility). The alternative, offer-level eligibility via ' +
+        'lab_decisioning_attach_offer_eligibility_preview, gates each offer individually. If the colleague only named a ' +
+        'scope ("target audience X for these offers"), that does not mean they chose strategy-level — ask which pattern ' +
+        'they want before setting user_explicitly_chose_strategy_level:true. Builds the raw ' +
+        '{rank, optionSelection, profileConstraint} payload (confirmed live) from simpler params and returns the same ' +
+        'shape as lab_decisioning_catalog_change_preview action=create. Apply with lab_decisioning_catalog_change_apply.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        name: z.string().min(1),
+        collection_id_or_name: idOrNameSchema,
+        ranking_formula_id_or_name: z.string().optional().describe('Omit for static priority ordering'),
+        priority: z.number().int().min(1).optional().describe('Static priority score (1 = highest); default 1'),
+        eligibility_rule_id_or_name: z.string().optional().describe('Gates the WHOLE collection under one rule — see the ask-first guidance above'),
+        user_explicitly_chose_strategy_level: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe('REQUIRED true if eligibility_rule_id_or_name is set and the colleague already said "strategy level" / "one rule for the whole collection" in this conversation'),
+      },
+    },
+    async (params) => {
+      if (params.eligibility_rule_id_or_name && !params.user_explicitly_chose_strategy_level) {
+        return toolError(
+          'Refusing to guess the eligibility attach point. Ask the colleague: "Do you want the eligibility at the ' +
+          'OFFER level (each offer carries its own — allows differentiated targeting later) or at the STRATEGY level ' +
+          '(one rule gates the whole collection — simpler)?" Retry with user_explicitly_chose_strategy_level:true only ' +
+          'after they choose strategy-level; otherwise use lab_decisioning_attach_offer_eligibility_preview.',
+        );
+      }
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const collectionResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'item-collections', id: params.collection_id_or_name });
+      if (!collectionResult.ok) return fromLabApi(collectionResult, { sandbox: allowed.sandbox, entity_type: 'item-collections' });
+      const collectionId = collectionResult.data?.id;
+
+      let rankingFunctionId;
+      if (params.ranking_formula_id_or_name) {
+        const rfResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'ranking-formulas', id: params.ranking_formula_id_or_name });
+        if (!rfResult.ok) return fromLabApi(rfResult, { sandbox: allowed.sandbox, entity_type: 'ranking-formulas' });
+        rankingFunctionId = rfResult.data?.id;
+      }
+
+      let profileConstraint = { profileConstraintType: 'none' };
+      if (params.eligibility_rule_id_or_name) {
+        const ruleResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'offer-rules', id: params.eligibility_rule_id_or_name });
+        if (!ruleResult.ok) return fromLabApi(ruleResult, { sandbox: allowed.sandbox, entity_type: 'offer-rules' });
+        profileConstraint = { profileConstraintType: 'eligibilityRule', eligibilityRule: ruleResult.data?.id };
+      }
+
+      const item = {
+        name: params.name,
+        rank: {
+          priority: params.priority || 1,
+          order: rankingFunctionId ? { orderEvaluationType: 'scoringFunction', function: rankingFunctionId } : { orderEvaluationType: 'static' },
+        },
+        profileConstraint,
+        optionSelection: { filter: collectionId },
+      };
+
+      writeAuditLog({ keyId: getRequestKeyId(), tool: 'lab_decisioning_selection_strategy_preview', sandbox: allowed.sandbox });
+
+      const apiResult = await decisioningCatalogChangePreview({ entity_type: 'selection-strategies', action: 'create', item });
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: 'selection-strategies', applyTool: 'lab_decisioning_catalog_change_apply' });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_attach_offer_eligibility_preview',
+    {
+      title: 'Preview attaching or detaching offer-level eligibility',
+      description:
+        'STOP AND CHECK BEFORE calling with eligibility_rule_id_or_name — verify the colleague has EXPLICITLY chosen ' +
+        'offer-level (this tool) over strategy-level (lab_decisioning_selection_strategy_preview\'s eligibility_rule_id_or_name). ' +
+        'If they only said "target audience X for these offers", they have NOT chosen — that phrase names the scope, not ' +
+        'the attach point. Ask first, then retry with user_explicitly_chose_offer_level:true only after they say offer-level. ' +
+        'Omit eligibility_rule_id_or_name to detach (reset to no constraint). Builds a JSON Patch on the offer-item\'s ' +
+        'itemConstraints (profileConstraintType + eligibilityRule — confirmed live) and returns the same shape as ' +
+        'lab_decisioning_catalog_change_preview action=update. Apply with lab_decisioning_catalog_change_apply. The ' +
+        'referenced rule must have exdRule:true (lab_decisioning_catalog_change_apply defaults this on create).',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        offer_id_or_name: idOrNameSchema,
+        eligibility_rule_id_or_name: z.string().optional().describe('Omit to detach any existing offer-level eligibility'),
+        user_explicitly_chose_offer_level: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe('REQUIRED true if the colleague already said "offer level" / "per-offer" / "attach to each offer" in this conversation'),
+      },
+    },
+    async (params) => {
+      if (params.eligibility_rule_id_or_name && !params.user_explicitly_chose_offer_level) {
+        return toolError(
+          'Refusing to guess the eligibility attach point. Ask the colleague: "Do you want the eligibility at the ' +
+          'OFFER level (each offer carries its own — allows differentiated targeting later) or at the STRATEGY level ' +
+          '(one rule gates the whole collection — simpler)?" Retry with user_explicitly_chose_offer_level:true only ' +
+          'after they choose offer-level; otherwise use lab_decisioning_selection_strategy_preview.',
+        );
+      }
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      let patchValue = { profileConstraintType: 'none' };
+      if (params.eligibility_rule_id_or_name) {
+        const ruleResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'offer-rules', id: params.eligibility_rule_id_or_name });
+        if (!ruleResult.ok) return fromLabApi(ruleResult, { sandbox: allowed.sandbox, entity_type: 'offer-rules' });
+        patchValue = { profileConstraintType: 'eligibilityRule', eligibilityRule: ruleResult.data?.id };
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_attach_offer_eligibility_preview',
+        sandbox: allowed.sandbox,
+        identifier: params.offer_id_or_name,
+      });
+
+      const apiResult = await decisioningCatalogChangePreview({
+        entity_type: 'offer-items',
+        action: 'update',
+        id: params.offer_id_or_name,
+        patches: [{ op: 'add', path: '/_experience/decisioning/decisionitem/itemConstraints', value: patchValue }],
+      });
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: 'offer-items', applyTool: 'lab_decisioning_catalog_change_apply' });
     },
   );
 }

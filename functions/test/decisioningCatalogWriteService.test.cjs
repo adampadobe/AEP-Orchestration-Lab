@@ -52,6 +52,17 @@ test('buildPlan is deterministic and confirmationPhrase matches the action', () 
   assert.equal(confirmationPhrase(deletePlan), 'DELETE DECISIONING PLACEMENTS p-1');
 });
 
+test('creating an offer-rule defaults exdRule:true — confirmed live that DPS otherwise rejects it as "not an ExD rule" when later referenced', () => {
+  const defaulted = buildPlan({ entityType: 'offer-rules', action: 'create', item: { name: 'x' } });
+  assert.equal(defaulted.body.exdRule, true);
+
+  const respected = buildPlan({ entityType: 'offer-rules', action: 'create', item: { name: 'x', exdRule: false } });
+  assert.equal(respected.body.exdRule, false);
+
+  const untouched = buildPlan({ entityType: 'ranking-formulas', action: 'create', item: { name: 'x' } });
+  assert.equal(untouched.body.exdRule, undefined);
+});
+
 test('update uses PATCH with a JSON Patch array, confirmed live against DPS — a full-object PUT also works but silently nulls omitted fields', () => {
   const plan = buildPlan({
     entityType: 'ranking-formulas',

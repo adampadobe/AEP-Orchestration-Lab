@@ -42,6 +42,11 @@ const ENTITY_TYPES = {
     singlePrefix: '/data/core/dps/placements/',
     requiresSchema: false,
   },
+  tags: {
+    listPath: '/data/core/dps/tags',
+    singlePrefix: '/data/core/dps/tags/',
+    requiresSchema: false,
+  },
 };
 
 /** Paths permitted for outbound platform calls (list + single + schema auto-detect). */
@@ -52,6 +57,7 @@ const ALLOWED_PATH_PREFIXES = [
   '/data/core/dps/offer-rules',
   '/data/core/dps/ranking-formulas',
   '/data/core/dps/placements',
+  '/data/core/dps/tags',
   '/data/foundation/schemaregistry/tenant/schemas',
 ];
 
@@ -204,6 +210,16 @@ function normalizePlacement(item) {
   };
 }
 
+function normalizeTag(item) {
+  return {
+    id: item.id || null,
+    name: item.name || '(unnamed)',
+    version: item.etag != null ? item.etag : null,
+    created: item.created || null,
+    modified: item.modified || null,
+  };
+}
+
 function normalizeEntity(entityType, item) {
   switch (entityType) {
     case 'offer-items':
@@ -218,6 +234,8 @@ function normalizeEntity(entityType, item) {
       return normalizeRankingFormula(item);
     case 'placements':
       return normalizePlacement(item);
+    case 'tags':
+      return normalizeTag(item);
     default:
       return { id: item.id || null, raw: item };
   }
@@ -575,6 +593,7 @@ module.exports = {
   normalizeOfferRule,
   normalizeRankingFormula,
   normalizePlacement,
+  normalizeTag,
   normalizeEntity,
   resolveCatalogSchema,
   autoDetectSchemaId,

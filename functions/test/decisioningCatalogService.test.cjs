@@ -7,6 +7,7 @@ const {
   normalizeOfferItem,
   normalizeItemCollection,
   normalizeSelectionStrategy,
+  normalizeTag,
   isAllowedPath,
   clampLimit,
   resolveEntityIdOrName,
@@ -36,7 +37,15 @@ test('extractItems handles results, _embedded, and arrays', () => {
 test('isAllowedPath rejects arbitrary platform paths', () => {
   assert.equal(isAllowedPath('/data/core/dps/offer-items'), true);
   assert.equal(isAllowedPath('/data/core/dps/offer-items/uuid'), true);
+  assert.equal(isAllowedPath('/data/core/dps/tags'), true);
   assert.equal(isAllowedPath('/data/core/ups/segment/definitions/x'), false);
+});
+
+test('normalizeTag maps id/name/version — confirmed live shape (no separate raw UUID field)', () => {
+  const norm = normalizeTag({ id: 'dps:tag:1ae3b5a203797a2b', name: 'Travel - Mobile App', etag: 1, created: '2025-06-24T19:21:39.534Z' });
+  assert.equal(norm.id, 'dps:tag:1ae3b5a203797a2b');
+  assert.equal(norm.name, 'Travel - Mobile App');
+  assert.equal(norm.version, 1);
 });
 
 test('clampLimit defaults to 50 and caps at 50', () => {

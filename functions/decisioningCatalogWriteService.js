@@ -115,7 +115,11 @@ function buildPlan({ entityType, action, id, item, patches }) {
       throw badRequest('item is required for create.');
     }
     path = config.listPath;
-    body = item;
+    // Confirmed live: an offer-rule created without exdRule:true still saves, but DPS then
+    // rejects it as "not an ExD rule" when referenced from an offer's itemConstraints or a
+    // selection strategy's profileConstraint — a silent trap. Default it when the caller
+    // didn't already set it explicitly.
+    body = entityType === 'offer-rules' && item.exdRule === undefined ? { ...item, exdRule: true } : item;
   } else if (action === 'update') {
     targetId = requiredString(id, 'id');
     body = validatePatches(patches);

@@ -33,14 +33,52 @@ Common read paths (see Experience League for filters, paging, `x-schema-id`, and
 | Eligibility rules | **`/offer-rules`** | No |
 | Ranking formulas | `/ranking-formulas` | No |
 | Placements (new model) | `/placements` | No |
+| Tags | `/tags` | No |
 
-Paths above were confirmed with a live GET against sandbox `apalmer` — note that eligibility rules live at **`/offer-rules`**, not `/eligibility-rules` (the Experience League docs for this section were unreachable at the time of writing; the docs-linked slugs for eligibility rules/ranking formulas/placements 404'd, so this table is the source of truth until re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibility-rule`, `ranking-formulas` → `.../offer-management/ranking-function`, `placements` → `.../offer-management/placement`.
+Paths above were confirmed with a live GET (and, for tags/ranking-formulas, a full
+create→update→delete cycle) against sandbox `apalmer` — note that eligibility rules live at
+**`/offer-rules`**, not `/eligibility-rules` (the Experience League docs for this section
+were unreachable at the time of writing; the docs-linked slugs for eligibility
+rules/ranking formulas/placements 404'd, so this table is the source of truth until
+re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibility-rule`,
+`ranking-formulas` → `.../offer-management/ranking-function`, `placements` →
+`.../offer-management/placement`, `tags` → `.../offer-management/tag`.
+
+**Confirmed live create payload requirements not obvious from the schema alone:**
+- **Offer-items** need a sibling `_experience.decisioning.offeritem.lifecycleStatus`
+  (e.g. `"draft"`) alongside `decisionitem` — omitting it fails with a generic
+  `500 Error during deserialization`, not a helpful validation message.
+- **Eligibility rules (`offer-rules`)** need `exdRule: true` to be usable — without it,
+  the rule saves fine but Adobe later rejects it as "not an ExD rule" when referenced from
+  an offer's `itemConstraints` or a selection strategy's `profileConstraint`. The MCP's
+  `change_apply` defaults this to `true` on create when the caller omits it.
+- **Offer-level eligibility** (`_experience.decisioning.decisionitem.itemConstraints`)
+  requires `profileConstraintType` to be set alongside `eligibilityRule` — Adobe rejects
+  `{eligibilityRule: <id>}` alone with "Cannot specify eligibilityRule without a declared
+  profileConstraintType". Confirmed shape: `{profileConstraintType: 'eligibilityRule',
+  eligibilityRule: <rule id>}`; detach with `{profileConstraintType: 'none'}`. A JSON Patch
+  `op: 'add'` on this path works for both the first set *and* replacing an existing value
+  (DPS treats `add` as upsert here) — no need to branch on `add` vs `replace`.
+- **Item-collections' `constraints`** are not a simple field/operator/value filter — each
+  entry is `{itemCatalogId, constraint: "<SQL-like WHERE predicate string>", uiModel:
+  {...}}`, where `uiModel` carries per-field UI metadata (title, type, source) matched to
+  the schema's field registry. This is materially more involved than the other resource
+  types' payloads and is why there is no `lab_decisioning_collection_preview` compound
+  builder — building one correctly needs a follow-up investigation into the field-metadata
+  registry, not a small DSL.
+- **Offer-item tagging (`itemTags`)** — confirmed the value is *not* the tag's `dps:tag:...`
+  id (`"Invalid [tagId] id"`) and *not* its bare hex suffix either (`"At least one of the
+  tags is invalid"`); a real item-collection observed in this sandbox references a tag by a
+  standard dashed UUID (e.g. `72881e1c-b293-4e55-8dd1-256412a9afbd`) that doesn't correspond
+  to any tag currently returned by `GET /tags`, suggesting either a stale reference or a
+  different tag registry than the one `/tags` exposes. Unresolved — no bulk-tagging tool
+  ships until this is nailed down.
 
 Many **list decision items** calls require header **`x-schema-id`** (your decision item schema). Pass it through the local proxy as `platform_headers` (see below).
 
 ## MCP write/bulk layer (`tools/aep-lab-profile-mcp`, `/mcp/decisioning`)
 
-The Decisioning MCP context wraps all six resource types above with a governed, two-phase
+The Decisioning MCP context wraps all seven resource types above with a governed, two-phase
 write model (mirrors `functions/commerceOptimizerService.js`'s ingestion plan — stateless,
 no persisted "pending preview" record):
 
@@ -51,6 +89,10 @@ no persisted "pending preview" record):
 | `POST /api/decisioning/catalog/delete-audit` | `lab_decisioning_catalog_delete_audit` | Re-reads current state, runs a best-effort dependency scan (`referencedBy` — currently checks `selection-strategies` referencing an `item-collections` or `ranking-formulas` id), returns `expected_name`. |
 | `POST /api/decisioning/catalog/delete-apply` | `lab_decisioning_catalog_delete_apply` | Re-reads and fails closed (409) if the entity changed since audit, then one DELETE. |
 | *(none — MCP-side orchestration only)* | `lab_decisioning_catalog_bulk_apply` | Async, resumable create/update for 1–200 items. DPS has no array-body batch endpoint, so this loops sequentially (preview+apply per item, small retry on 429/5xx) via a Firestore job (`decisioning_bulk_write`), pollable with the existing `lab_batch_job_status`. |
+| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_catalog_clone_preview` | Fetches a source entity, strips server-assigned fields, applies recursive find/replace, hands off to the existing `change_apply` (no new backend route). Works across all seven entity types. |
+| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_ranking_formula_preview` | Builds the confirmed live payload shape from a `formula_type` enum instead of the raw object. |
+| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_selection_strategy_preview` | Resolves collection/ranking-formula/eligibility-rule references by id-or-name and builds the raw payload. Hard guard: refuses to set strategy-level eligibility unless the caller states `user_explicitly_chose_strategy_level: true`. |
+| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_attach_offer_eligibility_preview` | Builds the confirmed `itemConstraints` JSON Patch to attach/detach offer-level eligibility. Hard guard: refuses to set offer-level eligibility unless the caller states `user_explicitly_chose_offer_level: true` — symmetric with the selection-strategy guard, so neither tool silently picks the attach point on the caller's behalf. |
 
 Backend implementation: `functions/decisioningCatalogWriteService.js` (write operations) and
 `functions/decisioningCatalogService.js` (read + shared `platformFetch`/allowlist, now with
