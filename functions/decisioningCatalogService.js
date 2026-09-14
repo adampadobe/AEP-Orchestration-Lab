@@ -27,6 +27,21 @@ const ENTITY_TYPES = {
     singlePrefix: '/data/core/dps/selection-strategies/',
     requiresSchema: false,
   },
+  'offer-rules': {
+    listPath: '/data/core/dps/offer-rules',
+    singlePrefix: '/data/core/dps/offer-rules/',
+    requiresSchema: false,
+  },
+  'ranking-formulas': {
+    listPath: '/data/core/dps/ranking-formulas',
+    singlePrefix: '/data/core/dps/ranking-formulas/',
+    requiresSchema: false,
+  },
+  placements: {
+    listPath: '/data/core/dps/placements',
+    singlePrefix: '/data/core/dps/placements/',
+    requiresSchema: false,
+  },
 };
 
 /** Paths permitted for outbound platform calls (list + single + schema auto-detect). */
@@ -34,6 +49,9 @@ const ALLOWED_PATH_PREFIXES = [
   '/data/core/dps/offer-items',
   '/data/core/dps/item-collections',
   '/data/core/dps/selection-strategies',
+  '/data/core/dps/offer-rules',
+  '/data/core/dps/ranking-formulas',
+  '/data/core/dps/placements',
   '/data/foundation/schemaregistry/tenant/schemas',
 ];
 
@@ -144,6 +162,48 @@ function normalizeSelectionStrategy(item) {
   };
 }
 
+function normalizeOfferRule(item) {
+  return {
+    id: item.id || null,
+    name: item.name || '(unnamed)',
+    description: item.description || '',
+    type: item.type || null,
+    condition: item.condition || null,
+    version: item.etag != null ? item.etag : null,
+    created: item.created || null,
+    modified: item.modified || null,
+  };
+}
+
+function normalizeRankingFormula(item) {
+  return {
+    id: item.id || null,
+    name: item.name || '(unnamed)',
+    description: item.description || '',
+    returnType: item.returnType || null,
+    formulaEntityType: item.formulaEntityType || null,
+    expression: item.expression || null,
+    version: item.etag != null ? item.etag : null,
+    created: item.created || null,
+    modified: item.modified || null,
+  };
+}
+
+function normalizePlacement(item) {
+  return {
+    id: item.id || item.instanceId || null,
+    name: item.name || '(unnamed)',
+    description: item.description || '',
+    componentType: item.componentType || null,
+    channel: item.channel || null,
+    itemCount: item.itemCount != null ? item.itemCount : null,
+    allowDuplicatePlacements: Boolean(item.allowDuplicatePlacements),
+    version: item.etag != null ? item.etag : null,
+    created: item.created || null,
+    modified: item.modified || null,
+  };
+}
+
 function normalizeEntity(entityType, item) {
   switch (entityType) {
     case 'offer-items':
@@ -152,6 +212,12 @@ function normalizeEntity(entityType, item) {
       return normalizeItemCollection(item);
     case 'selection-strategies':
       return normalizeSelectionStrategy(item);
+    case 'offer-rules':
+      return normalizeOfferRule(item);
+    case 'ranking-formulas':
+      return normalizeRankingFormula(item);
+    case 'placements':
+      return normalizePlacement(item);
     default:
       return { id: item.id || null, raw: item };
   }
@@ -211,7 +277,14 @@ async function platformFetch(opts) {
     }
   }
 
-  const res = await fetch(url, { method: opts.method || 'GET', headers });
+  const hasBody = opts.body !== undefined;
+  if (hasBody) headers['Content-Type'] = 'application/json';
+
+  const res = await fetch(url, {
+    method: opts.method || 'GET',
+    headers,
+    ...(hasBody ? { body: JSON.stringify(opts.body) } : {}),
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     return {
@@ -434,6 +507,9 @@ module.exports = {
   normalizeOfferItem,
   normalizeItemCollection,
   normalizeSelectionStrategy,
+  normalizeOfferRule,
+  normalizeRankingFormula,
+  normalizePlacement,
   normalizeEntity,
   resolveCatalogSchema,
   autoDetectSchemaId,

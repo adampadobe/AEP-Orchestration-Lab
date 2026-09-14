@@ -11,14 +11,24 @@ import {
   decisioningCatalogGet,
   decisioningCatalogSchema,
   decisioningCatalogAssess,
+  decisioningCatalogChangePreview,
+  decisioningCatalogChangeApply,
+  decisioningCatalogDeleteAudit,
+  decisioningCatalogDeleteApply,
 } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
+import { createBatchJob } from '../batchJobStore.mjs';
+import { processDecisioningBulkJob } from '../decisioningBulkProcessor.mjs';
+import { checkBatchJobRate } from '../rateLimiter.mjs';
 import {
   extractEcidFromProfileTable,
   resolveEventIdentities,
 } from '../framework/eventIdentity.mjs';
 import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
+
+const WRITABLE_ENTITY_TYPES = ['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements'];
+const BULK_MAX = 200;
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -288,8 +298,8 @@ export function registerDecisioningTools(mcpServer) {
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         entity_type: z
-          .enum(['offer-items', 'item-collections', 'selection-strategies'])
-          .describe('DPS entity type to list'),
+          .enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements'])
+          .describe('DPS entity type to list. offer-rules = eligibility rules.'),
         limit: z.number().int().min(1).max(50).optional().describe('Page size (default 50, max 50)'),
         schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
         auto_detect: z.boolean().optional().describe('Auto-detect offer schema when not in Firestore (default true)'),
@@ -331,7 +341,7 @@ export function registerDecisioningTools(mcpServer) {
         'POST /api/decisioning/catalog/get — allowlisted DPS GET by id. offer-items requires x-schema-id. Sandbox allowlist required.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
-        entity_type: z.enum(['offer-items', 'item-collections', 'selection-strategies']),
+        entity_type: z.enum(['offer-items', 'item-collections', 'selection-strategies', 'offer-rules', 'ranking-formulas', 'placements']),
         id: z.string().describe('Entity UUID'),
         schema_id: z.string().optional(),
         auto_detect: z.boolean().optional(),
@@ -441,6 +451,235 @@ export function registerDecisioningTools(mcpServer) {
         assess: apiResult.data,
         suggestions: apiResult.data?.suggestions,
         healthy: apiResult.data?.summary?.healthy,
+      });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_change_preview',
+    {
+      title: 'Preview a Decisioning catalog create/update',
+      description:
+        'Local hash-bound preview (no Adobe call) for creating or updating one offer-item, item-collection, ' +
+        'selection-strategy, offer-rule (eligibility rule), ranking-formula, or placement. Returns preflight_id and ' +
+        'the exact confirmation phrase required by lab_decisioning_catalog_change_apply. Use lab_audience_list first ' +
+        'if an offer-rule condition needs to reference an RT-CDP audience id.',
+      inputSchema: {
+        entity_type: z.enum(WRITABLE_ENTITY_TYPES),
+        action: z.enum(['create', 'update']),
+        id: z.string().optional().describe('Required for action=update'),
+        item: z.record(z.unknown()).describe('Proposed entity payload (DPS shape for the chosen entity_type)'),
+      },
+    },
+    async (params) => {
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_change_preview',
+        entityType: params.entity_type,
+        action: params.action,
+      });
+      const apiResult = await decisioningCatalogChangePreview(params);
+      return fromLabApi(apiResult, { entity_type: params.entity_type, action: params.action });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_change_apply',
+    {
+      title: 'Submit a previewed Decisioning catalog create/update',
+      description:
+        'Submits exactly one previewed create or update with no automatic retry. Requires an unchanged item, ' +
+        'preflight_id, and exact confirmation from lab_decisioning_catalog_change_preview. Sandbox allowlist required.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z.enum(WRITABLE_ENTITY_TYPES),
+        action: z.enum(['create', 'update']),
+        id: z.string().optional().describe('Required for action=update'),
+        item: z.record(z.unknown()),
+        schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
+        auto_detect: z.boolean().optional(),
+        preflight_id: z.string().length(64),
+        confirmation: z.string().min(1),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await decisioningCatalogChangeApply({ ...params, sandbox: allowed.sandbox });
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_change_apply',
+        sandbox: allowed.sandbox,
+        entityType: params.entity_type,
+        action: params.action,
+        result: apiResult.ok ? 'ok' : 'error',
+      });
+
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: params.entity_type, action: params.action });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_delete_audit',
+    {
+      title: 'Audit one Decisioning catalog entity before deletion',
+      description:
+        'DESTRUCTIVE actions require this first. Read-only: returns current state, a best-effort dependency scan ' +
+        '(referencedBy — e.g. selection-strategies referencing an item-collection or ranking-formula), preflight_id, ' +
+        'and the exact expected_name needed for lab_decisioning_catalog_delete_apply. Show the result to the colleague ' +
+        'and get explicit confirmation before calling delete_apply.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z.enum(WRITABLE_ENTITY_TYPES),
+        id: z.string().min(1).describe('Exact entity id'),
+        schema_id: z.string().optional(),
+        auto_detect: z.boolean().optional(),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_delete_audit',
+        sandbox: allowed.sandbox,
+        entityType: params.entity_type,
+        identifier: params.id,
+      });
+
+      const apiResult = await decisioningCatalogDeleteAudit({ ...params, sandbox: allowed.sandbox });
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: params.entity_type, id: params.id });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_delete_apply',
+    {
+      title: 'Delete one explicitly confirmed Decisioning catalog entity',
+      description:
+        'DESTRUCTIVE AND IRREVERSIBLE. Call only after lab_decisioning_catalog_delete_audit and explicit colleague ' +
+        'confirmation of the exact entity_type, id, and expected_name. The server re-reads the entity and fails ' +
+        'closed if it changed since audit. Never infer confirmation from a general cleanup request and never batch-delete.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z.enum(WRITABLE_ENTITY_TYPES),
+        id: z.string().min(1).describe('Exact id returned by lab_decisioning_catalog_delete_audit'),
+        expected_name: z.string().min(1).describe('Exact current name returned by lab_decisioning_catalog_delete_audit'),
+        schema_id: z.string().optional(),
+        auto_detect: z.boolean().optional(),
+        preflight_id: z.string().length(64),
+        confirmation: z.string().min(1),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await decisioningCatalogDeleteApply({ ...params, sandbox: allowed.sandbox });
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_catalog_delete_apply',
+        sandbox: allowed.sandbox,
+        entityType: params.entity_type,
+        identifier: params.id,
+        result: apiResult.ok ? 'ok' : 'error',
+      });
+
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: params.entity_type, id: params.id });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_catalog_bulk_apply',
+    {
+      title: 'Bulk create/update Decisioning catalog entities (async)',
+      description:
+        `Resumable async bulk create or update for 1–${BULK_MAX} entities of one entity_type. DPS has no batch ` +
+        'endpoint, so this runs sequentially in the background with retry on transient failures and per-item progress. ' +
+        'No per-item preview/confirmation — this single call is the confirmation for the whole batch. ' +
+        'Poll with lab_batch_job_status using the returned job_id. Never use for deletes.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        entity_type: z.enum(WRITABLE_ENTITY_TYPES),
+        action: z.enum(['create', 'update']),
+        items: z
+          .array(z.object({ id: z.string().optional().describe('Required when action=update'), item: z.record(z.unknown()) }))
+          .min(1)
+          .max(BULK_MAX),
+        schema_id: z.string().optional(),
+        auto_detect: z.boolean().optional(),
+        delay_ms: z.number().int().min(0).max(5000).optional().describe('Delay between items in ms (default 500)'),
+        confirmed: z.literal(true).describe('True only after the colleague explicitly confirms this whole batch'),
+      },
+    },
+    async (params) => {
+      const keyId = getRequestKeyId();
+
+      const rate = checkBatchJobRate(keyId);
+      if (!rate.ok) {
+        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+      }
+
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      if (params.action === 'update' && params.items.some((op) => !op.id)) {
+        return toolError('Every item requires id when action=update.');
+      }
+
+      const job = await createBatchJob({
+        jobType: 'decisioning_bulk_write',
+        count: params.items.length,
+        params: {
+          sandbox: allowed.sandbox,
+          entity_type: params.entity_type,
+          action: params.action,
+          items: params.items,
+          schema_id: params.schema_id,
+          auto_detect: params.auto_detect,
+          delay_ms: params.delay_ms,
+        },
+      });
+
+      writeAuditLog({
+        keyId,
+        tool: 'lab_decisioning_catalog_bulk_apply',
+        sandbox: allowed.sandbox,
+        entityType: params.entity_type,
+        action: params.action,
+        count: params.items.length,
+        jobId: job.jobId,
+      });
+
+      setImmediate(() => {
+        processDecisioningBulkJob(job.jobId, { keyId }).catch((err) => {
+          console.error('[aep-lab-profile-mcp] decisioning bulk job failed:', job.jobId, err);
+        });
+      });
+
+      return jsonResult({
+        ok: true,
+        job_id: job.jobId,
+        job_type: 'decisioning_bulk_write',
+        status: job.status,
+        count: params.items.length,
+        sandbox: allowed.sandbox,
+        entity_type: params.entity_type,
+        action: params.action,
+        pollTool: 'lab_batch_job_status',
+        note: 'Job runs in background. Poll lab_batch_job_status with job_id.',
       });
     },
   );

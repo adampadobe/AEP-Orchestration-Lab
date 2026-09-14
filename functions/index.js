@@ -121,6 +121,7 @@ const decisioningEdgeEvaluateService = lazyRequireMod('./decisioningEdgeEvaluate
 const decisioningExplainService = lazyRequireMod('./decisioningExplainService');
 const decisioningCatalogService = lazyRequireMod('./decisioningCatalogService');
 const decisioningCatalogAssessService = lazyRequireMod('./decisioningCatalogAssessService');
+const decisioningCatalogWriteService = lazyRequireMod('./decisioningCatalogWriteService');
 const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
@@ -1499,6 +1500,194 @@ exports.decisioningCatalogAssessProxy = onRequest(profileFnOpts, async (req, res
     res.status(200).json({ sandbox, ...report });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+function decisioningWriteErrorStatus(e) {
+  return e && e.status >= 400 && e.status < 600 ? e.status : 500;
+}
+
+/** POST /api/decisioning/catalog/change-preview — local hash-bound preview, no Adobe call */
+exports.decisioningCatalogChangePreviewProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  try {
+    const result = decisioningCatalogWriteService.changePreview({
+      entityType: body.entityType || body.entity_type,
+      action: body.action,
+      id: body.id,
+      item: body.item,
+    });
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+/** POST /api/decisioning/catalog/change-apply — one non-retried DPS create/update */
+exports.decisioningCatalogChangeApplyProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningCatalogWriteService.changeApply({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      entityType: body.entityType || body.entity_type,
+      action: body.action,
+      id: body.id,
+      item: body.item,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+      preflight_id: body.preflight_id,
+      confirmation: body.confirmation,
+    });
+    res.status(result.ok ? 200 : 502).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/catalog/delete-audit — current state + dependency scan for one id */
+exports.decisioningCatalogDeleteAuditProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningCatalogWriteService.deleteAudit({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      entityType: body.entityType || body.entity_type,
+      id: body.id,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(result.ok ? 200 : 502).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/catalog/delete-apply — re-reads and fails closed, then one DELETE */
+exports.decisioningCatalogDeleteApplyProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningCatalogWriteService.deleteApply({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      entityType: body.entityType || body.entity_type,
+      id: body.id,
+      expected_name: body.expected_name,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+      preflight_id: body.preflight_id,
+      confirmation: body.confirmation,
+    });
+    res.status(result.ok ? 200 : 502).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
   }
 });
 

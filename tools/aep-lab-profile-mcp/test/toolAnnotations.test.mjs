@@ -94,6 +94,29 @@ test('classifies Firefly preview/status as reads and generation/cancel as non-id
   assert.equal(annotationsForTool('lab_firefly_job_cancel').destructiveHint, true);
 });
 
+test('classifies decisioning catalog previews/audits as reads and change/delete apply as governed writes', () => {
+  assert.equal(annotationsForTool('lab_decisioning_catalog_change_preview').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_decisioning_catalog_delete_audit').readOnlyHint, true);
+  assert.deepEqual(annotationsForTool('lab_decisioning_catalog_change_apply'), {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  });
+  assert.deepEqual(annotationsForTool('lab_decisioning_catalog_delete_apply'), {
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: false,
+    openWorldHint: true,
+  });
+  assert.deepEqual(annotationsForTool('lab_decisioning_catalog_bulk_apply'), {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  });
+});
+
 test('classifies creativity discovery and previews as reads and processing submits as non-idempotent writes', () => {
   for (const name of [
     'lab_creativity_capabilities', 'lab_creativity_access_probe',

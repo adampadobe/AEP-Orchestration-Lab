@@ -9,12 +9,12 @@ Sixteen MCP connections: the complete General catalog plus fifteen focused capab
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `aep-lab-general` | `/mcp` | Complete 196-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, and administration |
+| `aep-lab-general` | `/mcp` | Complete 201-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, and administration |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
 | `aep-lab-pdf-prep` | `/mcp/pdf` | HTML/document to PDF, storage, server templates |
 | `aep-lab-audiences` | `/mcp/audiences` | Governed audience list/audit/delete |
-| `aep-lab-decisioning` | `/mcp/decisioning` | Edge decision evaluation and catalog |
+| `aep-lab-decisioning` | `/mcp/decisioning` | Edge decision evaluation, catalog management, and governed bulk migration |
 | `aep-lab-ajo-cleanup` | `/mcp/ajo-cleanup` | Governed AJO journey/campaign list/audit/delete |
 | `aep-lab-command-centre` | `/mcp/command-centre` | Your own Command Centre engagements, tasks, meetings |
 | `aep-lab-weather` | `/mcp/weather` | Live weather + Google Maps for demo scenarios |

@@ -605,6 +605,84 @@ export async function decisioningCatalogAssess(params) {
   });
 }
 
+/**
+ * POST /api/decisioning/catalog/change-preview
+ * @param {object} params
+ */
+export async function decisioningCatalogChangePreview(params) {
+  return labApiRequest('/api/decisioning/catalog/change-preview', {
+    method: 'POST',
+    body: {
+      entityType: params.entity_type,
+      action: params.action,
+      id: params.id,
+      item: params.item,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/catalog/change-apply
+ * @param {object} params
+ */
+export async function decisioningCatalogChangeApply(params) {
+  return labApiRequest('/api/decisioning/catalog/change-apply', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      entityType: params.entity_type,
+      action: params.action,
+      id: params.id,
+      item: params.item,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+      preflight_id: params.preflight_id,
+      confirmation: params.confirmation,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/catalog/delete-audit
+ * @param {object} params
+ */
+export async function decisioningCatalogDeleteAudit(params) {
+  return labApiRequest('/api/decisioning/catalog/delete-audit', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      entityType: params.entity_type,
+      id: params.id,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/catalog/delete-apply
+ * @param {object} params
+ */
+export async function decisioningCatalogDeleteApply(params) {
+  return labApiRequest('/api/decisioning/catalog/delete-apply', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      entityType: params.entity_type,
+      id: params.id,
+      expected_name: params.expected_name,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+      preflight_id: params.preflight_id,
+      confirmation: params.confirmation,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
 /** Read-only AEP audience inventory; requires the caller's user-generated MCP key. */
 export async function audienceList(params) {
   return labApiRequest('/api/audience-management', {

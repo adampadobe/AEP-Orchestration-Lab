@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 196 tools',
+      product: 'Complete Lab MCP · 201 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -42,7 +42,7 @@
       configNotes:
         'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all fifteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 196,
+      toolCount: 201,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -311,19 +311,24 @@
       section: 'lab',
       dropdownLabel: 'Decisioning',
       name: 'AEP Lab — Decisioning',
-      product: 'Focused Lab MCP · 9 tools',
+      product: 'Focused Lab MCP · 14 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning',
       summary:
-        'A smaller decisioning context for Edge evaluation, catalog inspection, diagnostics, and explanations.',
+        'Edge evaluation, catalog inspection, diagnostics, explanations, and governed create/update/delete plus async ' +
+        'bulk migration across offer-items, item-collections, selection-strategies, eligibility rules, ranking ' +
+        'formulas, and placements.',
       useCases: [
         'Evaluate Edge decisions for a profile',
         'Browse decisioning catalog objects',
         'Check health and explain decision results',
+        'Create, update, or governed-delete a decisioning catalog object',
+        'Bulk-migrate hundreds of decision items into a sandbox',
       ],
       configNotes:
-        'Choose this for Decision Lab and Edge decisioning work. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
-      connectionKind: 'Focused',
-      toolCount: 9,
+        'Choose this for Decision Lab, Edge decisioning, and catalog management work. Destructive deletes require an audit and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
+      connectionKind: 'Focused · controlled delete',
+      toolCount: 14,
+      caution: true,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Decisioning tools reference',
