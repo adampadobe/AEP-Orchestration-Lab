@@ -21,6 +21,7 @@ const KEYFRAME_HOSTS = Object.freeze([
   'windows.net',
   'dropboxusercontent.com',
   'storage.googleapis.com',
+  'firebasestorage.googleapis.com',
 ]);
 
 export class FireflyApiError extends Error {}
