@@ -12,7 +12,7 @@ const CAMERA_MOTIONS = ['camera pan left', 'camera pan right', 'camera zoom in',
 const PROMPT_STYLES = ['anime', '3d', 'fantasy', 'cinematic', 'claymation', 'line art', 'stop motion', '2d', 'vector art', 'black and white'];
 const SHOT_ANGLES = ['aerial shot', 'eye_level shot', 'high angle shot', 'low angle shot', 'top-down shot'];
 const SHOT_SIZES = ['close-up shot', 'extreme close-up', 'medium shot', 'long shot', 'extreme long shot'];
-const KEYFRAME_HOSTS = ['amazonaws.com', 'windows.net', 'dropboxusercontent.com', 'storage.googleapis.com'];
+const KEYFRAME_HOSTS = ['amazonaws.com', 'windows.net', 'dropboxusercontent.com', 'storage.googleapis.com', 'firebasestorage.googleapis.com'];
 const trustedMediaUrlSchema = z.string().url().max(2083).refine((rawUrl) => {
   try {
     const parsed = new URL(rawUrl);
