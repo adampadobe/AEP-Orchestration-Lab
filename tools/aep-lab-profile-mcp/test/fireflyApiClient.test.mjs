@@ -85,6 +85,30 @@ test('status normalizes output URLs and cancel uses only trusted Adobe job URLs'
   );
 });
 
+test('accepts tenant-scoped firefly-<orgId>.adobe.io status/cancel hosts but not lookalikes', async () => {
+  const client = createFireflyApiClient({
+    env,
+    fetchImpl: async (url, options = {}) => {
+      if (String(url).includes('/ims/token/v3')) return jsonResponse({ access_token: 'token', expires_in: 3600 });
+      if ((options.method || 'GET') === 'PUT') return new Response(null, { status: 204 });
+      return jsonResponse({ status: 'succeeded', result: { outputs: [] } });
+    },
+  });
+
+  const status = await client.getJobStatus('https://firefly-epo851254.adobe.io/v3/status/urn:ff:jobs:epo851254:job-1');
+  assert.equal(status.output_urls.length, 0);
+  await client.cancelJob('https://firefly-epo851254.adobe.io/v3/cancel/urn:ff:jobs:epo851254:job-1');
+
+  await assert.rejects(
+    () => client.getJobStatus('https://firefly-.adobe.io/v3/status/job-1'),
+    /untrusted Adobe job URL/,
+  );
+  await assert.rejects(
+    () => client.getJobStatus('https://firefly-epo851254.adobe.io.attacker.example/v3/status/job-1'),
+    /untrusted Adobe job URL/,
+  );
+});
+
 test('lists voices and submits Firefly speech, transcription, and dubbing jobs', async () => {
   const requests = [];
   const client = createFireflyApiClient({
