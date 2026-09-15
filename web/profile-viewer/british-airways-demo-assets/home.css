@@ -1,0 +1,18 @@
+.hero {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1312px;
+  min-height: 427px;
+  margin: 2rem auto 0;
+  padding: 3rem 1.5rem 4rem;
+  overflow: hidden;
+  background: #021b41;
+}
+
+@media (max-width: 767px) {
+  .hero {
+    min-height: 360px;
+    padding: 2rem 1rem 3rem;
+  }
+}
