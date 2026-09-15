@@ -36,7 +36,7 @@ Read this fully before making your first change.
 
 Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. The normal production path is **feature branch → pull request → required validation → review → merge to `main` → deploy the exact merged `origin/main` SHA**. Use **Phase A** at the start of a substantive work session, **Phase B** immediately before every `git push`, **and Phase C** immediately before every production deploy, so you do not build or deploy on stale `main` and you do not silently overwrite a teammate's Hosting or Functions release.
 
-This file is the model-neutral source of truth for humans and coding agents. Repository-specific entry points make the same rules automatic in supported tools: **Claude Code reads `CLAUDE.md`**, **Codex reads `AGENTS.md`**, and **Cursor applies `.cursor/rules/`**. Those files must remain aligned with this section. An agent must apply the relevant entry point without waiting for the user to repeat the sync, branch, PR, merge, deploy, secret-preservation, or verification instructions in each prompt.
+This file is the model-neutral source of truth for humans and coding agents. Repository-specific entry points make the same rules automatic in supported tools: **GitHub Copilot reads `.github/copilot-instructions.md` plus `.github/instructions/*.instructions.md`**, **Claude Code reads `CLAUDE.md`**, **Codex reads `AGENTS.md`**, and **Cursor applies `.cursor/rules/`**. Those files must remain aligned with this section. An agent must apply the relevant entry point without waiting for the user to repeat the sync, branch, PR, merge, deploy, secret-preservation, or verification instructions in each prompt.
 
 > **Why three phases (and not two)?** `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushes between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets even though `git` itself stayed clean. Phase C is the only protection.
 
@@ -82,11 +82,12 @@ This is the most often forgotten phase and the most dangerous. Even if your `git
 1. **`git switch main`**. Feature branches use `npm run deploy:preview -- <channel-name>` and never publish production.
 2. **`git fetch origin && git pull --ff-only origin main`** again.
 3. **`git status --short --branch`** must be clean and exactly equal to `origin/main`. Tracked changes and untracked files under Firebase deploy roots block production.
-4. **Rebuild any vendored sub-apps** so the deploy carries the teammate's pulled source, not your stale committed build output:
+4. **Run `npm run deploy:preflight`**. It must verify the `adampadobe/AEP-Orchestration-Lab` origin and GitHub access, the explicit Firebase target `aep-orchestration-lab`, and authenticated Firebase project access. It fails closed and never switches accounts or targets.
+5. **Rebuild any vendored sub-apps** so the deploy carries the teammate's pulled source, not your stale committed build output:
    - `npm run build:edp` — if their commit touched `web/profile-viewer/experience-decisioning-playground/`.
    - `npm run build:eds-quickstart` — if their commit touched the `tools/eds-quickstart` submodule pointer.
-5. Re-run `npm run verify:profile-viewer-routes` if `web/profile-viewer/` was touched by either side.
-6. **Only then** run `firebase deploy --only hosting` (and/or `--only functions`).
+6. Re-run `npm run verify:profile-viewer-routes` if `web/profile-viewer/` was touched by either side.
+7. **Only then** run `firebase deploy --only hosting` (and/or `--only functions`).
 
 Phase C is a last-line safety gate, not a substitute for review. Production changes must already be merged through a pull request. If a build, mirror, dependency install, or verifier changes a tracked file after you switch to `main`, **stop**: commit that generated change on a feature branch and merge it through a new pull request before deploying.
 
@@ -970,11 +971,14 @@ git fetch origin
 git pull --ff-only origin main
 git status --short --branch          # clean; exactly equal to origin/main
 
-# 2. Rebuild any vendored sub-apps so the deploy carries pulled source
+# 2. Verify the expected GitHub owner/repository, Firebase target, and access
+npm run deploy:preflight
+
+# 3. Rebuild any vendored sub-apps so the deploy carries pulled source
 npm run build:edp                    # if EDP playground source changed upstream
 npm run build:eds-quickstart         # if eds-quickstart submodule pointer changed upstream
 
-# 3. Mirror + verify
+# 4. Mirror + verify
 npm run sync-profile-viewer-ui       # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
 npm run verify:profile-viewer-routes # fail if preserved Decisioning + EDS Quickstart routes are broken
 cd functions && npm ci && cd ..
@@ -1001,7 +1005,7 @@ npx -y firebase-tools@latest deploy --only hosting --project aep-orchestration-l
 npx -y firebase-tools@latest deploy --only functions:aepProxy --project aep-orchestration-lab
 ```
 
-Prefer targeted Functions deployment when only a subset changed. Record the merged SHA and exact function names in the release coordination message. The Firebase predeploy hook still checks that the local source is clean `main` at exact freshly fetched `origin/main`.
+Prefer targeted Functions deployment when only a subset changed. Record the merged SHA and exact function names in the release coordination message. The Firebase predeploy hook still checks that the local source is clean `main` at exact freshly fetched `origin/main`, confirms the origin is owned by `adampadobe`, requires an explicit `aep-orchestration-lab` target, and verifies authenticated GitHub and Firebase project access. Missing tools, credentials, access, or ambiguous targets block the deploy; the check never logs in or switches identities automatically.
 
 ### CI
 
