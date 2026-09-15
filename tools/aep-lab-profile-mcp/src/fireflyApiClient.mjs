@@ -52,10 +52,10 @@ function validateAdobeJobUrl(rawUrl, { cancel = false } = {}) {
   }
   const host = parsed.hostname.toLowerCase();
   const allowedHosts = cancel ? ['firefly-api.adobe.io'] : ['firefly-api.adobe.io', 'audio-video-api.adobe.io'];
-  if (parsed.protocol !== 'https:' || !allowedHosts.includes(host)) {
-    // Diagnostic only — no behavior change. Logs the actual host Adobe returned so we can
-    // see whether the allowlist above is missing a real Firefly host (e.g. a regional or
-    // enterprise variant) before touching it.
+  // Firefly returns job-status/cancel URLs on a tenant-scoped host (firefly-<orgId>.adobe.io),
+  // not always the generic firefly-api.adobe.io — confirmed live via the diagnostic logging below.
+  const isTenantFireflyHost = /^firefly-[a-z0-9]+\.adobe\.io$/.test(host);
+  if (parsed.protocol !== 'https:' || (!allowedHosts.includes(host) && !isTenantFireflyHost)) {
     console.warn('[aep-lab-profile-mcp] firefly-job-url-rejected', JSON.stringify({
       reason: 'untrusted-host',
       cancel,
