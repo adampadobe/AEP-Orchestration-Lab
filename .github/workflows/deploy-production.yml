@@ -46,6 +46,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_FIREBASE_DEPLOY_CREDENTIALS }}
 
+      - name: Verify repository and deployment access
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run deploy:preflight
+
       - name: Deploy validated main to Firebase Hosting production
         run: npx -y firebase-tools@latest deploy --only hosting --project aep-orchestration-lab --non-interactive
 
