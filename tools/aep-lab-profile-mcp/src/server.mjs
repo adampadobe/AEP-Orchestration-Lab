@@ -10,6 +10,7 @@
 
 import dotenv from 'dotenv';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -44,10 +45,12 @@ import {
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.50.0';
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
+
+// Read from package.json rather than a hardcoded literal — this drifted out of sync
+// with package.json once already (3.50.0 vs 3.51.0) when only the latter was bumped.
+const MCP_VERSION = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')).version;
 
 const ENDPOINTS = [
   {
