@@ -68,12 +68,12 @@ re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibil
   registry, not a small DSL.
 - **Offer-item tagging (`itemTags`)** — confirmed the value is *not* the tag's `dps:tag:...`
   id (`"Invalid [tagId] id"`) and *not* its bare hex suffix either (`"At least one of the
-  tags is invalid"`); a real item-collection observed in this sandbox references a tag by a
-  standard dashed UUID (e.g. `72881e1c-b293-4e55-8dd1-256412a9afbd`) that doesn't correspond
-  to any tag currently returned by `GET /tags`, suggesting either a stale reference or a
-  different tag registry than the one `/tags` exposes. Rather than lock in another guess,
-  `lab_decisioning_tag_bulk_apply` now resolves this live at write time: it tries `name`,
-  then `{tags: [...]}`, then the two already-falsified id shapes above as a last resort,
+  tags is invalid"`) — but neither of those was the tag's actual dashed UUID (the `id` field
+  `GET /tags` returns), which was never tried at the time. A separately deployed ExD
+  accelerator MCP (`exd-accelerator-mcp`) confirms that full UUID, used verbatim in a plain
+  array, is the correct value. Rather than hard-code even a well-evidenced answer,
+  `lab_decisioning_tag_bulk_apply` still resolves this live at write time: it tries the raw
+  UUID first, then `name`, then `{tags: [...]}`, then the URL-wrapped id as a last resort,
   against the real first write in a sandbox, and caches whichever format DPS accepts
   (`functions/decisioningTagFormatStore.js`) so every later call in that sandbox skips
   straight to it. See "MCP write/bulk layer" below.
