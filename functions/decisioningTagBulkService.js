@@ -6,18 +6,21 @@
  * offer by the MCP-side sequential job processor (mirrors
  * decisioningBulkProcessor.mjs), not looped here.
  *
- * itemTags write format: docs/DECISIONING_APIS.md already confirmed live
- * against sandbox apalmer that the value is neither the tag's `dps:tag:...`
- * id ("Invalid [tagId] id") nor its bare hex/UUID suffix ("At least one of
- * the tags is invalid") — so 'xcore_id' and 'full_id_uri' below (both built
- * from that same raw id) are long shots kept only as a last-resort fallback,
- * tried after 'name' and 'tags_object'. Rather than guess wrong and silently
- * corrupt an offer's tags, applyTagChangeToOffer tries each candidate, in
- * order, against the real write the caller asked for — the first PATCH DPS
- * accepts (not a 400/422) wins, and that format is cached per sandbox in
- * decisioningTagFormatStore so every later call skips straight to it. A
- * non-format error (403/404/409/500/...) aborts immediately instead of
- * cycling through formats.
+ * itemTags write format: docs/DECISIONING_APIS.md confirmed live against
+ * sandbox apalmer that the value is neither the tag's `dps:tag:...` id
+ * ("Invalid [tagId] id") nor its bare hex suffix ("At least one of the tags
+ * is invalid") — but neither of those is the tag's actual dashed UUID (the
+ * `id` GET /tags returns), which was never tried. A separately deployed ExD
+ * accelerator MCP (exd-accelerator-mcp) confirms that full UUID, used
+ * verbatim in a plain array, is the correct value — so 'xcore_id' (the raw
+ * id) is tried first below, with the earlier-falsified/never-fully-confirmed
+ * shapes kept only as a fallback in case a sandbox's DPS version differs.
+ * Rather than hard-code even a well-evidenced guess, applyTagChangeToOffer
+ * still tries each candidate, in order, against the real write the caller
+ * asked for — the first PATCH DPS accepts (not a 400/422) wins, and that
+ * format is cached per sandbox in decisioningTagFormatStore so every later
+ * call skips straight to it. A non-format error (403/404/409/500/...) aborts
+ * immediately instead of cycling through formats.
  */
 
 const decisioningCatalogService = require('./decisioningCatalogService');
@@ -30,7 +33,7 @@ const JSON_PATCH_CONTENT_TYPE = 'application/json-patch+json';
 const ITEM_TAGS_PATH = '/_experience/decisioning/decisionitem/itemTags';
 const BULK_MAX = 200;
 
-const TAG_FORMATS = ['name', 'tags_object', 'xcore_id', 'full_id_uri'];
+const TAG_FORMATS = ['xcore_id', 'name', 'tags_object', 'full_id_uri'];
 
 function badRequest(message) {
   return Object.assign(new Error(message), { status: 400 });
