@@ -59,6 +59,7 @@ const ALLOWED_PATH_PREFIXES = [
   '/data/core/dps/placements',
   '/data/core/dps/tags',
   '/data/foundation/schemaregistry/tenant/schemas',
+  '/data/foundation/schemaregistry/tenant/fieldgroups',
 ];
 
 function clampLimit(raw) {

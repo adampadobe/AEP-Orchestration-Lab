@@ -376,4 +376,9 @@ module.exports = {
   changeApply,
   deleteAudit,
   deleteApply,
+  // Shared stable-sort-then-sha256 hash used by other governed write services
+  // (decisioningSchemaExtendService, decisioningTagBulkService) that need the
+  // same drift-proof preflight/preview hash but aren't DPS catalog entities.
+  stable,
+  digest,
 };

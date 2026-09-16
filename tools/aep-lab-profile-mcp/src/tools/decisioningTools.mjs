@@ -15,11 +15,16 @@ import {
   decisioningCatalogChangeApply,
   decisioningCatalogDeleteAudit,
   decisioningCatalogDeleteApply,
+  decisioningSchemaExtendPreview,
+  decisioningSchemaExtendApply,
+  decisioningTagBulkPreview,
+  decisioningTagBulkApply,
 } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
-import { createBatchJob } from '../batchJobStore.mjs';
+import { createBatchJob, getBatchJob } from '../batchJobStore.mjs';
 import { processDecisioningBulkJob } from '../decisioningBulkProcessor.mjs';
+import { processDecisioningTagBulkJob } from '../decisioningTagBulkProcessor.mjs';
 import { checkBatchJobRate } from '../rateLimiter.mjs';
 import {
   extractEcidFromProfileTable,
@@ -42,6 +47,24 @@ const jsonPatchSchema = z
   )
   .min(1)
   .describe('RFC 6902 JSON Patch operations — only the named fields are touched, unlike resending a full object.');
+
+const SCHEMA_FIELD_TYPES = ['string', 'number', 'integer', 'boolean', 'date', 'date-time', 'string-array', 'number-array'];
+
+const schemaFieldSchema = z.object({
+  name: z.string().min(1).describe('Leaf field name, e.g. discountPct'),
+  type: z.enum(SCHEMA_FIELD_TYPES),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  enum: z.array(z.string()).optional().describe('Allowed values'),
+});
+
+const offerSelectorSchema = z
+  .object({
+    ids: z.array(z.string().min(1)).optional().describe('Explicit offer ids or exact names'),
+    name_prefix: z.string().optional().describe('Matches offer-items by name prefix, e.g. "BlackFriday-"'),
+    collection: z.string().optional().describe('Item-collection id or name — only works when the collection carries an explicit member-id list, not an opaque predicate'),
+  })
+  .describe('Exactly one of ids, name_prefix, or collection.');
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -97,12 +120,19 @@ export function registerDecisioningTools(mcpServer) {
             tool: 'lab_decisioning_attach_offer_eligibility_preview',
             note: 'Attaches or detaches offer-level eligibility. Requires the caller to have explicitly stated offer-level vs strategy-level — refuses and returns the exact question otherwise.',
           },
+          schema_extend: {
+            tools: ['lab_decisioning_schema_extend_preview', 'lab_decisioning_schema_extend_apply'],
+            note: 'Add-only tenant field-group extension for the offer-items schema (Schema Registry PATCH) — never removes or retypes existing fields. Apply gate is preview_hash + confirmed:true, not a confirmation phrase.',
+          },
+          tag_bulk: {
+            tools: ['lab_decisioning_tag_bulk_preview', 'lab_decisioning_tag_bulk_apply'],
+            note: 'Resumable async attach/detach of 1-20 tags across up to 200 offer-items. itemTags write format is auto-detected against the real first write per sandbox and cached — see resolved_tag_format in the preview output. Poll with lab_batch_job_status; resume_token = job_id.',
+          },
           id_or_name_resolution: 'Every write/delete/get tool accepts an exact DPS id or an exact display name; a name matching more than one entity fails with a disambiguation list instead of guessing.',
           audience_discovery: 'Use lab_audience_list / lab_audience_audit (Audiences context) for RT-CDP audiences — not duplicated here.',
           credentials: 'Server-side Adobe IMS token; never accepted as a tool argument.',
           known_gaps: [
-            'No bulk tag-to-offer tool yet — the itemTags write field format on offer-items is unresolved (confirmed live: it rejects both the tag id and its raw suffix).',
-            'No collection filter builder — item-collections constraints use a raw SQL-like predicate plus a UI model keyed to per-field schema metadata; use lab_decisioning_catalog_change_apply with a raw item for now.',
+            'offer_selector.collection only works when the item-collection happens to carry an explicit member-id list — most collections use an opaque predicate instead; use ids or name_prefix in that case.',
             'No audience-to-eligibility-rule auto-wrap — attach an eligibility rule to an audience via a manually authored PQL condition instead.',
           ],
         },
@@ -1051,6 +1081,230 @@ export function registerDecisioningTools(mcpServer) {
         patches: [{ op: 'add', path: '/_experience/decisioning/decisionitem/itemConstraints', value: patchValue }],
       });
       return fromLabApi(apiResult, { sandbox: allowed.sandbox, entity_type: 'offer-items', applyTool: 'lab_decisioning_catalog_change_apply' });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_schema_extend_preview',
+    {
+      title: 'Preview add-only fields on the Decisioning offer-items schema',
+      description:
+        'Diffs 1-50 proposed fields against the offer-items schema\'s tenant field group (Schema Registry) — never ' +
+        'removes or retypes an existing field. A requested field that already exists with a different shape is ' +
+        'reported as a conflict and never included in json_patch. Returns preview_hash for ' +
+        'lab_decisioning_schema_extend_apply.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        schema_id: z.string().optional().describe('Override decisioning schema $id; auto-detected from Firestore/registry when omitted'),
+        field_group_id: z.string().optional().describe('Override the tenant field group $id; auto-resolved from the schema\'s allOf composition when omitted'),
+        fields: z.array(schemaFieldSchema).min(1).max(50),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_schema_extend_preview',
+        sandbox: allowed.sandbox,
+        fieldCount: params.fields.length,
+      });
+
+      const apiResult = await decisioningSchemaExtendPreview({ ...params, sandbox: allowed.sandbox });
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, applyTool: 'lab_decisioning_schema_extend_apply' });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_schema_extend_apply',
+    {
+      title: 'Submit a previewed add-only schema field extension',
+      description:
+        'Submits exactly one previewed field-group PATCH with no automatic retry. Requires the same sandbox/schema_id/' +
+        'field_group_id/fields as lab_decisioning_schema_extend_preview, plus its preview_hash and confirmed:true. ' +
+        'The server re-reads the field group before patching; if it changed since preview, returns error:"schema_drifted" ' +
+        '— re-run the preview. Only op:add is ever issued.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        schema_id: z.string().optional(),
+        field_group_id: z.string().optional(),
+        fields: z.array(schemaFieldSchema).min(1).max(50),
+        preview_hash: z.string().length(64),
+        confirmed: z.literal(true).describe('True only after the colleague explicitly confirms the to_add list from the preview'),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      const apiResult = await decisioningSchemaExtendApply({ ...params, sandbox: allowed.sandbox });
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_schema_extend_apply',
+        sandbox: allowed.sandbox,
+        fieldCount: params.fields.length,
+        result: apiResult.ok ? 'ok' : 'error',
+      });
+
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_tag_bulk_preview',
+    {
+      title: 'Preview a bulk tag attach/detach across offer-items',
+      description:
+        'Resolves 1-20 tags (id or exact name) and an offer_selector (ids, name_prefix, or collection) against up to ' +
+        '200 offer-items, and returns per-offer current_tags/after_tags plus a no_op list for offers already in the ' +
+        'desired state. resolved_tag_format reflects the itemTags write format cached for this sandbox from a prior ' +
+        'apply, or null if unresolved — lab_decisioning_tag_bulk_apply auto-detects it against the real first write ' +
+        'in that case. Returns preview_hash for lab_decisioning_tag_bulk_apply.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        action: z.enum(['attach', 'detach']),
+        tags: z.array(z.string().min(1)).min(1).max(20).describe('Tag id or exact name — ambiguous names fail with a disambiguation list'),
+        offer_selector: offerSelectorSchema,
+        schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
+        auto_detect: z.boolean().optional(),
+      },
+    },
+    async (params) => {
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      writeAuditLog({
+        keyId: getRequestKeyId(),
+        tool: 'lab_decisioning_tag_bulk_preview',
+        sandbox: allowed.sandbox,
+        action: params.action,
+        tagCount: params.tags.length,
+      });
+
+      const apiResult = await decisioningTagBulkPreview({ ...params, sandbox: allowed.sandbox });
+      return fromLabApi(apiResult, { sandbox: allowed.sandbox, action: params.action, applyTool: 'lab_decisioning_tag_bulk_apply' });
+    },
+  );
+
+  mcpServer.registerTool(
+    'lab_decisioning_tag_bulk_apply',
+    {
+      title: 'Apply a previewed bulk tag attach/detach (async)',
+      description:
+        'Re-verifies the cached lab_decisioning_tag_bulk_preview plan (fails closed as preview_hash-stale if tags or ' +
+        'matched offers changed since preview), then runs the attach/detach sequentially in the background — DPS has ' +
+        'no batch endpoint. Each offer is re-read immediately before its own PATCH, so per-offer drift since preview ' +
+        'is also caught; already-satisfied offers are no_ops, not failures. Poll with lab_batch_job_status using the ' +
+        'returned job_id. Pass that same job_id back as resume_token to continue an interrupted batch instead of ' +
+        'restarting it from the first offer.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
+        preview_hash: z.string().length(64),
+        confirmed: z.literal(true).describe('True only after the colleague explicitly confirms the whole batch from the preview'),
+        resume_token: z.string().uuid().optional().describe('job_id from a prior lab_decisioning_tag_bulk_apply call to resume instead of restarting'),
+      },
+    },
+    async (params) => {
+      const keyId = getRequestKeyId();
+
+      const rate = checkBatchJobRate(keyId);
+      if (!rate.ok) {
+        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+      }
+
+      const allowed = assertSandboxAllowed(params.sandbox);
+      if (!allowed.ok) {
+        return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+      }
+
+      if (params.resume_token) {
+        const existing = await getBatchJob(params.resume_token);
+        if (!existing) return toolError(`Batch job not found: ${params.resume_token}`);
+        if (existing.jobType !== 'decisioning_tag_bulk_write') {
+          return toolError(`${params.resume_token} is not a decisioning_tag_bulk_write job.`);
+        }
+        if (existing.params?.preview_hash !== params.preview_hash) {
+          return toolError('preview_hash does not match the job being resumed — run lab_decisioning_tag_bulk_preview again.');
+        }
+        if (existing.status === 'running') {
+          return toolError(`Job ${params.resume_token} is already running.`);
+        }
+
+        writeAuditLog({ keyId, tool: 'lab_decisioning_tag_bulk_apply', sandbox: allowed.sandbox, resumedJobId: params.resume_token });
+
+        setImmediate(() => {
+          processDecisioningTagBulkJob(params.resume_token, { keyId }).catch((err) => {
+            console.error('[aep-lab-profile-mcp] decisioning tag bulk job resume failed:', params.resume_token, err);
+          });
+        });
+
+        return jsonResult({
+          ok: true,
+          job_id: params.resume_token,
+          resume_token: params.resume_token,
+          job_type: 'decisioning_tag_bulk_write',
+          status: 'running',
+          sandbox: allowed.sandbox,
+          pollTool: 'lab_batch_job_status',
+          note: 'Resuming from the first unprocessed offer. Poll lab_batch_job_status with job_id.',
+        });
+      }
+
+      const verifyResult = await decisioningTagBulkApply({ sandbox: allowed.sandbox, preview_hash: params.preview_hash, confirmed: params.confirmed });
+      if (!verifyResult.ok) {
+        return fromLabApi(verifyResult, { sandbox: allowed.sandbox });
+      }
+
+      const plan = verifyResult.data;
+      const job = await createBatchJob({
+        jobType: 'decisioning_tag_bulk_write',
+        count: plan.offer_ids.length,
+        params: {
+          sandbox: allowed.sandbox,
+          action: plan.action,
+          tags: plan.resolved_tags,
+          offerIds: plan.offer_ids,
+          schema_id: plan.schema_id,
+          auto_detect: plan.auto_detect,
+          preview_hash: params.preview_hash,
+        },
+      });
+
+      writeAuditLog({
+        keyId,
+        tool: 'lab_decisioning_tag_bulk_apply',
+        sandbox: allowed.sandbox,
+        action: plan.action,
+        count: plan.offer_ids.length,
+        jobId: job.jobId,
+      });
+
+      setImmediate(() => {
+        processDecisioningTagBulkJob(job.jobId, { keyId }).catch((err) => {
+          console.error('[aep-lab-profile-mcp] decisioning tag bulk job failed:', job.jobId, err);
+        });
+      });
+
+      return jsonResult({
+        ok: true,
+        job_id: job.jobId,
+        resume_token: job.jobId,
+        job_type: 'decisioning_tag_bulk_write',
+        status: job.status,
+        count: plan.offer_ids.length,
+        sandbox: allowed.sandbox,
+        action: plan.action,
+        pollTool: 'lab_batch_job_status',
+        note: 'Job runs in background. Poll lab_batch_job_status with job_id. Pass job_id back as resume_token if interrupted.',
+      });
     },
   );
 }
