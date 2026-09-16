@@ -1,5 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+
+// assertSandboxAllowed (auth.mjs) requires this even for the allowlist-only path our
+// tests exercise — mirrors imsAuth.test.mjs's setup.
+process.env.AEP_LAB_MCP_API_KEY = process.env.AEP_LAB_MCP_API_KEY || 'server-held-test-key';
+
 import { registerDecisioningTools } from '../src/tools/decisioningTools.mjs';
 
 function registerAll() {
@@ -146,6 +151,34 @@ describe('decisioning MCP tools', () => {
     assert.equal(tools.get('lab_decisioning_selection_strategy_preview').definition.inputSchema.eligibility_rule_id_or_name.isOptional(), true);
   });
 
+  it('audience_id_or_name triggers the same offer-vs-strategy ask-first guard as eligibility_rule_id_or_name', async () => {
+    const tools = registerAll();
+    const offerHandler = tools.get('lab_decisioning_attach_offer_eligibility_preview').handler;
+    const offerRefused = await offerHandler({ sandbox: 'apalmer', offer_id_or_name: 'o1', audience_id_or_name: 'VIP' });
+    assert.match(JSON.stringify(offerRefused), /OFFER level.*STRATEGY level/s);
+
+    const strategyHandler = tools.get('lab_decisioning_selection_strategy_preview').handler;
+    const strategyRefused = await strategyHandler({ sandbox: 'apalmer', name: 'x', collection_id_or_name: 'c1', audience_id_or_name: 'VIP' });
+    assert.match(JSON.stringify(strategyRefused), /OFFER level.*STRATEGY level/s);
+  });
+
+  it('attach_offer_eligibility_preview and selection_strategy_preview refuse both eligibility_rule_id_or_name and audience_id_or_name at once', async () => {
+    const tools = registerAll();
+    const offerHandler = tools.get('lab_decisioning_attach_offer_eligibility_preview').handler;
+    const offerRefused = await offerHandler({
+      sandbox: 'apalmer', offer_id_or_name: 'o1', eligibility_rule_id_or_name: 'r1', audience_id_or_name: 'VIP',
+      user_explicitly_chose_offer_level: true,
+    });
+    assert.match(JSON.stringify(offerRefused), /Specify only one/);
+
+    const strategyHandler = tools.get('lab_decisioning_selection_strategy_preview').handler;
+    const strategyRefused = await strategyHandler({
+      sandbox: 'apalmer', name: 'x', collection_id_or_name: 'c1', eligibility_rule_id_or_name: 'r1', audience_id_or_name: 'VIP',
+      user_explicitly_chose_strategy_level: true,
+    });
+    assert.match(JSON.stringify(strategyRefused), /Specify only one/);
+  });
+
   it('ranking_formula_preview validates the field required by each formula_type', async () => {
     const tools = registerAll();
     const handler = tools.get('lab_decisioning_ranking_formula_preview').handler;
@@ -210,6 +243,7 @@ describe('decisioning MCP tools', () => {
     assert.doesNotThrow(() => schema.offer_selector.parse({ collection: 'c1' }));
     assert.doesNotThrow(() => schema.action.parse('attach'));
     assert.doesNotThrow(() => schema.action.parse('detach'));
+    assert.doesNotThrow(() => schema.action.parse('replace'));
     assert.throws(() => schema.action.parse('delete'));
   });
 

@@ -117,12 +117,13 @@ async function resolveOfferSelector(opts, selector) {
 
 function computeAfterTags(action, currentTags, requestedNames) {
   if (action === 'attach') return Array.from(new Set([...currentTags, ...requestedNames]));
+  if (action === 'replace') return Array.from(new Set(requestedNames));
   return currentTags.filter((n) => !requestedNames.includes(n));
 }
 
 async function tagBulkPreview(params) {
-  const action = params.action === 'detach' ? 'detach' : params.action === 'attach' ? 'attach' : null;
-  if (!action) throw badRequest('action must be "attach" or "detach".');
+  const action = ['attach', 'detach', 'replace'].includes(params.action) ? params.action : null;
+  if (!action) throw badRequest('action must be "attach", "detach", or "replace".');
   if (!Array.isArray(params.tags) || params.tags.length === 0 || params.tags.length > 20) {
     throw badRequest('tags must be a non-empty array of 1-20 tag ids or exact names.');
   }
@@ -149,7 +150,10 @@ async function tagBulkPreview(params) {
     if (changed) {
       changes.push({ offer_id: offer.id, offer_name: offer.name, current_tags: currentTags, after_tags: afterTags, op: action });
     } else {
-      noOp.push({ offer_id: offer.id, reason: action === 'attach' ? 'Tag(s) already present.' : 'Tag(s) not present.' });
+      noOp.push({
+        offer_id: offer.id,
+        reason: action === 'attach' ? 'Tag(s) already present.' : action === 'replace' ? 'Tag set already matches.' : 'Tag(s) not present.',
+      });
     }
   }
 
@@ -207,7 +211,9 @@ async function applyTagChangeToOffer(params) {
   const requestedIds = tags.map((t) => t.id);
   const finalIds = action === 'attach'
     ? Array.from(new Set([...existingIds, ...requestedIds]))
-    : existingIds.filter((id) => !requestedIds.includes(id));
+    : action === 'replace'
+      ? Array.from(new Set(requestedIds))
+      : existingIds.filter((id) => !requestedIds.includes(id));
 
   const beforeNames = existingIds.map((id) => idToName.get(id) || id);
   const afterNames = finalIds.map((id) => idToName.get(id) || id);

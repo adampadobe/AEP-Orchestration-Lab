@@ -19,6 +19,8 @@ import {
   decisioningSchemaExtendApply,
   decisioningTagBulkPreview,
   decisioningTagBulkApply,
+  audienceList,
+  audienceAudit,
 } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
@@ -118,7 +120,11 @@ export function registerDecisioningTools(mcpServer) {
           },
           offer_eligibility: {
             tool: 'lab_decisioning_attach_offer_eligibility_preview',
-            note: 'Attaches or detaches offer-level eligibility. Requires the caller to have explicitly stated offer-level vs strategy-level — refuses and returns the exact question otherwise.',
+            note: 'Attaches or detaches offer-level eligibility, from an eligibility rule or directly from an RT-CDP audience (auto-wrapped into a reused-by-name eligibility rule — see audience_to_eligibility_rule below). Requires the caller to have explicitly stated offer-level vs strategy-level — refuses and returns the exact question otherwise.',
+          },
+          audience_to_eligibility_rule: {
+            tools: ['lab_decisioning_attach_offer_eligibility_preview', 'lab_decisioning_selection_strategy_preview'],
+            note: 'audience_id_or_name on either tool auto-wraps an RT-CDP audience into an "Audience: <name>" eligibility rule (PQL segment-membership condition), reusing it by name on repeat calls rather than duplicating. If no such rule exists yet, returns a ready-to-run lab_decisioning_catalog_change_preview payload to create it first — never creates it silently. The PQL shape is Adobe\'s documented pattern, not yet confirmed live in this codebase; verify the created rule. Requires the same user-generated MCP key (X-AEP-Lab-Mcp-Key) as lab_audience_list/lab_audience_audit — 401s under pure Adobe IMS Coworker auth.',
           },
           schema_extend: {
             tools: ['lab_decisioning_schema_extend_preview', 'lab_decisioning_schema_extend_apply'],
@@ -126,14 +132,13 @@ export function registerDecisioningTools(mcpServer) {
           },
           tag_bulk: {
             tools: ['lab_decisioning_tag_bulk_preview', 'lab_decisioning_tag_bulk_apply'],
-            note: 'Resumable async attach/detach of 1-20 tags across up to 200 offer-items. itemTags write format is auto-detected against the real first write per sandbox and cached — see resolved_tag_format in the preview output. Poll with lab_batch_job_status; resume_token = job_id.',
+            note: 'Resumable async attach/detach/replace of 1-20 tags across up to 200 offer-items. itemTags write format is auto-detected against the real first write per sandbox and cached — see resolved_tag_format in the preview output. Poll with lab_batch_job_status; resume_token = job_id.',
           },
           id_or_name_resolution: 'Every write/delete/get tool accepts an exact DPS id or an exact display name; a name matching more than one entity fails with a disambiguation list instead of guessing.',
           audience_discovery: 'Use lab_audience_list / lab_audience_audit (Audiences context) for RT-CDP audiences — not duplicated here.',
           credentials: 'Server-side Adobe IMS token; never accepted as a tool argument.',
           known_gaps: [
             'offer_selector.collection only works when the item-collection happens to carry an explicit member-id list — most collections use an opaque predicate instead; use ids or name_prefix in that case.',
-            'No audience-to-eligibility-rule auto-wrap — attach an eligibility rule to an audience via a manually authored PQL condition instead.',
           ],
         },
       }),
@@ -947,6 +952,106 @@ export function registerDecisioningTools(mcpServer) {
     },
   );
 
+  const AUDIENCE_RULE_PREFIX = 'Audience: ';
+
+  /** Id-or-name resolution for RT-CDP audiences, mirroring resolveEntityIdOrName's shape (audiences live behind a separate MCP-key-scoped API, not the sandbox-allowlisted decisioning one). */
+  async function resolveAudienceIdOrName(sandbox, idOrName) {
+    const direct = await audienceAudit({ sandbox, audience_id: idOrName });
+    if (direct.ok) {
+      const audience = direct.data?.audience || {};
+      return { ok: true, id: audience.audienceId || audience.id, name: audience.name };
+    }
+    if (direct.status !== 404 && direct.status !== 400) return direct;
+
+    const listResult = await audienceList({ sandbox, name: idOrName, limit: 100 });
+    if (!listResult.ok) return listResult;
+    const needle = String(idOrName).toLowerCase();
+    const matches = (listResult.data?.audiences || []).filter((a) => String(a.name || '').toLowerCase() === needle);
+    if (matches.length === 0) {
+      return { ok: false, status: 404, error: `No audience found with id or exact name "${idOrName}".` };
+    }
+    if (matches.length > 1) {
+      return {
+        ok: false,
+        status: 409,
+        error: `Name "${idOrName}" matches ${matches.length} audiences — specify the exact id.`,
+        matches: matches.map((m) => ({ id: m.audienceId || m.id, name: m.name })),
+      };
+    }
+    return { ok: true, id: matches[0].audienceId || matches[0].id, name: matches[0].name };
+  }
+
+  /**
+   * Resolves eligibility_rule_id_or_name OR audience_id_or_name (mutually exclusive) to a rule id
+   * for the offer-level / strategy-level eligibility tools. For an audience, reuses an existing
+   * "Audience: <name>" eligibility rule by exact name if one exists (never duplicates on repeat
+   * calls); otherwise returns a ready-to-run change_preview so the caller creates the rule first
+   * through the normal governed path — this helper never writes anything itself.
+   *
+   * PQL shape note: the segmentMembership condition below (and wrapping it the same
+   * {type:'PQL', format:'pql/text', value} object confirmed live for ranking-formulas'
+   * expression) is Adobe's documented pattern for gating on RT-CDP segment membership, but it has
+   * not been confirmed live against this sandbox for an offer-rule's condition specifically —
+   * verify the created rule with lab_decisioning_catalog_get before relying on it in a demo.
+   */
+  async function resolveEligibilityRuleId(sandbox, { eligibilityRuleIdOrName, audienceIdOrName }) {
+    if (eligibilityRuleIdOrName && audienceIdOrName) {
+      return { ok: false, mcpResponse: toolError('Specify only one of eligibility_rule_id_or_name or audience_id_or_name.') };
+    }
+    if (eligibilityRuleIdOrName) {
+      const ruleResult = await decisioningCatalogGet({ sandbox, entity_type: 'offer-rules', id: eligibilityRuleIdOrName });
+      if (!ruleResult.ok) return { ok: false, mcpResponse: fromLabApi(ruleResult, { sandbox, entity_type: 'offer-rules' }) };
+      return { ok: true, ruleId: ruleResult.data?.id };
+    }
+    if (!audienceIdOrName) {
+      return { ok: true, ruleId: undefined };
+    }
+
+    const audience = await resolveAudienceIdOrName(sandbox, audienceIdOrName);
+    if (!audience.ok) return { ok: false, mcpResponse: fromLabApi(audience, { sandbox }) };
+
+    const ruleName = `${AUDIENCE_RULE_PREFIX}${audience.name}`;
+    const listResult = await decisioningCatalogList({ sandbox, entity_type: 'offer-rules', limit: 50 });
+    if (!listResult.ok) return { ok: false, mcpResponse: fromLabApi(listResult, { sandbox, entity_type: 'offer-rules' }) };
+    const needle = ruleName.toLowerCase();
+    const matches = (listResult.data?.items || []).filter((r) => String(r.name || '').toLowerCase() === needle);
+    if (matches.length > 1) {
+      return {
+        ok: false,
+        mcpResponse: toolError(`"${ruleName}" matches ${matches.length} eligibility rules — specify eligibility_rule_id_or_name explicitly.`, {
+          matches: matches.map((m) => ({ id: m.id, name: m.name })),
+        }),
+      };
+    }
+    if (matches.length === 1) {
+      return { ok: true, ruleId: matches[0].id };
+    }
+
+    const item = {
+      name: ruleName,
+      description: `Auto-generated to gate eligibility on RT-CDP audience "${audience.name}" (${audience.id}). Reused by name on repeat calls.`,
+      condition: { type: 'PQL', format: 'pql/text', value: `segmentMembership.ups["${audience.id}"].status == "existing"` },
+    };
+    const previewResult = await decisioningCatalogChangePreview({ entity_type: 'offer-rules', action: 'create', item });
+    if (!previewResult.ok) return { ok: false, mcpResponse: fromLabApi(previewResult, { sandbox, entity_type: 'offer-rules' }) };
+
+    return {
+      ok: false,
+      mcpResponse: jsonResult({
+        ok: true,
+        sandbox,
+        needs_create: true,
+        audience: { id: audience.id, name: audience.name },
+        note:
+          `No eligibility rule named "${ruleName}" exists yet. Call lab_decisioning_catalog_change_apply with the ` +
+          'exact item/preflight_id/confirmation below to create it (PQL segment-membership condition — see this ' +
+          'tool\'s description for the confirmed-live caveat), then re-call this tool with the same audience.',
+        create: previewResult.data,
+        applyTool: 'lab_decisioning_catalog_change_apply',
+      }),
+    };
+  }
+
   mcpServer.registerTool(
     'lab_decisioning_selection_strategy_preview',
     {
@@ -958,23 +1063,27 @@ export function registerDecisioningTools(mcpServer) {
         'scope ("target audience X for these offers"), that does not mean they chose strategy-level — ask which pattern ' +
         'they want before setting user_explicitly_chose_strategy_level:true. Builds the raw ' +
         '{rank, optionSelection, profileConstraint} payload (confirmed live) from simpler params and returns the same ' +
-        'shape as lab_decisioning_catalog_change_preview action=create. Apply with lab_decisioning_catalog_change_apply.',
+        'shape as lab_decisioning_catalog_change_preview action=create. Apply with lab_decisioning_catalog_change_apply. ' +
+        'audience_id_or_name auto-wraps an RT-CDP audience into a reused-by-name "Audience: <name>" eligibility rule ' +
+        '(PQL segment-membership condition — not yet confirmed live, verify the created rule) instead of requiring a ' +
+        'manually authored rule; mutually exclusive with eligibility_rule_id_or_name.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         name: z.string().min(1),
         collection_id_or_name: idOrNameSchema,
         ranking_formula_id_or_name: z.string().optional().describe('Omit for static priority ordering'),
         priority: z.number().int().min(1).optional().describe('Static priority score (1 = highest); default 1'),
-        eligibility_rule_id_or_name: z.string().optional().describe('Gates the WHOLE collection under one rule — see the ask-first guidance above'),
+        eligibility_rule_id_or_name: z.string().optional().describe('Gates the WHOLE collection under one rule — see the ask-first guidance above. Mutually exclusive with audience_id_or_name.'),
+        audience_id_or_name: z.string().optional().describe('RT-CDP audience id or exact name — auto-wraps into a reused-by-name eligibility rule. Mutually exclusive with eligibility_rule_id_or_name.'),
         user_explicitly_chose_strategy_level: z
           .boolean()
           .optional()
           .default(false)
-          .describe('REQUIRED true if eligibility_rule_id_or_name is set and the colleague already said "strategy level" / "one rule for the whole collection" in this conversation'),
+          .describe('REQUIRED true if eligibility_rule_id_or_name or audience_id_or_name is set and the colleague already said "strategy level" / "one rule for the whole collection" in this conversation'),
       },
     },
     async (params) => {
-      if (params.eligibility_rule_id_or_name && !params.user_explicitly_chose_strategy_level) {
+      if ((params.eligibility_rule_id_or_name || params.audience_id_or_name) && !params.user_explicitly_chose_strategy_level) {
         return toolError(
           'Refusing to guess the eligibility attach point. Ask the colleague: "Do you want the eligibility at the ' +
           'OFFER level (each offer carries its own — allows differentiated targeting later) or at the STRATEGY level ' +
@@ -987,6 +1096,16 @@ export function registerDecisioningTools(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
+      let profileConstraint = { profileConstraintType: 'none' };
+      if (params.eligibility_rule_id_or_name || params.audience_id_or_name) {
+        const resolved = await resolveEligibilityRuleId(allowed.sandbox, {
+          eligibilityRuleIdOrName: params.eligibility_rule_id_or_name,
+          audienceIdOrName: params.audience_id_or_name,
+        });
+        if (!resolved.ok) return resolved.mcpResponse;
+        profileConstraint = { profileConstraintType: 'eligibilityRule', eligibilityRule: resolved.ruleId };
+      }
+
       const collectionResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'item-collections', id: params.collection_id_or_name });
       if (!collectionResult.ok) return fromLabApi(collectionResult, { sandbox: allowed.sandbox, entity_type: 'item-collections' });
       const collectionId = collectionResult.data?.id;
@@ -996,13 +1115,6 @@ export function registerDecisioningTools(mcpServer) {
         const rfResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'ranking-formulas', id: params.ranking_formula_id_or_name });
         if (!rfResult.ok) return fromLabApi(rfResult, { sandbox: allowed.sandbox, entity_type: 'ranking-formulas' });
         rankingFunctionId = rfResult.data?.id;
-      }
-
-      let profileConstraint = { profileConstraintType: 'none' };
-      if (params.eligibility_rule_id_or_name) {
-        const ruleResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'offer-rules', id: params.eligibility_rule_id_or_name });
-        if (!ruleResult.ok) return fromLabApi(ruleResult, { sandbox: allowed.sandbox, entity_type: 'offer-rules' });
-        profileConstraint = { profileConstraintType: 'eligibilityRule', eligibilityRule: ruleResult.data?.id };
       }
 
       const item = {
@@ -1031,14 +1143,18 @@ export function registerDecisioningTools(mcpServer) {
         'offer-level (this tool) over strategy-level (lab_decisioning_selection_strategy_preview\'s eligibility_rule_id_or_name). ' +
         'If they only said "target audience X for these offers", they have NOT chosen — that phrase names the scope, not ' +
         'the attach point. Ask first, then retry with user_explicitly_chose_offer_level:true only after they say offer-level. ' +
-        'Omit eligibility_rule_id_or_name to detach (reset to no constraint). Builds a JSON Patch on the offer-item\'s ' +
-        'itemConstraints (profileConstraintType + eligibilityRule — confirmed live) and returns the same shape as ' +
-        'lab_decisioning_catalog_change_preview action=update. Apply with lab_decisioning_catalog_change_apply. The ' +
-        'referenced rule must have exdRule:true (lab_decisioning_catalog_change_apply defaults this on create).',
+        'Omit both eligibility_rule_id_or_name and audience_id_or_name to detach (reset to no constraint). Builds a ' +
+        'JSON Patch on the offer-item\'s itemConstraints (profileConstraintType + eligibilityRule — confirmed live) and ' +
+        'returns the same shape as lab_decisioning_catalog_change_preview action=update. Apply with ' +
+        'lab_decisioning_catalog_change_apply. The referenced rule must have exdRule:true (lab_decisioning_catalog_change_apply ' +
+        'defaults this on create). audience_id_or_name auto-wraps an RT-CDP audience into a reused-by-name ' +
+        '"Audience: <name>" eligibility rule (PQL segment-membership condition — not yet confirmed live, verify the ' +
+        'created rule) instead of requiring a manually authored rule; mutually exclusive with eligibility_rule_id_or_name.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         offer_id_or_name: idOrNameSchema,
-        eligibility_rule_id_or_name: z.string().optional().describe('Omit to detach any existing offer-level eligibility'),
+        eligibility_rule_id_or_name: z.string().optional().describe('Omit to detach any existing offer-level eligibility. Mutually exclusive with audience_id_or_name.'),
+        audience_id_or_name: z.string().optional().describe('RT-CDP audience id or exact name — auto-wraps into a reused-by-name eligibility rule. Mutually exclusive with eligibility_rule_id_or_name.'),
         user_explicitly_chose_offer_level: z
           .boolean()
           .optional()
@@ -1047,7 +1163,7 @@ export function registerDecisioningTools(mcpServer) {
       },
     },
     async (params) => {
-      if (params.eligibility_rule_id_or_name && !params.user_explicitly_chose_offer_level) {
+      if ((params.eligibility_rule_id_or_name || params.audience_id_or_name) && !params.user_explicitly_chose_offer_level) {
         return toolError(
           'Refusing to guess the eligibility attach point. Ask the colleague: "Do you want the eligibility at the ' +
           'OFFER level (each offer carries its own — allows differentiated targeting later) or at the STRATEGY level ' +
@@ -1061,10 +1177,13 @@ export function registerDecisioningTools(mcpServer) {
       }
 
       let patchValue = { profileConstraintType: 'none' };
-      if (params.eligibility_rule_id_or_name) {
-        const ruleResult = await decisioningCatalogGet({ sandbox: allowed.sandbox, entity_type: 'offer-rules', id: params.eligibility_rule_id_or_name });
-        if (!ruleResult.ok) return fromLabApi(ruleResult, { sandbox: allowed.sandbox, entity_type: 'offer-rules' });
-        patchValue = { profileConstraintType: 'eligibilityRule', eligibilityRule: ruleResult.data?.id };
+      if (params.eligibility_rule_id_or_name || params.audience_id_or_name) {
+        const resolved = await resolveEligibilityRuleId(allowed.sandbox, {
+          eligibilityRuleIdOrName: params.eligibility_rule_id_or_name,
+          audienceIdOrName: params.audience_id_or_name,
+        });
+        if (!resolved.ok) return resolved.mcpResponse;
+        patchValue = { profileConstraintType: 'eligibilityRule', eligibilityRule: resolved.ruleId };
       }
 
       writeAuditLog({
@@ -1159,16 +1278,17 @@ export function registerDecisioningTools(mcpServer) {
   mcpServer.registerTool(
     'lab_decisioning_tag_bulk_preview',
     {
-      title: 'Preview a bulk tag attach/detach across offer-items',
+      title: 'Preview a bulk tag attach/detach/replace across offer-items',
       description:
         'Resolves 1-20 tags (id or exact name) and an offer_selector (ids, name_prefix, or collection) against up to ' +
         '200 offer-items, and returns per-offer current_tags/after_tags plus a no_op list for offers already in the ' +
-        'desired state. resolved_tag_format reflects the itemTags write format cached for this sandbox from a prior ' +
-        'apply, or null if unresolved — lab_decisioning_tag_bulk_apply auto-detects it against the real first write ' +
-        'in that case. Returns preview_hash for lab_decisioning_tag_bulk_apply.',
+        'desired state. action=replace overwrites each offer\'s entire tag set to exactly the given tags (unlike ' +
+        'attach/detach, which merge with or subtract from the existing set). resolved_tag_format reflects the itemTags ' +
+        'write format cached for this sandbox from a prior apply, or null if unresolved — lab_decisioning_tag_bulk_apply ' +
+        'auto-detects it against the real first write in that case. Returns preview_hash for lab_decisioning_tag_bulk_apply.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
-        action: z.enum(['attach', 'detach']),
+        action: z.enum(['attach', 'detach', 'replace']),
         tags: z.array(z.string().min(1)).min(1).max(20).describe('Tag id or exact name — ambiguous names fail with a disambiguation list'),
         offer_selector: offerSelectorSchema,
         schema_id: z.string().optional().describe('Override x-schema-id for offer-items'),
