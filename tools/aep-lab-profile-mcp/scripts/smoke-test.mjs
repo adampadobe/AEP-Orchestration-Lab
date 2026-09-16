@@ -403,6 +403,10 @@ async function run() {
       'lab_decisioning_ranking_formula_preview',
       'lab_decisioning_selection_strategy_preview',
       'lab_decisioning_attach_offer_eligibility_preview',
+      'lab_decisioning_schema_extend_preview',
+      'lab_decisioning_schema_extend_apply',
+      'lab_decisioning_tag_bulk_preview',
+      'lab_decisioning_tag_bulk_apply',
     ]),
     pdf: await verifyFocusedEndpoint('/mcp/pdf', [
       'lab_mcp_access_info',

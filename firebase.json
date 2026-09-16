@@ -479,6 +479,41 @@
         }
       },
       {
+        "source": "/api/decisioning/schema/extend-preview",
+        "function": {
+          "functionId": "decisioningSchemaExtendPreviewProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/schema/extend-apply",
+        "function": {
+          "functionId": "decisioningSchemaExtendApplyProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/tags/bulk-preview",
+        "function": {
+          "functionId": "decisioningTagBulkPreviewProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/tags/bulk-apply",
+        "function": {
+          "functionId": "decisioningTagBulkApplyProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/tags/apply-one",
+        "function": {
+          "functionId": "decisioningTagApplyOneProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/campaign-name",
         "function": {
           "functionId": "campaignNameProxy",

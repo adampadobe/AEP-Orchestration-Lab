@@ -71,8 +71,12 @@ re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibil
   tags is invalid"`); a real item-collection observed in this sandbox references a tag by a
   standard dashed UUID (e.g. `72881e1c-b293-4e55-8dd1-256412a9afbd`) that doesn't correspond
   to any tag currently returned by `GET /tags`, suggesting either a stale reference or a
-  different tag registry than the one `/tags` exposes. Unresolved — no bulk-tagging tool
-  ships until this is nailed down.
+  different tag registry than the one `/tags` exposes. Rather than lock in another guess,
+  `lab_decisioning_tag_bulk_apply` now resolves this live at write time: it tries `name`,
+  then `{tags: [...]}`, then the two already-falsified id shapes above as a last resort,
+  against the real first write in a sandbox, and caches whichever format DPS accepts
+  (`functions/decisioningTagFormatStore.js`) so every later call in that sandbox skips
+  straight to it. See "MCP write/bulk layer" below.
 
 Many **list decision items** calls require header **`x-schema-id`** (your decision item schema). Pass it through the local proxy as `platform_headers` (see below).
 
@@ -93,10 +97,19 @@ no persisted "pending preview" record):
 | *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_ranking_formula_preview` | Builds the confirmed live payload shape from a `formula_type` enum instead of the raw object. |
 | *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_selection_strategy_preview` | Resolves collection/ranking-formula/eligibility-rule references by id-or-name and builds the raw payload. Hard guard: refuses to set strategy-level eligibility unless the caller states `user_explicitly_chose_strategy_level: true`. |
 | *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_attach_offer_eligibility_preview` | Builds the confirmed `itemConstraints` JSON Patch to attach/detach offer-level eligibility. Hard guard: refuses to set offer-level eligibility unless the caller states `user_explicitly_chose_offer_level: true` — symmetric with the selection-strategy guard, so neither tool silently picks the attach point on the caller's behalf. |
+| `POST /api/decisioning/schema/extend-preview` | `lab_decisioning_schema_extend_preview` | Add-only diff of 1-50 proposed fields against the offer-items schema's tenant field group (Schema Registry). Never removes or retypes an existing field — a same-name field with a different shape is reported as a `conflict`, not applied. Returns `preview_hash`. |
+| `POST /api/decisioning/schema/extend-apply` | `lab_decisioning_schema_extend_apply` | One non-retried field-group `PATCH` (`op: add` only). Requires the unchanged `fields`, `preview_hash`, and `confirmed: true` — a boolean gate, not a typed confirmation phrase, since a field list doesn't have a natural "entity name" to echo back. Re-reads the field group first; a changed `meta:eTag` fails closed as `error: "schema_drifted"`. |
+| `POST /api/decisioning/tags/bulk-preview` + `POST /api/decisioning/tags/bulk-apply` + `POST /api/decisioning/tags/apply-one` | `lab_decisioning_tag_bulk_preview` / `lab_decisioning_tag_bulk_apply` | Resolves 1-20 tags and an `offer_selector` (`ids`, `name_prefix`, or `collection` — the last only works when the collection happens to carry an explicit member-id list, not DPS's usual opaque predicate) against up to 200 offers, then attaches/detaches sequentially in the background (Firestore job `decisioning_tag_bulk_write`, pollable with `lab_batch_job_status`). `bulk-apply` takes only `{sandbox, preview_hash, confirmed, resume_token?}` — the resolved plan is cached server-side by its own `preview_hash` (`functions/decisioningTagBulkPreviewStore.js`, 1-hour TTL) so a large matched-offer list never needs to be resent; `resume_token` is the job id, letting an interrupted batch continue from its first unprocessed offer instead of restarting. Every per-offer write re-reads that offer's live tags immediately before patching it, so drift since preview fails closed at the item level and an already-satisfied offer is a `no_op`, not a failure. |
 
 Backend implementation: `functions/decisioningCatalogWriteService.js` (write operations) and
 `functions/decisioningCatalogService.js` (read + shared `platformFetch`/allowlist, now with
 `body` support for POST/PATCH/DELETE, and `resolveEntityIdOrName` for id-or-name lookups).
+The schema-extend and tag-bulk pairs above are separate services that reuse those two —
+`functions/decisioningSchemaExtendService.js` (plus `functions/catalogConfigStore.js` for the
+offer schema id) and `functions/decisioningTagBulkService.js` (plus
+`functions/decisioningTagFormatStore.js` and `functions/decisioningTagBulkPreviewStore.js`) —
+rather than folding non-DPS-entity writes (a Schema Registry field group; a per-offer tag
+diff) into `decisioningCatalogWriteService.js`'s single-entity plan/hash model.
 Write verbs, confirmed live against sandbox `apalmer` (create + update + delete on a
 disposable `ranking-formulas` object) are `POST` (create), `PATCH` (update) and `DELETE`
 (delete) against the same single-resource paths as the read side. **Update uses `PATCH`

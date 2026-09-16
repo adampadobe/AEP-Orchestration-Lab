@@ -122,6 +122,9 @@ const decisioningExplainService = lazyRequireMod('./decisioningExplainService');
 const decisioningCatalogService = lazyRequireMod('./decisioningCatalogService');
 const decisioningCatalogAssessService = lazyRequireMod('./decisioningCatalogAssessService');
 const decisioningCatalogWriteService = lazyRequireMod('./decisioningCatalogWriteService');
+const decisioningSchemaExtendService = lazyRequireMod('./decisioningSchemaExtendService');
+const decisioningTagBulkService = lazyRequireMod('./decisioningTagBulkService');
+const decisioningTagBulkPreviewStore = lazyRequireMod('./decisioningTagBulkPreviewStore');
 const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
@@ -1698,6 +1701,297 @@ exports.decisioningCatalogDeleteApplyProxy = onRequest(profileFnOpts, async (req
       confirmation: body.confirmation,
     });
     res.status(result.ok ? 200 : 502).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/schema/extend-preview — add-only tenant field-group diff, no Adobe write */
+exports.decisioningSchemaExtendPreviewProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningSchemaExtendService.schemaExtendPreview({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      schema_id: body.schemaId || body.schema_id,
+      field_group_id: body.fieldGroupId || body.field_group_id,
+      fields: body.fields,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(result.ok ? 200 : (result.status || 502)).json(result);
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/schema/extend-apply — one non-retried Schema Registry PATCH, add-only */
+exports.decisioningSchemaExtendApplyProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningSchemaExtendService.schemaExtendApply({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      schema_id: body.schemaId || body.schema_id,
+      field_group_id: body.fieldGroupId || body.field_group_id,
+      fields: body.fields,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+      preview_hash: body.preview_hash,
+      confirmed: body.confirmed,
+    });
+    res.status(result.ok ? 200 : (result.status || 502)).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/tags/bulk-preview — resolves tags + offer_selector, no Adobe write */
+exports.decisioningTagBulkPreviewProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  const offerSelector = body.offerSelector || body.offer_selector;
+
+  try {
+    const result = await decisioningTagBulkService.tagBulkPreview({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      action: body.action,
+      tags: body.tags,
+      offer_selector: offerSelector,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    if (result.ok) {
+      await decisioningTagBulkPreviewStore.savePreview(result.preview_hash, {
+        sandbox,
+        action: body.action,
+        tags: body.tags,
+        offer_selector: offerSelector,
+        schemaId: body.schemaId || body.schema_id,
+        autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+        offerIds: result.offer_ids,
+        resolvedTags: result.resolved_tags,
+      });
+    }
+    res.status(result.ok ? 200 : (result.status || 502)).json(result);
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/tags/bulk-apply — re-verifies the cached preview plan, returns it for the MCP job processor */
+exports.decisioningTagBulkApplyProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  if (body.confirmed !== true) {
+    res.status(400).json({ ok: false, error: 'confirmed must be true.' });
+    return;
+  }
+
+  const previewHash = String(body.preview_hash || '');
+  const cached = await decisioningTagBulkPreviewStore.getPreview(previewHash);
+  if (!cached) {
+    res.status(409).json({ ok: false, error: 'preview_hash not found or expired; run lab_decisioning_tag_bulk_preview again.' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || cached.sandbox;
+  if (sandbox !== cached.sandbox) {
+    res.status(400).json({ ok: false, error: `sandbox mismatch: preview was for "${cached.sandbox}".` });
+    return;
+  }
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    // Re-resolve tags + offer_selector fresh (fail closed if anything changed since preview).
+    const fresh = await decisioningTagBulkService.tagBulkPreview({
+      sandbox: cached.sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      action: cached.action,
+      tags: cached.tags,
+      offer_selector: cached.offer_selector,
+      schemaId: cached.schemaId,
+      autoDetect: cached.autoDetect,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    if (!fresh.ok) {
+      res.status(fresh.status || 502).json(fresh);
+      return;
+    }
+    if (fresh.preview_hash !== previewHash) {
+      res.status(409).json({ ok: false, error: 'preview_hash is stale — tags or matched offers changed since preview; run lab_decisioning_tag_bulk_preview again.' });
+      return;
+    }
+
+    res.status(200).json({
+      ok: true,
+      sandbox: cached.sandbox,
+      action: cached.action,
+      resolved_tags: fresh.resolved_tags,
+      offer_ids: fresh.offer_ids,
+      schema_id: cached.schemaId,
+      auto_detect: cached.autoDetect,
+    });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox: cached.sandbox });
+  }
+});
+
+/** POST /api/decisioning/tags/apply-one — single offer-item itemTags PATCH, re-reads current tags first */
+exports.decisioningTagApplyOneProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningTagBulkService.applyTagChangeToOffer({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      action: body.action,
+      tags: body.tags,
+      offerId: body.offer_id || body.offerId,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(result.ok ? 200 : (result.status || 502)).json({ sandbox, ...result });
   } catch (e) {
     res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
   }

@@ -685,6 +685,96 @@ export async function decisioningCatalogDeleteApply(params) {
   });
 }
 
+/**
+ * POST /api/decisioning/schema/extend-preview
+ * @param {object} params
+ */
+export async function decisioningSchemaExtendPreview(params) {
+  return labApiRequest('/api/decisioning/schema/extend-preview', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      schemaId: params.schema_id,
+      fieldGroupId: params.field_group_id,
+      fields: params.fields,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/schema/extend-apply
+ * @param {object} params
+ */
+export async function decisioningSchemaExtendApply(params) {
+  return labApiRequest('/api/decisioning/schema/extend-apply', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      schemaId: params.schema_id,
+      fieldGroupId: params.field_group_id,
+      fields: params.fields,
+      preview_hash: params.preview_hash,
+      confirmed: params.confirmed,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/tags/bulk-preview
+ * @param {object} params
+ */
+export async function decisioningTagBulkPreview(params) {
+  return labApiRequest('/api/decisioning/tags/bulk-preview', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      action: params.action,
+      tags: params.tags,
+      offerSelector: params.offer_selector,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/tags/bulk-apply — verifies the cached preview plan and returns it (no per-item write yet).
+ * @param {object} params
+ */
+export async function decisioningTagBulkApply(params) {
+  return labApiRequest('/api/decisioning/tags/bulk-apply', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      preview_hash: params.preview_hash,
+      confirmed: params.confirmed,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/tags/apply-one — single offer-item itemTags PATCH.
+ * @param {object} params
+ */
+export async function decisioningTagApplyOne(params) {
+  return labApiRequest('/api/decisioning/tags/apply-one', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      action: params.action,
+      tags: params.tags,
+      offer_id: params.offer_id,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
 /** Read-only AEP audience inventory; requires the caller's user-generated MCP key. */
 export async function audienceList(params) {
   return labApiRequest('/api/audience-management', {
