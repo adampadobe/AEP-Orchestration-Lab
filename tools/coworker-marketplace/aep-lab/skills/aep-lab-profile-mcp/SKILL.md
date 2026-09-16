@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.50.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.51.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, using Adobe Firefly media or Photoshop, InDesign, Substance 3D, Express, and Illustrator production workflows, or reading lab execution framework / industry playbooks.
@@ -12,7 +12,7 @@ metadata:
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.50.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.51.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 This plugin installs the complete 206-tool `aep-lab-general` connection plus fifteen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `aep-lab-decisioning`, `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-commerce`, `aep-lab-commerce-optimizer`, `aep-lab-firefly`, `aep-lab-creativity`, `aep-lab-adobe-capabilities`, and `aep-lab-measurement-quality`. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
 
