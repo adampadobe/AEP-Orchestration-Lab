@@ -122,6 +122,15 @@ function buildEdgeDecisionInteractPayload(config, params) {
   }
 
   const identityMap = buildDecisionIdentityMap({ email, ecid, namespace });
+  // No caller-supplied ECID: ask Edge Network to resolve/mint one as part of this
+  // same request (query.identity.fetch), mirroring what the Web SDK does on a
+  // fresh browser visit — Edge assigns a real, validated ECID and (per Adobe's
+  // documented per-request identity-then-decisioning pipeline) resolves
+  // personalization using the now-complete identityMap within the same call.
+  // Not yet confirmed live for this specific datastream; evaluateDecisioningEdge
+  // below falls back to an explicit second call with the minted ECID if this
+  // first pass still comes back empty.
+  const identityFetch = !identityMap.ECID ? { identity: { fetch: ['ECID'] } } : {};
 
   if (mode === 'surfaces') {
     const surfaces = buildSurfacesFromPageUrl(pageUrl, placements);
@@ -148,6 +157,7 @@ function buildEdgeDecisionInteractPayload(config, params) {
             surfaces,
             schemas: PERSONALIZATION_SCHEMAS,
           },
+          ...identityFetch,
         },
       },
     };
@@ -176,6 +186,7 @@ function buildEdgeDecisionInteractPayload(config, params) {
         personalization: {
           decisionScopes,
         },
+        ...identityFetch,
       },
     },
   };
@@ -209,7 +220,7 @@ async function evaluateDecisioningEdge(opts) {
     };
   }
 
-  const built = buildEdgeDecisionInteractPayload(config || {}, {
+  const baseParams = {
     email: body.email,
     ecid: body.ecid,
     namespace: body.namespace,
@@ -219,18 +230,47 @@ async function evaluateDecisioningEdge(opts) {
     viewUrl: body.viewUrl,
     viewName: body.viewName,
     placements: body.placements,
-  });
+  };
+
+  let built = buildEdgeDecisionInteractPayload(config || {}, baseParams);
   if (!built.ok) {
     return { ok: false, error: built.error, sandbox };
   }
 
-  const edgeResult = await sendEdgeDecisionEvent(
+  let edgeResult = await sendEdgeDecisionEvent(
     opts.accessToken,
     opts.clientId,
     opts.orgId,
     datastreamId,
     built.payload,
   );
+
+  // No caller-supplied ECID and the first pass came back empty: Edge may have
+  // minted a fresh one (query.identity.fetch above) without resolving
+  // personalization against it in the same request. Re-run once, explicitly,
+  // with that minted ECID alongside whatever else was supplied — this is the
+  // same email+ECID combination a live browser session sends, just assembled
+  // server-side across two calls instead of the SDK doing it in one.
+  let autoResolvedEcid = null;
+  const hadEcid = isValidEdgeEcid(body.ecid != null ? String(body.ecid).trim() : '');
+  if (!hadEcid && (!edgeResult.propositions || edgeResult.propositions.length === 0)) {
+    const minted = (edgeResult.resolvedIdentity || []).find((i) => i.namespace === 'ECID' && i.id);
+    if (minted) {
+      autoResolvedEcid = minted.id;
+      const retryBuilt = buildEdgeDecisionInteractPayload(config || {}, { ...baseParams, ecid: minted.id });
+      if (retryBuilt.ok) {
+        const retryResult = await sendEdgeDecisionEvent(
+          opts.accessToken,
+          opts.clientId,
+          opts.orgId,
+          datastreamId,
+          retryBuilt.payload,
+        );
+        built = retryBuilt;
+        edgeResult = retryResult;
+      }
+    }
+  }
 
   return {
     ok: true,
@@ -240,6 +280,7 @@ async function evaluateDecisioningEdge(opts) {
     surfaces: built.surfaces || null,
     decisionScopes: built.decisionScopes || null,
     identityMap: built.identityMap,
+    autoResolvedEcid,
     requestId: edgeResult.requestId,
     propositions: edgeResult.propositions,
     rawHandle: edgeResult.rawHandle,

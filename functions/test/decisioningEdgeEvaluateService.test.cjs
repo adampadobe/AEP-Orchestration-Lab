@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   parseEdgeInteractPropositions,
+  parseEdgeInteractIdentity,
   buildDecisionIdentityMap,
   isValidEdgeEcid,
 } = require('../eventEdgeService');
@@ -90,6 +91,47 @@ test('buildEdgeDecisionInteractPayload surfaces mode includes query.personalizat
   assert.ok(Array.isArray(built.surfaces));
   assert.ok(built.payload.query.personalization.surfaces.length > 0);
   assert.ok(Array.isArray(built.payload.query.personalization.schemas));
+});
+
+test('buildEdgeDecisionInteractPayload requests identity.fetch when no ecid is supplied', () => {
+  const config = {
+    targetPageUrl: 'https://example.com/decision-lab',
+    edgePersonalizationMode: 'surfaces',
+    placements: [{ key: 'topRibbon', fragment: 'TopRibbon', label: 'Top ribbon' }],
+  };
+  const emailOnly = buildEdgeDecisionInteractPayload(config, { email: EMAIL });
+  assert.deepEqual(emailOnly.payload.query.identity, { fetch: ['ECID'] });
+
+  const withEcid = buildEdgeDecisionInteractPayload(config, { email: EMAIL, ecid: ECID });
+  assert.equal(withEcid.payload.query.identity, undefined);
+});
+
+test('buildEdgeDecisionInteractPayload requests identity.fetch in decisionScopes mode too', () => {
+  const config = {
+    targetPageUrl: 'web://example.com/decision-lab',
+    edgePersonalizationMode: 'decisionScopes',
+  };
+  const emailOnly = buildEdgeDecisionInteractPayload(config, { email: EMAIL });
+  assert.deepEqual(emailOnly.payload.query.identity, { fetch: ['ECID'] });
+});
+
+test('parseEdgeInteractIdentity extracts a minted ECID from an identity:result handle', () => {
+  const data = {
+    handle: [
+      { type: 'identity:result', payload: [{ id: '12345678901234567890', namespace: { code: 'ECID' }, primary: true }] },
+      { type: 'personalization:decisions', payload: [] },
+    ],
+  };
+  const identities = parseEdgeInteractIdentity(data);
+  assert.equal(identities.length, 1);
+  assert.equal(identities[0].id, '12345678901234567890');
+  assert.equal(identities[0].namespace, 'ECID');
+  assert.equal(identities[0].primary, true);
+});
+
+test('parseEdgeInteractIdentity returns empty array when there is no identity:result handle', () => {
+  assert.deepEqual(parseEdgeInteractIdentity({ handle: [{ type: 'personalization:decisions', payload: [] }] }), []);
+  assert.deepEqual(parseEdgeInteractIdentity({}), []);
 });
 
 test('buildEdgeDecisionInteractPayload decisionScopes mode uses decisionScopes query', () => {

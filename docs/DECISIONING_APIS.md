@@ -150,6 +150,14 @@ REST above **manages** definitions. **Edge** executes decisions for a profile/se
 
 See **[EDGE_TESTING.md](./EDGE_TESTING.md)** in this folder for Web SDK, `decisionScopes`, and Assurance.
 
+### Identity resolution for `lab_decisioning_edge_evaluate` — why email-only can return zero propositions
+
+Confirmed live 2026-09-16 against sandbox `apalmer`: a real profile (real hotel/flight XDM data, real ExD eligibility conditions that reference that data) returned **zero propositions** from `lab_decisioning_edge_evaluate` called with only `email`, even though `content-decision-live-edge.html` returns full decisions for the exact same identity. Root-caused via `get_identity_graph`/`get_profile_by_id` against the real Adobe Profile Access API (not just this repo's own proxy): the profile's identity graph has **never had an ECID merged onto it** — `identityMap` contains only `email`. This isn't a data or config bug; it's how the profile was generated.
+
+The live page works anyway because it runs the real Adobe Web SDK (Alloy, loaded from this datastream's Launch script) in the browser. On load, Alloy mints a genuine, Adobe-validated ECID via the Identity Service and sends it in the **same** `identityMap` as the typed email on `alloy('sendEvent', ...)`. Edge resolves personalization from that combination live — no pre-existing identity-graph link is required, but a real, Adobe-issued ECID is: a fabricated one (any random 10+ digit string) is rejected outright by Edge Network with `"error": "Invalid identity provided"` — confirmed live. `auto_fetch_ecid` on the MCP tool (reading whatever ecid is already merged onto the UPS profile) cannot help a profile like this one, because there is nothing to fetch.
+
+`lab_decisioning_edge_evaluate` (`functions/decisioningEdgeEvaluateService.js`) now closes this gap automatically: when no ECID is supplied, it adds `query.identity.fetch: ["ECID"]` to the interact request, and if that first pass still returns zero propositions, it retries once with the newly Edge-minted ECID paired with the email — reproducing the live page's identity combination server-side in one MCP call, no browser needed. `evaluate.autoResolvedEcid` in the response shows whether this fired. This retry mechanism is implemented but **not yet confirmed live** for every datastream (the single-request `identity.fetch` + immediate personalization path, and the explicit two-call retry, are both plausible-but-unverified against Adobe's actual per-request pipeline ordering) — treat a still-empty result after the retry as a genuine eligibility-condition failure, not an identity problem.
+
 ## Real-Time CDP Profile (optional smoke test)
 
 `GET https://platform.adobe.io/data/core/ups/access/entities` with profile schema + identity — useful to confirm the same identity you use in Edge exists in UPS. Parameter names: [Profile API](https://experienceleague.adobe.com/en/docs/experience-platform/profile/api/overview).
