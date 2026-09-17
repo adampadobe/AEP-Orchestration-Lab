@@ -351,6 +351,30 @@ function buildDecisionIdentityMap({ email, ecid, namespace }) {
  * Parse Edge interact response handles into proposition objects (Alloy-shaped).
  * @param {Record<string, unknown>} data
  */
+/**
+ * Extract a resolved/auto-minted identity from an Edge interact response's
+ * `identity:result` handle (returned when the request's query.identity.fetch
+ * asked for one). This is how a request with no ECID gets a real,
+ * Adobe-validated one back — the same mechanism a first-time browser visit
+ * relies on, just invoked server-side instead of via the Web SDK.
+ */
+function parseEdgeInteractIdentity(data) {
+  if (!data || typeof data !== 'object') return [];
+  const handles = Array.isArray(data.handle) ? data.handle : [];
+  /** @type {Array<{ id: string, namespace: string, primary?: boolean }>} */
+  const out = [];
+  for (const h of handles) {
+    if (!h || typeof h !== 'object') continue;
+    if (String(h.type || '').toLowerCase() !== 'identity:result') continue;
+    const payload = Array.isArray(h.payload) ? h.payload : [];
+    for (const p of payload) {
+      if (!p || typeof p !== 'object' || !p.id) continue;
+      out.push({ id: String(p.id), namespace: String((p.namespace && p.namespace.code) || ''), primary: Boolean(p.primary) });
+    }
+  }
+  return out;
+}
+
 function parseEdgeInteractPropositions(data) {
   if (!data || typeof data !== 'object') return [];
   /** @type {Record<string, unknown>[]} */
@@ -416,10 +440,12 @@ async function sendEdgeEvent(token, clientId, orgId, datastreamId, payload) {
 async function sendEdgeDecisionEvent(token, clientId, orgId, datastreamId, payload) {
   const data = await postEdgeInteract(token, clientId, orgId, datastreamId, payload);
   const propositions = parseEdgeInteractPropositions(data);
+  const resolvedIdentity = parseEdgeInteractIdentity(data);
   return {
     ok: true,
     requestId: data.requestId || null,
     propositions,
+    resolvedIdentity,
     rawHandle: Array.isArray(data.handle) ? data.handle : [],
   };
 }
@@ -749,6 +775,7 @@ module.exports = {
   buildTriggerPayload,
   buildDecisionIdentityMap,
   parseEdgeInteractPropositions,
+  parseEdgeInteractIdentity,
   isValidEdgeEcid,
   sendEdgeEvent,
   sendEdgeDecisionEvent,

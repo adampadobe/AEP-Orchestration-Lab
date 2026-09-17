@@ -95,6 +95,10 @@ export function registerDecisioningTools(mcpServer) {
           personalization_and_diagnostics: [
             'lab_decision_lab_config', 'lab_decisioning_edge_evaluate', 'lab_explain_decision_response', 'lab_decisioning_resolve_treatment_name',
           ],
+          identity_resolution_for_edge_evaluate: {
+            tool: 'lab_decisioning_edge_evaluate',
+            note: 'Three layers, automatic, no separate profile-fetch step needed: (1) auto_fetch_ecid (default true) reads any ecid already on the UPS profile, (2) if none exists and the first Edge pass returns zero propositions, the server asks Edge to mint a real ECID in that same request and retries once with email + that ECID — the identity combination a live browser page sends on first visit. autoResolvedEcid in the response shows whether step 2 fired. If propositions are still empty after that, it is a real eligibility-condition failure, not an identity-binding one.',
+          },
           catalog_read: ['lab_decisioning_catalog_list', 'lab_decisioning_catalog_get', 'lab_decisioning_catalog_schema', 'lab_decisioning_catalog_assess'],
           catalog_write: {
             tools: ['lab_decisioning_catalog_change_preview', 'lab_decisioning_catalog_change_apply'],
@@ -189,7 +193,14 @@ export function registerDecisioningTools(mcpServer) {
       description:
         'POST /api/decisioning/edge-evaluate — server-side Edge interact with personalization (surfaces or decisionScopes) ' +
         'using Decision lab Firestore config. Pass email + ecid from lab_generate_profile; ECID is primary when both present. ' +
-        'Does not expose /api/aep. Sandbox is allowlist-gated.',
+        'A profile with NO ecid ever merged onto it (auto_fetch_ecid finds nothing) is not a dead end: if the first pass ' +
+        'comes back with zero propositions, the server automatically asks Edge to mint a fresh, real ECID in that same ' +
+        'request (query.identity.fetch) and retries once with email + that minted ECID together — the same combination a ' +
+        'live browser page sends on first visit, just assembled server-side. Check evaluate.autoResolvedEcid in the response ' +
+        'to see whether this happened; it is null when your supplied identity (or auto_fetch_ecid) already worked on the ' +
+        'first pass. This retry path is not yet confirmed live for every datastream — if propositions are still empty after ' +
+        'it, the eligibility condition itself is failing, not identity resolution. Does not expose /api/aep. Sandbox is ' +
+        'allowlist-gated.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         email: z.string().email().optional(),
@@ -264,6 +275,10 @@ export function registerDecisioningTools(mcpServer) {
 
       if (!apiResult.ok) {
         return fromLabApi(apiResult, { sandbox: allowed.sandbox, warnings: warnings.length ? warnings : undefined });
+      }
+
+      if (apiResult.data?.autoResolvedEcid) {
+        warnings.push(`No ecid resolved on the first pass; server auto-minted ${apiResult.data.autoResolvedEcid} via Edge and retried once.`);
       }
 
       return jsonResult({
