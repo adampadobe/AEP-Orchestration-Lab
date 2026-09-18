@@ -103,15 +103,16 @@
       product: 'Focused Lab MCP · 21 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile',
       summary:
-        'A focused profile lifecycle context for dependable discovery and invocation in Coworker.',
+        'A focused profile lifecycle context with shared per-user, per-sandbox generation preferences across Profile Viewer and MCP.',
       useCases: [
+        'Review or update the shared base email, mobile, test-profile setting, and daily counter',
         'Check profile and ingestion readiness',
         'Generate, update, and inspect golden test profiles',
         'Send governed industry events and inspect activity',
         'Verify and enrich Snowflake dual-loaded profiles',
       ],
       configNotes:
-        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
+        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Coworker IMS and user-generated keys resolve the same Firebase user preferences as Profile Viewer; omitting email transactionally reserves the next +DDMMYYYY-N address.',
       connectionKind: 'Focused',
       toolCount: 21,
       docUrl:

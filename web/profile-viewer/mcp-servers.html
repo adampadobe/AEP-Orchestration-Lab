@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260906-marketplace-first">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260918-profile-prefs">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -107,7 +107,7 @@
                 <ul class="mcp-included-items">
                   <li><strong>Entry point</strong> <code>aep-lab-entry</code> — capability directory and workflow recommender</li>
                   <li><strong>General</strong> <code>aep-lab-general</code> — complete 206-tool catalog for advanced and cross-domain work</li>
-                  <li><strong>Profiles</strong> <code>aep-lab-profiles</code> — profile lifecycle, industry events, Snowflake dual-load</li>
+                  <li><strong>Profiles</strong> <code>aep-lab-profiles</code> — shared generation defaults, profile lifecycle, industry events, Snowflake dual-load</li>
                   <li><strong>Demo prep</strong> <code>aep-lab-demo-prep</code> — brand scrape, customer switch, RTDB demo config</li>
                   <li><strong>PDF prep</strong> <code>aep-lab-pdf-prep</code> — HTML/document to PDF, storage, server templates</li>
                   <li><strong>Audiences</strong> <code>aep-lab-audiences</code> — governed audience list, audit, and delete</li>
@@ -147,7 +147,7 @@
                     <span class="mcp-connection-badge">Focused</span>
                     <h4>Profiles</h4>
                     <div class="mcp-choice-config-name"><code>aep-lab-profiles</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-profiles">Copy name</button></div>
-                    <p>Use for the complete profile lifecycle: readiness, creation and updates, industry events, activity, and Snowflake dual-load verification.</p>
+                    <p>Use for the complete profile lifecycle: shared generation preferences, readiness, creation and updates, industry events, activity, and Snowflake dual-load verification.</p>
                   </article>
                   <article class="mcp-connection-choice">
                     <span class="mcp-connection-badge">Focused</span>
@@ -197,12 +197,22 @@
               <div class="mcp-lab-overview-cols">
                 <div class="mcp-lab-overview-block">
                   <h4 class="mcp-lab-overview-block-title">Your sandbox enrollment and API key</h4>
-                  <p>Create one key per Adobe sandbox to establish enrollment. Coworker uses your Adobe sign-in and does not need the plaintext key; Codex, Cursor, and other key-based clients authenticate with <code>X-AEP-Lab-Mcp-Key</code>.</p>
+                  <p>Create one key per Adobe sandbox to establish enrollment. Coworker uses your Adobe sign-in to resolve that enrollment and Firebase user; it does not need the plaintext key. Codex, Cursor, and other key-based clients authenticate with <code>X-AEP-Lab-Mcp-Key</code>.</p>
+                </div>
+                <div class="mcp-lab-overview-block">
+                  <h4 class="mcp-lab-overview-block-title">Shared profile defaults</h4>
+                  <p>Your base email, mobile number, test-profile setting, and daily email counter are shared per user and sandbox between <a class="mcp-doc-link" href="profile-generation.html">Profile Generation</a> and the MCP.</p>
+                  <ul class="mcp-lab-overview-list">
+                    <li><code>lab_get_generation_prefs</code> reads the current shared settings</li>
+                    <li><code>lab_set_generation_prefs</code> updates them for both MCP and UI</li>
+                    <li><code>lab_confirm_profile_generation</code> previews and confirms them before generation</li>
+                    <li>When generation omits email, the next <code>+DDMMYYYY-N</code> address is reserved transactionally from the shared daily counter</li>
+                  </ul>
                 </div>
                 <div class="mcp-lab-overview-block">
                   <h4 class="mcp-lab-overview-block-title">Main workflows</h4>
                   <ul class="mcp-lab-overview-list">
-                    <li><strong>Profiles</strong> — generate golden test profiles, batch seed, lookup and update UPS</li>
+                    <li><strong>Profiles</strong> — confirm shared defaults, generate golden test profiles, batch seed, lookup and update UPS</li>
                     <li><strong>Brand scrape → demo prep</strong> — crawl a site, map personas to profiles, optional events and Client Journey asset</li>
                     <li><strong>Events</strong> — send any experience event type (same as Event tool), verify on profile activity</li>
                     <li><strong>PDF preparation</strong> — preview HTML or document data, generate and store PDFs, then retrieve private preview links</li>
@@ -218,6 +228,7 @@
                     <li>Add the <strong>Coworker Marketplace</strong> above and install the plugin (see <strong>Advanced</strong> below to connect individually instead)</li>
                     <li>Test <code>aep-lab-entry</code>, then use the installed focused integration that matches your task</li>
                     <li>Begin focused work with <code>lab_mcp_access_info</code> to confirm your identity and sandbox access</li>
+                    <li>Before generating profiles, run <code>lab_confirm_profile_generation</code> to review or update the same base email and mobile shown in Profile Generation</li>
                     <li>For first-run setup, infrastructure, complete Snowflake workflows, or the full execution framework, use the installed <code>aep-lab-general</code> integration. For Adobe setup handoffs, see the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_HTTP_STREAMING_FLOWS.md" target="_blank" rel="noopener noreferrer">HTTP streaming</a> and <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_EDGE_DATASTREAMS.md" target="_blank" rel="noopener noreferrer">Edge datastream</a> guides</li>
                   </ol>
                 </div>
@@ -300,7 +311,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260911-measurement-quality"></script>
+  <script src="mcp-servers.js?v=20260918-profile-prefs"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

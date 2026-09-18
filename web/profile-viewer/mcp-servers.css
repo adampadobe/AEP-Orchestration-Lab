@@ -387,9 +387,14 @@
   color: var(--dash-text-secondary, #6e6e6e);
 }
 
+.mcp-lab-overview-block p + .mcp-lab-overview-list {
+  margin-top: 0.4rem;
+}
+
 .mcp-lab-overview-block code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.9em;
+  overflow-wrap: anywhere;
 }
 
 .mcp-lab-overview-list {
