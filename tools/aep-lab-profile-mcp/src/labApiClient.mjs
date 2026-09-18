@@ -3,8 +3,13 @@
  * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
  */
 
-import { getRequestKeyId, getRequestMcpApiKey } from './requestContext.mjs';
+import { getRequestKeyId, getRequestMcpApiKey, getRequestPrincipalUid } from './requestContext.mjs';
 import { buildGeneratorPostBody } from './framework/buildGeneratorPostBody.mjs';
+import {
+  getGenerationPrefsForPrincipal,
+  reserveGenerationEmailForPrincipal,
+  updateGenerationPrefsForPrincipal,
+} from './generationPrefsStore.mjs';
 
 const DEFAULT_ORIGIN = 'https://aep-orchestration-lab.web.app';
 
@@ -1266,6 +1271,10 @@ export function snowflakeAuthHeaders() {
 export const STATIC_EGRESS_IP = '34.58.81.28';
 
 export async function getGenerationPrefs({ sandbox }) {
+  const principalUid = getRequestPrincipalUid();
+  if (principalUid) {
+    return getGenerationPrefsForPrincipal(principalUid, sandbox);
+  }
   return labApiRequest('/api/lab/generation-prefs', {
     query: { sandbox },
     headers: generationPrefsAuthHeaders(),
@@ -1289,6 +1298,10 @@ export async function setGenerationPrefs(params) {
   if (params.counterN != null) body.counterN = params.counterN;
   if (params.resetCounter != null) body.resetCounter = params.resetCounter;
   if (params.testProfile != null) body.testProfile = params.testProfile;
+  const principalUid = getRequestPrincipalUid();
+  if (principalUid) {
+    return updateGenerationPrefsForPrincipal(principalUid, params.sandbox, body);
+  }
   return labApiRequest('/api/lab/generation-prefs', {
     method: 'PUT',
     body,
@@ -1298,6 +1311,10 @@ export async function setGenerationPrefs(params) {
 }
 
 export async function reserveGenerationNextEmail({ sandbox }) {
+  const principalUid = getRequestPrincipalUid();
+  if (principalUid) {
+    return reserveGenerationEmailForPrincipal(principalUid, sandbox);
+  }
   return labApiRequest('/api/lab/generation-prefs/next-email', {
     method: 'POST',
     body: { sandbox },

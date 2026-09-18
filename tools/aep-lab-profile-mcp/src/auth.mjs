@@ -80,7 +80,12 @@ async function validateUserGeneratedKey(provided) {
 
     doc.ref.update({ lastUsedAt: new Date() }).catch(() => {});
 
-    return { ok: true, keyId: doc.id, source: 'user' };
+    return {
+      ok: true,
+      keyId: doc.id,
+      source: 'user',
+      principalUid: String(data.principalUid || '').trim().slice(0, 128),
+    };
   } catch (err) {
     console.warn('[aep-lab-profile-mcp] mcpApiKeys lookup failed:', err?.message || err);
     return null;
@@ -333,7 +338,7 @@ export async function validateImsBearer(req, options = {}) {
  * Ops shared key (env) OR per-user Firestore mcpApiKeys.
  *
  * @param {import('express').Request} req
- * @returns {Promise<{ ok: true, keyId: string, source?: string } | { ok: false, status: number, message: string }>}
+ * @returns {Promise<{ ok: true, keyId: string, source?: string, principalUid?: string } | { ok: false, status: number, message: string }>}
  */
 export async function validateMcpApiKey(req) {
   const provided = String(req.headers[MCP_KEY_HEADER] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();

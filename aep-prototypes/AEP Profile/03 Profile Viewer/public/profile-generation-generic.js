@@ -2259,6 +2259,7 @@
     counterEl.addEventListener('input', () => {
       const n = parseInt(counterEl.value || '1', 10) || 1;
       persistCounter(n);
+      persistPrefsField({ counterN: n });
       updateEmailPreview();
     });
   }
