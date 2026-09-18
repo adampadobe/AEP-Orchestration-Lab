@@ -252,7 +252,13 @@ async function main() {
         || String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
       const sessionId = req.headers['mcp-session-id'];
 
-      await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey, sessionId }, async () => {
+      await requestContext.run({
+        keyId: auth.keyId,
+        principalUid: String(auth.principalUid || '').trim(),
+        principalAccess,
+        mcpApiKey: mcpKey,
+        sessionId,
+      }, async () => {
         try {
           let transport;
 

@@ -1640,7 +1640,7 @@
           </p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="travelBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="travelBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="travelBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -2709,7 +2709,7 @@
           </p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="fsiBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="fsiBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="fsiBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -3265,7 +3265,7 @@
           </p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="sportsBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="sportsBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="sportsBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -3764,7 +3764,7 @@
           </p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="mediaBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="mediaBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="mediaBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -4383,7 +4383,7 @@
           </p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="retailBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="retailBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="retailBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -5078,7 +5078,7 @@
           </p>
           <div class="form-row form-row--inline">
             <div class="form-group form-group--flex">
-              <label for="telecomBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <label for="telecomBaseEmail">Base email <small class="generic-helper-inline">(synced when signed in)</small></label>
               <input type="email" id="telecomBaseEmail" class="generic-pattern-contact-input" placeholder="apalmer@adobetest.com" autocomplete="email">
             </div>
             <div class="form-group form-group--flex">
@@ -5547,11 +5547,11 @@
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
   <script src="profile-generation-shared.js?v=20260623prefs"></script>
-  <script src="profile-generation-prefs-sync.js?v=20260701-auth-guard"></script>
+  <script src="profile-generation-prefs-sync.js?v=20260702-shared-counter"></script>
   <script src="profile-generation-recent-sync.js?v=20260623recent1"></script>
   <script src="profile-generation.js?v=20260511a"></script>
   <script src="profile-generation-generic.js?v=20260515payload-preview"></script>
-  <script src="profile-generation-travel.js?v=20260515payload-preview"></script>
+  <script src="profile-generation-travel.js?v=20260702-shared-counter"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
