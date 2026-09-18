@@ -119,10 +119,10 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
-| `lab_confirm_profile_generation` | `GET` + optional `PUT /api/lab/generation-prefs` | Ask colleague format questions; `confirmed:true` persists base email + mobile |
-| `lab_get_generation_prefs` | `GET /api/lab/generation-prefs` | Shared Portal/MCP base email, counter N, next scaled email |
-| `lab_set_generation_prefs` | `PUT /api/lab/generation-prefs` | Update base email, mobile, reset counter |
-| `lab_confirm_generation_plan` | `GET /api/lab/generation-prefs` | Read-only preview before generate |
+| `lab_confirm_profile_generation` | Firestore or generation-prefs API | Ask colleague format questions; `confirmed:true` persists base email + mobile |
+| `lab_get_generation_prefs` | Firestore or `GET /api/lab/generation-prefs` | Shared Portal/MCP base email, counter N, next scaled email |
+| `lab_set_generation_prefs` | Firestore or `PUT /api/lab/generation-prefs` | Update base email, mobile, test-profile default, or counter |
+| `lab_confirm_generation_plan` | Firestore or generation-prefs API | Read-only preview before generate |
 | `lab_list_industries` | *(static)* | Canonical keys + alias notes |
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
@@ -134,6 +134,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_assets_inspect` | `GET /api/lab/demo-assets` | Active stable image slots, permanent URLs, hashes, and saved customer revisions |
 | `lab_brand_scrape_classify_images` | `POST brandScraperClassify` | Auto-classify up to 20 scrape images with Gemini vision; skip when usable saved categories already exist unless forced |
 | `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
+
 | `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
 | `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
 | `lab_demo_customer_switch` | `POST /api/lab/demo-assets` (`action=switch-apply`) | Preferred two-phase switch: preview RTDB plus all five image slots, then one confirmed apply with verification and cross-system rollback |
@@ -202,6 +203,33 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
+
+### Shared profile-generation preferences (Profile Viewer ↔ MCP)
+
+Profile Viewer and MCP profile-generation tools use the same Firestore
+`labProfileGenerationPrefs` document per Firebase UID and AEP sandbox. The document stores
+`baseEmail`, `mobilePhone`, the daily `counterN`/`counterDate`, and `testProfile`.
+
+- **Profile Viewer:** Firebase bearer authentication supplies the UID. Signed-in edits are
+  persisted to Firestore and the UI pulls newer values when the sandbox loads or the page
+  regains focus/visibility.
+- **User-generated MCP key:** `mcpApiKeys/{keyId}.principalUid` identifies the same Firebase
+  user.
+- **Coworker IMS:** the validated Adobe identity is matched to an active Portal enrollment;
+  that enrollment's `principalUid` identifies the same Firebase user. Coworker never needs
+  the plaintext Portal key.
+- **Verified-principal MCP requests:** the server carries the UID only in request-local
+  context and reads/writes Firestore directly. Caller-provided UID headers are not trusted.
+- **Shared operational key:** clients without a user principal retain the generation-prefs
+  HTTP API path for backward compatibility.
+
+Email reservation is transactional across the UI and MCP. Omitting `email` on a generation
+tool reserves the next `<local>+DDMMYYYY-N@<domain>` value and advances the shared daily
+counter exactly once. Authenticated UI reservation failures stop generation rather than
+falling back to a browser counter; unauthenticated local-only sessions retain the device
+fallback. Changes made with `lab_set_generation_prefs` therefore appear in Profile Viewer,
+and UI edits are returned by `lab_get_generation_prefs` and used by subsequent MCP
+generations.
 
 ### Governed audience cleanup (Phase 3.32)
 
@@ -634,7 +662,7 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 ## Coworker Adobe IMS authentication
 
-The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment; Coworker never receives or stores the plaintext key. Existing API-key clients are unchanged.
+The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment and its Firebase `principalUid`; Coworker never receives or stores the plaintext key. That verified UID gives Coworker the same profile-generation preferences as the signed-in Profile Viewer. Existing API-key clients are unchanged.
 
 The audience-management route is authenticated with a user-generated MCP key and is not an anonymous profile API. Existing public profile read routes remain unchanged.
 
