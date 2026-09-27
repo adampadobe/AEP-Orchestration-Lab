@@ -148,4 +148,22 @@ describe('snowflakeProfileMapper', () => {
     assert.equal(normalized['person.name.lastName'], 'FlatWins');
     assert.equal(getAttr(normalized, 'person.name.lastName'), 'FlatWins');
   });
+  it('ignores profile place context (no Snowflake columns; never leaks into home address)', () => {
+    const { row, rowObject } = mapAepAttributesToBaseProfileRow({
+      email: 'place.snowflake@example.com',
+      ecid: '00000000000000000000000000000002',
+      attributes: {
+        '_demoemea.profilePlaceContext.latitude': 24.7743,
+        '_demoemea.profilePlaceContext.longitude': 46.6384,
+        '_demoemea.profilePlaceContext.city': 'Riyadh',
+        '_demoemea.profilePlaceContext.countryCode': 'SA',
+        _demoemea: { profilePlaceContext: { city: 'Riyadh', geohash: 'th3u8wr' } },
+      },
+      runStamp: '2026-07-21T12:00:00.000Z',
+    });
+    assert.equal(row.length, COLUMNS.length);
+    assert.equal(rowObject.HOMEADDRESS_CITY, null);
+    assert.equal(rowObject.HOMEADDRESS_COUNTRY, null);
+    assert.equal(Object.values(rowObject).some((v) => v === 'Riyadh' || v === 'th3u8wr'), false);
+  });
 });

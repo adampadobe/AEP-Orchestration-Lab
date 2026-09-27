@@ -229,4 +229,56 @@ describe('profileUpdateProxy place context (dryRun)', () => {
     assert.equal(payloadLog.emailHash, reqLog.emailHash);
     assert.deepEqual(JSON.parse(payloadLog.payloadJson), res.body.envelope, 'logs exactly what would be sent');
   });
+
+  it('round-trips a stored profile table snapshot and re-derives a stale geohash after a lat edit', async () => {
+    const profileTableHelpers = require('../profileTableHelpers');
+    const stored = {
+      _demoemea: {
+        identification: { core: { email: 'place.test@example.com' } },
+        profilePlaceContext: {
+          latitude: 40.7233,
+          longitude: -74.003,
+          accuracyMeters: 25,
+          geohash: encodeGeohash(40.7233, -74.003, 7),
+          neighborhood: 'SoHo',
+          city: 'New York',
+          regionCode: 'US-NY',
+          countryCode: 'US',
+          lastSeenAt: '2026-07-10T08:15:00Z',
+          source: 'ui-sample',
+        },
+      },
+      person: { name: { firstName: 'Ava' } },
+    };
+    const rows = profileTableHelpers.flattenEntityToTableRows(stored);
+    const placeRows = rows.filter((r) => r.path.includes('profilePlaceContext.'));
+    assert.equal(placeRows.length, 10);
+    for (const r of placeRows) assert.equal(r.industry, 'generic', r.path);
+    profileTableHelpers.enrichProfileTablePayloadWithWritability(
+      { rows },
+      { generic: { display: 'Generic', writable: true } },
+    );
+    for (const r of placeRows) assert.equal(r.writable, true, r.path);
+
+    const updates = rows
+      .filter((r) => r.industry === 'generic' && r.writable)
+      .map((r) => ({
+        path: r.path,
+        value: r.path.endsWith('profilePlaceContext.latitude') ? '51.5072' : r.value,
+        valueType: r.valueType,
+      }));
+    const lonRow = updates.find((u) => u.path.endsWith('profilePlaceContext.longitude'));
+    lonRow.value = '-0.1276';
+
+    const res = await post(updates);
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    const place = findTenant(res.body.envelope).profilePlaceContext;
+    assert.equal(place.latitude, 51.5072);
+    assert.equal(place.longitude, -0.1276);
+    assert.equal(place.accuracyMeters, 25);
+    assert.equal(place.geohash, encodeGeohash(51.5072, -0.1276, 7));
+    assert.equal(place.city, 'New York');
+    assert.equal(place.source, 'ui-sample');
+    assert.equal(place.lastSeenAt, '2026-07-10T08:15:00Z');
+  });
 });

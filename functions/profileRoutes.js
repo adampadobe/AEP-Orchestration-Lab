@@ -543,8 +543,10 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       return;
     }
     if (demoemea.profilePlaceContext !== undefined) {
+      // Full-snapshot updates re-send the stored geohash; re-derive it so a lat/lon edit never 400s.
       const placeResult = profilePlaceContext.normalizeProfilePlaceContext(demoemea.profilePlaceContext, {
         defaultSource: 'profile-update',
+        replaceGeohash: true,
       });
       if (!placeResult.ok) {
         res.status(400).json({

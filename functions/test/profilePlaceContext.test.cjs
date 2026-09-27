@@ -97,6 +97,15 @@ describe('profilePlaceContext.normalizeProfilePlaceContext', () => {
     assert.equal(bad.leaf, 'geohash');
   });
 
+  it('replaceGeohash re-derives a stale snapshot geohash instead of rejecting it', () => {
+    const r = placeContext.normalizeProfilePlaceContext(
+      { ...base, geohash: 'u4pruyd' },
+      { now: NOW, replaceGeohash: true },
+    );
+    assert.equal(r.ok, true);
+    assert.equal(r.value.geohash, placeContext.encodeGeohash(24.7743, 46.6384, 7));
+  });
+
   const rejects = [
     ['latitude without longitude', { latitude: 1 }, 'longitude'],
     ['string latitude', { latitude: '24.77', longitude: 46.6 }, 'latitude'],

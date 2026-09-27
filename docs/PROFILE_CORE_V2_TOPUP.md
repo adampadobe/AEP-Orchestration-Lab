@@ -97,6 +97,14 @@ the same path in the Profile union would conflict, and
 - Changes are **additive-only**: the Generic schema is Profile-enabled, so
   once the field group is attached it cannot be detached. Leaves may only gain
   optional siblings.
+- Writers: the Generate Profiles Generic panel (`source: ui-sample`/`ui-manual`),
+  `POST /api/profile/update` (full-snapshot round-trips re-derive a stale
+  `geohash` from lat/lon), and `POST /api/profile/generate`. That route
+  rejects place context with a 400 for non-generic industries, because only the
+  Generic schema carries the field group. MCP personas add a random preset
+  place (`source: mcp-persona`) to every industry. Dual-stream generate routes it
+  to the generic step, and a caller-supplied place replaces the persona block
+  wholesale.
 
 ## API response shape (step 2 / `attachFieldGroups`)
 

@@ -3,6 +3,7 @@ import { buildCommonPersonaAttributes } from './common.mjs';
 import { buildFsiPersonaAttributes } from './fsi.mjs';
 import { buildGenericPersonaAttributes } from './generic.mjs';
 import { buildPortalLoyaltyAttributes } from './loyalty.mjs';
+import { buildPlaceContextPersonaAttributes, hasPlaceContextAttributes, isPlaceContextKey } from './placeContext.mjs';
 import { buildMediaPersonaAttributes } from './media.mjs';
 import { buildRetailPersonaAttributes } from './retail.mjs';
 import { buildSportsPersonaAttributes } from './sports.mjs';
@@ -51,6 +52,12 @@ export function mergePersonaAttributes(base, overrides) {
   if (!overrides || typeof overrides !== 'object') return { ...base };
   /** @type {Record<string, unknown>} */
   const out = { ...base };
+  // Place context is one coherent location: caller place replaces the persona block, never mixes cities.
+  if (hasPlaceContextAttributes(overrides)) {
+    for (const key of Object.keys(out)) {
+      if (isPlaceContextKey(key)) delete out[key];
+    }
+  }
   for (const [key, val] of Object.entries(overrides)) {
     if (
       val &&
@@ -85,6 +92,7 @@ export function buildPersonaAttributes(industry, email, segmentHint, options = {
   let attrs = {
     ...buildCommonPersonaAttributes(email, { skipLoyalty }),
     ...industryBuilder(options),
+    ...buildPlaceContextPersonaAttributes(),
   };
 
   if (loyaltyMember) {
