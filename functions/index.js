@@ -595,6 +595,7 @@ exports.geoHotspotsQuery = onRequest(
         getClientId: () => ADOBE_CLIENT_ID.value(),
         getImsOrg: () => ADOBE_IMS_ORG.value(),
         getEventConfig: (name) => eventConfigStore.getEffectiveEventConfig(name, ''),
+        dataPath: process.env.GEO_HOTSPOTS_DATA_PATH,
       }).run({
         sandbox,
         center,
@@ -603,7 +604,10 @@ exports.geoHotspotsQuery = onRequest(
         interest: body.interest,
         cellKm: body.cell_km,
       });
-      return res.status(200).json({ ok: true, rows: result.rows });
+      if (result.dataStatus === 'unavailable') {
+        console.warn('[geoHotspotsQuery] Geo data path unavailable; returning an explicit unavailable result:', result.reason);
+      }
+      return res.status(200).json(geoHotspotsService.buildGeoHotspotsHttpBody(result));
     } catch (error) {
       const message = String(error?.message || error);
       console.error('[geoHotspotsQuery] Query Service aggregation failed:', message);

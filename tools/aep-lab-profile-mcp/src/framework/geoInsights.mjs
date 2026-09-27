@@ -87,6 +87,7 @@ export function shapeGeoHotspotsResponse({
   generated_at = new Date().toISOString(),
   rows = [],
   hint,
+  source = 'aep-query-service',
 }) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const firstRow = safeRows[0] || {};
@@ -136,7 +137,8 @@ export function shapeGeoHotspotsResponse({
     suppressed_profiles: suppressedProfiles,
     k_threshold: GEO_MIN_K_ANONYMITY,
     hotspots,
-    source: 'aep-query-service',
+    source,
+    data_status: 'available',
     sandbox,
     generated_at,
     hint: hint || (totalProfiles === 0
@@ -144,6 +146,47 @@ export function shapeGeoHotspotsResponse({
       : ''),
   };
   return result;
+}
+
+export const GEO_DATA_UNAVAILABLE_HINT =
+  'Geo audience data is not available yet: the lab\'s AEP event schema has no location fields and the '
+  + 'hotspot data path is being rebuilt on profile place context. No profiles were evaluated — this is not a '
+  + 'zero count.';
+
+/** True only when the lab API explicitly reports the known-unavailable data path. */
+export function isGeoDataUnavailable(apiData) {
+  return Boolean(apiData && typeof apiData === 'object' && apiData.data_status === 'unavailable');
+}
+
+export function shapeGeoHotspotsUnavailableResponse({
+  center,
+  radius_km,
+  window_hours,
+  interest,
+  sandbox,
+  generated_at = new Date().toISOString(),
+}) {
+  return {
+    ok: true,
+    kind: 'audience_geo_hotspots',
+    center: {
+      lat: roundedCoordinate(center.lat),
+      lon: roundedCoordinate(center.lon),
+      label: String(center.label || ''),
+    },
+    radius_km,
+    window_hours,
+    interest,
+    total_profiles: 0,
+    suppressed_profiles: 0,
+    k_threshold: GEO_MIN_K_ANONYMITY,
+    hotspots: [],
+    source: 'none',
+    data_status: 'unavailable',
+    sandbox,
+    generated_at,
+    hint: GEO_DATA_UNAVAILABLE_HINT,
+  };
 }
 
 export function geoJsonResult(payload) {

@@ -19,7 +19,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
-| `/mcp/geo-insights` | 4 | Current weather plus aggregate AEP Query Service audience geo-hotspots, k=10 suppression, and confirmation-gated Riyadh/Dubai demo seeding |
+| `/mcp/geo-insights` | 4 | Current weather plus aggregate audience geo-hotspots (k=10 suppression; returns `data_status: "unavailable"` with an empty result until the profile place-context data path ships), and confirmation-gated Riyadh/Dubai demo seeding |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 | `/mcp/firefly` | 15 | Access check plus governed Image 5, five-second Video, Text to Speech, transcription/captions, and dubbing/lip-sync workflows with shared async status |
