@@ -5,6 +5,7 @@ const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 const EARTH_RADIUS_KM = 6371.0088;
 const MAX_WAIT_MS = 100_000;
 const POLL_INTERVAL_MS = 1500;
+const K_THRESHOLD = 10;
 
 function escapeLikePattern(value) {
   return String(value).replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
@@ -21,6 +22,18 @@ function round(value, precision) {
   return Math.round(value * scale) / scale;
 }
 
+// AEP Query Service only accepts string values in `queryParameters`; numeric binds are
+// rejected with "Invalid element found with key: centerLon ... class java.lang.Double".
+// Numerics are therefore strictly validated here and inlined as plain SQL literals, which
+// keeps them injection-safe because a non-finite value can never reach the statement.
+function numericLiteral(value, label) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (typeof value === 'boolean' || value === null || value === '' || !Number.isFinite(parsed)) {
+    throw new Error(`The ${label} value must be a finite numeric input.`);
+  }
+  return String(parsed);
+}
+
 function buildGeoHotspotsQuery({
   datasetName,
   center,
@@ -30,11 +43,18 @@ function buildGeoHotspotsQuery({
   cellKm,
   now = Date.now,
 }) {
-  const cellLatStep = round(cellKm / 111.045, 6);
+  const centerLatSql = numericLiteral(center && center.lat, 'center latitude');
+  const centerLonSql = numericLiteral(center && center.lon, 'center longitude');
+  const radiusKmSql = numericLiteral(radiusKm, 'radius_km');
+  const cellKmNumber = Number(numericLiteral(cellKm, 'cell_km'));
+  const cellLatStep = round(cellKmNumber / 111.045, 6);
   const cellLonStep = round(
-    cellKm / (111.045 * Math.max(Math.abs(Math.cos((center.lat * Math.PI) / 180)), 0.01)),
+    cellKmNumber / (111.045 * Math.max(Math.abs(Math.cos((Number(centerLatSql) * Math.PI) / 180)), 0.01)),
     6,
   );
+  const cellLatStepSql = numericLiteral(cellLatStep, 'cell latitude step');
+  const cellLonStepSql = numericLiteral(cellLonStep, 'cell longitude step');
+  const kThresholdSql = numericLiteral(K_THRESHOLD, 'k threshold');
   const timestampNow = now();
   const table = quoteTableName(datasetName);
   const sql = `
@@ -45,8 +65,8 @@ WITH filtered_events AS (
     _id AS event_id,
     placeContext.geo._schema.latitude AS latitude,
     placeContext.geo._schema.longitude AS longitude,
-    ROUND(placeContext.geo._schema.latitude / $cellLatStep) * $cellLatStep AS grid_lat,
-    ROUND(placeContext.geo._schema.longitude / $cellLonStep) * $cellLonStep AS grid_lon
+    ROUND(placeContext.geo._schema.latitude / ${cellLatStepSql}) * ${cellLatStepSql} AS grid_lat,
+    ROUND(placeContext.geo._schema.longitude / ${cellLonStepSql}) * ${cellLonStepSql} AS grid_lon
   FROM ${table}
   WHERE timestamp >= $windowStart
     AND timestamp <= $windowEnd
@@ -59,10 +79,10 @@ WITH filtered_events AS (
     AND placeContext.geo._schema.latitude IS NOT NULL
     AND placeContext.geo._schema.longitude IS NOT NULL
     AND 2 * ${EARTH_RADIUS_KM} * ASIN(SQRT(
-      POWER(SIN(RADIANS(placeContext.geo._schema.latitude - $centerLat) / 2), 2)
-      + COS(RADIANS($centerLat)) * COS(RADIANS(placeContext.geo._schema.latitude))
-      * POWER(SIN(RADIANS(placeContext.geo._schema.longitude - $centerLon) / 2), 2)
-    )) <= $radiusKm
+      POWER(SIN(RADIANS(placeContext.geo._schema.latitude - ${centerLatSql}) / 2), 2)
+      + COS(RADIANS(${centerLatSql})) * COS(RADIANS(placeContext.geo._schema.latitude))
+      * POWER(SIN(RADIANS(placeContext.geo._schema.longitude - ${centerLonSql}) / 2), 2)
+    )) <= ${radiusKmSql}
 ),
 ranked_events AS (
   SELECT *,
@@ -89,29 +109,23 @@ summary AS (
     (SELECT COUNT(DISTINCT profile_id) FROM audience) AS total_profiles,
     (SELECT COUNT(DISTINCT a.profile_id)
       FROM audience a JOIN cell_counts c ON a.grid_lat = c.grid_lat AND a.grid_lon = c.grid_lon
-      WHERE c.profiles < $kThreshold) AS suppressed_profiles
+      WHERE c.profiles < ${kThresholdSql}) AS suppressed_profiles
 )
 SELECT summary.total_profiles, summary.suppressed_profiles,
   cells.cell_lat, cells.cell_lon, cells.profiles
 FROM summary
 LEFT JOIN (
   SELECT cell_lat, cell_lon, profiles FROM cell_counts
-  WHERE profiles >= $kThreshold
+  WHERE profiles >= ${kThresholdSql}
   ORDER BY profiles DESC
   LIMIT 50
 ) AS cells ON TRUE`;
   return {
     sql,
     queryParameters: {
-      windowStart: new Date(timestampNow - windowHours * 60 * 60 * 1000).toISOString(),
+      windowStart: new Date(timestampNow - Number(numericLiteral(windowHours, 'window_hours')) * 60 * 60 * 1000).toISOString(),
       windowEnd: new Date(timestampNow).toISOString(),
       interestPattern: `%${escapeLikePattern(interest.trim())}%`,
-      centerLat: center.lat,
-      centerLon: center.lon,
-      radiusKm,
-      cellLatStep,
-      cellLonStep,
-      kThreshold: 10,
     },
   };
 }
