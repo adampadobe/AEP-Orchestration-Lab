@@ -215,9 +215,18 @@ describe('profileUpdateProxy place context (dryRun)', () => {
     assert.equal(resultLog.placeInPayload, true);
     assert.ok(resultLog.placeLeavesInPayload.includes('geohash'));
     assert.equal(resultLog.emailHash, reqLog.emailHash);
-    const logged = lines.map((a) => a.join(' ')).join('\n');
-    assert.equal(logged.includes('SecretName'), false);
-    assert.equal(logged.includes('Riyadh'), false);
-    assert.equal(logged.includes('place.test@example.com'), false);
+    const summaryLines = lines
+      .filter((a) => a[0] !== '[profileUpdateProxy.payload]')
+      .map((a) => a.join(' '))
+      .join('\n');
+    assert.equal(summaryLines.includes('SecretName'), false);
+    assert.equal(summaryLines.includes('Riyadh'), false);
+    assert.equal(summaryLines.includes('place.test@example.com'), false);
+
+    const [payloadLog] = byTag('[profileUpdateProxy.payload]');
+    assert.ok(payloadLog, 'full payload line emitted');
+    assert.equal(payloadLog.outcome, 'dryRun');
+    assert.equal(payloadLog.emailHash, reqLog.emailHash);
+    assert.deepEqual(JSON.parse(payloadLog.payloadJson), res.body.envelope, 'logs exactly what would be sent');
   });
 });
