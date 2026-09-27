@@ -31,6 +31,9 @@ const { buildTenantFieldGroupCreateBody } = require('../functions/profileInfraFa
 const SR = 'https://platform.adobe.io/data/foundation/schemaregistry';
 const ACCEPT_XED = 'application/vnd.adobe.xed+json; version=1';
 const ACCEPT_XED_FULL = 'application/vnd.adobe.xed-full+json; version=1';
+// The resolved `xed-full` view is cached after a PATCH; `xed-full-notext` refreshes sooner.
+const ACCEPT_XED_FULL_NOTEXT = 'application/vnd.adobe.xed-full-notext+json; version=1';
+const VERIFY_BACKOFF_MS = [2000, 4000, 8000, 15000, 30000];
 const PROFILE_UNION_ALT_ID = '_xdm.context.profile__union';
 const CREATED_ID_PLACEHOLDER = '<created field group $id>';
 const LISTING_BACKOFF_MS = [1500, 3000, 4500, 6000, 7500, 9000];
@@ -168,13 +171,24 @@ async function waitForListing(client, fgId, sleep) {
   );
 }
 
-async function verify(client, state) {
-  const resolved = await client.get(state.schema.path, ACCEPT_XED_FULL);
-  const subtree = tenantSubtree(resolved, state.tenantId)[SUBTREE_KEY];
-  const leaves = Object.keys((subtree && subtree.properties) || {}).sort();
+async function verify(client, state, sleep) {
   const expected = generic.PROFILE_PLACE_CONTEXT_LEAF_PATHS.map((p) => p.slice(SUBTREE_KEY.length + 1));
-  const missing = expected.filter((leaf) => !leaves.includes(leaf));
-  if (missing.length) throw new Error(`verification failed: schema is missing ${SUBTREE_KEY} leaves ${missing.join(', ')}.`);
+  let resolved = null;
+  let leaves = [];
+  let missing = expected;
+  for (let attempt = 0; attempt <= VERIFY_BACKOFF_MS.length; attempt++) {
+    resolved = await client.get(state.schema.path, ACCEPT_XED_FULL_NOTEXT);
+    const subtree = tenantSubtree(resolved, state.tenantId)[SUBTREE_KEY];
+    leaves = Object.keys((subtree && subtree.properties) || {}).sort();
+    missing = expected.filter((leaf) => !leaves.includes(leaf));
+    if (!missing.length) break;
+    if (attempt < VERIFY_BACKOFF_MS.length) await sleep(VERIFY_BACKOFF_MS[attempt]);
+  }
+  if (missing.length) {
+    throw new Error(
+      `verification failed: resolved schema is missing ${SUBTREE_KEY} leaves ${missing.join(', ')}. The PATCH succeeded; this is usually a stale Schema Registry cache — re-run (a no-op when attached) to re-verify.`
+    );
+  }
   const union = await client.get(`/tenant/schemas/${encodeURIComponent(PROFILE_UNION_ALT_ID)}`, ACCEPT_XED_FULL);
   const unionHasPath = Object.prototype.hasOwnProperty.call(tenantSubtree(union, state.tenantId), SUBTREE_KEY);
   if (!unionHasPath) throw new Error(`verification failed: Profile union does not yet expose _${state.tenantId}.${SUBTREE_KEY}.`);
@@ -231,7 +245,7 @@ async function runEnsure({ fetchImpl, token, clientId, orgId, sandbox, apply = f
   const operations = attachOperations(fgId);
   await client.patch(state.schema.path, operations, String(current.version));
   log('attached', { schema: state.schema.metaAltId, fieldGroup: fgId });
-  const verified = await verify(client, state);
+  const verified = await verify(client, state, wait);
   return { ...base, action, created, applied: { operations }, verified };
 }
 

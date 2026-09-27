@@ -107,8 +107,8 @@ function jsonResponse(status, body, headers = {}) {
   };
 }
 
-function makeRegistry({ fgExists = false, attached = false, unionHasPath = false, schemaCount = 1 } = {}) {
-  const state = { fgExists, attached, version: '1.3', fgVisibleAfter: 1 };
+function makeRegistry({ fgExists = false, attached = false, unionHasPath = false, schemaCount = 1, staleResolvedReads = 0 } = {}) {
+  const state = { fgExists, attached, version: '1.3', fgVisibleAfter: 1, staleResolvedReads };
   const calls = [];
   const schemaRow = { title: generic.GENERIC_PROFILE_SCHEMA_TITLE, $id: SCHEMA_ID, 'meta:altId': SCHEMA_ALT, version: state.version };
   const baseRefs = ['https://ns.adobe.com/xdm/context/profile', 'https://ns.adobe.com/demoemea/mixins/core'];
@@ -129,7 +129,10 @@ function makeRegistry({ fgExists = false, attached = false, unionHasPath = false
       const refs = state.attached ? [...baseRefs, FG_ID] : baseRefs;
       if (/xed-full/.test(accept)) {
         const tenantProps = { identification: { type: 'object' } };
-        if (state.attached) tenantProps.profilePlaceContext = { type: 'object', properties: leafProps() };
+        // Schema Registry serves a cached resolved view for a while after PATCH.
+        const stale = state.attached && state.staleResolvedReads > 0;
+        if (stale) state.staleResolvedReads -= 1;
+        if (state.attached && !stale) tenantProps.profilePlaceContext = { type: 'object', properties: leafProps() };
         return jsonResponse(200, { $id: SCHEMA_ID, version: state.version, properties: { _demoemea: { type: 'object', properties: tenantProps } } });
       }
       return jsonResponse(200, {
@@ -214,6 +217,29 @@ test('ensure script apply creates, waits for listing, attaches with If-Match and
   assert.deepEqual(result.verified.leaves, EXPECTED_LEAVES);
   assert.equal(result.verified.schemaVersion, '1.4');
   assert.equal(result.verified.unionHasPath, true);
+});
+
+test('ensure script verify retries a stale resolved schema view with the notext Accept', async () => {
+  const registry = makeRegistry({ staleResolvedReads: 2 });
+  const sleeps = [];
+  const result = await ensure.runEnsure(baseArgs(registry, { apply: true, sleep: async (ms) => sleeps.push(ms) }));
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.deepEqual(result.verified.leaves, EXPECTED_LEAVES);
+  const resolvedReads = registry.calls.filter(
+    (c) => c.method === 'GET' && c.url.endsWith(encodeURIComponent(SCHEMA_ALT)) && /xed-full/.test(c.headers.Accept)
+  );
+  assert.equal(resolvedReads.length, 3);
+  for (const c of resolvedReads) assert.equal(c.headers.Accept, 'application/vnd.adobe.xed-full-notext+json; version=1');
+  assert.equal(sleeps.length >= 2, true);
+});
+
+test('ensure script verify fails with a cache hint when the resolved view never refreshes', async () => {
+  const registry = makeRegistry({ staleResolvedReads: 1000 });
+  await assert.rejects(
+    ensure.runEnsure(baseArgs(registry, { apply: true })),
+    /missing profilePlaceContext leaves.*PATCH succeeded/s
+  );
+  assert.deepEqual(registry.calls.filter((c) => c.method !== 'GET').map((c) => c.method), ['POST', 'PATCH']);
 });
 
 test('ensure script create-only creates and waits for listing but never PATCHes the schema', async () => {

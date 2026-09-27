@@ -5,6 +5,7 @@
  */
 
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
+const profilePlaceContext = require('./profilePlaceContext');
 
 /**
  * @param {object} deps Shared context from index.js
@@ -535,6 +536,19 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
         skippedPaths,
       });
       return;
+    }
+    if (demoemea.profilePlaceContext !== undefined) {
+      const placeResult = profilePlaceContext.normalizeProfilePlaceContext(demoemea.profilePlaceContext, {
+        defaultSource: 'profile-update',
+      });
+      if (!placeResult.ok) {
+        res.status(400).json({
+          error: placeResult.error,
+          invalidPath: `_demoemea.profilePlaceContext.${placeResult.leaf}`,
+        });
+        return;
+      }
+      demoemea.profilePlaceContext = placeResult.value;
     }
     successMessage = `Profile update accepted (${applied} field(s)).`;
   }
