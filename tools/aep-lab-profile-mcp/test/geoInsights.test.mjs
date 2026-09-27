@@ -5,9 +5,15 @@ import {
   GEO_CITY_PRESETS,
   GEO_MIN_K_ANONYMITY,
   MAX_GEO_HOTSPOTS,
+  MAX_CONSECUTIVE_SEED_FAILURES,
+  buildGeoSeedPlan,
+  geoHotspotsFailureHint,
   geoJsonResult,
+  runGeoSeedBatch,
   shapeGeoHotspotsResponse,
 } from '../src/framework/geoInsights.mjs';
+
+const CANONICAL_TEST_ECID = '62722406001178632594092146103219305888';
 import { annotationsForTool } from '../src/toolAnnotations.mjs';
 import { checkEdgeSendRate, checkGenerateRate, reserveGeoSeedRates } from '../src/rateLimiter.mjs';
 
@@ -122,4 +128,81 @@ test('geo hotspot is read-only and geo demo seed is a non-destructive mutation',
     idempotentHint: false,
     openWorldHint: true,
   });
+});
+
+test('seed batch keeps going when a single profile or event fails', async () => {
+  const plan = buildGeoSeedPlan({ city: 'Riyadh', count: 6, interest: 'camping gear' });
+  let sendCall = 0;
+  const outcome = await runGeoSeedBatch({
+    plan,
+    deps: {
+      resolveEmail: async () => ({ ok: true, email: 'demo@example.com' }),
+      generateProfile: async () => ({ ok: true, ecid: CANONICAL_TEST_ECID }),
+      sendEvent: async () => {
+        sendCall += 1;
+        if (sendCall === 3) return { ok: false, error: 'Invalid identity provided' };
+        return { ok: true };
+      },
+    },
+  });
+
+  assert.equal(outcome.generated, 6);
+  assert.equal(outcome.sent, 5);
+  assert.equal(outcome.failed, 1);
+  assert.equal(outcome.aborted, false);
+  assert.match(outcome.errors[0], /Invalid identity provided/);
+});
+
+test('seed batch refuses to send events for non-canonical ECIDs', async () => {
+  const plan = buildGeoSeedPlan({ city: 'Riyadh', count: 3, interest: 'camping gear' });
+  const sent = [];
+  const outcome = await runGeoSeedBatch({
+    plan,
+    deps: {
+      resolveEmail: async () => ({ ok: true, email: 'demo@example.com' }),
+      generateProfile: async ({ index }) => ({
+        ok: true,
+        // The legacy lab format could emit a low half above the signed 64-bit range.
+        ecid: index === 1 ? `4000000000000000000${'9'.repeat(19)}` : CANONICAL_TEST_ECID,
+      }),
+      sendEvent: async ({ ecid }) => {
+        sent.push(ecid);
+        return { ok: true };
+      },
+    },
+  });
+
+  assert.equal(outcome.generated, 3);
+  assert.equal(outcome.sent, 2);
+  assert.equal(outcome.failed, 1);
+  assert.deepEqual(sent, [CANONICAL_TEST_ECID, CANONICAL_TEST_ECID]);
+  assert.match(outcome.errors[0], /ECID/i);
+});
+
+test('seed batch aborts after repeated consecutive failures instead of burning the batch', async () => {
+  const plan = buildGeoSeedPlan({ city: 'Dubai', count: 30, interest: 'camping gear' });
+  let attempts = 0;
+  const outcome = await runGeoSeedBatch({
+    plan,
+    deps: {
+      resolveEmail: async () => ({ ok: true, email: 'demo@example.com' }),
+      generateProfile: async () => {
+        attempts += 1;
+        return { ok: false, error: 'AEP test profile generation failed.' };
+      },
+      sendEvent: async () => ({ ok: true }),
+    },
+  });
+
+  assert.equal(outcome.aborted, true);
+  assert.equal(attempts, MAX_CONSECUTIVE_SEED_FAILURES);
+  assert.equal(outcome.sent, 0);
+  assert.equal(outcome.failed, MAX_CONSECUTIVE_SEED_FAILURES);
+});
+
+test('a 404 from the lab API is reported as an undeployed route, not a data problem', () => {
+  const hint = geoHotspotsFailureHint({ ok: false, status: 404, error: 'Not Found' });
+  assert.match(hint, /\/api\/geo-hotspots/);
+  assert.match(hint, /hosting/i);
+  assert.equal(geoHotspotsFailureHint({ ok: false, status: 500, error: 'boom' }), '');
 });

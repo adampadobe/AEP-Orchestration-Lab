@@ -177,3 +177,89 @@ export function buildGeoSeedPlan({ city, count, interest = 'camping gear', now =
     };
   });
 }
+
+/** Stop a seed batch once this many attempts fail back to back. */
+export const MAX_CONSECUTIVE_SEED_FAILURES = 5;
+
+const ECID_HALF_MAX = 9223372036854775807n;
+
+/**
+ * Adobe ECIDs are two zero-padded 19-digit signed-64-bit halves. Edge Network
+ * rejects anything else with "Invalid identity provided", so validate before
+ * spending an event send.
+ */
+export function isCanonicalEcid(value) {
+  const ecid = String(value ?? '').trim();
+  if (!/^\d{38}$/.test(ecid)) return false;
+  return BigInt(ecid.slice(0, 19)) <= ECID_HALF_MAX && BigInt(ecid.slice(19)) <= ECID_HALF_MAX;
+}
+
+/**
+ * Seeds one profile + product-view event per plan entry. A single failure no
+ * longer burns the whole batch: it is recorded and the run continues, aborting
+ * only after MAX_CONSECUTIVE_SEED_FAILURES consecutive failures.
+ */
+export async function runGeoSeedBatch({ plan, deps }) {
+  const { resolveEmail, generateProfile, sendEvent } = deps;
+  const outcome = { generated: 0, sent: 0, failed: 0, aborted: false, errors: [], lastError: '' };
+  let consecutiveFailures = 0;
+
+  const recordFailure = (message) => {
+    outcome.failed += 1;
+    outcome.lastError = message;
+    if (outcome.errors.length < 10) outcome.errors.push(message);
+    consecutiveFailures += 1;
+    if (consecutiveFailures >= MAX_CONSECUTIVE_SEED_FAILURES) outcome.aborted = true;
+  };
+
+  for (const [index, seed] of plan.entries()) {
+    if (outcome.aborted) break;
+    try {
+      const emailPlan = await resolveEmail({ index, seed });
+      if (!emailPlan?.ok) {
+        recordFailure(emailPlan?.error || 'Generation preferences are not configured.');
+        continue;
+      }
+
+      const profileResult = await generateProfile({ index, seed, email: emailPlan.email });
+      if (!profileResult?.ok) {
+        recordFailure(profileResult?.error || 'AEP test profile generation failed.');
+        continue;
+      }
+      outcome.generated += 1;
+
+      const ecid = String(profileResult.ecid ?? '').trim();
+      if (!isCanonicalEcid(ecid)) {
+        recordFailure(
+          'AEP profile generation returned a non-canonical ECID; the geo event was not sent because '
+          + 'Edge Network rejects it as an invalid identity.',
+        );
+        continue;
+      }
+
+      const eventResult = await sendEvent({ index, seed, email: emailPlan.email, ecid });
+      if (!eventResult?.ok) {
+        recordFailure(eventResult?.error || 'AEP product-view event send failed.');
+        continue;
+      }
+      outcome.sent += 1;
+      consecutiveFailures = 0;
+    } catch (error) {
+      recordFailure(String(error?.message || error));
+    }
+  }
+
+  return outcome;
+}
+
+/**
+ * Turns an opaque lab-API failure into an actionable operator hint. A 404 means
+ * the Hosting rewrite is not live, not that the audience is empty.
+ */
+export function geoHotspotsFailureHint(apiResult) {
+  if (Number(apiResult?.status) === 404) {
+    return 'The lab API route /api/geo-hotspots returned 404. The Cloud Function exists but the Firebase '
+      + 'hosting rewrite is not deployed — run a hosting deploy for project aep-orchestration-lab.';
+  }
+  return '';
+}
