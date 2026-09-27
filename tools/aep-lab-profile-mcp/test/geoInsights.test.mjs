@@ -10,8 +10,10 @@ import {
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
   geoJsonResult,
+  isGeoDataUnavailable,
   runGeoSeedBatch,
   shapeGeoHotspotsResponse,
+  shapeGeoHotspotsUnavailableResponse,
 } from '../src/framework/geoInsights.mjs';
 
 const CANONICAL_TEST_ECID = '62722406001178632594092146103219305888';
@@ -58,6 +60,7 @@ test('geo hotspot shaping suppresses small cells and emits only the governed con
       { lat: 24.7743, lon: 46.6384, profiles: 12, share: 0.5, label: 'Al Nakheel' },
     ],
     source: 'aep-query-service',
+    data_status: 'available',
     sandbox: 'apalmer',
     generated_at: '2026-09-27T12:00:00.000Z',
     hint: '',
@@ -230,4 +233,56 @@ test('geo interest pattern rejects SQL-escape payloads and accepts ordinary text
   for (const allowed of ['camping gear', 'Café & Co.', 'Ropa de montaña', 'tents, poles - 2 person', 'كشتة']) {
     assert.equal(GEO_INTEREST_PATTERN.test(allowed), true, `${allowed} must be allowed`);
   }
+});
+
+test('known-unavailable lab API state is recognised only from the explicit data_status flag', () => {
+  assert.equal(isGeoDataUnavailable({ ok: true, rows: [], data_status: 'unavailable' }), true);
+  assert.equal(isGeoDataUnavailable({ ok: true, rows: [], data_status: 'available' }), false);
+  assert.equal(isGeoDataUnavailable({ ok: true, rows: [] }), false);
+  assert.equal(isGeoDataUnavailable({ ok: false, error: 'Bad Gateway' }), false);
+  assert.equal(isGeoDataUnavailable(null), false);
+});
+
+test('unavailable geo data is an honest empty audience_geo_hotspots result, not a zero count', () => {
+  const result = shapeGeoHotspotsUnavailableResponse({
+    center: { lat: 24.71355, lon: 46.67529, label: 'Riyadh' },
+    radius_km: 10,
+    window_hours: 24,
+    interest: 'camping gear',
+    sandbox: 'apalmer',
+    generated_at: '2026-09-27T12:00:00.000Z',
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    kind: 'audience_geo_hotspots',
+    center: { lat: 24.7136, lon: 46.6753, label: 'Riyadh' },
+    radius_km: 10,
+    window_hours: 24,
+    interest: 'camping gear',
+    total_profiles: 0,
+    suppressed_profiles: 0,
+    k_threshold: 10,
+    hotspots: [],
+    source: 'none',
+    data_status: 'unavailable',
+    sandbox: 'apalmer',
+    generated_at: '2026-09-27T12:00:00.000Z',
+    hint: result.hint,
+  });
+  assert.match(result.hint, /not available yet/i);
+  assert.match(result.hint, /not a zero count/i);
+  assert.doesNotMatch(result.hint, /lab_seed_geo_demo/);
+});
+
+test('hotspot payload kind stays audience_geo_hotspots for every data status', () => {
+  const common = {
+    center: { lat: 24, lon: 46, label: 'Riyadh' },
+    radius_km: 10,
+    window_hours: 24,
+    interest: 'camping gear',
+    sandbox: 'apalmer',
+  };
+  assert.equal(shapeGeoHotspotsResponse({ ...common, rows: [] }).kind, 'audience_geo_hotspots');
+  assert.equal(shapeGeoHotspotsUnavailableResponse(common).kind, 'audience_geo_hotspots');
 });

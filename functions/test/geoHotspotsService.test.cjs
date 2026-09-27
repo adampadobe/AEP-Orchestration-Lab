@@ -2,7 +2,14 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { buildGeoHotspotsQuery, createGeoHotspotsService, stringLiteral } = require('../geoHotspotsService');
+const {
+  GEO_DATA_UNAVAILABLE_REASON,
+  buildGeoHotspotsHttpBody,
+  buildGeoHotspotsQuery,
+  createGeoHotspotsService,
+  resolveGeoHotspotsDataPath,
+  stringLiteral,
+} = require('../geoHotspotsService');
 
 const baseInput = {
   sandbox: 'apalmer',
@@ -147,6 +154,7 @@ test('geo hotspot service resolves the configured dataset and fetches only aggre
     maxWaitMs: 1000,
     pollIntervalMs: 1,
     now: () => Date.parse('2026-09-27T12:00:00.000Z'),
+    dataPath: 'query-service',
   });
 
   const result = await service.run(baseInput);
@@ -174,4 +182,77 @@ test('buildGeoHotspotsQuery normalizes a display-name dataset before it reaches 
   const { sql } = buildGeoHotspotsQuery({ ...baseInput, datasetName: 'AEP Event Tool - Dataset - v1' });
   assert.match(sql, /FROM aep_event_tool_dataset_v1/);
   assert.doesNotMatch(sql, /AEP Event Tool/);
+});
+
+test('unavailable data path short-circuits without calling IMS, Catalog or Query Service', async () => {
+  let tokenCalls = 0;
+  let fetchCalls = 0;
+  let configCalls = 0;
+  const service = createGeoHotspotsService({
+    getAccessToken: async () => { tokenCalls += 1; return 'test-token'; },
+    getClientId: () => 'test-client-id',
+    getImsOrg: () => 'test-org',
+    getEventConfig: async () => { configCalls += 1; return { datasetName: 'Retail Events' }; },
+    fetchImpl: async () => { fetchCalls += 1; throw new Error('must not be called'); },
+    dataPath: 'unavailable',
+  });
+
+  const result = await service.run(baseInput);
+
+  assert.deepEqual(result, {
+    rows: [],
+    dataStatus: 'unavailable',
+    reason: GEO_DATA_UNAVAILABLE_REASON,
+  });
+  assert.equal(tokenCalls, 0);
+  assert.equal(fetchCalls, 0);
+  assert.equal(configCalls, 0);
+});
+
+test('geo hotspot data path defaults to unavailable and rejects unknown values explicitly', () => {
+  assert.equal(resolveGeoHotspotsDataPath(undefined), 'unavailable');
+  assert.equal(resolveGeoHotspotsDataPath(''), 'unavailable');
+  assert.equal(resolveGeoHotspotsDataPath(' Query-Service '), 'query-service');
+  assert.throws(() => resolveGeoHotspotsDataPath('firestore'), /GEO_HOTSPOTS_DATA_PATH/);
+  assert.throws(
+    () => createGeoHotspotsService({
+      getAccessToken: async () => 'x',
+      getClientId: () => 'x',
+      getImsOrg: () => 'x',
+      getEventConfig: async () => ({}),
+      dataPath: 'bogus',
+    }),
+    /GEO_HOTSPOTS_DATA_PATH/,
+  );
+});
+
+test('query-service data path reports available rows', async () => {
+  const service = createGeoHotspotsService({
+    getAccessToken: async () => 'test-token',
+    getClientId: () => 'test-client-id',
+    getImsOrg: () => 'test-org',
+    getEventConfig: async () => ({ datasetName: 'Retail Events' }),
+    fetchImpl: async (url) => {
+      if (String(url).endsWith('/queries')) return new Response(JSON.stringify({ id: 'q1', state: 'SUCCESS', lastRunDetails: { id: 'r1', state: 'SUCCESS' } }), { status: 200 });
+      return new Response(JSON.stringify({ rows: [] }), { status: 200 });
+    },
+    sleep: async () => {},
+    maxWaitMs: 1000,
+    now: () => Date.parse('2026-09-27T12:00:00.000Z'),
+    dataPath: 'query-service',
+  });
+  const result = await service.run(baseInput);
+  assert.deepEqual(result, { rows: [], dataStatus: 'available' });
+});
+
+test('HTTP body keeps the known-unavailable state honest and distinct from zero results', () => {
+  assert.deepEqual(
+    buildGeoHotspotsHttpBody({ rows: [], dataStatus: 'unavailable', reason: GEO_DATA_UNAVAILABLE_REASON }),
+    { ok: true, rows: [], data_status: 'unavailable', reason: GEO_DATA_UNAVAILABLE_REASON },
+  );
+  assert.deepEqual(
+    buildGeoHotspotsHttpBody({ rows: [{ profiles: 12 }], dataStatus: 'available' }),
+    { ok: true, rows: [{ profiles: 12 }], data_status: 'available' },
+  );
+  assert.throws(() => buildGeoHotspotsHttpBody({ rows: [], dataStatus: 'maybe' }), /data status/i);
 });

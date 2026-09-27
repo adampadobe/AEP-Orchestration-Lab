@@ -17,9 +17,11 @@ import {
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
   geoJsonResult,
+  isGeoDataUnavailable,
   nearestSeededNeighborhood,
   runGeoSeedBatch,
   shapeGeoHotspotsResponse,
+  shapeGeoHotspotsUnavailableResponse,
 } from '../framework/geoInsights.mjs';
 import { planDualStreamGenerate, executeGeneratePlan } from '../framework/dualStreamGenerate.mjs';
 import { buildPersonaAttributes } from '../personaBuilder.mjs';
@@ -59,9 +61,11 @@ export function registerGeoInsightsTools(mcpServer) {
     {
       title: 'Find governed audience geo-hotspots',
       description:
-        'Read-only aggregate of retail product-view profiles from AEP Query Service, filtered by interest, time window, '
-        + 'and radius. Cells below k=10 are suppressed; identities and raw events are never returned. Provide a city or '
-        + 'lat/lon center. If the result is empty, seed demo data with lab_seed_geo_demo.',
+        'Read-only aggregate of retail product-view profiles, filtered by interest, time window, and radius. Cells '
+        + 'below k=10 are suppressed; identities and raw events are never returned. Provide a city or lat/lon center. '
+        + 'If data_status is "unavailable", the geo data path is not live yet: report that no geo audience data is '
+        + 'available (not a zero count) and do not seed. If data_status is "available" and the result is empty, seed '
+        + 'demo data with lab_seed_geo_demo.',
       inputSchema: {
         ...locationSchema,
         radius_km: z.number().min(1).max(50).default(10).describe('Search radius in kilometres (1–50, default 10).'),
@@ -131,6 +135,32 @@ export function registerGeoInsightsTools(mcpServer) {
           status: apiResult.status,
           ...(geoHotspotsFailureHint(apiResult) ? { hint: geoHotspotsFailureHint(apiResult) } : {}),
         });
+      }
+
+      if (isGeoDataUnavailable(apiResult.data)) {
+        const unavailable = shapeGeoHotspotsUnavailableResponse({
+          center,
+          radius_km,
+          window_hours,
+          interest,
+          sandbox: allowed.sandbox,
+          generated_at: new Date().toISOString(),
+        });
+        writeAuditLog({
+          keyId,
+          tool: 'lab_audience_geo_hotspots',
+          sandbox: allowed.sandbox,
+          center: { lat: center.lat, lon: center.lon },
+          radius_km,
+          window_hours,
+          interest,
+          total_profiles: null,
+          suppressed_profiles: null,
+          result: 'unavailable',
+          reason: String(apiResult.data.reason || ''),
+          durationMs: Date.now() - started,
+        });
+        return geoJsonResult(unavailable);
       }
 
       const rows = rowsFromQueryResult(apiResult.data);
@@ -284,7 +314,8 @@ export function registerGeoInsightsTools(mcpServer) {
         aborted: outcome.aborted,
         source: 'aep-event-generator',
         ingestion_note:
-          'Query Service reflects data-lake ingestion after a delay; allow several minutes, with actual timing varying by dataset and backlog.',
+          'Seeded profiles and events are written to AEP, but geo hotspots cannot query them until the profile '
+          + 'place-context data path ships; lab_audience_geo_hotspots reports data_status "unavailable" until then.',
         generated_at: new Date().toISOString(),
         ...(lastError ? { error: lastError } : {}),
         ...(outcome.errors.length ? { errors: outcome.errors } : {}),

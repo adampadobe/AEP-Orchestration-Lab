@@ -7,6 +7,36 @@ const MAX_WAIT_MS = 100_000;
 const POLL_INTERVAL_MS = 1500;
 const K_THRESHOLD = 10;
 
+// The live event schema carries no location fields and Query Service REST cannot return
+// ad-hoc results to Cloud Run, so the query-service path cannot succeed today. Until the
+// profile place-context mirror ships, the default data path reports that state explicitly
+// instead of spending ~100 s on a query that is certain to fail.
+const GEO_HOTSPOTS_DATA_PATHS = Object.freeze(['unavailable', 'query-service']);
+const DEFAULT_GEO_HOTSPOTS_DATA_PATH = 'unavailable';
+const GEO_DATA_UNAVAILABLE_REASON = 'geo_data_path_not_available';
+
+function resolveGeoHotspotsDataPath(value) {
+  const normalized = String(value == null ? '' : value).trim().toLowerCase();
+  if (!normalized) return DEFAULT_GEO_HOTSPOTS_DATA_PATH;
+  if (!GEO_HOTSPOTS_DATA_PATHS.includes(normalized)) {
+    throw new Error(
+      `GEO_HOTSPOTS_DATA_PATH must be one of ${GEO_HOTSPOTS_DATA_PATHS.join(', ')}; received "${normalized}".`,
+    );
+  }
+  return normalized;
+}
+
+function buildGeoHotspotsHttpBody(result) {
+  const rows = Array.isArray(result?.rows) ? result.rows : [];
+  if (result?.dataStatus === 'unavailable') {
+    return { ok: true, rows: [], data_status: 'unavailable', reason: result.reason || GEO_DATA_UNAVAILABLE_REASON };
+  }
+  if (result?.dataStatus === 'available') {
+    return { ok: true, rows, data_status: 'available' };
+  }
+  throw new Error(`Unknown geo-hotspot data status "${result?.dataStatus}".`);
+}
+
 // Query Service exposes datasets as lowercase snake_case tables, never by their display name.
 function normalizeDatasetTableName(value) {
   const name = String(value || '').trim();
@@ -181,7 +211,10 @@ function createGeoHotspotsService({
   now = Date.now,
   maxWaitMs = MAX_WAIT_MS,
   pollIntervalMs = POLL_INTERVAL_MS,
+  dataPath,
 }) {
+  const resolvedDataPath = resolveGeoHotspotsDataPath(dataPath);
+
   async function request(url, headers, init = {}, timeoutMs = 10_000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -201,7 +234,11 @@ function createGeoHotspotsService({
   }
 
   return {
+    dataPath: resolvedDataPath,
     async run(input) {
+      if (resolvedDataPath === 'unavailable') {
+        return { rows: [], dataStatus: 'unavailable', reason: GEO_DATA_UNAVAILABLE_REASON };
+      }
       const accessToken = await getAccessToken();
       const headers = {
         Authorization: `Bearer ${accessToken}`,
@@ -257,13 +294,17 @@ function createGeoHotspotsService({
       const result = await request(rowsUrl, headers, {}, Math.min(10_000, Math.max(1, deadline - now())));
       const rows = Array.isArray(result) ? result : result.rows || result._embedded?.data;
       if (!Array.isArray(rows)) throw new Error('Geo-hotspot Query Service returned an unexpected results shape.');
-      return { rows: rows.slice(0, 100) };
+      return { rows: rows.slice(0, 100), dataStatus: 'available' };
     },
   };
 }
 
 module.exports = {
+  GEO_DATA_UNAVAILABLE_REASON,
+  GEO_HOTSPOTS_DATA_PATHS,
+  buildGeoHotspotsHttpBody,
   buildGeoHotspotsQuery,
+  resolveGeoHotspotsDataPath,
   createGeoHotspotsService,
   assertSafeInterest,
   normalizeDatasetTableName,
