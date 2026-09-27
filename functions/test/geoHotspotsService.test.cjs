@@ -29,37 +29,56 @@ test('geo hotspot query uses configured table and escaped, bound parameters', ()
   assert.match(sql, /ROUND\(grid_lat, 4\) AS cell_lat/);
   assert.doesNotMatch(sql, /AVG\(latitude\)|AVG\(longitude\)/);
   assert.match(sql, /"Retail ""Events"""/);
-  assert.doesNotMatch(sql, /camping|OR 1=1/);
-  assert.equal(queryParameters.interestPattern, "%camping\\%\\_\\\\' OR 1=1 --%");
-  assert.equal(queryParameters.windowStart, '2026-09-26T12:00:00.000Z');
-  assert.equal(queryParameters.windowEnd, '2026-09-27T12:00:00.000Z');
   assert.match(sql, /COUNT\(DISTINCT profile_id\) AS profiles/);
 });
 
-test('geo hotspot query binds only string parameters and inlines validated numeric literals', () => {
+test('geo hotspot query inlines quoted literals and sends no substitution parameters', () => {
   const { sql, queryParameters } = buildGeoHotspotsQuery({
     ...baseInput,
     datasetName: 'retail_events',
     now: () => Date.parse('2026-09-27T12:00:00.000Z'),
   });
 
-  // AEP Query Service rejects non-string queryParameters values with
-  // "Invalid element found with key: centerLon ... class java.lang.Double".
-  for (const [key, value] of Object.entries(queryParameters)) {
-    assert.equal(typeof value, 'string', `queryParameters.${key} must be a string`);
-  }
-  assert.deepEqual(
-    Object.keys(queryParameters).sort(),
-    ['interestPattern', 'windowEnd', 'windowStart'],
-  );
-
-  // Numerics are strictly validated and inlined, so no numeric placeholders remain.
-  for (const placeholder of ['$centerLat', '$centerLon', '$radiusKm', '$cellLatStep', '$cellLonStep', '$kThreshold']) {
+  // AEP Query Service substitutes `$name` parameters as RAW TEXT, so an ISO timestamp
+  // arrived unquoted and failed with "no viable alternative at input". Everything is
+  // therefore quoted and inlined here instead of relying on server-side substitution.
+  assert.deepEqual(queryParameters, {});
+  for (const placeholder of ['$windowStart', '$windowEnd', '$interestPattern', '$centerLat', '$centerLon', '$radiusKm', '$cellLatStep', '$cellLonStep', '$kThreshold']) {
     assert.ok(!sql.includes(placeholder), `${placeholder} must not remain in SQL`);
   }
+  assert.ok(sql.includes("TIMESTAMP '2026-09-26 12:00:00'"), 'window start is a quoted timestamp literal');
+  assert.ok(sql.includes("TIMESTAMP '2026-09-27 12:00:00'"), 'window end is a quoted timestamp literal');
   assert.ok(sql.includes('24.7136'), 'center latitude is inlined');
   assert.ok(sql.includes('46.6753'), 'center longitude is inlined');
   assert.match(sql, /profiles >= 10/);
+});
+
+test('geo hotspot query escapes the interest literal so it cannot break out of its quotes', () => {
+  const { sql } = buildGeoHotspotsQuery({
+    ...baseInput,
+    datasetName: 'retail_events',
+    now: () => Date.parse('2026-09-27T12:00:00.000Z'),
+  });
+
+  // The single quote in the interest is doubled, so "OR 1=1 --" stays inert text
+  // inside the literal rather than becoming SQL.
+  assert.ok(
+    sql.includes("LIKE LOWER('%camping\\%\\_\\\\'' OR 1=1 --%')"),
+    'interest is inlined as a single escaped literal',
+  );
+  const quoteCount = (sql.match(/'/g) || []).length;
+  assert.equal(quoteCount % 2, 0, 'SQL single quotes stay balanced');
+});
+
+test('geo hotspot query refuses interest values containing control characters', () => {
+  assert.throws(
+    () => buildGeoHotspotsQuery({
+      ...baseInput,
+      interest: 'camping\u0000gear',
+      datasetName: 'retail_events',
+    }),
+    /interest/i,
+  );
 });
 
 test('geo hotspot query refuses non-finite numeric inputs instead of inlining them', () => {
@@ -124,6 +143,7 @@ test('geo hotspot service resolves the configured dataset and fetches only aggre
   ]);
   assert.equal(calls[0].init.headers['x-sandbox-name'], 'apalmer');
   assert.match(JSON.parse(calls[0].init.body).sql, /identityMap\['ECID'\]\[0\]\.id/);
-  assert.equal(JSON.parse(calls[0].init.body).queryParameters.interestPattern, '%camping\\%\\_\\\\\' OR 1=1 --%');
+  assert.equal(JSON.parse(calls[0].init.body).queryParameters, undefined, 'no raw-substitution parameters are sent');
+  assert.match(JSON.parse(calls[0].init.body).sql, /LIKE LOWER\('%camping/);
   assert.match(calls[2].url, /limit=100/);
 });

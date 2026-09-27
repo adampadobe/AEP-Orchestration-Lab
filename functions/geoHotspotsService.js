@@ -22,10 +22,26 @@ function round(value, precision) {
   return Math.round(value * scale) / scale;
 }
 
-// AEP Query Service only accepts string values in `queryParameters`; numeric binds are
-// rejected with "Invalid element found with key: centerLon ... class java.lang.Double".
-// Numerics are therefore strictly validated here and inlined as plain SQL literals, which
-// keeps them injection-safe because a non-finite value can never reach the statement.
+// AEP Query Service substitutes `$name` parameters as raw text rather than as quoted
+// literals, so an ISO timestamp arrived unquoted ("no viable alternative at input") and a
+// string parameter could never have been trusted to stay inside its quotes. Every value is
+// therefore quoted and inlined here: strings via stringLiteral (single quotes doubled,
+// control characters refused) and numerics via numericLiteral (non-finite input refused).
+function stringLiteral(value, label) {
+  const text = String(value);
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(text)) {
+    throw new Error(`The ${label} value must not contain control characters.`);
+  }
+  return `'${text.replaceAll("'", "''")}'`;
+}
+
+function timestampLiteral(epochMs, label) {
+  const date = new Date(epochMs);
+  if (Number.isNaN(date.getTime())) throw new Error(`The ${label} value must be a valid timestamp.`);
+  return `TIMESTAMP ${stringLiteral(date.toISOString().slice(0, 19).replace('T', ' '), label)}`;
+}
+
 function numericLiteral(value, label) {
   const parsed = typeof value === 'number' ? value : Number(value);
   if (typeof value === 'boolean' || value === null || value === '' || !Number.isFinite(parsed)) {
@@ -56,6 +72,10 @@ function buildGeoHotspotsQuery({
   const cellLonStepSql = numericLiteral(cellLonStep, 'cell longitude step');
   const kThresholdSql = numericLiteral(K_THRESHOLD, 'k threshold');
   const timestampNow = now();
+  const windowHoursNumber = Number(numericLiteral(windowHours, 'window_hours'));
+  const windowStartSql = timestampLiteral(timestampNow - windowHoursNumber * 60 * 60 * 1000, 'window start');
+  const windowEndSql = timestampLiteral(timestampNow, 'window end');
+  const interestPatternSql = stringLiteral(`%${escapeLikePattern(interest.trim())}%`, 'interest');
   const table = quoteTableName(datasetName);
   const sql = `
 WITH filtered_events AS (
@@ -68,12 +88,12 @@ WITH filtered_events AS (
     ROUND(placeContext.geo._schema.latitude / ${cellLatStepSql}) * ${cellLatStepSql} AS grid_lat,
     ROUND(placeContext.geo._schema.longitude / ${cellLonStepSql}) * ${cellLonStepSql} AS grid_lon
   FROM ${table}
-  WHERE timestamp >= $windowStart
-    AND timestamp <= $windowEnd
+  WHERE timestamp >= ${windowStartSql}
+    AND timestamp <= ${windowEndSql}
     AND eventType = 'commerce.productViews'
     AND (
-      LOWER(_demoemea.public.retail.productName) LIKE LOWER($interestPattern) ESCAPE '\\'
-      OR LOWER(_demoemea.public.retail.productCategory) LIKE LOWER($interestPattern) ESCAPE '\\'
+      LOWER(_demoemea.public.retail.productName) LIKE LOWER(${interestPatternSql}) ESCAPE '\\'
+      OR LOWER(_demoemea.public.retail.productCategory) LIKE LOWER(${interestPatternSql}) ESCAPE '\\'
     )
     AND identityMap['ECID'][0].id IS NOT NULL
     AND placeContext.geo._schema.latitude IS NOT NULL
@@ -122,11 +142,7 @@ LEFT JOIN (
 ) AS cells ON TRUE`;
   return {
     sql,
-    queryParameters: {
-      windowStart: new Date(timestampNow - Number(numericLiteral(windowHours, 'window_hours')) * 60 * 60 * 1000).toISOString(),
-      windowEnd: new Date(timestampNow).toISOString(),
-      interestPattern: `%${escapeLikePattern(interest.trim())}%`,
-    },
+    queryParameters: {},
   };
 }
 
@@ -192,7 +208,7 @@ function createGeoHotspotsService({
         body: JSON.stringify({
           dbName: `${input.sandbox}:all`,
           sql,
-          queryParameters,
+          ...(Object.keys(queryParameters).length ? { queryParameters } : {}),
           name: 'Governed audience geo-hotspots',
         }),
       }, Math.min(15_000, maxWaitMs));
