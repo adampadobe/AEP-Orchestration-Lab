@@ -6,6 +6,7 @@
 
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const profilePlaceContext = require('./profilePlaceContext');
+const profileUpdateRequestLog = require('./profileUpdateRequestLog');
 
 /**
  * @param {object} deps Shared context from index.js
@@ -298,6 +299,10 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(400).json({ error: 'Email is required (primary identity for consent streaming).' });
     return;
   }
+  console.log(
+    '[profileUpdateProxy.request]',
+    JSON.stringify(profileUpdateRequestLog.summarizeProfileUpdateRequest({ email, updates, sandbox, dryRun, hasConsent })),
+  );
   const ecidForPayload = ecid.length >= 10 ? ecid : '';
   if (hasConsent && updates.length > 0) {
     res.status(400).json({ error: 'Send either updates or consent, not both.' });
@@ -622,7 +627,19 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     payloadFormat = built.format;
   }
 
+  const payloadLogSummary = {
+    emailHash: profileUpdateRequestLog.emailHash(email),
+    sandbox,
+    dryRun,
+    industry: industryKey,
+    payloadFormat,
+    streamPayloadProfile: streamPayloadProfileLabel,
+    datasetId: datasetId || null,
+    ...profileUpdateRequestLog.summarizeProfileUpdatePayload(payload, xdmKey || '_demoemea'),
+  };
+
   if (dryRun) {
+    console.log('[profileUpdateProxy.result]', JSON.stringify({ ...payloadLogSummary, outcome: 'dryRun' }));
     res.status(200).json({
       ok: true,
       dryRun: true,
@@ -661,6 +678,15 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   }
 
   const { parsed: data, streamErrors, streamWarnings } = profileStreamingCore.parseStreamingCollectionResponse(streamRes.status, rawText);
+
+  console.log(
+    '[profileUpdateProxy.result]',
+    JSON.stringify({
+      ...payloadLogSummary,
+      outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
+      streamingStatus: streamRes.status,
+    }),
+  );
 
   if (!streamRes.ok || streamErrors.length > 0) {
     res.status(502).json({

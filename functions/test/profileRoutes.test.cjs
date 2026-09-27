@@ -192,4 +192,32 @@ describe('profileUpdateProxy place context (dryRun)', () => {
     assert.match(res.body.error, /countryCode/);
     assert.equal(res.body.invalidPath, '_demoemea.profilePlaceContext.countryCode');
   });
+
+  it('logs value-free request and result summaries with place row counts', async (t) => {
+    const lines = [];
+    t.mock.method(console, 'log', (...args) => { lines.push(args); });
+    const res = await post([
+      { path: 'person.name.firstName', value: 'SecretName', valueType: 'string' },
+      { path: 'profilePlaceContext.latitude', value: 24.7743, valueType: 'number' },
+      { path: 'profilePlaceContext.longitude', value: 46.6384, valueType: 'number' },
+      { path: 'profilePlaceContext.city', value: 'Riyadh', valueType: 'string' },
+    ]);
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    const byTag = (tag) => lines.filter((a) => a[0] === tag).map((a) => JSON.parse(a[1]));
+    const [reqLog] = byTag('[profileUpdateProxy.request]');
+    const [resultLog] = byTag('[profileUpdateProxy.result]');
+    assert.ok(reqLog && resultLog, 'both log lines emitted');
+    assert.equal(reqLog.updateCount, 4);
+    assert.equal(reqLog.placeRowCount, 3);
+    assert.deepEqual(reqLog.placeLeaves, ['latitude', 'longitude', 'city']);
+    assert.equal(reqLog.dryRun, true);
+    assert.equal(resultLog.outcome, 'dryRun');
+    assert.equal(resultLog.placeInPayload, true);
+    assert.ok(resultLog.placeLeavesInPayload.includes('geohash'));
+    assert.equal(resultLog.emailHash, reqLog.emailHash);
+    const logged = lines.map((a) => a.join(' ')).join('\n');
+    assert.equal(logged.includes('SecretName'), false);
+    assert.equal(logged.includes('Riyadh'), false);
+    assert.equal(logged.includes('place.test@example.com'), false);
+  });
 });
