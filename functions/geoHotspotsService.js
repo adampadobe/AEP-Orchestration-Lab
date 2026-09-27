@@ -7,14 +7,20 @@ const MAX_WAIT_MS = 100_000;
 const POLL_INTERVAL_MS = 1500;
 const K_THRESHOLD = 10;
 
-function escapeLikePattern(value) {
-  return String(value).replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+// Query Service exposes datasets as lowercase snake_case tables, never by their display name.
+function normalizeDatasetTableName(value) {
+  const name = String(value || '').trim();
+  if (!name || name.includes('\0')) throw new Error('The configured retail event dataset name is invalid.');
+  const normalized = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (!normalized) throw new Error('The configured retail event dataset name is invalid.');
+  return normalized;
 }
 
 function quoteTableName(value) {
-  const name = String(value || '').trim();
-  if (!name || name.includes('\0')) throw new Error('The configured retail event dataset name is invalid.');
-  return `"${name.replaceAll('"', '""')}"`;
+  return normalizeDatasetTableName(value);
 }
 
 function round(value, precision) {
@@ -25,15 +31,34 @@ function round(value, precision) {
 // AEP Query Service substitutes `$name` parameters as raw text rather than as quoted
 // literals, so an ISO timestamp arrived unquoted ("no viable alternative at input") and a
 // string parameter could never have been trusted to stay inside its quotes. Every value is
-// therefore quoted and inlined here: strings via stringLiteral (single quotes doubled,
-// control characters refused) and numerics via numericLiteral (non-finite input refused).
+// therefore quoted and inlined here: strings via stringLiteral (quotes and backslashes
+// refused) and numerics via numericLiteral (non-finite input refused).
+//
+// Query Service runs Spark SQL, where a backslash escapes a quote character, so doubling
+// the quote alone is not a safe guarantee. `interest` is first held to a strict allowlist
+// that excludes quotes, backslashes, LIKE wildcards and control characters.
+const INTEREST_PATTERN = /^[\p{L}\p{N} &,.\-]{1,64}$/u;
+
+function assertSafeInterest(value) {
+  const text = String(value == null ? '' : value).trim();
+  if (!INTEREST_PATTERN.test(text)) {
+    throw new Error(
+      'The interest value must be 1-64 characters of letters, numbers, spaces or & , . - only.',
+    );
+  }
+  return text;
+}
+
 function stringLiteral(value, label) {
   const text = String(value);
   // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(text)) {
     throw new Error(`The ${label} value must not contain control characters.`);
   }
-  return `'${text.replaceAll("'", "''")}'`;
+  if (text.includes("'") || text.includes('\\')) {
+    throw new Error(`The ${label} value must not contain quote or backslash characters.`);
+  }
+  return `'${text}'`;
 }
 
 function timestampLiteral(epochMs, label) {
@@ -75,7 +100,7 @@ function buildGeoHotspotsQuery({
   const windowHoursNumber = Number(numericLiteral(windowHours, 'window_hours'));
   const windowStartSql = timestampLiteral(timestampNow - windowHoursNumber * 60 * 60 * 1000, 'window start');
   const windowEndSql = timestampLiteral(timestampNow, 'window end');
-  const interestPatternSql = stringLiteral(`%${escapeLikePattern(interest.trim())}%`, 'interest');
+  const interestPatternSql = stringLiteral(`%${assertSafeInterest(interest)}%`, 'interest');
   const table = quoteTableName(datasetName);
   const sql = `
 WITH filtered_events AS (
@@ -92,8 +117,8 @@ WITH filtered_events AS (
     AND timestamp <= ${windowEndSql}
     AND eventType = 'commerce.productViews'
     AND (
-      LOWER(_demoemea.public.retail.productName) LIKE LOWER(${interestPatternSql}) ESCAPE '\\'
-      OR LOWER(_demoemea.public.retail.productCategory) LIKE LOWER(${interestPatternSql}) ESCAPE '\\'
+      LOWER(_demoemea.public.retail.productName) LIKE LOWER(${interestPatternSql})
+      OR LOWER(_demoemea.public.retail.productCategory) LIKE LOWER(${interestPatternSql})
     )
     AND identityMap['ECID'][0].id IS NOT NULL
     AND placeContext.geo._schema.latitude IS NOT NULL
@@ -237,4 +262,11 @@ function createGeoHotspotsService({
   };
 }
 
-module.exports = { buildGeoHotspotsQuery, createGeoHotspotsService, escapeLikePattern };
+module.exports = {
+  buildGeoHotspotsQuery,
+  createGeoHotspotsService,
+  assertSafeInterest,
+  normalizeDatasetTableName,
+  stringLiteral,
+  INTEREST_PATTERN,
+};

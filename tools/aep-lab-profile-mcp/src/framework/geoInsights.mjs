@@ -1,6 +1,15 @@
 export const GEO_MIN_K_ANONYMITY = 10;
 export const MAX_GEO_HOTSPOTS = 50;
 
+// AEP Query Service runs Spark SQL, where a backslash escapes a quote character, so
+// quote-doubling alone cannot guarantee a string literal stays inside its quotes. Every
+// interest value is therefore held to this strict allowlist — letters, numbers, spaces and
+// a few punctuation marks — before it reaches the query builder. It deliberately excludes
+// quotes, backslashes and the LIKE wildcards % and _.
+export const GEO_INTEREST_PATTERN = /^[\p{L}\p{N} &,.\-]{1,64}$/u;
+export const GEO_INTEREST_RULE =
+  'Use 1-64 characters of letters, numbers, spaces or & , . - only.';
+
 export const GEO_CITY_PRESETS = Object.freeze({
   riyadh: Object.freeze([
     Object.freeze({ name: 'Olaya', lat: 24.6908, lon: 46.6853 }),

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   GEO_CITY_PRESETS,
+  GEO_INTEREST_PATTERN,
   GEO_MIN_K_ANONYMITY,
   MAX_GEO_HOTSPOTS,
   MAX_CONSECUTIVE_SEED_FAILURES,
@@ -205,4 +206,28 @@ test('a 404 from the lab API is reported as an undeployed route, not a data prob
   assert.match(hint, /\/api\/geo-hotspots/);
   assert.match(hint, /hosting/i);
   assert.equal(geoHotspotsFailureHint({ ok: false, status: 500, error: 'boom' }), '');
+});
+
+test('geo interest pattern rejects SQL-escape payloads and accepts ordinary text', () => {
+  // Query Service runs Spark SQL, where a backslash escapes a quote character, so
+  // quote-doubling alone is not a safe guarantee. The tool schema applies a strict
+  // allowlist before any value reaches the query builder.
+  for (const payload of [
+    "\\' OR 1=1 --",
+    "camping' OR 1=1 --",
+    'camping\\gear',
+    'camping%gear',
+    'camping_gear',
+    'camping"gear',
+    'camping;gear',
+    'camping\u0000gear',
+    'a'.repeat(65),
+    '',
+  ]) {
+    assert.equal(GEO_INTEREST_PATTERN.test(payload), false, `${JSON.stringify(payload)} must be rejected`);
+  }
+
+  for (const allowed of ['camping gear', 'Café & Co.', 'Ropa de montaña', 'tents, poles - 2 person', 'كشتة']) {
+    assert.equal(GEO_INTEREST_PATTERN.test(allowed), true, `${allowed} must be allowed`);
+  }
 });
