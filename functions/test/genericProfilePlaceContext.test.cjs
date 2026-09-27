@@ -216,6 +216,37 @@ test('ensure script apply creates, waits for listing, attaches with If-Match and
   assert.equal(result.verified.unionHasPath, true);
 });
 
+test('ensure script create-only creates and waits for listing but never PATCHes the schema', async () => {
+  const registry = makeRegistry();
+  const result = await ensure.runEnsure(baseArgs(registry, { apply: true, createOnly: true }));
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.mode, 'apply');
+  assert.equal(result.action, 'create-only');
+  assert.equal(result.created.$id, FG_ID);
+  assert.equal(result.created.metaAltId, FG_ALT);
+  assert.deepEqual(registry.calls.filter((c) => c.method !== 'GET').map((c) => c.method), ['POST']);
+  assert.equal(registry.state.attached, false);
+  assert.match(result.note, /NOT attached/);
+});
+
+test('ensure script create-only is a no-op when the field group already exists', async () => {
+  const registry = makeRegistry({ fgExists: true });
+  const result = await ensure.runEnsure(baseArgs(registry, { apply: true, createOnly: true }));
+  assert.equal(result.action, 'none');
+  assert.equal(result.fieldGroup.$id, FG_ID);
+  assert.equal(registry.calls.filter((c) => c.method !== 'GET').length, 0);
+});
+
+test('ensure script create-only dry-run plans only the POST', async () => {
+  const registry = makeRegistry();
+  const result = await ensure.runEnsure(baseArgs(registry, { createOnly: true }));
+  assert.equal(result.mode, 'dry-run');
+  assert.equal(result.action, 'create-only');
+  assert.ok(result.planned.createFieldGroup);
+  assert.equal(result.planned.patchSchema, null);
+  assert.equal(registry.calls.filter((c) => c.method !== 'GET').length, 0);
+});
+
 test('ensure script is a no-op when the field group is already attached', async () => {
   const registry = makeRegistry({ fgExists: true, attached: true });
   const result = await ensure.runEnsure(baseArgs(registry, { apply: true }));
@@ -245,7 +276,8 @@ test('ensure script refuses an ambiguous schema title match', async () => {
 
 test('ensure script CLI requires an explicit sandbox', () => {
   assert.throws(() => ensure.parseArgs([]), /--sandbox <name> is required/);
-  assert.deepEqual(ensure.parseArgs(['--sandbox', 'apalmer']), { sandbox: 'apalmer', apply: false });
-  assert.deepEqual(ensure.parseArgs(['--sandbox=apalmer', '--apply']), { sandbox: 'apalmer', apply: true });
+  assert.deepEqual(ensure.parseArgs(['--sandbox', 'apalmer']), { sandbox: 'apalmer', apply: false, createOnly: false });
+  assert.deepEqual(ensure.parseArgs(['--sandbox=apalmer', '--apply']), { sandbox: 'apalmer', apply: true, createOnly: false });
+  assert.deepEqual(ensure.parseArgs(['--sandbox', 'apalmer', '--apply', '--create-only']), { sandbox: 'apalmer', apply: true, createOnly: true });
   assert.throws(() => ensure.parseArgs(['--sandbox', 'apalmer', '--force']), /Unknown argument: --force/);
 });

@@ -5,6 +5,8 @@
  *
  * DRY-RUN BY DEFAULT: performs read-only Schema Registry GETs and prints the
  * exact POST / PATCH bodies it would send. Pass --apply to write.
+ * Add --create-only to create the field group WITHOUT attaching it (so it can
+ * be reviewed in the AEP UI first); re-run with --apply alone to attach.
  *
  * Attaching a field group to a Profile-enabled schema is irreversible (removal
  * is a breaking change). Only run --apply after reviewing the dry-run output.
@@ -15,6 +17,7 @@
  *
  * Usage:
  *   node scripts/ensure-generic-place-context-fieldgroup.cjs --sandbox apalmer
+ *   node scripts/ensure-generic-place-context-fieldgroup.cjs --sandbox apalmer --apply --create-only
  *   node scripts/ensure-generic-place-context-fieldgroup.cjs --sandbox apalmer --apply
  */
 
@@ -36,15 +39,17 @@ const SUBTREE_KEY = 'profilePlaceContext';
 function parseArgs(argv) {
   let sandbox = '';
   let apply = false;
+  let createOnly = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--apply') apply = true;
+    else if (arg === '--create-only') createOnly = true;
     else if (arg === '--sandbox') sandbox = String(argv[++i] || '').trim();
     else if (arg.startsWith('--sandbox=')) sandbox = arg.slice('--sandbox='.length).trim();
     else throw new Error(`Unknown argument: ${arg}`);
   }
   if (!sandbox) throw new Error('--sandbox <name> is required (no default sandbox for a shared-schema change).');
-  return { sandbox, apply };
+  return { sandbox, apply, createOnly };
 }
 
 function tenantSubtree(resolved, tenantId) {
@@ -176,7 +181,7 @@ async function verify(client, state) {
   return { leaves, schemaVersion: String(resolved.version), unionHasPath };
 }
 
-async function runEnsure({ fetchImpl, token, clientId, orgId, sandbox, apply = false, sleep, log = () => {} }) {
+async function runEnsure({ fetchImpl, token, clientId, orgId, sandbox, apply = false, createOnly = false, sleep, log = () => {} }) {
   if (!sandbox) throw new Error('sandbox is required.');
   const wait = sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
   const client = createRegistryClient({ fetchImpl, token, clientId, orgId, sandbox });
@@ -185,17 +190,22 @@ async function runEnsure({ fetchImpl, token, clientId, orgId, sandbox, apply = f
   const base = { ok: true, mode, sandbox, tenantId: state.tenantId, schema: state.schema, fieldGroup: state.fieldGroup, unionHasPath: state.unionHasPath };
 
   if (state.attached) return { ...base, action: 'none', note: 'Field group is already attached; nothing to do.' };
+  if (createOnly && state.fieldGroup) {
+    return { ...base, action: 'none', note: 'Field group already exists (not attached); nothing to create. Re-run with --apply alone to attach.' };
+  }
 
-  const action = state.fieldGroup ? 'attach' : 'create-and-attach';
+  const action = createOnly ? 'create-only' : state.fieldGroup ? 'attach' : 'create-and-attach';
   const createBody = state.fieldGroup ? null : buildTenantFieldGroupCreateBody(state.tenantId, generic.PROFILE_PLACE_CONTEXT_FIELD_GROUP_SPEC);
   const planned = {
     createFieldGroup: createBody ? { method: 'POST', path: '/tenant/fieldgroups', body: createBody } : null,
-    patchSchema: {
-      method: 'PATCH',
-      path: state.schema.path,
-      ifMatch: state.schema.version,
-      operations: attachOperations(state.fieldGroup ? state.fieldGroup.$id : CREATED_ID_PLACEHOLDER),
-    },
+    patchSchema: createOnly
+      ? null
+      : {
+          method: 'PATCH',
+          path: state.schema.path,
+          ifMatch: state.schema.version,
+          operations: attachOperations(state.fieldGroup ? state.fieldGroup.$id : CREATED_ID_PLACEHOLDER),
+        },
   };
   if (!apply) return { ...base, action, planned };
 
@@ -208,6 +218,14 @@ async function runEnsure({ fetchImpl, token, clientId, orgId, sandbox, apply = f
     log('created', created);
     fgId = created.$id;
     await waitForListing(client, fgId, wait);
+  }
+  if (createOnly) {
+    return {
+      ...base,
+      action,
+      created,
+      note: `Field group created and NOT attached. Review it in AEP, then re-run with --apply to attach, or DELETE /tenant/fieldgroups/${encodeURIComponent(created.metaAltId)} to remove it.`,
+    };
   }
   const current = await client.get(state.schema.path, ACCEPT_XED);
   const operations = attachOperations(fgId);
@@ -259,7 +277,7 @@ async function imsToken() {
 }
 
 async function main() {
-  const { sandbox, apply } = parseArgs(process.argv.slice(2));
+  const { sandbox, apply, createOnly } = parseArgs(process.argv.slice(2));
   mergeCredentialsIntoEnv(path.join(process.env.HOME || '', '.config', 'adobe-ims', 'credentials.env'));
   const orgId = process.env.ADOBE_IMS_ORG || process.env.ADOBE_ORG_ID;
   const clientId = process.env.ADOBE_CLIENT_ID || process.env.ADOBE_API_KEY;
@@ -273,6 +291,7 @@ async function main() {
     orgId,
     sandbox,
     apply,
+    createOnly,
     log: (phase, detail) => console.error(`[ensure-place-context] ${phase} ${JSON.stringify(detail)}`),
   });
   console.log(JSON.stringify(result, null, 2));
