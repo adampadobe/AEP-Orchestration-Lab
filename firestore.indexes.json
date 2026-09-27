@@ -15,7 +15,19 @@
         { "fieldPath": "principalUid", "order": "ASCENDING" },
         { "fieldPath": "revoked", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "labGeoInterestSignals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sandbox", "order": "ASCENDING" },
+        { "fieldPath": "interestKeys", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "ts", "order": "ASCENDING" }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    { "collectionGroup": "labGeoInterestSignals", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "labGeoProfilePlaces", "fieldPath": "expireAt", "ttl": true, "indexes": [] }
+  ]
 }

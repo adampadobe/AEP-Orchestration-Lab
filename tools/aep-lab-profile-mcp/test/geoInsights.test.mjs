@@ -4,11 +4,14 @@ import test from 'node:test';
 import {
   GEO_CITY_PRESETS,
   GEO_INTEREST_PATTERN,
+  GEO_MIRROR_SOURCE,
+  GEO_MIRROR_PLACE_HINT,
   GEO_MIN_K_ANONYMITY,
   MAX_GEO_HOTSPOTS,
   MAX_CONSECUTIVE_SEED_FAILURES,
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
+  geoSeedPlaceAttributes,
   geoJsonResult,
   isGeoDataUnavailable,
   runGeoSeedBatch,
@@ -20,14 +23,107 @@ const CANONICAL_TEST_ECID = '62722406001178632594092146103219305888';
 import { annotationsForTool } from '../src/toolAnnotations.mjs';
 import { checkEdgeSendRate, checkGenerateRate, reserveGeoSeedRates } from '../src/rateLimiter.mjs';
 
-test('geo seed presets cover the requested Riyadh and Dubai neighborhoods', () => {
+test('geo seed presets lead with three central seed neighborhoods per city', () => {
   assert.deepEqual(Object.keys(GEO_CITY_PRESETS), ['riyadh', 'dubai']);
   assert.deepEqual(GEO_CITY_PRESETS.riyadh.map(({ name }) => name), [
-    'Olaya', 'Al Malqa', 'Hittin', 'Al Yasmin', 'Al Nakheel', 'Diriyah',
+    'Olaya', 'Al Sulimaniyah', 'Al Malaz', 'Al Malqa', 'Hittin', 'Al Yasmin', 'Al Nakheel', 'Diriyah',
   ]);
   assert.deepEqual(GEO_CITY_PRESETS.dubai.map(({ name }) => name), [
-    'Dubai Marina', 'Downtown', 'Deira', 'JLT', 'Business Bay', 'Al Barsha',
+    'Downtown', 'Business Bay', 'DIFC', 'Dubai Marina', 'Deira', 'JLT', 'Al Barsha',
   ]);
+});
+
+function kmBetween(a, b) {
+  const r = (d) => (d * Math.PI) / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2
+    + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lon - a.lon) / 2) ** 2;
+  return 2 * 6371.0088 * Math.asin(Math.sqrt(h));
+}
+
+test('every Riyadh seed cluster sits within 10 km of the geocoded city centre', () => {
+  // OpenWeather geocodes "Riyadh" to roughly this point; the HUMAIN demo asks for 10 km.
+  const center = { lat: 24.6877, lon: 46.7219 };
+  for (const seed of GEO_CITY_PRESETS.riyadh.slice(0, 3)) {
+    assert.ok(kmBetween(center, seed) < 6, `${seed.name} is ${kmBetween(center, seed).toFixed(1)} km away`);
+  }
+});
+
+test('seed plan places a 30-profile batch in exactly three clusters of ten at identical cluster points', () => {
+  const plan = buildGeoSeedPlan({
+    city: 'Riyadh', count: 30, interest: 'camping gear', now: () => Date.parse('2026-09-27T12:00:00.000Z'),
+  });
+  const byHood = new Map();
+  for (const seed of plan) {
+    const list = byHood.get(seed.neighborhood) || [];
+    list.push(seed);
+    byHood.set(seed.neighborhood, list);
+  }
+  assert.deepEqual([...byHood.keys()], ['Olaya', 'Al Sulimaniyah', 'Al Malaz']);
+  for (const [name, seeds] of byHood) {
+    assert.equal(seeds.length, 10, name);
+    const preset = GEO_CITY_PRESETS.riyadh.find((n) => n.name === name);
+    for (const seed of seeds) {
+      assert.equal(seed.lat, preset.lat);
+      assert.equal(seed.lon, preset.lon);
+      assert.equal(seed.city_id, 'riyadh');
+      const ts = Date.parse(seed.timestamp);
+      assert.ok(ts <= Date.parse('2026-09-27T12:00:00.000Z') && ts >= Date.parse('2026-09-27T09:00:00.000Z'));
+    }
+  }
+});
+
+test('seed place attributes are the governed profilePlaceContext leaves with source mcp-seed', () => {
+  const [seed] = buildGeoSeedPlan({
+    city: 'Riyadh', count: 1, interest: 'camping gear', now: () => Date.parse('2026-09-27T12:00:00.000Z'), random: () => 0.5,
+  });
+  assert.deepEqual(geoSeedPlaceAttributes(seed), {
+    'profilePlaceContext.latitude': 24.6908,
+    'profilePlaceContext.longitude': 46.6853,
+    'profilePlaceContext.accuracyMeters': 50,
+    'profilePlaceContext.neighborhood': 'Olaya',
+    'profilePlaceContext.city': 'Riyadh',
+    'profilePlaceContext.regionCode': 'SA-01',
+    'profilePlaceContext.countryCode': 'SA',
+    'profilePlaceContext.lastSeenAt': '2026-09-27T10:30:00Z',
+    'profilePlaceContext.source': 'mcp-seed',
+  });
+  const [dubai] = buildGeoSeedPlan({ city: 'Dubai', count: 1, random: () => 0 });
+  const attrs = geoSeedPlaceAttributes(dubai);
+  assert.equal(attrs['profilePlaceContext.city'], 'Dubai');
+  assert.equal(attrs['profilePlaceContext.regionCode'], 'AE-DU');
+  assert.equal(attrs['profilePlaceContext.countryCode'], 'AE');
+});
+
+test('mirror-sourced hotspots pass their source through and explain what the location means', () => {
+  const result = shapeGeoHotspotsResponse({
+    center: { lat: 24.6877, lon: 46.7219, label: 'Riyadh' },
+    radius_km: 10,
+    window_hours: 24,
+    interest: 'camping gear',
+    sandbox: 'apalmer',
+    source: GEO_MIRROR_SOURCE,
+    rows: [{ total_profiles: 10, suppressed_profiles: 0, cell_lat: 24.6908, cell_lon: 46.6853, profiles: 10 }],
+  });
+  assert.equal(GEO_MIRROR_SOURCE, 'aep-lab-geo-mirror');
+  assert.equal(result.source, 'aep-lab-geo-mirror');
+  assert.equal(result.hint, GEO_MIRROR_PLACE_HINT);
+  assert.match(result.hint, /last-known place/i);
+  assert.match(result.hint, /profilePlaceContext/);
+});
+
+test('an empty result explains the exact interest match and how to seed', () => {
+  const empty = shapeGeoHotspotsResponse({
+    center: { lat: 24, lon: 46, label: 'Riyadh' },
+    radius_km: 10,
+    window_hours: 24,
+    interest: 'tents',
+    sandbox: 'apalmer',
+    source: GEO_MIRROR_SOURCE,
+    rows: [{ total_profiles: 0, suppressed_profiles: 0, cell_lat: null, cell_lon: null, profiles: null }],
+  });
+  assert.equal(empty.total_profiles, 0);
+  assert.match(empty.hint, /lab_seed_geo_demo/);
+  assert.match(empty.hint, /product name or category/i);
 });
 
 test('geo hotspot shaping suppresses small cells and emits only the governed contract', () => {
@@ -285,4 +381,20 @@ test('hotspot payload kind stays audience_geo_hotspots for every data status', (
   };
   assert.equal(shapeGeoHotspotsResponse({ ...common, rows: [] }).kind, 'audience_geo_hotspots');
   assert.equal(shapeGeoHotspotsUnavailableResponse(common).kind, 'audience_geo_hotspots');
+});
+
+test('seed batch hands generateProfile the full email plan so the stored mobile is applied', async () => {
+  const plan = buildGeoSeedPlan({ city: 'Riyadh', count: 1 });
+  const seen = [];
+  await runGeoSeedBatch({
+    plan,
+    deps: {
+      resolveEmail: async () => ({ ok: true, email: 'demo+47@example.com', mobilePhone: '+447425627462' }),
+      generateProfile: async (input) => { seen.push(input); return { ok: true, ecid: CANONICAL_TEST_ECID }; },
+      sendEvent: async () => ({ ok: true }),
+    },
+  });
+  assert.equal(seen[0].email, 'demo+47@example.com');
+  assert.equal(seen[0].emailPlan.mobilePhone, '+447425627462');
+  assert.equal(seen[0].seed, plan[0]);
 });

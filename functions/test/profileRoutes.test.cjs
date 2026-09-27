@@ -68,7 +68,7 @@ describe('profileUpdateProxy place context (dryRun)', () => {
   const profileStreamingCore = require('../profileStreamingCore');
   const { encodeGeohash } = require('../profilePlaceContext');
 
-  function makeUpdateHandler() {
+  function makeUpdateHandler(extraDeps = {}) {
     const onRequest = (_opts, handler) => handler;
     const routes = registerProfileRoutes({
       onRequest,
@@ -79,7 +79,8 @@ describe('profileUpdateProxy place context (dryRun)', () => {
       setCors: () => {},
       resolveSandboxFromQuery: () => 'apalmer',
       resolveSandboxForProfileBody: () => 'apalmer',
-      getAdobeAccessToken: async () => { throw new Error('dryRun must not fetch a token'); },
+      getAdobeAccessToken: extraDeps.getAdobeAccessToken
+        || (async () => { throw new Error('dryRun must not fetch a token'); }),
       ADOBE_CLIENT_ID: { value: () => 'client' },
       ADOBE_IMS_ORG: { value: () => 'org@AdobeOrg' },
       profileTableHelpers: { resolveConnectionGetter: () => null },
@@ -110,12 +111,13 @@ describe('profileUpdateProxy place context (dryRun)', () => {
       profileAudiences: {},
       profileConsentPayload: {},
       profileEventsService: {},
+      ...(extraDeps.geoMirror ? { geoMirror: extraDeps.geoMirror } : {}),
     });
     return routes.profileUpdateProxy;
   }
 
-  async function post(updates) {
-    const handler = makeUpdateHandler();
+  async function post(updates, { handler: suppliedHandler, bodyExtra } = {}) {
+    const handler = suppliedHandler || makeUpdateHandler();
     const res = {
       statusCode: 0,
       body: null,
@@ -134,6 +136,7 @@ describe('profileUpdateProxy place context (dryRun)', () => {
         email: 'place.test@example.com',
         updates,
         streaming: { datasetId: 'ds1', schemaId: 'https://ns.adobe.com/demoemea/schemas/x' },
+        ...(bodyExtra || {}),
       },
     }, res);
     return res;
@@ -280,5 +283,72 @@ describe('profileUpdateProxy place context (dryRun)', () => {
     assert.equal(place.city, 'New York');
     assert.equal(place.source, 'ui-sample');
     assert.equal(place.lastSeenAt, '2026-07-10T08:15:00Z');
+  });
+
+  describe('geo mirror', () => {
+    const PLACE_UPDATES = [
+      { path: 'profilePlaceContext.latitude', value: 24.6908, valueType: 'number' },
+      { path: 'profilePlaceContext.longitude', value: 46.6853, valueType: 'number' },
+      { path: 'profilePlaceContext.city', value: 'Riyadh', valueType: 'string' },
+      { path: 'profilePlaceContext.countryCode', value: 'SA', valueType: 'string' },
+    ];
+    const LIVE = {
+      dryRun: false,
+      ecid: '12345678901234567890123456789012345678',
+      streaming: {
+        url: 'https://dcs.adobedc.net/collection/abc',
+        flowId: 'flow-1',
+        datasetId: 'ds1',
+        schemaId: 'https://ns.adobe.com/demoemea/schemas/x',
+      },
+    };
+
+    function recordingMirror(result = { written: true, collection: 'labGeoProfilePlaces', docId: 'apalmer__h' }) {
+      const calls = [];
+      return { calls, async recordProfilePlace(input) { calls.push(input); return result; } };
+    }
+
+    function liveHandler(geoMirror) {
+      return makeUpdateHandler({ geoMirror, getAdobeAccessToken: async () => 'token' });
+    }
+
+    it('mirrors the normalized place after AEP accepts a live update and reports it', async (t) => {
+      t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, text: async () => '{}' }));
+      const geoMirror = recordingMirror();
+      const res = await post(PLACE_UPDATES, { handler: liveHandler(geoMirror), bodyExtra: LIVE });
+      assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+      assert.equal(geoMirror.calls.length, 1);
+      const [call] = geoMirror.calls;
+      assert.equal(call.sandbox, 'apalmer');
+      assert.equal(call.email, 'place.test@example.com');
+      assert.equal(call.ecid, LIVE.ecid);
+      assert.equal(call.place.latitude, 24.6908);
+      assert.equal(call.place.geohash, encodeGeohash(24.6908, 46.6853, 7));
+      assert.deepEqual(res.body.geoMirror, { written: true, collection: 'labGeoProfilePlaces', docId: 'apalmer__h' });
+    });
+
+    it('never mirrors a dryRun preview', async () => {
+      const geoMirror = recordingMirror();
+      const res = await post(PLACE_UPDATES, { handler: makeUpdateHandler({ geoMirror }) });
+      assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+      assert.equal(geoMirror.calls.length, 0);
+      assert.equal(res.body.geoMirror, undefined);
+    });
+
+    it('does not mirror when AEP rejects the update', async (t) => {
+      t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status: 400, text: async () => '{"message":"bad"}' }));
+      const geoMirror = recordingMirror();
+      const res = await post(PLACE_UPDATES, { handler: liveHandler(geoMirror), bodyExtra: LIVE });
+      assert.equal(res.statusCode, 502);
+      assert.equal(geoMirror.calls.length, 0);
+    });
+
+    it('surfaces a mirror failure without failing the AEP update', async (t) => {
+      t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, text: async () => '{}' }));
+      const geoMirror = recordingMirror({ written: false, error: 'firestore down' });
+      const res = await post(PLACE_UPDATES, { handler: liveHandler(geoMirror), bodyExtra: LIVE });
+      assert.equal(res.statusCode, 200);
+      assert.deepEqual(res.body.geoMirror, { written: false, error: 'firestore down' });
+    });
   });
 });

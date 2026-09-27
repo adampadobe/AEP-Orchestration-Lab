@@ -115,6 +115,13 @@ const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
 const geoHotspotsService = lazyRequireMod('./geoHotspotsService');
+const geoAudienceMirrorMod = lazyRequireMod('./geoAudienceMirror');
+let geoAudienceMirrorInstance = null;
+/** Firestore geo mirror shared by generate/update/event writers and the hotspots reader. */
+function getGeoAudienceMirror() {
+  if (!geoAudienceMirrorInstance) geoAudienceMirrorInstance = geoAudienceMirrorMod.createGeoAudienceMirror();
+  return geoAudienceMirrorInstance;
+}
 const orchestratedCampaignConfigStore = lazyRequireMod('./orchestratedCampaignConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
@@ -596,6 +603,7 @@ exports.geoHotspotsQuery = onRequest(
         getImsOrg: () => ADOBE_IMS_ORG.value(),
         getEventConfig: (name) => eventConfigStore.getEffectiveEventConfig(name, ''),
         dataPath: process.env.GEO_HOTSPOTS_DATA_PATH,
+        mirror: getGeoAudienceMirror(),
       }).run({
         sandbox,
         center,
@@ -610,7 +618,7 @@ exports.geoHotspotsQuery = onRequest(
       return res.status(200).json(geoHotspotsService.buildGeoHotspotsHttpBody(result));
     } catch (error) {
       const message = String(error?.message || error);
-      console.error('[geoHotspotsQuery] Query Service aggregation failed:', message);
+      console.error('[geoHotspotsQuery] Geo-hotspot aggregation failed:', message);
       return res.status(502).json({ ok: false, error: message });
     }
   },
@@ -1098,6 +1106,7 @@ Object.assign(
     profileAudiences,
     profileConsentPayload,
     profileEventsService,
+    geoMirror: getGeoAudienceMirror(),
   })
 );
 
@@ -2634,6 +2643,15 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  // Hotspots read interest signals from the Firestore geo mirror (Query Service cannot serve
+  // them); record only after AEP accepted the event, and report the outcome in the response.
+  const mirrorAcceptedEvent = async () => {
+    const result = await getGeoAudienceMirror().recordInterestSignal(
+      geoAudienceMirrorMod.generatorSignalFromBody(sandbox, body),
+    );
+    if (result.error) console.warn('[eventGeneratorProxy] geo mirror write failed:', result.error);
+    return result;
+  };
   const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
   const staticTargets = eventGeneratorService.loadEventGeneratorTargets();
   let eventRec;
@@ -2714,6 +2732,7 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
         edgeUrl,
         requestId: data.requestId || null,
         targetId: preset.id,
+        geoMirror: await mirrorAcceptedEvent(),
       });
     }
 
@@ -2778,6 +2797,7 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
       streamingUrl: streamUrl,
       targetId: preset.id,
       transport: 'dcs',
+      geoMirror: await mirrorAcceptedEvent(),
     });
   } catch (err) {
     res.status(500).json({ error: err && err.message ? err.message : String(err) });

@@ -4,6 +4,9 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
   GEO_DATA_UNAVAILABLE_REASON,
+  GEO_MIRROR_SOURCE,
+  MAX_MIRROR_SIGNALS,
+  aggregateMirrorHotspots,
   buildGeoHotspotsHttpBody,
   buildGeoHotspotsQuery,
   createGeoHotspotsService,
@@ -209,10 +212,11 @@ test('unavailable data path short-circuits without calling IMS, Catalog or Query
   assert.equal(configCalls, 0);
 });
 
-test('geo hotspot data path defaults to unavailable and rejects unknown values explicitly', () => {
-  assert.equal(resolveGeoHotspotsDataPath(undefined), 'unavailable');
-  assert.equal(resolveGeoHotspotsDataPath(''), 'unavailable');
+test('geo hotspot data path defaults to the Firestore mirror and rejects unknown values explicitly', () => {
+  assert.equal(resolveGeoHotspotsDataPath(undefined), 'firestore-mirror');
+  assert.equal(resolveGeoHotspotsDataPath(''), 'firestore-mirror');
   assert.equal(resolveGeoHotspotsDataPath(' Query-Service '), 'query-service');
+  assert.equal(resolveGeoHotspotsDataPath('unavailable'), 'unavailable');
   assert.throws(() => resolveGeoHotspotsDataPath('firestore'), /GEO_HOTSPOTS_DATA_PATH/);
   assert.throws(
     () => createGeoHotspotsService({
@@ -255,4 +259,124 @@ test('HTTP body keeps the known-unavailable state honest and distinct from zero 
     { ok: true, rows: [{ profiles: 12 }], data_status: 'available' },
   );
   assert.throws(() => buildGeoHotspotsHttpBody({ rows: [], dataStatus: 'maybe' }), /data status/i);
+});
+
+// ---- Firestore mirror path (Phase 4) ----
+
+const RIYADH_CENTER = { lat: 24.6877, lon: 46.7219 };
+
+function cluster(lat, lon, n, prefix) {
+  return Array.from({ length: n }, (_, i) => ({ identityHash: `${prefix}${i}`, lat: lat + i * 0.00001, lon }));
+}
+
+test('mirror aggregation keeps only in-radius places, buckets them on the SQL grid and suppresses cells below k=10', () => {
+  const places = [
+    ...cluster(24.6908, 46.6853, 12, 'olaya'),
+    ...cluster(24.7055, 46.6983, 10, 'sul'),
+    ...cluster(24.6667, 46.735, 4, 'malaz'),
+    ...cluster(24.814, 46.619, 15, 'far'),
+  ];
+  const rows = aggregateMirrorHotspots({ places, center: RIYADH_CENTER, radiusKm: 10, cellKm: 1 });
+  assert.equal(rows.length, 2);
+  for (const row of rows) {
+    assert.deepEqual(Object.keys(row).sort(), ['cell_lat', 'cell_lon', 'profiles', 'suppressed_profiles', 'total_profiles']);
+    assert.equal(row.total_profiles, 26);
+    assert.equal(row.suppressed_profiles, 4);
+  }
+  assert.deepEqual(rows.map((r) => r.profiles), [12, 10]);
+  const latStep = Math.round((1 / 111.045) * 1e6) / 1e6;
+  const lonStep = Math.round((1 / (111.045 * Math.abs(Math.cos((RIYADH_CENTER.lat * Math.PI) / 180)))) * 1e6) / 1e6;
+  assert.equal(rows[0].cell_lat, Math.round(Math.round(24.6908 / latStep) * latStep * 1e4) / 1e4);
+  assert.equal(rows[0].cell_lon, Math.round(Math.round(46.6853 / lonStep) * lonStep * 1e4) / 1e4);
+});
+
+test('mirror aggregation reports an honest summary row when no cell reaches k', () => {
+  assert.deepEqual(
+    aggregateMirrorHotspots({ places: cluster(24.6908, 46.6853, 3, 'x'), center: RIYADH_CENTER, radiusKm: 10, cellKm: 1 }),
+    [{ total_profiles: 3, suppressed_profiles: 3, cell_lat: null, cell_lon: null, profiles: null }],
+  );
+  assert.deepEqual(
+    aggregateMirrorHotspots({ places: [], center: RIYADH_CENTER, radiusKm: 10, cellKm: 1 }),
+    [{ total_profiles: 0, suppressed_profiles: 0, cell_lat: null, cell_lon: null, profiles: null }],
+  );
+});
+
+test('mirror aggregation caps output at fifty cells, largest first', () => {
+  const places = [];
+  for (let c = 0; c < 60; c += 1) places.push(...cluster(24.60 + c * 0.02, 46.70, 10 + (c % 3), `c${c}-`));
+  const rows = aggregateMirrorHotspots({ places, center: { lat: 25.2, lon: 46.7 }, radiusKm: 50, cellKm: 0.5 });
+  const inRadius = rows[0].total_profiles;
+  assert.ok(inRadius > 0);
+  assert.ok(rows.length <= 50);
+  for (let i = 1; i < rows.length; i += 1) assert.ok(rows[i - 1].profiles >= rows[i].profiles);
+});
+
+test('firestore-mirror data path aggregates mirrored signals and places without calling Adobe', async () => {
+  const calls = [];
+  const mirror = {
+    async listInterestIdentityHashes(input) {
+      calls.push(['signals', input]);
+      return { identityHashes: new Set(['h1', 'h2']), signals: 3, ecidOnlySignals: 1 };
+    },
+    async getProfilePlaces(input) {
+      calls.push(['places', input]);
+      return [...cluster(24.6908, 46.6853, 10, 'o')];
+    },
+  };
+  const service = createGeoHotspotsService({
+    getAccessToken: async () => { throw new Error('must not call IMS'); },
+    getClientId: () => 'x',
+    getImsOrg: () => 'x',
+    getEventConfig: async () => { throw new Error('must not read event config'); },
+    fetchImpl: async () => { throw new Error('must not call fetch'); },
+    now: () => Date.parse('2026-09-27T12:00:00.000Z'),
+    dataPath: 'firestore-mirror',
+    mirror,
+  });
+  const result = await service.run(baseInput);
+  assert.equal(result.dataStatus, 'available');
+  assert.equal(result.source, GEO_MIRROR_SOURCE);
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].profiles, 10);
+  assert.deepEqual(result.stats, { signals: 3, identities: 2, ecid_only_signals: 1, places: 10 });
+  const [, signalInput] = calls[0];
+  assert.deepEqual(signalInput, {
+    sandbox: 'apalmer',
+    interest: 'camping gear',
+    startMs: Date.parse('2026-09-26T12:00:00.000Z'),
+    endMs: Date.parse('2026-09-27T12:00:00.000Z'),
+    maxSignals: MAX_MIRROR_SIGNALS,
+  });
+  assert.deepEqual(calls[1][1], { sandbox: 'apalmer', identityHashes: ['h1', 'h2'] });
+});
+
+test('firestore-mirror data path requires a mirror dependency', () => {
+  assert.throws(
+    () => createGeoHotspotsService({
+      getAccessToken: async () => 'x', getClientId: () => 'x', getImsOrg: () => 'x', getEventConfig: async () => ({}),
+      dataPath: 'firestore-mirror',
+    }),
+    /mirror/i,
+  );
+});
+
+test('firestore-mirror data path still enforces the strict interest allowlist', async () => {
+  const service = createGeoHotspotsService({
+    getAccessToken: async () => 'x', getClientId: () => 'x', getImsOrg: () => 'x', getEventConfig: async () => ({}),
+    dataPath: 'firestore-mirror',
+    mirror: {
+      listInterestIdentityHashes: async () => { throw new Error('must not query'); },
+      getProfilePlaces: async () => [],
+    },
+  });
+  await assert.rejects(service.run({ ...baseInput, interest: "gear' OR 1=1" }), /interest value/);
+});
+
+test('HTTP body carries the mirror source and stats alongside the available rows', () => {
+  assert.deepEqual(
+    buildGeoHotspotsHttpBody({
+      rows: [{ profiles: 12 }], dataStatus: 'available', source: GEO_MIRROR_SOURCE, stats: { signals: 1 },
+    }),
+    { ok: true, rows: [{ profiles: 12 }], data_status: 'available', source: GEO_MIRROR_SOURCE, stats: { signals: 1 } },
+  );
 });

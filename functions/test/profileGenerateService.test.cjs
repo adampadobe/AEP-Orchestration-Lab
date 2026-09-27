@@ -153,3 +153,69 @@ describe('POST /api/profile/generate place context', () => {
     assert.equal(sent.body.xdmEntity._demoemea.profilePlaceContext, undefined);
   });
 });
+
+describe('POST /api/profile/generate geo mirror', () => {
+  const connection = async () => ({
+    streaming: {
+      url: 'https://dcs.adobedc.net/collection/abc',
+      flowId: 'flow-1',
+      datasetId: 'ds-1',
+      schemaId: 'https://ns.adobe.com/demoemea/schemas/x',
+    },
+  });
+
+  function recordingMirror(result = { written: true, collection: 'labGeoProfilePlaces', docId: 'apalmer__h' }) {
+    const calls = [];
+    return {
+      calls,
+      async recordProfilePlace(input) {
+        calls.push(input);
+        return result;
+      },
+    };
+  }
+
+  it('mirrors the normalized place after AEP accepts the profile and reports it', async (t) => {
+    t.mock.method(genericProfileConnectionStore, 'get', connection);
+    t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, text: async () => '{}' }));
+    const geoMirror = recordingMirror();
+    const res = await generate(
+      { email: 'p@example.com', industry: 'generic', attributes: { ...RIYADH } },
+      ctx({ geoMirror }),
+    );
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    assert.equal(geoMirror.calls.length, 1);
+    const call = geoMirror.calls[0];
+    assert.equal(call.sandbox, 'apalmer');
+    assert.equal(call.email, 'p@example.com');
+    assert.equal(call.ecid, res.body.ecid);
+    assert.equal(call.place.latitude, 24.7743);
+    assert.equal(call.place.geohash, encodeGeohash(24.7743, 46.6384, 7));
+    assert.deepEqual(res.body.geoMirror, { written: true, collection: 'labGeoProfilePlaces', docId: 'apalmer__h' });
+  });
+
+  it('does not mirror when AEP rejects the profile', async (t) => {
+    t.mock.method(genericProfileConnectionStore, 'get', connection);
+    t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status: 400, text: async () => '{"message":"bad"}' }));
+    const geoMirror = recordingMirror();
+    const res = await generate(
+      { email: 'p@example.com', industry: 'generic', attributes: { ...RIYADH } },
+      ctx({ geoMirror }),
+    );
+    assert.equal(res.statusCode, 502);
+    assert.equal(geoMirror.calls.length, 0);
+    assert.equal(res.body.geoMirror, undefined);
+  });
+
+  it('surfaces a mirror failure in the response without failing the AEP generate', async (t) => {
+    t.mock.method(genericProfileConnectionStore, 'get', connection);
+    t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, text: async () => '{}' }));
+    const geoMirror = recordingMirror({ written: false, error: 'firestore down' });
+    const res = await generate(
+      { email: 'p@example.com', industry: 'generic', attributes: { ...RIYADH } },
+      ctx({ geoMirror }),
+    );
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.geoMirror, { written: false, error: 'firestore down' });
+  });
+});

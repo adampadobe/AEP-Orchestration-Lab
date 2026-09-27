@@ -8,11 +8,15 @@ const POLL_INTERVAL_MS = 1500;
 const K_THRESHOLD = 10;
 
 // The live event schema carries no location fields and Query Service REST cannot return
-// ad-hoc results to Cloud Run, so the query-service path cannot succeed today. Until the
-// profile place-context mirror ships, the default data path reports that state explicitly
-// instead of spending ~100 s on a query that is certain to fail.
-const GEO_HOTSPOTS_DATA_PATHS = Object.freeze(['unavailable', 'query-service']);
-const DEFAULT_GEO_HOTSPOTS_DATA_PATH = 'unavailable';
+// ad-hoc results to Cloud Run, so the query-service path cannot succeed today. The default
+// path reads the Firestore geo mirror (geoAudienceMirror.js), which the lab writes when it
+// streams a profile's place context and product-view events to AEP. `unavailable` remains
+// as an explicit kill switch; `query-service` is kept for when AEP exposes results.
+const GEO_HOTSPOTS_DATA_PATHS = Object.freeze(['firestore-mirror', 'unavailable', 'query-service']);
+const DEFAULT_GEO_HOTSPOTS_DATA_PATH = 'firestore-mirror';
+const GEO_MIRROR_SOURCE = 'aep-lab-geo-mirror';
+const MAX_MIRROR_SIGNALS = 20_000;
+const MAX_HOTSPOT_CELLS = 50;
 const GEO_DATA_UNAVAILABLE_REASON = 'geo_data_path_not_available';
 
 function resolveGeoHotspotsDataPath(value) {
@@ -32,7 +36,10 @@ function buildGeoHotspotsHttpBody(result) {
     return { ok: true, rows: [], data_status: 'unavailable', reason: result.reason || GEO_DATA_UNAVAILABLE_REASON };
   }
   if (result?.dataStatus === 'available') {
-    return { ok: true, rows, data_status: 'available' };
+    const body = { ok: true, rows, data_status: 'available' };
+    if (result.source) body.source = result.source;
+    if (result.stats) body.stats = result.stats;
+    return body;
   }
   throw new Error(`Unknown geo-hotspot data status "${result?.dataStatus}".`);
 }
@@ -201,6 +208,63 @@ LEFT JOIN (
   };
 }
 
+function gridSteps(centerLat, cellKm) {
+  return {
+    latStep: round(cellKm / 111.045, 6),
+    lonStep: round(cellKm / (111.045 * Math.max(Math.abs(Math.cos((centerLat * Math.PI) / 180)), 0.01)), 6),
+  };
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const a = Math.sin(toRad(lat2 - lat1) / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lon2 - lon1) / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * In-memory twin of buildGeoHotspotsQuery for mirrored places: the same haversine radius,
+ * grid, k-anonymity threshold, 50-cell cap and row shape, one place per profile.
+ */
+function aggregateMirrorHotspots({ places, center, radiusKm, cellKm }) {
+  const centerLat = Number(numericLiteral(center && center.lat, 'center latitude'));
+  const centerLon = Number(numericLiteral(center && center.lon, 'center longitude'));
+  const radius = Number(numericLiteral(radiusKm, 'radius_km'));
+  const { latStep, lonStep } = gridSteps(centerLat, Number(numericLiteral(cellKm, 'cell_km')));
+  const cells = new Map();
+  const seen = new Set();
+  let total = 0;
+  for (const place of Array.isArray(places) ? places : []) {
+    if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lon)) continue;
+    const id = place.identityHash;
+    if (id && seen.has(id)) continue;
+    if (haversineKm(centerLat, centerLon, place.lat, place.lon) > radius) continue;
+    if (id) seen.add(id);
+    total += 1;
+    const latIndex = Math.round(place.lat / latStep);
+    const lonIndex = Math.round(place.lon / lonStep);
+    const key = `${latIndex}:${lonIndex}`;
+    const cell = cells.get(key) || { latIndex, lonIndex, profiles: 0 };
+    cell.profiles += 1;
+    cells.set(key, cell);
+  }
+  let suppressed = 0;
+  const visible = [];
+  for (const cell of cells.values()) {
+    if (cell.profiles < K_THRESHOLD) suppressed += cell.profiles;
+    else visible.push(cell);
+  }
+  visible.sort((a, b) => b.profiles - a.profiles || a.latIndex - b.latIndex || a.lonIndex - b.lonIndex);
+  const summary = { total_profiles: total, suppressed_profiles: suppressed };
+  if (!visible.length) return [{ ...summary, cell_lat: null, cell_lon: null, profiles: null }];
+  return visible.slice(0, MAX_HOTSPOT_CELLS).map((cell) => ({
+    ...summary,
+    cell_lat: round(cell.latIndex * latStep, 4),
+    cell_lon: round(cell.lonIndex * lonStep, 4),
+    profiles: cell.profiles,
+  }));
+}
+
 function createGeoHotspotsService({
   getAccessToken,
   getClientId,
@@ -212,8 +276,37 @@ function createGeoHotspotsService({
   maxWaitMs = MAX_WAIT_MS,
   pollIntervalMs = POLL_INTERVAL_MS,
   dataPath,
+  mirror,
+  maxMirrorSignals = MAX_MIRROR_SIGNALS,
 }) {
   const resolvedDataPath = resolveGeoHotspotsDataPath(dataPath);
+  if (resolvedDataPath === 'firestore-mirror'
+    && (!mirror || typeof mirror.listInterestIdentityHashes !== 'function' || typeof mirror.getProfilePlaces !== 'function')) {
+    throw new Error('The firestore-mirror geo-hotspot data path requires a geo audience mirror.');
+  }
+
+  async function runMirror(input) {
+    const interest = assertSafeInterest(input.interest);
+    const windowHours = Number(numericLiteral(input.windowHours, 'window_hours'));
+    const endMs = now();
+    const startMs = endMs - windowHours * 60 * 60 * 1000;
+    const { identityHashes, signals, ecidOnlySignals } = await mirror.listInterestIdentityHashes({
+      sandbox: input.sandbox,
+      interest,
+      startMs,
+      endMs,
+      maxSignals: maxMirrorSignals,
+    });
+    const places = identityHashes.size
+      ? await mirror.getProfilePlaces({ sandbox: input.sandbox, identityHashes: [...identityHashes] })
+      : [];
+    return {
+      rows: aggregateMirrorHotspots({ places, center: input.center, radiusKm: input.radiusKm, cellKm: input.cellKm }),
+      dataStatus: 'available',
+      source: GEO_MIRROR_SOURCE,
+      stats: { signals, identities: identityHashes.size, ecid_only_signals: ecidOnlySignals, places: places.length },
+    };
+  }
 
   async function request(url, headers, init = {}, timeoutMs = 10_000) {
     const controller = new AbortController();
@@ -239,6 +332,7 @@ function createGeoHotspotsService({
       if (resolvedDataPath === 'unavailable') {
         return { rows: [], dataStatus: 'unavailable', reason: GEO_DATA_UNAVAILABLE_REASON };
       }
+      if (resolvedDataPath === 'firestore-mirror') return runMirror(input);
       const accessToken = await getAccessToken();
       const headers = {
         Authorization: `Bearer ${accessToken}`,
@@ -302,6 +396,9 @@ function createGeoHotspotsService({
 module.exports = {
   GEO_DATA_UNAVAILABLE_REASON,
   GEO_HOTSPOTS_DATA_PATHS,
+  GEO_MIRROR_SOURCE,
+  MAX_MIRROR_SIGNALS,
+  aggregateMirrorHotspots,
   buildGeoHotspotsHttpBody,
   buildGeoHotspotsQuery,
   resolveGeoHotspotsDataPath,

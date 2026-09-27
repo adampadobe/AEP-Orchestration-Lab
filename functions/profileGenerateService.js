@@ -80,10 +80,11 @@ function resolveGeneratePlaceContext(filteredAttrs, industryKey) {
 /**
  * @param {object} req - Firebase HTTP request
  * @param {object} res - Firebase HTTP response
- * @param {{ setCors: Function, resolveSandboxForProfileBody: Function, getAdobeAccessToken: Function, clientId: string, orgId: string }} ctx
+ * @param {{ setCors: Function, resolveSandboxForProfileBody: Function, getAdobeAccessToken: Function, clientId: string, orgId: string, geoMirror?: { recordProfilePlace: Function } }} ctx
+ *   geoMirror (optional) records the accepted place in the Firestore geo-hotspot mirror.
  */
 async function handleProfileGenerate(req, res, ctx) {
-  const { setCors, resolveSandboxForProfileBody, getAdobeAccessToken, clientId, orgId } = ctx;
+  const { setCors, resolveSandboxForProfileBody, getAdobeAccessToken, clientId, orgId, geoMirror } = ctx;
   setCors(res);
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -305,6 +306,13 @@ async function handleProfileGenerate(req, res, ctx) {
     return;
   }
 
+  const geoMirrorResult = geoMirror
+    ? await geoMirror.recordProfilePlace({ sandbox, email, ecid, place: demoemea.profilePlaceContext })
+    : undefined;
+  if (geoMirrorResult && geoMirrorResult.error) {
+    console.warn('[profileGenerate] geo mirror write failed:', geoMirrorResult.error);
+  }
+
   res.status(200).json({
     ok: true,
     message: `Request sent: ${email}`,
@@ -322,6 +330,7 @@ async function handleProfileGenerate(req, res, ctx) {
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
     industry: industryKey,
+    geoMirror: geoMirrorResult,
   });
 }
 
