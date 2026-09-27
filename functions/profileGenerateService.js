@@ -7,6 +7,7 @@
 
 const profileStreamingCore = require('./profileStreamingCore');
 const profileTableHelpers = require('./profileTableHelpers');
+const profilePlaceContext = require('./profilePlaceContext');
 const { generateEcid, isCanonicalEcid } = require('./ecidGenerator');
 const genericProfileConnectionStore = require('./genericProfileConnectionStore');
 const travelProfileConnectionStore = require('./travelProfileConnectionStore');
@@ -44,6 +45,36 @@ function stripEmpty(obj) {
     if (!isEmpty(cleaned)) out[k] = cleaned;
   }
   return out;
+}
+
+/**
+ * Validate and normalize place context from generate attributes before any AEP call.
+ * Only the Generic Profile schema carries the place field group; other industry
+ * schemas would silently drop it, so reject it explicitly there.
+ */
+function resolveGeneratePlaceContext(filteredAttrs, industryKey) {
+  const probe = {};
+  profileStreamingCore.assignProfileStreamingAttributes(probe, {}, filteredAttrs);
+  if (probe.profilePlaceContext === undefined) return { ok: true, value: null };
+  if (industryKey !== 'generic') {
+    return {
+      ok: false,
+      error: `profilePlaceContext is only supported on the generic industry profile (got "${industryKey}"). Send place context in a generic generate or update call.`,
+      invalidPath: '_demoemea.profilePlaceContext',
+    };
+  }
+  const result = profilePlaceContext.normalizeProfilePlaceContext(probe.profilePlaceContext, {
+    defaultSource: 'profile-update',
+    replaceGeohash: true,
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      invalidPath: `_demoemea.profilePlaceContext.${result.leaf}`,
+    };
+  }
+  return { ok: true, value: result.value };
 }
 
 /**
@@ -85,6 +116,13 @@ async function handleProfileGenerate(req, res, ctx) {
     res.status(400).json({
       error: `Unknown industry "${industryRequested}". Supported: ${industryKeys.join(', ')}.`,
     });
+    return;
+  }
+
+  const filteredAttrs = stripEmpty(attributes);
+  const placeResult = resolveGeneratePlaceContext(filteredAttrs, industryKey);
+  if (!placeResult.ok) {
+    res.status(400).json({ error: placeResult.error, invalidPath: placeResult.invalidPath });
     return;
   }
 
@@ -167,9 +205,11 @@ async function handleProfileGenerate(req, res, ctx) {
     },
   };
 
-  const filteredAttrs = stripEmpty(attributes);
   const rootExtras = {};
   profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
+  if (placeResult.value) {
+    demoemea.profilePlaceContext = placeResult.value;
+  }
   profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
 
   // Default test profile: set bare `testProfile` only; `mirrorRootTestProfileFields` in

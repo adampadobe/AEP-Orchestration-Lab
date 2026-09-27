@@ -89,12 +89,13 @@ function isFiniteNumber(v) {
 
 /**
  * @param {unknown} input - the object merged at `_<tenant>.profilePlaceContext`
- * @param {{ now?: Date, defaultSource?: string }} [opts]
+ * @param {{ now?: Date, defaultSource?: string, replaceGeohash?: boolean }} [opts] - replaceGeohash re-derives a mismatching geohash instead of rejecting it
  * @returns {{ ok: true, value: object } | { ok: false, leaf: string, error: string }}
  */
 function normalizeProfilePlaceContext(input, opts = {}) {
   const now = opts.now instanceof Date ? opts.now : new Date();
   const defaultSource = opts.defaultSource || 'profile-update';
+  const replaceGeohash = opts.replaceGeohash === true;
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return fail('(object)', 'must be an object of place-context leaves');
   }
@@ -169,7 +170,7 @@ function normalizeProfilePlaceContext(input, opts = {}) {
   }
   if (hasLat) {
     const derived = encodeGeohash(value.latitude, value.longitude, GEOHASH_PRECISION);
-    if (value.geohash !== undefined && value.geohash !== derived) {
+    if (!replaceGeohash && value.geohash !== undefined && value.geohash !== derived) {
       return fail('geohash', `does not match latitude/longitude (expected ${derived}); omit it to derive server-side`);
     }
     value.geohash = derived;
