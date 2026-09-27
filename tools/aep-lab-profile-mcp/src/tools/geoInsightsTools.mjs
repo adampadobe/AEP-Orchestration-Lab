@@ -12,6 +12,8 @@ import {
   sendProfileEvent,
 } from '../labApiClient.mjs';
 import {
+  GEO_INTEREST_PATTERN,
+  GEO_INTEREST_RULE,
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
   geoJsonResult,
@@ -64,7 +66,8 @@ export function registerGeoInsightsTools(mcpServer) {
         ...locationSchema,
         radius_km: z.number().min(1).max(50).default(10).describe('Search radius in kilometres (1–50, default 10).'),
         window_hours: z.number().int().min(1).max(168).default(24).describe('Lookback window in hours (1–168, default 24).'),
-        interest: z.string().trim().min(1).max(200).describe('Product name or category text to match, e.g. "camping gear".'),
+        interest: z.string().trim().regex(GEO_INTEREST_PATTERN, GEO_INTEREST_RULE)
+          .describe(`Product name or category text to match, e.g. "camping gear". ${GEO_INTEREST_RULE}`),
         sandbox: z.string().trim().min(1).describe('AEP sandbox name (MCP allowlist).'),
         cell_km: z.number().min(0.5).max(5).default(1).describe('Grid cell width in kilometres (0.5–5, default 1).'),
       },
@@ -172,7 +175,8 @@ export function registerGeoInsightsTools(mcpServer) {
       inputSchema: {
         city: z.string().trim().min(1).describe('Supported seed city: Riyadh or Dubai.'),
         count: z.number().int().min(1).max(30).default(30).describe('Number of test profiles and product-view events (1–30, default 30).'),
-        interest: z.string().trim().min(1).max(120).default('camping gear').describe('Retail product category and event interest.'),
+        interest: z.string().trim().regex(GEO_INTEREST_PATTERN, GEO_INTEREST_RULE).default('camping gear')
+          .describe(`Retail product category and event interest. ${GEO_INTEREST_RULE}`),
         sandbox: z.string().trim().min(1).describe('AEP sandbox name (MCP allowlist).'),
       },
     },
