@@ -32,6 +32,7 @@ const READ_ONLY_TOOLS = new Set([
   'commerce_admin_delete_audit',
   'lab_audience_audit',
   'lab_audience_list',
+  'lab_audience_geo_hotspots',
   'lab_ajo_campaign_audit',
   'lab_ajo_campaign_list',
   'lab_ajo_journey_audit',

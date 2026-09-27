@@ -5,7 +5,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedCreativityTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedMcpGuideTools, registerFocusedMeasurementQualityTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedCreativityTools, registerFocusedDemoPrepTools, registerFocusedFireflyTools, registerFocusedGeoInsightsTools, registerFocusedMcpGuideTools, registerFocusedMeasurementQualityTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -86,7 +86,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 210);
+  assert.equal(full.names.length, 212);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -132,6 +132,21 @@ test('focused weather endpoint is access plus current, forecast, and map lookups
   const { names, server } = registrationRecorder();
   registerFocusedWeatherTools(server);
   assert.deepEqual(names, ['lab_mcp_access_info', 'lab_weather_current', 'lab_weather_forecast', 'lab_weather_map']);
+});
+
+test('focused geo-insights endpoint exposes only access, weather, hotspot, and seed tools', () => {
+  const focused = registrationRecorder();
+  registerFocusedGeoInsightsTools(focused.server);
+  assert.deepEqual(focused.names, [
+    'lab_mcp_access_info',
+    'lab_weather_current',
+    'lab_audience_geo_hotspots',
+    'lab_seed_geo_demo',
+  ]);
+
+  const full = registrationRecorder();
+  registerProfileTools(full.server);
+  for (const name of focused.names) assert.equal(full.names.includes(name), true, `${name} should remain in the full MCP`);
 });
 
 test('focused Firefly endpoint exposes access plus governed image, video, and audio operations', () => {

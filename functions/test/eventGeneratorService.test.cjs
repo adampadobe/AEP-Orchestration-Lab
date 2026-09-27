@@ -145,6 +145,22 @@ test('buildEventGeneratorXdm maps pageName to web.webPageDetails for web page vi
   assert.equal(xdm.web.webPageDetails.viewName, 'FNB Home');
 });
 
+test('buildEventGeneratorXdm writes validated geo coordinates to standard XDM placeContext', () => {
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'commerce.productViews',
+    ecid: '03976612467829823963241934423837679452',
+    geo: { latitude: 24.7743, longitude: 46.6384 },
+  });
+  assert.deepEqual(xdm.placeContext.geo._schema, { latitude: 24.7743, longitude: 46.6384 });
+
+  const invalid = buildEventGeneratorXdm({
+    eventType: 'commerce.productViews',
+    ecid: '03976612467829823963241934423837679452',
+    geo: { latitude: 91, longitude: 46.6384 },
+  });
+  assert.equal(invalid.placeContext, undefined);
+});
+
 test('buildEventGeneratorXdm fills default web page title for page view when body omits name/URL', () => {
   const ecid = '03976612467829823963241934423837679452';
   const xdm = buildEventGeneratorXdm({

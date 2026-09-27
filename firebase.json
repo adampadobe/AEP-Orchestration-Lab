@@ -80,6 +80,13 @@
         }
       },
       {
+        "source": "/api/geo-hotspots",
+        "function": {
+          "functionId": "geoHotspotsQuery",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/edge-decisioning/preview-launch-rule",
         "function": {
           "functionId": "edgeLaunchRulePreview",

@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 206-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the fifteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 212-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the sixteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -19,6 +19,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
+| `/mcp/geo-insights` | 4 | Current weather plus aggregate AEP Query Service audience geo-hotspots, k=10 suppression, and confirmation-gated Riyadh/Dubai demo seeding |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 | `/mcp/firefly` | 15 | Access check plus governed Image 5, five-second Video, Text to Speech, transcription/captions, and dubbing/lip-sync workflows with shared async status |
@@ -42,9 +43,9 @@ The Adobe capabilities context is read-only. `adobe_api_catalog` exposes a revie
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all fifteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all sixteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same sixteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same sixteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 ### Entry point (Phase 3.38)
 
@@ -458,7 +459,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `AEP_LAB_MCP_API_KEY` | Yes | Secret sent as `X-AEP-Lab-Mcp-Key` |
-| `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
+| `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` and `/mcp/geo-insights` | Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
@@ -560,6 +561,8 @@ The Commerce tools call the authenticated Firebase route `/api/commerce-prep`. F
 GCP project: **`aep-orchestration-lab`**, region: **`us-central1`**.
 
 All production releases follow the repository workflow: feature branch → PR → validation/review → merge → deploy from clean `main` at the exact freshly fetched `origin/main` SHA.
+
+After merge and explicit release approval, use `bash tools/aep-lab-profile-mcp/scripts/release-main.sh <full-main-sha>`. The script verifies the repository, clean `main`, exact freshly fetched `origin/main` SHA, and gcloud identity/project; it builds an immutable image, updates only the image, then checks binding names, 100% traffic, and `/health`.
 
 Cloud Run service account needs **Cloud Datastore User** for Firestore collections:
 
