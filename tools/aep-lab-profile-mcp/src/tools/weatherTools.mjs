@@ -31,7 +31,7 @@ const locationSchema = {
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
  */
-export function registerWeatherTools(mcpServer) {
+export function registerWeatherTools(mcpServer, { currentOnly = false } = {}) {
   mcpServer.registerTool(
     'lab_weather_current',
     {
@@ -49,6 +49,8 @@ export function registerWeatherTools(mcpServer) {
       return toWeatherResult(apiResult);
     },
   );
+
+  if (currentOnly) return;
 
   mcpServer.registerTool(
     'lab_weather_forecast',

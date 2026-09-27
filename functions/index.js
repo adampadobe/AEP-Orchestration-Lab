@@ -114,6 +114,7 @@ const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
+const geoHotspotsService = lazyRequireMod('./geoHotspotsService');
 const orchestratedCampaignConfigStore = lazyRequireMod('./orchestratedCampaignConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
@@ -544,6 +545,71 @@ exports.aepProxy = onRequest(
       platform_base_url: platformBase,
     });
   }
+);
+
+exports.geoHotspotsQuery = onRequest(
+  {
+    region: REGION,
+    secrets: [
+      ADOBE_CLIENT_ID,
+      ADOBE_CLIENT_SECRET,
+      ADOBE_IMS_ORG,
+      ADOBE_SCOPES,
+      AEP_LAB_COMMERCE_INTERNAL_KEY,
+    ],
+    invoker: 'public',
+    timeoutSeconds: 180,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    if (req.method === 'OPTIONS') return res.status(204).send('');
+    if (req.method !== 'POST') return res.status(405).set('Allow', 'POST').json({ ok: false, error: 'Use POST.' });
+
+    const expectedKey = String(AEP_LAB_COMMERCE_INTERNAL_KEY.value() || '');
+    const suppliedKey = String(req.headers['x-aep-lab-mcp-key'] || '');
+    const safeKeyMatch = expectedKey.length > 0
+      && suppliedKey.length === expectedKey.length
+      && require('node:crypto').timingSafeEqual(Buffer.from(suppliedKey), Buffer.from(expectedKey));
+    if (!safeKeyMatch) return res.status(401).json({ ok: false, error: 'MCP bridge authorization required.' });
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || '').trim();
+    const center = body.center;
+    const validNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+    if (!sandbox || !center || !validNumber(center.lat) || center.lat < -90 || center.lat > 90
+      || !validNumber(center.lon) || center.lon < -180 || center.lon > 180) {
+      return res.status(400).json({ ok: false, error: 'A sandbox and valid center coordinates are required.' });
+    }
+    if (!validNumber(body.radius_km) || body.radius_km < 1 || body.radius_km > 50
+      || !Number.isInteger(body.window_hours) || body.window_hours < 1 || body.window_hours > 168
+      || typeof body.interest !== 'string' || !body.interest.trim() || body.interest.length > 200
+      || !validNumber(body.cell_km) || body.cell_km < 0.5 || body.cell_km > 5) {
+      return res.status(400).json({ ok: false, error: 'Geo-hotspot filter values are outside their supported bounds.' });
+    }
+
+    try {
+      const result = await geoHotspotsService.createGeoHotspotsService({
+        getAccessToken: getAdobeAccessToken,
+        getClientId: () => ADOBE_CLIENT_ID.value(),
+        getImsOrg: () => ADOBE_IMS_ORG.value(),
+        getEventConfig: (name) => eventConfigStore.getEffectiveEventConfig(name, ''),
+      }).run({
+        sandbox,
+        center,
+        radiusKm: body.radius_km,
+        windowHours: body.window_hours,
+        interest: body.interest,
+        cellKm: body.cell_km,
+      });
+      return res.status(200).json({ ok: true, rows: result.rows });
+    } catch (error) {
+      const message = String(error?.message || error);
+      console.error('[geoHotspotsQuery] Query Service aggregation failed:', message);
+      return res.status(502).json({ ok: false, error: message });
+    }
+  },
 );
 
 /**

@@ -558,6 +558,21 @@ function buildEventGeneratorXdm(reqBody, options) {
   const ecidImKey = getIdentityMapEcidKey(body);
   const useDemosystem5 = tenantKey === '_demosystem5';
   const useDemoemea = tenantKey === '_demoemea';
+  const geo = body.geo && typeof body.geo === 'object' ? body.geo : null;
+  const attachGeo = (xdm) => {
+    if (!geo) return;
+    const latitude = Number(geo.latitude);
+    const longitude = Number(geo.longitude);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+      || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) return;
+    xdm.placeContext = {
+      ...(xdm.placeContext && typeof xdm.placeContext === 'object' ? xdm.placeContext : {}),
+      geo: {
+        ...(xdm.placeContext?.geo && typeof xdm.placeContext.geo === 'object' ? xdm.placeContext.geo : {}),
+        _schema: { latitude, longitude },
+      },
+    };
+  };
 
   if (style === 'minimal') {
     const now =
@@ -618,6 +633,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveChannel);
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
+    attachGeo(xdm);
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
@@ -656,6 +672,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     }
     alignExperienceEventFieldGroupPayloads(xdm, '_demosystem5', effectiveChannel);
     syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
+    attachGeo(xdm);
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
@@ -723,6 +740,7 @@ function buildEventGeneratorXdm(reqBody, options) {
   alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', effectiveChannel);
   syncXdmDemoemeaLowercaseAlias(xdm);
   normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+  attachGeo(xdm);
   ensureWebPageDetailsOnPageViewEvent(xdm, body);
   return xdm;
 }

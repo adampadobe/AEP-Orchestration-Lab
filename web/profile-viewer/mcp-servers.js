@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 210 tools',
+      product: 'Complete Lab MCP · 212 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -40,9 +40,9 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all fifteen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all sixteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 210,
+      toolCount: 212,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -405,6 +405,29 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Weather tools reference',
+    },
+    {
+      id: 'aep-lab-geo-insights',
+      configName: 'aep-lab-geo-insights',
+      section: 'lab',
+      dropdownLabel: 'Geo insights',
+      name: 'AEP Lab — Audience geo-insights',
+      product: 'Focused Lab MCP · 4 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/geo-insights',
+      summary:
+        'Combines current weather with aggregate AEP Query Service audience hotspots for the same city or coordinate center. Hotspots below k=10 are suppressed; no identities or raw events are returned.',
+      useCases: [
+        'Map an interest-based audience around a city or location',
+        'Compare hotspot counts with current local weather',
+        'Create Riyadh or Dubai demo data after explicit approval',
+      ],
+      configNotes:
+        'Coworker uses Adobe IMS; key-based clients reuse the sandbox key. The read-only hotspot query is rate-limited and audited; demo seeding generates test profiles and events.',
+      connectionKind: 'Focused · aggregate audience insights',
+      toolCount: 4,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Geo insights tools reference',
     },
     {
       id: 'cx-coworker-gateway',

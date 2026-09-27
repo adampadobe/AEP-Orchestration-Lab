@@ -422,6 +422,31 @@ export async function getEventConfig({ sandbox }) {
 }
 
 /**
+ * Runs a bounded, parameterized AEP Query Service aggregation for geo hotspots.
+ * Firebase owns IMS credentials; the MCP only calls the purpose-built aggregate endpoint.
+ */
+export function getAudienceGeoHotspots(params) {
+  const key = String(process.env.AEP_LAB_COMMERCE_INTERNAL_KEY || '').trim();
+  return labApiRequest('/api/geo-hotspots', {
+    method: 'POST',
+    headers: {
+      ...(key ? { 'X-AEP-Lab-Mcp-Key': key } : {}),
+      'X-AEP-Lab-Principal-Id': getRequestKeyId(),
+    },
+    body: {
+      sandbox: params.sandbox,
+      center: params.center,
+      radius_km: params.radius_km,
+      window_hours: params.window_hours,
+      interest: params.interest,
+      cell_km: params.cell_km,
+    },
+    timeoutMs: 120_000,
+    retries: 0,
+  });
+}
+
+/**
  * POST /api/events/generator — Event Generator (mirrors Profile Viewer Event tool).
  * @param {object} params
  */
