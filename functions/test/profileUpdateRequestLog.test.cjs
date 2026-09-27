@@ -8,6 +8,7 @@ const {
   emailHash,
   summarizeProfileUpdateRequest,
   summarizeProfileUpdatePayload,
+  buildPayloadLogEntry,
 } = require('../profileUpdateRequestLog');
 
 describe('profileUpdateRequestLog', () => {
@@ -60,6 +61,29 @@ describe('profileUpdateRequestLog', () => {
     assert.equal(s.updateCount, 4);
     assert.deepEqual(s.paths, ['a']);
     assert.equal(s.placeRowCount, 0);
+  });
+
+  it('builds a full payload log entry with the exact envelope and DCS response', () => {
+    const envelope = { body: { xdmEntity: { _demoemea: { profilePlaceContext: { city: 'Riyadh', latitude: 24.7 } } } } };
+    const entry = buildPayloadLogEntry({
+      emailHash: 'abc',
+      outcome: 'streamed',
+      payload: envelope,
+      streamingResponse: { inletId: 'i1', xactionId: 'x1' },
+    });
+    assert.equal(entry.emailHash, 'abc');
+    assert.equal(entry.outcome, 'streamed');
+    assert.equal(entry.payloadTruncated, false);
+    assert.deepEqual(JSON.parse(entry.payloadJson), envelope);
+    assert.deepEqual(entry.streamingResponse, { inletId: 'i1', xactionId: 'x1' });
+  });
+
+  it('truncates oversized payloads so a log entry stays under the Cloud Logging limit', () => {
+    const big = { blob: 'x'.repeat(5000) };
+    const entry = buildPayloadLogEntry({ payload: big, maxChars: 1000 });
+    assert.equal(entry.payloadTruncated, true);
+    assert.equal(entry.payloadJson.length, 1000);
+    assert.equal(entry.payloadChars, JSON.stringify(big).length);
   });
 
   it('reports whether place survived into the built envelope', () => {

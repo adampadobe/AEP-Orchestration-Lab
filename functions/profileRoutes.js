@@ -640,6 +640,12 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
 
   if (dryRun) {
     console.log('[profileUpdateProxy.result]', JSON.stringify({ ...payloadLogSummary, outcome: 'dryRun' }));
+    console.log(
+      '[profileUpdateProxy.payload]',
+      JSON.stringify(
+        profileUpdateRequestLog.buildPayloadLogEntry({ emailHash: payloadLogSummary.emailHash, outcome: 'dryRun', payload }),
+      ),
+    );
     res.status(200).json({
       ok: true,
       dryRun: true,
@@ -686,6 +692,17 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
       streamingStatus: streamRes.status,
     }),
+  );
+  console.log(
+    '[profileUpdateProxy.payload]',
+    JSON.stringify(
+      profileUpdateRequestLog.buildPayloadLogEntry({
+        emailHash: payloadLogSummary.emailHash,
+        outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
+        payload,
+        streamingResponse: data,
+      }),
+    ),
   );
 
   if (!streamRes.ok || streamErrors.length > 0) {
