@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation.css?v=20260716-streaming-btn-hidden">
+  <link rel="stylesheet" href="profile-generation.css?v=20260717-place-context">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1495,6 +1495,85 @@
               <option value="th-TH">Thai (Thailand)</option>
               <option value="vi-VN">Vietnamese (Vietnam)</option>
             </select>
+          </div>
+
+          <div class="analytics-card analytics-card--place" id="genPlaceCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📍</span>
+              <h4 class="analytics-card-title">Place context</h4>
+            </div>
+            <p class="field-hint">Last-known place for this profile (not the home address). Streams to <code>_demoemea.profilePlaceContext</code>; geohash is derived server-side.</p>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="genPlacePreset">Preset</label>
+                <select id="genPlacePreset">
+                  <option value="none">None (don't send)</option>
+                  <option value="random" selected>Random city</option>
+                  <option value="riyadh">Riyadh</option>
+                  <option value="dubai">Dubai</option>
+                  <option value="london">London</option>
+                  <option value="newYork">New York</option>
+                </select>
+              </div>
+              <div class="form-group form-group--small">
+                <label>&nbsp;</label>
+                <button type="button" id="genPlaceRandomBtn" class="btn btn-link" title="New random place within the selected preset">🎲</button>
+              </div>
+            </div>
+            <div class="gen-place-fields">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="genPlaceLatitude">Latitude</label>
+                  <input type="number" id="genPlaceLatitude" min="-90" max="90" step="0.000001" placeholder="e.g. 24.7743">
+                </div>
+                <div class="form-group">
+                  <label for="genPlaceLongitude">Longitude</label>
+                  <input type="number" id="genPlaceLongitude" min="-180" max="180" step="0.000001" placeholder="e.g. 46.6384">
+                </div>
+                <div class="form-group">
+                  <label for="genPlaceAccuracy">Accuracy (m)</label>
+                  <input type="number" id="genPlaceAccuracy" min="0" max="100000" step="1" placeholder="e.g. 150">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="genPlaceNeighborhood">Neighborhood</label>
+                  <input type="text" id="genPlaceNeighborhood" maxlength="100" autocomplete="off" placeholder="e.g. Olaya">
+                </div>
+                <div class="form-group">
+                  <label for="genPlaceCity">City</label>
+                  <input type="text" id="genPlaceCity" maxlength="100" autocomplete="off" placeholder="e.g. Riyadh">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="genPlaceRegionCode">Region (ISO 3166-2)</label>
+                  <input type="text" id="genPlaceRegionCode" maxlength="6" autocomplete="off" placeholder="e.g. SA-01">
+                </div>
+                <div class="form-group">
+                  <label for="genPlaceCountryCode">Country (ISO 3166-1)</label>
+                  <input type="text" id="genPlaceCountryCode" maxlength="2" autocomplete="off" placeholder="e.g. SA">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="genPlaceLastSeenAt">Last seen at</label>
+                  <input type="datetime-local" id="genPlaceLastSeenAt" step="1">
+                </div>
+                <div class="form-group">
+                  <label for="genPlaceSource">Source</label>
+                  <select id="genPlaceSource">
+                    <option value="ui-sample">ui-sample</option>
+                    <option value="ui-manual">ui-manual</option>
+                    <option value="profile-update">profile-update</option>
+                    <option value="mcp-persona">mcp-persona</option>
+                    <option value="mcp-seed">mcp-seed</option>
+                    <option value="import">import</option>
+                  </select>
+                </div>
+              </div>
+              <p class="field-hint gen-place-geohash">Geohash (7): <output id="genPlaceGeohash" for="genPlaceLatitude genPlaceLongitude">—</output></p>
+            </div>
           </div>
         </div>
       </div>
@@ -5550,7 +5629,8 @@
   <script src="profile-generation-prefs-sync.js?v=20260702-shared-counter"></script>
   <script src="profile-generation-recent-sync.js?v=20260623recent1"></script>
   <script src="profile-generation.js?v=20260511a"></script>
-  <script src="profile-generation-generic.js?v=20260515payload-preview"></script>
+  <script src="profile-place-context.js?v=20260717-place-context"></script>
+  <script src="profile-generation-generic.js?v=20260717-place-context"></script>
   <script src="profile-generation-travel.js?v=20260702-shared-counter"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules

@@ -720,6 +720,37 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   }
 }
 
+.profile-generation-page .analytics-card--place {
+  grid-column: 1 / -1;
+}
+
+.profile-generation-page .analytics-card--place .gen-place-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profile-generation-page .analytics-card--place .gen-place-geohash output {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--dash-text);
+}
+
+.profile-generation-page .analytics-card--place input[type="datetime-local"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  font-size: 1rem;
+  border-radius: 8px;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border, var(--dash-border));
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .profile-generation-page .analytics-card--place input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
 .profile-generation-page .analytics-card-header {
   display: flex;
   align-items: center;

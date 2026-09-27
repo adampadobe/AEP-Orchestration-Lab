@@ -154,6 +154,8 @@ function isDigitStringSchemaLeafPath(relativePath) {
   const p = relativePath.toLowerCase();
   if (/^hotel\.bookingdetails\.(roomnumber|confirmationnumber|ratecode)$/.test(p)) return true;
   if (/^homeaddress\.postalcode$/.test(p)) return true;
+  // Geohash can be all digits (e.g. "0000000"); place names can be numeric.
+  if (/^profileplacecontext\.(geohash|neighborhood|city)$/.test(p)) return true;
   return false;
 }
 
