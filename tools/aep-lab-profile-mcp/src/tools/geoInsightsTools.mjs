@@ -11,7 +11,14 @@ import {
   listEventTargets,
   sendProfileEvent,
 } from '../labApiClient.mjs';
-import { buildGeoSeedPlan, geoJsonResult, nearestSeededNeighborhood, shapeGeoHotspotsResponse } from '../framework/geoInsights.mjs';
+import {
+  buildGeoSeedPlan,
+  geoHotspotsFailureHint,
+  geoJsonResult,
+  nearestSeededNeighborhood,
+  runGeoSeedBatch,
+  shapeGeoHotspotsResponse,
+} from '../framework/geoInsights.mjs';
 import { planDualStreamGenerate, executeGeneratePlan } from '../framework/dualStreamGenerate.mjs';
 import { buildPersonaAttributes } from '../personaBuilder.mjs';
 import { buildIndustryEventPayload } from '../framework/industryEventPayload.mjs';
@@ -119,6 +126,7 @@ export function registerGeoInsightsTools(mcpServer) {
         });
         return toolError(apiResult.error || 'AEP Query Service geo-hotspot query failed.', {
           status: apiResult.status,
+          ...(geoHotspotsFailureHint(apiResult) ? { hint: geoHotspotsFailureHint(apiResult) } : {}),
         });
       }
 
@@ -196,81 +204,53 @@ export function registerGeoInsightsTools(mcpServer) {
       const rate = reserveGeoSeedRates(keyId, count);
       if (!rate.ok) return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
 
-      let generated = 0;
-      let sent = 0;
-      let lastError = '';
-      try {
-        for (const [index, seed] of plan.entries()) {
-          const emailPlan = await resolveProfileEmailForGenerate({
+      const outcome = await runGeoSeedBatch({
+        plan,
+        deps: {
+          resolveEmail: async () => resolveProfileEmailForGenerate({
             sandbox: allowed.sandbox,
             use_stored_prefs: true,
-          });
-          if (!emailPlan.ok) {
-            lastError = emailPlan.error || 'Generation preferences are not configured.';
-            break;
-          }
-          const attributes = buildPersonaAttributes('retail', emailPlan.email);
-          const profilePlan = planDualStreamGenerate({
-            industry: 'retail',
-            attributes,
-            email: emailPlan.email,
-          });
-          const profileResult = await executeGeneratePlan({
-            email: emailPlan.email,
-            sandbox: allowed.sandbox,
-            plan: profilePlan,
-            test_profile: true,
-          });
-          if (!profileResult.ok) {
-            lastError = profileResult.error || 'AEP test profile generation failed.';
-            break;
-          }
-          generated += 1;
+          }),
+          generateProfile: async ({ email }) => {
+            const attributes = buildPersonaAttributes('retail', email);
+            const profilePlan = planDualStreamGenerate({ industry: 'retail', attributes, email });
+            return executeGeneratePlan({
+              email,
+              sandbox: allowed.sandbox,
+              plan: profilePlan,
+              test_profile: true,
+            });
+          },
+          sendEvent: async ({ index, seed, email, ecid }) => {
+            const richEvent = buildIndustryEventPayload({
+              industry: 'retail',
+              industry_fields: {
+                productName: seed.interest,
+                productCategory: seed.interest,
+                sku: `GEO-DEMO-${index + 1}`,
+              },
+            });
+            if (!richEvent.ok) return { ok: false, error: richEvent.error };
+            return sendProfileEvent({
+              sandbox: allowed.sandbox,
+              email,
+              ecid,
+              target_id: targetCheck.requested_id,
+              event_type: 'commerce.productViews',
+              channel: 'web',
+              timestamp: seed.timestamp,
+              public: richEvent.public,
+              xdm_style: 'full',
+              geo_lat: seed.lat,
+              geo_lon: seed.lon,
+            });
+          },
+        },
+      });
 
-          const ecid = String(
-            profileResult.ecid
-              || profileResult.data?.ecid
-              || profileResult.data?.identification?.core?.ecid
-              || '',
-          ).trim();
-          if (!/^\d{10,}$/.test(ecid)) {
-            lastError = 'AEP profile generation succeeded without returning an ECID; the geo event was not sent.';
-            break;
-          }
-          const richEvent = buildIndustryEventPayload({
-            industry: 'retail',
-            industry_fields: {
-              productName: seed.interest,
-              productCategory: seed.interest,
-              sku: `GEO-DEMO-${index + 1}`,
-            },
-          });
-          if (!richEvent.ok) {
-            lastError = richEvent.error;
-            break;
-          }
-          const eventResult = await sendProfileEvent({
-            sandbox: allowed.sandbox,
-            email: emailPlan.email,
-            ecid,
-            target_id: targetCheck.requested_id,
-            event_type: 'commerce.productViews',
-            channel: 'web',
-            timestamp: seed.timestamp,
-            public: richEvent.public,
-            xdm_style: 'full',
-            geo_lat: seed.lat,
-            geo_lon: seed.lon,
-          });
-          if (!eventResult.ok) {
-            lastError = eventResult.error || 'AEP product-view event send failed.';
-            break;
-          }
-          sent += 1;
-        }
-      } catch (error) {
-        lastError = String(error?.message || error);
-      }
+      const generated = outcome.generated;
+      const sent = outcome.sent;
+      const lastError = outcome.lastError;
 
       const complete = generated === count && sent === count;
       writeAuditLog({
@@ -282,6 +262,8 @@ export function registerGeoInsightsTools(mcpServer) {
         count_requested: count,
         profiles_generated: generated,
         events_sent: sent,
+        events_failed: outcome.failed,
+        aborted: outcome.aborted,
         result: complete ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });
@@ -294,11 +276,14 @@ export function registerGeoInsightsTools(mcpServer) {
         count_requested: count,
         profiles_generated: generated,
         events_sent: sent,
+        events_failed: outcome.failed,
+        aborted: outcome.aborted,
         source: 'aep-event-generator',
         ingestion_note:
           'Query Service reflects data-lake ingestion after a delay; allow several minutes, with actual timing varying by dataset and backlog.',
         generated_at: new Date().toISOString(),
         ...(lastError ? { error: lastError } : {}),
+        ...(outcome.errors.length ? { errors: outcome.errors } : {}),
       };
       if (!complete) {
         return {

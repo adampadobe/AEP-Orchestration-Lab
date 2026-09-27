@@ -579,6 +579,13 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 
 ### Normal code-only release
 
+> **New `/api/...` lab route?** A Cloud Run release is not enough. Routes the MCP calls
+> reach the lab through Firebase Hosting rewrites, so a new route in `firebase.json`
+> also needs `firebase deploy --only hosting --project aep-orchestration-lab` (plus the
+> function itself). Without the Hosting deploy the tool fails with a bare `404` even
+> though the function is live — see `test/labApiRoutes.test.mjs`, which asserts every
+> literal `/api/...` path in `labApiClient.mjs` has a matching rewrite.
+
 Inspect the live service first, build an immutable image, and update **only** the image. `gcloud run services update` preserves the existing environment variables, secret bindings, service account, ingress, timeout, memory, and scaling configuration.
 
 ```bash

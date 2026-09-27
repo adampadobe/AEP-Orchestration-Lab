@@ -7,6 +7,7 @@
 
 const profileStreamingCore = require('./profileStreamingCore');
 const profileTableHelpers = require('./profileTableHelpers');
+const { generateEcid, isCanonicalEcid } = require('./ecidGenerator');
 const genericProfileConnectionStore = require('./genericProfileConnectionStore');
 const travelProfileConnectionStore = require('./travelProfileConnectionStore');
 const fsiProfileConnectionStore = require('./fsiProfileConnectionStore');
@@ -24,12 +25,6 @@ const INDUSTRY_TO_CONNECTION_STORE = {
   media: mediaProfileConnectionStore,
   sports: sportsProfileConnectionStore,
 };
-
-function generateEcid() {
-  let s = '4';
-  for (let i = 0; i < 37; i += 1) s += Math.floor(Math.random() * 10);
-  return s;
-}
 
 function isEmpty(v) {
   if (v === undefined || v === null) return true;
@@ -149,9 +144,13 @@ async function handleProfileGenerate(req, res, ctx) {
         orgId,
       );
       mergeDiagnostics = diagnostics;
-      if (existingEcid && String(existingEcid).length >= 10) {
+      if (isCanonicalEcid(existingEcid)) {
         ecid = String(existingEcid).trim();
         ecidSource = 'existing';
+      } else if (existingEcid) {
+        console.warn(
+          '[profileGenerate.appendIfExisting] Ignoring non-canonical existing ECID; Edge Network would reject it.',
+        );
       }
     } catch (lookupErr) {
       mergeDiagnostics = { error: String(lookupErr.message || lookupErr), namespacesAttempted: [] };
@@ -288,4 +287,5 @@ async function handleProfileGenerate(req, res, ctx) {
 
 module.exports = {
   handleProfileGenerate,
+  generateEcid,
 };
