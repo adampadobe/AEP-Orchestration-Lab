@@ -10,9 +10,13 @@ export const GEO_INTEREST_PATTERN = /^[\p{L}\p{N} &,.\-]{1,64}$/u;
 export const GEO_INTEREST_RULE =
   'Use 1-64 characters of letters, numbers, spaces or & , . - only.';
 
+// The first three neighborhoods per city are the seed clusters: all sit within ~6 km of the
+// geocoded city centre so a 10 km hotspot query sees every seeded profile.
 export const GEO_CITY_PRESETS = Object.freeze({
   riyadh: Object.freeze([
     Object.freeze({ name: 'Olaya', lat: 24.6908, lon: 46.6853 }),
+    Object.freeze({ name: 'Al Sulimaniyah', lat: 24.7055, lon: 46.6983 }),
+    Object.freeze({ name: 'Al Malaz', lat: 24.6667, lon: 46.735 }),
     Object.freeze({ name: 'Al Malqa', lat: 24.814, lon: 46.619 }),
     Object.freeze({ name: 'Hittin', lat: 24.7701, lon: 46.575 }),
     Object.freeze({ name: 'Al Yasmin', lat: 24.846, lon: 46.625 }),
@@ -20,14 +24,22 @@ export const GEO_CITY_PRESETS = Object.freeze({
     Object.freeze({ name: 'Diriyah', lat: 24.734, lon: 46.575 }),
   ]),
   dubai: Object.freeze([
-    Object.freeze({ name: 'Dubai Marina', lat: 25.0805, lon: 55.1403 }),
     Object.freeze({ name: 'Downtown', lat: 25.1972, lon: 55.2744 }),
+    Object.freeze({ name: 'Business Bay', lat: 25.186, lon: 55.265 }),
+    Object.freeze({ name: 'DIFC', lat: 25.211, lon: 55.282 }),
+    Object.freeze({ name: 'Dubai Marina', lat: 25.0805, lon: 55.1403 }),
     Object.freeze({ name: 'Deira', lat: 25.2697, lon: 55.3095 }),
     Object.freeze({ name: 'JLT', lat: 25.0657, lon: 55.1413 }),
-    Object.freeze({ name: 'Business Bay', lat: 25.186, lon: 55.265 }),
     Object.freeze({ name: 'Al Barsha', lat: 25.1124, lon: 55.198 }),
   ]),
 });
+
+const GEO_CITY_PLACE = Object.freeze({
+  riyadh: Object.freeze({ city: 'Riyadh', regionCode: 'SA-01', countryCode: 'SA' }),
+  dubai: Object.freeze({ city: 'Dubai', regionCode: 'AE-DU', countryCode: 'AE' }),
+});
+
+export const GEO_SEED_ACCURACY_METERS = 50;
 
 const GEO_CITY_ALIASES = Object.freeze({
   riyadh: 'riyadh',
@@ -76,6 +88,22 @@ export function nearestSeededNeighborhood({ lat, lon, city }) {
   return nearestDistance <= 6 ? nearest.name : '';
 }
 
+export const GEO_MIRROR_SOURCE = 'aep-lab-geo-mirror';
+
+export const GEO_MIRROR_PLACE_HINT =
+  'Hotspot locations are each matching profile\'s last-known place (profilePlaceContext), not where the '
+  + 'product view happened. Cells with fewer than 10 profiles are suppressed.';
+
+export const GEO_EMPTY_HINT =
+  'No matching profiles are available yet. The interest must exactly match a viewed product name or category '
+  + '(case-insensitive), e.g. "camping gear". Run lab_seed_geo_demo to create governed sample profiles and '
+  + 'product-view events.';
+
+function defaultHotspotHint(totalProfiles, source) {
+  if (totalProfiles === 0) return GEO_EMPTY_HINT;
+  return source === GEO_MIRROR_SOURCE ? GEO_MIRROR_PLACE_HINT : '';
+}
+
 export function shapeGeoHotspotsResponse({
   center,
   radius_km,
@@ -89,6 +117,7 @@ export function shapeGeoHotspotsResponse({
   hint,
   source = 'aep-query-service',
 }) {
+  const safeSource = String(source || 'aep-query-service');
   const safeRows = Array.isArray(rows) ? rows : [];
   const firstRow = safeRows[0] || {};
   const totalProfiles = Math.max(0, Number(total_profiles ?? firstRow.total_profiles) || 0);
@@ -137,13 +166,11 @@ export function shapeGeoHotspotsResponse({
     suppressed_profiles: suppressedProfiles,
     k_threshold: GEO_MIN_K_ANONYMITY,
     hotspots,
-    source,
+    source: safeSource,
     data_status: 'available',
     sandbox,
     generated_at,
-    hint: hint || (totalProfiles === 0
-      ? 'No matching events are available yet. Run lab_seed_geo_demo to create governed sample profiles and product-view events.'
-      : ''),
+    hint: hint || defaultHotspotHint(totalProfiles, safeSource),
   };
   return result;
 }
@@ -196,12 +223,6 @@ export function geoJsonResult(payload) {
   };
 }
 
-function randomNormal(random) {
-  const first = Math.max(Number.MIN_VALUE, random());
-  const second = random();
-  return Math.sqrt(-2 * Math.log(first)) * Math.cos(2 * Math.PI * second);
-}
-
 export function buildGeoSeedPlan({ city, count, interest = 'camping gear', now = Date.now, random = Math.random }) {
   const preset = resolveGeoCityPreset(city);
   if (!preset) throw new Error('Geo demo seeding supports Riyadh and Dubai only.');
@@ -215,19 +236,43 @@ export function buildGeoSeedPlan({ city, count, interest = 'camping gear', now =
 
   const nowMs = typeof now === 'function' ? now() : Number(now);
   const seedNeighborhoods = preset.neighborhoods.slice(0, 3);
+  // No coordinate jitter: every profile in a cluster shares one point, so each cluster lands in
+  // exactly one hotspot cell and a 30-profile batch is three cells of ten (k=10 demonstrable).
   return Array.from({ length: count }, (_, index) => {
-    const neighborhood = seedNeighborhoods[index % seedNeighborhoods.length];
-    const latitudeJitter = randomNormal(random) * 0.0008;
-    const longitudeJitter = randomNormal(random) * 0.0008;
+    const neighborhood = seedNeighborhoods[Math.floor(index / 10) % seedNeighborhoods.length];
     const timestamp = new Date(nowMs - random() * 3 * 60 * 60 * 1000).toISOString();
     return {
+      city_id: preset.id,
       neighborhood: neighborhood.name,
-      lat: roundedCoordinate(neighborhood.lat + latitudeJitter),
-      lon: roundedCoordinate(neighborhood.lon + longitudeJitter),
+      lat: neighborhood.lat,
+      lon: neighborhood.lon,
       timestamp,
       interest: interestText,
     };
   });
+}
+
+/**
+ * Governed profilePlaceContext leaves (tenant-relative dotted attributes) for one seed entry.
+ * @param {{ city_id: string, neighborhood: string, lat: number, lon: number, timestamp: string }} seed
+ */
+export function geoSeedPlaceAttributes(seed) {
+  const place = GEO_CITY_PLACE[seed?.city_id];
+  if (!place) throw new Error(`Unknown geo seed city "${seed?.city_id}".`);
+  const seenAt = new Date(Date.parse(seed.timestamp));
+  if (!Number.isFinite(seenAt.getTime())) throw new Error('Geo seed timestamp is invalid.');
+  seenAt.setUTCMilliseconds(0);
+  return {
+    'profilePlaceContext.latitude': seed.lat,
+    'profilePlaceContext.longitude': seed.lon,
+    'profilePlaceContext.accuracyMeters': GEO_SEED_ACCURACY_METERS,
+    'profilePlaceContext.neighborhood': seed.neighborhood,
+    'profilePlaceContext.city': place.city,
+    'profilePlaceContext.regionCode': place.regionCode,
+    'profilePlaceContext.countryCode': place.countryCode,
+    'profilePlaceContext.lastSeenAt': seenAt.toISOString().replace('.000Z', 'Z'),
+    'profilePlaceContext.source': 'mcp-seed',
+  };
 }
 
 /** Stop a seed batch once this many attempts fail back to back. */
@@ -273,7 +318,7 @@ export async function runGeoSeedBatch({ plan, deps }) {
         continue;
       }
 
-      const profileResult = await generateProfile({ index, seed, email: emailPlan.email });
+      const profileResult = await generateProfile({ index, seed, email: emailPlan.email, emailPlan });
       if (!profileResult?.ok) {
         recordFailure(profileResult?.error || 'AEP test profile generation failed.');
         continue;

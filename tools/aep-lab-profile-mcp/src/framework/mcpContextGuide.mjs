@@ -120,7 +120,7 @@ export const MCP_CONTEXTS = Object.freeze([
     toolCount: 4,
     access: LAB_ACCESS,
     risk: 'read-only aggregate audience query plus confirmation-gated demo seeding',
-    capabilities: ['current weather', 'AEP Query Service geo-hotspots', 'k=10 suppression', 'Riyadh and Dubai demo seeding'],
+    capabilities: ['current weather', 'profile place-context geo-hotspots', 'k=10 suppression', 'Riyadh and Dubai demo seeding'],
     useWhen: 'Use when one turn needs both live weather and governed audience geo-hotspots for the same city or coordinate center.',
   },
   {

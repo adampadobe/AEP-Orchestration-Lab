@@ -17,6 +17,7 @@ import {
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
   geoJsonResult,
+  geoSeedPlaceAttributes,
   isGeoDataUnavailable,
   nearestSeededNeighborhood,
   runGeoSeedBatch,
@@ -24,10 +25,10 @@ import {
   shapeGeoHotspotsUnavailableResponse,
 } from '../framework/geoInsights.mjs';
 import { planDualStreamGenerate, executeGeneratePlan } from '../framework/dualStreamGenerate.mjs';
-import { buildPersonaAttributes } from '../personaBuilder.mjs';
+import { buildPersonaAttributes, mergePersonaAttributes } from '../personaBuilder.mjs';
 import { buildIndustryEventPayload } from '../framework/industryEventPayload.mjs';
 import { validateEventTarget } from '../framework/eventIdentity.mjs';
-import { resolveProfileEmailForGenerate } from './generationPrefs.mjs';
+import { applyStoredPrefsMobileToAttributes, resolveProfileEmailForGenerate } from './generationPrefs.mjs';
 import { toolError } from './helpers.mjs';
 
 const locationSchema = {
@@ -61,11 +62,12 @@ export function registerGeoInsightsTools(mcpServer) {
     {
       title: 'Find governed audience geo-hotspots',
       description:
-        'Read-only aggregate of retail product-view profiles, filtered by interest, time window, and radius. Cells '
-        + 'below k=10 are suppressed; identities and raw events are never returned. Provide a city or lat/lon center. '
-        + 'If data_status is "unavailable", the geo data path is not live yet: report that no geo audience data is '
-        + 'available (not a zero count) and do not seed. If data_status is "available" and the result is empty, seed '
-        + 'demo data with lab_seed_geo_demo.',
+        'Read-only aggregate of profiles that viewed a matching retail product in the time window, plotted at '
+        + 'each profile\'s last-known place (profilePlaceContext) within the radius. The interest must exactly '
+        + 'match a viewed product name or category (case-insensitive). Cells below k=10 are suppressed; identities '
+        + 'and raw events are never returned. Provide a city or lat/lon center. If data_status is "unavailable", '
+        + 'report that no geo audience data is available (not a zero count) and do not seed. If data_status is '
+        + '"available" and the result is empty, seed demo data with lab_seed_geo_demo.',
       inputSchema: {
         ...locationSchema,
         radius_km: z.number().min(1).max(50).default(10).describe('Search radius in kilometres (1–50, default 10).'),
@@ -131,7 +133,7 @@ export function registerGeoInsightsTools(mcpServer) {
           result: 'error',
           durationMs: Date.now() - started,
         });
-        return toolError(apiResult.error || 'AEP Query Service geo-hotspot query failed.', {
+        return toolError(apiResult.error || 'Geo-hotspot aggregation failed.', {
           status: apiResult.status,
           ...(geoHotspotsFailureHint(apiResult) ? { hint: geoHotspotsFailureHint(apiResult) } : {}),
         });
@@ -174,6 +176,7 @@ export function registerGeoInsightsTools(mcpServer) {
         rows,
         sandbox: allowed.sandbox,
         generated_at: new Date().toISOString(),
+        ...(apiResult.data?.source ? { source: String(apiResult.data.source) } : {}),
       });
       writeAuditLog({
         keyId,
@@ -197,11 +200,12 @@ export function registerGeoInsightsTools(mcpServer) {
     {
       title: 'Seed a governed geo-audience demo',
       description:
-        'Mutation: creates test retail profiles and commerce.productViews events with realistic geo clusters around '
-        + 'Riyadh or Dubai neighborhoods. Uses the current sandbox generation preferences and event target; maximum '
-        + '30 profiles per call to stay within the existing per-key generation and event-send limits. The default '
-        + 'batch spreads profiles across three neighborhood cells to make the k=10 threshold demonstrable. Query Service '
-        + 'reflects data-lake ingestion after a delay, typically several minutes and variable by dataset/backlog.',
+        'Mutation: creates test retail profiles (with profilePlaceContext at central Riyadh or Dubai neighborhoods, '
+        + 'source "mcp-seed") and one commerce.productViews event each. Uses the current sandbox generation '
+        + 'preferences (scaled email + stored mobile) and event target; maximum 30 profiles per call to stay within '
+        + 'the per-key generation and event-send limits. Profiles are placed ten per neighborhood across three cells '
+        + 'so a full batch of 30 clears the k=10 threshold in every cell. lab_audience_geo_hotspots reads the lab '
+        + 'geo mirror, which is written as each profile and event is accepted, so results are visible immediately.',
       inputSchema: {
         city: z.string().trim().min(1).describe('Supported seed city: Riyadh or Dubai.'),
         count: z.number().int().min(1).max(30).default(30).describe('Number of test profiles and product-view events (1–30, default 30).'),
@@ -245,8 +249,11 @@ export function registerGeoInsightsTools(mcpServer) {
             sandbox: allowed.sandbox,
             use_stored_prefs: true,
           }),
-          generateProfile: async ({ email }) => {
-            const attributes = buildPersonaAttributes('retail', email);
+          generateProfile: async ({ email, seed, emailPlan }) => {
+            const attributes = applyStoredPrefsMobileToAttributes(
+              mergePersonaAttributes(buildPersonaAttributes('retail', email), geoSeedPlaceAttributes(seed)),
+              emailPlan?.mobilePhone,
+            );
             const profilePlan = planDualStreamGenerate({ industry: 'retail', attributes, email });
             return executeGeneratePlan({
               email,
@@ -275,8 +282,6 @@ export function registerGeoInsightsTools(mcpServer) {
               timestamp: seed.timestamp,
               public: richEvent.public,
               xdm_style: 'full',
-              geo_lat: seed.lat,
-              geo_lon: seed.lon,
             });
           },
         },
@@ -314,8 +319,8 @@ export function registerGeoInsightsTools(mcpServer) {
         aborted: outcome.aborted,
         source: 'aep-event-generator',
         ingestion_note:
-          'Seeded profiles and events are written to AEP, but geo hotspots cannot query them until the profile '
-          + 'place-context data path ships; lab_audience_geo_hotspots reports data_status "unavailable" until then.',
+          'Profiles and events are written to AEP and to the lab geo mirror as each is accepted, so '
+          + 'lab_audience_geo_hotspots can see them immediately. AEP Profile and data-lake views may lag by minutes.',
         generated_at: new Date().toISOString(),
         ...(lastError ? { error: lastError } : {}),
         ...(outcome.errors.length ? { errors: outcome.errors } : {}),
