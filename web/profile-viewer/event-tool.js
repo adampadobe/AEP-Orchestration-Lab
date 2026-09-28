@@ -74,6 +74,20 @@
     previewJson:      document.getElementById('etPreviewJson'),
     previewBeautifyBtn: document.getElementById('etPreviewBeautifyBtn'),
     previewEditHint:  document.getElementById('etPreviewEditHint'),
+
+    placePreset:      document.getElementById('etPlacePreset'),
+    placeRandomBtn:   document.getElementById('etPlaceRandomBtn'),
+    placeFields:      document.getElementById('etPlaceFields'),
+    placeLatitude:    document.getElementById('etPlaceLatitude'),
+    placeLongitude:   document.getElementById('etPlaceLongitude'),
+    placeAccuracy:    document.getElementById('etPlaceAccuracy'),
+    placeNeighborhood: document.getElementById('etPlaceNeighborhood'),
+    placeCity:        document.getElementById('etPlaceCity'),
+    placeRegion:      document.getElementById('etPlaceRegion'),
+    placeCountry:     document.getElementById('etPlaceCountry'),
+    placeStoreId:     document.getElementById('etPlaceStoreId'),
+    placePoiId:       document.getElementById('etPlacePoiId'),
+    placeGeohash:     document.getElementById('etPlaceGeohash'),
   };
 
   /* ── State ── */
@@ -239,6 +253,109 @@
 
   if (dom.channel) {
     dom.channel.addEventListener('change', persistChannelSelection);
+  }
+
+  /* ── Place context (optional; _demoemea.eventPlaceContext + placeContext.geo) ── */
+  const PLACE_PRESET_STORAGE_KEY = 'aepEventToolPlacePreset';
+  /** 'ui-sample' until the user edits a field by hand, then 'event-tool'. */
+  let placeSource = 'ui-sample';
+
+  function placeHelper() {
+    return typeof window.AepEventPlaceContext !== 'undefined' ? window.AepEventPlaceContext : null;
+  }
+
+  function placeInputs() {
+    return {
+      latitude: dom.placeLatitude,
+      longitude: dom.placeLongitude,
+      accuracyMeters: dom.placeAccuracy,
+      neighborhood: dom.placeNeighborhood,
+      city: dom.placeCity,
+      regionCode: dom.placeRegion,
+      countryCode: dom.placeCountry,
+      storeId: dom.placeStoreId,
+      poiId: dom.placePoiId,
+    };
+  }
+
+  function updatePlaceGeohash() {
+    if (!dom.placeGeohash) return;
+    const helper = placeHelper();
+    const lat = Number(dom.placeLatitude && dom.placeLatitude.value);
+    const lon = Number(dom.placeLongitude && dom.placeLongitude.value);
+    const ok = helper && dom.placeLatitude.value.trim() && dom.placeLongitude.value.trim()
+      && Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180;
+    dom.placeGeohash.textContent = ok ? helper.encodeGeohash(lat, lon, 7) : '—';
+  }
+
+  function fillPlaceSample() {
+    const helper = placeHelper();
+    if (!helper || !dom.placePreset) return;
+    const preset = dom.placePreset.value;
+    const inputs = placeInputs();
+    const sample = preset === 'none' ? null : helper.generateSample(preset);
+    Object.keys(inputs).forEach(function (leaf) {
+      if (!inputs[leaf]) return;
+      inputs[leaf].value = sample && sample[leaf] != null ? String(sample[leaf]) : '';
+    });
+    placeSource = 'ui-sample';
+    updatePlaceGeohash();
+  }
+
+  function syncPlaceVisibility() {
+    const off = !dom.placePreset || dom.placePreset.value === 'none';
+    if (dom.placeFields) dom.placeFields.hidden = off;
+    if (dom.placeRandomBtn) dom.placeRandomBtn.hidden = off;
+  }
+
+  function initPlaceContext() {
+    if (!dom.placePreset) return;
+    try {
+      const saved = localStorage.getItem(PLACE_PRESET_STORAGE_KEY);
+      if (saved && dom.placePreset.querySelector('option[value="' + saved.replace(/"/g, '') + '"]')) {
+        dom.placePreset.value = saved;
+      }
+    } catch { /* ignore */ }
+    dom.placePreset.addEventListener('change', function () {
+      try { localStorage.setItem(PLACE_PRESET_STORAGE_KEY, dom.placePreset.value); } catch { /* ignore */ }
+      syncPlaceVisibility();
+      fillPlaceSample();
+    });
+    if (dom.placeRandomBtn) dom.placeRandomBtn.addEventListener('click', fillPlaceSample);
+    const inputs = placeInputs();
+    Object.keys(inputs).forEach(function (leaf) {
+      if (!inputs[leaf]) return;
+      inputs[leaf].addEventListener('input', function () {
+        placeSource = 'event-tool';
+        updatePlaceGeohash();
+      });
+    });
+    syncPlaceVisibility();
+    fillPlaceSample();
+  }
+
+  /** @returns {{ place: object|null, error?: string }} */
+  function readEventPlaceFromForm() {
+    if (!dom.placePreset || dom.placePreset.value === 'none') return { place: null };
+    const helper = placeHelper();
+    if (!helper) return { place: null, error: 'Place context helper not loaded.' };
+    const inputs = placeInputs();
+    const values = { source: placeSource };
+    Object.keys(inputs).forEach(function (leaf) {
+      values[leaf] = inputs[leaf] ? inputs[leaf].value : '';
+    });
+    const place = helper.fromFormValues(values);
+    if (!place || place.latitude === undefined || place.longitude === undefined) {
+      return { place: null, error: 'Place context: enter latitude and longitude, or set Preset to None.' };
+    }
+    const lat = place.latitude;
+    const lon = place.longitude;
+    if (typeof lat !== 'number' || lat < -90 || lat > 90) return { place: null, error: 'Place context: latitude must be between -90 and 90.' };
+    if (typeof lon !== 'number' || lon < -180 || lon > 180) return { place: null, error: 'Place context: longitude must be between -180 and 180.' };
+    if (place.accuracyMeters !== undefined && !Number.isInteger(place.accuracyMeters)) {
+      return { place: null, error: 'Place context: accuracy must be a whole number of meters.' };
+    }
+    return { place: place };
   }
 
   /* ── Sandbox helper (uses inline select on this page) ── */
@@ -1332,6 +1449,9 @@
     } else {
       body.eventType = 'transaction';
     }
+    var placeResult = readEventPlaceFromForm();
+    if (placeResult.error) return { error: placeResult.error };
+    if (placeResult.place) body.eventPlace = placeResult.place;
     return { body };
   }
 
@@ -1407,6 +1527,10 @@
       }
     } else if (chNorm) {
       xdm.interactionDetails = { core: { channel: chNorm } };
+    }
+
+    if (body.eventPlace && placeHelper()) {
+      placeHelper().applyToXdm(xdm, body.eventPlace, (body.xdmTenantKey || body.xdm_tenant_key || '_demoemea').trim());
     }
 
     return {
@@ -1614,6 +1738,7 @@
   async function init() {
     bindSchemaDatasetNameSync();
     restoreChannelSelection();
+    initPlaceContext();
     if (dom.previewJson && typeof window.AepJsonEditor !== 'undefined') {
       window.AepJsonEditor.initTextarea(dom.previewJson, previewJsonOpts);
     }

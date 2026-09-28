@@ -45,6 +45,7 @@ const {
   normalizeExperienceCloudIdNamespaceInIdentityMap,
   buildEventGeneratorXdm,
 } = require('./eventGeneratorService');
+const { normalizeEventPlace, applyEventPlaceToXdm } = require('./eventPlaceContext');
 
 function readXdmStyle(body) {
   const b = body && typeof body === 'object' ? body : {};
@@ -220,14 +221,34 @@ function buildGeneratorEdgeInteractXdm(body, preset) {
   const genBody = body && typeof body === 'object' ? body : {};
   // Event tool UI minimal: identityMap + eventType + _id + timestamp + interactionDetails only.
   // No _demoemea, web.webPageDetails, orchestration, or tenant FG alignment unless style=full.
+  const place = readEventPlace(genBody);
+  let xdm;
   if (style === 'minimal') {
-    return buildMinimalEdgeXdm(genBody);
+    xdm = buildMinimalEdgeXdm(genBody);
+  } else {
+    const defaultOrch = String(p.defaultOrchestrationEventID || '').trim();
+    xdm = buildEventGeneratorXdm(genBody, {
+      style: 'full',
+      defaultOrchestrationEventID: defaultOrch,
+    });
   }
-  const defaultOrch = String(p.defaultOrchestrationEventID || '').trim();
-  return buildEventGeneratorXdm(genBody, {
-    style: 'full',
-    defaultOrchestrationEventID: defaultOrch,
-  });
+  if (place) applyEventPlaceToXdm(xdm, place, getXdmTenantKey(genBody));
+  return xdm;
+}
+
+/**
+ * Validate optional `body.eventPlace`. Returns null when absent; throws an Error
+ * with statusCode 400 when present but invalid.
+ */
+function readEventPlace(body) {
+  if (!body || body.eventPlace === undefined || body.eventPlace === null) return null;
+  const r = normalizeEventPlace(body.eventPlace);
+  if (!r.ok) {
+    const err = new Error(r.error);
+    err.statusCode = 400;
+    throw err;
+  }
+  return r.value;
 }
 
 /* ── Trigger template substitution ── */
@@ -772,6 +793,7 @@ module.exports = {
   shouldUseRichEdgeXdm,
   resolveGeneratorEdgeXdmStyle,
   buildGeneratorEdgeInteractXdm,
+  readEventPlace,
   buildTriggerPayload,
   buildDecisionIdentityMap,
   parseEdgeInteractPropositions,
