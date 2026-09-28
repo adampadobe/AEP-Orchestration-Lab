@@ -2649,9 +2649,9 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
   const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
   // Hotspots read interest signals from the Firestore geo mirror (Query Service cannot serve
   // them); record only after AEP accepted the event, and report the outcome in the response.
-  const mirrorAcceptedEvent = async () => {
+  const mirrorAcceptedEvent = async (acceptedSandbox = sandbox) => {
     const result = await getGeoAudienceMirror().recordInterestSignal(
-      geoAudienceMirrorMod.generatorSignalFromBody(sandbox, body),
+      geoAudienceMirrorMod.generatorSignalFromBody(acceptedSandbox, body),
     );
     if (result.error) console.warn('[eventGeneratorProxy] geo mirror write failed:', result.error);
     return result;
@@ -2740,6 +2740,13 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
       });
     }
 
+    const dcsSandbox = eventGeneratorService.resolveDcsStreamSandbox(
+      String(body.sandbox || req.query.sandbox || '').trim(),
+      preset,
+    );
+    if (!dcsSandbox.ok) {
+      return res.status(dcsSandbox.statusCode).json({ error: dcsSandbox.error, targetId: preset.id, sandbox });
+    }
     const xdm = eventGeneratorService.buildEventGeneratorXdm(body, { style: 'full' });
     const idStr = xdm._id != null ? String(xdm._id) : `event-${Date.now()}`;
     const ts = xdm.timestamp || new Date().toISOString();
@@ -2767,13 +2774,12 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
         xdmEntity,
       },
     };
-    const sandbox = eventGeneratorService.DEFAULT_SANDBOX;
     const streamUrl = (preset.streamingUrl && String(preset.streamingUrl).trim()) || eventGeneratorService.EVENT_GENERATOR_STREAMING_URL;
     const streamRes = await fetch(streamUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'sandbox-name': sandbox,
+        'sandbox-name': dcsSandbox.sandbox,
         Authorization: `Bearer ${accessToken}`,
         'x-adobe-flow-id': eventGeneratorService.EVENT_GENERATOR_FLOW_ID,
       },
@@ -2801,7 +2807,8 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
       streamingUrl: streamUrl,
       targetId: preset.id,
       transport: 'dcs',
-      geoMirror: await mirrorAcceptedEvent(),
+      sandbox: dcsSandbox.sandbox,
+      geoMirror: await mirrorAcceptedEvent(dcsSandbox.sandbox),
     });
   } catch (err) {
     res.status(err && err.statusCode === 400 ? 400 : 500).json({ error: err && err.message ? err.message : String(err) });
