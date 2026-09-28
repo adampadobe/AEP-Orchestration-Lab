@@ -37,3 +37,41 @@ node scripts/ensure-event-place-context-fieldgroup.cjs --sandbox apalmer --apply
 
 - **Before attach:** `DELETE /tenant/fieldgroups/{meta:altId}`. The create-only output prints the path.
 - **After attach:** removing a field group from a union-enabled schema is a breaking change, so treat the attach as irreversible. Stop writing the fields instead.
+
+### Attach status (sandbox `apalmer`)
+
+Attached on 2026-09-28: `AEP Lab - Event Generic - Schema` v1.4 and `AEP Event Tool - Schema - v1` v1.16. The union check passed and a re-run dry-run returns `action: "none"`.
+
+## Writing event place (Event Tool and edge builder)
+
+The **Event Tool** page (`web/profile-viewer/event-tool.html`) has a **Place context** block that applies to both trigger and industry modes.
+
+- **Preset:** `None` (the default) sends nothing. `Random city`, `Riyadh`, `Dubai`, `London` or `New York` fills a sample (reusing the profile place presets), and **New sample** re-rolls it. The preset is remembered in `localStorage` (`aepEventToolPlacePreset`).
+- **Source:** a filled sample is sent as `source: "ui-sample"`. Editing any field by hand switches it to `source: "event-tool"`.
+- **Preview:** the payload preview includes the place, so an edited preview (sent as `rawPayload`) still carries it.
+
+The page posts `eventPlace` to `POST /api/events/edge`, alongside the usual body:
+
+```json
+{
+  "eventPlace": {
+    "latitude": 24.6958, "longitude": 46.685, "accuracyMeters": 150,
+    "neighborhood": "Al Olaya", "city": "Riyadh", "regionCode": "SA-01", "countryCode": "SA",
+    "storeId": "RUH-OLAYA-01", "poiId": "poi-olaya-mall", "source": "ui-sample"
+  }
+}
+```
+
+`functions/eventPlaceContext.js` validates it. Latitude and longitude are required; `regionCode` must start with `countryCode-`; `source` must be one of the field-group enum values; unknown leaves are rejected. Invalid input returns **HTTP 400** before any Adobe call. The geohash (precision 7) is always derived from the coordinates, and a supplied geohash must match. `buildGeneratorEdgeInteractXdm` then writes it in both minimal and full XDM styles:
+
+| Input | XDM path |
+|---|---|
+| `latitude`, `longitude` | `placeContext.geo._schema.latitude/longitude` |
+| `city`, `countryCode` | `placeContext.geo.city/countryCode` |
+| `regionCode` | `placeContext.geo.stateProvince` and `_{tenant}.eventPlaceContext.regionCode` |
+| `poiId` | `placeContext.POIinteraction.poiDetail.poiID` and `_{tenant}.eventPlaceContext.poiId` |
+| derived geohash, `accuracyMeters`, `neighborhood`, `storeId`, `source` | `_{tenant}.eventPlaceContext.*` |
+
+The browser mirror, `web/profile-viewer/event-place-context.js` (`window.AepEventPlaceContext`), must load after `profile-place-context.js`. Parity with the server placement is covered by `functions/test/eventPlaceContext.test.cjs`.
+
+**Known risk:** if the datastream has Edge geo lookup enabled, the Edge Network may overwrite `placeContext.geo` with IP-derived values. `_{tenant}.eventPlaceContext` is not affected.

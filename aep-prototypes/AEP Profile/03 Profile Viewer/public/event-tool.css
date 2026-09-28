@@ -473,7 +473,8 @@
 }
 
 .et-industry-common,
-.et-industry-fields {
+.et-industry-fields,
+.et-place-context {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--dash-input-border);
@@ -498,6 +499,34 @@
   margin-bottom: 0.25rem;
   font-size: 0.82rem;
   color: var(--dash-text-secondary);
+}
+
+.et-place-context__hint {
+  margin: 0 0 0.6rem;
+}
+
+.et-place-context__preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.et-place-context__preset-row label {
+  margin: 0;
+}
+
+.et-place-context__preset-row .sandbox-select {
+  width: auto;
+  min-width: 12rem;
+}
+
+.et-place-context__geohash output {
+  display: block;
+  padding: 0.45rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--dash-text);
 }
 
 .et-readonly-input {

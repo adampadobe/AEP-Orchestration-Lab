@@ -2543,6 +2543,10 @@ exports.eventEdgeProxy = onRequest(
     if (!datastreamId) {
       res.status(400).json({ error: 'datastreamId is required' }); return;
     }
+    if (!(body.rawPayload && typeof body.rawPayload === 'object')) {
+      try { eventEdgeService.readEventPlace(body); }
+      catch (e) { res.status(e.statusCode || 400).json({ error: String(e.message || e) }); return; }
+    }
 
     let accessToken;
     try { accessToken = await getAdobeAccessToken(); }
@@ -2572,7 +2576,7 @@ exports.eventEdgeProxy = onRequest(
       const result = await eventEdgeService.sendEdgeEvent(accessToken, clientId, orgId, datastreamId, payload);
       res.status(200).json({ ok: true, ...result, sentPayload: payload });
     } catch (e) {
-      res.status(502).json({ error: String(e.message || e) });
+      res.status(e.statusCode === 400 ? 400 : 502).json({ error: String(e.message || e) });
     }
   },
 );
@@ -2800,7 +2804,7 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
       geoMirror: await mirrorAcceptedEvent(),
     });
   } catch (err) {
-    res.status(500).json({ error: err && err.message ? err.message : String(err) });
+    res.status(err && err.statusCode === 400 ? 400 : 500).json({ error: err && err.message ? err.message : String(err) });
   }
 });
 
