@@ -318,4 +318,12 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, runEnsure, attachOperations, PROFILE_UNION_ALT_ID };
+module.exports = {
+  parseArgs,
+  runEnsure,
+  attachOperations,
+  PROFILE_UNION_ALT_ID,
+  createRegistryClient,
+  mergeCredentialsIntoEnv,
+  imsToken,
+};
