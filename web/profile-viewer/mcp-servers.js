@@ -415,11 +415,11 @@
       product: 'Focused Lab MCP · 4 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/geo-insights',
       summary:
-        'Combines current weather with aggregate AEP Query Service audience hotspots for the same city or coordinate center. Hotspots below k=10 are suppressed; no identities or raw events are returned.',
+        'Combines current weather with aggregate audience hotspots (from the lab geo mirror of profile place context) for the same city or coordinate center. Hotspots below k=10 are suppressed; no identities or raw events are returned.',
       useCases: [
         'Map an interest-based audience around a city or location',
         'Compare hotspot counts with current local weather',
-        'Create Riyadh or Dubai demo data after explicit approval',
+        'Seed demo data in any featured area or catalog city after explicit approval',
       ],
       configNotes:
         'Coworker uses Adobe IMS; key-based clients reuse the sandbox key. The read-only hotspot query is rate-limited and audited; demo seeding generates test profiles and events.',

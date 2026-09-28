@@ -11,6 +11,8 @@ import {
   normalizeGenerateProfileParams,
 } from '../framework/generateProfileParams.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
+import { hasPlaceParams, placeInputSchema, summarizePlaceAttributes, validatePlaceParams } from '../framework/placeParams.mjs';
+import { buildPlaceContextPersonaAttributes, hasPlaceContextAttributes } from '../personaBuilder/placeContext.mjs';
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
 import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
@@ -32,7 +34,9 @@ export function registerGenerateProfileTool(mcpServer) {
         'Generate and stream one governed AEP test profile through the saved sandbox and industry connection. ' +
         'Preflight first. Omit email to reserve the next shared <local>+DDMMYYYY-N@domain address; custom emails must use that format. ' +
         'test_profile defaults true, preferred language is enforced, and non-generic industries dual-stream generic then industry attributes. ' +
-        'Use randomize plus an optional segment_hint for a correlated persona. Optional dual_load_snowflake creates an independent CRM row with shared EMAIL/ECID/CRMID. ' +
+        'Use randomize plus an optional segment_hint for a correlated persona. Every randomized profile carries place context ' +
+        '(profilePlaceContext: lat/lon, city, country): place_mode featured (ten common areas, default), global (anywhere on Earth) or area + place_area. ' +
+        'Optional dual_load_snowflake creates an independent CRM row with shared EMAIL/ECID/CRMID. ' +
         'See the parameter descriptions and lab_get_execution_framework for advanced options.',
       inputSchema: {
         email: z
@@ -116,6 +120,7 @@ export function registerGenerateProfileTool(mcpServer) {
           .string()
           .optional()
           .describe('Optional Snowflake target table override; default is the allowlisted table for industry'),
+        ...placeInputSchema(),
       },
     },
     async ({
@@ -137,6 +142,8 @@ export function registerGenerateProfileTool(mcpServer) {
       snowflake_enrichment,
       snowflake_event_types,
       snowflake_table,
+      place_mode,
+      place_area,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -223,10 +230,17 @@ export function registerGenerateProfileTool(mcpServer) {
         return toolError(segmentNorm);
       }
 
+      const placeCheck = validatePlaceParams({ place_mode, place_area });
+      if (!placeCheck.ok) {
+        return toolError(placeCheck.error);
+      }
+
       const useRandomize = randomize ?? fill_sample_data ?? false;
       const personaOpts = {
         loyalty_member: loyalty_member === true,
         last_order_details,
+        place_mode: placeCheck.place_mode,
+        place_area: placeCheck.place_area,
       };
       let mergedAttributes = attributes;
       if (useRandomize) {
@@ -244,6 +258,11 @@ export function registerGenerateProfileTool(mcpServer) {
             attributes,
           );
         }
+      } else if (hasPlaceParams({ place_mode, place_area }) && !hasPlaceContextAttributes(attributes)) {
+        mergedAttributes = {
+          ...buildPlaceContextPersonaAttributes({ mode: placeCheck.place_mode, area: placeCheck.place_area }),
+          ...(attributes || {}),
+        };
       }
 
       if (mergedAttributes && typeof mergedAttributes === 'object' && Object.keys(mergedAttributes).length > 0) {
@@ -398,6 +417,7 @@ export function registerGenerateProfileTool(mcpServer) {
         segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
         test_profile: normalized.test_profile,
         preferredLanguage: readLanguageFromAttrs(normalized.attributes),
+        place_context: summarizePlaceAttributes(normalized.attributes),
         recent_profiles_sync: recentSync,
         dual_stream: generatePlan.dualStream,
         generate_plan: generatePlan.steps.map((s) => ({

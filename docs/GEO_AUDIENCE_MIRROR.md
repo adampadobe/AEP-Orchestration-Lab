@@ -54,5 +54,12 @@ The response keeps the existing contract (`kind`, ≤50 hotspots, 4-dp coordinat
 
 `lab_seed_geo_demo` creates up to 30 retail test profiles following the MCP generation pattern (stored
 prefs email counter + stored mobile) with `profilePlaceContext.source = "mcp-seed"`, ten per central
-neighborhood (Riyadh: Olaya, Al Sulimaniyah, Al Malaz; Dubai: Downtown, Business Bay, DIFC), and one
-`commerce.productViews` event each. Results are visible to hotspots immediately.
+neighborhood (Riyadh: Olaya, Al Sulimaniyah, Al Malaz; Dubai: Downtown, Business Bay, DIFC; other featured
+areas and any place-catalog city use three generated neighborhood anchors around the city center), and one
+`commerce.productViews` event each carrying the same `eventPlace`. Results are visible to hotspots immediately.
+
+## Bulk generation and clustering
+
+`lab_generate_profiles_batch` samples places from the shared catalog (`place_mode` `featured` | `global` |
+`area`). For count ≥ 10 it clusters profiles (default 12 per anchor, never below k=10) so global random
+data still produces visible hotspots; the job returns `place_clusters` for map verification.

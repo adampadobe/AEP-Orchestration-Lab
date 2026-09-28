@@ -68,7 +68,7 @@ Use the single **`aep-lab-geo-insights`** connection (`/mcp/geo-insights`) so we
 
 1. For a city request, call **`lab_weather_current`** and **`lab_audience_geo_hotspots`** with the same city and sandbox. For coordinates, pass the same `lat`/`lon` to both. Set `interest`, `radius_km`, and `window_hours` from the colleague's request.
 2. Present the weather context alongside `total_profiles` and the returned hotspot aggregates. Do not infer individual people or expose identities; cells below the k=10 threshold are already suppressed.
-3. If there are no matching profiles, explain that no matching ingested data was found. Offer **`lab_seed_geo_demo`** for Riyadh or Dubai only after the colleague approves the profile/event creation. After seeding, wait for the reported Query Service ingestion delay, then rerun the same aggregate query.
+3. If there are no matching profiles, explain that no matching ingested data was found. Offer **`lab_seed_geo_demo`** for the requested city (any featured area — riyadh, dubai, london, new york, paris, tokyo, sydney, singapore, são paulo, mumbai — or any catalog city) only after the colleague approves the profile/event creation. Seeded profiles and their events share the same place; hotspots read the lab geo mirror, so rerun the same aggregate query straight away.
 4. Describe engagement opportunities only as evidence-based suggestions from the aggregate counts and weather context; the tools do not return customer identities or individual event histories.
 
 ## Workflow 0b — First-run foundations (General integration or Portal)
