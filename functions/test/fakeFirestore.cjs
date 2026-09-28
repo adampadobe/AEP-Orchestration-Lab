@@ -13,6 +13,12 @@ function matches(data, { field, op, value }) {
   const actual = data[field];
   if (op === '==') return toComparable(actual) === toComparable(value);
   if (op === 'array-contains') return Array.isArray(actual) && actual.includes(value);
+  if (op === 'array-contains-any') {
+    if (!Array.isArray(value) || !value.length || value.length > 30) {
+      throw new Error('array-contains-any needs 1-30 values');
+    }
+    return Array.isArray(actual) && value.some((v) => actual.includes(v));
+  }
   const a = toComparable(actual);
   const b = toComparable(value);
   if (a == null) return false;

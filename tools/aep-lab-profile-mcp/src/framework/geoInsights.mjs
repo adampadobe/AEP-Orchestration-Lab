@@ -151,8 +151,8 @@ export const GEO_MIRROR_PLACE_HINT =
   + 'product view happened. Cells with fewer than 10 profiles are suppressed.';
 
 export const GEO_EMPTY_HINT =
-  'No matching profiles are available yet. The interest must exactly match a viewed product name or category '
-  + '(case-insensitive), e.g. "camping gear". Run lab_seed_geo_demo to create governed sample profiles and '
+  'No matching profiles are available yet. The interest must match a viewed product name or category '
+  + '(case-insensitive; singular or plural), e.g. "camping gear" or "umbrellas". Run lab_seed_geo_demo to create governed sample profiles and '
   + 'product-view events.';
 
 function defaultHotspotHint(totalProfiles, source) {
