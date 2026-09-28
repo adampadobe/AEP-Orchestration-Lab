@@ -222,6 +222,19 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
 }
 
+// Only called for cells that already cleared k, so the name never describes fewer than k profiles.
+function mostCommonName(names) {
+  let best = '';
+  let bestCount = 0;
+  for (const [name, count] of names) {
+    if (count > bestCount || (count === bestCount && name < best)) {
+      best = name;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 /**
  * In-memory twin of buildGeoHotspotsQuery for mirrored places: the same haversine radius,
  * grid, k-anonymity threshold, 50-cell cap and row shape, one place per profile.
@@ -244,8 +257,10 @@ function aggregateMirrorHotspots({ places, center, radiusKm, cellKm }) {
     const latIndex = Math.round(place.lat / latStep);
     const lonIndex = Math.round(place.lon / lonStep);
     const key = `${latIndex}:${lonIndex}`;
-    const cell = cells.get(key) || { latIndex, lonIndex, profiles: 0 };
+    const cell = cells.get(key) || { latIndex, lonIndex, profiles: 0, names: new Map() };
     cell.profiles += 1;
+    const name = typeof place.neighborhood === 'string' ? place.neighborhood.trim() : '';
+    if (name) cell.names.set(name, (cell.names.get(name) || 0) + 1);
     cells.set(key, cell);
   }
   let suppressed = 0;
@@ -257,12 +272,16 @@ function aggregateMirrorHotspots({ places, center, radiusKm, cellKm }) {
   visible.sort((a, b) => b.profiles - a.profiles || a.latIndex - b.latIndex || a.lonIndex - b.lonIndex);
   const summary = { total_profiles: total, suppressed_profiles: suppressed };
   if (!visible.length) return [{ ...summary, cell_lat: null, cell_lon: null, profiles: null }];
-  return visible.slice(0, MAX_HOTSPOT_CELLS).map((cell) => ({
-    ...summary,
-    cell_lat: round(cell.latIndex * latStep, 4),
-    cell_lon: round(cell.lonIndex * lonStep, 4),
-    profiles: cell.profiles,
-  }));
+  return visible.slice(0, MAX_HOTSPOT_CELLS).map((cell) => {
+    const label = mostCommonName(cell.names);
+    return {
+      ...summary,
+      cell_lat: round(cell.latIndex * latStep, 4),
+      cell_lon: round(cell.lonIndex * lonStep, 4),
+      profiles: cell.profiles,
+      ...(label ? { label } : {}),
+    };
+  });
 }
 
 function createGeoHotspotsService({

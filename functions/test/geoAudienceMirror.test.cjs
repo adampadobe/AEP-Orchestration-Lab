@@ -97,7 +97,7 @@ test('recordProfilePlace writes a hashed, PII-free place doc with a 30-day expir
   const doc = entry.data;
   assert.deepEqual(Object.keys(doc).sort(), [
     'city', 'countryCode', 'ecidHash', 'expireAt', 'geohash7', 'identityHash', 'lastSeenAt',
-    'lat', 'lon', 'sandbox', 'source', 'updatedAt',
+    'lat', 'lon', 'neighborhood', 'sandbox', 'source', 'updatedAt',
   ]);
   assert.equal(doc.sandbox, 'apalmer');
   assert.equal(doc.identityHash, identityHash);
@@ -106,13 +106,14 @@ test('recordProfilePlace writes a hashed, PII-free place doc with a 30-day expir
   assert.equal(doc.lon, 46.68535);
   assert.equal(doc.geohash7, 'th3jxzz');
   assert.equal(doc.city, 'Riyadh');
+  assert.equal(doc.neighborhood, 'Olaya');
   assert.equal(doc.countryCode, 'SA');
   assert.equal(doc.source, 'mcp-seed');
   assert.equal(doc.lastSeenAt.toISOString(), '2026-09-27T10:00:00.000Z');
   assert.equal(doc.updatedAt.getTime(), NOW);
   assert.equal(doc.expireAt.getTime(), NOW + PLACE_TTL_DAYS * DAY_MS);
   const serialized = JSON.stringify(doc);
-  assert.doesNotMatch(serialized, /adobedemo|@gmail|62722406001178632594092146103219305888|Olaya/);
+  assert.doesNotMatch(serialized, /adobedemo|@gmail|62722406001178632594092146103219305888/);
 });
 
 test('recordProfilePlace skips explicitly when there is nothing to mirror', async () => {
@@ -275,7 +276,20 @@ test('getProfilePlaces batch-reads place docs for the given hashes and skips unk
   });
   assert.equal(places.length, 2);
   assert.deepEqual(places.map((p) => [p.lat, p.lon]).sort(), [[24.69081, 46.68535], [24.7, 46.7]]);
+  assert.deepEqual(places.map((p) => p.neighborhood), ['Olaya', 'Olaya']);
   assert.equal(fake.calls.getAll, 1);
+});
+
+test('recordProfilePlace stores a missing neighborhood as null and caps long names', async () => {
+  const { fake, service } = mirror();
+  const noName = { ...PLACE };
+  delete noName.neighborhood;
+  await service.recordProfilePlace({ sandbox: 'apalmer', email: 'a@x.co', place: noName });
+  await service.recordProfilePlace({ sandbox: 'apalmer', email: 'b@x.co', place: { ...PLACE, neighborhood: `  ${'K'.repeat(200)}  ` } });
+  const docA = fake.store.get(`${PLACE_COLLECTION}/apalmer__${hashIdentity('apalmer', 'a@x.co')}`).data;
+  const docB = fake.store.get(`${PLACE_COLLECTION}/apalmer__${hashIdentity('apalmer', 'b@x.co')}`).data;
+  assert.equal(docA.neighborhood, null);
+  assert.equal(docB.neighborhood, 'K'.repeat(80));
 });
 
 test('generatorSignalFromBody maps an Event Generator request to a mirror signal input', () => {

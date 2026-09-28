@@ -8,6 +8,7 @@ import {
 
 export const GEO_MIN_K_ANONYMITY = 10;
 export const MAX_GEO_HOTSPOTS = 50;
+const MAX_HOTSPOT_LABEL_LENGTH = 80;
 
 // AEP Query Service runs Spark SQL, where a backslash escapes a quote character, so
 // quote-doubling alone cannot guarantee a string literal stays inside its quotes. Every
@@ -192,18 +193,19 @@ export function shapeGeoHotspotsResponse({
     const lat = Number(row.cell_lat);
     const lon = Number(row.cell_lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    eligible.push({ lat, lon, profiles });
+    const name = typeof row.label === 'string' ? row.label.trim().slice(0, MAX_HOTSPOT_LABEL_LENGTH) : '';
+    eligible.push({ lat, lon, profiles, name });
   }
 
   const hotspots = eligible
     .sort((a, b) => b.profiles - a.profiles || a.lat - b.lat || a.lon - b.lon)
     .slice(0, MAX_GEO_HOTSPOTS)
-    .map(({ lat, lon, profiles }) => ({
+    .map(({ lat, lon, profiles, name }) => ({
       lat: roundedCoordinate(lat),
       lon: roundedCoordinate(lon),
       profiles,
       share: totalProfiles > 0 ? Number((profiles / totalProfiles).toFixed(3)) : 0,
-      label: nearestSeededNeighborhood({ lat, lon }),
+      label: name || nearestSeededNeighborhood({ lat, lon }),
     }));
 
   const result = {

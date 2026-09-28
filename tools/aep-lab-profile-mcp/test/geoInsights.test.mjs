@@ -186,6 +186,24 @@ test('geo hotspot shaping suppresses small cells and emits only the governed con
   assert.equal(JSON.stringify(result).includes('ecid'), false);
 });
 
+test('geo hotspot shaping prefers the mirrored place name and falls back to the nearest neighborhood', () => {
+  const result = shapeGeoHotspotsResponse({
+    center: { lat: 24.6877, lon: 46.7219, label: 'Riyadh' },
+    radius_km: 10,
+    window_hours: 24,
+    interest: 'camping gear',
+    total_profiles: 40,
+    sandbox: 'apalmer',
+    source: GEO_MIRROR_SOURCE,
+    rows: [
+      { cell_lat: 24.7113, cell_lon: 46.6744, profiles: 25, label: '  Kingdom Centre  ' },
+      { cell_lat: 24.7743, cell_lon: 46.6384, profiles: 15 },
+      { cell_lat: 24.6905, cell_lon: 46.6853, profiles: 12, label: 'X'.repeat(200) },
+    ],
+  });
+  assert.deepEqual(result.hotspots.map((h) => h.label), ['Kingdom Centre', 'Al Nakheel', 'X'.repeat(80)]);
+});
+
 test('geo hotspot shaping caps output at fifty cells and reports empty datasets honestly', () => {
   const rows = Array.from({ length: 55 }, (_, index) => ({
     cell_lat: 24 + index / 1000,

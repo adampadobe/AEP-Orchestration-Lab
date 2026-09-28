@@ -10,7 +10,9 @@
  *   - labGeoInterestSignals/{auto}: one commerce.productViews interest signal after
  *     /api/events/generator succeeds.
  *
- * Identities are stored only as sandbox-scoped SHA-256 hashes; no email, ECID or name is kept.
+ * Identities are stored only as sandbox-scoped SHA-256 hashes; no email, ECID or person name is kept.
+ * The place name (profilePlaceContext.neighborhood, e.g. a district or POI) is kept so hotspot
+ * cells can be labelled; it is only ever returned for cells that clear k-anonymity.
  * Docs carry expireAt for Firestore TTL (30 days for places, 7 days for signals).
  * Admin SDK only — firestore.rules deny all client access.
  */
@@ -28,6 +30,7 @@ const MIRRORED_EVENT_TYPES = new Set(['commerce.productViews']);
 const INTEREST_FIELDS = ['productName', 'productCategory'];
 const MAX_INTEREST_KEYS = 8;
 const MAX_INTEREST_KEY_LENGTH = 64;
+const MAX_PLACE_NAME_LENGTH = 80;
 const GET_ALL_CHUNK = 300;
 
 function isGeoMirrorEnabled(env = process.env) {
@@ -104,6 +107,11 @@ function optionalString(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function optionalPlaceName(value) {
+  const text = optionalString(value);
+  return text ? text.slice(0, MAX_PLACE_NAME_LENGTH) : null;
+}
+
 function optionalDate(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
   const ms = Date.parse(value);
@@ -151,6 +159,7 @@ function createGeoAudienceMirror({ getDb = getAdminFirestore, now = Date.now, en
           lat: round5(lat),
           lon: round5(lon),
           geohash7: optionalString(place.geohash),
+          neighborhood: optionalPlaceName(place.neighborhood),
           city: optionalString(place.city),
           countryCode: optionalString(place.countryCode),
           lastSeenAt: optionalDate(place.lastSeenAt),
@@ -231,7 +240,13 @@ function createGeoAudienceMirror({ getDb = getAdminFirestore, now = Date.now, en
           if (!snap.exists) continue;
           const data = snap.data();
           if (typeof data.lat !== 'number' || typeof data.lon !== 'number') continue;
-          places.push({ identityHash: data.identityHash, lat: data.lat, lon: data.lon, updatedAtMs: toMillis(data.updatedAt) });
+          places.push({
+            identityHash: data.identityHash,
+            lat: data.lat,
+            lon: data.lon,
+            neighborhood: typeof data.neighborhood === 'string' ? data.neighborhood : null,
+            updatedAtMs: toMillis(data.updatedAt),
+          });
         }
       }
       return places;

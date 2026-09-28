@@ -290,6 +290,22 @@ test('mirror aggregation keeps only in-radius places, buckets them on the SQL gr
   assert.equal(rows[0].cell_lon, Math.round(Math.round(46.6853 / lonStep) * lonStep * 1e4) / 1e4);
 });
 
+test('mirror aggregation labels each visible cell with its most common place name', () => {
+  const named = (lat, lon, n, prefix, names) => cluster(lat, lon, n, prefix)
+    .map((place, i) => ({ ...place, neighborhood: names[i % names.length] }));
+  const places = [
+    ...named(24.7113, 46.6744, 12, 'kc', ['Kingdom Centre', 'Kingdom Centre', 'Al Olaya']),
+    ...named(24.6905, 46.6853, 11, 'fa', [null]),
+    ...named(24.6440, 46.7110, 10, 'mu', ['Zulu', 'Alpha']),
+  ];
+  const rows = aggregateMirrorHotspots({ places, center: RIYADH_CENTER, radiusKm: 10, cellKm: 1 });
+  assert.equal(rows.length, 3);
+  const byProfiles = Object.fromEntries(rows.map((r) => [r.profiles, r]));
+  assert.equal(byProfiles[12].label, 'Kingdom Centre');
+  assert.equal('label' in byProfiles[11], false, 'no label when no member carries a place name');
+  assert.equal(byProfiles[10].label, 'Alpha', 'ties resolve alphabetically');
+});
+
 test('mirror aggregation reports an honest summary row when no cell reaches k', () => {
   assert.deepEqual(
     aggregateMirrorHotspots({ places: cluster(24.6908, 46.6853, 3, 'x'), center: RIYADH_CENTER, radiusKm: 10, cellKm: 1 }),

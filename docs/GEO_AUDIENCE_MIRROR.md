@@ -9,7 +9,7 @@ ad-hoc result fetch, the PostgreSQL interface is unreachable from Cloud Run, and
 
 | Writer | Trigger | Collection | Document |
 |--------|---------|------------|----------|
-| `profileGenerateProxy` (`functions/profileGenerateService.js`) | AEP accepted a generated profile carrying `_demoemea.profilePlaceContext` | `labGeoProfilePlaces` | `{sandbox}__{identityHash}` — `identityHash`, `ecidHash`, `lat`, `lon` (5 dp), `geohash7`, `city`, `countryCode`, `source`, `lastSeenAt`, `updatedAt`, `expireAt` |
+| `profileGenerateProxy` (`functions/profileGenerateService.js`) | AEP accepted a generated profile carrying `_demoemea.profilePlaceContext` | `labGeoProfilePlaces` | `{sandbox}__{identityHash}` — `identityHash`, `ecidHash`, `lat`, `lon` (5 dp), `geohash7`, `neighborhood` (≤ 80 chars), `city`, `countryCode`, `source`, `lastSeenAt`, `updatedAt`, `expireAt` |
 | `profileUpdateProxy` (`functions/profileRoutes.js`) | AEP accepted a live (not dry-run) update carrying place context | `labGeoProfilePlaces` | same doc, overwritten with the latest place |
 | `eventGeneratorProxy` (`functions/index.js`) | AEP accepted a `commerce.productViews` event | `labGeoInterestSignals` | auto-ID — `sandbox`, `identityHash`, `ecidHash`, `interestKeys[]`, `eventType`, `ts`, `expireAt` |
 
@@ -17,7 +17,10 @@ ad-hoc result fetch, the PostgreSQL interface is unreachable from Cloud Run, and
   failure is reported in the response (`geoMirror: { written: false, error }`) and never fails a request
   AEP already accepted.
 * `identityHash` = sha256 of `sandbox|lower(trim(email))`; `ecidHash` is the same over the ECID. No raw email,
-  ECID, name, or neighborhood is stored. Signals with only an ECID are counted (`stats.ecid_only_signals`)
+  ECID, or person name is stored. The place name (`profilePlaceContext.neighborhood`, a district or POI such as
+  "Kingdom Centre") is stored so each hotspot cell can carry a `label`: the most common place name among the
+  cell's profiles (ties alphabetical), returned only for cells that clear k=10. Cells without a place name fall
+  back to the nearest featured neighborhood in the MCP. Signals with only an ECID are counted (`stats.ecid_only_signals`)
   but not joined to places.
 * `interestKeys` = normalized (lower-case, collapsed whitespace) `public.*.productName` and
   `public.*.productCategory`, at most 8 keys of 64 characters. Hotspot interest matching is an exact
