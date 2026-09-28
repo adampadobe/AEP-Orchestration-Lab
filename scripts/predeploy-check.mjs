@@ -9,6 +9,8 @@
  *   - REFUSES production deploys unless they run from a clean `main` whose
  *     HEAD exactly matches origin/main.
  *   - FAILS CLOSED when origin cannot be refreshed for a production deploy.
+ *   - Verifies the adampadobe GitHub repository, explicit Firebase project,
+ *     and authenticated access without changing accounts or targets.
  *   - Allows feature branches only when explicitly deploying a Firebase
  *     Hosting preview channel with AEP_DEPLOY_MODE=preview.
  *
@@ -134,6 +136,20 @@ if (policy.mode === 'preview') {
 }
 
 ok(`safe to deploy. Stamping build…`);
+
+const accountPreflight = spawnSync(process.execPath, [
+  join(__dirname, 'deploy-account-preflight.mjs'),
+  `--firebase-project=${process.env.GCLOUD_PROJECT || ''}`,
+], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+});
+if (accountPreflight.status !== 0) {
+  fail(
+    `deploy-account-preflight.mjs exited with code ${accountPreflight.status} — refusing to deploy without verified accounts and target`,
+    accountPreflight.status || 1,
+  );
+}
 
 // Now write web/version.json + functions/version.json so the deploy carries
 // a record of which SHA went out. Run as a separate process so any failure

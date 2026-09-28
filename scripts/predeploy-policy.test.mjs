@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import {
+  EXPECTED_FIREBASE_PROJECT,
+  EXPECTED_GITHUB_REPOSITORY,
+  evaluateDeployAccountPolicy,
+  firebaseProjectIds,
+  normalizeGitHubRepository,
+} from './deploy-account-policy.mjs';
 import { evaluateDeployPolicy } from './predeploy-policy.mjs';
 
 const safeMain = {
@@ -38,4 +45,58 @@ test('allows an isolated preview from a feature branch', () => {
 
 test('requires an explicit emergency override', () => {
   assert.equal(evaluateDeployPolicy({ ...safeMain, override: true, branch: 'detached', behind: 5 }).mode, 'emergency-override');
+});
+
+const safeAccount = {
+  remoteUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab.git',
+  githubRepository: EXPECTED_GITHUB_REPOSITORY,
+  githubAccessVerified: true,
+  firebaseTarget: EXPECTED_FIREBASE_PROJECT,
+  accessibleFirebaseProjects: [EXPECTED_FIREBASE_PROJECT],
+};
+
+test('allows the expected GitHub repository and accessible Firebase target', () => {
+  assert.deepEqual(evaluateDeployAccountPolicy(safeAccount), {
+    allowed: true,
+    reasons: [],
+    remoteRepository: EXPECTED_GITHUB_REPOSITORY,
+  });
+});
+
+for (const [name, change] of [
+  ['different GitHub owner', { remoteUrl: 'https://github.com/adobe/AEP-Orchestration-Lab.git' }],
+  ['unverified GitHub access', { githubAccessVerified: false }],
+  ['different GitHub repository', { githubRepository: 'adampadobe/another-repo' }],
+  ['implicit Firebase target', { firebaseTarget: '' }],
+  ['different Firebase target', { firebaseTarget: 'another-project' }],
+  ['missing Firebase access', { accessibleFirebaseProjects: [] }],
+]) {
+  test(`rejects deployment with ${name}`, () => {
+    assert.equal(evaluateDeployAccountPolicy({ ...safeAccount, ...change }).allowed, false);
+  });
+}
+
+test('normalizes supported GitHub origin formats', () => {
+  assert.equal(
+    normalizeGitHubRepository('git@github.com:adampadobe/AEP-Orchestration-Lab.git'),
+    EXPECTED_GITHUB_REPOSITORY,
+  );
+  assert.equal(
+    normalizeGitHubRepository('ssh://git@github.com/adampadobe/AEP-Orchestration-Lab.git'),
+    EXPECTED_GITHUB_REPOSITORY,
+  );
+});
+
+test('reads Firebase projects from current and legacy CLI JSON shapes', () => {
+  assert.deepEqual(
+    firebaseProjectIds({ status: 'success', result: [{ projectId: EXPECTED_FIREBASE_PROJECT }] }),
+    [EXPECTED_FIREBASE_PROJECT],
+  );
+  assert.deepEqual(
+    firebaseProjectIds({
+      status: 'success',
+      result: { projects: [{ project_id: EXPECTED_FIREBASE_PROJECT }] },
+    }),
+    [EXPECTED_FIREBASE_PROJECT],
+  );
 });
