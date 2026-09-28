@@ -83,7 +83,7 @@ export function registerGeoInsightsTools(mcpServer) {
       description:
         'Read-only aggregate of profiles that viewed a matching retail product in the time window, plotted at '
         + 'each profile\'s last-known place (profilePlaceContext) within the radius. The interest must match a '
-        + 'viewed product name or category (case-insensitive; singular or plural, e.g. "umbrella" or "umbrellas"). Cells below k=10 are suppressed; identities '
+        + 'viewed product name or category (case-insensitive; singular or plural; common retail wording such as "perfume", "trainers" or "sun cream" maps to its category). Cells below k=10 are suppressed; identities '
         + 'and raw events are never returned. Provide a city or lat/lon center. If data_status is "unavailable", '
         + 'report that no geo audience data is available (not a zero count) and do not seed. If data_status is '
         + '"available" and the result is empty, seed demo data with lab_seed_geo_demo.',
