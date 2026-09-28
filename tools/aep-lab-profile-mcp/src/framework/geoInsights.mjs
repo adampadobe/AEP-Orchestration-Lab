@@ -152,7 +152,7 @@ export const GEO_MIRROR_PLACE_HINT =
 
 export const GEO_EMPTY_HINT =
   'No matching profiles are available yet. The interest must match a viewed product name or category '
-  + '(case-insensitive; singular or plural), e.g. "camping gear" or "umbrellas". Run lab_seed_geo_demo to create governed sample profiles and '
+  + '(case-insensitive; singular, plural or common wording), e.g. "camping gear", "umbrella" or "perfume". Run lab_seed_geo_demo to create governed sample profiles and '
   + 'product-view events.';
 
 function defaultHotspotHint(totalProfiles, source) {

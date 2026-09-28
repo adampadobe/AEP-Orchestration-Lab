@@ -58,13 +58,34 @@ function normalizeInterestKey(value) {
 }
 
 /**
- * The normalized key plus the singular/plural forms of its last word, so "umbrella" finds signals
- * stored under the category "umbrellas" (and vice versa). Stored keys are exact product names or
- * categories, so a spurious form such as "watche" simply matches nothing.
+ * Everyday retail wording mapped onto the catalog categories the lab records ("perfume" viewers are
+ * "fragrances" viewers). Keys are normalized singular or plural forms; interestKeyVariants also tries
+ * the singular/plural of the query before looking a phrase up here.
  */
-function interestKeyVariants(value) {
-  const key = normalizeInterestKey(value);
-  if (!key) return [];
+const INTEREST_SYNONYMS = Object.freeze({
+  'camping gear': ['camping', 'camping equipment', 'camping kit', 'tent', 'outdoor gear', 'sleeping bag', 'camping stove', 'camping chair', 'lantern'],
+  fragrances: ['fragrance', 'perfume', 'cologne', 'oud', 'scent', 'bakhoor', 'aftershave', 'eau de parfum'],
+  'running shoes': ['trainer', 'sneaker', 'running trainer', 'runner', 'running gear', 'running shoe'],
+  'air conditioners': ['ac', 'air con', 'aircon', 'air conditioning', 'ac unit', 'cooling', 'fan', 'cooler'],
+  headphones: ['headphone', 'earbud', 'earphone', 'headset', 'wireless earbud'],
+  'rain jackets': ['raincoat', 'rain coat', 'waterproof jacket', 'rain gear', 'rainwear', 'waterproof', 'rain shell'],
+  umbrellas: ['brolly', 'brollie', 'umbrella'],
+  sunscreen: ['sun cream', 'suncream', 'sunblock', 'sun block', 'spf', 'sun protection', 'sun lotion'],
+  swimwear: ['swimsuit', 'swimming costume', 'bathing suit', 'swim short', 'bikini', 'burkini', 'beachwear', 'swim wear'],
+  sunglasses: ['shade', 'sunnie', 'sunglass'],
+  'coffee machines': ['coffee maker', 'espresso machine', 'coffee', 'coffee machine', 'capsule machine'],
+  'winter jackets': ['winter coat', 'puffer', 'puffer jacket', 'parka', 'down jacket', 'winter jacket', 'coat'],
+});
+
+const INTEREST_SYNONYM_INDEX = (() => {
+  const index = new Map();
+  for (const [category, phrases] of Object.entries(INTEREST_SYNONYMS)) {
+    for (const phrase of phrases) index.set(phrase, category);
+  }
+  return index;
+})();
+
+function numberVariants(key) {
   const variants = [key];
   const add = (v) => { if (v && !variants.includes(v)) variants.push(v); };
   const sibilant = /(s|x|z|ch|sh)$/;
@@ -79,7 +100,24 @@ function interestKeyVariants(value) {
   } else {
     add(`${key}s`);
   }
-  return variants.filter((v) => v.length <= MAX_INTEREST_KEY_LENGTH);
+  return variants;
+}
+
+/**
+ * The normalized key plus the singular/plural forms of its last word, so "umbrella" finds signals
+ * stored under the category "umbrellas" (and vice versa), plus the catalog category for everyday
+ * wording such as "perfume" or "trainers". Stored keys are exact product names or categories, so a
+ * spurious form such as "watche" simply matches nothing.
+ */
+function interestKeyVariants(value) {
+  const key = normalizeInterestKey(value);
+  if (!key) return [];
+  const variants = numberVariants(key);
+  for (const form of [...variants]) {
+    const category = INTEREST_SYNONYM_INDEX.get(form);
+    if (category && !variants.includes(category)) variants.push(category);
+  }
+  return variants.filter((v) => v.length <= MAX_INTEREST_KEY_LENGTH).slice(0, 30);
 }
 
 function normalizeInterestKeys(values) {

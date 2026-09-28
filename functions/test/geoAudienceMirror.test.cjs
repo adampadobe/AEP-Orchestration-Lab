@@ -269,6 +269,58 @@ test('interest key variants cover the singular and plural forms of the last word
   assert.deepEqual(interestKeyVariants(''), []);
 });
 
+test('interestKeyVariants maps everyday retail wording onto the catalog category', () => {
+  const cases = {
+    perfume: 'fragrances',
+    Perfumes: 'fragrances',
+    cologne: 'fragrances',
+    oud: 'fragrances',
+    trainers: 'running shoes',
+    sneaker: 'running shoes',
+    'sun cream': 'sunscreen',
+    sunblock: 'sunscreen',
+    SPF: 'sunscreen',
+    AC: 'air conditioners',
+    'air con': 'air conditioners',
+    'air conditioning': 'air conditioners',
+    earbuds: 'headphones',
+    earphone: 'headphones',
+    raincoat: 'rain jackets',
+    'rain coats': 'rain jackets',
+    'waterproof jacket': 'rain jackets',
+    brolly: 'umbrellas',
+    tent: 'camping gear',
+    tents: 'camping gear',
+    'camping equipment': 'camping gear',
+    swimsuit: 'swimwear',
+    'bathing suits': 'swimwear',
+    shades: 'sunglasses',
+    'coffee maker': 'coffee machines',
+    'espresso machines': 'coffee machines',
+    puffer: 'winter jackets',
+    'winter coat': 'winter jackets',
+    parkas: 'winter jackets',
+  };
+  for (const [query, category] of Object.entries(cases)) {
+    assert.ok(interestKeyVariants(query).includes(category), `${query} -> ${category}`);
+    assert.ok(interestKeyVariants(query).length <= 30, query);
+  }
+  assert.deepEqual(interestKeyVariants('umbrellas'), ['umbrellas', 'umbrella']);
+  assert.ok(!interestKeyVariants('coffee table').includes('coffee machines'));
+});
+
+test('a synonym query finds profiles recorded under the catalog category', async () => {
+  const { service } = mirror();
+  await service.recordInterestSignal({
+    sandbox: 'apalmer', email: 'a@x.co', eventType: 'commerce.productViews', interests: ['Oud Eau de Parfum', 'fragrances'], timestamp: '2026-09-27T11:00:00Z',
+  });
+  await service.recordInterestSignal({
+    sandbox: 'apalmer', email: 'b@x.co', eventType: 'commerce.productViews', interests: ['running shoes'], timestamp: '2026-09-27T11:00:00Z',
+  });
+  const result = await service.listInterestIdentityHashes({ sandbox: 'apalmer', interest: 'perfume', startMs: NOW - DAY_MS, endMs: NOW, maxSignals: 100 });
+  assert.deepEqual([...result.identityHashes], [hashIdentity('apalmer', 'a@x.co')]);
+});
+
 test('a singular interest finds signals recorded under the plural category, and vice versa', async () => {
   const { service } = mirror();
   const add = (email, interests) => service.recordInterestSignal({
