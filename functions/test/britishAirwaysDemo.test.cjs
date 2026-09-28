@@ -54,8 +54,9 @@ test('British Airways snapshot is static, locally imaged, and AJO-addressable', 
   assert.ok(imageSources.length > 5);
   assert.ok(imageSources.every((source) => source.startsWith('assets/')));
   assert.equal((html.match(/id="TopRibbon"/g) || []).length, 1);
-  assert.equal((html.match(/data-hero-mount/g) || []).length, 1);
-  assert.match(html, /id="hero-banner" data-hero-mount/);
+  // #251 moved the hero onto the shared decisioning Edge mount (was data-hero-mount).
+  assert.equal((html.match(/data-decisioning-edge-mount=/g) || []).length, 1);
+  assert.match(html, /<section\b[^>]*\bid="hero-banner"[^>]*\bdata-decisioning-edge-mount="1"/);
   assert.match(html, /id="[^"]*ContentCardContainer"/);
   assert.ok((html.match(/data-ajo-insert-section=/g) || []).length > 5);
 
