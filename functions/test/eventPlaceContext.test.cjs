@@ -189,6 +189,15 @@ describe('web event-place-context helper', () => {
     assert.throws(() => webEventPlace.generateSample('atlantis'), /Unknown place preset/);
   });
 
+  it("global preset event places validate on the server", () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      const s = webEventPlace.generateSample('global', { rng: seededRng(seed), now: NOW });
+      const r = eventPlace.normalizeEventPlace(s);
+      assert.equal(r.ok, true, `global/${seed}: ${r.error}`);
+      assert.equal(r.value.regionCode, undefined);
+    }
+  });
+
   it('client preview XDM is identical to the server builder output', () => {
     const inputs = [{ ...RIYADH }, { ...RIYADH, source: 'ui-sample', storeId: 'RUH-001', poiId: 'poi-olaya' },
       { latitude: 51.5265, longitude: -0.0786 }];

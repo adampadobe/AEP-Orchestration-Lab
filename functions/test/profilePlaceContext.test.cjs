@@ -176,6 +176,26 @@ describe('web profile-place-context helper', () => {
     }
   });
 
+  it("global preset samples anywhere on Earth and still validates on the server", () => {
+    const rng = seededRng(11);
+    const countries = new Set();
+    for (let i = 0; i < 200; i++) {
+      const s = webPlace.generateSample('global', { rng, now: NOW });
+      const r = placeContext.normalizeProfilePlaceContext(s, { now: NOW });
+      assert.equal(r.ok, true, r.error);
+      assert.equal(s.source, 'ui-sample');
+      assert.equal(s.regionCode, undefined);
+      assert.equal(s.neighborhood, undefined);
+      countries.add(s.countryCode);
+    }
+    assert.ok(countries.size >= 30, `only ${countries.size} countries`);
+  });
+
+  it('presets are the ten featured areas from the shared place catalog', () => {
+    assert.deepEqual(Object.keys(webPlace.PRESETS), ['riyadh', 'dubai', 'london', 'newYork', 'singapore', 'tokyo',
+      'sydney', 'paris', 'saoPaulo', 'mumbai']);
+  });
+
   it('random preset picks one of the named presets; none returns null', () => {
     const s = webPlace.generateSample('random', { rng: seededRng(1), now: NOW });
     assert.ok(Object.values(webPlace.PRESETS).some((p) => p.city === s.city));

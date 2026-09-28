@@ -271,11 +271,18 @@
                     <label for="etPlacePreset">Preset</label>
                     <select id="etPlacePreset" class="sandbox-select" aria-label="Event place preset">
                       <option value="none" selected>None (don't send)</option>
-                      <option value="random">Random city</option>
+                      <option value="random">Random featured city</option>
                       <option value="riyadh">Riyadh</option>
                       <option value="dubai">Dubai</option>
                       <option value="london">London</option>
                       <option value="newYork">New York</option>
+                      <option value="singapore">Singapore</option>
+                      <option value="tokyo">Tokyo</option>
+                      <option value="sydney">Sydney</option>
+                      <option value="paris">Paris</option>
+                      <option value="saoPaulo">São Paulo</option>
+                      <option value="mumbai">Mumbai</option>
+                      <option value="global">Anywhere on Earth (6,000+ cities)</option>
                     </select>
                     <button type="button" id="etPlaceRandomBtn" class="btn btn-secondary btn-sm" title="New random place within the selected preset">New sample</button>
                   </div>
@@ -382,8 +389,10 @@
   <script src="identity-picker.js"></script>
   <script src="event-industry-catalog.js?v=20260716-industry-events"></script>
   <script src="aep-json-editor.js?v=20260715-event-tool-json-scroll"></script>
-  <script src="profile-place-context.js?v=20260928-event-place"></script>
-  <script src="event-place-context.js?v=20260928-event-place"></script>
+  <script src="place-catalog-data.js?v=20260928-global-places"></script>
+  <script src="place-catalog.js?v=20260928-global-places"></script>
+  <script src="profile-place-context.js?v=20260928-global-places"></script>
+  <script src="event-place-context.js?v=20260928-global-places"></script>
   <script src="event-tool.js?v=20260928-event-place"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
