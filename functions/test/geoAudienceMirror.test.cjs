@@ -14,6 +14,7 @@ const {
   interestKeysFromGeneratorBody,
   isGeoMirrorEnabled,
   normalizeInterestKey,
+  interestKeyVariants,
 } = require('../geoAudienceMirror');
 
 const NOW = Date.parse('2026-09-27T12:00:00.000Z');
@@ -249,8 +250,41 @@ test('listInterestIdentityHashes queries by sandbox, exact interest key and wind
   assert.deepEqual(q.selected, ['identityHash']);
   assert.equal(q.limit, 101);
   assert.deepEqual(q.filters.map(({ field, op }) => `${field} ${op}`), [
-    'sandbox ==', 'interestKeys array-contains', 'ts >=', 'ts <=',
+    'sandbox ==', 'interestKeys array-contains-any', 'ts >=', 'ts <=',
   ]);
+});
+
+test('interest key variants cover the singular and plural forms of the last word', () => {
+  assert.deepEqual(interestKeyVariants('umbrella'), ['umbrella', 'umbrellas']);
+  assert.deepEqual(interestKeyVariants('umbrellas'), ['umbrellas', 'umbrella']);
+  assert.deepEqual(interestKeyVariants('running shoe'), ['running shoe', 'running shoes']);
+  assert.deepEqual(interestKeyVariants('rain jackets'), ['rain jackets', 'rain jacket']);
+  assert.deepEqual(interestKeyVariants('battery'), ['battery', 'batteries']);
+  assert.deepEqual(interestKeyVariants('batteries'), ['batteries', 'battery', 'batterie']);
+  assert.deepEqual(interestKeyVariants('watch'), ['watch', 'watches']);
+  assert.deepEqual(interestKeyVariants('watches'), ['watches', 'watch', 'watche']);
+  assert.deepEqual(interestKeyVariants('glass'), ['glass', 'glasses']);
+  assert.deepEqual(interestKeyVariants('camping gear'), ['camping gear', 'camping gears']);
+  assert.deepEqual(interestKeyVariants('Camping-Gear'), ['camping gear', 'camping gears']);
+  assert.deepEqual(interestKeyVariants(''), []);
+});
+
+test('a singular interest finds signals recorded under the plural category, and vice versa', async () => {
+  const { service } = mirror();
+  const add = (email, interests) => service.recordInterestSignal({
+    sandbox: 'apalmer', email, eventType: 'commerce.productViews', interests, timestamp: '2026-09-27T11:00:00Z',
+  });
+  await add('a@x.co', ['Compact Folding Umbrella', 'umbrellas']);
+  await add('b@x.co', ['umbrellas']);
+  await add('c@x.co', ['umbrella']);
+  await add('d@x.co', ['umbrella stands']);
+  const window = { sandbox: 'apalmer', startMs: NOW - DAY_MS, endMs: NOW, maxSignals: 100 };
+  const expected = ['a@x.co', 'b@x.co', 'c@x.co'].map((e) => hashIdentity('apalmer', e)).sort();
+  for (const interest of ['umbrella', 'Umbrellas']) {
+    const result = await service.listInterestIdentityHashes({ ...window, interest });
+    assert.deepEqual([...result.identityHashes].sort(), expected, interest);
+    assert.equal(result.signals, 3, interest);
+  }
 });
 
 test('listInterestIdentityHashes refuses to silently truncate past the signal cap', async () => {

@@ -57,6 +57,31 @@ function normalizeInterestKey(value) {
     .slice(0, MAX_INTEREST_KEY_LENGTH);
 }
 
+/**
+ * The normalized key plus the singular/plural forms of its last word, so "umbrella" finds signals
+ * stored under the category "umbrellas" (and vice versa). Stored keys are exact product names or
+ * categories, so a spurious form such as "watche" simply matches nothing.
+ */
+function interestKeyVariants(value) {
+  const key = normalizeInterestKey(value);
+  if (!key) return [];
+  const variants = [key];
+  const add = (v) => { if (v && !variants.includes(v)) variants.push(v); };
+  const sibilant = /(s|x|z|ch|sh)$/;
+  if (key.endsWith('s') && !key.endsWith('ss')) {
+    if (key.endsWith('ies') && key.length > 3) add(`${key.slice(0, -3)}y`);
+    if (key.endsWith('es') && sibilant.test(key.slice(0, -2))) add(key.slice(0, -2));
+    add(key.slice(0, -1));
+  } else if (/[^aeiou]y$/.test(key)) {
+    add(`${key.slice(0, -1)}ies`);
+  } else if (sibilant.test(key)) {
+    add(`${key}es`);
+  } else {
+    add(`${key}s`);
+  }
+  return variants.filter((v) => v.length <= MAX_INTEREST_KEY_LENGTH);
+}
+
 function normalizeInterestKeys(values) {
   const keys = [];
   for (const value of Array.isArray(values) ? values : []) {
@@ -200,11 +225,11 @@ function createGeoAudienceMirror({ getDb = getAdminFirestore, now = Date.now, en
     },
 
     async listInterestIdentityHashes({ sandbox, interest, startMs, endMs, maxSignals }) {
-      const key = normalizeInterestKey(interest);
+      const keys = interestKeyVariants(interest);
       const snap = await getDb()
         .collection(SIGNAL_COLLECTION)
         .where('sandbox', '==', String(sandbox))
-        .where('interestKeys', 'array-contains', key)
+        .where('interestKeys', 'array-contains-any', keys)
         .where('ts', '>=', new Date(startMs))
         .where('ts', '<=', new Date(endMs))
         .select('identityHash')
@@ -263,6 +288,7 @@ module.exports = {
   generatorSignalFromBody,
   hashIdentity,
   interestKeysFromGeneratorBody,
+  interestKeyVariants,
   isGeoMirrorEnabled,
   normalizeInterestKey,
 };
