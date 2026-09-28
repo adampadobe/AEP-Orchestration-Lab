@@ -168,9 +168,26 @@ function applyEventPlaceToXdm(xdm, place, tenantKey) {
   return xdm;
 }
 
+/**
+ * Validate optional `body.eventPlace`. Returns null when absent; throws an Error
+ * with statusCode 400 when present but invalid.
+ * @param {Record<string, any> | null | undefined} body
+ */
+function readEventPlace(body) {
+  if (!body || body.eventPlace === undefined || body.eventPlace === null) return null;
+  const r = normalizeEventPlace(body.eventPlace);
+  if (!r.ok) {
+    const err = new Error(r.error);
+    err.statusCode = 400;
+    throw err;
+  }
+  return r.value;
+}
+
 module.exports = {
   EVENT_PLACE_LEAVES,
   EVENT_PLACE_SOURCES,
   normalizeEventPlace,
   applyEventPlaceToXdm,
+  readEventPlace,
 };
