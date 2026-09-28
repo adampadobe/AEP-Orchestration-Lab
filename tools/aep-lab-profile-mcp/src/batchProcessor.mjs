@@ -15,6 +15,7 @@ import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from './labApi
 import { updateBatchJob } from './batchJobStore.mjs';
 import { writeAuditLog } from './auditLog.mjs';
 import { checkGenerateRate } from './rateLimiter.mjs';
+import { plannedPlaceForIndex } from './framework/placeParams.mjs';
 
 const DEFAULT_DELAY_MS = 500;
 const MAX_DELAY_MS = 5000;
@@ -96,6 +97,9 @@ export async function processBatchJob(jobId, { keyId }) {
       const personaOpts = {
         loyalty_member: params.loyalty_member === true,
         last_order_details: params.last_order_details,
+        place_mode: params.place_mode || undefined,
+        place_area: params.place_area || undefined,
+        place: plannedPlaceForIndex(params.place_plan ? { places: params.place_plan } : null, i),
       };
       if (!attributes || Object.keys(attributes).length === 0) {
         attributes = buildPersonaAttributes(params.industry, email, params.segment_hint || null, personaOpts);

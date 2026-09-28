@@ -6,6 +6,7 @@ import { getRequestKeyId } from '../requestContext.mjs';
 import { buildGeneratorPostBody } from '../framework/buildGeneratorPostBody.mjs';
 import { INDUSTRY_EVENT_IDS } from '../framework/industryEventPayload.mjs';
 import { sanitizeCoworkerEventParams } from '../framework/sanitizeCoworkerEventParams.mjs';
+import { eventPlaceInputSchema } from '../framework/placeParams.mjs';
 import {
   buildEventPreflightSummary,
   extractEcidFromProfileTable,
@@ -58,6 +59,7 @@ export function registerPreflightProfileEventTool(mcpServer) {
           .boolean()
           .optional()
           .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
+        ...eventPlaceInputSchema(),
       },
     },
     async ({ sandbox, email, ecid, target_id, auto_fetch_ecid, ...rawEventFields }) => {

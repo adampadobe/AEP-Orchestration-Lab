@@ -7,6 +7,7 @@ import { sendProfileEventSequence } from '../framework/sendProfileEventSequence.
 import { buildEventsFromEventTypes } from '../framework/demoEventPacks.mjs';
 import { sanitizeCoworkerEventSteps } from '../framework/sanitizeCoworkerEventParams.mjs';
 import { INDUSTRY_EVENT_IDS } from '../framework/industryEventPayload.mjs';
+import { eventPlaceInputSchema } from '../framework/placeParams.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 
 const eventStepSchema = z.object({
@@ -21,6 +22,7 @@ const eventStepSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe('Optional flat, allowlisted fields for the selected industry; omit for safe sample defaults'),
+  ...eventPlaceInputSchema(),
 });
 
 /**
@@ -38,6 +40,8 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
         'Industry steps are validated, nested under public.{industry}, and sent as full XDM. ' +
         'NEVER pass view_name, view_url, custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
         'Requires email + ecid from lab_generate_profile for reliable stitching. ' +
+        'Place context: top-level place_mode/place_area apply to every step without its own place (each step samples a point in that area); ' +
+        'steps may set place_area or event_place individually. ' +
         'Results: requestId for Edge transport (eventId is null for lab-event-tool-edge). Verify with lab_profile_activity after 30–60s UPS lag.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -53,6 +57,7 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
         delay_ms: z.number().int().min(0).max(10000).optional().describe('Delay between events ms (default 800)'),
         preflight: z.boolean().optional().describe('Identity preflight before send (default true)'),
         auto_fetch_ecid: z.boolean().optional().describe('UPS ecid lookup when ecid omitted (default true)'),
+        ...eventPlaceInputSchema(),
       },
     },
     async ({
@@ -66,6 +71,9 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
       delay_ms,
       preflight,
       auto_fetch_ecid,
+      place_mode,
+      place_area,
+      event_place,
     }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
@@ -88,7 +96,7 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
         events: sanitizedEvents,
         warnings: strippedWarnings,
         errors: eventStepErrors,
-      } = sanitizeCoworkerEventSteps(resolvedEvents);
+      } = sanitizeCoworkerEventSteps(resolvedEvents, { place: { place_mode, place_area, event_place } });
       if (eventStepErrors.length) return toolError(eventStepErrors.join(' '));
       resolvedEvents = sanitizedEvents;
       if (!resolvedEvents.length) {

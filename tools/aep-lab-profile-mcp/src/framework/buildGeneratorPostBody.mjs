@@ -69,6 +69,7 @@ export function isValidGeneratorEcid(ecid) {
  * @param {number} [params.geo_lat] — standard XDM placeContext.geo latitude
  * @param {number} [params.geo_lon] — standard XDM placeContext.geo longitude
  * @param {boolean} [params.email_primary_identity]
+ * @param {Record<string, unknown>} [params.event_place] — resolved place (placeParams.resolveEventPlace) → body.eventPlace
  * @param {boolean} [params.edge_minimal] — when true (default), server sends minimal XDM unless rich fields present; when false, forces full tenant/channel FG alignment
  * @param {'minimal'|'full'} [params.xdm_style] — explicit XDM style override (full forces rich payload)
  * @returns {Record<string, unknown>}
@@ -137,6 +138,11 @@ export function buildGeneratorPostBody(params = {}) {
       throw new Error('geo_lat and geo_lon must be valid geographic coordinates.');
     }
     body.geo = { latitude: geoLat, longitude: geoLon };
+  }
+
+  const eventPlace = params.event_place;
+  if (eventPlace && typeof eventPlace === 'object' && !Array.isArray(eventPlace)) {
+    body.eventPlace = { ...eventPlace };
   }
 
   if (xdmStyleExplicit === 'full' || params.edge_minimal === false) {

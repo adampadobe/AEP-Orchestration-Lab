@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.51.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.52.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
@@ -19,7 +19,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
-| `/mcp/geo-insights` | 4 | Current weather plus aggregate audience geo-hotspots (k=10 suppression; served from the lab geo mirror of profile place context — see [docs/GEO_AUDIENCE_MIRROR.md](../../docs/GEO_AUDIENCE_MIRROR.md)), and confirmation-gated Riyadh/Dubai demo seeding |
+| `/mcp/geo-insights` | 4 | Current weather plus aggregate audience geo-hotspots (k=10 suppression; served from the lab geo mirror of profile place context — see [docs/GEO_AUDIENCE_MIRROR.md](../../docs/GEO_AUDIENCE_MIRROR.md)), and confirmation-gated demo seeding in any featured area or catalog city |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 | `/mcp/firefly` | 15 | Access check plus governed Image 5, five-second Video, Text to Speech, transcription/captions, and dubbing/lip-sync workflows with shared async status |
@@ -374,6 +374,19 @@ Structured JSON to **stdout** (Cloud Logging) **and** Firestore collection **`mc
 `timestamp`, `keyId`, `tool`, `sandbox`, `industry`, `email`/`identifier`, `result` (`ok`/`error`), `durationMs`, optional `jobId`.
 
 Disable Firestore locally: `AEP_LAB_MCP_FIRESTORE=off`.
+
+### Place context — featured areas, global random, clustering (v3.52)
+
+Profile and event tools share one place engine (`src/placeCatalog/`, a versioned copy of `web/profile-viewer/place-catalog-data.json` — 6,000+ real cities across 213 countries, rebuilt by `npm run build:place-catalog`).
+
+| Param | Values | Effect |
+|-------|--------|--------|
+| `place_mode` | `featured` (default), `global`, `area` | `featured` picks one of ten common areas (riyadh, dubai, london, new york, paris, tokyo, sydney, singapore, são paulo, mumbai); `global` picks a real city anywhere on Earth, population-weighted; `area` uses `place_area` |
+| `place_area` | featured key or catalog city (`"Nairobi"`, `"Portland, US"`) | Pins the sampled point near that city |
+| `place_clustering` / `cluster_size` | `lab_generate_profiles_batch` only; default on for count ≥ 10, size 12 (10–100) | Groups profiles around shared anchors so every cluster clears the k=10 hotspot suppression; the job returns `place_clusters` |
+| `event_place` | object (`latitude`, `longitude`, `city`, `countryCode`, `regionCode`, `neighborhood`, `storeId`, `poiId`, `accuracyMeters`, `source`) | Explicit event location; mutually exclusive with `place_mode`/`place_area` |
+
+Profiles always carry `profilePlaceContext`. Events carry place only when a place param is supplied (per step or top-level on `lab_send_profile_events_batch`) — pass the profile's `place_context.city` as `place_area` to keep events coherent. The server writes `placeContext.geo` plus `_<tenant>.eventPlaceContext` and derives the geohash; `lab_seed_geo_demo` stamps the same point on the seeded profile and its event. Full/industry-style event place requires the Phase 5.3 functions release; minimal style is live.
 
 ### Event sending workflow (Phase 3.2)
 

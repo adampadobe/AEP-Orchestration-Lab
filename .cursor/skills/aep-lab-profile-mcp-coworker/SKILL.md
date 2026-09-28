@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp-coworker
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.51.0). Use when generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.52.0). Use when generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Coworker workflows (Phase 3.21)
 
-MCP server: **AEP Orchestration Lab MCP v3.51.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.52.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Configure in Coworker or Cursor with a **single** header:
 
@@ -52,6 +52,7 @@ Coworker should call these **before** improvising lab conventions:
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
 12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Requires user-generated MCP key.
+13. **Place context (profiles + events, map-ready)** — every generated profile carries `_<tenant>.profilePlaceContext` (lat/lon, city, regionCode, countryCode, neighborhood, lastSeenAt, source; geohash derived server-side). `lab_generate_profile` / `lab_generate_profiles_batch` accept `place_mode` (`featured` default = ten common areas: riyadh, dubai, london, new york, paris, tokyo, sydney, singapore, são paulo, mumbai; `global` = a real city anywhere on Earth, population-weighted from the 6,000+ city catalog; `area` = `place_area`) and `place_area` (featured key or any catalog city, e.g. `"Nairobi"`, `"Portland, US"`). Batches of **10+ auto-cluster** (`cluster_size` default 12, min k=10) so every cluster clears the k=10 hotspot suppression — the response returns `place_clusters`; pass `place_clustering:false` only for scattered points. Events: pass the profile's `place_context.city` as `place_area` on `lab_send_profile_event` / `lab_send_profile_events_batch` (top-level default for all steps, or per step), or an explicit `event_place` object — never hand-build `placeContext`. `lab_seed_geo_demo` seeds any featured area or catalog city and stamps the same point on the seeded profile and its event. Generated profile places mirror to Firestore `labGeoProfilePlaces` (5-dp, geohash7, 30-day TTL), which `lab_audience_geo_hotspots` reads.
 
 ### How the lab executes
 
@@ -466,6 +467,24 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 3. **Spot-check one profile**
 
    > Pick the first succeeded email from results and run lab_get_profile (namespace email).
+
+## Workflow 6c — Place context and map-ready bulk data
+
+1. **Single profile in a chosen place**
+
+   > Use lab_generate_profile: sandbox apalmer, industry retail, randomize true, place_area "tokyo". Report place_context.
+
+2. **Events in the same area**
+
+   > Use lab_send_profile_events_batch with the returned email + ecid, event_types ["commerce.productViews","commerce.productListAdds"], place_area set to the profile's place_context.city.
+
+3. **Global bulk data that still renders on the hotspot map**
+
+   > Use lab_generate_profiles_batch: sandbox apalmer, industry retail, count 60, randomize true, place_mode global. Report place_clusters (5 clusters × 12 profiles, k=10).
+
+4. **Verify the map** — once the batch completes, call lab_audience_geo_hotspots (geo-insights context) centred on one cluster's latitude/longitude with a radius that covers it. Clusters below k=10 are suppressed by design.
+
+Modes: `featured` (default, ten common areas), `global` (anywhere on Earth), `area` (`place_area` = featured key or any catalog city). Never hand-build `placeContext` or `profilePlaceContext` XDM.
 
 ## Workflow 7 — Provision industry infra
 

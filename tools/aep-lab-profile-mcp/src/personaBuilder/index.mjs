@@ -39,6 +39,9 @@ const INDUSTRIES_WITH_LOYALTY_TOGGLE = new Set(LAB_INDUSTRY_KEYS);
  * @typedef {object} PersonaBuildOptions
  * @property {boolean} [loyalty_member] - When true, emit LYL-* loyalty (portal toggle default unchecked)
  * @property {boolean} [last_order_details] - Retail only: emit orderProfile last-order block (portal #retailLastOrderEnabled)
+ * @property {string} [place_mode] - 'featured' (default: random featured area) | 'global' (anywhere on Earth) | 'area'
+ * @property {string} [place_area] - featured area key/name or any catalog city (implies mode 'area' when place_mode is omitted)
+ * @property {Record<string, unknown>} [place] - pre-planned place leaves (batch clustering); wins over mode/area
  */
 
 /**
@@ -92,7 +95,11 @@ export function buildPersonaAttributes(industry, email, segmentHint, options = {
   let attrs = {
     ...buildCommonPersonaAttributes(email, { skipLoyalty }),
     ...industryBuilder(options),
-    ...buildPlaceContextPersonaAttributes(),
+    ...buildPlaceContextPersonaAttributes({
+      mode: options.place_mode,
+      area: options.place_area,
+      place: options.place,
+    }),
   };
 
   if (loyaltyMember) {

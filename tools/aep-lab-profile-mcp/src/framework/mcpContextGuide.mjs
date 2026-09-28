@@ -54,7 +54,7 @@ export const MCP_CONTEXTS = Object.freeze([
     toolCount: 21,
     access: LAB_ACCESS,
     risk: 'governed profile and event writes',
-    capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment'],
+    capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment', 'profile and event place context (ten featured areas, any catalog city, or anywhere on Earth; k-anonymous clustering for batches)'],
     useWhen: 'Use for the complete profile lifecycle and Snowflake verification.',
   },
   {
@@ -120,7 +120,7 @@ export const MCP_CONTEXTS = Object.freeze([
     toolCount: 4,
     access: LAB_ACCESS,
     risk: 'read-only aggregate audience query plus confirmation-gated demo seeding',
-    capabilities: ['current weather', 'profile place-context geo-hotspots', 'k=10 suppression', 'Riyadh and Dubai demo seeding'],
+    capabilities: ['current weather', 'profile place-context geo-hotspots', 'k=10 suppression', 'demo seeding in any featured area or catalog city'],
     useWhen: 'Use when one turn needs both live weather and governed audience geo-hotspots for the same city or coordinate center.',
   },
   {
@@ -216,7 +216,7 @@ export const MCP_WORKFLOWS = Object.freeze({
   profile_and_events: {
     title: 'Create and enrich a profile',
     contexts: ['aep-lab-profiles'],
-    steps: ['Check access and readiness.', 'Confirm generation preferences.', 'Generate the profile.', 'Send governed industry events.', 'Verify AEP activity and optional Snowflake readback.'],
+    steps: ['Check access and readiness.', 'Confirm generation preferences.', 'Generate the profile; place context is added automatically (set place_area or place_mode to choose where).', 'Send governed industry events, passing the profile\'s place_context.city as place_area so events land in the same area.', 'Verify AEP activity and optional Snowflake readback.'],
   },
   audience_cleanup: {
     title: 'Audit and delete one audience',

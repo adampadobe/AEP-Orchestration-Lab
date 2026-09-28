@@ -2,117 +2,70 @@
  * Persona place context — the person's last-known place at
  * `_<tenant>.profilePlaceContext.*` (field group "AEP Lab - Profile Place
  * Context v1", Generic Profile schema only; dual-stream generate routes it to
- * the generic step). Port of web/profile-viewer/profile-place-context.js
- * `generateSample`; test/profilePlaceContext.test.mjs guards preset drift.
+ * the generic step). Sampling comes from the shared global place catalog
+ * (src/placeCatalog, a byte-identical copy of web/profile-viewer/place-catalog.js):
+ * ten featured areas plus 6,000+ cities worldwide. test/profilePlaceContext.test.mjs
+ * guards drift against the web generator.
  * No geohash: /api/profile/generate derives it from latitude/longitude.
  */
+import { FEATURED_AREAS, FEATURED_AREA_KEYS, PLACE_MODES, samplePlace } from '../placeCatalog/index.mjs';
 
 const SAMPLE_MAX_AGE_MS = 6 * 3600 * 1000;
-const ACCURACY_MIN = 25;
-const ACCURACY_MAX = 300;
-const EARTH_RADIUS_M = 6371008.8;
+const PLACE_LEAVES = ['latitude', 'longitude', 'accuracyMeters', 'neighborhood', 'city', 'regionCode', 'countryCode'];
 
-export const PLACE_PRESETS = {
-  riyadh: {
-    label: 'Riyadh, Saudi Arabia',
-    city: 'Riyadh',
-    regionCode: 'SA-01',
-    countryCode: 'SA',
-    neighborhoods: [
-      { name: 'Al Nakheel', lat: 24.7743, lon: 46.6384 },
-      { name: 'Al Olaya', lat: 24.6958, lon: 46.685 },
-      { name: 'Al Malqa', lat: 24.812, lon: 46.612 },
-      { name: 'Al Yasmin', lat: 24.825, lon: 46.64 },
-      { name: 'Al Murabba', lat: 24.644, lon: 46.711 },
-    ],
-  },
-  dubai: {
-    label: 'Dubai, UAE',
-    city: 'Dubai',
-    regionCode: 'AE-DU',
-    countryCode: 'AE',
-    neighborhoods: [
-      { name: 'Downtown Dubai', lat: 25.1972, lon: 55.2744 },
-      { name: 'Dubai Marina', lat: 25.0805, lon: 55.1403 },
-      { name: 'Deira', lat: 25.2711, lon: 55.3075 },
-      { name: 'Jumeirah', lat: 25.2048, lon: 55.2474 },
-    ],
-  },
-  london: {
-    label: 'London, United Kingdom',
-    city: 'London',
-    regionCode: 'GB-LND',
-    countryCode: 'GB',
-    neighborhoods: [
-      { name: 'Shoreditch', lat: 51.5265, lon: -0.0786 },
-      { name: 'Camden', lat: 51.539, lon: -0.1426 },
-      { name: 'Canary Wharf', lat: 51.5054, lon: -0.0235 },
-      { name: 'Kensington', lat: 51.4991, lon: -0.1938 },
-    ],
-  },
-  newYork: {
-    label: 'New York, United States',
-    city: 'New York',
-    regionCode: 'US-NY',
-    countryCode: 'US',
-    neighborhoods: [
-      { name: 'Midtown Manhattan', lat: 40.7549, lon: -73.984 },
-      { name: 'Williamsburg', lat: 40.7081, lon: -73.9571 },
-      { name: 'SoHo', lat: 40.7233, lon: -74.003 },
-      { name: 'Harlem', lat: 40.8116, lon: -73.9465 },
-    ],
-  },
-};
+/** Featured areas in the historical preset shape (no centre) — equals web PRESETS. */
+export const PLACE_PRESETS = Object.freeze(Object.fromEntries(FEATURED_AREA_KEYS.map((key) => {
+  const { label, city, regionCode, countryCode, neighborhoods } = FEATURED_AREAS[key];
+  return [key, Object.freeze({ label, city, regionCode, countryCode, neighborhoods })];
+})));
+
+export { PLACE_MODES };
 
 export const PLACE_ATTRIBUTE_PREFIX = 'profilePlaceContext.';
 
-function toRad(d) {
-  return (d * Math.PI) / 180;
-}
-
-function round6(n) {
-  return Math.round(n * 1e6) / 1e6;
-}
-
-function jitter(lat, lon, radiusM, rng) {
-  const r = radiusM * Math.sqrt(rng());
-  const theta = 2 * Math.PI * rng();
-  const dLat = (r * Math.cos(theta)) / EARTH_RADIUS_M;
-  const dLon = (r * Math.sin(theta)) / (EARTH_RADIUS_M * Math.cos(toRad(lat)));
-  return { latitude: round6(lat + (dLat * 180) / Math.PI), longitude: round6(lon + (dLon * 180) / Math.PI) };
-}
-
-function pick(arr, rng) {
-  return arr[Math.floor(rng() * arr.length) % arr.length];
+/**
+ * Normalise preset/mode/area inputs into a samplePlace request.
+ * preset: a featured key, 'random' (any featured area) or 'global' (anywhere on Earth).
+ * mode: 'featured' | 'global' | 'area' (area = featured key or any catalog city name).
+ * @param {{ preset?: string, mode?: string, area?: string }} opts
+ * @returns {{ mode: string, area?: string }}
+ */
+export function resolvePlaceRequest(opts = {}) {
+  if (opts.mode) {
+    const mode = String(opts.mode);
+    if (!PLACE_MODES.includes(mode)) {
+      throw new Error(`Unknown place mode "${mode}". Use one of: ${PLACE_MODES.join(', ')}.`);
+    }
+    return opts.area ? { mode, area: String(opts.area) } : { mode };
+  }
+  if (opts.area) return { mode: 'area', area: String(opts.area) };
+  const preset = opts.preset || 'random';
+  if (preset === 'global') return { mode: 'global' };
+  if (preset !== 'random' && !PLACE_PRESETS[preset]) throw new Error(`Unknown place preset "${preset}"`);
+  return { mode: 'featured', area: preset };
 }
 
 /**
- * @param {{ preset?: string, rng?: () => number, now?: Date }} [opts] - preset is a PLACE_PRESETS key or 'random' (default)
+ * @param {{ preset?: string, mode?: string, area?: string, place?: Record<string, unknown>, source?: string, rng?: () => number, now?: Date }} [opts]
+ *   place: a pre-planned place (e.g. from planClusteredPlaces) — only lastSeenAt/source are added.
  * @returns {Record<string, string | number>} tenant-relative dotted place attributes
  */
 export function buildPlaceContextPersonaAttributes(opts = {}) {
   const rng = opts.rng || Math.random;
   const now = opts.now || new Date();
-  const presetKey = opts.preset || 'random';
-  const key = presetKey === 'random' ? pick(Object.keys(PLACE_PRESETS), rng) : presetKey;
-  const preset = PLACE_PRESETS[key];
-  if (!preset) throw new Error(`Unknown place preset "${presetKey}"`);
-  const hood = pick(preset.neighborhoods, rng);
-  const accuracyMeters = ACCURACY_MIN + Math.floor(rng() * (ACCURACY_MAX - ACCURACY_MIN + 1));
-  const pt = jitter(hood.lat, hood.lon, Math.max(0, accuracyMeters - 1), rng);
+  const place = opts.place || samplePlace({ ...resolvePlaceRequest(opts), rng });
   const seenAt = new Date(now.getTime() - Math.floor(rng() * SAMPLE_MAX_AGE_MS));
   seenAt.setUTCMilliseconds(0);
-  return {
-    'profilePlaceContext.latitude': pt.latitude,
-    'profilePlaceContext.longitude': pt.longitude,
-    'profilePlaceContext.accuracyMeters': accuracyMeters,
-    'profilePlaceContext.neighborhood': hood.name,
-    'profilePlaceContext.city': preset.city,
-    'profilePlaceContext.regionCode': preset.regionCode,
-    'profilePlaceContext.countryCode': preset.countryCode,
-    'profilePlaceContext.lastSeenAt': seenAt.toISOString().replace('.000Z', 'Z'),
-    'profilePlaceContext.source': 'mcp-persona',
-  };
+  /** @type {Record<string, string | number>} */
+  const out = {};
+  for (const leaf of PLACE_LEAVES) {
+    if (place[leaf] !== undefined && place[leaf] !== null && place[leaf] !== '') {
+      out[`${PLACE_ATTRIBUTE_PREFIX}${leaf}`] = /** @type {string | number} */ (place[leaf]);
+    }
+  }
+  out['profilePlaceContext.lastSeenAt'] = seenAt.toISOString().replace('.000Z', 'Z');
+  out['profilePlaceContext.source'] = opts.source || 'mcp-persona';
+  return out;
 }
 
 /**

@@ -11,9 +11,12 @@ import {
   MAX_CONSECUTIVE_SEED_FAILURES,
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
+  geoSeedEventPlace,
   geoSeedPlaceAttributes,
   geoJsonResult,
   isGeoDataUnavailable,
+  nearestSeededNeighborhood,
+  resolveGeoCityPreset,
   runGeoSeedBatch,
   shapeGeoHotspotsResponse,
   shapeGeoHotspotsUnavailableResponse,
@@ -92,6 +95,22 @@ test('seed place attributes are the governed profilePlaceContext leaves with sou
   assert.equal(attrs['profilePlaceContext.city'], 'Dubai');
   assert.equal(attrs['profilePlaceContext.regionCode'], 'AE-DU');
   assert.equal(attrs['profilePlaceContext.countryCode'], 'AE');
+});
+
+test('seed events carry the same place as the seeded profile, source mcp-seed', () => {
+  const [seed] = buildGeoSeedPlan({
+    city: 'Riyadh', count: 1, interest: 'camping gear', now: () => Date.parse('2026-09-27T12:00:00.000Z'), random: () => 0.5,
+  });
+  assert.deepEqual(geoSeedEventPlace(seed), {
+    latitude: 24.6908,
+    longitude: 46.6853,
+    accuracyMeters: 50,
+    neighborhood: 'Olaya',
+    city: 'Riyadh',
+    regionCode: 'SA-01',
+    countryCode: 'SA',
+    source: 'mcp-seed',
+  });
 });
 
 test('mirror-sourced hotspots pass their source through and explain what the location means', () => {
@@ -397,4 +416,56 @@ test('seed batch hands generateProfile the full email plan so the stored mobile 
   assert.equal(seen[0].email, 'demo+47@example.com');
   assert.equal(seen[0].emailPlan.mobilePhone, '+447425627462');
   assert.equal(seen[0].seed, plan[0]);
+});
+
+test('seed plans cover every featured area with three clusters inside a 10 km query', () => {
+  const centers = {
+    london: { lat: 51.5074, lon: -0.1278, city: 'London', cc: 'GB' },
+    tokyo: { lat: 35.6895, lon: 139.6917, city: 'Tokyo', cc: 'JP' },
+    'são paulo': { lat: -23.5505, lon: -46.6333, city: 'São Paulo', cc: 'BR' },
+  };
+  for (const [city, c] of Object.entries(centers)) {
+    const plan = buildGeoSeedPlan({ city, count: 30, now: () => Date.parse('2026-09-28T12:00:00Z'), random: () => 0.5 });
+    const points = new Map();
+    for (const seed of plan) points.set(`${seed.lat},${seed.lon}`, (points.get(`${seed.lat},${seed.lon}`) || 0) + 1);
+    assert.deepEqual([...points.values()], [10, 10, 10], city);
+    for (const seed of plan) {
+      assert.ok(kmBetween(c, seed) < 6, `${city} ${seed.neighborhood} ${kmBetween(c, seed).toFixed(1)} km`);
+      assert.ok(seed.neighborhood, `${city} seed has a neighborhood label`);
+    }
+    const attrs = geoSeedPlaceAttributes(plan[0]);
+    assert.equal(attrs['profilePlaceContext.city'], c.city);
+    assert.equal(attrs['profilePlaceContext.countryCode'], c.cc);
+    assert.match(attrs['profilePlaceContext.regionCode'], /^[A-Z]{2}-[A-Z0-9]{1,3}$/);
+  }
+});
+
+test('seed plans for any catalog city use three anchors ~2 km from the centre, without invented neighborhoods', () => {
+  const plan = buildGeoSeedPlan({ city: 'Nairobi', count: 30, random: () => 0.1 });
+  const preset = resolveGeoCityPreset('Nairobi');
+  assert.equal(preset.place.city, 'Nairobi');
+  assert.equal(preset.place.countryCode, 'KE');
+  const points = new Set(plan.map((s) => `${s.lat},${s.lon}`));
+  assert.equal(points.size, 3);
+  for (const seed of plan) {
+    const d = kmBetween({ lat: preset.center.lat, lon: preset.center.lon }, seed);
+    assert.ok(d > 1.5 && d < 2.5, `anchor ${d.toFixed(2)} km`);
+    assert.equal(seed.neighborhood, '');
+  }
+  const attrs = geoSeedPlaceAttributes(plan[0]);
+  assert.equal(attrs['profilePlaceContext.city'], 'Nairobi');
+  assert.equal(attrs['profilePlaceContext.countryCode'], 'KE');
+  assert.equal(attrs['profilePlaceContext.neighborhood'], undefined);
+  assert.equal(attrs['profilePlaceContext.regionCode'], undefined);
+  assert.equal(attrs['profilePlaceContext.source'], 'mcp-seed');
+});
+
+test('seed plan rejects unknown cities with a catalog-aware message', () => {
+  assert.throws(() => buildGeoSeedPlan({ city: 'Qwxzzy', count: 1 }), /featured areas .* or any catalog city/i);
+});
+
+test('hotspot labels fall back to featured neighborhoods outside Riyadh and Dubai', () => {
+  assert.equal(nearestSeededNeighborhood({ lat: 51.5265, lon: -0.0786 }), 'Shoreditch');
+  assert.equal(nearestSeededNeighborhood({ lat: 24.6908, lon: 46.6853 }), 'Olaya');
+  assert.equal(nearestSeededNeighborhood({ lat: 0, lon: -150 }), '');
 });

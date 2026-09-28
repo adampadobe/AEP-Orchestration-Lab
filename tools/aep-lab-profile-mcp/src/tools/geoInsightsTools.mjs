@@ -17,9 +17,11 @@ import {
   buildGeoSeedPlan,
   geoHotspotsFailureHint,
   geoJsonResult,
+  geoSeedEventPlace,
   geoSeedPlaceAttributes,
   isGeoDataUnavailable,
   nearestSeededNeighborhood,
+  resolveGeoCityPreset,
   runGeoSeedBatch,
   shapeGeoHotspotsResponse,
   shapeGeoHotspotsUnavailableResponse,
@@ -47,6 +49,23 @@ function resolveHotspotCenter({ city, lat, lon }) {
   if (city) return { ok: true, city };
   const label = nearestSeededNeighborhood({ lat, lon });
   return { ok: true, center: { lat, lon, label } };
+}
+
+function seedClusters(plan) {
+  const byPoint = new Map();
+  for (const seed of plan) {
+    const key = `${seed.lat},${seed.lon}`;
+    const entry = byPoint.get(key) || { lat: seed.lat, lon: seed.lon, neighborhood: seed.neighborhood || '', profiles: 0 };
+    entry.profiles += 1;
+    byPoint.set(key, entry);
+  }
+  return [...byPoint.values()];
+}
+
+/** Catalog centre for a city when live geocoding is unavailable. */
+function catalogCenter(city) {
+  const preset = resolveGeoCityPreset(city);
+  return preset ? { lat: preset.center.lat, lon: preset.center.lon, label: preset.place.city } : null;
 }
 
 function rowsFromQueryResult(data) {
@@ -93,22 +112,25 @@ export function registerGeoInsightsTools(mcpServer) {
       let center = location.center;
       if (location.city) {
         const geocoded = await getCurrentWeather({ city: location.city, units: 'metric' });
-        if (!geocoded.ok) {
-          return toolError(`Could not geocode "${location.city}" for the geo-hotspot query.`, {
-            status: geocoded.status,
-            error: geocoded.error,
-          });
-        }
         const resolvedLat = Number(geocoded.data?.coord?.lat);
         const resolvedLon = Number(geocoded.data?.coord?.lon);
-        if (!Number.isFinite(resolvedLat) || !Number.isFinite(resolvedLon)) {
-          return toolError('The city lookup did not return valid coordinates.');
+        if (geocoded.ok && Number.isFinite(resolvedLat) && Number.isFinite(resolvedLon)) {
+          center = {
+            lat: resolvedLat,
+            lon: resolvedLon,
+            label: String(geocoded.data?.name || location.city),
+          };
+        } else {
+          center = catalogCenter(location.city);
+          if (!center) {
+            return toolError(
+              geocoded.ok
+                ? 'The city lookup did not return valid coordinates.'
+                : `Could not geocode "${location.city}" for the geo-hotspot query.`,
+              geocoded.ok ? undefined : { status: geocoded.status, error: geocoded.error },
+            );
+          }
         }
-        center = {
-          lat: resolvedLat,
-          lon: resolvedLon,
-          label: String(geocoded.data?.name || location.city),
-        };
       }
 
       const apiResult = await getAudienceGeoHotspots({
@@ -200,14 +222,18 @@ export function registerGeoInsightsTools(mcpServer) {
     {
       title: 'Seed a governed geo-audience demo',
       description:
-        'Mutation: creates test retail profiles (with profilePlaceContext at central Riyadh or Dubai neighborhoods, '
+        'Mutation: creates test retail profiles (with profilePlaceContext at three central seed points of the city: '
+        + 'neighborhoods for the ten featured areas, or three anchors ~2 km from the centre for any other catalog city; '
         + 'source "mcp-seed") and one commerce.productViews event each. Uses the current sandbox generation '
         + 'preferences (scaled email + stored mobile) and event target; maximum 30 profiles per call to stay within '
         + 'the per-key generation and event-send limits. Profiles are placed ten per neighborhood across three cells '
         + 'so a full batch of 30 clears the k=10 threshold in every cell. lab_audience_geo_hotspots reads the lab '
         + 'geo mirror, which is written as each profile and event is accepted, so results are visible immediately.',
       inputSchema: {
-        city: z.string().trim().min(1).describe('Supported seed city: Riyadh or Dubai.'),
+        city: z.string().trim().min(1).max(120).describe(
+          'Seed city: a featured area (riyadh, dubai, london, new york, paris, tokyo, sydney, singapore, são paulo, mumbai) '
+            + 'or any catalog city, optionally with ", CC" (e.g. "Nairobi", "Portland, US").',
+        ),
         count: z.number().int().min(1).max(30).default(30).describe('Number of test profiles and product-view events (1–30, default 30).'),
         interest: z.string().trim().regex(GEO_INTEREST_PATTERN, GEO_INTEREST_RULE).default('camping gear')
           .describe(`Retail product category and event interest. ${GEO_INTEREST_RULE}`),
@@ -282,6 +308,7 @@ export function registerGeoInsightsTools(mcpServer) {
               timestamp: seed.timestamp,
               public: richEvent.public,
               xdm_style: 'full',
+              event_place: geoSeedEventPlace(seed),
             });
           },
         },
@@ -296,7 +323,7 @@ export function registerGeoInsightsTools(mcpServer) {
         keyId,
         tool: 'lab_seed_geo_demo',
         sandbox: allowed.sandbox,
-        city: plan[0]?.neighborhood ? String(city) : '',
+        city: plan[0]?.city || '',
         interest,
         count_requested: count,
         profiles_generated: generated,
@@ -310,6 +337,8 @@ export function registerGeoInsightsTools(mcpServer) {
         ok: complete,
         kind: 'geo_demo_seed',
         city: String(city),
+        resolved_city: plan[0] ? { city: plan[0].city, countryCode: plan[0].country_code } : null,
+        seed_clusters: seedClusters(plan),
         interest,
         sandbox: allowed.sandbox,
         count_requested: count,

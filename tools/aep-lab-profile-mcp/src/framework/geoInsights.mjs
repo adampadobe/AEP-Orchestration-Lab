@@ -1,3 +1,11 @@
+import {
+  FEATURED_AREAS,
+  FEATURED_AREA_KEYS,
+  nearestNeighborhood as nearestFeaturedNeighborhood,
+  resolveArea,
+  seedNeighborhoods,
+} from '../placeCatalog/index.mjs';
+
 export const GEO_MIN_K_ANONYMITY = 10;
 export const MAX_GEO_HOTSPOTS = 50;
 
@@ -64,18 +72,65 @@ function distanceKm(a, b) {
   return 6371 * 2 * Math.asin(Math.sqrt(haversine));
 }
 
+// Seed anchors for a non-featured catalog city: three points this far from the centre at
+// bearings 0/120/240 degrees, so a 10 km query around the city sees all three clusters.
+const GEO_CITY_ANCHOR_KM = 2;
+
+function anchorPoint(center, bearingDeg, km) {
+  const radians = (degree) => (degree * Math.PI) / 180;
+  const lat = center.lat + (km / 111.32) * Math.cos(radians(bearingDeg));
+  const lon = center.lon + (km / (111.32 * Math.cos(radians(center.lat)))) * Math.sin(radians(bearingDeg));
+  return { name: '', lat: roundedCoordinate(lat), lon: roundedCoordinate(lon) };
+}
+
+/**
+ * Resolve a seed city: Riyadh/Dubai keep their historical presets; the other featured areas use
+ * their three most central neighborhoods; any other catalog city gets three anchors ~2 km out.
+ * @returns {{ id: string, neighborhoods: ReadonlyArray<{ name: string, lat: number, lon: number }>,
+ *   place: { city: string, regionCode?: string, countryCode: string }, center: { lat: number, lon: number } } | null}
+ */
 export function resolveGeoCityPreset(city) {
   const key = String(city || '').trim().toLowerCase();
   const normalized = GEO_CITY_ALIASES[key]
     || Object.keys(GEO_CITY_PRESETS).find((name) => key.startsWith(`${name},`));
-  return normalized ? { id: normalized, neighborhoods: GEO_CITY_PRESETS[normalized] } : null;
+  if (normalized) {
+    return {
+      id: normalized,
+      neighborhoods: GEO_CITY_PRESETS[normalized],
+      place: GEO_CITY_PLACE[normalized],
+      center: FEATURED_AREAS[normalized].center,
+    };
+  }
+  const area = key ? resolveArea(String(city)) : null;
+  if (!area) return null;
+  if (area.kind === 'featured') {
+    const featured = FEATURED_AREAS[area.key];
+    return {
+      id: area.key,
+      neighborhoods: seedNeighborhoods(area.key, 3),
+      place: { city: featured.city, regionCode: featured.regionCode, countryCode: featured.countryCode },
+      center: featured.center,
+    };
+  }
+  const center = { lat: area.lat, lon: area.lon };
+  return {
+    id: `city:${area.name}, ${area.countryCode}`.toLowerCase(),
+    neighborhoods: [0, 120, 240].map((bearing) => anchorPoint(center, bearing, GEO_CITY_ANCHOR_KM)),
+    place: { city: area.name, countryCode: area.countryCode },
+    center,
+  };
 }
 
 export function nearestSeededNeighborhood({ lat, lon, city }) {
   const matchingCity = city ? resolveGeoCityPreset(city) : null;
-  const neighborhoods = matchingCity
-    ? matchingCity.neighborhoods
-    : Object.values(GEO_CITY_PRESETS).flat();
+  if (!matchingCity) {
+    const legacy = nearestInList({ lat, lon }, Object.values(GEO_CITY_PRESETS).flat());
+    return legacy || nearestFeaturedNeighborhood(lat, lon, 6);
+  }
+  return nearestInList({ lat, lon }, matchingCity.neighborhoods.filter((n) => n.name));
+}
+
+function nearestInList({ lat, lon }, neighborhoods) {
   let nearest = null;
   let nearestDistance = Infinity;
   for (const neighborhood of neighborhoods) {
@@ -85,7 +140,7 @@ export function nearestSeededNeighborhood({ lat, lon, city }) {
       nearestDistance = distance;
     }
   }
-  return nearestDistance <= 6 ? nearest.name : '';
+  return nearest && nearestDistance <= 6 ? nearest.name : '';
 }
 
 export const GEO_MIRROR_SOURCE = 'aep-lab-geo-mirror';
@@ -225,7 +280,12 @@ export function geoJsonResult(payload) {
 
 export function buildGeoSeedPlan({ city, count, interest = 'camping gear', now = Date.now, random = Math.random }) {
   const preset = resolveGeoCityPreset(city);
-  if (!preset) throw new Error('Geo demo seeding supports Riyadh and Dubai only.');
+  if (!preset) {
+    throw new Error(
+      `Unknown seed city "${city}". Use one of the featured areas (${FEATURED_AREA_KEYS.join(', ')}) `
+      + 'or any catalog city name, optionally with ", CC" (e.g. "Nairobi" or "Portland, US").',
+    );
+  }
   if (!Number.isInteger(count) || count < 1 || count > 30) {
     throw new Error('count must be an integer between 1 and 30.');
   }
@@ -243,6 +303,9 @@ export function buildGeoSeedPlan({ city, count, interest = 'camping gear', now =
     const timestamp = new Date(nowMs - random() * 3 * 60 * 60 * 1000).toISOString();
     return {
       city_id: preset.id,
+      city: preset.place.city,
+      region_code: preset.place.regionCode || '',
+      country_code: preset.place.countryCode,
       neighborhood: neighborhood.name,
       lat: neighborhood.lat,
       lon: neighborhood.lon,
@@ -257,7 +320,10 @@ export function buildGeoSeedPlan({ city, count, interest = 'camping gear', now =
  * @param {{ city_id: string, neighborhood: string, lat: number, lon: number, timestamp: string }} seed
  */
 export function geoSeedPlaceAttributes(seed) {
-  const place = GEO_CITY_PLACE[seed?.city_id];
+  const place = GEO_CITY_PLACE[seed?.city_id]
+    || (seed?.city && seed?.country_code
+      ? { city: seed.city, regionCode: seed.region_code || '', countryCode: seed.country_code }
+      : null);
   if (!place) throw new Error(`Unknown geo seed city "${seed?.city_id}".`);
   const seenAt = new Date(Date.parse(seed.timestamp));
   if (!Number.isFinite(seenAt.getTime())) throw new Error('Geo seed timestamp is invalid.');
@@ -266,13 +332,28 @@ export function geoSeedPlaceAttributes(seed) {
     'profilePlaceContext.latitude': seed.lat,
     'profilePlaceContext.longitude': seed.lon,
     'profilePlaceContext.accuracyMeters': GEO_SEED_ACCURACY_METERS,
-    'profilePlaceContext.neighborhood': seed.neighborhood,
+    ...(seed.neighborhood ? { 'profilePlaceContext.neighborhood': seed.neighborhood } : {}),
     'profilePlaceContext.city': place.city,
-    'profilePlaceContext.regionCode': place.regionCode,
+    ...(place.regionCode ? { 'profilePlaceContext.regionCode': place.regionCode } : {}),
     'profilePlaceContext.countryCode': place.countryCode,
     'profilePlaceContext.lastSeenAt': seenAt.toISOString().replace('.000Z', 'Z'),
     'profilePlaceContext.source': 'mcp-seed',
   };
+}
+
+/**
+ * body.eventPlace for a seed's product-view event: the same point as the seeded
+ * profile, so profile and event hotspot maps agree.
+ * @param {object} seed - entry from buildGeoSeedPlan
+ */
+export function geoSeedEventPlace(seed) {
+  const attrs = geoSeedPlaceAttributes(seed);
+  const place = {};
+  for (const [key, value] of Object.entries(attrs)) {
+    const leaf = key.slice('profilePlaceContext.'.length);
+    if (leaf !== 'lastSeenAt') place[leaf] = value;
+  }
+  return place;
 }
 
 /** Stop a seed batch once this many attempts fail back to back. */

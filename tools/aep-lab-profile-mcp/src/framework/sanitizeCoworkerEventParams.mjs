@@ -4,6 +4,7 @@
  */
 
 import { buildIndustryEventPayload, normalizeEventIndustry } from './industryEventPayload.mjs';
+import { resolveEventPlace } from './placeParams.mjs';
 
 /** @typedef {Record<string, unknown>} EventParams */
 
@@ -23,6 +24,9 @@ export const COWORKER_MINIMAL_EVENT_PARAM_KEYS = Object.freeze([
   'xdm_style',
   'industry',
   'industry_fields',
+  'place_mode',
+  'place_area',
+  'event_place',
 ]);
 
 /** Params stripped from Coworker calls — they upgrade server XDM beyond Event tool minimal. */
@@ -39,9 +43,10 @@ export const COWORKER_STRIPPED_EVENT_PARAM_KEYS = Object.freeze([
 
 /**
  * @param {EventParams} params
+ * @param {{ rng?: () => number }} [opts] — rng for place_mode/place_area sampling (tests)
  * @returns {{ params: EventParams, stripped: string[], warnings: string[], errors: string[], richIndustry: object|null }}
  */
-export function sanitizeCoworkerEventParams(params = {}) {
+export function sanitizeCoworkerEventParams(params = {}, opts = {}) {
   /** @type {EventParams} */
   const out = { ...params };
   /** @type {string[]} */
@@ -100,6 +105,13 @@ export function sanitizeCoworkerEventParams(params = {}) {
     delete out[key];
   }
 
+  const place = resolveEventPlace(out, { rng: opts.rng });
+  delete out.place_mode;
+  delete out.place_area;
+  delete out.event_place;
+  if (!place.ok) errors.push(place.error);
+  else if (place.value) out.event_place = place.value;
+
   if (out.edge_minimal === false && !richIndustry) {
     stripped.push('edge_minimal');
     delete out.edge_minimal;
@@ -116,11 +128,16 @@ export function sanitizeCoworkerEventParams(params = {}) {
 
 /**
  * Strip view_name / view_url from batch event steps.
+ * opts.place: batch-level place_mode/place_area/event_place applied to steps without their own place.
  *
  * @param {Array<Record<string, unknown>>} events
+ * @param {{ place?: { place_mode?: string, place_area?: string, event_place?: Record<string, unknown> }, rng?: () => number }} [opts]
  * @returns {{ events: Array<Record<string, unknown>>, stripped: string[], warnings: string[], errors: string[] }}
  */
-export function sanitizeCoworkerEventSteps(events = []) {
+export function sanitizeCoworkerEventSteps(events = [], opts = {}) {
+  const batchPlace = opts.place && typeof opts.place === 'object' ? opts.place : {};
+  const stepHasPlace = (step) =>
+    step.event_place != null || step.place_mode != null || (typeof step.place_area === 'string' && step.place_area.trim());
   /** @type {string[]} */
   const stripped = [];
   /** @type {string[]} */
@@ -128,7 +145,8 @@ export function sanitizeCoworkerEventSteps(events = []) {
   const errors = [];
   const cleaned = events.map((step, index) => {
     if (!step || typeof step !== 'object') return step;
-    const sanitized = sanitizeCoworkerEventParams(step);
+    const withPlace = stepHasPlace(step) ? step : { ...step, ...batchPlace };
+    const sanitized = sanitizeCoworkerEventParams(withPlace, { rng: opts.rng });
     if (sanitized.errors.length) {
       errors.push(...sanitized.errors.map((error) => `events[${index}]: ${error}`));
     }
