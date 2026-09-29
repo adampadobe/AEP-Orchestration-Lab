@@ -1,0 +1,212 @@
+<!-- aep-xray - Adobe Experience Platform Real-Time Customer Profile panel (EXACT-MATCH to the
+     KSIA reference, upgraded 20 Jul 2026 to the full timeline + progressive story-time).
+
+     WHAT IT IS. Adobe PRODUCT UI, so it always renders in Adobe dark neutrals - do NOT rebrand
+     with customer colours (Adobe-surface exception). Blue is Adobe's own product accent.
+
+     PROGRESSIVE (the point of the upgrade). Every profile field, identity, segment and event
+     carries a `step` = the story checkpoint at which the platform first captured it. The panel
+     shows the profile AS IT STOOD at a checkpoint, so a deck can cut to it at several points in
+     the journey and each time it holds only what has been captured so far, with the newly
+     captured items glowing in. Drive it with:
+       AEP.setStep(n)   - show everything captured at or before checkpoint n (0 = unknown visitor)
+       AEP.next()/prev()
+       AEP.all()        - the full profile (default on load; matches the static reference)
+     Steps here map the KSIA journey: 1 web/pre-trip, 2 app onboarding, 3 trip prep,
+     4 at the airport, 5 Creative Corner + Express, 6 loyalty. A real deck fills AEP_DATA from
+     the storyboard (see the pipeline note in meta.json) and sets `maxStep` to its checkpoints.
+
+     DATA ONLY is parameterized; the persona PHOTO slot must be a real persona image (Firefly /
+     persona repo) - never an initial-letter avatar. The sample ships a neutral silhouette
+     placeholder so it is self-contained and licence-safe. -->
+<section class="aep-xray" id="aepXray">
+  <div class="xr-brand">
+    <svg viewBox="0 0 512 512" role="img" aria-label="Adobe Experience Cloud"><rect x="16" y="16" width="480" height="480" rx="116" fill="#EB1000"/><path transform="translate(131 141) scale(1.497)" fill="#fff" d="M97.69 150.12L85.72 116.83H55.7L80.94 53.3L119.23 150.12H164.7L104 4.35H61.14L0 150.12H97.69Z"/></svg>
+    <span id="xrBrand"></span>
+  </div>
+  <div class="xr-cols">
+    <div class="xr-left">
+      <div class="xr-band" id="xrBandL"></div>
+      <div class="xr-cards">
+        <div class="xr-card">
+          <div class="xr-ct" id="xrCtProfile"></div>
+          <div class="xr-photo" id="xrPhoto"></div>
+          <div class="xr-kv" id="xrFields"></div>
+          <div class="xr-consents" id="xrConsents"></div>
+        </div>
+        <div class="xr-card">
+          <div class="xr-ct" id="xrCtIdentity"></div>
+          <div class="xr-ids" id="xrIds"></div>
+        </div>
+        <div class="xr-card">
+          <div class="xr-ct" id="xrCtSeg"></div>
+          <div class="xr-segs" id="xrSegs"></div>
+        </div>
+      </div>
+    </div>
+    <div class="xr-right">
+      <div class="xr-band" id="xrBandR"></div>
+      <div class="xr-card xr-events">
+        <div class="xr-ct" id="xrCtInt"></div>
+        <div class="xr-grid" id="xrGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  /* ============ DATA: persona, identities, segments, events - each with the story `step`
+     that first captured it. Replace per deck (this is the KSIA reference). ============ */
+  var AEP_DATA = window.AEP_DATA || {
+    brand: "Adobe Experience Cloud",
+    bands: { left: "Real-time customer profile", right: "Experience events" },
+    titles: { profile: "Customer profile", identity: "Identity",
+      segmentation: "Segmentation", interactions: "Interactions" },
+    photo: null,                       /* real deck: a Firefly persona image url */
+    fields: [
+      { label: "Name", value: "Faisal Al Harbi", step: 2 },
+      { label: "Email", value: "faisalalharbi@gmail.com", step: 1 },
+      { label: "Phone", value: "+966 55 123 4567", step: 2 },
+      { label: "Address", value: "123 Al Olaya Street, Riyadh 12211", step: 2 },
+      { label: "Date of birth", value: "3 March 1988", step: 2 }
+    ],
+    consents: [ { label: "Marketing", step: 2 }, { label: "Newsletter", step: 2 } ],
+    identities: [
+      { label: "Desktop ID", value: "139940283521625641524336", step: 1 },
+      { label: "Mobile ID", value: "+966 55 123 4567", step: 2 },
+      { label: "Email Address", value: "faisalalharbi@gmail.com", step: 1 },
+      { label: "ECID", value: "133857493022097", step: 2 },
+      { label: "CRM ID", value: "230092975577572", step: 2 }
+    ],
+    segments: [
+      { label: "Booked: Transport to airport", step: 3 },
+      { label: "Booked: Fast track security", step: 3 },
+      { label: "Security passed", step: 4 },
+      { label: "Check in completed", step: 4 },
+      { label: "Interest: Skincare", step: 2 },
+      { label: "Skincare purchased", step: 4 },
+      { label: "Delayed flight", step: 4 },
+      { label: "Interest: Creative Corner\nVisited: Creative Corner", step: 4 },
+      { label: "QR Scanned: Adobe Express page", step: 5 },
+      { label: "QR Code Opened: Adobe Express Page", step: 5 },
+      { label: "Loyal customer", step: 6 }
+    ],
+    events: [
+      { icon: "web", label: "Website visit: Riyadh Air booking, KSIA ad sent", step: 1 },
+      { icon: "mail", label: "Email sent: App download Ramadan offer", step: 1 },
+      { icon: "mailopen", label: "Email opened: App download Ramadan offer", step: 1 },
+      { icon: "phone", label: "In App: Account registered", step: 2 },
+      { icon: "phone", label: "App: Preferred brands selected", step: 2 },
+      { icon: "phone", label: "App notification: Visa reminder", step: 2 },
+      { icon: "phone", label: "WhatsApp message: Currency", step: 3 },
+      { icon: "phone", label: "App notification: Luggage collection offer", step: 3 },
+      { icon: "phone", label: "App notification: Vegan options interest", step: 3 },
+      { icon: "phone", label: "App notification: Transport to airport", step: 3 },
+      { icon: "phone", label: "App notification: Fast track", step: 3 },
+      { icon: "phone", label: "In App: Fast track booked", step: 3 },
+      { icon: "phone", label: "App notification sent: Bags checked in and fast track security confirmed", step: 4 },
+      { icon: "mirror", label: "Mirror: Personalised skincare products recommended", step: 4 },
+      { icon: "mirror", label: "Mirror: Skincare purchased", step: 4 },
+      { icon: "phone", label: "App notification: Delayed flight", step: 4 },
+      { icon: "mirror", label: "Lounge screen: Personalised products recommended", step: 4 },
+      { icon: "phone", label: "App notification: Creative Corner notification", step: 4 },
+      { icon: "qr", label: "QR code scanned: Saved Adobe Express artwork", step: 5 },
+      { icon: "qr", label: "QR code scanned: Adobe Express artwork opened", step: 5 },
+      { icon: "phone", label: "App notification: Survey sent", step: 6 },
+      { icon: "phone", label: "In-app: Survey completed", step: 6 }
+    ],
+    maxStep: 6
+  };
+  /* ==================================================================================== */
+
+  var D = AEP_DATA;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  var ICONS = {
+    web:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="12" rx="1"/><path d="M2 20h20" stroke-linecap="round"/></svg>',
+    mail:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="1.5"/><path d="M3 7l9 6.5L21 7"/></svg>',
+    mailopen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 10.5 12 17l9-6.5"/></svg>',
+    phone:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="6.5" y="2" width="11" height="20" rx="2.2"/><path d="M10.5 19h3" stroke-linecap="round"/></svg>',
+    mirror:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/><path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/><path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/><path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/></svg>',
+    qr:       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm-2 9h7v7H3v-7zm2 2v3h3v-3H5zM14 3h7v7h-7V3zm2 2v3h3V5h-3zM14 14h2v2h-2v-2zm3 0h2v2h-2v-2zm2 3v2h-2v-2h2zm-5 2h2v2h-2v-2zm0-3h2v2h-2v-2z"/></svg>'
+  };
+
+  function set(id, txt){ var el = $(id); if (el) el.textContent = txt; }
+  set("xrBrand", D.brand);
+  set("xrBandL", D.bands.left); set("xrBandR", D.bands.right);
+  set("xrCtProfile", D.titles.profile); set("xrCtIdentity", D.titles.identity);
+  set("xrCtSeg", D.titles.segmentation); set("xrCtInt", D.titles.interactions);
+
+  /* photo: a real persona image if given, else a licence-safe silhouette placeholder */
+  $("xrPhoto").innerHTML = D.photo
+    ? '<img src="' + esc(D.photo) + '" alt="">'
+    : '<span class="xr-silh"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="5"/><path d="M2.5 23c1.6-5 5.2-7.5 9.5-7.5s7.9 2.5 9.5 7.5z"/></svg></span>';
+
+  $("xrFields").innerHTML = D.fields.map(function(f){
+    return '<div class="xr-row" data-step="' + f.step + '"><b>' + esc(f.label) + ':</b> <span>' +
+      esc(f.value) + '</span></div>';
+  }).join("");
+  $("xrConsents").innerHTML = D.consents.map(function(c){
+    return '<span class="xr-chk" data-step="' + c.step + '"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></i>' +
+      esc(c.label) + '</span>';
+  }).join("");
+  $("xrIds").innerHTML = D.identities.map(function(i){
+    return '<div class="xr-id" data-step="' + i.step + '"><b>' + esc(i.label) + '</b><span>' +
+      esc(i.value) + '</span></div>';
+  }).join("");
+  $("xrSegs").innerHTML = D.segments.map(function(s){
+    return '<div class="xr-seg" data-step="' + s.step + '">' +
+      esc(s.label).replace(/\n/g, "<br>") + '</div>';
+  }).join("");
+  $("xrGrid").innerHTML = D.events.map(function(e){
+    return '<div class="xr-ev" data-step="' + e.step + '">' + (ICONS[e.icon] || ICONS.phone) +
+      '<i></i><span>' + esc(e.label) + '</span></div>';
+  }).join("");
+
+  var items = [].slice.call(document.querySelectorAll("#aepXray [data-step]"));
+  var current = D.maxStep;
+
+  function render(step, glow){
+    current = Math.max(0, Math.min(D.maxStep, step));
+    items.forEach(function(el){
+      var s = +el.getAttribute("data-step");
+      var on = s <= current;
+      el.classList.toggle("xr-off", !on);
+      el.classList.remove("xr-fresh");
+      if (on && glow && s === current){
+        void el.offsetWidth;            /* restart the glow animation */
+        el.classList.add("xr-fresh");
+      }
+    });
+  }
+  render(D.maxStep, false);             /* default: the full profile (matches the reference) */
+
+  window.AEP = {
+    setStep: function(n){ render(n, true); },
+    next: function(){ render(current + 1, true); },
+    prev: function(){ render(current - 1, false); },
+    all: function(){ render(D.maxStep, false); },
+    step: function(){ return current; }
+  };
+})();
+</script>
+<!-- TESTS (assemble sample.css + this file on a dark slide):
+1. Full render (default): #xrBrand reads "Adobe Experience Cloud"; 22 .xr-ev, 11 .xr-seg,
+   5 .xr-id, 5 .xr-row, 2 .xr-chk, none with class xr-off.
+2. Exact-match copy: first event span is "Website visit: Riyadh Air booking, KSIA ad sent";
+   last is "In-app: Survey completed"; a .xr-seg reads "Loyal customer".
+3. Adobe surface: with any customer :root tokens set on an ancestor, the panel background
+   stays #1A1A1A and the checkbox fill stays #2680EB (no reskin).
+4. AEP.setStep(1): only step<=1 items visible - 3 .xr-ev shown (the web trio), the rest
+   xr-off; #xrSegs shows no .xr-seg (none qualify yet); Desktop ID and Email visible, Mobile
+   ID / ECID / CRM ID hidden; the persona name row is hidden.
+5. AEP.setStep(2): the app-onboarding items appear and carry class xr-fresh (glow); Name,
+   Phone, DOB, both consents, Mobile ID/ECID/CRM ID and "Interest: Skincare" now visible.
+6. AEP.setStep(0): every [data-step] item is xr-off (unknown visitor); AEP.all() restores
+   the full profile with nothing fresh.
+7. Progressive monotonicity: after setStep(n), the count of visible .xr-ev never decreases
+   as n increases from 1 to maxStep, ending at 22.
+8. Zero em dashes in rendered text.
+-->

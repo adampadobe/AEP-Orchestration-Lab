@@ -1,0 +1,13 @@
+{
+  "type": "aep-xray",
+  "description": "Adobe Experience Platform Real-Time Customer Profile panel, exact match to the KSIA reference, upgraded 20 Jul 2026 to the full timeline plus PROGRESSIVE story-time. Adobe Experience Cloud header; REAL-TIME CUSTOMER PROFILE band with customer-profile (photo, fields, consent checks), identity (Desktop/Mobile/Email/ECID/CRM IDs) and segmentation cards; EXPERIENCE EVENTS band with an icon interaction grid on dotted timelines (web/email/mail-open/phone/mirror/qr). Adobe product UI in FIXED dark neutrals (Adobe-surface exception) - parameterize DATA ONLY via AEP_DATA, never rebrand colours; blue is Adobe's own product accent. Every field/identity/segment/event carries a `step` (the story checkpoint that first captured it); AEP.setStep(n)/next()/prev()/all() shows the profile AS IT STOOD at checkpoint n, newly captured items glowing in. Drop it at every 'cut to the platform' beat of a journey deck, each call to a later step; on load it renders the full profile (the static reference).",
+  "key_classes": ["aep-xray", "xr-brand", "xr-band", "xr-cards", "xr-card", "xr-kv", "xr-row", "xr-ids", "xr-id", "xr-segs", "xr-seg", "xr-grid", "xr-ev", "xr-off", "xr-fresh"],
+  "slots": ["persona-photo (Firefly/persona repo; sample uses a silhouette placeholder)", "profile-fields", "consents", "identity-fields", "segments", "interactions (icon: web|mail|mailopen|phone|mirror|qr)", "step (per datum, 1..maxStep)"],
+  "api": ["AEP.setStep(n)", "AEP.next()", "AEP.prev()", "AEP.all()", "AEP.step()"],
+  "pipeline": "DERIVED, LATE STEP. AEP_DATA is not authored by hand; it is derived from the finished storyboard, so it runs near the end of the build (after the storyboard is validated and the deck's checkpoints are known). Walk the beats once: each touchpoint beat becomes an EVENT (icon by channel), each personal detail the customer reveals becomes a PROFILE FIELD, each identity stitched (web cookie/app id/ECID/CRM) becomes an IDENTITY, each qualifying behaviour (books, passes, shows interest, purchases, becomes loyal) becomes a SEGMENT. Tag every item with the checkpoint (writer marks which beats 'cut to the platform'); set maxStep to the number of checkpoints. The deck then drops this panel at each checkpoint slide and calls AEP.setStep(k). Proposed builder step id: aep_profile.",
+  "brand_bound": false,
+  "adobe_surface": true,
+  "verified": true,
+  "rev": 2,
+  "sources": ["ksia-reference-screenshot-toby-2026-07-14", "progressive-story-time-toby-2026-07-20"]
+}

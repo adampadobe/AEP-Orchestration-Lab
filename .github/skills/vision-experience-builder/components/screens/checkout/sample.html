@@ -1,0 +1,28 @@
+<!-- checkout — the commercial moment done in-app: order summary + one-tap payment.
+     Dual-pane: narrative rail left (slots), phone checkout right. Use for "she completes
+     the purchase in two taps" beats. All prices/items are data-slots from the storyboard. -->
+<section class="slide checkout" data-no-persona="sample - persona layer added at build time (s12)">
+  <div class="story">
+    <div class="numdisc a1" data-slot="eyebrow">Scene 0X · The commercial moment</div>
+    <h2 class="htitle a2" data-slot="scene-title">Checkout, without the checkout</h2>
+    <p class="narr a3" data-slot="narration">Everything is prefilled from her profile. One glance at the order, one tap to pay.</p>
+    <div class="takeaway a4" data-slot="takeaway">The purchase takes eight seconds.</div>
+  </div>
+  <div class="screen a5"><div class="phone"><div class="pscreen">
+    <div class="ptop"><span data-slot="app-brand (logo img)"></span><span>9:41</span></div>
+    <div class="app">
+      <div class="co-h" data-slot="checkout-title">Checkout</div>
+      <div class="co-card">
+        <div class="co-row" data-slot="item-1"><span>Cabin upgrade — balcony</span><b>£240</b></div>
+        <div class="co-row" data-slot="item-2"><span>Priority boarding × 2</span><b>£36</b></div>
+        <div class="co-row co-total"><span>Total</span><b data-slot="total">£276</b></div>
+      </div>
+      <div class="co-card co-pay" data-slot="payment-method">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Visa ····<b data-slot="last4">4823</b></span><i>Change</i>
+      </div>
+      <div class="btn co-cta" data-slot="cta">Pay £276<span class="tap-ripple" style="left:50%;top:50%;--d:1.6s"></span></div>
+      <div class="co-note" data-slot="reassurance">Fully refundable until 24h before departure</div>
+    </div>
+  </div></div></div>
+</section>

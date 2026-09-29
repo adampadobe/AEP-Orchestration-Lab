@@ -1,0 +1,101 @@
+<!--
+  component: dual-pane-narrative-scene
+  THE WORKHORSE. Standard narrative-scene layout for a customer-journey deck:
+  left "story rail" + right "screen pane". Every key purchase-journey moment
+  in the P&O deck used this — close-tab, search, itinerary, checkout, payment,
+  email, phone-call, channels-stitch, £6,361 reveal.
+
+  Anatomy:
+    LEFT (story rail .story):
+      .numdisc       gold step circle           (top-left of rail)
+      .htitle        scene headline             (h2-equivalent)
+      .narr          narrative copy (1-3 lines, audience-readable for talk-track)
+      .quote         optional italic persona quote (gold left-border)
+      .emma-lab      red "TERESA'S SCREEN" / "MARKETER'S VIEW" label
+      .prodcard      small grey card describing what Adobe is doing here
+      .takeaway      navy-bordered bold takeaway (the so-what)
+
+    RIGHT (.screen pane):
+      Drop in: .browser (browser-frame), .panel (light info panel),
+               .datacard (dark big-reveal), an iframe to an interactive mock,
+               OR mobile-phone-frame for a phone moment.
+
+    FOOTER bits:
+      .persona       Sarah/Margaret avatar + name bottom-left
+      .stagebar      Discovery / Consideration / Purchase / Post-Purchase progress
+      .mvp-pill      top-right MVP / POST-MVP tag (separate component)
+
+  This is the canonical CSS — use the .a1/.a2/.a3 entrance helpers from
+  _foundation.css to stagger the rail.
+-->
+<!--
+  EDITORIAL RAIL (SC feedback, Jul 2026): this rail must read as an AUTHORED editorial
+  column, not a stack of uniform boxes. Defaults below are intentionally de-boxed:
+  the step number is a quiet eyebrow (not a big filled disc), and the "prodcard"/data
+  block is borderless with a left accent. Use AT MOST ONE boxed element per rail (a
+  single pull-quote OR one profile inset) — don't stack three boxes. Lead with type
+  hierarchy + whitespace. See vision-experience-builder/SKILL.md → "Design rules".
+-->
+<style>
+/* step number — quiet editorial eyebrow, NOT a heavy filled disc */
+.numdisc{display:inline-block;color:var(--gold);font-size:18px;font-weight:800;letter-spacing:.22em;
+  text-transform:uppercase;background:none;box-shadow:none;width:auto;height:auto;margin:0 0 6px;}
+/* legacy filled-disc variant, only if a scene explicitly needs it: add class .disc */
+.numdisc.disc{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:30px;
+  letter-spacing:0;background:linear-gradient(150deg,var(--gold-lt),var(--gold));box-shadow:0 8px 20px rgba(176,144,59,.4);}
+
+/* left story rail — generous whitespace */
+.story{position:absolute;left:120px;top:120px;width:720px;z-index:5;}
+.story .htitle{font-size:62px;font-weight:800;color:var(--navy);line-height:1.02;margin:10px 0 22px;letter-spacing:-.015em;}
+.story .narr{font-size:26px;line-height:1.55;color:var(--grey);margin:0 0 26px;}
+.hero-fig{font-size:72px;font-weight:300;color:var(--navy);margin:0 0 8px;letter-spacing:-.01em;}
+/* the ONE allowed boxed accent — an editorial pull-quote */
+.quote{border-left:3px solid var(--gold);padding:4px 0 4px 22px;font-size:22px;font-style:italic;color:var(--navy);margin:0 0 28px;line-height:1.4;}
+.emma-lab{font-size:14px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--adobe-red);margin:0 0 8px;}
+/* de-boxed: borderless data/profile block, left accent instead of a filled card */
+.prodcard{border-left:3px solid var(--line);padding:2px 0 2px 20px;font-size:19px;line-height:1.5;color:var(--ink);margin:0 0 26px;}
+.takeaway{padding:6px 0 6px 0;font-size:26px;font-weight:700;color:var(--navy);line-height:1.4;}
+.foot-note{position:absolute;left:120px;bottom:188px;font-size:14px;letter-spacing:.06em;color:var(--soft);}
+
+/* right screen pane */
+.screen{position:absolute;right:90px;top:118px;width:940px;height:846px;z-index:4;}
+
+/* footer bits */
+.stagebar{position:absolute;left:120px;bottom:60px;display:flex;gap:10px;z-index:6;}
+.stagebar .st{font-size:15px;font-weight:600;color:var(--soft);background:#EEF1F7;border:1px solid var(--line);padding:8px 20px;border-radius:8px;}
+.stagebar .st.on{color:#fff;background:var(--navy);border-color:var(--navy);}
+.persona{position:absolute;left:120px;bottom:120px;display:flex;align-items:center;gap:14px;z-index:6;}
+.persona .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:19px;
+  background:linear-gradient(150deg,var(--navy),var(--navy-deep));box-shadow:0 4px 12px rgba(14,42,94,.3);}
+.persona .av.gold{background:linear-gradient(150deg,var(--gold-lt),var(--gold));}
+.persona .nm{font-size:19px;font-weight:600;color:var(--ink);}
+.adobe-foot{position:absolute;right:60px;bottom:58px;height:26px;z-index:6;opacity:.9;}
+.adobe-foot img{height:100%;display:block;}
+</style>
+
+<section class="slide">
+  <div class="mvp-pill">MVP</div>
+
+  <div class="story">
+    <div class="numdisc a1">N</div>
+    <h2 class="htitle a2">SCENE_HEADLINE</h2>
+    <p class="narr a3">SCENE_NARRATIVE</p>
+    <div class="quote a4">&ldquo;OPTIONAL_PERSONA_QUOTE&rdquo;</div>
+    <div class="emma-lab a5">TERESA&rsquo;S SCREEN</div>
+    <div class="prodcard a5">What Adobe is doing here, one or two short lines.</div>
+    <div class="takeaway a6">THE_NAVY_TAKEAWAY_THE_SO_WHAT.</div>
+  </div>
+
+  <div class="screen fp">
+    <!-- DROP IN: .browser / .panel / .datacard / iframe / .phoneframe -->
+  </div>
+
+  <div class="persona"><div class="av sarah"></div><div class="nm">Sarah</div></div>
+  <div class="stagebar">
+    <div class="st on">Discovery</div>
+    <div class="st">Consideration</div>
+    <div class="st">Purchase</div>
+    <div class="st">Post-Purchase</div>
+  </div>
+  <img class="adobe-foot" src="adobe-wordmark-red.svg" alt="Adobe">
+</section>

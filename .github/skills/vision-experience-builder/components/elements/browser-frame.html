@@ -1,0 +1,41 @@
+<!--
+  component: browser-frame
+  Mac-style browser chrome (traffic lights + URL bar) used to wrap either:
+  (a) a static HTML mockup (P&O home, results, itinerary), OR
+  (b) an `<iframe>` deep-linked to an interactive multi-page mock.
+
+  See imagery-and-assets.md §9 — prefer (b) for any "she's using the
+  brand's site" moment. One mock + `?p=` deep links serves many scenes.
+
+  Slots:
+    URL_HOSTPATH    e.g. "pocruises.com/find-a-cruise"
+    LIVE_BADGE      include the live dot only if it really is interactive
+    CONTENT         the .mockframe iframe OR a static inner HTML
+
+  Variant: browser-url-typing-animation.html — replaces the .u with a
+  typing-animated `<span class="u typed">` for the "she types the URL"
+  comeback slide.
+-->
+<style>
+.browser{width:100%;height:100%;background:#fff;border-radius:16px;border:1px solid #DCE3EE;box-shadow:0 30px 70px rgba(16,32,70,.20);overflow:hidden;display:flex;flex-direction:column;}
+.bbar{height:44px;background:var(--panel);border-bottom:1px solid #E4E9F2;display:flex;align-items:center;gap:8px;padding:0 16px;flex-shrink:0;}
+.bbar .d{width:11px;height:11px;border-radius:50%;}
+.bbar .d.r{background:#FF5F57;}
+.bbar .d.y{background:#FEBC2E;}
+.bbar .d.g{background:#28C840;}
+.bbar .u{margin-left:18px;font-size:14px;color:#7A8498;background:#fff;border:1px solid #E4E9F2;border-radius:6px;padding:5px 14px;}
+.mockframe{flex:1;width:100%;border:0;background:#fff;}
+
+/* interactive embed cue — only show on a real interactive iframe */
+.livebadge{margin-left:18px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2E7D4F;}
+.livebadge .dot{width:8px;height:8px;border-radius:50%;background:#28c840;animation:livep 1.8s ease-out infinite;}
+</style>
+
+<div class="browser">
+  <div class="bbar">
+    <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+    <span class="u">URL_HOSTPATH</span>
+    <span class="livebadge"><span class="dot"></span>LIVE · INTERACTIVE</span>
+  </div>
+  <iframe class="mockframe" src="PO_Website_Nav.html?p=home"></iframe>
+</div>

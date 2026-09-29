@@ -1,0 +1,17 @@
+{
+  "type": "analytics-dashboard",
+  "key_classes": [
+    "anim",
+    "col-label",
+    "col-main",
+    "dash",
+    "eyebrow",
+    "narr",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use analytics-dashboard"
+}

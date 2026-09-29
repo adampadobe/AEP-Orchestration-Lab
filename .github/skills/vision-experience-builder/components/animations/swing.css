@@ -1,0 +1,9 @@
+/* swing — emphasis (emphasis, showy, chip, card)
+   pendulum wobble on a hung element (tag, flag, badge).
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes swing{0%{transform:rotate(0)}18%{transform:rotate(9deg)}38%{transform:rotate(-7deg)}62%{transform:rotate(4deg)}84%{transform:rotate(-2.5deg)}100%{transform:rotate(0)}}
+
+.swing{transform-origin:top center;}
+.slide.active .swing{animation:swing .9s var(--d,0s) cubic-bezier(.2,.7,.3,1);}

@@ -1,0 +1,31 @@
+{
+  "type": "phone-call",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "adobe-foot",
+    "av",
+    "call-card",
+    "cc-b",
+    "cc-btns",
+    "cc-end",
+    "cc-lbl",
+    "cc-sub",
+    "cc-who",
+    "cf-h",
+    "cf-row",
+    "cf-tick",
+    "cf-top",
+    "cf-total",
+    "confirmed-card",
+    "emma-lab",
+    "fp",
+    "htitle",
+    "mvp-pill"
+  ],
+  "source": "po-cruises",
+  "description": "Outbound/active call screen over a persona photo, with a booking-confirmed receipt card."
+}

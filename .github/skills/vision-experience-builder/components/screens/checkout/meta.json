@@ -1,0 +1,32 @@
+{
+  "type": "checkout",
+  "description": "In-app checkout / payment moment (phone mock): order summary rows, total, saved payment method with last-4, brand-accent Pay CTA with tap-ripple. Dual-pane with narrative rail. Use for the commercial beat of a journey deck \u2014 completing a purchase or upgrade in one tap.",
+  "key_classes": [
+    "checkout",
+    "co-card",
+    "co-row",
+    "co-total",
+    "co-pay",
+    "co-cta",
+    "co-note"
+  ],
+  "slots": [
+    "eyebrow",
+    "scene-title",
+    "narration",
+    "takeaway",
+    "app-brand",
+    "item-rows",
+    "total",
+    "payment-method",
+    "last4",
+    "cta",
+    "reassurance"
+  ],
+  "brand_bound": false,
+  "verified": false,
+  "rev": 1,
+  "sources": [
+    "hand-built"
+  ]
+}

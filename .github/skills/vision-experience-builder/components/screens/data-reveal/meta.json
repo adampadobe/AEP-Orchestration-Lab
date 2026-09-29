@@ -1,0 +1,31 @@
+{
+  "type": "data-reveal",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "adobe-foot",
+    "av",
+    "big",
+    "chain",
+    "ci-bar",
+    "cja-inset",
+    "cu",
+    "datacard",
+    "disc",
+    "emma",
+    "emma-lab",
+    "foot-note",
+    "fp",
+    "gleam",
+    "hero-fig",
+    "htitle",
+    "k",
+    "key",
+    "lb"
+  ],
+  "source": "po-cruises",
+  "description": "Dark gradient data card \u2014 touchpoint chain + big count-up money figure + breakdown."
+}

@@ -1,0 +1,41 @@
+/* boarding-pass — wallet pass scene. Role tokens; house phone shell; dark wallet bg. */
+.boarding-pass{background:var(--bg-dark,linear-gradient(160deg,#14233A,#0C1626 60%,#0C1626));color:#fff;}
+.boarding-pass .story{position:absolute;left:120px;top:150px;width:740px;}
+.boarding-pass .numdisc{color:var(--accent-lt,#FF6F6F);font-size:19px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;}
+.boarding-pass .htitle{font-size:66px;font-weight:800;color:#fff;line-height:1.03;margin:12px 0 26px;}
+.boarding-pass .narr{font-size:27px;line-height:1.55;color:rgba(255,255,255,.75);margin:0 0 30px;}
+.boarding-pass .takeaway{font-size:26px;font-weight:700;color:#fff;}
+.boarding-pass .screen{position:absolute;right:110px;top:90px;width:860px;height:900px;display:grid;place-items:center;}
+.boarding-pass .phone{width:392px;height:800px;background:#0C1626;border-radius:48px;padding:12px;box-shadow:0 40px 90px rgba(0,0,0,.5);}
+.boarding-pass .pscreen{width:100%;height:100%;border-radius:38px;overflow:hidden;position:relative;}
+/* wallet background = wp-dark-navy (components/backgrounds/phone-wallpapers.css), inlined */
+.bp-bg{background:radial-gradient(ellipse 90% 55% at 50% -10%, rgba(255,255,255,.10), transparent 60%),linear-gradient(170deg,#16233c 0%,#0d1729 55%,#0a1220 100%);}
+.bp-top{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:13px;font-weight:700;color:rgba(255,255,255,.85);}
+.bp-card{margin:14px 16px 0;background:#fff;border-radius:18px;padding:18px 18px 16px;color:#14233A;}
+.bp-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;letter-spacing:.08em;}
+.bp-head .bp-brand{color:var(--brand,#14233A);}
+.bp-head .bp-cls{color:var(--accent,#9B6E4B);text-transform:uppercase;}
+.bp-route{display:flex;align-items:center;justify-content:space-between;margin:16px 6px 14px;}
+.bp-route b{font-size:34px;font-weight:800;display:block;}
+.bp-route i{font-style:normal;font-size:13px;color:#5B6573;}
+.bp-route svg{width:34px;height:34px;color:var(--accent,#9B6E4B);}
+.bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;border-top:1px dashed #D8DDE5;padding-top:12px;}
+.bp-grid i{font-style:normal;display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8A94A6;}
+.bp-grid b{font-size:15px;}
+.bp-qr{margin:14px auto 2px;width:104px;height:104px;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:6px;border:1.5px solid #14233A;border-radius:8px;}
+.bp-qr span{background:#14233A;border-radius:1px;}
+.bp-qr span:nth-child(3n){background:transparent;}
+.bp-qr span:nth-child(7n+2){background:#14233A;}
+.bp-banner{margin:14px 16px 0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4;color:#fff;}
+.bp-banner b{color:var(--accent-lt,#FF6F6F);}
+/* library animations: .a1–.a5 stagger + notif-drop (animations/notif-drop.css) */
+.boarding-pass .a1,.boarding-pass .a2,.boarding-pass .a3,.boarding-pass .a4,.boarding-pass .a5{opacity:0;}
+.slide.active .a1{animation:bpFadeUp .7s .05s cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .a2{animation:bpFadeUp .7s .15s cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .a3{animation:bpFadeUp .7s .25s cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .a4{animation:bpFadeUp .7s .35s cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .a5{animation:bpFadeUp .7s .45s cubic-bezier(.2,.7,.3,1) forwards;}
+@keyframes bpFadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.bp-banner.notif-drop{opacity:0;}
+.slide.active .bp-banner.notif-drop{animation:bpNotifDrop .8s var(--d,.4s) cubic-bezier(.2,1.25,.35,1) forwards;}
+@keyframes bpNotifDrop{0%{opacity:0;transform:translateY(-90px) scale(.96);filter:blur(6px)}60%{filter:blur(0)}100%{opacity:1;transform:none;filter:none}}

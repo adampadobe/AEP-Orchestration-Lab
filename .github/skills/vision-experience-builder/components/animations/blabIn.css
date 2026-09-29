@@ -1,0 +1,3 @@
+/* animation: blabIn  (harvested from leap26-storyboard) */
+/* triggered by: .heat .blab */
+@keyframes blabIn{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}

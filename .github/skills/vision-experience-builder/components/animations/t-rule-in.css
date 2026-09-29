@@ -1,0 +1,3 @@
+/* animation: t-rule-in  (harvested from po-cruises) */
+/* triggered by: .slide.active .tslide .t-rule */
+@keyframes t-rule-in{from{opacity:0;width:0;}to{opacity:1;width:120px;}}

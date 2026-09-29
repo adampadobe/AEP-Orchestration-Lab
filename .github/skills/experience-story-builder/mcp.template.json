@@ -1,0 +1,16 @@
+{
+  "_README": "TEMPLATE — copy to your project root as .mcp.json and fill in YOUR OWN values. No secrets ship in the bundle. Firefly / Adobe Stock / Adobe Express / Claude_Preview are added via the Claude connector UI (per-user OAuth), not here. Brandfetch is OPTIONAL — delete this block to rely on scrape / dropped assets instead. See CONNECTORS.md.",
+  "mcpServers": {
+    "brandfetch": {
+      "_comment": "OPTIONAL. Your own Brandfetch endpoint/credential. Do NOT paste anyone else's URL — it carries their personal credential and quota.",
+      "type": "http",
+      "url": "<YOUR_OWN_BRANDFETCH_MCP_URL>"
+    },
+    "stitch": {
+      "_comment": "OPTIONAL. Google Stitch — AI UI designer for the embedded customer app/website mocks. Use YOUR OWN Google API key; never commit a real key.",
+      "type": "http",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": { "X-Goog-Api-Key": "<YOUR_GOOGLE_STITCH_API_KEY>" }
+    }
+  }
+}

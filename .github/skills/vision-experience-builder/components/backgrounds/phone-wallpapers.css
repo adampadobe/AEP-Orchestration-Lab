@@ -1,0 +1,20 @@
+/* phone-wallpapers -- dark lockscreen/home backgrounds for phone mocks.
+   These are ship-safe CSS gradients (no licensing, offline-safe). When the Adobe Stock
+   connector is live, license 2-3 real dark abstract wallpapers into this folder as
+   .jpg (record the Stock asset ID + license in a sidecar note) and prefer those.
+   Usage: apply one class to the .pscreen/.locks layer; brand tint via --wp-tint. */
+
+/* deep navy with a soft top glow -- neutral default */
+.wp-dark-navy{background:
+  radial-gradient(ellipse 90% 55% at 50% -10%, rgba(255,255,255,.10), transparent 60%),
+  linear-gradient(170deg, #16233c 0%, #0d1729 55%, #0a1220 100%);}
+
+/* dark aurora -- subtle brand-tintable colour sweep (set --wp-tint to the accent) */
+.wp-dark-aurora{background:
+  radial-gradient(ellipse 70% 45% at 78% 12%, color-mix(in srgb, var(--wp-tint, #FF4D4D) 22%, transparent), transparent 65%),
+  radial-gradient(ellipse 60% 40% at 15% 85%, color-mix(in srgb, var(--wp-tint, #FF4D4D) 12%, transparent), transparent 60%),
+  linear-gradient(160deg, #121c30 0%, #0c1626 60%, #0a1120 100%);}
+
+/* charcoal grain -- near-black with vignette, for OLED-look lockscreens */
+.wp-dark-charcoal{background:
+  radial-gradient(ellipse 120% 90% at 50% 45%, #1b2230 0%, #11161f 55%, #0a0d13 100%);}

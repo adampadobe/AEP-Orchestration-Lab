@@ -1,0 +1,33 @@
+{
+  "id": "coventry-bs",
+  "sequence": [
+    "persona-intro",
+    "ai-chat-discovery",
+    "tablet-web-mock",
+    "phone-app-mock",
+    "mobile-onboarding",
+    "money-transfer",
+    "savings-results",
+    "audience-segmentation",
+    "email-mock",
+    "concierge-chat",
+    "adviser-qa",
+    "analytics-dashboard",
+    "persona-intro",
+    "optimizer-dashboard",
+    "profile-stitching",
+    "genstudio-generate",
+    "consent-conversions",
+    "lifecycle-trigger",
+    "identity-hub",
+    "realtime-rule",
+    "agent-orchestration",
+    "brand-concierge",
+    "adviser-portal",
+    "ab-performance",
+    "journey-recap",
+    "journey-recap"
+  ],
+  "slides": 26,
+  "rendered": true
+}

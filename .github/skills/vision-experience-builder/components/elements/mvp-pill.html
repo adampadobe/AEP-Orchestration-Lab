@@ -1,0 +1,25 @@
+<!--
+  component: mvp-pill
+  Top-right corner tag identifying whether the scene is in scope today (MVP)
+  or part of a later phase (POST-MVP). Gold for MVP, navy for POST-MVP, with
+  an optional `.live::after` " · LIVE" suffix when the slide is showing a
+  live interactive feature.
+
+  Why it matters: a vision deck for execs mixes "shipping" and "vision";
+  if you don't label it, the audience assumes everything is built TODAY and
+  you over-promise. The SC's instruction: "screen N is post mvp" — honour
+  it scene-by-scene.
+
+  Slot: PILL_LABEL  e.g. "MVP" or "POST-MVP"
+-->
+<style>
+.mvp-pill{position:absolute;top:54px;right:64px;z-index:8;font-size:16px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:#fff;background:var(--gold);padding:9px 22px;border-radius:999px;box-shadow:0 6px 18px rgba(176,144,59,.35);}
+.mvp-pill.post{background:var(--navy);box-shadow:0 6px 18px rgba(23,58,135,.32);}
+.mvp-pill.live::after{content:" · LIVE";color:#CFF6DD;}
+</style>
+
+<!-- variants: -->
+<div class="mvp-pill">MVP</div>
+<div class="mvp-pill post">POST-MVP</div>
+<div class="mvp-pill live">MVP</div>

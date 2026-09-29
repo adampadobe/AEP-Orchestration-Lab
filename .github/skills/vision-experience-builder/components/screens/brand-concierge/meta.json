@@ -1,0 +1,31 @@
+{
+  "type": "brand-concierge",
+  "key_classes": [
+    "a",
+    "anim",
+    "b",
+    "b1",
+    "b2",
+    "b3",
+    "b4",
+    "b5",
+    "bc-act",
+    "bc-adobe",
+    "bc-app",
+    "bc-bar",
+    "bc-blbl",
+    "bc-body",
+    "bc-brand",
+    "bc-brow",
+    "bc-card",
+    "bc-chips",
+    "bc-config",
+    "bc-cov",
+    "bc-doc",
+    "bc-h",
+    "bc-hero",
+    "bc-hint"
+  ],
+  "source": "coventry-bs",
+  "description": "Adobe Brand Concierge scene: conversational AI-assistant moment (chat panel + persona photo panel, dual-pane with eyebrow/step-number head) for 'the customer asks, the brand answers' beats. Harvested from coventry-bs and still brand-bound (Coventry copy + embedded base64 photo) \u2014 tokenize copy slots and replace the photo before reuse; the photo panel is the persona-image slot."
+}

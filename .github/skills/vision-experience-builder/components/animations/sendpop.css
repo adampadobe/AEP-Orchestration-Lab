@@ -1,0 +1,3 @@
+/* animation: sendpop  (harvested from leap26-storyboard) */
+/* triggered by: .landing-intro .send.pop */
+@keyframes sendpop{0%{transform:scale(1)}40%{transform:scale(.82)}100%{transform:scale(1)}}

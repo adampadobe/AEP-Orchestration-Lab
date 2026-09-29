@@ -1,0 +1,256 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude chat - interactive template</title>
+<!-- claude-chat - a desktop Claude.ai web-app template for the AI-discovery beat of an
+     experience story (built from the same chat engine as chatgpt-chat/brand-concierge,
+     re-shelled as Claude). Self-contained and offline. Sits inside a laptop frame; the
+     customer asks an AI assistant and the brand surfaces, accurately, INSIDE the answer.
+
+     BRANDS: this is a THIRD-PARTY SURFACE (Anthropic's Claude), so its chrome is fixed Claude
+     styling (warm cream, coral accent), not customer-reskinned. The Claude sunburst below is a
+     clean SVG RECREATION for an offline demo - swap it for the official asset when available.
+     The only thing a story changes is CONV (the conversation) and BRAND (the product named).
+
+     API: window.CLA.play() streams the scripted conversation from the top; CLA.reset() clears
+     it. Auto-plays on load. No global key bindings. -->
+<style>
+  .claapp{--bg:#FAF9F5; --side:#F0EEE6; --line:#E7E2D6; --ink:#1F1E1D; --grey:#6B6A63;
+    --bubble:#EFEBE0; --coral:#D97757; --coral-deep:#BE5D3F;
+    position:relative; width:1280px; height:800px; display:flex; overflow:hidden;
+    background:var(--bg); color:var(--ink); border-radius:12px;
+    font-family:'Styrene','Segoe UI',system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  .claapp *{box-sizing:border-box; margin:0;}
+
+  /* sidebar */
+  .cla-side{width:256px; flex:none; background:var(--side); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; padding:14px 12px;}
+  .cla-side-top{display:flex; align-items:center; gap:9px; padding:4px 6px 14px;}
+  .cla-mark{width:24px; height:24px; display:block; flex:none;}
+  .cla-word{font-size:19px; font-weight:600; letter-spacing:-.01em; color:var(--ink);}
+  .cla-new{display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:9px;
+    font-size:14.5px; font-weight:600; color:var(--coral); cursor:default;}
+  .cla-new:hover{background:#E7E2D6;}
+  .cla-new svg{width:18px; height:18px;}
+  .cla-hist{margin-top:12px; display:flex; flex-direction:column; gap:1px; overflow:hidden;}
+  .cla-hcap{font-size:12px; font-weight:600; color:var(--grey); padding:10px 10px 6px;}
+  .cla-hitem{font-size:13.5px; color:#3B3A36; padding:8px 10px; border-radius:8px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;}
+  .cla-hitem.on{background:#E4DFD2; font-weight:500;}
+  .cla-user{margin-top:auto; display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:9px;}
+  .cla-uav{width:28px; height:28px; border-radius:50%; background-size:cover; background-position:center;
+    background-color:#C9A24B; flex:none;}
+  .cla-uname{font-size:13.5px; font-weight:600;}
+
+  /* main */
+  .cla-main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .cla-top{height:56px; flex:none; display:flex; align-items:center; gap:8px; padding:0 22px;}
+  .cla-model{display:flex; align-items:center; gap:7px; font-size:15.5px; font-weight:600; color:var(--ink);
+    padding:7px 11px; border-radius:9px; cursor:default;}
+  .cla-model .mut{color:var(--grey); font-weight:500;}
+  .cla-model svg{width:14px; height:14px; color:var(--grey);}
+
+  .cla-thread{flex:1; overflow-y:auto; scroll-behavior:smooth;}
+  .cla-thread::-webkit-scrollbar{width:8px;} .cla-thread::-webkit-scrollbar-thumb{background:#DED8CA; border-radius:8px;}
+  .cla-col{max-width:720px; margin:0 auto; padding:26px 24px 20px;}
+  .cla-turn{margin-bottom:26px; animation:clain .4s ease both;}
+  @keyframes clain{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  .cla-turn.user{display:flex; justify-content:flex-end;}
+  .cla-turn.user .cla-bubble{background:var(--bubble); border-radius:16px; padding:12px 18px; max-width:78%;
+    font-size:16px; line-height:1.6;}
+  .cla-ai{display:flex; gap:15px;}
+  .cla-av{flex:none; width:29px; height:29px; border-radius:7px; background:#fff; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; margin-top:1px;}
+  .cla-av svg{width:19px; height:19px;}
+  .cla-bubble{font-size:16px; line-height:1.72; color:var(--ink);}
+  .cla-ai .cla-bubble{padding-top:3px;}
+  .cla-ai .cla-bubble p{margin-bottom:14px;} .cla-ai .cla-bubble p:last-child{margin-bottom:0;}
+  .cla-hl{font-weight:600; color:var(--coral-deep); border-bottom:2px solid rgba(217,119,87,.28);}
+  .cla-cursor{display:inline-block; width:9px; height:17px; margin-left:2px; background:var(--coral);
+    vertical-align:-3px; border-radius:1px; animation:clablink 1s steps(1) infinite;}
+  @keyframes clablink{50%{opacity:0;}}
+
+  /* composer */
+  .cla-composer{flex:none; padding:8px 24px 22px;}
+  .cla-inwrap{max-width:720px; margin:0 auto; background:#fff; border:1px solid var(--line);
+    border-radius:16px; padding:14px 16px 10px; box-shadow:0 2px 12px rgba(60,50,30,.06);}
+  .cla-inbox{font-size:16px; color:var(--grey); min-height:26px;}
+  .cla-inrow{display:flex; align-items:center; justify-content:space-between; margin-top:10px;}
+  .cla-inmodel{font-size:13px; color:var(--grey); display:flex; align-items:center; gap:6px;}
+  .cla-inmodel svg{width:13px; height:13px;}
+  .cla-send{width:32px; height:32px; flex:none; border-radius:8px; background:var(--coral);
+    display:flex; align-items:center; justify-content:center;}
+  .cla-send svg{width:17px; height:17px; color:#fff;}
+  .cla-replay{position:absolute; top:14px; right:18px; z-index:5; appearance:none; cursor:pointer;
+    font:inherit; font-size:12.5px; font-weight:600; color:var(--grey); background:#EFEBE0;
+    border:1px solid var(--line); border-radius:999px; padding:6px 13px;}
+  .cla-replay:hover{color:var(--ink);}
+</style>
+
+<div class="claapp" id="claapp">
+  <button class="cla-replay" id="claReplay">Replay</button>
+  <aside class="cla-side">
+    <div class="cla-side-top">
+      <span class="cla-mark" id="claMarkSide" aria-label="Claude"></span>
+      <span class="cla-word">Claude</span>
+    </div>
+    <div class="cla-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>New chat</div>
+    <div class="cla-hist">
+      <div class="cla-hcap">Recents</div>
+      <div class="cla-hitem on">Damaged skin barrier help</div>
+      <div class="cla-hitem">Fragrance-free routine order</div>
+      <div class="cla-hitem">How to introduce actives slowly</div>
+      <div class="cla-hitem">Ceramides vs peptides</div>
+      <div class="cla-hitem">SPF for reactive skin</div>
+    </div>
+    <div class="cla-user">
+      <span class="cla-uav" id="claUav"></span>
+      <span class="cla-uname" id="claUname">You</span>
+    </div>
+  </aside>
+
+  <main class="cla-main">
+    <div class="cla-top">
+      <div class="cla-model" id="claModel">Claude <span class="mut">Sonnet 4.5</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>
+    <div class="cla-thread" id="claThread"><div class="cla-col" id="claCol"></div></div>
+    <div class="cla-composer">
+      <div class="cla-inwrap">
+        <div class="cla-inbox" id="claInbox">Reply to Claude...</div>
+        <div class="cla-inrow">
+          <span class="cla-inmodel">Claude Sonnet 4.5
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          <span class="cla-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: the conversation and the brand named in the answer ============ */
+  var CLA_DATA = window.CLA_DATA || {
+    user: { name: "Maya", avatar: "" },   /* a deck sets avatar to a Firefly persona image */
+    brand: "Noula's Barrier Repair Serum",
+    conv: [
+      { role: "user",
+        text: "my skin keeps going red and stinging whenever I try a new active. what should I actually use for a damaged barrier?" },
+      { role: "ai", paras: [
+        "That redness and stinging is usually your skin barrier telling you it is overwhelmed, not that you need a stronger product. The move is to pause the actives and repair first.",
+        "Reach for a fragrance-free serum built around ceramides and niacinamide, and bring it in gently. One option that fits is {brand}, which is fragrance-free, ceramide-based, and made for reactive, sensitised skin.",
+        "Use it three nights a week to start, then build to nightly once the stinging settles, and hold off on exfoliating acids in the meantime."
+      ] }
+    ],
+    typeMs: 30,
+    userTypeMs: 22
+  };
+  /* ================================================================================= */
+
+  var D = CLA_DATA;
+  function $(id){ return document.getElementById(id); }
+
+  /* the Claude sunburst, recreated as a coral burst of rounded rays (swap for the official
+     asset). Built once and injected into the sidebar mark and the assistant avatar. */
+  function burst(px){
+    var rays = [10.6,9.2,10.8,9.0,10.4,9.4,10.9,8.9,10.5,9.3,10.7], n = rays.length, s = "";
+    for (var i=0;i<n;i++){
+      var a = (i/n)*Math.PI*2 - Math.PI/2;
+      var x1 = 12 + Math.cos(a)*2.6, y1 = 12 + Math.sin(a)*2.6;
+      var x2 = 12 + Math.cos(a)*rays[i], y2 = 12 + Math.sin(a)*rays[i];
+      s += '<line x1="'+x1.toFixed(2)+'" y1="'+y1.toFixed(2)+'" x2="'+x2.toFixed(2)+'" y2="'+y2.toFixed(2)+'"/>';
+    }
+    return '<svg viewBox="0 0 24 24" width="'+px+'" height="'+px+'" fill="none" stroke="#D97757" '+
+      'stroke-width="2.5" stroke-linecap="round">'+s+'</svg>';
+  }
+  $("claMarkSide").innerHTML = burst(24);
+
+  var col = $("claCol"), thread = $("claThread"), inbox = $("claInbox");
+  var timers = [];
+  function later(fn, ms){ var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function clearAll(){ timers.forEach(clearTimeout); timers = []; }
+  function scroll(){ requestAnimationFrame(function(){ thread.scrollTop = thread.scrollHeight; }); }
+  if (D.user.avatar){ $("claUav").style.backgroundImage = "url('" + D.user.avatar + "')"; }
+  $("claUname").textContent = D.user.name || "You";
+  function hl(t){ return t.replace("{brand}", '<span class="cla-hl">' + D.brand + '</span>'); }
+
+  function userTurn(text, done){
+    var turn = document.createElement("div");
+    turn.className = "cla-turn user";
+    turn.innerHTML = '<div class="cla-bubble"></div>';
+    col.appendChild(turn);
+    var b = turn.querySelector(".cla-bubble");
+    var i = 0;
+    (function typeIn(){
+      if (i <= text.length){
+        inbox.textContent = text.slice(0, i) || "Reply to Claude...";
+        inbox.style.color = i ? "var(--ink)" : "var(--grey)";
+        i++; later(typeIn, D.userTypeMs);
+      } else {
+        b.textContent = text;
+        inbox.textContent = "Reply to Claude..."; inbox.style.color = "var(--grey)";
+        scroll(); later(done, 500);
+      }
+    })();
+  }
+
+  function aiTurn(paras, done){
+    var turn = document.createElement("div");
+    turn.className = "cla-turn cla-ai";
+    turn.innerHTML = '<div class="cla-av">' + burst(19) + '</div><div class="cla-bubble"></div>';
+    col.appendChild(turn); scroll();
+    var bubble = turn.querySelector(".cla-bubble");
+    var pi = 0;
+    function nextPara(){
+      if (pi >= paras.length){ done && later(done, 300); return; }
+      var raw = paras[pi];
+      var plain = raw.replace("{brand}", D.brand);
+      var p = document.createElement("p");
+      p.innerHTML = '<span class="cla-txt"></span><span class="cla-cursor"></span>';
+      bubble.appendChild(p);
+      var txt = p.querySelector(".cla-txt");
+      var words = plain.split(" ");
+      var wi = 0;
+      (function stream(){
+        if (wi < words.length){
+          txt.textContent += (wi ? " " : "") + words[wi]; wi++;
+          scroll(); later(stream, D.typeMs);
+        } else {
+          p.innerHTML = hl(raw);
+          pi++; later(nextPara, 260);
+        }
+      })();
+    }
+    later(nextPara, 260);
+  }
+
+  function play(){
+    clearAll(); col.innerHTML = "";
+    var i = 0;
+    (function step(){
+      if (i >= D.conv.length) return;
+      var turn = D.conv[i]; i++;
+      if (turn.role === "user"){ userTurn(turn.text, step); }
+      else { aiTurn(turn.paras, step); }
+    })();
+  }
+  function reset(){ clearAll(); col.innerHTML = ""; inbox.textContent = "Reply to Claude..."; inbox.style.color = "var(--grey)"; }
+
+  $("claReplay").addEventListener("click", play);
+  window.CLA = { play: play, reset: reset };
+  play();
+})();
+</script>
+<!-- TESTS (mounted on a warm host, ideally inside a laptop frame):
+1. Auto-plays: within ~4s a .cla-turn.user bubble holds the full question and a .cla-turn.cla-ai
+   answer has streamed at least three <p>; the sunburst mark renders in the sidebar (#claMarkSide
+   svg) and the AI avatar (.cla-av svg).
+2. Brand surfaces: the answer contains a .cla-hl span reading "Noula's Barrier Repair Serum".
+3. Streaming: during the AI turn a .cla-cursor is present; after the last paragraph completes,
+   no .cla-cursor remains.
+4. CLA.reset() empties #claCol and restores the composer placeholder "Reply to Claude...";
+   CLA.play() (or Replay) restarts from the top.
+5. No global key bindings; arrows do nothing. Third-party surface: chrome is fixed Claude
+   styling, not customer-reskinned (only CONV + BRAND change per story).
+6. Zero em dashes in rendered text.
+-->

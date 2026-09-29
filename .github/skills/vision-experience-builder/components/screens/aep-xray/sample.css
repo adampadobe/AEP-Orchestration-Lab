@@ -1,0 +1,78 @@
+/* aep-xray - Adobe Experience Platform Real-Time Customer Profile panel (exact match to the
+   KSIA reference). Adobe PRODUCT UI: fixed dark neutrals, NOT customer-reskinned
+   (Adobe-surface exception). Data-only parameterization via AEP_DATA in sample.html.
+   PROGRESSIVE: every datum carries a step; AEP.setStep(n) shows the profile AS IT STOOD at
+   story checkpoint n, newly captured items glowing in. Blue is Adobe's own product accent
+   here, never a customer colour. Stage: drop on a dark slide. */
+.aep-xray{--xr-bg:#1A1A1A; --xr-card:#262626; --xr-band:#333333; --xr-line:#7A7A7A;
+  --xr-ink:#FFFFFF; --xr-sub:#D0D0D0; --xr-grey:#8C8C8C; --xr-cap:#B7B7B7; --xr-blue:#2680EB;
+  --xr-fresh:60,130,246;
+  position:relative; width:1880px; padding:32px 40px 40px; background:var(--xr-bg);
+  color:var(--xr-ink); font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif;
+  border-radius:14px;}
+.aep-xray *{box-sizing:border-box; margin:0;}
+
+.xr-brand{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:24px;}
+.xr-brand svg{width:34px; height:34px; display:block;}
+.xr-brand span{font-size:23px; font-weight:700; letter-spacing:-.01em;}
+
+.xr-cols{display:grid; grid-template-columns:912px 1fr; gap:22px; align-items:start;}
+.xr-band{background:var(--xr-band); border-radius:11px; text-align:center; padding:16px;
+  font-size:15px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+  margin-bottom:18px;}
+.xr-cards{display:grid; grid-template-columns:1.2fr 1fr 1.02fr; gap:14px; align-items:start;}
+.xr-card{background:var(--xr-card); border-radius:11px; padding:22px 24px;}
+.xr-ct{font-size:15px; font-weight:800; letter-spacing:.04em; color:var(--xr-cap);
+  text-transform:uppercase; margin-bottom:16px;}
+
+/* customer profile */
+.xr-photo{width:130px; height:130px; margin:2px auto 20px; border-radius:50%;
+  border:4px solid var(--xr-blue); box-shadow:0 0 0 2px var(--xr-bg), 0 0 0 3px rgba(38,128,235,.4);
+  overflow:hidden; background:#3A3F47;}
+.xr-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+.xr-silh{width:100%; height:100%; display:flex; align-items:flex-end; justify-content:center;
+  color:#5A626E;}
+.xr-silh svg{width:92px; height:92px;}
+.xr-kv{display:flex; flex-direction:column; gap:9px; font-size:15px; line-height:1.35;}
+.xr-row b{font-weight:800; color:var(--xr-ink);}
+.xr-row span{color:var(--xr-sub);}
+.xr-consents{display:flex; gap:22px; margin-top:20px;}
+.xr-chk{display:flex; align-items:center; gap:9px; font-size:15px; font-weight:600;
+  color:var(--xr-sub);}
+.xr-chk i{flex:none; width:19px; height:19px; border-radius:4px; background:var(--xr-blue);
+  display:flex; align-items:center; justify-content:center;}
+.xr-chk i svg{width:12px; height:12px; display:block; color:#fff;}
+
+/* identity */
+.xr-ids{display:flex; flex-direction:column; gap:17px;}
+.xr-id b{display:block; font-size:15px; font-weight:800; color:var(--xr-ink);}
+.xr-id span{display:block; font-size:14px; color:var(--xr-sub); margin-top:3px;
+  word-break:break-all;}
+
+/* segmentation */
+.xr-segs{display:flex; flex-direction:column; gap:15px;}
+.xr-seg{font-size:14.5px; font-weight:800; color:var(--xr-ink); line-height:1.32;}
+
+/* experience events: icon / dotted timeline / label per cell */
+.xr-events{padding:22px 26px 18px;}
+.xr-grid{display:grid; grid-template-columns:repeat(6, 1fr); column-gap:12px; row-gap:24px;
+  padding-top:4px;}
+.xr-ev{display:flex; flex-direction:column; align-items:center; text-align:center;}
+.xr-ev svg{width:30px; height:30px; display:block; color:var(--xr-ink);}
+.xr-ev i{position:relative; width:100%; height:0; border-top:1.5px dotted var(--xr-line);
+  margin:12px 0;}
+.xr-ev i::before,.xr-ev i::after{content:""; position:absolute; top:-3.5px; width:6px; height:6px;
+  border-radius:50%; background:#9A9A9A;}
+.xr-ev i::before{left:-1px;} .xr-ev i::after{right:-1px;}
+.xr-ev span{font-size:12.5px; line-height:1.34; color:var(--xr-sub);}
+
+/* progressive step states: items past the current step are hidden; the ones captured at the
+   current step glow in. */
+.xr-off{display:none !important;}
+.xr-fresh{animation:xrFresh 1.9s ease both; border-radius:8px;}
+@keyframes xrFresh{
+  0%{opacity:0; transform:translateY(8px); box-shadow:inset 0 0 0 200px rgba(var(--xr-fresh),.24);}
+  22%{opacity:1; transform:translateY(0); box-shadow:inset 0 0 0 200px rgba(var(--xr-fresh),.24);}
+  100%{opacity:1; transform:translateY(0); box-shadow:inset 0 0 0 200px rgba(var(--xr-fresh),0);}
+}
+.xr-empty{color:var(--xr-grey); font-size:14px; font-style:italic;}

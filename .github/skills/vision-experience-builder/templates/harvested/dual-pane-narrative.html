@@ -1,0 +1,71 @@
+<!-- template: dual-pane-narrative  (standalone drop-in slide, harvested from monzo; rebrand via :root tokens) -->
+<style>
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;transition:opacity .4s;}
+.slide.active{visibility:visible;opacity:1;}
+.intro-right .phone{position:absolute;left:84px;top:26px;}
+.mzmark{height:18px;display:block;}
+/* dual-pane editorial (de-boxed) */
+.numdisc{display:inline-block;color:var(--accent);font-size:18px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;margin:0 0 6px;}
+.story{position:absolute;left:120px;top:132px;width:760px;}
+.htitle{font-size:60px;font-weight:800;color:var(--brand);line-height:1.03;margin:8px 0 20px;letter-spacing:-.015em;}
+.narr{font-size:26px;line-height:1.5;color:var(--grey);margin:0 0 22px;}
+.quote{border-left:3px solid var(--accent);padding:4px 0 4px 22px;font-size:22px;font-style:italic;color:var(--brand);margin:0 0 26px;line-height:1.4;}
+.prodcard{border-left:3px solid var(--line);padding:2px 0 2px 20px;margin:0 0 26px;}
+.pf-lab{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.pf-lab svg{width:17px;height:17px;fill:var(--accent);}
+.pf-ev{font-size:17px;color:var(--ink);line-height:1.45;margin-bottom:5px;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
+/* navy-on-coral: 4.8:1 (passes WCAG 4.5) using only Monzo's own palette — white on coral was 3.27:1 */
+.chip{font-size:16px;font-weight:700;color:var(--brand);background:var(--accent);border-radius:8px;padding:5px 11px;}
+.takeaway{font-size:26px;font-weight:700;color:var(--brand);line-height:1.35;}
+.persona-foot{position:absolute;left:120px;bottom:64px;font-size:18px;font-weight:700;color:var(--ink);}
+.persona-foot span{color:var(--soft);font-weight:500;}
+.adobe-foot{position:absolute;right:60px;bottom:60px;height:22px;opacity:.5;}
+.ctag{background:var(--accent);color:var(--brand);font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;}
+.cbtn{margin-top:10px;background:var(--accent);color:var(--brand);font-size:12px;font-weight:800;text-align:center;padding:8px;border-radius:9px;}
+/* phone */
+.screen{position:absolute;right:120px;top:96px;width:820px;height:888px;display:grid;place-items:center;}
+.phone{width:392px;height:800px;background:#0C1626;border-radius:48px;padding:12px;box-shadow:0 40px 90px rgba(12,22,38,.45);}
+.pscreen{width:100%;height:100%;border-radius:38px;overflow:hidden;background:#F4F6F9;position:relative;}
+.ptop{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:13px;font-weight:700;color:var(--brand);}
+.app{padding:16px;}
+.mzhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.mzhead .bal{font-size:13px;color:var(--soft);font-weight:700;}
+.mzhead .amt{font-size:26px;font-weight:800;color:var(--brand);}
+.card{background:#fff;border-radius:16px;padding:15px;box-shadow:0 8px 22px rgba(20,35,58,.08);margin-bottom:12px;}
+.card .ct{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:7px;}
+.card .ct svg{width:15px;height:15px;fill:var(--accent);stroke:var(--accent);}
+.card .cb{font-size:15px;line-height:1.45;color:var(--ink);margin-top:7px;}
+.card .cb b{color:var(--brand);}
+.btn{background:var(--accent);color:#fff;text-align:center;font-size:15px;font-weight:800;padding:14px;border-radius:12px;margin-top:6px;}
+.segwrap .chips .chip{color:var(--brand);background:var(--ice);border:1px solid var(--line);}
+.slide.active .flip-in-x{animation:flipInX .9s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .notif-drop{animation:notifDrop .8s var(--d,.4s) cubic-bezier(.2,1.25,.35,1) forwards;}
+.glare-sweep{position:relative;overflow:hidden;}
+.glare-sweep::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.35) 50%,transparent 58%);transform:translateX(-130%);}
+.slide.active .glare-sweep::after{animation:glareSweep 1.4s 1.2s ease-in-out forwards;}
+</style>
+<section class="slide" data-no-persona="awaiting Firefly persona pass — imagery connector waived 13 Jul 2026">
+  <div class="story">
+    <div class="numdisc g">Scene 01 · The proactive nudge</div>
+    <h2 class="htitle g">A heads-up, three days early</h2>
+    <p class="narr g">Rent leaves Friday and a client invoice is late. Before Jordan can worry, the app has done the maths and offered the one move that fixes it.</p>
+    <div class="quote g">&ldquo;Please tell me I'm not about to go overdrawn on Friday.&rdquo;</div>
+    <div class="prodcard g"><div class="pf-lab"><?xml version="1.0" encoding="UTF-8"?> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"> <path d="m17.78613,12.67578c-.16846-.30859-.34082-.60742-.51123-.90234-.82666-1.43457-1.54102-2.67285-1.54102-4.62012,0-3.11914-2.5376-5.65723-5.65723-5.65723s-5.65723,2.53809-5.65723,5.65723c0,1.7666-.75879,3.04883-1.56201,4.40527-.22021.37207-.44141.74609-.64941,1.13086-.37598.69629-.35693,1.52051.05078,2.2041.41211.69043,1.13672,1.10254,1.93848,1.10254h3.05225c0,1.5166,1.2334,2.75,2.75,2.75s2.75-1.2334,2.75-2.75h3.05518c.80322,0,1.52783-.41309,1.93896-1.10547.40771-.6875.42383-1.51562.04248-2.21484Zm-7.78662,4.57031c-.68945,0-1.25-.56055-1.25-1.25h2.5c0,.68945-.56055,1.25-1.25,1.25Zm6.4541-3.12109c-.06641.11133-.26221.37109-.64893.37109H4.19727c-.26855,0-.51172-.13867-.65039-.37109-.06445-.1084-.19531-.39551-.01855-.72266.19824-.36816.40967-.72461.61963-1.0791.87109-1.4707,1.77148-2.99219,1.77148-5.16992,0-2.25391,1.90381-4.15723,4.15723-4.15723s4.15723,1.90332,4.15723,4.15723c0,2.34863.88525,3.88379,1.7417,5.36914.16455.28516.33057.57324.49365.87207.18066.33105.04932.62109-.01562.73047Z" fill="var(--iconPrimary, #222)"/> </svg> Profile update</div>
+      <div class="pf-ev">&bull; Predicted shortfall: Friday rent vs late invoice</div>
+      <div class="pf-ev">&bull; Proactive nudge served · one-tap Pot transfer</div>
+      <div class="chips"><span class="chip">Irregular Income</span><span class="chip">Overdraft Risk — Predicted</span></div></div>
+    <div class="takeaway g">The heads-up lands three days before rent is due. Jordan moves £200 in one tap, and the fee never happens.</div>
+  </div>
+  <div class="screen g"><div class="phone"><div class="pscreen">
+    <div class="ptop"><img class="mzmark" src="monzo-mark.svg" alt="Monzo"><span>9:41</span></div>
+    <div class="app">
+      <div class="mzhead"><div><div class="bal">Current balance</div><div class="amt">£412.30</div></div></div>
+      <div class="card" style="border:1.5px solid var(--accent)"><div class="ct"><?xml version="1.0" encoding="UTF-8"?> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"> <path d="m17.78613,12.67578c-.16846-.30859-.34082-.60742-.51123-.90234-.82666-1.43457-1.54102-2.67285-1.54102-4.62012,0-3.11914-2.5376-5.65723-5.65723-5.65723s-5.65723,2.53809-5.65723,5.65723c0,1.7666-.75879,3.04883-1.56201,4.40527-.22021.37207-.44141.74609-.64941,1.13086-.37598.69629-.35693,1.52051.05078,2.2041.41211.69043,1.13672,1.10254,1.93848,1.10254h3.05225c0,1.5166,1.2334,2.75,2.75,2.75s2.75-1.2334,2.75-2.75h3.05518c.80322,0,1.52783-.41309,1.93896-1.10547.40771-.6875.42383-1.51562.04248-2.21484Zm-7.78662,4.57031c-.68945,0-1.25-.56055-1.25-1.25h2.5c0,.68945-.56055,1.25-1.25,1.25Zm6.4541-3.12109c-.06641.11133-.26221.37109-.64893.37109H4.19727c-.26855,0-.51172-.13867-.65039-.37109-.06445-.1084-.19531-.39551-.01855-.72266.19824-.36816.40967-.72461.61963-1.0791.87109-1.4707,1.77148-2.99219,1.77148-5.16992,0-2.25391,1.90381-4.15723,4.15723-4.15723s4.15723,1.90332,4.15723,4.15723c0,2.34863.88525,3.88379,1.7417,5.36914.16455.28516.33057.57324.49365.87207.18066.33105.04932.62109-.01562.73047Z" fill="var(--iconPrimary, #222)"/> </svg> Heads up, Jordan</div>
+        <div class="cb">Rent of <b>£650</b> leaves on <b>Friday</b> and your balance may not cover it. Move <b>£200</b> from your Rainy Day Pot now, or we'll remind you Thursday morning.</div></div>
+      <div class="btn">Move £200</div>
+      <div class="card" style="margin-top:12px"><div class="cb"><b>Rainy Day Pot</b> · £540 available</div></div>
+    </div></div></div></div>
+  <div class="persona-foot">Jordan Mensah<span> · Freelance designer · London</span></div>
+  <img class="adobe-foot" src="wordmark-red.svg" alt="Adobe">
+</section>

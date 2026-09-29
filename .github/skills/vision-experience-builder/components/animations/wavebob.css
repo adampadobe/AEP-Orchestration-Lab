@@ -1,0 +1,3 @@
+/* animation: wavebob  (harvested from po-cruises) */
+/* triggered by: .cover .wave svg */
+@keyframes wavebob{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}

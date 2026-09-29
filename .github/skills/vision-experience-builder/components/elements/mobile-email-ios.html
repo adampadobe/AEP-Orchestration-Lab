@@ -1,0 +1,109 @@
+<!--
+  component: mobile-email-ios
+  iOS-Mail-grade email screen — designed to drop inside mobile-phone-frame's
+  .pscreen. This is the "looks like an email" bar: anything less reads as
+  demo-ware (SC feedback: "make the email look more like an email" was given
+  twice before this version landed).
+
+  Chrome it provides (DO NOT trim — each piece earns its place):
+    1. Top nav bar    — ‹ Inbox back link + flag / archive / reply icons
+    2. Subject        — page headline, large bold, ABOVE the sender row
+    3. Sender row     — avatar + name + "to <recipient> ▾" + weekday/time + star
+    4. Body           — optional preheader (booking ref), hero image,
+                        salutation, real copy paragraphs, CTA, signature
+    5. Bottom bar     — reply / reply-all / forward / archive / trash icons
+
+  Animation: fades in at +2.5s after slide.active. Pairs with
+  mobile-lockscreen-notification (rise +0.9s) → email opens at +2.5s →
+  CTA pulses at +3.9s (`tapnum` keyframe in _foundation.css).
+
+  Slots to replace per use:
+    SENDER_INITIALS  (max 4 chars, shown in circular avatar)
+    SUBJECT          (the headline)
+    SENDER_NAME      (display name)
+    RECIPIENT_NAME   (first name of recipient, used in "to <Name> ▾")
+    TIMESTAMP        (e.g. "Tue 09:24")
+    PREHEADER        (e.g. "Booking ref · PO-447162 · held 24h") — optional
+    HERO_IMG         (CSS url) — destination/product photo
+    BODY_HTML        (the actual email copy — verbatim from the .eml the SC supplied)
+    CTA_LABEL        (e.g. "Call to book · 0344 338 8009")
+    CTA_ICON_SVG     (phone or link SVG)
+    SIGNATURE_HTML
+-->
+<style>
+.ph-email{position:absolute;inset:0;background:#fff;opacity:0;z-index:5;display:flex;flex-direction:column;overflow:hidden;}
+.slide.active .ph-email{animation:fade .55s 2.5s both;}
+/* 1. iOS Mail nav bar */
+.ph-email .enav{display:flex;align-items:center;justify-content:space-between;padding:42px 14px 8px;border-bottom:1px solid #ECEEF2;background:#F8F9FB;flex-shrink:0;}
+.ph-email .enav .eninbox{display:flex;align-items:center;gap:4px;color:#0B5CD8;font-size:15px;font-weight:600;}
+.ph-email .enav .eninbox svg{width:11px;height:18px;}
+.ph-email .enav .enright{display:flex;gap:18px;align-items:center;}
+.ph-email .enav .enright svg{width:18px;height:18px;fill:none;stroke:#0B5CD8;stroke-width:2;}
+/* 2. subject as page headline */
+.ph-email .esubj{font-size:22px;font-weight:800;color:#15203A;line-height:1.18;padding:14px 16px 6px;letter-spacing:-.01em;}
+/* 3. sender row */
+.ph-email .efrm{display:flex;align-items:flex-start;gap:11px;padding:10px 16px 14px;border-bottom:1px solid #F0F2F6;}
+.ph-email .eav{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#173A87,#0B5CD8);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;flex-shrink:0;letter-spacing:.02em;}
+.ph-email .efrm .who{flex:1;min-width:0;}
+.ph-email .efrm .who .nm{font-size:14px;font-weight:800;color:#15203A;display:flex;align-items:center;gap:6px;}
+.ph-email .efrm .who .to{font-size:12px;color:#8A94A6;margin-top:2px;display:flex;align-items:center;gap:4px;}
+.ph-email .efrm .who .to svg{width:9px;height:9px;}
+.ph-email .efrm .rt{font-size:12px;color:#8A94A6;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-weight:600;flex-shrink:0;}
+.ph-email .efrm .rt .star svg{width:18px;height:18px;fill:none;stroke:#C9CFDA;stroke-width:2;}
+/* 4. body */
+.ph-email .eb{flex:1;overflow:hidden;padding:16px;font-size:13px;color:#15203A;line-height:1.55;}
+.ph-email .eb p{margin-bottom:10px;}
+.ph-email .ehero{height:128px;border-radius:10px;background:url("HERO_IMG") center/cover;margin-bottom:14px;position:relative;overflow:hidden;}
+.ph-email .ehero::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 55%,rgba(11,31,63,.45));}
+.ph-email .epreh{font-size:11px;color:#8A94A6;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.ph-email .esig{font-size:12px;color:#5B6573;margin-top:14px;padding-top:12px;border-top:1px solid #F0F2F6;line-height:1.5;}
+/* CTA — brand-blue gradient w/ SVG icon, pulses at +3.9s */
+.ph-call{display:flex;align-items:center;gap:9px;margin-top:14px;background:linear-gradient(180deg,#0B5CD8,#0747A6);color:#fff;border-radius:12px;padding:13px;font-weight:800;font-size:14.5px;justify-content:center;box-shadow:0 6px 18px rgba(11,92,216,.35);}
+.ph-call svg{width:17px;height:17px;fill:#fff;flex-shrink:0;}
+.slide.active .ph-call{animation:tapnum 1.3s 3.9s ease both;}
+/* 5. bottom action bar */
+.ph-email .ebot{border-top:1px solid #ECEEF2;background:#F8F9FB;padding:10px 24px 14px;display:flex;justify-content:space-around;align-items:center;flex-shrink:0;}
+.ph-email .ebot svg{width:22px;height:22px;fill:none;stroke:#0B5CD8;stroke-width:2;}
+</style>
+
+<div class="ph-email">
+  <div class="enav">
+    <span class="eninbox"><svg viewBox="0 0 11 18"><path d="M9 1L2 9l7 8" fill="none" stroke="#0B5CD8" stroke-width="2"/></svg>Inbox</span>
+    <span class="enright">
+      <svg viewBox="0 0 24 24"><path d="M5 4v17l7-5 7 5V4z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 5 5v3"/></svg>
+    </span>
+  </div>
+  <div class="esubj">SUBJECT</div>
+  <div class="efrm">
+    <div class="eav">SENDER_INITIALS</div>
+    <div class="who">
+      <div class="nm">SENDER_NAME</div>
+      <div class="to">to RECIPIENT_NAME <svg viewBox="0 0 10 10"><path d="M2 4l3 3 3-3" fill="none" stroke="#8A94A6" stroke-width="1.6"/></svg></div>
+    </div>
+    <div class="rt">
+      <span>TIMESTAMP</span>
+      <span class="star"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.2l5.9-.9z"/></svg></span>
+    </div>
+  </div>
+  <div class="eb">
+    <div class="ehero"></div>
+    <div class="epreh">PREHEADER</div>
+    <!-- BODY_HTML — paste real verbatim copy from the SC's .eml -->
+    <p>Hi RECIPIENT_NAME,</p>
+    <p>Body paragraph one.</p>
+    <a class="ph-call">
+      <svg viewBox="0 0 24 24"><path d="M6 3c2 0 3 4 3 6l-2 2c1 2 4 5 6 6l2-2c2 0 6 1 6 3v3c0 1-1 2-3 2C9 23 1 15 1 6 1 4 2 3 3 3z"/></svg>
+      CTA_LABEL
+    </a>
+    <div class="esig">SIGNATURE_HTML</div>
+  </div>
+  <div class="ebot">
+    <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 5 5v3"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 5 5v3M14 14L9 9l5-5"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5M20 9H9a5 5 0 0 0-5 5v3"/></svg>
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+{
+  "type": "cards-row",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "av",
+    "cja",
+    "ds",
+    "emma",
+    "fp",
+    "mgt",
+    "mvp",
+    "nm",
+    "pcard",
+    "post",
+    "rl",
+    "row",
+    "sarah",
+    "slide",
+    "tg",
+    "tp"
+  ],
+  "source": "po-cruises",
+  "description": "Row of profile/perspective cards (e.g. three personas or three viewpoints)."
+}

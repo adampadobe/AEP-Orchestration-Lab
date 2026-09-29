@@ -1,0 +1,29 @@
+<!-- map-static — OFFLINE map moment: stylized generic SVG map + route that draws itself.
+     For "on her way to the airport / store finder / delivery tracking" beats. The SVG map
+     layer is abstract and city-agnostic (data-slot) — a licensed, offline-bundled static
+     map image may replace it at build time. Route uses the library path-draw convention;
+     pins use node-pop. NEVER an online tile service (breaks the offline guarantee). -->
+<section class="slide map-static" data-no-persona="sample - persona layer added at build time (s12)">
+  <div class="story">
+    <div class="numdisc a1" data-slot="eyebrow">Scene 0X · On her way</div>
+    <h2 class="htitle a2" data-slot="scene-title">The route is already planned</h2>
+    <p class="narr a3" data-slot="narration">Her ride was booked the moment check-in opened. Traffic is light; the app quietly confirms she will arrive forty minutes early.</p>
+    <div class="takeaway a4" data-slot="takeaway">She never opened a maps app.</div>
+  </div>
+  <div class="ms-wrap a5">
+    <svg class="ms-map" viewBox="0 0 820 640" data-slot="map-layer (generic; swap for licensed offline static map)">
+      <rect width="820" height="640" rx="24" class="ms-ground"/>
+      <path class="ms-water" d="M640 0 C 560 120, 700 220, 820 190 L 820 0 Z"/>
+      <rect class="ms-park" x="90" y="380" width="180" height="130" rx="18"/>
+      <path class="ms-road" d="M0 520 C 220 480, 300 560, 520 520 S 760 420, 820 430"/>
+      <path class="ms-road" d="M120 0 C 160 180, 80 320, 140 640"/>
+      <path class="ms-road" d="M0 240 C 260 210, 420 300, 820 260"/>
+      <path class="ms-road thin" d="M340 0 C 360 200, 300 420, 380 640"/>
+      <path class="ms-road thin" d="M0 90 C 300 120, 520 60, 820 110"/>
+      <path class="ms-route path-draw" d="M96 560 C 260 520, 330 420, 430 330 S 640 210, 724 150"/>
+    </svg>
+    <div class="ms-pin node-pop" style="left:78px;top:534px;--d:.5s" data-slot="origin-pin"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="currentColor"/></svg></div>
+    <div class="ms-pin ms-dest node-pop" style="left:702px;top:118px;--d:2.5s" data-slot="destination-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+    <div class="ms-eta node-pop" style="left:420px;top:300px;--d:2.9s" data-slot="eta-chip">ETA 07:20 · 40 min early</div>
+  </div>
+</section>

@@ -1,0 +1,31 @@
+{
+  "type": "realtime-rule",
+  "key_classes": [
+    "anim",
+    "app",
+    "col-label",
+    "email",
+    "eyebrow",
+    "has-photo",
+    "jb-cap",
+    "jb-ch",
+    "jb-cond",
+    "jb-dec",
+    "jb-ic",
+    "jb-node",
+    "jb-path",
+    "jb-start",
+    "jb-svg",
+    "jb-title",
+    "jb-wrap",
+    "jr-arrow",
+    "jr-ava",
+    "jr-badge",
+    "jr-card",
+    "jr-cbox",
+    "jr-ck",
+    "jr-crit"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use realtime-rule"
+}

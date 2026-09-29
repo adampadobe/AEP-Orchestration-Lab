@@ -1,0 +1,3 @@
+/* animation: graphIn  (harvested from leap26-storyboard) */
+/* triggered by: .gdraw */
+@keyframes graphIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}

@@ -1,0 +1,20 @@
+{
+  "type": "closing",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "ad",
+    "big",
+    "closing",
+    "cu",
+    "em",
+    "glow",
+    "lock",
+    "slide",
+    "x"
+  ],
+  "source": "po-cruises",
+  "description": "TODO: one line on when to use closing"
+}

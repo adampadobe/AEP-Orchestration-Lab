@@ -1,0 +1,31 @@
+{
+  "archetype": "margaret",
+  "folder": "harvested-margaret",
+  "tags": [
+    "travel",
+    "cruise",
+    "customer",
+    "female",
+    "60s",
+    "older-adult",
+    "caucasian",
+    "affluent",
+    "professional",
+    "b2c",
+    "journey"
+  ],
+  "default_name": "Margaret",
+  "default_role": "Cruise Customer",
+  "images": [
+    {
+      "file": "persona-margaret.jpg",
+      "role": "portrait"
+    }
+  ],
+  "default_pose": "persona-margaret.jpg",
+  "avatar": null,
+  "format": "jpg",
+  "source": "po-cruises",
+  "bg": "solid",
+  "needs_cutout": true
+}

@@ -1,0 +1,103 @@
+{
+  "archetype": "modern-marketer",
+  "tags": ["marketing", "female", "30s", "content-marketer", "b2b", "qsr"],
+  "default_name": "Jessica",
+  "default_role": "Content Marketer",
+  "full_body": "full-body.png",
+  "full_body_svg": "full-body.svg",
+  "avatar": null,
+  "avatar_note": "No avatar crop supplied — derive from full-body.png if needed",
+  "poses": [
+    {
+      "file": "pose-1.png",
+      "svg": "pose-1.svg",
+      "description": "Standing upright, closed laptop tucked under left arm, right hand adjusting round glasses, confident smile facing camera",
+      "energy": "confident",
+      "has_laptop": true,
+      "laptop_state": "closed",
+      "gaze": "camera",
+      "best_for": ["section-title", "cobrand-hero-persona", "full-body-default"]
+    },
+    {
+      "file": "pose-2.png",
+      "svg": "pose-2.svg",
+      "description": "Thoughtful expression, finger touching chin, open laptop held flat at waist, gaze directed up and to the right",
+      "energy": "curious",
+      "has_laptop": true,
+      "laptop_state": "open",
+      "gaze": "up-right",
+      "best_for": ["chat-notification", "persona-hero-splash"]
+    },
+    {
+      "file": "pose-3.png",
+      "svg": "pose-3.svg",
+      "description": "Laughing, mouth open wide, looking off to the right, open laptop held at waist — high energy reaction",
+      "energy": "joyful",
+      "has_laptop": true,
+      "laptop_state": "open",
+      "gaze": "right",
+      "best_for": ["ai-response-reveal", "capability-overview"]
+    },
+    {
+      "file": "pose-4.png",
+      "svg": "pose-4.svg",
+      "description": "Looking down at open laptop held in both hands, gentle focused smile — actively reading or reviewing",
+      "energy": "focused",
+      "has_laptop": true,
+      "laptop_state": "open",
+      "gaze": "down-at-laptop",
+      "best_for": ["chat-notification", "journey-canvas"]
+    },
+    {
+      "file": "pose-5.png",
+      "svg": "pose-5.svg",
+      "description": "Amazed/excited reaction at open laptop, both hands raised open beside face in 'wow' gesture, mouth open",
+      "energy": "amazed",
+      "has_laptop": true,
+      "laptop_state": "open",
+      "gaze": "down-at-laptop",
+      "best_for": ["ai-response-with-chart", "section-title-gradient"]
+    },
+    {
+      "file": "pose-6.png",
+      "svg": "pose-6.svg",
+      "description": "Standing with attitude, white cat-eye sunglasses, black sequin jacket over striped top, hand on hip, other hand adjusting sunglasses — no laptop",
+      "energy": "stylish",
+      "has_laptop": false,
+      "laptop_state": null,
+      "gaze": "camera",
+      "best_for": ["brand-sting", "cover-opener"]
+    },
+    {
+      "file": "pose-7.png",
+      "svg": "pose-7.svg",
+      "description": "Both index fingers pointing upward, huge open-mouth excited smile — celebratory 'this is it!' energy, no laptop",
+      "energy": "celebratory",
+      "has_laptop": false,
+      "laptop_state": null,
+      "gaze": "camera",
+      "best_for": ["persona-hero-splash", "section-title-gradient"]
+    },
+    {
+      "file": "pose-8.png",
+      "svg": "pose-8.svg",
+      "description": "Holding closed laptop against chest with both hands, warm direct smile at camera — approachable and professional",
+      "energy": "warm",
+      "has_laptop": true,
+      "laptop_state": "closed",
+      "gaze": "camera",
+      "best_for": ["cobrand-hero-persona", "persona-hero-splash"]
+    }
+  ],
+  "pose_count": 8,
+  "scene_defaults": {
+    "persona-hero-splash": "pose-7.png",
+    "cobrand-hero-persona": "pose-8.png",
+    "chat-notification": "pose-4.png",
+    "section-title": "full-body.png",
+    "section-title-gradient": "pose-7.png",
+    "ai-response-with-chart": "pose-5.png",
+    "journey-canvas": "pose-4.png",
+    "brand-sting": "pose-6.png"
+  }
+}

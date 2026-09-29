@@ -1,0 +1,14 @@
+{
+  "type": "passage-of-time",
+  "key_classes": [
+    "slide",
+    "t-big",
+    "t-eye",
+    "t-rule",
+    "t-sub",
+    "tbloom",
+    "tslide"
+  ],
+  "source": "po-cruises",
+  "description": "Interstitial time-jump title card (e.g. '25 minutes later', '8 weeks later')."
+}

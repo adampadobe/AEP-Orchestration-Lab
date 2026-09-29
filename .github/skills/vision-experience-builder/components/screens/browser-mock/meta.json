@@ -1,0 +1,31 @@
+{
+  "type": "browser-mock",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "adobe-foot",
+    "av",
+    "bbar",
+    "browser",
+    "d",
+    "dot",
+    "emma-lab",
+    "fp",
+    "htitle",
+    "livebadge",
+    "mockframe",
+    "mvp-pill",
+    "narr",
+    "nm",
+    "np",
+    "numdisc",
+    "on",
+    "persona",
+    "plab"
+  ],
+  "source": "po-cruises",
+  "description": "Desktop browser frame around a static or interactive (iframe, ?p= deep-link) customer site/app screen."
+}

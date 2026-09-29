@@ -1,0 +1,343 @@
+<!--
+  ============================================================
+  TEMPLATE: section-title-gradient.html
+  Scene type: section-title-gradient
+  Figma source: Frame 9 — OptimizedProjectPlanning_02 (node 5726:47257)
+                Frame 13 — AcceleratedCampaignKickoffs_02 (node 5726:48741)
+
+  Background: Adobe Red (#EB1000) → purple gradient tail (#6D5FEB, #96A3F9)
+  Use for: Chapter opener with floating data stat badges and persona photo
+           One step more "data-rich" than persona-hero-splash
+
+  Slots:
+    {{title_line1}}       — H1 line 1 (e.g. "Accelerated")
+    {{title_line2}}       — H1 line 2 (e.g. "Campaign")
+    {{title_line3}}       — H1 line 3 (e.g. "Kickoffs")
+    {{persona_photo}}     — URL to full-body persona image
+    {{stat_value}}        — primary stat number (e.g. "+31%")
+    {{stat_label}}        — stat descriptor (e.g. "ARRPM")
+    {{stat_colour}}       — badge bg hex (e.g. #E9740A for growth, #6D5FEB for data)
+    {{budget_value}}      — secondary budget badge (e.g. "$500K") — or leave empty
+    {{chapter_number}}    — chapter counter (e.g. "02")
+    {{chapter_title}}     — nav breadcrumb pill
+    {{product_context}}   — nav breadcrumb suffix
+    {{adobe_symbol_path}} — path to assets/adobe/symbol-white.svg
+
+  Nav dots: white variant
+  ============================================================
+-->
+
+<style>
+/* === SECTION TITLE GRADIENT TEMPLATE === */
+
+.slide--section-gradient {
+  background: linear-gradient(135deg, #EB1000 0%, #EB1000 35%, #6D5FEB 75%, #96A3F9 100%);
+  font-family: 'Adobe Clean', 'Source Sans 3', sans-serif;
+  overflow: hidden;
+}
+
+/* ---- Top navigation bar ---- */
+.sec-grad__nav {
+  position: absolute;
+  top: 39px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 60px;
+  z-index: 10;
+}
+
+.sec-grad__nav-logo {
+  width: 65.6px;
+  height: 64px;
+  flex-shrink: 0;
+  margin-right: 20px;
+}
+
+.sec-grad__nav-pill {
+  background: #EB1000;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 6px 18px 8px;
+  border-radius: 1000px;
+  white-space: nowrap;
+}
+
+.sec-grad__nav-sub {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 6px 18px 8px;
+  white-space: nowrap;
+}
+
+.sec-grad__nav-sub strong { font-weight: 800; }
+
+/* ---- Chapter number badge — upper right ---- */
+.sec-grad__chapter-badge {
+  position: absolute;
+  top: 120px;
+  right: 80px;
+  font-size: 208px;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.12);
+  letter-spacing: -0.04em;
+  margin: 0;
+  user-select: none;
+  z-index: 3;
+}
+
+/* ---- Three-line H1 — left side ----
+   Figma measurements: left ~187px, font-size 208px, line-height 1
+*/
+.sec-grad__title {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 187px;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+
+.sec-grad__title-line {
+  font-size: 208px;
+  font-weight: 800;
+  line-height: 1;
+  color: #FFFFFF;
+  white-space: nowrap;
+  margin: 0;
+  letter-spacing: -0.01em;
+  opacity: 0;
+}
+
+/* ---- Primary stat badge — floating, above persona ----
+   Figma: orange #E9740A badge at ~left 822px, top 248px
+*/
+.sec-grad__stat-badge {
+  position: absolute;
+  left: 820px;
+  top: 220px;
+  background: var(--stat-bg, #E9740A);
+  border-radius: 24.9px;
+  padding: 18px 30px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 180px;
+  z-index: 6;
+  opacity: 0;
+}
+
+.sec-grad__stat-value {
+  font-size: 46px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sec-grad__stat-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ---- Budget badge — bottom left corner ---- */
+.sec-grad__budget-badge {
+  position: absolute;
+  left: 101px;
+  bottom: 200px;
+  background: rgba(235, 16, 0, 0.85); /* slightly transparent to blend with bg */
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  padding: 14px 22px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 6;
+  opacity: 0;
+}
+
+/* Hide budget badge if no value provided */
+.sec-grad__budget-badge:empty,
+.sec-grad__budget-badge[data-empty="true"] {
+  display: none;
+}
+
+.sec-grad__budget-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sec-grad__budget-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ---- Persona photo — right column ----
+   Figma: left 950px, width 757px, height 1080px, overflow hidden
+*/
+.sec-grad__persona {
+  position: absolute;
+  left: 950px;
+  top: 0;
+  width: 757px;
+  height: 1080px;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.sec-grad__persona img {
+  position: absolute;
+  width: 100%;
+  top: -40px;    /* adjust per photo */
+  left: 0;
+  max-width: none;
+  max-height: none;
+  height: auto;
+  opacity: 0;
+}
+
+/* ---- Nav dots — white variant ---- */
+.nav-dots--light {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  height: 695px;
+  z-index: 20;
+}
+
+.nav-dots--light .nd {
+  width: 4.4px;
+  height: 4.4px;
+  border-radius: 62.8px;
+  background: rgba(255, 255, 255, 0.20);
+  flex-shrink: 0;
+  display: block;
+}
+
+.nav-dots--light .nd.nd--active {
+  background: rgba(255, 255, 255, 0.80);
+  outline: 3px solid rgba(255, 255, 255, 0.80);
+  outline-offset: 0;
+}
+
+/* ---- Entrance animations ---- */
+@keyframes sec-line-in {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+@keyframes badge-pop-in {
+  from { opacity: 0; transform: scale(0.80) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0);       }
+}
+
+@keyframes persona-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   ANIMATION TRIGGERS
+   Elements start opacity:0 (set above). Animations only fire
+   when the parent .slide gains .active. The deck JS must call
+   void slide.offsetWidth before adding .active to restart
+   animations on each revisit.
+   ============================================================ */
+.slide.active .sec-grad__title-line { animation: sec-line-in 700ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .sec-grad__title-line:nth-child(1) { animation-delay:  80ms; }
+.slide.active .sec-grad__title-line:nth-child(2) { animation-delay: 160ms; }
+.slide.active .sec-grad__title-line:nth-child(3) { animation-delay: 240ms; }
+.slide.active .sec-grad__stat-badge { animation: badge-pop-in 500ms 300ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .sec-grad__budget-badge { animation: badge-pop-in 500ms 400ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .sec-grad__persona img { animation: persona-slide-in 900ms 80ms cubic-bezier(0.22,1,0.36,1) both; }
+</style>
+
+<!-- ============================================================
+     SLIDE: Section Title Gradient
+     Replace all {{slots}} before use.
+     Set --stat-bg on .sec-grad__stat-badge via inline style.
+     Remove .sec-grad__budget-badge if no budget value needed.
+     ============================================================ -->
+<section class="slide slide--section-gradient" id="slide-section-gradient" data-scene="section-title-gradient">
+
+  <!-- Top navigation bar -->
+  <nav class="sec-grad__nav" aria-label="Section navigation">
+    <img class="sec-grad__nav-logo" src="{{adobe_symbol_path}}" alt="Adobe">
+    <div class="sec-grad__nav-pill">{{chapter_title}}</div>
+    <div class="sec-grad__nav-sub">{{product_context}}</div>
+  </nav>
+
+  <!-- Chapter number watermark -->
+  <p class="sec-grad__chapter-badge" aria-hidden="true">{{chapter_number}}</p>
+
+  <!-- Three-line H1 -->
+  <div class="sec-grad__title" aria-label="{{title_line1}} {{title_line2}} {{title_line3}}">
+    <p class="sec-grad__title-line">{{title_line1}}</p>
+    <p class="sec-grad__title-line">{{title_line2}}</p>
+    <p class="sec-grad__title-line">{{title_line3}}</p>
+  </div>
+
+  <!-- Primary stat badge
+       Set style="--stat-bg: {{stat_colour}}" -->
+  <div class="sec-grad__stat-badge" style="--stat-bg: {{stat_colour}}">
+    <p class="sec-grad__stat-value">{{stat_value}}</p>
+    <p class="sec-grad__stat-label">{{stat_label}}</p>
+  </div>
+
+  <!-- Budget badge (remove if not needed) -->
+  <div class="sec-grad__budget-badge">
+    <p class="sec-grad__budget-value">{{budget_value}}</p>
+    <p class="sec-grad__budget-label">Budget</p>
+  </div>
+
+  <!-- Persona photo -->
+  <div class="sec-grad__persona">
+    <img src="{{persona_photo}}" alt="Persona">
+  </div>
+
+  <!-- Nav dots — white variant
+       Move nd--active to the correct dot for deck position -->
+  <div class="nav-dots--light" role="presentation" aria-hidden="true">
+    <span class="nd"></span>
+    <span class="nd nd--active"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+  </div>
+
+</section>

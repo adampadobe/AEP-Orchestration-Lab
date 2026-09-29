@@ -1,0 +1,5 @@
+/* word-rise -- headline words rise and sharpen one by one (kinetic type).
+   Use for: cover/close statements. Wrap each word in <span class="word-rise" style="--d:...">. */
+.word-rise{display:inline-block;opacity:0;}
+.slide.active .word-rise{animation:wordRise .7s var(--d,.2s) cubic-bezier(.2,.8,.3,1) forwards;}
+@keyframes wordRise{from{opacity:0;transform:translateY(.55em);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}

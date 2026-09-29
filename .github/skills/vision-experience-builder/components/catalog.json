@@ -1,0 +1,3603 @@
+{
+  "animations": [
+    {
+      "id": "rise",
+      "file": "animations/rise.css",
+      "triggers": [
+        ".slide.active .a1",
+        ".slide.active .a2",
+        ".slide.active .a3",
+        ".slide.active .a4",
+        ".slide.active .a5",
+        ".slide.active .a6",
+        ".slide.active .cja-inset",
+        ".slide.active .ph-notif"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "entrance",
+        "up",
+        "subtle",
+        "text",
+        "card"
+      ]
+    },
+    {
+      "id": "fade",
+      "file": "animations/fade.css",
+      "triggers": [
+        ".slide.active .abandon-card",
+        ".slide.active .fp",
+        ".slide.active .ph-email",
+        ".slide.active .stitch .arw",
+        ".slide.active .tslide .t-eye"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "entrance",
+        "subtle",
+        "text"
+      ]
+    },
+    {
+      "id": "pop",
+      "file": "animations/pop.css",
+      "triggers": [
+        ".slide.active .confirmed-card",
+        ".slide.active .jnode",
+        ".slide.active .offer.top .badge",
+        ".slide.active .pp",
+        ".slide.active .profilebar .pp.np",
+        ".slide.active .stitch .unified",
+        ".slide.active .datacard .node"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "entrance",
+        "standard",
+        "icon",
+        "chip"
+      ]
+    },
+    {
+      "id": "draw",
+      "file": "animations/draw.css",
+      "triggers": [
+        ".slide.active .jpath"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "line",
+        "draw",
+        "journey",
+        "svg"
+      ]
+    },
+    {
+      "id": "keypulse",
+      "file": "animations/keypulse.css",
+      "triggers": [
+        ".slide.active .datacard .node.key .disc"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "key",
+        "press"
+      ]
+    },
+    {
+      "id": "wavebob",
+      "file": "animations/wavebob.css",
+      "triggers": [
+        ".cover .wave svg"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "float",
+        "journey"
+      ]
+    },
+    {
+      "id": "sail",
+      "file": "animations/sail.css",
+      "triggers": [
+        ".slide.active .jship"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "motion",
+        "journey",
+        "travel"
+      ]
+    },
+    {
+      "id": "livep",
+      "file": "animations/livep.css",
+      "triggers": [
+        ".livebadge .dot"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "live",
+        "badge",
+        "pulse"
+      ]
+    },
+    {
+      "id": "toast-in",
+      "file": "animations/toast-in.css",
+      "triggers": [
+        ".slide.active .email-toast"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "entrance",
+        "notification",
+        "toast",
+        "up"
+      ]
+    },
+    {
+      "id": "accept-pulse",
+      "file": "animations/accept-pulse.css",
+      "triggers": [],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "cta",
+        "confirm",
+        "pulse"
+      ]
+    },
+    {
+      "id": "callring",
+      "file": "animations/callring.css",
+      "triggers": [
+        ".slide.active .call-card .cc-end"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "phone",
+        "call",
+        "pulse"
+      ]
+    },
+    {
+      "id": "piece-in",
+      "file": "animations/piece-in.css",
+      "triggers": [
+        ".slide.active .stitch .src"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "entrance",
+        "stagger",
+        "grid"
+      ]
+    },
+    {
+      "id": "t-rule-in",
+      "file": "animations/t-rule-in.css",
+      "triggers": [
+        ".slide.active .tslide .t-rule"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "entrance",
+        "rule",
+        "line",
+        "divider"
+      ]
+    },
+    {
+      "id": "win-close",
+      "file": "animations/win-close.css",
+      "triggers": [
+        ".slide.active .closing-win"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "exit",
+        "window",
+        "close"
+      ]
+    },
+    {
+      "id": "typeurl",
+      "file": "animations/typeurl.css",
+      "triggers": [
+        ".slide.active .bbar .u.typed"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "typing",
+        "browser",
+        "url"
+      ]
+    },
+    {
+      "id": "caretblink",
+      "file": "animations/caretblink.css",
+      "triggers": [
+        ".slide.active .bbar .u.typed"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "caret",
+        "typing"
+      ]
+    },
+    {
+      "id": "tapnum",
+      "file": "animations/tapnum.css",
+      "triggers": [
+        ".slide.active .ph-call"
+      ],
+      "sources": [
+        "po-cruises"
+      ],
+      "tags": [
+        "emphasis",
+        "tap",
+        "number",
+        "phone"
+      ]
+    },
+    {
+      "id": "blink",
+      "file": "animations/blink.css",
+      "triggers": [
+        ".typing span"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "emphasis",
+        "blink",
+        "cursor"
+      ]
+    },
+    {
+      "id": "panelSlideIn",
+      "file": "animations/panelSlideIn.css",
+      "triggers": [
+        ".panel.slidein"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "panel",
+        "side",
+        "left"
+      ]
+    },
+    {
+      "id": "chatSettleLeft",
+      "file": "animations/chatSettleLeft.css",
+      "triggers": [
+        ".body:not(.solo) .chat.slidein .chat-inner"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "chat",
+        "message",
+        "left"
+      ]
+    },
+    {
+      "id": "pf",
+      "file": "animations/pf.css",
+      "triggers": [
+        ".panel-fade"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "profile",
+        "fade"
+      ]
+    },
+    {
+      "id": "sendpop",
+      "file": "animations/sendpop.css",
+      "triggers": [
+        ".landing-intro .send.pop"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "emphasis",
+        "send",
+        "chat",
+        "pop"
+      ]
+    },
+    {
+      "id": "lineDraw",
+      "file": "animations/lineDraw.css",
+      "triggers": [
+        ".gdraw path.ln"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "line",
+        "draw",
+        "svg",
+        "chart"
+      ]
+    },
+    {
+      "id": "graphIn",
+      "file": "animations/graphIn.css",
+      "triggers": [
+        ".gdraw"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "chart",
+        "data",
+        "graph"
+      ]
+    },
+    {
+      "id": "barGrow",
+      "file": "animations/barGrow.css",
+      "triggers": [
+        ".an-big .fillb"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "bar",
+        "chart",
+        "data"
+      ]
+    },
+    {
+      "id": "launchPulse",
+      "file": "animations/launchPulse.css",
+      "triggers": [
+        "#launchBtn.firing"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "emphasis",
+        "launch",
+        "cta",
+        "pulse"
+      ]
+    },
+    {
+      "id": "tickdraw",
+      "file": "animations/tickdraw.css",
+      "triggers": [
+        ".ck .s.tickd .tk"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "draw",
+        "check",
+        "tick",
+        "svg"
+      ]
+    },
+    {
+      "id": "tickpop",
+      "file": "animations/tickpop.css",
+      "triggers": [
+        ".ck .s.tickd"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "check",
+        "tick",
+        "pop"
+      ]
+    },
+    {
+      "id": "flagpop",
+      "file": "animations/flagpop.css",
+      "triggers": [
+        ".ck.flag .s.tickd",
+        ".seg-flag.in"
+      ],
+      "sources": [
+        "coventry-bs",
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "flag",
+        "label",
+        "pop"
+      ],
+      "note": "merged: coventry flagPop file was lost to a Windows case-collision (same scale-pop family); triggers from both retained"
+    },
+    {
+      "id": "blobIn",
+      "file": "animations/blobIn.css",
+      "triggers": [
+        ".heat .bwrap .blob"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "blob",
+        "organic"
+      ]
+    },
+    {
+      "id": "blabIn",
+      "file": "animations/blabIn.css",
+      "triggers": [
+        ".heat .blab"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "bubble",
+        "chat"
+      ]
+    },
+    {
+      "id": "barRise",
+      "file": "animations/barRise.css",
+      "triggers": [
+        ".mbar .stack"
+      ],
+      "sources": [
+        "leap26-storyboard"
+      ],
+      "tags": [
+        "entrance",
+        "bar",
+        "chart",
+        "up",
+        "data"
+      ]
+    },
+    {
+      "id": "aiblink",
+      "file": "animations/aiblink.css",
+      "triggers": [
+        ".ac-caret",
+        ".ai-caret",
+        ".gen-caret"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "ai",
+        "indicator",
+        "blink"
+      ]
+    },
+    {
+      "id": "heartPop",
+      "file": "animations/heartPop.css",
+      "triggers": [],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "favourite",
+        "heart",
+        "pop"
+      ]
+    },
+    {
+      "id": "btnPress",
+      "file": "animations/btnPress.css",
+      "triggers": [
+        ".cont.press",
+        ".cv-btn.press"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "button",
+        "press",
+        "tap"
+      ]
+    },
+    {
+      "id": "planeFly",
+      "file": "animations/planeFly.css",
+      "triggers": [
+        ".sent .plane"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "motion",
+        "flight",
+        "travel",
+        "plane"
+      ]
+    },
+    {
+      "id": "xferFly",
+      "file": "animations/xferFly.css",
+      "triggers": [
+        ".tl-transfer.go .xfer-chip"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "motion",
+        "transfer",
+        "money",
+        "fly"
+      ]
+    },
+    {
+      "id": "ccDot",
+      "file": "animations/ccDot.css",
+      "triggers": [
+        ".cc-typing i"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "dot",
+        "indicator"
+      ]
+    },
+    {
+      "id": "advPulse",
+      "file": "animations/advPulse.css",
+      "triggers": [
+        ".adv-call::before",
+        ".conv-dotlive",
+        ".cp-live i",
+        ".jr-card.qualified .jr-sdot"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "adviser",
+        "pulse"
+      ]
+    },
+    {
+      "id": "advCaret",
+      "file": "animations/advCaret.css",
+      "triggers": [
+        ".adv-q-caret"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "caret",
+        "typing"
+      ]
+    },
+    {
+      "id": "psSpin",
+      "file": "animations/psSpin.css",
+      "triggers": [
+        ".ps-ring.d"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "spinner",
+        "loading"
+      ]
+    },
+    {
+      "id": "genUsePulse",
+      "file": "animations/genUsePulse.css",
+      "triggers": [
+        ".gen-dialog.armed .gen-use"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "genai",
+        "hint",
+        "pulse"
+      ]
+    },
+    {
+      "id": "genHintPulse",
+      "file": "animations/genHintPulse.css",
+      "triggers": [
+        ".gen-dialog.armed .gen-hint"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "genai",
+        "hint",
+        "pulse"
+      ]
+    },
+    {
+      "id": "convPop",
+      "file": "animations/convPop.css",
+      "triggers": [
+        ".conv-p.in"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "entrance",
+        "conversion",
+        "stat",
+        "pop"
+      ]
+    },
+    {
+      "id": "jflow",
+      "file": "animations/jflow.css",
+      "triggers": [
+        ".j-node.in .j-dot"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "motion",
+        "journey",
+        "flow"
+      ]
+    },
+    {
+      "id": "ptBell",
+      "file": "animations/ptBell.css",
+      "triggers": [
+        ".pt-bellwrap.ring"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "notification",
+        "bell"
+      ]
+    },
+    {
+      "id": "hubBeat",
+      "file": "animations/hubBeat.css",
+      "triggers": [
+        ".hub-core.beat .hub-pulse"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "hub",
+        "identity",
+        "pulse"
+      ]
+    },
+    {
+      "id": "jrHintPulse",
+      "file": "animations/jrHintPulse.css",
+      "triggers": [
+        ".jr-hint.show",
+        ".tl-hint.show"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "hint",
+        "pulse"
+      ]
+    },
+    {
+      "id": "bcHintPulse",
+      "file": "animations/bcHintPulse.css",
+      "triggers": [
+        ".bc-hint.show"
+      ],
+      "sources": [
+        "coventry-bs"
+      ],
+      "tags": [
+        "emphasis",
+        "hint",
+        "pulse",
+        "concierge"
+      ]
+    },
+    {
+      "id": "path-draw",
+      "file": "animations/path-draw.css",
+      "triggers": [
+        ".slide.active .path-draw"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "node-pop",
+      "file": "animations/node-pop.css",
+      "triggers": [
+        ".slide.active .node-pop"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "notif-drop",
+      "file": "animations/notif-drop.css",
+      "triggers": [
+        ".slide.active .notif-drop"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "tap-ripple",
+      "file": "animations/tap-ripple.css",
+      "triggers": [
+        ".slide.active .tap-ripple"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "chip-cascade",
+      "file": "animations/chip-cascade.css",
+      "triggers": [
+        ".slide.active .chip-cascade"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "word-rise",
+      "file": "animations/word-rise.css",
+      "triggers": [
+        ".slide.active .word-rise"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "glare-sweep",
+      "file": "animations/glare-sweep.css",
+      "triggers": [
+        ".slide.active .glare-sweep::after"
+      ],
+      "sources": [
+        "monzo-practice"
+      ],
+      "tags": [
+        "reusable",
+        "css-only",
+        "brand-agnostic"
+      ]
+    },
+    {
+      "id": "fade-in-down",
+      "file": "animations/fade-in-down.css",
+      "triggers": [
+        ".slide.active .fade-in-down"
+      ],
+      "tags": [
+        "entrance",
+        "down",
+        "standard",
+        "text",
+        "card"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "top-anchored reveals: headers, dropped-in banners",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-in-left",
+      "file": "animations/fade-in-left.css",
+      "triggers": [
+        ".slide.active .fade-in-left"
+      ],
+      "tags": [
+        "entrance",
+        "left",
+        "standard",
+        "card",
+        "photo",
+        "chip"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "lateral entrance for split layouts, timeline steps, persona panels",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-in-right",
+      "file": "animations/fade-in-right.css",
+      "triggers": [
+        ".slide.active .fade-in-right"
+      ],
+      "tags": [
+        "entrance",
+        "right",
+        "standard",
+        "card",
+        "photo",
+        "chip"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "mirror of fade-in-left; right-hand UI overlays, reply beats",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "back-in-up",
+      "file": "animations/back-in-up.css",
+      "triggers": [
+        ".slide.active .back-in-up"
+      ],
+      "tags": [
+        "entrance",
+        "up",
+        "showy",
+        "photo",
+        "device",
+        "card"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "two-phase hero arrival: glides in small, then snaps to full size",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "light-speed-in-right",
+      "file": "animations/light-speed-in-right.css",
+      "triggers": [
+        ".slide.active .light-speed-in-right"
+      ],
+      "tags": [
+        "entrance",
+        "right",
+        "showy",
+        "chip",
+        "text"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "fast skewed dash-in that reads as speed: real-time callouts, toasts",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "flip-in-x",
+      "file": "animations/flip-in-x.css",
+      "triggers": [
+        ".slide.active .flip-in-x"
+      ],
+      "tags": [
+        "entrance",
+        "showy",
+        "stat",
+        "card"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "3D top-hinge card flip for KPI/stat reveals",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-out",
+      "file": "animations/fade-out.css",
+      "triggers": [
+        ".slide.active .fade-out"
+      ],
+      "tags": [
+        "exit",
+        "subtle",
+        "text",
+        "card",
+        "photo",
+        "chip"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "baseline exit: clear content between beats within a slide",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-out-up",
+      "file": "animations/fade-out-up.css",
+      "triggers": [
+        ".slide.active .fade-out-up"
+      ],
+      "tags": [
+        "exit",
+        "up",
+        "standard",
+        "text",
+        "card"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "content departs upward, mirroring rise",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-out-down",
+      "file": "animations/fade-out-down.css",
+      "triggers": [
+        ".slide.active .fade-out-down"
+      ],
+      "tags": [
+        "exit",
+        "down",
+        "standard",
+        "card",
+        "chip"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "downward dismissal: sheets, toasts, notification banners",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-out-left",
+      "file": "animations/fade-out-left.css",
+      "triggers": [
+        ".slide.active .fade-out-left"
+      ],
+      "tags": [
+        "exit",
+        "left",
+        "standard",
+        "card",
+        "photo"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "hand-off exit: a step slides off left as the next enters right",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "fade-out-right",
+      "file": "animations/fade-out-right.css",
+      "triggers": [
+        ".slide.active .fade-out-right"
+      ],
+      "tags": [
+        "exit",
+        "right",
+        "standard",
+        "card",
+        "chip"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "swipe-away dismissal: decline/skip beats",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "zoom-out",
+      "file": "animations/zoom-out.css",
+      "triggers": [
+        ".slide.active .zoom-out"
+      ],
+      "tags": [
+        "exit",
+        "standard",
+        "card",
+        "stat",
+        "photo"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "recede-and-fade exit for cards and stats",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "back-out-down",
+      "file": "animations/back-out-down.css",
+      "triggers": [
+        ".slide.active .back-out-down"
+      ],
+      "tags": [
+        "exit",
+        "down",
+        "showy",
+        "photo",
+        "device"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "two-phase hero departure: shrinks, then glides out",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "head-shake",
+      "file": "animations/head-shake.css",
+      "triggers": [
+        ".slide.active .head-shake"
+      ],
+      "tags": [
+        "emphasis",
+        "subtle",
+        "card",
+        "chip",
+        "device"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "gentle no-shake: a declined payment, an error moment",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "swing",
+      "file": "animations/swing.css",
+      "triggers": [
+        ".slide.active .swing"
+      ],
+      "tags": [
+        "emphasis",
+        "showy",
+        "chip",
+        "card"
+      ],
+      "sources": [
+        "house"
+      ],
+      "note": "pendulum wobble on a hung element (tag, flag, badge)",
+      "license": "house (independently implemented; animate.css v4 NOT intaken - Hippocratic-2.1)"
+    },
+    {
+      "id": "puff-in",
+      "file": "animations/puff-in.css",
+      "triggers": [
+        ".slide.active .puff-in"
+      ],
+      "tags": [
+        "entrance",
+        "showy",
+        "text",
+        "stat",
+        "photo"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "vanish-in",
+      "file": "animations/vanish-in.css",
+      "triggers": [
+        ".slide.active .vanish-in"
+      ],
+      "tags": [
+        "entrance",
+        "showy",
+        "photo",
+        "device",
+        "stat"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "vanish-out",
+      "file": "animations/vanish-out.css",
+      "triggers": [
+        ".slide.active .vanish-out"
+      ],
+      "tags": [
+        "exit",
+        "showy",
+        "photo",
+        "card",
+        "device"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "space-in-up",
+      "file": "animations/space-in-up.css",
+      "triggers": [
+        ".slide.active .space-in-up"
+      ],
+      "tags": [
+        "entrance",
+        "up",
+        "showy",
+        "card",
+        "photo",
+        "device"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "space-in-down",
+      "file": "animations/space-in-down.css",
+      "triggers": [
+        ".slide.active .space-in-down"
+      ],
+      "tags": [
+        "entrance",
+        "down",
+        "showy",
+        "card",
+        "photo",
+        "device"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "space-out-up",
+      "file": "animations/space-out-up.css",
+      "triggers": [
+        ".slide.active .space-out-up"
+      ],
+      "tags": [
+        "exit",
+        "up",
+        "showy",
+        "card",
+        "photo"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "boing-in-up",
+      "file": "animations/boing-in-up.css",
+      "triggers": [
+        ".slide.active .boing-in-up"
+      ],
+      "tags": [
+        "entrance",
+        "up",
+        "showy",
+        "card",
+        "chip",
+        "device"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    },
+    {
+      "id": "perspective-down-return",
+      "file": "animations/perspective-down-return.css",
+      "triggers": [
+        ".slide.active .perspective-down-return"
+      ],
+      "tags": [
+        "entrance",
+        "up",
+        "showy",
+        "device",
+        "card",
+        "photo"
+      ],
+      "sources": [
+        "magic"
+      ],
+      "note": "showy - use sparingly, one per slide",
+      "license": "MIT"
+    }
+  ],
+  "screens": [
+    {
+      "type": "cover",
+      "dir": "screens/cover/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Co-brand opening — customer × Adobe lockup, title, animated wave."
+    },
+    {
+      "type": "journey-wave",
+      "dir": "screens/journey-wave/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Animated journey overview — wave path with a sailing ship and icon nodes anchored to the curve."
+    },
+    {
+      "type": "cards-row",
+      "dir": "screens/cards-row/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Row of profile/perspective cards (e.g. three personas or three viewpoints)."
+    },
+    {
+      "type": "persona-intro",
+      "dir": "screens/persona-intro/",
+      "count_in_source": 2,
+      "sources": [
+        "coventry-bs",
+        "po-cruises"
+      ],
+      "description": "Full-bleed persona introduction — portrait + name/role + traits."
+    },
+    {
+      "type": "browser-mock",
+      "dir": "screens/browser-mock/",
+      "count_in_source": 8,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Desktop browser frame around a static or interactive (iframe, ?p= deep-link) customer site/app screen."
+    },
+    {
+      "type": "passage-of-time",
+      "dir": "screens/passage-of-time/",
+      "count_in_source": 2,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Interstitial time-jump title card (e.g. '25 minutes later', '8 weeks later')."
+    },
+    {
+      "type": "mobile-email",
+      "dir": "screens/mobile-email/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Phone frame with an iOS-Mail-grade email — notification slides in → opens → CTA pulses."
+    },
+    {
+      "type": "phone-call",
+      "dir": "screens/phone-call/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Outbound/active call screen over a persona photo, with a booking-confirmed receipt card."
+    },
+    {
+      "type": "data-reveal",
+      "dir": "screens/data-reveal/",
+      "count_in_source": 2,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Dark gradient data card — touchpoint chain + big count-up money figure + breakdown."
+    },
+    {
+      "type": "divider",
+      "dir": "screens/divider/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Chapter divider — full-bleed gradient with a persona name/role (new act)."
+    },
+    {
+      "type": "propensity-gauges",
+      "dir": "screens/propensity-gauges/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Radial gauges counting up to propensity / score %s."
+    },
+    {
+      "type": "agent-list",
+      "dir": "screens/agent-list/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "List of AI agents, each prompt → outcome (the marketer's toolkit view)."
+    },
+    {
+      "type": "kpi-dashboard",
+      "dir": "screens/kpi-dashboard/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "Executive KPI tile grid — count-up metrics, light + dark tiles."
+    },
+    {
+      "type": "closing",
+      "dir": "screens/closing/",
+      "count_in_source": 1,
+      "sources": [
+        "po-cruises"
+      ],
+      "description": "TODO: one line on when to use closing"
+    },
+    {
+      "type": "ai-chat-discovery",
+      "dir": "screens/ai-chat-discovery/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use ai-chat-discovery"
+    },
+    {
+      "type": "tablet-web-mock",
+      "dir": "screens/tablet-web-mock/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use tablet-web-mock"
+    },
+    {
+      "type": "phone-app-mock",
+      "dir": "screens/phone-app-mock/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use phone-app-mock"
+    },
+    {
+      "type": "mobile-onboarding",
+      "dir": "screens/mobile-onboarding/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use mobile-onboarding"
+    },
+    {
+      "type": "money-transfer",
+      "dir": "screens/money-transfer/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use money-transfer"
+    },
+    {
+      "type": "savings-results",
+      "dir": "screens/savings-results/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use savings-results"
+    },
+    {
+      "type": "audience-segmentation",
+      "dir": "screens/audience-segmentation/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use audience-segmentation"
+    },
+    {
+      "type": "email-mock",
+      "dir": "screens/email-mock/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use email-mock"
+    },
+    {
+      "type": "concierge-chat",
+      "dir": "screens/concierge-chat/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use concierge-chat"
+    },
+    {
+      "type": "adviser-qa",
+      "dir": "screens/adviser-qa/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use adviser-qa"
+    },
+    {
+      "type": "analytics-dashboard",
+      "dir": "screens/analytics-dashboard/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use analytics-dashboard"
+    },
+    {
+      "type": "optimizer-dashboard",
+      "dir": "screens/optimizer-dashboard/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use optimizer-dashboard"
+    },
+    {
+      "type": "profile-stitching",
+      "dir": "screens/profile-stitching/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use profile-stitching"
+    },
+    {
+      "type": "genstudio-generate",
+      "dir": "screens/genstudio-generate/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use genstudio-generate"
+    },
+    {
+      "type": "consent-conversions",
+      "dir": "screens/consent-conversions/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use consent-conversions"
+    },
+    {
+      "type": "lifecycle-trigger",
+      "dir": "screens/lifecycle-trigger/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use lifecycle-trigger"
+    },
+    {
+      "type": "identity-hub",
+      "dir": "screens/identity-hub/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use identity-hub"
+    },
+    {
+      "type": "realtime-rule",
+      "dir": "screens/realtime-rule/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use realtime-rule"
+    },
+    {
+      "type": "agent-orchestration",
+      "dir": "screens/agent-orchestration/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use agent-orchestration"
+    },
+    {
+      "type": "brand-concierge",
+      "dir": "screens/brand-concierge/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "Adobe Brand Concierge scene: conversational AI-assistant moment (chat panel + persona photo panel, dual-pane with eyebrow/step-number head) for 'the customer asks, the brand answers' beats. Harvested from coventry-bs and still brand-bound (Coventry copy + embedded base64 photo) — tokenize copy slots and replace the photo before reuse; the photo panel is the persona-image slot.",
+      "tags": [
+        "adobe-ui",
+        "brand-concierge",
+        "chat",
+        "ai-assistant",
+        "conversational",
+        "photo"
+      ]
+    },
+    {
+      "type": "adviser-portal",
+      "dir": "screens/adviser-portal/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use adviser-portal"
+    },
+    {
+      "type": "ab-performance",
+      "dir": "screens/ab-performance/",
+      "count_in_source": 1,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use ab-performance"
+    },
+    {
+      "type": "journey-recap",
+      "dir": "screens/journey-recap/",
+      "count_in_source": 2,
+      "sources": [
+        "coventry-bs"
+      ],
+      "description": "TODO: one line on when to use journey-recap"
+    },
+    {
+      "type": "aep-xray",
+      "dir": "screens/aep-xray/",
+      "count_in_source": 1,
+      "sources": [
+        "ksia-reference-screenshot-toby-2026-07-14",
+        "progressive-story-time-toby-2026-07-20"
+      ],
+      "tags": [
+        "adobe-ui",
+        "aep",
+        "profile",
+        "real-time-customer-profile",
+        "identity",
+        "segmentation",
+        "experience-events",
+        "orchestration",
+        "for-the-room",
+        "progressive",
+        "story-time",
+        "interactive",
+        "exact-match"
+      ],
+      "note": "Adobe product UI, fixed dark neutrals - parameterize data only via AEP_DATA, never rebrand (blue is Adobe's own accent). Persona photo = Firefly/persona repo (sample uses a silhouette placeholder). DERIVED artifact: AEP_DATA is generated from the finished storyboard as a late build step (proposed id aep_profile) - each touchpoint becomes an event, each revealed detail a field, each stitched id an identity, each qualifying behaviour a segment, all tagged with the story checkpoint. Drop at every 'cut to the platform' beat and call AEP.setStep(k).",
+      "description": "Adobe Experience Platform Real-Time Customer Profile panel, exact match to the KSIA reference, upgraded 20 Jul 2026 to the full timeline plus progressive story-time. Adobe Experience Cloud header; REAL-TIME CUSTOMER PROFILE band with customer-profile (photo, fields, consent checks), identity (Desktop/Mobile/Email/ECID/CRM IDs) and segmentation cards; EXPERIENCE EVENTS band with an icon interaction grid on dotted timelines (web/email/mail-open/phone/mirror/qr). Adobe product UI in FIXED dark neutrals (Adobe-surface exception), data-only via AEP_DATA. Every field, identity, segment and event carries a step (the story checkpoint that first captured it); AEP.setStep(n)/next()/prev()/all() shows the profile AS IT STOOD at that checkpoint with newly captured items glowing in, so a deck can cut to it at several points in the journey and each time it holds only what has been captured so far. On load it renders the full profile. Use on every 'cut to the platform' orchestration beat of a journey deck."
+    },
+    {
+      "type": "cx-enterprise-home",
+      "dir": "screens/cx-enterprise-home/",
+      "count_in_source": 1,
+      "sources": [
+        "figma:sPKvHs4sHSSl6QId4Mg39b#538-36576 (Summit-2026, 'Home with new EC colors', 17 Jul 2026)"
+      ],
+      "tags": [
+        "adobe-ui",
+        "experience-cloud",
+        "ai-home",
+        "coworker",
+        "digest",
+        "prompt-bar",
+        "figma-sourced",
+        "exact-match",
+        "new-ec-colors"
+      ],
+      "note": "Adobe product UI, published Figma tokens - parameterize data only, never rebrand. Font: Source Sans 3 stands in for Adobe Clean (licence).",
+      "description": "Adobe Experience Cloud AI home ('Home with new EC colors'), built from the real Figma source rather than a screenshot: Summit-2026 file sPKvHs4sHSSl6QId4Mg39b node 538:36576, pulled 17 Jul 2026 via the Dev Mode MCP (get_design_context for geometry, get_variable_defs for the published tokens). Shell header, AI-modality left rail, indigo 'new EC colors' stage wash under a hue-sweep banner, hero with persona greeting + suggested-prompt chips + prompt bar, 'Continue where you left off' (journey card with two flow nodes, then a 3x2 card grid of sparkline digests and gradient resume cards), 'Recommended skills' and 'Suggested prompts'. This is the surface the Coworker/AI-assistant beat of a deck should open on, and it supersedes hand-drawn approximations of the CX home. Adobe product UI in Adobe's own tokens: parameterize DATA ONLY via data-slot, never rebrand the colours to a customer palette."
+    },
+    {
+      "type": "photo-composite",
+      "dir": "screens/photo-composite/",
+      "count_in_source": 1,
+      "sources": [
+        "ksia-reference-style",
+        "monzo-practice"
+      ],
+      "tags": [
+        "photo-led",
+        "persona",
+        "phone",
+        "laptop",
+        "composite",
+        "house-style",
+        "blend"
+      ],
+      "note": "REQUIRED pattern for any device slide - persona photo layer, scene-beat prompt, face clear, seamless blend",
+      "description": "Persona photo + device mock + text panel — the photo-led house style (KSIA/BAT reference). Encodes the non-skippable imagery rules: persona layer on every device slide (or data-no-persona reason), scene-beat-derived Firefly prompt, face never covered by the mock, 6-stop seamless panel-to-photo blend, min type scale. Use for any scene slide where the persona experiences a device moment."
+    },
+    {
+      "type": "checkout",
+      "dir": "screens/checkout/",
+      "count_in_source": 1,
+      "sources": [
+        "hand-built"
+      ],
+      "tags": [
+        "checkout",
+        "payment",
+        "commerce",
+        "purchase",
+        "phone",
+        "cta",
+        "journey"
+      ],
+      "description": "In-app checkout / payment moment (phone mock): order summary rows, total, saved payment method with last-4, brand-accent Pay CTA with tap-ripple. Dual-pane with narrative rail. Use for the commercial beat of a journey deck — completing a purchase or upgrade in one tap."
+    },
+    {
+      "type": "boarding-pass",
+      "dir": "screens/boarding-pass/",
+      "count_in_source": 1,
+      "sources": [
+        "hand-built"
+      ],
+      "tags": [
+        "boarding-pass",
+        "wallet",
+        "travel",
+        "airport",
+        "airline",
+        "gate",
+        "qr",
+        "phone",
+        "journey"
+      ],
+      "description": "Mobile boarding pass / wallet-pass moment: wallet-style pass card (airline brand, route codes and times, passenger/seat/gate/boarding grid), pure-CSS QR placeholder block, and a gate-change notification banner dropping in via notif-drop. Travel-journey staple for airport and airline stories (KSIA-class)."
+    },
+    {
+      "type": "map-static",
+      "dir": "screens/map-static/",
+      "count_in_source": 1,
+      "sources": [
+        "hand-built"
+      ],
+      "tags": [
+        "map",
+        "route",
+        "travel",
+        "journey",
+        "eta",
+        "offline",
+        "svg",
+        "tracking"
+      ],
+      "description": "Offline map moment: stylized generic SVG map (roads, park, water — city-agnostic, brand-token tinted) with a route polyline that draws itself (path-draw), origin/destination pins (node-pop) and an ETA chip. For on-her-way / store-finder / delivery-tracking beats. Swap the SVG layer for a licensed offline static map image at build time; never an online tile service."
+    },
+    {
+      "type": "dual-pane-narrative",
+      "dir": "screens/dual-pane-narrative/",
+      "count_in_source": 1,
+      "sources": [
+        "monzo"
+      ],
+      "description": "Dual-pane journey slide harvested from monzo: narrative rail left (eyebrow, step number, headline, quote), phone mock right (balance, product cards, chips, CTA). Generalized, rebrand via :root tokens. Use for story-beat scenes where the narration sits beside the device.",
+      "tags": [
+        "journey",
+        "narrative-rail",
+        "phone",
+        "dual-pane",
+        "story-beat"
+      ]
+    }
+  ],
+  "structures": [
+    {
+      "id": "po-cruises",
+      "sequence": [
+        "cover",
+        "journey-wave",
+        "cards-row",
+        "persona-intro",
+        "persona-intro",
+        "browser-mock",
+        "browser-mock",
+        "passage-of-time",
+        "browser-mock",
+        "browser-mock",
+        "browser-mock",
+        "browser-mock",
+        "mobile-email",
+        "phone-call",
+        "data-reveal",
+        "passage-of-time",
+        "browser-mock",
+        "data-reveal",
+        "divider",
+        "propensity-gauges",
+        "browser-mock",
+        "agent-list",
+        "kpi-dashboard",
+        "closing"
+      ],
+      "slides": 24,
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "id": "coventry-bs",
+      "sequence": [
+        "persona-intro",
+        "ai-chat-discovery",
+        "tablet-web-mock",
+        "phone-app-mock",
+        "mobile-onboarding",
+        "money-transfer",
+        "savings-results",
+        "audience-segmentation",
+        "email-mock",
+        "concierge-chat",
+        "adviser-qa",
+        "analytics-dashboard",
+        "persona-intro",
+        "optimizer-dashboard",
+        "profile-stitching",
+        "genstudio-generate",
+        "consent-conversions",
+        "lifecycle-trigger",
+        "identity-hub",
+        "realtime-rule",
+        "agent-orchestration",
+        "brand-concierge",
+        "adviser-portal",
+        "ab-performance",
+        "journey-recap",
+        "journey-recap"
+      ],
+      "slides": 26,
+      "rendered": true,
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "id": "monzo",
+      "sequence": [
+        "cover",
+        "persona-intro",
+        "dual-pane-narrative",
+        "dual-pane-narrative",
+        "dual-pane-narrative",
+        "dual-pane-narrative",
+        "custom",
+        "custom",
+        "custom"
+      ],
+      "slides": 9,
+      "rendered": false,
+      "sources": [],
+      "first_source": "monzo",
+      "verified": false,
+      "rev": 2
+    }
+  ],
+  "components": [
+    {
+      "id": "confirmed-receipt-card",
+      "file": "harvested/confirmed-receipt-card.html",
+      "root": "confirmed-card",
+      "sources": [
+        "coventry-bs",
+        "po-cruises"
+      ]
+    },
+    {
+      "id": "abandon-overlay",
+      "file": "harvested/abandon-overlay.html",
+      "root": "abandon-card",
+      "sources": [
+        "coventry-bs",
+        "po-cruises"
+      ]
+    },
+    {
+      "id": "journey-stage-bar",
+      "file": "harvested/journey-stage-bar.html",
+      "root": "stagebar",
+      "sources": [
+        "coventry-bs",
+        "po-cruises"
+      ]
+    },
+    {
+      "id": "numbered-step-disc",
+      "file": "harvested/numbered-step-disc.html",
+      "root": "numdisc",
+      "sources": [
+        "coventry-bs",
+        "po-cruises"
+      ]
+    },
+    {
+      "id": "live-interactive-badge",
+      "file": "harvested/live-interactive-badge.html",
+      "root": "livebadge",
+      "sources": [
+        "coventry-bs",
+        "po-cruises"
+      ]
+    },
+    {
+      "id": "workplan-rail",
+      "file": "elements/workplan-rail.html",
+      "root": "wpr",
+      "sources": [
+        "cx-coworker-chat (extracted)",
+        "claude-design-t1 (mechanics)"
+      ],
+      "tags": [
+        "agentic",
+        "workplan",
+        "agent-badges",
+        "tick-through",
+        "artifacts",
+        "approval",
+        "interactive",
+        "reskinnable",
+        "coworker-choreography",
+        "T1"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "The agentic workplan rail as a reusable token-driven element (T1 of the interactive backlog): plan title, status line (planned / running step n / done, held for your approval), step counter pill, 4-6 named steps with agent badges that tick through on a timer with a working indicator, and staggered artifact cards on completion. Drive it with WPR.run()/WPR.step(n)/WPR.reset() or the optional on-stage buttons. Use on the agentic beat of any customer story; the Coworker demo remains the Adobe-surface variant.",
+      "note": "NO global key bindings by design: arrows belong to deck navigation, drive via the API. All copy in WPR_DATA; colour only from role tokens (verified: done-state takes --brand under a Monzo token set). Cadence via --wpr-cadence."
+    },
+    {
+      "id": "persona-switch",
+      "file": "elements/persona-switch.html",
+      "root": "psw",
+      "sources": [
+        "claude-design-t4 (mechanics)"
+      ],
+      "tags": [
+        "persona",
+        "personalisation",
+        "segment",
+        "same-page-three-plays",
+        "hero",
+        "offer",
+        "products",
+        "morph",
+        "interactive",
+        "reskinnable",
+        "T4"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "One page, morphed per persona (T4 of the interactive backlog): a browser-framed page whose hero, offer pill, three product cards and notification toast all swap in place when a persona chip is picked. Fade-swap engine with a transition lock and queued switches, so rapid clicking never glitches; layout is pixel-stable, only content and colour change. Drive with the chips or PSW.set(i)/next()/prev()/reset(). Use for the same-moment-three-customers beat of any personalisation story.",
+      "note": "NO global key bindings by design. Persona art is token-derived gradients (zero image work on reskin); all copy and personas in PSW_DATA, the Maya/Dev/Priya trio is sample data."
+    },
+    {
+      "id": "compare-wipe",
+      "file": "elements/compare-wipe.html",
+      "root": "cwp",
+      "sources": [
+        "claude-design-t3 (mechanics)"
+      ],
+      "tags": [
+        "before-after",
+        "comparison",
+        "wipe",
+        "drag",
+        "divider",
+        "today-vs-orchestrated",
+        "batch-vs-moment",
+        "email",
+        "device",
+        "interactive",
+        "reskinnable",
+        "T3"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "The draggable before/after wipe (T3 of the interactive backlog): two identical scene compositions layered (copy block + message-on-device), a divider the presenter drags to reveal the after side, with snap points at 0/50/100 and double-click to recentre. The before side is a deliberately grey world; the after side takes the customer tokens, so the contrast IS the message. Drive by dragging or CWP.set(pct, snap)/CWP.reset(). Use for the one-blast-versus-one-moment beat that opens most stories.",
+      "note": "NO document key bindings; the internal a11y range answers arrows only while presenter-focused. Before-side greys are hardcoded on purpose (outside the token contract); scenes and copy in CWP_DATA. Device mock is a generic rounded frame, no camera."
+    },
+    {
+      "id": "value-dial",
+      "file": "elements/value-dial.html",
+      "root": "vdl",
+      "sources": [
+        "claude-design-t2 (mechanics; the ROI-pitch frame was retired)"
+      ],
+      "tags": [
+        "calculator",
+        "live-number",
+        "sliders",
+        "count-up",
+        "what-if",
+        "outcome",
+        "assumptions",
+        "interactive",
+        "reskinnable",
+        "T2"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "A generic live-number instrument (from T2 of the interactive backlog): data-defined sliders on the left, a big eased count-up outcome plus secondary outcomes on the right, any math via VDL_DATA.compute, with an honest assumptions accordion. NOT an ROI calculator: we sell experience stories, not spreadsheet promises, so use it to make ONE story number playable (minutes given back, moments caught in time, orders rescued). Drive with the sliders or VDL.set(key, value)/reset()/values(). Kin: big-number-money-reveal is the animated payoff version; this is the playable version.",
+      "note": "NO global key bindings; sliders answer arrows only while presenter-focused. Inputs clamp (range attrs + guarded reads, no NaN paths). All ranges, labels, formats and the compute() live in VDL_DATA; sample data frames service time given back."
+    },
+    {
+      "id": "proof-strip",
+      "file": "elements/proof-strip.html",
+      "root": "pfs",
+      "sources": [
+        "field-guide stat tiles (extracted)"
+      ],
+      "tags": [
+        "proof",
+        "results",
+        "outcomes",
+        "kpi",
+        "stat",
+        "count-up",
+        "closing-slide",
+        "interactive",
+        "reskinnable"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "The closing-slide outcomes row: four stat tiles whose numbers count up (eased, decimals supported) when the strip enters view, or on PFS.play(); PFS.reset() re-arms it. Extracted from the field guide's library stat tiles because every deck was rebuilding the pattern by hand for its proof slide. Kin: big-number-money-reveal is the single dramatic money moment; this is the row of smaller proofs.",
+      "note": "PROOF IS NEVER INVENTED: shipped values must be the customer's own case numbers or a cited benchmark; the banked numbers are placeholder shapes only. If there is no honest number, cut the tile. NO key bindings."
+    },
+    {
+      "id": "two-act-sync",
+      "file": "elements/two-act-sync.html",
+      "root": "tas",
+      "sources": [
+        "claude-design-t15 (choreography held)"
+      ],
+      "tags": [
+        "two-act",
+        "behind-the-scenes",
+        "meanwhile",
+        "customer-and-system",
+        "sync",
+        "wire-pulse",
+        "beat-stepper",
+        "cdp",
+        "journey-optimizer",
+        "one-adobe",
+        "interactive",
+        "reskinnable",
+        "T15"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "The two-act story played in sync (T15 of the interactive backlog): the customer's moment on the left, the system behind it on the right, one beat stepper driving both from a single state index so they can never desync. Each advance sends a hot pulse down a rounded-elbow wire and the product card lights only when the pulse arrives, so cause visibly precedes effect; finished cards settle to quiet ticks as the right pane accumulates history. Drive with the dots or TAS.go(n)/next()/prev()/play()/reset(). Use for the replay-with-the-machinery-showing beat: act two of a two-act story, or the how-Adobe-did-it moment after any journey plays.",
+      "note": "NO global key bindings. Left pane takes the customer tokens; the right pane is a fixed Adobe-neutral inset (blue #3B63FB) BY DESIGN, outside the token contract. Wires measure the live layout; if mounted hidden, call TAS.layout() after reveal. Beats, products, copy and every duration live in TAS_DATA."
+    },
+    {
+      "id": "choice-beat",
+      "file": "elements/choice-beat.html",
+      "root": "chb",
+      "sources": [
+        "claude-design-t16 (choreography held)"
+      ],
+      "tags": [
+        "choice",
+        "decision",
+        "fork",
+        "branch",
+        "rejoin",
+        "audience-participation",
+        "workshop",
+        "fulfilment",
+        "options",
+        "trace",
+        "interactive",
+        "reskinnable",
+        "T16"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "The fork moment (T16 of the interactive backlog): a setup line, three choice chips, and a branch that plays in place. The picked chip sweeps to the brand colour while the others shrink to quiet also-possible pills, a wire draws itself to the outcome card (clip-path reveal, staggered rows), and Continue-the-story collapses the branch into a one-line trace pill that rides the spine with ONE merge pulse. Drive with the chips or CHB.choose(i)/rejoin()/reset(); re-choosing reverses fast and never shows two branches. Use for live-room participation (ask the audience, click what they shout), discovery workshops (pick the promise with the customer), and interactive demos; NOT for narrated linear decks, whose spine is fixed on purpose.",
+      "note": "NO global key bindings. Wire maths is scale-proof (client-rect deltas converted to viewBox units), so the panel survives transform:scale() deck mounts. All copy, choices, the trace template and every duration in CHB_DATA; the fulfilment trio is sample data."
+    },
+    {
+      "id": "living-phone",
+      "file": "elements/living-phone.html",
+      "root": "lpm",
+      "sources": [
+        "house-built (extraction: mobile-phone-frame + phone-statusbar + mobile-lockscreen-notification)"
+      ],
+      "tags": [
+        "phone",
+        "notification",
+        "push",
+        "right-moment",
+        "lock-screen",
+        "nudge",
+        "tap",
+        "journey",
+        "device",
+        "generic-frame",
+        "product-page",
+        "retail",
+        "fashion",
+        "apparel",
+        "back-in-stock",
+        "restock",
+        "size",
+        "delivery",
+        "add-to-bag",
+        "interactive",
+        "reskinnable",
+        "T14"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "The right-message-right-moment beat as one living phone (T14 of the interactive backlog): a locked phone wakes, the push drops in with an overshoot and one ring pulse, then on open the notification lifts up and off the screen while the lock clock blurs away and a real product screen builds in beneath it (app bar with the brand logo, product photo and a back-in-stock pill, product name and price, selectable size or spec chips, an availability or delivery card, one action), its sections cascading; the action draws its check with a soft pulse and slides the confirmation and receipt up. Presenter-paced instead of a timed animation: the phone itself is the tap surface (tap to wake, tap the card, tap the action), or drive it with LPM.push()/open()/act()/play()/reset(). Fully data-driven and reskinnable: two banked sample shapes, home-restock (physical retail, in-store hold) and fashion-restock (online apparel, back-in-your-size with size chips and free delivery), picked via window.LPM_PRESET, or override the whole object via window.LPM_DATA (see demos/asos-living-phone for a real ASOS product-page instance). Use for the arriving-notification beat every journey story has: the Monzo nudge, the KSIA gate change, the Northwind reroute, or any retail back-in-stock or back-in-your-size moment.",
+      "note": "NO global key bindings. Built by extraction after the T14 Design pass was rejected. Generic rounded frame, no camera dot, no notch (house rule + asset-licensing); a real bottom tab bar and home indicator complete the app chrome (bag tab shows a count once done). app slots: logo (app-bar mark), heroImage (product photo; else a token-gradient placeholder, where LICENSED photography drops in), eyebrow, options (strings or {label,active} size chips), callout {icon:pin|truck|clock|tag}, and followUp {icon,prompt,sub,cta,confirm} for an opt-in value offered after the action (the AJO beat, e.g. a reminder before a delivery cutoff; tapping confirms in place and never advances the phone). All copy and durations in LPM_DATA; play() uses a separate timer pool from manual calls so a mid-play tap cancels the take cleanly."
+    },
+    {
+      "id": "big-number-money-reveal",
+      "file": "elements/big-number-money-reveal.html",
+      "tags": [
+        "stat",
+        "count-up",
+        "payoff",
+        "money"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "browser-frame",
+      "file": "elements/browser-frame.html",
+      "tags": [
+        "device-frame",
+        "browser",
+        "desktop",
+        "mock"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "browser-url-typing-animation",
+      "file": "elements/browser-url-typing-animation.html",
+      "tags": [
+        "browser",
+        "typing",
+        "url",
+        "animation"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "cja-data-inset",
+      "file": "elements/cja-data-inset.html",
+      "tags": [
+        "adobe-ui",
+        "cja",
+        "analytics",
+        "inset"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "close-tab-animation",
+      "file": "elements/close-tab-animation.html",
+      "tags": [
+        "browser",
+        "close",
+        "abandon",
+        "animation"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "dual-pane-narrative-scene",
+      "file": "elements/dual-pane-narrative-scene.html",
+      "tags": [
+        "scene",
+        "dual-pane",
+        "story-rail",
+        "layout"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "journey-wave-anchored-icons",
+      "file": "elements/journey-wave-anchored-icons.html",
+      "tags": [
+        "journey",
+        "wave",
+        "icons",
+        "timeline"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "mobile-call-screen",
+      "file": "elements/mobile-call-screen.html",
+      "tags": [
+        "phone",
+        "call",
+        "mock"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "mobile-email-ios",
+      "file": "elements/mobile-email-ios.html",
+      "tags": [
+        "phone",
+        "email",
+        "mock"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "mobile-lockscreen-notification",
+      "file": "elements/mobile-lockscreen-notification.html",
+      "tags": [
+        "phone",
+        "lockscreen",
+        "notification",
+        "push",
+        "mock"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "mobile-phone-frame",
+      "file": "elements/mobile-phone-frame.html",
+      "tags": [
+        "device-frame",
+        "phone",
+        "generic",
+        "mock"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "mvp-pill",
+      "file": "elements/mvp-pill.html",
+      "tags": [
+        "pill",
+        "capability-tag",
+        "mvp"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "passage-of-time",
+      "file": "elements/passage-of-time.html",
+      "tags": [
+        "interstitial",
+        "time",
+        "transition"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "persona-profile-bar",
+      "file": "elements/persona-profile-bar.html",
+      "tags": [
+        "persona",
+        "footer",
+        "profile"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "radial-gauge",
+      "file": "elements/radial-gauge.html",
+      "tags": [
+        "gauge",
+        "stat",
+        "progress",
+        "ring"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "stitch-data-sources",
+      "file": "elements/stitch-data-sources.html",
+      "tags": [
+        "adobe-ui",
+        "data-sources",
+        "profile"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "touchpoint-chain",
+      "file": "elements/touchpoint-chain.html",
+      "tags": [
+        "journey",
+        "touchpoints",
+        "chain",
+        "icons"
+      ],
+      "sources": [
+        "hand-built"
+      ]
+    },
+    {
+      "id": "phone-wallpapers",
+      "file": "backgrounds/phone-wallpapers.css",
+      "tags": [
+        "background",
+        "phone-wallpaper",
+        "lockscreen",
+        "dark",
+        "ship-safe"
+      ],
+      "sources": [
+        "hand-built"
+      ],
+      "note": "CSS gradients; replace/augment with licensed Adobe Stock darks when the Stock connector is live"
+    },
+    {
+      "id": "laptop-frame",
+      "file": "elements/laptop-frame.html",
+      "tags": [
+        "device-frame",
+        "laptop",
+        "desktop",
+        "browser",
+        "mock",
+        "generic",
+        "ship-ok"
+      ],
+      "sources": [
+        "devices-css"
+      ],
+      "note": "generic laptop; page mock goes in .screen; persona photo behind per s12",
+      "license": "MIT"
+    },
+    {
+      "id": "devices-css",
+      "file": "vendor/devices-css/devices.min.css",
+      "tags": [
+        "device-frame",
+        "library",
+        "vendor",
+        "reference-only"
+      ],
+      "sources": [
+        "devices-css"
+      ],
+      "note": "REFERENCE ONLY - never ship; see vendor/devices-css/NOTICE.md for per-frame verdicts",
+      "license": "MIT"
+    },
+    {
+      "id": "chart-js",
+      "file": "vendor/chart-js/chart.umd.js",
+      "tags": [
+        "chart",
+        "graph",
+        "data",
+        "dashboard",
+        "vendor",
+        "runtime-ready"
+      ],
+      "sources": [
+        "github.com/chartjs/Chart.js (MIT)"
+      ],
+      "license": "MIT",
+      "note": "Chart.js v4.5.1 runtime, inline into deck script when used (never CDN); CSS/SVG charts stay the default - Chart.js for data-rich scenes only; config refs in vendor/chart-js/samples/"
+    },
+    {
+      "id": "phone-statusbar",
+      "file": "elements/phone-statusbar.html",
+      "tags": [
+        "phone",
+        "status-bar",
+        "chrome",
+        "battery",
+        "signal",
+        "wifi",
+        "device-frame",
+        "generic"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "note": "generic phone status bar (clock/signal/wifi/battery SVG) WITH a generic centred hole-punch front camera (.ph-cam); drop at top of any position:relative .pscreen; .on-dark/.on-light. Camera restored + matched to the canonical phone (elements/living-phone) 20 Jul 2026: front camera is standard, never an Apple notch/Dynamic Island."
+    },
+    {
+      "id": "panel-overlay",
+      "file": "elements/panel-overlay.html",
+      "root": "po",
+      "sources": [
+        "house-built"
+      ],
+      "tags": [
+        "overlay",
+        "on-demand",
+        "surface-panel",
+        "aep-xray",
+        "live-profile",
+        "reveal",
+        "presenter",
+        "clean-scene",
+        "interactive",
+        "reskinnable"
+      ],
+      "license": "house",
+      "interactive": true,
+      "reskinnable": true,
+      "description": "Surface a detail panel ON DEMAND over the current scene instead of parking it permanently on the slide: a small trigger tab sits on the stage, clicking it dims and blurs the scene and slides the panel up, and the scrim or a Back-to-the-story close dismisses it. Built so journey decks stop nailing the live-profile / aep-xray to a fixed column - the scene stays clean and the platform is one click away when the presenter wants it. On a journey scene this frees the right side, so the DEVICE (phone/laptop/browser) grows large there; mount ONE banked aep-xray and call AEP.setStep(sceneN) per scene so it shows the profile as it stood at that checkpoint, never a per-slide profile column. Drive with the tab or PO.show()/hide()/toggle(); PO.body() returns the slot. Reusable for any pull-this-up moment (profile, ROI, an architecture inset, a proof panel).",
+      "note": "PROFILE USE: mount the banked aep-xray inside .po-body (PO.body()) and call AEP.setStep(k) to the checkpoint so it holds only what has been captured so far; the sample stand-in is just so the element demos on its own. NO global key bindings. Trigger + sheet chrome reskin via role tokens; the mounted panel keeps its own styling (aep-xray stays a fixed Adobe surface). All copy in PO_DATA."
+    },
+    {
+      "id": "section-slide",
+      "file": "elements/section-slide.html",
+      "root": "sxn",
+      "sources": [
+        "house-built"
+      ],
+      "tags": [
+        "section-slide",
+        "interstitial",
+        "transition",
+        "later",
+        "split-layout",
+        "narrative-left",
+        "image-right",
+        "firefly-placeholder",
+        "persona",
+        "reskinnable"
+      ],
+      "license": "house",
+      "interactive": false,
+      "reskinnable": true,
+      "description": "The interstitial / 'later' slide as a house pattern: narrative on the left (eyebrow, big title, supporting line) and a contextual image of the persona on the right, showing what they are doing at the START of the next scene (e.g. before an evening phone scene, a shot of her on the sofa on her phone). Replaces thin centred-text transitions so the persona stays present across the seams of the story. All copy in SXN_DATA; reskins via role tokens.",
+      "note": "IMAGERY DISCIPLINE: the image slot defaults to a labelled FIREFLY PLACEHOLDER that names the exact shot to generate (never a broken box, never scraped stock). A deck sets image.src to the generated Firefly render and it drops straight in. asset-licensing.md: persona imagery is Firefly or a labelled placeholder. No script state, no key bindings."
+    }
+  ],
+  "templates": [
+    {
+      "type": "cards-row",
+      "file": "../templates/harvested/cards-row.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "browser-mock",
+      "file": "../templates/harvested/browser-mock.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "passage-of-time",
+      "file": "../templates/harvested/passage-of-time.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "mobile-email",
+      "file": "../templates/harvested/mobile-email.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "phone-call",
+      "file": "../templates/harvested/phone-call.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "data-reveal",
+      "file": "../templates/harvested/data-reveal.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "divider",
+      "file": "../templates/harvested/divider.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "propensity-gauges",
+      "file": "../templates/harvested/propensity-gauges.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "agent-list",
+      "file": "../templates/harvested/agent-list.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "kpi-dashboard",
+      "file": "../templates/harvested/kpi-dashboard.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "closing",
+      "file": "../templates/harvested/closing.html",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "type": "ai-chat-discovery",
+      "file": "../templates/harvested/ai-chat-discovery.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "tablet-web-mock",
+      "file": "../templates/harvested/tablet-web-mock.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "phone-app-mock",
+      "file": "../templates/harvested/phone-app-mock.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "mobile-onboarding",
+      "file": "../templates/harvested/mobile-onboarding.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "money-transfer",
+      "file": "../templates/harvested/money-transfer.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "savings-results",
+      "file": "../templates/harvested/savings-results.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "audience-segmentation",
+      "file": "../templates/harvested/audience-segmentation.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "email-mock",
+      "file": "../templates/harvested/email-mock.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "concierge-chat",
+      "file": "../templates/harvested/concierge-chat.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "adviser-qa",
+      "file": "../templates/harvested/adviser-qa.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "analytics-dashboard",
+      "file": "../templates/harvested/analytics-dashboard.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "optimizer-dashboard",
+      "file": "../templates/harvested/optimizer-dashboard.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "profile-stitching",
+      "file": "../templates/harvested/profile-stitching.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "genstudio-generate",
+      "file": "../templates/harvested/genstudio-generate.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "consent-conversions",
+      "file": "../templates/harvested/consent-conversions.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "lifecycle-trigger",
+      "file": "../templates/harvested/lifecycle-trigger.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "identity-hub",
+      "file": "../templates/harvested/identity-hub.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "realtime-rule",
+      "file": "../templates/harvested/realtime-rule.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "agent-orchestration",
+      "file": "../templates/harvested/agent-orchestration.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "brand-concierge",
+      "file": "../templates/harvested/brand-concierge.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "adviser-portal",
+      "file": "../templates/harvested/adviser-portal.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "ab-performance",
+      "file": "../templates/harvested/ab-performance.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "journey-recap",
+      "file": "../templates/harvested/journey-recap.html",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "type": "dual-pane-narrative",
+      "file": "../templates/harvested/dual-pane-narrative.html",
+      "sources": [
+        "monzo"
+      ]
+    }
+  ],
+  "personas": [
+    {
+      "folder": "harvested-margaret",
+      "name": "Margaret",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "folder": "harvested-sarah",
+      "name": "Sarah",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "folder": "harvested-teresa",
+      "name": "Teresa",
+      "sources": [
+        "po-cruises"
+      ]
+    },
+    {
+      "folder": "harvested-jamie",
+      "name": "Jamie",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "folder": "harvested-priya",
+      "name": "Priya",
+      "sources": [
+        "coventry-bs"
+      ]
+    },
+    {
+      "archetype": "modern-marketer",
+      "folder": "modern-marketer-female-30s",
+      "name": "Jessica",
+      "sources": [
+        "bat-modern-marketer"
+      ],
+      "note": "only marketer-archetype persona; 8 poses incl. full-body"
+    }
+  ],
+  "app_designs": [
+    {
+      "id": "flowbite-chat-bubble",
+      "file": "app-designs/flowbite/chat-bubble.md",
+      "tags": [
+        "chat",
+        "chatbot",
+        "conversation",
+        "messages",
+        "concierge"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-card",
+      "file": "app-designs/flowbite/card.md",
+      "tags": [
+        "card",
+        "container",
+        "panel"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-forms",
+      "file": "app-designs/flowbite/forms.md",
+      "tags": [
+        "form",
+        "input",
+        "fields",
+        "signup",
+        "login"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-buttons",
+      "file": "app-designs/flowbite/buttons.md",
+      "tags": [
+        "button",
+        "cta"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-modal",
+      "file": "app-designs/flowbite/modal.md",
+      "tags": [
+        "modal",
+        "dialog",
+        "overlay"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-navbar",
+      "file": "app-designs/flowbite/navbar.md",
+      "tags": [
+        "navigation",
+        "header",
+        "menu"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-bottom-navigation",
+      "file": "app-designs/flowbite/bottom-navigation.md",
+      "tags": [
+        "navigation",
+        "mobile",
+        "tabbar"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-tables",
+      "file": "app-designs/flowbite/tables.md",
+      "tags": [
+        "table",
+        "data",
+        "rows",
+        "dashboard"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-timeline",
+      "file": "app-designs/flowbite/timeline.md",
+      "tags": [
+        "timeline",
+        "history",
+        "steps"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-toast",
+      "file": "app-designs/flowbite/toast.md",
+      "tags": [
+        "toast",
+        "notification",
+        "alert"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-progress",
+      "file": "app-designs/flowbite/progress.md",
+      "tags": [
+        "progress",
+        "bar",
+        "loading"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-avatar",
+      "file": "app-designs/flowbite/avatar.md",
+      "tags": [
+        "avatar",
+        "profile",
+        "user"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-badge",
+      "file": "app-designs/flowbite/badge.md",
+      "tags": [
+        "badge",
+        "label",
+        "tag"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-list-group",
+      "file": "app-designs/flowbite/list-group.md",
+      "tags": [
+        "list",
+        "items",
+        "menu"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-stepper",
+      "file": "app-designs/flowbite/stepper.md",
+      "tags": [
+        "stepper",
+        "wizard",
+        "checkout",
+        "steps"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "flowbite-rating",
+      "file": "app-designs/flowbite/rating.md",
+      "tags": [
+        "rating",
+        "stars",
+        "review"
+      ],
+      "sources": [
+        "flowbite (Bergside, MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-card",
+      "file": "app-designs/shadcn/card.tsx",
+      "tags": [
+        "card",
+        "container",
+        "panel"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-dialog",
+      "file": "app-designs/shadcn/dialog.tsx",
+      "tags": [
+        "modal",
+        "dialog",
+        "overlay"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-form",
+      "file": "app-designs/shadcn/form.tsx",
+      "tags": [
+        "form",
+        "validation",
+        "fields"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-input",
+      "file": "app-designs/shadcn/input.tsx",
+      "tags": [
+        "input",
+        "field",
+        "text"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-table",
+      "file": "app-designs/shadcn/table.tsx",
+      "tags": [
+        "table",
+        "data",
+        "rows"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-tabs",
+      "file": "app-designs/shadcn/tabs.tsx",
+      "tags": [
+        "tabs",
+        "switcher"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-badge",
+      "file": "app-designs/shadcn/badge.tsx",
+      "tags": [
+        "badge",
+        "label",
+        "tag"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-avatar",
+      "file": "app-designs/shadcn/avatar.tsx",
+      "tags": [
+        "avatar",
+        "profile",
+        "user"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-chart",
+      "file": "app-designs/shadcn/chart.tsx",
+      "tags": [
+        "chart",
+        "data",
+        "graph",
+        "dashboard"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-button",
+      "file": "app-designs/shadcn/button.tsx",
+      "tags": [
+        "button",
+        "cta"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-checkbox",
+      "file": "app-designs/shadcn/checkbox.tsx",
+      "tags": [
+        "checkbox",
+        "form"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-dropdown-menu",
+      "file": "app-designs/shadcn/dropdown-menu.tsx",
+      "tags": [
+        "dropdown",
+        "menu"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-sidebar",
+      "file": "app-designs/shadcn/sidebar.tsx",
+      "tags": [
+        "sidebar",
+        "navigation",
+        "app-shell"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-bubble",
+      "file": "app-designs/shadcn/bubble.tsx",
+      "tags": [
+        "chat",
+        "bubble",
+        "message"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-message",
+      "file": "app-designs/shadcn/message.tsx",
+      "tags": [
+        "chat",
+        "message",
+        "conversation"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    },
+    {
+      "id": "shadcn-calendar",
+      "file": "app-designs/shadcn/calendar.tsx",
+      "tags": [
+        "calendar",
+        "datepicker",
+        "date"
+      ],
+      "sources": [
+        "shadcn/ui (MIT)"
+      ],
+      "license": "MIT",
+      "note": "REFERENCE-ONLY app design - rebuild in deck idiom with role tokens; never ship Tailwind/React runtime"
+    }
+  ],
+  "app_screens": [
+    {
+      "id": "kit",
+      "file": "app-screens/kit.css",
+      "tags": [
+        "design-system",
+        "reskinnable",
+        "role-token",
+        "phone",
+        "app",
+        "shell"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "description": "The one reskinnable phone-app design system: header/cards/rows/CTA/chips/meter/tab-bar, all role-token driven. Paste once; industry screens compose from it."
+    },
+    {
+      "id": "banking-home",
+      "file": "app-screens/banking-home.html",
+      "tags": [
+        "banking",
+        "fintech",
+        "balance",
+        "transactions",
+        "nudge",
+        "phone",
+        "reskinnable"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "description": "Retail-bank app home: proactive shortfall nudge, current balance, recent transactions, move-money CTA. Reskins via role tokens."
+    },
+    {
+      "id": "travel-home",
+      "file": "app-screens/travel-home.html",
+      "tags": [
+        "travel",
+        "airline",
+        "airport",
+        "boarding",
+        "trip",
+        "lounge",
+        "phone",
+        "reskinnable"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "description": "Travel/airline app home: boarding-soon card, flight + lounge rows, fast-track/priority chips, boarding-pass CTA. Reskins via role tokens."
+    },
+    {
+      "id": "retail-home",
+      "file": "app-screens/retail-home.html",
+      "tags": [
+        "retail",
+        "commerce",
+        "loyalty",
+        "rewards",
+        "basket",
+        "checkout",
+        "phone",
+        "reskinnable"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "description": "Retail/commerce app home: members edit, rewards-tier progress meter, basket + saved rows, checkout CTA. Reskins via role tokens."
+    },
+    {
+      "id": "telco-home",
+      "file": "app-screens/telco-home.html",
+      "tags": [
+        "telco",
+        "utility",
+        "subscription",
+        "data-usage",
+        "bill",
+        "phone",
+        "reskinnable"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "description": "Telco/utility app home: data-usage meter, next-bill, roaming + scam-shield actions. Reskins via role tokens."
+    },
+    {
+      "id": "brand-concierge-interactive",
+      "file": "app-screens/interactive/brand-concierge.html",
+      "tags": [
+        "brand-concierge",
+        "interactive",
+        "chatbot",
+        "conversational-commerce",
+        "product-advisor",
+        "checkout",
+        "order-tracking",
+        "agent-orchestrator",
+        "reskinnable",
+        "demo-segment"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "interactive": true,
+      "description": "Fully interactive Brand Concierge chat (clickable conversation tree): Agent Orchestrator rail (Site Advisory / Product Advisor / Order agents light per stage), product recommendations with live stock + why-lines, guided comparison table, in-chat one-tap checkout, and order-tracking timeline. Brand-governed messaging. Role-token reskinnable, offline, no deps. Use as a live demo segment mid-story (TODO 'customer demos mid-story'). Published artifact 15 Jul.",
+      "note": "RESKIN PER BRAND + STORY whenever Adobe Brand Concierge is mentioned (SKILL standing rule). Swap tokens+logo to the brand; rewrite conversation/products/fulfilment agent to the brand's model. Generic/travel reference here; retail example = brand-concierge-primark."
+    },
+    {
+      "id": "cx-coworker-chat-interactive",
+      "file": "app-screens/interactive/cx-coworker-chat.html",
+      "tags": [
+        "coworker",
+        "ai-assistant",
+        "adobe-ui",
+        "experience-cloud",
+        "interactive",
+        "chat",
+        "workplan",
+        "agent-orchestration",
+        "csc-sequence",
+        "figma-sourced",
+        "demo-segment"
+      ],
+      "sources": [
+        "screens/cx-enterprise-home (figma:sPKvHs4sHSSl6QId4Mg39b#538-36576)",
+        "app-screens/interactive/brand-concierge.html (interaction model)",
+        "screenshot of live Adobe CX Enterprise chat (toby, 17 Jul 2026)"
+      ],
+      "license": "house",
+      "reskinnable": false,
+      "interactive": true,
+      "generated_by": "app-screens/interactive/build_coworker.py",
+      "description": "Fully interactive Adobe Coworker demo in two views. View 1 is the banked screens/cx-enterprise-home (built from the real Figma source and asserted against it): type into the prompt bar or click a suggested chip. View 2 is the Coworker conversation: the prompt lands as a user message, Coworker names a WORKPLAN, steps back, and its 4-6 named steps tick through in mandatory CSC order (Planning, Workflow Ops, Creative Ideation with Firefly, Asset Mgmt, Delivery, Optimisation) with agent badges lighting per step, then artifacts land and quick-reply chips offer the follow-ups. Free text reroutes to the closest of three plans by keyword so the demo never dead-ends. Offline, no deps. Use on the Coworker/AI-home beat of a story.",
+      "note": "ADOBE PRODUCT UI: parameterize DATA ONLY (the SCRIPT/PLANS block in the script), never rebrand the chrome. GENERATED: edit screens/cx-enterprise-home or build_coworker.py and re-run it, never hand-edit the html. The chat panel is reconstructed from a screenshot (the saved page was React and only its shell survived), so unlike view 1 it is NOT design-exact."
+    },
+    {
+      "id": "brand-concierge-primark",
+      "file": "app-screens/interactive/brand-concierge-primark.html",
+      "tags": [
+        "brand-concierge",
+        "interactive",
+        "primark",
+        "retail",
+        "click-and-collect",
+        "store-stock",
+        "product-advisor",
+        "reskinnable",
+        "demo-segment",
+        "reskin-example"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "interactive": true,
+      "description": "Primark-reskinned interactive Brand Concierge (real Primark navy+cyan + wordmark via Brandfetch): fashion recommendations with live store stock, guided comparison, and click & collect reservation → collection-tracking timeline. The retail reskin example for the 'Brand Concierge always gets this demo' rule."
+    },
+    {
+      "id": "chatgpt-chat",
+      "file": "app-screens/interactive/chatgpt-chat.html",
+      "tags": [
+        "chatgpt",
+        "openai",
+        "ai-assistant",
+        "ai-discovery",
+        "chat",
+        "third-party-surface",
+        "laptop",
+        "streaming",
+        "interactive",
+        "demo-segment"
+      ],
+      "sources": [
+        "house-built (chat engine from app-screens/interactive/brand-concierge.html)"
+      ],
+      "license": "house",
+      "reskinnable": false,
+      "interactive": true,
+      "description": "Desktop ChatGPT web UI for the AI-discovery beat: sidebar with chat history, the OpenAI mark, a ChatGPT 4o model selector, the customer question typing in and the answer streaming word-by-word with the brand named ACCURATELY inside the reply. Data-driven (GPT_DATA: swap conv + brand); sized to sit inside a laptop frame (elements/laptop-frame). Offline, no deps, no key bindings. GPT.play()/reset(). Use for the 'she asks an AI assistant and the brand surfaces in the answer' moment (pairs with claude-chat).",
+      "note": "THIRD-PARTY SURFACE (OpenAI): fixed ChatGPT chrome, NOT customer-reskinned - only the conversation (CONV) and the product named (BRAND) change per story. The OpenAI mark is a clean SVG recreation; swap for the official asset when available."
+    },
+    {
+      "id": "claude-chat",
+      "file": "app-screens/interactive/claude-chat.html",
+      "tags": [
+        "claude",
+        "anthropic",
+        "ai-assistant",
+        "ai-discovery",
+        "chat",
+        "third-party-surface",
+        "laptop",
+        "streaming",
+        "interactive",
+        "demo-segment"
+      ],
+      "sources": [
+        "house-built (chat engine from app-screens/interactive/brand-concierge.html)"
+      ],
+      "license": "house",
+      "reskinnable": false,
+      "interactive": true,
+      "description": "Desktop Claude.ai web UI for the AI-discovery beat: warm cream chrome, the coral sunburst mark, a Claude Sonnet model selector, the customer question typing in and the answer streaming word-by-word with the brand named ACCURATELY inside the reply. Data-driven (CLA_DATA: swap conv + brand); sized to sit inside a laptop frame (elements/laptop-frame). Offline, no deps, no key bindings. CLA.play()/reset(). Use for the AI-discovery moment (pairs with chatgpt-chat).",
+      "note": "THIRD-PARTY SURFACE (Anthropic Claude): fixed Claude chrome, NOT customer-reskinned - only the conversation (CONV) and the product named (BRAND) change per story. The Claude sunburst is a clean SVG recreation; swap for the official asset when available."
+    },
+    {
+      "id": "brand-concierge-monzo",
+      "file": "app-screens/interactive/brand-concierge-monzo.html",
+      "tags": [
+        "brand-concierge",
+        "interactive",
+        "monzo",
+        "banking",
+        "fintech",
+        "money-insight",
+        "overdraft",
+        "savings-pot",
+        "product-advisor",
+        "reskinnable",
+        "demo-segment",
+        "reskin-example"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "interactive": true,
+      "verified": true,
+      "description": "Monzo-reskinned interactive Brand Concierge (real Monzo coral+navy + wordmark): the BANKING reskin example. Agents re-modelled for finance — Money Insight (reads income rhythm, bills and balance) / Product Advisor (matches the right Pot or saving move) / Action Agent (makes the move, tracks it to cleared). Conversation answers 'Am I okay for rent?' with the shortfall maths and the ONE move that fixes it, then one-tap action. Also embeds live inside a deck slide via ?embed=1 (hides the rail, transparent bg) — see demos/monzo slide 6 for the live-demo-segment pattern.",
+      "note": "Finance vertical example for the 'Brand Concierge always gets this demo' rule (retail = brand-concierge-primark, travel/generic = brand-concierge). Reskin per brand: swap the :root tokens + logo, and rewrite the three agents to the brand's real model."
+    },
+    {
+      "id": "brand-concierge-noula",
+      "file": "app-screens/interactive/brand-concierge-noula.html",
+      "tags": [
+        "brand-concierge",
+        "interactive",
+        "noula",
+        "skincare",
+        "beauty",
+        "routine-builder",
+        "product-advisor",
+        "reskinnable",
+        "demo-segment",
+        "reskin-example"
+      ],
+      "sources": [
+        "house-built"
+      ],
+      "license": "house",
+      "reskinnable": true,
+      "interactive": true,
+      "description": "Noula-reskinned interactive Brand Concierge (sage+clay skincare tokens, Fraunces): the SKINCARE reskin example. Skin Advisory / Routine Advisor / Order & Care agents; the conversation reads the skin, builds a two-step barrier routine, compares products, checks out and tracks, with its own skincare options and copy (Build me a routine / My skin keeps reacting / Show me the barrier serum). Canonical hole-punch phone. Embeds live inside a deck slide via ?embed=1 (hides the rail, transparent bg) - see demos/noula-skincare scene 2, where it replaces the static helper chat. Finance vertical = brand-concierge-monzo, retail = brand-concierge-primark."
+    },
+    {
+      "id": "chatgpt-laptop",
+      "file": "app-screens/interactive/chatgpt-laptop.html",
+      "tags": [
+        "chatgpt",
+        "openai",
+        "ai-assistant",
+        "ai-discovery",
+        "chat",
+        "third-party-surface",
+        "laptop",
+        "device-frame",
+        "streaming",
+        "interactive",
+        "demo-segment"
+      ],
+      "sources": [
+        "house-built (chatgpt-chat inside elements/laptop-frame)"
+      ],
+      "license": "house",
+      "reskinnable": false,
+      "interactive": true,
+      "description": "The chatgpt-chat AI-discovery surface mounted INSIDE a generic laptop frame, ready to drop on a slide - the desktop framing of the 'she asks an AI assistant and the brand surfaces in the answer' beat (pairs with chatgpt-phone for mobile). Same streaming engine and data as chatgpt-chat: the question types in and the answer streams with the brand named ACCURATELY in a highlight. Data-driven (GPT_DATA: swap conv + brand). Offline, no deps, no key bindings. GPT.play()/reset(). Native ~940x700; scale via transform.",
+      "note": "THIRD-PARTY SURFACE (OpenAI) on a GENERIC laptop (no manufacturer mark, asset-licensing.md device-frame rule): fixed ChatGPT chrome, NOT customer-reskinned - only CONV + BRAND change per story. OpenAI mark is a clean SVG recreation; swap for the official asset when available."
+    },
+    {
+      "id": "chatgpt-phone",
+      "file": "app-screens/interactive/chatgpt-phone.html",
+      "tags": [
+        "chatgpt",
+        "openai",
+        "ai-assistant",
+        "ai-discovery",
+        "chat",
+        "third-party-surface",
+        "phone",
+        "mobile",
+        "device-frame",
+        "streaming",
+        "interactive",
+        "demo-segment"
+      ],
+      "sources": [
+        "house-built (chatgpt-chat engine, mobile shell)"
+      ],
+      "license": "house",
+      "reskinnable": false,
+      "interactive": true,
+      "description": "The ChatGPT AI-discovery surface as the MOBILE app, inside a generic phone frame with the canonical hole-punch front camera (never an Apple notch) - the phone framing of the 'she asks an AI assistant and the brand surfaces in the answer' beat (pairs with chatgpt-laptop for desktop). Single-column mobile layout: status bar, ChatGPT 4o app bar, streaming thread, composer. Same engine and data as chatgpt-chat (GPT_DATA: swap conv + brand). Offline, no deps, no key bindings. GPT.play()/reset(). Native 402x842.",
+      "note": "THIRD-PARTY SURFACE (OpenAI) on a GENERIC phone (hole-punch front camera, not an Apple notch, asset-licensing.md): fixed ChatGPT mobile chrome, NOT customer-reskinned - only CONV + BRAND change per story. OpenAI mark is a clean SVG recreation; swap for the official asset when available."
+    }
+  ]
+}

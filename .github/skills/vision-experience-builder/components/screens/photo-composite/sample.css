@@ -1,0 +1,27 @@
+/* photo-composite — persona photo + device mock + text panel. 1920x1080 stage.
+   SEAM RULE: the text panel behind a photo blend must be a FLAT colour (--brand-deep),
+   NOT a diagonal gradient — a gradient panel never matches the overlay's stops exactly
+   and leaves a visible vertical seam at the photo edge. Both the panel and the blend
+   derive from the same token below, so they cannot drift apart. */
+.photo-composite{background:var(--brand-deep,#0C1626);color:#fff;}
+/* photo layer: right ~62%, subject on the right third (the prompt guarantees this) */
+.photo-r{position:absolute;top:0;right:0;bottom:0;width:62%;}
+.photo-r img{width:100%;height:100%;object-fit:cover;object-position:80% 20%;}
+/* THE SEAMLESS BLEND — 7 stops, same token as the panel, long solid zone, gentle falloff.
+   Never fewer stops (a 2-3 stop gradient reads as a hard band). If a faint edge still
+   shows, the photo's left region is too bright — the Firefly prompt should ask for a
+   darker-toned background on the text side ("muted, darker toned on the left"). */
+.photo-r::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,
+  var(--brand-deep,#0C1626) 0%, var(--brand-deep,#0C1626) 12%,
+  color-mix(in srgb, var(--brand-deep,#0C1626) 96%, transparent) 26%,
+  color-mix(in srgb, var(--brand-deep,#0C1626) 78%, transparent) 42%,
+  color-mix(in srgb, var(--brand-deep,#0C1626) 45%, transparent) 58%,
+  color-mix(in srgb, var(--brand-deep,#0C1626) 14%, transparent) 72%, transparent 86%);}
+.pc-head{position:absolute;left:120px;top:130px;z-index:3;width:46%;}
+.pc-head .eye{font-size:19px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--accent-lt,#FF6F6F);}
+.pc-head h2{font-size:68px;font-weight:800;margin-top:14px;line-height:1.05;}
+.pc-body{position:absolute;left:120px;top:400px;z-index:3;width:38%;font-size:27px;line-height:1.55;color:rgba(255,255,255,.85);}
+/* device mock sits centre-left of the photo, clear of the subject's face */
+.pc-device{position:absolute;left:41%;top:160px;z-index:2;}
+/* min type scale on this slide type (Stage 4.5 checklist): eyebrow>=18, title>=60,
+   body/chips>=24, labels>=16. Phone-UI text inside the mock is exempt (realistic scale). */

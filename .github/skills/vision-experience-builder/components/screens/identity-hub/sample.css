@@ -1,0 +1,90 @@
+.slide{position:absolute; inset:0; padding:96px 86px 92px; display:flex; flex-direction:column;
+    opacity:0; visibility:hidden; pointer-events:none; transform:scale(.985);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s linear var(--t-slide);}
+.slide.active{opacity:1; visibility:visible; pointer-events:auto; transform:scale(1);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s;}
+.anim{opacity:0; transform:translate(calc(var(--ox)*1px), calc(var(--oy)*1px));
+    transition:opacity var(--t-in) var(--ease), transform var(--t-in) var(--ease);}
+.slide.active .anim{opacity:1; transform:none; transition-delay:calc(var(--i,0) * var(--t-step));}
+.anim.pop{transform:translateY(20px) scale(.94);}
+.eyebrow{font-size:18px; letter-spacing:.32em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+/* ---------- Priya photo (transparent figure on paper) ---------- */
+  .slide.has-photo{padding:0; gap:0;}
+.pcontent{width:55%; height:100%; display:flex; flex-direction:column; justify-content:center; padding:92px 40px 92px 86px; position:relative; z-index:2;}
+.has-photo .points{margin-top:8px;}
+.has-photo .narr{max-width:30ch; font-size:26px;}
+.photo-panel{position:absolute; top:0; right:2.5%; bottom:0; width:46%; z-index:1;
+    display:flex; align-items:flex-end; justify-content:center; pointer-events:none;}
+.photo-panel img{max-width:100%; max-height:99%; object-fit:contain;
+    filter:drop-shadow(0 26px 30px rgba(12,42,86,.18));}
+.photo-panel .fade{display:none;}
+.aud-av.a0{background:#0C2A56;}
+.aud-av.a0 svg{color:#7FA8D6;}
+.aud-av.a1{background:#00A1CC;}
+.aud-av.a1 svg{color:#D6F2FB;}
+.aud-av.a2{background:#16808E;}
+.aud-av.a2 svg{color:#CFEBEF;}
+.aud-av.a3{background:#3A6EA5;}
+.aud-av.a3 svg{color:#E0ECF8;}
+/* ---------- Priya slide 6: profiles → central Co-op + Coventry data hub ---------- */
+  .hub-wrap{position:absolute; left:37.5%; right:0; top:0; bottom:0; z-index:2; font-family:"Avenir Next Cyr"; pointer-events:none;}
+/* ---------- shared recap split-screen ---------- */
+  .slide.recap{padding:0;}
+.hub-svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+.hub-link{fill:none; stroke:#9DC3DB; stroke-width:1.5; stroke-dasharray:3 5; opacity:.55;}
+.hub-link.br{stroke:#1763cf; opacity:.4;}
+.hub-link.pl-tesco{stroke:#EE1C2E; opacity:.55; stroke-dasharray:3 5;}
+.hub-link.pl-experian{stroke:#8E2DA8; opacity:.55; stroke-dasharray:3 5;}
+.hub-p.pp-tesco{fill:#EE1C2E; filter:drop-shadow(0 0 4px rgba(238,28,46,.7));}
+.hub-p.pp-experian{fill:#8E2DA8; filter:drop-shadow(0 0 4px rgba(142,45,168,.7));}
+.hub-pchip{position:absolute; transform:translate(-50%,-50%) scale(.6); z-index:4; border-radius:9px; padding:6px 12px;
+    font-size:13px; font-weight:800; color:#fff; white-space:nowrap; box-shadow:0 10px 20px -8px rgba(12,42,86,.5);
+    opacity:0; transition:opacity .45s var(--ease), transform .5s var(--ease-bk);}
+.hub-pchip.in{opacity:1; transform:translate(-50%,-50%) scale(1);}
+.hub-pchip.p-tesco{background:#EE1C2E;}
+.hub-pchip.p-experian{background:#8E2DA8;}
+.hub-plabel{position:absolute; font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#8493a8;
+    transform:scale(.85); transform-origin:left center; opacity:.85;}
+.hub-p{fill:#00C2F0; filter:drop-shadow(0 0 4px rgba(0,194,240,.8));}
+.hub-node{position:absolute; transform:translate(-50%,-50%) scale(.55); display:flex; align-items:center; gap:7px;
+    background:#fff; border-radius:22px; padding:5px 11px 5px 5px; box-shadow:0 12px 26px -14px rgba(12,42,86,.45);
+    opacity:0; transition:opacity .45s var(--ease), transform .5s var(--ease-bk);}
+.hub-node.in{opacity:1; transform:translate(-50%,-50%) scale(1);}
+.hub-av{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; flex:none;}
+.hub-av svg{width:15px; height:15px; color:#fff;}
+.hub-av.a0{background:#0A2F5C;}
+.hub-av.a1{background:#00A1CC;}
+.hub-av.a2{background:#16808E;}
+.hub-av.a3{background:#3A6EA5;}
+.hub-bars{display:flex; flex-direction:column; gap:3px;}
+.hub-bar{width:36px; height:4px; border-radius:3px; background:#e7eef5; overflow:hidden;}
+.hub-bar i{display:block; height:100%; width:0; background:#00A1CC; border-radius:3px; transition:width .7s var(--ease) .15s;}
+.hub-bar:nth-child(2) i{background:#16808E;}
+.hub-node.in .hub-bar i{width:82%;}
+.hub-node.in .hub-bar:nth-child(2) i{width:58%;}
+.hub-core{position:absolute; left:300px; top:350px; transform:translate(-50%,-50%) scale(.7); width:176px; text-align:center;
+    opacity:0; transition:opacity .5s var(--ease), transform .55s var(--ease-bk);}
+.hub-core.in{opacity:1; transform:translate(-50%,-50%) scale(1);}
+.hub-pulse{position:absolute; left:50%; top:48px; width:120px; height:120px; transform:translate(-50%,-50%); border-radius:50%;
+    background:radial-gradient(circle, rgba(0,161,204,.32), transparent 68%); opacity:0;}
+.hub-core.beat .hub-pulse{animation:hubBeat 1.4s ease-out;}
+.hub-cyl{width:96px; height:auto; display:block; margin:0 auto; filter:drop-shadow(0 18px 30px -10px rgba(0,161,204,.5));}
+.hub-label{margin-top:6px; background:rgba(244,241,232,.86); backdrop-filter:blur(4px); border-radius:13px; padding:8px 10px;
+    box-shadow:0 10px 24px -16px rgba(12,42,86,.4);}
+.hub-ttl{font-family:"Avenir Next Cyr"; font-weight:700; font-size:14px; color:#0C2A56;}
+.hub-brands{display:flex; justify-content:center; gap:6px; margin:6px 0 5px;}
+.hub-b{font-size:9px; font-weight:800; color:#fff; border-radius:20px; padding:3px 9px;}
+.hub-b.coop{background:#00A1CC;}
+.hub-b.cov{background:#1763cf;}
+.hub-count{font-size:10px; font-weight:700; color:#5c6b82;}
+.hub-count b{font-family:"Avenir Next Cyr"; font-weight:700; font-size:15px; color:#0C2A56;}
+/* ---------- stage ---------- */
+  .stage{flex-direction:row; gap:56px; align-items:center;}
+.stage .col-main{flex:1.25;}
+.stage .col-side{flex:1;}
+.stage-head{display:flex; align-items:baseline; gap:18px; margin:14px 0 26px;}
+.snum{font-family:"Avenir Next Cyr"; font-weight:700; font-size:34px; color:var(--accent); letter-spacing:-.01em;}
+.stage-head h2{font-family:"Avenir Next Cyr"; font-weight:600; font-size:46px; letter-spacing:-.02em; line-height:1;}
+.col-label{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:14px;}
+.narr{font-size:26px; line-height:1.5; color:var(--ink); max-width:33ch; font-weight:400;}
+.narr.dash{font-family:"Avenir Next Cyr"; font-size:60px; color:var(--faint);}

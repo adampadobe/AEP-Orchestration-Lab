@@ -1,0 +1,5 @@
+/* notif-drop -- a notification card drops in from above, unblurs and settles.
+   Use for: any push/SMS/alert moment on a lockscreen or app screen. Param: --d delay. */
+.notif-drop{opacity:0;}
+.slide.active .notif-drop{animation:notifDrop .8s var(--d,.4s) cubic-bezier(.2,1.25,.35,1) forwards;}
+@keyframes notifDrop{0%{opacity:0;transform:translateY(-90px) scale(.96);filter:blur(6px)}60%{filter:blur(0)}100%{opacity:1;transform:none;filter:none}}

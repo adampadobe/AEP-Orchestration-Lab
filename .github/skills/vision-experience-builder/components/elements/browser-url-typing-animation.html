@@ -1,0 +1,16 @@
+<!--
+  component: browser-url-typing-animation
+  URL bar with a typing cursor — for "she comes back and types pocruises.com".
+  Drop into the .bbar in place of the static .u span.
+
+  Animation: max-width 0 → 150px in 1.0s @ .5s (typing) + blinking caret.
+
+  Slot:
+    URL_BEING_TYPED   e.g. "pocruises.com"
+-->
+<style>
+.bbar .u.typed{display:inline-block;overflow:hidden;white-space:nowrap;max-width:0;border-right:2px solid #7A8498;vertical-align:bottom;}
+.slide.active .bbar .u.typed{animation:typeurl 1.0s .5s steps(13) forwards, caretblink .7s .5s 4 step-end;}
+</style>
+
+<span class="u typed">URL_BEING_TYPED</span>

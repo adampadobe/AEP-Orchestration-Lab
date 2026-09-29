@@ -1,0 +1,8 @@
+/* fade-in-right — entrance (entrance, right, standard, card, photo, chip)
+   mirror of fade-in-left; right-hand UI overlays, reply beats.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes fadeInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.fade-in-right{opacity:0;}
+.slide.active .fade-in-right{animation:fadeInRight .7s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}

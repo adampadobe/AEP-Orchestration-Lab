@@ -1,0 +1,6 @@
+/* chip-cascade -- label chips fly up and settle with a slight tilt, staggered.
+   Use for: segments added, signals detected, capability tags -- any chip row payoff.
+   Params per chip: --d delay, --tilt entry rotation, --tilt2 resting rotation. */
+.chip-cascade{opacity:0;}
+.slide.active .chip-cascade{animation:chipCascade .6s var(--d,2.4s) cubic-bezier(.2,1.4,.35,1) forwards;}
+@keyframes chipCascade{from{opacity:0;transform:translateY(40px) rotate(var(--tilt,-6deg)) scale(.85)}to{opacity:1;transform:rotate(var(--tilt2,0deg))}}

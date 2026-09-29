@@ -1,0 +1,92 @@
+/* app-screens/kit.css — one reskinnable phone-app design system.
+ *
+ * WHY: builders were rebuilding app mocks per deck (inconsistent) or pulling Bootstrap/React
+ * refs that don't fit the deck idiom. This is ONE clean system, driven entirely by role tokens,
+ * so a customer palette swap reskins EVERY app screen in this folder. Compose an industry screen
+ * from these classes; never hard-code a hex.
+ *
+ * RESKIN CONTRACT: the screen reads only --brand / --brand-deep / --accent / --accent-lt and the
+ * neutral --ink/--grey/--soft/--line/--ice. Set those once in the deck :root from the customer's
+ * brand.json and the whole app recolours — proven by app-screens-reskin-demo (two palettes, same
+ * markup). NEVER write a raw hex in an app screen; if you need alpha, use the --*-rgb triplets.
+ *
+ * Sits inside the deck's phone shell: <div class="phone"><div class="pscreen"> …kit markup… .
+ * Icons are inline SVG from ../icons/pack.json (never emoji). Offline: no fonts/URLs/images. */
+
+:root {
+  /* fallbacks so a screen renders standalone; the deck overrides these from brand.json */
+  --brand:#14233A; --brand-deep:#0C1626; --accent:#FF4D4D; --accent-lt:#FF6F6F;
+  --ink:#14233A; --grey:#5B6573; --soft:#8A94A6; --line:#E4E7EC; --ice:#F4F6F9;
+  --brand-rgb:20,35,58; --accent-rgb:255,77,77;   /* alpha-capable forms (avoid raw rgba hexes) */
+}
+
+/* ---- screen frame ---- */
+.ak{width:100%;height:100%;background:var(--ice);display:flex;flex-direction:column;
+    font-family:'Adobe Clean','Source Sans 3','Inter',system-ui,sans-serif;color:var(--ink);
+    position:relative;}
+/* generic hole-punch camera (brandless — NOT an Apple notch/Dynamic Island, per licensing).
+   Sits over the header at top-centre. */
+.ak-cam{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:11px;height:11px;
+    border-radius:50%;background:#05070c;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.10),
+    inset -1px -1px 2px rgba(80,120,180,.35);z-index:6;}
+/* status bar: time left · signal + wifi + battery right (inline SVG, inherits currentColor).
+   Sits ON the brand header colour (continuous coloured top, like a real app). */
+.ak-status{height:46px;display:flex;align-items:center;justify-content:space-between;
+    padding:6px 24px 0;font-size:15px;font-weight:700;flex:none;position:relative;z-index:5;
+    background:var(--brand);color:#fff;}
+.ak-status .ak-sig{display:flex;align-items:center;gap:7px;}
+.ak-status .ak-sig svg{display:block;fill:currentColor;}
+.ak-status .ak-clock{font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+/* ---- app header: brand mark slot + greeting + action (continuous with status bar) ---- */
+.ak-head{background:var(--brand);color:#fff;padding:4px 18px 20px;flex:none;
+    border-radius:0 0 22px 22px;}
+.ak-head .ak-top{display:flex;align-items:center;justify-content:space-between;}
+.ak-head .ak-brand{font-size:17px;font-weight:800;letter-spacing:-.01em;}
+.ak-head .ak-brand img{height:20px;display:block;}      /* customer logo slot */
+.ak-head .ak-bell{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.14);
+    display:grid;place-items:center;}
+.ak-head .ak-bell svg{width:18px;height:18px;stroke:#fff;fill:none;}
+.ak-head .ak-hello{font-size:14px;color:rgba(255,255,255,.72);margin-top:14px;}
+.ak-head .ak-hero{font-size:30px;font-weight:800;margin-top:2px;letter-spacing:-.01em;}
+/* ---- body ---- */
+.ak-body{flex:1;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.ak-sec{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--soft);margin:2px 0 -2px;}
+/* card */
+.ak-card{background:#fff;border-radius:16px;padding:15px 16px;box-shadow:0 6px 18px rgba(var(--brand-rgb),.07);}
+.ak-card.hi{border:1.5px solid var(--accent);}
+.ak-card .ak-ct{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:7px;}
+.ak-card .ak-ct svg{width:15px;height:15px;fill:var(--accent);--iconPrimary:var(--accent);}
+.ak-card .ak-cb{font-size:15px;line-height:1.45;color:var(--ink);margin-top:6px;}
+.ak-card .ak-cb b{color:var(--brand);}
+.ak-card .ak-big{font-size:30px;font-weight:800;color:var(--brand);letter-spacing:-.01em;}
+/* list rows */
+.ak-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 14px;
+    box-shadow:0 6px 18px rgba(var(--brand-rgb),.06);}
+.ak-row .ak-ic{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+    background:rgba(var(--accent-rgb),.12);}
+.ak-row .ak-ic svg{width:20px;height:20px;fill:var(--accent);--iconPrimary:var(--accent);}
+.ak-row .ak-rt{flex:1;}
+.ak-row .ak-rt b{font-size:15px;font-weight:700;color:var(--ink);display:block;}
+.ak-row .ak-rt span{font-size:13px;color:var(--soft);}
+.ak-row .ak-rv{font-size:15px;font-weight:800;color:var(--brand);}
+/* primary action */
+.ak-btn{background:var(--accent);color:#fff;text-align:center;font-size:15px;font-weight:800;
+    padding:14px;border-radius:12px;}
+.ak-btn.ghost{background:transparent;color:var(--brand);border:1.5px solid var(--line);}
+/* chips */
+.ak-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.ak-chip{font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;
+    background:rgba(var(--accent-rgb),.1);color:var(--brand);}
+/* progress meter (loyalty, savings goals) */
+.ak-meter{height:8px;border-radius:5px;background:var(--ice);overflow:hidden;}
+.ak-meter i{display:block;height:100%;background:var(--accent);border-radius:5px;}
+/* ---- bottom tab bar ---- */
+.ak-tabs{flex:none;height:60px;background:#fff;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-around;padding-bottom:4px;}
+.ak-tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:700;
+    color:var(--soft);}
+.ak-tab svg{width:22px;height:22px;fill:var(--soft);--iconPrimary:var(--soft);}
+.ak-tab.on{color:var(--accent);}
+.ak-tab.on svg{fill:var(--accent);--iconPrimary:var(--accent);}

@@ -1,0 +1,32 @@
+<!-- boarding-pass — mobile wallet-pass moment: the pass card + a live gate-change banner.
+     Travel-journey staple (KSIA-class). Every code/time/seat is a data-slot; the QR block
+     is a pure-CSS placeholder PATTERN (data-slot) — swap for a real QR image at build time. -->
+<section class="slide boarding-pass" data-no-persona="sample - persona layer added at build time (s12)">
+  <div class="story">
+    <div class="numdisc a1" data-slot="eyebrow">Scene 0X · Ready to board</div>
+    <h2 class="htitle a2" data-slot="scene-title">Her pass is already waiting</h2>
+    <p class="narr a3" data-slot="narration">No kiosk, no counter. The pass landed in her wallet at check-in, and when the gate moved, the pass moved with it.</p>
+    <div class="takeaway a4" data-slot="takeaway">One tap from lockscreen to gate.</div>
+  </div>
+  <div class="screen a5"><div class="phone"><div class="pscreen bp-bg">
+    <div class="ptop bp-top"><span data-slot="wallet-label">Wallet</span><span>9:41</span></div>
+    <div class="bp-card">
+      <div class="bp-head"><span class="bp-brand" data-slot="airline-brand">RIYADH AIR</span><span class="bp-cls" data-slot="cabin">Business</span></div>
+      <div class="bp-route">
+        <div><b data-slot="from-code">RUH</b><i data-slot="from-time">08:40</i></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12h14M12 6l6 6-6 6"/></svg>
+        <div><b data-slot="to-code">LHR</b><i data-slot="to-time">12:05</i></div>
+      </div>
+      <div class="bp-grid">
+        <div><i>Passenger</i><b data-slot="name">Nora Al Rashid</b></div>
+        <div><i>Seat</i><b data-slot="seat">4A</b></div>
+        <div><i>Gate</i><b data-slot="gate">E8</b></div>
+        <div><i>Boards</i><b data-slot="boards">08:05</b></div>
+      </div>
+      <div class="bp-qr" data-slot="qr (placeholder pattern — real QR at build time)"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="bp-banner notif-drop" style="--d:1.5s" data-slot="gate-change-banner">
+      <b>Gate changed</b> E4 → E8. 6 min walk from your location.
+    </div>
+  </div></div></div>
+</section>

@@ -1,0 +1,198 @@
+<!-- elements/workplan-rail.html - the agentic workplan rail as a reusable, token-driven
+     component (T1 of the interactive backlog, 19 Jul 2026).
+
+     PROVENANCE: extracted from app-screens/interactive/cx-coworker-chat.html (the .cw-plan
+     rail, generalised from fixed Adobe chrome to role tokens) with mechanics adopted from the
+     Claude Design T1 pass (status trio, auto-run cancel, staggered artifacts). Rebuilt rather
+     than pasted because the Design pass produced a full slide with welded-in narrative copy.
+
+     RESKIN CONTRACT: colour comes only from the role tokens (--brand/--brand-deep/--accent/
+     --accent-lt/--ink/--grey/--soft/--line/--ice + --brand-rgb/--accent-rgb). Set them in the
+     deck :root from assets/<slug>/brand.json. All copy lives in WPR_DATA.
+
+     API (no global key bindings ON PURPOSE: ArrowLeft/Right belong to deck navigation, and a
+     banked component must never hijack them):
+       WPR.run()    - tick through remaining steps on a timer, then reveal artifacts
+       WPR.step(n)  - advance/reverse by n steps instantly (clamped; cancels a running timer)
+       WPR.reset()  - re-arm to the planned state
+     Optional on-stage buttons: keep or delete the .wpr-ctas block per deck.
+
+     Coworker choreography holds: the agent states the plan, ticks through named steps with
+     agent badges, then holds the result for approval. -->
+<style>
+  .wpr{--wpr-cadence:700ms; width:940px; font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif;
+    color:var(--ink,#1c2230); text-align:left;}
+  .wpr *{box-sizing:border-box; margin:0;}
+  .wpr-card{background:#fff; border:1px solid var(--line,#E3E4EA); border-radius:16px;
+    box-shadow:0 2px 18px rgba(0,0,0,.07); overflow:hidden;}
+  .wpr-head{display:flex; align-items:flex-start; gap:24px; padding:26px 30px 22px;
+    border-bottom:1px solid var(--line,#E3E4EA);}
+  .wpr-title{font-size:30px; font-weight:800; letter-spacing:-.015em; line-height:1.15;}
+  .wpr-status{margin-top:6px; font-size:18px; font-weight:600; color:var(--grey,#6B6F7B);
+    transition:color .2s ease;}
+  .wpr.is-complete .wpr-status{color:var(--accent,#2E7D6B);}
+  .wpr-count{flex:none; margin-left:auto; font-size:17px; font-weight:700;
+    color:var(--brand,#1C2A3A); background:var(--ice,#F5F7FA); border-radius:999px;
+    padding:9px 18px; white-space:nowrap;}
+  .wpr-steps{display:flex; flex-direction:column;}
+  .wpr-step{display:flex; align-items:flex-start; gap:18px; padding:16px 30px;
+    border-bottom:1px solid var(--line,#E3E4EA); opacity:.5;
+    transition:opacity .3s ease, background .3s ease;}
+  .wpr-step:last-child{border-bottom:0;}
+  .wpr-step.running{opacity:1; background:rgba(var(--brand-rgb,28,42,58),.06);}
+  .wpr-step.done{opacity:1;}
+  .wpr-dot{flex:none; width:34px; height:34px; border-radius:50%; border:2px solid var(--line,#E3E4EA);
+    display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;
+    color:var(--grey,#6B6F7B); margin-top:2px; transition:all .25s ease; background:#fff;}
+  .wpr-step.running .wpr-dot{border-color:var(--brand,#1C2A3A); color:var(--brand,#1C2A3A);
+    animation:wprPulse 1.3s infinite;}
+  .wpr-step.done .wpr-dot{border-color:var(--brand,#1C2A3A); background:var(--brand,#1C2A3A); color:#fff;}
+  @keyframes wprPulse{0%,100%{box-shadow:0 0 0 0 rgba(var(--brand-rgb,28,42,58),.3);}
+    50%{box-shadow:0 0 0 8px rgba(var(--brand-rgb,28,42,58),0);}}
+  .wpr-st{flex:1; min-width:0;}
+  .wpr-stitle{display:block; font-size:27px; font-weight:700; letter-spacing:-.01em; line-height:1.25;}
+  .wpr-sdetail{display:block; font-size:26px; line-height:1.35; color:var(--grey,#6B6F7B); margin-top:2px;}
+  .wpr-work{display:none; align-items:center; gap:5px; margin-left:12px; vertical-align:middle;}
+  .wpr-step.running .wpr-work{display:inline-flex;}
+  .wpr-work i{width:8px; height:8px; border-radius:50%; background:var(--brand,#1C2A3A);
+    opacity:.25; animation:wprDots .9s linear infinite;}
+  .wpr-work i:nth-child(2){animation-delay:.15s;} .wpr-work i:nth-child(3){animation-delay:.3s;}
+  @keyframes wprDots{0%,100%{opacity:.25;} 35%{opacity:1;}}
+  .wpr-badge{flex:none; align-self:center; font-size:16px; font-weight:700;
+    color:var(--grey,#6B6F7B); border:1.5px solid var(--line,#E3E4EA); background:#fff;
+    border-radius:999px; padding:8px 16px; white-space:nowrap; transition:all .25s ease;}
+  .wpr-step.running .wpr-badge{border-color:var(--brand,#1C2A3A); color:var(--brand,#1C2A3A);}
+  .wpr-step.done .wpr-badge{background:var(--brand,#1C2A3A); border-color:var(--brand,#1C2A3A); color:#fff;}
+  .wpr-arts{display:flex; gap:16px; margin-top:18px;}
+  .wpr-art{flex:1; display:flex; align-items:center; gap:14px;
+    background:var(--accent-lt,#E9F3F0); border:1.5px solid var(--accent,#2E7D6B);
+    border-radius:14px; padding:16px 18px; opacity:0; transform:translateY(14px);
+    transition:opacity .28s ease, transform .28s ease;}
+  .wpr.is-complete .wpr-art{opacity:1; transform:none;}
+  .wpr.is-complete .wpr-art:nth-child(2){transition-delay:.12s;}
+  .wpr.is-complete .wpr-art:nth-child(3){transition-delay:.24s;}
+  .wpr-artname{font-size:22px; font-weight:800; letter-spacing:-.01em;}
+  .wpr-artdesc{font-size:17px; color:var(--grey,#6B6F7B); margin-top:1px;}
+  .wpr-ctas{display:flex; gap:12px; margin-top:18px;}
+  .wpr-run{appearance:none; border:0; cursor:pointer; font:700 18px/1 inherit; color:#fff;
+    background:var(--brand,#1C2A3A); padding:14px 26px; border-radius:999px;
+    transition:opacity .18s ease, transform .16s ease;}
+  .wpr-run:hover{transform:translateY(-1px);}
+  .wpr-run:disabled{opacity:.4; cursor:default; transform:none;}
+  .wpr-reset{appearance:none; cursor:pointer; font:600 16px/1 inherit; color:var(--grey,#6B6F7B);
+    background:none; border:1px solid var(--line,#E3E4EA); padding:12px 20px; border-radius:999px;}
+</style>
+
+<div class="wpr" id="wpr">
+  <div class="wpr-card">
+    <div class="wpr-head">
+      <div>
+        <div class="wpr-title" id="wprTitle"></div>
+        <div class="wpr-status" id="wprStatus"></div>
+      </div>
+      <div class="wpr-count" id="wprCount"></div>
+    </div>
+    <div class="wpr-steps" id="wprSteps"></div>
+  </div>
+  <div class="wpr-arts" id="wprArts"></div>
+  <div class="wpr-ctas">
+    <button class="wpr-run" id="wprRun">Run the plan</button>
+    <button class="wpr-reset" id="wprReset">Reset</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: every word and number lives here ============ */
+  var WPR_DATA = {
+    planTitle: "Re-engage 48,200 lapsed customers",
+    status: {
+      planned: "Planned, waiting on you",
+      running: "Running step {n} of {total}",
+      done: "Done, held for your approval"
+    },
+    steps: [
+      { title: "Build the lapsed segment",
+        detail: "48,200 customers with no activity in 90 days", agent: "Audience" },
+      { title: "Score win-back propensity",
+        detail: "Keeps the 26,500 most likely to return", agent: "Data Insights" },
+      { title: "Draft three email variants",
+        detail: "Subject lines tuned to each cohort's past opens", agent: "Content" },
+      { title: "Map the send journey",
+        detail: "Two touches with a 72 hour wait between them", agent: "Journey" },
+      { title: "Set holdout and guardrails",
+        detail: "5 percent holdout, capped at 2 sends a week", agent: "Data Insights" }
+    ],
+    artifacts: [
+      { name: "Win-back segment", desc: "26,500 profiles" },
+      { name: "Email drafts", desc: "3 variants for review" },
+      { name: "Journey draft", desc: "2 steps, holdout attached" }
+    ]
+  };
+  /* ================================================================ */
+
+  var root = document.getElementById("wpr");
+  var stepsEl = document.getElementById("wprSteps");
+  var TOTAL = WPR_DATA.steps.length;
+  var CADENCE = parseFloat(getComputedStyle(root).getPropertyValue("--wpr-cadence")) || 700;
+
+  document.getElementById("wprTitle").textContent = WPR_DATA.planTitle;
+  stepsEl.innerHTML = WPR_DATA.steps.map(function(s, i){
+    return '<div class="wpr-step">'
+      + '<span class="wpr-dot">' + (i + 1) + '</span>'
+      + '<span class="wpr-st"><span class="wpr-stitle">' + s.title
+      + '<span class="wpr-work"><i></i><i></i><i></i></span></span>'
+      + '<span class="wpr-sdetail">' + s.detail + '</span></span>'
+      + '<span class="wpr-badge">' + s.agent + '</span></div>';
+  }).join("");
+  document.getElementById("wprArts").innerHTML = WPR_DATA.artifacts.map(function(a){
+    return '<div class="wpr-art"><span><span class="wpr-artname">' + a.name
+      + '</span><span class="wpr-artdesc" style="display:block">' + a.desc + '</span></span></div>';
+  }).join("");
+
+  var steps = [].slice.call(stepsEl.children);
+  var runBtn = document.getElementById("wprRun");
+  var done = 0, timer = null, auto = false;
+
+  function render(){
+    steps.forEach(function(el, i){
+      el.className = "wpr-step " + (i < done ? "done" : (auto && i === done) ? "running" : "");
+      el.querySelector(".wpr-dot").textContent = i < done ? "✓" : (i + 1);
+    });
+    document.getElementById("wprCount").textContent = done + " of " + TOTAL;
+    root.classList.toggle("is-complete", done === TOTAL);
+    document.getElementById("wprStatus").textContent =
+      done === TOTAL ? WPR_DATA.status.done :
+      auto ? WPR_DATA.status.running.replace("{n}", done + 1).replace("{total}", TOTAL) :
+      WPR_DATA.status.planned;
+    runBtn.disabled = auto || done === TOTAL;
+  }
+  function stop(){ if (timer) { clearTimeout(timer); timer = null; } auto = false; }
+  function tick(){
+    timer = setTimeout(function(){
+      done = Math.min(TOTAL, done + 1);
+      if (done < TOTAL) { render(); tick(); }
+      else { auto = false; timer = null; render(); }
+    }, CADENCE);
+  }
+  function run(){ if (auto || done === TOTAL) return; auto = true; render(); tick(); }
+  function step(n){ stop(); done = Math.max(0, Math.min(TOTAL, done + (n || 1))); render(); }
+  function reset(){ stop(); done = 0; render(); }
+
+  runBtn.addEventListener("click", run);
+  document.getElementById("wprReset").addEventListener("click", reset);
+  /* Deliberately NO document-level key bindings: arrows belong to deck navigation.
+     The presenter drives via the buttons or the WPR API. */
+  window.WPR = { run: run, step: step, reset: reset };
+  render();
+})();
+</script>
+<!-- TESTS:
+1. Initial: #wprCount reads "0 of 5", #wprStatus reads "Planned, waiting on you", every .wpr-art at computed opacity 0.
+2. Click #wprRun: button disables, step 1 gains .running with visible .wpr-work dots.
+3. After the cadence, step 1 is .done (dot shows a check) and #wprCount reads "1 of 5".
+4. On completion: all 5 .done, "5 of 5", status "Done, held for your approval", .wpr has .is-complete, artifacts at opacity 1.
+5. WPR.step(1)/WPR.step(-1) clamp at 0 and 5 and cancel a running timer.
+6. Pressing ArrowRight changes NOTHING (no global key bindings; deck navigation is sacred).
+7. WPR.reset() re-arms: "0 of 5", planned status, run button enabled.
+-->

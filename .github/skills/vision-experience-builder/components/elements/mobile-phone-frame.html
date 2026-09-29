@@ -1,0 +1,32 @@
+<!--
+  component: mobile-phone-frame
+  Phone shell with status bar + wallpaper. Holds lockscreen notifications,
+  email clients, call screens, app mocks. Sits centred on a light slide
+  (parent .screen pane). Pair with mobile-lockscreen-notification +
+  mobile-email-ios OR mobile-call-screen for full flows.
+
+  Slots: wallpaper image (`.wall` background-image), pstatus time, any inner UI.
+
+  Positioning: place inside the slide as an absolute element (392×796 px,
+  scaled to a ~half-width pane). Adjust top/left for the layout.
+-->
+<style>
+.phoneframe{position:absolute;left:50%;top:92px;transform:translateX(-50%);width:392px;height:796px;background:#0b1730;border-radius:50px;padding:13px;box-shadow:0 34px 80px rgba(16,32,70,.4);z-index:4;}
+.phoneframe .pscreen{width:100%;height:100%;border-radius:38px;overflow:hidden;position:relative;background:#0E2A5E;}
+.phoneframe .wall{position:absolute;inset:0;background:url("WALLPAPER.jpg") center/cover;filter:brightness(.82);}
+.phoneframe .pstatus{position:absolute;top:0;left:0;right:0;height:42px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;z-index:3;}
+/* generic centred hole-punch FRONT CAMERA (never an Apple notch/Dynamic Island, asset-licensing.md);
+   matches the canonical phone (elements/living-phone .lpm-cam) so every phone reads the same. */
+.phoneframe .cam{position:absolute;top:14px;left:50%;margin-left:-7.5px;width:15px;height:15px;border-radius:50%;z-index:6;
+  background:radial-gradient(circle at 38% 34%,#3a4868 0%,#0a1020 55%,#04060b 100%);
+  box-shadow:0 0 0 1.6px rgba(206,219,242,.45),0 1px 4px rgba(0,0,0,.5);}
+</style>
+
+<div class="phoneframe">
+  <div class="pscreen">
+    <div class="wall"></div>
+    <div class="cam"></div>
+    <div class="pstatus">9:24</div>
+    <!-- drop in: mobile-lockscreen-notification, mobile-email-ios, mobile-call-screen, or any app mock -->
+  </div>
+</div>

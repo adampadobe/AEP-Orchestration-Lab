@@ -1,0 +1,299 @@
+<!--
+  ============================================================
+  TEMPLATE: persona-hero-splash.html
+  Scene type: persona-hero-splash
+  Figma source: Frame 6 — OptimizedProjectPlanning_02 (node 10548:49729)
+
+  Background: Adobe Red gradient (#EB1000 → #C50D00) with navy radial accent
+  Use for: Chapter transition / section opener with full-body persona
+
+  Slots:
+    {{title_line1}}       — H1 line 1 (e.g. "Optimized")
+    {{title_line2}}       — H1 line 2 (e.g. "Project")
+    {{title_line3}}       — H1 line 3 (e.g. "Planning")
+    {{persona_photo}}     — URL to full-body persona image (source ~1420px tall)
+    {{kpi_value}}         — floating stat number (e.g. "+31%")
+    {{kpi_label}}         — stat descriptor (e.g. "ARRPM")
+    {{kpi_colour}}        — badge background hex (e.g. #E9740A or #6D5FEB)
+    {{chapter_title}}     — red pill label (e.g. "Optimized Project Planning")
+    {{product_context}}   — breadcrumb suffix (e.g. "AI Assistant in Workfront")
+    {{adobe_symbol_path}} — path to assets/adobe/symbol-white.svg
+
+  Nav dots: white variant
+  Active dot: set .nd--active on the correct dot for deck position
+  ============================================================
+-->
+
+<style>
+/* === PERSONA HERO SPLASH TEMPLATE === */
+
+.slide--hero-splash {
+  font-family: 'Adobe Clean', 'Source Sans 3', sans-serif;
+  background: linear-gradient(135deg, #EB1000 0%, #C50D00 100%);
+  overflow: hidden;
+}
+
+/* ---- Decorative radial — bottom-right navy glow ---- */
+.hero-splash__bg-accent {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 115% 115%, rgba(11, 43, 147, 0.50) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* ---- Top navigation bar ---- */
+.hero-splash__nav {
+  position: absolute;
+  top: 39px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-left: 60px;
+  z-index: 10;
+}
+
+.hero-splash__nav-logo {
+  width: 65.6px;
+  height: 64px;
+  flex-shrink: 0;
+  margin-right: 20px;
+}
+
+/* Slide title breadcrumb:
+   [Red pill: chapter title] [Plain text: product context] */
+.hero-splash__nav-crumb {
+  display: flex;
+  align-items: center;
+}
+
+.hero-splash__nav-pill {
+  background: #EB1000;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 6px 18px 8px;
+  border-radius: 1000px;
+  white-space: nowrap;
+}
+
+.hero-splash__nav-sub {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 6px 18px 8px;
+  white-space: nowrap;
+}
+
+.hero-splash__nav-sub strong {
+  font-weight: 800;
+}
+
+/* ---- Three-line H1 title — left side ----
+   Exact Figma measurements: left 187px, each line 208px/line-height 1
+   Lines stacked directly with no gap between them.
+*/
+.hero-splash__title {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 187px;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+
+.hero-splash__title-line {
+  font-size: 208px;
+  font-weight: 800;
+  line-height: 1;
+  color: #FFFFFF;
+  white-space: nowrap;
+  margin: 0;
+  letter-spacing: -0.01em;
+  opacity: 0;
+}
+
+/* ---- KPI floating badge ----
+   Position from Figma: left 822px, top 248px
+   --kpi-colour via inline style override
+*/
+.hero-splash__kpi {
+  position: absolute;
+  left: 822px;
+  top: 248px;
+  background: var(--kpi-bg, #6D5FEB);
+  border: 2px solid #6349E0;
+  border-radius: 24.9px;
+  padding: 18px 28px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 170px;
+  z-index: 6;
+  opacity: 0;
+}
+
+.hero-splash__kpi-value {
+  font-size: 46px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hero-splash__kpi-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ---- Persona photo — right column ----
+   Container: position absolute, left 950px, 757×1080px, overflow hidden
+   Photo: position absolute, fills width, source taller than container
+*/
+.hero-splash__persona {
+  position: absolute;
+  left: 950px;
+  top: 0;
+  width: 757px;
+  height: 1080px;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.hero-splash__persona img {
+  position: absolute;
+  width: 100%;
+  top: -40px;       /* adjust per photo to control vertical crop */
+  left: 0;
+  max-width: none;
+  max-height: none;
+  height: auto;
+  opacity: 0;
+}
+
+/* ---- Nav dots — white variant ---- */
+.nav-dots--light {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  height: 695px;
+  z-index: 20;
+}
+
+.nav-dots--light .nd {
+  width: 4.4px;
+  height: 4.4px;
+  border-radius: 62.8px;
+  background: rgba(255, 255, 255, 0.20);
+  flex-shrink: 0;
+  display: block;
+}
+
+.nav-dots--light .nd.nd--active {
+  background: rgba(255, 255, 255, 0.80);
+  outline: 3px solid rgba(255, 255, 255, 0.80);
+  outline-offset: 0;
+}
+
+/* ---- Entrance animations ---- */
+@keyframes hero-line-in {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+@keyframes kpi-badge-in {
+  from { opacity: 0; transform: scale(0.85) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0);       }
+}
+
+@keyframes persona-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   ANIMATION TRIGGERS
+   Elements start opacity:0 (set above). Animations only fire
+   when the parent .slide gains .active. The deck JS must call
+   void slide.offsetWidth before adding .active to restart
+   animations on each revisit.
+   ============================================================ */
+.slide.active .hero-splash__title-line { animation: hero-line-in 700ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .hero-splash__title-line:nth-child(1) { animation-delay:  80ms; }
+.slide.active .hero-splash__title-line:nth-child(2) { animation-delay: 160ms; }
+.slide.active .hero-splash__title-line:nth-child(3) { animation-delay: 240ms; }
+.slide.active .hero-splash__kpi { animation: kpi-badge-in 500ms 350ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .hero-splash__persona img { animation: persona-slide-in 900ms 80ms cubic-bezier(0.22,1,0.36,1) both; }
+</style>
+
+<!-- ============================================================
+     SLIDE: Persona Hero Splash
+     Replace all {{slots}} before use.
+     Set nd--active on the correct dot for deck position.
+     ============================================================ -->
+<section class="slide slide--hero-splash" id="slide-hero-splash" data-scene="persona-hero-splash">
+
+  <!-- Decorative background accent -->
+  <div class="hero-splash__bg-accent" aria-hidden="true"></div>
+
+  <!-- Top navigation bar -->
+  <nav class="hero-splash__nav" aria-label="Section navigation">
+    <img class="hero-splash__nav-logo" src="{{adobe_symbol_path}}" alt="Adobe">
+    <div class="hero-splash__nav-crumb">
+      <div class="hero-splash__nav-pill">{{chapter_title}}</div>
+      <div class="hero-splash__nav-sub">{{product_context}}</div>
+    </div>
+  </nav>
+
+  <!-- Three-line H1 -->
+  <div class="hero-splash__title" aria-label="{{title_line1}} {{title_line2}} {{title_line3}}">
+    <p class="hero-splash__title-line">{{title_line1}}</p>
+    <p class="hero-splash__title-line">{{title_line2}}</p>
+    <p class="hero-splash__title-line">{{title_line3}}</p>
+  </div>
+
+  <!-- KPI floating badge
+       Override background via style="--kpi-bg: {{kpi_colour}}" -->
+  <div class="hero-splash__kpi" style="--kpi-bg: {{kpi_colour}}">
+    <p class="hero-splash__kpi-value">{{kpi_value}}</p>
+    <p class="hero-splash__kpi-label">{{kpi_label}}</p>
+  </div>
+
+  <!-- Full-body persona photo -->
+  <div class="hero-splash__persona">
+    <img src="{{persona_photo}}" alt="Persona">
+  </div>
+
+  <!-- Nav dots — white variant
+       Move nd--active to correct dot for deck position -->
+  <div class="nav-dots--light" role="presentation" aria-hidden="true">
+    <span class="nd nd--active"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+  </div>
+
+</section>

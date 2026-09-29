@@ -1,0 +1,28 @@
+{
+  "type": "audience-segmentation",
+  "key_classes": [
+    "anim",
+    "col-label",
+    "eyebrow",
+    "has-photo",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "seg-arrow",
+    "seg-ava",
+    "seg-dot",
+    "seg-dots",
+    "seg-high",
+    "seg-lbl",
+    "seg-pod",
+    "seg-speedy",
+    "seg-sub",
+    "seg-wrap",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use audience-segmentation"
+}

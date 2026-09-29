@@ -1,0 +1,29 @@
+{
+  "type": "journey-recap",
+  "key_classes": [
+    "rc-card",
+    "rc-dot",
+    "rc-head",
+    "rc-id",
+    "rc-item",
+    "rc-items",
+    "rc-j",
+    "rc-line",
+    "rc-p",
+    "rc-photo",
+    "rc-prog",
+    "rc-replay",
+    "rc-track",
+    "recap",
+    "recap-cols",
+    "recap-div",
+    "recap-eyebrow",
+    "recap-hint",
+    "recap-side",
+    "recap-top",
+    "recap-wrap",
+    "slide"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use journey-recap"
+}

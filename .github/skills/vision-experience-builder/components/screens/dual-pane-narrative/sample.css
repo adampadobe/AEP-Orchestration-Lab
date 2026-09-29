@@ -1,0 +1,44 @@
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;transition:opacity .4s;}
+.slide.active{visibility:visible;opacity:1;}
+.intro-right .phone{position:absolute;left:84px;top:26px;}
+.mzmark{height:18px;display:block;}
+/* dual-pane editorial (de-boxed) */
+.numdisc{display:inline-block;color:var(--accent);font-size:18px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;margin:0 0 6px;}
+.story{position:absolute;left:120px;top:132px;width:760px;}
+.htitle{font-size:60px;font-weight:800;color:var(--brand);line-height:1.03;margin:8px 0 20px;letter-spacing:-.015em;}
+.narr{font-size:26px;line-height:1.5;color:var(--grey);margin:0 0 22px;}
+.quote{border-left:3px solid var(--accent);padding:4px 0 4px 22px;font-size:22px;font-style:italic;color:var(--brand);margin:0 0 26px;line-height:1.4;}
+.prodcard{border-left:3px solid var(--line);padding:2px 0 2px 20px;margin:0 0 26px;}
+.pf-lab{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.pf-lab svg{width:17px;height:17px;fill:var(--accent);}
+.pf-ev{font-size:17px;color:var(--ink);line-height:1.45;margin-bottom:5px;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
+/* navy-on-coral: 4.8:1 (passes WCAG 4.5) using only Monzo's own palette — white on coral was 3.27:1 */
+.chip{font-size:16px;font-weight:700;color:var(--brand);background:var(--accent);border-radius:8px;padding:5px 11px;}
+.takeaway{font-size:26px;font-weight:700;color:var(--brand);line-height:1.35;}
+.persona-foot{position:absolute;left:120px;bottom:64px;font-size:18px;font-weight:700;color:var(--ink);}
+.persona-foot span{color:var(--soft);font-weight:500;}
+.adobe-foot{position:absolute;right:60px;bottom:60px;height:22px;opacity:.5;}
+.ctag{background:var(--accent);color:var(--brand);font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;}
+.cbtn{margin-top:10px;background:var(--accent);color:var(--brand);font-size:12px;font-weight:800;text-align:center;padding:8px;border-radius:9px;}
+/* phone */
+.screen{position:absolute;right:120px;top:96px;width:820px;height:888px;display:grid;place-items:center;}
+.phone{width:392px;height:800px;background:#0C1626;border-radius:48px;padding:12px;box-shadow:0 40px 90px rgba(12,22,38,.45);}
+.pscreen{width:100%;height:100%;border-radius:38px;overflow:hidden;background:#F4F6F9;position:relative;}
+.ptop{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:13px;font-weight:700;color:var(--brand);}
+.app{padding:16px;}
+.mzhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.mzhead .bal{font-size:13px;color:var(--soft);font-weight:700;}
+.mzhead .amt{font-size:26px;font-weight:800;color:var(--brand);}
+.card{background:#fff;border-radius:16px;padding:15px;box-shadow:0 8px 22px rgba(20,35,58,.08);margin-bottom:12px;}
+.card .ct{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:7px;}
+.card .ct svg{width:15px;height:15px;fill:var(--accent);stroke:var(--accent);}
+.card .cb{font-size:15px;line-height:1.45;color:var(--ink);margin-top:7px;}
+.card .cb b{color:var(--brand);}
+.btn{background:var(--accent);color:#fff;text-align:center;font-size:15px;font-weight:800;padding:14px;border-radius:12px;margin-top:6px;}
+.segwrap .chips .chip{color:var(--brand);background:var(--ice);border:1px solid var(--line);}
+.slide.active .flip-in-x{animation:flipInX .9s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .notif-drop{animation:notifDrop .8s var(--d,.4s) cubic-bezier(.2,1.25,.35,1) forwards;}
+.glare-sweep{position:relative;overflow:hidden;}
+.glare-sweep::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.35) 50%,transparent 58%);transform:translateX(-130%);}
+.slide.active .glare-sweep::after{animation:glareSweep 1.4s 1.2s ease-in-out forwards;}

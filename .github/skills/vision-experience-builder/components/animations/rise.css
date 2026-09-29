@@ -1,0 +1,3 @@
+/* animation: rise  (harvested from po-cruises) */
+/* triggered by: .slide.active .a1, .slide.active .a2, .slide.active .a3, .slide.active .a4, .slide.active .a5, .slide.active .a6 */
+@keyframes rise{from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:translateY(0);}}

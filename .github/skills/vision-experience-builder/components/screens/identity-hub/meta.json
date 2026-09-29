@@ -1,0 +1,31 @@
+{
+  "type": "identity-hub",
+  "key_classes": [
+    "a0",
+    "a1",
+    "a2",
+    "a3",
+    "anim",
+    "col-label",
+    "coop",
+    "cov",
+    "eyebrow",
+    "has-photo",
+    "hub-av",
+    "hub-b",
+    "hub-bar",
+    "hub-bars",
+    "hub-brands",
+    "hub-core",
+    "hub-count",
+    "hub-cyl",
+    "hub-label",
+    "hub-link",
+    "hub-node",
+    "hub-p",
+    "hub-pchip",
+    "hub-plabel"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use identity-hub"
+}

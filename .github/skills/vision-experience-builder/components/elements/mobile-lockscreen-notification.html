@@ -1,0 +1,31 @@
+<!--
+  component: mobile-lockscreen-notification
+  Lock-screen notification card that rises onto the phone wallpaper. Drops
+  inside mobile-phone-frame's .pscreen, BEFORE the mobile-email-ios (which
+  fades in over the top at +2.5s).
+
+  Slots:
+    ICON_INITIALS   short brand mark inside the icon square ("P&O", "BA")
+    APP_NAME        e.g. "P&O Cruises" (small grey label)
+    SUBJECT         the notification headline
+    PREVIEW         1-line snippet of the email body
+
+  Animation: opacity 0 → rise at +0.9s after slide.active.
+-->
+<style>
+.ph-notif{position:absolute;top:74px;left:14px;right:14px;background:rgba(255,255,255,.97);border-radius:20px;padding:13px 15px;display:flex;gap:11px;z-index:4;box-shadow:0 12px 34px rgba(0,0,0,.32);opacity:0;}
+.ph-notif .ic{width:38px;height:38px;border-radius:9px;background:#173A87;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center;flex-shrink:0;}
+.ph-notif .nf{font-size:12px;color:#5B6573;font-weight:700;}
+.ph-notif .ns2{font-size:14px;color:#15203A;font-weight:800;margin:1px 0;}
+.ph-notif .np{font-size:12px;color:#5B6573;line-height:1.35;}
+.slide.active .ph-notif{animation:rise .6s .9s both cubic-bezier(.22,1,.36,1);}
+</style>
+
+<div class="ph-notif">
+  <div class="ic">ICON_INITIALS</div>
+  <div>
+    <div class="nf">APP_NAME</div>
+    <div class="ns2">SUBJECT</div>
+    <div class="np">PREVIEW</div>
+  </div>
+</div>

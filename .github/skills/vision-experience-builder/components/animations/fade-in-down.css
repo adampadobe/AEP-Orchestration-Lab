@@ -1,0 +1,8 @@
+/* fade-in-down — entrance (entrance, down, standard, text, card)
+   top-anchored reveals: headers, dropped-in banners.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-34px)}to{opacity:1;transform:none}}
+.fade-in-down{opacity:0;}
+.slide.active .fade-in-down{animation:fadeInDown .7s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}

@@ -1,0 +1,62 @@
+{
+  "type": "cx-enterprise-home",
+  "description": "Adobe Experience Cloud AI home ('Home with new EC colors'), built from the real Figma source rather than a screenshot: Summit-2026 file sPKvHs4sHSSl6QId4Mg39b node 538:36576, pulled 17 Jul 2026 via the Dev Mode MCP (get_design_context for geometry, get_variable_defs for the published tokens). Shell header, AI-modality left rail, indigo 'new EC colors' stage wash under a hue-sweep banner, hero with persona greeting + suggested-prompt chips + prompt bar, 'Continue where you left off' (journey card with two flow nodes, then a 3x2 card grid of sparkline digests and gradient resume cards), 'Recommended skills' and 'Suggested prompts'. This is the surface the Coworker/AI-assistant beat of a deck should open on, and it supersedes hand-drawn approximations of the CX home. Adobe product UI in Adobe's own tokens: parameterize DATA ONLY via data-slot, never rebrand the colours to a customer palette.",
+  "key_classes": [
+    "cx-fold",
+    "cx-home",
+    "cx-hdr",
+    "cx-rail",
+    "cx-stage",
+    "cx-banner",
+    "cx-col",
+    "cx-hero",
+    "cx-chip",
+    "cx-prompt",
+    "cx-sec",
+    "cx-jrow",
+    "cx-grid",
+    "cx-card",
+    "cx-skills",
+    "cx-prompts"
+  ],
+  "slots": [
+    "product",
+    "org",
+    "avatar",
+    "persona-name",
+    "chip-1",
+    "chip-2",
+    "chip-3",
+    "sandbox",
+    "j-eyebrow",
+    "j-title",
+    "journey-nodes"
+  ],
+  "brand_bound": false,
+  "verified": true,
+  "rev": 1,
+  "host": {
+    "markup": "<div class=\"cx-fold\" data-audit><section class=\"cx-home\" data-mock>…</section></div>",
+    "why": "The component is a 1440x2560 product page and a slide is 1920x1080, so the deck decides the framing. .cx-fold is stage-sized, clips, and scales 1.3333 to show the top 810px: the 56px header lands at 75px and body copy near 19px, which reads from the back of a room. Scaling the whole 2560 into 1080 (0.42x) puts body copy at ~5px — texture only, never a slide you talk to.",
+    "data-audit": "Goes on .cx-fold, NEVER on .cx-home. The auditor measures real boxes and the un-clipped page is 3413px tall at fold scale, so data-audit on the component reports a false overflow. It is also what stops the full-bleed fold being demoted to a decorative layer (contentUnits 0 = fails as blank).",
+    "data-mock": "Stays on .cx-home. Exempts the product chrome from the deck TYPE_RULES — a 12px eyebrow is correct at product scale and judging it as deck copy is a false fail."
+  },
+  "verify": "python verify.py — self-contained. Asserts rendered geometry against the published Figma numbers and per-pixel colour against the banked figma-reference.png (24 points). Currently: all pass.",
+  "sources": [
+    "figma:sPKvHs4sHSSl6QId4Mg39b#538-36576 (Summit-2026, 'Home with new EC colors', 17 Jul 2026)"
+  ],
+  "provenance": {
+    "geometry": "get_design_context node tree — frame 1440x2560; header 56; rail 56x844; stage (V1_home) 56,56 1372x2504; content column 1008 at x=182,y=171; hero 800x350; sections at y=414/1286/1646 on a uniform 64 rhythm; card grid 3x325 on a 16 gutter, rows 260+16.",
+    "tokens": "get_variable_defs — 81 published variables. Type scale (Heading/XL 36/42 800, Body/XL 20, Component/M 14/18) and the gray/indigo ramps are exact.",
+    "sampled": "Frame-level gradient fills are NOT published variables, so get_variable_defs does not carry them: the banner sweep, the two card-header gradients and the four skill tints were measured off the get_screenshot render. figma-reference.png (that render, cropped to the frame) is banked beside this file as the ground truth for them.",
+    "verified_by": "verify.py — geometry asserted against the published numbers, colour compared per-pixel against figma-reference.png at 24 points. All pass as of 17 Jul 2026."
+  },
+  "divergences": [
+    "FONT: design specifies 'Adobe Clean Spectrum VF'. Adobe Clean is licensed for Adobe UI only and must never ship in a deck, so Source Sans 3 (SIL OFL) stands in. This is the one intentional visual departure. See asset-licensing.md.",
+    "RAIL: the nav instance measures 56x844 but carries no fill; layer-1 shows through and the strip reads full-height in the render (#F8F8F8 at y=2400, asserted in verify.py). Rendering it at 844 with a white fill would invent a seam the design does not have, so it is full-height and transparent. Geometry is therefore not asserted for .cx-rail; the colour points hold it instead.",
+    "CONTENT: the Figma source ships a named third-party beverage brand as its demo dataset. That content is deliberately not reproduced — one customer's brand must never travel inside a shared component into another customer's deck. Copy here is neutral retail sample.",
+    "ICONS: get_design_context returned geometry only (no vectors, no exported asset URLs), so icons could not be taken from the node. They are the genuine Adobe Spectrum workflow vectors (Apache-2.0) the design instantiates by name (S2_Icon_Community_20_N, S2_Icon_RocketQuickActions_20_N, S2_Icon_Promote_20_N, S2_Icon_UserGroup_20_N), fetched upstream into ../../icons/spectrum and looked up by semantic label. None were hand-drawn.",
+    "OMITTED: the 'AI Assistant' instance (384x844 at x=1056) is present in the node tree but does not appear in the Figma render of this node, so it is not built. Add it from its own node if a deck needs the assistant rail open.",
+    "SKILL PREVIEWS: the mini 'screenshot' inside each Recommended-skills card is an abstraction (title + rule lines). The real previews contain per-skill micro-content that is illegible at deck scale."
+  ]
+}

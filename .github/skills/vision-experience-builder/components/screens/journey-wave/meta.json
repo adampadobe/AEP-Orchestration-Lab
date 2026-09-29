@@ -1,0 +1,21 @@
+{
+  "type": "journey-wave",
+  "key_classes": [
+    "dark-counter",
+    "disc",
+    "fp",
+    "jnode",
+    "journey",
+    "jpath",
+    "jship",
+    "jwave",
+    "key",
+    "nl",
+    "ns",
+    "sea",
+    "slide",
+    "sub"
+  ],
+  "source": "po-cruises",
+  "description": "Animated journey overview \u2014 wave path with a sailing ship and icon nodes anchored to the curve."
+}

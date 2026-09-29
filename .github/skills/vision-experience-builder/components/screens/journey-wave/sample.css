@@ -1,0 +1,80 @@
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;
+  pointer-events:none;transition:opacity .5s ease;}
+.slide.active{visibility:visible;opacity:1;pointer-events:auto;z-index:1;}
+.slide.active .a1{animation:rise .7s .10s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a2{animation:rise .7s .22s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a3{animation:rise .7s .34s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a4{animation:rise .7s .46s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a5{animation:rise .7s .58s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a6{animation:rise .7s .70s both cubic-bezier(.22,1,.36,1);}
+.slide.active .fp{animation:fade .9s .2s both;}
+.slide.active .pp{animation:pop .6s .5s both cubic-bezier(.22,1,.36,1);}
+.node .disc{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;}
+.node.key .disc{background:var(--gold);border-color:var(--gold-lt);box-shadow:0 0 0 6px rgba(176,144,59,.22);}
+.node .disc svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;}
+.subrev{display:flex;gap:70px;margin-top:30px;}
+.subrev .k{font-size:17px;color:rgba(255,255,255,.7);}
+.subrev .v{font-size:40px;font-weight:600;}
+/* ===== journey overview (animated wave) ===== */
+.journey{position:absolute;inset:0;background:linear-gradient(170deg,#0E2A5E 0%,#173A87 55%,#1E57A8 100%);overflow:hidden;}
+.journey .sea{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 18%,rgba(140,190,255,.18),transparent 55%);}
+.journey h2{position:absolute;top:84px;left:120px;font-size:64px;font-weight:800;color:#fff;letter-spacing:.01em;margin:0;}
+.journey .sub{position:absolute;top:170px;left:124px;font-size:26px;color:rgba(255,255,255,.7);}
+.jwave{position:absolute;left:0;right:0;top:0;bottom:0;}
+.jwave svg{width:100%;height:100%;}
+.jpath{fill:none;stroke:rgba(255,255,255,.85);stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:3400;stroke-dashoffset:3400;}
+.slide.active .jpath{animation:draw 2.4s .3s ease forwards;}
+.jnode{position:absolute;width:0;height:0;text-align:center;opacity:0;}
+.slide.active .jnode{animation:pop .6s both cubic-bezier(.22,1,.36,1);}
+.jnode .disc{position:absolute;left:-42px;top:-42px;width:84px;height:84px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.jnode .disc svg{width:38px;height:38px;stroke:var(--navy);fill:none;stroke-width:1.7;}
+.jnode.key .disc{background:var(--gold);}
+.jnode.key .disc svg{stroke:#fff;}
+.jnode .nl{position:absolute;top:54px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:23px;font-weight:700;color:#fff;}
+.jnode .ns{position:absolute;top:88px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:15px;color:rgba(255,255,255,.7);letter-spacing:.04em;text-transform:uppercase;}
+/* reveal touchpoint chain — light up in sequence, phone pulses */
+.slide.active .datacard .node{animation:pop .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .datacard .node:nth-child(1){animation-delay:.15s;}
+.slide.active .datacard .node:nth-child(2){animation-delay:.30s;}
+.slide.active .datacard .node:nth-child(3){animation-delay:.45s;}
+.slide.active .datacard .node:nth-child(4){animation-delay:.60s;}
+.slide.active .datacard .node:nth-child(5){animation-delay:.75s;}
+.slide.active .datacard .node:nth-child(6){animation-delay:.90s;}
+.slide.active .datacard .node:nth-child(7){animation-delay:1.05s;}
+.slide.active .datacard .node.key .disc{animation:keypulse 2.2s 1.5s ease-in-out infinite;}
+/* journey ship sailing the wave */
+.jship{position:absolute;left:0;top:0;width:50px;height:50px;z-index:3;offset-rotate:0deg;offset-distance:0%;
+  offset-path:path('M120,720 C300,560 380,560 470,650 C560,740 600,520 760,470 C900,430 940,720 1080,760 C1200,795 1240,560 1380,540 C1500,525 1540,700 1660,710 C1740,716 1780,690 1820,700');}
+.slide.active .jship{animation:sail 2.4s .35s ease forwards;}
+.jship svg{width:50px;height:50px;filter:drop-shadow(0 5px 10px rgba(0,0,0,.35));}
+.slide.active .profilebar .pp.np{animation:pop .55s .7s both cubic-bezier(.22,1,.36,1);}
+/* AJO offer ranking settle */
+.slide.active .offer{animation:rise .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .offer:nth-child(3){animation-delay:.15s;}
+.slide.active .offer:nth-child(2){animation-delay:.35s;}
+.slide.active .offer:nth-child(1){animation-delay:.55s;}
+.slide.active .offer.top .badge{animation:pop .5s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .email-toast{animation:toast-in .6s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .call-card .cc-end{animation:callring 1.4s .6s ease-out infinite;}
+.slide.active .confirmed-card{animation:pop .6s 1.9s both cubic-bezier(.22,1,.36,1);}
+.slide.active .stitch .src{animation:piece-in .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .stitch .src:nth-child(1){animation-delay:.2s;}
+.slide.active .stitch .src:nth-child(2){animation-delay:.36s;}
+.slide.active .stitch .src:nth-child(3){animation-delay:.52s;}
+.slide.active .stitch .src:nth-child(4){animation-delay:.68s;}
+.slide.active .stitch .arw{animation:fade .5s .95s both;}
+.slide.active .stitch .unified{animation:pop .55s 1.15s both cubic-bezier(.22,1,.36,1);}
+.slide.active .cja-inset{animation:rise .7s 1.5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-eye{animation:fade .8s .2s both;}
+.slide.active .tslide .t-big{animation:rise .9s .35s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-rule{animation:t-rule-in .7s .9s both;}
+.slide.active .tslide .t-sub{animation:rise .8s 1.05s both cubic-bezier(.22,1,.36,1);}
+.slide.active .closing-win{animation:win-close 1.5s 1.2s forwards cubic-bezier(.5,0,.75,0);}
+.slide.active .abandon-card{animation:fade .8s 2.6s both;}
+.slide.active .bbar .u.typed{animation:typeurl 1.0s .5s steps(13) forwards, caretblink .7s .5s 4 step-end;}
+.ph-notif .ns2{font-size:14px;color:#15203A;font-weight:800;margin:1px 0;}
+.slide.active .ph-notif{animation:rise .6s .9s both cubic-bezier(.22,1,.36,1);}
+.slide.active .ph-email{animation:fade .55s 2.5s both;}
+.slide.active .ph-call{animation:tapnum 1.3s 3.9s ease both;}
+.slide.dark-counter ~ .counter{color:rgba(255,255,255,.6);}

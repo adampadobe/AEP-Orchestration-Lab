@@ -1,0 +1,22 @@
+{
+  "type": "tablet-web-mock",
+  "key_classes": [
+    "anim",
+    "col-label",
+    "eyebrow",
+    "has-photo",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head",
+    "tablet-frame",
+    "tablet-mock",
+    "tablet-screen",
+    "tablet-shot"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use tablet-web-mock"
+}

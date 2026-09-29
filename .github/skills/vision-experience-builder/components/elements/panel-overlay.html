@@ -1,0 +1,154 @@
+<!-- elements/panel-overlay.html - surface a detail panel ON DEMAND over the current scene,
+     instead of parking it permanently on the slide (20 Jul 2026).
+
+     WHY IT EXISTS (systemic, not one story): journey decks kept nailing the live-profile /
+     aep-xray panel to a fixed column on every scene, which crowds the story and shows the
+     platform even when nobody is talking about it. This keeps the scene clean: a small trigger
+     tab sits on the stage; when the presenter wants to talk about the data, they click it, the
+     scene dims and the panel slides up; click the scrim or close to dismiss and get back to the
+     story. Reusable for ANY "pull this up when I want to talk about it" moment (profile, ROI,
+     an architecture inset, a proof panel...).
+
+     PROFILE USE (the reason it was built): mount the banked aep-xray inside .po-body and drive
+     its AEP.setStep(k) to the current checkpoint, so each time it surfaces it holds only what
+     the platform has captured so far. The sample body here is a compact stand-in so the element
+     is demo-able on its own.
+
+     RESKIN: the trigger + sheet chrome take the role tokens (neutral defaults); the panel you
+     mount inside keeps its own styling (the aep-xray stays a fixed Adobe surface).
+     API (no global key bindings ON PURPOSE; ArrowLeft/Right belong to deck navigation):
+       PO.show() / PO.hide() / PO.toggle()   and the on-stage tab / scrim / close drive it too.
+     The tab label, title and sample copy live in PO_DATA. -->
+<style>
+  .po{position:absolute; inset:0; z-index:40; pointer-events:none;
+    font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif;}
+  .po *{box-sizing:border-box; margin:0;}
+
+  /* the always-on trigger tab */
+  .po-tab{position:absolute; right:36px; bottom:36px; z-index:2; pointer-events:auto;
+    display:flex; align-items:center; gap:11px; cursor:pointer; appearance:none; border:0;
+    font:inherit; font-size:16px; font-weight:800; color:#fff; background:var(--ink,#14233A);
+    border-radius:999px; padding:14px 22px; box-shadow:0 12px 30px rgba(10,20,40,.28);
+    transition:transform .16s ease, box-shadow .16s ease;}
+  .po-tab:hover{transform:translateY(-2px); box-shadow:0 16px 36px rgba(10,20,40,.34);}
+  .po-tab .po-live{width:9px; height:9px; border-radius:50%; background:#3ED598;
+    box-shadow:0 0 0 0 rgba(62,213,152,.6); animation:poPulse 1.8s infinite;}
+  @keyframes poPulse{0%{box-shadow:0 0 0 0 rgba(62,213,152,.5);}70%{box-shadow:0 0 0 8px rgba(62,213,152,0);}100%{box-shadow:0 0 0 0 rgba(62,213,152,0);}}
+  .po-tab .po-chev{width:16px; height:16px; opacity:.7;}
+  .po.open .po-tab{opacity:0; pointer-events:none; transition:opacity .2s ease;}
+
+  /* scrim + sheet */
+  .po-scrim{position:absolute; inset:0; z-index:3; background:rgba(8,14,26,.55);
+    backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .28s ease;}
+  .po.open .po-scrim{opacity:1; pointer-events:auto;}
+  .po-sheet{position:absolute; left:50%; bottom:0; z-index:4; width:min(1900px, calc(100% - 48px));
+    transform:translate(-50%, 40px) scale(.985); opacity:0; pointer-events:none;
+    transition:transform .34s cubic-bezier(.2,.9,.3,1.06), opacity .28s ease;}
+  .po.open .po-sheet{transform:translate(-50%, -24px) scale(1); opacity:1; pointer-events:auto;}
+  .po-head{display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:0 4px 12px;}
+  .po-title{display:flex; align-items:center; gap:11px; color:#fff; font-size:18px; font-weight:800;
+    letter-spacing:-.01em;}
+  .po-title .po-live{width:9px; height:9px; border-radius:50%; background:#3ED598;}
+  .po-close{appearance:none; cursor:pointer; border:0; font:inherit; display:flex; align-items:center;
+    gap:8px; font-size:14px; font-weight:700; color:rgba(255,255,255,.82); background:rgba(255,255,255,.12);
+    border-radius:999px; padding:9px 15px;}
+  .po-close:hover{color:#fff; background:rgba(255,255,255,.2);}
+  .po-close svg{width:14px; height:14px;}
+  .po-body{border-radius:14px; overflow:hidden;}
+
+  /* compact stand-in panel (a real deck replaces this with the banked aep-xray) */
+  .po-sample{background:#1A1A1A; color:#fff; border-radius:14px; padding:26px 30px;
+    display:grid; grid-template-columns:1.1fr 1fr; gap:26px;}
+  .po-scap{font-size:14px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+    color:#B7B7B7; margin-bottom:14px;}
+  .po-srow{display:flex; align-items:baseline; gap:10px; font-size:16px; margin-bottom:9px;}
+  .po-srow b{font-weight:800;} .po-srow span{color:#CFCFCF;}
+  .po-chips{display:flex; flex-wrap:wrap; gap:9px;}
+  .po-chip{font-size:14px; font-weight:700; color:#fff; background:#262626; border:1px solid #3A3A3A;
+    border-radius:999px; padding:8px 14px;}
+  .po-note{grid-column:1 / -1; font-size:13px; color:#8C8C8C; border-top:1px solid #333;
+    padding-top:14px; margin-top:2px;}
+</style>
+
+<div class="po" id="po">
+  <button class="po-tab" id="poTab">
+    <span class="po-live"></span><span id="poTabLabel"></span>
+    <svg class="po-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+  </button>
+  <div class="po-scrim" id="poScrim"></div>
+  <div class="po-sheet" id="poSheet">
+    <div class="po-head">
+      <div class="po-title"><span class="po-live"></span><span id="poTitle"></span></div>
+      <button class="po-close" id="poClose">Back to the story
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="po-body" id="poBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: tab label, title and the sample stand-in copy ============ */
+  var PO_DATA = window.PO_DATA || {
+    tab: "Real-time profile",
+    title: "Real-time customer profile",
+    sample: {
+      identity: [ ["Known individual", "email + SMS"], ["Anonymous device", "ECID resolved"] ],
+      events: [ "AI referral: barrier-repair intent", "Purchase: 2-item starter routine",
+        "Consent: SMS opt-in" ],
+      segments: [ "AI Search - Sensitised Skin", "First-Order - Starter Routine",
+        "New-to-Brand - Nurture" ],
+      note: "Sample stand-in. In a deck, mount the banked aep-xray here and call AEP.setStep(k) so it holds only what the platform has captured up to this checkpoint."
+    }
+  };
+  /* ============================================================================= */
+
+  var D = PO_DATA;
+  function $(id){ return document.getElementById(id); }
+  $("poTabLabel").textContent = D.tab;
+  $("poTitle").textContent = D.title;
+
+  /* render the sample stand-in unless a deck has already put real content in .po-body */
+  if (!$("poBody").children.length && D.sample){
+    var s = D.sample;
+    $("poBody").innerHTML =
+      '<div class="po-sample">' +
+        '<div><div class="po-scap">Identity</div>' +
+          s.identity.map(function(r){ return '<div class="po-srow"><b>' + r[0] + '</b><span>' + r[1] + '</span></div>'; }).join("") +
+          '<div class="po-scap" style="margin-top:18px">Events</div>' +
+          s.events.map(function(e){ return '<div class="po-srow"><span>' + e + '</span></div>'; }).join("") +
+        '</div>' +
+        '<div><div class="po-scap">Segments</div><div class="po-chips">' +
+          s.segments.map(function(g){ return '<span class="po-chip">' + g + '</span>'; }).join("") +
+        '</div></div>' +
+        '<div class="po-note">' + s.note + '</div>' +
+      '</div>';
+  }
+
+  var root = $("po");
+  function show(){ root.classList.add("open"); }
+  function hide(){ root.classList.remove("open"); }
+  function toggle(){ root.classList.toggle("open"); }
+  $("poTab").addEventListener("click", show);
+  $("poClose").addEventListener("click", hide);
+  $("poScrim").addEventListener("click", hide);
+
+  window.PO = { show: show, hide: hide, toggle: toggle,
+    body: function(){ return $("poBody"); } };  /* body() lets a deck inject the real panel */
+})();
+</script>
+<!-- TESTS (mounted over a scene on a stage that is position:relative):
+1. Initial: #po lacks class "open"; the trigger .po-tab is visible; .po-scrim computed opacity 0;
+   .po-sheet computed opacity 0 (off-screen, pointer-events none).
+2. Click .po-tab (or PO.show()): #po gains "open"; within ~400ms .po-scrim opacity is 1 and
+   .po-sheet opacity is 1 and its transform settles (translateY about -24); the tab hides.
+3. Click .po-close or .po-scrim (or PO.hide()): #po loses "open"; the sheet and scrim fade back
+   out and the tab returns.
+4. PO.toggle() flips the state; PO.body() returns the #poBody element (a deck injects the real
+   aep-xray there before showing).
+5. Pressing ArrowRight or ArrowLeft changes NOTHING (no global key bindings; deck nav stays free).
+6. Reskin: with host --ink set, the trigger tab background takes it; the mounted panel keeps its
+   own styling (an aep-xray stays a fixed Adobe surface).
+7. Zero em dashes in rendered text.
+-->

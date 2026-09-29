@@ -1,0 +1,46 @@
+/* ============================================================
+ * _foundation.css — shared animation vocabulary + staggered entrance helpers
+ * Include once in the deck <style> before any component CSS.
+ * Designed to work with show(n) / animateActive() in count-up.js.
+ * Extracted from po-cruises customer-journey deck (Jun 2026).
+ * ============================================================ */
+
+/* ----- core entrance keyframes ----- */
+@keyframes rise{from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fade{from{opacity:0;}to{opacity:1;}}
+@keyframes pop{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+
+/* ----- staggered entrance helpers (apply class .a1 .. .a6 to elements) ----- */
+.slide.active .a1{animation:rise .7s .10s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a2{animation:rise .7s .22s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a3{animation:rise .7s .34s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a4{animation:rise .7s .46s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a5{animation:rise .7s .58s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a6{animation:rise .7s .70s both cubic-bezier(.22,1,.36,1);}
+.slide.active .fp{animation:fade .9s .2s both;}
+.slide.active .pp{animation:pop .6s .5s both cubic-bezier(.22,1,.36,1);}
+
+/* ----- attention loops ----- */
+@keyframes keypulse{0%,100%{box-shadow:0 0 0 6px rgba(176,144,59,.22);}50%{box-shadow:0 0 0 13px rgba(176,144,59,.08);}}
+@keyframes livep{0%{box-shadow:0 0 0 0 rgba(40,200,64,.5);}70%{box-shadow:0 0 0 7px rgba(40,200,64,0);}100%{box-shadow:0 0 0 0 rgba(40,200,64,0);}}
+@keyframes wavebob{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+@keyframes accept-pulse{0%,100%{box-shadow:0 0 0 0 rgba(40,200,64,.55);}70%{box-shadow:0 0 0 15px rgba(40,200,64,0);}}
+@keyframes tapnum{0%{box-shadow:0 0 0 0 rgba(11,92,216,.55);}40%{transform:scale(.93);}55%{box-shadow:0 0 0 16px rgba(11,92,216,0);}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(11,92,216,0);}}
+
+/* ----- structural transitions ----- */
+@keyframes toast-in{from{opacity:0;transform:translateX(46px);}to{opacity:1;transform:translateX(0);}}
+@keyframes piece-in{from{opacity:0;transform:translateY(-20px) scale(.6) rotate(-10deg);}to{opacity:1;transform:none;}}
+@keyframes win-close{0%{opacity:1;transform:scale(1) translateY(0);}55%{opacity:1;transform:scale(.9);}100%{opacity:0;transform:scale(.66) translateY(26px);}}
+@keyframes t-rule-in{from{opacity:0;width:0;}to{opacity:1;width:120px;}}
+@keyframes typeurl{to{max-width:150px;}}
+@keyframes caretblink{50%{border-color:transparent;}}
+@keyframes draw{to{stroke-dashoffset:0;}}
+@keyframes sail{to{offset-distance:100%;}}
+
+/* ----- 1920×1080 fixed stage (frontend-slides viewport-base) ----- */
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0b1730;font-family:'Source Sans 3',system-ui,sans-serif;}
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:#0b1730;}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .5s ease;}
+.slide.active{visibility:visible;opacity:1;pointer-events:auto;z-index:1;}
+*{box-sizing:border-box;}

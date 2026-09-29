@@ -1,0 +1,27 @@
+{
+  "type": "concierge-chat",
+  "key_classes": [
+    "anim",
+    "cc-body",
+    "cc-head",
+    "cc-input",
+    "cc-phone",
+    "col-label",
+    "dev",
+    "eyebrow",
+    "f",
+    "has-photo",
+    "narr",
+    "nm",
+    "pcontent",
+    "photo-panel",
+    "scr",
+    "slide",
+    "snd",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use concierge-chat"
+}

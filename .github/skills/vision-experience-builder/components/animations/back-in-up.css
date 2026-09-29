@@ -1,0 +1,8 @@
+/* back-in-up — entrance (entrance, up, showy, photo, device, card)
+   two-phase hero arrival: glides in small, then snaps to full size.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes backInUp{0%{opacity:0;transform:translateY(46%) scale(.82)}65%{opacity:1;transform:translateY(0) scale(.82)}100%{opacity:1;transform:none}}
+.back-in-up{opacity:0;}
+.slide.active .back-in-up{animation:backInUp 1s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}

@@ -1,0 +1,389 @@
+<!-- elements/choice-beat.html - the fork moment: the audience picks, the story bends for one
+     beat, then rejoins the spine (T16 of the interactive backlog, 19 Jul 2026).
+
+     WHEN TO USE (be honest with yourself here): NOT inside a narrated linear story deck; the
+     shipped storyboards have a fixed spine on purpose and no story to date needed a branch.
+     Its homes are:
+       1. the live-room participation beat: the presenter asks "what should Maya do?", clicks
+          what the room shouts, and the trace pill carries the choice onto the next slide
+          while the spine holds (agency without risk);
+       2. discovery workshops: pick the fulfilment promise / channel / offer with the
+          customer in the room, then continue the story with their pick on the record;
+       3. interactive demos: the deck-side version of the concierge's option chips.
+     Writer-side hook: a storyboard beat marked "the customer decides" renders as this.
+
+     PROVENANCE: the Claude Design T16 pass, which respected the component carve-out and
+     held the choreography (brand sweep, staggered alt pills, drawn branch wire with a riding
+     dot, clip-path outcome reveal, collapse-to-trace with ONE merge pulse). Banking surgery
+     only: slide/stage wrapper removed, token fallbacks added, and the wire maths made
+     scale-proof (client-rect deltas are converted to viewBox units via k = 1100 / panel
+     width, so wires stay attached when a deck mounts the panel inside transform:scale()).
+
+     RESKIN CONTRACT: colour comes only from the role tokens (--brand/--brand-deep/--ink/
+     --grey/--line/--ice + --brand-rgb) with fallbacks. ALL copy, choices, the trace template
+     and every duration live in CHB_DATA; the fulfilment trio is sample data.
+
+     API (no global key bindings ON PURPOSE: ArrowLeft/Right belong to deck navigation):
+       CHB.choose(i)  - play branch i (0-based); re-choosing reverses fast then plays the new
+                        branch, never two outcomes at once
+       CHB.rejoin()   - collapse the branch to the trace pill and pulse the spine node once
+       CHB.reset()    - fast return to the armed setup (under 300ms)
+     The chips themselves are live click targets for a hands-on moment. -->
+<style>
+  .chb{position:relative; width:1100px; height:620px; background:#FFFFFF;
+    border:1px solid var(--line,#E3E4EA); border-radius:22px;
+    box-shadow:0 2px 24px rgba(32,34,43,.06); user-select:none; text-align:left;
+    font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif; color:var(--ink,#20222B);}
+  .chb *{box-sizing:border-box; margin:0;}
+  /* fast reverse: every transition inside collapses to the back duration */
+  .chb.fast *, .chb.fast{transition-duration:var(--d-back,150ms) !important;
+    transition-delay:0ms !important;}
+
+  .chb-head{position:absolute; left:40px; right:40px; top:32px; display:flex;
+    justify-content:space-between; align-items:flex-start;}
+  .chb-eyebrow{font-size:14px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--brand,#4C43D6);}
+  .chb-setup{font-size:30px; font-weight:800; letter-spacing:-.015em; margin-top:8px;}
+  .chb-ctrl{display:flex; gap:10px;}
+  .chb-btn{appearance:none; cursor:pointer; font:inherit; font-size:15.5px; font-weight:700;
+    border-radius:10px; padding:10px 18px;
+    transition:opacity 180ms ease, color .18s ease, border-color .18s ease;}
+  #chbContinue{color:#FFFFFF; background:var(--brand,#4C43D6);
+    border:1px solid var(--brand,#4C43D6); opacity:0; pointer-events:none;}
+  .chb.branched #chbContinue{opacity:1; pointer-events:auto;}
+  #chbReset{color:var(--grey,#6B6F7B); background:#FFFFFF; border:1px solid var(--line,#E3E4EA);}
+  #chbReset:hover{color:var(--ink,#20222B); border-color:var(--grey,#6B6F7B);}
+
+  /* choice chips */
+  .chb-chips{position:absolute; left:40px; right:40px; top:118px; display:flex; gap:15px;}
+  .chb-chip{position:relative; flex:1; height:150px; appearance:none; text-align:left;
+    cursor:pointer; font:inherit; background:#FFFFFF; border:2px solid var(--line,#E3E4EA);
+    border-radius:16px; padding:20px 20px; transform-origin:50% 100%;
+    transition:transform var(--d-sweep,220ms) ease, box-shadow 150ms ease,
+      opacity var(--d-sweep,220ms) ease, border-color var(--d-sweep,220ms) ease;}
+  .chb-chip:not(.picked):not(.alt):hover{transform:translateY(-3px);
+    box-shadow:0 10px 26px rgba(32,34,43,.12);}
+  .chb-fill{position:absolute; inset:-1px; border-radius:14px; background:var(--brand,#4C43D6);
+    transform:scaleX(0); transform-origin:left center;
+    transition:transform var(--d-sweep,220ms) cubic-bezier(.4,0,.2,1);}
+  .chb-chip.picked{border-color:var(--brand,#4C43D6);}
+  .chb-chip.picked .chb-fill{transform:scaleX(1);}
+  .chb-chip.alt{transform:scale(.8); opacity:.55;
+    transition-delay:calc(var(--k,0)*var(--d-alt,60ms));}
+  .chb-cbody{position:relative; display:flex; flex-direction:column; gap:10px;}
+  .chb-crow{display:flex; align-items:center; gap:12px;}
+  .chb-cicon{flex:none; width:44px; height:44px; border-radius:12px; background:var(--ice,#EEF0FB);
+    color:var(--brand,#4C43D6); display:flex; align-items:center; justify-content:center;
+    transition:background var(--d-sweep,220ms) ease, color var(--d-sweep,220ms) ease;}
+  .chb-chip.picked .chb-cicon{background:rgba(255,255,255,.18); color:#FFFFFF;}
+  .chb-clabel{font-size:21px; font-weight:800; letter-spacing:-.01em;
+    transition:color var(--d-sweep,220ms) ease;}
+  .chb-chip.picked .chb-clabel{color:#FFFFFF;}
+  .chb-ccons{font-size:15px; line-height:1.4; color:var(--grey,#6B6F7B);
+    transition:color var(--d-sweep,220ms) ease;}
+  .chb-chip.picked .chb-ccons{color:rgba(255,255,255,.82);}
+  .chb-alttag{position:absolute; top:-12px; right:14px; z-index:2; background:#FFFFFF;
+    border:1px solid var(--line,#E3E4EA); color:var(--grey,#6B6F7B); font-size:11.5px;
+    font-weight:800; letter-spacing:.1em; text-transform:uppercase; border-radius:999px;
+    padding:4px 11px; opacity:0; transition:opacity var(--d-sweep,220ms) ease;}
+  .chb-chip.alt .chb-alttag{opacity:1; transition-delay:calc(var(--k,0)*var(--d-alt,60ms));}
+
+  /* wires */
+  #chbWires{position:absolute; inset:0; pointer-events:none; overflow:visible;}
+  .chb-wire{fill:none; stroke:var(--brand,#4C43D6); stroke-width:3; stroke-linecap:round; opacity:0;}
+  #chbDot{fill:var(--brand,#4C43D6); opacity:0; transition:opacity 120ms ease;}
+
+  /* outcome card */
+  .chb-outcome{position:absolute; left:170px; top:322px; width:760px; height:178px;
+    background:#FFFFFF; border:2px solid rgba(var(--brand-rgb,76,67,214),.35); border-radius:18px;
+    padding:20px 26px; box-shadow:0 14px 40px rgba(32,34,43,.10); opacity:0;
+    transform-origin:50% 100%; clip-path:inset(0 -30px 100% -30px round 18px);
+    transition:clip-path var(--d-reveal,260ms) cubic-bezier(.3,0,.2,1),
+      opacity var(--d-reveal,260ms) ease,
+      transform var(--d-rejoin,260ms) cubic-bezier(.55,0,.8,.4);}
+  .chb-outcome.open{clip-path:inset(-30px round 18px); opacity:1;}
+  .chb-outcome.collapse{transform:scale(.12) translateY(70px); opacity:0;}
+  .chb-ohead{font-size:24px; font-weight:800; letter-spacing:-.01em; opacity:0;
+    transform:translateY(8px);
+    transition:opacity var(--d-reveal,260ms) ease, transform var(--d-reveal,260ms) ease;}
+  .chb-orows{display:flex; flex-direction:column; gap:11px; margin-top:14px;}
+  .chb-row{display:flex; align-items:center; gap:11px; font-size:17.5px; opacity:0;
+    transform:translateY(8px);
+    transition:opacity var(--d-reveal,260ms) ease, transform var(--d-reveal,260ms) ease;}
+  .chb-rdot{flex:none; width:8px; height:8px; border-radius:50%; background:var(--brand,#4C43D6);}
+  .chb-oaction{position:absolute; right:22px; bottom:18px; appearance:none; border:0;
+    cursor:pointer; font:inherit; font-size:16.5px; font-weight:800; color:#FFFFFF;
+    background:var(--brand,#4C43D6); border-radius:999px; padding:12px 24px; opacity:0;
+    transform:translateY(8px);
+    transition:opacity var(--d-reveal,260ms) ease, transform var(--d-reveal,260ms) ease;}
+  .chb-oaction:hover{background:var(--brand-deep,#2B2483);}
+  .chb-outcome.open .chb-ohead{opacity:1; transform:none; transition-delay:80ms;}
+  .chb-outcome.open .chb-row{opacity:1; transform:none;
+    transition-delay:calc(140ms + var(--k,0)*var(--d-row,60ms));}
+  .chb-outcome.open .chb-oaction{opacity:1; transform:none;
+    transition-delay:calc(140ms + 2*var(--d-row,60ms));}
+
+  /* spine, node, trace */
+  .chb-spineline{position:absolute; left:40px; right:40px; top:566px; height:2px;
+    background:var(--line,#E3E4EA); border-radius:2px;}
+  .chb-node{position:absolute; left:543px; top:560px; width:14px; height:14px;
+    border-radius:50%; background:#FFFFFF; border:2.5px solid var(--line,#E3E4EA);
+    transition:border-color 200ms ease, background 200ms ease;}
+  .chb-node.lit{border-color:var(--brand,#4C43D6); background:var(--ice,#EEF0FB);}
+  .chb-ring{position:absolute; inset:-9px; border-radius:50%;
+    border:3px solid var(--brand,#4C43D6); opacity:0; transform:scale(.35);}
+  .chb-ring.pulse{animation:chbPulse var(--d-pulse,420ms) ease-out 1;}
+  @keyframes chbPulse{0%{transform:scale(.35); opacity:.85;}100%{transform:scale(2.2); opacity:0;}}
+  .chb-trace{position:absolute; left:572px; top:544px; height:44px; display:flex;
+    align-items:center; gap:10px; background:#FFFFFF; border:1.5px solid var(--line,#E3E4EA);
+    border-radius:999px; padding:0 20px; white-space:nowrap; font-size:17px; font-weight:700;
+    box-shadow:0 4px 16px rgba(32,34,43,.08); opacity:0;
+    transform:scale(.7) translateX(-8px); transform-origin:left center;
+    transition:opacity var(--d-rejoin,260ms) ease,
+      transform var(--d-rejoin,260ms) cubic-bezier(.2,.8,.3,1);}
+  .chb-trace.show{opacity:1; transform:none; transition-delay:120ms;}
+  .chb-tdot{flex:none; width:9px; height:9px; border-radius:50%; background:var(--brand,#4C43D6);}
+</style>
+
+<div class="chb" id="chb">
+  <div class="chb-head">
+    <div>
+      <div class="chb-eyebrow">The customer chooses</div>
+      <div class="chb-setup" id="chbSetup"></div>
+    </div>
+    <div class="chb-ctrl">
+      <button class="chb-btn" id="chbContinue">Continue the story</button>
+      <button class="chb-btn" id="chbReset">Reset</button>
+    </div>
+  </div>
+  <div class="chb-chips" id="chbChips"></div>
+  <svg id="chbWires" width="1100" height="620" viewBox="0 0 1100 620">
+    <path id="chbBranch" class="chb-wire"></path>
+    <path id="chbMerge" class="chb-wire"></path>
+    <circle id="chbDot" r="4.5"></circle>
+  </svg>
+  <div class="chb-outcome" id="chbOutcome">
+    <div class="chb-ohead" id="chbHeadline"></div>
+    <div class="chb-orows" id="chbRows"></div>
+    <button class="chb-oaction" id="chbAction"></button>
+  </div>
+  <div class="chb-spineline"></div>
+  <div class="chb-node" id="chbNode"><div class="chb-ring" id="chbRing"></div></div>
+  <div class="chb-trace" id="chbTrace"><span class="chb-tdot"></span><span id="chbTraceText"></span></div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: setup, choices, trace template, durations ============ */
+  var CHB_DATA = {
+    setup: "Three ways to get the console to Maya by Friday",
+    choices: [
+      { icon: "store", label: "Store pickup",
+        consequence: "Held at Rosedale until Friday, 6pm",
+        trace: "store pickup, Rosedale, Friday 4pm",
+        outcome: { headline: "Held at Rosedale",
+          details: ["Ready at the pickup counter Friday, 4pm", "Hold releases automatically at 6pm"],
+          action: "Send her the pickup pass" } },
+      { icon: "courier", label: "Same-day courier",
+        consequence: "Runs from the Rosedale stockroom",
+        trace: "courier, Friday 2–5pm window",
+        outcome: { headline: "Courier booked",
+          details: ["Arrives Friday, 2–5pm window", "Live tracking texted at dispatch"],
+          action: "Text the tracking link" } },
+      { icon: "locker", label: "Street locker",
+        consequence: "Two blocks from her office, Bay St",
+        trace: "locker pickup, Bay Street, Friday",
+        outcome: { headline: "Locker 14, Bay Street",
+          details: ["Code sent the moment it lands Friday", "Open until midnight, no line"],
+          action: "Send the locker code" } }
+    ],
+    traceTemplate: "Chose {trace}",
+    durations: { sweepMs: 220, altStaggerMs: 60, wireMs: 300, revealMs: 260, rowStaggerMs: 60,
+      backMs: 150, rejoinMs: 260, mergeMs: 240, pulseMs: 420 }
+  };
+  /* ========================================================================= */
+
+  var D = CHB_DATA, T = D.durations;
+  function $(id){ return document.getElementById(id); }
+  var panel = $("chb"), chipsWrap = $("chbChips"), outcome = $("chbOutcome"),
+      branchEl = $("chbBranch"), mergeEl = $("chbMerge"), dotEl = $("chbDot"),
+      node = $("chbNode"), ring = $("chbRing"), trace = $("chbTrace"), traceText = $("chbTraceText");
+  var ICONS = {
+    store:   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 9h16l-1.6-4H5.6z"/><rect x="5" y="9" width="14" height="10" rx="1"/><path d="M9 19v-5h6v5" stroke-linecap="round"/></svg>',
+    courier: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6.5" width="11" height="8.5" rx="1"/><path d="M14 10h4l2.5 3v2h-6.5z"/><circle cx="7.5" cy="17" r="1.9"/><circle cx="16.5" cy="17" r="1.9"/></svg>',
+    locker:  '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9.5 8.5h5"/><circle cx="14.5" cy="13" r="1.1" fill="currentColor" stroke="none"/></svg>'
+  };
+  /* durations -> CSS vars (single source of truth) */
+  panel.style.setProperty("--d-sweep", T.sweepMs + "ms");
+  panel.style.setProperty("--d-alt", T.altStaggerMs + "ms");
+  panel.style.setProperty("--d-reveal", T.revealMs + "ms");
+  panel.style.setProperty("--d-row", T.rowStaggerMs + "ms");
+  panel.style.setProperty("--d-back", T.backMs + "ms");
+  panel.style.setProperty("--d-rejoin", T.rejoinMs + "ms");
+  panel.style.setProperty("--d-pulse", T.pulseMs + "ms");
+  $("chbSetup").textContent = D.setup;
+  chipsWrap.innerHTML = D.choices.map(function(c, k){
+    return '<button class="chb-chip" id="chbChip' + k + '" data-i="' + k + '">' +
+      '<span class="chb-alttag">Also possible</span>' +
+      '<span class="chb-fill"></span>' +
+      '<span class="chb-cbody">' +
+        '<span class="chb-crow"><span class="chb-cicon">' + ICONS[c.icon] + '</span>' +
+        '<span class="chb-clabel">' + c.label + '</span></span>' +
+        '<span class="chb-ccons">' + c.consequence + '</span>' +
+      '</span>' +
+    '</button>';
+  }).join("");
+  var chipEls = D.choices.map(function(_, k){ return $("chbChip" + k); });
+  chipEls.forEach(function(el){
+    el.addEventListener("click", function(){ choose(+el.dataset.i); });
+  });
+  $("chbContinue").addEventListener("click", rejoin);
+  $("chbReset").addEventListener("click", reset);
+
+  var state = "armed", picked = -1, timers = [], dotRaf = 0;
+  function clearTimers(){
+    timers.forEach(clearTimeout); timers = [];
+    if (dotRaf){ cancelAnimationFrame(dotRaf); dotRaf = 0; dotEl.style.opacity = 0; }
+  }
+  /* client-rect deltas -> viewBox units, so wires stay attached when a deck mounts the
+     panel inside transform:scale() */
+  function rel(el){
+    var p = panel.getBoundingClientRect(), r = el.getBoundingClientRect();
+    var k = p.width ? 1100 / p.width : 1;
+    return { cx: (r.left + r.width / 2 - p.left) * k, cy: (r.top + r.height / 2 - p.top) * k,
+             top: (r.top - p.top) * k, bottom: (r.bottom - p.top) * k };
+  }
+  function drawWire(path, d, dur){
+    path.setAttribute("d", d);
+    var L = path.getTotalLength(); path.dataset.len = L;
+    path.style.transition = "none";
+    path.style.strokeDasharray = L; path.style.strokeDashoffset = L; path.style.opacity = 1;
+    path.getBoundingClientRect(); /* flush */
+    path.style.transition = "stroke-dashoffset " + dur + "ms linear";
+    path.style.strokeDashoffset = 0;
+  }
+  function rideDot(path, dur){
+    if (dotRaf) cancelAnimationFrame(dotRaf);
+    var L = path.getTotalLength(), t0 = performance.now();
+    dotEl.style.opacity = 1;
+    function frame(now){
+      var p = Math.min(1, (now - t0) / dur), pt = path.getPointAtLength(L * p);
+      dotEl.setAttribute("cx", pt.x); dotEl.setAttribute("cy", pt.y);
+      if (p < 1){ dotRaf = requestAnimationFrame(frame); }
+      else { dotRaf = 0; dotEl.style.opacity = 0; }
+    }
+    dotRaf = requestAnimationFrame(frame);
+  }
+  function branchPathD(i){
+    var a = rel(chipEls[i]), o = rel(outcome);
+    var x0 = a.cx, y0 = a.bottom + 2, x1 = o.cx, y1 = o.top - 2;
+    if (Math.abs(x1 - x0) < 4) return "M " + x0 + " " + y0 + " L " + x1 + " " + y1;
+    var midY = (y0 + y1) / 2, s = x1 > x0 ? 1 : -1;
+    var r = Math.min(16, Math.abs(x1 - x0) / 2, (y1 - y0) / 2 - 2);
+    return "M " + x0 + " " + y0 + " L " + x0 + " " + (midY - r) +
+           " Q " + x0 + " " + midY + " " + (x0 + s * r) + " " + midY +
+           " L " + (x1 - s * r) + " " + midY +
+           " Q " + x1 + " " + midY + " " + x1 + " " + (midY + r) +
+           " L " + x1 + " " + y1;
+  }
+  function mergePathD(){
+    var o = rel(outcome), n = rel(node);
+    return "M " + o.cx + " " + (o.bottom + 2) + " L " + n.cx + " " + (n.cy - 10);
+  }
+  function populateOutcome(c){
+    $("chbHeadline").textContent = c.outcome.headline;
+    $("chbRows").innerHTML = c.outcome.details.map(function(t, k){
+      return '<div class="chb-row" style="--k:' + k + '"><span class="chb-rdot"></span><span>' +
+        t + '</span></div>';
+    }).join("");
+    $("chbAction").textContent = c.outcome.action;
+  }
+  function quickReverse(){
+    state = "armed"; picked = -1;
+    panel.classList.add("fast"); panel.classList.remove("branched");
+    chipEls.forEach(function(el){
+      el.classList.remove("picked", "alt"); el.style.removeProperty("--k");
+    });
+    outcome.classList.remove("open", "collapse");
+    /* branch wire retracts, merge wire fades */
+    if (branchEl.dataset.len){
+      branchEl.style.transition = "stroke-dashoffset " + T.backMs + "ms linear";
+      branchEl.style.strokeDashoffset = branchEl.dataset.len;
+    }
+    mergeEl.style.transition = "opacity " + T.backMs + "ms ease"; mergeEl.style.opacity = 0;
+    trace.classList.remove("show"); node.classList.remove("lit"); ring.classList.remove("pulse");
+    timers.push(setTimeout(function(){
+      panel.classList.remove("fast");
+      [branchEl, mergeEl].forEach(function(p){
+        p.style.transition = "none"; p.style.opacity = 0;
+        if (p.dataset.len) p.style.strokeDashoffset = p.dataset.len;
+      });
+    }, T.backMs));
+  }
+  function play(i){
+    state = "branched"; picked = i;
+    var alt = 0;
+    D.choices.forEach(function(_, k){
+      if (k === i){ chipEls[k].classList.add("picked"); }
+      else { chipEls[k].style.setProperty("--k", alt++); chipEls[k].classList.add("alt"); }
+    });
+    populateOutcome(D.choices[i]);
+    timers.push(setTimeout(function(){
+      drawWire(branchEl, branchPathD(i), T.wireMs); rideDot(branchEl, T.wireMs);
+    }, T.sweepMs));
+    timers.push(setTimeout(function(){
+      outcome.classList.add("open"); panel.classList.add("branched");
+    }, T.sweepMs + Math.round(T.wireMs * 0.55)));
+  }
+  function choose(i){
+    if (!(i >= 0 && i < D.choices.length)) return;
+    clearTimers();
+    if (state === "armed"){ play(i); return; }
+    quickReverse();                      /* reverse fast, never two branches at once */
+    timers.push(setTimeout(function(){ play(i); }, T.backMs + 30));
+  }
+  function rejoin(){
+    if (state !== "branched") return;
+    clearTimers(); state = "rejoined";
+    panel.classList.remove("branched");
+    var mergeD = mergePathD();           /* measure before the collapse transform */
+    branchEl.style.transition = "opacity 150ms ease"; branchEl.style.opacity = 0;
+    drawWire(mergeEl, mergeD, T.mergeMs); rideDot(mergeEl, T.mergeMs);
+    outcome.classList.add("collapse");
+    traceText.textContent = D.traceTemplate.replace("{trace}", D.choices[picked].trace);
+    trace.classList.add("show");
+    timers.push(setTimeout(function(){
+      node.classList.add("lit"); ring.classList.add("pulse");   /* ONE soft pulse */
+      timers.push(setTimeout(function(){
+        ring.classList.remove("pulse");
+        mergeEl.style.transition = "opacity 220ms ease"; mergeEl.style.opacity = 0;
+      }, T.pulseMs));
+    }, T.mergeMs));
+  }
+  function reset(){ clearTimers(); quickReverse(); }
+  window.CHB = { choose: choose, rejoin: rejoin, reset: reset };
+})();
+</script>
+<!-- TESTS (mounted in a host page with customer tokens set on :root):
+1. Initial: three .chb-chip buttons at scale 1, none "picked" or "alt"; #chbOutcome lacks
+   "open"; #chbBranch and #chbMerge computed opacity 0; #chbTrace lacks "show"; #chbContinue
+   not clickable (opacity 0, pointer-events none).
+2. CHB.choose(1): #chbChip1 gains "picked" and its .chb-fill sweeps scaleX(0)->scaleX(1) over
+   220ms; chips 0 and 2 carry the "also possible" state (class "alt", --k 0 and 1 for a 60ms
+   stagger, .chb-alttag to opacity 1); after ~220ms #chbBranch opacity is 1 and its
+   stroke-dashoffset reaches 0 by ~520ms with #chbDot riding the tip; #chbOutcome gains
+   "open" (clip-path reveal, .chb-row items cascading via --k).
+3. CHB.choose(2) straight after CHB.choose(1): the first branch reverses in ~150ms, then
+   choice 2 plays its full draw; there is only ever ONE outcome card in the DOM.
+4. CHB.rejoin(): #chbTraceText renders the picked choice's trace line, #chbTrace shows;
+   #chbBranch fades to opacity 0; #chbMerge draws to the spine node; #chbNode gains "lit"
+   and #chbRing pulses exactly once, then the merge wire fades.
+5. CHB.reset(): chips restored (no "picked"/"alt", transform none/scale 1), outcome closed,
+   trace hidden, wires at opacity 0, all within ~300ms.
+6. Re-choosing the same index replays that branch; rejoin() when not branched is a no-op.
+7. Pressing ArrowRight or ArrowLeft with nothing focused changes NOTHING (no global keys).
+8. Token uptake: with host tokens set, the picked chip's fill computes to the host --brand.
+9. Scale-proof wires: mounted inside transform:scale(.6), after CHB.choose(0) the branch
+   path's start point is still the chip's bottom edge in viewBox units (y near 270, x near
+   the chip centre), not a scale-squared drift.
+-->

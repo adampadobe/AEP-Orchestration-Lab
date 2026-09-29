@@ -1,0 +1,259 @@
+<!-- chatgpt-laptop - the ChatGPT AI-discovery surface (app-screens/interactive/chatgpt-chat)
+     mounted INSIDE a generic laptop frame (elements/laptop-frame), ready to drop on a slide.
+
+     WHY IT EXISTS (systemic): the "she asks an AI assistant and the brand surfaces in the answer"
+     beat wants a device, not a floating chat panel. This is the DESKTOP/laptop framing of that beat
+     (pair with chatgpt-phone for the mobile framing). Same streaming engine and data as chatgpt-chat.
+
+     BRANDS: THIRD-PARTY SURFACE (OpenAI) - fixed ChatGPT chrome, NOT customer-reskinned; the OpenAI
+     mark is a clean SVG recreation, swap for the official asset when available. A story changes only
+     CONV (the conversation) and BRAND (the product named in the answer) via window.GPT_DATA.
+     Laptop device frame is generic (no manufacturer mark, asset-licensing.md device-frame rule).
+
+     API: window.GPT.play()/reset(); auto-plays on load. No global key bindings. Native ~940x700
+     (laptop + base); scale via transform on a wrapping element. -->
+<style>
+/* ---- laptop frame (elements/laptop-frame, devices.css MIT) ---- */
+.esb-laptop{display:inline-block;position:relative;-webkit-box-sizing:content-box !important;box-sizing:content-box !important}.esb-laptop .screen{width:100%;position:relative;height:100%;z-index:3;background:white;overflow:hidden;display:block;border-radius:1px;-webkit-box-shadow:0 0 0 3px #111;box-shadow:0 0 0 3px #111}.esb-laptop{width:940px;height:588px;padding:38px 38px 66px;margin:0 auto;background:#bebebe;border-radius:22px}.esb-laptop:before{width:calc(100% - 8px);height:calc(100% - 8px);position:absolute;content:'';display:block;top:4px;left:4px;border-radius:30px;background:#1e1e1e}.esb-laptop .top-bar{width:calc(100% + 2 * 70px);height:40px;position:absolute;content:'';display:block;top:652px;left:-70px;border-bottom-left-radius:64px 12px;border-bottom-right-radius:64px 12px;background:#bebebe;-webkit-box-shadow:inset 0px -4px 13px 3px rgba(34,34,34,0.6);box-shadow:inset 0px -4px 13px 3px rgba(34,34,34,0.6)}.esb-laptop .top-bar:before{width:100%;height:24px;content:'';display:block;top:0;left:0;background:#f0f0f0;border-bottom:2px solid #aaa;border-radius:5px;position:relative}.esb-laptop .bottom-bar{background:transparent;width:calc(100% + 2 * 70px);height:26px;position:absolute;content:'';display:block;top:652px;left:-70px}.esb-laptop .bottom-bar:before,.esb-laptop .bottom-bar:after{height:calc(100% - 2px);width:80px;content:'';display:block;top:0;position:absolute}.esb-laptop .bottom-bar:before{left:0;background:#f0f0f0;background:-webkit-gradient(linear, left top, right top, from(#747474), color-stop(5%, #c3c3c3), color-stop(14%, #ebebeb), color-stop(41%, #979797), color-stop(80%, #f0f0f0), color-stop(100%, #f0f0f0), to(#f0f0f0));background:linear-gradient(to right, #747474 0%, #c3c3c3 5%, #ebebeb 14%, #979797 41%, #f0f0f0 80%, #f0f0f0 100%, #f0f0f0 100%)}.esb-laptop .bottom-bar:after{right:0;background:#f0f0f0;background:-webkit-gradient(linear, left top, right top, from(#f0f0f0), color-stop(0%, #f0f0f0), color-stop(20%, #f0f0f0), color-stop(59%, #979797), color-stop(86%, #ebebeb), color-stop(95%, #c3c3c3), to(#747474));background:linear-gradient(to right, #f0f0f0 0%, #f0f0f0 0%, #f0f0f0 20%, #979797 59%, #ebebeb 86%, #c3c3c3 95%, #747474 100%)}.esb-laptop .camera{background:#3c3d3d;width:10px;height:10px;position:absolute;top:16px;left:50%;margin-left:-5px;border-radius:100%}
+/* ---- fit the 1280x800 chat into the laptop screen (940x588 content box, same 1.6 aspect,
+       so scale to fill: 940/1280 = .733) ---- */
+.esb-laptop .screen{background:#fff;}
+.cgl-fit{position:relative;width:100%;height:100%;overflow:hidden;background:#fff;}
+.cgl-fit .gptapp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.733);border-radius:0;box-shadow:none;}
+/* ---- ChatGPT chat surface (app-screens/interactive/chatgpt-chat) ---- */
+.gptapp{--bg:#FFFFFF; --side:#F9F9F9; --line:#E5E5E5; --ink:#0D0D0D; --grey:#6E6E80;
+    --bubble:#F4F4F4; --brandhl:#0D0D0D;
+    position:relative; width:1280px; height:800px; display:flex; overflow:hidden;
+    background:var(--bg); color:var(--ink); border-radius:12px;
+    font-family:'Söhne','Segoe UI',system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  .gptapp *{box-sizing:border-box; margin:0;}
+
+  /* sidebar */
+  .gpt-side{width:260px; flex:none; background:var(--side); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; padding:12px 10px;}
+  .gpt-side-top{display:flex; align-items:center; justify-content:space-between; padding:6px 8px 12px;}
+  .gpt-mark{width:26px; height:26px; display:block;}
+  .gpt-new{display:flex; align-items:center; gap:10px; padding:10px 10px; border-radius:9px;
+    font-size:14px; font-weight:600; color:var(--ink); cursor:default;}
+  .gpt-new:hover{background:#ECECEC;}
+  .gpt-new svg{width:18px; height:18px;}
+  .gpt-hist{margin-top:10px; display:flex; flex-direction:column; gap:1px; overflow:hidden;}
+  .gpt-hcap{font-size:12px; font-weight:600; color:var(--grey); padding:10px 10px 6px;}
+  .gpt-hitem{font-size:13.5px; color:#3C3C43; padding:8px 10px; border-radius:8px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;}
+  .gpt-hitem.on{background:#ECECEC; font-weight:500;}
+  .gpt-user{margin-top:auto; display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:9px;}
+  .gpt-uav{width:28px; height:28px; border-radius:50%; background-size:cover; background-position:center;
+    background-color:#C9A24B; flex:none;}
+  .gpt-uname{font-size:13.5px; font-weight:600;}
+
+  /* main */
+  .gpt-main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .gpt-top{height:54px; flex:none; display:flex; align-items:center; gap:8px; padding:0 20px;
+    border-bottom:1px solid var(--line);}
+  .gpt-model{display:flex; align-items:center; gap:7px; font-size:16px; font-weight:600; color:var(--ink);
+    padding:7px 10px; border-radius:8px; cursor:default;}
+  .gpt-model .mut{color:var(--grey); font-weight:500;}
+  .gpt-model svg{width:15px; height:15px; color:var(--grey);}
+
+  .gpt-thread{flex:1; overflow-y:auto; scroll-behavior:smooth;}
+  .gpt-thread::-webkit-scrollbar{width:8px;} .gpt-thread::-webkit-scrollbar-thumb{background:#E0E0E0; border-radius:8px;}
+  .gpt-col{max-width:720px; margin:0 auto; padding:34px 24px 20px;}
+  .gpt-turn{display:flex; gap:16px; margin-bottom:30px; animation:gptin .4s ease both;}
+  @keyframes gptin{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  .gpt-turn.user{justify-content:flex-end;}
+  .gpt-turn.user .gpt-av{display:none;}
+  .gpt-bubble{font-size:16px; line-height:1.7;}
+  .gpt-turn.user .gpt-bubble{background:var(--bubble); border-radius:20px; padding:12px 18px; max-width:75%;}
+  .gpt-av{flex:none; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; background:#fff;}
+  .gpt-av svg{width:19px; height:19px;}
+  .gpt-ai .gpt-bubble{padding-top:4px;}
+  .gpt-ai .gpt-bubble p{margin-bottom:13px;} .gpt-ai .gpt-bubble p:last-child{margin-bottom:0;}
+  .gpt-ai .gpt-bubble b{font-weight:600;}
+  .gpt-hl{font-weight:600; color:var(--brandhl); border-bottom:2px solid rgba(13,13,13,.18);}
+  .gpt-cursor{display:inline-block; width:9px; height:18px; margin-left:2px; background:var(--ink);
+    vertical-align:-3px; animation:gptblink 1s steps(1) infinite;}
+  @keyframes gptblink{50%{opacity:0;}}
+
+  /* composer */
+  .gpt-composer{flex:none; padding:8px 24px 20px;}
+  .gpt-inwrap{max-width:720px; margin:0 auto; display:flex; align-items:center; gap:10px;
+    background:#fff; border:1px solid var(--line); border-radius:26px; padding:9px 9px 9px 18px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);}
+  .gpt-inplus{color:var(--grey);} .gpt-inplus svg{width:22px; height:22px; display:block;}
+  .gpt-inbox{flex:1; font-size:16px; color:var(--grey);}
+  .gpt-send{width:36px; height:36px; flex:none; border-radius:50%; background:var(--ink);
+    display:flex; align-items:center; justify-content:center;}
+  .gpt-send svg{width:18px; height:18px; color:#fff;}
+  .gpt-foot{max-width:720px; margin:8px auto 0; text-align:center; font-size:12px; color:var(--grey);}
+  .gpt-replay{position:absolute; top:14px; right:18px; z-index:5; appearance:none; cursor:pointer;
+    font:inherit; font-size:12.5px; font-weight:600; color:var(--grey); background:#F4F4F4;
+    border:1px solid var(--line); border-radius:999px; padding:6px 13px;}
+  .gpt-replay:hover{color:var(--ink);}
+
+  /* the official OpenAI mark (fill:currentColor via .p) */
+  #oai .p{fill:currentColor;}
+</style>
+
+<div class="esb-laptop">
+  <div class="top-bar"></div>
+  <div class="camera"></div>
+  <div class="screen">
+    <div class="cgl-fit">
+      <div class="gptapp" id="gptapp">
+        <button class="gpt-replay" id="gptReplay">Replay</button>
+        <aside class="gpt-side">
+          <div class="gpt-side-top">
+            <span class="gpt-mark" aria-label="OpenAI">
+              <svg id="oai" viewBox="0 0 24 24"><g class="p"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.8956zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6021-1.4997Z"/></g></svg>
+            </span>
+          </div>
+          <div class="gpt-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>New chat</div>
+          <div class="gpt-hist">
+            <div class="gpt-hcap">Today</div>
+            <div class="gpt-hitem on">Damaged skin barrier help</div>
+            <div class="gpt-hitem">Best fragrance-free moisturiser</div>
+            <div class="gpt-hitem">How to layer actives safely</div>
+            <div class="gpt-hcap">Previous 7 days</div>
+            <div class="gpt-hitem">Retinol vs bakuchiol</div>
+            <div class="gpt-hitem">SPF for sensitive skin</div>
+          </div>
+          <div class="gpt-user">
+            <span class="gpt-uav" id="gptUav"></span>
+            <span class="gpt-uname" id="gptUname">You</span>
+          </div>
+        </aside>
+      
+        <main class="gpt-main">
+          <div class="gpt-top">
+            <div class="gpt-model" id="gptModel">ChatGPT <span class="mut">4o</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+          </div>
+          <div class="gpt-thread" id="gptThread"><div class="gpt-col" id="gptCol"></div></div>
+          <div class="gpt-composer">
+            <div class="gpt-inwrap">
+              <span class="gpt-inplus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="gpt-inbox" id="gptInbox">Message ChatGPT</span>
+              <span class="gpt-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+            </div>
+            <div class="gpt-foot">ChatGPT can make mistakes. Check important info.</div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar"></div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: the conversation and the brand named in the answer ============ */
+  var GPT_DATA = window.GPT_DATA || {
+    user: { name: "Maya", avatar: "" },   /* a deck sets avatar to a Firefly persona image */
+    brand: "Noula's Barrier Repair Serum",
+    conv: [
+      { role: "user",
+        text: "why does my skin get red and stingy every time I try a new active? what should I actually use for a damaged barrier" },
+      { role: "ai", paras: [
+        "Redness and stinging when you introduce actives is usually a sign of a compromised skin barrier. The fix is to stop piling on actives and repair first.",
+        "Look for a fragrance-free barrier serum with ceramides and niacinamide, introduced slowly. One well-reviewed option is {brand}, which is fragrance-free, ceramide-based, and formulated for reactive, sensitised skin.",
+        "Start it 3 nights a week before going daily, and pause any exfoliating acids until the stinging settles."
+      ] }
+    ],
+    typeMs: 14,        /* per-word stream cadence for the AI answer (snappy for presenting) */
+    userTypeMs: 9      /* per-char cadence for the user question */
+  };
+  /* ================================================================================= */
+
+  var D = GPT_DATA;
+  function $(id){ return document.getElementById(id); }
+  var col = $("gptCol"), thread = $("gptThread"), inbox = $("gptInbox");
+  var OAI = document.getElementById("oai").outerHTML;
+  var timers = [];
+  function later(fn, ms){ var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function clearAll(){ timers.forEach(clearTimeout); timers = []; }
+  function scroll(){ requestAnimationFrame(function(){ thread.scrollTop = thread.scrollHeight; }); }
+  if (D.user.avatar){ $("gptUav").style.backgroundImage = "url('" + D.user.avatar + "')"; }
+  $("gptUname").textContent = D.user.name || "You";
+
+  function hl(text){
+    return text.replace("{brand}", '<span class="gpt-hl">' + D.brand + '</span>');
+  }
+
+  function userTurn(text, done){
+    var turn = document.createElement("div");
+    turn.className = "gpt-turn user";
+    turn.innerHTML = '<div class="gpt-bubble"></div>';
+    col.appendChild(turn);
+    var b = turn.querySelector(".gpt-bubble");
+    /* mirror the typing into the composer, then commit the bubble */
+    var i = 0;
+    (function typeIn(){
+      if (i <= text.length){
+        inbox.textContent = text.slice(0, i) || "Message ChatGPT";
+        inbox.style.color = i ? "var(--ink)" : "var(--grey)";
+        i++; later(typeIn, D.userTypeMs);
+      } else {
+        b.textContent = text;
+        inbox.textContent = "Message ChatGPT"; inbox.style.color = "var(--grey)";
+        scroll(); later(done, 500);
+      }
+    })();
+  }
+
+  function aiTurn(paras, done){
+    var turn = document.createElement("div");
+    turn.className = "gpt-turn gpt-ai";
+    turn.innerHTML = '<div class="gpt-av">' + OAI + '</div><div class="gpt-bubble"></div>';
+    col.appendChild(turn); scroll();
+    var bubble = turn.querySelector(".gpt-bubble");
+    var pi = 0;
+    function nextPara(){
+      if (pi >= paras.length){ done && later(done, 300); return; }
+      var raw = paras[pi];
+      var plain = raw.replace("{brand}", D.brand);   /* safe plain text to stream */
+      var p = document.createElement("p");
+      p.innerHTML = '<span class="gpt-txt"></span><span class="gpt-cursor"></span>';
+      bubble.appendChild(p);
+      var txt = p.querySelector(".gpt-txt");
+      var words = plain.split(" ");
+      var wi = 0;
+      (function stream(){
+        if (wi < words.length){
+          txt.textContent += (wi ? " " : "") + words[wi]; wi++;
+          scroll(); later(stream, D.typeMs);
+        } else {
+          p.innerHTML = hl(raw);             /* apply the brand highlight, drop the cursor */
+          pi++; later(nextPara, 260);
+        }
+      })();
+    }
+    later(nextPara, 260);
+  }
+
+  function play(){
+    clearAll(); col.innerHTML = "";
+    var i = 0;
+    (function step(){
+      if (i >= D.conv.length) return;
+      var turn = D.conv[i]; i++;
+      if (turn.role === "user"){ userTurn(turn.text, step); }
+      else { aiTurn(turn.paras, step); }
+    })();
+  }
+  function reset(){ clearAll(); col.innerHTML = ""; inbox.textContent = "Message ChatGPT"; inbox.style.color = "var(--grey)"; }
+
+  $("gptReplay").addEventListener("click", play);
+  window.GPT = { play: play, reset: reset };
+  play();
+})();
+</script>
+<!-- TESTS (mounted on a light stage):
+1. A laptop frame renders (.esb-laptop with a .camera dot and base) and the ChatGPT chat sits inside
+   its .screen, scaled to fit (no clipping of the composer or the model bar).
+2. Auto-plays: within ~4s the user question is in a bubble and the AI answer has streamed at least one
+   paragraph, with the brand surfacing in a .gpt-hl span. GPT.reset()/GPT.play() work.
+3. Generic device: no manufacturer mark on the laptop. Third-party surface: ChatGPT chrome fixed,
+   only CONV + BRAND change per story. Zero em dashes in rendered text.
+-->

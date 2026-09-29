@@ -1,0 +1,14 @@
+{
+  "type": "divider",
+  "key_classes": [
+    "dark-counter",
+    "divider",
+    "glw",
+    "ph",
+    "pill",
+    "pk",
+    "slide"
+  ],
+  "source": "po-cruises",
+  "description": "Chapter divider \u2014 full-bleed gradient with a persona name/role (new act)."
+}

@@ -1,0 +1,31 @@
+{
+  "type": "email-mock",
+  "key_classes": [
+    "anim",
+    "av",
+    "bal",
+    "bal2",
+    "col-label",
+    "cta",
+    "dev",
+    "eml",
+    "eml-body",
+    "eml-btn",
+    "eml-from",
+    "eml-logo",
+    "eml-subj",
+    "eml-top",
+    "eml-txt",
+    "eyebrow",
+    "h",
+    "has-photo",
+    "hbat",
+    "hr-acct",
+    "hr-card",
+    "hr-feed",
+    "hr-head",
+    "hr-isa"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use email-mock"
+}

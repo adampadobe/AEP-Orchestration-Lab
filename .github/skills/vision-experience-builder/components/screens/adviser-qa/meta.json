@@ -1,0 +1,26 @@
+{
+  "type": "adviser-qa",
+  "key_classes": [
+    "adv-q",
+    "adv-q-ava",
+    "adv-q-bubble",
+    "adv-q-caret",
+    "adv-q-text",
+    "adv-q-typed",
+    "adv-q-who",
+    "anim",
+    "big",
+    "col-label",
+    "eyebrow",
+    "has-photo",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use adviser-qa"
+}

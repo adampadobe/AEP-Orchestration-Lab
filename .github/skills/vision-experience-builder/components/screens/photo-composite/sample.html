@@ -1,0 +1,36 @@
+<!-- photo-composite — persona photo + device mock + text panel (the photo-led house style).
+     THE RULES THIS COMPONENT ENCODES (imagery-and-assets.md §10 — none are skippable):
+     1. Every slide showing a phone/laptop mock carries a persona photo layer
+        (.photo-r here, or .persona-bg on light dual-pane slides). A slide that
+        legitimately can't (e.g. imagery connector waived) marks the section
+        data-no-persona="<reason>" — render_qa.py fails device slides with neither.
+     2. The photo's prompt is DERIVED FROM THE SCENE BEAT: what the storyboard step's
+        Action says the persona is doing is what the photo shows. Reading a lockscreen
+        notification -> glancing at a phone in hand; on a call -> phone to ear; at a
+        laptop -> typing. Never a generic pose that contradicts the mock.
+        Prompt template (fill from the storyboard step):
+        "Candid editorial photo of [persona: age, look, role] in [setting from scene],
+         [DOING THE SCENE'S ACTION — e.g. glancing at a smartphone notification with
+         mild relief], [lighting/mood from Visual Direction], subject on the right
+         third, clean negative space on the left for text, darker toned background
+         on the left edge, muted [brand] tones, 16:9, no text, no logos."
+     3. The device mock NEVER covers the persona's face: subject on the right third
+        (prompt line above buys the space), mock on the left/centre-left, and after
+        render check the overlap visually (Stage 4.5 visual checklist).
+     4. The text-panel-to-photo fade is SEAMLESS: the 6-stop gradient below (solid
+        panel colour -> transparent) — never a hard edge, never a 2-stop gradient.
+     5. Photo layer order: photo (z:0) -> blend overlay (::after) -> text/chips (z:3)
+        -> device mock (z:2). -->
+<section class="slide dark photo-composite">
+  <div class="photo-r"><img data-slot="persona-photo (repo first, then Firefly with the scene-beat prompt)" src="persona.jpg" alt=""></div>
+  <div class="pc-head">
+    <div class="eye">Scene 01 · The proactive nudge</div>
+    <h2 data-slot="scene-title">A heads-up, three days early</h2>
+  </div>
+  <div class="pc-body" data-slot="narration-or-chips">
+    Rent leaves Friday and a client invoice is late. The heads-up is already waiting.
+  </div>
+  <div class="pc-device"><!-- data-slot: any device mock (phone frame, lockscreen, laptop/browser-frame) -->
+    <div class="phone"><div class="pscreen wp-dark-navy"></div></div>
+  </div>
+</section>

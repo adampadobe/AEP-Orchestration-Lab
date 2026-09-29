@@ -1,0 +1,29 @@
+{
+  "type": "ai-chat-discovery",
+  "key_classes": [
+    "ai-bar",
+    "ai-card",
+    "ai-caret",
+    "ai-overlay",
+    "ai-plus",
+    "ai-row",
+    "ai-send",
+    "ai-text",
+    "ai-typed",
+    "anim",
+    "b",
+    "col-label",
+    "eyebrow",
+    "h",
+    "has-photo",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use ai-chat-discovery"
+}

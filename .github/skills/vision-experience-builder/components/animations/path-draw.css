@@ -1,0 +1,6 @@
+/* path-draw -- an SVG line draws itself across the slide.
+   Use for: journey lines, timelines, connection reveals -- any "the story draws itself" beat.
+   Apply class to an SVG <path>. Set stroke-dasharray >= path length (getTotalLength or generous).
+   Params: --d delay. Brand colour comes from the path's own stroke attribute. */
+.slide.active .path-draw{stroke-dasharray:2400;stroke-dashoffset:2400;animation:pathDraw 2.2s var(--d,.3s) cubic-bezier(.5,0,.3,1) forwards;}
+@keyframes pathDraw{to{stroke-dashoffset:0}}

@@ -1,0 +1,31 @@
+{
+  "type": "adviser-portal",
+  "key_classes": [
+    "anim",
+    "col-label",
+    "cp-ava",
+    "cp-chip",
+    "cp-chips",
+    "cp-foot",
+    "cp-foot-s",
+    "cp-h",
+    "cp-live",
+    "cp-logo",
+    "cp-member",
+    "cp-mi",
+    "cp-panel",
+    "cp-sec",
+    "cp-secs",
+    "cp-tag",
+    "cp-ti",
+    "cp-top",
+    "eyebrow",
+    "has-photo",
+    "narr",
+    "p",
+    "pcontent",
+    "photo-panel"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use adviser-portal"
+}

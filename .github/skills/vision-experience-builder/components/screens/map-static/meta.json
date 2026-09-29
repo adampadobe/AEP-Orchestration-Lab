@@ -1,0 +1,29 @@
+{
+  "type": "map-static",
+  "description": "Offline map moment: stylized generic SVG map (roads, park, water \u2014 city-agnostic, brand-token tinted) with a route polyline that draws itself (path-draw), origin/destination pins (node-pop) and an ETA chip. For on-her-way / store-finder / delivery-tracking beats. Swap the SVG layer for a licensed offline static map image at build time; never an online tile service.",
+  "key_classes": [
+    "map-static",
+    "ms-wrap",
+    "ms-map",
+    "ms-route",
+    "ms-pin",
+    "ms-eta"
+  ],
+  "slots": [
+    "eyebrow",
+    "scene-title",
+    "narration",
+    "takeaway",
+    "map-layer",
+    "route",
+    "origin-pin",
+    "destination-pin",
+    "eta-chip"
+  ],
+  "brand_bound": false,
+  "verified": false,
+  "rev": 1,
+  "sources": [
+    "hand-built"
+  ]
+}

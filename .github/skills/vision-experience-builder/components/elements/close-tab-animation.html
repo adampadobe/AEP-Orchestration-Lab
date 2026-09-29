@@ -1,0 +1,37 @@
+<!--
+  component: close-tab-animation
+  Browser window scales down + fades out, then an abandon card fades in.
+  Use for the "she closes the tab and walks away" beat.
+
+  Animation: window stays solid 1.2s, then scales 1 → .66 + fades over 1.5s.
+  Abandon card fades in at +2.6s.
+
+  Slot: ABANDON_LINE  e.g. "£0 — TAB CLOSED · SESSION ABANDONED"
+
+  Pair with the standard .browser inside .closing-win so the same chrome
+  is "closed". The abandon-card sits behind it (z-index 1) and is revealed
+  as the window shrinks away.
+-->
+<style>
+.closing-win{position:absolute;inset:0;z-index:2;transform-origin:center;}
+.closing-win .browser{height:100%;}
+.slide.active .closing-win{animation:win-close 1.5s 1.2s forwards cubic-bezier(.5,0,.75,0);}
+
+.abandon-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:1;opacity:0;}
+.slide.active .abandon-card{animation:fade .8s 2.6s both;}
+.abandon-card .big{font-size:148px;font-weight:300;color:var(--navy);line-height:.9;letter-spacing:-.02em;margin:0;}
+.abandon-card .sub{font-size:26px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft);margin-top:8px;}
+</style>
+
+<!-- Behind: the abandon card -->
+<div class="abandon-card">
+  <p class="big">£0</p>
+  <div class="sub">ABANDON_LINE</div>
+</div>
+
+<!-- Front: the browser window that shrinks away -->
+<div class="closing-win">
+  <div class="browser">
+    <!-- normal browser chrome + content here — copies the prior slide's mock -->
+  </div>
+</div>

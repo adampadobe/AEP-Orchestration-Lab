@@ -1,0 +1,8 @@
+/* light-speed-in-right — entrance (entrance, right, showy, chip, text)
+   fast skewed dash-in that reads as speed: real-time callouts, toasts.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes lightSpeedInRight{0%{opacity:0;transform:translateX(44%) skewX(-24deg)}55%{opacity:1;transform:skewX(12deg)}78%{transform:skewX(-4deg)}100%{opacity:1;transform:none}}
+.light-speed-in-right{opacity:0;}
+.slide.active .light-speed-in-right{animation:lightSpeedInRight .8s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}

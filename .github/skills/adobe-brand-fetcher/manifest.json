@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "description": "Official Adobe brand assets, bundled with the skill. Source files supplied by Adobe employee via Marketing Hub.",
+    "last_reviewed": "2026-07-17",
+    "review_cadence_months": 12,
+    "policy_reference": "https://www.adobe.com/legal/permissions/trademarks.html",
+    "canonical_source": "Adobe Marketing Hub > Corporate Brand > Logos (Adobe SSO required)",
+    "version": "2026-modern-mark",
+    "changelog": "2026-07-17: symbol-red/white/black.svg (+png) replaced. They previously rendered the bare/untiled 'A' glyph directly in colour, which is the RETIRED presentation. The current official Adobe mark is the self-contained app-icon tile — red rounded square + white glyph, adobe-icon.svg — used as-is regardless of background, never recoloured. Explicit user instruction: never use the old bare icon again."
+  },
+  "logos": {
+    "wordmark-red": {
+      "filename": "wordmark-red.svg",
+      "format": "svg",
+      "description": "Adobe wordmark in brand red (#FA0F00)",
+      "use_when": "Default Adobe corporate mark on white/light backgrounds",
+      "viewbox": "0 0 631 153",
+      "aspect_ratio": 4.124
+    },
+    "wordmark-white": {
+      "filename": "wordmark-white.svg",
+      "format": "svg",
+      "description": "Adobe wordmark in white",
+      "use_when": "Adobe mark reversed out on color or dark backgrounds. Most common in vision demos.",
+      "viewbox": "0 0 631 153",
+      "aspect_ratio": 4.124
+    },
+    "wordmark-black": {
+      "filename": "wordmark-black.svg",
+      "format": "svg",
+      "description": "Adobe wordmark in black",
+      "use_when": "Adobe mark on light photography or when red unavailable"
+    },
+    "adobe-icon": {
+      "filename": "adobe-icon.svg",
+      "format": "svg",
+      "description": "THE modern Adobe mark: self-contained app-icon tile, red rounded square (#EB1000) with a white glyph. This is the canonical source file for symbol-red/white/black below.",
+      "use_when": "Any compact Adobe mark — app headers, favicons, footer chips, nav bars. Used as-is on any background; it carries its own tile, so it is never recoloured per surface.",
+      "viewbox": "0 0 512 512",
+      "aspect_ratio": 1.0,
+      "do_not": "Do not strip the rect and use the bare path alone — that is the RETIRED presentation. Do not hand-draw or approximate the glyph; if you need it at a different size, scale this file's viewBox, don't redraw the path."
+    },
+    "symbol-red": {
+      "filename": "symbol-red.svg",
+      "format": "svg",
+      "description": "Alias of adobe-icon.svg, kept under the legacy filename for existing {{adobe_symbol_path}} references. Identical content to symbol-white/symbol-black — the tile is not recoloured.",
+      "use_when": "Compact contexts where wordmark is too wide. App headers, favicons, footer chips.",
+      "viewbox": "0 0 512 512",
+      "aspect_ratio": 1.0,
+      "alternate_format": "symbol-red.png"
+    },
+    "symbol-white": {
+      "filename": "symbol-white.svg",
+      "format": "svg",
+      "description": "Alias of adobe-icon.svg — see symbol-red.",
+      "alternate_format": "symbol-white.png"
+    },
+    "symbol-black": {
+      "filename": "symbol-black.svg",
+      "format": "svg",
+      "description": "Alias of adobe-icon.svg — see symbol-red."
+    }
+  },
+  "brand_colors": {
+    "adobe_red": "#FA0F00",
+    "adobe_red_hover": "#D70F00",
+    "adobe_black": "#000000",
+    "adobe_white": "#FFFFFF",
+    "neutral_canvas": "#FAFAFA",
+    "spectrum_blue": "#0265DC"
+  },
+  "typography": {
+    "_note": "Adobe Clean is a LICENSED font. Adobe employees can use it on https://fonts.adobe.com/fonts/adobe-clean via Adobe Fonts CDN, but cannot redistribute font files. The skill embeds fonts via Adobe Fonts kit URL, NOT by bundling .woff2 files.",
+    "primary_corporate": "adobe-clean, 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "spectrum_product": "adobe-clean-spectrum-vf, adobe-clean, 'Source Sans 3', sans-serif",
+    "serif": "adobe-clean-serif, 'Source Serif 4', Georgia, serif",
+    "monospace": "ui-monospace, 'SF Mono', Consolas, monospace",
+    "kit_setup_instructions": "Adobe employee creates a Web Project at fonts.adobe.com adding Adobe Clean + Adobe Clean Serif. Copy the kit URL (e.g. https://use.typekit.net/XXXXXXX.css) and store in vision-demo-skill/references/typography.md. The kit URL is embedded in every demo's HTML <head>.",
+    "fallback_when_no_kit_url": "If no kit URL is available, fall back to font-family: 'Source Sans 3', system-ui, sans-serif. Source Sans 3 is open-source and Google-Fonts-hosted; embed via <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@200..900&display=swap'>"
+  }
+}

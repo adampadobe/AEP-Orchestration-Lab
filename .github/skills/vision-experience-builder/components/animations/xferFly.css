@@ -1,0 +1,6 @@
+/* animation: xferFly  (harvested from coventry-building-society) */
+/* triggered by: .tl-transfer.go .xfer-chip */
+@keyframes xferFly{ 0%{ left:40%; opacity:0; transform:translate(-50%,-50%) scale(.8); }
+    16%{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+    80%{ left:56%; opacity:1; transform:translate(-50%,-50%) scale(1); }
+    100%{ left:58%; opacity:0; transform:translate(-50%,-50%) scale(.85); } }

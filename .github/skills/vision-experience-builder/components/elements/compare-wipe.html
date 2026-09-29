@@ -1,0 +1,241 @@
+<!-- elements/compare-wipe.html - the draggable before/after wipe: two identical scene
+     compositions layered, a divider the presenter drags to reveal "after" (T3 of the
+     interactive backlog, 19 Jul 2026).
+
+     PROVENANCE: harvested from the Claude Design T3 pass (clip-path wipe, pointer-capture
+     drag, snap points, hidden-but-focusable range for accessibility). Rebuilt as a component:
+     the document-level arrow-key binding is gone and the stage is sized for mounting, not a
+     full slide.
+
+     STORY PHYSICS, kept on purpose: the "before" side is a deliberately grey world (hardcoded
+     greys, outside the token contract), the "after" side takes the customer's tokens. The
+     contrast IS the message, so a reskin only ever recolours the after side.
+
+     RESKIN CONTRACT (after side + chrome): --brand/--brand-deep/--accent/--accent-lt/--ink/
+     --grey/--soft/--line/--ice + --brand-rgb/--accent-rgb. All copy lives in CWP_DATA; the
+     scene composition is copy block + message-on-device. Device mock is a generic rounded
+     frame, no camera, per house rules.
+
+     API (no global key bindings ON PURPOSE: ArrowLeft/Right belong to deck navigation; the
+     internal range input handles arrows only while the presenter has focused it):
+       CWP.set(pct, snap)  - move the divider to pct (0..100); snap=true animates
+       CWP.reset()         - snap back to 50/50
+     Drag the handle, double-click it to recentre, or use the optional reset button.
+     One instance per stage (fixed ids). -->
+<style>
+  .cwp{position:relative; width:1520px; height:840px; overflow:hidden; border-radius:20px;
+    background:#EDEDED; user-select:none; text-align:left;
+    font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif; color:var(--ink,#20222B);}
+  .cwp *{box-sizing:border-box; margin:0;}
+  .cwp-scene{position:absolute; inset:0;}
+  .cwp-scene.after{background:var(--ice,#EEF0FB); clip-path:inset(0 0 0 50%);}
+  .cwp-copy{position:absolute; left:110px; top:180px; width:520px;}
+  .cwp-eyebrow{font-size:16px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;}
+  .cwp-headline{font-size:50px; line-height:1.08; font-weight:800; letter-spacing:-.02em;
+    margin:16px 0 30px; text-wrap:pretty;}
+  .cwp-notes{display:flex; flex-direction:column; gap:18px;}
+  .cwp-note{display:flex; align-items:center; gap:14px; font-size:21px; line-height:1.3;}
+  .cwp-note svg{flex:none;}
+  .before .cwp-eyebrow{color:#8A8A8A;}
+  .before .cwp-headline{color:#4A4A4A;}
+  .before .cwp-note{color:#6D6D6D;}
+  .after .cwp-eyebrow{color:var(--brand,#4C43D6);}
+  .after .cwp-headline{color:var(--ink,#20222B);}
+  .after .cwp-note{color:var(--grey,#6B6F7B);}
+  .cwp-device{position:absolute; left:1060px; top:100px; width:370px; height:640px;
+    border-radius:36px; padding:20px 20px 24px; display:flex; flex-direction:column; gap:16px;}
+  .before .cwp-device{background:#fff; border:2px solid #D6D6D6; box-shadow:0 8px 34px rgba(0,0,0,.10);}
+  .after .cwp-device{background:#fff; border:2px solid var(--line,#E3E4EA);
+    box-shadow:0 8px 40px rgba(var(--brand-rgb,76,67,214),.16);}
+  .cwp-sender{display:flex; align-items:center; gap:12px; padding:4px 2px 0;}
+  .cwp-avatar{flex:none; width:40px; height:40px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:16px; font-weight:800; color:#fff;}
+  .before .cwp-avatar{background:#B4B4B4;}
+  .after .cwp-avatar{background:var(--brand,#4C43D6);}
+  .cwp-from{font-size:18px; font-weight:800;}
+  .cwp-time{font-size:14px; margin-top:2px;}
+  .before .cwp-from{color:#5A5A5A;} .before .cwp-time{color:#9A9A9A;}
+  .after .cwp-from{color:var(--ink,#20222B);} .after .cwp-time{color:var(--grey,#6B6F7B);}
+  .cwp-msg{border-radius:14px; padding:17px 19px;}
+  .before .cwp-msg{background:#F1F1F1; border:1px solid #E0E0E0;}
+  .after .cwp-msg{background:var(--soft,#F6F6F9); border:1px solid var(--line,#E3E4EA);}
+  .cwp-subject{font-size:20px; font-weight:800; letter-spacing:-.01em;}
+  .cwp-body{font-size:16px; line-height:1.5; margin-top:7px;}
+  .before .cwp-subject{color:#4A4A4A;} .before .cwp-body{color:#7A7A7A;}
+  .after .cwp-subject{color:var(--ink,#20222B);} .after .cwp-body{color:var(--grey,#6B6F7B);}
+  .cwp-offer{border-radius:14px; padding:17px 19px; display:flex; align-items:center; gap:13px;}
+  .cwp-offer svg{flex:none;}
+  .before .cwp-offer{background:#F1F1F1; border:1px dashed #C8C8C8; color:#7A7A7A;}
+  .after .cwp-offer{background:var(--accent-lt,#E4F5EF); border:1px solid var(--accent,#0FA57F);
+    color:var(--ink,#20222B);}
+  .cwp-offertxt{font-size:16px; line-height:1.4; font-weight:600;}
+  .cwp-cta{margin-top:auto; border-radius:12px; padding:16px; text-align:center;
+    font-size:17px; font-weight:800;}
+  .before .cwp-cta{background:#E6E6E6; color:#8A8A8A;}
+  .after .cwp-cta{background:var(--brand,#4C43D6); color:#fff;}
+  .cwp-cap{position:absolute; top:42px; font-size:16px; font-weight:800; letter-spacing:.16em;
+    padding:10px 20px; border-radius:999px; z-index:5;}
+  .cwp-cap.b{left:52px; background:#DFDFDF; color:#5A5A5A;}
+  .cwp-cap.a{right:52px; background:var(--brand,#4C43D6); color:#fff;}
+  .cwp-divider{position:absolute; top:0; bottom:0; left:50%; width:4px; margin-left:-2px;
+    background:#fff; box-shadow:0 0 22px rgba(0,0,0,.25); z-index:6;}
+  .cwp-handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:66px; height:66px; border-radius:50%; background:#fff; border:none; cursor:grab;
+    z-index:7; box-shadow:0 4px 18px rgba(0,0,0,.28); display:flex; align-items:center;
+    justify-content:center; gap:5px; color:var(--ink,#20222B); touch-action:none;}
+  .cwp-handle:active{cursor:grabbing;}
+  .cwp.snapping .cwp-scene.after{transition:clip-path .22s ease-out;}
+  .cwp.snapping .cwp-divider, .cwp.snapping .cwp-handle{transition:left .22s ease-out;}
+  .cwp-reset{position:absolute; right:52px; bottom:38px; z-index:8; appearance:none;
+    cursor:pointer; font:600 15px/1 inherit; color:var(--grey,#6B6F7B); background:#fff;
+    border:1px solid var(--line,#E3E4EA); padding:11px 20px; border-radius:10px;
+    transition:color .18s ease, border-color .18s ease;}
+  .cwp-reset:hover{color:var(--ink,#20222B); border-color:var(--grey,#6B6F7B);}
+  .cwp-range{position:absolute; left:-9999px; width:10px;}
+</style>
+
+<div class="cwp" id="cwp">
+  <div class="cwp-scene before" id="cwpBefore"></div>
+  <div class="cwp-scene after" id="cwpAfter"></div>
+  <div class="cwp-cap b" id="cwpCapBefore"></div>
+  <div class="cwp-cap a" id="cwpCapAfter"></div>
+  <div class="cwp-divider" id="cwpDivider"></div>
+  <button class="cwp-handle" id="cwpHandle" aria-label="Drag to compare">
+    <svg width="13" height="20" viewBox="0 0 14 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 3 11l8 9"/></svg>
+    <svg width="13" height="20" viewBox="0 0 14 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2l8 9-8 9"/></svg>
+  </button>
+  <input type="range" class="cwp-range" id="cwpRange" min="0" max="100" step="1" value="50" aria-label="Compare position">
+  <button class="cwp-reset" id="cwpReset">Reset</button>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: every word and number lives here ============ */
+  var CWP_DATA = {
+    captions: { before: "BEFORE", after: "AFTER" },
+    before: {
+      eyebrow: "Today",
+      headline: "One blast, sent to everyone",
+      notes: [
+        { icon: "clock", text: "Scheduled for 9am, all 2.1 million contacts" },
+        { icon: "tag",   text: "Offer picked by the calendar, not the customer" },
+        { icon: "queue", text: "Questions go to a support queue" }
+      ],
+      device: {
+        avatar: "N", from: "News and Offers", time: "Tuesday, 9:00am",
+        subject: "Our March newsletter is here",
+        body: "Hi customer, check out everything happening this month across all our categories.",
+        offer: "10 percent off sitewide, ends soon",
+        cta: "You are number 47 in the queue"
+      }
+    },
+    after: {
+      eyebrow: "Orchestrated",
+      headline: "One moment, made for Maya",
+      notes: [
+        { icon: "clock", text: "Sent the evening Maya browses again" },
+        { icon: "tag",   text: "Offer drawn from her saved cart" },
+        { icon: "queue", text: "One tap to act, no queue" }
+      ],
+      device: {
+        avatar: "A", from: "Aurora Home", time: "Tonight, 7:42pm",
+        subject: "Maya, your oak console is back",
+        body: "The console you saved is back in stock at the Rosedale store, 2.1 miles from you.",
+        offer: "Free delivery this week on your saved console",
+        cta: "Reserve for pickup"
+      }
+    },
+    snapPoints: [0, 50, 100],
+    snapWithin: 6
+  };
+  /* ================================================================ */
+
+  var CWP_ICONS = {
+    clock: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+    tag: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7l9 9-7 7-9-9z"/><circle cx="8.5" cy="8.5" r="1.6"/></svg>',
+    queue: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+    offer: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M4 12h16M12 8v12M8 8c-2 0-3-1.4-3-2.5C5 4.2 6 3.5 7 3.5c1.8 0 3 2 5 4.5 2-2.5 3.2-4.5 5-4.5 1 0 2 .7 2 2 0 1.1-1 2.5-3 2.5z"/></svg>'
+  };
+
+  function scene(d){
+    return '<div class="cwp-copy">' +
+        '<div class="cwp-eyebrow">' + d.eyebrow + '</div>' +
+        '<h2 class="cwp-headline">' + d.headline + '</h2>' +
+        '<div class="cwp-notes">' + d.notes.map(function(n){
+          return '<div class="cwp-note">' + CWP_ICONS[n.icon] + '<span>' + n.text + '</span></div>';
+        }).join("") + '</div>' +
+      '</div>' +
+      '<div class="cwp-device">' +
+        '<div class="cwp-sender"><div class="cwp-avatar">' + d.device.avatar + '</div>' +
+          '<div><div class="cwp-from">' + d.device.from + '</div>' +
+          '<div class="cwp-time">' + d.device.time + '</div></div></div>' +
+        '<div class="cwp-msg"><div class="cwp-subject">' + d.device.subject + '</div>' +
+          '<div class="cwp-body">' + d.device.body + '</div></div>' +
+        '<div class="cwp-offer">' + CWP_ICONS.offer +
+          '<div class="cwp-offertxt">' + d.device.offer + '</div></div>' +
+        '<div class="cwp-cta">' + d.device.cta + '</div>' +
+      '</div>';
+  }
+  document.getElementById("cwpBefore").innerHTML = scene(CWP_DATA.before);
+  document.getElementById("cwpAfter").innerHTML = scene(CWP_DATA.after);
+  document.getElementById("cwpCapBefore").textContent = CWP_DATA.captions.before;
+  document.getElementById("cwpCapAfter").textContent = CWP_DATA.captions.after;
+
+  var stage = document.getElementById("cwp");
+  var afterLayer = document.getElementById("cwpAfter");
+  var divider = document.getElementById("cwpDivider");
+  var handle = document.getElementById("cwpHandle");
+  var range = document.getElementById("cwpRange");
+  var pct = 50;
+
+  function setPct(p, snap){
+    pct = Math.max(0, Math.min(100, p));
+    stage.classList.toggle("snapping", !!snap);
+    afterLayer.style.clipPath = "inset(0 0 0 " + pct + "%)";
+    divider.style.left = pct + "%";
+    handle.style.left = pct + "%";
+    range.value = Math.round(pct);
+    if (snap) setTimeout(function(){ stage.classList.remove("snapping"); }, 240);
+  }
+
+  var dragging = false;
+  handle.addEventListener("pointerdown", function(e){
+    dragging = true;
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener("pointermove", function(e){
+    if (!dragging) return;
+    var r = stage.getBoundingClientRect();
+    setPct((e.clientX - r.left) / r.width * 100, false);
+  });
+  handle.addEventListener("pointerup", function(e){
+    dragging = false;
+    handle.releasePointerCapture(e.pointerId);
+    var near = null;
+    CWP_DATA.snapPoints.forEach(function(s){
+      if (near === null && Math.abs(pct - s) <= CWP_DATA.snapWithin) near = s;
+    });
+    if (near !== null && near !== pct) setPct(near, true);
+  });
+  handle.addEventListener("dblclick", function(){ setPct(50, true); });
+  range.addEventListener("input", function(){ setPct(parseFloat(range.value), false); });
+  document.getElementById("cwpReset").addEventListener("click", function(){ setPct(50, true); });
+
+  window.CWP = {
+    set: setPct,
+    reset: function(){ setPct(50, true); }
+  };
+
+  setPct(50, false);
+})();
+</script>
+<!-- TESTS:
+1. Initial: #cwpRange value "50", #cwpAfter computed clip-path "inset(0px 0px 0px 50%)", #cwpHandle style.left "50%".
+2. CWP.set(80): #cwpAfter clip-path becomes "inset(0px 0px 0px 80%)" and #cwpDivider style.left "80%".
+3. Pointer drag past the right edge of #cwp: pct clamps at 100 (handle style.left "100%", never exceeds); release at 96 snaps to 100 within 300ms; release at 53 snaps to 50.
+4. Double-click #cwpHandle from any position: #cwpRange returns to "50" and #cwpHandle style.left "50%".
+5. Pressing ArrowRight or ArrowLeft with nothing focused changes NOTHING (no document key bindings; the range only responds while focused, which is presenter-initiated).
+6. Click #cwpReset after moving to 10: #cwpRange "50", clip-path "inset(0px 0px 0px 50%)".
+7. Both scenes render the same slots: #cwpBefore and #cwpAfter each contain exactly one .cwp-headline, three .cwp-note, one .cwp-device with .cwp-subject, .cwp-offer and .cwp-cta (layout never shifts, only reveal).
+8. Token uptake: with host tokens set, the after-side .cwp-cta background resolves to the host --brand; the before side stays grey (its palette is deliberate, not tokened).
+-->
