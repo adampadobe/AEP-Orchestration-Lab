@@ -1,0 +1,33 @@
+{
+  "archetype": "teresa",
+  "folder": "harvested-teresa",
+  "tags": [
+    "travel",
+    "cruise",
+    "customer",
+    "female",
+    "40s",
+    "pasifika",
+    "candid",
+    "b2c",
+    "journey"
+  ],
+  "default_name": "Teresa",
+  "default_role": "Cruise Customer",
+  "images": [
+    {
+      "file": "persona-teresa-av.jpg",
+      "role": "avatar"
+    },
+    {
+      "file": "persona-teresa.jpg",
+      "role": "portrait"
+    }
+  ],
+  "default_pose": "persona-teresa.jpg",
+  "avatar": "persona-teresa-av.jpg",
+  "format": "jpg",
+  "source": "po-cruises",
+  "bg": "outdoor",
+  "needs_cutout": true
+}

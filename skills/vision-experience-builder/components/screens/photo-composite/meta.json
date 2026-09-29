@@ -1,0 +1,10 @@
+{
+  "type": "photo-composite",
+  "description": "Persona photo + device mock + text panel — the photo-led house style (KSIA/BAT reference). Encodes the non-skippable imagery rules: persona layer on every device slide (or data-no-persona reason), scene-beat-derived Firefly prompt, face never covered by the mock, 6-stop seamless panel-to-photo blend, min type scale. Use for any scene slide where the persona experiences a device moment.",
+  "key_classes": ["photo-composite", "photo-r", "pc-head", "pc-body", "pc-device"],
+  "slots": ["persona-photo", "scene-title", "narration-or-chips", "device-mock"],
+  "brand_bound": false,
+  "verified": false,
+  "rev": 1,
+  "sources": ["monzo-practice", "ksia-reference-style"]
+}

@@ -1,0 +1,6 @@
+/* glare-sweep -- one light pass across a lockup/logo/card. Finale polish; use ONCE per deck.
+   Apply to the lockup container (needs position:relative context; class sets it). */
+.glare-sweep{position:relative;overflow:hidden;}
+.glare-sweep::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.35) 50%,transparent 58%);transform:translateX(-130%);}
+.slide.active .glare-sweep::after{animation:glareSweep 1.4s var(--d,1.4s) ease-in-out forwards;}
+@keyframes glareSweep{to{transform:translateX(130%)}}

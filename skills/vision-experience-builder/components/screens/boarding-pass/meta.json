@@ -1,0 +1,34 @@
+{
+  "type": "boarding-pass",
+  "description": "Mobile boarding pass / wallet-pass moment: wallet-style pass card (airline brand, route codes and times, passenger/seat/gate/boarding grid), pure-CSS QR placeholder block, and a gate-change notification banner dropping in via notif-drop. Travel-journey staple for airport and airline stories (KSIA-class).",
+  "key_classes": [
+    "boarding-pass",
+    "bp-card",
+    "bp-route",
+    "bp-grid",
+    "bp-qr",
+    "bp-banner"
+  ],
+  "slots": [
+    "eyebrow",
+    "scene-title",
+    "narration",
+    "takeaway",
+    "airline-brand",
+    "cabin",
+    "route-codes",
+    "times",
+    "name",
+    "seat",
+    "gate",
+    "boards",
+    "qr",
+    "gate-change-banner"
+  ],
+  "brand_bound": false,
+  "verified": false,
+  "rev": 1,
+  "sources": [
+    "hand-built"
+  ]
+}

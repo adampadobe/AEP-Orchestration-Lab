@@ -1,0 +1,224 @@
+<!-- elements/persona-switch.html - one page, morphed per persona: hero, offer, products and
+     toast swap in place when a persona chip is picked (T4 "personalisation theatre" of the
+     interactive backlog, 19 Jul 2026).
+
+     PROVENANCE: mechanics harvested from the Claude Design T4 pass (fade-swap engine with a
+     transition lock + queued switch, aria-pressed chips, layout-stable slots). Rebuilt as a
+     component because the Design pass shipped a full 1920x1080 slide with a welded-in
+     narrative column and a global arrow-key binding.
+
+     RESKIN CONTRACT: colour comes only from the role tokens (--brand/--brand-deep/--accent/
+     --accent-lt/--ink/--grey/--soft/--line/--ice + --brand-rgb/--accent-rgb). Persona art is
+     token-derived gradients, so the whole thing reskins from brand.json with zero image work.
+     All copy lives in PSW_DATA; the personas here are sample data, replace per deck.
+
+     API (no global key bindings ON PURPOSE: ArrowLeft/Right belong to deck navigation):
+       PSW.set(i)   - switch to persona i (clamped; queued if a fade is in flight)
+       PSW.next()   - following persona (clamps at the last, no wrap)
+       PSW.prev()   - previous persona (clamps at the first)
+       PSW.reset()  - back to the first persona
+     The chips are also live controls; one instance per stage (fixed ids, same convention as
+     workplan-rail). -->
+<style>
+  .psw{--psw-fade:120ms; width:940px; font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif;
+    color:var(--ink,#20222B); text-align:left;}
+  .psw *{box-sizing:border-box; margin:0;}
+  .psw-frame{background:#fff; border:1px solid var(--line,#E3E4EA); border-radius:16px;
+    overflow:hidden; box-shadow:0 2px 20px rgba(0,0,0,.07);}
+  .psw-bar{display:flex; align-items:center; gap:12px; background:var(--soft,#F6F6F9);
+    border-bottom:1px solid var(--line,#E3E4EA); padding:11px 16px;}
+  .psw-dots{display:flex; gap:6px;}
+  .psw-dots i{width:9px; height:9px; border-radius:50%; background:var(--line,#E3E4EA);}
+  .psw-url{flex:1; max-width:340px; background:#fff; border:1px solid var(--line,#E3E4EA);
+    border-radius:8px; font-size:13px; color:var(--grey,#6B6F7B); padding:6px 14px;}
+  .psw-page{padding:20px 22px 24px;}
+  .psw-fade{transition:opacity var(--psw-fade) ease-out;}
+  .psw.fading .psw-fade{opacity:0;}
+  .psw-hero{position:relative; border-radius:12px; padding:32px 36px; min-height:168px;
+    display:flex; flex-direction:column; justify-content:center; overflow:hidden;}
+  .psw-heroart{position:absolute; inset:0;}
+  .psw-heroinner{position:relative; max-width:520px;}
+  .psw-headline{font-size:31px; line-height:1.12; font-weight:800; letter-spacing:-.02em; color:#fff;}
+  .psw-offer{display:inline-block; margin-top:14px; background:#fff; color:var(--ink,#20222B);
+    font-size:15px; font-weight:700; border-radius:999px; padding:9px 18px;}
+  .psw-row{display:flex; gap:16px; margin-top:18px;}
+  .psw-card{flex:1; border:1px solid var(--line,#E3E4EA); border-radius:12px; overflow:hidden; background:#fff;}
+  .psw-art{height:96px;}
+  .psw-cardtxt{padding:12px 14px 14px; display:flex; align-items:baseline;
+    justify-content:space-between; gap:10px;}
+  .psw-pname{font-size:15px; font-weight:700; letter-spacing:-.01em;}
+  .psw-price{font-size:14px; font-weight:800; color:var(--grey,#6B6F7B);
+    font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .psw-toast{display:flex; align-items:center; gap:12px; margin-top:18px; border-radius:10px;
+    padding:13px 16px; background:var(--ice,#EEF0FB); border:1px solid var(--line,#E3E4EA);}
+  .psw-toast svg{flex:none; color:var(--brand,#4C43D6);}
+  .psw-toasttxt{font-size:15px; font-weight:600; color:var(--ink,#20222B);}
+  .psw-people{display:flex; gap:14px; margin-top:18px;}
+  .psw-person{flex:1; appearance:none; cursor:pointer; font:inherit; text-align:left; background:#fff;
+    border:2px solid var(--line,#E3E4EA); border-radius:14px; padding:13px 16px; display:flex;
+    align-items:center; gap:13px; transition:border-color .18s ease, box-shadow .18s ease;}
+  .psw-person:hover{border-color:var(--grey,#6B6F7B);}
+  .psw-person.active{border-color:var(--brand,#4C43D6);
+    box-shadow:0 0 0 4px rgba(var(--brand-rgb,76,67,214),.14);}
+  .psw-chip{flex:none; width:32px; height:32px; border-radius:50%;}
+  .psw-pername{display:block; font-size:17px; font-weight:800; letter-spacing:-.01em;}
+  .psw-perdesc{display:block; font-size:13px; font-weight:600; color:var(--grey,#6B6F7B); margin-top:1px;}
+</style>
+
+<div class="psw" id="psw">
+  <div class="psw-frame">
+    <div class="psw-bar">
+      <div class="psw-dots"><i></i><i></i><i></i></div>
+      <div class="psw-url" id="pswUrl"></div>
+    </div>
+    <div class="psw-page">
+      <div class="psw-hero">
+        <div class="psw-heroart psw-fade" id="pswHeroArt"></div>
+        <div class="psw-heroinner">
+          <div class="psw-headline psw-fade" id="pswHeadline"></div>
+          <div class="psw-offer psw-fade" id="pswOffer"></div>
+        </div>
+      </div>
+      <div class="psw-row" id="pswRow"></div>
+      <div class="psw-toast">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0v5l2 3H4l2-3z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+        <span class="psw-toasttxt psw-fade" id="pswToast"></span>
+      </div>
+    </div>
+  </div>
+  <div class="psw-people" id="pswPeople"></div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: every word, number and persona lives here ============ */
+  var PSW_DATA = {
+    url: "aurorahome.example/spring",
+    fadeMs: 120,
+    personas: [
+      { name: "Maya", descriptor: "Loyalist",
+        chip: ["rgba(var(--brand-rgb,76,67,214),1)", "rgba(var(--brand-rgb,76,67,214),.45)"],
+        hero: ["rgba(var(--brand-rgb,76,67,214),1)", "rgba(var(--brand-rgb,76,67,214),.62)"],
+        headline: "Welcome back, Maya. Your room is coming together",
+        offer: "Members save 20 percent on saved items",
+        toast: "Your oak console is back in stock at Rosedale",
+        products: [
+          { name: "Oak console", price: "$640", art: ["rgba(var(--brand-rgb,76,67,214),.55)", "rgba(var(--brand-rgb,76,67,214),.18)"] },
+          { name: "Linen throw", price: "$85", art: ["rgba(var(--brand-rgb,76,67,214),.40)", "rgba(var(--brand-rgb,76,67,214),.12)"] },
+          { name: "Brass sconce", price: "$210", art: ["rgba(var(--brand-rgb,76,67,214),.30)", "rgba(var(--brand-rgb,76,67,214),.08)"] }
+        ] },
+      { name: "Dev", descriptor: "Browser",
+        chip: ["rgba(var(--accent-rgb,15,165,127),1)", "rgba(var(--accent-rgb,15,165,127),.45)"],
+        hero: ["rgba(var(--accent-rgb,15,165,127),1)", "rgba(var(--accent-rgb,15,165,127),.58)"],
+        headline: "New this week, picked for small spaces",
+        offer: "Free swatches on any three fabrics",
+        toast: "Price dropped on 2 items you viewed",
+        products: [
+          { name: "Compact desk", price: "$390", art: ["rgba(var(--accent-rgb,15,165,127),.55)", "rgba(var(--accent-rgb,15,165,127),.18)"] },
+          { name: "Wall shelf set", price: "$140", art: ["rgba(var(--accent-rgb,15,165,127),.40)", "rgba(var(--accent-rgb,15,165,127),.12)"] },
+          { name: "Nesting tables", price: "$260", art: ["rgba(var(--accent-rgb,15,165,127),.30)", "rgba(var(--accent-rgb,15,165,127),.08)"] }
+        ] },
+      { name: "Priya", descriptor: "Gifter",
+        chip: ["rgba(var(--brand-rgb,76,67,214),1)", "rgba(var(--accent-rgb,15,165,127),.9)"],
+        hero: ["rgba(var(--brand-rgb,76,67,214),.95)", "rgba(var(--accent-rgb,15,165,127),.75)"],
+        headline: "Housewarming gifts that arrive by Saturday",
+        offer: "Gift wrap and a handwritten note, on us",
+        toast: "Ships free today, arrives Saturday by noon",
+        products: [
+          { name: "Ceramic vase duo", price: "$95", art: ["rgba(var(--brand-rgb,76,67,214),.45)", "rgba(var(--accent-rgb,15,165,127),.20)"] },
+          { name: "Candle trio", price: "$60", art: ["rgba(var(--accent-rgb,15,165,127),.45)", "rgba(var(--brand-rgb,76,67,214),.15)"] },
+          { name: "Serving board", price: "$120", art: ["rgba(var(--brand-rgb,76,67,214),.30)", "rgba(var(--accent-rgb,15,165,127),.12)"] }
+        ] }
+    ]
+  };
+  /* ========================================================================= */
+
+  var root = document.getElementById("psw");
+  var peopleEl = document.getElementById("pswPeople");
+  root.style.setProperty("--psw-fade", PSW_DATA.fadeMs + "ms");
+  document.getElementById("pswUrl").textContent = PSW_DATA.url;
+
+  peopleEl.innerHTML = PSW_DATA.personas.map(function(p, i){
+    return '<button class="psw-person" id="pswPersona' + (i + 1) + '" aria-pressed="false">' +
+      '<span class="psw-chip" style="background:linear-gradient(135deg,' + p.chip[0] + ',' + p.chip[1] + ')"></span>' +
+      '<span><span class="psw-pername">' + p.name + '</span>' +
+      '<span class="psw-perdesc">' + p.descriptor + '</span></span>' +
+    '</button>';
+  }).join("");
+
+  document.getElementById("pswRow").innerHTML = [0, 1, 2].map(function(i){
+    return '<div class="psw-card">' +
+      '<div class="psw-art psw-fade" id="pswArt' + (i + 1) + '"></div>' +
+      '<div class="psw-cardtxt">' +
+        '<span class="psw-pname psw-fade" id="pswPname' + (i + 1) + '"></span>' +
+        '<span class="psw-price psw-fade" id="pswPrice' + (i + 1) + '"></span>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  var current = -1;   // active persona index
+  var busy = false;   // fade in flight
+  var queued = null;  // latest request while busy
+
+  function applyPersona(i){
+    var p = PSW_DATA.personas[i];
+    document.getElementById("pswHeroArt").style.background =
+      "linear-gradient(120deg," + p.hero[0] + "," + p.hero[1] + ")";
+    document.getElementById("pswHeadline").textContent = p.headline;
+    document.getElementById("pswOffer").textContent = p.offer;
+    document.getElementById("pswToast").textContent = p.toast;
+    p.products.forEach(function(pr, j){
+      document.getElementById("pswArt" + (j + 1)).style.background =
+        "linear-gradient(135deg," + pr.art[0] + "," + pr.art[1] + ")";
+      document.getElementById("pswPname" + (j + 1)).textContent = pr.name;
+      document.getElementById("pswPrice" + (j + 1)).textContent = pr.price;
+    });
+    PSW_DATA.personas.forEach(function(_, j){
+      var b = document.getElementById("pswPersona" + (j + 1));
+      b.classList.toggle("active", j === i);
+      b.setAttribute("aria-pressed", j === i ? "true" : "false");
+    });
+  }
+
+  function goTo(i){
+    i = Math.max(0, Math.min(PSW_DATA.personas.length - 1, i));
+    if (i === current && !busy) return;
+    if (busy) { queued = i; return; }
+    busy = true;
+    root.classList.add("fading");
+    setTimeout(function(){
+      applyPersona(i);
+      current = i;
+      root.classList.remove("fading");
+      setTimeout(function(){
+        busy = false;
+        if (queued !== null) { var q = queued; queued = null; goTo(q); }
+      }, PSW_DATA.fadeMs);
+    }, PSW_DATA.fadeMs);
+  }
+
+  PSW_DATA.personas.forEach(function(_, i){
+    document.getElementById("pswPersona" + (i + 1)).addEventListener("click", function(){ goTo(i); });
+  });
+
+  window.PSW = {
+    set: goTo,
+    next: function(){ goTo(current < 0 ? 0 : current + 1); },
+    prev: function(){ goTo(current < 0 ? 0 : current - 1); },
+    reset: function(){ goTo(0); }
+  };
+
+  applyPersona(0);
+  current = 0;
+})();
+</script>
+<!-- TESTS:
+1. Initial: #pswPersona1 has class "active" and aria-pressed "true"; #pswHeadline reads "Welcome back, Maya. Your room is coming together"; #pswPname1 "Oak console", #pswPrice1 "$640".
+2. Click #pswPersona2: within 300ms #pswHeadline reads "New this week, picked for small spaces", #pswToast reads "Price dropped on 2 items you viewed", and only #pswPersona2 has class "active".
+3. During a switch #psw briefly gains class "fading" (all .psw-fade at opacity 0), then loses it; the whole swap completes in about 240ms.
+4. Rapid PSW.set(2) then PSW.set(1) inside 100ms: no mid-fade glitch; settled state is persona 2 (index 1) with its full content (the queued switch runs after the first fade).
+5. PSW.next() from the last persona clamps (stays on persona 3); PSW.prev() from the first clamps at persona 1; PSW.reset() returns to persona 1 and #pswOffer reads "Members save 20 percent on saved items".
+6. Pressing ArrowRight or ArrowLeft with nothing focused changes NOTHING (no global key bindings; deck navigation stays free).
+7. Layout stability: bounding rects of .psw-hero, #pswRow and .psw-toast are identical before and after any switch (only content and colour change).
+8. Token uptake: with host tokens set, #pswHeroArt's computed background resolves from --brand-rgb (no hardcoded persona colours survive a reskin).
+-->

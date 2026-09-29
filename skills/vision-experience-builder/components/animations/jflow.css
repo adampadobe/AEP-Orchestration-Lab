@@ -1,0 +1,4 @@
+/* animation: jflow  (harvested from coventry-building-society) */
+/* triggered by: .j-node.in .j-dot */
+@keyframes jflow{ 0%{ opacity:0; transform:translate(0,0); } 12%{ opacity:1; } 88%{ opacity:1; }
+    100%{ opacity:0; transform:translate(var(--dx),var(--dy)); } }

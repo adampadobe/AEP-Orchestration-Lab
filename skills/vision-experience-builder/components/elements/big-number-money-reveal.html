@@ -1,0 +1,46 @@
+<!--
+  component: big-number-money-reveal
+  The "attributed revenue" reveal. Dark navy/gold gradient card holding the
+  touchpoint chain on top, a 148px count-up figure, and a breakdown row
+  with sub-figures. Built for the £5,329 / £6,361 moments — copy and edit
+  for any big-money payoff.
+
+  Requires: count-up.js (loaded at bottom of deck) + _foundation.css.
+
+  Slots:
+    PILL_LABEL    short uppercase eyebrow ("CRUISE BOOKING — ATTRIBUTED")
+    BIG_TOTAL     final integer value     (data-to on the .big .cu)
+    SUB_K_n / SUB_V_n   breakdown rows below the headline figure
+    PREV_LINE     optional "Previously visible: £0 (abandoned basket)" line
+-->
+<style>
+/* dark data card frame */
+.datacard{width:100%;height:100%;background:var(--bg-data);border-radius:18px;box-shadow:0 34px 80px rgba(10,28,61,.45);padding:54px 56px;color:#fff;position:relative;overflow:hidden;}
+.datacard .gleam{position:absolute;inset:0;background:radial-gradient(ellipse at 80% 0%,rgba(176,144,59,.20),transparent 55%);}
+
+/* count-up figure */
+.tar{font-size:17px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-lt);margin-bottom:6px;}
+.big{font-size:148px;font-weight:300;line-height:.9;letter-spacing:-.02em;margin:0;}
+
+/* sub-figures row */
+.subrev{display:flex;gap:70px;margin-top:30px;}
+.subrev .k{font-size:17px;color:rgba(255,255,255,.7);}
+.subrev .v{font-size:40px;font-weight:600;}
+.prev{margin-top:34px;font-size:19px;color:rgba(255,255,255,.55);}
+</style>
+
+<div class="datacard">
+  <div class="gleam"></div>
+
+  <!-- DROP IN: touchpoint-chain.html .chain block -->
+
+  <div class="tar">PILL_LABEL</div>
+  <p class="big"><span class="cu" data-to="BIG_TOTAL" data-pre="£" data-delay="1100">£0</span></p>
+
+  <div class="subrev">
+    <div><div class="k">SUB_K_1</div><div class="v"><span class="cu" data-to="SUB_V_1" data-pre="£" data-delay="1400">£0</span></div></div>
+    <div><div class="k">SUB_K_2</div><div class="v"><span class="cu" data-to="SUB_V_2" data-pre="£" data-delay="1400">£0</span></div></div>
+  </div>
+
+  <div class="prev">PREV_LINE</div>
+</div>

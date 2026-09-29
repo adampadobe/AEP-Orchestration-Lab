@@ -1,0 +1,31 @@
+{
+  "type": "optimizer-dashboard",
+  "key_classes": [
+    "anim",
+    "col-label",
+    "dash-card",
+    "dash-dial",
+    "dash-shot",
+    "dd-den",
+    "dd-dot",
+    "dd-eyebrow",
+    "dd-gauge",
+    "dd-meta",
+    "dd-note",
+    "dd-num",
+    "dd-pill",
+    "dd-prog",
+    "dd-readout",
+    "dd-row",
+    "dd-title",
+    "dd-track",
+    "eyebrow",
+    "has-photo",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "slide"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use optimizer-dashboard"
+}

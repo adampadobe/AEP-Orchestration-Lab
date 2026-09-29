@@ -1,0 +1,3 @@
+/* animation: piece-in  (harvested from po-cruises) */
+/* triggered by: .slide.active .stitch .src */
+@keyframes piece-in{from{opacity:0;transform:translateY(-20px) scale(.6) rotate(-10deg);}to{opacity:1;transform:none;}}

@@ -1,0 +1,24 @@
+{
+  "type": "persona-intro",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "a6",
+    "bl",
+    "bt",
+    "chips",
+    "pblock",
+    "pbody",
+    "pimg",
+    "pintro",
+    "pk",
+    "portrait",
+    "pr",
+    "slide"
+  ],
+  "source": "po-cruises",
+  "description": "Full-bleed persona introduction \u2014 portrait + name/role + traits."
+}

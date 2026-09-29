@@ -1,0 +1,3 @@
+/* animation: caretblink  (harvested from po-cruises) */
+/* triggered by: .slide.active .bbar .u.typed */
+@keyframes caretblink{50%{border-color:transparent;}}

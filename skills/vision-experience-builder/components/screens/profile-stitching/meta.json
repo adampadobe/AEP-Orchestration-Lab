@@ -1,0 +1,31 @@
+{
+  "type": "profile-stitching",
+  "key_classes": [
+    "anim",
+    "c",
+    "col-label",
+    "d",
+    "eyebrow",
+    "has-photo",
+    "hot",
+    "mask",
+    "n",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "ps-attr",
+    "ps-bell",
+    "ps-card",
+    "ps-ck",
+    "ps-core",
+    "ps-hd",
+    "ps-ic",
+    "ps-info",
+    "ps-kv",
+    "ps-label",
+    "ps-li",
+    "ps-link"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use profile-stitching"
+}

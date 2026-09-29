@@ -1,0 +1,142 @@
+{
+  "personas": [
+    {
+      "archetype": "modern-marketer",
+      "folder": "modern-marketer-female-30s",
+      "tags": [
+        "marketing",
+        "female",
+        "30s",
+        "content-marketer",
+        "b2b",
+        "qsr"
+      ],
+      "default_name": "Jessica",
+      "default_role": "Content Marketer",
+      "pose_count": 8,
+      "default_pose": "pose-8.png",
+      "avatar": null,
+      "format": "png"
+    },
+    {
+      "archetype": "margaret",
+      "folder": "harvested-margaret",
+      "tags": [
+        "travel",
+        "cruise",
+        "customer",
+        "female",
+        "60s",
+        "older-adult",
+        "caucasian",
+        "affluent",
+        "professional",
+        "b2c",
+        "journey"
+      ],
+      "default_name": "Margaret",
+      "default_role": "Cruise Customer",
+      "pose_count": 1,
+      "default_pose": "persona-margaret.jpg",
+      "avatar": null,
+      "format": "jpg",
+      "source": "po-cruises",
+      "bg": "solid"
+    },
+    {
+      "archetype": "sarah",
+      "folder": "harvested-sarah",
+      "tags": [
+        "travel",
+        "cruise",
+        "customer",
+        "female",
+        "40s",
+        "caucasian",
+        "professional-casual",
+        "b2c",
+        "journey"
+      ],
+      "default_name": "Sarah",
+      "default_role": "Cruise Customer",
+      "pose_count": 2,
+      "default_pose": "persona-sarah.jpg",
+      "avatar": null,
+      "format": "jpg",
+      "source": "po-cruises",
+      "bg": "studio"
+    },
+    {
+      "archetype": "teresa",
+      "folder": "harvested-teresa",
+      "tags": [
+        "travel",
+        "cruise",
+        "customer",
+        "female",
+        "40s",
+        "pasifika",
+        "candid",
+        "b2c",
+        "journey"
+      ],
+      "default_name": "Teresa",
+      "default_role": "Cruise Customer",
+      "pose_count": 2,
+      "default_pose": "persona-teresa.jpg",
+      "avatar": "persona-teresa-av.jpg",
+      "format": "jpg",
+      "source": "po-cruises",
+      "bg": "outdoor"
+    },
+    {
+      "archetype": "jamie",
+      "folder": "harvested-jamie",
+      "tags": [
+        "banking",
+        "finance",
+        "customer",
+        "male",
+        "20s",
+        "young-adult",
+        "graduate",
+        "student",
+        "casual",
+        "b2c",
+        "journey"
+      ],
+      "default_name": "Jamie",
+      "default_role": "Graduate Member",
+      "pose_count": 1,
+      "default_pose": "persona-jamie.webp",
+      "avatar": null,
+      "format": "webp",
+      "source": "coventry-bs",
+      "bg": "transparent"
+    },
+    {
+      "archetype": "priya",
+      "folder": "harvested-priya",
+      "tags": [
+        "marketing",
+        "marketing-manager",
+        "female",
+        "30s",
+        "south-asian",
+        "professional",
+        "smart-casual",
+        "b2b",
+        "finance",
+        "banking"
+      ],
+      "default_name": "Priya",
+      "default_role": "Marketing Manager",
+      "pose_count": 1,
+      "default_pose": "persona-priya.webp",
+      "avatar": null,
+      "format": "webp",
+      "source": "coventry-bs",
+      "bg": "transparent"
+    }
+  ]
+}

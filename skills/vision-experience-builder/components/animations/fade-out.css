@@ -1,0 +1,7 @@
+/* fade-out — exit (exit, subtle, text, card, photo, chip)
+   baseline exit: clear content between beats within a slide.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes fadeOut{to{opacity:0}}
+.slide.active .fade-out{animation:fadeOut .5s var(--d,2.4s) cubic-bezier(.2,.7,.3,1) forwards;}

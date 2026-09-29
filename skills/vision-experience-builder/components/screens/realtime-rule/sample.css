@@ -1,0 +1,124 @@
+.slide{position:absolute; inset:0; padding:96px 86px 92px; display:flex; flex-direction:column;
+    opacity:0; visibility:hidden; pointer-events:none; transform:scale(.985);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s linear var(--t-slide);}
+.slide.active{opacity:1; visibility:visible; pointer-events:auto; transform:scale(1);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s;}
+.anim{opacity:0; transform:translate(calc(var(--ox)*1px), calc(var(--oy)*1px));
+    transition:opacity var(--t-in) var(--ease), transform var(--t-in) var(--ease);}
+.slide.active .anim{opacity:1; transform:none; transition-delay:calc(var(--i,0) * var(--t-step));}
+.anim.pop{transform:translateY(20px) scale(.94);}
+.eyebrow{font-size:18px; letter-spacing:.32em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+/* ---------- Priya photo (transparent figure on paper) ---------- */
+  .slide.has-photo{padding:0; gap:0;}
+.pcontent{width:55%; height:100%; display:flex; flex-direction:column; justify-content:center; padding:92px 40px 92px 86px; position:relative; z-index:2;}
+.has-photo .points{margin-top:8px;}
+.has-photo .narr{max-width:30ch; font-size:26px;}
+.photo-panel{position:absolute; top:0; right:2.5%; bottom:0; width:46%; z-index:1;
+    display:flex; align-items:flex-end; justify-content:center; pointer-events:none;}
+.photo-panel img{max-width:100%; max-height:99%; object-fit:contain;
+    filter:drop-shadow(0 26px 30px rgba(12,42,86,.18));}
+.photo-panel .fade{display:none;}
+/* ---------- Slide 4: account-application phone (CSS device) ---------- */
+  .app-phone{position:absolute; left:43.5%; bottom:7%; width:21%; z-index:3;}
+.app-phone .device{position:relative; width:100%; padding-bottom:206%; background:#23262c;
+    border-radius:34px; box-shadow:0 30px 50px -18px rgba(12,42,86,.42);}
+.app-phone .device::after{content:""; position:absolute; right:-2px; top:25%; width:3px; height:10%; background:#23262c; border-radius:2px;}
+.app-phone .screen{position:absolute; inset:2.6% 3%; border-radius:24px; overflow:hidden; background:#fff;}
+.app-ui{position:absolute; inset:0; display:flex; flex-direction:column; background:#fff; color:#0a2f5c; font-family:"Avenir Next Cyr";}
+.app-ui .bar{padding:9px 11px 8px; border-bottom:1px solid #eef0f4;}
+.app-ui .logo{font-size:11px; letter-spacing:-.01em;}
+.app-ui .logo b{font-weight:800;}
+.app-ui .logo .bk{color:#1f6fd6;}
+.app-ui .prog{margin-top:7px; height:4px; border-radius:3px; background:#e7eaf0; overflow:hidden;}
+.app-ui .prog i{display:block; height:100%; width:12.5%; background:#1f6fd6; border-radius:3px; transition:width .45s var(--ease);}
+.app-ui .steplbl{margin-top:5px; font-size:8.5px; font-weight:700; color:#5b6b82; letter-spacing:.02em;}
+.app-body{position:relative; flex:1; overflow:hidden;}
+.app-screen{position:absolute; inset:0; padding:11px; display:flex; flex-direction:column; gap:7px;
+    opacity:0; transform:translateY(8px); transition:opacity .28s var(--ease), transform .28s var(--ease);}
+.app-screen.in{opacity:1; transform:none;}
+.app-screen h4{font-size:12.5px; font-weight:800; line-height:1.15;}
+.app-screen .sub{font-size:10px; font-weight:800;}
+.app-screen .q{font-size:8.5px; font-weight:700; color:#33425a; margin-top:1px;}
+.app-screen.in .fld .val .ck{opacity:1; transform:scale(1);}
+/* ---------- Priya slide 5 — journey builder ---------- */
+  .jb-wrap{position:absolute; left:40%; right:0; top:0; bottom:0; z-index:3; font-family:"Avenir Next Cyr"; pointer-events:none;
+    opacity:0; transition:opacity .6s var(--ease);}
+.jb-wrap.in{opacity:1;}
+.jb-title{position:absolute; left:24px; top:120px; display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:800; color:#0C2A56;
+    background:rgba(244,241,232,.88); backdrop-filter:blur(4px); border-radius:13px; padding:7px 13px; box-shadow:0 10px 24px -16px rgba(12,42,86,.45);
+    opacity:0; transform:translateY(-6px); transition:opacity .5s var(--ease), transform .5s var(--ease);}
+.jb-title.in{opacity:1; transform:none;}
+.jb-title svg{width:15px; height:15px; color:#137E73;}
+.jb-svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+.jb-path{fill:none; stroke:#9DB6C9; stroke-width:2.4; stroke-linecap:round;}
+.jb-node{position:absolute; width:48px; height:48px; transform:translate(-50%,-50%) scale(.45);
+    opacity:0; transition:opacity .45s var(--ease), transform .5s var(--ease-bk);}
+.jb-node.in{opacity:1; transform:translate(-50%,-50%) scale(1);}
+.jb-ic{width:48px; height:48px; border-radius:50%; display:grid; place-items:center; background:#0C2A56;
+    box-shadow:0 10px 22px -10px rgba(12,42,86,.55);}
+.jb-ic svg{width:22px; height:22px; color:#fff;}
+.jb-cap{position:absolute; top:55px; left:50%; transform:translateX(-50%); width:140px; text-align:center; line-height:1.12;}
+.jb-cap b{display:block; font-size:10px; font-weight:800; color:#0C2A56; white-space:nowrap; text-shadow:0 1px 4px rgba(244,241,232,.95), 0 0 8px rgba(244,241,232,.85);}
+.jb-cap span{font-size:8px; font-weight:700; color:#42526b; text-shadow:0 1px 4px rgba(244,241,232,.95), 0 0 7px rgba(244,241,232,.8);}
+.jb-cond .jb-ic{background:#137E73;}
+.jb-dec .jb-ic{background:#1763cf;}
+.jb-ch.push .jb-ic{background:#00A1CC;}
+.jb-ch.sms .jb-ic{background:#16808E;}
+.jb-ch.email .jb-ic{background:#3A6EA5;}
+.jb-ch.app .jb-ic{background:#7A53B0;}
+/* ---------- shared recap split-screen ---------- */
+  .slide.recap{padding:0;}
+/* ---------- Priya slide 7: Jamie → real-time rule → FTB high-intent journey ---------- */
+  .jr-wrap{position:absolute; left:0; right:0; top:0; bottom:0; z-index:2; font-family:"Avenir Next Cyr"; pointer-events:none;
+    transition:opacity .6s var(--ease);}
+.jr-wrap.faded{opacity:0;}
+.jr-hint{position:absolute; left:57%; top:78%; z-index:6; background:#137E73; color:#fff; font-size:10px; font-weight:800;
+    border-radius:20px; padding:8px 14px; box-shadow:0 12px 26px -10px rgba(19,126,115,.7); pointer-events:none;
+    opacity:0; transform:translateY(7px); transition:opacity .4s var(--ease), transform .4s var(--ease-bk);}
+.jr-hint.show{opacity:1; transform:none; pointer-events:auto; cursor:pointer; animation:jrHintPulse 1.8s ease-in-out infinite;}
+.jr-card.armed{pointer-events:auto; cursor:pointer;}
+.jr-jamie{position:absolute; left:40%; top:53%; width:120px; text-align:center;
+    opacity:0; transform:translateY(10px) scale(.85); transition:opacity .5s var(--ease), transform .55s var(--ease-bk);}
+.jr-jamie.in{opacity:1; transform:none;}
+.jr-ava{position:relative; width:96px; height:96px; margin:0 auto; border-radius:50%; overflow:hidden;}
+.jr-ava img{width:100%; height:100%; object-fit:cover; display:block;}
+.jr-ring{position:absolute; inset:0; border-radius:50%; border:4px solid #137E73; box-shadow:0 8px 22px -6px rgba(19,126,115,.5); z-index:2;}
+.jr-jlbl{margin-top:8px;}
+.jr-jlbl b{display:block; font-family:"Avenir Next Cyr"; font-weight:700; font-size:15px; color:#0C2A56;}
+.jr-jlbl span{font-size:9.5px; font-weight:700; color:#8493a8;}
+.jr-arrow{position:absolute; left:48.5%; top:56%; width:9.5%; height:6%; overflow:visible; opacity:0; transition:opacity .4s var(--ease);}
+.jr-arrow.in{opacity:1;}
+.jr-line{stroke:#137E73; stroke-width:2.6; stroke-linecap:round; stroke-dasharray:118; stroke-dashoffset:118; transition:stroke-dashoffset .6s var(--ease);}
+.jr-arrow.in .jr-line{stroke-dashoffset:0;}
+.jr-pulse{fill:#137E73; filter:drop-shadow(0 0 5px rgba(19,126,115,.7));}
+.jr-card{position:absolute; left:57%; top:45%; width:30%; background:#fff; border-radius:16px; padding:15px 17px;
+    box-shadow:0 30px 64px -22px rgba(12,42,86,.45); color:#0C2A56;
+    opacity:0; transform:translateY(14px) scale(.97); transition:opacity .5s var(--ease), transform .55s var(--ease);}
+.jr-card.in{opacity:1; transform:none;}
+.jr-card.qualified{box-shadow:0 0 0 2px #19A06F, 0 30px 64px -20px rgba(25,160,111,.55);}
+.jr-hd{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.jr-ttl{font-family:"Avenir Next Cyr"; font-weight:700; font-size:16px;}
+.jr-badge{font-size:8.5px; font-weight:800; letter-spacing:.06em; color:#fff; background:#137E73; border-radius:20px; padding:4px 9px; white-space:nowrap;}
+.jr-eyebrow{font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#8493a8; margin:12px 0 9px;}
+.jr-crit{display:flex; align-items:center; gap:10px; font-size:12px; font-weight:700; color:#48566b; padding:5px 0;}
+.jr-cbox{width:22px; height:22px; border-radius:7px; border:2px solid #d3dae3; flex:none; display:grid; place-items:center; color:#fff;
+    transition:background .35s var(--ease), border-color .35s var(--ease);}
+.jr-ck{width:13px; height:13px; opacity:0; transform:scale(.3); transition:opacity .3s var(--ease), transform .35s var(--ease-bk);}
+.jr-crit.ok{color:#0C2A56;}
+.jr-crit.ok .jr-cbox{background:#19A06F; border-color:#19A06F;}
+.jr-crit.ok .jr-ck{opacity:1; transform:none;}
+.jr-status{display:flex; align-items:center; gap:9px; margin-top:11px; padding-top:11px; border-top:1px solid #eef0f4;
+    font-size:11px; font-weight:800; color:#8493a8;}
+.jr-sdot{width:9px; height:9px; border-radius:50%; background:#c2cbd7; flex:none;}
+.jr-card.qualified .jr-sdot{background:#19A06F; animation:advPulse 1.8s infinite;}
+.jr-card.qualified .jr-stext{color:#0E6F4E;}
+/* ---------- stage ---------- */
+  .stage{flex-direction:row; gap:56px; align-items:center;}
+.stage .col-main{flex:1.25;}
+.stage .col-side{flex:1;}
+.stage-head{display:flex; align-items:baseline; gap:18px; margin:14px 0 26px;}
+.snum{font-family:"Avenir Next Cyr"; font-weight:700; font-size:34px; color:var(--accent); letter-spacing:-.01em;}
+.stage-head h2{font-family:"Avenir Next Cyr"; font-weight:600; font-size:46px; letter-spacing:-.02em; line-height:1;}
+.col-label{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:14px;}
+.narr{font-size:26px; line-height:1.5; color:var(--ink); max-width:33ch; font-weight:400;}
+.narr.dash{font-family:"Avenir Next Cyr"; font-size:60px; color:var(--faint);}

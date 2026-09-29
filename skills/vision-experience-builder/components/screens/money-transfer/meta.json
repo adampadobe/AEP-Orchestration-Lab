@@ -1,0 +1,31 @@
+{
+  "type": "money-transfer",
+  "key_classes": [
+    "act",
+    "anim",
+    "bat",
+    "col-label",
+    "ctr",
+    "cv-logo",
+    "cv-sub",
+    "cv-top",
+    "dev",
+    "dot",
+    "eyebrow",
+    "has-photo",
+    "hd",
+    "lbl",
+    "lg",
+    "narr",
+    "pcontent",
+    "prog",
+    "r",
+    "sb",
+    "scr",
+    "six-bal",
+    "six-bar",
+    "six-of"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use money-transfer"
+}

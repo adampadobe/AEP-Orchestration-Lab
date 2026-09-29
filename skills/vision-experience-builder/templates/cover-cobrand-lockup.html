@@ -1,0 +1,125 @@
+<!--
+  ============================================================
+  TEMPLATE: cover-cobrand-lockup.html
+  Scene type: cobrand-cover (a.k.a. brand-sting, co-brand variant)
+  Origin: Carnival × Adobe — Experience Stories cover
+          (demos/carnival-example slide 1, 2 June 2026)
+
+  Background: customer brand gradient (dark/colour)
+  Use for:    Deck cover / chapter zero where TWO logos meet —
+              "{{Customer}} × Adobe". No persona. Clean brand moment.
+              For a cover WITH a persona, use `cobrand-hero-persona`.
+
+  Slots:
+    {{bg_gradient}}            — customer brand gradient, e.g.
+                                 linear-gradient(135deg,#0A6CC0 0%,#015299 42%,#052049 100%)
+    {{customer_logo_path}}     — customer wordmark, WHITE variant (recolour for dark bg — see note)
+    {{customer_name}}          — alt text / aria label
+    {{adobe_wordmark_path}}    — assets/adobe/wordmark-white.svg
+    {{adobe_symbol_path}}      — assets/adobe/symbol-white.svg (top-left nav)
+    {{nav_label}}              — e.g. "Experience Stories"
+    {{tagline}}                — e.g. "Reinventing the guest experience"
+    {{accent_color}}           — customer accent for the rule, e.g. #DC1125
+    {{customer_logo_height}}   — see "Equal visual weight" note below
+
+  ---- Equal visual weight (Adobe trademark rule) ----
+  Adobe's co-brand guideline: both marks at EQUAL VISUAL WEIGHT, joined by a
+  thin × with consistent spacing. Match by WORDMARK CAP-HEIGHT, not SVG box.
+  If the customer SVG includes a tagline/strapline beneath the wordmark
+  (e.g. "Carnival is calling"), its wordmark only fills the top portion of the
+  viewBox — so the whole SVG must be sized UP so the wordmark reads at the same
+  size as the Adobe wordmark:
+      customer_logo_height ≈ adobe_wordmark_height × (svg_total_height / wordmark_portion_height)
+  Carnival example: Adobe 96px; "Carnival is calling" wordmark ~34 of 52 units →
+      96 × 52/34 ≈ 147 → used 150px.
+  If you instead use a TRIMMED wordmark-only SVG (tagline removed, viewBox
+  tightened), size 1:1 against the Adobe wordmark.
+
+  Nav dots: white variant, dot 1 active
+  ============================================================
+-->
+
+<style>
+/* === CO-BRAND COVER LOCKUP === */
+.slide--cobrand-cover {
+  font-family: 'Adobe Clean', 'Source Sans 3', sans-serif;
+  background: {{bg_gradient}};
+  overflow: hidden;
+}
+
+/* Soft light bloom top-right + vignette to seat the lockup */
+.cc__bloom    { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 75% 18%, rgba(120,190,255,0.40) 0%, transparent 55%); }
+.cc__vignette { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 52%, transparent 38%, rgba(2,18,46,0.55) 100%); }
+
+/* Top-left brand label */
+.cc__nav        { position: absolute; top: 48px; left: 64px; display: flex; align-items: center; gap: 16px; z-index: 10; }
+.cc__nav-symbol { width: 40px; height: 40px; display: block; flex-shrink: 0; }
+.cc__nav-label  { font-family: 'Source Sans 3', sans-serif; font-size: 18px; font-weight: 600;
+                  letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.78); }
+
+/* Centre co-brand lockup */
+.cc__lockup        { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -58%);
+                     display: flex; align-items: center; gap: 70px; z-index: 6; }
+.cc__logo-customer { height: {{customer_logo_height}}; width: auto; display: block; }
+.cc__logo-adobe    { height: 96px; width: auto; display: block; }
+.cc__times         { font-family: 'Source Sans 3', sans-serif; font-size: 76px; font-weight: 400;
+                     line-height: 1; color: rgba(255,255,255,0.55); user-select: none; }
+
+/* Accent rule + tagline under the lockup */
+.cc__rule    { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 122px);
+               width: 96px; height: 4px; border-radius: 2px; background: {{accent_color}}; z-index: 6; }
+.cc__tagline { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 150px);
+               font-family: 'Source Sans 3', sans-serif; font-size: 30px; font-weight: 400;
+               letter-spacing: 0.34em; text-transform: uppercase; color: rgba(255,255,255,0.82);
+               white-space: nowrap; margin: 0; z-index: 6; }
+
+/* Nav dots — white variant */
+.nav-dots--light { position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; height: 695px; z-index: 20; }
+.nav-dots--light .nd { width: 4.4px; height: 4.4px; border-radius: 62.8px; background: rgba(255,255,255,0.20); flex-shrink: 0; display: block; }
+.nav-dots--light .nd.nd--active { background: rgba(255,255,255,0.80); outline: 3px solid rgba(255,255,255,0.80); outline-offset: 0; }
+
+/* Entrance animations (keyed to .active so they replay on slide-in) */
+@keyframes cc-logo-in  { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cc-times-in { from { opacity: 0; transform: scale(0.6); }       to { opacity: 1; transform: scale(1); } }
+@keyframes cc-rule-in  { from { opacity: 0; width: 0; }                    to { opacity: 1; width: 96px; } }
+@keyframes cc-tag-in   { from { opacity: 0; transform: translate(-50%,170px);} to { opacity: 1; transform: translate(-50%,150px);} }
+.slide--cobrand-cover.active .cc__logo-customer { animation: cc-logo-in 760ms 120ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide--cobrand-cover.active .cc__times         { animation: cc-times-in 520ms 480ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide--cobrand-cover.active .cc__logo-adobe    { animation: cc-logo-in 760ms 300ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide--cobrand-cover.active .cc__rule          { animation: cc-rule-in 600ms 640ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide--cobrand-cover.active .cc__tagline       { animation: cc-tag-in 700ms 720ms cubic-bezier(0.22,1,0.36,1) both; }
+</style>
+
+<!-- ============================================================
+     SLIDE: Co-brand cover. Replace {{slots}} before use.
+     ============================================================ -->
+<section class="slide slide--cobrand-cover" data-scene="cobrand-cover">
+
+  <div class="cc__bloom" aria-hidden="true"></div>
+  <div class="cc__vignette" aria-hidden="true"></div>
+
+  <nav class="cc__nav" aria-label="Adobe {{nav_label}}">
+    <img class="cc__nav-symbol" src="{{adobe_symbol_path}}" alt="Adobe">
+    <span class="cc__nav-label">{{nav_label}}</span>
+  </nav>
+
+  <div class="cc__lockup" aria-label="{{customer_name}} and Adobe">
+    <img class="cc__logo-customer" src="{{customer_logo_path}}" alt="{{customer_name}}">
+    <span class="cc__times" aria-hidden="true">×</span>
+    <img class="cc__logo-adobe" src="{{adobe_wordmark_path}}" alt="Adobe">
+  </div>
+
+  <div class="cc__rule" aria-hidden="true"></div>
+  <p class="cc__tagline">{{tagline}}</p>
+
+  <div class="nav-dots--light" role="presentation" aria-hidden="true">
+    <span class="nd nd--active"></span>
+    <span class="nd"></span><span class="nd"></span><span class="nd"></span>
+    <span class="nd"></span><span class="nd"></span><span class="nd"></span>
+    <span class="nd"></span><span class="nd"></span><span class="nd"></span>
+  </div>
+
+</section>

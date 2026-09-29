@@ -1,0 +1,367 @@
+<!--
+  ============================================================
+  TEMPLATE: journey-canvas-4-stage.html
+  Scene type: journey-canvas
+  Figma source: Frame 8 — Journey_03 (node 6265:45479)
+
+  Background: White
+  Use for: Customer journey flow — Plan → Create → Orchestrate → Measure
+           Shows product integration chips per stage.
+
+  Slots (4 stages, each with name / description / product chip / active flag):
+    {{persona_name}}         — shown above journey (e.g. "Thabo's Journey")
+    {{chapter_title}}        — nav breadcrumb pill
+    {{product_context}}      — nav breadcrumb suffix
+    {{adobe_symbol_path}}    — path to assets/adobe/symbol-red.svg (dark bg variant)
+
+    Stage 1:
+      {{stage_1_name}}       — e.g. "Plan"
+      {{stage_1_desc}}       — e.g. "Brief creation & audience segmentation"
+      {{stage_1_product}}    — e.g. "Workfront AI"
+      {{stage_1_active}}     — add class "stage--active" if this is the AI intervention point
+
+    Stage 2:
+      {{stage_2_name}}       — e.g. "Create"
+      {{stage_2_desc}}       — e.g. "Asset generation & approval"
+      {{stage_2_product}}    — e.g. "Firefly + GenStudio"
+
+    Stage 3:
+      {{stage_3_name}}       — e.g. "Orchestrate"
+      {{stage_3_desc}}       — e.g. "Campaign delivery & personalisation"
+      {{stage_3_product}}    — e.g. "AEP + Journey Optimiser"
+      {{stage_3_active}}     — add "stage--active" for active
+
+    Stage 4:
+      {{stage_4_name}}       — e.g. "Measure"
+      {{stage_4_desc}}       — e.g. "Performance analytics & attribution"
+      {{stage_4_product}}    — e.g. "Customer Journey Analytics"
+
+  Nav dots: dark variant (on white bg)
+  ============================================================
+-->
+
+<style>
+/* === JOURNEY CANVAS TEMPLATE === */
+
+.slide--journey-canvas {
+  background: #FFFFFF;
+  font-family: 'Adobe Clean', 'Source Sans 3', sans-serif;
+}
+
+/* ---- Top navigation bar ---- */
+.journey__nav {
+  position: absolute;
+  top: 39px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 60px;
+  z-index: 10;
+}
+
+.journey__nav-logo {
+  width: 65.6px;
+  height: 64px;
+  flex-shrink: 0;
+  margin-right: 20px;
+}
+
+.journey__nav-pill {
+  background: #EB1000;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 6px 18px 8px;
+  border-radius: 1000px;
+  white-space: nowrap;
+}
+
+.journey__nav-sub {
+  font-size: 16px;
+  font-weight: 400;
+  color: #464646;
+  padding: 6px 18px 8px;
+  white-space: nowrap;
+}
+
+.journey__nav-sub strong { font-weight: 800; }
+
+/* ---- Persona label (above journey) ---- */
+.journey__persona-label {
+  position: absolute;
+  top: 148px;
+  left: 357px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #464646;
+  margin: 0;
+}
+
+/* ---- Journey track — horizontal flow ----
+   Centred vertically in the slide below the persona label.
+   Total width: 4 stage columns (310px each) + 3 connectors (80px each) = 1480px
+   Centred on 1920px canvas: left margin = (1920 - 1480) / 2 = 220px
+   But offset right for nav strip: effective left = 220 + 30 = 250px
+*/
+.journey__track {
+  position: absolute;
+  top: 200px;
+  left: 250px;
+  width: 1480px;
+  bottom: 80px;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* ---- Stage column ---- */
+.stage {
+  width: 310px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+}
+
+/* Stage icon circle */
+.stage__icon {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #F0EEFF;
+  border: 3px solid #96A3F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Stage number inside circle */
+.stage__icon-num {
+  font-size: 48px;
+  font-weight: 800;
+  color: #6349E0;
+  line-height: 1;
+  margin: 0;
+}
+
+/* Active stage — red treatment */
+.stage--active .stage__icon {
+  background: #FFF0EE;
+  border-color: #EB1000;
+}
+
+.stage--active .stage__icon-num {
+  color: #EB1000;
+}
+
+/* Stage name */
+.stage__name {
+  font-size: 32px;
+  font-weight: 800;
+  color: #2C2C2C;
+  text-align: center;
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+
+.stage--active .stage__name {
+  color: #EB1000;
+}
+
+/* Stage description */
+.stage__desc {
+  font-size: 18px;
+  font-weight: 400;
+  color: #6E6E6E;
+  text-align: center;
+  margin: 0 0 24px;
+  line-height: 1.4;
+  padding: 0 12px;
+  min-height: 54px;
+}
+
+/* Product chip — cyan background, navy text */
+.stage__chip {
+  background: #00F3FE;
+  color: #0B2B93;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 7px 18px 9px;
+  border-radius: 1000px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Connector line between stages ---- */
+.journey__connector {
+  width: 80px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 58px; /* align with centre of icon circle */
+  position: relative;
+}
+
+.journey__connector::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #96A3F9 0%, #6349E0 100%);
+  border-radius: 3px;
+  margin-top: 2px; /* optical centre of 120px circle */
+}
+
+/* Arrowhead on connector */
+.journey__connector::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50px;        /* = padding-top - 8px for arrowhead height */
+  border-left: 10px solid #6349E0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+
+/* ---- Nav dots — dark variant (on white bg) ---- */
+.nav-dots--dark {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  height: 695px;
+  z-index: 20;
+}
+
+.nav-dots--dark .nd {
+  width: 4.4px;
+  height: 4.4px;
+  border-radius: 62.8px;
+  background: rgba(99, 73, 224, 0.20); /* #6349E0 at 20% */
+  flex-shrink: 0;
+  display: block;
+}
+
+.nav-dots--dark .nd.nd--active {
+  background: #4C50CC;
+  outline: 3px solid #4C50CC;
+  outline-offset: 0;
+}
+
+/* ---- Entrance animation ---- */
+@keyframes stage-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ============================================================
+   ANIMATION TRIGGERS
+   Elements start opacity:0 (set above). Animations only fire
+   when the parent .slide gains .active. The deck JS must call
+   void slide.offsetWidth before adding .active to restart
+   animations on each revisit.
+   ============================================================ */
+.slide.active .stage { animation: stage-in 600ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .stage:nth-child(1) { animation-delay:  80ms; }
+.slide.active .stage:nth-child(3) { animation-delay: 160ms; }
+.slide.active .stage:nth-child(5) { animation-delay: 240ms; }
+.slide.active .stage:nth-child(7) { animation-delay: 320ms; }
+</style>
+
+<!-- ============================================================
+     SLIDE: Journey Canvas — 4 Stages
+     Replace all {{slots}} before use.
+     Add class "stage--active" to whichever stage is the AI intervention point.
+     ============================================================ -->
+<section class="slide slide--journey-canvas" id="slide-journey" data-scene="journey-canvas">
+
+  <!-- Top navigation bar -->
+  <nav class="journey__nav" aria-label="Section navigation">
+    <img class="journey__nav-logo" src="{{adobe_symbol_path}}" alt="Adobe">
+    <div class="journey__nav-pill">{{chapter_title}}</div>
+    <div class="journey__nav-sub">{{product_context}}</div>
+  </nav>
+
+  <!-- Persona label -->
+  <p class="journey__persona-label">{{persona_name}}'s Journey</p>
+
+  <!-- Journey track -->
+  <div class="journey__track">
+
+    <!-- Stage 1 — Plan -->
+    <div class="stage {{stage_1_active}}" data-stage="1">
+      <div class="stage__icon" aria-hidden="true">
+        <span class="stage__icon-num">1</span>
+      </div>
+      <h3 class="stage__name">{{stage_1_name}}</h3>
+      <p class="stage__desc">{{stage_1_desc}}</p>
+      <span class="stage__chip">{{stage_1_product}}</span>
+    </div>
+
+    <!-- Connector 1→2 -->
+    <div class="journey__connector" aria-hidden="true"></div>
+
+    <!-- Stage 2 — Create -->
+    <div class="stage {{stage_2_active}}" data-stage="2">
+      <div class="stage__icon" aria-hidden="true">
+        <span class="stage__icon-num">2</span>
+      </div>
+      <h3 class="stage__name">{{stage_2_name}}</h3>
+      <p class="stage__desc">{{stage_2_desc}}</p>
+      <span class="stage__chip">{{stage_2_product}}</span>
+    </div>
+
+    <!-- Connector 2→3 -->
+    <div class="journey__connector" aria-hidden="true"></div>
+
+    <!-- Stage 3 — Orchestrate -->
+    <div class="stage {{stage_3_active}}" data-stage="3">
+      <div class="stage__icon" aria-hidden="true">
+        <span class="stage__icon-num">3</span>
+      </div>
+      <h3 class="stage__name">{{stage_3_name}}</h3>
+      <p class="stage__desc">{{stage_3_desc}}</p>
+      <span class="stage__chip">{{stage_3_product}}</span>
+    </div>
+
+    <!-- Connector 3→4 -->
+    <div class="journey__connector" aria-hidden="true"></div>
+
+    <!-- Stage 4 — Measure -->
+    <div class="stage {{stage_4_active}}" data-stage="4">
+      <div class="stage__icon" aria-hidden="true">
+        <span class="stage__icon-num">4</span>
+      </div>
+      <h3 class="stage__name">{{stage_4_name}}</h3>
+      <p class="stage__desc">{{stage_4_desc}}</p>
+      <span class="stage__chip">{{stage_4_product}}</span>
+    </div>
+
+  </div><!-- /.journey__track -->
+
+  <!-- Nav dots — dark variant
+       Move nd--active to the correct dot for deck position -->
+  <div class="nav-dots--dark" role="presentation" aria-hidden="true">
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd nd--active"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+  </div>
+
+</section>

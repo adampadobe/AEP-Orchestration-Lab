@@ -1,0 +1,39 @@
+<!--
+  component: radial-gauge
+  Circular SVG gauge that fills counter-clockwise to a target percentage,
+  with a count-up number in the centre. Used for propensity scores,
+  recovery rates, anything %-shaped.
+
+  Requires count-up.js (handles both the .cu number and the .gauge .val
+  stroke-dashoffset, see GC constant).
+
+  Slots:
+    PCT_VALUE   integer 0-100  (data-pct on the SVG circle.val AND data-to on the .cu)
+    GAUGE_LABEL e.g. "Suite upgrade propensity"
+
+  Wrap two side-by-side in a .scores flex row for the standard pair-card.
+-->
+<style>
+.scores{display:flex;gap:40px;}
+.score{flex:1;text-align:center;background:linear-gradient(160deg,#F6F4EC,#fff);border:1px solid rgba(176,144,59,.3);border-radius:16px;padding:26px;}
+.gauge{position:relative;width:184px;height:184px;margin:0 auto 6px;}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg);}
+.gauge .trk{fill:none;stroke:#E7ECF5;stroke-width:11;}
+.gauge .val{fill:none;stroke:var(--navy);stroke-width:11;stroke-linecap:round;stroke-dasharray:326.7;stroke-dashoffset:326.7;transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1);}
+.gauge .gnum{position:absolute;inset:0;display:grid;place-items:center;font-size:52px;font-weight:300;color:var(--navy);}
+.score .pct{font-size:74px;font-weight:300;color:var(--navy);line-height:1;}
+.score .lab{font-size:18px;color:var(--grey);margin-top:8px;}
+</style>
+
+<div class="scores">
+  <div class="score">
+    <div class="gauge">
+      <svg viewBox="0 0 120 120">
+        <circle class="trk" cx="60" cy="60" r="52"/>
+        <circle class="val" cx="60" cy="60" r="52" data-pct="PCT_VALUE"/>
+      </svg>
+      <div class="gnum"><span class="cu" data-to="PCT_VALUE" data-suf="%" data-delay="200">0%</span></div>
+    </div>
+    <div class="lab">GAUGE_LABEL</div>
+  </div>
+</div>

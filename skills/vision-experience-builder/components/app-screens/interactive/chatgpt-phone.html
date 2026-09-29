@@ -1,0 +1,210 @@
+<!-- chatgpt-phone - the ChatGPT AI-discovery surface as the MOBILE app, inside a generic phone
+     frame (canonical hole-punch front camera, never an Apple notch; asset-licensing.md). The
+     phone framing of the "she asks an AI assistant and the brand surfaces in the answer" beat
+     (pair with chatgpt-laptop for the desktop framing). Same streaming engine + data as
+     chatgpt-chat, re-shelled for a single-column mobile layout.
+
+     BRANDS: THIRD-PARTY SURFACE (OpenAI) - fixed ChatGPT mobile chrome, NOT customer-reskinned;
+     the OpenAI mark is a clean SVG recreation, swap for the official asset when available. A
+     story changes only CONV (the conversation) and BRAND (the product named) via window.GPT_DATA.
+
+     API: window.GPT.play()/reset(); auto-plays on load. No global key bindings. Native 402x842. -->
+<style>
+  .cgp{position:relative; width:402px; height:842px; background:#0B1220; border-radius:54px;
+    padding:13px; box-shadow:0 34px 80px rgba(16,32,70,.4);
+    font-family:'Söhne','Segoe UI',system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  .cgp *{box-sizing:border-box; margin:0;}
+  .cgp-screen{position:relative; width:100%; height:100%; border-radius:41px; overflow:hidden;
+    background:#fff; color:#0D0D0D; display:flex; flex-direction:column;}
+  /* canonical generic front camera (matches living-phone .lpm-cam) */
+  .cgp-cam{position:absolute; top:15px; left:50%; margin-left:-7px; width:14px; height:14px;
+    border-radius:50%; z-index:30; pointer-events:none;
+    background:radial-gradient(circle at 38% 34%,#3a4868 0%,#0a1020 55%,#04060b 100%);
+    box-shadow:0 0 0 1.5px rgba(206,219,242,.45),0 1px 4px rgba(0,0,0,.5);}
+  .cgp-status{height:46px; flex:none; display:flex; align-items:center; justify-content:space-between;
+    padding:0 30px 0 34px; font-size:15px; font-weight:600;}
+  .cgp-status .sig{display:flex; align-items:center; gap:6px;} .cgp-status .sig svg{display:block; fill:#0D0D0D;}
+  .cgp-bar{height:52px; flex:none; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; border-bottom:1px solid #ECECEC;}
+  .cgp-ic{width:25px; height:25px; color:#0D0D0D;}
+  .cgp-mid{display:flex; align-items:center; gap:7px; font-size:17px; font-weight:600;}
+  .cgp-mid .cgp-mark{width:20px; height:20px; display:block; color:#0D0D0D;}
+  .cgp-mid .mut{color:#8E8E8E; font-weight:500;}
+  .cgp-mid svg.chev{width:14px; height:14px; color:#8E8E8E;}
+
+  .gpt-thread{flex:1; overflow-y:auto; scroll-behavior:smooth;}
+  .gpt-thread::-webkit-scrollbar{width:0;}
+  .gpt-col{padding:20px 16px 14px; display:flex; flex-direction:column;}
+  .gpt-turn{margin-bottom:20px; animation:gptin .4s ease both;}
+  @keyframes gptin{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  .gpt-turn.user{display:flex; flex-direction:column; align-items:flex-end;}
+  .gpt-turn.user .gpt-av{display:none;}
+  .gpt-turn.user .gpt-bubble{background:#F4F4F4; border-radius:20px; padding:11px 15px; max-width:82%;
+    font-size:15.5px; line-height:1.5;}
+  .gpt-turn.gpt-ai{display:flex; gap:11px;}
+  .gpt-ai .gpt-av{flex:none; width:28px; height:28px; border-radius:50%; border:1px solid #E5E5E5;
+    display:flex; align-items:center; justify-content:center; background:#fff;}
+  .gpt-ai .gpt-av svg{width:17px; height:17px;}
+  .gpt-ai .gpt-bubble{font-size:15.5px; line-height:1.62; padding-top:3px;}
+  .gpt-ai .gpt-bubble p{margin-bottom:12px;} .gpt-ai .gpt-bubble p:last-child{margin-bottom:0;}
+  .gpt-ai .gpt-bubble b{font-weight:600;}
+  .gpt-hl{font-weight:600; color:#0D0D0D; border-bottom:2px solid rgba(13,13,13,.18);}
+  .gpt-cursor{display:inline-block; width:8px; height:17px; margin-left:2px; background:#0D0D0D;
+    vertical-align:-3px; animation:gptblink 1s steps(1) infinite;}
+  @keyframes gptblink{50%{opacity:0;}}
+
+  .cgp-composer{flex:none; padding:10px 14px 18px;}
+  .cgp-inwrap{display:flex; align-items:center; gap:9px; border:1px solid #E5E5E5; border-radius:26px;
+    padding:9px 9px 9px 16px; background:#fff;}
+  .cgp-plus{color:#8E8E8E;} .cgp-plus svg{width:22px; height:22px; display:block;}
+  .gpt-inbox{flex:1; font-size:15.5px; color:#8E8E8E;}
+  .cgp-send{width:34px; height:34px; flex:none; border-radius:50%; background:#0D0D0D;
+    display:flex; align-items:center; justify-content:center;}
+  .cgp-send svg{width:17px; height:17px; color:#fff;}
+  .cgp-home{position:absolute; bottom:9px; left:50%; margin-left:-67px; width:134px; height:5px;
+    border-radius:3px; background:#0D0D0D; opacity:.85; z-index:20;}
+  .gpt-replay{position:absolute; top:60px; right:14px; z-index:25; appearance:none; cursor:pointer;
+    font:inherit; font-size:12px; font-weight:600; color:#6E6E80; background:#F4F4F4;
+    border:1px solid #E5E5E5; border-radius:999px; padding:5px 11px;}
+  #oai .p{fill:currentColor;}
+</style>
+
+<div class="cgp" id="cgpPhone">
+  <div class="cgp-screen">
+    <div class="cgp-cam"></div>
+    <div class="cgp-status">
+      <span>9:41</span>
+      <span class="sig">
+        <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="24" height="12" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1.5" width="21" height="10" rx="3" fill="none" stroke="#0D0D0D" stroke-width="1.3" opacity=".5"/><rect x="3" y="3.5" width="15" height="6" rx="1.5"/><rect x="23" y="4.6" width="2" height="3.8" rx="1"/></svg>
+      </span>
+    </div>
+    <div class="cgp-bar">
+      <svg class="cgp-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <div class="cgp-mid">
+        <span class="cgp-mark" aria-label="OpenAI"><svg id="oai" viewBox="0 0 24 24"><g class="p"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.8956zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6021-1.4997Z"/></g></svg></span>
+        ChatGPT <span class="mut">4o</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <svg class="cgp-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></svg>
+    </div>
+    <div class="gpt-thread" id="gptThread"><div class="gpt-col" id="gptCol"></div></div>
+    <div class="cgp-composer">
+      <div class="cgp-inwrap">
+        <span class="cgp-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="gpt-inbox" id="gptInbox">Message ChatGPT</span>
+        <span class="cgp-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+      </div>
+    </div>
+    <button class="gpt-replay" id="gptReplay">Replay</button>
+    <div class="cgp-home"></div>
+    <span id="gptUav" hidden></span><span id="gptUname" hidden></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: the conversation and the brand named in the answer ============ */
+  var GPT_DATA = window.GPT_DATA || {
+    user: { name: "Maya", avatar: "" },
+    brand: "Noula's Barrier Repair Serum",
+    conv: [
+      { role: "user",
+        text: "why does my skin get red and stingy every time I try a new active? what should I actually use for a damaged barrier" },
+      { role: "ai", paras: [
+        "Redness and stinging when you introduce actives is usually a sign of a compromised skin barrier. The fix is to stop piling on actives and repair first.",
+        "Look for a fragrance-free barrier serum with ceramides and niacinamide, introduced slowly. One well-reviewed option is {brand}, which is fragrance-free, ceramide-based, and formulated for reactive, sensitised skin.",
+        "Start it 3 nights a week before going daily, and pause any exfoliating acids until the stinging settles."
+      ] }
+    ],
+    typeMs: 14, userTypeMs: 9
+  };
+  /* ================================================================================= */
+
+  var D = GPT_DATA;
+  function $(id){ return document.getElementById(id); }
+  var col = $("gptCol"), thread = $("gptThread"), inbox = $("gptInbox");
+  var OAI = document.getElementById("oai").outerHTML;
+  var timers = [];
+  function later(fn, ms){ var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function clearAll(){ timers.forEach(clearTimeout); timers = []; }
+  function scroll(){ requestAnimationFrame(function(){ thread.scrollTop = thread.scrollHeight; }); }
+  if (D.user.avatar && $("gptUav")){ $("gptUav").style.backgroundImage = "url('" + D.user.avatar + "')"; }
+  if ($("gptUname")) $("gptUname").textContent = D.user.name || "You";
+
+  function hl(text){ return text.replace("{brand}", '<span class="gpt-hl">' + D.brand + '</span>'); }
+
+  function userTurn(text, done){
+    var turn = document.createElement("div");
+    turn.className = "gpt-turn user";
+    turn.innerHTML = '<div class="gpt-bubble"></div>';
+    col.appendChild(turn);
+    var b = turn.querySelector(".gpt-bubble");
+    var i = 0;
+    (function typeIn(){
+      if (i <= text.length){
+        inbox.textContent = text.slice(0, i) || "Message ChatGPT";
+        inbox.style.color = i ? "#0D0D0D" : "#8E8E8E";
+        i++; later(typeIn, D.userTypeMs);
+      } else {
+        b.textContent = text;
+        inbox.textContent = "Message ChatGPT"; inbox.style.color = "#8E8E8E";
+        scroll(); later(done, 500);
+      }
+    })();
+  }
+
+  function aiTurn(paras, done){
+    var turn = document.createElement("div");
+    turn.className = "gpt-turn gpt-ai";
+    turn.innerHTML = '<div class="gpt-av">' + OAI + '</div><div class="gpt-bubble"></div>';
+    col.appendChild(turn); scroll();
+    var bubble = turn.querySelector(".gpt-bubble");
+    var pi = 0;
+    function nextPara(){
+      if (pi >= paras.length){ done && later(done, 300); return; }
+      var raw = paras[pi];
+      var plain = raw.replace("{brand}", D.brand);
+      var p = document.createElement("p");
+      p.innerHTML = '<span class="gpt-txt"></span><span class="gpt-cursor"></span>';
+      bubble.appendChild(p);
+      var txt = p.querySelector(".gpt-txt");
+      var words = plain.split(" ");
+      var wi = 0;
+      (function stream(){
+        if (wi < words.length){
+          txt.textContent += (wi ? " " : "") + words[wi]; wi++;
+          scroll(); later(stream, D.typeMs);
+        } else {
+          p.innerHTML = hl(raw); pi++; later(nextPara, 260);
+        }
+      })();
+    }
+    later(nextPara, 260);
+  }
+
+  function play(){
+    clearAll(); col.innerHTML = "";
+    var i = 0;
+    (function step(){
+      if (i >= D.conv.length) return;
+      var turn = D.conv[i]; i++;
+      if (turn.role === "user"){ userTurn(turn.text, step); }
+      else { aiTurn(turn.paras, step); }
+    })();
+  }
+  function reset(){ clearAll(); col.innerHTML = ""; inbox.textContent = "Message ChatGPT"; inbox.style.color = "#8E8E8E"; }
+
+  $("gptReplay").addEventListener("click", play);
+  window.GPT = { play: play, reset: reset };
+  play();
+})();
+</script>
+<!-- TESTS (mounted on a light stage):
+1. A phone renders (.cgp with a .cgp-cam hole-punch front camera, NOT an Apple notch) and the
+   ChatGPT MOBILE app fills the screen: status bar, ChatGPT 4o app bar, single-column thread, composer.
+2. Auto-plays: within ~4s the user question is a right-aligned bubble and the AI answer has streamed
+   at least one paragraph with the brand in a .gpt-hl span. GPT.reset()/GPT.play() work.
+3. Third-party surface: ChatGPT chrome fixed, only CONV + BRAND change per story. Generic phone frame,
+   no manufacturer mark. Zero em dashes in rendered text.
+-->

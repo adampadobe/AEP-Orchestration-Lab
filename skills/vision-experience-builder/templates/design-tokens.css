@@ -1,0 +1,137 @@
+/* ==========================================================
+   VISION DEMO DESIGN TOKENS
+   Extracted from: references/figma-audit-genai.md §4
+   Source: SB GenAI Demo Figma file (IbKr0tngrW8FGbFiPcyX7z)
+   Usage: Include in <style> block of every vision demo deck.
+         Override --customer-* per engagement.
+   ========================================================== */
+
+:root {
+
+  /* ----------------------------------------------------------
+     BACKGROUNDS
+     Three distinct systems used in the demo.
+  ---------------------------------------------------------- */
+  --bg-red:         linear-gradient(135deg, #EB1000 0%, #C50D00 100%);
+  --bg-red-purple:  linear-gradient(90deg, #EB1000 0%, #4C50CC 60%, #6349E0 100%);
+  --bg-red-violet:  linear-gradient(135deg, #EB1000 0%, #EB1000 40%, #6D5FEB 75%, #96A3F9 100%);
+  --bg-light:       linear-gradient(135deg, #F5F8FF 0%, #FFFFFF 60%, #EEF0FA 100%);
+  --bg-light-overlay: rgba(255, 255, 255, 0.6);   /* overlay on bg-light image */
+  --bg-white-card:  rgba(255, 255, 255, 0.77);     /* main slide bg gradient overlay */
+
+  /* ----------------------------------------------------------
+     COLOUR PALETTE
+  ---------------------------------------------------------- */
+
+  /* Brand reds */
+  --color-adobe-red:     #EB1000;   /* Primary — backgrounds, pills, avatar borders */
+  --color-orange-stat:   #E9740A;   /* KPI stat badges (growth metrics) */
+
+  /* Purple spectrum */
+  --color-primary-purple: #4C50CC;  /* Active nav dots (dark bg), chart highlight bars */
+  --color-blue:           #6349E0;  /* Chart card borders, inactive nav dots, drop zone */
+  --color-blue-light:     #6D5FEB;  /* KPI badge backgrounds, chart dark bars */
+  --color-lavender:       #96A3F9;  /* Chart light bars, gradient purple accent */
+
+  /* Brand accents */
+  --color-cyan:           #00F3FE;  /* Product chips, journey touchpoints */
+  --color-navy:           #0B2B93;  /* Product chip text, dark brand areas */
+
+  /* Highlight */
+  --color-highlight:      #FFF799;  /* Yellow text highlight block (HighlightAnimation) */
+
+  /* Notifications */
+  --color-bubble-blue:    #DDEFFF;  /* Chat notification bubbles */
+
+  /* Neutral scale */
+  --color-black:          #000000;
+  --color-gray-900:       #2C2C2C;  /* Chart titles on white cards */
+  --color-gray-800:       #464646;  /* Body text on light backgrounds */
+  --color-gray-700:       #6E6E6E;  /* Chart axis labels */
+  --color-gray-300:       #D5D5D5;  /* Placeholder text bars in cards */
+  --color-dark-surface:   #222222;  /* File drop label background */
+  --color-white:          #FFFFFF;
+
+  /* Customer brand (override per engagement) */
+  --customer-primary:   #0033A1;  /* Standard Bank royal blue — REPLACE per customer */
+  --customer-secondary: #D0021B;  /* Standard Bank crimson red — REPLACE per customer */
+
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+     Adobe Clean requires Adobe Fonts web project.
+     Fallback: Source Sans 3 (Google Fonts).
+  ---------------------------------------------------------- */
+  --font-primary: 'Adobe Clean', 'Source Sans 3', sans-serif;
+  --font-file:    'Inter', sans-serif;  /* file drop labels only */
+
+  /* Size scale — all values authored at 1920×1080 canvas size */
+  --text-h0:        318px;  /* Brand sting giant heading */
+  --text-h1:        208px;  /* Section title splash, line-height: 1 */
+  --text-h1-sm:     146px;  /* Section title smaller variant */
+  --text-hero:      120px;  /* Co-brand cover headline */
+  --text-stat-xl:    53px;  /* Chart stat numbers */
+  --text-stat-lg:    46px;  /* KPI badge value */
+  --text-persona:    50px;  /* Persona name */
+  --text-message:    58px;  /* Question / notification text, line-height: 1.27 */
+  --text-card-title: 34px;  /* Chart card title */
+  --text-body:       28px;  /* Body / AI finding text, line-height: 1.3 */
+  --text-card-body:  22px;  /* Capability card body */
+  --text-label:      16px;  /* Nav pills, captions, badge labels */
+  --text-caption:    12px;  /* Small badge secondary labels */
+  --text-micro:       8px;  /* Micro stat labels inside small badges */
+
+  /* Font weights */
+  --weight-black:      900;  /* Adobe Clean Black */
+  --weight-extrabold:  800;  /* Adobe Clean ExtraBold — most headings */
+  --weight-bold:       700;  /* Adobe Clean Bold — chart titles, axis labels */
+  --weight-medium:     500;  /* Adobe Clean Medium — action buttons */
+  --weight-regular:    400;  /* Adobe Clean Regular — body, findings */
+  --weight-semilight:  350;  /* Adobe Clean SemiLight — question text, notifications */
+
+  /* ----------------------------------------------------------
+     CANVAS + LAYOUT
+  ---------------------------------------------------------- */
+  --canvas-width:   1920px;
+  --canvas-height:  1080px;
+
+  /* Left navigation strip */
+  --nav-left-width:   60px;    /* MenuArea — always left edge */
+  --nav-dot-size:      4.4px;  /* Active dot diameter */
+  --nav-dot-gap:       24px;   /* Gap between dots in column */
+  --nav-dots-height:  695px;   /* Full dots menu height */
+  --nav-top:           39px;   /* Distance from top to Adobe logo + breadcrumb */
+  --nav-logo-size:     64px;   /* Adobe A symbol height */
+
+  /* Content margins */
+  --content-left:     357px;  /* Standard left edge (after nav + padding) */
+  --content-top:      273px;  /* Standard top of persona + question zone */
+  --hero-title-left:  187px;  /* H1 left margin on splash screens */
+  --hero-persona-left: 950px; /* Persona container left edge on splash screens */
+  --hero-persona-w:   757px;  /* Persona container width */
+
+  /* Cards */
+  --card-radius-xl:  60px;     /* Question bubble */
+  --card-radius-lg:  26px;     /* Chart card */
+  --card-radius-md:  20px;     /* Stat badge */
+  --card-radius-sm:  14px;     /* KPI mini badge */
+  --card-radius-pill: 1000px;  /* Pill buttons, nav crumb */
+  --card-shadow:     0 4px 18px 3px rgba(0, 0, 0, 0.10);
+  --card-shadow-lg:  0 8px 32px 4px rgba(0, 0, 0, 0.14);
+
+  /* Chart card */
+  --chart-border:    1.7px solid var(--color-blue);
+  --chart-radius:    var(--card-radius-lg);
+
+  /* Persona photo */
+  --persona-avatar-size:   128px;
+  --persona-avatar-border: 6px solid var(--color-adobe-red);
+
+  /* ----------------------------------------------------------
+     ANIMATION TIMING
+  ---------------------------------------------------------- */
+  --anim-highlight:  400ms ease-out;    /* Yellow highlight slide-in */
+  --anim-chart-in:   600ms cubic-bezier(0.22, 1, 0.36, 1);  /* Chart card entrance */
+  --anim-mask:       500ms ease-in-out; /* Mask group reveal */
+  --anim-fade-in:    300ms ease-out;    /* General fade-in */
+  --anim-stagger:     80ms;            /* Stagger offset between items */
+}

@@ -1,0 +1,135 @@
+.slide{position:absolute; inset:0; padding:96px 86px 92px; display:flex; flex-direction:column;
+    opacity:0; visibility:hidden; pointer-events:none; transform:scale(.985);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s linear var(--t-slide);}
+.slide.active{opacity:1; visibility:visible; pointer-events:auto; transform:scale(1);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s;}
+.anim{opacity:0; transform:translate(calc(var(--ox)*1px), calc(var(--oy)*1px));
+    transition:opacity var(--t-in) var(--ease), transform var(--t-in) var(--ease);}
+.slide.active .anim{opacity:1; transform:none; transition-delay:calc(var(--i,0) * var(--t-step));}
+.anim.pop{transform:translateY(20px) scale(.94);}
+.eyebrow{font-size:18px; letter-spacing:.32em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+/* ---------- Priya photo (transparent figure on paper) ---------- */
+  .slide.has-photo{padding:0; gap:0;}
+.pcontent{width:55%; height:100%; display:flex; flex-direction:column; justify-content:center; padding:92px 40px 92px 86px; position:relative; z-index:2;}
+.has-photo .points{margin-top:8px;}
+.has-photo .narr{max-width:30ch; font-size:26px;}
+.photo-panel{position:absolute; top:0; right:2.5%; bottom:0; width:46%; z-index:1;
+    display:flex; align-items:flex-end; justify-content:center; pointer-events:none;}
+.photo-panel img{max-width:100%; max-height:99%; object-fit:contain;
+    filter:drop-shadow(0 26px 30px rgba(12,42,86,.18));}
+.photo-panel .fade{display:none;}
+.opt.sel{background:#0a2f5c; border-color:#0a2f5c; color:#fff;}
+.radio.sel i{border-color:#1f6fd6; background:radial-gradient(circle, #1f6fd6 0 3px, #fff 4px);}
+/* ---------- Priya slide 3: audience + generate-text dialog ---------- */
+  .rt-wrap{position:absolute; left:0; right:0; top:0; bottom:0; z-index:2; font-family:"Avenir Next Cyr"; pointer-events:none;}
+.aud-panel{position:absolute; left:47%; top:13%; width:16.5%; background:#fff; border-radius:13px; padding:10px 11px;
+    box-shadow:0 22px 48px -24px rgba(12,42,86,.4); transition:opacity .6s var(--ease), transform .6s var(--ease);}
+.aud-panel.gone{opacity:0; transform:translateY(-8px) scale(.97);}
+.aud-hd{display:flex; align-items:center; gap:6px; font-size:9px; font-weight:800; color:#0C2A56; line-height:1.15;}
+.aud-hd svg{width:12px; height:12px; color:#00A1CC; flex:none;}
+.aud-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin:9px 0 8px;}
+.aud-av{aspect-ratio:1; border-radius:50%; display:grid; place-items:center; overflow:hidden;
+    opacity:0; transform:scale(.3); transition:opacity .35s var(--ease), transform .4s var(--ease-bk);}
+.aud-av.in{opacity:1; transform:none;}
+.aud-av svg{width:70%; height:70%;}
+.aud-av.a0{background:#0C2A56;}
+.aud-av.a0 svg{color:#7FA8D6;}
+.aud-av.a1{background:#00A1CC;}
+.aud-av.a1 svg{color:#D6F2FB;}
+.aud-av.a2{background:#16808E;}
+.aud-av.a2 svg{color:#CFEBEF;}
+.aud-av.a3{background:#3A6EA5;}
+.aud-av.a3 svg{color:#E0ECF8;}
+.aud-av.a4{background:#9FB6CF;}
+.aud-av.a4 svg{color:#48607c;}
+.aud-foot{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.aud-count{font-size:8.5px; font-weight:700; color:#5c6b82;}
+.aud-count b{font-family:"Avenir Next Cyr"; font-size:12px; color:#0C2A56; font-weight:700;}
+.aud-chip{font-size:7px; font-weight:800; color:#16808E; background:#E3F3F1; border-radius:20px; padding:3px 7px;}
+.gen-dialog{position:absolute; left:43%; top:26%; width:50%; background:#fff; border-radius:14px;
+    box-shadow:0 36px 72px -24px rgba(12,42,86,.5); padding:13px 15px; color:#0C2A56;
+    opacity:0; transform:translateY(20px) scale(.98); transition:opacity .55s var(--ease), transform .55s var(--ease);}
+.gen-dialog.in{opacity:1; transform:none;}
+.gen-dialog.armed{pointer-events:auto; cursor:pointer;}
+.gen-dialog.armed .gen-use{animation:genUsePulse 1.6s ease-in-out infinite;}
+.gen-hint{position:absolute; right:15px; bottom:13px; background:#1763cf; color:#fff; font-size:9.5px; font-weight:800;
+    border-radius:20px; padding:7px 13px; box-shadow:0 12px 26px -10px rgba(23,99,207,.7);
+    opacity:0; transform:translateY(7px); transition:opacity .4s var(--ease), transform .4s var(--ease-bk); pointer-events:none;}
+.gen-dialog.armed .gen-hint{opacity:1; transform:none; animation:genHintPulse 1.8s ease-in-out infinite;}
+.gen-dialog.out{opacity:0; transform:translateY(-12px) scale(.97);}
+.gen-finished{position:absolute; left:42%; right:1%; top:28%; z-index:4; opacity:0; transform:translateY(14px);
+    transition:opacity .6s var(--ease), transform .6s var(--ease); font-family:"Avenir Next Cyr";}
+.gen-finished.in{opacity:1; transform:none;}
+.gen-input svg{width:12px; height:12px; flex:none; vertical-align:-2px;}
+.gf-hd{display:flex; align-items:center; gap:7px; justify-content:center; font-size:11px; font-weight:800; color:#0C2A56; margin-bottom:12px;}
+.gf-hd svg{width:15px; height:15px; color:#C13584; flex:none;}
+.gf-ads{display:flex; gap:26px; justify-content:center; align-items:flex-start;}
+.gf-ad{display:flex; flex-direction:column; align-items:center; gap:8px;}
+.gf-ad img{width:182px; border-radius:18px; display:block; box-shadow:0 26px 50px -20px rgba(12,42,86,.5);}
+.gf-cap{font-size:9px; font-weight:800; color:#16808E; background:#E3F3F1; border-radius:20px; padding:4px 10px;}
+.gen-top{display:flex; align-items:center; justify-content:space-between; padding-bottom:9px; border-bottom:1px solid #eef0f4;}
+.gen-title{font-family:"Avenir Next Cyr"; font-weight:700; font-size:16px;}
+.gen-acts{display:flex; align-items:center; gap:8px;}
+.gen-cancel{font-size:9.5px; font-weight:800; border:1px solid #d4dae3; border-radius:20px; padding:5px 12px; color:#5c6b82;}
+.gen-use{font-size:9.5px; font-weight:800; color:#fff; border-radius:20px; padding:5px 12px;
+    background:linear-gradient(120deg,#0A6EBD,#00A1CC 55%,#16A085);}
+.gen-cols{display:flex; gap:13px; margin-top:11px;}
+.gen-left{width:42%; flex:none;}
+.gen-sec{font-size:10px; font-weight:800; margin-bottom:7px;}
+.gen-ref{background:#f5f7fa; border-radius:9px; padding:8px 9px;}
+.gen-ref-hd{display:flex; align-items:center; justify-content:space-between; font-size:9px; font-weight:800;}
+.gen-toggle{width:24px; height:13px; border-radius:8px; background:#00A1CC; position:relative;}
+.gen-toggle i{position:absolute; right:1.5px; top:1.5px; width:10px; height:10px; border-radius:50%; background:#fff;}
+.gen-chk{display:flex; align-items:center; gap:6px; font-size:8.5px; font-weight:700; color:#33425a; margin-top:8px;}
+.gen-box{width:11px; height:11px; border-radius:3px; border:1.5px solid #c2cbd7; flex:none; position:relative;}
+.gen-box.on{background:#00A1CC; border-color:#00A1CC;}
+.gen-box.on::after{content:""; position:absolute; left:3px; top:.5px; width:3px; height:6px; border:solid #fff; border-width:0 1.6px 1.6px 0; transform:rotate(40deg);}
+.gen-chk .gen-box{background:#00A1CC; border-color:#00A1CC;}
+.gen-chk .gen-box::after{content:""; position:absolute; left:3px; top:.5px; width:3px; height:6px; border:solid #fff; border-width:0 1.6px 1.6px 0; transform:rotate(40deg);}
+.gen-reftext{font-size:8px; line-height:1.42; color:#5c6b82; margin-top:7px;}
+.gen-fld{margin-top:9px;}
+.gen-fld label{font-size:8px; font-weight:800; color:#8493a8; text-transform:uppercase; letter-spacing:.05em;}
+.gen-input{margin-top:3px; height:21px; border:1px solid #d8dee6; border-radius:6px; display:flex; align-items:center;
+    padding:0 7px; font-size:8.5px; font-weight:700; color:#33425a; justify-content:space-between;}
+.gen-input.sm{height:19px;}
+.gen-cv{color:#8493a8;}
+.gen-row2{display:flex; gap:7px;}
+.gen-row2 .gen-fld{flex:1;}
+.gen-btn{width:100%; margin-top:11px; border:none; background:#0C2A56; color:#fff; border-radius:7px; height:28px;
+    display:flex; align-items:center; justify-content:center; gap:6px; font-size:10px; font-weight:800; cursor:default;}
+.gen-btn svg{width:13px; height:13px;}
+.gen-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;}
+.gen-card{border:1px solid #e7ebf1; border-radius:10px; padding:9px 11px;}
+.gen-chd{display:flex; align-items:center; gap:7px; font-size:10px; font-weight:800;}
+.gen-tools{margin-left:auto; display:flex; align-items:center; gap:4px; font-size:8.5px; font-weight:800; color:#8493a8;}
+.gen-tools svg{width:11px; height:11px;}
+.gen-bd{font-size:8.5px; line-height:1.5; color:#3a4a63; margin-top:6px; min-height:2.4em;}
+.gen-card.v1{border:none; background:linear-gradient(120deg,#0A6EBD,#00A1CC 55%,#16A085); color:#fff;}
+.gen-card.v1 .gen-tools{color:rgba(255,255,255,.85);}
+.gen-card.v1 .gen-bd{color:#fff;}
+.gen-caret{display:inline-block; width:1.5px; height:1em; background:currentColor; margin-left:1px; vertical-align:-2px;
+    opacity:0; animation:aiblink 1s steps(1) infinite;}
+.gen-bd.typing .gen-caret{opacity:1;}
+.jb-ch.sms .jb-ic{background:#16808E;}
+/* ---------- shared recap split-screen ---------- */
+  .slide.recap{padding:0;}
+.hub-av.a0{background:#0A2F5C;}
+.hub-av.a1{background:#00A1CC;}
+.hub-av.a2{background:#16808E;}
+.hub-av.a3{background:#3A6EA5;}
+.bc-nav div.on{background:#eef2f7; color:#0a2f5c; font-weight:800;}
+.bc-h.sm{font-size:11px; margin-top:11px;}
+.bc-chips span.on{background:#1d2733; color:#fff;}
+.bc-tabs .on{color:#1d2733; font-weight:800; border-bottom:2px solid #1763cf; padding-bottom:7px; margin-bottom:-9px;}
+/* ---------- stage ---------- */
+  .stage{flex-direction:row; gap:56px; align-items:center;}
+.stage .col-main{flex:1.25;}
+.stage .col-side{flex:1;}
+.stage-head{display:flex; align-items:baseline; gap:18px; margin:14px 0 26px;}
+.snum{font-family:"Avenir Next Cyr"; font-weight:700; font-size:34px; color:var(--accent); letter-spacing:-.01em;}
+.stage-head h2{font-family:"Avenir Next Cyr"; font-weight:600; font-size:46px; letter-spacing:-.02em; line-height:1;}
+.col-label{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:14px;}
+.narr{font-size:26px; line-height:1.5; color:var(--ink); max-width:33ch; font-weight:400;}
+.narr.dash{font-family:"Avenir Next Cyr"; font-size:60px; color:var(--faint);}
+.pdotbtn.on{width:26px; background:var(--accent);}
+#scene .layer.on{opacity:1;}

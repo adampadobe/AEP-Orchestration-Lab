@@ -1,0 +1,3 @@
+/* animation: blobIn  (harvested from leap26-storyboard) */
+/* triggered by: .heat .bwrap .blob */
+@keyframes blobIn{from{transform:translate(-50%,-50%) scale(.05);opacity:.12}to{transform:translate(-50%,-50%) scale(1);opacity:1}}

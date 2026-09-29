@@ -1,0 +1,40 @@
+<!--
+  component: passage-of-time (interstitial slide)
+  Full-bleed dark card to mark a time jump in a non-linear story:
+  "25 MINUTES LATER", "8 WEEKS LATER", "THE NEXT MORNING".
+
+  Why: a customer-journey deck that loops back (abandon → return →
+  re-purchase) confuses an exec audience unless each jump is signposted.
+  Use one of these between scenes wherever the storyline skips ahead.
+
+  Slots:
+    T_EYE   small uppercase eyebrow  ("BEHIND THE SCENES" / leave blank)
+    T_BIG   big phrase ("25 minutes later" / "8 weeks later")
+    T_SUB   1-line sub-line setting up the next beat
+
+  Animation sequence (already wired): eyebrow fade .2s → big rise .35s →
+  gold rule expand .9s → sub rise 1.05s.
+-->
+<style>
+.tslide{background:var(--bg-tslide);display:grid;place-items:center;text-align:center;}
+.tslide .tbloom{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(120,190,255,.18),transparent 60%);}
+.tslide .t-eye{font-size:18px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-lt);margin-bottom:18px;}
+.tslide .t-big{font-size:104px;font-weight:300;color:#fff;line-height:1;letter-spacing:-.01em;margin:0;}
+.tslide .t-rule{width:120px;height:3px;background:var(--gold);margin:30px auto;border-radius:2px;}
+.tslide .t-sub{font-size:26px;color:rgba(255,255,255,.82);max-width:760px;font-weight:300;line-height:1.4;}
+
+.slide.active .tslide .t-eye{animation:fade .8s .2s both;}
+.slide.active .tslide .t-big{animation:rise .9s .35s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-rule{animation:t-rule-in .7s .9s both;}
+.slide.active .tslide .t-sub{animation:rise .8s 1.05s both cubic-bezier(.22,1,.36,1);}
+</style>
+
+<section class="slide tslide">
+  <div class="tbloom"></div>
+  <div>
+    <div class="t-eye">T_EYE</div>
+    <h2 class="t-big">T_BIG</h2>
+    <div class="t-rule"></div>
+    <div class="t-sub">T_SUB</div>
+  </div>
+</section>

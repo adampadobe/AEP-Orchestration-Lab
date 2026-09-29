@@ -1,0 +1,3 @@
+/* animation: keypulse  (harvested from po-cruises) */
+/* triggered by: .slide.active .datacard .node.key .disc */
+@keyframes keypulse{0%,100%{box-shadow:0 0 0 6px rgba(176,144,59,.22);}50%{box-shadow:0 0 0 13px rgba(176,144,59,.08);}}

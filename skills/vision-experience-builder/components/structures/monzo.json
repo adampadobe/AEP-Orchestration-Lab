@@ -1,0 +1,16 @@
+{
+  "id": "monzo",
+  "sequence": [
+    "cover",
+    "persona-intro",
+    "dual-pane-narrative",
+    "dual-pane-narrative",
+    "dual-pane-narrative",
+    "dual-pane-narrative",
+    "custom",
+    "custom",
+    "custom"
+  ],
+  "slides": 9,
+  "rendered": false
+}

@@ -1,0 +1,2 @@
+/* animation: accept-pulse  (harvested from po-cruises) */
+@keyframes accept-pulse{0%,100%{box-shadow:0 0 0 0 rgba(40,200,64,.55);}70%{box-shadow:0 0 0 15px rgba(40,200,64,0);}}

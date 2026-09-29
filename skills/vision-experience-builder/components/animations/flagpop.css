@@ -1,0 +1,3 @@
+/* animation: flagpop  (harvested from coventry-bs, leap26-storyboard) */
+/* triggered by: .ck.flag .s.tickd, .seg-flag.in */
+@keyframes flagpop{0%{transform:scale(.6)}40%{transform:scale(1.28)}70%{transform:scale(.94)}100%{transform:scale(1)}}

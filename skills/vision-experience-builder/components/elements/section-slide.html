@@ -1,0 +1,118 @@
+<!-- elements/section-slide.html - the interstitial / "later" slide: narrative on the left, a
+     contextual image of the persona on the right, showing what they are doing at the START of
+     the next scene (20 Jul 2026).
+
+     WHY IT EXISTS (systemic, not one story): transition slides kept being centred text with a
+     decorative bloom, which reads thin and drops the persona. The house pattern is a split:
+     the words on the left, and on the right a lifestyle shot of the persona in the moment the
+     next scene opens on (e.g. before an evening phone scene, a shot of her on the sofa on her
+     phone). Every future story gets this by dropping the layout in.
+
+     IMAGERY DISCIPLINE (the important part): the image slot defaults to a labelled FIREFLY
+     PLACEHOLDER - a tasteful framed box that names the exact shot to generate - never a broken
+     box and never a scraped stock photo. A deck sets image.src to the generated Firefly render
+     and it drops straight in; until then the placeholder tells whoever builds it what to make.
+     (asset-licensing.md: persona imagery is Firefly or a labelled placeholder, never un-released
+     stock faces.)
+
+     RESKIN via role tokens (--brand/--accent/--ink/--grey/--soft/--line with fallbacks). All
+     copy and the Firefly brief live in SXN_DATA. No script state, no key bindings. -->
+<style>
+  .sxn{position:relative; width:1920px; height:1080px; display:flex; overflow:hidden;
+    background:var(--soft,#F7F5F0); color:var(--ink,#20222B);
+    font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif;}
+  .sxn *{box-sizing:border-box; margin:0;}
+
+  /* left: the words */
+  .sxn-left{width:47%; flex:none; display:flex; flex-direction:column; justify-content:center;
+    padding:0 96px;}
+  .sxn-eye{font-size:19px; font-weight:800; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent,#C2603F);}
+  .sxn-title{font-size:82px; line-height:1.03; font-weight:800; letter-spacing:-.03em;
+    margin-top:22px; color:var(--brand,#20222B); text-wrap:pretty;}
+  .sxn-rule{width:64px; height:4px; border-radius:4px; background:var(--accent,#C2603F);
+    margin:34px 0;}
+  .sxn-sub{font-size:26px; line-height:1.5; color:var(--grey,#5B6157); max-width:560px;
+    text-wrap:pretty;}
+
+  /* right: the contextual image (or the Firefly placeholder) */
+  .sxn-right{flex:1; position:relative; background:#E9E5DD;}
+  .sxn-img{position:absolute; inset:0; background-size:cover; background-position:center;}
+  .sxn-img::after{content:""; position:absolute; inset:0;
+    background:linear-gradient(100deg, var(--soft,#F7F5F0) 0%, rgba(247,245,240,0) 26%);}
+
+  /* Firefly placeholder: a framed brief, never a broken box */
+  .sxn-ff{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:22px; padding:70px;
+    background:
+      radial-gradient(120% 90% at 70% 20%, rgba(var(--accent-rgb,194,96,63),.10), transparent 60%),
+      linear-gradient(150deg, #EFEBE3 0%, #E5E0D6 100%);}
+  .sxn-ff::before{content:""; position:absolute; inset:44px; border:2px dashed rgba(80,74,64,.28);
+    border-radius:20px;}
+  .sxn-ff-badge{position:relative; display:flex; align-items:center; gap:11px; font-size:15px;
+    font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#6A6357;}
+  .sxn-ff-badge svg{width:26px; height:26px; color:var(--accent,#C2603F);}
+  .sxn-ff-brief{position:relative; max-width:520px; text-align:center; font-size:25px;
+    line-height:1.42; font-weight:600; color:#403B33; text-wrap:pretty;}
+  .sxn-ff-hint{position:relative; font-size:14.5px; color:#8A8375;}
+</style>
+
+<div class="sxn" id="sxn">
+  <div class="sxn-left">
+    <div class="sxn-eye" id="sxnEye"></div>
+    <h2 class="sxn-title" id="sxnTitle"></h2>
+    <div class="sxn-rule"></div>
+    <p class="sxn-sub" id="sxnSub"></p>
+  </div>
+  <div class="sxn-right" id="sxnRight"></div>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: the words, and the image (real src OR a Firefly brief) ============ */
+  var SXN_DATA = window.SXN_DATA || {
+    eyebrow: "Later",
+    title: "The next evening",
+    sub: "She has thought it over. She comes back, ready to commit, but only to the essentials.",
+    image: {
+      src: "",   /* a deck sets this to the generated Firefly render; else the brief shows */
+      firefly: "Maya at home in the evening, on the sofa with a mug, looking at her phone, warm lamp light, candid and natural, soft depth of field"
+    }
+  };
+  /* ==================================================================================== */
+
+  var D = SXN_DATA;
+  function $(id){ return document.getElementById(id); }
+  $("sxnEye").textContent = D.eyebrow;
+  $("sxnTitle").textContent = D.title;
+  $("sxnSub").textContent = D.sub;
+
+  var img = D.image || {};
+  if (img.src){
+    var d = document.createElement("div");
+    d.className = "sxn-img";
+    d.style.backgroundImage = "url('" + String(img.src).replace(/'/g, "%27") + "')";
+    $("sxnRight").appendChild(d);
+  } else {
+    $("sxnRight").innerHTML =
+      '<div class="sxn-ff">' +
+        '<div class="sxn-ff-badge">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9l-4.4 3.2L16.4 18 12 14.7 7.6 18l1.3-5.8L4.5 9l5.6-1.4z"/></svg>' +
+          'Firefly image</div>' +
+        '<div class="sxn-ff-brief">' + (img.firefly || "Contextual shot of the persona at the start of the next scene") + '</div>' +
+        '<div class="sxn-ff-hint">Generate in Firefly and set image.src; this brief drops out when it does.</div>' +
+      '</div>';
+  }
+})();
+</script>
+<!-- TESTS (mounted on a stage):
+1. Default (no image.src): #sxnRight contains a .sxn-ff placeholder with the Firefly badge and
+   the brief text; there is NO .sxn-img and NO <img> with an external/broken src.
+2. Copy renders: #sxnEye "Later", #sxnTitle "The next evening", #sxnSub present; the layout is
+   split (narrative .sxn-left on the left ~47%, image .sxn-right on the right).
+3. Real image: with window.SXN_DATA.image.src set before load, #sxnRight renders a .sxn-img with
+   that background-image and no placeholder.
+4. Reskin: with host --accent set, the eyebrow and rule take it; the placeholder stays neutral.
+5. No script state, no key bindings; arrows do nothing.
+6. Zero em dashes in rendered text.
+-->

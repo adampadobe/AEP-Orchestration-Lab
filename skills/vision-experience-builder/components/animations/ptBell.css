@@ -1,0 +1,3 @@
+/* animation: ptBell  (harvested from coventry-building-society) */
+/* triggered by: .pt-bellwrap.ring */
+@keyframes ptBell{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-16deg); } 60%{ transform:rotate(12deg); } }

@@ -1,0 +1,68 @@
+<!--
+  component: journey-wave-anchored-icons
+  Full-bleed dark-navy "ocean" slide with an animated wave that draws in,
+  a small ship sailing the wave path, and icon discs anchored to specific
+  points along the path. Used as the journey overview after the cover.
+
+  Why "anchored": the SC's first feedback was "try align the icons to the
+  boat trail" — placing labels by eyeball misses; each .jnode is
+  position:absolute at the exact (left, top) on the SVG path and the
+  disc is placed `left:-42px;top:-42px` relative to that. Label floats
+  below the disc.
+
+  Path must match the offset-path of .jship so the ship and icons share
+  the same wave. (`imagery-and-assets.md` §5.)
+
+  Slots: replace the M.. path points + .jnode (left, top) values when the
+  curve changes. The seven icons used in P&O are: Search, Browse,
+  Personalise, Basket, Recovery, Phone (key/gold), Excursions.
+-->
+<style>
+.journey{position:absolute;inset:0;background:var(--bg-journey);overflow:hidden;}
+.journey .sea{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 18%,rgba(140,190,255,.18),transparent 55%);}
+.journey h2{position:absolute;top:84px;left:120px;font-size:64px;font-weight:800;color:#fff;letter-spacing:.01em;margin:0;}
+.journey .sub{position:absolute;top:170px;left:124px;font-size:26px;color:rgba(255,255,255,.7);}
+
+.jwave{position:absolute;left:0;right:0;top:0;bottom:0;}
+.jwave svg{width:100%;height:100%;}
+.jpath{fill:none;stroke:rgba(255,255,255,.85);stroke-width:5;stroke-linecap:round;stroke-dasharray:3400;stroke-dashoffset:3400;}
+.slide.active .jpath{animation:draw 2.4s .3s ease forwards;}
+
+.jnode{position:absolute;width:0;height:0;text-align:center;opacity:0;}
+.slide.active .jnode{animation:pop .6s both cubic-bezier(.22,1,.36,1);}
+.jnode .disc{position:absolute;left:-42px;top:-42px;width:84px;height:84px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.jnode .disc svg{width:38px;height:38px;stroke:var(--navy);fill:none;stroke-width:1.7;}
+.jnode.key .disc{background:var(--gold);}
+.jnode.key .disc svg{stroke:#fff;}
+.jnode .nl{position:absolute;top:54px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:23px;font-weight:700;color:#fff;}
+.jnode .ns{position:absolute;top:88px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:15px;color:rgba(255,255,255,.7);letter-spacing:.04em;text-transform:uppercase;}
+
+/* ship sailing the path — must match .jpath M-coords */
+.jship{position:absolute;left:0;top:0;width:50px;height:50px;z-index:3;offset-rotate:0deg;offset-distance:0%;
+  offset-path:path('M120,720 C300,560 380,560 470,650 C560,740 600,520 760,470 C900,430 940,720 1080,760 C1200,795 1240,560 1380,540 C1500,525 1540,700 1660,710 C1740,716 1780,690 1820,700');}
+.slide.active .jship{animation:sail 2.4s .35s ease forwards;}
+.jship svg{width:50px;height:50px;filter:drop-shadow(0 5px 10px rgba(0,0,0,.35));}
+</style>
+
+<section class="slide journey">
+  <div class="sea"></div>
+  <h2>JOURNEY_HEADLINE</h2>
+  <div class="sub">JOURNEY_SUB</div>
+
+  <div class="jwave">
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <path class="jpath" d="M120,720 C300,560 380,560 470,650 C560,740 600,520 760,470 C900,430 940,720 1080,760 C1200,795 1240,560 1380,540 C1500,525 1540,700 1660,710 C1740,716 1780,690 1820,700"/>
+    </svg>
+  </div>
+
+  <!-- icon nodes positioned at the exact path points -->
+  <div class="jnode" style="left:170px;top:678px;animation-delay:.5s !important;"><div class="disc"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div><div class="nl">Search &amp; Browse</div><div class="ns">Discovery</div></div>
+  <div class="jnode key" style="left:760px;top:470px;animation-delay:.9s !important;"><div class="disc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg></div><div class="nl">Personalised Return</div><div class="ns">Consideration · +23%</div></div>
+  <div class="jnode" style="left:1080px;top:760px;animation-delay:1.3s !important;"><div class="disc"><svg viewBox="0 0 24 24"><path d="M5 7h14l-1 13H6L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg></div><div class="nl">Basket &amp; Recovery</div><div class="ns">Purchase · AJO</div></div>
+  <div class="jnode key" style="left:1380px;top:540px;animation-delay:1.7s !important;"><div class="disc"><svg viewBox="0 0 24 24"><path d="M6 3c2 0 3 4 3 6l-2 2c1 2 4 5 6 6l2-2c2 0 6 1 6 3v3c0 1-1 2-3 2C9 23 1 15 1 6 1 4 2 3 3 3z" fill="#fff" stroke="none"/></svg></div><div class="nl">Phone Booking</div><div class="ns">Purchase · CJA stitch</div></div>
+  <div class="jnode" style="left:1660px;top:710px;animation-delay:2.1s !important;"><div class="disc"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0H3z"/><path d="M12 3v9M12 21a2 2 0 0 1-2-2"/></svg></div><div class="nl">Onboard Extras</div><div class="ns">Post-Purchase · OBR</div></div>
+
+  <div class="jship">
+    <svg viewBox="0 0 50 50" fill="#fff"><path d="M5 32 L25 22 L45 32 L42 38 L25 33 L8 38 Z"/><rect x="22" y="14" width="6" height="8"/><rect x="20" y="22" width="10" height="2"/></svg>
+  </div>
+</section>

@@ -1,0 +1,121 @@
+.slide{position:absolute; inset:0; padding:96px 86px 92px; display:flex; flex-direction:column;
+    opacity:0; visibility:hidden; pointer-events:none; transform:scale(.985);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s linear var(--t-slide);}
+.slide.active{opacity:1; visibility:visible; pointer-events:auto; transform:scale(1);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s;}
+.anim{opacity:0; transform:translate(calc(var(--ox)*1px), calc(var(--oy)*1px));
+    transition:opacity var(--t-in) var(--ease), transform var(--t-in) var(--ease);}
+.slide.active .anim{opacity:1; transform:none; transition-delay:calc(var(--i,0) * var(--t-step));}
+.anim.pop{transform:translateY(20px) scale(.94);}
+.eyebrow{font-size:18px; letter-spacing:.32em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+.role{display:inline-flex; align-items:center; gap:10px; margin-top:14px; font-size:18px; font-weight:600;}
+.role::before{content:""; width:26px; height:2px; background:var(--accent);}
+/* ---------- Priya photo (transparent figure on paper) ---------- */
+  .slide.has-photo{padding:0; gap:0;}
+.pcontent{width:55%; height:100%; display:flex; flex-direction:column; justify-content:center; padding:92px 40px 92px 86px; position:relative; z-index:2;}
+.has-photo .points{margin-top:8px;}
+.has-photo .narr{max-width:30ch; font-size:26px;}
+.photo-panel{position:absolute; top:0; right:2.5%; bottom:0; width:46%; z-index:1;
+    display:flex; align-items:flex-end; justify-content:center; pointer-events:none;}
+.photo-panel img{max-width:100%; max-height:99%; object-fit:contain;
+    filter:drop-shadow(0 26px 30px rgba(12,42,86,.18));}
+.photo-panel .fade{display:none;}
+.app-ui .logo{font-size:11px; letter-spacing:-.01em;}
+.app-ui .logo b{font-weight:800;}
+.app-ui .logo .bk{color:#1f6fd6;}
+.radio{display:flex; align-items:center; gap:6px; font-size:9px; color:#33425a;}
+.radio i{width:12px; height:12px; border-radius:50%; border:2px solid #b9c2cf;}
+.radio.sel i{border-color:#1f6fd6; background:radial-gradient(circle, #1f6fd6 0 3px, #fff 4px);}
+.summary .row{display:flex; align-items:center; gap:6px; font-size:9px; color:#33425a;}
+.tl-day .lbl{font-size:10px; font-weight:800; color:#0a2f5c; white-space:nowrap;}
+.tl-rows .r{display:flex; align-items:center; justify-content:space-between; font-size:8px; color:#5b6b82; border-top:1px solid #eef0f4; padding-top:4px;}
+.tl-rows .r b{color:#0a2f5c; font-weight:800;}
+.seg-high.lit{opacity:1; border-color:#0e7a6c; box-shadow:0 20px 44px -16px rgba(14,122,108,.45);}
+.hr-isa .rate{font-size:8px; color:#0a2f5c; font-weight:700; margin-top:6px; padding-top:6px; border-top:1px solid #eef0f4;}
+.cc-head .lg{background:#fff; border-radius:6px; padding:3px 4px; display:flex; align-items:center;}
+.cc-head .lg img{height:12px; display:block;}
+.adv-card .lab{font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#8493a8; display:flex; align-items:center; gap:6px;}
+.adv-card .lab svg{color:#1763cf;}
+.tl-note .lg{width:24px; height:24px; border-radius:6px; flex:none; overflow:hidden;}
+.tl-note .lg img{width:100%; height:100%; object-fit:cover; display:block;}
+.web .ln{height:9px; border-radius:5px; background:#e4e8ef;}
+.web .ln.s{width:55%;}
+.web .ln.m{width:80%;}
+/* ---------- Priya slide 3: audience + generate-text dialog ---------- */
+  .rt-wrap{position:absolute; left:0; right:0; top:0; bottom:0; z-index:2; font-family:"Avenir Next Cyr"; pointer-events:none;}
+.pt-bellwrap.ring{animation:ptBell .8s var(--ease-bk);}
+.pt-bellwrap.ring .pt-badge-dot{opacity:1;}
+.pt-frow.lit{opacity:1; transform:none;}
+/* ---------- shared recap split-screen ---------- */
+  .slide.recap{padding:0;}
+.recap-wrap{position:absolute; inset:0; display:flex; flex-direction:column; padding:58px 70px 38px; font-family:"Avenir Next Cyr";}
+.recap-top{display:flex; align-items:baseline; gap:14px; margin-bottom:14px;}
+.recap-eyebrow{font-size:13px; font-weight:800; letter-spacing:.28em; text-transform:uppercase; color:var(--accent);}
+.recap-hint{font-size:11px; font-weight:700; color:#9aa6b6;}
+.recap-cols{flex:1; display:flex; min-height:0;}
+.recap-div{width:1px; background:linear-gradient(#0000, #d8dde6 12%, #d8dde6 88%, #0000); margin:0 22px; flex:none;}
+.recap-side{flex:1; min-width:0; display:flex; flex-direction:column; cursor:pointer; border-radius:16px; padding:12px 16px; transition:background .25s var(--ease);}
+.recap-side:hover{background:rgba(255,255,255,.5);}
+.rc-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+.rc-photo{width:52px; height:52px; border-radius:50%; overflow:hidden; flex:none; box-shadow:0 8px 18px -8px rgba(12,42,86,.4);}
+.rc-photo img{width:100%; height:100%; object-fit:cover; object-position:center 18%;}
+.rc-id{flex:1; min-width:0;}
+.rc-id b{display:block; font-size:19px; font-weight:800; color:var(--ink); line-height:1;}
+.rc-id span{font-size:10px; font-weight:700; color:#6b7a90;}
+.rc-replay{display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; color:#fff; border-radius:20px; padding:5px 11px; flex:none;}
+.rc-replay svg{width:9px; height:9px;}
+.rc-track{position:relative; flex:1; min-height:0;}
+.rc-line{position:absolute; left:8px; top:6px; bottom:6px; width:2px; background:#dfe4ec; border-radius:2px;}
+.rc-prog{position:absolute; left:8px; top:6px; width:2px; height:0; border-radius:2px;}
+.rc-items{position:relative; display:flex; flex-direction:column; height:100%; justify-content:space-between;}
+.rc-item{display:flex; align-items:center; gap:11px; opacity:0; transform:translateX(-8px); transition:opacity .35s var(--ease), transform .35s var(--ease);}
+.rc-item.in{opacity:1; transform:none;}
+.rc-dot{width:18px; height:18px; border-radius:50%; background:#fff; font-size:9px; font-weight:800; display:grid; place-items:center; flex:none; z-index:1;}
+.rc-card{background:#fff; border:1px solid #eef0f4; border-radius:9px; padding:5px 11px; box-shadow:0 6px 16px -10px rgba(12,42,86,.3); flex:1; min-width:0;}
+.rc-card b{display:block; font-size:11.5px; font-weight:800; color:var(--ink); line-height:1.1;}
+.rc-card span{font-size:9px; font-weight:700; color:#6b7a90;}
+.rc-j .rc-prog{background:#1763cf;}
+.rc-j .rc-dot{border:2px solid #1763cf; color:#1763cf;}
+.rc-j .rc-replay{background:#1763cf;}
+.rc-p .rc-prog{background:#137E73;}
+.rc-p .rc-dot{border:2px solid #137E73; color:#137E73;}
+.rc-p .rc-replay{background:#137E73;}
+/* ---------- Priya slide 8: A/B asset performance (image panels) ---------- */
+  .ao-wrap{position:absolute; left:0; right:0; top:0; bottom:0; z-index:2; font-family:"Avenir Next Cyr"; pointer-events:none;}
+.ao-panel{position:absolute; top:38%; width:28%; transform-origin:center center;
+    opacity:0; transition:opacity .5s var(--ease), transform .6s var(--ease);}
+.ao-panel.l{left:41%;}
+.ao-panel.r{left:71%;}
+.ao-panel.in{opacity:1;}
+.ao-panel.win{transform:scale(1.07); z-index:5;}
+.ao-panel.lose{transform:scale(.88); z-index:2;}
+.ao-img{width:100%; display:block; filter:drop-shadow(0 22px 44px -20px rgba(12,42,86,.45));}
+.ao-dim{position:absolute; inset:0; border-radius:12px; background:#0a0f1e; opacity:0; z-index:3; pointer-events:none;
+    transition:opacity .6s var(--ease);}
+.ao-panel.lose .ao-dim{opacity:.42;}
+.ao-ask{top:22%; left:49%; width:46%;}
+.bc-status.live{color:#1a9d5a; background:#e5f5ec;}
+.ac-ask{position:absolute; left:52%; top:38%; width:43%; opacity:0; transition:opacity .5s var(--ease);}
+.ac-ask.show{opacity:1;}
+.ac-bubble{background:#fff; border-radius:22px; padding:20px 26px; box-shadow:0 26px 56px -24px rgba(12,42,86,.45);
+    font-size:24px; font-weight:600; color:#1d2733; line-height:1.25; min-height:1.2em;}
+.ac-caret{display:inline-block; width:2px; height:1em; background:#1763cf; margin-left:2px; vertical-align:-3px; animation:aiblink 1s steps(1) infinite;}
+.ac-pill{display:inline-flex; align-items:center; gap:8px; margin:14px 0 0 auto; margin-right:34px; float:right;
+    background:linear-gradient(90deg,#3B6FF6,#8A3FD8,#E0568F); color:#fff; font-size:14px; font-weight:800;
+    border-radius:24px; padding:9px 16px; box-shadow:0 12px 26px -10px rgba(138,63,216,.6);}
+.ac-pill svg{width:17px; height:17px;}
+/* ---------- stage ---------- */
+  .stage{flex-direction:row; gap:56px; align-items:center;}
+.stage .col-main{flex:1.25;}
+.stage .col-side{flex:1;}
+.stage-head{display:flex; align-items:baseline; gap:18px; margin:14px 0 26px;}
+.snum{font-family:"Avenir Next Cyr"; font-weight:700; font-size:34px; color:var(--accent); letter-spacing:-.01em;}
+.stage-head h2{font-family:"Avenir Next Cyr"; font-weight:600; font-size:46px; letter-spacing:-.02em; line-height:1;}
+.col-label{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:14px;}
+.narr{font-size:26px; line-height:1.5; color:var(--ink); max-width:33ch; font-weight:400;}
+.narr.dash{font-family:"Avenir Next Cyr"; font-size:60px; color:var(--faint);}
+.ad-btn .lbl{display:flex; align-items:center; gap:11px;}
+#scene .layer{position:absolute; inset:0; background-size:cover; background-position:center bottom; opacity:0;
+    transition:opacity .9s var(--ease);
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 54%); mask-image:linear-gradient(to bottom, transparent 0%, #000 54%);}
+#scene .layer.on{opacity:1;}

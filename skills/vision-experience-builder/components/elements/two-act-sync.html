@@ -1,0 +1,377 @@
+<!-- elements/two-act-sync.html - the two-act story played in sync: the customer's moment on
+     the left, the system behind it on the right, one beat stepper driving both (T15 of the
+     interactive backlog, 19 Jul 2026).
+
+     WHEN TO USE: the replay-with-the-machinery-showing beat. A journey plays as act one;
+     this slide replays it with the system visible: act two of a two-act story (the Dyson
+     structure), or the answer to "what is Adobe actually doing" after any customer moment.
+     Pairs with aep-xray (that one is a single-moment x-ray; this one walks the whole story).
+
+     PROVENANCE: the Claude Design T15 pass, which held the choreography spec (gated wire
+     pulse, one state index, fast reverse, self-cancelling auto-play). Banked with the
+     1920x1080 slide wrapper and the document arrow-key binding removed; everything else is
+     the Design mechanics, lightly re-based onto the component grid.
+
+     RESKIN CONTRACT: the LEFT pane takes the customer tokens (--brand/--accent/... with
+     fallbacks). The RIGHT pane is a fixed Adobe-neutral inset ON PURPOSE (frame #F8F8F8,
+     line #E1E1E1, ink #292929, blue #3B63FB): it is Adobe's side of the stage and stays
+     Adobe under every reskin, same exception as the other Adobe surfaces.
+
+     API (no global key bindings ON PURPOSE: ArrowLeft/Right belong to deck navigation):
+       TAS.go(n)    - jump to beat n (1-based, clamped; forward-by-one fires the pulse)
+       TAS.next() / TAS.prev()
+       TAS.play()   - auto-advance to the end, one beat per playMs; any manual input cancels
+       TAS.reset()  - fast return to beat 1
+       TAS.layout() - re-measure and redraw the wires (call after revealing a hidden mount)
+     The choreography guarantee: both panes render from ONE index and can never desync; a
+     card lights only after the pulse dot reaches it, so cause precedes effect on stage. -->
+<style>
+  .tas{position:relative; width:1740px; height:960px; text-align:left; user-select:none;
+    font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif; color:var(--ink,#20222B);}
+  .tas *{box-sizing:border-box; margin:0;}
+  .tas-eyebrow{font-size:19px; font-weight:700; letter-spacing:.13em; text-transform:uppercase;}
+
+  /* left pane: the customer's moment (customer tokens) */
+  .tas-left{position:absolute; left:0; top:0; width:760px; height:740px; background:#FFFFFF;
+    border:1px solid var(--line,#E3E4EA); border-radius:22px; padding:34px 40px;
+    box-shadow:0 2px 24px rgba(32,34,43,.06);}
+  .tas-left .tas-eyebrow{color:var(--brand,#4C43D6);}
+  .tas-scenes{position:absolute; left:40px; right:40px; top:96px; bottom:34px;}
+  .tas-scene{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:26px; opacity:0; transform:scale(1.01); pointer-events:none;
+    transition:opacity var(--d-fade,260ms) ease, transform var(--d-fade,260ms) ease;}
+  .tas-scene.active{opacity:1; transform:scale(1);}
+  .tas.fastback .tas-scene{transition-duration:var(--d-back,150ms);}
+  .tas-device{width:360px; background:#FFFFFF; border:2px solid var(--line,#E3E4EA);
+    border-radius:30px; padding:20px; box-shadow:0 10px 36px rgba(32,34,43,.12);}
+  .tas-art{position:relative; height:200px; border-radius:16px;
+    background:linear-gradient(135deg,rgba(var(--brand-rgb,76,67,214),.55),rgba(var(--accent-rgb,15,165,127),.30));}
+  .tas-heart{position:absolute; right:14px; top:14px; width:44px; height:44px; border-radius:50%;
+    background:#FFFFFF; display:flex; align-items:center; justify-content:center;
+    color:var(--brand,#4C43D6);}
+  .tas-badge{position:absolute; left:14px; bottom:14px; background:var(--accent,#0FA57F);
+    color:#FFFFFF; font-size:15px; font-weight:800; border-radius:999px; padding:8px 16px;}
+  .tas-prow{display:flex; align-items:baseline; justify-content:space-between; margin-top:16px;
+    padding:0 4px;}
+  .tas-pname{font-size:21px; font-weight:800;}
+  .tas-price{font-size:19px; font-weight:800; color:var(--grey,#6B6F7B);}
+  .tas-lockwrap{height:300px; border-radius:22px; padding:18px; display:flex; flex-direction:column;
+    background:linear-gradient(160deg,rgba(var(--brand-rgb,76,67,214),.9),rgba(var(--accent-rgb,15,165,127),.55));}
+  .tas-lcl{color:#FFFFFF; text-align:center; font-size:44px; font-weight:800; margin:16px 0 auto;}
+  .tas-notif{background:#FFFFFF; border-radius:16px; padding:14px 16px; display:flex; gap:12px;
+    align-items:flex-start;}
+  .tas-nicon{flex:none; width:36px; height:36px; border-radius:10px; background:var(--brand,#4C43D6);
+    color:#FFFFFF; font-size:14px; font-weight:800; display:flex; align-items:center;
+    justify-content:center;}
+  .tas-ntitle{font-size:15px; font-weight:800;}
+  .tas-nbody{font-size:13.5px; color:var(--grey,#6B6F7B); margin-top:2px; line-height:1.35;}
+  .tas-confirm{height:300px; border-radius:22px; background:var(--accent-lt,#E4F5EF);
+    border:1px solid var(--accent,#0FA57F); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px;}
+  .tas-ccheck{width:64px; height:64px; border-radius:50%; background:var(--accent,#0FA57F);
+    color:#FFFFFF; display:flex; align-items:center; justify-content:center;}
+  .tas-ctext{font-size:20px; font-weight:800;}
+  .tas-csub{font-size:15px; color:var(--grey,#6B6F7B);}
+  .tas-caption{font-size:27px; font-weight:700; color:var(--ink,#20222B); letter-spacing:-.01em;}
+
+  /* right pane: Adobe-neutral inset (fixed hexes BY DESIGN, outside the token contract) */
+  .tas-right{position:absolute; left:990px; top:0; width:750px; height:740px; background:#F8F8F8;
+    border:1px solid #E1E1E1; border-radius:22px; padding:30px 34px;}
+  .tas-right .tas-eyebrow{color:#6D6D6D;}
+  .tas-cards{display:flex; flex-direction:column; gap:16px; margin-top:22px;}
+  .tas-card{position:relative; height:146px; background:#FFFFFF; border:2px solid #E1E1E1;
+    border-radius:16px; padding:20px 24px; display:flex; gap:18px; align-items:flex-start;
+    transition:border-color var(--d-lit,180ms) ease, box-shadow var(--d-lit,180ms) ease;}
+  .tas-card.lit{border-color:#3B63FB; box-shadow:0 0 0 5px rgba(59,99,251,.14);}
+  .tas-card.done{border-color:#E1E1E1; box-shadow:none; transition-duration:var(--d-done,200ms);}
+  .tas-cicon{flex:none; width:46px; height:46px; border-radius:12px; background:#E9E9E9;
+    color:#6D6D6D; display:flex; align-items:center; justify-content:center;
+    transition:background var(--d-lit,180ms) ease, color var(--d-lit,180ms) ease;}
+  .tas-card.lit .tas-cicon{background:#3B63FB; color:#FFFFFF;}
+  .tas-card.done .tas-cicon{background:#E9E9E9; color:#292929;}
+  .tas-cname{font-size:23px; font-weight:800; color:#292929; letter-spacing:-.01em;
+    display:flex; align-items:center; gap:10px;}
+  .tas-tick{opacity:0; color:#3B63FB; transition:opacity var(--d-done,200ms) ease;}
+  .tas-card.done .tas-tick{opacity:1;}
+  .tas-contrib{font-size:18px; line-height:1.45; color:#6D6D6D; margin-top:8px; opacity:0;
+    transition:opacity var(--d-line,120ms) ease var(--d-lit,180ms);}
+  .tas-card.lit .tas-contrib{opacity:1; color:#292929;}
+  .tas-card.done .tas-contrib{opacity:1; color:#6D6D6D;}
+
+  /* wires */
+  #tasWires{position:absolute; inset:0; pointer-events:none;}
+  .tas-wire-case{fill:none; stroke:#FFFFFF; stroke-width:7; stroke-linecap:round;}
+  .tas-wire{fill:none; stroke:#D9DAE3; stroke-width:2.5; stroke-linecap:round;}
+  .tas-hot{fill:none; stroke:#3B63FB; stroke-width:5; stroke-linecap:round; opacity:0;}
+
+  /* stepper */
+  .tas-stepper{position:absolute; left:0; right:0; top:782px; display:flex;
+    flex-direction:column; align-items:center; gap:24px;}
+  #tasLabel{font-size:36px; font-weight:800; letter-spacing:-.015em; transition:opacity 75ms ease;}
+  .tas-dots{display:flex; gap:26px;}
+  .tas-dot{appearance:none; cursor:pointer; width:22px; height:22px; border-radius:50%;
+    background:#FFFFFF; border:2px solid var(--line,#E3E4EA); padding:0;
+    transition:background 150ms ease, border-color 150ms ease, transform 150ms ease,
+      box-shadow 150ms ease;}
+  .tas-dot:hover{border-color:var(--grey,#6B6F7B);}
+  .tas-dot.completed{background:var(--brand,#4C43D6); border-color:var(--brand,#4C43D6);}
+  .tas-dot.active{border-color:var(--brand,#4C43D6); transform:scale(1.25);
+    box-shadow:0 0 0 4px rgba(var(--brand-rgb,76,67,214),.20);}
+  #tasReset{position:absolute; right:0; bottom:0; appearance:none; cursor:pointer; font:inherit;
+    font-size:18px; font-weight:600; color:var(--grey,#6B6F7B); background:#FFFFFF;
+    border:1px solid var(--line,#E3E4EA); padding:11px 24px; border-radius:11px;
+    transition:color .18s ease, border-color .18s ease;}
+  #tasReset:hover{color:var(--ink,#20222B); border-color:var(--grey,#6B6F7B);}
+</style>
+
+<div class="tas" id="tas">
+  <div class="tas-left" id="tasLeft">
+    <div class="tas-eyebrow">Act one, the customer</div>
+    <div class="tas-scenes" id="tasScenes"></div>
+  </div>
+  <svg id="tasWires" width="1740" height="960" viewBox="0 0 1740 960"></svg>
+  <div class="tas-right" id="tasRight">
+    <div class="tas-eyebrow">Act two, meanwhile in the system</div>
+    <div class="tas-cards" id="tasCards"></div>
+  </div>
+  <div class="tas-stepper">
+    <div id="tasLabel"></div>
+    <div class="tas-dots" id="tasDots"></div>
+  </div>
+  <button id="tasReset">Reset</button>
+</div>
+
+<script>
+(function(){
+  /* ============ DATA: beats, products, copy, durations ============ */
+  var TAS_DATA = {
+    products: [
+      { name: "Real-Time CDP", icon: "profile" },
+      { name: "Decisioning", icon: "branch" },
+      { name: "Journey Optimizer", icon: "send" },
+      { name: "Customer Analytics", icon: "chart" }
+    ],
+    beats: [
+      { label: "She saves the console", scene: "save",
+        contribution: "Writes the save to Maya's live profile as it happens" },
+      { label: "The signal lands", scene: "signal",
+        contribution: "Pairs the Rosedale restock with everyone waiting on it" },
+      { label: "The nudge goes out", scene: "nudge",
+        contribution: "Sends one push at her usual evening hour, 7:42pm" },
+      { label: "She taps reserve", scene: "reserve",
+        contribution: "Counts the reserve and closes the loop on the journey" }
+    ],
+    sceneCopy: {
+      product: "Oak console", price: "$640", badge: "Back in stock, Rosedale",
+      lockClock: "7:42", notifApp: "AURORA HOME", notifInitials: "AH",
+      notifTitle: "Maya, your console is back",
+      notifBody: "One held at Rosedale until Friday, 6pm",
+      confirmTitle: "Reserved for Maya", confirmSub: "Pickup Saturday, 10am",
+      captions: {
+        save: "Saved to her list", signal: "Rosedale reports a restock",
+        nudge: "One push, at her hour", reserve: "Reserved in one tap"
+      }
+    },
+    durations: { fadeMs: 260, pulseMs: 400, litMs: 180, lineMs: 120,
+                 doneMs: 200, backMs: 150, playMs: 1600 }
+  };
+  /* ================================================================ */
+
+  var D = TAS_DATA.durations, SC = TAS_DATA.sceneCopy;
+  var stage = document.getElementById("tas");
+  stage.style.setProperty("--d-fade", D.fadeMs + "ms");
+  stage.style.setProperty("--d-lit", D.litMs + "ms");
+  stage.style.setProperty("--d-line", D.lineMs + "ms");
+  stage.style.setProperty("--d-done", D.doneMs + "ms");
+  stage.style.setProperty("--d-back", D.backMs + "ms");
+
+  var TAS_ICONS = {
+    profile: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+    branch: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6H12c2 0 3 1 3 3v0M8.5 18H12c2 0 3-1 3-3v0"/></svg>',
+    send: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-7-7 18-2.5-7.5z"/></svg>',
+    chart: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',
+    heart: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21C7 16.5 3 13 3 8.8 3 6 5 4 7.5 4c1.8 0 3.4 1 4.5 2.6C13.1 5 14.7 4 16.5 4 19 4 21 6 21 8.8c0 4.2-4 7.7-9 12.2z"/></svg>',
+    check: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>',
+    tick: '<svg class="tas-tick" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>'
+  };
+
+  function deviceProduct(badge){
+    return '<div class="tas-device"><div class="tas-art">' +
+      '<div class="tas-heart">' + TAS_ICONS.heart + '</div>' +
+      (badge ? '<div class="tas-badge">' + SC.badge + '</div>' : '') +
+    '</div><div class="tas-prow"><span class="tas-pname">' + SC.product +
+    '</span><span class="tas-price">' + SC.price + '</span></div></div>';
+  }
+  var sceneBodies = {
+    save: deviceProduct(false),
+    signal: deviceProduct(true),
+    nudge: '<div class="tas-device"><div class="tas-lockwrap">' +
+      '<div class="tas-lcl">' + SC.lockClock + '</div>' +
+      '<div class="tas-notif"><div class="tas-nicon">' + SC.notifInitials + '</div>' +
+      '<div><div class="tas-ntitle">' + SC.notifTitle + '</div>' +
+      '<div class="tas-nbody">' + SC.notifBody + '</div></div></div></div></div>',
+    reserve: '<div class="tas-device"><div class="tas-confirm">' +
+      '<div class="tas-ccheck">' + TAS_ICONS.check + '</div>' +
+      '<div class="tas-ctext">' + SC.confirmTitle + '</div>' +
+      '<div class="tas-csub">' + SC.confirmSub + '</div></div></div>'
+  };
+  document.getElementById("tasScenes").innerHTML = TAS_DATA.beats.map(function(b, i){
+    return '<div class="tas-scene" id="tasScene' + (i + 1) + '">' + sceneBodies[b.scene] +
+      '<div class="tas-caption">' + SC.captions[b.scene] + '</div></div>';
+  }).join("");
+  document.getElementById("tasCards").innerHTML = TAS_DATA.products.map(function(p, i){
+    return '<div class="tas-card" id="tasCard' + (i + 1) + '">' +
+      '<div class="tas-cicon">' + TAS_ICONS[p.icon] + '</div>' +
+      '<div><div class="tas-cname">' + p.name + TAS_ICONS.tick + '</div>' +
+      '<div class="tas-contrib">' + TAS_DATA.beats[i].contribution + '</div></div>' +
+    '</div>';
+  }).join("");
+  document.getElementById("tasDots").innerHTML = TAS_DATA.beats.map(function(_, i){
+    return '<button class="tas-dot" id="tasDot' + (i + 1) +
+      '" aria-label="Beat ' + (i + 1) + '"></button>';
+  }).join("");
+
+  /* wires: one rounded-elbow path per card, measured from the live layout.
+     Re-run via TAS.layout() if the element was mounted hidden. */
+  var wiresSvg = document.getElementById("tasWires");
+  var hots = [], hotLens = [];
+  function buildWires(){
+    hots = []; hotLens = [];
+    var sr = stage.getBoundingClientRect();
+    if (!sr.width) return;
+    var k = 1740 / sr.width;
+    var lp = document.getElementById("tasLeft").getBoundingClientRect();
+    var x0 = (lp.right - sr.left) * k, y0 = (lp.top + lp.height / 2 - sr.top) * k;
+    var midX = 875, r = 14;
+    var html = "";
+    TAS_DATA.products.forEach(function(_, i){
+      var cr = document.getElementById("tasCard" + (i + 1)).getBoundingClientRect();
+      var x1 = (cr.left - sr.left) * k, y1 = (cr.top + cr.height / 2 - sr.top) * k;
+      var dir = y1 > y0 ? 1 : -1;
+      var d = Math.abs(y1 - y0) < 2
+        ? "M" + x0 + " " + y0 + " H" + x1
+        : "M" + x0 + " " + y0 + " H" + (midX - r) +
+          " Q" + midX + " " + y0 + " " + midX + " " + (y0 + dir * r) +
+          " V" + (y1 - dir * r) +
+          " Q" + midX + " " + y1 + " " + (midX + r) + " " + y1 +
+          " H" + x1;
+      html += '<path class="tas-wire-case" d="' + d + '"></path>' +
+        '<path class="tas-wire" d="' + d + '"></path>' +
+        '<path class="tas-hot" id="tasHot' + (i + 1) + '" d="' + d + '"></path>';
+    });
+    wiresSvg.innerHTML = html;
+    TAS_DATA.products.forEach(function(_, i){
+      var h = document.getElementById("tasHot" + (i + 1));
+      var len = h.getTotalLength();
+      h.style.strokeDasharray = "18 " + Math.ceil(len + 20);
+      hots.push(h); hotLens.push(len);
+    });
+  }
+  buildWires();
+
+  var idx = 0, timers = [], playTimer = null;
+  function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+  function cancel(){ timers.forEach(clearTimeout); timers = []; }
+  function stopPlay(){ if (playTimer){ clearInterval(playTimer); playTimer = null; } }
+
+  function firePulse(i){
+    var h = hots[i], len = hotLens[i];
+    if (!h) return;
+    h.style.transition = "none";
+    h.style.strokeDashoffset = Math.ceil(len + 20);
+    h.style.opacity = "1";
+    void h.getBoundingClientRect();
+    h.style.transition = "stroke-dashoffset " + D.pulseMs + "ms linear";
+    h.style.strokeDashoffset = "0";
+    later(function(){ h.style.opacity = "0"; }, D.pulseMs);
+  }
+
+  function render(animateForward){
+    TAS_DATA.beats.forEach(function(_, j){
+      document.getElementById("tasScene" + (j + 1)).classList.toggle("active", j === idx);
+      var dot = document.getElementById("tasDot" + (j + 1));
+      dot.classList.toggle("completed", j < idx);
+      dot.classList.toggle("active", j === idx);
+      var card = document.getElementById("tasCard" + (j + 1));
+      card.classList.toggle("done", j < idx);
+      card.classList.toggle("lit", j === idx && !animateForward);
+    });
+    var lbl = document.getElementById("tasLabel");
+    lbl.style.opacity = "0";
+    later(function(){
+      lbl.textContent = TAS_DATA.beats[idx].label; lbl.style.opacity = "1";
+    }, 75);
+    if (animateForward){
+      var i = idx;
+      firePulse(i);
+      later(function(){
+        if (idx === i) document.getElementById("tasCard" + (i + 1)).classList.add("lit");
+      }, D.pulseMs);
+    }
+  }
+
+  function go(i, opts){
+    opts = opts || {};
+    if (!opts.fromPlay) stopPlay();
+    i = Math.max(0, Math.min(TAS_DATA.beats.length - 1, i));
+    if (i === idx) return;
+    cancel();
+    hots.forEach(function(h){ h.style.transition = "none"; h.style.opacity = "0"; });
+    var forward = i === idx + 1;
+    stage.classList.toggle("fastback", i < idx);
+    idx = i;
+    render(forward);
+  }
+
+  window.TAS = {
+    go: function(n){ go(n - 1); },
+    next: function(){ go(idx + 1); },
+    prev: function(){ go(idx - 1); },
+    play: function(){
+      stopPlay(); cancel();
+      playTimer = setInterval(function(){
+        if (idx >= TAS_DATA.beats.length - 1){ stopPlay(); return; }
+        go(idx + 1, { fromPlay: true });
+      }, D.playMs);
+    },
+    reset: function(){
+      stopPlay(); cancel();
+      hots.forEach(function(h){ h.style.transition = "none"; h.style.opacity = "0"; });
+      stage.classList.add("fastback");
+      idx = 0;
+      render(false);
+    },
+    layout: buildWires
+  };
+
+  TAS_DATA.beats.forEach(function(_, i){
+    document.getElementById("tasDot" + (i + 1))
+      .addEventListener("click", function(){ go(i); });
+  });
+  document.getElementById("tasReset").addEventListener("click", function(){ window.TAS.reset(); });
+
+  document.getElementById("tasLabel").textContent = TAS_DATA.beats[0].label;
+  render(false);
+})();
+</script>
+<!-- TESTS (mounted in a host page with customer tokens set on :root):
+1. Initial: #tasDot1 active, #tasScene1 active, #tasCard1 lit, #tasLabel reads
+   "She saves the console", no card has class "done".
+2. TAS.next(): #tasHot2 opacity becomes 1 and its stroke-dashoffset transitions to 0 over
+   ~400ms; #tasCard2 gains "lit" only AFTER the pulse lands (never before ~350ms);
+   #tasCard1 flips to "done" with its .tas-tick visible.
+3. Sync invariant: after ANY rapid sequence of dot clicks and TAS calls, the active scene,
+   active dot and lit-or-latest card all agree on the same beat index.
+4. Rapid TAS.go(4) then TAS.go(2) within 50ms: settles at beat 2 (card 1 done, card 2 lit,
+   cards 3 and 4 idle), no stuck hot wire (every .tas-hot at opacity 0 or fading).
+5. TAS.prev() at beat 1 changes nothing and fires no pulse; TAS.next() at beat 4 clamps.
+6. Backward (TAS.go(2) from beat 4): transitions run fast (~150ms), no pulse fires,
+   cards 3 and 4 lose their states correctly.
+7. TAS.play() from beat 1 advances one beat per 1600ms, reaches beat 4 and stops; clicking
+   any dot mid-play cancels the run.
+8. TAS.reset() from beat 4 returns to the initial state of test 1.
+9. Pressing ArrowRight or ArrowLeft with nothing focused changes NOTHING (no global keys).
+10. Token split: with host tokens set, a completed dot's background computes to the host
+    --brand, while a lit card's border stays #3B63FB (the right pane is Adobe's side).
+11. TAS.layout() after mounting hidden-then-revealed rebuilds wires with nonzero lengths.
+-->

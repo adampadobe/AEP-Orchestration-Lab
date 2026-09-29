@@ -1,0 +1,33 @@
+{
+  "archetype": "sarah",
+  "folder": "harvested-sarah",
+  "tags": [
+    "travel",
+    "cruise",
+    "customer",
+    "female",
+    "40s",
+    "caucasian",
+    "professional-casual",
+    "b2c",
+    "journey"
+  ],
+  "default_name": "Sarah",
+  "default_role": "Cruise Customer",
+  "images": [
+    {
+      "file": "persona-sarah-phone.jpg",
+      "role": "phone"
+    },
+    {
+      "file": "persona-sarah.jpg",
+      "role": "portrait"
+    }
+  ],
+  "default_pose": "persona-sarah.jpg",
+  "avatar": null,
+  "format": "jpg",
+  "source": "po-cruises",
+  "bg": "studio",
+  "needs_cutout": true
+}

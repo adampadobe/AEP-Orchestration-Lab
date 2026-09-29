@@ -1,0 +1,30 @@
+{
+  "type": "agent-orchestration",
+  "key_classes": [
+    "ac-ask",
+    "ac-bubble",
+    "ac-caret",
+    "ac-pill",
+    "ac-typed",
+    "anim",
+    "ao-ask",
+    "ao-dim",
+    "ao-img",
+    "ao-panel",
+    "ao-wrap",
+    "col-label",
+    "eyebrow",
+    "has-photo",
+    "l",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "r",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use agent-orchestration"
+}

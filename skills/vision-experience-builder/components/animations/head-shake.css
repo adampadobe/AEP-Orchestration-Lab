@@ -1,0 +1,7 @@
+/* head-shake — emphasis (emphasis, subtle, card, chip, device)
+   gentle no-shake: a declined payment, an error moment.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes headShake{0%,100%{transform:none}14%{transform:translateX(-9px) rotateY(-7deg)}32%{transform:translateX(6px) rotateY(4.5deg)}48%{transform:translateX(-3.5px) rotateY(-2deg)}64%{transform:translateX(1.5px) rotateY(1deg)}78%{transform:none}}
+.slide.active .head-shake{animation:headShake .9s var(--d,0s) cubic-bezier(.2,.7,.3,1);}

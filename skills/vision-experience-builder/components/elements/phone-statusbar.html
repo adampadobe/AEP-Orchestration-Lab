@@ -1,0 +1,28 @@
+<!-- phone-statusbar - generic phone status bar (clock left, signal/wifi/battery right, inline
+     SVG inheriting currentColor) with a generic centred hole-punch FRONT CAMERA. Brandless by
+     design: a hole-punch, NEVER an Apple notch/Dynamic Island (device frames stay generic,
+     asset-licensing.md). Matches the canonical phone (elements/living-phone .lpm-cam) so every
+     phone across the library reads the same. Drop `.ph-status` at the top of any position:
+     relative .pscreen; the .ph-cam sits in the status bar's centre gap. Set colour with
+     .on-dark (#fff) / .on-light (dark) to match the app top. -->
+<style>
+.ph-cam{position:absolute;top:15px;left:50%;margin-left:-7.5px;width:15px;height:15px;border-radius:50%;z-index:6;
+  background:radial-gradient(circle at 38% 34%,#3a4868 0%,#0a1020 55%,#04060b 100%);
+  box-shadow:0 0 0 1.6px rgba(206,219,242,.45),0 1px 4px rgba(0,0,0,.5);}
+.ph-status{position:relative;z-index:5;height:44px;display:flex;align-items:center;
+  justify-content:space-between;padding:6px 22px 0;font-size:15px;font-weight:700;}
+.ph-status.on-dark{color:#fff;} .ph-status.on-light{color:var(--brand,#14233A);}
+.ph-status .ph-clock{font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+.ph-status .ph-sig{display:flex;align-items:center;gap:7px;}
+.ph-status .ph-sig svg{display:block;fill:currentColor;}
+</style>
+
+<div class="ph-cam"></div>
+<div class="ph-status on-dark">
+  <span class="ph-clock">9:41</span>
+  <span class="ph-sig">
+    <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+    <svg width="17" height="12" viewBox="0 0 17 12" aria-hidden="true"><path d="M8.5 11.4a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/><path d="M8.5 6c1.7 0 3.3.7 4.5 1.9l-1.5 1.5A4.3 4.3 0 008.5 9a4.3 4.3 0 00-3 1.4L4 8.9A6.4 6.4 0 018.5 6z" opacity=".55"/><path d="M8.5 2.2c2.8 0 5.4 1.1 7.3 3l-1.5 1.5A8.4 8.4 0 008.5 4a8.4 8.4 0 00-5.8 2.7L1.2 5.2A10.3 10.3 0 018.5 2.2z" opacity=".55"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1.5" width="21" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/><rect x="3" y="3.5" width="14.5" height="6" rx="1.5"/><rect x="23" y="4.6" width="2" height="3.8" rx="1"/></svg>
+  </span>
+</div>

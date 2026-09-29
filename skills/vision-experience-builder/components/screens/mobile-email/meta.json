@@ -1,0 +1,31 @@
+{
+  "type": "mobile-email",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "adobe-foot",
+    "av",
+    "eav",
+    "eb",
+    "ebot",
+    "efrm",
+    "ehero",
+    "emma-lab",
+    "enav",
+    "eninbox",
+    "enright",
+    "epreh",
+    "esig",
+    "esubj",
+    "fp",
+    "htitle",
+    "ic",
+    "mvp-pill",
+    "narr"
+  ],
+  "source": "po-cruises",
+  "description": "Phone frame with an iOS-Mail-grade email \u2014 notification slides in \u2192 opens \u2192 CTA pulses."
+}

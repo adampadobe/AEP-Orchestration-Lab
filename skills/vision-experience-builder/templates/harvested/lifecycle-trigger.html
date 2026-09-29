@@ -1,0 +1,177 @@
+<!-- template: lifecycle-trigger  (standalone drop-in slide, harvested from coventry-bs; rebrand via :root tokens) -->
+<style>
+.slide{position:absolute; inset:0; padding:96px 86px 92px; display:flex; flex-direction:column;
+    opacity:0; visibility:hidden; pointer-events:none; transform:scale(.985);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s linear var(--t-slide);}
+.slide.active{opacity:1; visibility:visible; pointer-events:auto; transform:scale(1);
+    transition:opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease), visibility 0s;}
+.anim{opacity:0; transform:translate(calc(var(--ox)*1px), calc(var(--oy)*1px));
+    transition:opacity var(--t-in) var(--ease), transform var(--t-in) var(--ease);}
+.slide.active .anim{opacity:1; transform:none; transition-delay:calc(var(--i,0) * var(--t-step));}
+.anim.pop{transform:translateY(20px) scale(.94);}
+.ptab.active{color:#fff;}
+.eyebrow{font-size:13px; letter-spacing:.32em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+/* ---------- Priya photo (transparent figure on paper) ---------- */
+  .slide.has-photo{padding:0; gap:0;}
+.pcontent{width:55%; height:100%; display:flex; flex-direction:column; justify-content:center; padding:92px 40px 92px 86px; position:relative; z-index:2;}
+.has-photo .points{margin-top:8px;}
+.has-photo .narr{max-width:30ch; font-size:23px;}
+.app-phone .device{position:relative; width:100%; padding-bottom:206%; background:#23262c;
+    border-radius:34px; box-shadow:0 30px 50px -18px rgba(12,42,86,.42);}
+.app-phone .device::after{content:""; position:absolute; right:-2px; top:25%; width:3px; height:10%; background:#23262c; border-radius:2px;}
+.app-phone .screen{position:absolute; inset:2.6% 3%; border-radius:24px; overflow:hidden; background:#fff;}
+/* ---------- Slide 5: 90-day savings timeline ---------- */
+  .tl-wrap{position:absolute; left:42%; right:0; top:0; bottom:0; z-index:2; transition:opacity .6s var(--ease);}
+.tl-wrap.faded{opacity:0;}
+.tl-wrap.armed{cursor:pointer;}
+.tl-svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+.tl-track{fill:none; stroke:#cfe2de; stroke-width:3; opacity:.9;}
+.tl-progress{fill:none; stroke:#137E73; stroke-width:3.5; stroke-linecap:round;}
+.tl-day{position:absolute; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:3px;
+    opacity:0; transition:opacity .4s var(--ease), transform .4s var(--ease);}
+.tl-day{transform:translate(-50%,-50%) scale(.5);}
+.tl-day.in{opacity:1; transform:translate(-50%,-50%) scale(1);}
+.tl-day .dot{width:13px; height:13px; border-radius:50%; background:#fff; border:3px solid #137E73; box-shadow:0 2px 6px rgba(19,126,115,.3);}
+.tl-day .lbl{font-size:10px; font-weight:800; color:#0a2f5c; white-space:nowrap;}
+.tl-phone .dev{position:relative; width:100%; padding-bottom:204%; border:3px solid #4a4a4a; border-radius:26px; background:#fff; box-shadow:0 26px 46px -16px rgba(12,42,86,.34);}
+.tl-phone .dev::after{content:""; position:absolute; right:-3px; top:23%; width:3px; height:9%; background:#4a4a4a; border-radius:2px;}
+.tl-phone .scr{position:absolute; inset:6px; border-radius:20px; overflow:hidden; background:#fff; display:flex; flex-direction:column; font-family:"Avenir Next Cyr";}
+.tl-phone .sb{height:15px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; font-size:7.5px; font-weight:800; color:#0a2f5c;}
+.tl-phone .sb .bat{width:14px; height:7px; border:1px solid #0a2f5c; border-radius:2px; position:relative;}
+.tl-phone .sb .bat::after{content:""; position:absolute; inset:1px; right:3px; background:#0a2f5c; border-radius:1px;}
+.hr-phone .dev{position:relative; width:100%; padding-bottom:212%; background:#1c1f25; border-radius:34px; box-shadow:0 30px 52px -16px rgba(12,42,86,.42);}
+.hr-phone .scr{position:absolute; inset:6px; border-radius:28px; overflow:hidden; background:#f3f6fb; display:flex; flex-direction:column; font-family:"Avenir Next Cyr";}
+.hr-phone .sb{height:17px; background:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 13px; font-size:7.5px; font-weight:800; color:#0a2f5c;}
+.hr-phone .sb .hbat{width:13px; height:7px; border:1px solid #0a2f5c; border-radius:2px; position:relative;}
+.hr-phone .sb .hbat::after{content:""; position:absolute; inset:1px; right:3px; background:#0a2f5c; border-radius:1px;}
+.cc-phone .dev{position:relative; width:100%; padding-bottom:200.99%; background:url(data:image/webp;base64,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) center/contain no-repeat;
+    filter:drop-shadow(0 26px 46px rgba(12,42,86,.3));}
+.cc-phone .scr{position:absolute; top:2.4%; bottom:2.4%; left:4.6%; right:7.5%; border-radius:24px; overflow:hidden; background:#eef1f6; display:flex; flex-direction:column; font-family:"Avenir Next Cyr";}
+.tl-nav i.act{background:#0a2f5c;}
+/* ---------- Priya slide 5: Co-op 90-day orchestration timeline ---------- */
+  .pt-track{stroke:#cdd9ea;}
+.pt-progress{stroke:#1f6fd6;}
+.pt-day .dot{border-color:#1f6fd6; box-shadow:0 2px 6px rgba(31,111,214,.3);}
+.pt-day{z-index:6;}
+.pt-phone{position:absolute; width:176px; z-index:3;}
+.pt-phone .dev{position:relative; width:100%; padding-bottom:204%; background:#0e1116; border-radius:28px;
+    box-shadow:0 28px 50px -16px rgba(12,42,86,.4);}
+.pt-phone .dev::after{content:""; position:absolute; right:-3px; top:23%; width:3px; height:9%; background:#0e1116; border-radius:2px;}
+.pt-phone .scr{position:absolute; inset:6px; border-radius:22px; overflow:hidden; background:#f4f7fb; display:flex; flex-direction:column; font-family:"Avenir Next Cyr";}
+.pt-phone .sb{height:15px; background:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 11px; font-size:7.5px; font-weight:800; color:#0a2f5c;}
+.pt-phone .sb .bat{width:14px; height:7px; border:1px solid #0a2f5c; border-radius:2px; position:relative;}
+.pt-phone .sb .bat::after{content:""; position:absolute; inset:1px; right:3px; background:#0a2f5c; border-radius:1px;}
+.pt-bar{display:flex; align-items:center; justify-content:space-between; padding:8px 11px; background:#fff; border-bottom:1px solid #eef0f4;}
+.pt-logo{font-size:9.5px; letter-spacing:-.01em; color:#0a2f5c;}
+.pt-logo b{font-weight:800;}
+.pt-logo i{font-style:normal; color:#1f6fd6; font-weight:800;}
+.pt-bellwrap{position:relative; color:#0a2f5c;}
+.pt-bellwrap svg{width:14px; height:14px;}
+.pt-badge-dot{position:absolute; right:-1px; top:-1px; width:6px; height:6px; border-radius:50%; background:#e23838; border:1.5px solid #fff; opacity:0;}
+.pt-bellwrap.ring{animation:ptBell .8s var(--ease-bk);}
+.pt-bellwrap.ring .pt-badge-dot{opacity:1;}
+.pt-greet{font-size:10px; font-weight:800; color:#0a2f5c; padding:10px 11px 7px;}
+.pt-acct{margin:0 11px; background:linear-gradient(150deg,#0a2f5c,#123e7a); color:#fff; border-radius:11px; padding:9px 11px;
+    display:flex; align-items:center; justify-content:space-between;}
+.pt-acct-n{font-size:10px; font-weight:800;}
+.pt-acct-s{font-size:7.5px; opacity:.85; font-weight:700; margin-top:2px;}
+.pt-acct-tag{width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.16); display:grid; place-items:center; font-size:9px;}
+.pt-feed-h{font-size:7.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#8493a8; padding:11px 11px 5px;}
+.pt-feed{flex:1; padding:0 11px; display:flex; flex-direction:column; gap:6px;}
+.pt-frow{display:flex; align-items:center; gap:7px; background:#fff; border-radius:8px; padding:7px 8px; font-size:8px; font-weight:700; color:#33425a;
+    box-shadow:0 4px 12px -8px rgba(12,42,86,.3); opacity:.45; transform:translateX(4px); transition:opacity .4s var(--ease), transform .4s var(--ease);}
+.pt-frow.lit{opacity:1; transform:none;}
+.pt-fic{width:18px; height:18px; border-radius:50%; background:#eaf1fc; display:grid; place-items:center; flex:none;}
+.pt-frow.f0 .pt-fic{background:#eaf1fc; color:#1f6fd6;}
+.pt-frow.f1 .pt-fic{background:#e4f4f1; color:#137E73;}
+.pt-frow.f2 .pt-fic{background:#eef0f4; color:#0a2f5c;}
+.pt-fic svg{width:11px; height:11px;}
+.pt-nav{height:22px; border-top:1px solid #e7ebf1; background:#fff; display:flex; align-items:center; justify-content:space-around; padding:0 8px;}
+.pt-nav i{width:11px; height:11px; border-radius:3px; background:#cfd6e0;}
+.pt-nav i.act{background:#1f6fd6;}
+.pt-push{position:absolute; left:8px; right:8px; top:24px; background:rgba(255,255,255,.97); border-radius:13px; padding:8px 9px;
+    display:flex; align-items:center; gap:8px; box-shadow:0 12px 26px -10px rgba(12,42,86,.45); backdrop-filter:blur(4px);
+    opacity:0; transform:translateY(-16px); transition:opacity .45s var(--ease), transform .5s var(--ease-bk); z-index:4;}
+.pt-push.show{opacity:1; transform:none;}
+.pt-pico{width:24px; height:24px; border-radius:7px; background:#1f6fd6; color:#fff; display:grid; place-items:center; flex:none;}
+.pt-pico svg{width:13px; height:13px;}
+.pt-ptxt b{font-size:8.5px; color:#0a2f5c; display:block;}
+.pt-ptxt span{font-size:7.5px; color:#5b6b82; font-weight:600; line-height:1.25; display:block;}
+.pt-note{position:absolute; width:256px; background:#fff; border-radius:13px; box-shadow:0 16px 32px -14px rgba(12,42,86,.34);
+    padding:10px 12px; z-index:4; opacity:0; transform:translateY(12px) scale(.95);
+    transition:opacity .5s var(--ease), transform .5s var(--ease);}
+.pt-note.in{opacity:1; transform:none;}
+.pt-badge{display:inline-flex; align-items:center; gap:5px; font-size:8.5px; font-weight:800; letter-spacing:.02em;
+    border-radius:20px; padding:3px 9px 3px 7px; color:#fff;}
+.pt-badge svg{width:11px; height:11px;}
+.pt-note.ch-push .pt-badge{background:#1f6fd6;}
+.pt-note.ch-inapp .pt-badge{background:#137E73;}
+.pt-note.ch-email .pt-badge{background:#0a2f5c;}
+.pt-tx{display:block; font-size:11px; font-weight:700; color:#0a2f5c; line-height:1.3; margin-top:7px;}
+.pt-tm{display:block; font-size:8.5px; font-weight:800; color:#9aa6b6; margin-top:4px;}
+.pt-wrap.faded{opacity:0 !important; transition:opacity .6s var(--ease);}
+/* ---------- shared recap split-screen ---------- */
+  .slide.recap{padding:0;}
+/* ---------- stage ---------- */
+  .stage{flex-direction:row; gap:56px; align-items:center;}
+.stage .col-main{flex:1.25;}
+.stage .col-side{flex:1;}
+.stage-head{display:flex; align-items:baseline; gap:18px; margin:14px 0 26px;}
+.snum{font-family:"Avenir Next Cyr"; font-weight:700; font-size:34px; color:var(--accent); letter-spacing:-.01em;}
+.stage-head h2{font-family:"Avenir Next Cyr"; font-weight:600; font-size:46px; letter-spacing:-.02em; line-height:1;}
+.col-label{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:14px;}
+.narr{font-size:24px; line-height:1.5; color:var(--ink); max-width:33ch; font-weight:400;}
+.narr.dash{font-family:"Avenir Next Cyr"; font-size:60px; color:var(--faint);}
+.ad-btn .lbl{display:flex; align-items:center; gap:11px;}
+</style>
+<section class="slide stage has-photo" data-persona="1" data-step="5"><div class="pcontent">
+        <div class="eyebrow anim" style="--i:0">YEAR 1 — CURRENT ACCOUNT ACQUISITION</div>
+        <div class="stage-head anim" style="--i:1"><span class="snum">05</span><h2>Onboarding 90 Days</h2></div>
+        <div class="col-label anim" style="--i:2">Employee Experience</div>
+        <p class="narr  anim" style="--i:3">Journeys are triggered by live account behaviour, not a fixed schedule, across push, in-app, and email.</p>
+      </div>
+      <div class="tl-wrap pt-wrap">
+      <svg class="tl-svg" viewBox="0 0 742 720" fill="none" preserveAspectRatio="xMidYMid meet">
+        <path class="tl-track pt-track" d="M 95 150 C 340 180, 330 300, 150 340 C 30 375, 70 495, 230 545 C 375 585, 330 660, 200 690"></path>
+        <path class="tl-progress pt-progress" d="M 95 150 C 340 180, 330 300, 150 340 C 30 375, 70 495, 230 545 C 375 585, 330 660, 200 690"></path>
+      </svg>
+      <div class="tl-day pt-day" style="left:95px;top:150px"><span class="dot"></span><span class="lbl">Day 1</span></div>
+      <div class="tl-day pt-day" style="left:150px;top:340px"><span class="dot"></span><span class="lbl">Day 30</span></div>
+      <div class="tl-day pt-day" style="left:230px;top:545px"><span class="dot"></span><span class="lbl">Day 60</span></div>
+      <div class="tl-day pt-day" style="left:200px;top:690px"><span class="dot"></span><span class="lbl">Day 90</span></div>
+
+      <div class="pt-phone" style="left:432px;top:150px">
+        <div class="dev"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="bat"></span></div>
+          <div class="pt-bar">
+            <span class="pt-logo">the <b>co-operative</b> <i>bank</i></span>
+            <span class="pt-bellwrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg><span class="pt-badge-dot"></span></span>
+          </div>
+          <div class="pt-greet">Good morning, Jamie</div>
+          <div class="pt-acct">
+            <div class="pt-acct-l"><div class="pt-acct-n">Everyday Extra</div><div class="pt-acct-s">Active · £18/mo</div></div>
+            <div class="pt-acct-tag">★</div>
+          </div>
+          <div class="pt-feed-h">Recent messages</div>
+          <div class="pt-feed">
+            <div class="pt-frow f0"><span class="pt-fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></span><span>Welcome to Everyday Extra</span></div>
+            <div class="pt-frow f1"><span class="pt-fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z"></path></svg></span><span>Add mobile cover in 2 mins</span></div>
+            <div class="pt-frow f2"><span class="pt-fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><span>Your subscriptions, tracked</span></div>
+          </div>
+          <div class="pt-nav"><i class="act"></i><i></i><i></i><i></i></div>
+          <div class="pt-push">
+            <span class="pt-pico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></span>
+            <div class="pt-ptxt"><b>Everyday Extra</b><span>Welcome! Let's set up your travel insurance</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="pt-note ch-push" style="left:150px;top:80px">
+         <span class="pt-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>Push</span><span class="pt-tx">Welcome to Everyday Extra — set up your travel insurance</span><span class="pt-tm">Day 1</span></div>
+      <div class="pt-note ch-inapp" style="left:8px;top:236px">
+         <span class="pt-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z"></path></svg>In-app</span><span class="pt-tx">Add your phone to mobile cover in 2 minutes</span><span class="pt-tm">Day 30</span></div>
+      <div class="pt-note ch-email" style="left:40px;top:410px">
+         <span class="pt-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>Email</span><span class="pt-tx">We spotted 3 subscriptions you could track</span><span class="pt-tm">Day 60</span></div>
+      <div class="pt-note ch-push" style="left:150px;top:602px">
+         <span class="pt-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>Push</span><span class="pt-tx">Balance staying high — explore a savings pot</span><span class="pt-tm">Day 90</span></div>
+    </div></section>

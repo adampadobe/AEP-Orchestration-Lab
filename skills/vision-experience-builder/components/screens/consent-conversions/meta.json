@@ -1,0 +1,31 @@
+{
+  "type": "consent-conversions",
+  "key_classes": [
+    "anim",
+    "c0",
+    "c1",
+    "c2",
+    "c3",
+    "col-label",
+    "consent-box",
+    "consent-card",
+    "consent-chk",
+    "consent-foot",
+    "consent-hd",
+    "consent-txt",
+    "conv-card",
+    "conv-ctr",
+    "conv-dial",
+    "conv-dotlive",
+    "conv-hd",
+    "conv-live",
+    "conv-num",
+    "conv-p",
+    "conv-people",
+    "conv-prog",
+    "conv-track",
+    "cv-wrap"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use consent-conversions"
+}

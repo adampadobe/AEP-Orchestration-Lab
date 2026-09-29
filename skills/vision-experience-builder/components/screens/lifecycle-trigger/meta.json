@@ -1,0 +1,31 @@
+{
+  "type": "lifecycle-trigger",
+  "key_classes": [
+    "act",
+    "anim",
+    "bat",
+    "ch-email",
+    "ch-inapp",
+    "ch-push",
+    "col-label",
+    "dev",
+    "dot",
+    "eyebrow",
+    "f0",
+    "f1",
+    "f2",
+    "has-photo",
+    "lbl",
+    "narr",
+    "pcontent",
+    "pt-acct",
+    "pt-acct-l",
+    "pt-acct-n",
+    "pt-acct-s",
+    "pt-acct-tag",
+    "pt-badge",
+    "pt-badge-dot"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use lifecycle-trigger"
+}

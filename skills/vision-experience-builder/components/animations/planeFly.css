@@ -1,0 +1,3 @@
+/* animation: planeFly  (harvested from coventry-building-society) */
+/* triggered by: .sent .plane */
+@keyframes planeFly{ 0%{ offset-distance:0%; opacity:0; } 14%{ opacity:1; } 82%{ opacity:1; } 100%{ offset-distance:100%; opacity:0; } }

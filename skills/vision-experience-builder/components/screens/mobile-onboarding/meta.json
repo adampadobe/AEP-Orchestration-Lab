@@ -1,0 +1,31 @@
+{
+  "type": "mobile-onboarding",
+  "key_classes": [
+    "anim",
+    "app-body",
+    "app-phone",
+    "app-screen",
+    "app-ui",
+    "bar",
+    "bk",
+    "col-label",
+    "device",
+    "eyebrow",
+    "flight",
+    "has-photo",
+    "logo",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "plane",
+    "prog",
+    "screen",
+    "sent",
+    "slide",
+    "snum",
+    "ssub",
+    "stage"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use mobile-onboarding"
+}

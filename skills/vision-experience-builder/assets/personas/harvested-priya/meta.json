@@ -1,0 +1,30 @@
+{
+  "archetype": "priya",
+  "folder": "harvested-priya",
+  "tags": [
+    "marketing",
+    "marketing-manager",
+    "female",
+    "30s",
+    "south-asian",
+    "professional",
+    "smart-casual",
+    "b2b",
+    "finance",
+    "banking"
+  ],
+  "default_name": "Priya",
+  "default_role": "Marketing Manager",
+  "images": [
+    {
+      "file": "persona-priya.webp",
+      "role": "portrait"
+    }
+  ],
+  "default_pose": "persona-priya.webp",
+  "avatar": null,
+  "format": "webp",
+  "source": "coventry-bs",
+  "bg": "transparent",
+  "needs_cutout": false
+}

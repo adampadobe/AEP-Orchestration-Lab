@@ -1,0 +1,244 @@
+<!-- elements/value-dial.html - a generic live-number instrument: sliders the presenter (or
+     the audience) can move, outcomes that count up in place (from T2 of the interactive
+     backlog, 19 Jul 2026).
+
+     PROVENANCE: the Claude Design T2 pass was an ROI calculator; the ROI-pitch FRAME is
+     retired (we sell experience stories, not spreadsheet promises), but its mechanics were
+     worth keeping: the eased count-up engine, the filled-track sliders, clamped reads and the
+     honest assumptions accordion. Banked as a neutral instrument: ANY inputs, ANY math via
+     VDL_DATA.compute, so a deck can make one story number playable (minutes given back,
+     moments caught in time, orders rescued) without ever pitching revenue.
+
+     RESKIN CONTRACT: --brand/--brand-deep/--accent/--accent-lt/--ink/--grey/--soft/--line/
+     --ice + --brand-rgb/--accent-rgb. Every word, range and formula lives in VDL_DATA; the
+     sample below frames service time given back and is placeholder data, replace per deck.
+
+     API (no global key bindings ON PURPOSE: sliders answer arrow keys only while focused,
+     which is presenter-initiated; deck navigation stays free):
+       VDL.set(key, value)  - set an input by its data key (clamped) and recompute
+       VDL.reset()          - all inputs back to defaults, assumptions closed
+       VDL.values()         - current input values as {key: number}
+     One instance per stage (fixed ids). -->
+<style>
+  .vdl{width:980px; font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif;
+    color:var(--ink,#20222B); text-align:left;}
+  .vdl *{box-sizing:border-box; margin:0;}
+  .vdl-card{display:flex; gap:46px; background:#fff; border:1px solid var(--line,#E3E4EA);
+    border-radius:18px; padding:36px 42px 30px; box-shadow:0 2px 20px rgba(0,0,0,.06);}
+  .vdl-left{flex:none; width:400px;}
+  .vdl-title{font-size:25px; font-weight:800; letter-spacing:-.015em; line-height:1.2;
+    margin-bottom:26px;}
+  .vdl-field{margin-bottom:26px;}
+  .vdl-labelrow{display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:9px;}
+  .vdl-label{font-size:16px; font-weight:700;}
+  .vdl-val{font-size:19px; font-weight:800; color:var(--brand,#4C43D6);
+    font-variant-numeric:tabular-nums;}
+  .vdl input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:8px;
+    border-radius:999px; outline:none; cursor:pointer;
+    background:linear-gradient(to right, var(--brand,#4C43D6) 0 var(--fill,50%),
+      var(--line,#E3E4EA) var(--fill,50%) 100%);}
+  .vdl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none;
+    width:26px; height:26px; border-radius:50%; background:#fff;
+    border:4px solid var(--brand,#4C43D6);
+    box-shadow:0 2px 7px rgba(var(--brand-rgb,76,67,214),.30); transition:transform .16s ease;}
+  .vdl input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.08);}
+  .vdl input[type=range]::-moz-range-thumb{width:20px; height:20px; border-radius:50%;
+    background:#fff; border:4px solid var(--brand,#4C43D6);
+    box-shadow:0 2px 7px rgba(var(--brand-rgb,76,67,214),.30);}
+  .vdl-range{display:flex; justify-content:space-between; font-size:13px;
+    color:var(--grey,#6B6F7B); margin-top:6px;}
+  .vdl-reset{appearance:none; cursor:pointer; font:600 15px/1 inherit;
+    color:var(--grey,#6B6F7B); background:none; border:1px solid var(--line,#E3E4EA);
+    padding:11px 20px; border-radius:10px; margin-top:2px;
+    transition:color .18s ease, border-color .18s ease;}
+  .vdl-reset:hover{color:var(--ink,#20222B); border-color:var(--grey,#6B6F7B);}
+  .vdl-right{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .vdl-outlabel{font-size:14px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--grey,#6B6F7B);}
+  .vdl-primary{font-size:72px; font-weight:800; letter-spacing:-.03em; line-height:1.05;
+    color:var(--brand-deep,#2B2483); font-variant-numeric:tabular-nums; margin:8px 0 4px;}
+  .vdl-formula{font-size:15px; color:var(--grey,#6B6F7B);}
+  .vdl-secrow{display:flex; gap:44px; margin:30px 0 26px;}
+  .vdl-sec .vdl-outlabel{font-size:12px;}
+  .vdl-secval{font-size:33px; font-weight:800; letter-spacing:-.02em; color:var(--ink,#20222B);
+    font-variant-numeric:tabular-nums; margin-top:4px;}
+  .vdl-assume{border-top:1px solid var(--line,#E3E4EA); padding-top:14px; margin-top:auto;}
+  .vdl-assumebtn{appearance:none; background:none; border:none; cursor:pointer; font:inherit;
+    font-size:15px; font-weight:700; color:var(--grey,#6B6F7B); display:flex;
+    align-items:center; gap:8px; padding:3px 0; transition:color .16s ease;}
+  .vdl-assumebtn:hover{color:var(--ink,#20222B);}
+  .vdl-assumebtn svg{transition:transform .2s ease;}
+  .vdl-assume.open .vdl-assumebtn svg{transform:rotate(90deg);}
+  .vdl-assumelist{display:none; margin:10px 0 0; padding:0 0 0 18px; font-size:14px;
+    line-height:1.65; color:var(--grey,#6B6F7B);}
+  .vdl-assume.open .vdl-assumelist{display:block;}
+</style>
+
+<div class="vdl" id="vdl">
+  <div class="vdl-card">
+    <div class="vdl-left">
+      <div class="vdl-title" id="vdlTitle"></div>
+      <div id="vdlFields"></div>
+      <button class="vdl-reset" id="vdlReset">Reset to defaults</button>
+    </div>
+    <div class="vdl-right">
+      <div>
+        <div class="vdl-outlabel" id="vdlPrimaryLabel"></div>
+        <div class="vdl-primary" id="vdlPrimary"></div>
+        <div class="vdl-formula" id="vdlFormula"></div>
+      </div>
+      <div class="vdl-secrow" id="vdlSecs"></div>
+      <div class="vdl-assume" id="vdlAssume">
+        <button class="vdl-assumebtn" id="vdlAssumeBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+          Assumptions
+        </button>
+        <ul class="vdl-assumelist" id="vdlAssumeList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function fmtInt(n){ return Math.round(n).toLocaleString("en-US"); }
+
+  /* ============ DATA: every word, range and formula lives here ============ */
+  var VDL_DATA = {
+    title: "What answering in the moment gives back",
+    inputs: [
+      { key: "conversations", label: "Conversations each month",
+        min: 20000, max: 2000000, step: 20000, def: 400000, fmt: fmtInt },
+      { key: "instant", label: "Answered in the moment",
+        min: 10, max: 90, step: 5, def: 55, fmt: function(v){ return v + "%"; } },
+      { key: "minutes", label: "Minutes saved per conversation",
+        min: 1, max: 12, step: 1, def: 4, fmt: function(v){ return v + " min"; } }
+    ],
+    outputs: [
+      { key: "hours", label: "Hours given back, each month", primary: true, fmt: fmtInt },
+      { key: "handled", label: "Handled instantly, each month", fmt: fmtInt },
+      { key: "helped", label: "Helped in the moment, each year", fmt: fmtInt }
+    ],
+    compute: function(v){
+      var handled = v.conversations * v.instant / 100;
+      return { hours: handled * v.minutes / 60, handled: handled, helped: handled * 12 };
+    },
+    formulaNote: "share answered x conversations x minutes saved, each month",
+    assumptions: [
+      "Share answered in the moment applies across all conversations, no seasonality",
+      "Minutes saved counts handle time only, not the follow-ups avoided",
+      "Sample data: swap in the customer's own volumes before presenting"
+    ],
+    countMs: 280
+  };
+  /* ======================================================================== */
+
+  var fieldsEl = document.getElementById("vdlFields");
+  document.getElementById("vdlTitle").textContent = VDL_DATA.title;
+  document.getElementById("vdlFormula").textContent = VDL_DATA.formulaNote;
+  fieldsEl.innerHTML = VDL_DATA.inputs.map(function(inp){
+    return '<div class="vdl-field">' +
+      '<div class="vdl-labelrow"><label class="vdl-label" for="vdlIn-' + inp.key + '">' + inp.label + '</label>' +
+      '<span class="vdl-val" id="vdlVal-' + inp.key + '"></span></div>' +
+      '<input type="range" id="vdlIn-' + inp.key + '" min="' + inp.min + '" max="' + inp.max +
+        '" step="' + inp.step + '" value="' + inp.def + '">' +
+      '<div class="vdl-range"><span>' + inp.fmt(inp.min) + '</span><span>' + inp.fmt(inp.max) + '</span></div>' +
+    '</div>';
+  }).join("");
+
+  var primaryOut = null, secOuts = [];
+  VDL_DATA.outputs.forEach(function(o){ if (o.primary && !primaryOut) primaryOut = o; else secOuts.push(o); });
+  document.getElementById("vdlPrimaryLabel").textContent = primaryOut.label;
+  document.getElementById("vdlSecs").innerHTML = secOuts.map(function(o){
+    return '<div class="vdl-sec"><div class="vdl-outlabel">' + o.label + '</div>' +
+      '<div class="vdl-secval" id="vdlOut-' + o.key + '"></div></div>';
+  }).join("");
+
+  var assumeEl = document.getElementById("vdlAssume");
+  if (VDL_DATA.assumptions.length){
+    document.getElementById("vdlAssumeList").innerHTML =
+      VDL_DATA.assumptions.map(function(a){ return "<li>" + a + "</li>"; }).join("");
+  } else { assumeEl.style.display = "none"; }
+
+  function inputEl(key){ return document.getElementById("vdlIn-" + key); }
+  function readClamped(inp){
+    var v = parseFloat(inputEl(inp.key).value);
+    if (!isFinite(v)) v = inp.def;
+    return Math.max(inp.min, Math.min(inp.max, v));
+  }
+
+  /* eased count toward each new target, cancelling any run in flight */
+  var anims = {};
+  function countTo(el, target, fmt){
+    var from = anims[el.id] != null ? anims[el.id] : target;
+    var start = performance.now();
+    anims[el.id] = target;
+    if (el._raf) cancelAnimationFrame(el._raf);
+    function frame(now){
+      var t = Math.min(1, (now - start) / VDL_DATA.countMs);
+      var eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = fmt(from + (target - from) * eased);
+      if (t < 1) el._raf = requestAnimationFrame(frame);
+    }
+    el._raf = requestAnimationFrame(frame);
+  }
+
+  function currentValues(){
+    var v = {};
+    VDL_DATA.inputs.forEach(function(inp){ v[inp.key] = readClamped(inp); });
+    return v;
+  }
+
+  function update(){
+    var v = currentValues();
+    VDL_DATA.inputs.forEach(function(inp){
+      document.getElementById("vdlVal-" + inp.key).textContent = inp.fmt(v[inp.key]);
+      inputEl(inp.key).style.setProperty("--fill",
+        ((v[inp.key] - inp.min) / (inp.max - inp.min) * 100) + "%");
+    });
+    var out = VDL_DATA.compute(v);
+    countTo(document.getElementById("vdlPrimary"), out[primaryOut.key], primaryOut.fmt);
+    secOuts.forEach(function(o){
+      countTo(document.getElementById("vdlOut-" + o.key), out[o.key], o.fmt);
+    });
+  }
+
+  VDL_DATA.inputs.forEach(function(inp){
+    inputEl(inp.key).addEventListener("input", update);
+  });
+  document.getElementById("vdlReset").addEventListener("click", function(){
+    VDL_DATA.inputs.forEach(function(inp){ inputEl(inp.key).value = inp.def; });
+    assumeEl.classList.remove("open");
+    update();
+  });
+  document.getElementById("vdlAssumeBtn").addEventListener("click", function(){
+    assumeEl.classList.toggle("open");
+  });
+
+  window.VDL = {
+    set: function(key, value){
+      var el = inputEl(key);
+      if (el) { el.value = value; update(); }
+    },
+    reset: function(){
+      VDL_DATA.inputs.forEach(function(inp){ inputEl(inp.key).value = inp.def; });
+      assumeEl.classList.remove("open");
+      update();
+    },
+    values: currentValues
+  };
+
+  update();
+})();
+</script>
+<!-- TESTS:
+1. Initial: #vdlIn-conversations value "400000", #vdlVal-conversations "400,000"; #vdlIn-instant "55" showing "55%"; #vdlIn-minutes "4" showing "4 min".
+2. Initial primary settles within 400ms to "14,667" (400,000 x 55% x 4 min / 60); #vdlOut-handled reads "220,000" and #vdlOut-helped "2,640,000".
+3. VDL.set("minutes", 8): within 400ms #vdlPrimary reads "29,333" (double the minutes, double the hours, same rounding rules).
+4. VDL.set("conversations", 99999999): the range input clamps at 2,000,000; #vdlVal-conversations "2,000,000"; no output ever shows "NaN" or a negative.
+5. Click #vdlAssumeBtn: #vdlAssume gains class "open" and #vdlAssumeList shows 3 items; clicking again closes it.
+6. VDL.reset() after changes: all sliders back to 400000 / 55 / 4, assumptions closed, primary settles back to "14,667".
+7. Pressing ArrowRight or ArrowLeft with nothing focused changes NOTHING (sliders answer arrows only when the presenter has focused one).
+8. Token uptake: with host tokens set, the slider filled track and thumb border resolve to the host --brand, and #vdlPrimary colour resolves to --brand-deep.
+-->

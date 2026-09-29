@@ -1,0 +1,31 @@
+{
+  "type": "propensity-gauges",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a4",
+    "adobe-foot",
+    "av",
+    "cu",
+    "fp",
+    "gauge",
+    "gnum",
+    "htitle",
+    "k",
+    "knows",
+    "lab",
+    "mgt",
+    "mvp-pill",
+    "narr",
+    "nm",
+    "numdisc",
+    "on",
+    "panel",
+    "persona",
+    "post",
+    "row",
+    "score"
+  ],
+  "source": "po-cruises",
+  "description": "Radial gauges counting up to propensity / score %s."
+}

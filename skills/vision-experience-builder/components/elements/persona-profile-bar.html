@@ -1,0 +1,29 @@
+<!--
+  component: persona-profile-bar
+  Sticky bottom-right "growing guest profile" — small chip row that adds a
+  new gold-bordered pill as each new fact about the persona is captured by
+  AEP. Shown across multiple scenes so the audience watches the profile
+  thicken in real-time.
+
+  Each .pp is a static fact; the most-recent one carries `.pp.np` (new
+  pulse) and pops in at +.7s.
+
+  Slot:
+    .plab   leading label (e.g. "SARAH'S GUEST PROFILE")
+    .pp     a captured fact ("Profile created" / "Med interest" / "Balcony · Arvia")
+    .pp.np  the newest fact to highlight this slide
+-->
+<style>
+.profilebar{position:fixed;left:930px;bottom:40px;width:800px;display:flex;align-items:center;gap:9px;z-index:6;flex-wrap:wrap;}
+.profilebar .plab{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-right:2px;}
+.profilebar .pp{font-size:15px;font-weight:600;color:var(--navy);background:#EEF2F8;border:1px solid var(--line);padding:6px 13px;border-radius:999px;white-space:nowrap;}
+.profilebar .pp.np{background:linear-gradient(120deg,#FBF3DD,#fff);border-color:var(--gold);color:#8a6c25;}
+.slide.active .profilebar .pp.np{animation:pop .55s .7s both cubic-bezier(.22,1,.36,1);}
+</style>
+
+<div class="profilebar">
+  <span class="plab">SARAH&rsquo;S GUEST PROFILE</span>
+  <div class="pp">Profile created</div>
+  <div class="pp">Med interest</div>
+  <div class="pp np">Balcony &middot; Arvia</div>
+</div>

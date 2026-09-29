@@ -1,0 +1,184 @@
+<!-- template: data-reveal  (standalone drop-in slide, harvested from po-cruises; rebrand via :root tokens) -->
+<style>
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;
+  pointer-events:none;transition:opacity .5s ease;}
+.slide.active{visibility:visible;opacity:1;pointer-events:auto;z-index:1;}
+.mvp-pill{position:absolute;top:54px;right:64px;z-index:8;font-size:16px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:#fff;background:var(--gold);padding:9px 22px;border-radius:999px;box-shadow:0 6px 18px rgba(176,144,59,.35);}
+.mvp-pill.post{background:var(--navy);box-shadow:0 6px 18px rgba(23,58,135,.32);}
+.mvp-pill.live::after{content:" · LIVE";color:#CFF6DD;}
+.stagebar{position:absolute;left:120px;bottom:60px;display:flex;gap:10px;z-index:6;}
+.stagebar .st{font-size:15px;font-weight:600;color:var(--soft);background:#EEF1F7;border:1px solid var(--line);padding:8px 20px;border-radius:8px;}
+.stagebar .st.on{color:#fff;background:var(--navy);border-color:var(--navy);}
+.persona{position:absolute;left:120px;bottom:120px;display:flex;align-items:center;gap:14px;z-index:6;}
+.persona .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:19px;
+  background:linear-gradient(150deg,var(--navy),var(--navy-deep));box-shadow:0 4px 12px rgba(14,42,94,.3);}
+.persona .av.gold{background:linear-gradient(150deg,var(--gold-lt),var(--gold));}
+.persona .nm{font-size:19px;font-weight:600;color:var(--ink);}
+.adobe-foot{position:absolute;right:60px;bottom:58px;height:26px;z-index:6;opacity:.9;}
+.adobe-foot img{height:100%;display:block;}
+.numdisc{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:30px;font-weight:700;
+  background:linear-gradient(150deg,var(--gold-lt),var(--gold));box-shadow:0 8px 20px rgba(176,144,59,.4);}
+.slide.active .a1{animation:rise .7s .10s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a2{animation:rise .7s .22s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a3{animation:rise .7s .34s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a4{animation:rise .7s .46s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a5{animation:rise .7s .58s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a6{animation:rise .7s .70s both cubic-bezier(.22,1,.36,1);}
+.slide.active .fp{animation:fade .9s .2s both;}
+.slide.active .pp{animation:pop .6s .5s both cubic-bezier(.22,1,.36,1);}
+/* ===== story (left column) ===== */
+.story{position:absolute;left:120px;top:108px;width:710px;z-index:5;}
+.story .htitle{font-size:58px;font-weight:700;color:var(--navy);line-height:1.02;margin:20px 0 20px;letter-spacing:-.01em;}
+.story .narr{font-size:24px;line-height:1.5;color:var(--grey);margin:0 0 20px;}
+.hero-fig{font-size:72px;font-weight:300;color:var(--navy);margin:0 0 8px;letter-spacing:-.01em;}
+.quote{border-left:4px solid var(--gold);background:#FBF7EE;padding:15px 22px;border-radius:0 10px 10px 0;font-size:22px;font-style:italic;color:var(--navy);margin:0 0 22px;}
+.emma-lab{font-size:15px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--red);margin:0 0 8px;}
+.prodcard{background:#EEF2F8;border:1px solid var(--line);border-radius:12px;padding:15px 20px;font-size:19px;line-height:1.45;color:var(--ink);margin:0 0 20px;}
+.takeaway{border-left:4px solid var(--navy);padding:6px 0 6px 18px;font-size:21px;font-weight:700;color:var(--navy);line-height:1.4;}
+.foot-note{position:absolute;left:120px;bottom:188px;font-size:14px;letter-spacing:.06em;color:var(--soft);}
+/* ===== screen (right pane) ===== */
+.screen{position:absolute;right:90px;top:118px;width:940px;height:846px;z-index:4;}
+/* dark data card (reveal + stitch) */
+.datacard{width:100%;height:100%;background:linear-gradient(160deg,#163566,#0E2247 70%,#0a1c3d);border-radius:18px;box-shadow:0 34px 80px rgba(10,28,61,.45);padding:54px 56px;color:#fff;position:relative;overflow:hidden;}
+.datacard .gleam{position:absolute;inset:0;background:radial-gradient(ellipse at 80% 0%,rgba(176,144,59,.20),transparent 55%);}
+.chain{display:flex;justify-content:space-between;align-items:flex-start;position:relative;margin-bottom:46px;}
+.chain:before{content:"";position:absolute;left:24px;right:24px;top:27px;height:2px;background:rgba(255,255,255,.18);}
+.node{display:flex;flex-direction:column;align-items:center;gap:10px;width:96px;position:relative;z-index:2;}
+.node .disc{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;}
+.node.key .disc{background:var(--gold);border-color:var(--gold-lt);box-shadow:0 0 0 6px rgba(176,144,59,.22);}
+.node .disc svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;}
+.node .lb{font-size:13px;color:rgba(255,255,255,.78);text-align:center;}
+.tar{font-size:17px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-lt);margin-bottom:6px;}
+.big{font-size:148px;font-weight:300;line-height:.9;letter-spacing:-.02em;margin:0;}
+.subrev{display:flex;gap:70px;margin-top:30px;}
+.subrev .k{font-size:17px;color:rgba(255,255,255,.7);}
+.subrev .v{font-size:40px;font-weight:600;}
+.knows{display:flex;flex-direction:column;gap:14px;margin-bottom:30px;}
+.knows .row{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:12px;font-size:21px;}
+.knows .row .k{color:var(--grey);}
+.knows .row .v{color:var(--ink);font-weight:700;}
+/* exec dashboard tiles */
+.kpigrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;height:100%;}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 28px;box-shadow:0 14px 34px rgba(16,32,70,.08);display:flex;flex-direction:column;justify-content:center;}
+.kpi .v{font-size:50px;font-weight:300;color:var(--navy);line-height:1;}
+.kpi .l{font-size:18px;color:var(--grey);margin-top:10px;line-height:1.35;}
+.kpi.dark{background:linear-gradient(160deg,#163566,#0E2247);border:0;}
+.kpi.dark .v{color:#fff;}
+.kpi.dark .l{color:rgba(255,255,255,.75);}
+.kpi .spark{height:36px;margin-top:14px;}
+.av.emma{background:#0E2A5E url('persona-teresa-av.jpg?v=2') center/cover;color:transparent;}
+.pcard .av.emma{background:#0E2A5E url('persona-teresa-av.jpg?v=2') center/cover;color:transparent;}
+.pcard .av{width:104px;height:104px;border-radius:50%;margin:0 auto 20px;display:grid;place-items:center;color:#fff;font-size:46px;font-weight:300;background:linear-gradient(150deg,var(--navy),var(--navy-deep));}
+.pcard .av.g{background:linear-gradient(150deg,var(--gold-lt),var(--gold));}
+.pcard .nm{font-size:30px;font-weight:700;color:var(--ink);}
+.tg.post{background:#E7ECF5;color:var(--navy);}
+.slide.active .jpath{animation:draw 2.4s .3s ease forwards;}
+.slide.active .jnode{animation:pop .6s both cubic-bezier(.22,1,.36,1);}
+.jnode .disc{position:absolute;left:-42px;top:-42px;width:84px;height:84px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.jnode .disc svg{width:38px;height:38px;stroke:var(--navy);fill:none;stroke-width:1.7;}
+.jnode.key .disc{background:var(--gold);}
+.jnode.key .disc svg{stroke:#fff;}
+.closing .big{font-size:120px;font-weight:300;color:var(--navy);margin:0 0 10px;}
+/* reveal touchpoint chain — light up in sequence, phone pulses */
+.slide.active .datacard .node{animation:pop .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .datacard .node:nth-child(1){animation-delay:.15s;}
+.slide.active .datacard .node:nth-child(2){animation-delay:.30s;}
+.slide.active .datacard .node:nth-child(3){animation-delay:.45s;}
+.slide.active .datacard .node:nth-child(4){animation-delay:.60s;}
+.slide.active .datacard .node:nth-child(5){animation-delay:.75s;}
+.slide.active .datacard .node:nth-child(6){animation-delay:.90s;}
+.slide.active .datacard .node:nth-child(7){animation-delay:1.05s;}
+.slide.active .datacard .node.key .disc{animation:keypulse 2.2s 1.5s ease-in-out infinite;}
+.slide.active .jship{animation:sail 2.4s .35s ease forwards;}
+/* Sarah's growing guest profile bar */
+.profilebar{position:fixed;left:930px;bottom:40px;width:800px;display:flex;align-items:center;gap:9px;z-index:6;flex-wrap:wrap;}
+.profilebar .plab{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-right:2px;}
+.profilebar .pp{font-size:15px;font-weight:600;color:var(--navy);background:#EEF2F8;border:1px solid var(--line);padding:6px 13px;border-radius:999px;white-space:nowrap;}
+.profilebar .pp.np{background:linear-gradient(120deg,#FBF3DD,#fff);border-color:var(--gold);color:#8a6c25;}
+.slide.active .profilebar .pp.np{animation:pop .55s .7s both cubic-bezier(.22,1,.36,1);}
+.gauge .val{fill:none;stroke:var(--navy);stroke-width:11;stroke-linecap:round;stroke-dasharray:326.7;stroke-dashoffset:326.7;transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1);}
+/* AJO offer ranking settle */
+.slide.active .offer{animation:rise .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .offer:nth-child(3){animation-delay:.15s;}
+.slide.active .offer:nth-child(2){animation-delay:.35s;}
+.slide.active .offer:nth-child(1){animation-delay:.55s;}
+.slide.active .offer.top .badge{animation:pop .5s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .email-toast{animation:toast-in .6s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .call-card .cc-end{animation:callring 1.4s .6s ease-out infinite;}
+.slide.active .confirmed-card{animation:pop .6s 1.9s both cubic-bezier(.22,1,.36,1);}
+.stitch{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 16px;}
+.stitch .src{flex:0 0 auto;width:104px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:13px 6px;text-align:center;}
+.stitch .src .dot{width:9px;height:9px;border-radius:50%;background:var(--gold-lt);margin:0 auto 8px;}
+.stitch .src .lb{font-size:13px;color:rgba(255,255,255,.85);font-weight:600;}
+.stitch .arw{color:var(--gold-lt);font-size:30px;flex:0 0 auto;}
+.stitch .unified{flex:0 0 auto;background:linear-gradient(160deg,rgba(176,144,59,.32),rgba(176,144,59,.06));border:1px solid var(--gold-lt);border-radius:12px;padding:14px 16px;text-align:center;color:#fff;min-width:120px;}
+.stitch .unified b{font-size:15px;display:block;}
+.stitch .unified span{font-size:12px;color:rgba(255,255,255,.7);}
+.slide.active .stitch .src{animation:piece-in .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .stitch .src:nth-child(1){animation-delay:.2s;}
+.slide.active .stitch .src:nth-child(2){animation-delay:.36s;}
+.slide.active .stitch .src:nth-child(3){animation-delay:.52s;}
+.slide.active .stitch .src:nth-child(4){animation-delay:.68s;}
+.slide.active .stitch .arw{animation:fade .5s .95s both;}
+.slide.active .stitch .unified{animation:pop .55s 1.15s both cubic-bezier(.22,1,.36,1);}
+.ba .bx .k{font-size:13px;color:rgba(255,255,255,.6);display:block;}
+.ba .bx .v{font-size:42px;font-weight:300;color:#fff;line-height:1;}
+.cja-inset{border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.18);background:#fff;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.cja-inset .ci-bar{background:#0b1f3f;color:rgba(255,255,255,.85);font-size:12px;padding:7px 13px;letter-spacing:.05em;display:flex;align-items:center;gap:8px;}
+.cja-inset .ci-bar .pulse{width:8px;height:8px;border-radius:50%;background:#28c840;}
+.cja-inset img{width:100%;display:block;}
+.slide.active .cja-inset{animation:rise .7s 1.5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-eye{animation:fade .8s .2s both;}
+.slide.active .tslide .t-big{animation:rise .9s .35s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-rule{animation:t-rule-in .7s .9s both;}
+.slide.active .tslide .t-sub{animation:rise .8s 1.05s both cubic-bezier(.22,1,.36,1);}
+.slide.active .closing-win{animation:win-close 1.5s 1.2s forwards cubic-bezier(.5,0,.75,0);}
+.slide.active .abandon-card{animation:fade .8s 2.6s both;}
+.slide.active .bbar .u.typed{animation:typeurl 1.0s .5s steps(13) forwards, caretblink .7s .5s 4 step-end;}
+.ph-notif .np{font-size:12px;color:#5B6573;line-height:1.35;}
+.slide.active .ph-notif{animation:rise .6s .9s both cubic-bezier(.22,1,.36,1);}
+.slide.active .ph-email{animation:fade .55s 2.5s both;}
+.ph-email .efrm .who .nm{font-size:14px;font-weight:800;color:#15203A;display:flex;align-items:center;gap:6px;}
+.ph-email .efrm .rt .star svg{width:18px;height:18px;fill:none;stroke:#C9CFDA;stroke-width:2;}
+.slide.active .ph-call{animation:tapnum 1.3s 3.9s ease both;}
+.slide.dark-counter ~ .counter{color:rgba(255,255,255,.6);}
+.av.sarah{background:#0E2A5E url("persona-sarah.jpg") center top/cover;color:transparent;}
+.av.mgt{background:#0E2A5E url("persona-margaret.jpg") center top/cover;color:transparent;}
+.pcard .av.sarah{background:#0E2A5E url("persona-sarah.jpg") center top/cover;color:transparent;}
+.pcard .av.mgt{background:#0E2A5E url("persona-margaret.jpg") center top/cover;color:transparent;}
+</style>
+<section class="slide">
+    <div class="mvp-pill post">POST-MVP</div>
+    <div class="story">
+      <div class="numdisc a1">4</div>
+      <h2 class="htitle a1">The channels come together</h2>
+      <div class="profilebar"><span class="plab">Sarah's guest profile</span><span class="pp">£5,240 basket</span><span class="pp np">£5,329 booked · phone</span></div>
+      <p class="narr a2">Customer Journey Analytics unifies digital and contact-centre data into a single customer view, attributing this phone booking back to the digital touchpoints that drove it. Marketing’s contribution to revenue is finally measurable end-to-end.</p>
+      <p class="hero-fig a3"><span class="cu" data-to="5329" data-pre="£">£0</span></p>
+      <p class="quote a3">The web saw £0. The call centre saw £5,329. CJA sees one journey.</p>
+      <p class="emma-lab a4">Teresa's screen</p>
+      <div class="prodcard a4">CJA — Phone booking stitched back via identity graph. Abandoned basket reclassified as recovered conversion.</div>
+      <p class="takeaway a5">Phone bookings are attributed to digital touchpoints. The recovery journey is proven.</p>
+    </div>
+    <div class="screen fp"><div class="datacard"><div class="gleam"></div>
+      <div class="chain">
+        <div class="node"><div class="disc"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg></div><div class="lb">Instagram</div></div>
+        <div class="node"><div class="disc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><div class="lb">Browse</div></div>
+        <div class="node"><div class="disc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="#fff" stroke="none"/></svg></div><div class="lb">Personalise</div></div>
+        <div class="node"><div class="disc"><svg viewBox="0 0 24 24"><path d="M5 7h14l-1.5 11H6.5z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></div><div class="lb">Basket</div></div>
+        <div class="node"><div class="disc"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 7l9 7 9-7"/></svg></div><div class="lb">Recovery</div></div>
+        <div class="node key"><div class="disc"><svg viewBox="0 0 24 24"><path d="M6 3c2 0 3 4 3 6l-2 2c1 2 4 5 6 6l2-2c2 0 6 1 6 3v3c0 1-1 2-3 2C9 23 1 15 1 6 1 4 2 3 3 3z" fill="#fff" stroke="none"/></svg></div><div class="lb">Phone</div></div>
+      </div>
+      <div class="pp"><div class="tar">Cruise booking &mdash; attributed</div><p class="big"><span class="cu" data-to="5329" data-pre="£" data-delay="1100">£0</span></p>
+        <div class="subrev"><div><div class="k">Cruise · booked by phone</div><div class="v"><span class="cu" data-to="5329" data-pre="£" data-delay="1400">£0</span></div></div><div><div class="k">Previously visible</div><div class="v">£0</div></div></div></div>
+      <div class="cja-inset" style="margin-top:14px;">
+        <div class="ci-bar"><span class="pulse"></span>CJA · Most Popular Paths · Live MVP data</div>
+        <img src="cja-sankey.png" alt="CJA Most Popular Paths" style="width:100%;height:332px;object-fit:contain;background:#fff;border-radius:8px;">
+      </div>
+    </div></div>
+    <div class="foot-note">CJA | P&amp;O Cruises | Key Metrics Dashboard | Live MVP Data</div>
+    <div class="persona"><div class="av emma"></div><div class="nm">Teresa</div></div>
+    <div class="stagebar"><span class="st on">Discovery</span><span class="st on">Consideration</span><span class="st on">Purchase</span><span class="st">Post-Purchase</span></div>
+    <div class="adobe-foot"><img src="adobe-wordmark-red.svg" alt="Adobe"></div>
+  </section>

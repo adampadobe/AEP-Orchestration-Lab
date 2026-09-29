@@ -1,0 +1,28 @@
+<!--
+  component: cja-data-inset
+  Dark card with a "live data" status bar + a content image (CJA report
+  screenshot, Analytics dashboard, sankey, etc.). Use to ground a story
+  moment in real platform data behind the scenes.
+
+  CRITICAL: the image uses `width:100%` + auto height (`object-fit:contain`
+  in effect) — NEVER swap to `cover`, that crops the content image. The
+  P&O CJA sankey was cropped twice before this fix; the SC noticed both
+  times. See imagery-and-assets.md §3.
+
+  Slots:
+    DATA_SOURCE   e.g. "CJA · Most Popular Paths · Live MVP data"
+    IMG_SRC       the screenshot/sankey/chart file path
+    IMG_ALT
+-->
+<style>
+.cja-inset{border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.18);background:#fff;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.cja-inset .ci-bar{background:#0b1f3f;color:rgba(255,255,255,.85);font-size:12px;padding:7px 13px;letter-spacing:.05em;display:flex;align-items:center;gap:8px;}
+.cja-inset .ci-bar .pulse{width:8px;height:8px;border-radius:50%;background:#28c840;animation:livep 1.8s ease-out infinite;}
+.cja-inset img{width:100%;display:block;}  /* contain — never cover */
+.slide.active .cja-inset{animation:rise .7s 1.5s both cubic-bezier(.22,1,.36,1);}
+</style>
+
+<div class="cja-inset">
+  <div class="ci-bar"><span class="pulse"></span>DATA_SOURCE</div>
+  <img src="IMG_SRC" alt="IMG_ALT">
+</div>

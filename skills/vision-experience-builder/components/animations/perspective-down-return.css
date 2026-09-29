@@ -1,0 +1,16 @@
+/* perspective-down-return — entrance (entrance, up, showy, device, card, photo)
+   Clean bottom-hinged 3D swing-up into place (flipped-flat to upright, no bounce) — a composed 'screen stands up' reveal for device/dashboard frames; the tastiest of the perspective set.
+   Source: magic (miniMAC/magic), MIT — LICENSE copy in vendor/magic-css/ (opacity frames added for our hidden-base convention).
+   SHOWY: use sparingly — one per slide, on the hero element. Stagger via --d. */
+@keyframes perspectiveDownReturn {
+  0% {opacity:0;
+    transform-origin: 0 100%;
+    transform: perspective(800px) rotateX(-180deg);
+  }
+  100% {opacity:1;
+    transform-origin: 0 100%;
+    transform: perspective(800px) rotateX(0deg);
+  }
+}
+.perspective-down-return{opacity:0;}
+.slide.active .perspective-down-return{animation:perspectiveDownReturn .9s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}

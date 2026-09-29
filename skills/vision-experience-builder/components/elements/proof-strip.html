@@ -1,0 +1,105 @@
+<!-- elements/proof-strip.html - the closing-slide outcomes row: a strip of stat tiles whose
+     numbers count up when they come into view (banked 19 Jul 2026).
+
+     PROVENANCE: extracted from the field guide's library stat tiles (the count-up pattern
+     every deck was rebuilding by hand for its proof slide).
+
+     PROOF IS NEVER INVENTED: the numbers below are PLACEHOLDER SHAPES ONLY. Before a deck
+     ships, every value must be replaced with the customer's own case numbers or a cited
+     benchmark; if there is no honest number, cut the tile rather than keep the placeholder.
+
+     RESKIN CONTRACT: --brand-deep (number), --ink/--grey/--line + the usual set. All values
+     and labels live in PFS_DATA.
+
+     API (no global key bindings; the strip also self-plays once via IntersectionObserver when
+     40 percent visible):
+       PFS.play()   - run the count-up now (safe to call again after reset)
+       PFS.reset()  - zero the tiles and re-arm
+     One instance per stage (fixed ids). -->
+<style>
+  .pfs{display:flex; gap:18px; width:940px;
+    font-family:'Adobe Clean','Source Sans 3',system-ui,sans-serif; color:var(--ink,#20222B);
+    text-align:left;}
+  .pfs *{box-sizing:border-box; margin:0;}
+  .pfs-tile{flex:1; background:#fff; border:1px solid var(--line,#E3E4EA); border-radius:14px;
+    padding:22px 24px 20px; box-shadow:0 2px 14px rgba(0,0,0,.05);}
+  .pfs-num{font-size:44px; font-weight:800; letter-spacing:-.025em; line-height:1;
+    color:var(--brand-deep,#2B2483); font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .pfs-suffix{font-size:26px; font-weight:800; margin-left:2px;}
+  .pfs-label{font-size:14px; font-weight:600; color:var(--grey,#6B6F7B); line-height:1.35;
+    margin-top:8px;}
+</style>
+
+<div class="pfs" id="pfs"></div>
+
+<script>
+(function(){
+  /* ==== DATA: placeholder shapes, replace with customer-true numbers ==== */
+  var PFS_DATA = {
+    countMs: 900,
+    stats: [
+      { value: 38, suffix: "%", label: "More repeat visits in 90 days" },
+      { value: 4.2, decimals: 1, suffix: "x", label: "Faster to first reply" },
+      { value: 92, suffix: "%", label: "Served without a queue" },
+      { value: 6, suffix: " wks", label: "From idea to live" }
+    ]
+  };
+  /* ====================================================================== */
+
+  function fmt(n, s){
+    return s.decimals ? n.toFixed(s.decimals) : Math.round(n).toLocaleString("en-US");
+  }
+
+  var root = document.getElementById("pfs");
+  root.innerHTML = PFS_DATA.stats.map(function(s, i){
+    return '<div class="pfs-tile">' +
+      '<div class="pfs-num"><span id="pfsNum' + (i + 1) + '">' + fmt(0, s) + '</span>' +
+      '<span class="pfs-suffix">' + s.suffix + '</span></div>' +
+      '<div class="pfs-label">' + s.label + '</div>' +
+    '</div>';
+  }).join("");
+
+  var rafs = [], played = false;
+  function play(){
+    played = true;
+    rafs.forEach(function(r){ cancelAnimationFrame(r); });
+    rafs = [];
+    PFS_DATA.stats.forEach(function(s, i){
+      var el = document.getElementById("pfsNum" + (i + 1));
+      var start = performance.now();
+      function frame(now){
+        var t = Math.min(1, (now - start) / PFS_DATA.countMs);
+        var eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = fmt(s.value * eased, s);
+        if (t < 1) rafs[i] = requestAnimationFrame(frame);
+      }
+      rafs[i] = requestAnimationFrame(frame);
+    });
+  }
+  function reset(){
+    rafs.forEach(function(r){ cancelAnimationFrame(r); });
+    rafs = [];
+    played = false;
+    PFS_DATA.stats.forEach(function(s, i){
+      document.getElementById("pfsNum" + (i + 1)).textContent = fmt(0, s);
+    });
+  }
+
+  if ("IntersectionObserver" in window){
+    new IntersectionObserver(function(entries, obs){
+      entries.forEach(function(e){
+        if (e.isIntersecting && !played){ play(); obs.disconnect(); }
+      });
+    }, { threshold: .4 }).observe(root);
+  } else { play(); }
+
+  window.PFS = { play: play, reset: reset };
+})();
+</script>
+<!-- TESTS:
+1. Renders 4 .pfs-tile elements; before any play, #pfsNum1 reads "0" and #pfsNum2 reads "0.0".
+2. When 40 percent of #pfs enters the viewport it self-plays once: within 1.2s #pfsNum1 "38", #pfsNum2 "4.2", #pfsNum3 "92", #pfsNum4 "6".
+3. PFS.reset() zeroes all four (decimal tile back to "0.0"); PFS.play() runs the count again to the same settled values.
+4. Pressing ArrowRight or ArrowLeft changes NOTHING (no key bindings).
+5. Token uptake: with host tokens set, .pfs-num colour resolves to the host --brand-deep.
+-->

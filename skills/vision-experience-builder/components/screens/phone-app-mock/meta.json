@@ -1,0 +1,21 @@
+{
+  "type": "phone-app-mock",
+  "key_classes": [
+    "anim",
+    "col-label",
+    "eyebrow",
+    "has-photo",
+    "narr",
+    "pcontent",
+    "phone-frame",
+    "phone-heart",
+    "phone-mock",
+    "photo-panel",
+    "slide",
+    "snum",
+    "stage",
+    "stage-head"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use phone-app-mock"
+}

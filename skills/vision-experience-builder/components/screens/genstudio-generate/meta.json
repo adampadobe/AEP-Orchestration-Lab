@@ -1,0 +1,31 @@
+{
+  "type": "genstudio-generate",
+  "key_classes": [
+    "a0",
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "anim",
+    "aud-av",
+    "aud-chip",
+    "aud-count",
+    "aud-foot",
+    "aud-grid",
+    "aud-hd",
+    "aud-panel",
+    "col-label",
+    "eyebrow",
+    "gen-acts",
+    "gen-bd",
+    "gen-box",
+    "gen-btn",
+    "gen-cancel",
+    "gen-card",
+    "gen-caret",
+    "gen-chd",
+    "gen-chk"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use genstudio-generate"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "experience-design-chain",
+  "version": "1.0.0",
+  "description": "Adobe Experience Design Chain: writer \u2192 builder \u2192 editor pipeline for turning a customer story into a validated storyboard, then an animated on-brand 1920x1080 HTML experience-story deck, then a visual in-browser editor for that finished deck. Migrated from the Claude Code marketplace plugin OneAdobe/experience-design-chain (experience-story-writer, experience-story-builder, experience-story-editor).",
+  "skills": "./skills/"
+}

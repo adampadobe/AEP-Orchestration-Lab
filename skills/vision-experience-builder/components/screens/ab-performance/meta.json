@@ -1,0 +1,31 @@
+{
+  "type": "ab-performance",
+  "key_classes": [
+    "ac-ask",
+    "ac-badge",
+    "ac-bubble",
+    "ac-caret",
+    "ac-col",
+    "ac-cols",
+    "ac-compare",
+    "ac-dot",
+    "ac-flow",
+    "ac-flow-h",
+    "ac-funnel",
+    "ac-img",
+    "ac-num",
+    "ac-pill",
+    "ac-sl",
+    "ac-stage",
+    "ac-title",
+    "ac-typed",
+    "ac-wrap",
+    "anim",
+    "col-label",
+    "eyebrow",
+    "has-photo",
+    "narr"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use ab-performance"
+}

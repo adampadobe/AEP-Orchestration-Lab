@@ -1,0 +1,31 @@
+{
+  "archetype": "jamie",
+  "folder": "harvested-jamie",
+  "tags": [
+    "banking",
+    "finance",
+    "customer",
+    "male",
+    "20s",
+    "young-adult",
+    "graduate",
+    "student",
+    "casual",
+    "b2c",
+    "journey"
+  ],
+  "default_name": "Jamie",
+  "default_role": "Graduate Member",
+  "images": [
+    {
+      "file": "persona-jamie.webp",
+      "role": "portrait"
+    }
+  ],
+  "default_pose": "persona-jamie.webp",
+  "avatar": null,
+  "format": "webp",
+  "source": "coventry-bs",
+  "bg": "transparent",
+  "needs_cutout": false
+}

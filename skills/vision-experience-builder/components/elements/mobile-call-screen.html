@@ -1,0 +1,62 @@
+<!--
+  component: mobile-call-screen
+  Incoming-call card with real OS chrome — decline (red, rotated 135deg) +
+  accept (green, pulsing). Use when the persona takes / makes a call.
+
+  Two variants:
+    A. Standalone overlay on a photo (used when the screen shows the persona
+       picking up the phone in real life — see the P&O "phone-call" slide).
+       In that case, pair with a full-bleed `.phone-photo` as the persona shot.
+    B. Inside mobile-phone-frame's .pscreen, replacing the wallpaper, when
+       you want a pure phone-UI moment.
+
+  Slots:
+    INCOMING_LABEL  e.g. "INCOMING CALL" (small uppercase eyebrow)
+    CALLER_NAME     e.g. "P&O Cruises"
+    CALLER_SUB      e.g. "Reservations · mobile"
+
+  Animation: green accept button pulses at +1.0s (`accept-pulse` keyframe).
+-->
+<style>
+.phone-photo{position:absolute;right:90px;top:118px;width:620px;height:846px;object-fit:cover;object-position:center;border-radius:18px;box-shadow:0 30px 70px rgba(16,32,70,.22);}
+.call-card{position:absolute;right:120px;top:166px;width:300px;background:rgba(16,26,46,.80);backdrop-filter:blur(8px);border-radius:20px;padding:20px 18px 18px;color:#fff;z-index:6;text-align:center;border:1px solid rgba(255,255,255,.14);}
+.call-card .cc-lbl{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+.call-card .cc-who{font-size:22px;font-weight:700;margin:4px 0 2px;}
+.call-card .cc-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:16px;}
+.call-card .cc-btns{display:flex;justify-content:center;gap:26px;}
+.call-card .cc-b{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;}
+.call-card .cc-b svg{width:25px;height:25px;fill:#fff;}
+.call-card .cc-decline{background:#E0353B;transform:rotate(135deg);}
+.call-card .cc-accept{background:#28c840;}
+.slide.active .call-card .cc-accept{animation:accept-pulse 1.5s 1.0s ease-out infinite;}
+
+/* booking-confirmed receipt card that often pairs with this on the same slide */
+.confirmed-card{position:absolute;right:118px;bottom:150px;width:362px;background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(16,32,70,.22);padding:18px 20px;z-index:6;opacity:0;}
+.slide.active .confirmed-card{animation:pop .6s 1.9s both cubic-bezier(.22,1,.36,1);}
+.confirmed-card .cf-top{display:flex;align-items:center;gap:11px;margin-bottom:10px;}
+.confirmed-card .cf-tick{width:34px;height:34px;border-radius:50%;background:#1f9d57;color:#fff;display:grid;place-items:center;font-size:18px;flex-shrink:0;}
+.confirmed-card .cf-h{font-size:18px;font-weight:700;color:#15203A;}
+.confirmed-card .cf-row{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:#5B6573;padding:3px 0;}
+.confirmed-card .cf-row b{color:#15203A;}
+.confirmed-card .cf-total{display:flex;justify-content:space-between;font-size:21px;font-weight:700;color:#173A87;border-top:1px solid #EAEEF5;padding-top:10px;margin-top:8px;}
+</style>
+
+<!-- variant A: overlay on persona photo -->
+<img class="phone-photo" src="PERSONA_ON_PHONE.jpg" alt="">
+<div class="call-card">
+  <div class="cc-lbl">INCOMING_LABEL</div>
+  <div class="cc-who">CALLER_NAME</div>
+  <div class="cc-sub">CALLER_SUB</div>
+  <div class="cc-btns">
+    <div class="cc-b cc-decline"><svg viewBox="0 0 24 24"><path d="M6 3c2 0 3 4 3 6l-2 2c1 2 4 5 6 6l2-2c2 0 6 1 6 3v3c0 1-1 2-3 2C9 23 1 15 1 6 1 4 2 3 3 3z"/></svg></div>
+    <div class="cc-b cc-accept"><svg viewBox="0 0 24 24"><path d="M6 3c2 0 3 4 3 6l-2 2c1 2 4 5 6 6l2-2c2 0 6 1 6 3v3c0 1-1 2-3 2C9 23 1 15 1 6 1 4 2 3 3 3z"/></svg></div>
+  </div>
+</div>
+
+<!-- optional booking-confirmed card that lands at +1.9s after the call connects -->
+<div class="confirmed-card">
+  <div class="cf-top"><div class="cf-tick">&check;</div><div class="cf-h">Booking confirmed</div></div>
+  <div class="cf-row"><span>BOOKING_LINE_1</span><span><b>BOOKING_REF</b></span></div>
+  <div class="cf-row"><span>BOOKING_LINE_2</span></div>
+  <div class="cf-total"><span>Total</span><span>BOOKING_TOTAL</span></div>
+</div>

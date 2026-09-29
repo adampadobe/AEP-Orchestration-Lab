@@ -1,0 +1,31 @@
+{
+  "type": "kpi-dashboard",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "adobe-foot",
+    "av",
+    "cu",
+    "dark",
+    "emma",
+    "emma-lab",
+    "foot-note",
+    "fp",
+    "htitle",
+    "kpi",
+    "kpigrid",
+    "l",
+    "mvp-pill",
+    "narr",
+    "nm",
+    "numdisc",
+    "persona",
+    "post",
+    "prodcard",
+    "screen"
+  ],
+  "source": "po-cruises",
+  "description": "Executive KPI tile grid \u2014 count-up metrics, light + dark tiles."
+}

@@ -1,0 +1,72 @@
+<!-- template: passage-of-time  (standalone drop-in slide, harvested from po-cruises; rebrand via :root tokens) -->
+<style>
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;
+  pointer-events:none;transition:opacity .5s ease;}
+.slide.active{visibility:visible;opacity:1;pointer-events:auto;z-index:1;}
+.slide.active .a1{animation:rise .7s .10s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a2{animation:rise .7s .22s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a3{animation:rise .7s .34s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a4{animation:rise .7s .46s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a5{animation:rise .7s .58s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a6{animation:rise .7s .70s both cubic-bezier(.22,1,.36,1);}
+.slide.active .fp{animation:fade .9s .2s both;}
+.slide.active .pp{animation:pop .6s .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .jpath{animation:draw 2.4s .3s ease forwards;}
+.slide.active .jnode{animation:pop .6s both cubic-bezier(.22,1,.36,1);}
+/* reveal touchpoint chain — light up in sequence, phone pulses */
+.slide.active .datacard .node{animation:pop .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .datacard .node:nth-child(1){animation-delay:.15s;}
+.slide.active .datacard .node:nth-child(2){animation-delay:.30s;}
+.slide.active .datacard .node:nth-child(3){animation-delay:.45s;}
+.slide.active .datacard .node:nth-child(4){animation-delay:.60s;}
+.slide.active .datacard .node:nth-child(5){animation-delay:.75s;}
+.slide.active .datacard .node:nth-child(6){animation-delay:.90s;}
+.slide.active .datacard .node:nth-child(7){animation-delay:1.05s;}
+.slide.active .datacard .node.key .disc{animation:keypulse 2.2s 1.5s ease-in-out infinite;}
+.slide.active .jship{animation:sail 2.4s .35s ease forwards;}
+.slide.active .profilebar .pp.np{animation:pop .55s .7s both cubic-bezier(.22,1,.36,1);}
+/* AJO offer ranking settle */
+.slide.active .offer{animation:rise .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .offer:nth-child(3){animation-delay:.15s;}
+.slide.active .offer:nth-child(2){animation-delay:.35s;}
+.slide.active .offer:nth-child(1){animation-delay:.55s;}
+.slide.active .offer.top .badge{animation:pop .5s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .email-toast{animation:toast-in .6s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .call-card .cc-end{animation:callring 1.4s .6s ease-out infinite;}
+.slide.active .confirmed-card{animation:pop .6s 1.9s both cubic-bezier(.22,1,.36,1);}
+.slide.active .stitch .src{animation:piece-in .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .stitch .src:nth-child(1){animation-delay:.2s;}
+.slide.active .stitch .src:nth-child(2){animation-delay:.36s;}
+.slide.active .stitch .src:nth-child(3){animation-delay:.52s;}
+.slide.active .stitch .src:nth-child(4){animation-delay:.68s;}
+.slide.active .stitch .arw{animation:fade .5s .95s both;}
+.slide.active .stitch .unified{animation:pop .55s 1.15s both cubic-bezier(.22,1,.36,1);}
+.slide.active .cja-inset{animation:rise .7s 1.5s both cubic-bezier(.22,1,.36,1);}
+/* 8 weeks interstitial */
+.tslide{background:linear-gradient(160deg,#0A4C8F 0%,#0E2A5E 60%,#08183a 100%);display:grid;place-items:center;text-align:center;}
+.tslide .tbloom{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(120,190,255,.18),transparent 60%);}
+.tslide .t-eye{font-size:18px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-lt);margin-bottom:18px;}
+.tslide .t-big{font-size:104px;font-weight:300;color:#fff;line-height:1;letter-spacing:-.01em;margin:0;}
+.tslide .t-rule{width:120px;height:3px;background:var(--gold);margin:30px auto;border-radius:2px;}
+.tslide .t-sub{font-size:26px;color:rgba(255,255,255,.82);max-width:760px;font-weight:300;line-height:1.4;}
+.slide.active .tslide .t-eye{animation:fade .8s .2s both;}
+.slide.active .tslide .t-big{animation:rise .9s .35s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-rule{animation:t-rule-in .7s .9s both;}
+.slide.active .tslide .t-sub{animation:rise .8s 1.05s both cubic-bezier(.22,1,.36,1);}
+.slide.active .closing-win{animation:win-close 1.5s 1.2s forwards cubic-bezier(.5,0,.75,0);}
+.slide.active .abandon-card{animation:fade .8s 2.6s both;}
+.slide.active .bbar .u.typed{animation:typeurl 1.0s .5s steps(13) forwards, caretblink .7s .5s 4 step-end;}
+.slide.active .ph-notif{animation:rise .6s .9s both cubic-bezier(.22,1,.36,1);}
+.slide.active .ph-email{animation:fade .55s 2.5s both;}
+.slide.active .ph-call{animation:tapnum 1.3s 3.9s ease both;}
+.slide.dark-counter ~ .counter{color:rgba(255,255,255,.6);}
+</style>
+<section class="slide tslide">
+    <div class="tbloom" aria-hidden="true"></div>
+    <div>
+      <div class="t-eye">Consideration</div>
+      <h2 class="t-big">25 minutes later&hellip;</h2>
+      <div class="t-rule"></div>
+      <p class="t-sub">She clicks through a rival cruise line or two &mdash; but it's the Arvia sailing she keeps picturing. Before long, she's back on pocruises.com.</p>
+    </div>
+  </section>

@@ -1,0 +1,3 @@
+/* animation: panelSlideIn  (harvested from leap26-storyboard) */
+/* triggered by: .panel.slidein */
+@keyframes panelSlideIn{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}

@@ -1,0 +1,272 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monzo Concierge — interactive demo</title>
+<style>
+/* Monzo brand tokens (assets/monzo/brand.json): navy #14233A + hot coral #FF4D4D. */
+:root{
+  --brand:#14233A; --brand-deep:#0C1626; --accent:#FF4D4D; --accent-lt:#FF6F6F;
+  --ink:#14233A; --grey:#5B6573; --soft:#8A94A6; --line:#E4E7EC; --ice:#F4F6F9;
+  --brand-rgb:20,35,58; --accent-rgb:255,77,77;
+  --good:#0F9D58;
+}
+*{box-sizing:border-box;margin:0;} html,body{height:100%;}
+body{background:radial-gradient(1200px 600px at 70% -10%,#1b3054,#0a1120 60%);
+  font-family:'Adobe Clean','Source Sans 3','Inter',system-ui,sans-serif;color:#fff;
+  display:flex;gap:40px;align-items:center;justify-content:center;padding:32px;min-height:100%;}
+.rail{width:330px;flex:none;}
+.rail .brandline{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.rail .brandline .mz-mark{height:28px;width:auto;display:block;}
+.rail .brandline .mz-word{font-size:23px;font-weight:800;letter-spacing:-.02em;color:var(--accent);}
+.rail .brandline .x{font-size:15px;color:var(--soft);font-weight:600;margin:0 2px;}
+.rail .brandline .ad{height:20px;width:auto;display:block;opacity:.92;}
+.rail h1{font-size:30px;font-weight:800;line-height:1.1;letter-spacing:-.01em;}
+.rail .sub{color:#9fb0c4;font-size:16px;margin-top:10px;line-height:1.5;}
+.agents{margin-top:26px;display:flex;flex-direction:column;gap:10px;}
+.agent{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:13px 15px;transition:.35s;opacity:.5;}
+.agent.live{opacity:1;border-color:var(--accent);background:rgba(var(--accent-rgb),.16);}
+.agent .an{font-size:15px;font-weight:800;display:flex;align-items:center;gap:9px;}
+.agent .an .dot{width:8px;height:8px;border-radius:50%;background:var(--soft);}
+.agent.live .an .dot{background:var(--accent-lt);animation:pulse 1.4s infinite;}
+.agent .ad{font-size:13px;color:#9fb0c4;margin-top:5px;line-height:1.45;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.3)}50%{box-shadow:0 0 0 7px rgba(var(--accent-rgb),0)}}
+.gov{margin-top:22px;font-size:12.5px;color:#8b99ad;display:flex;gap:8px;align-items:flex-start;line-height:1.5;}
+.gov svg{width:16px;height:16px;fill:none;stroke:var(--accent-lt);stroke-width:2;flex:none;margin-top:1px;}
+.phone{width:400px;height:812px;flex:none;background:#05070c;border-radius:52px;padding:12px;box-shadow:0 50px 110px rgba(0,0,0,.55);position:relative;}
+.pscreen{width:100%;height:100%;border-radius:42px;overflow:hidden;background:var(--ice);display:flex;flex-direction:column;position:relative;}
+.cam{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:11px;height:11px;border-radius:50%;background:#05070c;z-index:9;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.1);}
+.reset{position:absolute;right:16px;bottom:82px;z-index:8;font-size:11.5px;font-weight:700;color:var(--soft);background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 11px;cursor:pointer;box-shadow:0 3px 10px rgba(var(--brand-rgb),.08);}
+.reset:hover{color:var(--brand);}
+.status{height:46px;flex:none;background:#fff;color:var(--brand);display:flex;align-items:center;justify-content:space-between;padding:8px 24px 0;font-size:15px;font-weight:700;z-index:5;}
+.status .sig{display:flex;gap:7px;} .status .sig svg{fill:var(--brand);display:block;}
+.chead{background:#fff;padding:2px 18px 14px;flex:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);z-index:4;}
+.chead .lg{display:flex;align-items:center;gap:8px;}
+.chead .lg img{height:24px;width:auto;display:block;}
+.chead .lg span{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--accent);}
+.chead .st{font-size:12.5px;color:var(--grey);display:flex;align-items:center;gap:6px;font-weight:600;}
+.chead .st .live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.35);}
+.stream{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;}
+.stream::-webkit-scrollbar{width:0;}
+.msg{max-width:82%;font-size:14.5px;line-height:1.5;padding:12px 15px;border-radius:18px;animation:pop .4s cubic-bezier(.2,.8,.3,1) both;}
+.msg.them{align-self:flex-start;background:#fff;color:var(--ink);border-bottom-left-radius:5px;box-shadow:0 4px 14px rgba(var(--brand-rgb),.06);}
+/* navy on coral = 4.8:1 (WCAG AA); white on coral would be 3.27:1 */
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--brand);font-weight:600;border-bottom-right-radius:5px;}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.typing{align-self:flex-start;background:#fff;border-radius:18px;border-bottom-left-radius:5px;padding:14px 16px;display:flex;gap:5px;box-shadow:0 4px 14px rgba(var(--brand-rgb),.06);}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--soft);animation:td 1.1s infinite;}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes td{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.rich{align-self:stretch;animation:pop .45s both;}
+/* the recommended money move */
+.move{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 20px rgba(var(--brand-rgb),.08);margin-bottom:10px;}
+.move .mh{padding:13px 14px 0;display:flex;align-items:center;justify-content:space-between;}
+.move .tag{background:var(--accent);color:var(--brand);font-size:11px;font-weight:800;padding:4px 9px;border-radius:8px;}
+.move .pot{font-size:11.5px;color:var(--soft);font-weight:700;}
+.move .mb{padding:10px 14px 14px;}
+.move .amt{font-size:30px;font-weight:800;color:var(--brand);letter-spacing:-.02em;}
+.move .why{font-size:12.5px;color:var(--grey);margin-top:3px;line-height:1.45;}
+.move .mr{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:10px;}
+.move .add{background:var(--accent);color:var(--brand);border:none;font-family:'Adobe Clean','Source Sans 3','Inter',system-ui,sans-serif;font-size:13px;font-weight:800;padding:9px 15px;border-radius:10px;cursor:pointer;}
+.move .add:hover{background:var(--accent-lt);}
+/* the maths, plainly */
+.cmp{background:#fff;border-radius:16px;padding:14px;box-shadow:0 6px 20px rgba(var(--brand-rgb),.08);}
+.cmp table{width:100%;border-collapse:collapse;font-size:13px;}
+.cmp th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);padding:6px;}
+.cmp td{padding:8px 6px;border-top:1px solid var(--line);color:var(--ink);}
+.cmp td.num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;}
+.cmp td.bad{color:var(--accent);font-weight:800;}
+.cmp td.good{color:var(--good);font-weight:800;}
+.cmp .h{font-weight:800;color:var(--brand);}
+/* confirm */
+.checkout{background:#fff;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(var(--brand-rgb),.08);}
+.co-row{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink);padding:7px 0;}
+.co-row.tot{border-top:1px solid var(--line);margin-top:6px;padding-top:11px;font-weight:800;color:var(--brand);font-size:15px;}
+.pay{width:100%;margin-top:12px;background:var(--accent);color:var(--brand);border:none;font-family:'Adobe Clean','Source Sans 3','Inter',system-ui,sans-serif;font-size:14px;font-weight:800;padding:12px;border-radius:12px;cursor:pointer;}
+.pay:hover{background:var(--accent-lt);}
+/* status track */
+.track{background:#fff;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(var(--brand-rgb),.08);}
+.track .tt{font-size:14px;font-weight:800;color:var(--brand);margin-bottom:14px;}
+.step{display:flex;gap:12px;position:relative;padding-bottom:16px;}
+.step:last-child{padding-bottom:0;}
+.step:not(:last-child):after{content:'';position:absolute;left:13px;top:26px;bottom:0;width:2px;background:var(--line);}
+.step .sd{width:26px;height:26px;border-radius:50%;background:var(--line);color:var(--soft);font-size:12px;font-weight:800;display:grid;place-items:center;flex:none;z-index:1;}
+.step.done .sd{background:var(--good);color:#fff;}
+.step.now .sd{background:var(--accent);color:var(--brand);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.25);}
+.step .st{display:flex;flex-direction:column;gap:2px;}
+.step .st b{font-size:13.5px;color:var(--ink);}
+.step .st span{font-size:12px;color:var(--soft);}
+/* subscription / saving list */
+.list{background:#fff;border-radius:16px;padding:6px 14px;box-shadow:0 6px 20px rgba(var(--brand-rgb),.08);}
+.li{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);}
+.li:first-child{border-top:none;}
+.li .ln{font-size:13.5px;font-weight:700;color:var(--ink);}
+.li .lm{font-size:11.5px;color:var(--soft);margin-top:2px;}
+.li .lv{font-size:14px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums;}
+.li .up{font-size:11px;font-weight:800;color:var(--accent);}
+/* quick replies + input */
+.qr{flex:none;display:flex;flex-wrap:wrap;gap:7px;padding:6px 16px 10px;}
+.chip{background:#fff;border:1px solid var(--line);color:var(--brand);font-family:'Adobe Clean','Source Sans 3','Inter',system-ui,sans-serif;font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:20px;cursor:pointer;animation:pop .3s both;box-shadow:0 3px 10px rgba(var(--brand-rgb),.06);}
+.chip:hover{border-color:var(--accent);color:var(--accent);}
+.inbar{flex:none;background:#fff;border-top:1px solid var(--line);padding:12px 14px 22px;display:flex;align-items:center;gap:10px;}
+.inbar .box{flex:1;background:var(--ice);border-radius:22px;padding:11px 15px;font-size:13.5px;color:var(--soft);}
+.inbar .send{width:38px;height:38px;border-radius:50%;background:var(--accent);display:grid;place-items:center;flex:none;}
+.inbar .send svg{width:18px;height:18px;fill:var(--brand);}
+</style></head><body>
+
+<div class="rail">
+  <div class="brandline">
+    <img class="mz-mark" src="monzo-mark.svg" alt="Monzo">
+    <span class="mz-word">monzo</span>
+    <span class="x">×</span>
+    <img class="ad" src="adobe-symbol-white.svg" alt="Adobe">
+  </div>
+  <h1>Brand Concierge</h1>
+  <div class="sub">One conversation that reads the month, finds the one move that fixes it, and makes it — powered by Adobe Experience Platform Agent Orchestrator. Try the chips on the phone.</div>
+  <div class="agents">
+    <div class="agent" id="ag-insight"><div class="an"><span class="dot"></span>Money Insight Agent</div><div class="ad">Reads income rhythm, bills and balance — spots the squeeze days before it lands.</div></div>
+    <div class="agent" id="ag-advice"><div class="an"><span class="dot"></span>Product Advisor Agent</div><div class="ad">Matches the right Pot, nudge or saving move to the month Jordan is actually having.</div></div>
+    <div class="agent" id="ag-action"><div class="an"><span class="dot"></span>Action Agent</div><div class="ad">Makes the move in one tap, then tracks it through to cleared.</div></div>
+  </div>
+  <div class="gov"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+    <span>Brand-governed: answers use first-party Monzo data and approved content only. You control voice, compliance and data governance.</span></div>
+</div>
+
+<div class="phone">
+  <div class="pscreen">
+    <div class="cam"></div>
+    <div class="reset" onclick="C.reset()">↺ restart</div>
+    <div class="status"><span>9:41</span><span class="sig">
+      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 11.4a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/><path d="M8.5 6c1.7 0 3.3.7 4.5 1.9l-1.5 1.5A4.3 4.3 0 008.5 9a4.3 4.3 0 00-3 1.4L4 8.9A6.4 6.4 0 018.5 6z" opacity=".55"/><path d="M8.5 2.2c2.8 0 5.4 1.1 7.3 3l-1.5 1.5A8.4 8.4 0 008.5 4a8.4 8.4 0 00-5.8 2.7L1.2 5.2A10.3 10.3 0 018.5 2.2z" opacity=".55"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1.5" width="21" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/><rect x="3" y="3.5" width="15" height="6" rx="1.5"/><rect x="23" y="4.6" width="2" height="3.8" rx="1"/></svg>
+    </span></div>
+    <div class="chead"><div class="lg"><img src="monzo-mark.svg" alt="Monzo"><span>monzo</span></div><div class="st"><span class="live-dot"></span>Concierge · online</div></div>
+    <div class="stream" id="stream"></div>
+    <div class="qr" id="qr"></div>
+    <div class="inbar"><div class="box" id="box">Ask the Monzo concierge…</div>
+      <div class="send"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg></div></div>
+  </div>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const stream=$('#stream'), qr=$('#qr');
+
+/* Jordan's month — the same first-party facts the deck's story runs on. */
+const M={
+  balance:412.30, rent:650, rentDay:'Friday', pot:540, potName:'Rainy Day Pot',
+  invoice:480, invoiceDay:'Monday'
+};
+M.short = +(M.rent - M.balance).toFixed(2);          // 237.70
+M.move  = 240;                                        // clears Friday with £2.30 to spare
+const gbp = n => '£' + n.toFixed(2).replace(/\.00$/,'');
+
+const SUBS=[
+  {n:'Streaming bundle', m:'Was £9.99 · rose in March', v:15.99, up:'+60%'},
+  {n:'Design software',  m:'Annual, billed monthly',   v:19.99, up:''},
+  {n:'Gym',              m:'Unused since August',      v:28.00, up:'idle'}
+];
+
+const C={
+  reset(){stream.innerHTML='';qr.innerHTML='';setAgents();this.start();},
+  start(){this.them("Hi Jordan — I'm your Monzo concierge. Ask me anything about your money and I'll check the numbers and make the move for you.",
+        ()=>this.chips([['Am I okay for rent?','rent'],["Where's my money going?",'subs'],['Can I save this month?','save']]));},
+  them(html,after){const t=this.typing();setTimeout(()=>{t.remove();const m=el('div','msg them',html);stream.append(m);scroll();after&&setTimeout(after,260);},650);},
+  rich(html,after){const t=this.typing();setTimeout(()=>{t.remove();const m=el('div','rich',html);stream.append(m);scroll();bindAdds(m);after&&setTimeout(after,300);},780);},
+  me(txt,after){const m=el('div','msg me',txt);stream.append(m);scroll();after&&setTimeout(after,360);},
+  typing(){const t=el('div','typing','<i></i><i></i><i></i>');stream.append(t);scroll();return t;},
+  chips(list){qr.innerHTML='';list.forEach(([label,go],i)=>{const c=el('button','chip',label);c.style.animationDelay=(i*.06)+'s';c.onclick=()=>{qr.innerHTML='';this.me(label,()=>this.route(go));};qr.append(c);});},
+  route(go){
+    if(go==='rent'){live('ag-insight');
+      this.them(`Rent of ${gbp(M.rent)} leaves ${M.rentDay}. You've got ${gbp(M.balance)}, so ${M.rentDay} is ${gbp(M.short)} short — your ${gbp(M.invoice)} invoice doesn't land until ${M.invoiceDay}. Here's the one move that fixes it:`,
+        ()=>{live('ag-advice');this.rich(moveCard(),()=>this.chips([[`Move ${gbp(M.move)}`,'move'],['Show me the maths','maths'],["Where's my money going?",'subs']]));});}
+    else if(go==='maths'){live('ag-insight');
+      this.them(`${M.rentDay}, plainly:`,()=>this.rich(mathsCard(),()=>this.chips([[`Move ${gbp(M.move)}`,'move'],['Can I save this month?','save']])));}
+    else if(go==='move'){live('ag-action');
+      this.them(`Nothing leaves your account — it just moves from your ${M.potName} to cover ${M.rentDay}:`,
+        ()=>this.rich(confirmCard(),null));}
+    else if(go==='moved'){
+      this.them(`Done. ${gbp(M.balance+M.move)} in your account — ${M.rentDay}'s rent clears with ${gbp(M.balance+M.move-M.rent)} to spare, and no fee.`,
+        ()=>this.rich(trackCard(0),()=>this.chips([['Track it','track'],["Where's my money going?",'subs']])));}
+    else if(go==='track'){live('ag-action');
+      this.them('Here it is, end to end:',()=>this.rich(trackCard(1),()=>this.chips([['Can I save this month?','save'],["Where's my money going?",'subs']])));}
+    else if(go==='subs'){live('ag-insight');
+      this.them("Your recurring payments — one crept up and one's gone quiet:",
+        ()=>this.rich(subsCard(),()=>this.chips([['Cancel the gym','cancel'],['Can I save this month?','save'],['Am I okay for rent?','rent']])));}
+    else if(go==='cancel'){live('ag-action');
+      this.them("I can cancel the gym from here — that's £28.00 a month back, £336 a year. Want me to?",
+        ()=>this.chips([['Yes, cancel it','cancelled'],['Leave it for now','save']]));}
+    else if(go==='cancelled'){
+      this.them("Cancelled, and I've moved the £28 into your Rainy Day Pot. You'll see it every month from now.",
+        ()=>this.chips([['Can I save this month?','save'],['Am I okay for rent?','rent']]));}
+    else if(go==='save'){live('ag-advice');
+      this.them("Two invoices clear the same week in November — that's your strongest month. I'd start a small auto-save then, not now:",
+        ()=>this.rich(saveCard(),()=>this.chips([['Start it in November','saved'],['Show me the maths','maths']])));}
+    else if(go==='saved'){live('ag-action');
+      this.them("Set. £50 a week from 3 November, and I'll pause it automatically any week your balance dips. Nothing to remember.",
+        ()=>this.chips([['Am I okay for rent?','rent'],["Where's my money going?",'subs']]));}
+  }
+};
+
+function moveCard(){
+  return `<div class="move">
+    <div class="mh"><span class="tag">★ The one move</span><span class="pot">${M.potName} · ${gbp(M.pot)} available</span></div>
+    <div class="mb">
+      <div class="amt">Move ${gbp(M.move)}</div>
+      <div class="why">Covers ${M.rentDay}'s ${gbp(M.rent)} rent with ${gbp(M.balance+M.move-M.rent)} to spare. Your pot keeps ${gbp(M.pot-M.move)}, and the invoice tops it back up ${M.invoiceDay}.</div>
+      <div class="mr"><span class="pot">No fee · no overdraft</span><button class="add" data-add="move">Move ${gbp(M.move)}</button></div>
+    </div></div>`;
+}
+function mathsCard(){
+  const after = M.balance + M.move;
+  const rows=[['Balance now',gbp(M.balance),''],
+              [`Rent (${M.rentDay})`,'− '+gbp(M.rent),'bad'],
+              ['Shortfall','− '+gbp(M.short),'bad'],
+              [`Move from ${M.potName}`,'+ '+gbp(M.move),'good'],
+              [`Balance on ${M.rentDay}`,gbp(after-M.rent)+' after rent','good']];
+  return `<div class="cmp"><table><tr><th></th><th class="h" style="text-align:right">Amount</th></tr>
+    ${rows.map(r=>`<tr><td style="color:var(--soft)">${r[0]}</td><td class="num ${r[2]}">${r[1]}</td></tr>`).join('')}
+  </table></div>`;
+}
+function confirmCard(){
+  return `<div class="checkout">
+    <div class="co-row"><span>From</span><span>${M.potName}</span></div>
+    <div class="co-row"><span>To</span><span>Current account</span></div>
+    <div class="co-row" style="color:var(--soft)"><span>Arrives</span><span>Instantly</span></div>
+    <div class="co-row tot"><span>Move</span><span>${gbp(M.move)}</span></div>
+    <button class="pay" onclick="C.confirm(this)">Move ${gbp(M.move)} now</button></div>`;
+}
+function trackCard(stage){
+  const steps=[['Move requested','9:41 · from '+M.potName],
+               ['Landed in your account',gbp(M.balance+M.move)+' available'],
+               ['Rent cleared',M.rentDay+' · '+gbp(M.rent)],
+               ['Pot topped back up','Invoice, '+M.invoiceDay]];
+  const now = stage===0 ? 1 : 2;
+  return `<div class="track"><div class="tt">Move #MZ-40219 · ${M.potName} → Current account</div>
+    ${steps.map((s,i)=>`<div class="step ${i<now?'done':i===now?'now':''}"><div class="sd">${i<now?'✓':i+1}</div><div class="st"><b>${s[0]}</b><span>${s[1]}</span></div></div>`).join('')}</div>`;
+}
+function subsCard(){
+  return `<div class="list">${SUBS.map(s=>`<div class="li"><div><div class="ln">${s.n}</div><div class="lm">${s.m}</div></div>
+    <div style="text-align:right"><div class="lv">${gbp(s.v)}</div>${s.up?`<div class="up">${s.up}</div>`:''}</div></div>`).join('')}</div>`;
+}
+function saveCard(){
+  return `<div class="move">
+    <div class="mh"><span class="tag">Best week to start</span><span class="pot">Auto-save · pauses itself</span></div>
+    <div class="mb">
+      <div class="amt">£50 a week</div>
+      <div class="why">Starting 3 November, when two invoices clear the same week. It pauses automatically any week your balance dips, so a quiet month never costs you.</div>
+      <div class="mr"><span class="pot">£200 a month · £2,600 a year</span><button class="add" data-add="saved">Start in November</button></div>
+    </div></div>`;
+}
+function bindAdds(root){root.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+  qr.innerHTML='';
+  const k=b.dataset.add;
+  if(k==='move'){C.me('Move '+gbp(M.move),()=>C.route('move'));}
+  else if(k==='saved'){C.me('Start it in November',()=>C.route('saved'));}
+});}
+C.confirm=function(btn){btn.textContent='✓ Moved';btn.style.background='var(--good)';btn.style.color='#fff';setTimeout(()=>C.route('moved'),500);};
+function el(t,c,html){const e=document.createElement(t);e.className=c;if(html!=null)e.innerHTML=html;return e;}
+function scroll(){requestAnimationFrame(()=>stream.scrollTop=stream.scrollHeight);}
+function live(id){setAgents();const a=$('#'+id);if(a)a.classList.add('live');}
+function setAgents(){['ag-insight','ag-advice','ag-action'].forEach(i=>$('#'+i).classList.remove('live'));}
+C.start();
+</script></body></html>

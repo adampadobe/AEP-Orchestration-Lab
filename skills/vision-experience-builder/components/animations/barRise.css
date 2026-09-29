@@ -1,0 +1,3 @@
+/* animation: barRise  (harvested from leap26-storyboard) */
+/* triggered by: .mbar .stack */
+@keyframes barRise{from{transform:scaleY(0)}to{transform:scaleY(1)}}

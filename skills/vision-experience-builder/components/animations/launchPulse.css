@@ -1,0 +1,3 @@
+/* animation: launchPulse  (harvested from leap26-storyboard) */
+/* triggered by: #launchBtn.firing */
+@keyframes launchPulse{0%{transform:scale(1)}40%{transform:scale(.93)}100%{transform:scale(1.03)}}

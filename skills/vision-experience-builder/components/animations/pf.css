@@ -1,0 +1,3 @@
+/* animation: pf  (harvested from leap26-storyboard) */
+/* triggered by: .panel-fade */
+@keyframes pf{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}

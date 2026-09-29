@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "aep-lab-command-centre": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["tools/aep-lab-command-centre-mcp/src/server.mjs"],
+      "tools": ["*"]
+    },
+    "aep-lab-adobe": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["tools/aep-lab-adobe-mcp/src/server.mjs"],
+      "tools": ["*"]
+    },
+    "aep-lab-profile-mcp": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${input:aep-lab-mcp-key}"
+      },
+      "tools": ["*"]
+    },
+    "campaign_v8_demo_emea": {
+      "type": "http",
+      "url": "https://campaign-mcp.adobe.io/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:campaign-v8-demo-emea-token}",
+        "x-campaign-base-url": "https://demoemea-mkt-prod4.campaign.adobe.com/",
+        "x-campaign-pii": "masked",
+        "x-campaign-mode": "read-only"
+      },
+      "tools": ["*"]
+    }
+  },
+  "inputs": [
+    {
+      "id": "aep-lab-mcp-key",
+      "type": "promptString",
+      "description": "AEP Orchestration Lab MCP API key (sent as X-AEP-Lab-Mcp-Key). Generate/rotate at Profile Viewer \u2192 MCP servers.",
+      "password": true
+    },
+    {
+      "id": "campaign-v8-demo-emea-token",
+      "type": "promptString",
+      "description": "Bearer token for the campaign_v8_demo_emea Adobe Campaign v8 (demoemea) MCP server.",
+      "password": true
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "po-cruises",
+  "sequence": [
+    "cover",
+    "journey-wave",
+    "cards-row",
+    "persona-intro",
+    "persona-intro",
+    "browser-mock",
+    "browser-mock",
+    "passage-of-time",
+    "browser-mock",
+    "browser-mock",
+    "browser-mock",
+    "browser-mock",
+    "mobile-email",
+    "phone-call",
+    "data-reveal",
+    "passage-of-time",
+    "browser-mock",
+    "data-reveal",
+    "divider",
+    "propensity-gauges",
+    "browser-mock",
+    "agent-list",
+    "kpi-dashboard",
+    "closing"
+  ],
+  "slides": 24
+}

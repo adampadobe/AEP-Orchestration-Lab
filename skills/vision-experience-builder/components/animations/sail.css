@@ -1,0 +1,3 @@
+/* animation: sail  (harvested from po-cruises) */
+/* triggered by: .slide.active .jship */
+@keyframes sail{to{offset-distance:100%;}}

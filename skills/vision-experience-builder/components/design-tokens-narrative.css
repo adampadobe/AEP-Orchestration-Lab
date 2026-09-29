@@ -1,0 +1,71 @@
+/* ============================================================
+ * design-tokens-narrative.css  —  BRAND-DRIVEN theme for journey/experience decks
+ *
+ * ⚠️ READ THIS OR YOUR DECK WILL COME OUT THE WRONG COLOUR ⚠️
+ * Every component reads role tokens (--brand, --accent, …) and the legacy
+ * aliases (--navy, --gold) that point at them. The deck's whole colour identity
+ * therefore comes from the `--brand* / --accent*` block below.
+ *
+ * THE FIRST BLOCK IS A PER-CUSTOMER PLACEHOLDER (currently P&O Cruises values).
+ * On EVERY new build you MUST overwrite it with the resolved customer palette.
+ * If you copy a previous deck and forget this, McDonald's comes out Carnival
+ * blue — that exact bug is why this file is structured this way.
+ *
+ * Example — McDonald's:  --brand:#DA291C; --brand-deep:#A61F15;
+ *                        --accent:#FFC72C; --accent-lt:#FFD65A;
+ * ============================================================ */
+
+:root{
+  /* ===== SET PER CUSTOMER — from the resolved brand palette (Brandfetch /
+     scrape / supplied assets). These P&O values are an EXAMPLE, not a default. ===== */
+  --brand:      #173A87;   /* primary brand colour — dominant on dark slides, headings, CTAs */
+  --brand-deep: #0E2A5E;   /* darker shade of --brand for gradients */
+  --accent:     #B0903B;   /* secondary/accent — "key" nodes, rules, highlights */
+  --accent-lt:  #C9A24A;   /* lighter accent */
+
+  /* ===== Neutrals — usually keep as-is across customers ===== */
+  --ink:   #15203A;
+  --grey:  #5B6573;
+  --soft:  #8A94A6;
+  --line:  #E2E8F2;
+
+  /* ===== Status / fixed ===== */
+  --green:     #1f9d57;
+  --green-lt:  #28c840;
+  --red:       #E0353B;
+  --adobe-red: #EB1000;   /* Adobe brand — do NOT rebrand this one */
+
+  /* ===== Tinted surfaces — DERIVED from --brand/--accent so they re-tint
+     automatically. (color-mix has wide support; fallbacks are fine to inline
+     if a target lacks it.) ===== */
+  --cream:  color-mix(in srgb, var(--accent) 12%, #ffffff);  /* quote-block bg */
+  --ice:    color-mix(in srgb, var(--brand) 8%, #ffffff);    /* chip / soft card */
+  --panel:  #F1F4F9;                                         /* browser chrome */
+
+  /* ===== Legacy aliases — existing components use --navy/--gold; keep them
+     pointing at the role tokens so a palette swap reaches everything. ===== */
+  --navy:      var(--brand);
+  --navy-deep: var(--brand-deep);
+  --gold:      var(--accent);
+  --gold-lt:   var(--accent-lt);
+
+  /* ===== Gradients — built from the brand tokens, NOT hardcoded hex,
+     so the cover / journey / data cards take the customer's colours. ===== */
+  --bg-deck:    linear-gradient(160deg,#F4F7FB 0%,#FFFFFF 55%,#EEF2F9 100%);
+  --bg-journey: linear-gradient(170deg, var(--brand-deep) 0%, var(--brand) 55%,
+                  color-mix(in srgb, var(--brand) 78%, #ffffff) 100%);
+  --bg-divider: linear-gradient(160deg, var(--brand-deep), var(--brand));
+  --bg-data:    linear-gradient(160deg,
+                  color-mix(in srgb, var(--brand) 88%, #000000),
+                  var(--brand-deep) 70%,
+                  color-mix(in srgb, var(--brand-deep) 80%, #000000));
+  --bg-tslide:  linear-gradient(160deg,
+                  color-mix(in srgb, var(--brand) 80%, #ffffff) 0%,
+                  var(--brand-deep) 60%,
+                  color-mix(in srgb, var(--brand-deep) 70%, #000000));
+}
+
+.deck-stage{background:var(--bg-deck);}
+
+/* shared chrome bits used across many components */
+.eyebrow{font-size:18px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);}

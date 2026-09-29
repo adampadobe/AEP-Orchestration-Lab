@@ -1,0 +1,31 @@
+{
+  "type": "agent-list",
+  "key_classes": [
+    "a1",
+    "a2",
+    "a3",
+    "a5",
+    "adobe-foot",
+    "agent",
+    "agents",
+    "an",
+    "aq",
+    "av",
+    "bbar",
+    "browser",
+    "d",
+    "dot",
+    "emma",
+    "fp",
+    "htitle",
+    "livebadge",
+    "mockframe",
+    "mvp-pill",
+    "narr",
+    "nm",
+    "numdisc",
+    "on"
+  ],
+  "source": "po-cruises",
+  "description": "List of AI agents, each prompt \u2192 outcome (the marketer's toolkit view)."
+}

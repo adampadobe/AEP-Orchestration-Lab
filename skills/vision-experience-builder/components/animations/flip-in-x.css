@@ -1,0 +1,8 @@
+/* flip-in-x — entrance (entrance, showy, stat, card)
+   3D top-hinge card flip for KPI/stat reveals.
+   Independently implemented (house values/easing). Naming follows the common
+   animate.css taxonomy for findability; NO animate.css code included — the v4
+   snapshot is Hippocratic-2.1, not intaken (see asset-licensing.md). */
+@keyframes flipInX{0%{opacity:0;transform:perspective(500px) rotateX(76deg)}55%{opacity:1;transform:perspective(500px) rotateX(-14deg)}78%{transform:perspective(500px) rotateX(7deg)}100%{opacity:1;transform:perspective(500px) rotateX(0)}}
+.flip-in-x{opacity:0;}
+.slide.active .flip-in-x{animation:flipInX .9s var(--d,0s) cubic-bezier(.2,.7,.3,1) forwards;}

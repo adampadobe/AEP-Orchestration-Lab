@@ -1,0 +1,31 @@
+{
+  "type": "savings-results",
+  "key_classes": [
+    "anim",
+    "cf",
+    "col-label",
+    "cv-btn",
+    "cv-in",
+    "cv-logo",
+    "cv-res",
+    "cv-res-bar",
+    "cv-res-l",
+    "cv-res-v",
+    "cv-sub",
+    "cv-top",
+    "dep",
+    "eyebrow",
+    "has-photo",
+    "inc",
+    "narr",
+    "pcontent",
+    "photo-panel",
+    "six-bal",
+    "six-bar",
+    "six-calc",
+    "six-done",
+    "six-of"
+  ],
+  "source": "coventry-bs",
+  "description": "TODO: one line on when to use savings-results"
+}

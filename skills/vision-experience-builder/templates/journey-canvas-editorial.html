@@ -1,0 +1,422 @@
+<!--
+  TEMPLATE: journey-canvas-editorial.html
+  Scene type: journey-canvas-editorial
+
+  An editorial zigzag journey map replacing the standard horizontal flow.
+  4 stages alternate top/bottom with gradient pill nodes, floating UI mock
+  cards, and red curved SVG arrows. Learned from Subway + BK demos.
+
+  Slots: {{persona_name}}, {{chapter_title}}, {{product_context}},
+         {{adobe_symbol_path}}, {{stage_N_name/desc/product}},
+         {{stage_2_active_class}}, {{brief_label}},
+         {{plan_card_roas}}, {{push_notif_title}}, {{push_notif_body}},
+         {{ctr_value}}, {{brand_primary}}, {{brand_accent}}
+
+  Brand theming: set --brand-primary and --brand-accent CSS vars
+  Animation: .slide.active triggers — replay on revisit via void offsetWidth
+-->
+
+<style>
+/* ================================================================
+   JOURNEY CANVAS EDITORIAL TEMPLATE
+   Zigzag 4-stage layout with gradient pills, floating cards,
+   SVG arrows. Override --brand-primary / --brand-accent for
+   per-customer theming.
+   ================================================================ */
+
+:root {
+  --brand-primary: {{brand_primary}};   /* e.g. #009743 for Subway */
+  --brand-accent:  {{brand_accent}};    /* e.g. #F2B700 for Subway */
+}
+
+/* ---- Slide container ---- */
+.slide--journey-editorial {
+  font-family: 'Adobe Clean', 'Source Sans 3', sans-serif;
+}
+
+/* ---- Background: ice-blue gradient ---- */
+#slide-journey.slide--journey-editorial {
+  background: linear-gradient(155deg, #E8EEFF 0%, #F2F5FF 50%, #EEF4FF 100%);
+}
+
+/* ---- Top navigation bar ---- */
+.journey__nav {
+  position: absolute;
+  top: 39px; left: 0; right: 0;
+  display: flex; align-items: center;
+  padding-left: 60px; z-index: 10;
+}
+.journey__nav-logo { width: 65.6px; height: 64px; flex-shrink: 0; margin-right: 20px; }
+.journey__nav-pill {
+  background: #EB1000; color: #FFFFFF;
+  font-size: 16px; font-weight: 800;
+  padding: 6px 18px 8px; border-radius: 1000px; white-space: nowrap;
+}
+.journey__nav-sub {
+  font-size: 16px; font-weight: 400; color: #464646;
+  padding: 6px 18px 8px; white-space: nowrap;
+}
+.journey__nav-sub strong { font-weight: 800; }
+
+/* ---- Adobe logo: dark on light bg ---- */
+.slide--journey-editorial .journey__nav-logo { filter: brightness(0); }
+
+/* ---- Stage pill: gradient blob node ---- */
+.journey-ed__stage-pill {
+  position: absolute;
+  width: 290px; height: 78px;
+  border-radius: 1000px;
+  background: linear-gradient(90deg, #4C67F5 0%, #8B5CF6 55%, #C84AB5 100%);
+  color: #FFFFFF;
+  font-size: 26px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px;
+  box-shadow: 0 6px 32px rgba(76,103,245,0.35);
+  z-index: 5;
+  opacity: 0; /* animated in */
+  cursor: default;
+}
+
+/* Active (AI) pill — stronger glow ring */
+.journey-ed__stage-pill.stage--active-pill {
+  box-shadow: 0 6px 40px rgba(200,74,181,0.45), 0 0 0 3px rgba(139,92,246,0.25);
+}
+
+/* ---- Stage description below pill ---- */
+.journey-ed__stage-desc {
+  position: absolute;
+  font-size: 16px; font-weight: 400;
+  color: #4A4A6A; line-height: 1.45;
+  margin: 0; z-index: 5;
+}
+
+/* ---- Product chip below desc ---- */
+.journey-ed__stage-chip {
+  position: absolute;
+  background: #E8EEFF; color: #4C67F5;
+  font-size: 13px; font-weight: 800;
+  padding: 5px 14px 6px; border-radius: 1000px;
+  white-space: nowrap; letter-spacing: 0.03em; z-index: 5;
+}
+
+/* ---- Brief chip — top-left cyan ---- */
+.journey-ed__brief-chip {
+  position: absolute;
+  left: 140px; top: 110px;
+  background: #00D4E8; color: #003366;
+  font-size: 16px; font-weight: 800;
+  padding: 8px 20px 9px; border-radius: 1000px;
+  white-space: nowrap; z-index: 6;
+  opacity: 0; /* animated in */
+}
+
+/* ---- SVG arrows overlay ---- */
+.journey-ed__arrows {
+  position: absolute; inset: 0;
+  width: 1920px; height: 1080px;
+  pointer-events: none; z-index: 3;
+}
+
+/* ---- White floating card base ---- */
+.journey-ed__card {
+  position: absolute;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(99,73,224,0.12);
+  padding: 16px 18px;
+  box-sizing: border-box; z-index: 4;
+  font-family: 'Adobe Clean', 'Source Sans 3', sans-serif;
+  opacity: 0; /* animated in */
+}
+
+/* ---- Card title ---- */
+.journey-ed__card-title {
+  font-size: 13px; font-weight: 700;
+  color: #6E6E6E; margin: 0 0 10px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* ---- Analytics bar chart (Plan card) ---- */
+.jed-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.jed-bar-label { font-size: 11px; font-weight: 600; color: #8888AA; width: 52px; flex-shrink: 0; }
+.jed-bar-track { flex: 1; height: 8px; background: #F0F0F8; border-radius: 4px; overflow: hidden; }
+.jed-bar-fill  { height: 100%; border-radius: 4px; }
+.jed-roas-val  { font-size: 34px; font-weight: 900; color: #2C2C2C; line-height: 1; margin: 8px 0 0; }
+.jed-roas-label { font-size: 11px; font-weight: 700; color: #9E9E9E; text-transform: uppercase; letter-spacing: 0.06em; margin: 2px 0 0; }
+
+/* ---- Phone mockup (Create area) ---- */
+.journey-ed__phone {
+  position: absolute;
+  width: 160px; height: 280px;
+  border-radius: 22px;
+  background: #1a1a2e;
+  border: 4px solid #333;
+  overflow: hidden; box-sizing: border-box;
+  z-index: 4; opacity: 0; /* animated with cards */
+}
+.journey-ed__phone-screen {
+  width: 100%; height: 100%;
+  background: linear-gradient(145deg, #00C9A7 0%, #00A4B4 60%, #007B8E 100%);
+  display: flex; align-items: flex-end;
+  padding: 14px; box-sizing: border-box;
+}
+.journey-ed__phone-screen p { font-size: 13px; font-weight: 800; color: #FFFFFF; margin: 0; line-height: 1.3; }
+
+/* ---- Push notification card (Orchestrate) ---- */
+.jed-push-header { font-size: 11px; font-weight: 700; color: #8888AA; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 6px; }
+.jed-push-body   { font-size: 15px; font-weight: 800; color: #1E1E3A; line-height: 1.35; margin: 0; }
+
+/* ---- Funnel bars (Orchestrate) ---- */
+.jed-funnel-bar   { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.jed-funnel-label { font-size: 11px; font-weight: 600; color: #6E6E7A; width: 58px; flex-shrink: 0; }
+.jed-funnel-track { height: 8px; background: #E8EEFF; border-radius: 4px; }
+
+/* ---- CTR badge (Measure) ---- */
+.jed-ctr-badge  { background: #00D4E8; border-radius: 12px; padding: 12px 14px; text-align: center; }
+.jed-ctr-label  { font-size: 11px; font-weight: 700; color: rgba(0,30,60,0.7); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 4px; }
+.jed-ctr-val    { font-size: 32px; font-weight: 900; color: #FFFFFF; line-height: 1; margin: 0; }
+
+/* ---- Metric rows (Measure funnel card) ---- */
+.jed-metric-row  { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #F0F0F8; }
+.jed-metric-row:last-child { border-bottom: none; }
+.jed-metric-name { font-size: 12px; font-weight: 600; color: #6E6E7A; }
+.jed-metric-val  { font-size: 13px; font-weight: 800; color: #2C2C2C; }
+
+/* ---- Nav dots — dark variant ---- */
+.nav-dots--dark {
+  position: absolute; left: 20px; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px; height: 695px; z-index: 20;
+}
+.nav-dots--dark .nd { width: 4.4px; height: 4.4px; border-radius: 62.8px; background: rgba(99,73,224,0.20); flex-shrink: 0; display: block; }
+.nav-dots--dark .nd.nd--active { background: #4C50CC; outline: 3px solid #4C50CC; outline-offset: 0; }
+
+/* ================================================================
+   ANIMATION KEYFRAMES
+   ================================================================ */
+@keyframes stage-pill-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes card-float-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes badge-pop-in {
+  from { opacity: 0; transform: scale(0.80) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ================================================================
+   ANIMATION TRIGGERS
+   Fires when parent .slide gains .active.
+   Deck JS must call void slide.offsetWidth before adding .active
+   to restart animations on revisit.
+   ================================================================ */
+.slide.active .journey-ed__stage-pill { animation: stage-pill-in 600ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .journey-ed__stage-pill:nth-child(1) { animation-delay:  60ms; }
+.slide.active .journey-ed__stage-pill:nth-child(2) { animation-delay: 150ms; }
+.slide.active .journey-ed__stage-pill:nth-child(3) { animation-delay: 240ms; }
+.slide.active .journey-ed__stage-pill:nth-child(4) { animation-delay: 330ms; }
+
+.slide.active .journey-ed__card { animation: card-float-in 500ms cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .journey-ed__card:nth-child(1) { animation-delay: 400ms; }
+.slide.active .journey-ed__card:nth-child(2) { animation-delay: 480ms; }
+.slide.active .journey-ed__card:nth-child(3) { animation-delay: 560ms; }
+.slide.active .journey-ed__card:nth-child(4) { animation-delay: 640ms; }
+.slide.active .journey-ed__card:nth-child(5) { animation-delay: 680ms; }
+
+.slide.active .journey-ed__phone {
+  animation: card-float-in 500ms 480ms cubic-bezier(0.22,1,0.36,1) both;
+}
+.slide.active .journey-ed__brief-chip {
+  animation: badge-pop-in 400ms 30ms cubic-bezier(0.22,1,0.36,1) both;
+}
+</style>
+
+<!-- ============================================================
+     SLIDE: Journey Canvas — Editorial Zigzag Layout
+     Replace all {{slots}} before use.
+     Stage pills, floating cards and brief chip animate on .active.
+     ============================================================ -->
+<section class="slide slide--journey-canvas slide--journey-editorial"
+         id="slide-journey"
+         data-scene="journey-canvas-editorial">
+
+  <!-- Top navigation bar -->
+  <nav class="journey__nav" aria-label="Section navigation">
+    <img class="journey__nav-logo" src="{{adobe_symbol_path}}" alt="Adobe"
+         onerror="this.style.visibility='hidden'">
+    <div class="journey__nav-pill">{{chapter_title}}</div>
+    <div class="journey__nav-sub">{{product_context}}</div>
+  </nav>
+
+  <!-- Persona label -->
+  <p style="position:absolute;top:152px;left:480px;font-size:30px;font-weight:800;color:#1E1E1E;margin:0;z-index:5;">{{persona_name}}'s Journey</p>
+
+  <!-- Brief chip — top-left -->
+  <div class="journey-ed__brief-chip">{{brief_label}}</div>
+
+  <!-- SVG curved arrows overlay
+       Adjust path coordinates if stage pill positions change. -->
+  <svg class="journey-ed__arrows" viewBox="0 0 1920 1080"
+       xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <marker id="jed-arrowhead" markerWidth="10" markerHeight="7"
+              refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#EB1000"/>
+      </marker>
+    </defs>
+    <!-- Plan → Create -->
+    <path d="M 290,352 C 360,440 480,570 620,613"
+          stroke="#EB1000" stroke-width="2.5" fill="none"
+          marker-end="url(#jed-arrowhead)"/>
+    <!-- Create → Orchestrate -->
+    <path d="M 760,613 C 840,560 900,380 1050,243"
+          stroke="#EB1000" stroke-width="2.5" fill="none"
+          marker-end="url(#jed-arrowhead)"/>
+    <!-- Orchestrate → Measure -->
+    <path d="M 1200,243 C 1280,320 1360,490 1500,573"
+          stroke="#EB1000" stroke-width="2.5" fill="none"
+          marker-end="url(#jed-arrowhead)"/>
+  </svg>
+
+  <!-- ── STAGE PILLS ──
+       Positions: Plan top-left, Create bottom-center,
+                  Orchestrate top-right-center, Measure bottom-right.
+       Arrow path endpoints align to pill left/right edges at vertical centre. -->
+
+  <!-- Stage 1: Plan — top-left -->
+  <div class="journey-ed__stage-pill" style="left:140px;top:310px;">✦ {{stage_1_name}}</div>
+  <p class="journey-ed__stage-desc" style="left:145px;top:404px;width:280px;">{{stage_1_desc}}</p>
+  <span class="journey-ed__stage-chip" style="left:160px;top:460px;">{{stage_1_product}}</span>
+
+  <!-- Stage 2: Create — bottom-center (AI intervention) -->
+  <div class="journey-ed__stage-pill {{stage_2_active_class}}" style="left:550px;top:570px;">✦ {{stage_2_name}}</div>
+  <p class="journey-ed__stage-desc" style="left:555px;top:664px;width:280px;">{{stage_2_desc}}</p>
+  <span class="journey-ed__stage-chip" style="left:570px;top:720px;">{{stage_2_product}}</span>
+
+  <!-- Stage 3: Orchestrate — top-right-center -->
+  <div class="journey-ed__stage-pill" style="left:980px;top:200px;">✦ {{stage_3_name}}</div>
+  <p class="journey-ed__stage-desc" style="left:985px;top:294px;width:290px;">{{stage_3_desc}}</p>
+  <span class="journey-ed__stage-chip" style="left:1000px;top:350px;">{{stage_3_product}}</span>
+
+  <!-- Stage 4: Measure — bottom-right -->
+  <div class="journey-ed__stage-pill" style="left:1430px;top:530px;">✦ {{stage_4_name}}</div>
+  <p class="journey-ed__stage-desc" style="left:1435px;top:624px;width:280px;">{{stage_4_desc}}</p>
+  <span class="journey-ed__stage-chip" style="left:1450px;top:680px;">{{stage_4_product}}</span>
+
+  <!-- ── FLOATING UI MOCK CARDS ── -->
+
+  <!-- Plan area: Analytics card (top-left) -->
+  <div class="journey-ed__card" style="left:80px;top:150px;width:240px;">
+    <p class="journey-ed__card-title">Engagement by Audience</p>
+    <div class="jed-bar-row">
+      <span class="jed-bar-label">18–34</span>
+      <div class="jed-bar-track">
+        <div class="jed-bar-fill" style="width:82%;background:linear-gradient(90deg,#4C67F5,#8B5CF6);"></div>
+      </div>
+    </div>
+    <div class="jed-bar-row">
+      <span class="jed-bar-label">35–54</span>
+      <div class="jed-bar-track">
+        <div class="jed-bar-fill" style="width:58%;background:linear-gradient(90deg,#4C67F5,#8B5CF6);"></div>
+      </div>
+    </div>
+    <div class="jed-bar-row">
+      <span class="jed-bar-label">55+</span>
+      <div class="jed-bar-track">
+        <div class="jed-bar-fill" style="width:34%;background:linear-gradient(90deg,#4C67F5,#8B5CF6);"></div>
+      </div>
+    </div>
+    <p class="jed-roas-label" style="margin-top:10px;">Channel ROAS</p>
+    <p class="jed-roas-val">{{plan_card_roas}}</p>
+  </div>
+
+  <!-- Create area: Phone mockup -->
+  <div class="journey-ed__phone" style="left:465px;top:380px;">
+    <div class="journey-ed__phone-screen">
+      <p>Footlong<br>Favourites</p>
+    </div>
+  </div>
+
+  <!-- Orchestrate area: Push notification card -->
+  <div class="journey-ed__card" style="left:960px;top:330px;width:280px;">
+    <p class="jed-push-header">🔔 {{push_notif_title}}</p>
+    <p class="jed-push-body">{{push_notif_body}}</p>
+  </div>
+
+  <!-- Orchestrate area: Journey stage funnel -->
+  <div class="journey-ed__card" style="left:940px;top:460px;width:220px;">
+    <p class="journey-ed__card-title">Journey Stages</p>
+    <div class="jed-funnel-bar">
+      <span class="jed-funnel-label">Aware</span>
+      <div class="jed-funnel-track" style="width:140px;background:linear-gradient(90deg,#4C67F5,#8B5CF6);"></div>
+    </div>
+    <div class="jed-funnel-bar">
+      <span class="jed-funnel-label">Engage</span>
+      <div class="jed-funnel-track" style="width:110px;background:linear-gradient(90deg,#8B5CF6,#C84AB5);"></div>
+    </div>
+    <div class="jed-funnel-bar">
+      <span class="jed-funnel-label">Convert</span>
+      <div class="jed-funnel-track" style="width:78px;background:#C84AB5;"></div>
+    </div>
+    <div class="jed-funnel-bar">
+      <span class="jed-funnel-label">Retain</span>
+      <div class="jed-funnel-track" style="width:50px;background:#EB1000;"></div>
+    </div>
+  </div>
+
+  <!-- Measure area: CTR badge -->
+  <div class="journey-ed__card" style="left:1540px;top:410px;width:160px;padding:0;">
+    <div class="jed-ctr-badge">
+      <p class="jed-ctr-label">Asset CTR</p>
+      <p class="jed-ctr-val">{{ctr_value}}</p>
+    </div>
+  </div>
+
+  <!-- Measure area: Journey funnel metrics -->
+  <div class="journey-ed__card" style="left:1330px;top:450px;width:240px;">
+    <p class="journey-ed__card-title">Journey Funnel</p>
+    <div class="jed-metric-row">
+      <span class="jed-metric-name">Initial Send</span>
+      <span class="jed-metric-val">421K</span>
+    </div>
+    <div class="jed-metric-row">
+      <span class="jed-metric-name">Opened</span>
+      <span class="jed-metric-val">198K</span>
+    </div>
+    <div class="jed-metric-row">
+      <span class="jed-metric-name">Convert</span>
+      <span class="jed-metric-val">102K</span>
+    </div>
+    <div class="jed-metric-row">
+      <span class="jed-metric-name">Order Confirmed</span>
+      <span class="jed-metric-val">68K</span>
+    </div>
+  </div>
+
+  <!-- Co-brand badge — update src per customer -->
+  <div class="subway-cobrand" style="position:absolute;bottom:48px;right:80px;z-index:15;">
+    <img src="{{customer_logo_path}}" alt="{{customer_name}}"
+         style="height:38px;width:auto;filter:brightness(0);">
+  </div>
+
+  <!-- Nav dots — dark variant
+       Move nd--active to the correct dot for deck position. -->
+  <div class="nav-dots--dark" role="presentation" aria-hidden="true">
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd nd--active"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+    <span class="nd"></span>
+  </div>
+
+</section>

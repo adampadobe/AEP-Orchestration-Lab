@@ -1,0 +1,161 @@
+<!-- template: browser-mock  (standalone drop-in slide, harvested from po-cruises; rebrand via :root tokens) -->
+<style>
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:#0b1730;}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;
+  background:linear-gradient(160deg,#F4F7FB 0%,#FFFFFF 55%,#EEF2F9 100%);}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;visibility:hidden;opacity:0;
+  pointer-events:none;transition:opacity .5s ease;}
+.slide.active{visibility:visible;opacity:1;pointer-events:auto;z-index:1;}
+.mvp-pill{position:absolute;top:54px;right:64px;z-index:8;font-size:16px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:#fff;background:var(--gold);padding:9px 22px;border-radius:999px;box-shadow:0 6px 18px rgba(176,144,59,.35);}
+.mvp-pill.post{background:var(--navy);box-shadow:0 6px 18px rgba(23,58,135,.32);}
+.mvp-pill.live::after{content:" · LIVE";color:#CFF6DD;}
+.stagebar{position:absolute;left:120px;bottom:60px;display:flex;gap:10px;z-index:6;}
+.stagebar .st{font-size:15px;font-weight:600;color:var(--soft);background:#EEF1F7;border:1px solid var(--line);padding:8px 20px;border-radius:8px;}
+.stagebar .st.on{color:#fff;background:var(--navy);border-color:var(--navy);}
+.persona{position:absolute;left:120px;bottom:120px;display:flex;align-items:center;gap:14px;z-index:6;}
+.persona .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:19px;
+  background:linear-gradient(150deg,var(--navy),var(--navy-deep));box-shadow:0 4px 12px rgba(14,42,94,.3);}
+.persona .av.gold{background:linear-gradient(150deg,var(--gold-lt),var(--gold));}
+.persona .nm{font-size:19px;font-weight:600;color:var(--ink);}
+.adobe-foot{position:absolute;right:60px;bottom:58px;height:26px;z-index:6;opacity:.9;}
+.adobe-foot img{height:100%;display:block;}
+.numdisc{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:30px;font-weight:700;
+  background:linear-gradient(150deg,var(--gold-lt),var(--gold));box-shadow:0 8px 20px rgba(176,144,59,.4);}
+.slide.active .a1{animation:rise .7s .10s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a2{animation:rise .7s .22s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a3{animation:rise .7s .34s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a4{animation:rise .7s .46s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a5{animation:rise .7s .58s both cubic-bezier(.22,1,.36,1);}
+.slide.active .a6{animation:rise .7s .70s both cubic-bezier(.22,1,.36,1);}
+.slide.active .fp{animation:fade .9s .2s both;}
+.slide.active .pp{animation:pop .6s .5s both cubic-bezier(.22,1,.36,1);}
+/* ===== story (left column) ===== */
+.story{position:absolute;left:120px;top:108px;width:710px;z-index:5;}
+.story .htitle{font-size:58px;font-weight:700;color:var(--navy);line-height:1.02;margin:20px 0 20px;letter-spacing:-.01em;}
+.story .narr{font-size:24px;line-height:1.5;color:var(--grey);margin:0 0 20px;}
+.quote{border-left:4px solid var(--gold);background:#FBF7EE;padding:15px 22px;border-radius:0 10px 10px 0;font-size:22px;font-style:italic;color:var(--navy);margin:0 0 22px;}
+.emma-lab{font-size:15px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--red);margin:0 0 8px;}
+.prodcard{background:#EEF2F8;border:1px solid var(--line);border-radius:12px;padding:15px 20px;font-size:19px;line-height:1.45;color:var(--ink);margin:0 0 20px;}
+.takeaway{border-left:4px solid var(--navy);padding:6px 0 6px 18px;font-size:21px;font-weight:700;color:var(--navy);line-height:1.4;}
+/* ===== screen (right pane) ===== */
+.screen{position:absolute;right:90px;top:118px;width:940px;height:846px;z-index:4;}
+.browser{width:100%;height:100%;background:#fff;border-radius:16px;border:1px solid #DCE3EE;box-shadow:0 30px 70px rgba(16,32,70,.20);overflow:hidden;display:flex;flex-direction:column;}
+.bbar{height:44px;background:#F1F4F9;border-bottom:1px solid #E4E9F2;display:flex;align-items:center;gap:8px;padding:0 16px;flex-shrink:0;}
+.bbar .d{width:11px;height:11px;border-radius:50%;}
+.bbar .u{margin-left:18px;font-size:14px;color:#7A8498;background:#fff;border:1px solid #E4E9F2;border-radius:6px;padding:5px 14px;}
+.mockframe{flex:1;width:100%;border:0;background:#fff;}
+/* dark data card (reveal + stitch) */
+.datacard{width:100%;height:100%;background:linear-gradient(160deg,#163566,#0E2247 70%,#0a1c3d);border-radius:18px;box-shadow:0 34px 80px rgba(10,28,61,.45);padding:54px 56px;color:#fff;position:relative;overflow:hidden;}
+.datacard .gleam{position:absolute;inset:0;background:radial-gradient(ellipse at 80% 0%,rgba(176,144,59,.20),transparent 55%);}
+.node .disc{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;}
+.node.key .disc{background:var(--gold);border-color:var(--gold-lt);box-shadow:0 0 0 6px rgba(176,144,59,.22);}
+.node .disc svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;}
+.kpi.dark{background:linear-gradient(160deg,#163566,#0E2247);border:0;}
+.kpi.dark .v{color:#fff;}
+.kpi.dark .l{color:rgba(255,255,255,.75);}
+.av.emma{background:#0E2A5E url('persona-teresa-av.jpg?v=2') center/cover;color:transparent;}
+.pcard .av.emma{background:#0E2A5E url('persona-teresa-av.jpg?v=2') center/cover;color:transparent;}
+.pcard .av{width:104px;height:104px;border-radius:50%;margin:0 auto 20px;display:grid;place-items:center;color:#fff;font-size:46px;font-weight:300;background:linear-gradient(150deg,var(--navy),var(--navy-deep));}
+.pcard .av.g{background:linear-gradient(150deg,var(--gold-lt),var(--gold));}
+.pcard .nm{font-size:30px;font-weight:700;color:var(--ink);}
+.pcard .ds{font-size:19px;color:var(--grey);line-height:1.5;min-height:140px;}
+.slide.active .jpath{animation:draw 2.4s .3s ease forwards;}
+.slide.active .jnode{animation:pop .6s both cubic-bezier(.22,1,.36,1);}
+.jnode .disc{position:absolute;left:-42px;top:-42px;width:84px;height:84px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.jnode .disc svg{width:38px;height:38px;stroke:var(--navy);fill:none;stroke-width:1.7;}
+.jnode.key .disc{background:var(--gold);}
+.jnode.key .disc svg{stroke:#fff;}
+/* ===== margaret divider ===== */
+.divider{position:absolute;inset:0;background:linear-gradient(160deg,#0E2A5E,#173A87);display:grid;place-items:center;text-align:center;overflow:hidden;}
+.divider .glw{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(201,162,74,.25),transparent 55%);}
+.divider .pk{font-size:20px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-lt);}
+.divider h1{font-size:128px;font-weight:300;color:#fff;margin:14px 0 6px;line-height:1;}
+.divider .ph{font-size:34px;color:rgba(255,255,255,.8);}
+.divider .pill{margin-top:26px;display:inline-block;border:1px solid rgba(201,162,74,.6);color:var(--gold-lt);font-size:16px;letter-spacing:.18em;text-transform:uppercase;padding:9px 22px;border-radius:999px;}
+/* reveal touchpoint chain — light up in sequence, phone pulses */
+.slide.active .datacard .node{animation:pop .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .datacard .node:nth-child(1){animation-delay:.15s;}
+.slide.active .datacard .node:nth-child(2){animation-delay:.30s;}
+.slide.active .datacard .node:nth-child(3){animation-delay:.45s;}
+.slide.active .datacard .node:nth-child(4){animation-delay:.60s;}
+.slide.active .datacard .node:nth-child(5){animation-delay:.75s;}
+.slide.active .datacard .node:nth-child(6){animation-delay:.90s;}
+.slide.active .datacard .node:nth-child(7){animation-delay:1.05s;}
+.slide.active .datacard .node.key .disc{animation:keypulse 2.2s 1.5s ease-in-out infinite;}
+.slide.active .jship{animation:sail 2.4s .35s ease forwards;}
+/* Sarah's growing guest profile bar */
+.profilebar{position:fixed;left:930px;bottom:40px;width:800px;display:flex;align-items:center;gap:9px;z-index:6;flex-wrap:wrap;}
+.profilebar .plab{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-right:2px;}
+.profilebar .pp{font-size:15px;font-weight:600;color:var(--navy);background:#EEF2F8;border:1px solid var(--line);padding:6px 13px;border-radius:999px;white-space:nowrap;}
+.profilebar .pp.np{background:linear-gradient(120deg,#FBF3DD,#fff);border-color:var(--gold);color:#8a6c25;}
+.slide.active .profilebar .pp.np{animation:pop .55s .7s both cubic-bezier(.22,1,.36,1);}
+/* AJO offer ranking settle */
+.slide.active .offer{animation:rise .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .offer:nth-child(3){animation-delay:.15s;}
+.slide.active .offer:nth-child(2){animation-delay:.35s;}
+.slide.active .offer:nth-child(1){animation-delay:.55s;}
+.slide.active .offer.top .badge{animation:pop .5s 1.2s both cubic-bezier(.22,1,.36,1);}
+/* interactive embed cue */
+.livebadge{margin-left:18px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2E7D4F;}
+.livebadge .dot{width:8px;height:8px;border-radius:50%;background:#28c840;animation:livep 1.8s ease-out infinite;}
+.slide.active .email-toast{animation:toast-in .6s 1.2s both cubic-bezier(.22,1,.36,1);}
+.slide.active .call-card .cc-end{animation:callring 1.4s .6s ease-out infinite;}
+.slide.active .confirmed-card{animation:pop .6s 1.9s both cubic-bezier(.22,1,.36,1);}
+.stitch{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 16px;}
+.stitch .src{flex:0 0 auto;width:104px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:13px 6px;text-align:center;}
+.stitch .src .dot{width:9px;height:9px;border-radius:50%;background:var(--gold-lt);margin:0 auto 8px;}
+.stitch .src .lb{font-size:13px;color:rgba(255,255,255,.85);font-weight:600;}
+.stitch .arw{color:var(--gold-lt);font-size:30px;flex:0 0 auto;}
+.stitch .unified{flex:0 0 auto;background:linear-gradient(160deg,rgba(176,144,59,.32),rgba(176,144,59,.06));border:1px solid var(--gold-lt);border-radius:12px;padding:14px 16px;text-align:center;color:#fff;min-width:120px;}
+.stitch .unified b{font-size:15px;display:block;}
+.stitch .unified span{font-size:12px;color:rgba(255,255,255,.7);}
+.slide.active .stitch .src{animation:piece-in .5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .stitch .src:nth-child(1){animation-delay:.2s;}
+.slide.active .stitch .src:nth-child(2){animation-delay:.36s;}
+.slide.active .stitch .src:nth-child(3){animation-delay:.52s;}
+.slide.active .stitch .src:nth-child(4){animation-delay:.68s;}
+.slide.active .stitch .arw{animation:fade .5s .95s both;}
+.slide.active .stitch .unified{animation:pop .55s 1.15s both cubic-bezier(.22,1,.36,1);}
+.slide.active .cja-inset{animation:rise .7s 1.5s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-eye{animation:fade .8s .2s both;}
+.slide.active .tslide .t-big{animation:rise .9s .35s both cubic-bezier(.22,1,.36,1);}
+.slide.active .tslide .t-rule{animation:t-rule-in .7s .9s both;}
+.slide.active .tslide .t-sub{animation:rise .8s 1.05s both cubic-bezier(.22,1,.36,1);}
+.closing-win .browser{height:100%;}
+.slide.active .closing-win{animation:win-close 1.5s 1.2s forwards cubic-bezier(.5,0,.75,0);}
+.slide.active .abandon-card{animation:fade .8s 2.6s both;}
+.bbar .u.typed{display:inline-block;overflow:hidden;white-space:nowrap;max-width:0;border-right:2px solid #7A8498;vertical-align:bottom;}
+.slide.active .bbar .u.typed{animation:typeurl 1.0s .5s steps(13) forwards, caretblink .7s .5s 4 step-end;}
+.ph-notif .np{font-size:12px;color:#5B6573;line-height:1.35;}
+.slide.active .ph-notif{animation:rise .6s .9s both cubic-bezier(.22,1,.36,1);}
+.slide.active .ph-email{animation:fade .55s 2.5s both;}
+.ph-email .efrm .who .nm{font-size:14px;font-weight:800;color:#15203A;display:flex;align-items:center;gap:6px;}
+.ph-email .efrm .rt .star svg{width:18px;height:18px;fill:none;stroke:#C9CFDA;stroke-width:2;}
+.slide.active .ph-call{animation:tapnum 1.3s 3.9s ease both;}
+.slide.dark-counter ~ .counter{color:rgba(255,255,255,.6);}
+.av.sarah{background:#0E2A5E url("persona-sarah.jpg") center top/cover;color:transparent;}
+.av.mgt{background:#0E2A5E url("persona-margaret.jpg") center top/cover;color:transparent;}
+.pcard .av.sarah{background:#0E2A5E url("persona-sarah.jpg") center top/cover;color:transparent;}
+.pcard .av.mgt{background:#0E2A5E url("persona-margaret.jpg") center top/cover;color:transparent;}
+</style>
+<section class="slide">
+    <div class="mvp-pill">MVP</div>
+    <div class="story">
+      <div class="numdisc a1">1</div>
+      <h2 class="htitle a1">She searches for the trip</h2>
+      <div class="profilebar"><span class="plab">Sarah's guest profile</span><span class="pp">Profile created</span><span class="pp">Med interest</span><span class="pp np">Balcony · Arvia</span></div>
+      <p class="narr a2">A Tuesday evening. Sarah searches for family cruises and lands on pocruises.com. No airport, no flights. Just Southampton — board the ship, holiday starts. She browses longer than intended.</p>
+      <p class="quote a3">"14-night Western Med on Arvia from Southampton — no flights needed."</p>
+      <p class="emma-lab a4">Teresa's screen</p>
+      <div class="prodcard a4">AEP Web SDK — Sarah's browse session is captured from the first page view. Product views, time on page, and cruise interest signals flow into CJA in real time.</div>
+      <p class="takeaway a5">For the first time, every browse session builds a guest profile — even before she logs in or books.</p>
+    </div>
+    <div class="screen fp"><div class="browser">
+      <div class="bbar"><span class="d" style="background:#ff5f57"></span><span class="d" style="background:#febc2e"></span><span class="d" style="background:#28c840"></span><span class="u">pocruises.com/find-a-cruise</span><span class="livebadge"><span class="dot"></span>Live · interactive</span></div>
+      <iframe class="mockframe" src="PO_Website_Nav.html" title="P&amp;O Cruises — find a cruise"></iframe>
+    </div></div>
+    <div class="persona"><div class="av sarah"></div><div class="nm">Sarah</div></div>
+    <div class="stagebar"><span class="st on">Discovery</span><span class="st">Consideration</span><span class="st">Purchase</span><span class="st">Post-Purchase</span></div>
+    <div class="adobe-foot"><img src="adobe-wordmark-red.svg" alt="Adobe"></div>
+  </section>
