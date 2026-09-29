@@ -1,0 +1,114 @@
+/**
+ * Close + reopen controls for Brand Concierge (MOD + Race for Life demos).
+ * FAB + panel share the same bottom-right inset so opening the widget covers extension/FAB turf.
+ */
+
+body.home-dashboard-concierge {
+  --aep-bc-corner-inset: 8px;
+  --aep-bc-fab-size: 48px;
+}
+
+/* Anchor panel to same corner as launcher (pages load this stylesheet only on BC demos) */
+body.home-dashboard-concierge #brand-concierge-mount-host {
+  position: fixed !important;
+  right: var(--aep-bc-corner-inset) !important;
+  bottom: var(--aep-bc-corner-inset) !important;
+  z-index: 7500 !important;
+}
+
+.aep-bc-dismiss-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 7601;
+  margin: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  line-height: 1;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text-secondary);
+  box-shadow: var(--dash-shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aep-bc-dismiss-btn:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.aep-bc-dismiss-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+body.aep-bc-panel-dismissed #brand-concierge-mount-host {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.aep-bc-reopen-btn {
+  position: fixed;
+  right: var(--aep-bc-corner-inset);
+  bottom: var(--aep-bc-corner-inset);
+  z-index: 12000;
+  margin: 0;
+  padding: 0;
+  width: var(--aep-bc-fab-size);
+  height: var(--aep-bc-fab-size);
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--dash-text);
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.aep-bc-reopen-btn:hover {
+  filter: brightness(1.06);
+}
+
+.aep-bc-reopen-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 3px;
+}
+
+.aep-bc-reopen-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Fallback: hide legacy chat-row glyph if an older cached style config still enables it */
+#brand-concierge-mount-host .input-container .ai-chat-label {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aep-bc-reopen-btn:hover {
+    filter: none;
+  }
+}
+
+body:not(.aep-bc-panel-dismissed) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: none;
+}
+
+body.aep-bc-panel-dismissed .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

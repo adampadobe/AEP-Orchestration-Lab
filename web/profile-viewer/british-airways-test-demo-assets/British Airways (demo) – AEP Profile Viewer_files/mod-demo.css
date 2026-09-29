@@ -1,0 +1,462 @@
+/**
+ * MOD demo: British Army homepage (iframe) + hidden top identity strip + flyout nav.
+ * Sidebar behavior matches donate / Race for Life demos (peek from left edge).
+ */
+
+.mod-demo-page .dashboard-main {
+  padding: 0;
+  max-width: none;
+}
+
+.mod-demo-page {
+  --mod-demo-content-max: none;
+}
+
+/* Let clicks reach the iframe; only the sidebar intercepts pointer events.
+   :not(.mobile-demo-shell-page) so brands that reuse this full-bleed layout
+   (e.g. Sky) don't fight shared/mobile-demo-shell.css's own fixed/off-canvas
+   dashboard-shell rules when embedded in the phone-bezel simulator. */
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-shell {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+/* Full-bleed shell: only sidebar participates in layout; main column is collapsed */
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-main-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  pointer-events: none;
+}
+
+.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-main.mod-demo-empty-main {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Live site fills the viewport behind chrome */
+.mod-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 1;
+  background: var(--dash-bg);
+}
+
+/* Top-document site clones expose their semantic sections directly to AJO's
+   visual authoring overlay instead of hiding the page behind an iframe. */
+.mod-demo-site-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  background: var(--surface, #fff);
+}
+
+body.mod-demo-page:not(.mobile-demo-shell-page) .mod-demo-site-content ~ .dashboard-shell {
+  position: fixed;
+  inset: 0;
+}
+
+body.site-clone-bc-bottom-dock-armed .mod-demo-site-content {
+  padding-bottom: 5.5rem;
+}
+
+/* When this page is itself iframed inside a mobile-simulator shell
+   (?aepSimMobile=1 — see e.g. sky-mobile-demo.html), the shell's own env
+   strip already lives outside the phone bezel, so hide this page's copy
+   to avoid a duplicate banner rendering on top of the site content.
+   Mirrors etihad-demo.css's html.aep-sim-mobile .etihad-demo-top-anchor rule. */
+html.aep-sim-mobile .mod-demo-top-anchor {
+  display: none !important;
+}
+
+html.aep-sim-mobile .mod-demo-site-frame {
+  position: absolute;
+  inset: 0;
+}
+
+/* Same reasoning as the top-anchor rule above: this page's own floating
+   env-bar controls (hide/dock button, Brand Concierge + Decisioning
+   midrail quick-panel triggers) are independent, body-level fixed
+   elements outside .mod-demo-top-anchor, so hiding the anchor alone
+   doesn't suppress them. Any persisted "Display mode" preference for BC
+   or Decisioning (shared via storagePrefix across the outer shell and
+   this iframed copy) would otherwise render each one twice. */
+html.aep-sim-mobile body.mod-demo-page .env-bar-dock-btn,
+html.aep-sim-mobile body.mod-demo-page .bcp-panel-anchor,
+html.aep-sim-mobile body.mod-demo-page .dpm-panel-anchor {
+  display: none !important;
+}
+
+/* Hover-reveal identity strip: shared/env-bar-compact.css (all site-clone demos) */
+
+.mod-demo-id-inner .mod-sdk-summary--below-env-grid {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.mod-demo-tags-company-row {
+  display: none !important;
+}
+
+/* Classic profile-row prefs only — spectrum BC card uses demo-env-bar-spectrum.css */
+.aep-demo-profile-section .site-clone-bc-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.mod-demo-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+/* Hide Tags-inject corner BC; army-mod-home-3 FAB shown only in modal mode */
+.mod-demo-page #brand-concierge-mount-host {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.mod-demo-page #siteCloneBcFab.site-clone-bc-fab {
+  display: none;
+}
+
+.mod-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
+  display: flex;
+}
+
+/* Modal open: keep Army iframe visible; only dim via popup backdrop (not a solid page fill) */
+.mod-demo-page.aep-bc-modal-open .mod-demo-site-frame {
+  visibility: visible;
+}
+
+.mod-demo-page.aep-bc-modal-open #brand-concierge-mount-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Full screen BC mode: same Army home snapshot iframe, BC fills viewport below site header */
+.mod-demo-page.site-clone-bc-fullscreen-armed .mod-demo-site-frame {
+  z-index: 1;
+}
+
+/* Parent-page BC overlay (injected + full screen) — same network stack as modal */
+.site-clone-bc-frame-host {
+  position: fixed;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  pointer-events: auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  background: linear-gradient(
+    122.87deg,
+    var(--dash-surface-alt, #e1e9ff) 20.72%,
+    #efe3fa 34.96%,
+    #f5dff8 42.08%,
+    #fcdcf5 49.2%,
+    #ffdec3 91.6%
+  );
+}
+
+.site-clone-bc-frame-host[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Injected overlay: only the BC panel captures input; page/iframe scroll continues below */
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  pointer-events: none;
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount {
+  pointer-events: auto;
+}
+
+.site-clone-bc-frame-mount {
+  width: 100%;
+  max-width: 920px;
+  min-height: min(540px, 100%);
+  flex: 1 1 auto;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.site-clone-bc-frame-host #siteCloneBcFrameMount.brand-concierge-mount,
+.site-clone-bc-frame-host .site-clone-bc-frame-mount {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  min-height: 540px;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs__options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.9rem;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs__options--enable {
+  width: 100%;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs__options--enable .site-clone-bc-prefs__option {
+  width: 100%;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs__option input[type='checkbox'] {
+  accent-color: var(--dash-blue);
+  flex-shrink: 0;
+}
+
+.mod-demo-page .mod-demo-script-preview {
+  margin: 0;
+  padding: 0 clamp(12px, 2vw, 20px) 0.2rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
+.mod-demo-page .mod-demo-script-preview code {
+  color: var(--dash-text);
+}
+
+.mod-demo-page .mod-demo-message {
+  margin: 0;
+  padding: 0 clamp(12px, 2vw, 20px) 0.35rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-page .mod-demo-disclaimer {
+  max-width: none;
+  margin: 0;
+  padding: 0 clamp(12px, 2vw, 20px) 0.25rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+/* Left-edge hover rail for lab nav (below top chrome band) */
+.mod-demo-sidebar-hover-zone {
+  position: fixed;
+  left: 0;
+  top: 72px;
+  bottom: 0;
+  width: 16px;
+  z-index: 6995;
+  pointer-events: auto;
+}
+
+.mod-demo-id-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mod-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-script-preview {
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
+.mod-demo-ecid-hint {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-message {
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-message.mod-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+.mod-demo-message.mod-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.mod-demo-disclaimer {
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+  line-height: 1.35;
+}
+
+/* App sidebar: hidden by default; reveal from left edge (see mod-demo.js).
+   Excludes .mobile-demo-shell-page — the phone-bezel simulator pages use
+   shared/mobile-demo-shell.css's own off-canvas sidebar rules instead. */
+@media (min-width: 769px) {
+  body.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.mod-demo-page--nav-open:not(.mobile-demo-shell-page) .dashboard-sidebar {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
+      transition: none;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  body.mod-demo-page:not(.mobile-demo-shell-page) .dashboard-sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
+  }
+
+  body.mod-demo-page--nav-open:not(.mobile-demo-shell-page) .dashboard-sidebar {
+    transform: none;
+  }
+
+  .mod-demo-id-inner.aep-demo-id-inner {
+    padding: 0.6rem 12px;
+  }
+
+  .mod-demo-sidebar-hover-zone {
+    top: 56px;
+  }
+}
+
+/* Navigator Global demo: lab-only buttons that emit sector / membership / webinar event types */
+.navigator-global-demo-page .navigator-demo-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.4rem 1rem 0.65rem;
+  border-top: 1px solid var(--dash-border);
+  background: color-mix(in srgb, var(--dash-surface) 92%, var(--dash-muted));
+  pointer-events: auto;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  margin-right: 0.25rem;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-btn {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-fg, inherit);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-btn:hover {
+  border-color: color-mix(in srgb, var(--dash-border) 55%, var(--dash-fg, #0f172a));
+}
+
+.navigator-global-demo-page .navigator-demo-flow-btn:focus-visible {
+  outline: 2px solid var(--dash-accent, #2563eb);
+  outline-offset: 2px;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-sep {
+  display: inline-block;
+  width: 1px;
+  height: 1rem;
+  margin: 0 0.15rem;
+  background: var(--dash-border);
+  align-self: center;
+}
+
+/* ── Brand Concierge launcher — Navigator Global demo ────────── */
+.navigator-global-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.navigator-global-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: none !important;
+}
+.navigator-global-demo-page .aep-bc-park-launcher {
+  background: var(--dash-blue);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+}
+.navigator-global-demo-page .aep-bc-park-launcher:hover {
+  background: #1d4ed8;
+}
+

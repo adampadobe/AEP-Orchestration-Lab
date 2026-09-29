@@ -1,0 +1,641 @@
+/* Global dark theme for concierge dashboard (toggle: html[data-aep-theme="dark"])
+   ─────────────────────────────────────────────────────────────────────────────
+   All color-only overrides have been removed. Component CSS files now use
+   var(--dash-*) variables, so dark mode "just works" when these variables
+   are redefined below. Only structural overrides (gradients, shadows, opacity,
+   backgrounds that aren't simple colors) remain here.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge {
+  --dash-bg: #0f1114;
+  --dash-surface: #181b21;
+  --dash-surface-alt: #14161b;
+  --dash-mock-rail-bg: #1e2229;
+  --dash-sidebar: #12151a;
+  --dash-border: #2a3038;
+  --dash-text: #e8eaed;
+  --dash-text-secondary: #9aa0a8;
+  --dash-muted: #9aa0a8;
+  --dash-blue: #4b9fff;
+  --dash-input-bg: #0f1114;
+  --dash-input-border: #2a3038;
+  --dash-hover: rgba(255, 255, 255, 0.04);
+  --dash-code-bg: #0f1114;
+  --dash-success-bg: rgba(45, 140, 111, 0.25);
+  --dash-success-border: #2d8c6f;
+  --dash-success-text: #8fdfc2;
+  --dash-error-bg: rgba(201, 90, 74, 0.25);
+  --dash-error-border: #c95a4a;
+  --dash-error-text: #e8a89e;
+  --dash-warning-bg: rgba(180, 130, 40, 0.2);
+  --dash-warning-border: #b8860b;
+  --dash-warning-text: #f0d080;
+  --dash-info-bg: rgba(75, 159, 255, 0.1);
+  --dash-info-border: rgba(75, 159, 255, 0.25);
+  --dash-info-text: #a8c8e8;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #1a1f32 0%,
+    #221a2e 38%,
+    #2a1c28 72%,
+    #2c2218 100%
+  );
+  --dash-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  --dash-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --dash-on-accent: #ffffff;
+  --dash-purple: #a78bfa;
+  --dash-purple-muted: color-mix(in srgb, var(--dash-purple) 18%, var(--dash-surface));
+  --dash-focus-ring: var(--dash-blue);
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: var(--dash-text);
+  --menu-fg-muted: var(--dash-muted);
+  --menu-accent: var(--dash-blue);
+  --menu-nav-active-bg: var(--dash-blue);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(255, 255, 255, 0.06);
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
+
+/* Env bar toolbar + overlay stay forced-light when dashboard is dark */
+html[data-aep-theme='dark'] .mod-demo-id-banner,
+html[data-aep-theme='dark'] [class*='-demo-id-banner'],
+html[data-aep-theme='dark'] .mod-demo-id-inner,
+html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
+  --dash-env-bar-surface: #ffffff;
+  --dash-env-bar-text: #1a1a2e;
+  --dash-env-bar-border: #e2e6ea;
+}
+
+/* ── Sidebar & navigation (structural) ── */
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-mark {
+  background: transparent;
+  color: var(--menu-fg);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item:hover {
+  background: var(--menu-hover);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--active {
+  background: var(--menu-nav-active-bg);
+  color: var(--menu-nav-active-fg);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--active:hover {
+  filter: brightness(1.08);
+  color: var(--menu-nav-active-fg);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-group-toggle:hover {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .dashboard-nav-tooltip {
+  background: #e8eaed;
+  color: #12151a;
+}
+
+/* ── Hero banner (gradient overrides) ── */
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero-inner {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero--page-banner .dashboard-hero-inner {
+  background: linear-gradient(
+    180deg,
+    #24222c 0%,
+    #28262f 50%,
+    #2a2832 100%
+  );
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    0 4px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* ── Buttons (dark mode primary/secondary swap) ── */
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-primary,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-query,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-save,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .schema-aep-btn--primary {
+  background: var(--dash-blue) !important;
+  border-color: var(--dash-blue) !important;
+  color: #fff !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-primary:hover,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-query:hover,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-save:hover,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .schema-aep-btn--primary:hover {
+  background: #3a8eef !important;
+  border-color: #3a8eef !important;
+}
+
+/* ── Sidebar theme toggle ── */
+
+.aep-theme-sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dash-border, #e6e4ea);
+}
+
+.aep-theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  cursor: pointer;
+  border: 1px solid var(--dash-border, #e6e4ea);
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #2c2c2c);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.aep-theme-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.aep-theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 2px;
+}
+
+/* Global settings page: secondary theme row */
+.aep-theme-global-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dash-border, #e6e4ea);
+}
+
+.aep-theme-pref-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.aep-theme-pref-swatch.aep-theme-pref-swatch--selected {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 12%, var(--panel-bg, var(--dash-surface)));
+}
+
+/* ── Structural overrides (not just color swaps) ── */
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-action-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-env-pill {
+  background: rgba(75, 159, 255, 0.15);
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-topbar-icon:hover {
+  background: #22262e;
+}
+
+/* Shared full-screen toggle button (injected by aep-fullscreen.js). */
+.aep-fullscreen-btn {
+  cursor: pointer;
+  color: var(--dash-text, #222);
+  padding: 0;
+  line-height: 0;
+}
+.aep-fullscreen-btn svg { width: 20px; height: 20px; display: block; }
+html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-fullscreen-btn { color: var(--dash-text, #e6e9ef); background: #1a1e25; }
+.aep-fullscreen-btn--floating {
+  position: fixed;
+  top: calc(var(--env-bar-height, 3rem) + 0.4rem);
+  right: var(--lab-env-midrail-right, 0.85rem);
+  z-index: 7140;
+  width: var(--lab-env-midrail-btn-size, 2rem);
+  height: var(--lab-env-midrail-btn-size, 2rem);
+  min-width: var(--lab-env-midrail-btn-size, 2rem);
+  min-height: var(--lab-env-midrail-btn-size, 2rem);
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--dash-shadow);
+  box-sizing: border-box;
+}
+
+/* Site-clone demos: stack below the decisioning mid-rail trigger */
+.aep-fullscreen-btn--midrail {
+  position: fixed;
+  top: calc(50% + var(--lab-env-midrail-slot, 2.55rem));
+  right: var(--lab-env-midrail-right, 0.85rem);
+  z-index: 7145;
+  width: var(--lab-env-midrail-btn-size, 2rem);
+  height: var(--lab-env-midrail-btn-size, 2rem);
+  min-width: var(--lab-env-midrail-btn-size, 2rem);
+  min-height: var(--lab-env-midrail-btn-size, 2rem);
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--dash-shadow);
+  box-sizing: border-box;
+  transform: translateY(-50%);
+}
+
+.lab-env-fullscreen-btn {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+.lab-env-fullscreen-btn svg {
+  width: 16px;
+  height: 16px;
+}
+html[data-aep-theme='dark'] .aep-fullscreen-btn--floating {
+  background: color-mix(in srgb, var(--dash-surface) 92%, transparent);
+  border-color: var(--dash-border);
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-info-banner {
+  background: rgba(75, 159, 255, 0.1);
+  border-color: rgba(75, 159, 255, 0.2);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-btn-quiet:hover {
+  background: #22262e;
+}
+
+/* Profile gen config bar (translucent in light, subtle in dark) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .profile-gen-config {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--dash-border) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Profile generation page background override */
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-generation-page {
+  background: var(--dash-bg);
+}
+
+/* Summary bar gradient */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .details-summary-bar {
+  background: linear-gradient(90deg, rgba(30, 28, 50, 0.6) 0%, rgba(38, 32, 56, 0.4) 100%);
+}
+
+/* Event type icons (gradient backgrounds) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .event-type-icon,
+html[data-aep-theme='dark'] body.home-dashboard-concierge .event-detail-title-icon {
+  background: linear-gradient(135deg, rgba(75, 159, 255, 0.15) 0%, rgba(75, 159, 255, 0.08) 100%);
+  border-color: rgba(75, 159, 255, 0.25);
+}
+
+/* Back-to-top hover */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .attributes-back-to-top:hover {
+  background: #22262e;
+  border-color: var(--dash-blue);
+}
+
+/* Server warning (structural – amber tint) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .server-warning {
+  background: rgba(240, 180, 41, 0.12) !important;
+  border-bottom-color: #f0b429 !important;
+  color: #f0ad4e !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .server-warning a {
+  color: var(--dash-blue) !important;
+}
+
+/* Consent streaming warn hint */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .consent-streaming-identity-hint--warn {
+  color: #f0ad4e;
+}
+
+/* Consent streaming locked field (structural opacity) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .consent-panel--streaming-setup input.consent-stream-field--locked {
+  background: rgba(0, 0, 0, 0.22) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Consent resolved email (green tint) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .consent-resolved-email {
+  background: rgba(40, 60, 45, 0.45);
+  border-color: #3a5a42;
+  color: #b8d4b8;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .consent-resolved-email__label {
+  color: #d0e8d0;
+}
+
+/* Consent ticket checked (use blue accent) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .consent-ticket input:checked + .consent-ticket-text {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+  color: #fff;
+}
+
+/* Profile status loading (blue tint – not standard success/error) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .profile-status.loading {
+  background: rgba(75, 159, 255, 0.15);
+  border-color: var(--dash-blue);
+  color: var(--dash-blue);
+}
+
+/* Audience status badges (custom tints) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .audience-status-realized {
+  background: rgba(45, 157, 120, 0.25);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .audience-status-exited {
+  background: rgba(139, 139, 139, 0.25);
+}
+
+/* Profile update status (custom tints) */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .profile-update-status.warning {
+  border-color: rgba(240, 208, 128, 0.3);
+  background: rgba(240, 208, 128, 0.08);
+}
+
+/* Modal shadow */
+html[data-aep-theme='dark'] body.home-dashboard-concierge .profile-json-modal-content,
+html[data-aep-theme='dark'] body.home-dashboard-concierge .event-detail-modal-content {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Donate demo dark mode (sidebar/email bar only; brand content stays light) ── */
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-email-bar {
+  background: var(--dash-surface);
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-email-bar label {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-cruk-site-header {
+  background: var(--dash-surface);
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-cruk-site-header-top {
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-cruk-nav {
+  border-top-color: var(--dash-border);
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-cruk-nav a,
+html[data-aep-theme='dark'] body.donate-demo-page .donate-cruk-search-btn {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-hero {
+  background-color: var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-hero-panel {
+  background: var(--dash-surface);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-hero-copy h1 {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-lead--marketing {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-lead--demo {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-lead--demo code {
+  background: var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-hero-rule {
+  background: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-card {
+  background: var(--dash-surface);
+  border-left-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-tabs {
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-tab {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-tab[aria-selected='true'] {
+  color: var(--dash-blue);
+  border-bottom-color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-preset {
+  background: var(--dash-surface);
+  color: var(--dash-blue);
+  border-color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-preset.is-selected {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-custom-label {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-currency-wrap {
+  border-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-currency {
+  background: var(--dash-bg);
+  color: var(--dash-muted);
+  border-right-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-currency-wrap input {
+  background: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pay-strip {
+  background: var(--dash-bg);
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pillars {
+  background: var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pillars h2,
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pillar h3 {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pillar p {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pillars-ref {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-pillars-ref a {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-footer-note {
+  background: var(--dash-surface);
+  border-top-color: var(--dash-border);
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-footer-note a {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-message.error {
+  background: rgba(201, 90, 74, 0.25);
+  border-color: #c95a4a;
+  color: #e8a89e;
+}
+
+html[data-aep-theme='dark'] body.donate-demo-page .donate-message.success {
+  background: rgba(45, 140, 111, 0.25);
+  border-color: #2d8c6f;
+  color: #8fdfc2;
+}
+
+/* ── Race for Life demo dark mode ── */
+
+html[data-aep-theme='dark'] body.race-page .dashboard-main {
+  background: var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-email-bar {
+  background: var(--dash-surface);
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-email-inner label {
+  color: var(--dash-muted) !important;
+}
+
+html[data-aep-theme='dark'] body.race-page .donate-cruk-site-header {
+  background: var(--dash-surface);
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.race-page .donate-cruk-site-header-top {
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.race-page .donate-cruk-nav {
+  border-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.race-page .donate-cruk-nav a,
+html[data-aep-theme='dark'] body.race-page .donate-cruk-search-btn {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-hero {
+  background: var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-copy-card {
+  background: var(--dash-surface);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-copy-card h1 {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-copy-card p {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-join {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-join h2 {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-find-inner h2 {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-field label {
+  color: var(--dash-text) !important;
+}
+
+html[data-aep-theme='dark'] body.race-page .race-field select,
+html[data-aep-theme='dark'] body.race-page .race-field input[type='date'] {
+  background: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+  border-color: var(--dash-border) !important;
+}
+
+html[data-aep-theme='dark'] body.race-page .race-cover {
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.race-page .race-message.error {
+  background: rgba(201, 90, 74, 0.25);
+  border-color: #c95a4a;
+  color: #e8a89e;
+}
+
+html[data-aep-theme='dark'] body.race-page .race-message.success {
+  background: rgba(45, 140, 111, 0.25);
+  border-color: #2d8c6f;
+  color: #8fdfc2;
+}
+
+html[data-aep-theme='dark'] body.race-page .btn-lookup {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+  color: var(--dash-text);
+}
