@@ -34,6 +34,10 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 - **AJO content templates & fragments:** create via **terminal → `platform.adobe.io`** (not Firebase); see [docs/AJO_CONTENT_TEMPLATE_API.md](docs/AJO_CONTENT_TEMPLATE_API.md) — policy, correct `Content-Type` for `POST /ajo/content/templates`, `npm run ajo:create-content-template`, fragments base path, optional `/api/aep` `platform_headers` for browser-only tests, and **generic** template `name` / `description` / default `subject` (body may personalise; metadata defaults stay demo-safe per that doc).
 - Rebuild vendored sub-apps when their sources change (e.g. **`npm run build:edp`**, **`npm run build:eds-quickstart`**) before deploy — see ship rule.
 
+## Commit and push by default
+
+Treat **commit + push to `origin`** as the default way to finish any change that modifies project files. After completing a task, `git add` the relevant paths, commit with a clear message, and `git push origin <current-branch>` — this repo's main checkout tracks `feature/ba-personalization-mounts`, not `main`, so push to your actual feature branch, never straight to `main`. Skip the push only if the user asked for a local-only commit or the push fails (say so, and what to run once online). Don't leave completed work uncommitted when wrapping up.
+
 ## Secrets and credentials
 
 Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local JSON, or team-documented env vars. See [Credentials, secrets and .env files](CONTRIBUTING.md#credentials-secrets-and-env-files).
