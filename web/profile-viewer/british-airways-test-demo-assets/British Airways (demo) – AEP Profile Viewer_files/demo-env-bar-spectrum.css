@@ -1,0 +1,1535 @@
+/**
+ * Adobe Spectrum card layout for the lab env bar (Sky pilot).
+ * Scoped to .aep-demo-env-bar--spectrum — other demos keep the legacy strip.
+ */
+.aep-demo-id-inner--spectrum {
+  padding: 0;
+  background: var(--dash-surface);
+}
+
+.aep-demo-env-bar--spectrum {
+  --spectrum-page-bg: var(--dash-surface);
+  --spectrum-card-bg: var(--dash-surface);
+  --spectrum-card-border: var(--dash-border);
+  --spectrum-card-shadow: none;
+  --spectrum-text: var(--dash-text);
+  --spectrum-text-secondary: var(--dash-text-secondary);
+  --spectrum-label: var(--dash-muted);
+  --spectrum-blue: var(--dash-blue);
+  --spectrum-blue-hover: color-mix(in srgb, var(--dash-blue) 85%, var(--dash-text));
+  --spectrum-blue-muted: color-mix(in srgb, var(--dash-blue) 14%, var(--dash-surface));
+  --spectrum-blue-soft: color-mix(in srgb, var(--dash-blue) 8%, var(--dash-surface));
+  --spectrum-green: var(--dash-success-text, #2d9d78);
+  --spectrum-green-muted: color-mix(in srgb, var(--dash-success-text, #2d9d78) 14%, var(--dash-surface));
+  --spectrum-purple: var(--dash-purple);
+  --spectrum-purple-muted: var(--dash-purple-muted);
+  --spectrum-red: var(--dash-error-text, #e34850);
+  --spectrum-red-muted: color-mix(in srgb, var(--dash-error-text, #e34850) 12%, var(--dash-surface));
+  --spectrum-orange: var(--dash-warning-text, #e68619);
+  --spectrum-orange-muted: color-mix(in srgb, var(--dash-warning-text, #e68619) 12%, var(--dash-surface));
+  --spectrum-radius: var(--dash-radius-sm, 12px);
+  --spectrum-radius-sm: var(--dash-radius-sm, 12px);
+  --spectrum-input-border: var(--dash-input-border);
+  --spectrum-input-bg: var(--dash-input-bg);
+  color: var(--spectrum-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  height: 100%;
+}
+
+.aep-demo-env-bar--spectrum .aep-demo-env-section,
+.aep-demo-env-bar--spectrum .aep-demo-profile-section {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* ── Toolbar (collapsed row) ──────────────────────────────────── */
+.spectrum-env-status-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem 0.625rem;
+  padding: 0 0.625rem;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.spectrum-env-status-bar__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--dash-text) 88%, transparent);
+  color: var(--dash-surface);
+}
+
+.lab-env-overlay-only {
+  display: none;
+}
+
+.lab-env-top-anchor--expanded .lab-env-overlay-only,
+.lab-env-top-anchor--pinned .lab-env-overlay-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── Overlay panel layout ─────────────────────────────────────── */
+.lab-env-overlay-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dash-space-300, 1rem);
+  padding: var(--dash-space-300, 1rem) var(--dash-space-400, 1.5rem);
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-full-open-btn[hidden] {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-config-btn,
+.lab-env-top-anchor--expanded .lab-env-config-btn {
+  color: var(--dash-blue);
+}
+
+.lab-env-config-btn[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--dash-blue) 12%, var(--dash-surface));
+}
+
+.lab-env-top-anchor--profile-only .lab-env-full-open-btn:not([hidden]) {
+  display: inline-flex;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel #aepDemoEnvSection,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .aep-demo-env-section {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
+  max-height: min(42vh, 24rem);
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .lab-env-overlay-profile {
+  margin-top: 0;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-selected-script,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only [data-env-overlay-footer-item] {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-input,
+.lab-env-overlay-profile .spectrum-env-profile-main select.spectrum-env-input,
+.lab-env-overlay-profile .spectrum-env-profile-main input.spectrum-env-input {
+  height: 2.35rem;
+  min-height: 2.35rem;
+  max-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-profile {
+  margin: 0;
+  padding: 0;
+  border-bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+
+/* Config cards scroll with the overlay panel — avoid nested scroll clipping card headers. */
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-selected-script,
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-inline-message,
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-info-bar {
+  flex-shrink: 0;
+}
+
+.lab-env-overlay-profile .spectrum-env-profile-grid {
+  display: block;
+  width: 100%;
+  gap: 0;
+}
+
+.lab-env-overlay-profile .spectrum-env-profile-main {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--dash-space-200, 0.75rem) var(--dash-space-300, 1rem);
+  align-items: end;
+  width: 100%;
+  flex: 1 1 100%;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+}
+
+.lab-env-overlay-profile .spectrum-env-profile-main .form-group,
+.lab-env-overlay-profile .spectrum-env-profile-main .form-row.spectrum-env-field {
+  margin: 0;
+  min-width: 0;
+}
+
+.lab-env-overlay-profile .spectrum-env-ecid {
+  grid-column: 1 / -1;
+}
+
+.lab-env-overlay-panel .form-group,
+.lab-env-overlay-panel .form-row.spectrum-env-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-panel .form-group label,
+.lab-env-overlay-panel .form-row.spectrum-env-field label {
+  width: 100%;
+}
+
+.lab-env-overlay-panel .form-group select,
+.lab-env-overlay-panel .form-group input,
+.lab-env-overlay-panel .form-row.spectrum-env-field select,
+.lab-env-overlay-panel .form-row.spectrum-env-field input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dash-space-100, 0.5rem);
+  width: 100%;
+}
+
+.lab-env-col-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dash-space-200, 0.75rem);
+  min-width: 0;
+}
+
+.lab-env-bc-panel {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-bc-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.lab-env-bc-prefs-wrap {
+  margin-top: 0.15rem;
+}
+
+.lab-env-overlay-panel .aep-demo-env-compact,
+.lab-env-overlay-panel #aepDemoEnvCompact,
+.lab-env-overlay-panel .site-clone-bc-env-strip__legacy-inject-toggles,
+.lab-env-overlay-panel .mod-demo-tags-company-row {
+  display: none !important;
+}
+
+/* Elevated cards inside overlay (gray page background from env-bar-compact.css) */
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel {
+  --spectrum-card-bg: var(--dash-surface);
+  --spectrum-card-shadow: var(--dash-shadow);
+}
+
+.lab-env-overlay-panel .spectrum-env-card,
+.lab-env-overlay-panel .lab-env-bc-panel.spectrum-env-card {
+  background: var(--spectrum-card-bg);
+  border: 1px solid var(--spectrum-card-border);
+  border-radius: var(--spectrum-radius);
+  box-shadow: var(--spectrum-card-shadow);
+}
+
+.lab-env-overlay-panel .lab-env-overlay-profile {
+  background: var(--spectrum-card-bg);
+  border: 1px solid var(--spectrum-card-border);
+  border-top: 1px solid var(--dash-border);
+  border-radius: var(--spectrum-radius);
+  box-shadow: var(--spectrum-card-shadow);
+  margin-top: 0.25rem;
+  padding-top: 0;
+}
+
+.lab-env-overlay-panel .lab-env-overlay-profile .spectrum-env-card__header {
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.lab-env-overlay-panel .spectrum-env-cards--trio {
+  gap: var(--dash-space-200, 0.75rem);
+  margin: 0;
+}
+
+.lab-env-overlay-panel .spectrum-env-card--data-collection,
+.lab-env-overlay-panel .spectrum-env-card--target {
+  margin: 0;
+}
+
+.lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-overlay-panel > .spectrum-env-info-bar {
+  width: 100%;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__header {
+  padding: 0.65rem 0.85rem 0.45rem;
+  border-bottom: 1px solid var(--dash-border);
+  gap: 0.4rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__title {
+  font-size: 0.8125rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__body {
+  padding: 0.55rem 0.85rem 0.75rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__body--fields,
+.lab-env-overlay-panel .spectrum-env-card__body--stacked,
+.lab-env-overlay-panel .spectrum-env-card__body--target {
+  gap: var(--dash-space-200, 0.75rem);
+}
+
+.lab-env-overlay-panel .spectrum-env-card__body--fields {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.lab-env-overlay-panel .spectrum-env-target-grid {
+  gap: 0.75rem 1rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-sdk-panel {
+  padding-top: 0;
+}
+
+.lab-env-overlay-panel .spectrum-env-input,
+.lab-env-overlay-panel select.spectrum-env-input,
+.lab-env-overlay-panel input.spectrum-env-input,
+.lab-env-overlay-panel .site-clone-bc-style-url-select,
+.lab-env-overlay-panel .site-clone-bc-datastream-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Spectrum shell demos (e.g. KSIA) load this file, not site-clone-bc-env-strip.css — manual UUID paste row needs the same layout. */
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-label,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-label,
+.site-clone-bc-datastream-manual-label {
+  margin: 0.35rem 0 0.15rem;
+  font-size: var(--dash-font-detail, 0.75rem);
+  font-weight: 600;
+  color: var(--spectrum-text-secondary, var(--dash-muted));
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-row,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  position: relative;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-row[hidden],
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row[hidden] {
+  display: none !important;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
+  /* Keep list + paste field visible together — do not clip the select when pasting a UUID. */
+  position: static;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: inherit;
+  border: inherit;
+  clip: auto;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-open,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open {
+  position: relative;
+  z-index: 40;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-input,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font: inherit;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-actions,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-error:not(:empty),
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-error:not(:empty) {
+  color: var(--dash-error, var(--dash-muted));
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-hint--info,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-hint--info,
+.site-clone-bc-datastream-hint--info {
+  color: var(--dash-text-secondary, var(--spectrum-text-secondary, var(--dash-muted)));
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-hint--success,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-hint--success,
+.site-clone-bc-datastream-hint--success {
+  color: var(--dash-success-text, var(--spectrum-green, #2d9d78));
+  font-weight: 600;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-success,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-success {
+  color: var(--dash-success-text, var(--spectrum-green, #2d9d78));
+  font-weight: 600;
+}
+
+.lab-env-overlay-panel .spectrum-env-field--grow {
+  flex: none;
+  width: 100%;
+}
+
+.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--dash-space-200, 0.75rem);
+}
+
+.lab-env-overlay-panel .spectrum-env-field label,
+.lab-env-overlay-panel .spectrum-env-stat__label,
+.lab-env-overlay-panel .spectrum-env-field__label {
+  font-size: var(--dash-font-detail, 0.75rem);
+}
+
+.lab-env-overlay-panel .spectrum-env-input,
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel select.spectrum-env-input,
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel input.spectrum-env-input {
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8125rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-selected-script {
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  background: color-mix(in srgb, var(--dash-surface-alt) 65%, var(--dash-surface));
+  border: 1px solid var(--dash-border);
+  font-size: 0.8125rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-selected-script code {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.lab-env-url-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .spectrum-btn {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.spectrum-env-status-bar__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.spectrum-env-status-bar__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.spectrum-env-status-bar__subtitle {
+  font-size: 0.75rem;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-status-bar__stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.35rem;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.spectrum-env-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.spectrum-env-stat__label,
+.spectrum-env-field__label {
+  font-size: var(--dash-font-detail, 0.75rem);
+  font-weight: 600;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-stat__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--spectrum-text);
+  min-width: 0;
+}
+
+#aepSpectrumSdkStatus,
+#aepSpectrumPropertyChip {
+  cursor: pointer;
+}
+
+#aepSpectrumSdkStatus:hover,
+#aepSpectrumPropertyChip:hover {
+  color: var(--dash-blue);
+}
+
+.spectrum-env-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--spectrum-label);
+}
+
+.spectrum-env-dot--green {
+  background: var(--spectrum-green);
+}
+
+/* S2 StatusLight — toolbar SDK/property indicators */
+.spectrum-env-status-light {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--dash-muted);
+}
+
+.spectrum-env-status-light--positive {
+  background: var(--dash-success, var(--spectrum-green));
+}
+
+.spectrum-env-status-light--neutral {
+  background: var(--dash-muted);
+}
+
+.spectrum-env-status-light--notice {
+  background: var(--dash-warning, var(--spectrum-orange));
+}
+
+.lab-env-status-light--positive {
+  color: var(--dash-text);
+}
+
+.lab-env-status-light--neutral {
+  color: var(--dash-text-secondary);
+}
+
+.lab-env-status-light--notice {
+  color: var(--dash-warning-text, var(--dash-text));
+}
+
+.spectrum-env-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--dash-radius-chip, 0.5rem);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.spectrum-env-pill--blue {
+  background: var(--spectrum-blue-muted);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--spectrum-blue);
+  cursor: pointer;
+  text-align: left;
+}
+
+.spectrum-env-link-btn:hover {
+  text-decoration: underline;
+}
+
+.spectrum-env-link-btn:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
+  border-radius: var(--dash-radius-control, 0.5rem);
+}
+
+.spectrum-env-status-bar__updated {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--spectrum-text-secondary);
+  white-space: nowrap;
+}
+
+.spectrum-env-status-bar__clock {
+  display: inline-flex;
+  color: var(--spectrum-label);
+}
+
+/* ── Cards layout (legacy full-page; flattened in overlay) ─────── */
+.spectrum-env-cards {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0;
+}
+
+.spectrum-env-cards--trio {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.spectrum-env-cards--trio > .spectrum-env-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.spectrum-env-cards--trio .spectrum-env-card__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.spectrum-env-card {
+  background: var(--spectrum-card-bg);
+  border: 1px solid var(--spectrum-card-border);
+  border-radius: var(--spectrum-radius);
+  box-shadow: var(--spectrum-card-shadow);
+  overflow: hidden;
+}
+
+.spectrum-env-card--target,
+.spectrum-env-card--data-collection,
+.spectrum-env-card--profile {
+  margin: 0;
+}
+
+.spectrum-env-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0 0.375rem;
+  border-bottom: 0;
+}
+
+.spectrum-env-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.spectrum-env-card__icon--blue {
+  background: var(--spectrum-blue-muted);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-card__icon--purple {
+  background: var(--spectrum-purple-muted);
+  color: var(--spectrum-purple);
+}
+
+.spectrum-env-card__icon--red {
+  background: var(--spectrum-red-muted);
+  color: var(--spectrum-red);
+}
+
+.spectrum-env-card__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.spectrum-env-card__body {
+  padding: 0;
+}
+
+.spectrum-env-card__body--fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.spectrum-env-card__body--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spectrum-env-field__hint--muted {
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-collapsible-fields__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.spectrum-env-collapsible-fields .spectrum-env-card__actions {
+  grid-column: 1 / -1;
+}
+
+.spectrum-env-collapsible-fields[hidden] {
+  display: none !important;
+}
+
+.spectrum-env-card__hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  color: var(--spectrum-text-secondary);
+  line-height: 1.35;
+}
+
+/* ── Fields ─────────────────────────────────────────────────── */
+.spectrum-env-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.spectrum-env-field--full {
+  width: 100%;
+}
+
+.spectrum-env-field--grow {
+  flex: 1 1 12rem;
+}
+
+.spectrum-env-field label {
+  font-size: var(--dash-font-detail, 0.75rem);
+  font-weight: 600;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.spectrum-env-field--has-tooltip {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+.spectrum-env-field--has-tooltip:focus-within,
+.spectrum-env-field--has-tooltip:has(.spectrum-env-field-tooltip:hover) {
+  z-index: 50;
+}
+
+.spectrum-env-card--data-collection:has(.spectrum-env-field-tooltip:hover),
+.spectrum-env-card--data-collection:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible;
+  position: relative;
+  z-index: 4;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section:has(.spectrum-env-field-tooltip:hover),
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible;
+}
+
+.lab-env-overlay-panel:has(.spectrum-env-field-tooltip:hover),
+.lab-env-overlay-panel:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible !important;
+}
+
+.spectrum-env-field-tooltip {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.spectrum-env-field-tooltip__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface-alt);
+  color: var(--spectrum-text-secondary);
+  cursor: help;
+  line-height: 1;
+}
+
+.spectrum-env-field-tooltip__trigger svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  display: block;
+}
+
+.spectrum-env-field-tooltip__trigger:hover,
+.spectrum-env-field-tooltip__trigger:focus-visible {
+  background: var(--dash-hover);
+  color: var(--dash-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-blue) 25%, transparent);
+}
+
+.spectrum-env-field-tooltip__panel {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 0.35rem);
+  bottom: auto;
+  left: 0;
+  right: auto;
+  width: min(18.5rem, calc(100vw - 2rem));
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
+}
+
+.spectrum-env-field-tooltip:hover .spectrum-env-field-tooltip__panel,
+.spectrum-env-field-tooltip:focus-within .spectrum-env-field-tooltip__panel {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spectrum-env-field-tooltip__lead,
+.spectrum-env-field-tooltip__foot {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--spectrum-text);
+  font-weight: 400;
+}
+
+.spectrum-env-field-tooltip__list {
+  margin: 0.35rem 0 0.35rem 1rem;
+  padding: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--spectrum-text);
+}
+
+.spectrum-env-field-tooltip__list a {
+  color: var(--dash-blue);
+  word-break: break-all;
+}
+
+.spectrum-env-field__hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--spectrum-red);
+}
+
+.spectrum-env-input,
+.aep-demo-env-bar--spectrum select.spectrum-env-input,
+.aep-demo-env-bar--spectrum input.spectrum-env-input {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--spectrum-input-border);
+  border-radius: var(--dash-radius-control, 0.5rem);
+  background: var(--spectrum-input-bg);
+  color: var(--spectrum-text);
+  font: inherit;
+  font-size: 0.84rem;
+  box-sizing: border-box;
+}
+
+.spectrum-env-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--spectrum-blue) 45%, transparent);
+  outline-offset: 1px;
+  border-color: var(--spectrum-blue);
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.aep-demo-env-bar--spectrum .spectrum-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  padding: 0.45rem 1rem;
+  border-radius: var(--dash-radius-control, 0.5rem);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--primary {
+  background: var(--spectrum-blue);
+  color: var(--dash-on-accent);
+  border-color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--primary:hover {
+  background: var(--spectrum-blue-hover);
+  border-color: var(--spectrum-blue-hover);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--secondary {
+  background: var(--dash-surface);
+  color: var(--spectrum-text);
+  border-color: var(--spectrum-input-border);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--secondary:hover {
+  background: var(--spectrum-blue-soft);
+  border-color: var(--spectrum-blue);
+  color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--spectrum-blue);
+  min-height: auto;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--quiet:hover {
+  background: var(--spectrum-blue-soft);
+  border-color: transparent;
+  color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn:focus-visible,
+.aep-demo-env-bar--spectrum .spectrum-env-icon-btn:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
+}
+
+.spectrum-btn__icon {
+  display: inline-flex;
+}
+
+/* ── BC badges ──────────────────────────────────────────────── */
+.spectrum-env-bc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.spectrum-env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  opacity: 0.45;
+}
+
+.spectrum-env-badge.is-active {
+  opacity: 1;
+}
+
+.spectrum-env-badge--blue {
+  background: var(--spectrum-blue-muted);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-badge--purple {
+  background: var(--spectrum-purple-muted);
+  color: var(--spectrum-purple);
+}
+
+.spectrum-env-badge--green {
+  background: var(--spectrum-green-muted);
+  color: var(--spectrum-green);
+}
+
+.spectrum-env-badge--orange {
+  background: var(--spectrum-orange-muted);
+  color: var(--spectrum-orange);
+}
+
+.spectrum-env-badge--lg {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.spectrum-env-badge__icon {
+  display: inline-flex;
+}
+
+/* ── Data Collection card ───────────────────────────────────── */
+.spectrum-env-card--data-collection .spectrum-env-sdk-panel--compact {
+  padding-top: 0;
+  margin-top: auto;
+}
+
+.spectrum-env-info-bar--card {
+  margin-top: auto;
+}
+
+.spectrum-env-target-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: 0.85rem 1rem;
+  align-items: start;
+}
+
+.spectrum-env-sdk-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 1.15rem;
+}
+
+.spectrum-env-sdk-panel__meta {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--spectrum-text-secondary);
+  line-height: 1.35;
+}
+
+.spectrum-env-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--spectrum-radius-sm);
+  background: var(--spectrum-blue-soft);
+  border: 1px solid color-mix(in srgb, var(--spectrum-blue) 18%, var(--spectrum-card-border));
+}
+
+.spectrum-env-info-bar--muted {
+  background: var(--spectrum-blue-soft);
+}
+
+.spectrum-env-info-bar__icon {
+  display: inline-flex;
+  color: var(--spectrum-blue);
+  flex-shrink: 0;
+}
+
+.spectrum-env-info-bar__text {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--spectrum-text-secondary);
+  line-height: 1.4;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-env-sdk-summary {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-env-sdk-summary:not([hidden]) {
+  display: block;
+}
+
+/* ── Profile card ─────────────────────────────────────────────── */
+.spectrum-env-profile-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1rem;
+  align-items: flex-end;
+}
+
+.spectrum-env-profile-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 0.85rem;
+  flex: 1 1 28rem;
+}
+
+.spectrum-env-profile-prefs {
+  flex: 1 1 16rem;
+  margin-left: auto;
+}
+
+.spectrum-env-display-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-profile-lab-prefs-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-self: stretch;
+  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--enable {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--enable .site-clone-bc-prefs__option {
+  flex: 1 1 100%;
+  min-width: 100%;
+  width: 100%;
+  border-radius: 999px;
+  padding-right: 0.85rem;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--enable .site-clone-bc-prefs__option:has(input:checked) {
+  background: var(--spectrum-green-muted);
+  border-color: var(--spectrum-green);
+  color: var(--spectrum-green);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spectrum-green) 25%, transparent);
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--modes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--modes .site-clone-bc-prefs__option {
+  flex: initial;
+  min-width: 0;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.72rem;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
+  display: none;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-bc-prefs__label {
+  display: none;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
+  justify-content: flex-start;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
+  justify-content: flex-start;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-profile-lab-prefs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
+  display: none;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__label {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: min(6.5rem, 42%);
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--spectrum-input-border);
+  border-radius: var(--dash-radius-control, 0.5rem);
+  background: var(--dash-surface);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--spectrum-text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:hover {
+  border-color: color-mix(in srgb, var(--spectrum-blue) 45%, var(--spectrum-input-border));
+  background: color-mix(in srgb, var(--dash-surface-alt) 65%, var(--dash-surface));
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:focus-within {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:has(input:checked) {
+  border-color: var(--spectrum-blue);
+  background: var(--spectrum-blue-soft);
+  color: var(--spectrum-blue);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spectrum-blue) 25%, transparent);
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
+  justify-content: flex-end;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__option {
+  border-radius: 999px;
+  padding-right: 0.85rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__option:has(input:checked) {
+  background: var(--spectrum-green-muted);
+  border-color: var(--spectrum-green);
+  color: var(--spectrum-green);
+}
+
+.spectrum-env-ecid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-ecid__value {
+  font-weight: 600;
+  color: var(--spectrum-text);
+  word-break: break-all;
+}
+
+.spectrum-env-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px solid var(--spectrum-input-border);
+  border-radius: var(--dash-radius-control, 0.5rem);
+  background: var(--dash-surface);
+  color: var(--spectrum-label);
+  cursor: pointer;
+}
+
+.spectrum-env-icon-btn:hover {
+  border-color: var(--spectrum-blue);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-selected-script {
+  margin: 0.85rem 1rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--spectrum-radius-sm);
+  background: color-mix(in srgb, var(--spectrum-card-border) 35%, var(--dash-surface));
+  font-size: 0.78rem;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-selected-script__label {
+  font-weight: 600;
+}
+
+.spectrum-env-selected-script code {
+  word-break: break-all;
+}
+
+.spectrum-env-inline-message {
+  margin: 0;
+  min-height: 1.25rem;
+}
+
+.spectrum-env-tags-status,
+.site-clone-bc-tags-status {
+  min-height: 1.25rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--dash-muted, var(--dash-text-secondary));
+}
+
+.lab-env-overlay-panel .spectrum-env-inline-message {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-panel > .spectrum-env-inline-message[hidden] {
+  display: block !important;
+  visibility: hidden;
+  min-height: 1.25rem;
+  overflow: hidden;
+}
+
+/* Hide legacy flat layout pieces inside spectrum root */
+.aep-demo-env-bar--spectrum .site-clone-bc-env-strip__tags-row,
+.aep-demo-env-bar--spectrum .aep-demo-env-kicker {
+  display: none !important;
+}
+
+@media (max-width: 1000px) {
+  .lab-env-overlay-profile .spectrum-env-profile-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 72rem) {
+  .spectrum-env-cards--trio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lab-env-overlay-panel .spectrum-env-card__body--fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 48rem) {
+  .spectrum-env-status-bar__stats {
+    justify-content: flex-start;
+  }
+
+  .spectrum-env-status-bar__updated {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .lab-env-overlay-panel {
+    padding: var(--dash-space-200, 0.75rem) var(--dash-space-200, 0.75rem);
+    gap: var(--dash-space-200, 0.75rem);
+  }
+
+  .lab-env-overlay-profile {
+    flex-shrink: 0;
+    min-height: min-content;
+  }
+
+  .lab-env-overlay-profile .spectrum-env-profile-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--dash-space-200, 0.75rem);
+  }
+
+  .spectrum-env-card__body--fields,
+  .spectrum-env-target-grid,
+  .lab-env-overlay-panel .spectrum-env-target-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spectrum-env-sdk-panel,
+  .lab-env-overlay-panel .spectrum-env-sdk-panel {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+
+  .spectrum-env-profile-prefs {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .lab-env-overlay-panel .spectrum-env-cards--trio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aep-demo-env-bar--spectrum .lab-env-overlay-panel .spectrum-btn {
+    min-height: 2.25rem;
+    width: 100%;
+  }
+
+  .lab-env-overlay-profile .spectrum-env-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 24rem) {
+  .lab-env-overlay-panel {
+    padding: 0.5rem 0.625rem;
+    gap: 0.625rem;
+  }
+
+  .lab-env-overlay-panel .spectrum-env-card__header {
+    padding: 0.5rem 0.65rem 0.35rem;
+  }
+
+  .lab-env-overlay-panel .spectrum-env-card__body {
+    padding: 0.45rem 0.65rem 0.6rem;
+  }
+
+  .lab-env-overlay-panel .spectrum-env-card__title {
+    font-size: 0.75rem;
+  }
+
+  .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--modes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__option {
+    min-width: 100%;
+  }
+}

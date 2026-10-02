@@ -1,0 +1,63 @@
+/* Lab debug — profile status + optional sendEvent detail (profile peek safe) */
+.aep-lab-debug-profile-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.aep-lab-debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.aep-lab-debug-toggle input {
+  margin: 0;
+  accent-color: var(--dash-blue);
+}
+
+.aep-lab-profile-status {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--dash-text-secondary);
+}
+
+.aep-lab-profile-status.mod-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+.aep-lab-profile-status.mod-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.aep-lab-debug-detail {
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  max-height: 10rem;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--dash-text-secondary);
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+}
+
+.lab-env-overlay-profile .aep-lab-debug-profile-wrap,
+.lab-env-top-anchor--profile-only .aep-lab-profile-status {
+  display: flex;
+}
+
+.lab-env-top-anchor--profile-only .aep-lab-profile-status:not([hidden]) {
+  display: block;
+}

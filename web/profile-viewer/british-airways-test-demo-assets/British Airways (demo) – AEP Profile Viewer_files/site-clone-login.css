@@ -1,0 +1,249 @@
+/**
+ * Site-clone demo login chrome (iframe snapshot) — KSIA / Rocco Forte lab pairing pattern.
+ * Brand tokens via --scl-* custom properties (set from SiteCloneLoginConfig).
+ */
+:root {
+  --scl-accent: #1470cc;
+  --scl-accent-hover: #0d5aa8;
+  --scl-btn-bg: rgba(0, 0, 0, 0.42);
+  --scl-btn-border: rgba(255, 255, 255, 0.55);
+  --scl-btn-text: #ffffff;
+  --scl-btn-top: 16px;
+  --scl-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --scl-surface: #ffffff;
+  --scl-text: #111111;
+  --scl-muted: #5c5c5c;
+  --scl-error: #c41e3a;
+}
+
+.scl-top-utils {
+  position: fixed;
+  top: var(--scl-btn-top);
+  right: clamp(16px, 3vw, 40px);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.scl-top-utils .scl-login-btn {
+  pointer-events: auto;
+}
+
+.scl-login-btn {
+  font-family: var(--scl-font);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--scl-btn-border);
+  background: var(--scl-btn-bg);
+  color: var(--scl-btn-text);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.scl-login-btn:hover {
+  background: var(--scl-text);
+  border-color: var(--scl-surface);
+  color: var(--scl-surface);
+}
+
+.scl-login-btn.is-signed-in {
+  border-color: var(--scl-accent);
+}
+
+.scl-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.scl-login-overlay[hidden] {
+  display: none;
+}
+
+.scl-login-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.scl-login-card {
+  position: relative;
+  z-index: 1;
+  background: var(--scl-surface);
+  color: var(--scl-text);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  padding: 2rem 2rem 1.75rem;
+  width: 100%;
+  max-width: 400px;
+  font-family: var(--scl-font);
+}
+
+.scl-login-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.scl-login-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.scl-login-logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.scl-login-logo img {
+  max-height: 48px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.scl-login-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--scl-text);
+}
+
+.scl-login-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--scl-muted);
+  text-align: center;
+}
+
+.scl-login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.scl-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.scl-login-field label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--scl-muted);
+}
+
+.scl-login-field input {
+  font-family: var(--scl-font);
+  font-size: 14px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 4px;
+  background: var(--scl-surface);
+  color: var(--scl-text);
+  min-width: 0;
+}
+
+.scl-login-field input:focus {
+  outline: none;
+  border-color: var(--scl-accent);
+}
+
+.scl-login-error {
+  margin: 0 0 0.85rem;
+  font-size: 12px;
+  color: var(--scl-error);
+  text-align: center;
+}
+
+.scl-login-submit {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--scl-accent);
+  color: #ffffff;
+  font-family: var(--scl-font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.scl-login-submit:hover:not(:disabled) {
+  background: var(--scl-accent-hover);
+}
+
+.scl-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.scl-login-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: sclLoginSpin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes sclLoginSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.scl-login-guest-link {
+  margin: 1rem 0 0;
+  font-size: 12px;
+  text-align: center;
+}
+
+.scl-login-guest-link a {
+  color: var(--scl-accent);
+  text-decoration: none;
+}
+
+.scl-login-guest-link a:hover {
+  text-decoration: underline;
+}
+
+body.scl-login-modal-open {
+  overflow: hidden;
+}
+
+/* Saved-page Walnut overlay sits above most chrome; keep login clickable */
+#walnut-root-popin-element.walnut_ignore {
+  pointer-events: none !important;
+}
