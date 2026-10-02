@@ -125,6 +125,7 @@ export async function sendProfileEventSequence({
       public: step.public,
       edge_minimal: step.edge_minimal,
       xdm_style: step.xdm_style,
+      event_place: step.event_place,
     });
 
     const lab = apiResult.ok && apiResult.data && typeof apiResult.data === 'object' ? apiResult.data : {};
@@ -136,6 +137,9 @@ export async function sendProfileEventSequence({
       timestamp,
       industry: step.industry || null,
       rich: step.xdm_style === 'full',
+      place: step.event_place
+        ? { city: step.event_place.city || null, countryCode: step.event_place.countryCode || null }
+        : undefined,
       ok: apiResult.ok,
       error: apiResult.ok ? undefined : apiResult.error,
       transport: lab.transport || null,

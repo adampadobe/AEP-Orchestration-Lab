@@ -1,5 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+
+// assertSandboxAllowed (auth.mjs) requires this even for the allowlist-only path our
+// tests exercise — mirrors imsAuth.test.mjs's setup.
+process.env.AEP_LAB_MCP_API_KEY = process.env.AEP_LAB_MCP_API_KEY || 'server-held-test-key';
+
 import { registerDecisioningTools } from '../src/tools/decisioningTools.mjs';
 
 function registerAll() {
@@ -146,6 +151,34 @@ describe('decisioning MCP tools', () => {
     assert.equal(tools.get('lab_decisioning_selection_strategy_preview').definition.inputSchema.eligibility_rule_id_or_name.isOptional(), true);
   });
 
+  it('audience_id_or_name triggers the same offer-vs-strategy ask-first guard as eligibility_rule_id_or_name', async () => {
+    const tools = registerAll();
+    const offerHandler = tools.get('lab_decisioning_attach_offer_eligibility_preview').handler;
+    const offerRefused = await offerHandler({ sandbox: 'apalmer', offer_id_or_name: 'o1', audience_id_or_name: 'VIP' });
+    assert.match(JSON.stringify(offerRefused), /OFFER level.*STRATEGY level/s);
+
+    const strategyHandler = tools.get('lab_decisioning_selection_strategy_preview').handler;
+    const strategyRefused = await strategyHandler({ sandbox: 'apalmer', name: 'x', collection_id_or_name: 'c1', audience_id_or_name: 'VIP' });
+    assert.match(JSON.stringify(strategyRefused), /OFFER level.*STRATEGY level/s);
+  });
+
+  it('attach_offer_eligibility_preview and selection_strategy_preview refuse both eligibility_rule_id_or_name and audience_id_or_name at once', async () => {
+    const tools = registerAll();
+    const offerHandler = tools.get('lab_decisioning_attach_offer_eligibility_preview').handler;
+    const offerRefused = await offerHandler({
+      sandbox: 'apalmer', offer_id_or_name: 'o1', eligibility_rule_id_or_name: 'r1', audience_id_or_name: 'VIP',
+      user_explicitly_chose_offer_level: true,
+    });
+    assert.match(JSON.stringify(offerRefused), /Specify only one/);
+
+    const strategyHandler = tools.get('lab_decisioning_selection_strategy_preview').handler;
+    const strategyRefused = await strategyHandler({
+      sandbox: 'apalmer', name: 'x', collection_id_or_name: 'c1', eligibility_rule_id_or_name: 'r1', audience_id_or_name: 'VIP',
+      user_explicitly_chose_strategy_level: true,
+    });
+    assert.match(JSON.stringify(strategyRefused), /Specify only one/);
+  });
+
   it('ranking_formula_preview validates the field required by each formula_type', async () => {
     const tools = registerAll();
     const handler = tools.get('lab_decisioning_ranking_formula_preview').handler;
@@ -162,5 +195,69 @@ describe('decisioning MCP tools', () => {
       assert.doesNotThrow(() => schema.entity_type.parse(entityType));
     }
     assert.doesNotThrow(() => schema.substitutions.parse({ C3: 'C4' }));
+  });
+
+  it('registers the schema-extend and tag-bulk tool pairs', () => {
+    const tools = registerAll();
+    for (const name of [
+      'lab_decisioning_schema_extend_preview',
+      'lab_decisioning_schema_extend_apply',
+      'lab_decisioning_tag_bulk_preview',
+      'lab_decisioning_tag_bulk_apply',
+    ]) {
+      assert.ok(tools.has(name), `expected ${name} to be registered`);
+    }
+  });
+
+  it('schema_extend_preview/apply accept 1-50 fields of the documented types and reject unknown types', () => {
+    const tools = registerAll();
+    for (const name of ['lab_decisioning_schema_extend_preview', 'lab_decisioning_schema_extend_apply']) {
+      const schema = tools.get(name).definition.inputSchema.fields;
+      for (const type of ['string', 'number', 'integer', 'boolean', 'date', 'date-time', 'string-array', 'number-array']) {
+        assert.doesNotThrow(() => schema.parse([{ name: 'discountPct', type }]), `${name} should accept type=${type}`);
+      }
+      assert.throws(() => schema.parse([{ name: 'x', type: 'object' }]));
+      assert.throws(() => schema.parse([]));
+      assert.throws(() => schema.parse(new Array(51).fill({ name: 'x', type: 'string' })));
+    }
+  });
+
+  it('schema_extend_apply requires a 64-char preview_hash and confirmed:true, never a phrase', () => {
+    const tools = registerAll();
+    const schema = tools.get('lab_decisioning_schema_extend_apply').definition.inputSchema;
+    assert.throws(() => schema.preview_hash.parse('too-short'));
+    assert.doesNotThrow(() => schema.preview_hash.parse('a'.repeat(64)));
+    assert.throws(() => schema.confirmed.parse(false));
+    assert.doesNotThrow(() => schema.confirmed.parse(true));
+    assert.equal(schema.confirmation, undefined);
+  });
+
+  it('tag_bulk_preview caps tags at 1-20 and accepts each offer_selector shape', () => {
+    const tools = registerAll();
+    const schema = tools.get('lab_decisioning_tag_bulk_preview').definition.inputSchema;
+    assert.throws(() => schema.tags.parse([]));
+    assert.throws(() => schema.tags.parse(new Array(21).fill('t')));
+    assert.doesNotThrow(() => schema.tags.parse(['VIP']));
+    assert.doesNotThrow(() => schema.offer_selector.parse({ ids: ['o1', 'o2'] }));
+    assert.doesNotThrow(() => schema.offer_selector.parse({ name_prefix: 'BlackFriday-' }));
+    assert.doesNotThrow(() => schema.offer_selector.parse({ collection: 'c1' }));
+    assert.doesNotThrow(() => schema.action.parse('attach'));
+    assert.doesNotThrow(() => schema.action.parse('detach'));
+    assert.doesNotThrow(() => schema.action.parse('replace'));
+    assert.throws(() => schema.action.parse('delete'));
+  });
+
+  it('tag_bulk_apply requires a 64-char preview_hash and confirmed:true, and takes an optional resume_token job id', () => {
+    const tools = registerAll();
+    const schema = tools.get('lab_decisioning_tag_bulk_apply').definition.inputSchema;
+    assert.throws(() => schema.preview_hash.parse('too-short'));
+    assert.doesNotThrow(() => schema.preview_hash.parse('a'.repeat(64)));
+    assert.throws(() => schema.confirmed.parse(false));
+    assert.doesNotThrow(() => schema.confirmed.parse(true));
+    assert.equal(schema.resume_token.isOptional(), true);
+    assert.throws(() => schema.resume_token.parse('not-a-uuid'));
+    // No tags/offer_selector/action on apply — the preview_hash-keyed cached plan carries them.
+    assert.equal(schema.tags, undefined);
+    assert.equal(schema.offer_selector, undefined);
   });
 });

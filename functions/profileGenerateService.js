@@ -7,6 +7,8 @@
 
 const profileStreamingCore = require('./profileStreamingCore');
 const profileTableHelpers = require('./profileTableHelpers');
+const profilePlaceContext = require('./profilePlaceContext');
+const { generateEcid, isCanonicalEcid } = require('./ecidGenerator');
 const genericProfileConnectionStore = require('./genericProfileConnectionStore');
 const travelProfileConnectionStore = require('./travelProfileConnectionStore');
 const fsiProfileConnectionStore = require('./fsiProfileConnectionStore');
@@ -24,12 +26,6 @@ const INDUSTRY_TO_CONNECTION_STORE = {
   media: mediaProfileConnectionStore,
   sports: sportsProfileConnectionStore,
 };
-
-function generateEcid() {
-  let s = '4';
-  for (let i = 0; i < 37; i += 1) s += Math.floor(Math.random() * 10);
-  return s;
-}
 
 function isEmpty(v) {
   if (v === undefined || v === null) return true;
@@ -52,12 +48,43 @@ function stripEmpty(obj) {
 }
 
 /**
+ * Validate and normalize place context from generate attributes before any AEP call.
+ * Only the Generic Profile schema carries the place field group; other industry
+ * schemas would silently drop it, so reject it explicitly there.
+ */
+function resolveGeneratePlaceContext(filteredAttrs, industryKey) {
+  const probe = {};
+  profileStreamingCore.assignProfileStreamingAttributes(probe, {}, filteredAttrs);
+  if (probe.profilePlaceContext === undefined) return { ok: true, value: null };
+  if (industryKey !== 'generic') {
+    return {
+      ok: false,
+      error: `profilePlaceContext is only supported on the generic industry profile (got "${industryKey}"). Send place context in a generic generate or update call.`,
+      invalidPath: '_demoemea.profilePlaceContext',
+    };
+  }
+  const result = profilePlaceContext.normalizeProfilePlaceContext(probe.profilePlaceContext, {
+    defaultSource: 'profile-update',
+    replaceGeohash: true,
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      invalidPath: `_demoemea.profilePlaceContext.${result.leaf}`,
+    };
+  }
+  return { ok: true, value: result.value };
+}
+
+/**
  * @param {object} req - Firebase HTTP request
  * @param {object} res - Firebase HTTP response
- * @param {{ setCors: Function, resolveSandboxForProfileBody: Function, getAdobeAccessToken: Function, clientId: string, orgId: string }} ctx
+ * @param {{ setCors: Function, resolveSandboxForProfileBody: Function, getAdobeAccessToken: Function, clientId: string, orgId: string, geoMirror?: { recordProfilePlace: Function } }} ctx
+ *   geoMirror (optional) records the accepted place in the Firestore geo-hotspot mirror.
  */
 async function handleProfileGenerate(req, res, ctx) {
-  const { setCors, resolveSandboxForProfileBody, getAdobeAccessToken, clientId, orgId } = ctx;
+  const { setCors, resolveSandboxForProfileBody, getAdobeAccessToken, clientId, orgId, geoMirror } = ctx;
   setCors(res);
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -90,6 +117,13 @@ async function handleProfileGenerate(req, res, ctx) {
     res.status(400).json({
       error: `Unknown industry "${industryRequested}". Supported: ${industryKeys.join(', ')}.`,
     });
+    return;
+  }
+
+  const filteredAttrs = stripEmpty(attributes);
+  const placeResult = resolveGeneratePlaceContext(filteredAttrs, industryKey);
+  if (!placeResult.ok) {
+    res.status(400).json({ error: placeResult.error, invalidPath: placeResult.invalidPath });
     return;
   }
 
@@ -149,9 +183,13 @@ async function handleProfileGenerate(req, res, ctx) {
         orgId,
       );
       mergeDiagnostics = diagnostics;
-      if (existingEcid && String(existingEcid).length >= 10) {
+      if (isCanonicalEcid(existingEcid)) {
         ecid = String(existingEcid).trim();
         ecidSource = 'existing';
+      } else if (existingEcid) {
+        console.warn(
+          '[profileGenerate.appendIfExisting] Ignoring non-canonical existing ECID; Edge Network would reject it.',
+        );
       }
     } catch (lookupErr) {
       mergeDiagnostics = { error: String(lookupErr.message || lookupErr), namespacesAttempted: [] };
@@ -168,9 +206,11 @@ async function handleProfileGenerate(req, res, ctx) {
     },
   };
 
-  const filteredAttrs = stripEmpty(attributes);
   const rootExtras = {};
   profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
+  if (placeResult.value) {
+    demoemea.profilePlaceContext = placeResult.value;
+  }
   profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
 
   // Default test profile: set bare `testProfile` only; `mirrorRootTestProfileFields` in
@@ -266,6 +306,13 @@ async function handleProfileGenerate(req, res, ctx) {
     return;
   }
 
+  const geoMirrorResult = geoMirror
+    ? await geoMirror.recordProfilePlace({ sandbox, email, ecid, place: demoemea.profilePlaceContext })
+    : undefined;
+  if (geoMirrorResult && geoMirrorResult.error) {
+    console.warn('[profileGenerate] geo mirror write failed:', geoMirrorResult.error);
+  }
+
   res.status(200).json({
     ok: true,
     message: `Request sent: ${email}`,
@@ -283,9 +330,11 @@ async function handleProfileGenerate(req, res, ctx) {
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
     industry: industryKey,
+    geoMirror: geoMirrorResult,
   });
 }
 
 module.exports = {
   handleProfileGenerate,
+  generateEcid,
 };

@@ -137,12 +137,8 @@ function generateAgenticEmail(emailCounter) {
   return `adamp.adobedemo+${dateStr}+${emailCounter}@gmail.com`;
 }
 
-/** Match the numeric 38-character ECID shape used by the AEP profile generator. */
-function generateEcid() {
-  let value = '4';
-  for (let i = 0; i < 37; i += 1) value += Math.floor(Math.random() * 10);
-  return value;
-}
+/** Canonical 38-digit ECID (two signed-64-bit halves) accepted by Edge Network. */
+const { generateEcid } = require('./ecidGenerator');
 
 /**
  * Mirrors `customer_journey_probabilities.CustomerJourneyConfig.get_customer_profile_flags`

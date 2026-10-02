@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.43.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.52.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.43.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.52.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Directly connect the focused endpoint(s) for the domains actually used (e.g. `/mcp/profile`, `/mcp/demo-prep`) alongside `/mcp/entry`, rather than relying on `lab_load_toolset` alone in Coworker.
 
@@ -50,7 +50,7 @@ Codex should call these **before** improvising lab conventions:
 4. **Event identity** — after generate, pass **email + ecid** to `lab_send_profile_event`; `identityMap.ECID` primary, `Email` secondary; server adds `_demoemea.identification.core` automatically. Preflight: `lab_preflight_profile_event`.
 5. **Event params only (never inject XDM)** — Coworker must use `lab_send_profile_event` / `lab_send_profile_events_batch` with tool params. Minimal default: `sandbox`, `email`, `ecid`, `event_type`, `channel`, `timestamp`. Governed rich opt-in: add `industry` plus optional flat `industry_fields`; the MCP allowlists fields, nests `public.{industry}.*`, and selects full XDM automatically. **Never** pass `view_name`, `view_url`, custom `xdm`, schema `$ref`s, mixin definitions, descriptors, tenant blobs, or raw `public`/`xdm_style` overrides.
 6. **Portal event types** — `event_type` is **free text** (any string, same as Event tool). Datalist / `lab_send_retail_journey_events` commerce pack are optional suggestions. Multi-event: `lab_send_profile_events_batch` or `event_types[]` on `lab_prepare_demo_from_brand_scrape`.
-7. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per uid+sandbox (keyed by MCP API key `principalUid`). **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field.
+7. **Shared generation counter** — Portal and MCP share Firestore `labProfileGenerationPrefs` per verified Firebase uid+sandbox. User-generated keys use their stored `principalUid`; Coworker IMS resolves the same UID from the active Portal enrollment. Verified MCP principals access Firestore directly through request-local identity context; caller-supplied UID headers are never trusted. **Call `lab_confirm_profile_generation` before first generate** — ask colleague to confirm base email + domain; then omit email on `lab_generate_profile` (or `use_stored_prefs:true`) to atomically reserve `<local>+DDMMYYYY-N@<domain>`. Custom emails **must** match `+DDMMYYYY-N` or MCP rejects with format guidance. **Brand scrape profile tools** use the same prefs by default — persona **names** overlay on attributes but **email never** comes from `homepage.{name}@domain`. Static **mobilePhone.number** comes from prefs. Configure via `lab_set_generation_prefs` or Profile Viewer base email field; changes are bidirectional.
 8. **Brand scrape industry** — `lab_get_brand_scrape` / `lab_resolve_brand_scrape` expose `scrape_industry`, `lab_industry`, and `industry_source`. Profile tools (`lab_generate_profile_from_brand_scrape`, `lab_prepare_demo_from_brand_scrape`) **default to scrape-inferred `lab_industry`** for dual-stream generate (e.g. Food & beverage → `retail`, Travel & Hospitality → `travel`). **Never pass `industry` unless the user explicitly asks to override.** If `warnings` mention infra, call `lab_sandbox_profile_config` for that `lab_industry` (and `generic` when dual-stream).
 9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
@@ -61,6 +61,7 @@ Codex should call these **before** improvising lab conventions:
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
 16. **A complete customer switch auto-classifies then uses one governed preview and apply** — prefer **`lab_demo_customer_switch`** for demo prep. It calls Gemini vision automatically when the saved scrape lacks a usable logo or supporting image classification, then shows the RTDB diff plus all five transformed image slots. Use **`lab_brand_scrape_classify_images`** for an explicit inventory or forced refresh. After explicit confirmation, apply with both preflight ids and one idempotency key. The server labels and privately backs up the prior customer, verifies image hashes before applying RTDB, checks final alignment, and restores the prior image set if the switch fails.
 17. **PDF preparation is inspect → preview/analyse → generate or publish → visually verify** — use **`lab_pdf_capabilities`** first. HTML should pass through **`lab_pdf_html_preview`** before **`lab_pdf_generate`**. Documents are previewed through the generated PDF link. Use a fresh idempotency key for each new PDF and reuse it only for an exact retry. Use **`lab_pdf_job_list`** to recover stored output. Analyse server templates before publishing; publication and archive require explicit confirmation. Never place PDF binary in model context or use the broad operational `X-PDF-API-Key`.
+18. **Place context (profiles + events, map-ready)** — every generated profile carries `_<tenant>.profilePlaceContext` (lat/lon, city, regionCode, countryCode, neighborhood, lastSeenAt, source; geohash derived server-side). `lab_generate_profile` / `lab_generate_profiles_batch` accept `place_mode` (`featured` default = ten common areas: riyadh, dubai, london, new york, paris, tokyo, sydney, singapore, são paulo, mumbai; `global` = a real city anywhere on Earth, population-weighted from the 6,000+ city catalog; `area` = `place_area`) and `place_area` (featured key or any catalog city, e.g. `"Nairobi"`, `"Portland, US"`). Batches of **10+ auto-cluster** (`cluster_size` default 12, min k=10) so every cluster clears the k=10 hotspot suppression — the response returns `place_clusters`; pass `place_clustering:false` only for scattered points. Events: pass the profile's `place_context.city` as `place_area` on `lab_send_profile_event` / `lab_send_profile_events_batch` (top-level default for all steps, or per step), or an explicit `event_place` object — never hand-build `placeContext`. `lab_seed_geo_demo` seeds any featured area or catalog city and stamps the same point on the seeded profile and its event. Generated profile places mirror to Firestore `labGeoProfilePlaces` (5-dp, geohash7, neighborhood, 30-day TTL), which `lab_audience_geo_hotspots` reads; each hotspot's `label` is the most common `neighborhood` (district/POI) in that k≥10 cell, so set a meaningful `neighborhood` when you want named hotspots.
 
 ### How the lab executes
 
@@ -73,14 +74,14 @@ Codex should call these **before** improvising lab conventions:
 
 #### Email scaler (Portal + MCP — shared Firestore counter)
 
-Profile Generation in Profile Viewer and all MCP generate tools share **`labProfileGenerationPrefs`** per uid+sandbox (keyed by MCP API key `principalUid`).
+Profile Generation in Profile Viewer and all MCP generate tools share **`labProfileGenerationPrefs`** per verified Firebase uid+sandbox (from a user key's `principalUid` or Coworker IMS Portal enrollment).
 
 | Concept | Example | Notes |
 |---------|---------|--------|
 | **Base email** (stored) | `apalmer@adobetest.com` | Set via Profile Viewer base email field, `lab_set_generation_prefs`, or **`lab_confirm_profile_generation`** with `confirmed:true` |
 | **Scaled profile email** (generated) | `apalmer+14072026-3@adobetest.com` | Pattern: **`<local>+DDMMYYYY-N@<domain>`** — today's date + daily counter **N** |
 | **Mobile** (static) | `+447425627462` | E.164 from prefs; applied to every generated profile |
-| **How to reserve** | Omit `email` on `lab_generate_profile` | Default `use_stored_prefs:true` atomically reserves next counter via `POST /api/lab/generation-prefs/next-email` |
+| **How to reserve** | Omit `email` on `lab_generate_profile` | Default `use_stored_prefs:true` atomically reserves the next shared counter; verified MCP principals use Firestore directly and the UI uses `POST /api/lab/generation-prefs/next-email` |
 
 **Before first generate on a sandbox:** call **`lab_confirm_profile_generation`** — Codex reads `questionsForColleague` + `formatRules`, asks the colleague, then persists with `confirmed:true` + `base_email`. **`lab_mcp_first_run_setup`** and **`lab_prepare_demo_from_brand_scrape`** block the profiles step when prefs are missing and return the same confirm hints.
 
@@ -637,6 +638,24 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 3. **Spot-check one profile**
 
    > Pick the first succeeded email from results and run lab_get_profile (namespace email).
+
+## Workflow 6c — Place context and map-ready bulk data
+
+1. **Single profile in a chosen place**
+
+   > Use lab_generate_profile: sandbox apalmer, industry retail, randomize true, place_area "tokyo". Report place_context.
+
+2. **Events in the same area**
+
+   > Use lab_send_profile_events_batch with the returned email + ecid, event_types ["commerce.productViews","commerce.productListAdds"], place_area set to the profile's place_context.city.
+
+3. **Global bulk data that still renders on the hotspot map**
+
+   > Use lab_generate_profiles_batch: sandbox apalmer, industry retail, count 60, randomize true, place_mode global. Report place_clusters (5 clusters × 12 profiles, k=10).
+
+4. **Verify the map** — once the batch completes, call lab_audience_geo_hotspots (geo-insights context) centred on one cluster's latitude/longitude with a radius that covers it. Clusters below k=10 are suppressed by design.
+
+Modes: `featured` (default, ten common areas), `global` (anywhere on Earth), `area` (`place_area` = featured key or any catalog city). Never hand-build `placeContext` or `profilePlaceContext` XDM.
 
 ## Workflow 7 — Provision industry infra
 

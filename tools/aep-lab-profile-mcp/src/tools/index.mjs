@@ -51,6 +51,7 @@ import { registerFireflyTools } from './fireflyTools.mjs';
 import { registerCreativityTools } from './creativityTools.mjs';
 import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
+import { registerGeoInsightsTools } from './geoInsightsTools.mjs';
 
 /**
  * Register all Profile MCP tools on the MCP server.
@@ -109,6 +110,7 @@ export function registerProfileTools(mcpServer) {
   registerCreativityTools(mcpServer);
   registerAdobeCapabilityTools(mcpServer);
   registerMeasurementQualityTools(mcpServer);
+  registerGeoInsightsTools(mcpServer);
 }
 
 /**
@@ -253,6 +255,13 @@ export function registerFocusedCommandCentreTools(mcpServer) {
 export function registerFocusedWeatherTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerWeatherTools(mcpServer);
+}
+
+/** Shared live-weather context and governed audience geo-hotspots. */
+export function registerFocusedGeoInsightsTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerWeatherTools(mcpServer, { currentOnly: true });
+  registerGeoInsightsTools(mcpServer);
 }
 
 /** Focused, governed Adobe Commerce as a Cloud Service demo preparation. */

@@ -78,6 +78,34 @@ Do NOT add paths whose top segment is in `PROFILE_STREAM_ROOT_PATH_PREFIXES`
 (e.g. `person.*`, `loyalty.*`, `travelPreferences.*`, `personalFinances.*`,
 `subscriptions.*`). Those stream to the XDM root, not the tenant subtree.
 
+### Exception: `profilePlaceContext.*` (dedicated field group)
+
+`_<tenant>.profilePlaceContext.*` (last-known place: lat/lon, geohash, city,
+region, country, `lastSeenAt`, `source`) is owned by the purpose-built tenant
+field group **`AEP Lab - Profile Place Context v1`**, not Profile Core v2.
+Never add these leaves to `profileCoreV2Manifest.js`. A second definition of
+the same path in the Profile union would conflict, and
+`functions/test/genericProfilePlaceContext.test.cjs` fails if you try.
+
+- The spec lives in `functions/genericProfileInfraService.js`
+  (`PROFILE_PLACE_CONTEXT_V1_PROPERTIES`). The Generic wizard auto-creates and
+  attaches it (optional `createIfMissing`) in sandboxes that don't have it yet.
+- The governed first rollout uses
+  `node scripts/ensure-generic-place-context-fieldgroup.cjs --sandbox <name>`.
+  It is a read-only dry-run that prints the exact POST/PATCH. Add `--apply` to
+  write, and only after review.
+- Changes are **additive-only**: the Generic schema is Profile-enabled, so
+  once the field group is attached it cannot be detached. Leaves may only gain
+  optional siblings.
+- Writers: the Generate Profiles Generic panel (`source: ui-sample`/`ui-manual`),
+  `POST /api/profile/update` (full-snapshot round-trips re-derive a stale
+  `geohash` from lat/lon), and `POST /api/profile/generate`. That route
+  rejects place context with a 400 for non-generic industries, because only the
+  Generic schema carries the field group. MCP personas add a random preset
+  place (`source: mcp-persona`) to every industry. Dual-stream generate routes it
+  to the generic step, and a caller-supplied place replaces the persona block
+  wholesale.
+
 ## API response shape (step 2 / `attachFieldGroups`)
 
 ```jsonc

@@ -7,6 +7,7 @@ import { getRequestKeyId } from '../requestContext.mjs';
 import { EVENT_TYPE_SUGGESTIONS } from '../framework/buildGeneratorPostBody.mjs';
 import { INDUSTRY_EVENT_IDS } from '../framework/industryEventPayload.mjs';
 import { sanitizeCoworkerEventParams } from '../framework/sanitizeCoworkerEventParams.mjs';
+import { eventPlaceInputSchema } from '../framework/placeParams.mjs';
 import {
   buildEventIdentityMap,
   extractEcidFromProfileTable,
@@ -34,6 +35,8 @@ export function registerSendProfileEventTool(mcpServer) {
         'event_type accepts ANY string (datalist suggestions are optional). Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
         'Server builds XDM via buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (identityMap, eventType, _id, timestamp, interactionDetails when channel set). ' +
         'Do not hand-build public/message/xdm_style; use industry + industry_fields. Default target_id lab-event-tool-edge. ' +
+        'Place context: pass place_area (a featured area such as riyadh/tokyo, or any catalog city; reuse the profile\'s place_context.city) or place_mode global, ' +
+        'or an explicit event_place; the event then carries placeContext.geo + _tenant.eventPlaceContext for geo hotspot maps. ' +
         'Preflight: lab_preflight_profile_event. Multi-event: lab_send_profile_events_batch.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -100,6 +103,7 @@ export function registerSendProfileEventTool(mcpServer) {
           .boolean()
           .optional()
           .describe('When true (default), lookup UPS ecid by email if ecid omitted'),
+        ...eventPlaceInputSchema(),
       },
     },
     async (params) => {
@@ -255,6 +259,7 @@ export function registerSendProfileEventTool(mcpServer) {
               xdmStyle: 'full',
             }
           : undefined,
+        event_place: eventFields.event_place || undefined,
         stitch_note:
           'ok:true means Edge accepted the event — not that UPS already shows it on the profile. ' +
           'Verify with lab_profile_activity after 30–60s; pass ecid from lab_generate_profile for reliable stitching.',

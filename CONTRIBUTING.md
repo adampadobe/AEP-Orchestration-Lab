@@ -957,6 +957,8 @@ The same branch → PR → merge → exact `origin/main` rule applies to reposit
 
 For a **code-only release**, build an immutable image tag and update only the image with `gcloud run services update --image ...`; this preserves the service's existing runtime configuration. Do not use `gcloud run deploy` with `--set-env-vars`, `--env-vars-file`, `--set-secrets`, or `--clear-*` flags unless the task explicitly changes the complete runtime configuration. Those flags can replace or clear existing settings, including independently managed weather, Maps, and Lab API-key secret bindings. After deployment, read the service back, confirm the expected bindings still exist, verify 100% traffic on the intended revision, and test `/health` plus the affected MCP endpoint without exposing credentials.
 
+For `aep-lab-profile-mcp`, use `bash tools/aep-lab-profile-mcp/scripts/release-main.sh <full-main-sha>` after merge and release approval. The script verifies the repository, clean `main`, exact freshly fetched `origin/main` SHA, and gcloud identity/project; it builds an immutable image and updates only the service image, then checks binding names, 100% traffic, and `/health`.
+
 ---
 
 ## Deployment

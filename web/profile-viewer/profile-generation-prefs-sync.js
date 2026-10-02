@@ -8,8 +8,10 @@
 
   var API = '/api/lab/generation-prefs';
   var NEXT_EMAIL_API = '/api/lab/generation-prefs/next-email';
-  var saveTimer = null;
+  var saveTimers = Object.create(null);
+  var pendingSavePatches = Object.create(null);
   var pullInFlight = null;
+  var lastResumePullAt = 0;
   var AUTH_READY_CAP_MS = 2500;
   var syncState = {
     status: 'idle',
@@ -172,7 +174,7 @@
       Shared.persistCounter(sb, prefs.baseEmail || Shared.readBaseEmail(sb), Number(prefs.counterN));
     }
     try {
-      document.dispatchEvent(new CustomEvent('aep-profile-gen-prefs-applied', {
+      global.dispatchEvent(new CustomEvent('aep-profile-gen-prefs-applied', {
         detail: { sandbox: sb, prefs: prefs },
       }));
     } catch (_e2) {}
@@ -325,10 +327,15 @@
   }
 
   function scheduleSave(patch, sandbox) {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      saveTimer = null;
-      savePatch(patch, sandbox);
+    var sb = String(sandbox || getSandboxName() || '').trim();
+    if (!sb || !patch || typeof patch !== 'object') return;
+    pendingSavePatches[sb] = Object.assign({}, pendingSavePatches[sb] || {}, patch);
+    if (saveTimers[sb]) clearTimeout(saveTimers[sb]);
+    saveTimers[sb] = setTimeout(function () {
+      var pendingPatch = pendingSavePatches[sb];
+      delete pendingSavePatches[sb];
+      delete saveTimers[sb];
+      savePatch(pendingPatch, sb);
     }, 400);
   }
 
@@ -336,16 +343,56 @@
     scheduleSave(patch, sandbox);
   }
 
+  function flushPendingSave(sandbox) {
+    var sb = String(sandbox || getSandboxName() || '').trim();
+    var patch = pendingSavePatches[sb];
+    if (!patch) return Promise.resolve({ ok: true, skipped: true });
+    if (saveTimers[sb]) clearTimeout(saveTimers[sb]);
+    delete pendingSavePatches[sb];
+    delete saveTimers[sb];
+    return savePatch(patch, sb);
+  }
+
+  function reserveLocalEmail(sb, baseEmail, Shared) {
+    if (!Shared) {
+      return { ok: false, error: 'Profile generation preferences are unavailable' };
+    }
+    var base = String(baseEmail || Shared.readBaseEmail(sb) || '').trim();
+    if (!base.includes('@')) {
+      return { ok: false, error: 'Valid base email required' };
+    }
+    var n = Shared.readCounter(sb, base);
+    var email = Shared.scaleEmail(base, n, new Date());
+    var next = Shared.incrementCounter(sb, base);
+    return { ok: true, scaledEmail: email, counterN: n, nextCounterN: next, source: 'localStorage' };
+  }
+
   /**
-   * Atomically reserve next scaled email (advances shared counter in Firestore).
-   * Falls back to local Shared.incrementCounter when API unavailable.
+   * Atomically reserve the next scaled email in Firestore for signed-in users.
+   * Local-only sessions retain the device counter, but authenticated failures
+   * stop generation so the UI cannot silently diverge from MCP.
    */
   function reserveNextEmail(sandbox, baseEmail) {
     var sb = String(sandbox || getSandboxName() || '').trim();
     var Shared = global.AepProfileGenShared;
+    var authenticated = false;
 
-    return authHeaders()
+    return flushPendingSave(sb)
+      .then(function (saveResult) {
+        if (saveResult && saveResult.ok === false && !saveResult.localOnly) {
+          return { saveError: saveResult.error || 'Could not save generation preferences' };
+        }
+        return whenAuthReady()
+          .then(function () {
+            return authHeaders();
+          });
+      })
       .then(function (headers) {
+        if (headers && headers.saveError) return headers;
+        authenticated = !!(headers && headers.Authorization);
+        if (!authenticated) {
+          return { localOnly: true };
+        }
         return fetch(NEXT_EMAIL_API, {
           method: 'POST',
           headers: Object.assign({ Accept: 'application/json', 'Content-Type': 'application/json' }, headers || {}),
@@ -357,6 +404,13 @@
         });
       })
       .then(function (out) {
+        if (out.saveError) {
+          return { ok: false, error: 'Shared email counter unavailable: ' + out.saveError };
+        }
+        if (out.localOnly) {
+          notifySyncState({ status: 'local-only', sandbox: sb, error: null });
+          return reserveLocalEmail(sb, baseEmail, Shared);
+        }
         if (out.res.ok && out.data && out.data.ok !== false && out.data.scaledEmail) {
           if (Shared) {
             Shared.persistCounter(sb, out.data.baseEmail || baseEmail, out.data.nextCounterN);
@@ -369,35 +423,33 @@
             source: 'firestore',
           };
         }
-        if (!Shared) {
-          return { ok: false, error: (out.data && out.data.error) || 'Profile generation prefs API failed' };
-        }
-        var base = String(baseEmail || Shared.readBaseEmail(sb) || '').trim();
-        if (!base.includes('@')) {
-          return { ok: false, error: 'Valid base email required' };
-        }
-        var n = Shared.readCounter(sb, base);
-        var email = Shared.scaleEmail(base, n, new Date());
-        var next = Shared.incrementCounter(sb, base);
-        return { ok: true, scaledEmail: email, counterN: n, nextCounterN: next, source: 'localStorage' };
+        var apiError = (out.data && out.data.error) || ('HTTP ' + out.res.status);
+        notifySyncState({ status: 'error', sandbox: sb, error: apiError });
+        return { ok: false, error: 'Shared email counter unavailable: ' + apiError };
       })
       .catch(function (err) {
-        if (!Shared) {
-          return { ok: false, error: String((err && err.message) || err || 'Network error') };
+        var message = String((err && err.message) || err || 'Network error');
+        if (!authenticated) {
+          notifySyncState({ status: 'local-only', sandbox: sb, error: null });
+          return reserveLocalEmail(sb, baseEmail, Shared);
         }
-        var base = String(baseEmail || Shared.readBaseEmail(sb) || '').trim();
-        if (!base.includes('@')) {
-          return { ok: false, error: 'Valid base email required' };
-        }
-        var n = Shared.readCounter(sb, base);
-        var email = Shared.scaleEmail(base, n, new Date());
-        var next = Shared.incrementCounter(sb, base);
-        return { ok: true, scaledEmail: email, counterN: n, nextCounterN: next, source: 'localStorage' };
+        notifySyncState({ status: 'error', sandbox: sb, error: message });
+        return { ok: false, error: 'Shared email counter unavailable: ' + message };
       });
   }
 
   function onSandboxChange() {
     pull(getSandboxName());
+  }
+
+  function pullOnResume() {
+    if (document.hidden) return;
+    var sb = getSandboxName();
+    if (!sb || pendingSavePatches[sb]) return;
+    var now = Date.now();
+    if (now - lastResumePullAt < 1000) return;
+    lastResumePullAt = now;
+    pull(sb);
   }
 
   function bootPull() {
@@ -416,6 +468,8 @@
   }
 
   global.addEventListener('aep-global-sandbox-change', onSandboxChange);
+  global.addEventListener('focus', pullOnResume);
+  document.addEventListener('visibilitychange', pullOnResume);
 
   global.AepProfileGenPrefsSync = {
     pull: pull,

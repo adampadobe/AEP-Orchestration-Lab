@@ -140,7 +140,7 @@ Production secrets are set via `firebase functions:secrets:set` and accessed via
 - Do not hardcode Firebase project ID in JS/HTML — use relative `/api/...` paths
 - Do not delete or rename body class `home-dashboard-concierge`
 - Do not skip the early-paint IIFE in new pages
-- Any new **tenant-streamed** path in a profile-generation module (`push('tenantRelative.dot.path', …)`) MUST be added to the corresponding industry entry in `functions/profileCoreV2Manifest.js` in the SAME commit, so other sandboxes pick the leaf up automatically via the Profile Core v2 top-up. See `docs/PROFILE_CORE_V2_TOPUP.md`.
+- Any new **tenant-streamed** path in a profile-generation module (`push('tenantRelative.dot.path', …)`) MUST be added to the corresponding industry entry in `functions/profileCoreV2Manifest.js` in the SAME commit, so other sandboxes pick the leaf up automatically via the Profile Core v2 top-up. See `docs/PROFILE_CORE_V2_TOPUP.md`. Exception: `profilePlaceContext.*` belongs to the dedicated `AEP Lab - Profile Place Context v1` field group and must never be added to the manifest.
 
 ## Further reading
 

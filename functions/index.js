@@ -114,6 +114,14 @@ const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
+const geoHotspotsService = lazyRequireMod('./geoHotspotsService');
+const geoAudienceMirrorMod = lazyRequireMod('./geoAudienceMirror');
+let geoAudienceMirrorInstance = null;
+/** Firestore geo mirror shared by generate/update/event writers and the hotspots reader. */
+function getGeoAudienceMirror() {
+  if (!geoAudienceMirrorInstance) geoAudienceMirrorInstance = geoAudienceMirrorMod.createGeoAudienceMirror();
+  return geoAudienceMirrorInstance;
+}
 const orchestratedCampaignConfigStore = lazyRequireMod('./orchestratedCampaignConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
@@ -122,6 +130,9 @@ const decisioningExplainService = lazyRequireMod('./decisioningExplainService');
 const decisioningCatalogService = lazyRequireMod('./decisioningCatalogService');
 const decisioningCatalogAssessService = lazyRequireMod('./decisioningCatalogAssessService');
 const decisioningCatalogWriteService = lazyRequireMod('./decisioningCatalogWriteService');
+const decisioningSchemaExtendService = lazyRequireMod('./decisioningSchemaExtendService');
+const decisioningTagBulkService = lazyRequireMod('./decisioningTagBulkService');
+const decisioningTagBulkPreviewStore = lazyRequireMod('./decisioningTagBulkPreviewStore');
 const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
@@ -541,6 +552,76 @@ exports.aepProxy = onRequest(
       platform_base_url: platformBase,
     });
   }
+);
+
+exports.geoHotspotsQuery = onRequest(
+  {
+    region: REGION,
+    secrets: [
+      ADOBE_CLIENT_ID,
+      ADOBE_CLIENT_SECRET,
+      ADOBE_IMS_ORG,
+      ADOBE_SCOPES,
+      AEP_LAB_COMMERCE_INTERNAL_KEY,
+    ],
+    invoker: 'public',
+    timeoutSeconds: 180,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    if (req.method === 'OPTIONS') return res.status(204).send('');
+    if (req.method !== 'POST') return res.status(405).set('Allow', 'POST').json({ ok: false, error: 'Use POST.' });
+
+    const expectedKey = String(AEP_LAB_COMMERCE_INTERNAL_KEY.value() || '');
+    const suppliedKey = String(req.headers['x-aep-lab-mcp-key'] || '');
+    const safeKeyMatch = expectedKey.length > 0
+      && suppliedKey.length === expectedKey.length
+      && require('node:crypto').timingSafeEqual(Buffer.from(suppliedKey), Buffer.from(expectedKey));
+    if (!safeKeyMatch) return res.status(401).json({ ok: false, error: 'MCP bridge authorization required.' });
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || '').trim();
+    const center = body.center;
+    const validNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+    if (!sandbox || !center || !validNumber(center.lat) || center.lat < -90 || center.lat > 90
+      || !validNumber(center.lon) || center.lon < -180 || center.lon > 180) {
+      return res.status(400).json({ ok: false, error: 'A sandbox and valid center coordinates are required.' });
+    }
+    if (!validNumber(body.radius_km) || body.radius_km < 1 || body.radius_km > 50
+      || !Number.isInteger(body.window_hours) || body.window_hours < 1 || body.window_hours > 168
+      || typeof body.interest !== 'string' || !body.interest.trim() || body.interest.length > 200
+      || !validNumber(body.cell_km) || body.cell_km < 0.5 || body.cell_km > 5) {
+      return res.status(400).json({ ok: false, error: 'Geo-hotspot filter values are outside their supported bounds.' });
+    }
+
+    try {
+      const result = await geoHotspotsService.createGeoHotspotsService({
+        getAccessToken: getAdobeAccessToken,
+        getClientId: () => ADOBE_CLIENT_ID.value(),
+        getImsOrg: () => ADOBE_IMS_ORG.value(),
+        getEventConfig: (name) => eventConfigStore.getEffectiveEventConfig(name, ''),
+        dataPath: process.env.GEO_HOTSPOTS_DATA_PATH,
+        mirror: getGeoAudienceMirror(),
+      }).run({
+        sandbox,
+        center,
+        radiusKm: body.radius_km,
+        windowHours: body.window_hours,
+        interest: body.interest,
+        cellKm: body.cell_km,
+      });
+      if (result.dataStatus === 'unavailable') {
+        console.warn('[geoHotspotsQuery] Geo data path unavailable; returning an explicit unavailable result:', result.reason);
+      }
+      return res.status(200).json(geoHotspotsService.buildGeoHotspotsHttpBody(result));
+    } catch (error) {
+      const message = String(error?.message || error);
+      console.error('[geoHotspotsQuery] Geo-hotspot aggregation failed:', message);
+      return res.status(502).json({ ok: false, error: message });
+    }
+  },
 );
 
 /**
@@ -1025,6 +1106,7 @@ Object.assign(
     profileAudiences,
     profileConsentPayload,
     profileEventsService,
+    geoMirror: getGeoAudienceMirror(),
   })
 );
 
@@ -1703,6 +1785,297 @@ exports.decisioningCatalogDeleteApplyProxy = onRequest(profileFnOpts, async (req
   }
 });
 
+/** POST /api/decisioning/schema/extend-preview — add-only tenant field-group diff, no Adobe write */
+exports.decisioningSchemaExtendPreviewProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningSchemaExtendService.schemaExtendPreview({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      schema_id: body.schemaId || body.schema_id,
+      field_group_id: body.fieldGroupId || body.field_group_id,
+      fields: body.fields,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(result.ok ? 200 : (result.status || 502)).json(result);
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/schema/extend-apply — one non-retried Schema Registry PATCH, add-only */
+exports.decisioningSchemaExtendApplyProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningSchemaExtendService.schemaExtendApply({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      schema_id: body.schemaId || body.schema_id,
+      field_group_id: body.fieldGroupId || body.field_group_id,
+      fields: body.fields,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+      preview_hash: body.preview_hash,
+      confirmed: body.confirmed,
+    });
+    res.status(result.ok ? 200 : (result.status || 502)).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/tags/bulk-preview — resolves tags + offer_selector, no Adobe write */
+exports.decisioningTagBulkPreviewProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  const offerSelector = body.offerSelector || body.offer_selector;
+
+  try {
+    const result = await decisioningTagBulkService.tagBulkPreview({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      action: body.action,
+      tags: body.tags,
+      offer_selector: offerSelector,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    if (result.ok) {
+      await decisioningTagBulkPreviewStore.savePreview(result.preview_hash, {
+        sandbox,
+        action: body.action,
+        tags: body.tags,
+        offer_selector: offerSelector,
+        schemaId: body.schemaId || body.schema_id,
+        autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+        offerIds: result.offer_ids,
+        resolvedTags: result.resolved_tags,
+      });
+    }
+    res.status(result.ok ? 200 : (result.status || 502)).json(result);
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/decisioning/tags/bulk-apply — re-verifies the cached preview plan, returns it for the MCP job processor */
+exports.decisioningTagBulkApplyProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  if (body.confirmed !== true) {
+    res.status(400).json({ ok: false, error: 'confirmed must be true.' });
+    return;
+  }
+
+  const previewHash = String(body.preview_hash || '');
+  const cached = await decisioningTagBulkPreviewStore.getPreview(previewHash);
+  if (!cached) {
+    res.status(409).json({ ok: false, error: 'preview_hash not found or expired; run lab_decisioning_tag_bulk_preview again.' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || cached.sandbox;
+  if (sandbox !== cached.sandbox) {
+    res.status(400).json({ ok: false, error: `sandbox mismatch: preview was for "${cached.sandbox}".` });
+    return;
+  }
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    // Re-resolve tags + offer_selector fresh (fail closed if anything changed since preview).
+    const fresh = await decisioningTagBulkService.tagBulkPreview({
+      sandbox: cached.sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      action: cached.action,
+      tags: cached.tags,
+      offer_selector: cached.offer_selector,
+      schemaId: cached.schemaId,
+      autoDetect: cached.autoDetect,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    if (!fresh.ok) {
+      res.status(fresh.status || 502).json(fresh);
+      return;
+    }
+    if (fresh.preview_hash !== previewHash) {
+      res.status(409).json({ ok: false, error: 'preview_hash is stale — tags or matched offers changed since preview; run lab_decisioning_tag_bulk_preview again.' });
+      return;
+    }
+
+    res.status(200).json({
+      ok: true,
+      sandbox: cached.sandbox,
+      action: cached.action,
+      resolved_tags: fresh.resolved_tags,
+      offer_ids: fresh.offer_ids,
+      schema_id: cached.schemaId,
+      auto_detect: cached.autoDetect,
+    });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox: cached.sandbox });
+  }
+});
+
+/** POST /api/decisioning/tags/apply-one — single offer-item itemTags PATCH, re-reads current tags first */
+exports.decisioningTagApplyOneProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  try {
+    const result = await decisioningTagBulkService.applyTagChangeToOffer({
+      sandbox,
+      accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      action: body.action,
+      tags: body.tags,
+      offerId: body.offer_id || body.offerId,
+      schemaId: body.schemaId || body.schema_id,
+      autoDetect: body.autoDetect !== false && body.auto_detect !== false,
+      getCatalogConfig: catalogConfigStore.getCatalogConfig,
+    });
+    res.status(result.ok ? 200 : (result.status || 502)).json({ sandbox, ...result });
+  } catch (e) {
+    res.status(decisioningWriteErrorStatus(e)).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
 /** GET /api/campaign-name?id= */
 exports.campaignNameProxy = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -2170,6 +2543,10 @@ exports.eventEdgeProxy = onRequest(
     if (!datastreamId) {
       res.status(400).json({ error: 'datastreamId is required' }); return;
     }
+    if (!(body.rawPayload && typeof body.rawPayload === 'object')) {
+      try { eventEdgeService.readEventPlace(body); }
+      catch (e) { res.status(e.statusCode || 400).json({ error: String(e.message || e) }); return; }
+    }
 
     let accessToken;
     try { accessToken = await getAdobeAccessToken(); }
@@ -2199,7 +2576,7 @@ exports.eventEdgeProxy = onRequest(
       const result = await eventEdgeService.sendEdgeEvent(accessToken, clientId, orgId, datastreamId, payload);
       res.status(200).json({ ok: true, ...result, sentPayload: payload });
     } catch (e) {
-      res.status(502).json({ error: String(e.message || e) });
+      res.status(e.statusCode === 400 ? 400 : 502).json({ error: String(e.message || e) });
     }
   },
 );
@@ -2270,6 +2647,15 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  // Hotspots read interest signals from the Firestore geo mirror (Query Service cannot serve
+  // them); record only after AEP accepted the event, and report the outcome in the response.
+  const mirrorAcceptedEvent = async (acceptedSandbox = sandbox) => {
+    const result = await getGeoAudienceMirror().recordInterestSignal(
+      geoAudienceMirrorMod.generatorSignalFromBody(acceptedSandbox, body),
+    );
+    if (result.error) console.warn('[eventGeneratorProxy] geo mirror write failed:', result.error);
+    return result;
+  };
   const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
   const staticTargets = eventGeneratorService.loadEventGeneratorTargets();
   let eventRec;
@@ -2350,9 +2736,17 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
         edgeUrl,
         requestId: data.requestId || null,
         targetId: preset.id,
+        geoMirror: await mirrorAcceptedEvent(),
       });
     }
 
+    const dcsSandbox = eventGeneratorService.resolveDcsStreamSandbox(
+      String(body.sandbox || req.query.sandbox || '').trim(),
+      preset,
+    );
+    if (!dcsSandbox.ok) {
+      return res.status(dcsSandbox.statusCode).json({ error: dcsSandbox.error, targetId: preset.id, sandbox });
+    }
     const xdm = eventGeneratorService.buildEventGeneratorXdm(body, { style: 'full' });
     const idStr = xdm._id != null ? String(xdm._id) : `event-${Date.now()}`;
     const ts = xdm.timestamp || new Date().toISOString();
@@ -2380,13 +2774,12 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
         xdmEntity,
       },
     };
-    const sandbox = eventGeneratorService.DEFAULT_SANDBOX;
     const streamUrl = (preset.streamingUrl && String(preset.streamingUrl).trim()) || eventGeneratorService.EVENT_GENERATOR_STREAMING_URL;
     const streamRes = await fetch(streamUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'sandbox-name': sandbox,
+        'sandbox-name': dcsSandbox.sandbox,
         Authorization: `Bearer ${accessToken}`,
         'x-adobe-flow-id': eventGeneratorService.EVENT_GENERATOR_FLOW_ID,
       },
@@ -2414,9 +2807,11 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
       streamingUrl: streamUrl,
       targetId: preset.id,
       transport: 'dcs',
+      sandbox: dcsSandbox.sandbox,
+      geoMirror: await mirrorAcceptedEvent(dcsSandbox.sandbox),
     });
   } catch (err) {
-    res.status(500).json({ error: err && err.message ? err.message : String(err) });
+    res.status(err && err.statusCode === 400 ? 400 : 500).json({ error: err && err.message ? err.message : String(err) });
   }
 });
 

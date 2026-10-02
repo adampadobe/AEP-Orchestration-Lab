@@ -5,6 +5,8 @@
  */
 
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
+const profilePlaceContext = require('./profilePlaceContext');
+const profileUpdateRequestLog = require('./profileUpdateRequestLog');
 
 /**
  * @param {object} deps Shared context from index.js
@@ -51,6 +53,7 @@ function registerProfileRoutes(deps) {
     profileAudiences,
     profileConsentPayload,
     profileEventsService,
+    geoMirror,
   } = deps;
 
   const routes = {};
@@ -297,6 +300,10 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(400).json({ error: 'Email is required (primary identity for consent streaming).' });
     return;
   }
+  console.log(
+    '[profileUpdateProxy.request]',
+    JSON.stringify(profileUpdateRequestLog.summarizeProfileUpdateRequest({ email, updates, sandbox, dryRun, hasConsent })),
+  );
   const ecidForPayload = ecid.length >= 10 ? ecid : '';
   if (hasConsent && updates.length > 0) {
     res.status(400).json({ error: 'Send either updates or consent, not both.' });
@@ -536,6 +543,21 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       });
       return;
     }
+    if (demoemea.profilePlaceContext !== undefined) {
+      // Full-snapshot updates re-send the stored geohash; re-derive it so a lat/lon edit never 400s.
+      const placeResult = profilePlaceContext.normalizeProfilePlaceContext(demoemea.profilePlaceContext, {
+        defaultSource: 'profile-update',
+        replaceGeohash: true,
+      });
+      if (!placeResult.ok) {
+        res.status(400).json({
+          error: placeResult.error,
+          invalidPath: `_demoemea.profilePlaceContext.${placeResult.leaf}`,
+        });
+        return;
+      }
+      demoemea.profilePlaceContext = placeResult.value;
+    }
     successMessage = `Profile update accepted (${applied} field(s)).`;
   }
 
@@ -608,7 +630,25 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     payloadFormat = built.format;
   }
 
+  const payloadLogSummary = {
+    emailHash: profileUpdateRequestLog.emailHash(email),
+    sandbox,
+    dryRun,
+    industry: industryKey,
+    payloadFormat,
+    streamPayloadProfile: streamPayloadProfileLabel,
+    datasetId: datasetId || null,
+    ...profileUpdateRequestLog.summarizeProfileUpdatePayload(payload, xdmKey || '_demoemea'),
+  };
+
   if (dryRun) {
+    console.log('[profileUpdateProxy.result]', JSON.stringify({ ...payloadLogSummary, outcome: 'dryRun' }));
+    console.log(
+      '[profileUpdateProxy.payload]',
+      JSON.stringify(
+        profileUpdateRequestLog.buildPayloadLogEntry({ emailHash: payloadLogSummary.emailHash, outcome: 'dryRun', payload }),
+      ),
+    );
     res.status(200).json({
       ok: true,
       dryRun: true,
@@ -648,6 +688,26 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
 
   const { parsed: data, streamErrors, streamWarnings } = profileStreamingCore.parseStreamingCollectionResponse(streamRes.status, rawText);
 
+  console.log(
+    '[profileUpdateProxy.result]',
+    JSON.stringify({
+      ...payloadLogSummary,
+      outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
+      streamingStatus: streamRes.status,
+    }),
+  );
+  console.log(
+    '[profileUpdateProxy.payload]',
+    JSON.stringify(
+      profileUpdateRequestLog.buildPayloadLogEntry({
+        emailHash: payloadLogSummary.emailHash,
+        outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
+        payload,
+        streamingResponse: data,
+      }),
+    ),
+  );
+
   if (!streamRes.ok || streamErrors.length > 0) {
     res.status(502).json({
       error: streamErrors.length ? streamErrors.join(' ') : 'Streaming failed',
@@ -663,6 +723,16 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
 
+  // Hotspots read place from the Firestore geo mirror (Query Service cannot serve them), so a
+  // successful live update refreshes the mirrored last-known place. Mirror failures are
+  // reported in the response and never fail an update AEP already accepted.
+  const geoMirrorResult = geoMirror && demoemea
+    ? await geoMirror.recordProfilePlace({ sandbox, email, ecid: ecidForPayload, place: demoemea.profilePlaceContext })
+    : undefined;
+  if (geoMirrorResult && geoMirrorResult.error) {
+    console.warn('[profileUpdateProxy] geo mirror write failed:', geoMirrorResult.error);
+  }
+
   res.status(200).json({
     ok: true,
     message: successMessage,
@@ -675,6 +745,7 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
     industry: industryKey,
     ...(appliedPathsDetail && appliedPathsDetail.length ? { appliedPathsDetail } : {}),
+    ...(geoMirrorResult ? { geoMirror: geoMirrorResult } : {}),
   });
 });
 
@@ -688,6 +759,7 @@ routes.profileGenerateProxy = onRequest(profileFnOpts, async (req, res) => {
     getAdobeAccessToken,
     clientId: ADOBE_CLIENT_ID.value(),
     orgId: ADOBE_IMS_ORG.value(),
+    geoMirror,
   });
 });
 

@@ -2,6 +2,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const { isCanonicalEcid } = require('../ecidGenerator');
 const {
   generateBaseProfileRow,
   generateAgenticEmail,
@@ -32,9 +33,10 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     assert.match(legacy, /^adamp\.adobedemo\+\d{8}\+3@gmail\.com$/);
   });
 
-  it('generateEcid returns the numeric 38-character AEP identity shape', () => {
+  it('generateEcid returns a canonical Edge-acceptable 38-digit AEP identity', () => {
     const ecid = generateEcid();
-    assert.match(ecid, /^4\d{37}$/);
+    assert.match(ecid, /^\d{38}$/);
+    assert.ok(isCanonicalEcid(ecid), `expected a canonical ECID, got ${ecid}`);
   });
 
   it('dual_load path email override matches generation prefs hyphen format', () => {

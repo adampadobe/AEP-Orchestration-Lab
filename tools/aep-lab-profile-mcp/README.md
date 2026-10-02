@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.50.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.52.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 206-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the fifteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 212-tool catalog. The Coworker marketplace installs it as `aep-lab-general` alongside the sixteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -19,6 +19,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
+| `/mcp/geo-insights` | 4 | Current weather plus aggregate audience geo-hotspots (k=10 suppression; served from the lab geo mirror of profile place context — see [docs/GEO_AUDIENCE_MIRROR.md](../../docs/GEO_AUDIENCE_MIRROR.md)), and confirmation-gated demo seeding in any featured area or catalog city |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
 | `/mcp/commerce-optimizer` | 15 | ACO access and storefront reads plus governed preview/apply and delete audit/apply for documented catalog ingestion resources |
 | `/mcp/firefly` | 15 | Access check plus governed Image 5, five-second Video, Text to Speech, transcription/captions, and dubbing/lip-sync workflows with shared async status |
@@ -26,7 +27,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/adobe-capabilities` | 4 | Access check plus the 35-service scope/use-case registry, redacted AJO suppression/allow-list reads, and approved GenStudio Experience summaries |
 | `/mcp/measurement-quality` | 6 | Access check plus read-only Assurance session/event metadata, Tags property/environment audit, and Adobe Status incident correlation |
 
-The Decisioning context covers all seven Experience Decisioning DPS resource types — offer-items (decision items), item-collections, selection-strategies, offer-rules (eligibility rules), ranking-formulas, placements, and tags. `lab_decisioning_capabilities` shows the full surface (entity types, write/delete guardrails, id-or-name resolution, and known gaps) without an Adobe call. Every write/delete/get tool accepts either an exact DPS id or an exact display name — a name is auto-resolved, and one matching more than one entity fails with a disambiguation list rather than guessing. Reads (`lab_decisioning_catalog_list`/`_get`) are always available; writes go through `lab_decisioning_catalog_change_preview` (local hash-bound, no Adobe call) then `lab_decisioning_catalog_change_apply` — create takes a full `item`, update takes `patches` (a JSON Patch array, sent as `PATCH`; only the named fields are touched, unlike resending a full object). Both require an unchanged item/patches plus the preflight_id and exact confirmation from preview. Deletes are separately gated: `lab_decisioning_catalog_delete_audit` re-reads current state, runs a best-effort dependency scan (`referencedBy`), and returns the exact `expected_name`; `lab_decisioning_catalog_delete_apply` re-reads and fails closed if the entity changed since audit. `lab_decisioning_catalog_bulk_apply` runs a resumable async create/update batch (1–200 items, one explicit `confirmed:true` for the whole batch) since DPS has no array-body batch endpoint — poll with the existing `lab_batch_job_status`. `lab_decisioning_catalog_clone_preview` duplicates any entity type with recursive find/replace substitutions and hands off to the existing `change_apply` — no separate clone-apply tool. `lab_decisioning_ranking_formula_preview` and `lab_decisioning_selection_strategy_preview` build the correct raw DPS payload from simpler params, same hand-off pattern. `lab_decisioning_attach_offer_eligibility_preview` attaches or detaches offer-level eligibility, and — together with `lab_decisioning_selection_strategy_preview` — refuses to guess between offer-level and strategy-level eligibility, requiring the colleague to have explicitly stated which one they want. Creating an eligibility rule via `change_apply` defaults `exdRule:true` when the caller omits it, since Adobe otherwise accepts the rule but silently rejects it later when referenced from an offer or strategy. `lab_audience_list`/`lab_audience_audit` (Audiences context) already cover RT-CDP audience discovery for eligibility-rule conditions; decisioning tools do not duplicate it. Not yet built (see `lab_decisioning_capabilities`'s `known_gaps`): a bulk offer-tagging tool (the `itemTags` write field format on offer-items is unresolved), a collection filter builder (item-collections constraints use a raw SQL-like predicate plus per-field UI metadata, more involved than a simple DSL), and an audience-to-eligibility-rule auto-wrap.
+The Decisioning context covers all seven Experience Decisioning DPS resource types — offer-items (decision items), item-collections, selection-strategies, offer-rules (eligibility rules), ranking-formulas, placements, and tags. `lab_decisioning_capabilities` shows the full surface (entity types, write/delete guardrails, id-or-name resolution, and known gaps) without an Adobe call. Every write/delete/get tool accepts either an exact DPS id or an exact display name — a name is auto-resolved, and one matching more than one entity fails with a disambiguation list rather than guessing. Reads (`lab_decisioning_catalog_list`/`_get`) are always available; writes go through `lab_decisioning_catalog_change_preview` (local hash-bound, no Adobe call) then `lab_decisioning_catalog_change_apply` — create takes a full `item`, update takes `patches` (a JSON Patch array, sent as `PATCH`; only the named fields are touched, unlike resending a full object). Both require an unchanged item/patches plus the preflight_id and exact confirmation from preview. Deletes are separately gated: `lab_decisioning_catalog_delete_audit` re-reads current state, runs a best-effort dependency scan (`referencedBy`), and returns the exact `expected_name`; `lab_decisioning_catalog_delete_apply` re-reads and fails closed if the entity changed since audit. `lab_decisioning_catalog_bulk_apply` runs a resumable async create/update batch (1–200 items, one explicit `confirmed:true` for the whole batch) since DPS has no array-body batch endpoint — poll with the existing `lab_batch_job_status`. `lab_decisioning_catalog_clone_preview` duplicates any entity type with recursive find/replace substitutions and hands off to the existing `change_apply` — no separate clone-apply tool. `lab_decisioning_ranking_formula_preview` and `lab_decisioning_selection_strategy_preview` build the correct raw DPS payload from simpler params, same hand-off pattern. `lab_decisioning_attach_offer_eligibility_preview` attaches or detaches offer-level eligibility, and — together with `lab_decisioning_selection_strategy_preview` — refuses to guess between offer-level and strategy-level eligibility, requiring the colleague to have explicitly stated which one they want. Both tools also accept `audience_id_or_name` (mutually exclusive with `eligibility_rule_id_or_name`), auto-wrapping an RT-CDP audience into an `Audience: <name>` eligibility rule (segment-membership PQL condition) reused by exact name on repeat calls; if no such rule exists yet they return a ready-to-run `change_preview` payload to create it first rather than creating it silently — the PQL shape is Adobe's documented pattern, not yet confirmed live in this codebase. Creating an eligibility rule via `change_apply` defaults `exdRule:true` when the caller omits it, since Adobe otherwise accepts the rule but silently rejects it later when referenced from an offer or strategy. `lab_audience_list`/`lab_audience_audit` (Audiences context) already cover RT-CDP audience discovery for eligibility-rule conditions; decisioning tools do not duplicate it — the audience-wrap above reuses those same lookups. `lab_decisioning_schema_extend_preview`/`_apply` add-only extend the offer-items schema's tenant field group (Schema Registry) so bulk offer creation never fails on a missing custom attribute — apply is gated by `preview_hash` + `confirmed:true` and fails closed as `schema_drifted` if the field group changed since preview. `lab_decisioning_tag_bulk_preview`/`_apply` attach, detach, or replace 1-20 tags across up to 200 offers matched by `offer_selector` (`ids`, `name_prefix`, or `collection`); the itemTags write format auto-detects against the real first write per sandbox and caches whichever shape DPS accepts, and it's resumable via `resume_token` (the job id) if interrupted. Not yet built (see `lab_decisioning_capabilities`'s `known_gaps`): `offer_selector.collection` only works when a collection happens to carry an explicit member-id list (most use an opaque predicate instead).
 
 The Commerce context separates storefront reads from administration. `commerce_graphql_query` remains query-only and `commerce_graphql_schema` reports the live storefront schema. REST administration is a closed allowlist: products (including price, custom attributes, and embedded media payloads), categories, category assignments, and inventory source items. Every change starts with `commerce_admin_change_preview`; apply requires its fresh preflight ID and exact confirmation, makes one non-retried request, and returns a readback. Product, category, assignment, and media removal use the separate audit/delete pair.
 
@@ -42,9 +43,9 @@ The Adobe capabilities context is read-only. `adobe_api_catalog` exposes a revie
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all fifteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all sixteen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same sixteen connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same sixteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 ### Entry point (Phase 3.38)
 
@@ -119,10 +120,10 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_get_execution_framework` | *(static)* | Lab execution framework JSON — **criticalRules** at top |
 | `lab_get_industry_playbook` | *(static)* | Per-industry playbook; omit industry for all |
 | `lab_preflight_profile_generate` | status-all + connection APIs | Dry-run generate: config ready + payload preview |
-| `lab_confirm_profile_generation` | `GET` + optional `PUT /api/lab/generation-prefs` | Ask colleague format questions; `confirmed:true` persists base email + mobile |
-| `lab_get_generation_prefs` | `GET /api/lab/generation-prefs` | Shared Portal/MCP base email, counter N, next scaled email |
-| `lab_set_generation_prefs` | `PUT /api/lab/generation-prefs` | Update base email, mobile, reset counter |
-| `lab_confirm_generation_plan` | `GET /api/lab/generation-prefs` | Read-only preview before generate |
+| `lab_confirm_profile_generation` | Firestore or generation-prefs API | Ask colleague format questions; `confirmed:true` persists base email + mobile |
+| `lab_get_generation_prefs` | Firestore or `GET /api/lab/generation-prefs` | Shared Portal/MCP base email, counter N, next scaled email |
+| `lab_set_generation_prefs` | Firestore or `PUT /api/lab/generation-prefs` | Update base email, mobile, test-profile default, or counter |
+| `lab_confirm_generation_plan` | Firestore or generation-prefs API | Read-only preview before generate |
 | `lab_list_industries` | *(static)* | Canonical keys + alias notes |
 | `lab_list_sandboxes` | `GET /api/sandboxes` | Active sandboxes list |
 | `lab_mcp_access_info` | *(read-only)* | keyId, allowed sandboxes, principal label — no secrets |
@@ -134,6 +135,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_assets_inspect` | `GET /api/lab/demo-assets` | Active stable image slots, permanent URLs, hashes, and saved customer revisions |
 | `lab_brand_scrape_classify_images` | `POST brandScraperClassify` | Auto-classify up to 20 scrape images with Gemini vision; skip when usable saved categories already exist unless forced |
 | `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
+
 | `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
 | `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
 | `lab_demo_customer_switch` | `POST /api/lab/demo-assets` (`action=switch-apply`) | Preferred two-phase switch: preview RTDB plus all five image slots, then one confirmed apply with verification and cross-system rollback |
@@ -202,6 +204,33 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_create_journey_from_brand_scrape` | `GET` import/profile + `POST` clientJourneyV2Generate | Client Journey v2 HTML asset (not AJO platform journey) |
 
 **Industry aliases:** `telecommunications` / `telco` → `telecom`; `public` → `generic`.
+
+### Shared profile-generation preferences (Profile Viewer ↔ MCP)
+
+Profile Viewer and MCP profile-generation tools use the same Firestore
+`labProfileGenerationPrefs` document per Firebase UID and AEP sandbox. The document stores
+`baseEmail`, `mobilePhone`, the daily `counterN`/`counterDate`, and `testProfile`.
+
+- **Profile Viewer:** Firebase bearer authentication supplies the UID. Signed-in edits are
+  persisted to Firestore and the UI pulls newer values when the sandbox loads or the page
+  regains focus/visibility.
+- **User-generated MCP key:** `mcpApiKeys/{keyId}.principalUid` identifies the same Firebase
+  user.
+- **Coworker IMS:** the validated Adobe identity is matched to an active Portal enrollment;
+  that enrollment's `principalUid` identifies the same Firebase user. Coworker never needs
+  the plaintext Portal key.
+- **Verified-principal MCP requests:** the server carries the UID only in request-local
+  context and reads/writes Firestore directly. Caller-provided UID headers are not trusted.
+- **Shared operational key:** clients without a user principal retain the generation-prefs
+  HTTP API path for backward compatibility.
+
+Email reservation is transactional across the UI and MCP. Omitting `email` on a generation
+tool reserves the next `<local>+DDMMYYYY-N@<domain>` value and advances the shared daily
+counter exactly once. Authenticated UI reservation failures stop generation rather than
+falling back to a browser counter; unauthenticated local-only sessions retain the device
+fallback. Changes made with `lab_set_generation_prefs` therefore appear in Profile Viewer,
+and UI edits are returned by `lab_get_generation_prefs` and used by subsequent MCP
+generations.
 
 ### Governed audience cleanup (Phase 3.32)
 
@@ -346,6 +375,19 @@ Structured JSON to **stdout** (Cloud Logging) **and** Firestore collection **`mc
 
 Disable Firestore locally: `AEP_LAB_MCP_FIRESTORE=off`.
 
+### Place context — featured areas, global random, clustering (v3.52)
+
+Profile and event tools share one place engine (`src/placeCatalog/`, a versioned copy of `web/profile-viewer/place-catalog-data.json` — 6,000+ real cities across 213 countries, rebuilt by `npm run build:place-catalog`).
+
+| Param | Values | Effect |
+|-------|--------|--------|
+| `place_mode` | `featured` (default), `global`, `area` | `featured` picks one of ten common areas (riyadh, dubai, london, new york, paris, tokyo, sydney, singapore, são paulo, mumbai); `global` picks a real city anywhere on Earth, population-weighted; `area` uses `place_area` |
+| `place_area` | featured key or catalog city (`"Nairobi"`, `"Portland, US"`) | Pins the sampled point near that city |
+| `place_clustering` / `cluster_size` | `lab_generate_profiles_batch` only; default on for count ≥ 10, size 12 (10–100) | Groups profiles around shared anchors so every cluster clears the k=10 hotspot suppression; the job returns `place_clusters` |
+| `event_place` | object (`latitude`, `longitude`, `city`, `countryCode`, `regionCode`, `neighborhood`, `storeId`, `poiId`, `accuracyMeters`, `source`) | Explicit event location; mutually exclusive with `place_mode`/`place_area` |
+
+Profiles always carry `profilePlaceContext`. Events carry place only when a place param is supplied (per step or top-level on `lab_send_profile_events_batch`) — pass the profile's `place_context.city` as `place_area` to keep events coherent. The server writes `placeContext.geo` plus `_<tenant>.eventPlaceContext` and derives the geohash; `lab_seed_geo_demo` stamps the same point on the seeded profile and its event. Full/industry-style event place requires the Phase 5.3 functions release; minimal style is live.
+
 ### Event sending workflow (Phase 3.2)
 
 Mirrors Profile Viewer **Event tool** (`event-generator.html`):
@@ -430,7 +472,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `AEP_LAB_MCP_API_KEY` | Yes | Secret sent as `X-AEP-Lab-Mcp-Key` |
-| `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
+| `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` and `/mcp/geo-insights` | Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
@@ -533,6 +575,8 @@ GCP project: **`aep-orchestration-lab`**, region: **`us-central1`**.
 
 All production releases follow the repository workflow: feature branch → PR → validation/review → merge → deploy from clean `main` at the exact freshly fetched `origin/main` SHA.
 
+After merge and explicit release approval, use `bash tools/aep-lab-profile-mcp/scripts/release-main.sh <full-main-sha>`. The script verifies the repository, clean `main`, exact freshly fetched `origin/main` SHA, and gcloud identity/project; it builds an immutable image, updates only the image, then checks binding names, 100% traffic, and `/health`.
+
 Cloud Run service account needs **Cloud Datastore User** for Firestore collections:
 
 - `mcpProfileBatchJobs`
@@ -547,6 +591,13 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 - `labDemoAssetActive`
 
 ### Normal code-only release
+
+> **New `/api/...` lab route?** A Cloud Run release is not enough. Routes the MCP calls
+> reach the lab through Firebase Hosting rewrites, so a new route in `firebase.json`
+> also needs `firebase deploy --only hosting --project aep-orchestration-lab` (plus the
+> function itself). Without the Hosting deploy the tool fails with a bare `404` even
+> though the function is live — see `test/labApiRoutes.test.mjs`, which asserts every
+> literal `/api/...` path in `labApiClient.mjs` has a matching rewrite.
 
 Inspect the live service first, build an immutable image, and update **only** the image. `gcloud run services update` preserves the existing environment variables, secret bindings, service account, ingress, timeout, memory, and scaling configuration.
 
@@ -634,7 +685,7 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 ## Coworker Adobe IMS authentication
 
-The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment; Coworker never receives or stores the plaintext key. Existing API-key clients are unchanged.
+The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment and its Firebase `principalUid`; Coworker never receives or stores the plaintext key. That verified UID gives Coworker the same profile-generation preferences as the signed-in Profile Viewer. Existing API-key clients are unchanged.
 
 The audience-management route is authenticated with a user-generated MCP key and is not an anonymous profile API. Existing public profile read routes remain unchanged.
 

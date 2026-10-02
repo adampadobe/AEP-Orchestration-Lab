@@ -541,6 +541,25 @@
     updateEmailPreview();
   }
 
+  async function reserveEmailForGenerate(base, dryRun) {
+    const sb = getSandboxName();
+    if (!dryRun && window.AepProfileGenPrefsSync && typeof window.AepProfileGenPrefsSync.reserveNextEmail === 'function') {
+      const reserved = await window.AepProfileGenPrefsSync.reserveNextEmail(sb, base);
+      if (reserved && reserved.ok && reserved.scaledEmail) {
+        if (counterEl) counterEl.value = String(reserved.nextCounterN || reserved.counterN || 1);
+        updateEmailPreview();
+        return { email: reserved.scaledEmail, n: reserved.counterN };
+      }
+      if (reserved && reserved.error) {
+        return { error: reserved.error };
+      }
+    }
+    const n = parseInt(counterEl.value || '1', 10) || 1;
+    const email = scaleEmail(base, n, new Date());
+    if (!dryRun) bumpCounter();
+    return { email, n };
+  }
+
   // ---------- Streaming connection (Firestore) ----------
   function fillStreamingFields(streaming) {
     if (!streaming || typeof streaming !== 'object') return;
@@ -2765,8 +2784,13 @@
     let lastEmail = '';
     try {
       for (let i = 0; i < count; i++) {
-        const n = parseInt(counterEl.value || '1', 10) || 1;
-        const email = scaleEmail(base, n, new Date());
+        const reserved = await reserveEmailForGenerate(base, dryRun);
+        if (reserved.error) {
+          lastError = reserved.error;
+          break;
+        }
+        const n = reserved.n;
+        const email = reserved.email;
         if (!email) {
           lastError = 'Could not scale email — invalid base format.';
           break;
@@ -2793,7 +2817,6 @@
           lastError = e.message || 'Network error';
           break;
         }
-        bumpCounter();
       }
       if (successCount === count && !lastError) {
         setMessage(
@@ -3121,6 +3144,7 @@
     counterEl.addEventListener('input', () => {
       const n = parseInt(counterEl.value || '1', 10) || 1;
       persistCounter(n);
+      persistPrefsField({ counterN: n });
       updateEmailPreview();
     });
   }
@@ -3244,7 +3268,13 @@
   window.addEventListener('aep-global-sandbox-change', onSandboxChange);
 
   window.addEventListener('aep-profile-gen-recent-pulled', () => renderRecent());
-  window.addEventListener('aep-profile-gen-prefs-applied', () => renderRecent());
+  window.addEventListener('aep-profile-gen-prefs-applied', () => {
+    loadBaseEmailForCurrentSandbox();
+    loadBaseMobileForCurrentSandbox();
+    loadCounterForCurrentContext();
+    updateEmailPreview();
+    renderRecent();
+  });
 
   window.addEventListener('aep-profile-infra-status-updated', (ev) => {
     const payload = ev && ev.detail;
@@ -3255,6 +3285,7 @@
   });
 
   window.addEventListener('aep-travel-panel-shown', () => {
+    loadBaseEmailForCurrentSandbox();
     loadBaseMobileForCurrentSandbox();
     renderRecent();
     applyLoyaltyToggleVisibility();

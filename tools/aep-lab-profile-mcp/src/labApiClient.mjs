@@ -3,8 +3,13 @@
  * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
  */
 
-import { getRequestKeyId, getRequestMcpApiKey } from './requestContext.mjs';
+import { getRequestKeyId, getRequestMcpApiKey, getRequestPrincipalUid } from './requestContext.mjs';
 import { buildGeneratorPostBody } from './framework/buildGeneratorPostBody.mjs';
+import {
+  getGenerationPrefsForPrincipal,
+  reserveGenerationEmailForPrincipal,
+  updateGenerationPrefsForPrincipal,
+} from './generationPrefsStore.mjs';
 
 const DEFAULT_ORIGIN = 'https://aep-orchestration-lab.web.app';
 
@@ -417,6 +422,31 @@ export async function getEventConfig({ sandbox }) {
 }
 
 /**
+ * Runs a bounded, parameterized AEP Query Service aggregation for geo hotspots.
+ * Firebase owns IMS credentials; the MCP only calls the purpose-built aggregate endpoint.
+ */
+export function getAudienceGeoHotspots(params) {
+  const key = String(process.env.AEP_LAB_COMMERCE_INTERNAL_KEY || '').trim();
+  return labApiRequest('/api/geo-hotspots', {
+    method: 'POST',
+    headers: {
+      ...(key ? { 'X-AEP-Lab-Mcp-Key': key } : {}),
+      'X-AEP-Lab-Principal-Id': getRequestKeyId(),
+    },
+    body: {
+      sandbox: params.sandbox,
+      center: params.center,
+      radius_km: params.radius_km,
+      window_hours: params.window_hours,
+      interest: params.interest,
+      cell_km: params.cell_km,
+    },
+    timeoutMs: 120_000,
+    retries: 0,
+  });
+}
+
+/**
  * POST /api/events/generator — Event Generator (mirrors Profile Viewer Event tool).
  * @param {object} params
  */
@@ -680,6 +710,96 @@ export async function decisioningCatalogDeleteApply(params) {
       autoDetect: params.auto_detect,
       preflight_id: params.preflight_id,
       confirmation: params.confirmation,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/schema/extend-preview
+ * @param {object} params
+ */
+export async function decisioningSchemaExtendPreview(params) {
+  return labApiRequest('/api/decisioning/schema/extend-preview', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      schemaId: params.schema_id,
+      fieldGroupId: params.field_group_id,
+      fields: params.fields,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/schema/extend-apply
+ * @param {object} params
+ */
+export async function decisioningSchemaExtendApply(params) {
+  return labApiRequest('/api/decisioning/schema/extend-apply', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      schemaId: params.schema_id,
+      fieldGroupId: params.field_group_id,
+      fields: params.fields,
+      preview_hash: params.preview_hash,
+      confirmed: params.confirmed,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/tags/bulk-preview
+ * @param {object} params
+ */
+export async function decisioningTagBulkPreview(params) {
+  return labApiRequest('/api/decisioning/tags/bulk-preview', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      action: params.action,
+      tags: params.tags,
+      offerSelector: params.offer_selector,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
+    },
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/tags/bulk-apply — verifies the cached preview plan and returns it (no per-item write yet).
+ * @param {object} params
+ */
+export async function decisioningTagBulkApply(params) {
+  return labApiRequest('/api/decisioning/tags/bulk-apply', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      preview_hash: params.preview_hash,
+      confirmed: params.confirmed,
+    },
+    timeoutMs: 60_000,
+  });
+}
+
+/**
+ * POST /api/decisioning/tags/apply-one — single offer-item itemTags PATCH.
+ * @param {object} params
+ */
+export async function decisioningTagApplyOne(params) {
+  return labApiRequest('/api/decisioning/tags/apply-one', {
+    method: 'POST',
+    body: {
+      sandbox: params.sandbox,
+      action: params.action,
+      tags: params.tags,
+      offer_id: params.offer_id,
+      schemaId: params.schema_id,
+      autoDetect: params.auto_detect,
     },
     timeoutMs: 120_000,
   });
@@ -1176,6 +1296,10 @@ export function snowflakeAuthHeaders() {
 export const STATIC_EGRESS_IP = '34.58.81.28';
 
 export async function getGenerationPrefs({ sandbox }) {
+  const principalUid = getRequestPrincipalUid();
+  if (principalUid) {
+    return getGenerationPrefsForPrincipal(principalUid, sandbox);
+  }
   return labApiRequest('/api/lab/generation-prefs', {
     query: { sandbox },
     headers: generationPrefsAuthHeaders(),
@@ -1199,6 +1323,10 @@ export async function setGenerationPrefs(params) {
   if (params.counterN != null) body.counterN = params.counterN;
   if (params.resetCounter != null) body.resetCounter = params.resetCounter;
   if (params.testProfile != null) body.testProfile = params.testProfile;
+  const principalUid = getRequestPrincipalUid();
+  if (principalUid) {
+    return updateGenerationPrefsForPrincipal(principalUid, params.sandbox, body);
+  }
   return labApiRequest('/api/lab/generation-prefs', {
     method: 'PUT',
     body,
@@ -1208,6 +1336,10 @@ export async function setGenerationPrefs(params) {
 }
 
 export async function reserveGenerationNextEmail({ sandbox }) {
+  const principalUid = getRequestPrincipalUid();
+  if (principalUid) {
+    return reserveGenerationEmailForPrincipal(principalUid, sandbox);
+  }
   return labApiRequest('/api/lab/generation-prefs/next-email', {
     method: 'POST',
     body: { sandbox },

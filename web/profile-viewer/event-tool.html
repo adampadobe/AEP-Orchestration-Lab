@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260716-industry-ch-dedupe">
+  <link rel="stylesheet" href="event-tool.css?v=20260928-event-place">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -264,6 +264,72 @@
                   </div>
                 </div>
 
+                <div class="et-place-context" id="etPlaceContext">
+                  <h4 class="et-industry-common__title">Place context (optional)</h4>
+                  <p class="field-hint et-place-context__hint">Where this event happened. Sends <code class="et-code-inline">placeContext.geo</code> and <code class="et-code-inline">_demoemea.eventPlaceContext</code>; the geohash is derived server-side. Requires the <strong>Event Place Context v1</strong> field group on the event schema.</p>
+                  <div class="form-row et-place-context__preset-row">
+                    <label for="etPlacePreset">Preset</label>
+                    <select id="etPlacePreset" class="sandbox-select" aria-label="Event place preset">
+                      <option value="none" selected>None (don't send)</option>
+                      <option value="random">Random featured city</option>
+                      <option value="riyadh">Riyadh</option>
+                      <option value="dubai">Dubai</option>
+                      <option value="london">London</option>
+                      <option value="newYork">New York</option>
+                      <option value="singapore">Singapore</option>
+                      <option value="tokyo">Tokyo</option>
+                      <option value="sydney">Sydney</option>
+                      <option value="paris">Paris</option>
+                      <option value="saoPaulo">São Paulo</option>
+                      <option value="mumbai">Mumbai</option>
+                      <option value="global">Anywhere on Earth (6,000+ cities)</option>
+                    </select>
+                    <button type="button" id="etPlaceRandomBtn" class="btn btn-secondary btn-sm" title="New random place within the selected preset">New sample</button>
+                  </div>
+                  <div id="etPlaceFields" class="et-industry-fields__grid" hidden>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceLatitude">Latitude</label>
+                      <input type="number" id="etPlaceLatitude" min="-90" max="90" step="0.000001" placeholder="e.g. 24.6958">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceLongitude">Longitude</label>
+                      <input type="number" id="etPlaceLongitude" min="-180" max="180" step="0.000001" placeholder="e.g. 46.685">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceAccuracy">Accuracy (m)</label>
+                      <input type="number" id="etPlaceAccuracy" min="0" max="100000" step="1" placeholder="e.g. 150">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceNeighborhood">Neighborhood</label>
+                      <input type="text" id="etPlaceNeighborhood" maxlength="100" autocomplete="off" placeholder="e.g. Al Olaya">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceCity">City</label>
+                      <input type="text" id="etPlaceCity" maxlength="100" autocomplete="off" placeholder="e.g. Riyadh">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceRegion">Region code (ISO 3166-2)</label>
+                      <input type="text" id="etPlaceRegion" maxlength="6" autocomplete="off" spellcheck="false" placeholder="e.g. SA-01">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceCountry">Country code</label>
+                      <input type="text" id="etPlaceCountry" maxlength="2" autocomplete="off" spellcheck="false" placeholder="e.g. SA">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlaceStoreId">Store ID</label>
+                      <input type="text" id="etPlaceStoreId" maxlength="64" autocomplete="off" spellcheck="false" placeholder="e.g. RUH-OLAYA-01">
+                    </div>
+                    <div class="et-industry-field-row">
+                      <label for="etPlacePoiId">POI ID</label>
+                      <input type="text" id="etPlacePoiId" maxlength="64" autocomplete="off" spellcheck="false" placeholder="e.g. poi-olaya-mall">
+                    </div>
+                    <div class="et-industry-field-row et-place-context__geohash">
+                      <label for="etPlaceGeohash">Geohash (derived)</label>
+                      <output id="etPlaceGeohash" for="etPlaceLatitude etPlaceLongitude">—</output>
+                    </div>
+                  </div>
+                </div>
+
                 <details id="etMyTriggersPanel" class="et-schema-types-panel et-my-triggers-panel">
                   <summary class="et-schema-types-summary">My triggers <span id="etMyTriggersCount" class="et-schema-types-count"></span></summary>
                   <div class="et-schema-types-body">
@@ -323,7 +389,11 @@
   <script src="identity-picker.js"></script>
   <script src="event-industry-catalog.js?v=20260716-industry-events"></script>
   <script src="aep-json-editor.js?v=20260715-event-tool-json-scroll"></script>
-  <script src="event-tool.js?v=20260716-industry-event-type-combo"></script>
+  <script src="place-catalog-data.js?v=20260928-global-places"></script>
+  <script src="place-catalog.js?v=20260928-global-places"></script>
+  <script src="profile-place-context.js?v=20260928-global-places"></script>
+  <script src="event-place-context.js?v=20260928-global-places"></script>
+  <script src="event-tool.js?v=20260928-event-place"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>

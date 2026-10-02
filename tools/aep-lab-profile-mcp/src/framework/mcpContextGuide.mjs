@@ -18,7 +18,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 206,
+    toolCount: 212,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
@@ -54,7 +54,7 @@ export const MCP_CONTEXTS = Object.freeze([
     toolCount: 21,
     access: LAB_ACCESS,
     risk: 'governed profile and event writes',
-    capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment'],
+    capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment', 'profile and event place context (ten featured areas, any catalog city, or anywhere on Earth; k-anonymous clustering for batches)'],
     useWhen: 'Use for the complete profile lifecycle and Snowflake verification.',
   },
   {
@@ -62,10 +62,10 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab decisioning',
     url: `${LAB_BASE_URL}/mcp/decisioning`,
     kind: 'lab-focused',
-    toolCount: 19,
+    toolCount: 23,
     access: LAB_ACCESS,
     risk: 'governed writes and destructive delete',
-    capabilities: ['Edge decision evaluation', 'decision explanation', 'decisioning catalog', 'decisioning health', 'governed create/update/delete', 'async bulk migration', 'cloning', 'compound builders', 'offer eligibility attach'],
+    capabilities: ['Edge decision evaluation', 'decision explanation', 'decisioning catalog', 'decisioning health', 'governed create/update/delete', 'async bulk migration', 'cloning', 'compound builders', 'offer eligibility attach', 'add-only schema field extension', 'async bulk tag attach/detach'],
     useWhen: 'Use for Decision Lab evaluation, catalog diagnostics, and governed catalog management.',
   },
   {
@@ -111,6 +111,17 @@ export const MCP_CONTEXTS = Object.freeze([
     risk: 'read-only third-party weather and map lookups',
     capabilities: ['current weather', 'weather forecast', 'weather map'],
     useWhen: 'Use for live weather or map context in a demo scenario; it does not call AEP or Lab APIs.',
+  },
+  {
+    id: 'aep-lab-geo-insights',
+    name: 'AEP Lab audience geo-insights',
+    url: `${LAB_BASE_URL}/mcp/geo-insights`,
+    kind: 'lab-focused',
+    toolCount: 4,
+    access: LAB_ACCESS,
+    risk: 'read-only aggregate audience query plus confirmation-gated demo seeding',
+    capabilities: ['current weather', 'profile place-context geo-hotspots', 'k=10 suppression', 'demo seeding in any featured area or catalog city'],
+    useWhen: 'Use when one turn needs both live weather and governed audience geo-hotspots for the same city or coordinate center.',
   },
   {
     id: 'aep-lab-commerce',
@@ -205,7 +216,7 @@ export const MCP_WORKFLOWS = Object.freeze({
   profile_and_events: {
     title: 'Create and enrich a profile',
     contexts: ['aep-lab-profiles'],
-    steps: ['Check access and readiness.', 'Confirm generation preferences.', 'Generate the profile.', 'Send governed industry events.', 'Verify AEP activity and optional Snowflake readback.'],
+    steps: ['Check access and readiness.', 'Confirm generation preferences.', 'Generate the profile; place context is added automatically (set place_area or place_mode to choose where).', 'Send governed industry events, passing the profile\'s place_context.city as place_area so events land in the same area.', 'Verify AEP activity and optional Snowflake readback.'],
   },
   audience_cleanup: {
     title: 'Audit and delete one audience',
@@ -302,6 +313,15 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Correlate the observed time window with Adobe Status incidents.',
     ],
   },
+  geo_insights: {
+    title: 'Explore governed audience geo-hotspots with live weather',
+    contexts: ['aep-lab-geo-insights'],
+    steps: [
+      'Call lab_weather_current and lab_audience_geo_hotspots with the same city or coordinate center.',
+      'Summarize current weather with aggregate profile counts and hotspot cells; never infer or expose individual identities.',
+      'If there is no matching ingested data, request approval before lab_seed_geo_demo and rerun after the reported ingestion delay.',
+    ],
+  },
   platform_authoring: {
     title: 'Perform product-native Adobe authoring',
     contexts: ['adobe-cx-coworker-gateway'],
@@ -318,6 +338,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-ajo-cleanup': ['journey delete', 'campaign delete', 'journey cleanup', 'campaign cleanup', 'delete journey', 'delete campaign'],
   'aep-lab-command-centre': ['command centre', 'customer engagement', 'meeting', 'task list', 'next action'],
   'aep-lab-weather': ['weather', 'forecast', 'temperature', 'rain', 'weather map'],
+  'aep-lab-geo-insights': ['geo insights', 'geo hotspots', 'audience hotspots', 'customers near', 'customers around', 'profiles around', 'audience map', 'weather and audience', 'camping gear near', 'customers who viewed', 'current weather', 'who viewed'],
   'aep-lab-commerce': ['commerce', 'accs', 'product catalog', 'product sku', 'inventory', 'store view', 'storefront graphql'],
   'aep-lab-commerce-optimizer': ['commerce optimizer', 'aco', 'catalog view', 'price book', 'recommendation unit', 'merchandising services'],
   'aep-lab-firefly': ['firefly', 'firefly image', 'generate image', 'text to image', 'image 5', 'generate video', 'firefly video', 'audio', 'text to speech', 'transcribe', 'caption', 'dub', 'lip sync', 'creative generation'],

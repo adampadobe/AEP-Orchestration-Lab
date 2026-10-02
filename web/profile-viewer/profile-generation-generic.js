@@ -115,6 +115,24 @@
   const loyaltyPointsEl = document.getElementById('genLoyaltyPoints');
   const loyaltyRandomBtn = document.getElementById('genLoyaltyRandomBtn');
   const languageEl = document.getElementById('genLanguage');
+  const PlaceCtx = window.AepProfilePlaceContext || null;
+  const placePresetEl = document.getElementById('genPlacePreset');
+  const placeRandomBtn = document.getElementById('genPlaceRandomBtn');
+  const placeSourceEl = document.getElementById('genPlaceSource');
+  const placeGeohashEl = document.getElementById('genPlaceGeohash');
+  const PLACE_FIELD_IDS = {
+    latitude: 'genPlaceLatitude',
+    longitude: 'genPlaceLongitude',
+    accuracyMeters: 'genPlaceAccuracy',
+    neighborhood: 'genPlaceNeighborhood',
+    city: 'genPlaceCity',
+    regionCode: 'genPlaceRegionCode',
+    countryCode: 'genPlaceCountryCode',
+    lastSeenAt: 'genPlaceLastSeenAt',
+  };
+  const placeFieldEls = Object.fromEntries(
+    Object.entries(PLACE_FIELD_IDS).map(([leaf, id]) => [leaf, document.getElementById(id)])
+  );
   // Recently-generated picker (per sandbox + base email + day)
   const recentPickerEl = document.getElementById('genRecentPicker');
   const recentSelectEl = document.getElementById('genRecentSelect');
@@ -170,6 +188,7 @@
         'genLoadFromFirebaseBtn', 'genFetchFlowFromAepBtn', 'genSaveStreamBtn',
         'genLookupBtn', 'genResetCounterBtn', 'genUpdateProfileBtn', 'genGenerateBtn',
         'genRecentLoadBtn', 'genLoyaltyRandomBtn', 'genRecentSelect',
+        'genPlacePreset', 'genPlaceRandomBtn', 'genPlaceSource',
       ]),
     });
     guard.wireListeners();
@@ -1208,6 +1227,57 @@
     return randomPick(RANDOM_NEUTRAL_FIRST);
   }
 
+  // ---------- Place context (_<tenant>.profilePlaceContext) ----------
+  function readPlaceForm() {
+    const out = {};
+    for (const [leaf, el] of Object.entries(placeFieldEls)) {
+      if (!el) continue;
+      const v = String(el.value || '').trim();
+      if (!v) continue;
+      out[leaf] = leaf === 'lastSeenAt' && PlaceCtx ? PlaceCtx.localInputToIso(v) : v;
+    }
+    const hasAny = Object.keys(out).length > 0;
+    if (hasAny && placeSourceEl && placeSourceEl.value) out.source = placeSourceEl.value;
+    return hasAny ? out : null;
+  }
+
+  function refreshPlaceGeohash() {
+    if (!placeGeohashEl) return;
+    const lat = placeFieldEls.latitude ? String(placeFieldEls.latitude.value || '').trim() : '';
+    const lon = placeFieldEls.longitude ? String(placeFieldEls.longitude.value || '').trim() : '';
+    let text = '—';
+    if (PlaceCtx && lat !== '' && lon !== '') {
+      try { text = PlaceCtx.encodeGeohash(Number(lat), Number(lon), 7); } catch (_) { text = 'invalid coordinates'; }
+    }
+    placeGeohashEl.textContent = text;
+  }
+
+  function writePlaceForm(place, source) {
+    const p = place || {};
+    for (const [leaf, el] of Object.entries(placeFieldEls)) {
+      if (!el) continue;
+      const v = p[leaf];
+      if (v === undefined || v === null) el.value = '';
+      else el.value = leaf === 'lastSeenAt' && PlaceCtx ? PlaceCtx.isoToLocalInput(v) : String(v);
+    }
+    if (placeSourceEl && source) setSelectValueLoose(placeSourceEl, source);
+    refreshPlaceGeohash();
+  }
+
+  function fillPlaceFromPreset() {
+    if (!PlaceCtx) return;
+    const preset = placePresetEl ? placePresetEl.value : 'random';
+    const sample = PlaceCtx.generateSample(preset);
+    writePlaceForm(sample, sample ? sample.source : null);
+  }
+
+  /** Place fields randomize as one group so coordinates, city and region always agree. */
+  function applyRandomPlaceForGenerate(sr, pg) {
+    const ids = Object.values(PLACE_FIELD_IDS);
+    if (!ids.every((id) => sr(id))) return;
+    pg(fillPlaceFromPreset);
+  }
+
   /**
    * Fills Identity + Customer Analytics (and loyalty when enabled) with one random persona.
    * Called before each profile in Generate-N so every scaled email gets distinct demo data.
@@ -1216,6 +1286,7 @@
     const g = personaGuard;
     const sr = (fieldId) => !g || g.shouldRandomize(String(fieldId || ''));
     const pg = (fn) => (g ? g.runProgrammatic(fn) : fn());
+    applyRandomPlaceForGenerate(sr, pg);
 
     let genderCanon;
     if (!sr('genGender')) {
@@ -1347,6 +1418,7 @@
         tier: loyaltyEnabled ? trimVal(loyaltyTierEl) : '',
         points: loyaltyEnabled ? trimVal(loyaltyPointsEl) : '',
       },
+      place: readPlaceForm(),
     };
   }
 
@@ -1481,6 +1553,13 @@
         push('loyalty.points', ptsNum);
         push('loyaltyDetails.points', ptsNum);
       }
+    }
+
+    // Place context — tenant `profilePlaceContext.*` (field group "AEP Lab - Profile
+    // Place Context v1"). Rows carry valueType so numeric-looking strings stay strings;
+    // geohash is derived and validated server-side (profilePlaceContext.js).
+    if (PlaceCtx) {
+      for (const row of PlaceCtx.buildUpdates(readPlaceForm())) updates.push(row);
     }
 
     if (markTestProfileEl && markTestProfileEl.checked) {
@@ -1737,6 +1816,11 @@
       if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
       setSelectValueLoose(loyaltyTierEl, tier);
       if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+
+      // Always overwrite: a looked-up profile without place context must not inherit
+      // a sample place from the form and stream it on Update.
+      const place = PlaceCtx ? PlaceCtx.readFromRows(rows) : null;
+      writePlaceForm(place, place && place.source);
 
       if (
         baseEmailEl &&
@@ -2138,6 +2222,9 @@
     if (snap.nps) parts.push(`NPS ${snap.nps}`);
     if (snap.aov) parts.push(`AOV $${snap.aov}`);
     if (snap.preferredChannel) parts.push(`Preferred ${snap.preferredChannel}`);
+    if (snap.place && (snap.place.neighborhood || snap.place.city)) {
+      parts.push(`📍 ${[snap.place.neighborhood, snap.place.city].filter(Boolean).join(', ')}`);
+    }
     return parts.join(' · ');
   }
 
@@ -2189,6 +2276,7 @@
       if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
       if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
       applyLoyaltyToggleVisibility();
+      writePlaceForm(s.place || null, s.place && s.place.source);
       if (counterEl && Number.isFinite(entry.n)) {
         counterEl.value = String(entry.n);
         persistCounter(entry.n);
@@ -2259,6 +2347,7 @@
     counterEl.addEventListener('input', () => {
       const n = parseInt(counterEl.value || '1', 10) || 1;
       persistCounter(n);
+      persistPrefsField({ counterN: n });
       updateEmailPreview();
     });
   }
@@ -2363,6 +2452,17 @@
   }
   if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
   if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
+
+  const runPlaceProgrammatic = (fn) => (personaGuard ? personaGuard.runProgrammatic(fn) : fn());
+  if (placePresetEl) placePresetEl.addEventListener('change', () => runPlaceProgrammatic(fillPlaceFromPreset));
+  if (placeRandomBtn) placeRandomBtn.addEventListener('click', () => runPlaceProgrammatic(fillPlaceFromPreset));
+  for (const el of Object.values(placeFieldEls)) {
+    if (!el) continue;
+    el.addEventListener('input', (ev) => {
+      if (ev.isTrusted && placeSourceEl) placeSourceEl.value = 'ui-manual';
+      refreshPlaceGeohash();
+    });
+  }
 
   if (payloadPreviewBtn) payloadPreviewBtn.addEventListener('click', refreshPayloadPreview);
   if (payloadPreviewDetails) {

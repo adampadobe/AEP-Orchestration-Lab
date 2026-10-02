@@ -68,11 +68,15 @@ re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibil
   registry, not a small DSL.
 - **Offer-item tagging (`itemTags`)** — confirmed the value is *not* the tag's `dps:tag:...`
   id (`"Invalid [tagId] id"`) and *not* its bare hex suffix either (`"At least one of the
-  tags is invalid"`); a real item-collection observed in this sandbox references a tag by a
-  standard dashed UUID (e.g. `72881e1c-b293-4e55-8dd1-256412a9afbd`) that doesn't correspond
-  to any tag currently returned by `GET /tags`, suggesting either a stale reference or a
-  different tag registry than the one `/tags` exposes. Unresolved — no bulk-tagging tool
-  ships until this is nailed down.
+  tags is invalid"`) — but neither of those was the tag's actual dashed UUID (the `id` field
+  `GET /tags` returns), which was never tried at the time. A separately deployed ExD
+  accelerator MCP (`exd-accelerator-mcp`) confirms that full UUID, used verbatim in a plain
+  array, is the correct value. Rather than hard-code even a well-evidenced answer,
+  `lab_decisioning_tag_bulk_apply` still resolves this live at write time: it tries the raw
+  UUID first, then `name`, then `{tags: [...]}`, then the URL-wrapped id as a last resort,
+  against the real first write in a sandbox, and caches whichever format DPS accepts
+  (`functions/decisioningTagFormatStore.js`) so every later call in that sandbox skips
+  straight to it. See "MCP write/bulk layer" below.
 
 Many **list decision items** calls require header **`x-schema-id`** (your decision item schema). Pass it through the local proxy as `platform_headers` (see below).
 
@@ -91,12 +95,21 @@ no persisted "pending preview" record):
 | *(none — MCP-side orchestration only)* | `lab_decisioning_catalog_bulk_apply` | Async, resumable create/update for 1–200 items. DPS has no array-body batch endpoint, so this loops sequentially (preview+apply per item, small retry on 429/5xx) via a Firestore job (`decisioning_bulk_write`), pollable with the existing `lab_batch_job_status`. |
 | *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_catalog_clone_preview` | Fetches a source entity, strips server-assigned fields, applies recursive find/replace, hands off to the existing `change_apply` (no new backend route). Works across all seven entity types. |
 | *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_ranking_formula_preview` | Builds the confirmed live payload shape from a `formula_type` enum instead of the raw object. |
-| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_selection_strategy_preview` | Resolves collection/ranking-formula/eligibility-rule references by id-or-name and builds the raw payload. Hard guard: refuses to set strategy-level eligibility unless the caller states `user_explicitly_chose_strategy_level: true`. |
-| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_attach_offer_eligibility_preview` | Builds the confirmed `itemConstraints` JSON Patch to attach/detach offer-level eligibility. Hard guard: refuses to set offer-level eligibility unless the caller states `user_explicitly_chose_offer_level: true` — symmetric with the selection-strategy guard, so neither tool silently picks the attach point on the caller's behalf. |
+| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_selection_strategy_preview` | Resolves collection/ranking-formula/eligibility-rule references by id-or-name and builds the raw payload. Hard guard: refuses to set strategy-level eligibility (from either `eligibility_rule_id_or_name` or `audience_id_or_name`) unless the caller states `user_explicitly_chose_strategy_level: true`. |
+| *(reuses `change-preview` — MCP-side only)* | `lab_decisioning_attach_offer_eligibility_preview` | Builds the confirmed `itemConstraints` JSON Patch to attach/detach offer-level eligibility. Hard guard: refuses to set offer-level eligibility unless the caller states `user_explicitly_chose_offer_level: true` — symmetric with the selection-strategy guard, so neither tool silently picks the attach point on the caller's behalf. Both this tool and `selection_strategy_preview` also accept `audience_id_or_name` (mutually exclusive with `eligibility_rule_id_or_name`): auto-wraps an RT-CDP audience into an `"Audience: <name>"` eligibility rule with a `segmentMembership` PQL condition, reusing it by exact name on repeat calls instead of duplicating. If no such rule exists yet, returns a ready-to-run `change-preview` payload to create it first (via the normal `lab_decisioning_catalog_change_apply` gate) rather than creating it silently. The PQL shape mirrors Adobe's documented segment-membership pattern and the confirmed-live `{type:'PQL', format:'pql/text', value}` expression object from ranking-formulas, but has not itself been confirmed live for an offer-rule condition — verify the created rule. Reusing an audience also requires the caller's own `X-AEP-Lab-Mcp-Key` (same constraint as `lab_audience_list`/`lab_audience_audit`), so it 401s under pure Adobe IMS Coworker auth. |
+| `POST /api/decisioning/schema/extend-preview` | `lab_decisioning_schema_extend_preview` | Add-only diff of 1-50 proposed fields against the offer-items schema's tenant field group (Schema Registry). Never removes or retypes an existing field — a same-name field with a different shape is reported as a `conflict`, not applied. Returns `preview_hash`. |
+| `POST /api/decisioning/schema/extend-apply` | `lab_decisioning_schema_extend_apply` | One non-retried field-group `PATCH` (`op: add` only). Requires the unchanged `fields`, `preview_hash`, and `confirmed: true` — a boolean gate, not a typed confirmation phrase, since a field list doesn't have a natural "entity name" to echo back. Re-reads the field group first; a changed `meta:eTag` fails closed as `error: "schema_drifted"`. |
+| `POST /api/decisioning/tags/bulk-preview` + `POST /api/decisioning/tags/bulk-apply` + `POST /api/decisioning/tags/apply-one` | `lab_decisioning_tag_bulk_preview` / `lab_decisioning_tag_bulk_apply` | Resolves 1-20 tags and an `offer_selector` (`ids`, `name_prefix`, or `collection` — the last only works when the collection happens to carry an explicit member-id list, not DPS's usual opaque predicate) against up to 200 offers, then attaches/detaches/replaces sequentially in the background (Firestore job `decisioning_tag_bulk_write`, pollable with `lab_batch_job_status`). `action=replace` overwrites each offer's entire tag set to exactly the given tags, unlike `attach`/`detach` which merge with or subtract from the existing set. `bulk-apply` takes only `{sandbox, preview_hash, confirmed, resume_token?}` — the resolved plan is cached server-side by its own `preview_hash` (`functions/decisioningTagBulkPreviewStore.js`, 1-hour TTL) so a large matched-offer list never needs to be resent; `resume_token` is the job id, letting an interrupted batch continue from its first unprocessed offer instead of restarting. Every per-offer write re-reads that offer's live tags immediately before patching it, so drift since preview fails closed at the item level and an already-satisfied offer is a `no_op`, not a failure. |
 
 Backend implementation: `functions/decisioningCatalogWriteService.js` (write operations) and
 `functions/decisioningCatalogService.js` (read + shared `platformFetch`/allowlist, now with
 `body` support for POST/PATCH/DELETE, and `resolveEntityIdOrName` for id-or-name lookups).
+The schema-extend and tag-bulk pairs above are separate services that reuse those two —
+`functions/decisioningSchemaExtendService.js` (plus `functions/catalogConfigStore.js` for the
+offer schema id) and `functions/decisioningTagBulkService.js` (plus
+`functions/decisioningTagFormatStore.js` and `functions/decisioningTagBulkPreviewStore.js`) —
+rather than folding non-DPS-entity writes (a Schema Registry field group; a per-offer tag
+diff) into `decisioningCatalogWriteService.js`'s single-entity plan/hash model.
 Write verbs, confirmed live against sandbox `apalmer` (create + update + delete on a
 disposable `ranking-formulas` object) are `POST` (create), `PATCH` (update) and `DELETE`
 (delete) against the same single-resource paths as the read side. **Update uses `PATCH`
@@ -136,6 +149,14 @@ Auth setup: Cursor skill at `/Users/apalmer/.cursor/skills/adobe-ims-auth/SKILL.
 REST above **manages** definitions. **Edge** executes decisions for a profile/session.
 
 See **[EDGE_TESTING.md](./EDGE_TESTING.md)** in this folder for Web SDK, `decisionScopes`, and Assurance.
+
+### Identity resolution for `lab_decisioning_edge_evaluate` — why email-only can return zero propositions
+
+Confirmed live 2026-09-16 against sandbox `apalmer`: a real profile (real hotel/flight XDM data, real ExD eligibility conditions that reference that data) returned **zero propositions** from `lab_decisioning_edge_evaluate` called with only `email`, even though `content-decision-live-edge.html` returns full decisions for the exact same identity. Root-caused via `get_identity_graph`/`get_profile_by_id` against the real Adobe Profile Access API (not just this repo's own proxy): the profile's identity graph has **never had an ECID merged onto it** — `identityMap` contains only `email`. This isn't a data or config bug; it's how the profile was generated.
+
+The live page works anyway because it runs the real Adobe Web SDK (Alloy, loaded from this datastream's Launch script) in the browser. On load, Alloy mints a genuine, Adobe-validated ECID via the Identity Service and sends it in the **same** `identityMap` as the typed email on `alloy('sendEvent', ...)`. Edge resolves personalization from that combination live — no pre-existing identity-graph link is required, but a real, Adobe-issued ECID is: a fabricated one (any random 10+ digit string) is rejected outright by Edge Network with `"error": "Invalid identity provided"` — confirmed live. `auto_fetch_ecid` on the MCP tool (reading whatever ecid is already merged onto the UPS profile) cannot help a profile like this one, because there is nothing to fetch.
+
+`lab_decisioning_edge_evaluate` (`functions/decisioningEdgeEvaluateService.js`) now closes this gap automatically: when no ECID is supplied, it adds `query.identity.fetch: ["ECID"]` to the interact request, and if that first pass still returns zero propositions, it retries once with the newly Edge-minted ECID paired with the email — reproducing the live page's identity combination server-side in one MCP call, no browser needed. `evaluate.autoResolvedEcid` in the response shows whether this fired. This retry mechanism is implemented but **not yet confirmed live** for every datastream (the single-request `identity.fetch` + immediate personalization path, and the explicit two-call retry, are both plausible-but-unverified against Adobe's actual per-request pipeline ordering) — treat a still-empty result after the retry as a genuine eligibility-condition failure, not an identity problem.
 
 ## Real-Time CDP Profile (optional smoke test)
 

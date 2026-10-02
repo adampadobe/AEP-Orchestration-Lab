@@ -101,6 +101,7 @@ const RAW_PATH_OWNERSHIP = [
       'individualCharacteristics.core.',
       'identification.core.',
       'identification.',
+      'profilePlaceContext.',
       'identityMap.',
       'scoring.',
       'demoEnvironment.',
@@ -124,6 +125,7 @@ const RAW_PATH_OWNERSHIP = [
       '<TENANT>personalEmail.',
       '<TENANT>mobilePhone.',
       '<TENANT>homeAddress.',
+      '<TENANT>profilePlaceContext.',
     ],
   },
 ];

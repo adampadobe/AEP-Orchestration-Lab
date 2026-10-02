@@ -8,6 +8,7 @@
 const { readFileSync, existsSync } = require('fs');
 const { join } = require('path');
 const { INDUSTRY_PUBLIC_SLICE_IDS } = require('./eventIndustryFieldGroups');
+const { applyEventPlaceToXdm, readEventPlace } = require('./eventPlaceContext');
 
 const XDM_TENANT_ID = process.env.AEP_XDM_TENANT_ID || 'demoemea';
 const EVENT_SCHEMA_ID =
@@ -558,6 +559,26 @@ function buildEventGeneratorXdm(reqBody, options) {
   const ecidImKey = getIdentityMapEcidKey(body);
   const useDemosystem5 = tenantKey === '_demosystem5';
   const useDemoemea = tenantKey === '_demoemea';
+  const geo = body.geo && typeof body.geo === 'object' ? body.geo : null;
+  const eventPlace = readEventPlace(body);
+  const attachGeo = (xdm) => {
+    if (eventPlace) {
+      applyEventPlaceToXdm(xdm, eventPlace, tenantKey);
+      return;
+    }
+    if (!geo) return;
+    const latitude = Number(geo.latitude);
+    const longitude = Number(geo.longitude);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+      || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) return;
+    xdm.placeContext = {
+      ...(xdm.placeContext && typeof xdm.placeContext === 'object' ? xdm.placeContext : {}),
+      geo: {
+        ...(xdm.placeContext?.geo && typeof xdm.placeContext.geo === 'object' ? xdm.placeContext.geo : {}),
+        _schema: { latitude, longitude },
+      },
+    };
+  };
 
   if (style === 'minimal') {
     const now =
@@ -618,6 +639,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveChannel);
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
+    attachGeo(xdm);
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
@@ -656,6 +678,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     }
     alignExperienceEventFieldGroupPayloads(xdm, '_demosystem5', effectiveChannel);
     syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
+    attachGeo(xdm);
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
@@ -723,6 +746,7 @@ function buildEventGeneratorXdm(reqBody, options) {
   alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', effectiveChannel);
   syncXdmDemoemeaLowercaseAlias(xdm);
   normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+  attachGeo(xdm);
   ensureWebPageDetailsOnPageViewEvent(xdm, body);
   return xdm;
 }
@@ -768,6 +792,27 @@ function resolveGeneratorPreset(allTargets, wantId, sandbox) {
 }
 
 /**
+ * Sandbox for a legacy DCS streaming preset. The inlet, flow and dataset are bound to one
+ * sandbox (`preset.sandbox`, else DEFAULT_SANDBOX), so an explicitly requested different
+ * sandbox is rejected rather than silently streamed into the bound one.
+ * @param {string} requestedSandbox explicit body/query sandbox ('' when none was sent)
+ * @param {Record<string, unknown>} preset
+ */
+function resolveDcsStreamSandbox(requestedSandbox, preset) {
+  const bound = String((preset && preset.sandbox) || '').trim() || DEFAULT_SANDBOX;
+  const requested = String(requestedSandbox || '').trim();
+  if (requested && requested !== bound) {
+    const id = (preset && preset.id) || 'dcs';
+    return {
+      ok: false,
+      statusCode: 400,
+      error: `DCS target "${id}" streams only to sandbox "${bound}", but sandbox "${requested}" was requested. Use an Edge target (Event tool Step 2) for "${requested}".`,
+    };
+  }
+  return { ok: true, sandbox: bound };
+}
+
+/**
  * Virtual generator presets from Firestore (Event tool + Decision lab), merged ahead of static JSON.
  * @param {string} sandbox
  * @param {Record<string, unknown>|null|undefined} eventRec from getEffectiveEventConfig
@@ -809,6 +854,7 @@ function buildLabFirestoreGeneratorPresets(sandbox, eventRec, decisionRec) {
 module.exports = {
   loadEventGeneratorTargets,
   buildEventGeneratorXdm,
+  resolveDcsStreamSandbox,
   buildLabFirestoreGeneratorPresets,
   resolveGeneratorPreset,
   alignExperienceEventFieldGroupPayloads,

@@ -1,0 +1,13 @@
+/**
+ * Shared Profile Viewer modal mount — shell tokens only.
+ * Drawer layout and panels: aep-profile-drawer.css (single source for panel styling).
+ */
+
+#profileViewerModalMount[data-aep-profile-viewer-modal-mount='1'] {
+  display: contents;
+}
+
+.aep-profile-viewer-modal-mount-fallback {
+  position: relative;
+  z-index: 6400;
+}

@@ -11,6 +11,7 @@ const EDGE_SEND_MAX_PER_MINUTE = 30;
 const BATCH_JOBS_MAX_PER_HOUR = 3;
 const SNOWFLAKE_TEST_MAX_PER_MINUTE = 10;
 const SNOWFLAKE_GENERATE_MAX_PER_MINUTE = 5;
+const GEO_HOTSPOTS_MAX_PER_MINUTE = 5;
 
 /** @type {Map<string, number[]>} */
 const generateTimestamps = new Map();
@@ -26,6 +27,7 @@ const snowflakeTestTimestamps = new Map();
 
 /** @type {Map<string, number[]>} */
 const snowflakeGenerateTimestamps = new Map();
+const geoHotspotsTimestamps = new Map();
 
 function pruneOld(timestamps, windowMs) {
   const cutoff = Date.now() - windowMs;
@@ -147,4 +149,59 @@ export function checkSnowflakeGenerateRate(keyId) {
     SNOWFLAKE_GENERATE_MAX_PER_MINUTE,
     'Snowflake generate/insert',
   );
+}
+
+/**
+ * @param {string} keyId
+ */
+export function checkGeoHotspotsRate(keyId) {
+  return checkWindowRate(
+    geoHotspotsTimestamps,
+    keyId,
+    GEO_HOTSPOTS_MAX_PER_MINUTE,
+    'geo-hotspot query',
+  );
+}
+
+export function reserveGeoSeedRates(keyId, count) {
+  if (!Number.isInteger(count) || count < 1 || count > GENERATE_MAX_PER_MINUTE) {
+    return { ok: false, message: `Geo seed count must be between 1 and ${GENERATE_MAX_PER_MINUTE}.`, retryAfterSec: 60 };
+  }
+
+  const id = String(keyId || 'unknown');
+  const now = Date.now();
+  const windowMs = 60_000;
+  const generateList = generateTimestamps.get(id) || [];
+  const eventList = edgeSendTimestamps.get(id) || [];
+  pruneOld(generateList, windowMs);
+  pruneOld(eventList, windowMs);
+
+  if (generateList.length + count > GENERATE_MAX_PER_MINUTE) {
+    const retryAfterSec = generateList.length
+      ? Math.ceil((generateList[0] + windowMs - now) / 1000)
+      : 60;
+    return {
+      ok: false,
+      message: `Rate limit exceeded: max ${GENERATE_MAX_PER_MINUTE} profile generate calls per minute per MCP key (in-memory, per instance).`,
+      retryAfterSec: Math.max(1, retryAfterSec),
+    };
+  }
+  if (eventList.length + count > EDGE_SEND_MAX_PER_MINUTE) {
+    const retryAfterSec = eventList.length
+      ? Math.ceil((eventList[0] + windowMs - now) / 1000)
+      : 60;
+    return {
+      ok: false,
+      message: `Rate limit exceeded: max ${EDGE_SEND_MAX_PER_MINUTE} event send calls per minute per MCP key (in-memory, per instance).`,
+      retryAfterSec: Math.max(1, retryAfterSec),
+    };
+  }
+
+  for (let index = 0; index < count; index += 1) {
+    generateList.push(now);
+    eventList.push(now);
+  }
+  generateTimestamps.set(id, generateList);
+  edgeSendTimestamps.set(id, eventList);
+  return { ok: true };
 }

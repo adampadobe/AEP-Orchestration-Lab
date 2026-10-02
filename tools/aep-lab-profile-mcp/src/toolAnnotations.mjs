@@ -32,6 +32,7 @@ const READ_ONLY_TOOLS = new Set([
   'commerce_admin_delete_audit',
   'lab_audience_audit',
   'lab_audience_list',
+  'lab_audience_geo_hotspots',
   'lab_ajo_campaign_audit',
   'lab_ajo_campaign_list',
   'lab_ajo_journey_audit',
@@ -53,6 +54,8 @@ const READ_ONLY_TOOLS = new Set([
   'lab_decisioning_catalog_schema',
   'lab_decisioning_edge_evaluate',
   'lab_decisioning_resolve_treatment_name',
+  'lab_decisioning_schema_extend_preview',
+  'lab_decisioning_tag_bulk_preview',
   'lab_demo_config_inspect',
   'lab_demo_config_preview',
   'lab_demo_assets_inspect',
@@ -166,6 +169,8 @@ const IDEMPOTENT_WRITE_TOOLS = new Set([
   'lab_save_event_datastream',
   'lab_setup_event_infra',
   'lab_snowflake_provision',
+  'lab_decisioning_schema_extend_apply',
+  'lab_decisioning_tag_bulk_apply',
 ]);
 
 export function annotationsForTool(name) {

@@ -44,10 +44,26 @@ function loadConfig(env) {
 
 function validateAdobeJobUrl(rawUrl, { cancel = false } = {}) {
   let parsed;
-  try { parsed = new URL(rawUrl); } catch { throw new FireflyApiError('invalid Adobe job URL'); }
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    console.warn('[aep-lab-profile-mcp] firefly-job-url-rejected', JSON.stringify({ reason: 'unparseable', rawUrl: String(rawUrl).slice(0, 500) }));
+    throw new FireflyApiError('invalid Adobe job URL');
+  }
   const host = parsed.hostname.toLowerCase();
   const allowedHosts = cancel ? ['firefly-api.adobe.io'] : ['firefly-api.adobe.io', 'audio-video-api.adobe.io'];
-  if (parsed.protocol !== 'https:' || !allowedHosts.includes(host)) {
+  // Firefly returns job-status/cancel URLs on a tenant-scoped host (firefly-<orgId>.adobe.io),
+  // not always the generic firefly-api.adobe.io — confirmed live via the diagnostic logging below.
+  const isTenantFireflyHost = /^firefly-[a-z0-9]+\.adobe\.io$/.test(host);
+  if (parsed.protocol !== 'https:' || (!allowedHosts.includes(host) && !isTenantFireflyHost)) {
+    console.warn('[aep-lab-profile-mcp] firefly-job-url-rejected', JSON.stringify({
+      reason: 'untrusted-host',
+      cancel,
+      protocol: parsed.protocol,
+      host,
+      allowedHosts,
+      pathname: parsed.pathname,
+    }));
     throw new FireflyApiError('untrusted Adobe job URL');
   }
   return parsed.toString();

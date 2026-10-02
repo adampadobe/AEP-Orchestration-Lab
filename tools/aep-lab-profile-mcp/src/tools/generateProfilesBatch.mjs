@@ -9,6 +9,12 @@ import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { normalizeGenerateProfileParams } from '../framework/generateProfileParams.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
+import {
+  batchPlaceInputSchema,
+  planBatchPlaces,
+  summarizePlacePlan,
+  validatePlaceParams,
+} from '../framework/placeParams.mjs';
 import { buildEmailFormatRules, validateScaledLabEmail } from '../framework/emailFormatGuardrails.mjs';
 import { checkGenerationPrefsConfigured } from './generationPrefs.mjs';
 import { resolveBatchEmail } from '../personaBuilder.mjs';
@@ -29,6 +35,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         'Batch generate 1–100 test profiles. FORMAT RULES: prefer use_stored_prefs:true (default when base_email omitted) — each profile reserves <local>+DDMMYYYY-N@<domain>. ' +
         'Legacy base_email patterns (e.g. kirkham+retail-seed) are rejected unless email_pattern produces scaled addresses. ' +
         'Call lab_confirm_profile_generation before first batch. ' +
+        'Every randomized profile carries place context; place_mode featured (ten common areas) | global (anywhere on Earth) | area + place_area. ' +
+        'Batches of 10+ are clustered (cluster_size default 12, >= k=10) so each cluster shows on the k-anonymous hotspot map; response lists place_clusters. ' +
         'Travel loyalty_member (all industries, default false): LYL-* when true. Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -118,6 +126,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .string()
           .optional()
           .describe('Optional Snowflake table override; default is selected from industry'),
+        ...batchPlaceInputSchema(),
       },
     },
     async ({
@@ -142,6 +151,10 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       snowflake_enrichment,
       snowflake_event_types,
       snowflake_table,
+      place_mode,
+      place_area,
+      place_clustering,
+      cluster_size,
     }) => {
       const keyId = getRequestKeyId();
 
@@ -169,6 +182,20 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       }
 
       const useRandomize = randomize ?? fill_sample_data ?? true;
+
+      const placeCheck = validatePlaceParams({ place_mode, place_area });
+      if (!placeCheck.ok) {
+        return toolError(placeCheck.error);
+      }
+      const placePlan = useRandomize
+        ? planBatchPlaces({
+            count,
+            place_mode: placeCheck.place_mode,
+            place_area: placeCheck.place_area,
+            place_clustering,
+            cluster_size,
+          })
+        : null;
 
       const normalizedTest = normalizeGenerateProfileParams({
         test_profile,
@@ -251,6 +278,9 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           snowflake_enrichment: snowflake_enrichment === true,
           snowflake_event_types,
           snowflake_table,
+          place_mode: placeCheck.place_mode || null,
+          place_area: placeCheck.place_area || null,
+          place_plan: placePlan ? placePlan.places : null,
         },
       });
 
@@ -284,6 +314,9 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         delay_ms: delay_ms ?? null,
         use_stored_prefs: useStoredPrefs,
         dual_load_snowflake: dual_load_snowflake === true,
+        place_mode: placeCheck.place_mode || 'featured',
+        place_area: placeCheck.place_area || null,
+        place_clusters: summarizePlacePlan(placePlan),
         formatRules: buildEmailFormatRules(),
         pollTool: 'lab_batch_job_status',
         note: 'Job runs in background. Poll lab_batch_job_status with job_id.',

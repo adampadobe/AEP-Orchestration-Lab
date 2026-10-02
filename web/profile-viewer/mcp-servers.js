@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 206 tools',
+      product: 'Complete Lab MCP · 212 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -40,9 +40,9 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all fifteen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all sixteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 206,
+      toolCount: 212,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -103,15 +103,16 @@
       product: 'Focused Lab MCP · 21 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile',
       summary:
-        'A focused profile lifecycle context for dependable discovery and invocation in Coworker.',
+        'A focused profile lifecycle context with shared per-user, per-sandbox generation preferences across Profile Viewer and MCP.',
       useCases: [
+        'Review or update the shared base email, mobile, test-profile setting, and daily counter',
         'Check profile and ingestion readiness',
         'Generate, update, and inspect golden test profiles',
         'Send governed industry events and inspect activity',
         'Verify and enrich Snowflake dual-loaded profiles',
       ],
       configNotes:
-        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
+        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Coworker IMS and user-generated keys resolve the same Firebase user preferences as Profile Viewer; omitting email transactionally reserves the next +DDMMYYYY-N address.',
       connectionKind: 'Focused',
       toolCount: 21,
       docUrl:
@@ -311,23 +312,25 @@
       section: 'lab',
       dropdownLabel: 'Decisioning',
       name: 'AEP Lab — Decisioning',
-      product: 'Focused Lab MCP · 19 tools',
+      product: 'Focused Lab MCP · 23 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning',
       summary:
         'Edge evaluation, catalog inspection, diagnostics, explanations, and governed create/update/delete plus async ' +
         'bulk migration across offer-items, item-collections, selection-strategies, eligibility rules, ranking ' +
-        'formulas, and placements.',
+        'formulas, and placements. Also add-only schema field extension and async bulk tag attach/detach.',
       useCases: [
         'Evaluate Edge decisions for a profile',
         'Browse decisioning catalog objects',
         'Check health and explain decision results',
         'Create, update, or governed-delete a decisioning catalog object',
         'Bulk-migrate hundreds of decision items into a sandbox',
+        'Add a missing custom field to the offer-items schema',
+        'Attach or detach tags across many offers at once',
       ],
       configNotes:
         'Choose this for Decision Lab, Edge decisioning, and catalog management work. Destructive deletes require an audit and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
       connectionKind: 'Focused · controlled delete',
-      toolCount: 19,
+      toolCount: 23,
       caution: true,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
@@ -402,6 +405,29 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Weather tools reference',
+    },
+    {
+      id: 'aep-lab-geo-insights',
+      configName: 'aep-lab-geo-insights',
+      section: 'lab',
+      dropdownLabel: 'Geo insights',
+      name: 'AEP Lab — Audience geo-insights',
+      product: 'Focused Lab MCP · 4 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/geo-insights',
+      summary:
+        'Combines current weather with aggregate audience hotspots (from the lab geo mirror of profile place context) for the same city or coordinate center. Hotspots below k=10 are suppressed; no identities or raw events are returned.',
+      useCases: [
+        'Map an interest-based audience around a city or location',
+        'Compare hotspot counts with current local weather',
+        'Seed demo data in any featured area or catalog city after explicit approval',
+      ],
+      configNotes:
+        'Coworker uses Adobe IMS; key-based clients reuse the sandbox key. The read-only hotspot query is rate-limited and audited; demo seeding generates test profiles and events.',
+      connectionKind: 'Focused · aggregate audience insights',
+      toolCount: 4,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Geo insights tools reference',
     },
     {
       id: 'cx-coworker-gateway',

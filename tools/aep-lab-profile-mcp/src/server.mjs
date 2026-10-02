@@ -4,12 +4,13 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality}
  * Health:   GET /health
  */
 
 import dotenv from 'dotenv';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -41,13 +42,16 @@ import {
   registerFocusedCreativityTools,
   registerFocusedAdobeCapabilityTools,
   registerFocusedMeasurementQualityTools,
+  registerFocusedGeoInsightsTools,
   registerProfileTools,
 } from './tools/index.mjs';
 
-const MCP_VERSION = '3.50.0';
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env.mcp') });
+
+// Read from package.json rather than a hardcoded literal — this drifted out of sync
+// with package.json once already (3.50.0 vs 3.51.0) when only the latter was bumped.
+const MCP_VERSION = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')).version;
 
 const ENDPOINTS = [
   {
@@ -120,6 +124,13 @@ const ENDPOINTS = [
     instructions:
       'Focused weather lookups from OpenWeatherMap: current conditions and a 5-day/3-hour forecast by city name or ' +
       'lat/lon coordinates. No AEP or Lab API calls; useful for demo scenarios that condition on live weather.',
+  },
+  {
+    path: '/mcp/geo-insights',
+    toolset: 'geo-insights',
+    register: registerFocusedGeoInsightsTools,
+    instructions:
+      'Audience geo-hotspots from AEP Query Service with live weather context. Query weather and aggregate audience hotspots for the same center; seed demo data only when explicitly requested. Hotspots are k-anonymity protected aggregates and never include identities or raw events.',
   },
   {
     path: '/mcp/commerce',
@@ -249,7 +260,13 @@ async function main() {
         || String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
       const sessionId = req.headers['mcp-session-id'];
 
-      await requestContext.run({ keyId: auth.keyId, principalAccess, mcpApiKey: mcpKey, sessionId }, async () => {
+      await requestContext.run({
+        keyId: auth.keyId,
+        principalUid: String(auth.principalUid || '').trim(),
+        principalAccess,
+        mcpApiKey: mcpKey,
+        sessionId,
+      }, async () => {
         try {
           let transport;
 
