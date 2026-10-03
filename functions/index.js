@@ -22,6 +22,8 @@ const PDF_PERSONALISATION_API_KEY = defineSecret('PDF_PERSONALISATION_API_KEY');
 /** Dedicated least-privilege AWS identity for private PDF output storage. */
 const PDF_S3_ACCESS_KEY_ID = defineSecret('PDF_S3_ACCESS_KEY_ID');
 const PDF_S3_SECRET_ACCESS_KEY = defineSecret('PDF_S3_SECRET_ACCESS_KEY');
+/** IMS scopes for Firefly / Firefly Foundry image generation on the enterprise client. */
+const AEP_LAB_FIREFLY_SCOPES = defineSecret('AEP_LAB_FIREFLY_SCOPES');
 
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
@@ -624,6 +626,24 @@ exports.geoHotspotsQuery = onRequest(
   },
 );
 
+/** Non-secret Firefly / Foundry routing. FOUNDRY_MODEL_ID defaults to humain-image-api on the PDF functions. */
+function pdfCreativeImageEnv() {
+  const env = {};
+  for (const key of ['FIREFLY_API_BASE_URL', 'FOUNDRY_MODEL_ID', 'FOUNDRY_GENERATION_URL']) {
+    if (process.env[key]) env[key] = process.env[key];
+  }
+  return env;
+}
+
+/** Firefly / Foundry reuse the enterprise IMS client with the Firefly scope set. */
+function pdfCreativeImageDeps() {
+  return {
+    getCreativeToken: () => getAdobeAccessToken(AEP_LAB_FIREFLY_SCOPES.value()),
+    getCreativeApiKey: () => ADOBE_CLIENT_ID.value(),
+    creativeEnv: process.env,
+  };
+}
+
 /**
  * Private-template HTML-to-PDF workspace and AJO handoff API.
  * Browser writes require an allow-listed Firebase user; future AJO calls use
@@ -640,6 +660,7 @@ exports.pdfPersonalisation = onRequest(
       PDF_PERSONALISATION_API_KEY,
       PDF_S3_ACCESS_KEY_ID,
       PDF_S3_SECRET_ACCESS_KEY,
+      AEP_LAB_FIREFLY_SCOPES,
     ],
     environmentVariables: {
       PDF_PERSONALISATION_PUBLIC_BASE_URL:
@@ -649,6 +670,7 @@ exports.pdfPersonalisation = onRequest(
         process.env.PDF_PERSONALISATION_ALLOWED_EMAILS || 'apalmer@adobe.com',
       PDF_PERSONALISATION_RETENTION_DAYS:
         process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+      FOUNDRY_MODEL_ID: process.env.FOUNDRY_MODEL_ID || 'humain-image-api',
       PDF_OUTPUT_STORE: process.env.PDF_OUTPUT_STORE || 'dual',
       PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
       PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
@@ -657,6 +679,7 @@ exports.pdfPersonalisation = onRequest(
       PDF_JOURNEY_CAMPAIGN_ID:
         process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
       ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+      ...pdfCreativeImageEnv(),
     },
     invoker: 'public',
     timeoutSeconds: 300,
@@ -701,6 +724,7 @@ exports.pdfPersonalisation = onRequest(
     s3Bucket: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
     s3Region: process.env.PDF_S3_REGION || 'us-east-1',
     s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
+    ...pdfCreativeImageDeps(),
   }),
 );
 
@@ -719,10 +743,12 @@ exports.pdfJourneyActionWorker = onDocumentCreated(
       ADOBE_SCOPES,
       PDF_S3_ACCESS_KEY_ID,
       PDF_S3_SECRET_ACCESS_KEY,
+      AEP_LAB_FIREFLY_SCOPES,
     ],
     environmentVariables: {
       PDF_PERSONALISATION_RETENTION_DAYS:
         process.env.PDF_PERSONALISATION_RETENTION_DAYS || '14',
+      FOUNDRY_MODEL_ID: process.env.FOUNDRY_MODEL_ID || 'humain-image-api',
       PDF_OUTPUT_STORE: process.env.PDF_OUTPUT_STORE || 'dual',
       PDF_S3_BUCKET: process.env.PDF_S3_BUCKET || 'adobe-demo-emea-ajo-pdf',
       PDF_S3_REGION: process.env.PDF_S3_REGION || 'us-east-1',
@@ -731,6 +757,7 @@ exports.pdfJourneyActionWorker = onDocumentCreated(
       PDF_JOURNEY_CAMPAIGN_ID:
         process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
       ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+      ...pdfCreativeImageEnv(),
     },
     timeoutSeconds: 300,
     memory: '1GiB',
@@ -755,6 +782,7 @@ exports.pdfJourneyActionWorker = onDocumentCreated(
       s3Prefix: process.env.PDF_S3_PREFIX || 'pdf-personalisation',
       campaignId: process.env.PDF_JOURNEY_CAMPAIGN_ID || pdfJourneyActionService.DEFAULT_CAMPAIGN_ID,
       loadJourneyTemplateSource: pdfJourneyTemplateStore.loadTemplateSource,
+      ...pdfCreativeImageDeps(),
     });
     console.info('[pdfJourneyActionWorker]', JSON.stringify({ jobId, result }));
   },

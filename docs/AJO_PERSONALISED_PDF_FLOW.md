@@ -134,6 +134,8 @@ Use a stable idempotency key for one logical recipient/document send. Reusing th
 
 Use the asynchronous `/journey-action` endpoint so AJO receives a durable `202 queued` response before its external-action timeout while the worker performs conversion and campaign delivery. The complete copy-ready configuration, request schema, response schema, template names, and journey mappings are in [AJO_PDF_JOURNEY_CUSTOM_ACTION.md](AJO_PDF_JOURNEY_CUSTOM_ACTION.md).
 
+Journey sends can opt into a Firefly or Foundry destination image generated from the booking's destination and merged into the template's `{{data.FF_Image}}` hero slot. The **Test journey send** panel on the PDF Personalisation page exposes the same option with a provider selector and an image preview.
+
 ## Template syntax
 
 Templates use escaped Handlebars expressions:
@@ -179,3 +181,5 @@ Machine-to-machine AJO access additionally requires:
 - `PDF_PERSONALISATION_API_KEY`
 
 The enterprise `ADOBE_CLIENT_ID` and `ADOBE_CLIENT_SECRET` remain bound to the existing AEP functions and are not used by this PDF conversion service.
+
+Optional generated destination images (Firefly / Firefly Foundry) reuse the enterprise IMS client: the token comes from `ADOBE_CLIENT_ID` / `ADOBE_CLIENT_SECRET` with the scope set in the existing `AEP_LAB_FIREFLY_SCOPES` secret, and `ADOBE_CLIENT_ID` is sent as `x-api-key`. Foundry uses the non-secret `FOUNDRY_MODEL_ID` (default `humain-image-api`) and optional `FOUNDRY_GENERATION_URL`. The enterprise credential must be entitled to Firefly Services; if it is not, sends still succeed with the fallback image. See [AJO_PDF_JOURNEY_CUSTOM_ACTION.md](AJO_PDF_JOURNEY_CUSTOM_ACTION.md#optional-generated-destination-image-firefly--firefly-foundry).

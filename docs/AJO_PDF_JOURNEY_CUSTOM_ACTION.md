@@ -100,6 +100,26 @@ Use one of these exact `templateName` values:
 - `booking-confirmation`
 - `checkin-confirmation`
 
+### Optional generated destination image (Firefly / Firefly Foundry)
+
+Add `imageGeneration` to opt a single request into an AI-generated hero image. The worker builds a generic, non-PII travel-photography prompt from the booking destination (`destinationCity`, `destination.city`, `arrivalCity`, an airport name, or the `arrivalAirport` IATA code), generates the image, stores it as a JPEG in `gs://aep-orchestration-lab-brand-scrapes/pdf-personalisation/generated/<hash>.jpg`, and merges its public URL into `data.FF_Image` before PDF conversion.
+
+```json
+{
+  "imageGeneration": { "enabled": true, "provider": "firefly", "aspectRatio": "16:9" }
+}
+```
+
+AJO can instead send flat fields: `generateImage` (`true`), `imageProvider` (`firefly` | `foundry`), and `imageAspectRatio` (`16:9` | `4:3` | `1:1`). Omitting both keeps the existing behaviour unchanged.
+
+- **Firefly** (default) calls Firefly Services `POST /v4/images/generate-async` with model `image5`.
+- **Foundry** calls `FOUNDRY_GENERATION_URL` (default `https://foundry-inference.adobe.io/v1/image/generate`) with the `x-foundry-model-id` header. The PDF functions set the non-secret `FOUNDRY_MODEL_ID` to `humain-image-api` (the HUMAIN sovereign model, same as humain-create); override it via the environment at deploy time. Foundry takes ~35 s per image and its content policy blocks some destinations (for example, Barcelona returns `FOUNDRY_CONTENT_FILTERED`); blocked or failed generations fall back without failing the PDF.
+- Both reuse the lab's existing Adobe IMS client-credentials token (`ADOBE_CLIENT_ID` as `x-api-key`), with scopes from the `AEP_LAB_FIREFLY_SCOPES` secret.
+- Identical destination/provider/aspect prompts are cached by hash, so retries and repeat bookings reuse the stored image.
+- Image generation never blocks the PDF. On failure the worker keeps the original `data.FF_Image` (or omits the hero) and records the error code on the job.
+
+The built-in `booking-confirmation` and `checkin-confirmation` templates render the hero only when `data.FF_Image` is present. For uploaded DOCX templates, insert a placeholder image sized as the hero should appear and set its alt text to `{"location-path":"FF_Image","image-props":{"alt-text":"Destination image"}}`; Document Generation replaces it with the image at the URL while keeping the placeholder's dimensions. The job status response includes an `image` object: `{ status: "generated" | "cached" | "fallback", provider, model, url, destination, error }`.
+
 Map `requestId` to a stable unique source event identifier. It must remain identical if AJO retries the same action, but must differ for a genuinely new booking or check-in.
 
 ## Success response to paste
@@ -161,6 +181,13 @@ GET https://aep-orchestration-lab.web.app/api/pdf-personalisation/journey-action
 GET https://aep-orchestration-lab.web.app/api/pdf-personalisation/journey-action/status/{jobId}
 ```
 
+The PDF Personalisation page also uses two portal-session-only image endpoints (they reject `x-pdf-api-key` callers):
+
+```text
+GET  /api/pdf-personalisation/journey-action/image-providers
+POST /api/pdf-personalisation/journey-action/image-preview   { "data": {...}, "provider": "firefly", "aspectRatio": "16:9" }
+```
+
 The worker uses API campaign `30f45cd3-da50-436c-ae46-d0ab8f521f14` by default. Override it at deployment with the non-secret environment variable `PDF_JOURNEY_CAMPAIGN_ID` when a dedicated campaign is ready.
 
 ## Runtime sequence
@@ -168,8 +195,9 @@ The worker uses API campaign `30f45cd3-da50-436c-ae46-d0ab8f521f14` by default. 
 1. AJO posts the selected template name, recipient, and journey data.
 2. Firebase validates the API key and request contract.
 3. Firebase creates an idempotent Firestore job and returns HTTP `202`.
-4. The worker loads the built-in template and performs an escaped Handlebars merge.
-5. Adobe PDF Services converts the completed HTML with `HTMLToPDFJob`.
-6. Firebase stores the PDF in `dlz-ajoemailattachments`, plus private S3 and Google Cloud backups.
-7. Firebase calls the AJO unitary execution API using recipient type `aep` and the DLZ-relative attachment path.
-8. The worker records the PDF job ID, AJO execution ID, and final status without logging the personalisation payload.
+4. When `imageGeneration` is enabled, the worker generates (or reuses) the destination image and sets `data.FF_Image`.
+5. The worker loads the built-in template and performs an escaped Handlebars merge.
+6. Adobe PDF Services converts the completed HTML with `HTMLToPDFJob`.
+7. Firebase stores the PDF in `dlz-ajoemailattachments`, plus private S3 and Google Cloud backups.
+8. Firebase calls the AJO unitary execution API using recipient type `aep` and the DLZ-relative attachment path.
+9. The worker records the PDF job ID, AJO execution ID, and final status without logging the personalisation payload.

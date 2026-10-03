@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="pdf-personalisation.css?v=20260813h">
+  <link rel="stylesheet" href="pdf-personalisation.css?v=20260814-ff-image">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -557,6 +557,37 @@
                   <p class="pdf-key-empty">Choose a published template to load its fields.</p>
                 </div>
 
+                <section class="pdf-test-image-gen" aria-labelledby="pdfTestImageHeading">
+                  <div class="pdf-test-fields-heading">
+                    <div><h5 id="pdfTestImageHeading">Destination image</h5><span>Adobe Firefly · generated from the booking destination</span></div>
+                    <label class="pdf-test-cache-toggle" for="pdfTestImageEnabled"><input id="pdfTestImageEnabled" type="checkbox"> Generate destination image</label>
+                  </div>
+                  <div class="pdf-test-image-controls">
+                    <div>
+                      <label for="pdfTestImageProvider">Image service</label>
+                      <select id="pdfTestImageProvider">
+                        <option value="firefly">Adobe Firefly (Image 5)</option>
+                        <option value="foundry" disabled>Firefly Foundry (not configured)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="pdfTestImageAspect">Aspect ratio</label>
+                      <select id="pdfTestImageAspect">
+                        <option value="16:9">16:9 landscape</option>
+                        <option value="4:3">4:3</option>
+                        <option value="1:1">1:1 square</option>
+                      </select>
+                    </div>
+                    <button type="button" class="dashboard-btn-outline" id="pdfTestImagePreview">Preview image</button>
+                  </div>
+                  <p class="pdf-field-help">Uses destination, travel dates and party size from the fields above. The image fills the template&rsquo;s <code>FF_Image</code> hero slot; if generation fails the PDF is still sent with its original imagery.</p>
+                  <p id="pdfTestImageStatus" class="pdf-field-help" aria-live="polite"></p>
+                  <figure class="pdf-test-image-preview" id="pdfTestImageFigure" hidden>
+                    <img id="pdfTestImageThumb" alt="Generated destination preview">
+                    <figcaption id="pdfTestImageCaption"></figcaption>
+                  </figure>
+                </section>
+
                 <div class="pdf-test-send-actions">
                   <button type="button" class="dashboard-btn-outline" id="pdfTestCopyPayload">Copy request JSON</button>
                   <button type="button" class="dashboard-btn-primary" id="pdfTestSend">Generate PDF and send email</button>
@@ -576,6 +607,7 @@
                   <div><dt>Job ID</dt><dd id="pdfTestResultJob"></dd></div>
                   <div><dt>AJO execution</dt><dd id="pdfTestResultExecution"></dd></div>
                   <div><dt>Attachment</dt><dd id="pdfTestResultAttachment"></dd></div>
+                  <div id="pdfTestResultImageRow" hidden><dt>Destination image</dt><dd id="pdfTestResultImage"></dd></div>
                 </dl>
                 <div class="pdf-result-actions" id="pdfTestResultActions" hidden>
                   <a id="pdfTestOpenPdf" class="dashboard-btn-outline" href="#" target="_blank" rel="noopener">Open PDF</a>
@@ -926,6 +958,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
-  <script src="pdf-personalisation.js?v=20260813i"></script>
+  <script src="pdf-personalisation.js?v=20260814-ff-image"></script>
 </body>
 </html>
