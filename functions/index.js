@@ -640,7 +640,8 @@ function pdfCreativeImageDeps() {
   return {
     getCreativeToken: () => getAdobeAccessToken(AEP_LAB_FIREFLY_SCOPES.value()),
     getCreativeApiKey: () => ADOBE_CLIENT_ID.value(),
-    creativeEnv: process.env,
+    // environmentVariables are not applied at deploy time, so the Foundry default lives here.
+    creativeEnv: { ...process.env, FOUNDRY_MODEL_ID: process.env.FOUNDRY_MODEL_ID || 'humain-image-api' },
   };
 }
 
