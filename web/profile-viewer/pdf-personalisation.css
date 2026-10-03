@@ -1695,6 +1695,37 @@
 .pdf-journey-test .pdf-test-cache-toggle input { width: 15px; min-height: 15px; margin: 0; padding: 0; accent-color: #684aff; }
 .pdf-test-cache-status { margin: -5px 0 11px; }
 
+.pdf-test-image-gen {
+  margin-top: 16px;
+  padding: 0 12px 12px;
+  border: 1px solid var(--dash-border);
+  border-radius: 9px;
+  background: var(--dash-bg-soft, var(--dash-surface-alt));
+}
+.pdf-test-image-gen .pdf-test-fields-heading { margin: 12px 0 10px; }
+.pdf-test-image-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+.pdf-test-image-controls[aria-disabled="true"] { opacity: 0.6; }
+.pdf-test-image-preview { margin: 10px 0 0; }
+.pdf-test-image-preview img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt);
+}
+.pdf-test-image-preview figcaption {
+  margin-top: 6px;
+  color: var(--dash-muted);
+  font-size: 10px;
+}
+
 .pdf-test-send-actions {
   justify-content: flex-end;
   gap: 9px;
@@ -1968,6 +1999,7 @@
   .pdf-test-field.is-image { grid-column: auto; }
   .pdf-test-fields-heading,
   .pdf-test-send-actions { align-items: stretch; flex-direction: column; }
+  .pdf-test-image-controls { grid-template-columns: 1fr; }
   .pdf-test-field-tools { align-items: stretch; flex-direction: column; }
   .pdf-journey-test .pdf-test-cache-toggle { justify-content: center; }
   .pdf-test-progress-card { top: 8px; max-height: calc(100vh - 16px); }

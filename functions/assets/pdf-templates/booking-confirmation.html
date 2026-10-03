@@ -10,6 +10,7 @@
     .brand { font-size: 24px; font-weight: bold; letter-spacing: .08em; }
     .reference { text-align: right; font-size: 12px; }
     .reference strong { display: block; margin-top: 4px; font-size: 19px; }
+    .hero { display: block; width: 100%; height: 260px; object-fit: cover; }
     .content { padding: 30px 32px; }
     h1 { margin: 0 0 8px; font-size: 25px; }
     .lead { margin: 0 0 26px; color: #665f5b; }
@@ -29,6 +30,7 @@
       <div class="brand">TRAVEL DEMO</div>
       <div class="reference">Booking reference<strong>{{data.bookingReference}}</strong></div>
     </header>
+    {{#if data.FF_Image}}<img class="hero" src="{{data.FF_Image}}" alt="">{{/if}}
     <section class="content">
       <h1>Your booking is confirmed, {{data.passenger.firstName}}</h1>
       <p class="lead">Your personalised itinerary and ticket details are below.</p>

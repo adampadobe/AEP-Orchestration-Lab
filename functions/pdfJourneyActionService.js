@@ -6,6 +6,7 @@ const core = require('./pdfPersonalisationCore');
 const pdfStore = require('./pdfPersonalisationStore');
 const templates = require('./pdfJourneyTemplates');
 const templateContract = require('./pdfJourneyTemplateContract');
+const generatedImages = require('./pdfGeneratedImageService');
 
 const JOBS_COLLECTION = 'pdfJourneyActionJobs';
 const AJO_EXECUTION_URL = 'https://platform.adobe.io/ajo/im/executions/unitary';
@@ -158,14 +159,17 @@ function normaliseRequest(body, deps = {}) {
   }
   const documentName = core.safeDocumentName(input.documentName || template.documentName);
   const selectedCampaignId = resolveCampaignId(input.campaignId, deps);
-  const requestHash = core.sha256(JSON.stringify({
+  const imageGeneration = generatedImages.normaliseImageGeneration(input);
+  const hashInput = {
     templateName: template.name,
     recipient,
     data,
     documentName,
     campaignId: selectedCampaignId,
     templateSourceHash: template.sourceHash || core.sha256(template.htmlTemplate || ''),
-  }));
+  };
+  if (imageGeneration) hashInput.imageGeneration = imageGeneration;
+  const requestHash = core.sha256(JSON.stringify(hashInput));
   return {
     requestId,
     jobId: core.sha256(`ajo-pdf-action\n${requestId}`).slice(0, 40),
@@ -186,6 +190,7 @@ function normaliseRequest(body, deps = {}) {
     recipient,
     data,
     campaignId: selectedCampaignId,
+    imageGeneration,
   };
 }
 
@@ -243,6 +248,7 @@ async function getStatus(jobId, deps = {}) {
     ajoExecutionId: record.ajoExecutionId || null,
     sentAt: record.sentAt || null,
     error: record.error || null,
+    image: imageStatus(record),
   };
 }
 
@@ -253,6 +259,18 @@ async function getRecord(jobId, deps = {}) {
   return snapshot.exists ? (snapshot.data() || {}) : null;
 }
 
+function imageStatus(record) {
+  if (!record.imageGeneration && !record.imageStatus) return null;
+  return {
+    status: record.imageStatus || 'pending',
+    provider: record.imageProvider || (record.imageGeneration && record.imageGeneration.provider) || null,
+    model: record.imageModel || null,
+    url: record.imageUrl || null,
+    destination: record.imageDestination || null,
+    error: record.imageError || null,
+  };
+}
+
 function statusResponse(record) {
   return {
     ...actionResponse(record, true),
@@ -260,6 +278,7 @@ function statusResponse(record) {
     ajoExecutionId: record.ajoExecutionId || null,
     sentAt: record.sentAt || null,
     error: record.error || null,
+    image: imageStatus(record),
   };
 }
 
@@ -458,14 +477,30 @@ async function processQueuedJob(jobId, deps = {}) {
   if (!claim || ['sent', 'busy', 'terminal'].includes(claim.status)) return claim && claim.status;
   const ref = getFirestore(deps).collection(JOBS_COLLECTION).doc(jobId);
   try {
-    const pdfRecord = await (deps.generateAndStore || generateAndStore)(claim.record, deps);
+    let record = claim.record;
+    if (record.imageGeneration && record.imageGeneration.enabled) {
+      if (record.imageStatus && record.imageResolvedData) {
+        record = { ...record, data: record.imageResolvedData };
+      } else {
+        const image = await (deps.resolveGeneratedImage || generatedImages.resolveForRecord)(record, deps);
+        if (image) {
+          record = { ...record, data: image.data };
+          await ref.set({
+            ...image.fields,
+            imageResolvedData: image.data,
+            updatedAt: now(deps).toISOString(),
+          }, { merge: true });
+        }
+      }
+    }
+    const pdfRecord = await (deps.generateAndStore || generateAndStore)(record, deps);
     await ref.set({
       status: 'stored',
       updatedAt: now(deps).toISOString(),
       pdfJobId: pdfRecord.jobId,
       attachmentPath: pdfRecord.dlzObjectPath,
     }, { merge: true });
-    const execution = await (deps.sendCampaign || sendCampaign)(claim.record, pdfRecord, deps);
+    const execution = await (deps.sendCampaign || sendCampaign)(record, pdfRecord, deps);
     const sentAt = now(deps).toISOString();
     await ref.set({
       status: 'sent',

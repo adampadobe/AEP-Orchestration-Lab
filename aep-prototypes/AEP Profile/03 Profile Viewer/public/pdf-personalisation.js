@@ -1472,7 +1472,79 @@
       lastName: document.getElementById('pdfTestLastName').value.trim(),
       documentName: document.getElementById('pdfTestDocumentName').value.trim() || template.documentName,
       data,
+      ...(journeyImageOptions() ? { imageGeneration: journeyImageOptions() } : {}),
     };
+  }
+
+  function journeyImageOptions() {
+    if (!document.getElementById('pdfTestImageEnabled').checked) return null;
+    return {
+      enabled: true,
+      provider: document.getElementById('pdfTestImageProvider').value || 'firefly',
+      aspectRatio: document.getElementById('pdfTestImageAspect').value || '16:9',
+    };
+  }
+
+  function journeyTestFieldData() {
+    const data = {};
+    document.querySelectorAll('[data-pdf-test-field]').forEach((input) => {
+      if (input.value.trim() !== '') data[input.dataset.pdfTestField] = input.value.trim();
+    });
+    return data;
+  }
+
+  function setJourneyImageStatus(message) {
+    document.getElementById('pdfTestImageStatus').textContent = message || '';
+  }
+
+  function showJourneyImagePreview(image) {
+    const figure = document.getElementById('pdfTestImageFigure');
+    if (!image || !image.url) {
+      figure.hidden = true;
+      return;
+    }
+    document.getElementById('pdfTestImageThumb').src = image.url;
+    document.getElementById('pdfTestImageCaption').textContent = [
+      image.destination,
+      `${image.provider === 'foundry' ? 'Firefly Foundry' : 'Adobe Firefly'}${image.model ? ` · ${image.model}` : ''}`,
+      image.status === 'cached' ? 'reused from cache' : '',
+    ].filter(Boolean).join(' · ');
+    figure.hidden = false;
+  }
+
+  async function loadJourneyImageProviders() {
+    try {
+      const { body } = await api('/journey-action/image-providers', { method: 'GET' });
+      const foundry = document.querySelector('#pdfTestImageProvider option[value="foundry"]');
+      const available = !!(body.providers && body.providers.foundry);
+      foundry.disabled = !available;
+      foundry.textContent = available ? 'Firefly Foundry (custom model)' : 'Firefly Foundry (not configured)';
+    } catch (_error) {
+      // Keep Firefly-only defaults when the provider list is unavailable.
+    }
+  }
+
+  async function previewJourneyImage() {
+    const button = document.getElementById('pdfTestImagePreview');
+    const provider = document.getElementById('pdfTestImageProvider').value || 'firefly';
+    button.disabled = true;
+    setJourneyImageStatus(`Generating with ${provider === 'foundry' ? 'Firefly Foundry' : 'Adobe Firefly'}… this can take up to a minute.`);
+    try {
+      const { body } = await api('/journey-action/image-preview', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: journeyTestFieldData(),
+          provider,
+          aspectRatio: document.getElementById('pdfTestImageAspect').value || '16:9',
+        }),
+      }, true);
+      showJourneyImagePreview(body.image);
+      setJourneyImageStatus(body.image && body.image.prompt ? `Prompt: ${body.image.prompt}` : 'Image ready.');
+    } catch (error) {
+      setJourneyImageStatus(error.message);
+    } finally {
+      button.disabled = false;
+    }
   }
 
   function setJourneyTestStatus(message, kind) {
@@ -1501,6 +1573,15 @@
     document.getElementById('pdfTestResultAttachment').textContent = pdf && pdf.storageLocations && pdf.storageLocations.dlz
       ? pdf.storageLocations.dlz.uri || pdf.storageLocations.dlz.objectPath
       : 'Pending';
+    const image = result.image;
+    const imageRow = document.getElementById('pdfTestResultImageRow');
+    imageRow.hidden = !image;
+    if (image) {
+      const label = { generated: 'Generated', cached: 'Reused from cache', fallback: 'Fallback – original imagery used' }[image.status] || image.status;
+      document.getElementById('pdfTestResultImage').textContent = [label, image.destination, image.error && image.error.message]
+        .filter(Boolean).join(' · ');
+      if (image.url) showJourneyImagePreview(image);
+    }
     if (pdf) {
       const actions = document.getElementById('pdfTestResultActions');
       actions.hidden = false;
@@ -1577,6 +1658,7 @@
     document.getElementById('pdfTestClearLastValues').addEventListener('click', clearJourneyTestValues);
     document.getElementById('pdfTestCopyPayload').addEventListener('click', copyJourneyTestPayload);
     document.getElementById('pdfTestSend').addEventListener('click', sendJourneyTest);
+    document.getElementById('pdfTestImagePreview').addEventListener('click', previewJourneyImage);
     document.getElementById('pdfTestStoryGenerate').addEventListener('click', populateTestFieldsWithGemini);
     document.getElementById('pdfTestStoryClear').addEventListener('click', clearStoryAssist);
     document.getElementById('pdfTestStoryExample').addEventListener('click', loadStoryAssistExample);
@@ -2170,7 +2252,7 @@
     authUser = await waitForAuth();
     if (authUser && !authUser.isAnonymous && authUser.email) {
       setAuthState(authUser.email, 'ready');
-      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates(), loadJourneyCampaigns()]);
+      await Promise.all([loadTemplates(), loadApiKeys(), loadJourneyTemplates(), loadJourneyCampaigns(), loadJourneyImageProviders()]);
     } else {
       setAuthState('Authorised sign-in required', 'error');
       setStatus('Sign in to the AEP Orchestration Lab with apalmer@adobe.com before saving templates or generating PDFs.', 'error');

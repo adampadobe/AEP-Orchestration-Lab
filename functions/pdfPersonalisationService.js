@@ -7,6 +7,7 @@ const store = require('./pdfPersonalisationStore');
 const journeyAction = require('./pdfJourneyActionService');
 const journeyTemplates = require('./pdfJourneyTemplates');
 const journeyTemplateContract = require('./pdfJourneyTemplateContract');
+const generatedImages = require('./pdfGeneratedImageService');
 
 const DEFAULT_ALLOWED_EMAILS = ['apalmer@adobe.com'];
 
@@ -566,6 +567,31 @@ function createHandler(deps) {
         const sandbox = scopedSandbox(principal, body.sandbox);
         const campaigns = await required.saveJourneyCampaigns(principal.ownerUid, sandbox, body.campaigns);
         res.status(200).json({ campaigns, sandbox });
+        return;
+      }
+
+      if (path === '/journey-action/image-providers' && req.method === 'GET') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        res.status(200).json({ status: 'ok', providers: generatedImages.availableProviders(required) });
+        return;
+      }
+
+      if (path === '/journey-action/image-preview' && req.method === 'POST') {
+        if (principal.type !== 'portal') {
+          throw new core.PdfPersonalisationError('Portal authentication is required.', 403, 'PDF_AUTH_FORBIDDEN');
+        }
+        const body = jsonBody(req);
+        const options = generatedImages.normaliseImageGeneration({
+          imageGeneration: { enabled: true, provider: body.provider, aspectRatio: body.aspectRatio },
+        });
+        const image = await generatedImages.previewTravelImage({
+          data: body.data,
+          provider: options.provider,
+          aspectRatio: options.aspectRatio,
+        }, required);
+        res.status(200).json({ status: 'ok', image });
         return;
       }
 
