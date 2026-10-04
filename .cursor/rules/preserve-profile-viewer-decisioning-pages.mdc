@@ -19,6 +19,8 @@ These **Firebase Hosting** URLs are part of the product surface and must remain 
 
 - `profile-viewer/ajo-decisioning-pipeline-v8-demo.html` — retired with journey arbitration v2 (May 2026). The route verifier treats this file as **forbidden**; bookmarks to v2 URLs are satisfied by **redirect stubs** to v3.
 
+- `profile-viewer/experimentation-overview.html` — retired because the page is no longer used. Bookmark URLs are accepted to 404. The route verifier treats the page and its nav entry / `experimentationOverview` hide-key as **forbidden**.
+
 **After** editing `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned (`rsync` uses `--delete`; the canonical tree must always include the preserved files and must NOT include the hard-deleted ones).
 
 Before shipping hosting changes, run **`npm run verify:profile-viewer-routes`** (CI runs this on `main` / PRs). Human-readable policy: repo-root **`CONTRIBUTING.md`** → section **Preserved Decisioning Profile Viewer routes** (anchor `#preserved-decisioning-profile-viewer-routes` on GitHub).
