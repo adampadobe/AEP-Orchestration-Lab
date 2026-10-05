@@ -265,6 +265,11 @@ async function main() {
         principalUid: String(auth.principalUid || '').trim(),
         principalAccess,
         mcpApiKey: mcpKey,
+        imsAuthHeaders: auth.source === 'ims' ? {
+          Authorization: String(req.headers.authorization || ''),
+          'x-gw-ims-org-id': String(req.headers['x-gw-ims-org-id'] || ''),
+          ...(auth.principalEmail ? { 'x-gw-ims-email': auth.principalEmail } : {}),
+        } : null,
         sessionId,
       }, async () => {
         try {

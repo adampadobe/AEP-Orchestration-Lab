@@ -182,7 +182,7 @@ export function registerDemoAssetTools(mcpServer) {
       description:
         'Read-only inventory of the customer-swappable stable Image Hosting slots, their permanent CDN URLs, hashes, active customer, and named backup revisions. ' +
         'Shared decisioning, loyalty, carousel, and technical library files are deliberately excluded.',
-      inputSchema: { sandbox: z.string().describe('AEP sandbox scoped to the user-generated MCP key') },
+      inputSchema: { sandbox: z.string().describe('AEP sandbox scoped to the MCP key or Adobe IMS Portal enrollment') },
     },
     async ({ sandbox }) => {
       const access = checkAllowed(sandbox);

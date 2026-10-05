@@ -11,6 +11,10 @@ export function getRequestMcpApiKey() {
   return requestContext.getStore()?.mcpApiKey ?? '';
 }
 
+export function getRequestImsAuthHeaders() {
+  return requestContext.getStore()?.imsAuthHeaders ?? null;
+}
+
 export function getPrincipalAccess() {
   return requestContext.getStore()?.principalAccess ?? null;
 }

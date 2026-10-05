@@ -4,6 +4,7 @@
 
 const labUserSandboxStore = require('./labUserSandboxStore');
 const mcpApiKeyStore = require('./mcpApiKeyStore');
+const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
 
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 
@@ -11,14 +12,14 @@ const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
  * @param {import('firebase-functions/v2/https').Request} req
  * @param {object} deps
  * @param {import('./labWorkspaceAuthService')} deps.labWorkspaceAuthService
- * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key', principalEmail?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
+ * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key'|'ims', principalEmail?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
  */
 async function resolveGenerationPrefsPrincipal(req, deps) {
   const { labWorkspaceAuthService } = deps;
 
   const mcpKey = String(req.headers[MCP_KEY_HEADER] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
   if (mcpKey) {
-    const keyAuth = await mcpApiKeyStore.validateUserApiKey(mcpKey);
+    const keyAuth = await (deps.mcpApiKeyStore || mcpApiKeyStore).validateUserApiKey(mcpKey);
     if (!keyAuth.ok || !keyAuth.principalUid) {
       return {
         ok: false,
@@ -36,7 +37,11 @@ async function resolveGenerationPrefsPrincipal(req, deps) {
     };
   }
 
-  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (req.headers['x-gw-ims-org-id']) {
+    return resolveLabImsPrincipal(req, deps);
+  }
+
+  const uid = await (deps.labUserSandboxStore || labUserSandboxStore).verifyIdTokenFromRequest(req);
   if (!uid) {
     return {
       ok: false,

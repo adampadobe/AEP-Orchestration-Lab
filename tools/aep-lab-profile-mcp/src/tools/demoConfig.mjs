@@ -98,9 +98,9 @@ export function registerDemoConfigTools(mcpServer) {
       title: 'Inspect my Real-Time Database demo configuration',
       description:
         'Always call this first when the colleague asks to view, prepare or update the Real-Time Database for demos. ' +
-        'Resolves the workspace from the user-generated MCP key (no arbitrary workspace path), then returns current sections, values, descriptions, editable fields and validation rules. Read-only.',
+        'Resolves the workspace from a user-generated MCP key or validated Adobe IMS sandbox enrollment (no arbitrary workspace path), then returns current sections, values, descriptions, editable fields and validation rules. Read-only.',
       inputSchema: {
-        sandbox: z.string().describe('AEP sandbox scoped to the user-generated MCP key'),
+        sandbox: z.string().describe('AEP sandbox scoped to the MCP key or Adobe IMS Portal enrollment'),
       },
     },
     async ({ sandbox }) => {

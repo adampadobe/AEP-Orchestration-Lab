@@ -198,6 +198,30 @@ test('apply rejects a stale preview instead of overwriting a newer value', async
   );
 });
 
+test('apply still requires exact confirmation and matching UID, workspace and sandbox', async () => {
+  const { database, deps } = fixture();
+  const context = { uid: 'ims-enrolled-uid', workspaceSlug: 'apalmer', sandbox: 'apalmer' };
+  const preview = await service.createPreview({
+    ...context,
+    changes: [{ path: 'CoreDemoData.name', value: 'Riyadh Air' }],
+  }, deps);
+  for (const confirmed of [false, undefined, 'true']) {
+    await assert.rejects(
+      service.applyPreview({ ...context, preflightId: preview.preflightId, confirmed, idempotencyKey: 'confirm-test' }, deps),
+      (error) => error.code === 'DEMO_CONFIG_CONFIRMATION_REQUIRED',
+    );
+  }
+  for (const mismatch of [{ uid: 'other-uid' }, { workspaceSlug: 'other' }, { sandbox: 'other' }]) {
+    await assert.rejects(
+      service.applyPreview({
+        ...context, ...mismatch, preflightId: preview.preflightId, confirmed: true, idempotencyKey: 'scope-test',
+      }, deps),
+      (error) => error.code === 'DEMO_CONFIG_PREFLIGHT_FORBIDDEN',
+    );
+  }
+  assert.equal(database.state.ajoLookups.apalmer.CoreDemoData.name, 'Jet2');
+});
+
 test('a revision can be previewed and applied to restore the prior values', async () => {
   const { database, deps } = fixture();
   const preview = await service.createPreview({
