@@ -176,7 +176,7 @@ export const CRITICAL_RULES = [
     tools:
       'lab_demo_config_inspect → lab_demo_config_preview (manual changes or completed scrape_id) → explicit confirmation → lab_demo_config_apply → lab_demo_config_inspect readback. Use lab_demo_config_restore for previewed rollback.',
     ownership:
-      'The Firebase API derives workspaceSlug from the user-generated MCP key principalUid and verifies workspaceClaims. Never accept or construct an arbitrary ajoLookups path.',
+      'The Firebase API derives workspaceSlug from the user-generated MCP key principalUid or independently validated Adobe IMS enrollment for the requested sandbox, and verifies workspaceClaims. Never accept or construct an arbitrary ajoLookups path.',
     never:
       'Never write raw RTDB JSON, protected meta, AgenticLayer, ContentDecisionLive, uncatalogued fields, expiring signed logo URLs, invented slogans/short names, or use the shared ops MCP key.',
   },

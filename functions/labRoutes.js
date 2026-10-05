@@ -367,7 +367,8 @@ function registerLabRoutes(deps) {
 
   /**
    * GET/POST /api/lab/demo-config — governed user-scoped RTDB discovery,
-   * preview, apply and restore. Supports Firebase Auth or a user-generated MCP key.
+   * preview, apply and restore. Supports Firebase Auth, a user-generated MCP key,
+   * or an independently validated Adobe IMS session with Portal enrollment.
    */
   routes.labDemoConfig = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
     setCors(res, 'GET, POST, OPTIONS');
@@ -396,7 +397,7 @@ function registerLabRoutes(deps) {
       res.status(400).json({ ok: false, error: 'sandbox is required (body, query, or MCP key scope)' });
       return;
     }
-    if (principal.authSource === 'mcp_key' && principal.keySandbox && principal.keySandbox !== sandbox) {
+    if (principal.keySandbox && principal.keySandbox !== sandbox) {
       res.status(403).json({
         ok: false,
         error: `MCP key is scoped to sandbox "${principal.keySandbox}" — cannot manage demo configuration for "${sandbox}".`,
@@ -508,7 +509,7 @@ function registerLabRoutes(deps) {
       res.status(400).json({ ok: false, error: 'sandbox is required (body, query, or MCP key scope)' });
       return;
     }
-    if (principal.authSource === 'mcp_key' && principal.keySandbox && principal.keySandbox !== sandbox) {
+    if (principal.keySandbox && principal.keySandbox !== sandbox) {
       res.status(403).json({
         ok: false,
         error: `MCP key is scoped to sandbox "${principal.keySandbox}" — cannot manage demo assets for "${sandbox}".`,
@@ -1241,7 +1242,7 @@ function registerLabRoutes(deps) {
       return;
     }
 
-    if (principal.authSource === 'mcp_key' && principal.keySandbox && principal.keySandbox !== sandbox) {
+    if (principal.keySandbox && principal.keySandbox !== sandbox) {
       res.status(403).json({
         ok: false,
         error: `MCP key is scoped to sandbox "${principal.keySandbox}" — cannot run first-run for "${sandbox}".`,

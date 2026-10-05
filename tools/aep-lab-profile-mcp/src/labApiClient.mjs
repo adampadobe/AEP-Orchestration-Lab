@@ -3,7 +3,7 @@
  * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
  */
 
-import { getRequestKeyId, getRequestMcpApiKey, getRequestPrincipalUid } from './requestContext.mjs';
+import { getRequestKeyId, getRequestMcpApiKey, getRequestPrincipalUid, getRequestImsAuthHeaders } from './requestContext.mjs';
 import { buildGeneratorPostBody } from './framework/buildGeneratorPostBody.mjs';
 import {
   getGenerationPrefsForPrincipal,
@@ -876,6 +876,10 @@ export function principalAuthHeaders() {
   return generationPrefsAuthHeaders();
 }
 
+export function demoAuthHeaders() {
+  return getRequestImsAuthHeaders() || principalAuthHeaders();
+}
+
 const ADOBE_CAPABILITIES_API_BASE = '/api/adobe-capabilities';
 
 export function adobeCapabilityCatalog({ sandbox } = {}) {
@@ -1191,7 +1195,7 @@ export async function pdfServerTemplateArchive({ sandbox, template_name }) {
 export async function inspectDemoConfig({ sandbox }) {
   return labApiRequest('/api/lab/demo-config', {
     query: { sandbox },
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     timeoutMs: 30_000,
   });
 }
@@ -1199,7 +1203,7 @@ export async function inspectDemoConfig({ sandbox }) {
 export async function previewDemoConfig({ sandbox, changes, source }) {
   return labApiRequest('/api/lab/demo-config', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: {
       action: 'preview',
       sandbox,
@@ -1213,7 +1217,7 @@ export async function previewDemoConfig({ sandbox, changes, source }) {
 export async function applyDemoConfig({ sandbox, preflight_id, confirmed, idempotency_key }) {
   return labApiRequest('/api/lab/demo-config', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: {
       action: 'apply',
       sandbox,
@@ -1228,7 +1232,7 @@ export async function applyDemoConfig({ sandbox, preflight_id, confirmed, idempo
 export async function previewDemoConfigRestore({ sandbox, revision_id }) {
   return labApiRequest('/api/lab/demo-config', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: {
       action: 'restore-preview',
       sandbox,
@@ -1241,7 +1245,7 @@ export async function previewDemoConfigRestore({ sandbox, revision_id }) {
 export async function inspectDemoAssets({ sandbox }) {
   return labApiRequest('/api/lab/demo-assets', {
     query: { sandbox },
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     timeoutMs: 60_000,
   });
 }
@@ -1249,7 +1253,7 @@ export async function inspectDemoAssets({ sandbox }) {
 export async function previewDemoAssets({ sandbox, scrape_id, asset_pack, overrides }) {
   return labApiRequest('/api/lab/demo-assets', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: { action: 'preview', sandbox, scrape_id, asset_pack, overrides },
     timeoutMs: 120_000,
   });
@@ -1258,7 +1262,7 @@ export async function previewDemoAssets({ sandbox, scrape_id, asset_pack, overri
 export async function applyDemoAssets({ sandbox, preflight_id, confirmed, idempotency_key, backup_customer_name }) {
   return labApiRequest('/api/lab/demo-assets', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: { action: 'apply', sandbox, preflight_id, confirmed, idempotency_key, backup_customer_name },
     timeoutMs: 120_000,
   });
@@ -1267,7 +1271,7 @@ export async function applyDemoAssets({ sandbox, preflight_id, confirmed, idempo
 export async function previewDemoAssetsRestore({ sandbox, revision_id }) {
   return labApiRequest('/api/lab/demo-assets', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: { action: 'restore-preview', sandbox, revision_id },
     timeoutMs: 120_000,
   });
@@ -1276,7 +1280,7 @@ export async function previewDemoAssetsRestore({ sandbox, revision_id }) {
 export async function applyDemoCustomerSwitch({ sandbox, asset_preflight_id, config_preflight_id, confirmed, idempotency_key }) {
   return labApiRequest('/api/lab/demo-assets', {
     method: 'POST',
-    headers: principalAuthHeaders(),
+    headers: demoAuthHeaders(),
     body: {
       action: 'switch-apply',
       sandbox,

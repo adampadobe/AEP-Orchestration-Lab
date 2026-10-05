@@ -257,7 +257,9 @@ Adobe's current public Journey and Campaign references document retrieval but no
 
 ### Governed Real-Time Database demo preparation (Phase 3.31)
 
-RTDB demo configuration is scoped to the Firebase `principalUid` on a **user-generated** MCP key. The Firebase API resolves the saved workspace slug and verifies `workspaceClaims`; tools never accept an arbitrary `ajoLookups/{slug}` path. Shared ops keys are rejected.
+RTDB demo configuration and customer assets are scoped to the Firebase `principalUid` on a **user-generated** MCP key or the caller's **validated Adobe IMS sandbox enrollment**. For Coworker, MCP forwards the caller's bearer and IMS identity headers to these endpoints (and first-run setup), without substituting the shared ops key. Firebase independently validates the bearer using IMS UserInfo, with authenticated Profile fallback when email scope is missing, then looks up active Portal key records for that verified email and the requested sandbox. Conflicting Firebase UID mappings fail closed; no plaintext Portal key is recovered or required in Coworker. The Firebase API resolves the saved workspace slug and verifies `workspaceClaims`; tools never accept an arbitrary `ajoLookups/{slug}` path. Shared ops keys are rejected.
+
+This IMS forwarding fix is specific to demo configuration, customer assets, and first-run setup. Audience-management and Snowflake HTTP routes still require user-generated keys; success from `lab_mcp_access_info` alone does not prove those downstream routes accept IMS. Deploy the changed Firebase functions and MCP service through the normal reviewed release workflow before retrying in Coworker.
 
 1. `lab_demo_config_inspect sandbox apalmer` — show the current tree, ordinary values, descriptions, editable fields and validation rules.
 2. `lab_demo_config_preview sandbox apalmer changes [...]` — or pass `scrape_id` to map verified brand name/URL/stable logo/colour and inferred industry. No write occurs.

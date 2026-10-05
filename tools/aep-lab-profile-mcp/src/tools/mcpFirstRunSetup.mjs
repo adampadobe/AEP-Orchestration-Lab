@@ -6,13 +6,14 @@ import {
   listEventTargets,
   profileInfraStatusAll,
   getProfileConnection,
+  demoAuthHeaders,
 } from '../labApiClient.mjs';
 import {
   buildSandboxProfileConfigReport,
   connectionApiPathForIndustry,
 } from '../sandboxConfig.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
-import { getRequestKeyId, getRequestMcpApiKey } from '../requestContext.mjs';
+import { getRequestKeyId } from '../requestContext.mjs';
 import { LAB_INDUSTRY_KEYS } from '../industries.mjs';
 import { buildProfileGenerationConfirmQuestions } from '../framework/emailFormatGuardrails.mjs';
 import { GENERATION_PREFS_CONFIRM_TOOL } from './generationPrefs.mjs';
@@ -64,9 +65,9 @@ export function registerMcpFirstRunSetupTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
-      const mcpKey = getRequestMcpApiKey();
-      if (!mcpKey) {
-        return toolError('X-AEP-Lab-Mcp-Key required for lab_mcp_first_run_setup.');
+      const authHeaders = demoAuthHeaders();
+      if (!Object.keys(authHeaders).length) {
+        return toolError('Adobe IMS enrollment or X-AEP-Lab-Mcp-Key required for lab_mcp_first_run_setup.');
       }
 
       writeAuditLog({
@@ -81,7 +82,7 @@ export function registerMcpFirstRunSetupTool(mcpServer) {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          'X-AEP-Lab-Mcp-Key': mcpKey,
+          ...authHeaders,
         },
         body: JSON.stringify({
           sandbox: allowed.sandbox,
