@@ -33,6 +33,7 @@ const FORBIDDEN_FILES = [
   'web/profile-viewer/demo-delivery-concept.css',
   'web/profile-viewer/demo-delivery-concept.js',
   'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
+  'web/profile-viewer/experimentation-overview.html',
 ];
 
 let failed = false;
@@ -87,6 +88,14 @@ if (nav.includes('decisioning-overview-v2.html')) {
 }
 if (nav.includes('demo-delivery-concept.html')) {
   console.error('aep-lab-nav.js must NOT include href demo-delivery-concept.html (page hard-deleted)');
+  failed = true;
+}
+if (nav.includes('experimentation-overview.html')) {
+  console.error('aep-lab-nav.js must NOT include href experimentation-overview.html (page hard-deleted)');
+  failed = true;
+}
+if (nav.includes("navHideKey: 'experimentationOverview'")) {
+  console.error('aep-lab-nav.js must NOT include nav hide key experimentationOverview (page hard-deleted)');
   failed = true;
 }
 if (!nav.includes('journey-arbitration-v3.html')) {
