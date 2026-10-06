@@ -45,6 +45,7 @@ import { registerPdfTools } from './pdfTools.mjs';
 import { registerCommandCentreTools } from './commandCentreTools.mjs';
 import { registerLoadToolsetTool } from './loadToolset.mjs';
 import { registerWeatherTools } from './weatherTools.mjs';
+import { registerFigmaTools } from './figmaTools.mjs';
 import { registerCommerceTools } from './commerceTools.mjs';
 import { registerCommerceOptimizerTools } from './commerceOptimizerTools.mjs';
 import { registerFireflyTools } from './fireflyTools.mjs';
@@ -177,6 +178,10 @@ function registerMeasurementQualityDomainTools(mcpServer) {
   registerMeasurementQualityTools(mcpServer);
 }
 
+function registerFigmaDomainTools(mcpServer) {
+  registerFigmaTools(mcpServer);
+}
+
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
@@ -193,6 +198,7 @@ const LOADABLE_TOOLSETS = {
   creativity: registerCreativityDomainTools,
   'adobe-capabilities': registerAdobeCapabilityDomainTools,
   'measurement-quality': registerMeasurementQualityDomainTools,
+  figma: registerFigmaDomainTools,
 };
 
 /**
@@ -297,4 +303,10 @@ export function registerFocusedAdobeCapabilityTools(mcpServer) {
 export function registerFocusedMeasurementQualityTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerMeasurementQualityDomainTools(mcpServer);
+}
+
+/** Figma REST API (server-held token): file structure, design context, renders, components, styles, variables, comments. */
+export function registerFocusedFigmaTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerFigmaDomainTools(mcpServer);
 }

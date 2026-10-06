@@ -136,6 +136,14 @@
         "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
       },
       "timeout": 120000
+    },
+    "aep-lab-figma": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/figma",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 120000
     }
   }
 }

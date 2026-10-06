@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality,figma}
  * Health:   GET /health
  */
 
@@ -42,6 +42,7 @@ import {
   registerFocusedCreativityTools,
   registerFocusedAdobeCapabilityTools,
   registerFocusedMeasurementQualityTools,
+  registerFocusedFigmaTools,
   registerFocusedGeoInsightsTools,
   registerProfileTools,
 } from './tools/index.mjs';
@@ -175,6 +176,13 @@ const ENDPOINTS = [
     register: registerFocusedMeasurementQualityTools,
     instructions:
       'Read-only measurement diagnostics across Adobe Assurance session metadata, Experience Platform Tags property/environment audits, and Adobe Status incident correlation. Raw Assurance payload values are never returned.',
+  },
+  {
+    path: '/mcp/figma',
+    toolset: 'figma',
+    register: registerFocusedFigmaTools,
+    instructions:
+      'Figma REST API through a server-held token: parse Figma URLs, summarise files, walk node structure, extract design context (auto-layout, colours, typography, text), render nodes to images, and list components, styles, variables, comments, team projects, and project files. Start with figma_get_file or figma_get_metadata, then pull figma_get_design_context for a specific node. Posting a comment is the only write: preview it, show the user, and post only with the exact confirmation phrase.',
   },
 ];
 

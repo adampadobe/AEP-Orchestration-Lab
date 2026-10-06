@@ -29,6 +29,8 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-adobe-capabilities').toolCount, 4);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-measurement-quality').url.endsWith('/mcp/measurement-quality'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-measurement-quality').toolCount, 6);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-figma').url.endsWith('/mcp/figma'), true);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-figma').toolCount, 16);
   assert.equal(contexts.find((context) => context.id === 'adobe-cx-coworker-gateway').access.includes('Adobe'), true);
 });
 
@@ -137,7 +139,7 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
   assert.match(html, /v3\.52\.0/);
-  assert.match(html, /installs General plus sixteen focused integrations/i);
+  assert.match(html, /installs General plus seventeen focused integrations/i);
   assert.match(html, /Add the same repository directly to Claude/i);
   assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
@@ -154,6 +156,8 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   assert.match(catalog, /\/mcp\/adobe-capabilities/);
   assert.match(catalog, /id: 'aep-lab-measurement-quality'/);
   assert.match(catalog, /\/mcp\/measurement-quality/);
+  assert.match(catalog, /id: 'aep-lab-figma'/);
+  assert.match(catalog, /\/mcp\/figma/);
   assert.match(catalog, /id: 'aep-lab-geo-insights'/);
   assert.match(catalog, /\/mcp\/geo-insights/);
   assert.match(catalog, /Focused Lab MCP · 21 tools/);

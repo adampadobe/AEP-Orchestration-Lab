@@ -190,6 +190,17 @@ export const MCP_CONTEXTS = Object.freeze([
     useWhen: 'Use to distinguish data-collection defects, Tags configuration drift, and relevant Adobe service incidents.',
   },
   {
+    id: 'aep-lab-figma',
+    name: 'AEP Lab Figma',
+    url: `${LAB_BASE_URL}/mcp/figma`,
+    kind: 'lab-focused',
+    toolCount: 16,
+    access: LAB_ACCESS,
+    risk: 'read-only Figma access through a server-held token; comment posting requires preview and exact confirmation',
+    capabilities: ['Figma URL parsing', 'file and page summary', 'node structure and design context', 'node renders', 'components and styles', 'variables (Enterprise)', 'comments', 'team projects and files'],
+    useWhen: 'Use to read a Figma design for demo builds, email or page handoff, design tokens, or review comments without a Figma OAuth connection.',
+  },
+  {
     id: 'adobe-cx-coworker-gateway',
     name: 'Adobe CX Coworker Gateway',
     url: 'https://cx-coworker-gateway.adobe.io/mcp',
@@ -313,6 +324,16 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Correlate the observed time window with Adobe Status incidents.',
     ],
   },
+  figma_design_handoff: {
+    title: 'Turn a Figma design into build-ready context',
+    contexts: ['aep-lab-figma'],
+    steps: [
+      'Parse the pasted Figma link and summarise the file with figma_get_file.',
+      'Walk the relevant page or frame with figma_get_metadata to find exact node IDs.',
+      'Pull figma_get_design_context for the target node and render it with figma_get_screenshot.',
+      'Collect components, styles, or variables needed for tokens, then build the HTML or AJO content.',
+    ],
+  },
   geo_insights: {
     title: 'Explore governed audience geo-hotspots with live weather',
     contexts: ['aep-lab-geo-insights'],
@@ -345,6 +366,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-creativity': ['photoshop', 'lightroom', 'indesign', 'substance', 'substance 3d', 'express variation', 'tagged template', 'illustrator', 'image trace', 'raster to svg', 'creative production', 'creative automation'],
   'aep-lab-adobe-capabilities': ['adobe api', 'api capability', 'developer console', 'scope inventory', 'suppression list', 'allowed list', 'genstudio experience'],
   'aep-lab-measurement-quality': ['assurance', 'launch', 'tags property', 'tags environment', 'measurement quality', 'status incident', 'data collection defect'],
+  'aep-lab-figma': ['figma', 'figma file', 'figma frame', 'figma node', 'figma component', 'figma comment', 'design file', 'design handoff', 'design tokens'],
   'adobe-cx-coworker-gateway': ['schema', 'dataset', 'destination', 'source', 'query service', 'cja', 'analytics', 'workfront', 'authoring', 'native adobe'],
 });
 
