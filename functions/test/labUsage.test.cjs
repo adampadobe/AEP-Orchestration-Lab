@@ -6,8 +6,8 @@ const { requireUsageOwner, summarizeUsage, getUsageSnapshot } = require('../labU
 const { registerLabUsageRoutes } = require('../labUsageRoutes');
 
 const now = new Date('2026-10-06T09:00:00.000Z');
-const owner = { uid: 'owner-uid', email: 'apalmer@adobe.com', emailVerified: true, disabled: false };
-const claims = { uid: owner.uid, email: owner.email, email_verified: true, firebase: { sign_in_provider: 'google.com' } };
+const owner = { uid: 'owner-uid', email: 'apalmer@adobe.com', emailVerified: false, disabled: false };
+const claims = { uid: owner.uid, email: owner.email, email_verified: false, firebase: { sign_in_provider: 'password' } };
 const req = { method: 'GET', headers: { authorization: 'Bearer test-token' }, query: {} };
 function authStub(overrides = {}) {
   return {
@@ -28,18 +28,17 @@ function authStub(overrides = {}) {
   };
 }
 
-test('usage owner uses a revoked-token check and the current Auth directory UID', async () => {
+test('usage owner accepts the current unverified Firebase account by exact email and UID', async () => {
   assert.deepEqual(await requireUsageOwner(req, authStub()), { uid: owner.uid });
   for (const tokenClaims of [
     { ...claims, email: 'another@adobe.com' },
-    { ...claims, email_verified: false },
     { ...claims, firebase: { sign_in_provider: 'anonymous' } },
     { ...claims, uid: 'different-uid' },
   ]) {
     const result = await requireUsageOwner(req, authStub({ verifyIdToken: async () => tokenClaims }));
     assert.equal(result.status, 403);
   }
-  for (const record of [{ ...owner, disabled: true }, { ...owner, emailVerified: false }]) {
+  for (const record of [{ ...owner, disabled: true }]) {
     assert.equal((await requireUsageOwner(req, authStub({ getUserByEmail: async () => record }))).status, 403);
   }
 });

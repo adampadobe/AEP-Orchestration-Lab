@@ -31,12 +31,12 @@ async function requireUsageOwner(req, auth) {
     }
     throw error;
   }
-  if (claims.email !== OWNER_EMAIL || claims.email_verified !== true
-      || claims.firebase?.sign_in_provider === 'anonymous') {
+  // This lab's password account is intentionally unverified; bind ownership to its current Auth UID.
+  if (claims.email !== OWNER_EMAIL || claims.firebase?.sign_in_provider === 'anonymous') {
     return { status: 403, error: 'Usage statistics are available only to the lab owner.' };
   }
   const owner = await auth.getUserByEmail(OWNER_EMAIL);
-  if (owner.uid !== claims.uid || owner.disabled || !owner.emailVerified) {
+  if (owner.uid !== claims.uid || owner.disabled) {
     return { status: 403, error: 'Usage statistics are available only to the lab owner.' };
   }
   return { uid: owner.uid };
