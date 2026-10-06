@@ -8,10 +8,12 @@ and explicit light/dark theme. The sidebar link is visible only to
 
 **Navigation filtering is not authorization.** The static HTML contains no usage
 data. `GET /api/lab/usage?days=7|30|90` rewrites to `labUsageStats`, which verifies
-the Firebase ID token with revocation checking, requires the verified exact owner
-email, and checks the UID against the current enabled, verified Firebase Auth
-account returned by `getUserByEmail`. MCP keys, IMS tokens and caller-supplied
-emails cannot authorize this endpoint.
+the Firebase ID token with revocation checking, requires the exact owner email,
+and checks the UID against the current enabled Firebase Auth account returned by
+`getUserByEmail`. Email verification is not required: the exact current Firebase
+account UID is the owner identity, and the lab's password sign-in account may be
+unverified. MCP keys, IMS tokens and caller-supplied emails cannot authorize
+this endpoint.
 
 Firestore remains denied to clients. The handler uses the existing Admin
 Firestore helper and secret-free function options in `us-central1`. Its runtime
@@ -66,8 +68,8 @@ an email-linked account. Client-supplied UID/email fields are rejected.
 Pending lab accounts are excluded using the existing lab approval service;
 enabled legacy accounts with a missing approval document retain the same access
 as the existing onboarding gate. Email verification is not required for
-collection, matching the existing password login flow; the **owner read gate**
-still requires verified email and exact current owner UID.
+collection or owner authorization; the owner read gate requires the exact owner
+email and a matching UID from the current enabled Firebase Auth account.
 
 Both usage functions explicitly set `LAB_USAGE_TELEMETRY_ENABLED: 'false'` in
 their runtime options. Neither browser flags nor this dashboard can enable
