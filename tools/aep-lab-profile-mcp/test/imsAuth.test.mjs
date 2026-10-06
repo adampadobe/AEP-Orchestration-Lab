@@ -105,9 +105,28 @@ test('IMS auth validates token identity and uses active Portal enrollment', asyn
   assert.equal(result.source, 'ims');
   assert.equal(result.principalEmail, 'apalmer@adobe.com');
   assert.equal(result.principalUid, 'firebase-user-1');
+  assert.equal(result.usagePrincipalUid, 'firebase-user-1');
   assert.deepEqual(result.principalAccess.allowedSandboxes, ['apalmer', 'kirkham']);
   assert.equal(result.forwardMcpApiKey, 'server-held-test-key');
   assert.match(result.keyId, /^ims-[a-f0-9]{12}$/);
+});
+
+test('ambiguous or missing enrollment UIDs remain unattributed for usage without altering existing access', async () => {
+  for (const secondUid of ['different-user', undefined]) {
+    const result = await validateImsBearer(request(imsHeaders({
+      authorization: `Bearer synthetic-usage-${secondUid || 'missing'}`,
+    })), {
+      now: 200,
+      db: enrollmentDb([
+        { principalUid: 'firebase-user-1', sandbox: 'apalmer', revoked: false },
+        { principalUid: secondUid, sandbox: 'kirkham', revoked: false },
+      ]),
+      fetchImpl: async () => validUserInfo(),
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.principalUid, 'firebase-user-1');
+    assert.equal(result.usagePrincipalUid, null);
+  }
 });
 
 test('IMS auth falls back to the authenticated IMS profile when UserInfo has no email scope', async () => {

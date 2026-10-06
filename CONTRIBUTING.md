@@ -242,6 +242,12 @@ Firebase project ID: **`aep-orchestration-lab`** (see `.firebaserc`).
 
 The root `/` redirects 302 to `/profile-viewer/home.html`.
 
+Owner-only **Usage statistics** uses server-verified Firebase identity, not sidebar
+visibility, to protect account, website and MCP usage data. New login/page telemetry
+is separately gated off by default; collection and deletion-policy activation
+require review before release. See
+[Lab usage statistics](docs/LAB_USAGE_STATISTICS.md) for coverage limits and phased telemetry.
+
 ---
 
 ## Directory map

@@ -109,6 +109,7 @@ const { createMeasurementQualityService } = require('./measurementQualityService
 const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
+const { registerLabUsageRoutes } = require('./labUsageRoutes');
 const { registerLiveActivityRoutes } = require('./liveActivityRoutes');
 const mcpApiKeyStore = lazyRequireMod('./mcpApiKeyStore');
 const { registerSnowflakeRoutes } = require('./snowflakeRoutes');
@@ -321,6 +322,18 @@ const CONSENT_STORE_FN_OPTS = {
   memory: '256MiB',
   environmentVariables: consentStoreRuntimeEnv(),
 };
+
+Object.assign(exports, registerLabUsageRoutes({
+  onRequest,
+  CONSENT_STORE_FN_OPTS: {
+    ...CONSENT_STORE_FN_OPTS,
+    environmentVariables: {
+      ...CONSENT_STORE_FN_OPTS.environmentVariables,
+      LAB_USAGE_TELEMETRY_ENABLED: 'false',
+    },
+  },
+  setCors,
+}));
 
 /**
  * Snowflake handlers route ALL outbound traffic through the Serverless VPC

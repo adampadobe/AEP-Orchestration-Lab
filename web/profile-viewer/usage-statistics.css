@@ -1,0 +1,51 @@
+.usage-statistics-page .dashboard-main { min-width: 0; }
+.usage-statistics-page [hidden] { display: none !important; }
+.usage-toolbar, .usage-section-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+.usage-toolbar { margin: 24px 0 16px; }
+.usage-toolbar label, .usage-section-heading label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; font-weight: 500; }
+.usage-statistics-page select, .usage-statistics-page input {
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+  max-width: 100%;
+}
+.usage-status { padding: 14px 16px; border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); background: var(--dash-surface); }
+.usage-status[data-error="true"] { color: var(--dash-error-text); border-color: var(--dash-error-border); background: var(--dash-error-bg); }
+.usage-secondary { color: var(--dash-text-secondary); font-size: 14px; line-height: 1.6; }
+.usage-warning { color: var(--dash-warning-text); background: var(--dash-warning-bg); border: 1px solid var(--dash-warning-border); padding: 12px; border-radius: var(--dash-radius-sm); }
+.usage-panel { margin: 24px 0; padding: 24px; background: var(--dash-surface); border: 1px solid var(--dash-border); border-radius: var(--dash-radius); }
+.usage-panel h2 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; color: var(--dash-text); }
+.usage-section-heading { justify-content: space-between; }
+.usage-section-heading h2 { margin: 0; }
+.usage-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 20px 0; gap: 0 24px; }
+.usage-summary div { padding: 12px 0; border-top: 1px solid var(--dash-border); }
+.usage-summary dt { color: var(--dash-text-secondary); font-size: 13px; line-height: 1.5; }
+.usage-summary dd { margin: 4px 0 0; color: var(--dash-text); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.usage-table-wrap { overflow-x: auto; margin-top: 16px; }
+.usage-statistics-page table { border-collapse: collapse; width: 100%; font-size: 13px; color: var(--dash-text); }
+.usage-statistics-page caption { text-align: left; color: var(--dash-text-secondary); padding: 0 0 12px; }
+.usage-statistics-page th, .usage-statistics-page td { text-align: left; padding: 12px; border-bottom: 1px solid var(--dash-border); vertical-align: top; }
+.usage-statistics-page th { background: var(--dash-surface-alt); font-weight: 600; white-space: nowrap; }
+.usage-statistics-page td { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 90px; }
+.usage-statistics-page td:first-child { min-width: 190px; }
+.usage-statistics-page td time { white-space: nowrap; }
+.usage-statistics-page td small { display: block; margin-top: 4px; color: var(--dash-text-secondary); }
+.usage-statistics-page details { margin-top: 16px; font-size: 14px; line-height: 1.6; }
+.usage-statistics-page summary { cursor: pointer; font-weight: 500; }
+.usage-statistics-page li { margin-bottom: 8px; }
+.usage-statistics-page .usage-hours th, .usage-statistics-page .usage-hours td { min-width: 32px; text-align: center; padding: 8px; }
+.usage-statistics-page .usage-hours th:first-child { min-width: 64px; text-align: left; }
+.usage-hours td[data-activity="true"] { background: var(--dash-info-bg); color: var(--dash-info-text); font-weight: 600; }
+.usage-statistics-page :focus-visible { outline: 2px solid var(--dash-blue); outline-offset: 3px; }
+.usage-statistics-page button:disabled { cursor: wait; opacity: 0.6; }
+.usage-statistics-page a { color: var(--dash-blue); }
+@media (max-width: 700px) {
+  .usage-panel { padding: 16px; }
+  .usage-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+  .usage-toolbar { align-items: flex-start; }
+  .usage-section-heading { align-items: flex-start; flex-direction: column; }
+  .usage-section-heading input { width: 100%; }
+}

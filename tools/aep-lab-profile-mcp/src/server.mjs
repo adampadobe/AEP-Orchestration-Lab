@@ -26,6 +26,7 @@ import { registerSession, getSession, deleteSession } from './sessionRegistry.mj
 import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { registerMcpGuideResources } from './resources/mcpGuideResources.mjs';
 import { installToolAnnotations } from './toolAnnotations.mjs';
+import { installUsageTelemetry } from './usageTelemetry.mjs';
 import {
   registerFocusedAudienceTools,
   registerFocusedAjoCleanupTools,
@@ -194,6 +195,7 @@ export function createMcpServer(endpoint = ENDPOINTS[0]) {
     instructions: endpoint.instructions,
   });
   installToolAnnotations(server);
+  installUsageTelemetry(server, endpoint);
   if (endpoint.toolset === 'full') registerFrameworkResources(server);
   if (endpoint.toolset === 'full' || endpoint.toolset === 'entry') registerMcpGuideResources(server);
   endpoint.register(server);
@@ -270,6 +272,8 @@ async function main() {
 
       await requestContext.run({
         keyId: auth.keyId,
+        authSource: auth.source,
+        usagePrincipalUid: auth.source === 'user' ? auth.principalUid : auth.usagePrincipalUid,
         principalUid: String(auth.principalUid || '').trim(),
         principalAccess,
         mcpApiKey: mcpKey,

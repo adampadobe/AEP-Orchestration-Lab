@@ -1613,6 +1613,11 @@
           }
           if (status === 'approved' || status === 'missing') {
             clearPendingApprovalSessionHold();
+            if (global.crypto && typeof global.crypto.randomUUID === 'function') {
+              global.dispatchEvent(new CustomEvent('aep-lab-sign-in-success', { detail: {
+                uid: user.uid, id: global.crypto.randomUUID(), occurredAt: new Date().toISOString(),
+              } }));
+            }
             afterStep1AuthSuccess({ ok: true, user: user });
             return;
           }

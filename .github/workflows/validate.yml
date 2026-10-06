@@ -41,6 +41,16 @@ jobs:
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
 
+      - name: Verify owner-only usage statistics
+        run: node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs
+
+      - name: Install MCP dependencies
+        working-directory: tools/aep-lab-profile-mcp
+        run: npm ci
+
+      - name: Verify MCP dispatch telemetry and existing authentication/tool registration
+        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs
+
       - name: Verify decisioning mount zones (site-clone demos)
         run: npm run verify:decisioning-mount-zones
 

@@ -44,6 +44,14 @@ The Adobe capabilities context is read-only. `adobe_api_catalog` exposes a revie
 
 Every tool publishes MCP read-only, destructive, idempotent, and open-world annotations. Structured request telemetry records only endpoint, toolset, RPC method, tool name, HTTP status, and duration—never API keys or tool arguments.
 
+Owner-only usage statistics also support **opt-in dispatch telemetry**, disabled
+unless `AEP_LAB_MCP_USAGE_ENABLED` is exactly `true`. The central SDK boundary
+records dispatch outcomes separately from operational audits; it never stores
+arguments, results, credentials or profile identities. Collection, visitor/MCP
+notice, Firestore TTL and runtime permissions require separate approval before
+activation. See [lab usage statistics](../../docs/LAB_USAGE_STATISTICS.md#phase-3-implemented-locally-collection-disabled-by-default)
+for identity attribution, outcome semantics, reporting limits and release gates.
+
 **One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `aep-lab-general` plus all seventeen focused connections above and authenticates them with the signed-in Adobe IMS session. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
 **One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
