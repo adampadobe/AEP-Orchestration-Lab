@@ -1102,6 +1102,20 @@
         }
       },
       {
+        "source": "/api/lab/usage/events",
+        "function": {
+          "functionId": "labUsageEvents",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/lab/usage",
+        "function": {
+          "functionId": "labUsageStats",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/mcp-keys",
         "function": {
           "functionId": "labMcpKeys",

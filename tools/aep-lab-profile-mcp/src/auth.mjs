@@ -211,10 +211,14 @@ async function resolveImsEnrollment(email, db) {
     }
 
     const principalUid = String(active.find((entry) => entry.principalUid)?.principalUid || '').trim().slice(0, 128);
+    const usageUids = active.map((entry) => entry.principalUid);
+    const usagePrincipalUid = usageUids.every((uid) => typeof uid === 'string'
+      && uid.length > 0 && uid.length <= 128 && uid === usageUids[0]) ? usageUids[0] : null;
     const principalLabel = String(active.find((entry) => entry.principalLabel)?.principalLabel || email).trim().slice(0, 120);
     return {
       ok: true,
       principalUid: principalUid || null,
+      usagePrincipalUid,
       principalLabel,
       allowedSandboxes,
       allowedSet: new Set(allowedSandboxes),
@@ -320,6 +324,7 @@ export async function validateImsBearer(req, options = {}) {
     source: 'ims',
     principalEmail: email,
     principalUid: enrollment.principalUid,
+    usagePrincipalUid: enrollment.usagePrincipalUid,
     principalAccess: {
       keyId,
       allowedSandboxes: enrollment.allowedSandboxes,

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!--
+THESIS: Owner-only usage evidence, with unavailable history kept visibly distinct from zero.
+OWN-WORLD: Global values dashboard shell, Inter body type and explicit --dash-* theme tokens.
+STORY: Review people, inspect observed MCP activity, understand the collection gaps.
+FIRST VIEWPORT: Page banner, period and refresh controls, coverage notice, then people.
+FORM: A table-led extension of the established dashboard, not a new visual identity.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Usage statistics - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260515-rtdb-lab-disclosure">
+  <link rel="stylesheet" href="usage-statistics.css?v=20261006">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="usage-statistics-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">Usage statistics</h1>
+        <div class="dashboard-topbar-right"><span class="dashboard-env-pill">Owner only</span></div>
+      </header>
+      <main class="dashboard-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="usageHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="usageHeading" class="dashboard-hero-title">Lab usage</h2>
+              <p class="dashboard-hero-subtitle">People, key adoption and observed MCP activity across the lab. Access is checked by the server, independently of the selected sandbox.</p>
+            </header>
+          </div>
+        </section>
+        <div class="usage-toolbar" id="usageControls" hidden>
+          <label for="usageDays">Activity window <select id="usageDays"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select></label>
+          <label for="usageExcludeOwner"><input id="usageExcludeOwner" type="checkbox"> Exclude my activity</label>
+          <button id="usageRefresh" type="button" class="dashboard-btn-outline">Refresh statistics</button>
+          <span id="usageUpdated" class="usage-secondary"></span>
+        </div>
+        <p id="usageStatus" class="usage-status" role="status" aria-live="polite">Checking owner access...</p>
+        <p id="usageSignIn" hidden><a href="home-new.html">Open the lab sign-in</a></p>
+        <div id="usageResults" hidden>
+          <section class="usage-panel" aria-labelledby="usageCoverageHeading">
+            <h2 id="usageCoverageHeading">What these figures cover</h2>
+            <p id="usageCoverage" class="usage-secondary"></p>
+            <p id="usageTruncated" class="usage-warning" hidden></p>
+            <dl id="usageSummary" class="usage-summary"></dl>
+            <details><summary>Data limitations and next phases</summary><ul id="usageNotices"></ul><p>Website and MCP dispatch reporting require separately approved collection. Long-term rollups remain planned. This dashboard cannot enable tracking.</p></details>
+          </section>
+          <section class="usage-panel" aria-labelledby="usagePeopleHeading">
+            <div class="usage-section-heading"><h2 id="usagePeopleHeading">People and latest activity</h2><label for="usageSearch">Find a user <input id="usageSearch" type="search" placeholder="Name or email" maxlength="120"></label></div>
+            <p class="usage-secondary">Current Firebase account metadata and key inventory. Key use can include connection checks; it does not prove a tool ran.</p>
+            <div class="usage-table-wrap" tabindex="0" role="region" aria-label="User statistics table"><table><caption id="usagePeopleCaption">Registered users with an email address</caption><thead><tr><th scope="col">User</th><th scope="col">Account created</th><th scope="col">Latest sign-in (Auth snapshot)</th><th scope="col">Keys: active / revoked</th><th scope="col">Latest key use</th><th scope="col">Observed MCP audit events</th><th scope="col">Latest MCP audit</th><th scope="col">Observed page visits</th><th scope="col">Latest page visit</th><th scope="col">Observed lab logins</th><th scope="col">Latest lab login event</th><th scope="col">Recorded MCP dispatches</th><th scope="col">Latest MCP dispatch</th></tr></thead><tbody id="usagePeople"></tbody></table></div>
+          </section>
+          <section class="usage-panel" aria-labelledby="usageWebsiteHeading">
+            <h2 id="usageWebsiteHeading">Website visits and lab logins</h2>
+            <p id="usageWebsiteCoverage" class="usage-secondary"></p>
+            <p class="usage-secondary">Reloads count as visits. Iframes, redirects, demos, SPA transitions and token refreshes are excluded. Login events come from successful password sign-in followed by the lab access check, not restored sessions.</p>
+            <p id="usageWebsiteTruncated" class="usage-warning" hidden></p>
+            <dl id="usageWebsiteSummary" class="usage-summary"></dl>
+            <div class="usage-table-wrap" tabindex="0" role="region" aria-label="Pages visited"><table><caption>Observed page visits in the selected window</caption><thead><tr><th scope="col">Page</th><th scope="col">Visits</th><th scope="col">Users (current directory)</th><th scope="col">Reloads</th><th scope="col">Latest visit</th></tr></thead><tbody id="usagePages"></tbody></table></div>
+            <details><summary>Website usage by day and hour (UTC)</summary><div class="usage-table-wrap" tabindex="0" role="region" aria-label="Website day and hour table"><table id="usageWebsiteHours" class="usage-hours"></table></div><div class="usage-table-wrap" tabindex="0" role="region" aria-label="Daily website activity"><table><caption>Observed website events by receipt date (UTC)</caption><thead><tr><th scope="col">Date</th><th scope="col">Page visits</th><th scope="col">Lab logins</th></tr></thead><tbody id="usageWebsiteDaily"></tbody></table></div></details>
+          </section>
+          <section class="usage-panel" aria-labelledby="usageEngagementHeading">
+            <h2 id="usageEngagementHeading">Observed website engagement</h2>
+            <p class="usage-secondary">Sessions group observed website events per account with a 30-minute inactivity cutoff. Active time is a conservative estimate from focused, visible pages with recent interaction; overlapping tab reports are merged. Reading without interaction, shutdown and lost requests can undercount. This is not exact time spent.</p>
+            <p class="usage-secondary">Read caps and the selected window can split sessions or omit activity. No heartbeat history means active time is not recorded, not zero. Owner exclusion also removes identifiable owner records and key inventory from the other sections; unattributed history cannot be excluded reliably.</p>
+            <dl id="usageEngagementSummary" class="usage-summary"></dl>
+            <div class="usage-table-wrap" tabindex="0" role="region" aria-label="Website engagement by user"><table><caption>Current-directory users with observed website activity</caption><thead><tr><th scope="col">User</th><th scope="col">Observed sessions</th><th scope="col">Estimated active minutes</th></tr></thead><tbody id="usageEngagementPeople"></tbody></table></div>
+          </section>
+          <section class="usage-panel" aria-labelledby="usageInvocationHeading">
+            <h2 id="usageInvocationHeading">MCP dispatch outcomes</h2>
+            <p class="usage-secondary">Separate from operational audits: one record when an authenticated tools/call dispatch finishes. Collection defaults off and live configuration is not inspected here. Retained history remains readable when collection stops.</p>
+            <p class="usage-secondary">An SDK result without isError is not proof of business success or background-job completion. SDK input-validation failures and disabled/unknown tools are rejected before handler execution. Crashes, persistence failures, rejected authentication, malformed protocol requests and lost responses leave gaps; these counts are partial.</p>
+            <p id="usageInvocationTruncated" class="usage-warning" hidden></p>
+            <dl id="usageInvocationSummary" class="usage-summary"></dl>
+            <div class="usage-table-wrap" tabindex="0" role="region" aria-label="MCP dispatch outcomes by tool"><table><caption>Recorded dispatch outcomes in the selected window</caption><thead><tr><th scope="col">Tool</th><th scope="col">Dispatches</th><th scope="col">SDK results</th><th scope="col">Tool errors</th><th scope="col">Rejected</th><th scope="col">Protocol errors</th><th scope="col">Cancelled</th><th scope="col">Mean dispatch duration</th></tr></thead><tbody id="usageInvocationTools"></tbody></table></div>
+            <details><summary>Endpoints and dispatch timing (UTC)</summary><div class="usage-table-wrap" tabindex="0" role="region" aria-label="MCP endpoint use"><table><caption>Endpoint and connected toolset</caption><thead><tr><th scope="col">Endpoint (toolset)</th><th scope="col">Dispatches</th></tr></thead><tbody id="usageInvocationEndpoints"></tbody></table></div><div class="usage-table-wrap" tabindex="0" role="region" aria-label="MCP dispatch day and hour table"><table id="usageInvocationHours" class="usage-hours"></table></div><div class="usage-table-wrap" tabindex="0" role="region" aria-label="Daily MCP dispatch counts"><table><caption>Dispatch completion dates (UTC)</caption><thead><tr><th scope="col">Date</th><th scope="col">Dispatches</th></tr></thead><tbody id="usageInvocationDaily"></tbody></table></div></details>
+          </section>
+          <section class="usage-panel" aria-labelledby="usageToolsHeading">
+            <h2 id="usageToolsHeading">Observed MCP tools</h2>
+            <p class="usage-secondary">Audit records are not guaranteed to correspond one-to-one with completed calls. Reported errors and durations cover only records that supply those fields.</p>
+            <div class="usage-table-wrap" tabindex="0" role="region" aria-label="MCP tools table"><table><caption>Available MCP audit records in the selected window</caption><thead><tr><th scope="col">Tool</th><th scope="col">Events</th><th scope="col">Reported errors</th><th scope="col">Unknown results</th><th scope="col">Mean reported duration</th><th scope="col">Timed events</th></tr></thead><tbody id="usageTools"></tbody></table></div>
+          </section>
+          <section class="usage-panel" aria-labelledby="usageTimeHeading">
+            <h2 id="usageTimeHeading">When MCP activity is observed</h2>
+            <p class="usage-secondary">All times are UTC. This is MCP audit activity, not website visits or login history. Counts include unattributed events.</p>
+            <div class="usage-table-wrap" tabindex="0" role="region" aria-label="MCP day and hour table"><table id="usageHours" class="usage-hours"><caption>Audit events by weekday and hour (UTC)</caption></table></div>
+            <details><summary>Daily audit counts</summary><div class="usage-table-wrap" tabindex="0" role="region" aria-label="Daily MCP audit counts"><table><caption>Dates with observed events (UTC)</caption><thead><tr><th scope="col">Date</th><th scope="col">Events</th></tr></thead><tbody id="usageDaily"></tbody></table></div></details>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="aep-access-scope.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="firebase-database-config.js?v=20260527"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
+  <script src="aep-access-onboarding.js?v=20260527b"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20261006-usage"></script>
+  <script defer src="usage-statistics.js?v=20261006-engagement"></script>
+</body>
+</html>
