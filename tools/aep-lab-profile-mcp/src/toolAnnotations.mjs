@@ -132,6 +132,20 @@ const READ_ONLY_TOOLS = new Set([
   'launch_property_audit',
   'launch_environment_list',
   'status_incident_correlate',
+  'figma_whoami',
+  'figma_parse_url',
+  'figma_get_file',
+  'figma_get_metadata',
+  'figma_get_design_context',
+  'figma_get_screenshot',
+  'figma_get_image_fills',
+  'figma_get_components',
+  'figma_get_styles',
+  'figma_get_variables',
+  'figma_get_comments',
+  'figma_preview_comment',
+  'figma_list_team_projects',
+  'figma_list_project_files',
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([

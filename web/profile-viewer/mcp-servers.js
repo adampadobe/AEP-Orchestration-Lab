@@ -40,7 +40,7 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all sixteen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all seventeen focused integrations.',
       connectionKind: 'Complete · backward compatible',
       toolCount: 212,
       docUrl:
@@ -257,6 +257,27 @@
       toolCount: 6,
       docUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Measurement quality tool reference',
+    },
+    {
+      id: 'aep-lab-figma',
+      configName: 'aep-lab-figma',
+      section: 'lab',
+      dropdownLabel: 'Figma',
+      name: 'AEP Lab — Figma',
+      product: 'Focused MCP · 16 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/figma',
+      summary: 'Figma REST API through a server-held token, so Coworker can read designs without a Figma OAuth connection.',
+      useCases: [
+        'Summarise a Figma file and its pages from a pasted link',
+        'Extract layout, colours, typography, and text for one frame',
+        'Render a frame or component to PNG, JPG, SVG, or PDF',
+        'List published components, styles, and comments',
+      ],
+      configNotes: 'Reads only, except figma_post_comment, which needs a preview and exact confirmation. Access is limited to files the server token can see.',
+      connectionKind: 'Focused · read-mostly',
+      toolCount: 16,
+      docUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Figma tool reference',
     },
     {
       id: 'aep-lab-pdf-prep',

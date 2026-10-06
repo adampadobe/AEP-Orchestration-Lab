@@ -81,7 +81,7 @@ async function run() {
   if (!health.ok) throw new Error(`Health failed: ${health.status}`);
   const healthJson = await health.json();
   const healthPaths = healthJson.mcpEndpoints?.map((entry) => entry.path) || [];
-  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce', '/mcp/commerce-optimizer', '/mcp/firefly', '/mcp/creativity', '/mcp/adobe-capabilities', '/mcp/measurement-quality']) {
+  for (const path of ['/mcp', '/mcp/entry', '/mcp/profile', '/mcp/audiences', '/mcp/ajo-cleanup', '/mcp/decisioning', '/mcp/demo-prep', '/mcp/pdf', '/mcp/weather', '/mcp/commerce', '/mcp/commerce-optimizer', '/mcp/firefly', '/mcp/creativity', '/mcp/adobe-capabilities', '/mcp/measurement-quality', '/mcp/figma']) {
     if (!healthPaths.includes(path)) throw new Error(`Health is missing focused endpoint ${path}`);
   }
 

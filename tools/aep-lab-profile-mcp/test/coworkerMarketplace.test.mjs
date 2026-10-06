@@ -31,6 +31,7 @@ const expectedEndpoints = new Map([
   ['aep-lab-creativity', '/mcp/creativity'],
   ['aep-lab-adobe-capabilities', '/mcp/adobe-capabilities'],
   ['aep-lab-measurement-quality', '/mcp/measurement-quality'],
+  ['aep-lab-figma', '/mcp/figma'],
 ]);
 
 test('Coworker plugin manifest explicitly preserves the workflow skill', async () => {
@@ -122,7 +123,7 @@ test('Claude plugin prompts securely for one Portal key and preserves the workfl
   assert.equal(target, join(pluginRoot, 'skills', 'aep-lab-profile-mcp'));
 });
 
-test('Claude and Coworker packages expose the same seventeen endpoints with runtime-specific auth', async () => {
+test('Claude and Coworker packages expose the same eighteen endpoints with runtime-specific auth', async () => {
   const coworker = await readJson(join(pluginRoot, '.mcp.json'));
   const claude = await readJson(join(claudePluginRoot, '.mcp.json'));
   const coworkerServers = new Map(coworker.mcp_servers.servers.map((server) => [server.name, server]));
