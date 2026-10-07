@@ -60,12 +60,12 @@
 </html>`;
 
   const sampleData = {
-    bookingReference: 'EK8F2Q',
-    ticketNumber: '1761234567890',
+    bookingReference: 'DE8F2Q',
+    ticketNumber: '0001234567890',
     firstName: 'Amelia',
     lastName: 'Palmer',
-    flightNumber: 'EK 001',
-    departureAirport: 'DXB',
+    flightNumber: 'XX 001',
+    departureAirport: 'DOH',
     arrivalAirport: 'LHR',
     departureDateTime: '2026-08-12T07:45:00Z',
     arrivalDateTime: '2026-08-12T15:10:00Z',
@@ -74,11 +74,14 @@
   };
 
   const hostedPdfImageOptions = [
-    { field: 'Barcode', label: 'Riyadh boarding-pass barcode', path: 'assets/pdf-personalisation/riyadh-barcode.png' },
-    { field: 'FF_Image', label: 'Riyadh destination feature image', path: 'assets/pdf-personalisation/riyadh-feature-image.png' },
-    { field: 'FF_Image', label: 'Riyadh night skyline', path: 'assets/pdf-personalisation/riyadh-night-skyline.jpg' },
-    { field: 'Offer', label: 'Riyadh special-offer image', path: 'assets/pdf-personalisation/riyadh-offer.png' },
+    { field: 'Barcode', label: 'Demo boarding-pass barcode', path: 'assets/pdf-personalisation/riyadh-barcode.png', defaultPreset: true },
+    { field: 'FF_Image', label: 'Doha West Bay skyline (illustration)', path: 'assets/pdf-personalisation/doha-skyline.png', defaultPreset: true },
+    { field: 'FF_Image', label: 'Legacy Riyadh feature image', path: 'assets/pdf-personalisation/riyadh-feature-image.png' },
+    { field: 'FF_Image', label: 'Legacy Riyadh night skyline', path: 'assets/pdf-personalisation/riyadh-night-skyline.jpg' },
+    { field: 'Offer', label: 'Legacy Dubai Mall summer-sale offer', path: 'assets/pdf-personalisation/riyadh-offer.png' },
   ];
+  const PDF_TEST_TEMPLATE_KEY = 'aepPdfJourneyTestTemplate.v1';
+  let testTemplateSelectionScope = '';
   const PDF_TEST_CACHE_KEY = 'aepPdfJourneyTestFieldCache.v1';
   const PDF_TEST_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -769,7 +772,7 @@
       const unique = window.crypto && typeof window.crypto.randomUUID === 'function'
         ? window.crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      payload.requestId = `riyadh-checkin-${unique}`;
+      payload.requestId = `airline-checkin-${unique}`;
       target.textContent = JSON.stringify(payload, null, 2);
     } catch (_error) {}
     return target.textContent.trim();
@@ -1164,6 +1167,31 @@
     return journeyTemplatesAvailable.find((template) => (template.templateName || template.name) === name) || null;
   }
 
+  function testTemplateStorageKey() {
+    return `${PDF_TEST_TEMPLATE_KEY}::${authUser ? authUser.uid : 'signed-out'}::${currentSandbox() || 'default'}`;
+  }
+
+  function readTestTemplateSelection(key) {
+    try {
+      return window.localStorage.getItem(key) || '';
+    } catch (error) {
+      console.warn('Could not restore the PDF template selection.', error);
+      return '';
+    }
+  }
+
+  function saveTestTemplateSelection() {
+    try {
+      const key = testTemplateStorageKey();
+      const name = document.getElementById('pdfTestTemplate').value;
+      if (name) window.localStorage.setItem(key, name);
+      else window.localStorage.removeItem(key);
+    } catch (error) {
+      console.warn('Could not save the PDF template selection.', error);
+      setStoryAssistStatus('Your template choice could not be remembered in this browser. Select it again on your next visit.', 'error');
+    }
+  }
+
   function inputSchemaForTemplate(template) {
     if (!template) return [];
     if (Array.isArray(template.inputSchema) && template.inputSchema.length) return template.inputSchema;
@@ -1188,19 +1216,20 @@
   function renderTestTemplateOptions() {
     const select = document.getElementById('pdfTestTemplate');
     if (!select) return;
-    const previous = select.value;
+    const scope = testTemplateStorageKey();
+    const previous = testTemplateSelectionScope === scope ? select.value : '';
+    const remembered = readTestTemplateSelection(scope);
+    testTemplateSelectionScope = scope;
     select.replaceChildren(new Option('Choose a published template', ''));
     journeyTemplatesAvailable.forEach((template) => {
       const name = template.templateName || template.name;
       const label = `${template.label || name} · ${template.kind === 'document' ? 'DOCX/document' : 'HTML'} · v${template.version || 1}`;
       select.add(new Option(label, name));
     });
-    if (previous && journeyTemplatesAvailable.some((template) => (template.templateName || template.name) === previous)) {
-      select.value = previous;
-    } else if (journeyTemplatesAvailable.length) {
-      const uploaded = journeyTemplatesAvailable.find((template) => template.source === 'uploaded');
-      select.value = (uploaded || journeyTemplatesAvailable[0]).templateName || (uploaded || journeyTemplatesAvailable[0]).name;
-    }
+    const choice = previous || remembered;
+    if (choice && journeyTemplatesAvailable.some((template) => (template.templateName || template.name) === choice)) select.value = choice;
+    document.getElementById('pdfTestImageFigure').hidden = true;
+    document.getElementById('pdfTestImageStatus').textContent = '';
     renderTestDynamicFields();
   }
 
@@ -1212,6 +1241,8 @@
     if (!template) {
       container.innerHTML = '<p class="pdf-key-empty">Choose a published template to load its fields.</p>';
       document.getElementById('pdfTestFieldCount').textContent = 'Choose a template';
+      document.getElementById('pdfTestTemplateHint').textContent = 'Choose a template. Your last choice is remembered in this browser for this account and sandbox.';
+      document.getElementById('pdfTestDocumentName').value = '';
       return;
     }
     const schema = inputSchemaForTemplate(template).filter((field) => !field.recipientField);
@@ -1233,7 +1264,9 @@
       input.required = field.required === true;
       if (field.dataType === 'image') {
         input.add(new Option('Choose a hosted image', ''));
-        hostedPdfImageOptions.forEach((asset) => input.add(new Option(asset.label, hostedPdfImageUrl(asset.path))));
+        const matchingAssets = hostedPdfImageOptions.filter((asset) => asset.field.toLowerCase() === field.name.toLowerCase());
+        (matchingAssets.length ? matchingAssets : hostedPdfImageOptions)
+          .forEach((asset) => input.add(new Option(asset.label, hostedPdfImageUrl(asset.path))));
       } else {
         input.type = field.dataType === 'decimal' ? 'number' : 'text';
         if (field.dataType === 'decimal') input.step = 'any';
@@ -1242,9 +1275,12 @@
       const value = defaults[field.name] == null || defaults[field.name] === ''
         ? field.sampleValue
         : defaults[field.name];
+      if (field.dataType === 'image' && value && !Array.from(input.options).some((option) => option.value === String(value))) {
+        input.add(new Option('Template or supplied image (review before sending)', String(value)));
+      }
       input.value = value == null ? '' : String(value);
       if (field.dataType === 'image' && !input.value) {
-        const preferred = hostedPdfImageOptions.find((asset) => asset.field.toLowerCase() === String(field.name).toLowerCase());
+        const preferred = hostedPdfImageOptions.find((asset) => asset.defaultPreset && asset.field.toLowerCase() === String(field.name).toLowerCase());
         if (preferred) input.value = hostedPdfImageUrl(preferred.path);
       }
       wrapper.append(label, input);
@@ -1379,6 +1415,9 @@
       if (!template) throw new Error('Choose a published template before describing the journey.');
       const story = document.getElementById('pdfTestStory').value.trim();
       if (story.length < 10) throw new Error('Describe the traveller and journey in at least 10 characters.');
+      if (/\[(?:customer\s+name|origin|orgina|destination)\]/i.test(story)) {
+        throw new Error('Replace [customer name], [origin] and [destination] with your airline and route before populating fields.');
+      }
       button.disabled = true;
       button.innerHTML = '<span aria-hidden="true">✦</span> Creating scenario…';
       renderStoryMissingFields([]);
@@ -1390,7 +1429,7 @@
           templateName: template.templateName || template.name,
           story,
           currentValues: currentTestFieldValues(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Riyadh',
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
           locale: navigator.language || 'en-GB',
           recipient: {
             emailAddress: document.getElementById('pdfTestEmail').value.trim(),
@@ -1432,7 +1471,7 @@
     story.value = story.defaultValue.trim();
     document.getElementById('pdfTestStoryCount').textContent = `${story.value.length.toLocaleString()} / 8,000`;
     renderStoryMissingFields([]);
-    setStoryAssistStatus('Example restored. Edit any detail or populate the fields.');
+    setStoryAssistStatus('Example restored. Replace [customer name], [origin] and [destination], then populate the fields.');
     story.focus();
   }
 
@@ -1643,9 +1682,12 @@
   function bindJourneyTestSender() {
     document.getElementById('pdfTestTemplate').addEventListener('change', () => {
       renderTestDynamicFields();
+      document.getElementById('pdfTestImageFigure').hidden = true;
+      document.getElementById('pdfTestImageStatus').textContent = '';
       if (document.getElementById('pdfTestUseLastValues').checked) applyJourneyTestValues();
       renderStoryMissingFields([]);
       setStoryAssistStatus('Template changed. The assistant will now target this template’s fields.');
+      saveTestTemplateSelection();
     });
     document.getElementById('pdfTestCampaign').addEventListener('change', syncTestCampaignManager);
     document.getElementById('pdfTestSaveCampaign').addEventListener('click', saveJourneyCampaign);
@@ -1668,6 +1710,9 @@
     const initialStory = document.getElementById('pdfTestStory').value;
     document.getElementById('pdfTestStoryCount').textContent = `${initialStory.length.toLocaleString()} / 8,000`;
     window.addEventListener('aep-global-sandbox-change', () => {
+      renderTestTemplateOptions();
+      renderStoryMissingFields([]);
+      setStoryAssistStatus('');
       if (authUser) loadJourneyCampaigns().catch(() => {});
     });
   }

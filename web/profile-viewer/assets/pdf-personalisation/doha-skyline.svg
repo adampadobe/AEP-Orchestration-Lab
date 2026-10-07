@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Doha West Bay skyline illustration</title>
+  <desc id="desc">An original stylised illustration of Doha's waterfront, with the rounded Doha Tower, curved Tornado Tower and stepped Palm Tower silhouettes at sunset. Not a photograph.</desc>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="rgb(27,46,79)"/>
+      <stop offset=".65" stop-color="rgb(151,97,115)"/>
+      <stop offset="1" stop-color="rgb(244,183,136)"/>
+    </linearGradient>
+    <linearGradient id="water" x2="0" y2="1">
+      <stop stop-color="rgb(68,103,126)"/>
+      <stop offset="1" stop-color="rgb(17,48,71)"/>
+    </linearGradient>
+    <pattern id="windows" width="18" height="24" patternUnits="userSpaceOnUse">
+      <rect width="18" height="24" fill="rgb(33,53,73)"/>
+      <rect x="6" y="5" width="4" height="10" fill="rgb(238,198,148)" opacity=".65"/>
+    </pattern>
+    <pattern id="lattice" width="24" height="36" patternUnits="userSpaceOnUse">
+      <rect width="24" height="36" fill="rgb(98,89,91)"/>
+      <path d="M0 0 24 36M24 0 0 36" stroke="rgb(239,203,159)" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1240" cy="350" r="76" fill="rgb(252,213,168)" opacity=".8"/>
+  <path d="M0 610H1600V900H0Z" fill="url(#water)"/>
+  <g fill="rgb(77,74,94)" opacity=".7">
+    <path d="M0 570V460H65V570H95V425H150V570H185V478H240V570H270V450H330V570H355V480H415V570H1440V450H1500V570H1530V490H1600V620H0Z"/>
+  </g>
+  <g fill="url(#windows)">
+    <path d="M140 615V390H224V615Z"/>
+    <path d="M242 615V340H312V615Z"/>
+    <path d="M340 615V360H418V615Z"/>
+    <path d="M454 615V410H532V615Z"/>
+    <path d="M662 615V290H724V615Z"/>
+    <path d="M918 615V380H990V615Z"/>
+    <path d="M1016 615V345H1100V615Z"/>
+    <path d="M1260 615V405H1340V615Z"/>
+    <path d="M1360 615V470H1410V615Z"/>
+  </g>
+  <path d="M555 615V333Q555 267 598 245Q641 267 641 333V615Z" fill="url(#lattice)"/>
+  <path d="M598 245V198" stroke="rgb(239,203,159)" stroke-width="3"/>
+  <path d="M765 615Q797 420 761 266L885 266Q849 420 881 615Z" fill="url(#windows)" stroke="rgb(171,184,197)" stroke-width="3"/>
+  <g stroke="rgb(171,184,197)" stroke-width="2" opacity=".7">
+    <path d="M763 280 879 584M780 320 876 548M797 365 871 512M884 280 767 584M867 320 771 548M851 365 776 512"/>
+  </g>
+  <path d="M1132 615V296L1147 272V245L1180 215L1213 245V272L1228 296V615Z" fill="url(#windows)" stroke="rgb(152,166,180)" stroke-width="2"/>
+  <path d="M1132 296H1228M1147 272H1213M1147 245H1213" stroke="rgb(203,190,175)" stroke-width="3"/>
+  <path d="M0 615Q430 587 850 617T1600 614" fill="none" stroke="rgb(232,185,139)" stroke-width="9"/>
+  <g fill="none" stroke="rgb(240,204,161)" stroke-linecap="round" opacity=".28">
+    <path d="M555 650H640M564 675H630M575 704H615M765 641H875M784 666H858M802 699H843M1140 654H1220M1158 690H1201"/>
+    <path d="M128 760H393M464 813H764M934 739H1260M1100 851H1472" stroke-width="3"/>
+  </g>
+  <path d="M0 854Q240 778 467 825T940 900H0Z" fill="rgb(17,35,48)"/>
+  <path d="M0 836Q240 762 467 811" fill="none" stroke="rgb(231,183,137)" stroke-width="4"/>
+</svg>

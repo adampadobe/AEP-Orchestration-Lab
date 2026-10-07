@@ -56,6 +56,27 @@ Uploaded templates are owner-scoped to the Firebase user who uploaded them. A se
 
 Deleting an uploaded template marks it unavailable for new actions but retains its immutable private source version so an already-queued worker can finish safely. Re-uploading the same stable name is allowed after deletion.
 
+### Switching airline demos in the browser
+
+The transactional test does not choose an arbitrary template on first use. An explicit
+selection is remembered in this browser per signed-in account and Adobe sandbox.
+If that template is unavailable, the dropdown remains on **Choose a published template**;
+it never substitutes another airline's template. Choosing the empty option clears the
+remembered choice. This is separate from **Use last values**, which restores confirmed-send
+form values for 30 days.
+
+The journey example retains its full instructions but uses `[customer name]`, `[origin]`
+and `[destination]`. Replace these before **Populate fields**; unresolved placeholders
+are rejected locally without calling the assistant. **Load example** restores that
+unbranded text.
+
+The feature-image picker includes a hosted **Doha West Bay skyline (illustration)** PNG.
+It is a destination preset, not a Firefly-generated photograph. Legacy Riyadh images
+and the Dubai Mall offer remain explicitly labelled choices, never automatic fallbacks.
+The demo barcode is unbranded. A template's own image URL, sample values, filename and
+embedded branding are preserved; review them before presenting to another airline.
+Live Firefly generation still follows the actual booking destination, not the Doha preset.
+
 ## Request payload to paste
 
 The PDF Personalisation page now includes a **Copy AJO field definition** button containing one universal AJO request schema for both built-in templates. It uses `optionalMapping: true` for template-specific fields so they may remain unmapped on the other journey activity.
