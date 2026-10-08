@@ -121,6 +121,62 @@ function extractMeta(html) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Near-duplicate detection (64-bit SimHash over word 5-shingles)
+// ---------------------------------------------------------------------------
+
+const SIMHASH_SHINGLE = 5;
+const SIMHASH_MAX_TOKENS = 200000;
+const SIMILAR_MAX_DISTANCE = 10;
+const MAX_SIMILAR = 5;
+
+/**
+ * Fingerprint the whole skeleton (markup, copy and scripts) minus media, so
+ * JS-rendered demos are comparable and a rebrand of the same deck still matches.
+ * Returns a 16-char hex string, or '' when there is too little content.
+ */
+function computeSimHash(html) {
+  const src = String(html || '').replace(MEDIA_TOKEN_RE, ' ').replace(DATA_URI_RE, ' ').toLowerCase();
+  const tokens = src.match(/[a-z0-9]{2,}/g) || [];
+  if (tokens.length > SIMHASH_MAX_TOKENS) tokens.length = SIMHASH_MAX_TOKENS;
+  if (tokens.length < SIMHASH_SHINGLE * 4) return '';
+  const shingles = new Set();
+  for (let i = 0; i + SIMHASH_SHINGLE <= tokens.length; i += 1) {
+    shingles.add(tokens.slice(i, i + SIMHASH_SHINGLE).join(' '));
+  }
+  const counts = new Int32Array(64);
+  for (const sh of shingles) {
+    const h = crypto.createHash('sha1').update(sh).digest();
+    for (let bit = 0; bit < 64; bit += 1) {
+      counts[bit] += (h[bit >> 3] >> (bit & 7)) & 1 ? 1 : -1;
+    }
+  }
+  let out = 0n;
+  for (let bit = 0; bit < 64; bit += 1) if (counts[bit] > 0) out |= 1n << BigInt(bit);
+  return out.toString(16).padStart(16, '0');
+}
+
+function simHashDistance(a, b) {
+  if (!/^[a-f0-9]{16}$/.test(a || '') || !/^[a-f0-9]{16}$/.test(b || '')) return null;
+  let x = BigInt(`0x${a}`) ^ BigInt(`0x${b}`);
+  let n = 0;
+  while (x) { n += Number(x & 1n); x >>= 1n; }
+  return n;
+}
+
+/** Assets whose fingerprint is within SIMILAR_MAX_DISTANCE bits, closest first. */
+function findSimilarAssets(simHash, assets, { excludeId, maxDistance = SIMILAR_MAX_DISTANCE } = {}) {
+  if (!simHash) return [];
+  const out = [];
+  for (const a of assets || []) {
+    if (!a || a.id === excludeId || !a.simHash) continue;
+    const d = simHashDistance(simHash, a.simHash);
+    if (d == null || d > maxDistance) continue;
+    out.push({ id: a.id, title: a.title, customer: a.customer, conversationType: a.conversationType, distance: d, score: Math.round((1 - d / 64) * 100) / 100 });
+  }
+  return out.sort((x, y) => x.distance - y.distance).slice(0, MAX_SIMILAR);
+}
+
 function cleanString(v, max = 200) {
   return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max);
 }
@@ -326,6 +382,7 @@ function toPublicAsset(id, d) {
     originalFilename: d.originalFilename || '',
     folderPath: d.folderPath || '',
     sha256: d.sha256 || '',
+    simHash: d.simHash || '',
     sizes: d.sizes || {},
     outline: d.outline || null,
     classification: d.classification || null,
@@ -378,6 +435,8 @@ async function createAsset({ html, filename, folderPath, force }, user, deps = {
 
   const { skeleton, media } = extractMedia(html);
   const meta = extractMeta(skeleton);
+  const simHash = computeSimHash(skeleton);
+  const similar = simHash ? findSimilarAssets(simHash, await listAssets()) : [];
   const classification = await classifyAsset(meta, { filename, folderPath }, deps);
 
   const db = getDb();
@@ -412,6 +471,7 @@ async function createAsset({ html, filename, folderPath, force }, user, deps = {
     originalFilename: cleanString(filename, 200),
     folderPath: cleanString(folderPath, 300),
     sha256,
+    simHash,
     sizes,
     outline: { title: meta.title, headings: meta.headings.slice(0, 20), textLength: meta.textLength },
     classification: { source: classification.source, error: classification.classifyError || null },
@@ -432,7 +492,7 @@ async function createAsset({ html, filename, folderPath, force }, user, deps = {
     createdAt: now,
   });
   await batch.commit();
-  return { asset: toPublicAsset(ref.id, { ...doc, createdAt: null, updatedAt: null }), duplicate: false };
+  return { asset: toPublicAsset(ref.id, { ...doc, createdAt: null, updatedAt: null }), duplicate: false, similar };
 }
 
 async function updateAsset(id, body, user) {
@@ -548,6 +608,10 @@ module.exports = {
   loadSkeleton,
   rehydrateSkeleton,
   safeDownloadName,
+  computeSimHash,
+  simHashDistance,
+  findSimilarAssets,
+  SIMILAR_MAX_DISTANCE,
   // Shared with demoStudioService (same private bucket / collections).
   _internal: {
     COLLECTION,

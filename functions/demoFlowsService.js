@@ -276,7 +276,7 @@ async function suggestFlow(body, user, deps = {}) {
     });
     parsed = parseGeminiJson(raw);
   } catch (e) {
-    if (e && e.code === 'RATE_LIMITED') throw new DemoAssetsError(429, e.message);
+    if (e && (e.code === 'RATE_LIMITED' || e.code === 'BUDGET_EXCEEDED')) throw new DemoAssetsError(429, e.message);
     throw new DemoAssetsError(502, `Gemini failed: ${cleanString(e && e.message, 300)}`);
   }
 

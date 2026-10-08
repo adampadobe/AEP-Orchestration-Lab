@@ -356,6 +356,7 @@ async function createVersion(assetId, skeleton, user, { note, source, proposalId
     currentVersionId: versionRef.id,
     'sizes.skeletonBytes': Buffer.byteLength(skeleton, 'utf8'),
     outline: { title: meta.title, headings: meta.headings.slice(0, 20), textLength: meta.textLength },
+    simHash: base.computeSimHash(skeleton),
     updatedAt: now,
     updatedBy: { uid: user.uid, email: user.email },
   });
@@ -418,6 +419,7 @@ async function deriveAsset(assetId, body, user) {
     originalFilename: data.originalFilename || '',
     folderPath: '',
     sha256: '',
+    simHash: data.simHash || base.computeSimHash(skeleton),
     sizes: { ...(data.sizes || {}), skeletonBytes: Buffer.byteLength(skeleton, 'utf8') },
     outline: data.outline || null,
     classification: { source: 'derived', error: null },
@@ -536,7 +538,7 @@ async function studioChat(assetId, body, user, deps = {}) {
     });
     parsed = parseGeminiJson(raw);
   } catch (e) {
-    if (e && e.code === 'RATE_LIMITED') throw new DemoAssetsError(429, e.message);
+    if (e && (e.code === 'RATE_LIMITED' || e.code === 'BUDGET_EXCEEDED')) throw new DemoAssetsError(429, e.message);
     if (e && e.code === 'MAX_TOKENS') throw new DemoAssetsError(502, 'The edit was too large for one response — ask for a smaller change or one section at a time.');
     throw new DemoAssetsError(502, `Gemini failed: ${cleanString(e && e.message, 300)}`);
   }

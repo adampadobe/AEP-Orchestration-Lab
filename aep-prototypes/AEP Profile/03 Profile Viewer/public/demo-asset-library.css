@@ -35,7 +35,8 @@
 .demo-assets-upload-item .demo-assets-upload-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .demo-assets-upload-item[data-state="ok"] { border-color: var(--dash-success-border); background: var(--dash-success-bg); }
 .demo-assets-upload-item[data-state="error"] { border-color: var(--dash-error-border); background: var(--dash-error-bg); color: var(--dash-error-text); }
-.demo-assets-upload-item[data-state="duplicate"] { border-color: var(--dash-warning-border); background: var(--dash-warning-bg); color: var(--dash-warning-text); }
+.demo-assets-upload-item[data-state="duplicate"],
+.demo-assets-upload-item[data-state="similar"] { border-color: var(--dash-warning-border); background: var(--dash-warning-bg); color: var(--dash-warning-text); }
 .demo-assets-upload-item button { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
 
 .demo-assets-library-header { display: flex; flex-direction: column; gap: 0.75rem; }

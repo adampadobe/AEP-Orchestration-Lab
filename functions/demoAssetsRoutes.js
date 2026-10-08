@@ -31,6 +31,12 @@
  *   DELETE /api/demo-assets/flows/:fId            delete
  *   POST   /api/demo-assets/flows/:fId/present    flow + per-step render URLs
  *
+ * Hardening (guard):
+ *   GET    /api/demo-assets/usage                 today's Gemini budget for the caller
+ *   GET    /api/demo-assets/audit                 audit log (?assetId= | ?flowId=, &limit=)
+ * Every Gemini call is charged to a per-user daily budget (429 when spent) and
+ * every mutation is written to demoAssetAudit.
+ *
  * Studio chat can exceed the 60s Hosting rewrite limit, so the browser calls
  * it on the cloudfunctions.net URL (/demoAssetsApi/...). Both prefixes parse.
  */
@@ -56,7 +62,9 @@ function readBody(req) {
 }
 
 function registerDemoAssetsRoutes(deps) {
-  const { onRequest, fnOpts, setCors, verifyClaims, service, studio, flows, callGemini } = deps;
+  const { onRequest, fnOpts, setCors, verifyClaims, service, studio, flows, callGemini, guard } = deps;
+  const gemini = (user, kind) => (guard ? guard.budgetedGemini(callGemini, user, kind) : callGemini);
+  const audit = (user, action, detail) => (guard ? guard.audit(user, action, detail) : Promise.resolve());
 
   async function requireUser(req) {
     const claims = await verifyClaims(req);
@@ -93,18 +101,43 @@ function registerDemoAssetsRoutes(deps) {
     }
 
     try {
+      if ((parts[0] === 'usage' || parts[0] === 'audit') && parts.length === 1) {
+        if (!guard) return res.status(404).json({ ok: false, error: 'Not found' });
+        if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+        if (parts[0] === 'usage') return res.json({ ok: true, usage: await guard.getUsage(user) });
+        const q = req.query || {};
+        const entries = await guard.listAudit({
+          assetId: typeof q.assetId === 'string' ? q.assetId : undefined,
+          flowId: typeof q.flowId === 'string' ? q.flowId : undefined,
+          limit: q.limit,
+        });
+        return res.json({ ok: true, entries });
+      }
+
       if (parts[0] === 'flows') {
         if (!flows) return res.status(404).json({ ok: false, error: 'Not found' });
         const [, fId, fAction] = parts;
         if (!fId) {
           if (req.method === 'GET') return res.json({ ok: true, flows: await flows.listFlows() });
-          if (req.method === 'POST') return res.status(201).json({ ok: true, flow: await flows.createFlow(readBody(req), user) });
+          if (req.method === 'POST') {
+            const flow = await flows.createFlow(readBody(req), user);
+            await audit(user, 'flow.create', { flowId: flow.id, title: flow.title });
+            return res.status(201).json({ ok: true, flow });
+          }
         } else if (fId === 'suggest' && !fAction) {
-          if (req.method === 'POST') return res.json({ ok: true, ...(await flows.suggestFlow(readBody(req), user, { callGemini })) });
+          if (req.method === 'POST') return res.json({ ok: true, ...(await flows.suggestFlow(readBody(req), user, { callGemini: gemini(user, 'flow.suggest') })) });
         } else if (!fAction) {
           if (req.method === 'GET') return res.json({ ok: true, flow: await flows.getFlow(fId) });
-          if (req.method === 'PATCH') return res.json({ ok: true, flow: await flows.updateFlow(fId, readBody(req), user) });
-          if (req.method === 'DELETE') return res.json(await flows.deleteFlow(fId));
+          if (req.method === 'PATCH') {
+            const flow = await flows.updateFlow(fId, readBody(req), user);
+            await audit(user, 'flow.update', { flowId: fId });
+            return res.json({ ok: true, flow });
+          }
+          if (req.method === 'DELETE') {
+            const out = await flows.deleteFlow(fId);
+            await audit(user, 'flow.delete', { flowId: fId });
+            return res.json(out);
+          }
         } else if (fAction === 'present' && req.method === 'POST') {
           return res.json({ ok: true, ...(await flows.presentFlow(fId, user)) });
         }
@@ -124,17 +157,31 @@ function registerDemoAssetsRoutes(deps) {
             filename: body.filename,
             folderPath: body.folderPath,
             force: body.force === true,
-          }, user, { callGemini });
+          }, user, { callGemini: gemini(user, 'classify') });
           if (result.duplicate) return res.status(409).json({ ok: false, duplicate: true, asset: result.asset, error: 'This exact file is already in the library.' });
-          return res.status(201).json({ ok: true, asset: result.asset });
+          await audit(user, 'asset.create', {
+            assetId: result.asset.id,
+            filename: result.asset.originalFilename,
+            similar: (result.similar || []).map((s) => s.id),
+          });
+          return res.status(201).json({ ok: true, asset: result.asset, similar: result.similar || [] });
         }
         return res.status(405).json({ ok: false, error: 'Method not allowed' });
       }
 
       if (!action) {
         if (req.method === 'GET') return res.json({ ok: true, asset: await service.getAsset(id) });
-        if (req.method === 'PATCH') return res.json({ ok: true, asset: await service.updateAsset(id, readBody(req), user) });
-        if (req.method === 'DELETE') return res.json(await service.deleteAsset(id));
+        if (req.method === 'PATCH') {
+          const body = readBody(req);
+          const asset = await service.updateAsset(id, body, user);
+          await audit(user, 'asset.update', { assetId: id, fields: Object.keys(body || {}) });
+          return res.json({ ok: true, asset });
+        }
+        if (req.method === 'DELETE') {
+          const out = await service.deleteAsset(id);
+          await audit(user, 'asset.delete', { assetId: id });
+          return res.json(out);
+        }
         return res.status(405).json({ ok: false, error: 'Method not allowed' });
       }
 
@@ -160,18 +207,25 @@ function registerDemoAssetsRoutes(deps) {
       if (action === 'versions') {
         if (!sub && req.method === 'GET') return res.json({ ok: true, versions: await studio.listVersions(id) });
         if (sub && subAction === 'restore' && req.method === 'POST') {
-          return res.json({ ok: true, ...(await studio.restoreVersion(id, sub, user)) });
+          const out = await studio.restoreVersion(id, sub, user);
+          await audit(user, 'asset.restore', { assetId: id, fromVersionId: sub });
+          return res.json({ ok: true, ...out });
         }
       }
       if (action === 'derive' && req.method === 'POST') {
-        return res.status(201).json({ ok: true, ...(await studio.deriveAsset(id, readBody(req), user)) });
+        const out = await studio.deriveAsset(id, readBody(req), user);
+        await audit(user, 'asset.derive', { assetId: out.asset && out.asset.id, sourceAssetId: id });
+        return res.status(201).json({ ok: true, ...out });
       }
       if (action === 'studio') {
         if (sub === 'chat' && req.method === 'POST') {
-          return res.json({ ok: true, ...(await studio.studioChat(id, readBody(req), user, { callGemini })) });
+          return res.json({ ok: true, ...(await studio.studioChat(id, readBody(req), user, { callGemini: gemini(user, 'studio.chat') })) });
         }
         if (sub === 'apply' && req.method === 'POST') {
-          return res.json({ ok: true, ...(await studio.applyProposal(id, readBody(req), user)) });
+          const body = readBody(req);
+          const out = await studio.applyProposal(id, body, user);
+          await audit(user, 'asset.apply', { assetId: id, proposalId: body.proposalId || null, versionId: out.versionId || null });
+          return res.json({ ok: true, ...out });
         }
         if (sub === 'discard' && req.method === 'POST') {
           return res.json({ ok: true, proposal: await studio.discardProposal(id, readBody(req), user) });
