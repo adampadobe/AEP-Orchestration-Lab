@@ -255,6 +255,20 @@
         }
       },
       {
+        "source": "/api/demo-assets/**",
+        "function": {
+          "functionId": "demoAssetsApi",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/demo-assets",
+        "function": {
+          "functionId": "demoAssetsApi",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/cdn/**",
         "function": {
           "functionId": "imageHostingAsset",

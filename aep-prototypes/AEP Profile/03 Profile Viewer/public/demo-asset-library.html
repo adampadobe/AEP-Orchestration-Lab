@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo asset library – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="demo-asset-library.css?v=20260901a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="demo-asset-library-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Customer conversation-starter HTML assets">Demo asset library</span>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main demo-assets-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="demoAssetsHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="demoAssetsHeading" class="dashboard-hero-title">Demo asset library</h2>
+              <p class="dashboard-hero-subtitle">
+                Store the self-contained HTML <strong>conversation starters</strong> built for customers, classified by
+                <strong>customer</strong> and <strong>conversation type</strong>. Drop files or whole folders below; Gemini suggests a
+                classification for you to confirm. Assets are private to signed-in Adobe users and render in a
+                <strong>sandboxed preview</strong>.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section id="demoAssetsGate" class="panel demo-assets-gate" hidden>
+          <h2>Sign in required</h2>
+          <p id="demoAssetsGateMsg">Sign in with your Adobe lab account on <a href="home.html">Home</a> to use the demo asset library.</p>
+        </section>
+
+        <div id="demoAssetsApp" hidden>
+          <section class="panel demo-assets-drop" id="demoAssetsDrop" tabindex="0" aria-label="Upload demo assets">
+            <div class="demo-assets-drop-inner">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+              <p><strong>Drop HTML files or folders here</strong></p>
+              <p class="hint">Folder names help classification (for example <code>Event Demos/LEAP</code>). Max 25 MB per file.</p>
+              <div class="demo-assets-drop-actions">
+                <label class="dashboard-btn-outline demo-assets-file-label">Choose files
+                  <input id="demoAssetsFileInput" type="file" accept=".html,.htm,text/html" multiple hidden>
+                </label>
+                <label class="dashboard-btn-outline demo-assets-file-label">Choose folder
+                  <input id="demoAssetsFolderInput" type="file" webkitdirectory multiple hidden>
+                </label>
+              </div>
+            </div>
+            <ul id="demoAssetsUploadList" class="demo-assets-upload-list" aria-live="polite"></ul>
+          </section>
+
+          <section class="panel demo-assets-library" aria-labelledby="demoAssetsLibraryHeading">
+            <header class="demo-assets-library-header">
+              <h2 id="demoAssetsLibraryHeading">Library <span id="demoAssetsCount" class="dashboard-env-pill">0</span></h2>
+              <div class="demo-assets-filters">
+                <input id="demoAssetsSearch" type="search" placeholder="Search title, customer, tags…" aria-label="Search assets">
+                <select id="demoAssetsCustomerFilter" aria-label="Filter by customer"><option value="">All customers</option></select>
+                <select id="demoAssetsTypeFilter" aria-label="Filter by conversation type"><option value="">All conversation types</option></select>
+                <select id="demoAssetsEventFilter" aria-label="Filter by event"><option value="">All events</option></select>
+                <label class="demo-assets-review-toggle"><input id="demoAssetsNeedsReview" type="checkbox"> Needs review only</label>
+              </div>
+            </header>
+            <p id="demoAssetsStatus" class="status" role="status" aria-live="polite"></p>
+            <div id="demoAssetsGrid" class="demo-assets-grid"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="demoAssetsEditDialog" class="demo-assets-dialog" aria-labelledby="demoAssetsEditTitle">
+    <form method="dialog" id="demoAssetsEditForm">
+      <h2 id="demoAssetsEditTitle">Confirm classification</h2>
+      <p id="demoAssetsEditSource" class="hint"></p>
+      <div class="demo-assets-form-grid">
+        <label>Title<input name="title" required maxlength="200"></label>
+        <label>Customer<input name="customer" maxlength="200" list="demoAssetsCustomerList"></label>
+        <label>Industry<input name="industry" maxlength="200"></label>
+        <label>Conversation type<select name="conversationType"></select></label>
+        <label>Event<input name="event" maxlength="200" list="demoAssetsEventList"></label>
+        <label>Tags <span class="hint">(comma separated)</span><input name="tags"></label>
+        <label class="demo-assets-span">Summary<textarea name="summary" rows="3" maxlength="2000"></textarea></label>
+        <label class="demo-assets-span">Notes<textarea name="notes" rows="2" maxlength="2000"></textarea></label>
+      </div>
+      <datalist id="demoAssetsCustomerList"></datalist>
+      <datalist id="demoAssetsEventList"></datalist>
+      <p id="demoAssetsEditError" class="status error" role="alert"></p>
+      <div class="demo-assets-dialog-actions">
+        <button type="button" id="demoAssetsEditDelete" class="dashboard-btn-outline demo-assets-danger">Delete asset</button>
+        <span class="demo-assets-spacer"></span>
+        <button type="button" id="demoAssetsEditCancel" class="dashboard-btn-outline">Cancel</button>
+        <button type="submit" id="demoAssetsEditSave" class="dashboard-btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="demoAssetsPreviewDialog" class="demo-assets-dialog demo-assets-preview-dialog" aria-labelledby="demoAssetsPreviewTitle">
+    <header class="demo-assets-preview-header">
+      <h2 id="demoAssetsPreviewTitle">Preview</h2>
+      <div class="demo-assets-preview-actions">
+        <button type="button" id="demoAssetsPreviewPresent" class="dashboard-btn-outline">Present in new tab</button>
+        <button type="button" id="demoAssetsPreviewClose" class="dashboard-btn-primary">Close</button>
+      </div>
+    </header>
+    <iframe id="demoAssetsPreviewFrame" title="Demo asset preview" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
+  </dialog>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260901-demo-assets"></script>
+  <script src="demo-asset-library.js?v=20260901a"></script>
+</body>
+</html>
