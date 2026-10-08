@@ -22,6 +22,15 @@
  *   POST   /api/demo-assets/:id/studio/discard        discard a pending proposal
  *   GET    /api/demo-assets/:id/studio/conversations/:cId
  *
+ * Demo flows (ordered assets + talk tracks; "flows" is never a Firestore auto-id):
+ *   GET    /api/demo-assets/flows                 list flows
+ *   POST   /api/demo-assets/flows                 create { title, customer, conversationType, description, steps }
+ *   POST   /api/demo-assets/flows/suggest         Gemini order + talk track { assetIds, goal, customer, minutes }
+ *   GET    /api/demo-assets/flows/:fId            flow
+ *   PATCH  /api/demo-assets/flows/:fId            update
+ *   DELETE /api/demo-assets/flows/:fId            delete
+ *   POST   /api/demo-assets/flows/:fId/present    flow + per-step render URLs
+ *
  * Studio chat can exceed the 60s Hosting rewrite limit, so the browser calls
  * it on the cloudfunctions.net URL (/demoAssetsApi/...). Both prefixes parse.
  */
@@ -47,7 +56,7 @@ function readBody(req) {
 }
 
 function registerDemoAssetsRoutes(deps) {
-  const { onRequest, fnOpts, setCors, verifyClaims, service, studio, callGemini } = deps;
+  const { onRequest, fnOpts, setCors, verifyClaims, service, studio, flows, callGemini } = deps;
 
   async function requireUser(req) {
     const claims = await verifyClaims(req);
@@ -84,6 +93,24 @@ function registerDemoAssetsRoutes(deps) {
     }
 
     try {
+      if (parts[0] === 'flows') {
+        if (!flows) return res.status(404).json({ ok: false, error: 'Not found' });
+        const [, fId, fAction] = parts;
+        if (!fId) {
+          if (req.method === 'GET') return res.json({ ok: true, flows: await flows.listFlows() });
+          if (req.method === 'POST') return res.status(201).json({ ok: true, flow: await flows.createFlow(readBody(req), user) });
+        } else if (fId === 'suggest' && !fAction) {
+          if (req.method === 'POST') return res.json({ ok: true, ...(await flows.suggestFlow(readBody(req), user, { callGemini })) });
+        } else if (!fAction) {
+          if (req.method === 'GET') return res.json({ ok: true, flow: await flows.getFlow(fId) });
+          if (req.method === 'PATCH') return res.json({ ok: true, flow: await flows.updateFlow(fId, readBody(req), user) });
+          if (req.method === 'DELETE') return res.json(await flows.deleteFlow(fId));
+        } else if (fAction === 'present' && req.method === 'POST') {
+          return res.json({ ok: true, ...(await flows.presentFlow(fId, user)) });
+        }
+        return res.status(404).json({ ok: false, error: 'Not found' });
+      }
+
       const [id, action, sub, subAction] = parts;
       if (!id) {
         if (req.method === 'GET') {

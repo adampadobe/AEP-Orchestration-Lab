@@ -202,6 +202,10 @@
     studio.href = 'demo-studio.html?asset=' + encodeURIComponent(a.id);
     studio.title = 'Review, edit or rebrand with Gemini';
     actions.appendChild(studio);
+    var addFlow = el('a', 'dashboard-btn-outline', 'Add to flow');
+    addFlow.href = 'demo-flows.html?add=' + encodeURIComponent(a.id);
+    addFlow.title = 'Add this asset to a demo flow';
+    actions.appendChild(addFlow);
     card.appendChild(actions);
     return card;
   }

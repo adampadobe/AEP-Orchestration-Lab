@@ -1176,6 +1176,7 @@ Object.assign(
     verifyClaims: (req) => labUserSandboxStore.verifyIdTokenClaimsFromRequest(req),
     service: lazyRequireMod('./demoAssetsService'),
     studio: lazyRequireMod('./demoStudioService'),
+    flows: lazyRequireMod('./demoFlowsService'),
     callGemini: (...args) => require('./vertexClient').callGemini(...args),
   })
 );

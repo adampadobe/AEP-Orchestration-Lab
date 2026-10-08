@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo flows – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="demo-flows.css?v=20260903a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="demo-flows-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Sequence demo assets into a presentable story">Demo flows</span>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main demo-flows-main app-page">
+        <section id="flowsGate" class="panel demo-flows-gate" hidden>
+          <h2>Demo flows</h2>
+          <p>Sign in with your Adobe lab account on <a href="home.html">Home</a> to build demo flows.</p>
+        </section>
+
+        <div id="flowsApp" hidden>
+          <header class="panel demo-flows-header">
+            <div class="demo-flows-header-text">
+              <a href="demo-asset-library.html" class="demo-flows-back">← Demo asset library</a>
+              <h2>Demo flows</h2>
+              <p class="hint">Sequence library assets into a story with talk tracks, then present them back to back.</p>
+            </div>
+            <div class="demo-flows-header-actions">
+              <button type="button" id="flowsNew" class="dashboard-btn-primary">New flow</button>
+            </div>
+          </header>
+
+          <div class="demo-flows-layout">
+            <section class="panel demo-flows-list" aria-labelledby="flowsListHeading">
+              <h3 id="flowsListHeading">Saved flows</h3>
+              <input id="flowsSearch" type="search" placeholder="Filter by title or customer" aria-label="Filter flows">
+              <ul id="flowsList" class="demo-flows-items"></ul>
+              <p id="flowsListStatus" class="status" role="status"></p>
+            </section>
+
+            <section class="panel demo-flows-editor" aria-labelledby="flowEditorHeading">
+              <div id="flowEmpty" class="demo-flows-empty">
+                <p><strong>Pick a flow or start a new one.</strong></p>
+                <p class="hint">Tip: select a few assets and let Gemini suggest the order and talk track.</p>
+              </div>
+              <form id="flowForm" hidden>
+                <h3 id="flowEditorHeading" class="visually-hidden">Flow editor</h3>
+                <div class="demo-flows-fields">
+                  <label>Title<input name="title" required maxlength="200"></label>
+                  <label>Customer<input name="customer" maxlength="120"></label>
+                  <label>Conversation type<select name="conversationType" id="flowType"><option value="">—</option></select></label>
+                  <label class="demo-flows-wide">Description<textarea name="description" rows="2" maxlength="2000"></textarea></label>
+                </div>
+
+                <div class="demo-flows-steps-head">
+                  <h4>Steps <span id="flowTotals" class="dashboard-env-pill"></span></h4>
+                  <span class="demo-flows-spacer"></span>
+                  <button type="button" id="flowSuggest" class="dashboard-btn-outline">Suggest with Gemini</button>
+                </div>
+                <ol id="flowSteps" class="demo-flows-steps"></ol>
+
+                <div class="demo-flows-picker">
+                  <input id="assetSearch" type="search" placeholder="Search the library to add assets" aria-label="Search assets">
+                  <ul id="assetResults" class="demo-flows-assets"></ul>
+                </div>
+
+                <div class="demo-flows-actions">
+                  <span id="flowStatus" class="status" role="status"></span>
+                  <span class="demo-flows-spacer"></span>
+                  <button type="button" id="flowDelete" class="dashboard-btn-outline" hidden>Delete</button>
+                  <button type="button" id="flowPresent" class="dashboard-btn-outline" hidden>Present</button>
+                  <button type="submit" class="dashboard-btn-primary">Save flow</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="suggestDialog" class="demo-flows-dialog" aria-labelledby="suggestTitle">
+    <form method="dialog" id="suggestForm">
+      <h2 id="suggestTitle">Suggest a flow with Gemini</h2>
+      <p class="hint">Gemini orders the selected assets (the current steps, or up to 12) and drafts a talk track for each. Nothing is saved until you click Save flow.</p>
+      <label>Goal / audience<textarea name="goal" rows="3" maxlength="1000" placeholder="e.g. 30-minute discovery with an airline CMO about real-time personalisation"></textarea></label>
+      <label>Customer<input name="customer" maxlength="120"></label>
+      <div class="demo-flows-fields">
+        <label>Minutes<input name="minutes" type="number" min="5" max="180" step="5" value="30"></label>
+        <label>Model<select name="model"><option value="">Gemini Flash (fast)</option><option value="pro">Gemini Pro (thorough)</option></select></label>
+      </div>
+      <p id="suggestRationale" class="hint"></p>
+      <p id="suggestError" class="status error" role="alert"></p>
+      <div class="demo-flows-dialog-actions">
+        <button type="button" id="suggestCancel" class="dashboard-btn-outline">Cancel</button>
+        <button type="submit" id="suggestRun" class="dashboard-btn-primary">Suggest</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="presenter" class="demo-flows-presenter" hidden role="dialog" aria-modal="true" aria-labelledby="presenterTitle">
+    <header class="demo-flows-presenter-bar">
+      <strong id="presenterTitle"></strong>
+      <span id="presenterStep" class="dashboard-env-pill"></span>
+      <span id="presenterTimer" class="dashboard-env-pill" title="Elapsed on this step / total"></span>
+      <span class="demo-flows-spacer"></span>
+      <button type="button" id="presenterNotes" class="dashboard-btn-outline" aria-pressed="true">Talk track</button>
+      <button type="button" id="presenterPrev" class="dashboard-btn-outline">← Prev</button>
+      <button type="button" id="presenterNext" class="dashboard-btn-primary">Next →</button>
+      <button type="button" id="presenterFull" class="dashboard-btn-outline">Fullscreen</button>
+      <button type="button" id="presenterClose" class="dashboard-btn-outline">Close</button>
+    </header>
+    <div class="demo-flows-presenter-body">
+      <div class="demo-flows-stage">
+        <iframe id="presenterFrame" title="Demo step" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
+        <div id="presenterMissing" class="demo-flows-missing" hidden></div>
+      </div>
+      <aside id="presenterAside" class="demo-flows-notes">
+        <h3 id="presenterStepTitle"></h3>
+        <div id="presenterTalk" class="demo-flows-talk"></div>
+        <ol id="presenterOutline" class="demo-flows-outline"></ol>
+      </aside>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260903-demo-flows"></script>
+  <script src="demo-flows.js?v=20260903a"></script>
+</body>
+</html>
