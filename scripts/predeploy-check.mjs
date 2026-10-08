@@ -34,7 +34,7 @@ import { execSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluateDeployPolicy } from './predeploy-policy.mjs';
+import { evaluateDeployPolicy, hasDirtyTrackedFiles } from './predeploy-policy.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -103,7 +103,8 @@ const behind   = parseInt(git('rev-list --count HEAD..origin/main', '0'), 10) ||
 // .venv/, IDE scratch dirs) don't trigger a false dirty warning. We only
 // care about modifications/deletions to tracked files — that's what would
 // actually ship.
-const dirty    = git('status --porcelain --untracked-files=no', '').length > 0;
+// Build stamps from an earlier predeploy run in the same deploy are ignored.
+const dirty    = hasDirtyTrackedFiles(git('status --porcelain --untracked-files=no', ''));
 const untrackedDeployFiles = git('ls-files --others --exclude-standard -- web functions firebase.json', '').length > 0;
 const branch   = git('rev-parse --abbrev-ref HEAD', '');
 const shortSha = git('rev-parse --short HEAD', '');

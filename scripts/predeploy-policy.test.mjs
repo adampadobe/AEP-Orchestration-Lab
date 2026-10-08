@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluateDeployPolicy } from './predeploy-policy.mjs';
+import { evaluateDeployPolicy, hasDirtyTrackedFiles } from './predeploy-policy.mjs';
 
 const safeMain = {
   fetchedOrigin: true,
@@ -38,4 +38,12 @@ test('allows an isolated preview from a feature branch', () => {
 
 test('requires an explicit emergency override', () => {
   assert.equal(evaluateDeployPolicy({ ...safeMain, override: true, branch: 'detached', behind: 5 }).mode, 'emergency-override');
+});
+
+test('ignores only the build stamps written by an earlier predeploy run', () => {
+  assert.equal(hasDirtyTrackedFiles(''), false);
+  assert.equal(hasDirtyTrackedFiles(' M web/version.json\n M functions/version.json\n'), false);
+  assert.equal(hasDirtyTrackedFiles(' M web/version.json\n M web/index.html\n'), true);
+  assert.equal(hasDirtyTrackedFiles('M web/version.json\n M functions/version.json'), false);
+  assert.equal(hasDirtyTrackedFiles('D  functions/index.js'), true);
 });
