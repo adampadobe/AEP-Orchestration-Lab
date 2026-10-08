@@ -98,6 +98,7 @@ const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { registerProfileRoutes } = require('./profileRoutes');
 const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes');
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
+const { registerDemoAssetsRoutes } = require('./demoAssetsRoutes');
 const { registerCommerceRoutes } = require('./commerceRoutes');
 const { createCommerceService } = require('./commerceService');
 const { registerCommerceOptimizerRoutes } = require('./commerceOptimizerRoutes');
@@ -1163,6 +1164,18 @@ Object.assign(
     ADOBE_IMS_ORG,
     mcpApiKeyStore,
     audienceManagementService,
+  })
+);
+
+Object.assign(
+  exports,
+  registerDemoAssetsRoutes({
+    onRequest,
+    fnOpts: { region: REGION, invoker: 'public', timeoutSeconds: 120, memory: '1GiB' },
+    setCors,
+    verifyClaims: (req) => labUserSandboxStore.verifyIdTokenClaimsFromRequest(req),
+    service: lazyRequireMod('./demoAssetsService'),
+    callGemini: (...args) => require('./vertexClient').callGemini(...args),
   })
 );
 
