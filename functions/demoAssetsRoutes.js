@@ -10,7 +10,8 @@
  *   DELETE /api/demo-assets/:id                delete asset + versions
  *   POST   /api/demo-assets/:id/render-token   short-lived preview link
  *   GET    /api/demo-assets/:id/export         download rehydrated HTML
- *   GET    /api/demo-assets/render/:token      sandboxed render (token only)
+ *   GET    /api/demo-assets/render/:token      redirect to isolated renderer
+ *   GET    /render/:token                      sandboxed render (token only)
  *
  * Demo Studio (Vertex):
  *   GET    /api/demo-assets/:id/outline               section outline (?versionId=)
@@ -76,6 +77,13 @@ function registerDemoAssetsRoutes(deps) {
 
     if (parts[0] === 'render') {
       if (req.method !== 'GET') return res.status(405).send('Method not allowed');
+      res.set('Cache-Control', 'private, no-store');
+      if (parts.length !== 2) return res.status(404).send('Not found');
+      const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
+      if (path !== `/render/${encodeURIComponent(parts[1])}`) {
+        res.set('Location', service.buildRenderUrl(parts[1]));
+        return res.status(302).send('');
+      }
       try {
         const target = await service.resolveRenderTarget(parts[1]);
         const html = target.proposalId

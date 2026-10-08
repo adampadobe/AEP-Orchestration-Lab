@@ -897,7 +897,8 @@ describe('brandScraper demo build dispatch', () => {
   it('routes demo-build requests to the dedicated worker', () => {
     const path = require('node:path');
     const firebaseConfig = require(path.resolve(__dirname, '../../firebase.json'));
-    const rewrite = firebaseConfig.hosting.rewrites.find((row) => row.source === '/api/brand-scraper/demo-build');
+    const hosting = Array.isArray(firebaseConfig.hosting) ? firebaseConfig.hosting : [firebaseConfig.hosting];
+    const rewrite = hosting.flatMap((site) => site.rewrites || []).find((row) => row.source === '/api/brand-scraper/demo-build');
     assert.ok(rewrite, 'demo-build Hosting rewrite is required');
     assert.equal(rewrite.function.functionId, 'brandScraperDemoBuild');
   });

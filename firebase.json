@@ -27,7 +27,9 @@
       ]
     }
   ],
-  "hosting": {
+  "hosting": [
+    {
+    "target": "app",
     "public": "web",
     "predeploy": [
       "node scripts/predeploy-check.mjs"
@@ -38,6 +40,11 @@
       "**/node_modules/**"
     ],
     "redirects": [
+      {
+        "source": "/api/demo-assets/render/:token",
+        "destination": "https://aep-orchestration-lab-demo-render.web.app/render/:token",
+        "type": 302
+      },
       {
         "source": "/",
         "destination": "/profile-viewer/home-new.html",
@@ -1535,5 +1542,27 @@
         ]
       }
     ]
-  }
+    },
+    {
+      "target": "demo-render",
+      "public": "web/demo-render",
+      "predeploy": [
+        "node scripts/predeploy-check.mjs"
+      ],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/render/**",
+          "function": {
+            "functionId": "demoAssetsApi",
+            "region": "us-central1"
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -16,6 +16,7 @@ const admin = require('firebase-admin');
 const COLLECTION = 'demoAssets';
 const TOKEN_COLLECTION = 'demoAssetRenderTokens';
 const DEFAULT_BUCKET = 'aep-orchestration-lab-demo-assets';
+const DEMO_RENDER_ORIGIN = 'https://aep-orchestration-lab-demo-render.web.app';
 const PUBLIC_BUCKETS = new Set(['aep-orchestration-lab-brand-scrapes']);
 const MEDIA_MIN_BASE64_CHARS = 2048;
 const MAX_HTML_BYTES = 25 * 1024 * 1024;
@@ -540,9 +541,18 @@ async function loadRenderedHtml(id, opts = {}) {
   return { html: await rehydrateSkeleton(skeleton), asset: toPublicAsset(id, data) };
 }
 
+function buildRenderUrl(token, origin = DEMO_RENDER_ORIGIN) {
+  const parsed = new URL(origin);
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+    throw new DemoAssetsError(500, 'Demo render origin must be an HTTPS origin without a path');
+  }
+  return new URL(`/render/${encodeURIComponent(token)}`, parsed.origin).toString();
+}
+
 async function createRenderToken(id, user, opts = {}) {
   await getAssetDoc(id);
   const token = crypto.randomBytes(24).toString('base64url');
+  const url = buildRenderUrl(token);
   const expiresAt = new Date(Date.now() + RENDER_TOKEN_TTL_MS);
   const doc = {
     assetId: id,
@@ -552,7 +562,7 @@ async function createRenderToken(id, user, opts = {}) {
   if (opts.versionId) doc.versionId = cleanString(opts.versionId, 64);
   if (opts.proposalId) doc.proposalId = cleanString(opts.proposalId, 64);
   await getDb().collection(TOKEN_COLLECTION).doc(token).set(doc);
-  return { token, expiresAt: expiresAt.toISOString(), url: `/api/demo-assets/render/${token}` };
+  return { token, expiresAt: expiresAt.toISOString(), url };
 }
 
 /** Resolve a render token to { assetId, versionId?, proposalId? }. */
@@ -575,6 +585,7 @@ const RENDER_HEADERS = {
   'Content-Security-Policy': 'sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals',
   'Cache-Control': 'private, no-store',
   'Referrer-Policy': 'no-referrer',
+  'X-Robots-Tag': 'noindex, nofollow',
   'X-Content-Type-Options': 'nosniff',
 };
 
@@ -603,6 +614,7 @@ module.exports = {
   deleteAsset,
   loadRenderedHtml,
   createRenderToken,
+  buildRenderUrl,
   resolveRenderToken,
   resolveRenderTarget,
   loadSkeleton,
