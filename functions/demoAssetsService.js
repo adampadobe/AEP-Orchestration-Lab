@@ -418,26 +418,61 @@ async function findBySha(sha) {
   return snap.empty ? null : toPublicAsset(snap.docs[0].id, snap.docs[0].data());
 }
 
-/**
- * Store a dropped HTML file. Returns { asset, duplicate } — when the exact
- * file already exists and force is false, nothing is written.
- */
-async function createAsset({ html, filename, folderPath, force }, user, deps = {}) {
+function normaliseAssetFilename(filename) {
+  return cleanString(filename, 200).toLowerCase().normalize('NFKC')
+    .replace(/\.html?$/i, '')
+    .replace(/(?:(?:[\s_-]+(?:v(?:ersion)?[\s_-]*\d+(?:\.\d+)*|copy|final|updated|revised)|[\s_-]*\(\d+\)|[_-]\d+))+$/i, '')
+    .replace(/[\s_-]+/g, ' ').trim();
+}
+
+function findFilenameMatches(filename, assets) {
+  const name = normaliseAssetFilename(filename);
+  if (!name) return [];
+  const words = new Set(name.split(' '));
+  return assets.map((asset) => {
+    const existing = normaliseAssetFilename(asset.originalFilename);
+    if (!existing) return null;
+    const otherWords = new Set(existing.split(' '));
+    const shared = [...words].filter((word) => otherWords.has(word)).length;
+    const score = name === existing ? 1 : 2 * shared / (words.size + otherWords.size);
+    return score >= 0.85 ? { ...asset, filenameScore: score } : null;
+  }).filter(Boolean).sort((a, b) => b.filenameScore - a.filenameScore);
+}
+
+function prepareUpload(html) {
   if (typeof html !== 'string' || !html.trim()) throw new DemoAssetsError(400, 'html is required');
   const htmlBytes = Buffer.byteLength(html, 'utf8');
   if (htmlBytes > MAX_HTML_BYTES) throw new DemoAssetsError(413, `HTML exceeds ${MAX_HTML_BYTES / 1024 / 1024} MB`);
   if (!/<html[\s>]|<body[\s>]|<!doctype html/i.test(html)) throw new DemoAssetsError(400, 'File does not look like an HTML document');
+  const { skeleton, media } = extractMedia(html);
+  return {
+    skeleton, media, sha256: sha256Hex(html),
+    sizes: {
+      htmlBytes,
+      skeletonBytes: Buffer.byteLength(skeleton, 'utf8'),
+      mediaCount: media.length,
+      mediaBytes: media.reduce((n, m) => n + m.bytes.length, 0),
+    },
+  };
+}
 
-  const sha256 = sha256Hex(html);
+/**
+ * Store a dropped HTML file, or return a duplicate / version-candidate decision
+ * without writing. Force explicitly keeps the upload as a separate asset.
+ */
+async function createAsset({ html, filename, folderPath, force }, user, deps = {}) {
+  const { skeleton, media, sha256, sizes } = prepareUpload(html);
   if (!force) {
     const existing = await findBySha(sha256);
     if (existing) return { asset: existing, duplicate: true };
   }
 
-  const { skeleton, media } = extractMedia(html);
+  const assets = await listAssets();
+  const versionCandidates = force ? [] : findFilenameMatches(filename, assets);
+  if (versionCandidates.length) return { versionCandidates };
   const meta = extractMeta(skeleton);
   const simHash = computeSimHash(skeleton);
-  const similar = simHash ? findSimilarAssets(simHash, await listAssets()) : [];
+  const similar = simHash ? findSimilarAssets(simHash, assets) : [];
   const classification = await classifyAsset(meta, { filename, folderPath }, deps);
 
   const db = getDb();
@@ -453,12 +488,6 @@ async function createAsset({ html, filename, folderPath, force }, user, deps = {
 
   const now = admin.firestore.FieldValue.serverTimestamp();
   const createdBy = { uid: user.uid, email: user.email, name: user.name };
-  const sizes = {
-    htmlBytes,
-    skeletonBytes: Buffer.byteLength(skeleton, 'utf8'),
-    mediaCount: media.length,
-    mediaBytes: media.reduce((n, m) => n + m.bytes.length, 0),
-  };
   const doc = {
     title: classification.title,
     customer: classification.customer,
@@ -488,6 +517,11 @@ async function createAsset({ html, filename, folderPath, force }, user, deps = {
     skeletonPath: skeletonPath(ref.id, versionRef.id),
     mediaHashes: media.map((m) => m.hash),
     sha256,
+    sizes,
+    skeletonBytes: sizes.skeletonBytes,
+    originalFilename: doc.originalFilename,
+    folderPath: doc.folderPath,
+    source: 'upload',
     note: 'Original upload',
     createdBy,
     createdAt: now,
@@ -537,8 +571,14 @@ async function rehydrateSkeleton(skeleton) {
 }
 
 async function loadRenderedHtml(id, opts = {}) {
-  const { skeleton, data } = await loadSkeleton(id, opts.versionId);
-  return { html: await rehydrateSkeleton(skeleton), asset: toPublicAsset(id, data) };
+  const { skeleton, data, version } = await loadSkeleton(id, opts.versionId);
+  const asset = opts.versionId ? {
+    ...data,
+    originalFilename: version.originalFilename == null ? data.originalFilename : version.originalFilename,
+    folderPath: version.folderPath == null ? data.folderPath : version.folderPath,
+    sizes: version.sizes || data.sizes,
+  } : data;
+  return { html: await rehydrateSkeleton(skeleton), asset: toPublicAsset(id, asset) };
 }
 
 function buildRenderUrl(token, origin = DEMO_RENDER_ORIGIN) {
@@ -550,7 +590,12 @@ function buildRenderUrl(token, origin = DEMO_RENDER_ORIGIN) {
 }
 
 async function createRenderToken(id, user, opts = {}) {
-  await getAssetDoc(id);
+  const { ref, data } = await getAssetDoc(id);
+  const versionId = opts.versionId || data.currentVersionId;
+  if (!opts.proposalId) {
+    if (!/^[A-Za-z0-9_-]{6,64}$/.test(String(versionId || ''))) throw new DemoAssetsError(400, 'Invalid version id');
+    if (!(await ref.collection('versions').doc(versionId).get()).exists) throw new DemoAssetsError(404, 'Version not found');
+  }
   const token = crypto.randomBytes(24).toString('base64url');
   const url = buildRenderUrl(token);
   const expiresAt = new Date(Date.now() + RENDER_TOKEN_TTL_MS);
@@ -559,7 +604,7 @@ async function createRenderToken(id, user, opts = {}) {
     uid: user.uid,
     expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
   };
-  if (opts.versionId) doc.versionId = cleanString(opts.versionId, 64);
+  if (!opts.proposalId) doc.versionId = versionId;
   if (opts.proposalId) doc.proposalId = cleanString(opts.proposalId, 64);
   await getDb().collection(TOKEN_COLLECTION).doc(token).set(doc);
   return { token, expiresAt: expiresAt.toISOString(), url };
@@ -610,6 +655,9 @@ module.exports = {
   listAssets,
   getAsset,
   createAsset,
+  prepareUpload,
+  normaliseAssetFilename,
+  findFilenameMatches,
   updateAsset,
   deleteAsset,
   loadRenderedHtml,
@@ -638,6 +686,7 @@ module.exports = {
     getDb,
     getAssetDoc,
     loadMedia,
+    saveMedia,
     skeletonPath,
     toPublicAsset,
   },

@@ -54,3 +54,34 @@ Deletion removes the stored HTML, version history and library entry. Shared,
 content-addressed media remains because other assets may use it. Existing
 preview links can no longer load the deleted asset. Demo flows are retained;
 steps referencing it display a missing-asset message.
+
+## Uploading new versions
+
+Uploading a file with the same or a similar filename offers a confirmation
+before any new asset or version is saved. Matching ignores case, spaces,
+hyphens, underscores and common suffixes such as `v2`, `_3` and `(1)`. Similar
+wording can also suggest a match. Names are suggestions, never automatic merges:
+choose the matching asset, **Save as a new version**, **Keep as a separate
+asset**, or **Cancel upload**. Exact duplicate content still shows **Already in
+library** instead of creating an unnecessary revision.
+
+A confirmed new version keeps the existing library entry, classification and
+flow references. The previous HTML and embedded media remain available in
+**History** on the asset card. Each history entry shows its filename, date,
+author and current/archived state, with **Preview**, **Present** and **Export**.
+**Restore as current** copies an archived version forward into a new history
+entry; neither the old version nor the replaced current version is deleted.
+Flows pinned to a particular version keep using that version. Flows without a
+version pin follow the current version. Newly minted preview links are pinned
+to the selected version for their one-hour lifetime.
+
+Version uploads use `POST /api/demo-assets/:id/versions` with `html`, `filename`,
+optional `folderPath` and the confirmed `expectedVersionId`. Concurrent changes
+return 409 rather than replacing a version the user has not seen. History
+includes Studio edits and restores as well as uploads, and legacy original
+uploads need no migration. Names on legacy history entries may be unavailable;
+their HTML can still be previewed and restored.
+
+This feature requires both Hosting and a named `functions:demoAssetsApi`
+release after PR validation and merge. Do not overlap the named Functions
+release with the automated production Hosting deployment.

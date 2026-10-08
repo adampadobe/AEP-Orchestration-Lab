@@ -14,6 +14,9 @@
     conversationTypes: [],
     editingId: null,
     previewId: null,
+    previewVersionId: null,
+    historyId: null,
+    historyBusy: false,
     deletingIds: new Set(),
   };
 
@@ -212,6 +215,7 @@
     actions.appendChild(button('Present', null, function () { present(a.id); }));
     actions.appendChild(button(a.status === 'needs_review' ? 'Review' : 'Edit', null, function () { openEdit(a.id); }));
     actions.appendChild(button('Export', null, function () { exportAsset(a); }));
+    actions.appendChild(button('History', null, function () { return openHistory(a.id); }));
     var studio = el('a', 'dashboard-btn-outline', 'Studio');
     studio.href = 'demo-studio.html?asset=' + encodeURIComponent(a.id);
     studio.title = 'Review, edit or rebrand with Gemini';
@@ -332,20 +336,50 @@
     row.actions.textContent = '';
   }
 
-  async function uploadOne(it, row, force) {
+  function chooseUploadVersion(it, row, candidates) {
+    setRow(row, 'version', 'Is "' + it.file.name + '" a new version of an existing asset? The older version will be kept.');
+    var choices = el('div', 'demo-assets-version-choice');
+    var label = el('label', null, 'Existing asset ');
+    var select = el('select');
+    select.setAttribute('aria-label', 'Choose the asset to version');
+    candidates.forEach(function (a) {
+      var option = el('option', null, (a.title || a.originalFilename) + (a.customer ? ' · ' + a.customer : '') + ' — ' + a.originalFilename);
+      option.value = a.id;
+      select.appendChild(option);
+    });
+    select.value = candidates[0].id;
+    label.appendChild(select);
+    choices.appendChild(label);
+    row.actions.appendChild(choices);
+    return new Promise(function (resolve) {
+      choices.appendChild(button('Save as a new version', 'dashboard-btn-primary', function () {
+        resolve({ asset: candidates.find(function (a) { return a.id === select.value; }) });
+      }));
+      choices.appendChild(button('Keep as a separate asset', null, function () { resolve({ separate: true }); }));
+      choices.appendChild(button('Cancel upload', null, function () { resolve({ cancel: true }); }));
+      select.focus();
+    });
+  }
+
+  async function uploadOne(it, row, force, target) {
     if (it.file.size > MAX_BYTES) {
       setRow(row, 'error', 'Too large (' + formatBytes(it.file.size) + ', max 25 MB)');
       return;
     }
-    setRow(row, 'pending', force ? 'Uploading again…' : 'Uploading and classifying…');
+    setRow(row, 'pending', target ? 'Saving new version…' : force ? 'Uploading separately…' : 'Uploading and classifying…');
     try {
       var html = await it.file.text();
-      var data = await api('', {
+      var data = await api(target ? '/' + encodeURIComponent(target.id) + '/versions' : '', {
         method: 'POST',
-        body: { html: html, filename: it.file.name, folderPath: folderOf(it.path), force: !!force },
+        body: { html: html, filename: it.file.name, folderPath: folderOf(it.path), force: !!force, expectedVersionId: target ? target.currentVersionId : undefined },
       });
       var asset = data.asset;
       upsertAsset(asset);
+      if (target) {
+        setRow(row, 'ok', 'New version saved for "' + asset.title + '". Older versions are in History.');
+        row.actions.appendChild(button('History', null, function () { openHistory(asset.id); }));
+        return;
+      }
       var added = 'Added' + (asset.customer ? ' · ' + asset.customer : '') + (asset.conversationType ? ' · ' + asset.conversationType : '');
       var similar = (data.similar || [])[0];
       if (similar) {
@@ -357,6 +391,11 @@
       }
       row.actions.appendChild(button('Review', null, function () { openEdit(asset.id, { isNew: true }); }));
     } catch (e) {
+      if (e.status === 409 && e.data && e.data.versionCandidates && e.data.versionCandidates.length) {
+        var choice = await chooseUploadVersion(it, row, e.data.versionCandidates);
+        if (choice.cancel) { setRow(row, 'cancelled', 'Upload cancelled. Nothing was saved.'); return; }
+        return uploadOne(it, row, !!choice.separate, choice.asset);
+      }
       if (e.status === 409 && e.data && e.data.duplicate) {
         var existing = e.data.asset;
         setRow(row, 'duplicate', 'Already in library' + (existing && existing.title ? ': ' + existing.title : ''));
@@ -369,6 +408,9 @@
         return;
       }
       setRow(row, 'error', e.message);
+      row.actions.appendChild(button('Retry upload', null, function () {
+        uploadQueue = uploadQueue.then(function () { return uploadOne(it, row, false); });
+      }));
     }
   }
 
@@ -450,6 +492,7 @@
     try {
       await api('/' + encodeURIComponent(id), { method: 'DELETE' });
       removeAsset(id);
+      if (state.historyId === id) els.historyDialog.close();
       if (state.previewId === id) els.previewDialog.close();
       if (state.editingId === id) els.editDialog.close();
       setStatus('Deleted "' + label + '".');
@@ -472,33 +515,34 @@
 
   // ---- Preview / present / export ----
 
-  async function renderUrl(id) {
-    var data = await api('/' + encodeURIComponent(id) + '/render-token', { method: 'POST' });
+  async function renderUrl(id, versionId) {
+    var data = await api('/' + encodeURIComponent(id) + '/render-token', { method: 'POST', body: { versionId: versionId || undefined } });
     if (!data.url) {
       throw new Error('The isolated demo preview host is not configured. Please try again after the lab update.');
     }
     return data.url;
   }
 
-  async function openPreview(id) {
+  async function openPreview(id, versionId) {
     var a = state.assets.find(function (x) { return x.id === id; });
     state.previewId = id;
-    $('demoAssetsPreviewTitle').textContent = a ? (a.title || a.originalFilename) : 'Preview';
+    state.previewVersionId = versionId || null;
+    $('demoAssetsPreviewTitle').textContent = (a ? (a.title || a.originalFilename) : 'Preview') + (versionId ? ' · version ' + versionId.slice(0, 8) : '');
     els.previewFrame.src = 'about:blank';
     els.previewDialog.showModal();
     try {
-      els.previewFrame.src = await renderUrl(id);
+      els.previewFrame.src = await renderUrl(id, versionId);
     } catch (e) {
       els.previewDialog.close();
       setStatus(e.message, true);
     }
   }
 
-  async function present(id) {
+  async function present(id, versionId) {
     // Open the tab synchronously so popup blockers allow it, then navigate once the token arrives.
     var win = window.open('about:blank', '_blank');
     try {
-      var url = await renderUrl(id);
+      var url = await renderUrl(id, versionId);
       if (win) {
         win.opener = null;
         win.location.href = url;
@@ -511,21 +555,89 @@
     }
   }
 
-  async function exportAsset(a) {
+  async function exportAsset(a, versionId, filename) {
     try {
-      var res = await api('/' + encodeURIComponent(a.id) + '/export', { raw: true });
+      var res = await api('/' + encodeURIComponent(a.id) + '/export' + (versionId ? '?versionId=' + encodeURIComponent(versionId) : ''), { raw: true });
       if (!res.ok) throw new Error('Export failed (' + res.status + ')');
       var blob = await res.blob();
       var url = URL.createObjectURL(blob);
       var link = document.createElement('a');
       link.href = url;
-      link.download = a.originalFilename || ((a.title || 'demo-asset').replace(/[^\w.-]+/g, '-') + '.html');
+      link.download = filename || a.originalFilename || ((a.title || 'demo-asset').replace(/[^\w.-]+/g, '-') + '.html');
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
     } catch (e) {
       setStatus(e.message, true);
+    }
+  }
+
+  // ---- Version history ----
+
+  function historyStatus(message, error) {
+    els.historyStatus.textContent = message;
+    els.historyStatus.classList.toggle('error', !!error);
+  }
+
+  async function loadHistory(id) {
+    historyStatus('Loading versions...');
+    els.historyList.textContent = '';
+    try {
+      var data = await api('/' + encodeURIComponent(id) + '/versions');
+      if (state.historyId !== id) return;
+      if (!Array.isArray(data.versions)) throw new Error('Unable to read version history. Please reopen History to retry.');
+      data.versions.forEach(function (v) {
+        var item = el('li', 'demo-assets-history-item');
+        item.appendChild(el('strong', null, (v.current ? 'Current' : 'Archived') + ' · ' + (v.note || 'Version ' + v.id.slice(0, 8))));
+        item.appendChild(el('p', null, [v.originalFilename, formatDate(v.createdAt), v.createdBy && (v.createdBy.name || v.createdBy.email), 'ID ' + v.id.slice(0, 8)].filter(Boolean).join(' · ')));
+        var actions = el('div', 'demo-assets-history-actions');
+        actions.appendChild(button('Preview', null, function () { return openPreview(id, v.id); }));
+        actions.appendChild(button('Present', null, function () { present(id, v.id); }));
+        actions.appendChild(button('Export', null, function () {
+          var a = state.assets.find(function (asset) { return asset.id === id; });
+          if (a) exportAsset(a, v.id, v.originalFilename);
+        }));
+        if (!v.current) actions.appendChild(button('Restore as current', null, function () { return restoreVersion(id, v); }));
+        item.appendChild(actions);
+        els.historyList.appendChild(item);
+      });
+      historyStatus(data.versions.length ? '' : 'No versions found.');
+    } catch (e) {
+      if (state.historyId === id) historyStatus(e.message + ' Close and reopen History to retry.', true);
+    }
+  }
+
+  function openHistory(id) {
+    if (state.historyBusy) { setStatus('Wait for the current restore to finish before opening another history.'); return; }
+    var a = state.assets.find(function (asset) { return asset.id === id; });
+    state.historyId = id;
+    $('demoAssetsHistoryTitle').textContent = 'Version history · ' + (a ? a.title || a.originalFilename : 'Asset');
+    els.historyDialog.showModal();
+    return loadHistory(id);
+  }
+
+  async function restoreVersion(id, version) {
+    if (state.historyBusy) return;
+    if (!window.confirm('Restore "' + (version.note || version.id.slice(0, 8)) + '" as the current version? All existing versions will be kept. Flows using the current version will follow this change.')) return;
+    state.historyBusy = true;
+    var buttons = els.historyList.querySelectorAll('button');
+    buttons.forEach(function (b) { b.disabled = true; });
+    historyStatus('Restoring version...');
+    try {
+      var data = await api('/' + encodeURIComponent(id) + '/versions/' + encodeURIComponent(version.id) + '/restore', { method: 'POST', body: {} });
+      upsertAsset(data.asset);
+      if (state.historyId === id) {
+        await loadHistory(id);
+        if (!els.historyStatus.classList.contains('error')) historyStatus('Restored as a new current version. The full history is preserved.');
+      }
+      setStatus('Version restored. All earlier versions have been kept.');
+    } catch (e) {
+      if (state.historyId === id) historyStatus(e.message + ' Please retry.', true);
+      else setStatus(e.message + ' Please reopen History to retry.', true);
+    } finally {
+      state.historyBusy = false;
+      buttons.forEach(function (b) { b.disabled = false; });
     }
   }
 
@@ -581,12 +693,15 @@
 
     $('demoAssetsPreviewClose').addEventListener('click', function () { els.previewDialog.close(); });
     $('demoAssetsPreviewPresent').addEventListener('click', function () {
-      if (state.previewId) present(state.previewId);
+      if (state.previewId) present(state.previewId, state.previewVersionId);
     });
     els.previewDialog.addEventListener('close', function () {
       els.previewFrame.src = 'about:blank';
       state.previewId = null;
+      state.previewVersionId = null;
     });
+    $('demoAssetsHistoryClose').addEventListener('click', function () { els.historyDialog.close(); });
+    els.historyDialog.addEventListener('close', function () { state.historyId = null; });
   }
 
   function showGate(msg) {
@@ -615,6 +730,9 @@
       form: $('demoAssetsEditForm'),
       previewDialog: $('demoAssetsPreviewDialog'),
       previewFrame: $('demoAssetsPreviewFrame'),
+      historyDialog: $('demoAssetsHistoryDialog'),
+      historyList: $('demoAssetsHistoryList'),
+      historyStatus: $('demoAssetsHistoryStatus'),
     };
     bindUi();
 

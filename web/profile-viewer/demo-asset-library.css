@@ -107,6 +107,24 @@
 .demo-assets-card-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; }
 .demo-assets-card-actions button,
 .demo-assets-card-actions a { font-size: 0.82rem; padding: 0.3rem 0.7rem; text-decoration: none; }
+.demo-assets-upload-item[data-state="version"] { flex-wrap: wrap; }
+.demo-assets-upload-item[data-state="version"] .demo-assets-upload-actions { flex-basis: 100%; min-width: 0; }
+.demo-assets-upload-msg { min-width: 0; overflow-wrap: anywhere; }
+.demo-assets-version-choice { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.demo-assets-version-choice label { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; }
+.demo-assets-version-choice select {
+  max-width: 100%; min-width: 0; padding: 0.5rem; font: inherit;
+  color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 12px);
+}
+.demo-assets-version-choice button,
+.demo-assets-history-actions button,
+#demoAssetsHistoryClose { min-height: 44px; }
+.demo-assets-history-list { list-style: none; margin: 0; padding: 0; max-height: 55vh; overflow-y: auto; }
+.demo-assets-history-item { padding: 1rem 0; border-top: 1px solid var(--dash-border); overflow-wrap: anywhere; }
+.demo-assets-history-item p { margin: 0.35rem 0 0.75rem; color: var(--dash-text-secondary); }
+.demo-assets-history-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.demo-assets-history-actions button:disabled { opacity: 0.5; cursor: wait; }
 
 .demo-assets-dialog {
   border: 1px solid var(--dash-border);

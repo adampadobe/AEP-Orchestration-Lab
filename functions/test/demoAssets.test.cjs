@@ -34,7 +34,8 @@ function route(overrides = {}, claims = ADOBE, studio = {}) {
   });
   return async (method, url, body) => {
     const res = responseRecorder();
-    await demoAssetsApi.__handler({ method, originalUrl: url, headers: {}, body }, res);
+    const query = Object.fromEntries(new URL(url, 'https://lab.example').searchParams);
+    await demoAssetsApi.__handler({ method, originalUrl: url, headers: {}, body, query }, res);
     return res;
   };
 }
@@ -222,6 +223,43 @@ describe('demoAssetsApi route', () => {
     assert.equal(result.statusCode, 503);
     assert.equal(result.body.ok, false);
     assert.equal(result.body.error, 'Storage unavailable');
+  });
+
+  it('returns version candidates without claiming that an asset was created', async () => {
+    const call = route({ createAsset: async () => ({ versionCandidates: [{ id: 'assetAAA1', currentVersionId: 'versionAAA1' }] }) });
+    const response = await call('POST', '/api/demo-assets', { filename: 'ba-v2.html', html: '<html></html>' });
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.body.ok, false);
+    assert.equal(response.body.versionCandidates[0].id, 'assetAAA1');
+    assert.equal(response.body.asset, undefined);
+  });
+
+  it('requires Adobe authentication and forwards confirmed version uploads to Studio storage', async () => {
+    const body = { html: '<html>v2</html>', filename: 'ba-v2.html', expectedVersionId: 'versionAAA1' };
+    let calls = 0;
+    const studio = { uploadVersion: async (id, input, user) => {
+      calls += 1;
+      assert.equal(id, 'assetAAA1');
+      assert.deepEqual(input, body);
+      assert.equal(user.email, ADOBE.email);
+      return { versionId: 'versionBBB2', asset: { id } };
+    } };
+    assert.equal((await route({}, null, studio)('POST', '/api/demo-assets/assetAAA1/versions', body)).statusCode, 401);
+    const response = await route({}, ADOBE, studio)('POST', '/api/demo-assets/assetAAA1/versions', body);
+    assert.equal(calls, 1);
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.versionId, 'versionBBB2');
+  });
+
+  it('exports the selected historical version rather than the current version', async () => {
+    const response = await route({ loadRenderedHtml: async (id, options) => {
+      assert.equal(id, 'assetAAA1');
+      assert.equal(options.versionId, 'versionAAA1');
+      return { html: '<html>old</html>', asset: { originalFilename: 'ba-v1.html' } };
+    } })('GET', '/api/demo-assets/assetAAA1/export?versionId=versionAAA1');
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body, '<html>old</html>');
+    assert.match(response.headers['Content-Disposition'], /ba-v1.html/);
   });
 
   it('renders by token without auth and with sandbox CSP', async () => {
