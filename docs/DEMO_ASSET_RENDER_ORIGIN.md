@@ -43,7 +43,9 @@ together.
 
 ## Deleting uploaded assets
 
-Use **Delete** on an asset card, or **Delete asset** in its Edit/Review dialog.
+Use the **bin icon** at the top-right of an asset card, or **Delete asset** in
+its Edit/Review dialog. The card uses the shared Spectrum Delete icon with a
+named accessible label and tooltip.
 Confirmation names the asset and warns that deletion cannot be undone. While
 the request is running, its Delete action is disabled; failures keep the card
 and display an error so the action can be retried.
