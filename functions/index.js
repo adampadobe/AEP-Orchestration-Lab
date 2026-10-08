@@ -1171,10 +1171,11 @@ Object.assign(
   exports,
   registerDemoAssetsRoutes({
     onRequest,
-    fnOpts: { region: REGION, invoker: 'public', timeoutSeconds: 120, memory: '1GiB' },
+    fnOpts: { region: REGION, invoker: 'public', timeoutSeconds: 300, memory: '1GiB' },
     setCors,
     verifyClaims: (req) => labUserSandboxStore.verifyIdTokenClaimsFromRequest(req),
     service: lazyRequireMod('./demoAssetsService'),
+    studio: lazyRequireMod('./demoStudioService'),
     callGemini: (...args) => require('./vertexClient').callGemini(...args),
   })
 );
