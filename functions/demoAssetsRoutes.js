@@ -16,6 +16,7 @@
  * Demo Studio (Vertex):
  *   GET    /api/demo-assets/:id/outline               section outline (?versionId=)
  *   GET    /api/demo-assets/:id/versions              version history
+ *   POST   /api/demo-assets/:id/versions              upload a confirmed revision { html, filename, folderPath, expectedVersionId }
  *   POST   /api/demo-assets/:id/versions/:vId/restore make an old version current
  *   POST   /api/demo-assets/:id/derive                duplicate for another customer
  *   POST   /api/demo-assets/:id/studio/chat           ask Gemini; returns a proposal
@@ -167,6 +168,10 @@ function registerDemoAssetsRoutes(deps) {
             force: body.force === true,
           }, user, { callGemini: gemini(user, 'classify') });
           if (result.duplicate) return res.status(409).json({ ok: false, duplicate: true, asset: result.asset, error: 'This exact file is already in the library.' });
+          if (result.versionCandidates) return res.status(409).json({
+            ok: false, versionCandidates: result.versionCandidates,
+            error: 'A similar filename is already in the library. Is this a new version or a separate asset?',
+          });
           await audit(user, 'asset.create', {
             assetId: result.asset.id,
             filename: result.asset.originalFilename,
@@ -214,6 +219,11 @@ function registerDemoAssetsRoutes(deps) {
       }
       if (action === 'versions') {
         if (!sub && req.method === 'GET') return res.json({ ok: true, versions: await studio.listVersions(id) });
+        if (!sub && req.method === 'POST') {
+          const out = await studio.uploadVersion(id, readBody(req), user);
+          await audit(user, 'asset.upload-version', { assetId: id, versionId: out.versionId });
+          return res.status(201).json({ ok: true, ...out });
+        }
         if (sub && subAction === 'restore' && req.method === 'POST') {
           const out = await studio.restoreVersion(id, sub, user);
           await audit(user, 'asset.restore', { assetId: id, fromVersionId: sub });

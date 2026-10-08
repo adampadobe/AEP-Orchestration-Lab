@@ -328,8 +328,13 @@ function iso(ts) {
   return ts && ts.toDate ? ts.toDate().toISOString() : ts || null;
 }
 
-async function createVersion(assetId, skeleton, user, { note, source, proposalId } = {}) {
-  const { ref } = await getAssetDoc(assetId);
+async function createVersion(assetId, skeleton, user, { note, source, proposalId, metadata, expectedVersionId } = {}) {
+  const { ref, data } = await getAssetDoc(assetId);
+  const expected = expectedVersionId || data.currentVersionId;
+  if (data.currentVersionId !== expected) throw new DemoAssetsError(409, 'The asset has changed. Reload its history before saving a new version.');
+  const content = metadata || base.prepareUpload(await base.rehydrateSkeleton(skeleton));
+  const originalFilename = metadata && metadata.originalFilename != null ? metadata.originalFilename : data.originalFilename || '';
+  const folderPath = metadata && metadata.folderPath != null ? metadata.folderPath : data.folderPath || '';
   const versionRef = ref.collection('versions').doc();
   const path = skeletonPath(assetId, versionRef.id);
   await getBucket().file(path).save(skeleton, {
@@ -340,33 +345,58 @@ async function createVersion(assetId, skeleton, user, { note, source, proposalId
   const now = admin.firestore.FieldValue.serverTimestamp();
   const createdBy = { uid: user.uid, email: user.email, name: user.name };
   const meta = extractMeta(skeleton);
-  const batch = getDb().batch();
-  batch.set(versionRef, {
+  const version = {
     skeletonPath: path,
     mediaHashes: mediaHashesIn(skeleton),
-    sha256: sha256Hex(skeleton),
+    sha256: content.sha256,
+    sizes: content.sizes,
+    originalFilename,
+    folderPath,
     skeletonBytes: Buffer.byteLength(skeleton, 'utf8'),
     note: cleanString(note, 300) || 'Edited in Demo Studio',
     source: cleanString(source, 40) || 'studio',
     proposalId: proposalId || null,
     createdBy,
     createdAt: now,
-  });
-  batch.update(ref, {
-    currentVersionId: versionRef.id,
-    'sizes.skeletonBytes': Buffer.byteLength(skeleton, 'utf8'),
-    outline: { title: meta.title, headings: meta.headings.slice(0, 20), textLength: meta.textLength },
-    simHash: base.computeSimHash(skeleton),
-    updatedAt: now,
-    updatedBy: { uid: user.uid, email: user.email },
-  });
-  await batch.commit();
+  };
+  try {
+    await getDb().runTransaction(async (tx) => {
+      const latest = await tx.get(ref);
+      if (!latest.exists) throw new DemoAssetsError(404, 'Asset not found');
+      if (latest.data().currentVersionId !== expected) throw new DemoAssetsError(409, 'The asset has changed. Reload its history before saving a new version.');
+      const previousRef = ref.collection('versions').doc(expected);
+      const previous = await tx.get(previousRef);
+      if (!previous.exists) throw new DemoAssetsError(500, 'Current version is missing');
+      if (previous.data().originalFilename == null) {
+        tx.update(previousRef, { originalFilename: latest.data().originalFilename || '', folderPath: latest.data().folderPath || '' });
+      }
+      tx.set(versionRef, version);
+      tx.update(ref, {
+        currentVersionId: versionRef.id,
+        originalFilename,
+        folderPath,
+        sha256: content.sha256,
+        sizes: content.sizes,
+        outline: { title: meta.title, headings: meta.headings.slice(0, 20), textLength: meta.textLength },
+        simHash: base.computeSimHash(skeleton),
+        updatedAt: now,
+        updatedBy: { uid: user.uid, email: user.email },
+      });
+    });
+  } catch (error) {
+    try {
+      await getBucket().file(path).delete();
+    } catch (cleanupError) {
+      console.error('[demoAssets] Failed to remove an uncommitted version', { assetId, versionId: versionRef.id, error: cleanupError.message });
+    }
+    throw error;
+  }
   return { versionId: versionRef.id };
 }
 
 async function listVersions(assetId) {
   const { ref, data } = await getAssetDoc(assetId);
-  const snap = await ref.collection('versions').orderBy('createdAt', 'desc').limit(100).get();
+  const snap = await ref.collection('versions').orderBy('createdAt', 'desc').get();
   return snap.docs.map((d) => {
     const v = d.data();
     return {
@@ -376,6 +406,7 @@ async function listVersions(assetId) {
       source: v.source || (v.note === 'Original upload' ? 'upload' : ''),
       proposalId: v.proposalId || null,
       skeletonBytes: v.skeletonBytes || null,
+      originalFilename: v.originalFilename || '',
       createdBy: v.createdBy ? { email: v.createdBy.email, name: v.createdBy.name } : null,
       createdAt: iso(v.createdAt),
     };
@@ -384,8 +415,34 @@ async function listVersions(assetId) {
 
 /** Restore = copy an old version forward as a new version (history stays linear). */
 async function restoreVersion(assetId, versionId, user) {
-  const { skeleton, versionId: vId } = await base.loadSkeleton(assetId, versionId);
-  const out = await createVersion(assetId, skeleton, user, { note: `Restored from version ${vId.slice(0, 8)}`, source: 'restore' });
+  const { skeleton, versionId: vId, version, data } = await base.loadSkeleton(assetId, versionId);
+  const content = base.prepareUpload(await base.rehydrateSkeleton(skeleton));
+  const out = await createVersion(assetId, skeleton, user, {
+    note: `Restored from version ${vId.slice(0, 8)}`, source: 'restore',
+    expectedVersionId: data.currentVersionId,
+    metadata: {
+      ...content,
+      originalFilename: version.originalFilename == null ? data.originalFilename || '' : version.originalFilename,
+      folderPath: version.folderPath == null ? data.folderPath || '' : version.folderPath,
+    },
+  });
+  return { ...out, asset: await base.getAsset(assetId) };
+}
+
+async function uploadVersion(assetId, body, user) {
+  const { data } = await getAssetDoc(assetId);
+  if (!body || !body.expectedVersionId) throw new DemoAssetsError(400, 'expectedVersionId is required');
+  if (body.expectedVersionId !== data.currentVersionId) throw new DemoAssetsError(409, 'The asset has changed. Reload its history before saving a new version.');
+  const content = base.prepareUpload(body.html);
+  if (content.sha256 === data.sha256) throw new DemoAssetsError(409, 'This file is already the current version. No new version was saved.');
+  const originalFilename = cleanString(body.filename, 200);
+  if (!originalFilename) throw new DemoAssetsError(400, 'filename is required');
+  await base._internal.saveMedia(getBucket(), content.media);
+  const out = await createVersion(assetId, content.skeleton, user, {
+    source: 'upload', note: `Uploaded ${originalFilename}`,
+    expectedVersionId: body.expectedVersionId,
+    metadata: { ...content, originalFilename, folderPath: cleanString(body.folderPath, 300) },
+  });
   return { ...out, asset: await base.getAsset(assetId) };
 }
 
@@ -393,7 +450,8 @@ async function restoreVersion(assetId, versionId, user) {
 async function deriveAsset(assetId, body, user) {
   const customer = cleanString(body && body.customer, 120);
   if (!customer) throw new DemoAssetsError(400, 'customer is required');
-  const { skeleton, versionId, data } = await base.loadSkeleton(assetId, body && body.versionId);
+  const { skeleton, versionId, data, version } = await base.loadSkeleton(assetId, body && body.versionId);
+  const content = base.prepareUpload(await base.rehydrateSkeleton(skeleton));
   const db = getDb();
   const ref = db.collection(COLLECTION).doc();
   const versionRef = ref.collection('versions').doc();
@@ -416,11 +474,11 @@ async function deriveAsset(assetId, body, user) {
     summary: data.summary || '',
     notes: '',
     status: 'draft',
-    originalFilename: data.originalFilename || '',
+    originalFilename: version.originalFilename == null ? data.originalFilename || '' : version.originalFilename,
     folderPath: '',
     sha256: '',
     simHash: data.simHash || base.computeSimHash(skeleton),
-    sizes: { ...(data.sizes || {}), skeletonBytes: Buffer.byteLength(skeleton, 'utf8') },
+    sizes: content.sizes,
     outline: data.outline || null,
     classification: { source: 'derived', error: null },
     currentVersionId: versionRef.id,
@@ -434,7 +492,10 @@ async function deriveAsset(assetId, body, user) {
   batch.set(versionRef, {
     skeletonPath: path,
     mediaHashes: mediaHashesIn(skeleton),
-    sha256: sha256Hex(skeleton),
+    sha256: content.sha256,
+    sizes: content.sizes,
+    originalFilename: doc.originalFilename,
+    folderPath: '',
     skeletonBytes: Buffer.byteLength(skeleton, 'utf8'),
     note: `Derived from "${cleanString(data.title, 120)}"`,
     source: 'derive',
@@ -645,7 +706,7 @@ async function applyProposal(assetId, body, user) {
   const html = await proposalSkeleton(assetId, p);
   const note = cleanString(body && body.note, 300)
     || (p.intent === 'rebrand' ? `Rebranded for ${p.targetCustomer}` : `Studio ${p.intent} (${p.ops.length} change${p.ops.length === 1 ? '' : 's'})`);
-  const out = await createVersion(assetId, html, user, { note, source: `studio-${p.intent}`, proposalId: ref.id });
+  const out = await createVersion(assetId, html, user, { note, source: `studio-${p.intent}`, proposalId: ref.id, expectedVersionId: p.baseVersionId });
   await ref.update({ status: 'applied', appliedVersionId: out.versionId, appliedAt: admin.firestore.FieldValue.serverTimestamp() });
   return { ...out, asset: await base.getAsset(assetId) };
 }
@@ -677,6 +738,7 @@ module.exports = {
   createVersion,
   listVersions,
   restoreVersion,
+  uploadVersion,
   deriveAsset,
   studioChat,
   getConversation,
