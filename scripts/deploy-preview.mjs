@@ -12,7 +12,7 @@ if (!channel) {
 
 const result = spawnSync(
   'npx',
-  ['-y', 'firebase-tools@latest', 'hosting:channel:deploy', channel, '--expires', '7d', '--project', 'aep-orchestration-lab'],
+  ['-y', 'firebase-tools@latest', 'hosting:channel:deploy', channel, '--only', 'app,demo-render', '--expires', '7d', '--project', 'aep-orchestration-lab'],
   {
     stdio: 'inherit',
     env: { ...process.env, AEP_DEPLOY_MODE: 'preview' },

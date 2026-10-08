@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "aep-orchestration-lab"
-  }
+  },
+  "targets": {
+    "aep-orchestration-lab": {
+      "hosting": {
+        "app": [
+          "aep-orchestration-lab"
+        ],
+        "demo-render": [
+          "aep-orchestration-lab-demo-render"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

@@ -234,7 +234,10 @@
 
   async function renderUrl(opts) {
     var data = await api('/render-token', { method: 'POST', body: opts || {} });
-    return data.url || (API + '/render/' + encodeURIComponent(data.token));
+    if (!data.url) {
+      throw new Error('The isolated demo preview host is not configured. Please try again after the lab update.');
+    }
+    return data.url;
   }
 
   function setView(view) {

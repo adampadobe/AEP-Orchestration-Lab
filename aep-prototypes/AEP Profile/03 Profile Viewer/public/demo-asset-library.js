@@ -14,6 +14,7 @@
     conversationTypes: [],
     editingId: null,
     previewId: null,
+    deletingIds: new Set(),
   };
 
   function $(id) { return document.getElementById(id); }
@@ -206,6 +207,11 @@
     addFlow.href = 'demo-flows.html?add=' + encodeURIComponent(a.id);
     addFlow.title = 'Add this asset to a demo flow';
     actions.appendChild(addFlow);
+    var deleting = state.deletingIds.has(a.id);
+    var remove = button(deleting ? 'Deleting...' : 'Delete', 'dashboard-btn-outline demo-assets-danger', function () { return deleteAsset(a.id); });
+    remove.setAttribute('aria-label', 'Delete ' + (a.title || a.originalFilename || 'asset'));
+    remove.disabled = deleting;
+    actions.appendChild(remove);
     card.appendChild(actions);
     return card;
   }
@@ -392,7 +398,7 @@
   async function saveEdit(ev) {
     ev.preventDefault();
     var id = state.editingId;
-    if (!id) return;
+    if (!id || state.deletingIds.has(id)) return;
     var f = els.form.elements;
     var patch = {
       title: f.title.value.trim(),
@@ -420,17 +426,39 @@
   }
 
   async function deleteAsset(id) {
+    if (state.deletingIds.has(id)) return false;
     var a = state.assets.find(function (x) { return x.id === id; });
     var label = a ? (a.title || a.originalFilename) : 'this asset';
-    if (!window.confirm('Delete "' + label + '" from the library? This cannot be undone.')) return false;
+    if (!window.confirm('Delete "' + label + '" and its version history? Demo flows using it will show a missing asset. This cannot be undone.')) return false;
+    state.deletingIds.add(id);
+    render();
+    var editing = state.editingId === id;
+    if (editing) {
+      $('demoAssetsEditDelete').disabled = true;
+      $('demoAssetsEditSave').disabled = true;
+      $('demoAssetsEditError').textContent = '';
+    }
+    setStatus('Deleting "' + label + '"...');
     try {
       await api('/' + encodeURIComponent(id), { method: 'DELETE' });
       removeAsset(id);
+      if (state.previewId === id) els.previewDialog.close();
+      if (state.editingId === id) els.editDialog.close();
+      setStatus('Deleted "' + label + '".');
+      els.search.focus();
       return true;
     } catch (e) {
-      setStatus(e.message, true);
-      $('demoAssetsEditError').textContent = e.message;
+      var message = 'Could not delete "' + label + '": ' + e.message + '. Try again.';
+      setStatus(message, true);
+      if (editing) $('demoAssetsEditError').textContent = message;
       return false;
+    } finally {
+      state.deletingIds.delete(id);
+      if (editing) {
+        $('demoAssetsEditDelete').disabled = false;
+        $('demoAssetsEditSave').disabled = false;
+      }
+      render();
     }
   }
 
@@ -438,7 +466,10 @@
 
   async function renderUrl(id) {
     var data = await api('/' + encodeURIComponent(id) + '/render-token', { method: 'POST' });
-    return data.url || (API + '/render/' + encodeURIComponent(data.token));
+    if (!data.url) {
+      throw new Error('The isolated demo preview host is not configured. Please try again after the lab update.');
+    }
+    return data.url;
   }
 
   async function openPreview(id) {

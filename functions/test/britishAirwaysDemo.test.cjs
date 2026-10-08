@@ -54,15 +54,14 @@ test('British Airways snapshot is static, locally imaged, and AJO-addressable', 
   assert.ok(imageSources.length > 5);
   assert.ok(imageSources.every((source) => source.startsWith('assets/')));
   assert.equal((html.match(/id="TopRibbon"/g) || []).length, 1);
-  // #251 moved the hero onto the shared decisioning Edge mount (was data-hero-mount).
-  assert.equal((html.match(/data-decisioning-edge-mount=/g) || []).length, 1);
-  assert.match(html, /<section\b[^>]*\bid="hero-banner"[^>]*\bdata-decisioning-edge-mount="1"/);
+  assert.equal((html.match(/\bdata-hero-mount(?=[\s>])/g) || []).length, 1);
+  assert.match(html, /<section\b[^>]*\bid="heroBanner"[^>]*\bdata-hero-mount/);
   assert.match(html, /id="[^"]*ContentCardContainer"/);
   assert.ok((html.match(/data-ajo-insert-section=/g) || []).length > 5);
 
   const headerAt = html.indexOf('id="header"');
   const ribbonAt = html.indexOf('id="TopRibbon"');
-  const heroAt = html.indexOf('id="hero-banner"');
+  const heroAt = html.indexOf('id="heroBanner"');
   assert.ok(headerAt >= 0 && headerAt < ribbonAt && ribbonAt < heroAt);
 
   const localRefs = [...html.matchAll(/<(?:img|link|script)\b[^>]*(?:src|href)="(assets\/[^"]+)"[^>]*>/gi)]
