@@ -198,6 +198,10 @@
     actions.appendChild(button('Present', null, function () { present(a.id); }));
     actions.appendChild(button(a.status === 'needs_review' ? 'Review' : 'Edit', null, function () { openEdit(a.id); }));
     actions.appendChild(button('Export', null, function () { exportAsset(a); }));
+    var studio = el('a', 'dashboard-btn-outline', 'Studio');
+    studio.href = 'demo-studio.html?asset=' + encodeURIComponent(a.id);
+    studio.title = 'Review, edit or rebrand with Gemini';
+    actions.appendChild(studio);
     card.appendChild(actions);
     return card;
   }

@@ -86,7 +86,8 @@
 }
 .demo-assets-card-foot { font-size: 0.76rem; color: var(--dash-muted); }
 .demo-assets-card-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; }
-.demo-assets-card-actions button { font-size: 0.82rem; padding: 0.3rem 0.7rem; }
+.demo-assets-card-actions button,
+.demo-assets-card-actions a { font-size: 0.82rem; padding: 0.3rem 0.7rem; text-decoration: none; }
 
 .demo-assets-dialog {
   border: 1px solid var(--dash-border);

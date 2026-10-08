@@ -17,7 +17,7 @@ function responseRecorder() {
 
 const ADOBE = { uid: 'u1', email: 'alan@adobe.com', name: 'Alan', isAnonymous: false };
 
-function route(overrides = {}, claims = ADOBE) {
+function route(overrides = {}, claims = ADOBE, studio = {}) {
   const svc = { ...service, ...overrides };
   const { demoAssetsApi } = registerDemoAssetsRoutes({
     onRequest: (_opts, handler) => ({ __handler: handler }),
@@ -25,6 +25,7 @@ function route(overrides = {}, claims = ADOBE) {
     setCors: () => {},
     verifyClaims: async () => claims,
     service: svc,
+    studio,
     callGemini: null,
   });
   return async (method, url, body) => {
@@ -105,6 +106,36 @@ describe('demoAssetsApi route', () => {
   it('parses paths behind the hosting rewrite', () => {
     assert.deepEqual(parseRoute({ originalUrl: '/api/demo-assets/abc/render-token?x=1' }), ['abc', 'render-token']);
     assert.deepEqual(parseRoute({ originalUrl: '/api/demo-assets/' }), []);
+    assert.deepEqual(parseRoute({ originalUrl: '/demoAssetsApi/abc/studio/chat' }), ['abc', 'studio', 'chat']);
+    assert.deepEqual(parseRoute({ originalUrl: '/api/demo-assets/abc/versions/v1/restore' }), ['abc', 'versions', 'v1', 'restore']);
+  });
+
+  it('renders proposals through the studio service', async () => {
+    const res = await route({
+      resolveRenderTarget: async () => ({ assetId: 'a1', proposalId: 'p1' }),
+    }, null, { loadProposalRenderedHtml: async (a, p) => `<p>${a}:${p}</p>` })('GET', '/api/demo-assets/render/tok');
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body, '<p>a1:p1</p>');
+  });
+
+  it('checks proposal ownership before minting a preview token', async () => {
+    const res = await route({ createRenderToken: async () => ({ token: 'x' }) }, ADOBE, {
+      loadProposal: async () => { const e = new Error('Not your proposal'); e.status = 403; throw e; },
+    })('POST', '/api/demo-assets/a1/render-token', { proposalId: 'p1' });
+    assert.equal(res.statusCode, 403);
+  });
+
+  it('routes studio chat, apply and restore', async () => {
+    const studio = {
+      studioChat: async (id, body) => ({ reply: `${id}:${body.message}` }),
+      applyProposal: async (_id, body) => ({ versionId: `v-${body.proposalId}` }),
+      restoreVersion: async (_id, vId) => ({ versionId: `r-${vId}` }),
+    };
+    const call = route({}, ADOBE, studio);
+    assert.equal((await call('POST', '/demoAssetsApi/a1/studio/chat', { message: 'hi' })).body.reply, 'a1:hi');
+    assert.equal((await call('POST', '/api/demo-assets/a1/studio/apply', { proposalId: 'p1' })).body.versionId, 'v-p1');
+    assert.equal((await call('POST', '/api/demo-assets/a1/versions/v9/restore')).body.versionId, 'r-v9');
+    assert.equal((await call('GET', '/api/demo-assets/a1/studio/nope')).statusCode, 404);
   });
 
   it('returns 401 without a signed-in user', async () => {
@@ -139,7 +170,7 @@ describe('demoAssetsApi route', () => {
 
   it('renders by token without auth and with sandbox CSP', async () => {
     const res = await route({
-      resolveRenderToken: async (t) => { assert.equal(t, 'tok'); return 'a1'; },
+      resolveRenderTarget: async (t) => { assert.equal(t, 'tok'); return { assetId: 'a1' }; },
       loadRenderedHtml: async () => ({ html: '<p>hi</p>' }),
     }, null)('GET', '/api/demo-assets/render/tok');
     assert.equal(res.statusCode, 200);

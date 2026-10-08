@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Studio – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="demo-studio.css?v=20260902a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="demo-studio-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Review and adapt demo assets with Gemini">Demo Studio</span>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main demo-studio-main app-page">
+        <section id="studioGate" class="panel demo-studio-gate" hidden>
+          <h2>Demo Studio</h2>
+          <p id="studioGateMsg">Sign in with your Adobe lab account on <a href="home.html">Home</a> to use Demo Studio.</p>
+        </section>
+
+        <div id="studioApp" hidden>
+          <header class="panel demo-studio-header">
+            <div class="demo-studio-header-text">
+              <a href="demo-asset-library.html" class="demo-studio-back">← Demo asset library</a>
+              <h2 id="studioTitle">Loading…</h2>
+              <div id="studioMeta" class="demo-studio-meta"></div>
+            </div>
+            <div class="demo-studio-header-actions">
+              <button type="button" id="studioPresent" class="dashboard-btn-outline">Present</button>
+              <button type="button" id="studioDerive" class="dashboard-btn-primary">Duplicate for another customer</button>
+            </div>
+          </header>
+
+          <div class="demo-studio-layout">
+            <section class="panel demo-studio-chat" aria-labelledby="studioChatHeading">
+              <h3 id="studioChatHeading" class="visually-hidden">Conversation</h3>
+              <div id="studioMessages" class="demo-studio-messages" aria-live="polite">
+                <div class="demo-studio-empty">
+                  <p><strong>Ask Gemini about this demo.</strong></p>
+                  <p class="hint"><strong>Review</strong> critiques the story; <strong>Edit</strong> makes exact changes; <strong>Rebrand</strong> adapts it for another customer. Every change is a proposal you preview before applying.</p>
+                </div>
+              </div>
+              <div id="studioChips" class="demo-studio-chips"></div>
+              <form id="studioForm" class="demo-studio-composer">
+                <div class="demo-studio-composer-row">
+                  <div class="demo-studio-intents" role="radiogroup" aria-label="Intent">
+                    <label><input type="radio" name="intent" value="review" checked> Review</label>
+                    <label><input type="radio" name="intent" value="edit"> Edit</label>
+                    <label><input type="radio" name="intent" value="rebrand"> Rebrand</label>
+                  </div>
+                  <input id="studioTarget" type="text" maxlength="120" placeholder="Target customer" aria-label="Target customer" hidden>
+                  <select id="studioModel" aria-label="Model">
+                    <option value="">Auto model</option>
+                    <option value="flash">Gemini Flash (fast)</option>
+                    <option value="pro">Gemini Pro (thorough)</option>
+                  </select>
+                </div>
+                <textarea id="studioInput" rows="3" maxlength="4000" placeholder="e.g. Review this as a conversation starter for a retail CMO" aria-label="Message"></textarea>
+                <div class="demo-studio-composer-row">
+                  <span id="studioStatus" class="status" role="status"></span>
+                  <span class="demo-studio-spacer"></span>
+                  <button type="button" id="studioNewChat" class="dashboard-btn-outline">New chat</button>
+                  <button type="button" id="studioStop" class="dashboard-btn-outline" hidden>Stop</button>
+                  <button type="submit" id="studioSend" class="dashboard-btn-primary">Send</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel demo-studio-preview" aria-labelledby="studioPreviewHeading">
+              <header class="demo-studio-preview-header">
+                <h3 id="studioPreviewHeading">Preview</h3>
+                <div class="demo-studio-tabs" role="tablist">
+                  <button type="button" role="tab" id="studioTabCurrent" aria-selected="true">Current</button>
+                  <button type="button" role="tab" id="studioTabProposed" aria-selected="false" disabled>Proposed</button>
+                  <button type="button" role="tab" id="studioTabSplit" aria-selected="false" disabled>Side by side</button>
+                </div>
+              </header>
+              <div id="studioProposalBar" class="demo-studio-proposal" hidden>
+                <span id="studioProposalText"></span>
+                <span class="demo-studio-spacer"></span>
+                <button type="button" id="studioDiscard" class="dashboard-btn-outline">Discard</button>
+                <button type="button" id="studioApply" class="dashboard-btn-primary">Apply as new version</button>
+              </div>
+              <div id="studioFrames" class="demo-studio-frames" data-view="current">
+                <iframe id="studioFrameCurrent" title="Current version" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
+                <iframe id="studioFrameProposed" title="Proposed version" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
+              </div>
+              <details class="demo-studio-versions" id="studioVersionsBox">
+                <summary>Version history <span id="studioVersionCount" class="dashboard-env-pill">0</span></summary>
+                <ol id="studioVersions"></ol>
+              </details>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="studioDeriveDialog" class="demo-studio-dialog" aria-labelledby="studioDeriveTitle">
+    <form method="dialog" id="studioDeriveForm">
+      <h2 id="studioDeriveTitle">Duplicate for another customer</h2>
+      <p class="hint">Creates a new asset from the current version. You can then rebrand it here.</p>
+      <label>Customer<input name="customer" required maxlength="120"></label>
+      <label>Industry <span class="hint">(optional)</span><input name="industry" maxlength="80"></label>
+      <p id="studioDeriveError" class="status error" role="alert"></p>
+      <div class="demo-studio-dialog-actions">
+        <button type="button" id="studioDeriveCancel" class="dashboard-btn-outline">Cancel</button>
+        <button type="submit" class="dashboard-btn-primary">Duplicate and open</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260902-demo-studio"></script>
+  <script src="demo-studio.js?v=20260902a"></script>
+</body>
+</html>

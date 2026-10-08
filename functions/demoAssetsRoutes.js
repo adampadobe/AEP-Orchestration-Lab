@@ -11,6 +11,19 @@
  *   POST   /api/demo-assets/:id/render-token   short-lived preview link
  *   GET    /api/demo-assets/:id/export         download rehydrated HTML
  *   GET    /api/demo-assets/render/:token      sandboxed render (token only)
+ *
+ * Demo Studio (Vertex):
+ *   GET    /api/demo-assets/:id/outline               section outline (?versionId=)
+ *   GET    /api/demo-assets/:id/versions              version history
+ *   POST   /api/demo-assets/:id/versions/:vId/restore make an old version current
+ *   POST   /api/demo-assets/:id/derive                duplicate for another customer
+ *   POST   /api/demo-assets/:id/studio/chat           ask Gemini; returns a proposal
+ *   POST   /api/demo-assets/:id/studio/apply          apply a pending proposal
+ *   POST   /api/demo-assets/:id/studio/discard        discard a pending proposal
+ *   GET    /api/demo-assets/:id/studio/conversations/:cId
+ *
+ * Studio chat can exceed the 60s Hosting rewrite limit, so the browser calls
+ * it on the cloudfunctions.net URL (/demoAssetsApi/...). Both prefixes parse.
  */
 
 function errorStatus(error, fallback = 500) {
@@ -20,7 +33,9 @@ function errorStatus(error, fallback = 500) {
 
 function parseRoute(req) {
   const full = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
-  const rest = full.replace(/^.*?\/api\/demo-assets/, '');
+  const rest = /\/api\/demo-assets(\/|$)/.test(full)
+    ? full.replace(/^.*?\/api\/demo-assets/, '')
+    : full.replace(/^.*?\/demoAssetsApi/, '');
   const parts = rest.split('/').filter(Boolean).map((p) => decodeURIComponent(p));
   return parts;
 }
@@ -32,7 +47,7 @@ function readBody(req) {
 }
 
 function registerDemoAssetsRoutes(deps) {
-  const { onRequest, fnOpts, setCors, verifyClaims, service, callGemini } = deps;
+  const { onRequest, fnOpts, setCors, verifyClaims, service, studio, callGemini } = deps;
 
   async function requireUser(req) {
     const claims = await verifyClaims(req);
@@ -45,8 +60,10 @@ function registerDemoAssetsRoutes(deps) {
     if (parts[0] === 'render') {
       if (req.method !== 'GET') return res.status(405).send('Method not allowed');
       try {
-        const assetId = await service.resolveRenderToken(parts[1]);
-        const { html } = await service.loadRenderedHtml(assetId);
+        const target = await service.resolveRenderTarget(parts[1]);
+        const html = target.proposalId
+          ? await studio.loadProposalRenderedHtml(target.assetId, target.proposalId)
+          : (await service.loadRenderedHtml(target.assetId, { versionId: target.versionId })).html;
         res.set(service.RENDER_HEADERS);
         return res.status(200).send(html);
       } catch (e) {
@@ -67,7 +84,7 @@ function registerDemoAssetsRoutes(deps) {
     }
 
     try {
-      const [id, action] = parts;
+      const [id, action, sub, subAction] = parts;
       if (!id) {
         if (req.method === 'GET') {
           const assets = await service.listAssets();
@@ -95,14 +112,46 @@ function registerDemoAssetsRoutes(deps) {
       }
 
       if (action === 'render-token' && req.method === 'POST') {
-        return res.json({ ok: true, ...(await service.createRenderToken(id, user)) });
+        const body = readBody(req);
+        const versionId = typeof body.versionId === 'string' && body.versionId ? body.versionId : undefined;
+        const proposalId = typeof body.proposalId === 'string' && body.proposalId ? body.proposalId : undefined;
+        if (proposalId) await studio.loadProposal(id, proposalId, user);
+        return res.json({ ok: true, ...(await service.createRenderToken(id, user, { versionId, proposalId })) });
       }
       if (action === 'export' && req.method === 'GET') {
-        const { html, asset } = await service.loadRenderedHtml(id);
+        const versionId = typeof req.query?.versionId === 'string' && req.query.versionId ? req.query.versionId : undefined;
+        const { html, asset } = await service.loadRenderedHtml(id, { versionId });
         res.set('Content-Type', 'text/html; charset=utf-8');
         res.set('Content-Disposition', `attachment; filename="${service.safeDownloadName(asset)}"`);
         res.set('X-Content-Type-Options', 'nosniff');
         return res.status(200).send(html);
+      }
+      if (action === 'outline' && req.method === 'GET') {
+        const versionId = typeof req.query?.versionId === 'string' && req.query.versionId ? req.query.versionId : undefined;
+        return res.json({ ok: true, ...(await studio.getOutline(id, versionId)) });
+      }
+      if (action === 'versions') {
+        if (!sub && req.method === 'GET') return res.json({ ok: true, versions: await studio.listVersions(id) });
+        if (sub && subAction === 'restore' && req.method === 'POST') {
+          return res.json({ ok: true, ...(await studio.restoreVersion(id, sub, user)) });
+        }
+      }
+      if (action === 'derive' && req.method === 'POST') {
+        return res.status(201).json({ ok: true, ...(await studio.deriveAsset(id, readBody(req), user)) });
+      }
+      if (action === 'studio') {
+        if (sub === 'chat' && req.method === 'POST') {
+          return res.json({ ok: true, ...(await studio.studioChat(id, readBody(req), user, { callGemini })) });
+        }
+        if (sub === 'apply' && req.method === 'POST') {
+          return res.json({ ok: true, ...(await studio.applyProposal(id, readBody(req), user)) });
+        }
+        if (sub === 'discard' && req.method === 'POST') {
+          return res.json({ ok: true, proposal: await studio.discardProposal(id, readBody(req), user) });
+        }
+        if (sub === 'conversations' && subAction && req.method === 'GET') {
+          return res.json({ ok: true, conversation: await studio.getConversation(id, subAction, user) });
+        }
       }
       return res.status(404).json({ ok: false, error: 'Not found' });
     } catch (e) {

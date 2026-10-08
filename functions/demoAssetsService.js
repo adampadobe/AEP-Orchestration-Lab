@@ -460,36 +460,53 @@ async function deleteAsset(id) {
   return { ok: true, id };
 }
 
-async function loadRenderedHtml(id) {
+async function loadSkeleton(id, versionId) {
   const { ref, data } = await getAssetDoc(id);
-  const vSnap = await ref.collection('versions').doc(data.currentVersionId).get();
-  if (!vSnap.exists) throw new DemoAssetsError(500, 'Current version is missing');
-  const bucket = getBucket();
-  const [buf] = await bucket.file(vSnap.data().skeletonPath).download();
-  const skeleton = buf.toString('utf8');
-  const media = await loadMedia(bucket, mediaHashesIn(skeleton));
-  return { html: rehydrate(skeleton, media), asset: toPublicAsset(id, data) };
+  const vId = versionId || data.currentVersionId;
+  if (!/^[A-Za-z0-9_-]{6,64}$/.test(String(vId || ''))) throw new DemoAssetsError(400, 'Invalid version id');
+  const vSnap = await ref.collection('versions').doc(vId).get();
+  if (!vSnap.exists) throw new DemoAssetsError(versionId ? 404 : 500, versionId ? 'Version not found' : 'Current version is missing');
+  const [buf] = await getBucket().file(vSnap.data().skeletonPath).download();
+  return { skeleton: buf.toString('utf8'), versionId: vId, version: vSnap.data(), ref, data };
 }
 
-async function createRenderToken(id, user) {
+async function rehydrateSkeleton(skeleton) {
+  const media = await loadMedia(getBucket(), mediaHashesIn(skeleton));
+  return rehydrate(skeleton, media);
+}
+
+async function loadRenderedHtml(id, opts = {}) {
+  const { skeleton, data } = await loadSkeleton(id, opts.versionId);
+  return { html: await rehydrateSkeleton(skeleton), asset: toPublicAsset(id, data) };
+}
+
+async function createRenderToken(id, user, opts = {}) {
   await getAssetDoc(id);
   const token = crypto.randomBytes(24).toString('base64url');
   const expiresAt = new Date(Date.now() + RENDER_TOKEN_TTL_MS);
-  await getDb().collection(TOKEN_COLLECTION).doc(token).set({
+  const doc = {
     assetId: id,
     uid: user.uid,
     expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-  });
+  };
+  if (opts.versionId) doc.versionId = cleanString(opts.versionId, 64);
+  if (opts.proposalId) doc.proposalId = cleanString(opts.proposalId, 64);
+  await getDb().collection(TOKEN_COLLECTION).doc(token).set(doc);
   return { token, expiresAt: expiresAt.toISOString(), url: `/api/demo-assets/render/${token}` };
 }
 
-async function resolveRenderToken(token) {
+/** Resolve a render token to { assetId, versionId?, proposalId? }. */
+async function resolveRenderTarget(token) {
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(String(token || ''))) throw new DemoAssetsError(404, 'Not found');
   const snap = await getDb().collection(TOKEN_COLLECTION).doc(token).get();
   if (!snap.exists) throw new DemoAssetsError(404, 'Not found');
   const d = snap.data();
   if (!d.expiresAt || d.expiresAt.toMillis() < Date.now()) throw new DemoAssetsError(410, 'Preview link expired — reopen it from the library.');
-  return d.assetId;
+  return { assetId: d.assetId, versionId: d.versionId || null, proposalId: d.proposalId || null };
+}
+
+async function resolveRenderToken(token) {
+  return (await resolveRenderTarget(token)).assetId;
 }
 
 /** Headers that force the rendered asset into an opaque-origin sandbox. */
@@ -527,5 +544,25 @@ module.exports = {
   loadRenderedHtml,
   createRenderToken,
   resolveRenderToken,
+  resolveRenderTarget,
+  loadSkeleton,
+  rehydrateSkeleton,
   safeDownloadName,
+  // Shared with demoStudioService (same private bucket / collections).
+  _internal: {
+    COLLECTION,
+    TOKEN_COLLECTION,
+    MAX_HTML_BYTES,
+    RENDER_TOKEN_TTL_MS,
+    MEDIA_TOKEN_RE,
+    sha256Hex,
+    stripTags,
+    cleanString,
+    getBucket,
+    getDb,
+    getAssetDoc,
+    loadMedia,
+    skeletonPath,
+    toPublicAsset,
+  },
 };
