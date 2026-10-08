@@ -68,14 +68,19 @@ async function library({ confirm = true, remove = async () => ({ ok: true }) } =
   vm.runInNewContext(script, context);
   await new Promise((resolve) => setImmediate(resolve));
   const deleteButton = () => get('demoAssetsGrid').children[0].children
-    .find((child) => child.className === 'demo-assets-card-actions').children
-    .find((child) => child.attributes['aria-label'] === 'Delete BA channels');
+    .find((child) => child.className === 'demo-assets-card-heading').children
+    .find((child) => child.className === 'demo-assets-delete');
   return { get, deleteButton, requests, confirmations };
 }
 
 it('shows Delete on each card and cancellation sends no request', async () => {
   const app = await library({ confirm: false });
-  assert.equal(app.deleteButton().textContent, 'Delete');
+  assert.equal(app.deleteButton().textContent, '');
+  assert.equal(app.deleteButton().attributes['aria-label'], 'Delete BA channels');
+  assert.equal(app.deleteButton().children[0].className, 'demo-assets-delete-icon');
+  assert.equal(app.deleteButton().children[0].attributes['aria-hidden'], 'true');
+  const actions = app.get('demoAssetsGrid').children[0].children.find((child) => child.className === 'demo-assets-card-actions');
+  assert.ok(!actions.children.includes(app.deleteButton()));
   await app.deleteButton().listeners.click();
   assert.match(app.confirmations[0], /BA channels/);
   assert.match(app.confirmations[0], /cannot be undone/);
@@ -99,7 +104,8 @@ it('disables deletion while pending and prevents duplicate requests', async () =
   const pending = button.listeners.click();
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(app.deleteButton().disabled, true);
-  assert.equal(app.deleteButton().textContent, 'Deleting...');
+  assert.equal(app.deleteButton().attributes['aria-label'], 'Deleting BA channels');
+  assert.equal(app.deleteButton().attributes['aria-busy'], 'true');
   await button.listeners.click();
   assert.equal(app.requests.filter((request) => request.method === 'DELETE').length, 1);
   finish({ ok: true });

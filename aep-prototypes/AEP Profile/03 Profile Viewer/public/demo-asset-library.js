@@ -175,7 +175,20 @@
 
   function renderCard(a) {
     var card = el('article', 'demo-assets-card');
-    card.appendChild(el('h3', null, a.title || a.originalFilename || 'Untitled asset'));
+    var heading = el('div', 'demo-assets-card-heading');
+    heading.appendChild(el('h3', null, a.title || a.originalFilename || 'Untitled asset'));
+    var deleting = state.deletingIds.has(a.id);
+    var remove = button(null, 'demo-assets-delete', function () { return deleteAsset(a.id); });
+    var deleteLabel = (deleting ? 'Deleting ' : 'Delete ') + (a.title || a.originalFilename || 'asset');
+    remove.setAttribute('aria-label', deleteLabel);
+    remove.setAttribute('aria-busy', String(deleting));
+    remove.title = deleteLabel;
+    remove.disabled = deleting;
+    var bin = el('span', 'demo-assets-delete-icon');
+    bin.setAttribute('aria-hidden', 'true');
+    remove.appendChild(bin);
+    heading.appendChild(remove);
+    card.appendChild(heading);
 
     var meta = el('div', 'demo-assets-card-meta');
     if (a.customer) meta.appendChild(el('span', 'demo-assets-chip demo-assets-chip--customer', a.customer));
@@ -207,11 +220,6 @@
     addFlow.href = 'demo-flows.html?add=' + encodeURIComponent(a.id);
     addFlow.title = 'Add this asset to a demo flow';
     actions.appendChild(addFlow);
-    var deleting = state.deletingIds.has(a.id);
-    var remove = button(deleting ? 'Deleting...' : 'Delete', 'dashboard-btn-outline demo-assets-danger', function () { return deleteAsset(a.id); });
-    remove.setAttribute('aria-label', 'Delete ' + (a.title || a.originalFilename || 'asset'));
-    remove.disabled = deleting;
-    actions.appendChild(remove);
     card.appendChild(actions);
     return card;
   }
