@@ -1177,6 +1177,7 @@ Object.assign(
     service: lazyRequireMod('./demoAssetsService'),
     studio: lazyRequireMod('./demoStudioService'),
     flows: lazyRequireMod('./demoFlowsService'),
+    guard: lazyRequireMod('./demoAssetsGuardService'),
     callGemini: (...args) => require('./vertexClient').callGemini(...args),
   })
 );

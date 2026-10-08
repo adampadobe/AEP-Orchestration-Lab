@@ -332,7 +332,15 @@
       });
       var asset = data.asset;
       upsertAsset(asset);
-      setRow(row, 'ok', 'Added' + (asset.customer ? ' · ' + asset.customer : '') + (asset.conversationType ? ' · ' + asset.conversationType : ''));
+      var added = 'Added' + (asset.customer ? ' · ' + asset.customer : '') + (asset.conversationType ? ' · ' + asset.conversationType : '');
+      var similar = (data.similar || [])[0];
+      if (similar) {
+        setRow(row, 'similar', added + ' — looks like "' + (similar.title || 'an existing demo') + '"' +
+          (similar.customer ? ' (' + similar.customer + ')' : '') + ', ' + Math.round((similar.score || 0) * 100) + '% similar');
+        row.actions.appendChild(button('Compare', null, function () { openPreview(similar.id); }));
+      } else {
+        setRow(row, 'ok', added);
+      }
       row.actions.appendChild(button('Review', null, function () { openEdit(asset.id, { isNew: true }); }));
     } catch (e) {
       if (e.status === 409 && e.data && e.data.duplicate) {
