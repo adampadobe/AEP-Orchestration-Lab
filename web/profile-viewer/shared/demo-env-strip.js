@@ -230,6 +230,9 @@
 
   function siteCloneProfileBcPrefsMarkup(options) {
     var opt = options || {};
+    if (global.envBarConfig && global.envBarConfig.features && global.envBarConfig.features.bc === false) {
+      return opt.includeDecisioning ? decisioningPrefsFieldMarkup() : '';
+    }
     var bottomDockOption = opt.includeBottomDock
       ? '<label class="site-clone-bc-prefs__option">' +
         '<input type="checkbox" id="siteCloneBcBottomDockToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
@@ -648,10 +651,12 @@
     var shellCfg = c.shellConfig || readShellConfig(host);
     if (!shellCfg) return { mounted: false, reason: 'missing-shell-config' };
     if (shellCfg.variant === 'spectrum' && global.DemoEnvStripSpectrum && typeof global.DemoEnvStripSpectrum.mountSpectrumShell === 'function') {
-      return global.DemoEnvStripSpectrum.mountSpectrumShell(host, shellCfg, {
+      var result = global.DemoEnvStripSpectrum.mountSpectrumShell(host, shellCfg, {
         mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
         mountSiteCloneDecisioningPrefs: mountSiteCloneDecisioningPrefs,
       });
+      applyProductVisibility(host);
+      return result;
     }
     host.classList.add('aep-demo-id-inner');
     host.innerHTML = siteCloneEnvShellGridMarkup(shellCfg);
@@ -666,12 +671,35 @@
       includeDecisioning: shellCfg.includeDecisioning !== false,
     });
     mountShellFooter(host, shellCfg);
+    applyProductVisibility(host);
     try {
       global.dispatchEvent(
         new CustomEvent(MOUNTED_EVENT, { detail: { prefix: shellCfg.prefix, mode: 'shell' } }),
       );
     } catch (_e3) {
       /* noop */
+    }
+
+    function applyProductVisibility(host) {
+      var features = (global.envBarConfig && global.envBarConfig.features) || {};
+      if (features.bc === false) {
+        var card = host.querySelector('.spectrum-env-card--bc');
+        if (card) {
+          var decisioning = card.querySelector('.lab-env-decisioning-wrap');
+          if (decisioning) card.parentNode.insertBefore(decisioning, card);
+          card.remove();
+        }
+        host.querySelectorAll('[aria-labelledby="siteCloneBcProductHeading"], .aep-bc-toggle-row').forEach(function (el) {
+          el.remove();
+        });
+      }
+      if (features.target === false) {
+        var field = host.querySelector('#siteCloneBcDatastreamId');
+        if (field) {
+          var block = field.closest('.site-clone-bc-env-product-block') || field.closest('.form-row');
+          if (block) block.remove();
+        }
+      }
     }
     return { mounted: true };
   }

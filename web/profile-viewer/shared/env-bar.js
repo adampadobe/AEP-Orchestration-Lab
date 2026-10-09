@@ -21,7 +21,7 @@
       bundleCss: '20260713e-armcom-env-bar',
       spectrumCss: '20260714-env-bar-config-fileconvert',
       demoEnvStripSpectrum: '20260721-linkedin-env-bar-fix',
-      demoEnvStrip: '20260714-tags-property-typeahead',
+      demoEnvStrip: '20261009-product-feature-flags',
       spectrumSync: '20260721-linkedin-env-bar-fix',
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
@@ -65,6 +65,7 @@
    * @typedef {object} EnvBarFeatures
    * @property {boolean} [webPush=true]
    * @property {boolean} [bc=true]
+   * @property {boolean} [target=true] — Show the optional lab datastream override
    * @property {boolean} [decisioning=true]
    */
 

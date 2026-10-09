@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>British Airways Decisioning - AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-env-grid">
+  <link rel="stylesheet" href="british-airways-decisioning.css?v=20261009">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="mod-demo-page ba-decisioning-page home-dashboard-concierge">
+  <div class="mod-demo-top-anchor">
+    <section class="mod-demo-id-banner" aria-label="British Airways Decisioning configuration">
+      <div class="aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-prefix="baDecisioning"
+        data-demo-env-strip-title="British Airways Decisioning"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="0"
+        data-demo-env-strip-message-id="baDecisioningMessage"
+        data-demo-env-strip-disclaimer="Internal test-profile demo. No Brand Concierge or Target integration. Email and mobile are previews of the same web decision, not message delivery."></div>
+    </section>
+  </div>
+  <div class="ba-decisioning-actions">
+    <button type="button" id="baApplyProfile" class="btn-lookup" disabled>Apply profile changes</button>
+    <button type="button" id="baRunDecision" class="btn-lookup">Run live image decision</button>
+    <span id="baProfileStatus" role="status" aria-live="polite">Look up a test profile before applying changes.</span>
+  </div>
+  <iframe id="baDecisioningFrame" class="mod-demo-site-frame" src="british-airways-decisioning-visualiser.html?v=20261009"
+    title="British Airways Decisioning visualiser"></iframe>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap"><main class="dashboard-main mod-demo-empty-main" aria-hidden="true"></main></div>
+  </div>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js?v=20260614-inject-guard"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
+  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
+  <script src="british-airways-decisioning-model.js?v=20261009"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'baDecisioning', variant: 'spectrum',
+      localOverride: true, firestoreListen: false,
+      features: { webPush: false, bc: false, target: false, decisioning: true },
+      iframeIds: ['baDecisioningFrame'],
+      decisioning: {
+        iframeId: 'baDecisioningFrame', useParentDocument: false,
+        mountLayoutPreset: 'generic', viewName: 'British Airways Decisioning',
+      },
+      labCoreScript: 'british-airways-decisioning.js?v=20261009',
+    };
+  </script>
+  <script src="shared/env-bar.js?v=20260903-menu-button-only"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-lab-nav.js?v=20261009-ba-decisioning"></script>
+</body>
+</html>

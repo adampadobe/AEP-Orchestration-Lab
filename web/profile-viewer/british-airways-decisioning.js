@@ -1,0 +1,285 @@
+(function (global) {
+  'use strict';
+  const prefix = 'baDecisioning';
+  const frame = document.getElementById('baDecisioningFrame');
+  const apply = document.getElementById('baApplyProfile');
+  const run = document.getElementById('baRunDecision');
+  const status = document.getElementById('baProfileStatus');
+  const model = global.BaDecisioningModel;
+  let loaded = null;
+  let loadedKey = '';
+  let controlBaseline = null;
+  let dirty = false;
+  let busy = false;
+  let pendingVerification = null;
+  let imageVersion = 0;
+  let targets = [];
+  let tags;
+  function visualiser() { return frame.contentWindow && frame.contentWindow.BaDecisioningVisualiser; }
+  function context() {
+    return {
+      sandbox: global.AepGlobalSandbox.getSandboxName(),
+      namespace: document.getElementById(prefix + 'Ns').value.toLowerCase(),
+      identifier: document.getElementById('customerEmail').value.trim(),
+    };
+  }
+  function key(ctx) { return JSON.stringify(ctx); }
+  function message(text, error) {
+    status.textContent = text;
+    status.dataset.error = String(!!error);
+    apply.disabled = busy || !loaded || !dirty;
+    run.disabled = busy;
+  }
+  function current(ctx) {
+    if (key(context()) !== key(ctx)) throw new Error('Sandbox or profile changed during the operation. Look up the selected profile again.');
+  }
+  async function jsonFetch(url, options) {
+    const response = await fetch(url, options);
+    const data = await response.json();
+    if (!response.ok || data.error || data.ok === false) throw new Error(data.error || data.message || 'Request failed (HTTP ' + response.status + ').');
+    return data;
+  }
+  async function table(ctx) {
+    if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier first.');
+    const data = await jsonFetch('/api/profile/table?' + new URLSearchParams(ctx));
+    current(ctx);
+    if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found for this identifier.');
+    return data;
+  }
+  function clearImage(text) {
+    imageVersion++;
+    const api = visualiser();
+    if (api) api.setDecisionImage('', text);
+  }
+  function invalidate() {
+    loaded = null; loadedKey = ''; controlBaseline = null; dirty = false; pendingVerification = null;
+    clearImage('Profile or sandbox changed. Local simulation imagery; run a new live decision.');
+    message('Look up the selected test profile before applying changes.');
+  }
+  function verified(data) {
+    if (!pendingVerification) return true;
+    const rows = new Map(data.rows.map(row => [model.relativePath(row.path), String(row.value)]));
+    return pendingVerification.every(update => rows.get(update.path) === String(update.value));
+  }
+  async function lookup() {
+    const ctx = context();
+    busy = true; message('Looking up profile...');
+    clearImage('Profile lookup in progress. Run a new decision after lookup.');
+    try {
+      const data = await table(ctx);
+      loaded = data; loadedKey = key(ctx);
+      const ready = verified(data);
+      if (ready) {
+        const preserveStaged = pendingVerification && dirty;
+        pendingVerification = null;
+        const api = visualiser();
+        if (api && !preserveStaged) api.setState(model.readState(data.rows));
+        if (api && !preserveStaged) controlBaseline = api.getState();
+        if (!preserveStaged) dirty = false;
+      }
+      const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false });
+      current(ctx);
+      if (!ok) throw new Error('Profile table loaded, but the profile drawer could not be refreshed.');
+      if (tags) await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
+      message(ready ? 'Profile loaded. Control changes are staged until Apply.' : 'AEP readback is still pending. Look up again after ingestion (typically 30-60 seconds).');
+    } catch (error) {
+      loaded = null; loadedKey = '';
+      message(error.message, true);
+    } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }
+  }
+  async function preflightSchema(data, ctx) {
+    const travel = data.industries && data.industries.travel;
+    if (!travel || !travel.writable || !travel.schemaId) throw new Error('Travel profile dataflow is not ready. Complete Travel Profile Generation setup.');
+    const result = await jsonFetch('/api/aep', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'GET',
+        path: '/data/foundation/schemaregistry/tenant/schemas/' + encodeURIComponent(travel.schemaId),
+        platform_headers: { Accept: 'application/vnd.adobe.xed-full+json; version=1', 'x-sandbox-name': ctx.sandbox },
+      }),
+    });
+    current(ctx);
+    const schema = result.platform_response;
+    if (!schema || result.status >= 400) throw new Error('Could not read the resolved Travel schema.');
+    const props = schema.properties || {};
+    const tenant = Object.keys(props).find(name => /^_[a-zA-Z0-9]+$/.test(name) && props[name].properties && props[name].properties.britishAirwaysDecisioning);
+    const fields = tenant && props[tenant].properties.britishAirwaysDecisioning.properties;
+    const missing = Object.values(model.fields).filter(name => !fields || !fields[name]);
+    if (missing.length) throw new Error('BA schema fields are missing. After the Functions release, run Travel setup step 2 (Attach field groups / Profile Core v2 top-up), then retry. Missing: ' + missing.join(', '));
+    const incompatible = Object.entries(model.fields).filter(([name, leaf]) =>
+      ['days', 'recency', 'fatigue'].includes(name)
+        ? !['integer', 'number'].includes(fields[leaf].type)
+        : fields[leaf].type !== 'string');
+    if (incompatible.length) throw new Error('BA schema has incompatible field types: ' + incompatible.map(([, leaf]) => leaf).join(', '));
+  }
+  async function save() {
+    const ctx = context();
+    if (!loaded || loadedKey !== key(ctx) || !visualiser()) { message('Look up the selected profile first.', true); return; }
+    busy = true; message('Checking schema and building full writable snapshots...');
+    clearImage('Profile update in progress. Previous live decision image cleared.');
+    let accepted = 0;
+    try {
+      const latest = await table(ctx);
+      const isTest = latest.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && String(row.value) === 'true');
+      if (!isTest) throw new Error('Only AEP test profiles can be edited by this demo.');
+      await preflightSchema(latest, ctx);
+      if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('Loaded profile has no email identity for streaming.');
+      const savedState = visualiser().getState();
+      const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
+      const expected = groups.flatMap(group => group.updates).filter(update =>
+        update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'loyalty.tier' ||
+        update.path === 'loyaltyDetails.level' || update.path === 'scoring.core.propensityScore');
+      for (const group of groups) {
+        current(ctx);
+        const result = await global.postProfileUpdate({
+          sandbox: ctx.sandbox, industry: group.industry,
+          email: latest.profileEmail, ecid: latest.ecid || undefined, updates: group.updates,
+        });
+        if (!result.ok || result.data.ok === false) throw new Error(global.formatProfileUpdateError(result.data));
+        accepted++;
+      }
+      current(ctx);
+      pendingVerification = expected;
+      controlBaseline = savedState;
+      dirty = JSON.stringify(visualiser().getState()) !== JSON.stringify(savedState);
+      loaded = latest;
+      clearImage('Profile update accepted. Previous decision image cleared; await AEP readback before a new decision.');
+      message('Snapshots accepted by AEP, not yet verified. Look up again after ingestion (typically 30-60 seconds).');
+    } catch (error) {
+      message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. ' : '') + error.message, true);
+    } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }
+  }
+  function imageFromMount() {
+    const doc = frame.contentDocument;
+    const mount = doc && doc.getElementById('hero-banner');
+    if (!mount) return '';
+    const img = mount.querySelector('img');
+    let raw = img && img.getAttribute('src');
+    // AJO text-content can contain only the personalised sourceURL expression.
+    if (!raw && !mount.children.length) raw = mount.textContent.trim().split(/\s/)[0];
+    if (!raw) return '';
+    const url = new URL(raw, global.location.href);
+    if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Decision image must be an HTTP(S) URL.');
+    return url.href;
+  }
+  async function acceptDecision(detail) {
+    if (detail.propositionCount == null) return;
+    const url = detail.propositionCount > 0 && detail.appliedMounts && detail.appliedMounts.hero ? imageFromMount() : '';
+    if (!url) {
+      clearImage('No live hero image returned. Showing local simulation imagery, not a live winner.');
+      message('No live hero image returned. Check the hero-banner surface and the decision item image content.', true);
+      return;
+    }
+    const version = ++imageVersion;
+    await new Promise((resolve, reject) => {
+      const image = new Image();
+      const timeout = setTimeout(() => { image.onload = image.onerror = null; reject(new Error('Decision image did not load within 10 seconds.')); }, 10000);
+      image.onload = () => { clearTimeout(timeout); resolve(); };
+      image.onerror = () => { clearTimeout(timeout); reject(new Error('Decision image could not be loaded. Check the decision item image URL.')); };
+      image.src = url;
+    }).catch(error => { if (version === imageVersion) throw error; });
+    if (version !== imageVersion) return;
+    visualiser().setDecisionImage(url);
+    message('Live web decision image applied to web, email and mobile previews. Copy/ranking remain local simulation.');
+  }
+  async function decide() {
+    if (!loaded || loadedKey !== key(context())) { message('Look up the selected profile before running a decision.', true); return; }
+    if (dirty || pendingVerification) { message('Apply staged changes and verify AEP readback before running a decision.', true); return; }
+    const ctx = context();
+    busy = true; message('Evaluating the live hero-banner surface...');
+    clearImage('Live decision in progress; showing local simulation imagery.');
+    try {
+      const result = await global.DecisioningProfileRuntime.runContentDecision();
+      current(ctx);
+      await acceptDecision({ propositionCount: result.propositions.length, appliedMounts: result.appliedMounts });
+    } catch (error) {
+      clearImage('Live decision failed. Showing local simulation imagery.');
+      message(error.message, true);
+    } finally { busy = false; run.disabled = false; apply.disabled = !loaded || !dirty; }
+  }
+  function themeFrame() {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    const styles = getComputedStyle(document.body);
+    ['text', 'text-secondary', 'muted', 'border', 'bg', 'surface', 'surface-alt', 'blue'].forEach(name =>
+      doc.documentElement.style.setProperty('--dash-' + name, styles.getPropertyValue('--dash-' + name)));
+  }
+  function wireFrame() {
+    themeFrame();
+    if (loaded && visualiser()) visualiser().setState(model.readState(loaded.rows));
+    const doc = frame.contentDocument;
+    if (!doc || doc.documentElement.dataset.baWired) return;
+    doc.documentElement.dataset.baWired = '1';
+    function changed() {
+      dirty = true;
+      clearImage('Staged profile changes. Local simulation imagery until Apply, readback and a new live decision.');
+      message(loaded ? 'Profile changes staged. Apply to write the full snapshot to AEP.' : 'Simulation changed. Look up a test profile before applying.');
+    }
+    doc.getElementById('signals').addEventListener('click', event => { if (event.target.closest('.toggle-opt')) changed(); });
+    doc.getElementById('signals').addEventListener('input', changed);
+    doc.getElementById('scenarios').addEventListener('click', event => { if (event.target.closest('.scn')) changed(); });
+  }
+  async function init() {
+    const email = document.getElementById('customerEmail');
+    global.AepIdentityPicker.init('customerEmail', prefix + 'Ns');
+    if (global.attachEmailDatalist) global.attachEmailDatalist('customerEmail', 'recentEmails', prefix + 'Ns');
+    if (global.hydrateIdentifierFromSession) global.hydrateIdentifierFromSession('customerEmail', prefix + 'Ns');
+    const getTarget = () => targets.find(target => target.id === document.getElementById('generatorTarget').value) || null;
+    tags = global.DemoTagsInjection.init({
+      storagePrefix: prefix, identityEventType: 'ba.decisioning.identity.stitch',
+      messageSetter: (text, type) => message(text, type === 'error'), infoEcidId: 'infoEcid',
+      tagsCompanyId: prefix + 'TagsCompany', tagsPropertyInputId: prefix + 'TagsProperty',
+      tagsPropertyListId: prefix + 'TagsPropertyList', tagsEnvironmentId: prefix + 'TagsEnvironment',
+      injectButtonId: prefix + 'InjectSdkBtn', selectedScriptId: prefix + 'SelectedScript',
+      configFieldsId: prefix + 'SdkConfigFields', configSummaryId: prefix + 'SdkConfigSummary',
+      configSummaryTextId: prefix + 'SdkConfigSummaryText', changeConfigButtonId: prefix + 'ChangeSdkConfigBtn',
+      getSelectedGeneratorTarget: getTarget, getEmail: () => email.value,
+      iframeIds: ['baDecisioningFrame'], hideTagsCompanyUi: true,
+      webPush: { enabled: false }, brandConcierge: { enabled: false },
+    });
+    global.envBar.registerTagsInjection(tags);
+    global.DemoProfileDrawer.init({
+      emailInputId: 'customerEmail', profileOpenClass: 'mod-demo-page--profile-open',
+      viewName: 'British Airways Decisioning', emailGetter: () => email.value,
+      messageSetter: (text, type) => message(text, type === 'error'), getSelectedGeneratorTarget: getTarget,
+      fetchBrowserEcidOnInit: true,
+    });
+    global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(async () => {
+      targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(document.getElementById('generatorTarget'), {});
+    });
+    document.getElementById('queryProfileBtn').addEventListener('click', () => { if (!busy) void lookup(); });
+    email.addEventListener('input', invalidate);
+    document.getElementById(prefix + 'Ns').addEventListener('change', invalidate);
+    global.addEventListener('aep-global-sandbox-change', invalidate);
+    global.addEventListener('aep-profile-drawer-loaded', () => {
+      if (busy || dirty || pendingVerification || !loaded || loadedKey !== key(context())) return;
+      const profile = global.DemoProfileDrawer.getLastLookedUpProfile();
+      if (!profile || !visualiser()) return;
+      const values = {};
+      if (profile.propensityScore != null) values.prop = Number(profile.propensityScore) < 35 ? 'low' : Number(profile.propensityScore) < 65 ? 'medium' : 'high';
+      if (profile.loyaltyStatus) values.tier = String(profile.loyaltyStatus).toLowerCase();
+      visualiser().setState(values);
+    });
+    apply.addEventListener('click', () => { if (!busy) void save(); });
+    run.addEventListener('click', () => { if (!busy) void decide(); });
+    global.addEventListener('decisioning-profile-updated', event => {
+      if (busy || dirty || pendingVerification || !loaded || loadedKey !== key(context())) return;
+      void acceptDecision(event.detail || {}).catch(error => { clearImage(); message(error.message, true); });
+    });
+    frame.addEventListener('load', wireFrame);
+    wireFrame();
+    const toolbar = document.querySelector('.spectrum-env-status-bar');
+    const actions = document.querySelector('.ba-decisioning-actions');
+    function layout() {
+      const top = toolbar ? toolbar.getBoundingClientRect().bottom : 48;
+      document.body.style.setProperty('--ba-toolbar-top', top + 'px');
+      document.body.style.setProperty('--ba-content-top', (top + actions.getBoundingClientRect().height) + 'px');
+    }
+    const resize = new ResizeObserver(layout);
+    if (toolbar) resize.observe(toolbar);
+    resize.observe(actions);
+    layout();
+    new MutationObserver(themeFrame).observe(document.documentElement, { attributes: true, attributeFilter: ['data-aep-theme'] });
+  }
+  global.envBar.ready().then(init).catch(error => message('Demo initialization failed: ' + error.message, true));
+})(window);

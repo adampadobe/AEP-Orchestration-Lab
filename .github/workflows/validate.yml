@@ -93,3 +93,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Exercise demo workspace with local fixtures (no production data)
         run: npm run test:demo-workspace-e2e
+      - name: Exercise British Airways profile editing and image decisioning (no production data)
+        run: npm run test:ba-decisioning

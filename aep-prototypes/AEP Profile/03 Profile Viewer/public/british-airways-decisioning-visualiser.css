@@ -1,0 +1,16 @@
+/* The supplied visualiser is isolated from lab chrome; the shell passes theme tokens. */
+html body {
+  --ink: var(--dash-text);
+  --muted: var(--dash-muted);
+  --line: var(--dash-border);
+  --page: var(--dash-bg);
+  --paper: var(--dash-surface);
+  --paper-2: var(--dash-surface-alt);
+  --blue: var(--dash-blue);
+}
+html body .scn,
+html body .toggle-opt.active,
+html body .dev button.active { background: var(--dash-surface); }
+html body .mail-stage { background: var(--dash-surface-alt); }
+#baPreviewMode { margin: 0; font-size: 12px; color: var(--dash-text-secondary); }
+.ba-decision-mounts { position: absolute; width: 1px; height: 1px; overflow: hidden; pointer-events: none; }

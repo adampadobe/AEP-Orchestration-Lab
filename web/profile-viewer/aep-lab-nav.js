@@ -565,6 +565,20 @@
           ],
         },
         {
+          id: 'demoBritishAirways',
+          label: 'British Airways',
+          demoCustomer: true,
+          items: [
+            {
+              label: 'British Airways Decisioning',
+              href: 'british-airways-decisioning.html',
+              navHideKey: 'britishAirwaysDecisioning',
+              demoMeta: { owners: ['kirkham'] },
+              ico: '\u2708',
+            },
+          ],
+        },
+        {
           id: 'demoBritishAirwaysTest',
           label: 'British Airways Test',
           demoCustomer: true,

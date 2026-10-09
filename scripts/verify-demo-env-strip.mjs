@@ -58,6 +58,7 @@ const SANDBOX_ONLY_ENV_BAR_HTML = [
 ];
 
 const SITE_CLONE_DEMO_HTML = [
+  'british-airways-decisioning.html',
   'sky-demo.html',
   'jlr-demo.html',
   'mod-demo.html',
@@ -86,6 +87,7 @@ const SITE_CLONE_DEMO_HTML = [
 ];
 
 const SITE_CLONE_DEMO_JS = [
+  'british-airways-decisioning.js',
   'sky-demo.js',
   'jlr-demo.js',
   'mod-demo.js',
@@ -326,7 +328,11 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   if (!html.includes('data-demo-env-strip-subtitle="Active Configuration"')) {
     fail(`${rel}: missing data-demo-env-strip-subtitle="Active Configuration"`);
   }
-  if (!html.includes('data-demo-env-strip-bc-bottom="1"')) {
+  const bcDisabled = /features:\s*\{[^}]*bc:\s*false/.test(html);
+  if (bcDisabled && !html.includes('data-demo-env-strip-bc-bottom="0"')) {
+    fail(`${rel}: disabled BC must explicitly set data-demo-env-strip-bc-bottom="0"`);
+  }
+  if (!bcDisabled && !html.includes('data-demo-env-strip-bc-bottom="1"')) {
     fail(`${rel}: missing data-demo-env-strip-bc-bottom="1" (Centre bottom display mode)`);
   }
 

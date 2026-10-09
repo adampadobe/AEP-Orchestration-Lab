@@ -749,6 +749,46 @@ These lab demos use a **different UX** and are **not** required to load `shared/
 
 **CSS (site-clone slice):** `{brand}-demo.css` → `site-clone-bc.css` → **`shared/demo-env-bar.bundle.css`** → `brand-concierge-controls.css` → `aep-profile-drawer.css` → `shared/profile-viewer-modal.css` → `aep-theme.css` last.
 
+### British Airways Decisioning
+
+**British Airways Decisioning:** `british-airways-decisioning.html` embeds the
+colleague-supplied channel visualiser with the shared env bar, Tags injection,
+Decisioning runtime and profile drawer (KSIA contracts). Its feature flags
+explicitly disable Brand Concierge, Target's optional datastream override and
+web push. Other demos retain their default integrations. The centre ranking
+and channel copy are a **local simulation**, not AEP's returned winner.
+
+All BA control changes are staged until **Apply profile changes**. Only test
+profiles can be written. The demo reads fresh `/api/profile/table` rows,
+preserves scalar types and streams complete writable snapshots to each
+configured dataflow using `postProfileUpdate`. Loyalty writes to Generic
+`loyalty.tier` / `loyaltyDetails.level` (title-case tiers, preserving unchanged
+existing values); propensity writes to Generic
+`scoring.core.propensityScore` (Low=20, Medium=50, High=80; an unchanged band
+preserves the original numeric score). The other 13 fields live under
+`_<tenant>.britishAirwaysDecisioning.*`, owned by Travel and declared in
+`functions/profileCoreV2Manifest.js`. Consent/contact-safety controls are
+**demo decision context**, not a replacement for actual AEP channel consent.
+After releasing the Functions changes through the normal PR gates, run Travel
+Profile Generation step 2 (attach field groups / Profile Core v2 top-up) in the
+intended sandbox. The demo's read-only schema preflight blocks writes until
+these fields exist. Acceptance is not readback: look up again after ingestion
+before running a new decision.
+
+For image-only decisioning, configure the web code-based surface for the
+visualiser URL `/profile-viewer/british-airways-decisioning-visualiser.html`
+with the case-sensitive fragment `#hero-banner`. Return an image in HTML,
+for example `<img src="{{item._demoemea.content.mediaAssets.imageHighRes.sourceURL}}" alt="">`,
+or a supported JSON image payload. The shared Decisioning bar uses the injected
+Web SDK and the configured AJO policy; no Target call or Brand Scraper is
+required. The chosen image is mirrored into web, email and mobile previews;
+it does **not** execute an email/mobile campaign or request separate channel
+policies. Title and description mapping can be added later. Missing decisions,
+profile switches and staged changes clear the old live image and explicitly
+label fallback simulation imagery. Run `npm run test:ba-decisioning` for
+schema/ownership, snapshot and mocked-browser coverage; live sandbox policies
+and schema provisioning still require authorized verification.
+
 ### Shared profile drawer — do not break
 
 Demo pages that show the **hover profile drawer** must use the shared shell. Drawer markup drifted across ~25 pages before centralisation — see [`docs/profile-viewer-modal-migration-audit.md`](docs/profile-viewer-modal-migration-audit.md).

@@ -371,6 +371,25 @@ const SHARED_TENANT_LEAVES = {
  */
 const INDUSTRY_EXTENSIONS = {
   travel: {
+    britishAirwaysDecisioning: {
+      type: 'object',
+      title: 'British Airways Decisioning',
+      properties: {
+        engagementStatus: STRING_LEAF('engagementStatus'),
+        journeyStage: STRING_LEAF('journeyStage'),
+        daysToDeparture: INT_LEAF('daysToDeparture'),
+        documentsStatus: STRING_LEAF('documentsStatus'),
+        ancillariesHeld: STRING_LEAF('ancillariesHeld'),
+        disruptionSeverity: STRING_LEAF('disruptionSeverity'),
+        caseStatus: STRING_LEAF('caseStatus'),
+        shoppingIntent: STRING_LEAF('shoppingIntent'),
+        hoursSinceActivity: INT_LEAF('hoursSinceActivity'),
+        fareAvailability: STRING_LEAF('fareAvailability'),
+        consentLevel: STRING_LEAF('consentLevel'),
+        safeToContact: STRING_LEAF('safeToContact'),
+        messages7d: INT_LEAF('messages7d'),
+      },
+    },
     // Travel's flight-reservation stream is the biggest drift case —
     // apalmer has the full subtree, Alan's sandbox has nothing under
     // `travelReservations.*`. Stream paths mirror

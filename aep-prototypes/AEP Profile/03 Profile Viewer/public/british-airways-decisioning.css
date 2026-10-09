@@ -1,0 +1,28 @@
+.ba-decisioning-actions {
+  position: fixed;
+  z-index: 3;
+  top: var(--ba-toolbar-top, 48px);
+  left: 40px;
+  right: 60px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  border-bottom: 1px solid var(--dash-border);
+}
+.ba-decisioning-actions [role="status"] { flex: 1; font-size: 12px; }
+.ba-decisioning-actions [data-error="true"] { color: var(--dash-error-text, var(--dash-text)); }
+body.ba-decisioning-page iframe#baDecisioningFrame {
+  top: var(--ba-content-top, 96px);
+  height: calc(100% - var(--ba-content-top, 96px) - 20px);
+}
+.ba-decisioning-page .dashboard-sidebar { transform: translateX(calc(-100% + 24px)); transition: transform .2s; }
+.ba-decisioning-page .dashboard-sidebar:hover,
+.ba-decisioning-page .dashboard-sidebar:focus-within { transform: translateX(0); }
+@media (max-width: 768px) {
+  .ba-decisioning-actions { left: 0; min-height: 100px; }
+}
