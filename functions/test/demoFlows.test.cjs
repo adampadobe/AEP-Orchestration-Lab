@@ -9,21 +9,44 @@ const { registerDemoAssetsRoutes } = require('../demoAssetsRoutes');
 function fakeDb(seed) {
   const store = new Map(Object.entries(seed || {}));
   let auto = 0;
-  const docRef = (col, id) => ({
-    id,
+  const docRef = (path) => ({
+    id: path.split('/').at(-1),
+    path,
+    collection: (name) => collection(`${path}/${name}`),
     async get() {
-      const d = store.get(`${col}/${id}`);
-      return { id, exists: !!d, data: () => d };
+      const d = store.get(path);
+      return { id: this.id, ref: this, exists: !!d, data: () => d || {} };
     },
-    async set(d) { store.set(`${col}/${id}`, { ...d }); },
-    async update(d) { store.set(`${col}/${id}`, { ...store.get(`${col}/${id}`), ...d }); },
-    async delete() { store.delete(`${col}/${id}`); },
+    async set(d) { store.set(path, { ...d }); },
+    async update(d) { store.set(path, { ...store.get(path), ...d }); },
+    async delete() { store.delete(path); },
+  });
+  const collection = (name, filter = () => true, sort = null, limit = Infinity, after = '') => ({
+    doc: (id) => docRef(`${name}/${id || `auto${String(++auto).padStart(4, '0')}`}`),
+    where: (field, _op, value) => collection(name, (data) => filter(data) && data[field] === value, sort, limit, after),
+    orderBy: (field, direction) => collection(name, filter, { field, direction }, limit, after),
+    limit: (count) => collection(name, filter, sort, count, after),
+    startAfter: (doc) => collection(name, filter, sort, limit, doc.ref.path),
+    async get() {
+      let entries = [...store.entries()].filter(([path, data]) => path.slice(0, path.lastIndexOf('/')) === name && filter(data));
+      if (sort) entries.sort((a, b) => {
+        const av = a[1][sort.field]?.toMillis ? a[1][sort.field].toMillis() : a[1][sort.field];
+        const bv = b[1][sort.field]?.toMillis ? b[1][sort.field].toMillis() : b[1][sort.field];
+        const compare = typeof av === 'number' && typeof bv === 'number'
+          ? av - bv : String(av).localeCompare(String(bv));
+        return compare * (sort.direction === 'desc' ? -1 : 1);
+      });
+      if (after) entries = entries.slice(entries.findIndex(([path]) => path === after) + 1);
+      const docs = entries.slice(0, limit).map(([path]) => {
+        const ref = docRef(path);
+        return { id: ref.id, ref, exists: true, data: () => store.get(path) || {} };
+      });
+      return { docs, empty: !docs.length };
+    },
   });
   return {
     store,
-    collection: (col) => ({
-      doc: (id) => docRef(col, id || `auto${String(++auto).padStart(4, '0')}`),
-    }),
+    collection,
     getAll: (...refs) => Promise.all(refs.map((r) => r.get())),
   };
 }
@@ -43,7 +66,10 @@ describe('demoFlows normalisation', () => {
     });
     assert.equal(out.title, 'Retail story');
     assert.equal(out.conversationType, '');
-    assert.deepEqual(out.steps[0], { assetId: 'assetAAA1', versionId: null, title: '', talkTrack: 'Say hi', durationMin: 3.5 });
+    assert.deepEqual(out.steps[0], {
+      assetId: 'assetAAA1', versionId: null, currentVersionAtSave: null,
+      title: '', talkTrack: 'Say hi', transition: '', durationMin: 3.5,
+    });
   });
 
   it('rejects invalid ids and too many steps', () => {
@@ -85,6 +111,30 @@ describe('demoFlows service with fake Firestore', () => {
     assert.equal(flow.createdBy.email, 'a@adobe.com');
   });
 
+  it('validates pins, records the current-version snapshot, and detects later changes', async () => {
+    db.store.set('demoAssets/assetAAA1', { ...ASSETS['demoAssets/assetAAA1'], currentVersionId: 'versionAAA2' });
+    db.store.set('demoAssets/assetAAA1/versions/versionAAA1', { createdAt: 1 });
+    db.store.set('demoAssets/assetAAA1/versions/versionAAA2', { createdAt: 2 });
+    const flow = await flows.createFlow({
+      title: 'Pinned', steps: [{ assetId: 'assetAAA1', versionId: 'versionAAA1' }],
+    }, user);
+    assert.equal(flow.steps[0].versionId, 'versionAAA1');
+    assert.equal(flow.steps[0].currentVersionAtSave, 'versionAAA2');
+    await assert.rejects(flows.createFlow({
+      title: 'Bad pin', steps: [{ assetId: 'assetAAA1', versionId: 'missing01' }],
+    }, user), /Unknown version/);
+
+    db.store.set('demoAssets/assetAAA1', { ...ASSETS['demoAssets/assetAAA1'], currentVersionId: 'versionAAA3' });
+    db.store.set('demoAssets/assetAAA1/versions/versionAAA3', { createdAt: 3 });
+    const check = await flows.checkFlow(flow.id);
+    assert.equal(check.ready, true);
+    assert.deepEqual(check.steps[0], {
+      assetId: 'assetAAA1', versionId: 'versionAAA1', currentVersionId: 'versionAAA3', title: 'BA channels',
+    });
+    assert.equal(check.issues[0].severity, 'warning');
+    assert.match(check.issues[0].message, /changed from versionAAA2 to versionAAA3/);
+  });
+
   it('suggestFlow keeps only known, unique asset ids and reports omissions', async () => {
     let prompt = '';
     const callGemini = async (_sys, userPrompt, opts) => {
@@ -107,6 +157,69 @@ describe('demoFlows service with fake Firestore', () => {
     assert.deepEqual(suggestion.omitted, ['assetAAA1']);
   });
 
+  it('reviews extracted content and preserves requested version pins and transitions', async () => {
+    db.store.set('demoAssets/assetAAA1', { ...ASSETS['demoAssets/assetAAA1'], currentVersionId: 'versionAAA1' });
+    db.store.set('demoAssets/assetAAA1/versions/versionAAA1', { createdAt: 1 });
+    const originalLoad = base.loadSkeleton;
+    base.loadSkeleton = async (id, versionId) => {
+      assert.equal(id, 'assetAAA1');
+      assert.equal(versionId, 'versionAAA1');
+      return { skeleton: '<!doctype html><html><body><h1>Frequent flyer offers</h1><p>Relevant copy.</p></body></html>' };
+    };
+    try {
+      let prompt = '';
+      const { suggestion } = await flows.suggestFlow({
+        goal: 'Connect eligibility to value',
+        steps: [
+          { assetId: 'assetAAA1', versionId: 'versionAAA1', title: 'Existing title', talkTrack: 'Keep this track' },
+          { assetId: 'assetBBB2', title: 'Architecture' },
+        ],
+      }, user, {
+        callGemini: async (_system, userPrompt) => {
+          prompt = userPrompt;
+          return JSON.stringify({
+            title: 'Review',
+            rationale: 'Start with audience needs, then explain the architecture.',
+            reviewNotes: ['The transition needs a clear hand-off.'],
+            steps: [
+              { assetId: 'assetAAA1', title: 'Offers', talkTrack: 'Show the offer.', transition: 'Now explain the data path.' },
+              { assetId: 'assetBBB2', title: 'Architecture', talkTrack: 'Show the components.' },
+            ],
+          });
+        },
+      });
+      assert.match(prompt, /Frequent flyer offers/);
+      assert.equal(suggestion.steps[0].versionId, 'versionAAA1');
+      assert.equal(suggestion.steps[0].transition, 'Now explain the data path.');
+      assert.match(suggestion.rationale, /audience needs/);
+      assert.deepEqual(suggestion.reviewNotes, ['The transition needs a clear hand-off.']);
+    } finally {
+      base.loadSkeleton = originalLoad;
+    }
+  });
+
+  it('rejects requests that select different versions of the same asset', async () => {
+    await assert.rejects(flows.suggestFlow({
+      steps: [
+        { assetId: 'assetAAA1', versionId: 'versionAAA1' },
+        { assetId: 'assetAAA1', versionId: 'versionAAA2' },
+      ],
+    }, user, { callGemini: async () => '{}' }), /multiple versions/);
+  });
+
+  it('paginates flows while preserving the legacy list shape', async () => {
+    db.store.set('demoFlows/flow0001', { title: 'One', steps: [], updatedAt: 1 });
+    db.store.set('demoFlows/flow0002', { title: 'Two', steps: [], updatedAt: 2 });
+    db.store.set('demoFlows/flow0003', { title: 'Three', steps: [], updatedAt: 3 });
+    const first = await flows.listFlows({ limit: 2 });
+    assert.deepEqual(first.flows.map((flow) => flow.title), ['Three', 'Two']);
+    assert.ok(first.nextCursor);
+    const second = await flows.listFlows({ limit: 2, cursor: first.nextCursor });
+    assert.deepEqual(second.flows.map((flow) => flow.title), ['One']);
+    assert.equal(second.nextCursor, null);
+    assert.ok(Array.isArray(await flows.listFlows()));
+  });
+
   it('suggestFlow validates input and Gemini availability', async () => {
     await assert.rejects(flows.suggestFlow({ assetIds: ['assetAAA1'] }, user, {}), /not configured/);
     await assert.rejects(flows.suggestFlow({ assetIds: [] }, user, { callGemini: async () => '{}' }), /at least one/);
@@ -117,13 +230,19 @@ describe('demoFlows service with fake Firestore', () => {
   });
 
   it('presentFlow marks deleted assets instead of failing', async () => {
+    db.store.set('demoAssets/assetAAA1', { ...ASSETS['demoAssets/assetAAA1'], currentVersionId: 'versionAAA1' });
+    db.store.set('demoAssets/assetBBB2', { ...ASSETS['demoAssets/assetBBB2'], currentVersionId: 'versionBBB2' });
     const flow = await flows.createFlow({ title: 'P', steps: [{ assetId: 'assetAAA1' }, { assetId: 'assetBBB2' }] }, user);
     db.store.delete('demoAssets/assetBBB2');
     const origToken = base.createRenderToken;
-    base.createRenderToken = async (id) => ({ url: `/api/demo-assets/render/tok-${id}`, expiresAt: 'soon' });
+    base.createRenderToken = async (id, _user, opts) => {
+      assert.equal(opts.versionId, id === 'assetAAA1' ? 'versionAAA1' : 'versionBBB2');
+      return { url: `/api/demo-assets/render/tok-${id}`, expiresAt: 'soon' };
+    };
     try {
       const { flow: presented } = await flows.presentFlow(flow.id, user);
       assert.equal(presented.steps[0].renderUrl, '/api/demo-assets/render/tok-assetAAA1');
+      assert.equal(presented.steps[0].versionId, 'versionAAA1');
       assert.equal(presented.steps[1].missing, true);
     } finally {
       base.createRenderToken = origToken;
@@ -155,7 +274,10 @@ describe('demoFlows routes', () => {
         json(d) { resolve({ status: this.statusCode, body: d }); },
         send(d) { resolve({ status: this.statusCode, body: d }); },
       };
-      api({ method, originalUrl: url, body: body || {} }, res);
+      api({
+        method, originalUrl: url, body: body || {},
+        query: Object.fromEntries(new URL(url, 'https://lab.example').searchParams),
+      }, res);
     });
   }
 
@@ -168,6 +290,7 @@ describe('demoFlows routes', () => {
       getFlow: async (id) => { seen.push(['get', id]); return { id }; },
       updateFlow: async (id) => { seen.push(['patch', id]); return { id }; },
       deleteFlow: async (id) => { seen.push(['delete', id]); return { ok: true }; },
+      checkFlow: async (id) => { seen.push(['check', id]); return { ready: true, issues: [], steps: [] }; },
       presentFlow: async (id) => { seen.push(['present', id]); return { flow: { id } }; },
     });
     assert.equal((await call(api, 'GET', '/api/demo-assets/flows')).status, 200);
@@ -176,12 +299,23 @@ describe('demoFlows routes', () => {
     await call(api, 'GET', '/api/demo-assets/flows/flow0001');
     await call(api, 'PATCH', '/api/demo-assets/flows/flow0001');
     await call(api, 'DELETE', '/api/demo-assets/flows/flow0001');
+    const check = await call(api, 'GET', '/api/demo-assets/flows/flow0001/check');
+    assert.equal(check.body.check.ready, true);
     const p = await call(api, 'POST', '/api/demo-assets/flows/flow0001/present');
     assert.equal(p.body.flow.id, 'flow0001');
     assert.equal((await call(api, 'PUT', '/api/demo-assets/flows/flow0001')).status, 404);
     assert.deepEqual(seen, [
       'list', ['create', 'T'], ['suggest', 'function'], ['get', 'flow0001'],
-      ['patch', 'flow0001'], ['delete', 'flow0001'], ['present', 'flow0001'],
+      ['patch', 'flow0001'], ['delete', 'flow0001'], ['check', 'flow0001'], ['present', 'flow0001'],
     ]);
+  });
+
+  it('routes paged flow listing', async () => {
+    const api = makeApi({ listFlows: async (options) => {
+      assert.deepEqual(options, { limit: '100', cursor: 'page2' });
+      return { flows: [{ id: 'flow1' }], nextCursor: 'next' };
+    } });
+    const result = await call(api, 'GET', '/api/demo-assets/flows?limit=100&cursor=page2');
+    assert.deepEqual(result.body, { ok: true, flows: [{ id: 'flow1' }], nextCursor: 'next' });
   });
 });

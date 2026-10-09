@@ -134,3 +134,13 @@ body.demo-flows-presenting { overflow: hidden; }
   .demo-flows-presenter-body { flex-direction: column; }
   .demo-flows-notes { flex: 0 0 auto; max-height: 40vh; border-left: 0; border-top: 1px solid var(--dash-border); }
 }
+.demo-flows-page button, .demo-flows-page select { min-height: 44px; }
+#flowSuggestionSteps { padding-left: 1.25rem; max-height: 50vh; overflow-y: auto; }
+#flowSuggestionSteps li { padding: 0.75rem 0; border-bottom: 1px solid var(--dash-border); }
+#flowSuggestionSteps p { white-space: pre-wrap; overflow-wrap: anywhere; }
+#flowCheckIssues { padding-left: 1.25rem; overflow-wrap: anywhere; }
+#flowCheckContinue[hidden] { display: none; }
+@media (max-width: 600px) {
+  .demo-flows-fields { grid-template-columns: minmax(0, 1fr); }
+  .demo-flows-dialog-actions { flex-wrap: wrap; }
+}

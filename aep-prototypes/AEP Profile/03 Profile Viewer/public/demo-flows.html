@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="demo-flows.css?v=20260903a">
+  <link rel="stylesheet" href="demo-flows.css?v=20261009-workspace">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -83,8 +83,10 @@
                   <span id="flowStatus" class="status" role="status"></span>
                   <span class="demo-flows-spacer"></span>
                   <button type="button" id="flowDelete" class="dashboard-btn-outline" hidden>Delete</button>
+                  <button type="button" id="flowUndoSuggestion" class="dashboard-btn-outline" hidden>Undo suggestion</button>
+                  <button type="button" id="flowCheck" class="dashboard-btn-outline" hidden>Rehearse / check</button>
                   <button type="button" id="flowPresent" class="dashboard-btn-outline" hidden>Present</button>
-                  <button type="submit" class="dashboard-btn-primary">Save flow</button>
+                  <button type="submit" id="flowSave" class="dashboard-btn-primary">Save flow</button>
                 </div>
               </form>
             </section>
@@ -97,7 +99,7 @@
   <dialog id="suggestDialog" class="demo-flows-dialog" aria-labelledby="suggestTitle">
     <form method="dialog" id="suggestForm">
       <h2 id="suggestTitle">Suggest a flow with Gemini</h2>
-      <p class="hint">Gemini orders the selected assets (the current steps, or up to 12) and drafts a talk track for each. Nothing is saved until you click Save flow.</p>
+      <p class="hint">Gemini reviews the selected versions and suggests an order and talk track. Review its proposal before replacing your steps. Nothing is saved until you click Save flow.</p>
       <label>Goal / audience<textarea name="goal" rows="3" maxlength="1000" placeholder="e.g. 30-minute discovery with an airline CMO about real-time personalisation"></textarea></label>
       <label>Customer<input name="customer" maxlength="120"></label>
       <div class="demo-flows-fields">
@@ -113,6 +115,28 @@
     </form>
   </dialog>
 
+  <dialog id="flowSuggestionReview" class="demo-flows-dialog" aria-labelledby="flowSuggestionTitle">
+    <h2 id="flowSuggestionTitle">Review the suggested story</h2>
+    <p id="flowSuggestionRationale"></p>
+    <ol id="flowSuggestionSteps"></ol>
+    <p id="flowSuggestionOmitted" class="hint"></p>
+    <div class="demo-flows-dialog-actions">
+      <button type="button" id="flowSuggestionCancel" class="dashboard-btn-outline">Keep my flow</button>
+      <button type="button" id="flowSuggestionAccept" class="dashboard-btn-primary">Use these steps</button>
+    </div>
+  </dialog>
+
+  <dialog id="flowCheckDialog" class="demo-flows-dialog" aria-labelledby="flowCheckTitle">
+    <h2 id="flowCheckTitle">Presentation readiness</h2>
+    <p id="flowCheckStatus" class="status" role="status"></p>
+    <ul id="flowCheckIssues"></ul>
+    <p class="hint">This checks the saved flow and version references. Rehearse interactive clicks and external dependencies yourself before a customer meeting.</p>
+    <div class="demo-flows-dialog-actions">
+      <button type="button" id="flowCheckClose" class="dashboard-btn-outline">Back to editor</button>
+      <button type="button" id="flowCheckContinue" class="dashboard-btn-primary" hidden>Present checked flow</button>
+    </div>
+  </dialog>
+
   <div id="presenter" class="demo-flows-presenter" hidden role="dialog" aria-modal="true" aria-labelledby="presenterTitle">
     <header class="demo-flows-presenter-bar">
       <strong id="presenterTitle"></strong>
@@ -120,6 +144,7 @@
       <span id="presenterTimer" class="dashboard-env-pill" title="Elapsed on this step / total"></span>
       <span class="demo-flows-spacer"></span>
       <button type="button" id="presenterNotes" class="dashboard-btn-outline" aria-pressed="true">Talk track</button>
+      <button type="button" id="presenterNotesWindow" class="dashboard-btn-outline">Presenter window</button>
       <button type="button" id="presenterPrev" class="dashboard-btn-outline">← Prev</button>
       <button type="button" id="presenterNext" class="dashboard-btn-primary">Next →</button>
       <button type="button" id="presenterFull" class="dashboard-btn-outline">Fullscreen</button>
@@ -146,6 +171,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260903-demo-flows"></script>
-  <script src="demo-flows.js?v=20260903a"></script>
+  <script src="demo-flows.js?v=20261009-workspace"></script>
 </body>
 </html>

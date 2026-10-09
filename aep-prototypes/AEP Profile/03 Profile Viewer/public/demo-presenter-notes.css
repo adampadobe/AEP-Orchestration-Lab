@@ -1,0 +1,18 @@
+:root {
+  --dash-bg: Canvas;
+  --dash-text: CanvasText;
+  --dash-border: GrayText;
+  --dash-blue: LinkText;
+  color-scheme: light;
+}
+html[data-aep-theme="dark"] { color-scheme: dark; }
+body { margin: 0; background: var(--dash-bg); color: var(--dash-text); font-family: system-ui, sans-serif; }
+main { padding: 1.5rem; max-width: 65ch; margin: auto; }
+h1 { font-size: 1.5rem; overflow-wrap: anywhere; }
+.talk-track { white-space: pre-wrap; line-height: 1.6; overflow-wrap: anywhere; }
+button {
+  font: inherit; min-height: 44px; padding: 0.5rem 1rem; margin-right: 0.5rem;
+  background: var(--dash-bg); color: var(--dash-text); border: 1px solid var(--dash-border); border-radius: 8px; cursor: pointer;
+}
+button:focus-visible { outline: 2px solid var(--dash-blue); outline-offset: 2px; }
+button:disabled { opacity: 0.5; cursor: default; }

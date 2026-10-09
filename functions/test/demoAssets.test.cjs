@@ -189,6 +189,46 @@ describe('demoAssetsApi route', () => {
     assert.ok(res.body.conversationTypes.includes('Decisioning'));
   });
 
+  it('returns paged asset search results and the trash filter shape', async () => {
+    const res = await route({
+      listAssets: async (options) => {
+        assert.deepEqual(options, { limit: '25', cursor: 'cur', q: 'airline', deleted: true });
+        return { assets: [{ id: 'assetAAA1', deleted: true }], nextCursor: 'next' };
+      },
+    })('GET', '/api/demo-assets?limit=25&cursor=cur&q=airline&deleted=true');
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.assets, [{ id: 'assetAAA1', deleted: true }]);
+    assert.equal(res.body.nextCursor, 'next');
+  });
+
+  it('routes render-token listing and caller-owned revocation', async () => {
+    const tokens = [];
+    const result = await route({
+      listRenderTokens: async (id, user) => { assert.equal(id, 'assetAAA1'); assert.equal(user.uid, 'u1'); return [{ id: 'tokenId', url: 'https://render.example/one' }]; },
+      revokeRenderToken: async (id, tokenId, user) => { tokens.push([id, tokenId, user.uid]); return { ok: true, revoked: true }; },
+    });
+    const listed = await result('GET', '/api/demo-assets/assetAAA1/render-tokens');
+    assert.deepEqual(listed.body.tokens, [{ id: 'tokenId', url: 'https://render.example/one' }]);
+    const revoked = await result('DELETE', '/api/demo-assets/assetAAA1/render-tokens/token12345678901234567890');
+    assert.equal(revoked.body.revoked, true);
+    assert.deepEqual(tokens, [['assetAAA1', 'token12345678901234567890', 'u1']]);
+  });
+
+  it('routes trash restore and named conversation list, resume and rename', async () => {
+    const studio = {
+      listConversations: async (id) => [{ id: 'conv0001', title: `For ${id}`, updatedAt: 'now' }],
+      getConversation: async (id, conversationId) => ({ id: conversationId, messages: [{ role: 'user', text: id }] }),
+      renameConversation: async (id, conversationId, body) => ({ id: conversationId, title: `${id}:${body.title}` }),
+    };
+    const call = route({
+      restoreAsset: async (id) => ({ ok: true, asset: { id } }),
+    }, ADOBE, studio);
+    assert.equal((await call('POST', '/api/demo-assets/assetAAA1/undelete')).body.asset.id, 'assetAAA1');
+    assert.deepEqual((await call('GET', '/api/demo-assets/assetAAA1/studio/conversations')).body.conversations[0].id, 'conv0001');
+    assert.equal((await call('GET', '/api/demo-assets/assetAAA1/studio/conversations/conv0001')).body.conversation.messages[0].text, 'assetAAA1');
+    assert.equal((await call('PATCH', '/api/demo-assets/assetAAA1/studio/conversations/conv0001', { title: 'New title' })).body.conversation.title, 'assetAAA1:New title');
+  });
+
   it('creates assets and reports duplicates as 409', async () => {
     let calls = 0;
     const call = route({ createAsset: async (input) => { calls += 1; return input.force ? { asset: { id: 'n' } } : { duplicate: true, asset: { id: 'old' } }; } });
@@ -206,20 +246,20 @@ describe('demoAssetsApi route', () => {
     assert.match(res.body.error, /not editable/);
   });
 
-  it('deletes the requested asset only for signed-in Adobe users', async () => {
+  it('moves the requested asset to trash only for signed-in Adobe users', async () => {
     const deleted = [];
-    const service = { deleteAsset: async (id) => { deleted.push(id); return { ok: true, id }; } };
+    const service = { trashAsset: async (id, user) => { deleted.push([id, user.uid]); return { ok: true, id, deleted: true }; } };
     assert.equal((await route(service, null)('DELETE', '/api/demo-assets/assetAAA1')).statusCode, 401);
     assert.equal((await route(service, { uid: 'u2', email: 'user@example.com' })('DELETE', '/api/demo-assets/assetAAA1')).statusCode, 403);
     assert.deepEqual(deleted, []);
     const result = await route(service)('DELETE', '/api/demo-assets/assetAAA1');
     assert.equal(result.statusCode, 200);
-    assert.deepEqual(result.body, { ok: true, id: 'assetAAA1' });
-    assert.deepEqual(deleted, ['assetAAA1']);
+    assert.deepEqual(result.body, { ok: true, id: 'assetAAA1', deleted: true });
+    assert.deepEqual(deleted, [['assetAAA1', 'u1']]);
   });
 
   it('reports deletion failures instead of returning success', async () => {
-    const result = await route({ deleteAsset: async () => { throw new service.DemoAssetsError(503, 'Storage unavailable'); } })('DELETE', '/api/demo-assets/assetAAA1');
+    const result = await route({ trashAsset: async () => { throw new service.DemoAssetsError(503, 'Storage unavailable'); } })('DELETE', '/api/demo-assets/assetAAA1');
     assert.equal(result.statusCode, 503);
     assert.equal(result.body.ok, false);
     assert.equal(result.body.error, 'Storage unavailable');

@@ -44,6 +44,9 @@ jobs:
       - name: Verify owner-only usage statistics
         run: node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs
 
+      - name: Verify demo workspace APIs and UI regressions
+        run: node --test functions/test/demo*.test.cjs
+
       - name: Install MCP dependencies
         working-directory: tools/aep-lab-profile-mcp
         run: npm ci
@@ -77,3 +80,16 @@ jobs:
               sys.exit(1)
           print(f"OK: {len(paths)} JSON files")
           PY
+
+  demo-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Exercise demo workspace with local fixtures (no production data)
+        run: npm run test:demo-workspace-e2e

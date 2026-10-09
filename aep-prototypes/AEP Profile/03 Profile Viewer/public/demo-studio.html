@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="demo-studio.css?v=20260902a">
+  <link rel="stylesheet" href="demo-studio.css?v=20261009-workspace">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -42,13 +42,18 @@
             </div>
             <div class="demo-studio-header-actions">
               <button type="button" id="studioPresent" class="dashboard-btn-outline">Present</button>
-              <button type="button" id="studioDerive" class="dashboard-btn-primary">Duplicate for another customer</button>
+              <button type="button" id="studioDerive" class="dashboard-btn-primary">Adapt for another customer</button>
             </div>
           </header>
 
           <div class="demo-studio-layout">
             <section class="panel demo-studio-chat" aria-labelledby="studioChatHeading">
               <h3 id="studioChatHeading" class="visually-hidden">Conversation</h3>
+              <div class="demo-studio-conversations">
+                <label for="studioConversation">Your saved conversations</label>
+                <select id="studioConversation"><option value="">New conversation</option></select>
+                <button type="button" id="studioRenameChat" class="dashboard-btn-outline">Rename</button>
+              </div>
               <div id="studioMessages" class="demo-studio-messages" aria-live="polite">
                 <div class="demo-studio-empty">
                   <p><strong>Ask Gemini about this demo.</strong></p>
@@ -90,6 +95,11 @@
                   <button type="button" role="tab" id="studioTabSplit" aria-selected="false" disabled>Side by side</button>
                 </div>
               </header>
+              <div class="demo-studio-version-selection" role="status">
+                <span id="studioSelectedVersion">Current version</span>
+                <button type="button" id="studioBackCurrent" class="dashboard-btn-outline" hidden>Back to current</button>
+              </div>
+              <section id="studioChecklist" class="demo-studio-checklist" aria-label="Adaptation checks" hidden></section>
               <div id="studioProposalBar" class="demo-studio-proposal" hidden>
                 <span id="studioProposalText"></span>
                 <span class="demo-studio-spacer"></span>
@@ -103,6 +113,11 @@
               <details class="demo-studio-versions" id="studioVersionsBox">
                 <summary>Version history <span id="studioVersionCount" class="dashboard-env-pill">0</span></summary>
                 <ol id="studioVersions"></ol>
+                <button type="button" id="studioMoreVersions" class="dashboard-btn-outline" hidden>Load older versions</button>
+              </details>
+              <details class="demo-studio-versions">
+                <summary>Asset activity</summary>
+                <ol id="studioActivity"></ol>
               </details>
             </section>
           </div>
@@ -113,14 +128,17 @@
 
   <dialog id="studioDeriveDialog" class="demo-studio-dialog" aria-labelledby="studioDeriveTitle">
     <form method="dialog" id="studioDeriveForm">
-      <h2 id="studioDeriveTitle">Duplicate for another customer</h2>
-      <p class="hint">Creates a new asset from the current version. You can then rebrand it here.</p>
+      <h2 id="studioDeriveTitle">Adapt for another customer</h2>
+      <p class="hint">Create a separate copy first. The original stays unchanged; review every proposed change before applying it.</p>
       <label>Customer<input name="customer" required maxlength="120"></label>
       <label>Industry <span class="hint">(optional)</span><input name="industry" maxlength="80"></label>
+      <label>Audience<input name="audience" maxlength="200" placeholder="For example, retail CMO"></label>
+      <label>Conversation objective<textarea name="objective" rows="2" maxlength="1000" placeholder="What should this demo help the customer understand?"></textarea></label>
+      <label>Approved brand material and facts<textarea name="brandNotes" rows="3" maxlength="2000" placeholder="Paste approved names, terminology, colours and facts. Unverified examples remain illustrative."></textarea></label>
       <p id="studioDeriveError" class="status error" role="alert"></p>
       <div class="demo-studio-dialog-actions">
         <button type="button" id="studioDeriveCancel" class="dashboard-btn-outline">Cancel</button>
-        <button type="submit" class="dashboard-btn-primary">Duplicate and open</button>
+        <button type="submit" id="studioDeriveSave" class="dashboard-btn-primary">Create copy and prepare adaptation</button>
       </div>
     </form>
   </dialog>
@@ -133,6 +151,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260903-demo-flows"></script>
-  <script src="demo-studio.js?v=20261008-render"></script>
+  <script src="demo-studio.js?v=20261009-workspace"></script>
 </body>
 </html>
