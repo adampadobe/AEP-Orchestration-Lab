@@ -9,7 +9,8 @@
   var state = {
     user: null, flows: [], assets: [], assetById: {}, types: [],
     current: null, steps: [], dirty: false, pendingAdd: null,
-    present: null,
+    present: null, versions: {}, versionsLoading: new Set(), suggestion: null, undoSuggestion: null, saving: false,
+    notesWindow: null, checkedFlowId: null,
   };
   var els = {};
 
@@ -78,7 +79,7 @@
   async function loadAll() {
     setStatus(els.listStatus, 'Loading…');
     try {
-      var results = await Promise.all([request(API), request(API + '/flows')]);
+      var results = await Promise.all([loadPaged(API, 'assets'), loadPaged(API + '/flows', 'flows')]);
       state.assets = results[0].assets || [];
       state.types = results[0].conversationTypes || [];
       state.assetById = {};
@@ -91,6 +92,17 @@
       handleDeepLinks();
     } catch (e) {
       setStatus(els.listStatus, e.message, true);
+    }
+
+    async function loadPaged(url, key) {
+      var all = [], cursor = null, result;
+      do {
+        result = await request(url + '?limit=100' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
+        all = all.concat(result[key] || []);
+        cursor = result.nextCursor || null;
+      } while (cursor);
+      result[key] = all;
+      return result;
     }
   }
 
@@ -107,16 +119,15 @@
   function handleDeepLinks() {
     var params = new URLSearchParams(location.search);
     var flowId = params.get('flow');
-    var add = params.get('add');
+    var add = params.get('assets') || params.get('add');
     if (flowId) {
       openFlow(flowId);
     } else if (add) {
-      state.pendingAdd = add;
-      var asset = state.assetById[add];
+      var ids = add.split(',').filter(Boolean);
+      var asset = state.assetById[ids[0]];
       newFlow(asset ? { customer: asset.customer, conversationType: asset.conversationType } : null);
-      if (asset) addStep(asset);
-      state.pendingAdd = null;
-      setStatus(els.flowStatus, asset ? 'Added “' + asset.title + '”. Pick a saved flow on the left to add it there instead.' : 'That asset was not found in the library.', !asset);
+      ids.forEach(function (id) { if (state.assetById[id]) addStep(state.assetById[id]); });
+      setStatus(els.flowStatus, state.steps.length ? 'Added selected assets to a new flow. Set your audience and goal with Suggest with Gemini.' : 'The selected assets were not found in the library.', !state.steps.length);
     }
   }
 
@@ -176,9 +187,11 @@
   }
 
   function loadIntoEditor(flow) {
+    state.undoSuggestion = null;
+    $('flowUndoSuggestion').hidden = true;
     state.current = flow;
     state.steps = (flow.steps || []).map(function (s) {
-      return { assetId: s.assetId, versionId: s.versionId || null, title: s.title || '', talkTrack: s.talkTrack || '', durationMin: s.durationMin || 0 };
+      return { assetId: s.assetId, versionId: s.versionId || null, currentVersionAtSave: s.currentVersionAtSave || null, title: s.title || '', talkTrack: s.talkTrack || '', transition: s.transition || '', durationMin: s.durationMin || 0 };
     });
     var f = els.form.elements;
     f.title.value = flow.title || '';
@@ -189,11 +202,13 @@
     els.form.hidden = false;
     els.del.hidden = !flow.id;
     els.present.hidden = !flow.id;
+    $('flowCheck').hidden = !flow.id;
     state.dirty = false;
     renderSteps();
     renderFlowList();
     var url = new URL(location.href);
     url.searchParams.delete('add');
+    url.searchParams.delete('assets');
     if (flow.id) url.searchParams.set('flow', flow.id); else url.searchParams.delete('flow');
     history.replaceState(null, '', url);
   }
@@ -274,6 +289,31 @@
       talkLabel.appendChild(talk);
       fields.appendChild(titleLabel);
       fields.appendChild(durLabel);
+      var versionLabel = el('label', 'demo-flows-wide', 'Demo version');
+      var versionSelect = el('select');
+      var latest = el('option', null, 'Follow latest version');
+      latest.value = '';
+      versionSelect.appendChild(latest);
+      var versions = state.versions[s.assetId] || [];
+      versions.forEach(function (v) {
+        var option = el('option', null, (v.current ? 'Current · ' : 'Archived · ') + (v.note || v.originalFilename || v.id.slice(0, 8)) +
+          (v.createdAt ? ' · ' + new Date(v.createdAt).toLocaleDateString() : ''));
+        option.value = v.id;
+        versionSelect.appendChild(option);
+      });
+      if (s.versionId && !versions.some(function (v) { return v.id === s.versionId; })) {
+        var pinned = el('option', null, 'Pinned version · ' + s.versionId.slice(0, 8));
+        pinned.value = s.versionId;
+        versionSelect.appendChild(pinned);
+      }
+      versionSelect.value = s.versionId || '';
+      versionSelect.setAttribute('aria-label', 'Version for step ' + (i + 1));
+      versionSelect.addEventListener('change', function () { s.versionId = versionSelect.value || null; markDirty(); });
+      versionLabel.appendChild(versionSelect);
+      fields.appendChild(versionLabel);
+      if (asset && !state.versions[s.assetId] && !state.versionsLoading.has(s.assetId)) {
+        fields.appendChild(button('Load version choices', null, function () { loadStepVersions(s.assetId); }));
+      }
       fields.appendChild(talkLabel);
       li.appendChild(fields);
       els.steps.appendChild(li);
@@ -282,12 +322,25 @@
     renderAssetResults();
   }
 
+  async function loadStepVersions(assetId) {
+    if (state.versionsLoading.has(assetId)) return;
+    state.versionsLoading.add(assetId);
+    setStatus(els.flowStatus, 'Loading version choices…');
+    try {
+      var data = await loadPaged(API + '/' + encodeURIComponent(assetId) + '/versions', 'versions');
+      state.versions[assetId] = data.versions || [];
+      renderSteps();
+      setStatus(els.flowStatus, '');
+    } catch (e) { setStatus(els.flowStatus, e.message, true); }
+    finally { state.versionsLoading.delete(assetId); }
+  }
+
   function addStep(asset) {
     if (state.steps.length >= MAX_STEPS) {
       setStatus(els.flowStatus, 'A flow can have at most ' + MAX_STEPS + ' steps.', true);
       return;
     }
-    state.steps.push({ assetId: asset.id, versionId: null, title: '', talkTrack: '', durationMin: 5 });
+    state.steps.push({ assetId: asset.id, versionId: null, currentVersionAtSave: asset.currentVersionId, title: '', talkTrack: '', durationMin: 5 });
     markDirty();
     renderSteps();
   }
@@ -323,33 +376,39 @@
       conversationType: f.conversationType.value,
       description: f.description.value.trim(),
       steps: state.steps.map(function (s) {
-        return { assetId: s.assetId, versionId: s.versionId, title: s.title.trim(), talkTrack: s.talkTrack.trim(), durationMin: Number(s.durationMin) || 0 };
+        return { assetId: s.assetId, versionId: s.versionId, currentVersionAtSave: s.currentVersionAtSave || null,
+          title: s.title.trim(), talkTrack: s.talkTrack.trim(), transition: s.transition || '', durationMin: Number(s.durationMin) || 0 };
       }),
     };
   }
 
   async function saveFlow(ev) {
     ev.preventDefault();
+    if (state.saving) return;
     var body = formPayload();
     if (!body.title) { setStatus(els.flowStatus, 'Give the flow a title.', true); return; }
     setStatus(els.flowStatus, 'Saving…');
+    state.saving = true;
+    $('flowSave').disabled = true;
     try {
       var id = state.current && state.current.id;
       var data = id
         ? await request(API + '/flows/' + encodeURIComponent(id), { method: 'PATCH', body: body })
         : await request(API + '/flows', { method: 'POST', body: body });
-      var listed = await request(API + '/flows');
-      state.flows = listed.flows || [];
+      var index = state.flows.findIndex(function (f) { return f.id === data.flow.id; });
+      if (index >= 0) state.flows[index] = data.flow; else state.flows.unshift(data.flow);
       loadIntoEditor(data.flow);
       setStatus(els.flowStatus, 'Saved.');
     } catch (e) {
       setStatus(els.flowStatus, e.message, true);
-    }
+    } finally { state.saving = false; $('flowSave').disabled = false; }
   }
 
   async function deleteFlow() {
+    if (state.saving) return;
     var flow = state.current;
     if (!flow || !flow.id || !window.confirm('Delete “' + (flow.title || 'this flow') + '”? The library assets are not affected.')) return;
+    els.del.disabled = true;
     try {
       await request(API + '/flows/' + encodeURIComponent(flow.id), { method: 'DELETE' });
       state.flows = state.flows.filter(function (f) { return f.id !== flow.id; });
@@ -361,7 +420,7 @@
       history.replaceState(null, '', location.pathname);
     } catch (e) {
       setStatus(els.flowStatus, e.message, true);
-    }
+    } finally { els.del.disabled = false; }
   }
 
   // ---- Gemini suggest ----
@@ -372,38 +431,45 @@
     setStatus(els.suggestError, '');
     els.suggestRationale.textContent = state.steps.length
       ? 'Gemini will reorder the ' + state.steps.length + ' current step(s).'
-      : 'Add some assets first, or Gemini will choose from the 12 most recent library assets.';
+      : 'Add assets from the library first. Gemini only reviews assets you choose.';
     els.suggestDialog.showModal();
   }
 
   async function runSuggest(ev) {
     ev.preventDefault();
+    if (els.suggestRun.disabled) return;
     var f = els.suggestForm.elements;
     var ids = state.steps.map(function (s) { return s.assetId; }).filter(function (id, i, arr) { return arr.indexOf(id) === i; });
-    if (!ids.length) ids = state.assets.slice(0, 12).map(function (a) { return a.id; });
-    if (!ids.length) { setStatus(els.suggestError, 'The library is empty.', true); return; }
+    if (!ids.length) { setStatus(els.suggestError, 'Add assets to this flow before asking Gemini.', true); return; }
+    if (ids.length > 12) { setStatus(els.suggestError, 'Choose at most 12 assets for one AI review. Your flow has not changed.', true); return; }
+    var before = formPayload();
+    var wasDirty = state.dirty;
     els.suggestRun.disabled = true;
     setStatus(els.suggestError, 'Asking Gemini…');
     try {
       var data = await request(cloudFunctionsOrigin() + '/demoAssetsApi/flows/suggest', {
         method: 'POST',
-        body: { assetIds: ids.slice(0, 12), goal: f.goal.value.trim(), customer: f.customer.value.trim(), minutes: Number(f.minutes.value) || 30, model: f.model.value || undefined },
+        body: { assetIds: ids, steps: before.steps, goal: f.goal.value.trim(), customer: f.customer.value.trim(), minutes: Number(f.minutes.value) || 30, model: f.model.value || undefined },
       });
       var s = data.suggestion;
-      var ff = els.form.elements;
-      if (!ff.title.value.trim()) ff.title.value = s.title || '';
-      if (!ff.description.value.trim() && s.description) ff.description.value = s.description;
-      if (!ff.customer.value.trim() && s.customer) ff.customer.value = s.customer;
-      state.steps = s.steps.map(function (st) {
-        return { assetId: st.assetId, versionId: null, title: st.title || '', talkTrack: st.talkTrack || '', durationMin: st.durationMin || 0 };
-      });
-      markDirty();
-      renderSteps();
+      if (!s || !Array.isArray(s.steps) || !s.steps.length) throw new Error('Gemini did not return a usable flow. Your steps are unchanged.');
+      state.suggestion = { result: s, before: before, dirty: wasDirty };
       els.suggestDialog.close();
-      var note = 'Suggestion applied — review and Save flow.';
-      if (s.omitted && s.omitted.length) note += ' Gemini left out ' + s.omitted.length + ' asset(s).';
-      setStatus(els.flowStatus, note);
-      if (s.rationale) els.flowStatus.title = s.rationale;
+      $('flowSuggestionRationale').textContent = (s.rationale || 'Review the suggested sequence and talk tracks before using it.') +
+        ((s.reviewNotes || []).length ? '\nReview notes: ' + s.reviewNotes.join(' ') : '');
+      var list = $('flowSuggestionSteps');
+      list.textContent = '';
+      s.steps.forEach(function (step) {
+        var li = el('li');
+        li.appendChild(el('strong', null, step.title || (state.assetById[step.assetId] || {}).title || step.assetId));
+        li.appendChild(el('p', null, step.talkTrack || 'No talk track suggested.'));
+        if (step.transition) li.appendChild(el('p', 'hint', 'Transition: ' + step.transition));
+        li.appendChild(el('p', 'hint', fmtMinutes(step.durationMin) + (step.versionId ? ' · Pinned version' : ' · Follows latest')));
+        list.appendChild(li);
+      });
+      $('flowSuggestionOmitted').textContent = (s.omitted || []).length ? 'Left out: ' +
+        s.omitted.map(function (id) { return (state.assetById[id] || {}).title || id; }).join(', ') : 'All selected assets are included.';
+      $('flowSuggestionReview').showModal();
     } catch (e) {
       setStatus(els.suggestError, e.message, true);
     } finally {
@@ -411,18 +477,87 @@
     }
   }
 
+  function acceptSuggestion() {
+      if (!state.suggestion) return;
+      var pending = state.suggestion;
+      var now = formPayload();
+      if (JSON.stringify(now) !== JSON.stringify(pending.before)) {
+        setStatus(els.flowStatus, 'Your flow changed while Gemini was working. Ask for a fresh suggestion; nothing was replaced.', true);
+        $('flowSuggestionReview').close();
+        state.suggestion = null;
+        return;
+      }
+      state.undoSuggestion = { payload: pending.before, dirty: pending.dirty };
+      var s = pending.result;
+      var ff = els.form.elements;
+      if (!ff.title.value.trim()) ff.title.value = s.title || '';
+      if (!ff.description.value.trim()) ff.description.value = s.description || '';
+      if (!ff.customer.value.trim()) ff.customer.value = s.customer || '';
+      state.steps = s.steps.map(function (step) {
+        var old = pending.before.steps.find(function (o) { return o.assetId === step.assetId; });
+        return { assetId: step.assetId, versionId: old ? old.versionId : step.versionId || null,
+          currentVersionAtSave: old ? old.currentVersionAtSave : null,
+          title: step.title || '', talkTrack: step.talkTrack || '', transition: step.transition || '', durationMin: step.durationMin || 0 };
+      });
+      markDirty();
+      renderSteps();
+      $('flowUndoSuggestion').hidden = false;
+      $('flowSuggestionReview').close();
+      state.suggestion = null;
+      setStatus(els.flowStatus, 'Suggested steps added. Version pins kept. Save when ready, or Undo suggestion.');
+    }
+
+  function undoSuggestion() {
+      if (!state.undoSuggestion) return;
+      if (!window.confirm('Undo the suggestion and any subsequent edits? Your saved flow is unaffected.')) return;
+      var undo = state.undoSuggestion;
+      loadIntoEditor(Object.assign({}, undo.payload, { id: state.current.id }));
+      state.dirty = undo.dirty;
+      setStatus(els.flowStatus, 'Your previous flow is restored in the editor.');
+    }
+
   // ---- Presenter ----
 
   async function startPresenting() {
     var flow = state.current;
     if (!flow || !flow.id) return;
     if (state.dirty && !window.confirm('Present the last saved version? Unsaved changes are not included.')) return;
+    await checkFlow(true);
+  }
+
+  async function checkFlow(forPresentation) {
+    if (!state.current || !state.current.id) return;
+    state.checkedFlowId = state.current.id;
+    $('flowCheckContinue').hidden = true;
+    $('flowCheckIssues').textContent = '';
+    $('flowCheckDialog').showModal();
+    setStatus($('flowCheckStatus'), 'Checking saved assets and versions…');
+    try {
+      var data = await request(API + '/flows/' + encodeURIComponent(state.current.id) + '/check');
+      var check = data.check;
+      (check.issues || []).forEach(function (issue) {
+        $('flowCheckIssues').appendChild(el('li', null, (issue.severity === 'error' ? 'Fix: ' : 'Review: ') +
+          (Number.isInteger(issue.stepIndex) ? 'Step ' + (issue.stepIndex + 1) + ' — ' : '') + issue.message));
+      });
+      setStatus($('flowCheckStatus'), check.ready ? 'The saved flow can be presented.' : 'Resolve the issues below before presenting.', !check.ready);
+      $('flowCheckContinue').hidden = !check.ready || !forPresentation;
+    } catch (e) { setStatus($('flowCheckStatus'), e.message, true); }
+  }
+
+  async function presentCheckedFlow() {
+    var flow = state.current;
+    if (!flow || flow.id !== state.checkedFlowId) return;
+    $('flowCheckContinue').disabled = true;
     setStatus(els.flowStatus, 'Preparing presentation…');
     try {
       var data = await request(API + '/flows/' + encodeURIComponent(flow.id) + '/present', { method: 'POST', body: {} });
       if (!data.flow.steps.length) { setStatus(els.flowStatus, 'Add at least one step first.', true); return; }
+      if (data.flow.steps.some(function (step) { return step.missing; })) {
+        throw new Error('An asset or version became unavailable after the check. Return to the editor and check again.');
+      }
       setStatus(els.flowStatus, '');
       state.present = { flow: data.flow, index: 0, started: Date.now(), stepStarted: Date.now(), timer: null, opener: document.activeElement };
+      $('flowCheckDialog').close();
       els.presenter.hidden = false;
       document.body.classList.add('demo-flows-presenting');
       $('presenterTitle').textContent = data.flow.title;
@@ -432,7 +567,8 @@
       els.next.focus();
     } catch (e) {
       setStatus(els.flowStatus, e.message, true);
-    }
+      setStatus($('flowCheckStatus'), e.message, true);
+    } finally { $('flowCheckContinue').disabled = false; }
   }
 
   function renderOutline() {
@@ -448,7 +584,7 @@
     });
   }
 
-  function showStep(i) {
+  async function showStep(i) {
     var p = state.present;
     var steps = p.flow.steps;
     if (i < 0 || i >= steps.length) return;
@@ -462,6 +598,7 @@
     String(s.talkTrack || 'No talk track for this step.').split(/\n{2,}/).forEach(function (para) {
       talk.appendChild(el('p', null, para));
     });
+    if (s.transition) talk.appendChild(el('p', 'hint', 'Transition: ' + s.transition));
     if (s.missing || !s.renderUrl) {
       els.frame.hidden = true;
       els.frame.removeAttribute('src');
@@ -470,6 +607,24 @@
     } else {
       els.missing.hidden = true;
       els.frame.hidden = false;
+      if (s.expiresAt && new Date(s.expiresAt).getTime() <= Date.now() + 30000) {
+        els.frame.src = 'about:blank';
+        try {
+          var renewed = await request(API + '/' + encodeURIComponent(s.assetId) + '/render-token', {
+            method: 'POST', body: { versionId: s.versionId },
+          });
+          s.renderUrl = renewed.url;
+          s.expiresAt = renewed.expiresAt;
+        } catch (e) {
+          if (state.present === p && p.index === i) {
+            els.frame.hidden = true;
+            els.missing.hidden = false;
+            els.missing.textContent = 'Could not renew this preview: ' + e.message + '. Select the step again to retry.';
+          }
+          return;
+        }
+      }
+      if (state.present !== p || p.index !== i) return;
       els.frame.src = s.renderUrl;
     }
     els.prev.disabled = i === 0;
@@ -479,6 +634,7 @@
       if (j === i) li.firstChild.setAttribute('aria-current', 'step'); else li.firstChild.removeAttribute('aria-current');
     });
     tick();
+    renderNotesWindow();
   }
 
   function clock(ms) {
@@ -497,12 +653,56 @@
     var t = $('presenterTimer');
     t.textContent = clock(elapsed) + (step.durationMin ? ' / ' + fmtMinutes(step.durationMin) : '') + ' · total ' + clock(Date.now() - p.started);
     t.classList.toggle('is-over', !!over);
+    if (state.notesWindow && !state.notesWindow.closed) {
+      var timer = state.notesWindow.document.getElementById('notesTimer');
+      if (timer) timer.textContent = t.textContent;
+    }
+  }
+
+  function openNotesWindow() {
+    if (!state.present) return;
+    if (state.notesWindow && !state.notesWindow.closed) { state.notesWindow.focus(); return; }
+    var win = window.open('about:blank', '_blank', 'popup,width=680,height=800');
+    if (!win) { setStatus(els.flowStatus, 'Your browser blocked the presenter window. Allow pop-ups and try again.', true); return; }
+    state.notesWindow = win;
+    win.document.title = 'Presenter notes';
+    var stylesheet = win.document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = new URL('demo-presenter-notes.css?v=20261009-workspace', location.href).href;
+    win.document.head.appendChild(stylesheet);
+    if (document.documentElement.getAttribute('data-aep-theme') === 'dark') win.document.documentElement.setAttribute('data-aep-theme', 'dark');
+    win.document.body.appendChild(win.document.createElement('main'));
+    $('presenterAside').hidden = true;
+    $('presenterNotes').setAttribute('aria-pressed', 'false');
+    renderNotesWindow();
+  }
+
+  function renderNotesWindow() {
+    var win = state.notesWindow;
+    if (!win || win.closed || !state.present) return;
+    var doc = win.document, main = doc.querySelector('main');
+    main.textContent = '';
+    var step = state.present.flow.steps[state.present.index];
+    function node(tag, text) { var n = doc.createElement(tag); n.textContent = text; main.appendChild(n); return n; }
+    node('h1', step.title || (step.asset && step.asset.title) || 'Demo step');
+    node('p', 'Step ' + (state.present.index + 1) + ' of ' + state.present.flow.steps.length);
+    node('p', $('presenterTimer').textContent).id = 'notesTimer';
+    node('p', step.talkTrack || 'No talk track for this step.').className = 'talk-track';
+    if (step.transition) node('p', 'Transition: ' + step.transition);
+    [['Previous', -1], ['Next', 1]].forEach(function (entry) {
+      var b = node('button', entry[0]);
+      b.type = 'button';
+      b.disabled = state.present.index + entry[1] < 0 || state.present.index + entry[1] >= state.present.flow.steps.length;
+      b.addEventListener('click', function () { showStep(state.present.index + entry[1]); });
+    });
   }
 
   function stopPresenting() {
     var p = state.present;
     if (!p) return;
     clearInterval(p.timer);
+    if (state.notesWindow && !state.notesWindow.closed) state.notesWindow.close();
+    state.notesWindow = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
     els.frame.removeAttribute('src');
     els.presenter.hidden = true;
@@ -541,6 +741,13 @@
     els.del.addEventListener('click', deleteFlow);
     els.present.addEventListener('click', startPresenting);
     $('flowSuggest').addEventListener('click', openSuggest);
+    $('flowSuggestionAccept').addEventListener('click', acceptSuggestion);
+    $('flowSuggestionCancel').addEventListener('click', function () { state.suggestion = null; $('flowSuggestionReview').close(); });
+    $('flowUndoSuggestion').addEventListener('click', undoSuggestion);
+    $('flowCheck').addEventListener('click', function () { checkFlow(false); });
+    $('flowCheckClose').addEventListener('click', function () { $('flowCheckDialog').close(); });
+    $('flowCheckContinue').addEventListener('click', presentCheckedFlow);
+    $('presenterNotesWindow').addEventListener('click', openNotesWindow);
     $('suggestCancel').addEventListener('click', function () { els.suggestDialog.close(); });
     els.suggestForm.addEventListener('submit', runSuggest);
     els.prev.addEventListener('click', function () { showStep(state.present.index - 1); });
@@ -558,6 +765,9 @@
     document.addEventListener('keydown', onKey);
     window.addEventListener('beforeunload', function (ev) {
       if (state.dirty) { ev.preventDefault(); ev.returnValue = ''; }
+    });
+    window.addEventListener('pagehide', function () {
+      if (state.notesWindow && !state.notesWindow.closed) state.notesWindow.close();
     });
 
     if (typeof firebase === 'undefined' || !window.firebaseDatabaseConfig) {

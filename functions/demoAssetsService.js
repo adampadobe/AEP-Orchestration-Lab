@@ -380,6 +380,8 @@ function toPublicAsset(id, d) {
     summary: d.summary || '',
     notes: d.notes || '',
     status: d.status || 'ready',
+    deleted: d.deleted === true,
+    deletedAt: d.deletedAt && d.deletedAt.toDate ? d.deletedAt.toDate().toISOString() : d.deletedAt || null,
     originalFilename: d.originalFilename || '',
     folderPath: d.folderPath || '',
     sha256: d.sha256 || '',
@@ -389,23 +391,101 @@ function toPublicAsset(id, d) {
     classification: d.classification || null,
     currentVersionId: d.currentVersionId || '',
     derivedFrom: d.derivedFrom || null,
+    adaptationBrief: d.adaptationBrief || null,
     createdBy: d.createdBy || null,
     createdAt: d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().toISOString() : d.createdAt || null,
     updatedAt: d.updatedAt && d.updatedAt.toDate ? d.updatedAt.toDate().toISOString() : d.updatedAt || null,
   };
 }
 
-async function listAssets() {
-  const snap = await getDb().collection(COLLECTION).orderBy('createdAt', 'desc').limit(1000).get();
-  return snap.docs.map((doc) => toPublicAsset(doc.id, doc.data()));
+function encodeCursor(id) {
+  return Buffer.from(String(id)).toString('base64url');
 }
 
-async function getAssetDoc(id) {
+function decodeCursor(cursor, pattern = /^[A-Za-z0-9_-]{6,64}$/) {
+  if (!cursor) return '';
+  try {
+    const id = Buffer.from(String(cursor), 'base64url').toString('utf8');
+    if (!pattern.test(id)) throw new Error('bad cursor');
+    return id;
+  } catch (_e) {
+    throw new DemoAssetsError(400, 'Invalid cursor');
+  }
+}
+
+function matchesAssetSearch(asset, query) {
+  if (!query) return true;
+  const needle = query.toLowerCase();
+  const values = [asset.title, asset.customer, asset.industry, asset.conversationType, asset.event,
+    asset.summary, asset.originalFilename, ...(asset.tags || [])];
+  return values.some((value) => String(value || '').toLowerCase().includes(needle));
+}
+
+async function listAssets(options) {
+  const db = getDb();
+  const collection = db.collection(COLLECTION);
+  if (!options) {
+    return (await listAllAssets()).slice(0, 1000);
+  }
+
+  const limit = Math.min(Math.max(Number(options.limit) || 100, 1), 200);
+  const query = cleanString(options.q, 200).toLowerCase();
+  const includeDeleted = options.deleted === true;
+  const cursorId = decodeCursor(options.cursor);
+  let cursor = cursorId ? await collection.doc(cursorId).get() : null;
+  if (cursorId && !cursor.exists) throw new DemoAssetsError(400, 'Invalid cursor');
+  const selected = [];
+  let exhausted = false;
+  while (selected.length <= limit && !exhausted) {
+    let q = collection.orderBy('createdAt', 'desc');
+    if (cursor) q = q.startAfter(cursor);
+    const snap = await q.limit(500).get();
+    if (!snap.docs.length) break;
+    cursor = snap.docs[snap.docs.length - 1];
+    exhausted = snap.docs.length < 500;
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      if ((data.deleted === true) !== includeDeleted) continue;
+      const asset = toPublicAsset(doc.id, data);
+      if (!matchesAssetSearch(asset, query)) continue;
+      selected.push({ doc, asset });
+      if (selected.length > limit) break;
+    }
+    if (selected.length > limit) break;
+  }
+  const hasMore = selected.length > limit;
+  const page = selected.slice(0, limit);
+  return {
+    assets: page.map((entry) => entry.asset),
+    nextCursor: hasMore ? encodeCursor(page[page.length - 1].doc.id) : null,
+  };
+}
+
+async function listAllAssets({ includeDeleted = false } = {}) {
+  const collection = getDb().collection(COLLECTION);
+  const out = [];
+  let cursor = null;
+  while (true) {
+    let query = collection.orderBy('createdAt', 'desc');
+    if (cursor) query = query.startAfter(cursor);
+    const snap = await query.limit(500).get();
+    if (!snap.docs.length) break;
+    out.push(...snap.docs.filter((doc) => includeDeleted || doc.data().deleted !== true)
+      .map((doc) => toPublicAsset(doc.id, doc.data())));
+    if (snap.docs.length < 500) break;
+    cursor = snap.docs[snap.docs.length - 1];
+  }
+  return out;
+}
+
+async function getAssetDoc(id, { includeDeleted = false } = {}) {
   if (!/^[A-Za-z0-9_-]{6,64}$/.test(String(id || ''))) throw new DemoAssetsError(400, 'Invalid asset id');
   const ref = getDb().collection(COLLECTION).doc(id);
   const snap = await ref.get();
   if (!snap.exists) throw new DemoAssetsError(404, 'Asset not found');
-  return { ref, data: snap.data() };
+  const data = snap.data();
+  if (!includeDeleted && data.deleted === true) throw new DemoAssetsError(404, 'Asset not found');
+  return { ref, data };
 }
 
 async function getAsset(id) {
@@ -414,8 +494,17 @@ async function getAsset(id) {
 }
 
 async function findBySha(sha) {
-  const snap = await getDb().collection(COLLECTION).where('sha256', '==', sha).limit(1).get();
-  return snap.empty ? null : toPublicAsset(snap.docs[0].id, snap.docs[0].data());
+  const collection = getDb().collection(COLLECTION);
+  let cursor = null;
+  while (true) {
+    let query = collection.where('sha256', '==', sha);
+    if (cursor) query = query.startAfter(cursor);
+    const snap = await query.limit(500).get();
+    const existing = snap.docs.find((doc) => doc.data().deleted !== true);
+    if (existing) return toPublicAsset(existing.id, existing.data());
+    if (snap.docs.length < 500) return null;
+    cursor = snap.docs[snap.docs.length - 1];
+  }
 }
 
 function normaliseAssetFilename(filename) {
@@ -467,7 +556,7 @@ async function createAsset({ html, filename, folderPath, force }, user, deps = {
     if (existing) return { asset: existing, duplicate: true };
   }
 
-  const assets = await listAssets();
+  const assets = await listAllAssets();
   const versionCandidates = force ? [] : findFilenameMatches(filename, assets);
   if (versionCandidates.length) return { versionCandidates };
   const meta = extractMeta(skeleton);
@@ -542,8 +631,33 @@ async function updateAsset(id, body, user) {
   return getAsset(id);
 }
 
+async function trashAsset(id, user) {
+  const { ref, data } = await getAssetDoc(id);
+  if (data.deleted === true) return { ok: true, id, deleted: true };
+  await ref.update({
+    deleted: true,
+    deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+    deletedBy: user ? { uid: user.uid, email: user.email || '' } : null,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  return { ok: true, id, deleted: true };
+}
+
+async function restoreAsset(id, user) {
+  const { ref } = await getAssetDoc(id, { includeDeleted: true });
+  await ref.update({
+    deleted: false,
+    deletedAt: null,
+    deletedBy: null,
+    restoredAt: admin.firestore.FieldValue.serverTimestamp(),
+    restoredBy: user ? { uid: user.uid, email: user.email || '' } : null,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  return { ok: true, asset: await getAsset(id) };
+}
+
 async function deleteAsset(id) {
-  const { ref } = await getAssetDoc(id);
+  const { ref } = await getAssetDoc(id, { includeDeleted: true });
   const bucket = getBucket();
   const versions = await ref.collection('versions').get();
   await bucket.deleteFiles({ prefix: `assets/${id}/` });
@@ -602,12 +716,45 @@ async function createRenderToken(id, user, opts = {}) {
   const doc = {
     assetId: id,
     uid: user.uid,
+    createdAt: admin.firestore.Timestamp.fromDate(new Date()),
     expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+    revoked: false,
   };
   if (!opts.proposalId) doc.versionId = versionId;
   if (opts.proposalId) doc.proposalId = cleanString(opts.proposalId, 64);
   await getDb().collection(TOKEN_COLLECTION).doc(token).set(doc);
-  return { token, expiresAt: expiresAt.toISOString(), url };
+  return { token, tokenId: token, versionId: opts.proposalId ? null : versionId, expiresAt: expiresAt.toISOString(), url };
+}
+
+async function listRenderTokens(id, user) {
+  await getAssetDoc(id, { includeDeleted: true });
+  const snap = await getDb().collection(TOKEN_COLLECTION).where('assetId', '==', id).get();
+  return snap.docs.filter((doc) => doc.data().uid === user.uid).map((doc) => {
+    const token = doc.data();
+    return {
+      id: doc.id,
+      tokenId: doc.id,
+      versionId: token.versionId || null,
+      createdAt: token.createdAt && token.createdAt.toDate ? token.createdAt.toDate().toISOString() : token.createdAt || null,
+      expiresAt: token.expiresAt && token.expiresAt.toDate ? token.expiresAt.toDate().toISOString() : token.expiresAt || null,
+      revoked: token.revoked === true,
+      url: buildRenderUrl(doc.id),
+    };
+  }).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+
+async function revokeRenderToken(id, tokenId, user) {
+  await getAssetDoc(id, { includeDeleted: true });
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(String(tokenId || ''))) throw new DemoAssetsError(400, 'Invalid token id');
+  const ref = getDb().collection(TOKEN_COLLECTION).doc(tokenId);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data().assetId !== id || snap.data().uid !== user.uid) {
+    throw new DemoAssetsError(404, 'Render token not found');
+  }
+  if (snap.data().revoked !== true) {
+    await ref.update({ revoked: true, revokedAt: admin.firestore.FieldValue.serverTimestamp() });
+  }
+  return { ok: true, id: tokenId, revoked: true };
 }
 
 /** Resolve a render token to { assetId, versionId?, proposalId? }. */
@@ -616,7 +763,10 @@ async function resolveRenderTarget(token) {
   const snap = await getDb().collection(TOKEN_COLLECTION).doc(token).get();
   if (!snap.exists) throw new DemoAssetsError(404, 'Not found');
   const d = snap.data();
+  if (d.revoked === true) throw new DemoAssetsError(410, 'Preview link has been revoked.');
   if (!d.expiresAt || d.expiresAt.toMillis() < Date.now()) throw new DemoAssetsError(410, 'Preview link expired — reopen it from the library.');
+  const asset = await getDb().collection(COLLECTION).doc(d.assetId).get();
+  if (!asset.exists || asset.data().deleted === true) throw new DemoAssetsError(404, 'Not found');
   return { assetId: d.assetId, versionId: d.versionId || null, proposalId: d.proposalId || null };
 }
 
@@ -653,6 +803,7 @@ module.exports = {
   assertAllowedUser,
   bucketName,
   listAssets,
+  listAllAssets,
   getAsset,
   createAsset,
   prepareUpload,
@@ -660,8 +811,12 @@ module.exports = {
   findFilenameMatches,
   updateAsset,
   deleteAsset,
+  trashAsset,
+  restoreAsset,
   loadRenderedHtml,
   createRenderToken,
+  listRenderTokens,
+  revokeRenderToken,
   buildRenderUrl,
   resolveRenderToken,
   resolveRenderTarget,
@@ -685,6 +840,8 @@ module.exports = {
     getBucket,
     getDb,
     getAssetDoc,
+    encodeCursor,
+    decodeCursor,
     loadMedia,
     saveMedia,
     skeletonPath,

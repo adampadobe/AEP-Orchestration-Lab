@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="demo-asset-library.css?v=20261008-versions">
+  <link rel="stylesheet" href="demo-asset-library.css?v=20261009-library-ux">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -62,22 +62,49 @@
                 </label>
               </div>
             </div>
+            <p id="demoAssetsUploadSummary" class="demo-assets-upload-summary" role="status" aria-live="polite"></p>
+            <progress id="demoAssetsUploadProgress" class="demo-assets-upload-progress" max="1" value="0" aria-label="Upload progress" hidden></progress>
             <ul id="demoAssetsUploadList" class="demo-assets-upload-list" aria-live="polite"></ul>
           </section>
 
           <section class="panel demo-assets-library" aria-labelledby="demoAssetsLibraryHeading">
             <header class="demo-assets-library-header">
               <h2 id="demoAssetsLibraryHeading">Library <span id="demoAssetsCount" class="dashboard-env-pill">0</span></h2>
+              <nav class="demo-assets-views" aria-label="Asset view">
+                <button id="demoAssetsActiveView" type="button" class="dashboard-btn-outline" aria-pressed="true">Active</button>
+                <button id="demoAssetsTrashView" type="button" class="dashboard-btn-outline" aria-pressed="false">Trash</button>
+              </nav>
               <div class="demo-assets-filters">
                 <input id="demoAssetsSearch" type="search" placeholder="Search title, customer, tags…" aria-label="Search assets">
                 <select id="demoAssetsCustomerFilter" aria-label="Filter by customer"><option value="">All customers</option></select>
                 <select id="demoAssetsTypeFilter" aria-label="Filter by conversation type"><option value="">All conversation types</option></select>
                 <select id="demoAssetsEventFilter" aria-label="Filter by event"><option value="">All events</option></select>
+                <label class="demo-assets-group-control">Group by
+                  <select id="demoAssetsGroupBy" aria-label="Group assets by">
+                    <option value="customer">Customer</option>
+                    <option value="conversationType">Conversation type</option>
+                    <option value="none">No grouping</option>
+                  </select>
+                </label>
                 <label class="demo-assets-review-toggle"><input id="demoAssetsNeedsReview" type="checkbox"> Needs review only</label>
               </div>
             </header>
+            <p id="demoAssetsTrashNotice" class="demo-assets-trash-notice" hidden>Trash keeps the HTML and version history. Restore an asset to make it available again.</p>
+            <section id="demoAssetsSelectionToolbar" class="demo-assets-selection-toolbar" aria-label="Selected assets" hidden>
+              <span id="demoAssetsSelectionCount" role="status" aria-live="polite">0 selected</span>
+              <button id="demoAssetsSelectAll" type="button" class="dashboard-btn-outline">Select all loaded</button>
+              <button id="demoAssetsClearSelection" type="button" class="dashboard-btn-outline">Clear</button>
+              <button id="demoAssetsAddToFlow" type="button" class="dashboard-btn-outline">Add to flow…</button>
+              <a id="demoAssetsBuildFlow" class="dashboard-btn-primary" href="demo-flows.html">Build flow</a>
+              <a id="demoAssetsCreateBrief" class="dashboard-btn-outline" href="demo-flows.html" aria-describedby="demoAssetsReviewSelectedHint">Review selected with Gemini in Flows</a>
+              <span id="demoAssetsReviewSelectedHint" class="demo-assets-selection-note">Opens a new flow with these assets. Choose “Suggest with Gemini” there to review them.</span>
+            </section>
             <p id="demoAssetsStatus" class="status" role="status" aria-live="polite"></p>
             <div id="demoAssetsGrid" class="demo-assets-grid"></div>
+            <footer class="demo-assets-pagination">
+              <p id="demoAssetsPageStatus" class="hint" role="status" aria-live="polite"></p>
+              <button id="demoAssetsLoadMore" type="button" class="dashboard-btn-outline" hidden>Load more</button>
+            </footer>
           </section>
         </div>
       </main>
@@ -102,7 +129,7 @@
       <datalist id="demoAssetsEventList"></datalist>
       <p id="demoAssetsEditError" class="status error" role="alert"></p>
       <div class="demo-assets-dialog-actions">
-        <button type="button" id="demoAssetsEditDelete" class="dashboard-btn-outline demo-assets-danger">Delete asset</button>
+        <button type="button" id="demoAssetsEditDelete" class="dashboard-btn-outline demo-assets-danger">Move to Trash</button>
         <span class="demo-assets-spacer"></span>
         <button type="button" id="demoAssetsEditCancel" class="dashboard-btn-outline">Cancel</button>
         <button type="submit" id="demoAssetsEditSave" class="dashboard-btn-primary">Save</button>
@@ -129,6 +156,49 @@
     <p class="hint">Older versions are kept. Restore creates a new current version without deleting history. Flows using the current version follow the restore; pinned flows are unchanged.</p>
     <p id="demoAssetsHistoryStatus" class="status" role="status" aria-live="polite"></p>
     <ul id="demoAssetsHistoryList" class="demo-assets-history-list"></ul>
+    <button id="demoAssetsHistoryMore" type="button" class="dashboard-btn-outline" hidden>Load more versions</button>
+  </dialog>
+
+  <dialog id="demoAssetsShareDialog" class="demo-assets-dialog" aria-labelledby="demoAssetsShareTitle">
+    <header class="demo-assets-preview-header">
+      <h2 id="demoAssetsShareTitle">Share demo</h2>
+      <button id="demoAssetsShareClose" type="button" class="dashboard-btn-outline">Close</button>
+    </header>
+    <p class="hint">Anyone with this link can view the pinned demo until it expires. Treat it like a bearer credential; anyone who has it can access the content. You can revoke links you created here.</p>
+    <button id="demoAssetsShareCreate" type="button" class="dashboard-btn-primary">Create expiring link</button>
+    <p id="demoAssetsShareStatus" class="status" role="status" aria-live="polite"></p>
+    <section id="demoAssetsShareCreated" class="demo-assets-share-created" hidden>
+      <p id="demoAssetsShareExpiry"></p>
+      <label>Link<input id="demoAssetsShareUrl" type="url" readonly></label>
+      <button id="demoAssetsShareCopy" type="button" class="dashboard-btn-outline">Copy link</button>
+    </section>
+    <h3>Your links</h3>
+    <ul id="demoAssetsShareList" class="demo-assets-history-list"></ul>
+  </dialog>
+
+  <dialog id="demoAssetsActivityDialog" class="demo-assets-dialog" aria-labelledby="demoAssetsActivityTitle">
+    <header class="demo-assets-preview-header">
+      <h2 id="demoAssetsActivityTitle">Asset activity</h2>
+      <button id="demoAssetsActivityClose" type="button" class="dashboard-btn-outline">Close</button>
+    </header>
+    <p id="demoAssetsActivityStatus" class="status" role="status" aria-live="polite"></p>
+    <ul id="demoAssetsActivityList" class="demo-assets-history-list"></ul>
+  </dialog>
+
+  <dialog id="demoAssetsFlowDialog" class="demo-assets-dialog" aria-labelledby="demoAssetsFlowTitle">
+    <form method="dialog" id="demoAssetsFlowForm">
+      <h2 id="demoAssetsFlowTitle">Add assets to a flow</h2>
+      <p id="demoAssetsFlowStatus" class="status" role="status" aria-live="polite"></p>
+      <label>Choose an existing flow
+        <select id="demoAssetsFlowSelect"></select>
+      </label>
+      <div class="demo-assets-dialog-actions">
+        <button id="demoAssetsFlowCancel" type="button" class="dashboard-btn-outline">Cancel</button>
+        <button id="demoAssetsFlowExisting" type="button" class="dashboard-btn-primary">Add selected</button>
+      </div>
+      <p class="hint">Need a new flow? Create one in Demo Flows, then return here; your selected assets stay in this library.</p>
+      <a id="demoAssetsFlowNew" class="dashboard-btn-outline" href="demo-flows.html">Create a new flow</a>
+    </form>
   </dialog>
 
   <script src="firebase-database-config.js"></script>
@@ -139,6 +209,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260903-demo-flows"></script>
-  <script src="demo-asset-library.js?v=20261008-versions"></script>
+  <script src="demo-asset-library.js?v=20261009-library-ux"></script>
 </body>
 </html>

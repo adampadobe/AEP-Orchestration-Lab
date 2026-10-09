@@ -142,3 +142,23 @@
 .demo-studio-dialog label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.88rem; }
 .demo-studio-dialog .hint { color: var(--dash-muted); font-size: 0.82rem; margin: 0; }
 .demo-studio-dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.demo-studio-page button, .demo-studio-page select { min-height: 44px; }
+.demo-studio-conversations, .demo-studio-version-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.demo-studio-conversations label { flex-basis: 100%; font-size: 0.85rem; color: var(--dash-text-secondary); }
+.demo-studio-conversations select { flex: 1; min-width: 0; }
+.demo-studio-conversations select, .demo-studio-dialog textarea {
+  font: inherit; color: var(--dash-text); background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm); padding: 0.5rem;
+}
+.demo-studio-dialog textarea { resize: vertical; }
+.demo-studio-version-selection { color: var(--dash-text-secondary); font-size: 0.85rem; }
+.demo-studio-checklist { border: 1px solid var(--dash-warning-border); background: var(--dash-warning-bg); padding: 0.75rem; border-radius: var(--dash-radius-sm); color: var(--dash-warning-text); }
+.demo-studio-checklist h4 { margin: 0 0 0.5rem; }
+.demo-studio-checklist ul { padding-left: 1.25rem; }
+.demo-studio-checklist[hidden], .demo-studio-version-selection [hidden], #studioMoreVersions[hidden] { display: none; }
+@media (max-width: 600px) {
+  .demo-studio-layout { grid-template-columns: minmax(0, 1fr); }
+  .demo-studio-chat { min-height: 480px; max-height: none; }
+  .demo-studio-frames[data-view="split"] { grid-template-columns: minmax(0, 1fr); }
+  .demo-studio-dialog-actions { flex-wrap: wrap; }
+}

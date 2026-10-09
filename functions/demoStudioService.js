@@ -117,7 +117,7 @@ function sanitiseForPrompt(html) {
     .replace(/<\/?untrusted_html[^>]*>/gi, '');
 }
 
-function buildStudioContext({ skeleton, asset, intent, targetCustomer }) {
+function buildStudioContext({ skeleton, asset, intent, targetCustomer, adaptationBrief = null }) {
   const outline = buildOutline(skeleton);
   const mediaTokens = mediaHashesIn(skeleton);
   let doc = sanitiseForPrompt(skeleton);
@@ -133,6 +133,7 @@ function buildStudioContext({ skeleton, asset, intent, targetCustomer }) {
     },
     intent,
     targetCustomer: targetCustomer || '',
+    adaptationBrief: adaptationBrief || null,
     outline: outline.map((s) => ({ id: s.id, tag: s.tag, depth: s.depth, chars: s.chars, label: s.label })),
     mediaTokenCount: mediaTokens.length,
     truncated,
@@ -394,10 +395,21 @@ async function createVersion(assetId, skeleton, user, { note, source, proposalId
   return { versionId: versionRef.id };
 }
 
-async function listVersions(assetId) {
+async function listVersions(assetId, options) {
   const { ref, data } = await getAssetDoc(assetId);
-  const snap = await ref.collection('versions').orderBy('createdAt', 'desc').get();
-  return snap.docs.map((d) => {
+  let query = ref.collection('versions').orderBy('createdAt', 'desc');
+  const limit = options ? Math.min(Math.max(Number(options.limit) || 50, 1), 200) : Infinity;
+  if (options) {
+    const cursorId = base._internal.decodeCursor(options.cursor);
+    if (cursorId) {
+      const cursor = await ref.collection('versions').doc(cursorId).get();
+      if (!cursor.exists) throw new DemoAssetsError(400, 'Invalid cursor');
+      query = query.startAfter(cursor);
+    }
+    query = query.limit(limit + 1);
+  }
+  const snap = await query.get();
+  const toVersion = (d) => {
     const v = d.data();
     return {
       id: d.id,
@@ -410,7 +422,13 @@ async function listVersions(assetId) {
       createdBy: v.createdBy ? { email: v.createdBy.email, name: v.createdBy.name } : null,
       createdAt: iso(v.createdAt),
     };
-  });
+  };
+  if (!options) return snap.docs.map(toVersion);
+  const pageDocs = snap.docs.slice(0, limit);
+  return {
+    versions: pageDocs.map(toVersion),
+    nextCursor: snap.docs.length > limit ? base._internal.encodeCursor(pageDocs[pageDocs.length - 1].id) : null,
+  };
 }
 
 /** Restore = copy an old version forward as a new version (history stays linear). */
@@ -450,6 +468,12 @@ async function uploadVersion(assetId, body, user) {
 async function deriveAsset(assetId, body, user) {
   const customer = cleanString(body && body.customer, 120);
   if (!customer) throw new DemoAssetsError(400, 'customer is required');
+  const adaptationBrief = {
+    customer,
+    audience: cleanString(body && body.audience, 500),
+    objective: cleanString(body && body.objective, 1000),
+    brandNotes: cleanString(body && (body.brandNotes || body.approvedBrandNotes), 2000),
+  };
   const { skeleton, versionId, data, version } = await base.loadSkeleton(assetId, body && body.versionId);
   const content = base.prepareUpload(await base.rehydrateSkeleton(skeleton));
   const db = getDb();
@@ -481,6 +505,7 @@ async function deriveAsset(assetId, body, user) {
     sizes: content.sizes,
     outline: data.outline || null,
     classification: { source: 'derived', error: null },
+    adaptationBrief,
     currentVersionId: versionRef.id,
     derivedFrom: { assetId, versionId, title: data.title || '', customer: data.customer || '' },
     createdBy,
@@ -504,7 +529,68 @@ async function deriveAsset(assetId, body, user) {
     createdAt: now,
   });
   await batch.commit();
-  return { asset: toPublicAsset(ref.id, { ...doc, createdAt: null, updatedAt: null }) };
+  const sourceCustomer = cleanString(data.customer, 120);
+  const oldNameCheck = sourceCustomer
+    ? inspectNameInText(skeleton, sourceCustomer)
+    : { name: '', count: 0, matches: [] };
+  const checklist = [
+    {
+      label: 'Source customer identified',
+      passed: Boolean(sourceCustomer),
+      detail: sourceCustomer ? `Review all ${oldNameCheck.count} source-name occurrence${oldNameCheck.count === 1 ? '' : 's'} before sharing.` : 'The source asset has no customer name to search for.',
+    },
+    {
+      label: 'Customer-specific copy reviewed',
+      passed: Boolean(sourceCustomer) && oldNameCheck.count === 0,
+      detail: !sourceCustomer ? 'Review required: no source customer was recorded.' : oldNameCheck.count ? `${oldNameCheck.count} occurrence${oldNameCheck.count === 1 ? '' : 's'} of "${sourceCustomer}" remain in the copied source.` : 'No source-customer name remains in the copied source.',
+    },
+  ];
+  return {
+    asset: toPublicAsset(ref.id, { ...doc, createdAt: null, updatedAt: null }),
+    adaptationBrief,
+    oldNameCheck: { sourceCustomer, ...oldNameCheck, passed: Boolean(sourceCustomer) && oldNameCheck.count === 0 },
+    checklist,
+  };
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function inspectNameInText(text, name) {
+  const cleaned = cleanString(name, 120);
+  if (!cleaned) return { name: '', count: 0, matches: [] };
+  const re = new RegExp(`(^|[^A-Za-z0-9])(${escapeRegExp(cleaned)})(?=$|[^A-Za-z0-9])`, 'gi');
+  const source = String(text || '');
+  const matches = [];
+  let match;
+  let count = 0;
+  while ((match = re.exec(source))) {
+    count += 1;
+    if (matches.length < 25) {
+      const start = Math.max(0, match.index - 60);
+      const end = Math.min(source.length, match.index + match[0].length + 60);
+      matches.push({ text: match[2], context: source.slice(start, end).replace(/\s+/g, ' ').slice(0, 180) });
+    }
+  }
+  return { name: cleaned, count, matches };
+}
+
+function adaptationChecklist({ html, sourceCustomer, adaptationBrief }) {
+  const targetCustomer = cleanString(adaptationBrief && adaptationBrief.customer, 120);
+  const source = cleanString(sourceCustomer, 120);
+  const targetFound = Boolean(targetCustomer && inspectNameInText(html, targetCustomer).count);
+  const oldName = source && source.toLowerCase() !== targetCustomer.toLowerCase()
+    ? inspectNameInText(html, source) : { count: 0, matches: [] };
+  const approvedNotes = cleanString(adaptationBrief && adaptationBrief.brandNotes, 2000);
+  const stopWords = new Set(['with', 'that', 'this', 'from', 'your', 'the', 'and', 'for', 'use', 'make', 'keep', 'should', 'must', 'brand', 'style', 'tone']);
+  const noteTerms = [...new Set((approvedNotes.match(/[A-Za-z0-9-]{4,}/g) || []).map((x) => x.toLowerCase()).filter((x) => !stopWords.has(x)))];
+  const missingTerms = noteTerms.filter((term) => !String(html || '').toLowerCase().includes(term));
+  return [
+    { label: 'Target customer appears in proposed text', passed: targetFound, detail: targetFound ? `The proposed HTML contains "${targetCustomer}".` : `The proposed HTML does not contain "${targetCustomer}".` },
+    { label: 'Source customer name removed from proposed text', passed: Boolean(source) && oldName.count === 0, detail: oldName.count ? `${oldName.count} occurrence${oldName.count === 1 ? '' : 's'} of "${source}" remain in the proposed HTML.` : source ? `No "${source}" occurrences remain in the proposed HTML.` : 'Review required: no source customer was recorded.' },
+    { label: 'Brand-note term presence heuristic', passed: noteTerms.length > 0 && missingTerms.length === 0, detail: !approvedNotes ? 'Review required: no approved brand notes were supplied.' : !noteTerms.length ? 'Review required: brand notes contain no searchable terms.' : `${missingTerms.length ? `Not found: ${missingTerms.join(', ')}.` : 'All checked brand-note terms appear in the proposed HTML.'} This heuristic does not establish brand approval; manual review is required.` },
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -532,7 +618,7 @@ const SYSTEM_BASE = [
 const INTENT_PROMPTS = {
   review: 'Intent: REVIEW. Critique the demo as a conversation starter: story flow, clarity, accuracy of Adobe product claims, customer-specific details that would leak if reused, broken or placeholder content. Return findings in reply; only return change ops if the user explicitly asks for fixes (otherwise ops may contain notes only).',
   edit: 'Intent: EDIT. Make exactly the changes the user asks for, nothing more.',
-  rebrand: 'Intent: REBRAND. Adapt the demo for the target customer: replace the previous customer\'s name, products, terminology, sample data, people, locations and industry details with plausible equivalents for the target customer (including inside JavaScript data). Keep the Adobe narrative and structure. Update brand colour variables only when declared and you are confident of the target brand colours. List anything you could not adapt in reply.',
+  rebrand: 'Intent: REBRAND. Adapt the demo for the target customer, stated audience and objective. Replace the previous customer\'s name, products, terminology, sample data, people, locations and industry details with plausible equivalents for the target customer (including inside JavaScript data). Keep the Adobe narrative and structure. Treat approved brand notes as requirements; do not invent additional brand claims. Update brand colour variables only when declared and you are confident of the target brand colours. List anything you could not adapt in reply.',
 };
 
 function parseGeminiJson(raw) {
@@ -561,20 +647,57 @@ async function getConversation(assetId, conversationId, user) {
   return { id: conversationId, messages: c.data.messages || [] };
 }
 
+function conversationTitle(data) {
+  if (data.title) return cleanString(data.title, 100);
+  const first = (data.messages || []).find((message) => message && message.role === 'user');
+  return cleanString(first && first.text, 100) || 'Untitled conversation';
+}
+
+async function listConversations(assetId, user) {
+  await getAssetDoc(assetId);
+  const snap = await getDb().collection(CONVERSATION_COLLECTION).where('assetId', '==', assetId).limit(500).get();
+  return snap.docs.filter((doc) => doc.data().uid === user.uid).map((doc) => {
+    const data = doc.data();
+    return { id: doc.id, title: conversationTitle(data), updatedAt: iso(data.updatedAt) };
+  }).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))).slice(0, 100);
+}
+
+async function renameConversation(assetId, conversationId, body, user) {
+  const title = cleanString(body && body.title, 100);
+  if (!title) throw new DemoAssetsError(400, 'title is required');
+  const conversation = await loadConversation(conversationId, assetId, user);
+  await conversation.ref.update({ title, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+  return { id: conversationId, title, updatedAt: new Date().toISOString() };
+}
+
+function normaliseAdaptationBrief(value, targetCustomer) {
+  const brief = value && typeof value === 'object' ? value : {};
+  return {
+    customer: cleanString(brief.customer, 120) || cleanString(targetCustomer, 120),
+    audience: cleanString(brief.audience, 500),
+    objective: cleanString(brief.objective, 1000),
+    brandNotes: cleanString(brief.brandNotes || brief.approvedBrandNotes, 2000),
+  };
+}
+
 async function studioChat(assetId, body, user, deps = {}) {
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (!message) throw new DemoAssetsError(400, 'message is required');
   if (message.length > MAX_MESSAGE_CHARS) throw new DemoAssetsError(400, `message exceeds ${MAX_MESSAGE_CHARS} characters`);
   const intent = INTENTS.includes(body.intent) ? body.intent : 'edit';
-  const targetCustomer = cleanString(body.targetCustomer, 120);
-  if (intent === 'rebrand' && !targetCustomer) throw new DemoAssetsError(400, 'targetCustomer is required for rebrand');
+  let adaptationBrief = normaliseAdaptationBrief(body.adaptationBrief, body.targetCustomer);
   if (!deps.callGemini) throw new DemoAssetsError(503, 'Gemini is not configured');
 
   const { skeleton, versionId, data } = await base.loadSkeleton(assetId, body.versionId);
   const asset = toPublicAsset(assetId, data);
   const convo = await loadConversation(body.conversationId, assetId, user);
+  if (intent === 'rebrand' && !adaptationBrief.customer && convo && convo.data.adaptationBrief) {
+    adaptationBrief = normaliseAdaptationBrief(convo.data.adaptationBrief);
+  }
+  const targetCustomer = adaptationBrief.customer;
+  if (intent === 'rebrand' && !targetCustomer) throw new DemoAssetsError(400, 'targetCustomer is required for rebrand');
   const history = convo ? (convo.data.messages || []).slice(-MAX_HISTORY) : [];
-  const ctx = buildStudioContext({ skeleton, asset, intent, targetCustomer });
+  const ctx = buildStudioContext({ skeleton, asset, intent, targetCustomer, adaptationBrief });
 
   const userPrompt = [
     ctx.text,
@@ -582,7 +705,7 @@ async function studioChat(assetId, body, user, deps = {}) {
     history.length ? `CONVERSATION SO FAR (oldest first):\n${history.map((m) => `${m.role.toUpperCase()}: ${m.text}`).join('\n')}` : '',
     '',
     `USER REQUEST: ${message}`,
-    intent === 'rebrand' ? `TARGET CUSTOMER: ${targetCustomer}` : '',
+    intent === 'rebrand' ? `CUSTOMER ADAPTATION BRIEF (approved direction):\n${JSON.stringify(adaptationBrief)}` : '',
   ].filter(Boolean).join('\n');
 
   const usePro = body.model === 'pro' || (body.model !== 'flash' && intent === 'rebrand');
@@ -610,6 +733,9 @@ async function studioChat(assetId, body, user, deps = {}) {
   const { html, results, changed } = applyOps(skeleton, parsed && parsed.ops);
   const validationErrors = changed ? validateEdit(skeleton, html) : [];
   const appliedOps = results.filter((r) => r.ok && r.op !== 'note').map(({ ok, error, summary, ...op }) => op);
+  const checklist = intent === 'rebrand'
+    ? adaptationChecklist({ html, sourceCustomer: (asset.derivedFrom && asset.derivedFrom.customer) || asset.customer, adaptationBrief })
+    : [];
 
   const db = getDb();
   let proposalId = null;
@@ -622,6 +748,7 @@ async function studioChat(assetId, body, user, deps = {}) {
       uid: user.uid,
       intent,
       targetCustomer,
+      adaptationBrief: intent === 'rebrand' ? adaptationBrief : null,
       model,
       resultSha256: sha256Hex(html),
       status: 'pending',
@@ -640,6 +767,8 @@ async function studioChat(assetId, body, user, deps = {}) {
   if (convo) {
     await convo.ref.update({
       messages: [...(convo.data.messages || []), ...newMessages].slice(-MAX_HISTORY * 2),
+      title: convo.data.title || cleanString(message, 100) || 'Untitled conversation',
+      ...(intent === 'rebrand' ? { adaptationBrief } : {}),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   } else {
@@ -649,6 +778,8 @@ async function studioChat(assetId, body, user, deps = {}) {
       uid: user.uid,
       email: user.email || '',
       messages: newMessages,
+      title: cleanString(message, 100) || 'Untitled conversation',
+      adaptationBrief: intent === 'rebrand' ? adaptationBrief : null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -660,6 +791,7 @@ async function studioChat(assetId, body, user, deps = {}) {
     suggestions,
     ops: results.map(({ html: _h, ...r }) => r),
     validationErrors,
+    checklist,
     proposalId,
     conversationId,
     baseVersionId: versionId,
@@ -742,6 +874,10 @@ module.exports = {
   deriveAsset,
   studioChat,
   getConversation,
+  listConversations,
+  renameConversation,
+  adaptationChecklist,
+  inspectNameInText,
   applyProposal,
   discardProposal,
   loadProposal,

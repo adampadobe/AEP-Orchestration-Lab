@@ -16,22 +16,29 @@ function storage() {
   let clock = 0;
   let failSave = false;
   let beforeTransaction = null;
-  const snapshot = (ref) => ({ id: ref.id, ref, exists: docs.has(ref.path), data: () => ({ ...docs.get(ref.path) }) });
+  const snapshot = (ref) => ({ id: ref.id, ref, exists: docs.has(ref.path), data: () => ({ ...(docs.get(ref.path) || {}) }) });
   const reference = (p) => ({
     id: p.split('/').at(-1), path: p,
     collection: (name) => collection(`${p}/${name}`),
     get: async function () { return snapshot(this); },
     set: async (data) => { docs.set(p, { ...data }); },
     update: async (data) => { docs.set(p, { ...docs.get(p), ...data }); },
+    delete: async () => { docs.delete(p); },
   });
-  const collection = (name, filter = () => true, sort = null, limit = Infinity) => ({
+  const collection = (name, filter = () => true, sort = null, limit = Infinity, after = '') => ({
     doc: (id) => reference(`${name}/${id || `auto${String(++auto).padStart(6, '0')}`}`),
-    where: (field, _op, value) => collection(name, (data) => filter(data) && data[field] === value, sort, limit),
-    orderBy: (field, direction) => collection(name, filter, { field, direction }, limit),
-    limit: (n) => collection(name, filter, sort, n),
+    where: (field, _op, value) => collection(name, (data) => filter(data) && data[field] === value, sort, limit, after),
+    orderBy: (field, direction) => collection(name, filter, { field, direction }, limit, after),
+    limit: (n) => collection(name, filter, sort, n, after),
+    startAfter: (doc) => collection(name, filter, sort, limit, doc.ref.path),
     get: async () => {
       let entries = [...docs.entries()].filter(([p, d]) => p.slice(0, p.lastIndexOf('/')) === name && filter(d));
-      if (sort) entries.sort((a, b) => (a[1][sort.field] - b[1][sort.field]) * (sort.direction === 'desc' ? -1 : 1));
+      if (sort) entries.sort((a, b) => {
+        const av = a[1][sort.field]?.toMillis ? a[1][sort.field].toMillis() : a[1][sort.field];
+        const bv = b[1][sort.field]?.toMillis ? b[1][sort.field].toMillis() : b[1][sort.field];
+        return (av - bv) * (sort.direction === 'desc' ? -1 : 1);
+      });
+      if (after) entries = entries.slice(entries.findIndex(([p]) => p === after) + 1);
       const result = entries.slice(0, limit).map(([p]) => snapshot(reference(p)));
       return { docs: result, empty: !result.length };
     },
@@ -42,6 +49,7 @@ function storage() {
       get: async (ref) => snapshot(ref),
       set: (ref, data) => pending.push(() => docs.set(ref.path, { ...data })),
       update: (ref, data) => pending.push(() => docs.set(ref.path, { ...docs.get(ref.path), ...data })),
+      delete: (ref) => pending.push(() => docs.delete(ref.path)),
       commit: async () => pending.forEach((write) => write()),
     };
   };
@@ -64,10 +72,10 @@ function storage() {
     download: async () => [files.get(p).bytes],
     getMetadata: async () => [files.get(p).metadata],
     delete: async () => { files.delete(p); },
-  }) };
+  }), deleteFiles: async ({ prefix }) => { for (const p of [...files.keys()]) if (p.startsWith(prefix)) files.delete(p); } };
   const firestore = Object.assign(() => db, {
     FieldValue: { serverTimestamp: () => ++clock },
-    Timestamp: { fromDate: (date) => ({ toMillis: () => date.getTime() }) },
+    Timestamp: { fromDate: (date) => ({ toMillis: () => date.getTime(), toDate: () => date }) },
   });
   const admin = { apps: [{}], firestore, storage: () => ({ bucket: () => bucket }) };
   let base;
@@ -219,4 +227,189 @@ it('exposes older versions beyond the previous 100-version cutoff', async () => 
   const original = s.docs.get(`demoAssets/${asset.id}/versions/${asset.currentVersionId}`);
   for (let i = 0; i < 105; i += 1) s.docs.set(`demoAssets/${asset.id}/versions/extra${String(i).padStart(6, '0')}`, { ...original, createdAt: i + 2 });
   assert.equal((await s.studio.listVersions(asset.id)).length, 106);
+});
+
+it('paginates versions and preserves the legacy array response', async () => {
+  const s = storage();
+  const asset = await initial(s);
+  const original = s.docs.get(`demoAssets/${asset.id}/versions/${asset.currentVersionId}`);
+  for (let i = 0; i < 3; i += 1) {
+    s.docs.set(`demoAssets/${asset.id}/versions/page${String(i).padStart(6, '0')}`, { ...original, createdAt: i + 10 });
+  }
+  const first = await s.studio.listVersions(asset.id, { limit: 2 });
+  assert.equal(first.versions.length, 2);
+  assert.ok(first.nextCursor);
+  const second = await s.studio.listVersions(asset.id, { limit: 2, cursor: first.nextCursor });
+  assert.equal(second.versions.length, 2);
+  assert.equal(second.nextCursor, null);
+  assert.ok(Array.isArray(await s.studio.listVersions(asset.id)));
+});
+
+it('searches beyond the former 1000-asset cutoff and paginates matches', async () => {
+  const s = storage();
+  const original = await initial(s);
+  for (let i = 0; i < 1005; i += 1) {
+    s.docs.set(`demoAssets/asset${String(i).padStart(6, '0')}`, {
+      title: `Decoy ${i}`, originalFilename: `decoy-${i}.html`, createdAt: 10000 + i,
+    });
+  }
+  s.docs.set('demoAssets/assetneedle1', {
+    title: 'Legacy target', originalFilename: 'needle-campaign-v1.html', createdAt: 1,
+  });
+  const result = await s.base.createAsset({
+    html: html('Revised'), filename: 'needle-campaign-v2.html',
+  }, user);
+  assert.equal(result.versionCandidates[0].id, 'assetneedle1');
+  const first = await s.base.listAssets({ limit: 1, q: 'needle' });
+  assert.equal(first.assets[0].id, 'assetneedle1');
+  assert.equal(first.nextCursor, null);
+  assert.equal((await s.base.listAssets({ limit: 100, q: 'original' })).assets.some((asset) => asset.id === original.id), true);
+});
+
+it('trashes assets recoverably and keeps revoked links revoked after restore', async () => {
+  const s = storage();
+  const asset = await initial(s);
+  const live = await s.base.createRenderToken(asset.id, user);
+  const revoked = await s.base.createRenderToken(asset.id, user);
+  const listed = await s.base.listRenderTokens(asset.id, user);
+  assert.equal(listed.length, 2);
+  assert.ok(listed.every((token) => token.url.includes(token.id)));
+  await s.base.revokeRenderToken(asset.id, revoked.tokenId, user);
+  assert.equal((await s.base.listRenderTokens(asset.id, user)).find((token) => token.id === revoked.tokenId).revoked, true);
+
+  await s.base.trashAsset(asset.id, user);
+  assert.equal((await s.base.listAssets()).some((item) => item.id === asset.id), false);
+  assert.equal((await s.base.listAssets({ deleted: true })).assets.some((item) => item.id === asset.id), true);
+  await assert.rejects(s.base.resolveRenderTarget(live.token), (error) => error.status === 404);
+  await assert.rejects(s.base.getAsset(asset.id), (error) => error.status === 404);
+
+  await s.base.restoreAsset(asset.id, user);
+  assert.equal((await s.base.loadRenderedHtml(asset.id)).html, html('Original'));
+  await assert.rejects(s.base.resolveRenderTarget(revoked.token), (error) => error.status === 410);
+  assert.equal((await s.base.resolveRenderTarget(live.token)).versionId, asset.currentVersionId);
+});
+
+it('derives a separate customer copy with a deterministic adaptation brief and old-name scan', async () => {
+  const s = storage();
+  const source = await s.base.createAsset({
+    html: html('British Airways', '<p>British Airways welcomes frequent travellers.</p>'),
+    filename: 'ba.html',
+  }, user);
+  await s.base.updateAsset(source.asset.id, { customer: 'British Airways' }, user);
+  const derived = await s.studio.deriveAsset(source.asset.id, {
+    versionId: source.asset.currentVersionId,
+    customer: 'Emirates',
+    audience: 'Loyalty executives',
+    objective: 'Explore personalisation',
+    brandNotes: 'Use approved sapphire palette',
+  }, user);
+  assert.equal(derived.asset.adaptationBrief.customer, 'Emirates');
+  assert.equal(derived.asset.adaptationBrief.audience, 'Loyalty executives');
+  assert.equal(derived.oldNameCheck.count, 3);
+  assert.equal(derived.oldNameCheck.passed, false);
+  assert.equal(derived.checklist.find((item) => item.label === 'Customer-specific copy reviewed').passed, false);
+});
+
+it('bases rebrand checklist results on the proposed HTML text', async () => {
+  const s = storage();
+  const source = await s.base.createAsset({
+    html: html('British Airways', '<p>British Airways welcomes frequent travellers.</p>'),
+    filename: 'ba.html',
+  }, user);
+  await s.base.updateAsset(source.asset.id, { customer: 'British Airways' }, user);
+  const result = await s.studio.studioChat(source.asset.id, {
+    message: 'Adapt the customer copy',
+    intent: 'rebrand',
+    adaptationBrief: {
+      customer: 'Emirates', audience: 'Loyalty executives', objective: 'Explore personalisation',
+      brandNotes: 'Emirates sapphire',
+    },
+  }, user, {
+    callGemini: async () => JSON.stringify({
+      reply: 'Updated the customer copy.',
+      ops: [{ op: 'replaceText', find: 'British Airways', replace: 'Emirates sapphire', all: true }],
+    }),
+  });
+  assert.ok(result.checklist.every((item) => item.passed), JSON.stringify(result.checklist));
+
+  const unchanged = await s.studio.studioChat(source.asset.id, {
+    message: 'Review the rebrand',
+    intent: 'rebrand',
+    conversationId: result.conversationId,
+  }, user, { callGemini: async () => JSON.stringify({ reply: 'Looks ready.', ops: [] }) });
+  assert.equal(unchanged.checklist[0].passed, false);
+  assert.equal(unchanged.checklist[1].passed, false);
+  assert.equal(unchanged.checklist[2].passed, false);
+});
+
+it('checks the original customer after deriving a target-customer copy', async () => {
+  const s = storage();
+  const source = await s.base.createAsset({
+    html: html('British Airways', '<p>British Airways welcomes frequent travellers.</p>'),
+    filename: 'ba.html',
+  }, user);
+  await s.base.updateAsset(source.asset.id, { customer: 'British Airways' }, user);
+  const derived = await s.studio.deriveAsset(source.asset.id, { customer: 'Emirates' }, user);
+  assert.equal(derived.asset.customer, 'Emirates');
+  assert.equal(derived.asset.derivedFrom.customer, 'British Airways');
+  const result = await s.studio.studioChat(derived.asset.id, {
+    message: 'Adapt the welcome copy only', intent: 'rebrand', adaptationBrief: derived.asset.adaptationBrief,
+  }, user, {
+    callGemini: async () => JSON.stringify({
+      reply: 'Updated welcome copy.',
+      ops: [{ op: 'replaceText', find: 'British Airways welcomes frequent travellers.', replace: 'Emirates welcomes frequent travellers.', all: true }],
+    }),
+  });
+  assert.equal(result.checklist[0].passed, true);
+  assert.equal(result.checklist[1].passed, false);
+  assert.match(result.checklist[1].detail, /British Airways.*remain/);
+  assert.equal(result.checklist[2].passed, false);
+  assert.match(result.checklist[2].detail, /Review required/);
+});
+
+it('requires review when source customer or searchable brand notes are absent', async () => {
+  const s = storage();
+  for (const brandNotes of ['', 'Use the brand tone']) {
+    const checklist = s.studio.adaptationChecklist({
+      html: html('Emirates'), sourceCustomer: '', adaptationBrief: { customer: 'Emirates', brandNotes },
+    });
+    assert.equal(checklist[1].passed, false);
+    assert.match(checklist[1].detail, /Review required/);
+    assert.equal(checklist[2].passed, false);
+    assert.match(checklist[2].detail, /Review required/);
+  }
+  const heuristic = s.studio.adaptationChecklist({
+    html: html('Emirates sapphire'), sourceCustomer: 'British Airways',
+    adaptationBrief: { customer: 'Emirates', brandNotes: 'sapphire' },
+  });
+  assert.equal(heuristic[2].passed, true);
+  assert.match(heuristic[2].label, /heuristic/);
+  assert.match(heuristic[2].detail, /does not establish brand approval/);
+  const source = await initial(s);
+  await s.base.updateAsset(source.id, { customer: '' }, user);
+  const derived = await s.studio.deriveAsset(source.id, { customer: 'Emirates' }, user);
+  assert.equal(derived.oldNameCheck.passed, false);
+  assert.equal(derived.checklist[1].passed, false);
+});
+
+it('lists, resumes and renames only the caller-owned Studio conversations', async () => {
+  const s = storage();
+  const asset = await initial(s);
+  s.docs.set('demoStudioConversations/convOwn01', {
+    assetId: asset.id, uid: user.uid, title: 'Journey review',
+    messages: [{ role: 'user', text: 'Review the journey' }], updatedAt: 3,
+  });
+  s.docs.set('demoStudioConversations/convOther1', {
+    assetId: asset.id, uid: 'another-user', title: 'Private notes', messages: [], updatedAt: 4,
+  });
+  const list = await s.studio.listConversations(asset.id, user);
+  assert.deepEqual(list.map((conversation) => conversation.id), ['convOwn01']);
+  assert.equal((await s.studio.getConversation(asset.id, 'convOwn01', user)).messages[0].text, 'Review the journey');
+  await assert.rejects(
+    s.studio.renameConversation(asset.id, 'convOther1', { title: 'Hijack' }, user),
+    (error) => error.status === 403,
+  );
+  const renamed = await s.studio.renameConversation(asset.id, 'convOwn01', { title: 'Updated title' }, user);
+  assert.equal(renamed.title, 'Updated title');
+  assert.equal((await s.studio.listConversations(asset.id, user))[0].title, 'Updated title');
 });

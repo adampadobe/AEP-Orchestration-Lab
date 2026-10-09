@@ -6,7 +6,8 @@
   'use strict';
 
   var API = '/api/demo-assets';
-  var state = { user: null, assetId: null, asset: null, conversationId: null, proposal: null, busy: false, controller: null, lastRequest: null };
+  var state = { user: null, assetId: null, asset: null, conversationId: null, proposal: null, busy: false, controller: null, lastRequest: null,
+    selectedVersionId: null, versions: [], versionCursor: null, restoring: false, deriving: false, conversationLoading: false };
   var els = {};
 
   function $(id) { return document.getElementById(id); }
@@ -137,7 +138,7 @@
       msg.appendChild(el('div', 'demo-studio-validation', 'Changes were blocked by safety checks: ' + data.validationErrors.join('; ')));
     }
     if (data.truncatedContext) {
-      msg.appendChild(el('div', 'demo-studio-msg-label', 'Large document: Gemini saw an outline plus the most relevant sections.'));
+      msg.appendChild(el('div', 'demo-studio-msg-label', 'Large document: Gemini saw an outline and only the beginning of the HTML. Ask for smaller, targeted changes.'));
     }
   }
 
@@ -172,10 +173,18 @@
     els.send.disabled = busy;
     els.stop.hidden = !busy;
     els.input.disabled = busy;
+    $('studioConversation').disabled = busy;
+    $('studioRenameChat').disabled = busy;
+    els.newChat.disabled = busy;
+    $('studioDerive').disabled = busy;
   }
 
   async function send(payload) {
     if (state.busy) return;
+    if (state.proposal) {
+      setStatus('Apply or discard the pending proposal before making another request.', true);
+      return;
+    }
     state.lastRequest = payload;
     addMessage('user', payload.message, { intent: payload.intent });
     renderChips([]);
@@ -185,7 +194,8 @@
     setStatus('');
     state.controller = new AbortController();
     try {
-      var body = Object.assign({}, payload, { conversationId: state.conversationId || undefined });
+      var body = Object.assign({}, payload, { conversationId: state.conversationId || undefined,
+        versionId: state.selectedVersionId || undefined, adaptationBrief: state.asset.adaptationBrief || undefined });
       var data = await request(cloudFunctionsOrigin() + '/demoAssetsApi' + assetPath('/studio/chat'), {
         method: 'POST', body: body, signal: state.controller.signal,
       });
@@ -197,7 +207,9 @@
       var msg = addMessage('assistant', data.reply);
       renderOps(msg, data);
       renderChips(data.suggestions);
+      renderChecklist(data.checklist || []);
       if (data.proposalId) await showProposal(data.proposalId, data);
+      await loadConversations().catch(function (e) { setStatus('Your reply is saved, but the conversation list could not refresh: ' + e.message, true); });
     } catch (e) {
       pending.remove();
       var aborted = e && e.name === 'AbortError';
@@ -223,6 +235,17 @@
       els.target.focus();
       return;
     }
+    if (state.selectedVersionId !== state.asset.currentVersionId && intent !== 'review') {
+      setStatus('Return to the current version before editing. You can review or present this historical version.', true);
+      return;
+    }
+    if (intent === 'rebrand' && !state.asset.derivedFrom) {
+      openAdaptation();
+      els.deriveForm.elements.customer.value = target;
+      els.deriveForm.elements.objective.value = message;
+      setStatus('Create a customer copy first so the original remains unchanged.');
+      return;
+    }
     var payload = { message: message, intent: intent };
     if (intent === 'rebrand') payload.targetCustomer = target;
     if (els.model.value) payload.model = els.model.value;
@@ -245,11 +268,39 @@
     [['current', els.tabCurrent], ['proposed', els.tabProposed], ['split', els.tabSplit]].forEach(function (pair) {
       pair[1].setAttribute('aria-selected', String(pair[0] === view));
     });
+    $('studioPresent').textContent = view === 'proposed' ? 'Present proposal' : 'Present selected version';
   }
 
   async function loadCurrentFrame() {
     els.frameCurrent.src = 'about:blank';
-    els.frameCurrent.src = await renderUrl({});
+    var versionId = state.asset.currentVersionId;
+    var url = await renderUrl({ versionId: versionId });
+    state.selectedVersionId = versionId;
+    els.frameCurrent.src = url;
+    renderSelectedVersion();
+  }
+
+  function renderSelectedVersion() {
+    var current = state.selectedVersionId === state.asset.currentVersionId;
+    var version = state.versions.find(function (v) { return v.id === state.selectedVersionId; });
+    $('studioSelectedVersion').textContent = (current ? 'Current version' : 'Historical version') +
+      (version ? ' · ' + (version.note || version.originalFilename || version.id.slice(0, 8)) + ' · ' + fmtDate(version.createdAt) : '');
+    $('studioBackCurrent').hidden = current;
+    els.tabCurrent.textContent = current ? 'Current' : 'Historical';
+  }
+
+  function renderChecklist(checks) {
+    var box = $('studioChecklist');
+    box.textContent = '';
+    box.hidden = !checks.length;
+    if (!checks.length) return;
+    box.appendChild(el('h4', null, 'Adaptation review'));
+    box.appendChild(el('p', 'hint', 'Automated checks are not approval. Review logos, sample data and customer claims before presenting.'));
+    var list = el('ul');
+    checks.forEach(function (check) {
+      list.appendChild(el('li', null, (check.passed ? 'Checked: ' : 'Review: ') + check.label + (check.detail ? ' — ' + check.detail : '')));
+    });
+    box.appendChild(list);
   }
 
   async function showProposal(proposalId, data) {
@@ -277,27 +328,34 @@
   }
 
   async function applyProposal() {
-    if (!state.proposal) return;
+    if (!state.proposal || els.apply.disabled) return;
     els.apply.disabled = true;
+    els.discard.disabled = true;
     try {
       var data = await api('/studio/apply', { method: 'POST', body: { proposalId: state.proposal.id } });
       if (data.asset) renderHeader(data.asset);
       clearProposal();
       setStatus('Applied as a new version.');
-      await Promise.all([loadCurrentFrame(), loadVersions()]);
+      await Promise.all([loadCurrentFrame(), loadVersions(), loadActivity()]);
     } catch (e) {
       setStatus(e.message, true);
     } finally {
       els.apply.disabled = false;
+      els.discard.disabled = false;
     }
   }
 
   async function discardProposal() {
-    if (!state.proposal) return;
+    if (!state.proposal || els.discard.disabled) return;
     var id = state.proposal.id;
-    clearProposal();
-    try { await api('/studio/discard', { method: 'POST', body: { proposalId: id } }); } catch (_e) {}
-    setStatus('Proposal discarded.');
+    els.discard.disabled = true;
+    els.apply.disabled = true;
+    try {
+      await api('/studio/discard', { method: 'POST', body: { proposalId: id } });
+      clearProposal();
+      setStatus('Proposal discarded.');
+    } catch (e) { setStatus('Could not discard the proposal: ' + e.message, true); }
+    finally { els.discard.disabled = false; els.apply.disabled = false; }
   }
 
   // ---- Versions ----
@@ -307,9 +365,12 @@
     try { return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); } catch (_e) { return iso; }
   }
 
-  async function loadVersions() {
-    var data = await api('/versions');
-    var versions = data.versions || [];
+  async function loadVersions(more) {
+    var data = await api('/versions?limit=50' + (more && state.versionCursor ? '&cursor=' + encodeURIComponent(state.versionCursor) : ''));
+    state.versions = more ? state.versions.concat(data.versions || []) : data.versions || [];
+    state.versionCursor = data.nextCursor || null;
+    $('studioMoreVersions').hidden = !state.versionCursor;
+    var versions = state.versions;
     els.versionCount.textContent = String(versions.length);
     els.versions.textContent = '';
     versions.forEach(function (v) {
@@ -322,25 +383,37 @@
       if (!v.current) li.appendChild(button('Restore', null, function () { restoreVersion(v); }));
       els.versions.appendChild(li);
     });
+    renderSelectedVersion();
   }
 
   async function previewVersion(versionId) {
     try {
-      els.frameCurrent.src = await renderUrl({ versionId: versionId });
+      if (state.proposal) { setStatus('Apply or discard the proposal before switching versions.', true); return; }
+      var url = await renderUrl({ versionId: versionId });
+      state.selectedVersionId = versionId;
+      els.frameCurrent.src = url;
+      renderSelectedVersion();
       setView('current');
-      setStatus('Previewing an older version. Reload the page to return to the current version.');
+      setStatus('Preview and Present now use this version. Editing remains available on the current version.');
     } catch (e) { setStatus(e.message, true); }
   }
 
   async function restoreVersion(v) {
+    if (state.restoring || state.busy) return;
+    if (state.proposal) {
+      setStatus('Apply or discard the pending proposal before restoring a version.', true);
+      return;
+    }
     if (!window.confirm('Restore this version? It is copied forward as a new version; nothing is deleted.')) return;
+    state.restoring = true;
     try {
       var data = await api('/versions/' + encodeURIComponent(v.id) + '/restore', { method: 'POST', body: {} });
       if (data.asset) renderHeader(data.asset);
       clearProposal();
       setStatus('Version restored.');
-      await Promise.all([loadCurrentFrame(), loadVersions()]);
+      await Promise.all([loadCurrentFrame(), loadVersions(), loadActivity()]);
     } catch (e) { setStatus(e.message, true); }
+    finally { state.restoring = false; }
   }
 
   // ---- Header / derive / present ----
@@ -362,7 +435,9 @@
   async function present() {
     var win = window.open('about:blank', '_blank');
     try {
-      var url = await renderUrl({});
+      var opts = state.proposal && els.frames.dataset.view === 'proposed'
+        ? { proposalId: state.proposal.id } : { versionId: state.selectedVersionId || state.asset.currentVersionId };
+      var url = await renderUrl(opts);
       if (win) { win.opener = null; win.location.href = url; } else window.location.href = url;
     } catch (e) {
       if (win) win.close();
@@ -372,16 +447,89 @@
 
   async function onDerive(e) {
     e.preventDefault();
+    if (state.deriving) return;
     var fd = new FormData(els.deriveForm);
     var customer = String(fd.get('customer') || '').trim();
     if (!customer) return;
     $('studioDeriveError').textContent = '';
+    state.deriving = true;
+    $('studioDeriveSave').disabled = true;
     try {
-      var data = await api('/derive', { method: 'POST', body: { customer: customer, industry: String(fd.get('industry') || '').trim() || undefined } });
+      var data = await api('/derive', { method: 'POST', body: { customer: customer,
+        industry: String(fd.get('industry') || '').trim() || undefined,
+        audience: String(fd.get('audience') || '').trim(), objective: String(fd.get('objective') || '').trim(),
+        brandNotes: String(fd.get('brandNotes') || '').trim(), versionId: state.selectedVersionId } });
       window.location.href = 'demo-studio.html?asset=' + encodeURIComponent(data.asset.id) + '&rebrand=1';
     } catch (err) {
       $('studioDeriveError').textContent = err.message;
+    } finally { state.deriving = false; $('studioDeriveSave').disabled = false; }
+  }
+
+  function openAdaptation() {
+    els.deriveForm.reset();
+    $('studioDeriveError').textContent = '';
+    els.deriveDialog.showModal();
+  }
+
+  async function loadConversations() {
+    var data = await api('/studio/conversations');
+    var select = $('studioConversation');
+    select.textContent = '';
+    var empty = el('option', null, 'New conversation');
+    empty.value = '';
+    select.appendChild(empty);
+    (data.conversations || []).forEach(function (c) {
+      var option = el('option', null, c.title || 'Conversation · ' + fmtDate(c.updatedAt));
+      option.value = c.id;
+      select.appendChild(option);
+    });
+    select.value = state.conversationId || '';
+  }
+
+  async function selectConversation() {
+    if (state.busy || state.conversationLoading) return;
+    if (state.proposal) {
+      $('studioConversation').value = state.conversationId || '';
+      setStatus('Apply or discard the pending proposal before switching conversations.', true);
+      return;
     }
+    var id = $('studioConversation').value;
+    if (!id) { newChat(); return; }
+    state.conversationLoading = true;
+    setBusy(true);
+    try {
+      var data = await api('/studio/conversations/' + encodeURIComponent(id));
+      state.conversationId = id;
+      els.messages.textContent = '';
+      (data.conversation.messages || []).forEach(function (m) { addMessage(m.role, m.text, { intent: m.intent }); });
+      renderChips([]);
+      setStatus('Conversation resumed. Pending edits are not automatically applied.');
+      try { sessionStorage.setItem('demoStudioConvo:' + state.assetId, id); }
+      catch (e) { setStatus('Conversation resumed, but this browser could not remember it: ' + e.message, true); }
+    } catch (e) { setStatus(e.message, true); }
+    finally { state.conversationLoading = false; setBusy(false); }
+  }
+
+  async function renameConversation() {
+    if (!state.conversationId) { setStatus('Send a message to save a conversation first.', true); return; }
+    var title = window.prompt('Conversation name', '');
+    if (title === null) return;
+    if (!title.trim()) { setStatus('Enter a conversation name.', true); return; }
+    try {
+      await api('/studio/conversations/' + encodeURIComponent(state.conversationId), { method: 'PATCH', body: { title: title.trim() } });
+      await loadConversations();
+      setStatus('Conversation renamed.');
+    } catch (e) { setStatus(e.message, true); }
+  }
+
+  async function loadActivity() {
+    var data = await request(API + '/audit?assetId=' + encodeURIComponent(state.assetId));
+    var list = $('studioActivity');
+    list.textContent = '';
+    (data.entries || []).forEach(function (entry) {
+      list.appendChild(el('li', null, entry.action + ' · ' + (entry.email || '') + ' · ' + fmtDate(entry.at)));
+    });
+    if (!list.children.length) list.appendChild(el('li', null, 'No recorded activity yet.'));
   }
 
   // ---- Boot ----
@@ -408,7 +556,15 @@
     await Promise.all([
       loadCurrentFrame().catch(function (e) { setStatus(e.message, true); }),
       loadVersions().catch(function (e) { setStatus(e.message, true); }),
+      loadConversations().catch(function (e) { setStatus('Conversations: ' + e.message, true); }),
+      loadActivity().catch(function (e) { setStatus('Activity: ' + e.message, true); }),
     ]);
+    if (params.get('adapt') === '1') openAdaptation();
+    if (params.get('rebrand') === '1' && state.asset.adaptationBrief) {
+      var brief = state.asset.adaptationBrief;
+      els.input.value = 'Adapt this copy for ' + state.asset.customer + '. ' + (brief.objective || '') +
+        (brief.audience ? ' Audience: ' + brief.audience + '.' : '') + ' Use only approved facts; label illustrative examples.';
+    }
   }
 
   async function restoreConversation() {
@@ -417,7 +573,8 @@
       (data.conversation.messages || []).forEach(function (m) {
         addMessage(m.role === 'user' ? 'user' : 'assistant', m.text, { intent: m.intent });
       });
-    } catch (_e) {
+    } catch (e) {
+      setStatus('Could not resume the previous conversation: ' + e.message, true);
       state.conversationId = null;
       try { sessionStorage.removeItem('demoStudioConvo:' + state.assetId); } catch (_e2) {}
     }
@@ -425,10 +582,12 @@
 
   function newChat() {
     if (state.busy) return;
+    if (state.proposal) { setStatus('Apply or discard the pending proposal first.', true); return; }
     state.conversationId = null;
     try { sessionStorage.removeItem('demoStudioConvo:' + state.assetId); } catch (_e) {}
     els.messages.textContent = '';
     renderChips([]);
+    $('studioConversation').value = '';
     setStatus('Started a new conversation.');
   }
 
@@ -452,10 +611,14 @@
     els.tabProposed.addEventListener('click', function () { setView('proposed'); });
     els.tabSplit.addEventListener('click', function () { setView('split'); });
     $('studioPresent').addEventListener('click', present);
-    $('studioDerive').addEventListener('click', function () {
-      els.deriveForm.reset();
-      $('studioDeriveError').textContent = '';
-      els.deriveDialog.showModal();
+    $('studioDerive').addEventListener('click', openAdaptation);
+    $('studioConversation').addEventListener('change', selectConversation);
+    $('studioRenameChat').addEventListener('click', renameConversation);
+    $('studioBackCurrent').addEventListener('click', function () { previewVersion(state.asset.currentVersionId); });
+    $('studioMoreVersions').addEventListener('click', async function () {
+      this.disabled = true;
+      try { await loadVersions(true); } catch (e) { setStatus(e.message, true); }
+      finally { this.disabled = false; }
     });
     $('studioDeriveCancel').addEventListener('click', function () { els.deriveDialog.close(); });
     els.deriveForm.addEventListener('submit', onDerive);

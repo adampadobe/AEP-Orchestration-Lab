@@ -3,11 +3,12 @@
 /**
  * HTTP surface for the Demo Asset Library.
  *
- *   GET    /api/demo-assets                    list (Adobe sign-in)
+ *   GET    /api/demo-assets                    list/search (Adobe sign-in)
  *   POST   /api/demo-assets                    upload { html, filename, folderPath, force }
  *   GET    /api/demo-assets/:id                metadata
  *   PATCH  /api/demo-assets/:id                edit metadata / confirm classification
- *   DELETE /api/demo-assets/:id                delete asset + versions
+ *   DELETE /api/demo-assets/:id                move asset to trash
+ *   POST   /api/demo-assets/:id/undelete        restore a trashed asset
  *   POST   /api/demo-assets/:id/render-token   short-lived preview link
  *   GET    /api/demo-assets/:id/export         download rehydrated HTML
  *   GET    /api/demo-assets/render/:token      redirect to isolated renderer
@@ -16,6 +17,10 @@
  * Demo Studio (Vertex):
  *   GET    /api/demo-assets/:id/outline               section outline (?versionId=)
  *   GET    /api/demo-assets/:id/versions              version history
+ *   GET    /api/demo-assets/:id/render-tokens         caller-owned render links
+ *   DELETE /api/demo-assets/:id/render-tokens/:token  revoke caller-owned link
+ *   GET    /api/demo-assets/:id/studio/conversations   caller-owned conversations
+ *   PATCH  /api/demo-assets/:id/studio/conversations/:id rename own conversation
  *   POST   /api/demo-assets/:id/versions              upload a confirmed revision { html, filename, folderPath, expectedVersionId }
  *   POST   /api/demo-assets/:id/versions/:vId/restore make an old version current
  *   POST   /api/demo-assets/:id/derive                duplicate for another customer
@@ -127,7 +132,12 @@ function registerDemoAssetsRoutes(deps) {
         if (!flows) return res.status(404).json({ ok: false, error: 'Not found' });
         const [, fId, fAction] = parts;
         if (!fId) {
-          if (req.method === 'GET') return res.json({ ok: true, flows: await flows.listFlows() });
+          if (req.method === 'GET') {
+            const q = req.query || {};
+            const paged = q.limit != null || q.cursor != null;
+            const result = await flows.listFlows(paged ? { limit: q.limit, cursor: q.cursor } : undefined);
+            return res.json({ ok: true, ...(paged ? result : { flows: result }) });
+          }
           if (req.method === 'POST') {
             const flow = await flows.createFlow(readBody(req), user);
             await audit(user, 'flow.create', { flowId: flow.id, title: flow.title });
@@ -147,6 +157,8 @@ function registerDemoAssetsRoutes(deps) {
             await audit(user, 'flow.delete', { flowId: fId });
             return res.json(out);
           }
+        } else if (fAction === 'check' && req.method === 'GET') {
+          return res.json({ ok: true, check: await flows.checkFlow(fId) });
         } else if (fAction === 'present' && req.method === 'POST') {
           return res.json({ ok: true, ...(await flows.presentFlow(fId, user)) });
         }
@@ -156,8 +168,22 @@ function registerDemoAssetsRoutes(deps) {
       const [id, action, sub, subAction] = parts;
       if (!id) {
         if (req.method === 'GET') {
-          const assets = await service.listAssets();
-          return res.json({ ok: true, assets, conversationTypes: service.CONVERSATION_TYPES, user: { email: user.email } });
+          const q = req.query || {};
+          const paged = q.limit != null || q.cursor != null || q.q != null || q.deleted === 'true';
+          const result = await service.listAssets(paged ? {
+            limit: q.limit,
+            cursor: q.cursor,
+            q: q.q,
+            deleted: q.deleted === 'true',
+          } : undefined);
+          const assets = paged ? result.assets : result;
+          return res.json({
+            ok: true,
+            assets,
+            ...(paged ? { nextCursor: result.nextCursor } : {}),
+            conversationTypes: service.CONVERSATION_TYPES,
+            user: { email: user.email },
+          });
         }
         if (req.method === 'POST') {
           const body = readBody(req);
@@ -191,13 +217,24 @@ function registerDemoAssetsRoutes(deps) {
           return res.json({ ok: true, asset });
         }
         if (req.method === 'DELETE') {
-          const out = await service.deleteAsset(id);
-          await audit(user, 'asset.delete', { assetId: id });
+          const out = await service.trashAsset(id, user);
+          await audit(user, 'asset.trash', { assetId: id });
           return res.json(out);
         }
         return res.status(405).json({ ok: false, error: 'Method not allowed' });
       }
 
+      if (action === 'undelete' && req.method === 'POST') {
+        const out = await service.restoreAsset(id, user);
+        await audit(user, 'asset.restore-trash', { assetId: id });
+        return res.json({ ok: true, ...out });
+      }
+      if (action === 'render-tokens') {
+        if (!sub && req.method === 'GET') return res.json({ ok: true, tokens: await service.listRenderTokens(id, user) });
+        if (sub && !subAction && req.method === 'DELETE') {
+          return res.json(await service.revokeRenderToken(id, sub, user));
+        }
+      }
       if (action === 'render-token' && req.method === 'POST') {
         const body = readBody(req);
         const versionId = typeof body.versionId === 'string' && body.versionId ? body.versionId : undefined;
@@ -218,7 +255,12 @@ function registerDemoAssetsRoutes(deps) {
         return res.json({ ok: true, ...(await studio.getOutline(id, versionId)) });
       }
       if (action === 'versions') {
-        if (!sub && req.method === 'GET') return res.json({ ok: true, versions: await studio.listVersions(id) });
+        if (!sub && req.method === 'GET') {
+          const q = req.query || {};
+          const paged = q.limit != null || q.cursor != null;
+          const result = await studio.listVersions(id, paged ? { limit: q.limit, cursor: q.cursor } : undefined);
+          return res.json({ ok: true, ...(paged ? result : { versions: result }) });
+        }
         if (!sub && req.method === 'POST') {
           const out = await studio.uploadVersion(id, readBody(req), user);
           await audit(user, 'asset.upload-version', { assetId: id, versionId: out.versionId });
@@ -248,8 +290,14 @@ function registerDemoAssetsRoutes(deps) {
         if (sub === 'discard' && req.method === 'POST') {
           return res.json({ ok: true, proposal: await studio.discardProposal(id, readBody(req), user) });
         }
+        if (sub === 'conversations' && !subAction && req.method === 'GET') {
+          return res.json({ ok: true, conversations: await studio.listConversations(id, user) });
+        }
         if (sub === 'conversations' && subAction && req.method === 'GET') {
           return res.json({ ok: true, conversation: await studio.getConversation(id, subAction, user) });
+        }
+        if (sub === 'conversations' && subAction && req.method === 'PATCH') {
+          return res.json({ ok: true, conversation: await studio.renameConversation(id, subAction, readBody(req), user) });
         }
       }
       return res.status(404).json({ ok: false, error: 'Not found' });
