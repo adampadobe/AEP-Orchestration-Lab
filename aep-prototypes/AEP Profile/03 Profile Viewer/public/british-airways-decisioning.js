@@ -268,16 +268,24 @@
     });
     frame.addEventListener('load', wireFrame);
     wireFrame();
+    const anchor = document.querySelector('.mod-demo-top-anchor');
     const toolbar = document.querySelector('.spectrum-env-status-bar');
     const actions = document.querySelector('.ba-decisioning-actions');
     function layout() {
-      const top = toolbar ? toolbar.getBoundingClientRect().bottom : 48;
+      // Docking slides the shared bar off-screen with a transform, so size observers never fire.
+      const hidden = anchor && (anchor.classList.contains('lab-env-top-anchor--docked-hidden') ||
+        anchor.classList.contains('lab-env-top-anchor--presenter-strip-hidden'));
+      const top = hidden ? 0 : toolbar && anchor
+        ? toolbar.getBoundingClientRect().bottom - anchor.getBoundingClientRect().top + anchor.offsetTop
+        : 48;
+      document.body.classList.toggle('ba-decisioning-page--env-hidden', !!hidden);
       document.body.style.setProperty('--ba-toolbar-top', top + 'px');
       document.body.style.setProperty('--ba-content-top', (top + actions.getBoundingClientRect().height) + 'px');
     }
     const resize = new ResizeObserver(layout);
     if (toolbar) resize.observe(toolbar);
     resize.observe(actions);
+    if (anchor) new MutationObserver(layout).observe(anchor, { attributes: true, attributeFilter: ['class'] });
     layout();
     new MutationObserver(themeFrame).observe(document.documentElement, { attributes: true, attributeFilter: ['data-aep-theme'] });
   }

@@ -181,15 +181,23 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('decisioning-profile-updated', { detail: { propositionCount: 0 } })));
     await visual.locator('#baPreviewMode').filter({ hasText: 'No live hero image returned' }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(500);
     const mobileLayout = await page.evaluate(() => ({
       toolbar: document.querySelector('.spectrum-env-status-bar').getBoundingClientRect().bottom,
+      anchor: document.querySelector('.mod-demo-top-anchor').getBoundingClientRect().top,
+      anchorOffset: document.querySelector('.mod-demo-top-anchor').offsetTop,
+      cssTop: document.body.style.getPropertyValue('--ba-toolbar-top'),
       actionsTop: document.querySelector('.ba-decisioning-actions').getBoundingClientRect().top,
       actionsBottom: document.querySelector('.ba-decisioning-actions').getBoundingClientRect().bottom,
       frameTop: document.getElementById('baDecisioningFrame').getBoundingClientRect().top,
     }));
-    assert.ok(mobileLayout.actionsTop >= mobileLayout.toolbar);
+    assert.ok(mobileLayout.actionsTop >= mobileLayout.toolbar - 1, JSON.stringify(mobileLayout));
     assert.ok(mobileLayout.frameTop >= mobileLayout.actionsBottom);
+    await page.evaluate(() => window.envBar.dock ? window.envBar.dock() : document.querySelector('.mod-demo-top-anchor').classList.add('lab-env-top-anchor--docked-hidden'));
+    await page.waitForFunction(() => document.querySelector('.ba-decisioning-actions').getBoundingClientRect().top === 0);
+    await page.evaluate(() => document.querySelector('.mod-demo-top-anchor').classList.remove('lab-env-top-anchor--docked-hidden'));
+    await page.waitForFunction(() => document.querySelector('.ba-decisioning-actions').getBoundingClientRect().top >=
+      document.querySelector('.spectrum-env-status-bar').getBoundingClientRect().bottom - 1);
     await page.route('**/british-airways-decisioning.html?featureRegression=1', route => route.fulfill({
       contentType: 'text/html',
       body: fs.readFileSync(path.join(root, 'profile-viewer', 'british-airways-decisioning.html'), 'utf8')

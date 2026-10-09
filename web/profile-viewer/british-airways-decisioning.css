@@ -13,12 +13,14 @@
   background: var(--dash-surface);
   color: var(--dash-text);
   border-bottom: 1px solid var(--dash-border);
+  transition: top 0.22s ease;
 }
 .ba-decisioning-actions [role="status"] { flex: 1; font-size: 12px; }
 .ba-decisioning-actions [data-error="true"] { color: var(--dash-error-text, var(--dash-text)); }
 body.ba-decisioning-page iframe#baDecisioningFrame {
   top: var(--ba-content-top, 96px);
   height: calc(100% - var(--ba-content-top, 96px) - 20px);
+  transition: top 0.22s ease, height 0.22s ease;
 }
 .ba-decisioning-page .dashboard-sidebar { transform: translateX(calc(-100% + 24px)); transition: transform .2s; }
 .ba-decisioning-page .dashboard-sidebar:hover,
