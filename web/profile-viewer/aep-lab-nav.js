@@ -1878,6 +1878,7 @@
 
     /* Theme toggle (footer) */
     var footer = mk('div', 'aep-theme-sidebar-footer', { 'data-aep-theme-slot': '1' });
+    footer.appendChild(buildAccountPanel());
     var themeBtn = mk('button', 'aep-theme-toggle-btn', { type: 'button' });
     var themeIco = mk('span', 'aep-theme-toggle-ico', { 'aria-hidden': 'true' });
     themeIco.textContent = '\u25D1';
@@ -1904,6 +1905,360 @@
 
     /* Tooltips */
     setupTooltips(sidebar);
+    refreshAccountPanels();
+  }
+
+  /* ── Account panel (sidebar footer): name, email, edit name, sign out ── */
+
+  var ACCOUNT_STYLE_ID = 'aep-lab-account-style';
+  var accountNames = { uid: '', firstName: '', lastName: '', loaded: false, loading: false };
+
+  function ensureAccountStyles() {
+    if (document.getElementById(ACCOUNT_STYLE_ID)) return;
+    var css = [
+      '.aep-lab-account{position:relative;margin-bottom:0.6rem;}',
+      '.aep-lab-account-btn{display:flex;align-items:center;gap:0.6rem;width:100%;padding:0.45rem 0.55rem;border:1px solid var(--dash-border);border-radius:var(--dash-radius-sm,12px);background:var(--dash-surface);color:var(--dash-text);font:inherit;text-align:left;cursor:pointer;transition:background 0.15s ease,border-color 0.15s ease;}',
+      '.aep-lab-account-btn:hover{background:var(--dash-hover,var(--dash-surface-alt));}',
+      '.aep-lab-account-btn:focus-visible,.aep-lab-account-item:focus-visible{outline:2px solid var(--dash-blue);outline-offset:2px;}',
+      '.aep-lab-account-avatar{position:relative;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border-radius:50%;background:var(--dash-blue);color:var(--dash-surface);font-weight:700;font-size:0.85rem;text-transform:uppercase;}',
+      '.aep-lab-account-dot{position:absolute;top:-2px;right:-2px;width:0.6rem;height:0.6rem;border-radius:50%;background:var(--dash-warning,var(--dash-blue));border:2px solid var(--dash-surface);}',
+      '.aep-lab-account-meta{display:flex;flex-direction:column;min-width:0;line-height:1.25;}',
+      '.aep-lab-account-name{font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.aep-lab-account-email{font-size:0.75rem;color:var(--dash-text-secondary,var(--dash-muted));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.aep-lab-account-menu{position:absolute;left:0;right:0;bottom:calc(100% + 0.4rem);z-index:1000;min-width:14rem;padding:0.4rem;border:1px solid var(--dash-border);border-radius:var(--dash-radius-sm,12px);background:var(--dash-surface);color:var(--dash-text);box-shadow:var(--dash-shadow);}',
+      '.aep-lab-account-menu[hidden]{display:none;}',
+      '.aep-lab-account-menu-head{padding:0.45rem 0.55rem 0.55rem;border-bottom:1px solid var(--dash-border);margin-bottom:0.3rem;}',
+      '.aep-lab-account-menu-head .aep-lab-account-email{white-space:normal;word-break:break-all;}',
+      '.aep-lab-account-hint{margin-top:0.35rem;font-size:0.75rem;color:var(--dash-text-secondary,var(--dash-muted));}',
+      '.aep-lab-account-item{display:block;width:100%;padding:0.5rem 0.55rem;border:0;border-radius:8px;background:transparent;color:var(--dash-text);font:inherit;font-size:0.85rem;text-align:left;cursor:pointer;}',
+      '.aep-lab-account-item:hover{background:var(--dash-hover,var(--dash-surface-alt));}',
+      '.dashboard-sidebar--collapsed .aep-lab-account-meta,html[data-sidebar-collapsed] .dashboard-sidebar .aep-lab-account-meta{display:none;}',
+      '.dashboard-sidebar--collapsed .aep-lab-account-btn,html[data-sidebar-collapsed] .dashboard-sidebar .aep-lab-account-btn{justify-content:center;padding:0.4rem;}',
+      '.dashboard-sidebar--collapsed .aep-lab-account-menu,html[data-sidebar-collapsed] .dashboard-sidebar .aep-lab-account-menu{right:auto;left:0;}',
+      '.aep-lab-account-dialog{width:min(26rem,calc(100vw - 2rem));padding:1.25rem;border:1px solid var(--dash-border);border-radius:var(--dash-radius,16px);background:var(--dash-surface);color:var(--dash-text);box-shadow:var(--dash-shadow);}',
+      '.aep-lab-account-dialog::backdrop{background:rgba(0,0,0,0.45);}',
+      '.aep-lab-account-dialog h2{margin:0 0 0.35rem;font-size:1.1rem;}',
+      '.aep-lab-account-dialog p{margin:0 0 1rem;font-size:0.85rem;color:var(--dash-text-secondary,var(--dash-muted));}',
+      '.aep-lab-account-fields{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;}',
+      '.aep-lab-account-fields label{display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:600;}',
+      '.aep-lab-account-fields input{padding:0.5rem 0.6rem;border:1px solid var(--dash-input-border,var(--dash-border));border-radius:8px;background:var(--dash-input-bg,var(--dash-surface));color:var(--dash-text);font:inherit;font-weight:400;}',
+      '.aep-lab-account-msg{min-height:1.2rem;margin-top:0.6rem;font-size:0.8rem;}',
+      '.aep-lab-account-msg[data-kind="error"]{color:var(--dash-error,var(--dash-text));}',
+      '.aep-lab-account-msg[data-kind="ok"]{color:var(--dash-success,var(--dash-text));}',
+      '.aep-lab-account-actions{display:flex;justify-content:flex-end;gap:0.5rem;margin-top:0.75rem;}',
+      '.aep-lab-account-actions button{padding:0.5rem 0.9rem;border-radius:8px;border:1px solid var(--dash-border);background:var(--dash-surface);color:var(--dash-text);font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;}',
+      '.aep-lab-account-actions button.aep-lab-account-save{background:var(--dash-blue);border-color:var(--dash-blue);color:var(--dash-surface);}',
+      '.aep-lab-account-actions button[disabled]{opacity:0.6;cursor:default;}'
+    ].join('\n');
+    var st = document.createElement('style');
+    st.id = ACCOUNT_STYLE_ID;
+    st.textContent = css;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  function accountCurrentUser() {
+    try {
+      if (window.firebase && typeof window.firebase.auth === 'function') {
+        var u = window.firebase.auth().currentUser;
+        if (u && !u.isAnonymous && u.email) return u;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function accountEmailLocal(email) {
+    return String(email || '').split('@')[0].toLowerCase();
+  }
+
+  function accountSplitDisplayName(dn) {
+    var parts = String(dn || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return { firstName: '', lastName: '' };
+    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+  }
+
+  /** Names missing or still the server-side fallbacks ("Adobe User", "<email local> User"). */
+  function accountNamesNeedAttention(first, last, email) {
+    var f = String(first || '').trim();
+    var l = String(last || '').trim();
+    if (!f || !l) return true;
+    if (l.toLowerCase() === 'user') return true;
+    if (f.toLowerCase() === 'adobe') return true;
+    var local = accountEmailLocal(email);
+    if (local && (f.toLowerCase() === local || (f + l).toLowerCase() === local.replace(/[^a-z]/g, ''))) return true;
+    return false;
+  }
+
+  function accountResolvedNames(user) {
+    if (accountNames.uid === user.uid && (accountNames.firstName || accountNames.lastName)) {
+      return { firstName: accountNames.firstName, lastName: accountNames.lastName };
+    }
+    return accountSplitDisplayName(user.displayName);
+  }
+
+  function accountLoadNames(user) {
+    if (accountNames.uid === user.uid && (accountNames.loaded || accountNames.loading)) return;
+    accountNames = { uid: user.uid, firstName: '', lastName: '', loaded: false, loading: true };
+    user.getIdToken().then(function (token) {
+      return fetch('/api/lab/workspace-profile', { headers: { Authorization: 'Bearer ' + token } });
+    }).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (j) {
+      if (accountNames.uid !== user.uid) return;
+      var prof = j && j.profile;
+      if (prof && prof.firstName && prof.lastName) {
+        accountNames.firstName = String(prof.firstName);
+        accountNames.lastName = String(prof.lastName);
+      }
+      accountNames.loaded = true;
+      accountNames.loading = false;
+      refreshAccountPanels();
+    }).catch(function () {
+      if (accountNames.uid === user.uid) {
+        accountNames.loaded = true;
+        accountNames.loading = false;
+      }
+    });
+  }
+
+  function refreshAccountPanels() {
+    var user = accountCurrentUser();
+    document.querySelectorAll('.aep-lab-account').forEach(function (wrap) {
+      if (!user) {
+        wrap.hidden = true;
+        return;
+      }
+      wrap.hidden = false;
+      var names = accountResolvedNames(user);
+      var full = (names.firstName + ' ' + names.lastName).trim();
+      var attention = accountNamesNeedAttention(names.firstName, names.lastName, user.email);
+      var initial = (names.firstName || user.email || '?').charAt(0);
+      var av = wrap.querySelector('.aep-lab-account-avatar-letter');
+      if (av) av.textContent = initial;
+      var dot = wrap.querySelector('.aep-lab-account-dot');
+      if (dot) dot.hidden = !attention;
+      wrap.querySelectorAll('.aep-lab-account-name').forEach(function (el) {
+        el.textContent = full || 'Add your name';
+      });
+      wrap.querySelectorAll('.aep-lab-account-email').forEach(function (el) {
+        el.textContent = user.email;
+      });
+      var hint = wrap.querySelector('.aep-lab-account-hint');
+      if (hint) hint.hidden = !attention;
+      var btn = wrap.querySelector('.aep-lab-account-btn');
+      if (btn) {
+        var label = (full || 'Account') + ' \u2014 ' + user.email + (attention ? ' (add your first and last name)' : '');
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('data-tooltip', full || user.email);
+      }
+    });
+  }
+
+  function accountCloseMenus(except) {
+    document.querySelectorAll('.aep-lab-account-menu').forEach(function (m) {
+      if (m === except) return;
+      m.hidden = true;
+      var b = m.parentNode && m.parentNode.querySelector('.aep-lab-account-btn');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  var accountGlobalBound = false;
+  function bindAccountGlobalHandlers() {
+    if (accountGlobalBound) return;
+    accountGlobalBound = true;
+    document.addEventListener('pointerdown', function (ev) {
+      var t = ev.target;
+      if (t && t.closest && t.closest('.aep-lab-account')) return;
+      accountCloseMenus(null);
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      var open = document.querySelector('.aep-lab-account-menu:not([hidden])');
+      if (!open) return;
+      accountCloseMenus(null);
+      var b = open.parentNode && open.parentNode.querySelector('.aep-lab-account-btn');
+      if (b) b.focus();
+    });
+  }
+
+  function accountCleanName(v) {
+    return String(v || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  }
+
+  function ensureAccountDialog() {
+    var dlg = document.getElementById('aepLabAccountDialog');
+    if (dlg) return dlg;
+    dlg = mk('dialog', 'aep-lab-account-dialog', { id: 'aepLabAccountDialog', 'aria-labelledby': 'aepLabAccountDialogTitle' });
+    dlg.innerHTML =
+      '<form method="dialog" novalidate>' +
+      '<h2 id="aepLabAccountDialogTitle">Profile and preferences</h2>' +
+      '<p>Your name personalises lab emails and the workspace. <span class="aep-lab-account-dialog-email"></span></p>' +
+      '<div class="aep-lab-account-fields">' +
+      '<label>First name<input type="text" name="firstName" id="aepLabAccountFirst" maxlength="80" autocomplete="given-name" required></label>' +
+      '<label>Last name<input type="text" name="lastName" id="aepLabAccountLast" maxlength="80" autocomplete="family-name" required></label>' +
+      '</div>' +
+      '<div class="aep-lab-account-msg" role="status" aria-live="polite"></div>' +
+      '<div class="aep-lab-account-actions">' +
+      '<button type="button" class="aep-lab-account-cancel">Cancel</button>' +
+      '<button type="submit" class="aep-lab-account-save">Save</button>' +
+      '</div>' +
+      '</form>';
+    document.body.appendChild(dlg);
+    var form = dlg.querySelector('form');
+    var msg = dlg.querySelector('.aep-lab-account-msg');
+    var save = dlg.querySelector('.aep-lab-account-save');
+    dlg.querySelector('.aep-lab-account-cancel').addEventListener('click', function () { dlg.close(); });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var user = accountCurrentUser();
+      if (!user) {
+        msg.setAttribute('data-kind', 'error');
+        msg.textContent = 'Sign in first.';
+        return;
+      }
+      var first = accountCleanName(dlg.querySelector('#aepLabAccountFirst').value);
+      var last = accountCleanName(dlg.querySelector('#aepLabAccountLast').value);
+      if (!first || !last) {
+        msg.setAttribute('data-kind', 'error');
+        msg.textContent = 'Enter your first and last name.';
+        return;
+      }
+      save.disabled = true;
+      msg.removeAttribute('data-kind');
+      msg.textContent = 'Saving\u2026';
+      user.getIdToken().then(function (token) {
+        return fetch('/api/lab/workspace-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ namesOnly: true, firstName: first, lastName: last })
+        });
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok || !j || j.ok === false) throw new Error((j && j.error) || ('Save failed (' + r.status + ')'));
+          return j;
+        });
+      }).then(function () {
+        accountNames = { uid: user.uid, firstName: first, lastName: last, loaded: true, loading: false };
+        return user.reload().catch(function () {});
+      }).then(function () {
+        refreshAccountPanels();
+        msg.setAttribute('data-kind', 'ok');
+        msg.textContent = 'Saved.';
+        setTimeout(function () { if (dlg.open) dlg.close(); }, 600);
+      }).catch(function (e) {
+        msg.setAttribute('data-kind', 'error');
+        msg.textContent = String((e && e.message) || e);
+      }).then(function () {
+        save.disabled = false;
+      });
+    });
+    return dlg;
+  }
+
+  function openAccountDialog() {
+    var user = accountCurrentUser();
+    if (!user) return;
+    var dlg = ensureAccountDialog();
+    var names = accountResolvedNames(user);
+    var attention = accountNamesNeedAttention(names.firstName, names.lastName, user.email);
+    dlg.querySelector('#aepLabAccountFirst').value = attention && String(names.firstName).toLowerCase() === 'adobe' ? '' : names.firstName;
+    dlg.querySelector('#aepLabAccountLast').value = attention && String(names.lastName).toLowerCase() === 'user' ? '' : names.lastName;
+    dlg.querySelector('.aep-lab-account-dialog-email').textContent = 'Signed in as ' + user.email + '.';
+    var msg = dlg.querySelector('.aep-lab-account-msg');
+    msg.removeAttribute('data-kind');
+    msg.textContent = '';
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open', '');
+    var f = dlg.querySelector('#aepLabAccountFirst');
+    if (f) f.focus();
+  }
+
+  function buildAccountPanel() {
+    ensureAccountStyles();
+    bindAccountGlobalHandlers();
+    var wrap = mk('div', 'aep-lab-account');
+    wrap.hidden = true;
+    var btn = mk('button', 'aep-lab-account-btn', { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' });
+    var av = mk('span', 'aep-lab-account-avatar', { 'aria-hidden': 'true' });
+    var avLetter = mk('span', 'aep-lab-account-avatar-letter');
+    var dot = mk('span', 'aep-lab-account-dot');
+    dot.hidden = true;
+    av.appendChild(avLetter);
+    av.appendChild(dot);
+    var meta = mk('span', 'aep-lab-account-meta');
+    meta.appendChild(mk('span', 'aep-lab-account-name'));
+    meta.appendChild(mk('span', 'aep-lab-account-email'));
+    btn.appendChild(av);
+    btn.appendChild(meta);
+
+    var menu = mk('div', 'aep-lab-account-menu', { role: 'menu' });
+    menu.hidden = true;
+    var head = mk('div', 'aep-lab-account-menu-head');
+    var hn = mk('div', 'aep-lab-account-name');
+    var he = mk('div', 'aep-lab-account-email');
+    var hint = mk('div', 'aep-lab-account-hint');
+    hint.textContent = 'Add your first and last name so lab emails are personalised.';
+    hint.hidden = true;
+    head.appendChild(hn);
+    head.appendChild(he);
+    head.appendChild(hint);
+    menu.appendChild(head);
+    var editItem = mk('button', 'aep-lab-account-item', { type: 'button', role: 'menuitem' });
+    editItem.textContent = 'Profile and preferences';
+    var themeItem = mk('button', 'aep-lab-account-item', { type: 'button', role: 'menuitem' });
+    var signOutItem = mk('button', 'aep-lab-account-item', { type: 'button', role: 'menuitem' });
+    signOutItem.textContent = 'Sign out';
+    menu.appendChild(editItem);
+    menu.appendChild(themeItem);
+    menu.appendChild(signOutItem);
+
+    function syncThemeItem() {
+      var dark = false;
+      try { dark = document.documentElement.getAttribute('data-aep-theme') === 'dark'; } catch (e) {}
+      themeItem.textContent = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+
+    btn.addEventListener('click', function () {
+      var willOpen = menu.hidden;
+      accountCloseMenus(menu);
+      menu.hidden = !willOpen;
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (willOpen) {
+        syncThemeItem();
+        editItem.focus();
+      }
+    });
+    editItem.addEventListener('click', function () {
+      accountCloseMenus(null);
+      openAccountDialog();
+    });
+    themeItem.addEventListener('click', function () {
+      try {
+        if (typeof AepTheme !== 'undefined' && AepTheme.setMode && AepTheme.getMode) {
+          AepTheme.setMode(AepTheme.getMode() === 'dark' ? 'light' : 'dark');
+        } else {
+          var tb = document.querySelector('.aep-theme-toggle-btn');
+          if (tb) tb.click();
+        }
+      } catch (e) {}
+      syncThemeItem();
+    });
+    signOutItem.addEventListener('click', function () {
+      accountCloseMenus(null);
+      try {
+        window.firebase.auth().signOut().catch(function () {}).then(function () {
+          window.location.reload();
+        });
+      } catch (e) {}
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(menu);
+
+    var user = accountCurrentUser();
+    if (user) accountLoadNames(user);
+    return wrap;
   }
 
   /* ── Init ── */
