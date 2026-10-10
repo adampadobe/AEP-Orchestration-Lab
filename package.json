@@ -28,6 +28,7 @@
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "test:demo-workspace-e2e": "node scripts/test-demo-workspace-e2e.cjs",
+    "test:sidebar-account-theme": "node scripts/test-sidebar-account-theme.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
     "validate:aep-architecture-tour": "node scripts/validate-aep-architecture-tour.mjs",
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
