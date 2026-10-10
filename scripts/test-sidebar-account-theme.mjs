@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 
 const ui = new URL('../web/profile-viewer/', import.meta.url);
 const files = new Map(await Promise.all(
-  ['aep-lab-nav.js', 'aep-theme.js', 'home.css', 'aep-theme.css'].map(async (name) =>
+  ['aep-lab-nav.js', 'aep-theme.js', 'style.css', 'home.css', 'aep-theme.css'].map(async (name) =>
     [name, await readFile(new URL(name, ui), 'utf8')]),
 ));
 const user = {
@@ -45,6 +45,7 @@ try {
         await route.fulfill({
           contentType: 'text/html',
           body: `<!doctype html><html><head>
+            <link rel="stylesheet" href="style.css">
             <link rel="stylesheet" href="home.css">
             <link rel="stylesheet" href="aep-theme.css">
             <script id="aepLabUsageTelemetryScript"></script>
@@ -98,6 +99,32 @@ try {
     }, user);
     await account.waitFor({ state: 'visible' });
     assert.equal(await duplicate.count(), 0, 'sign-in removes the visitor fallback');
+    await account.click();
+    await page.getByRole('menuitem', { name: 'Profile and preferences', exact: true }).click();
+    for (const mode of ['light', 'dark']) {
+      await page.evaluate((value) => window.AepTheme.setMode(value), mode);
+      for (const width of [1440, 768, 320]) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const fontSize of ['16px', '20px']) {
+          await page.evaluate((value) => { document.documentElement.style.fontSize = value; }, fontSize);
+          const layout = await page.locator('#aepLabAccountDialog').evaluate((dialog) => {
+            const grid = dialog.querySelector('.aep-lab-account-fields').getBoundingClientRect();
+            const bounds = dialog.getBoundingClientRect();
+            return {
+              fitsViewport: bounds.left >= 0 && bounds.right <= innerWidth,
+              noOverflow: dialog.scrollWidth <= dialog.clientWidth,
+              fieldsFit: [...dialog.querySelectorAll('input')].every((input) => {
+                const field = input.getBoundingClientRect();
+                return field.left >= grid.left - 1 && field.right <= grid.right + 1;
+              }),
+            };
+          });
+          assert.deepEqual(layout, {
+            fitsViewport: true, noOverflow: true, fieldsFit: true,
+          }, `complete name fields at ${width}px / ${fontSize} / ${mode}`);
+        }
+      }
+    }
     assert.deepEqual(errors, []);
     await page.close();
   }
