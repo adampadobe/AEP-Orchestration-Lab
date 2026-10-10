@@ -1876,17 +1876,19 @@
     });
     sidebar.appendChild(nav);
 
-    /* Theme toggle (footer) */
+    /* Account menu owns appearance; visitors without an account keep a fallback. */
     var footer = mk('div', 'aep-theme-sidebar-footer', { 'data-aep-theme-slot': '1' });
     footer.appendChild(buildAccountPanel());
-    var themeBtn = mk('button', 'aep-theme-toggle-btn', { type: 'button' });
-    var themeIco = mk('span', 'aep-theme-toggle-ico', { 'aria-hidden': 'true' });
-    themeIco.textContent = '\u25D1';
-    var themeTxt = mk('span', 'aep-theme-toggle-text');
-    themeTxt.textContent = 'Dark mode';
-    themeBtn.appendChild(themeIco);
-    themeBtn.appendChild(themeTxt);
-    footer.appendChild(themeBtn);
+    if (!accountCurrentUser()) {
+      var themeBtn = mk('button', 'aep-theme-toggle-btn', { type: 'button' });
+      var themeIco = mk('span', 'aep-theme-toggle-ico', { 'aria-hidden': 'true' });
+      themeIco.textContent = '\u25D1';
+      var themeTxt = mk('span', 'aep-theme-toggle-text');
+      themeTxt.textContent = 'Dark mode';
+      themeBtn.appendChild(themeIco);
+      themeBtn.appendChild(themeTxt);
+      footer.appendChild(themeBtn);
+    }
     sidebar.appendChild(footer);
 
     try {
