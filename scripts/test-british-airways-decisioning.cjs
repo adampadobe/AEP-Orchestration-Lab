@@ -60,6 +60,22 @@ test('unchanged loyalty preserves exact casing and unsupported existing tiers', 
   const changed = model.buildSnapshots(input, { ...state, tier: 'silver' }, null, state).find(group => group.industry === 'generic');
   assert.equal(changed.updates.find(row => row.path === 'loyaltyDetails.level').value, 'Silver');
 });
+test('BA rows mis-tagged generic (pre-release ownership) are written only via Travel', () => {
+  const input = [...rows, { path: '_demoemea.britishAirwaysDecisioning.messages7d', value: '9', valueType: 'number', industry: 'generic', writable: true }];
+  const snapshots = model.buildSnapshots(input, state);
+  const generic = snapshots.find(group => group.industry === 'generic').updates;
+  assert.ok(!generic.some(row => row.path.startsWith('britishAirwaysDecisioning.')));
+  const travel = snapshots.find(group => group.industry === 'travel').updates;
+  assert.equal(travel.find(row => row.path.endsWith('messages7d')).value, 3);
+});
+test('BA top-up script targets only BA leaves with typed schema', () => {
+  const script = require('./ensure-ba-decisioning-profile-core-fields.cjs');
+  const leaves = script.flattenLeaves(script.baManifest(getManifestForIndustry('travel')));
+  assert.equal(Object.keys(leaves).length, 13);
+  assert.ok(Object.keys(leaves).every(p => p.startsWith('britishAirwaysDecisioning.')));
+  assert.equal(leaves['britishAirwaysDecisioning.daysToDeparture'].type, 'integer');
+  assert.throws(() => script.parseArgs([]), /--sandbox/);
+});
 test('browser: shared shell, staging, snapshots, readback, imagery and themes', async () => {
   const { chromium } = require('playwright');
   const root = path.resolve(__dirname, '..', 'web');

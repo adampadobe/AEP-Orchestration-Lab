@@ -775,6 +775,16 @@ intended sandbox. The demo's read-only schema preflight blocks writes until
 these fields exist. Acceptance is not readback: look up again after ingestion
 before running a new decision.
 
+To add only the BA leaves to one sandbox before that release, use the governed
+script (dry run by default; `--via-proxy` uses the lab `/api/aep` proxy instead
+of local IMS credentials). Profile Core v2 is Profile-enabled, so `--apply` is
+permanent and additive-only — review the printed PATCH first:
+
+```bash
+node scripts/ensure-ba-decisioning-profile-core-fields.cjs --sandbox kirkham --via-proxy
+node scripts/ensure-ba-decisioning-profile-core-fields.cjs --sandbox kirkham --via-proxy --apply
+```
+
 For image-only decisioning, configure the web code-based surface for the
 visualiser URL `/profile-viewer/british-airways-decisioning-visualiser.html`
 with the case-sensitive fragment `#hero-banner`. Return an image in HTML,

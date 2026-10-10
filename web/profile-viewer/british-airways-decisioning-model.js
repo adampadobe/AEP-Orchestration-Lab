@@ -50,6 +50,12 @@
       }
     }
     const travel = groups.get('travel');
+    groups.forEach((updates, industry) => {
+      if (industry === 'travel') return;
+      Array.from(updates.keys()).forEach(path => {
+        if (path.startsWith('britishAirwaysDecisioning.')) updates.delete(path);
+      });
+    });
     Object.entries(fields).forEach(([key, leaf]) => {
       const path = 'britishAirwaysDecisioning.' + leaf;
       travel.set(path, { path, value: state[key], valueType: numeric.has(key) ? 'number' : 'string' });
