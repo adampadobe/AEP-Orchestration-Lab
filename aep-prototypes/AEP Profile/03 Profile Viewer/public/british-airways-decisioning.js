@@ -87,7 +87,7 @@
       message(error.message, true);
     } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }
   }
-  async function preflightSchema(data, ctx) {
+  async function preflightSchema(data, ctx, savedState) {
     const travel = data.industries && data.industries.travel;
     if (!travel || !travel.writable || !travel.schemaId) throw new Error('Travel profile dataflow is not ready. Complete Travel Profile Generation setup.');
     const result = await jsonFetch('/api/aep', {
@@ -111,6 +111,15 @@
         ? !['integer', 'number'].includes(fields[leaf].type)
         : fields[leaf].type !== 'string');
     if (incompatible.length) throw new Error('BA schema has incompatible field types: ' + incompatible.map(([, leaf]) => leaf).join(', '));
+    const airline = tenant && props[tenant].properties.airlineCustomer;
+    if (!airline || !airline.properties || !airline.properties.loyaltyTier || airline.properties.loyaltyTier.type !== 'string') {
+      throw new Error('Travel schema requires a text field at airlineCustomer.loyaltyTier. Complete Travel setup step 2 before applying.');
+    }
+    const tier = savedState.tier.charAt(0).toUpperCase() + savedState.tier.slice(1);
+    const allowedTiers = airline.properties.loyaltyTier.enum;
+    if (Array.isArray(allowedTiers) && !allowedTiers.includes(tier)) {
+      throw new Error('Airline loyalty tier "' + tier + '" is not allowed by this schema. Select one of: ' + allowedTiers.join(', '));
+    }
   }
   async function save() {
     const ctx = context();
@@ -122,13 +131,13 @@
       const latest = await table(ctx);
       const isTest = latest.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && String(row.value) === 'true');
       if (!isTest) throw new Error('Only AEP test profiles can be edited by this demo.');
-      await preflightSchema(latest, ctx);
-      if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('Loaded profile has no email identity for streaming.');
       const savedState = visualiser().getState();
+      await preflightSchema(latest, ctx, savedState);
+      if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('Loaded profile has no email identity for streaming.');
       const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
       const expected = groups.flatMap(group => group.updates).filter(update =>
-        update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'loyalty.tier' ||
-        update.path === 'loyaltyDetails.level' || update.path === 'scoring.core.propensityScore');
+        update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'airlineCustomer.loyaltyTier' ||
+        update.path === 'scoring.core.propensityScore');
       for (const group of groups) {
         current(ctx);
         const result = await global.postProfileUpdate({
@@ -257,7 +266,8 @@
       if (!profile || !visualiser()) return;
       const values = {};
       if (profile.propensityScore != null) values.prop = model.readPropensity(profile.propensityScore);
-      if (profile.loyaltyStatus) values.tier = String(profile.loyaltyStatus).toLowerCase();
+      const airlineTier = model.readState(loaded.rows).tier;
+      if (airlineTier != null) values.tier = airlineTier;
       visualiser().setState(values);
     });
     apply.addEventListener('click', () => { if (!busy) void save(); });

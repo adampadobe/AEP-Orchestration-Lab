@@ -35,7 +35,7 @@
       const value = byPath.get('britishAirwaysDecisioning.' + leaf);
       if (value !== undefined) state[key] = numeric.has(key) ? Number(value) : String(value);
     });
-    const tier = byPath.get('loyalty.tier') ?? byPath.get('loyaltyDetails.level');
+    const tier = byPath.get('airlineCustomer.loyaltyTier');
     if (tier != null) state.tier = String(tier).toLowerCase();
     const score = byPath.get('scoring.core.propensityScore');
     if (score != null) state.prop = readPropensity(score);
@@ -60,7 +60,7 @@
     groups.forEach((updates, industry) => {
       if (industry === 'travel') return;
       Array.from(updates.keys()).forEach(path => {
-        if (path.startsWith('britishAirwaysDecisioning.')) updates.delete(path);
+        if (path.startsWith('britishAirwaysDecisioning.') || path === 'airlineCustomer.loyaltyTier') updates.delete(path);
       });
     });
     Object.entries(fields).forEach(([key, leaf]) => {
@@ -69,13 +69,12 @@
     });
     const generic = groups.get('generic');
     const unchangedTier = (baseline || readState(rows)).tier === state.tier;
-    const existingTier = generic.get('loyalty.tier') || generic.get('loyaltyDetails.level');
-    for (const path of ['loyalty.tier', 'loyaltyDetails.level']) {
-      if (!generic.has(path) || !unchangedTier) {
-        const tier = unchangedTier && existingTier ? existingTier.value : state.tier.charAt(0).toUpperCase() + state.tier.slice(1);
-        generic.set(path, { path, value: tier, valueType: 'string' });
-      }
-    }
+    const existingTier = rows.find(row => relativePath(row.path) === 'airlineCustomer.loyaltyTier');
+    travel.set('airlineCustomer.loyaltyTier', {
+      path: 'airlineCustomer.loyaltyTier',
+      value: unchangedTier && existingTier ? scalar(existingTier) : state.tier.charAt(0).toUpperCase() + state.tier.slice(1),
+      valueType: 'string',
+    });
     const path = 'scoring.core.propensityScore';
     if (!Object.hasOwn(propensity, state.prop)) throw new Error('Propensity must be 1, 2 or 3');
     generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });

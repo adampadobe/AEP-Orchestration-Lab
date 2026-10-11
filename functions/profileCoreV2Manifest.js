@@ -371,6 +371,7 @@ const SHARED_TENANT_LEAVES = {
  */
 const INDUSTRY_EXTENSIONS = {
   travel: {
+    'airlineCustomer.loyaltyTier': STRING_LEAF('loyaltyTier'),
     britishAirwaysDecisioning: {
       type: 'object',
       title: 'British Airways Decisioning',

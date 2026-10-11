@@ -18,6 +18,8 @@ const rows = [
   { path: '_demoemea.hotel.bookingDetails.roomNumber', value: '0012', valueType: 'string', industry: 'travel', writable: true },
   { path: '_demoemea.industryFsi.accountStatus', value: 'active', valueType: 'string', industry: 'fsi', writable: true },
   { path: '_id', value: 'do-not-stream', valueType: 'string', writable: false },
+  { path: '_demoemea.airlineCustomer.loyaltyTier', value: 'Gold', valueType: 'string', industry: 'travel', writable: true },
+  { path: '_demoemea.loyaltyDetails.level', value: 'Platinum', valueType: 'string', industry: 'generic', writable: true },
 ];
 test('every BA control has a typed Travel schema leaf and ownership', () => {
   const schema = getManifestForIndustry('travel').britishAirwaysDecisioning.properties;
@@ -27,6 +29,8 @@ test('every BA control has a typed Travel schema leaf and ownership', () => {
     assert.equal(resolveIndustryForPath('_otherTenant.britishAirwaysDecisioning.' + leaf).industry, 'travel');
   });
   assert.equal(getManifestForIndustry('generic').britishAirwaysDecisioning, undefined);
+  assert.equal(getManifestForIndustry('travel')['airlineCustomer.loyaltyTier'].type, 'string');
+  assert.equal(resolveIndustryForPath('_demoemea.airlineCustomer.loyaltyTier').industry, 'travel');
 });
 test('full snapshots preserve siblings, industry groups and scalar types', () => {
   const snapshots = model.buildSnapshots(rows, state);
@@ -58,13 +62,15 @@ test('propensity writes exact 1-3 scores and converts legacy scores on Apply', (
   assert.throws(() => model.buildSnapshots(input, { ...state, prop: 'medium' }), /Propensity must be/);
   assert.throws(() => model.buildSnapshots([{ ...rows[2], value: 'invalid' }], state), /Invalid numeric/);
 });
-test('unchanged loyalty preserves exact casing and unsupported existing tiers', () => {
-  const input = [...rows, { path: '_demoemea.loyaltyDetails.level', value: 'Platinum', valueType: 'string', writable: true, industry: 'generic' }];
+test('airline Gold to Silver updates the exact Travel path without changing generic loyalty', () => {
+  const input = rows;
+  assert.equal(model.readState(input).tier, 'gold');
   const generic = model.buildSnapshots(input, state, null, state).find(group => group.industry === 'generic');
   assert.equal(generic.updates.find(row => row.path === 'loyaltyDetails.level').value, 'Platinum');
-  assert.equal(generic.updates.find(row => row.path === 'loyalty.tier').value, 'Platinum');
-  const changed = model.buildSnapshots(input, { ...state, tier: 'silver' }, null, state).find(group => group.industry === 'generic');
-  assert.equal(changed.updates.find(row => row.path === 'loyaltyDetails.level').value, 'Silver');
+  assert.ok(!generic.updates.some(row => row.path === 'loyalty.tier'));
+  const changed = model.buildSnapshots(input, { ...state, tier: 'silver' }, null, state);
+  assert.equal(changed.find(group => group.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
+  assert.equal(changed.find(group => group.industry === 'generic').updates.find(row => row.path === 'loyaltyDetails.level').value, 'Platinum');
 });
 test('BA rows mis-tagged generic (pre-release ownership) are written only via Travel', () => {
   const input = [...rows, { path: '_demoemea.britishAirwaysDecisioning.messages7d', value: '9', valueType: 'number', industry: 'generic', writable: true }];
@@ -127,6 +133,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       if (url.pathname === '/api/aep') data = {
         status: 200, platform_response: { properties: { _demoemea: { properties: {
           britishAirwaysDecisioning: { properties: schemaReady ? getManifestForIndustry('travel').britishAirwaysDecisioning.properties : {} },
+          airlineCustomer: { properties: { loyaltyTier: { type: 'string', enum: ['Blue', 'Bronze', 'Silver', 'Gold', 'Platinum'] } } },
         } } } },
       };
       if (url.pathname === '/api/profile/update') {
@@ -161,7 +168,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     const propensityControl = visual.locator('.toggle-pill[aria-label="Propensity (ML)"]');
     assert.deepEqual(await propensityControl.locator('[data-v]').allTextContents(), ['1', '2', '3']);
     await propensityControl.locator('[data-v="3"]').click();
-    await visual.locator('.toggle-pill[aria-label="Executive Club tier"] [data-v="gold"]').click();
+    await visual.locator('.toggle-pill[aria-label="Executive Club tier"] [data-v="silver"]').click();
     assert.equal(writes.length, 0, 'control changes must not write automatically');
     schemaReady = false;
     await page.locator('#baApplyProfile').click();
@@ -172,12 +179,38 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
     assert.equal(writes.length, 3);
     assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'scoring.core.propensityScore').value, 3);
+    assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
     assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.')).length, 13);
     await page.locator('#baRunDecision').click();
     assert.ok((await page.locator('#baProfileStatus').innerText()).includes('verify AEP readback'));
     await page.evaluate(() => document.getElementById('queryProfileBtn').click());
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
     assert.equal(await propensityControl.locator('[data-v="3"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await visual.locator('.toggle-pill[aria-label="Executive Club tier"] [data-v="silver"]').getAttribute('aria-pressed'), 'true');
+    const scenarioButtons = visual.locator('#scenarios .scn');
+    for (let i = 0; i < await scenarioButtons.count(); i++) {
+      const before = writes.length;
+      await scenarioButtons.nth(i).click();
+      const staged = await page.evaluate(() => document.getElementById('baDecisioningFrame').contentWindow.BaDecisioningVisualiser.getState());
+      assert.equal(writes.length, before, 'scenario must not save before Apply');
+      await page.locator('#baRunDecision').click();
+      assert.ok((await page.locator('#baProfileStatus').innerText()).includes('Apply staged changes'));
+      await page.locator('#baApplyProfile').click();
+      await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
+      const saved = writes.slice(before);
+      assert.deepEqual(model.readState(saved.flatMap(body => body.updates)), staged, 'scenario must save all 15 mapped fields');
+      await page.evaluate(() => document.getElementById('queryProfileBtn').click());
+      await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
+      const readback = await page.evaluate(() => document.getElementById('baDecisioningFrame').contentWindow.BaDecisioningVisualiser.getState());
+      assert.deepEqual(readback, staged, 'scenario must survive profile re-lookup');
+      await page.evaluate(() => { window.envBar.closeOverlay(); window.ProfileViewerModal.close(); });
+    }
+    await scenarioButtons.filter({ hasText: 'Trip next week' }).click();
+    await page.locator('#baApplyProfile').click();
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
+    await page.evaluate(() => document.getElementById('queryProfileBtn').click());
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
+    await page.evaluate(() => { window.envBar.closeOverlay(); window.ProfileViewerModal.close(); });
     await page.evaluate(() => {
       const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
       toggle.checked = true; toggle.dispatchEvent(new Event('change', { bubbles: true }));

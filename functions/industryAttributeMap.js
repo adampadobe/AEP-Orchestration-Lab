@@ -168,6 +168,7 @@ const RAW_PATH_OWNERSHIP = [
       'travelPreferences.',
       'industryTravel.',
       'britishAirwaysDecisioning.',
+      'airlineCustomer.',
       'hotel.',
       'individualCharacteristics.travel.',
       '<TENANT>travelReservations.',

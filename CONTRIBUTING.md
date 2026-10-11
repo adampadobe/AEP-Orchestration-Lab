@@ -767,15 +767,19 @@ and channel copy are a **local simulation**, not AEP's returned winner.
 All BA control changes are staged until **Apply profile changes**. Only test
 profiles can be written. The demo reads fresh `/api/profile/table` rows,
 preserves scalar types and streams complete writable snapshots to each
-configured dataflow using `postProfileUpdate`. Loyalty writes to Generic
-`loyalty.tier` / `loyaltyDetails.level` (title-case tiers, preserving unchanged
-existing values); propensity writes to Generic
+configured dataflow using `postProfileUpdate`. Loyalty writes to Travel
+`_<tenant>.airlineCustomer.loyaltyTier` (title-case tiers, preserving unchanged
+existing values and checking the schema's allowed tiers); generic loyalty
+fields are preserved, not changed by this control. Propensity writes to Generic
 `scoring.core.propensityScore` (selector values 1, 2 and 3 are saved as numeric
 scores 1, 2 and 3). Legacy 0-100 scores display as 1 (<35), 2 (<65), or 3;
 Apply converts them to the selected 1-3 score. The other 13 fields live under
 `_<tenant>.britishAirwaysDecisioning.*`, owned by Travel and declared in
 `functions/profileCoreV2Manifest.js`. Consent/contact-safety controls are
 **demo decision context**, not a replacement for actual AEP channel consent.
+Top-bar scenarios stage a complete preset (defaults plus scenario overrides)
+in the controls. Apply saves those same fields; Run remains blocked until
+a lookup verifies every saved control field, including airline loyalty.
 After releasing the Functions changes through the normal PR gates, run Travel
 Profile Generation step 2 (attach field groups / Profile Core v2 top-up) in the
 intended sandbox. The demo's read-only schema preflight blocks writes until
