@@ -21,6 +21,7 @@ const rows = [
   { path: '_demoemea.airlineCustomer.loyaltyTier', value: 'Gold', valueType: 'string', industry: 'travel', writable: true },
   { path: '_demoemea.loyaltyDetails.level', value: 'Platinum', valueType: 'string', industry: 'generic', writable: true },
   { path: '_demoemea.britishAirwaysDecisioning.disruptionSeverity', value: 'delay', valueType: 'string', industry: 'travel', writable: true },
+  { path: '_demoemea.travelReservations.flightReservations.flightClass', value: 'Business', valueType: 'string', industry: 'travel', writable: true },
 ];
 test('every BA control has a typed Travel schema leaf and ownership', () => {
   const schema = getManifestForIndustry('travel').britishAirwaysDecisioning.properties;
@@ -204,6 +205,9 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
     assert.equal(await propensityControl.locator('[data-v="3"]').getAttribute('aria-pressed'), 'true');
     assert.equal(await visual.locator('.toggle-pill[aria-label="Executive Club tier"] [data-v="silver"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('#profileDrawerLoyalty').textContent(), 'Silver');
+    assert.equal(await page.locator('#profileDrawerPropensityScore').textContent(), '3');
+    assert.equal(await page.locator('#profileDrawerDetail-flightClass').textContent(), 'Business');
     const scenarioButtons = visual.locator('#scenarios .scn');
     for (let i = 0; i < await scenarioButtons.count(); i++) {
       const before = writes.length;
@@ -220,6 +224,9 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
       const readback = await page.evaluate(() => document.getElementById('baDecisioningFrame').contentWindow.BaDecisioningVisualiser.getState());
       assert.deepEqual(readback, staged, 'scenario must survive profile re-lookup');
+      assert.equal(await page.locator('#profileDrawerDetail-bookingStatus').textContent(), staged.booking);
+      assert.equal(await page.locator('#profileDrawerLoyalty').textContent(), staged.tier.charAt(0).toUpperCase() + staged.tier.slice(1));
+      assert.equal(await page.locator('#profileDrawerPropensityScore').textContent(), staged.prop);
       await page.evaluate(() => { window.envBar.closeOverlay(); window.ProfileViewerModal.close(); });
     }
     await scenarioButtons.filter({ hasText: 'Trip next week' }).click();

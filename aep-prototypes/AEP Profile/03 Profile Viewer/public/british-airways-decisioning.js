@@ -273,6 +273,22 @@
       viewName: 'British Airways Decisioning', emailGetter: () => email.value,
       messageSetter: (text, type) => message(text, type === 'error'), getSelectedGeneratorTarget: getTarget,
       fetchBrowserEcidOnInit: true,
+      profileDetailFields: [
+        { key: 'bookingStatus', label: 'Booking status' },
+        { key: 'flightClass', label: 'Flight class' },
+      ],
+      enrichProfile: async profile => {
+        const data = await table(context());
+        const values = model.readState(data.rows);
+        const flightClass = data.rows.find(row => model.relativePath(row.path) === 'travelReservations.flightReservations.flightClass');
+        return {
+          ...profile,
+          propensityScore: values.prop != null ? Number(values.prop) : null,
+          loyaltyStatus: values.tier ? values.tier.charAt(0).toUpperCase() + values.tier.slice(1) : null,
+          bookingStatus: values.booking || null,
+          flightClass: flightClass ? flightClass.value : null,
+        };
+      },
     });
     global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(async () => {
       targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(document.getElementById('generatorTarget'), {});

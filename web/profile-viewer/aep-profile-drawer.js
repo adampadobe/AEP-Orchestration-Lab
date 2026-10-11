@@ -807,6 +807,23 @@ function updateProfileDrawer(profile) {
     else profileDrawerNpsScore.textContent = String(npsNorm);
   }
   setDrawerValue(profileDrawerLoyalty, source ? source.loyaltyStatus : null, 'Unknown');
+  if (Array.isArray(_config.profileDetailFields) && profileDrawerLoyalty) {
+    const parent = profileDrawerLoyalty.closest('.aep-profile-drawer-identity-row').parentElement;
+    _config.profileDetailFields.forEach(field => {
+      let value = document.getElementById('profileDrawerDetail-' + field.key);
+      if (!value) {
+        const row = document.createElement('div');
+        row.className = 'aep-profile-drawer-identity-row';
+        const label = document.createElement('strong');
+        label.textContent = field.label;
+        value = document.createElement('div');
+        value.id = 'profileDrawerDetail-' + field.key;
+        row.append(label, value);
+        parent.appendChild(row);
+      }
+      setDrawerValue(value, source ? source[field.key] : null, '—');
+    });
+  }
   if (profileDrawerMessageSentValue) {
     if (!source || source.emailSendsLast24h === undefined) {
       profileDrawerMessageSentValue.textContent = '—';
@@ -4050,6 +4067,9 @@ async function loadProfileDataForDrawer(email, options) {
       engagementMetricsHoursBack: engagementH,
     };
 
+    if (typeof _config.enrichProfile === 'function') {
+      lastLookedUpProfile = await _config.enrichProfile(lastLookedUpProfile);
+    }
     updateProfileDrawer(lastLookedUpProfile);
     startEventsPoll();
 

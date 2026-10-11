@@ -822,8 +822,13 @@ Returned title/description replace the email heading/body as escaped text.
 Both Run buttons first look up the selected profile and verify saved values,
 then use the same runtime and hero mount. Unapplied changes block Run; if AEP
 still has the previous values, wait for ingestion and click Run again.
-Missing decisions,
-profile switches and staged changes clear the old live image and explicitly
+
+The BA profile drawer uses fresh profile-table values for airline loyalty and
+the 1-3 propensity display, matching the left-hand controls. Booking status
+shows `britishAirwaysDecisioning.journeyStage`, and flight class shows
+`travelReservations.flightReservations.flightClass`. Staged edits do not
+change these saved-profile values until Apply and readback.
+Missing decisions, profile switches and staged changes clear the old live image and explicitly
 label fallback simulation imagery. Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies
 and schema provisioning still require authorized verification.
