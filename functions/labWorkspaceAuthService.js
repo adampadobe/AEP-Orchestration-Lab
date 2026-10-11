@@ -651,8 +651,21 @@ async function requestLabAccessApprovalOnSignupRequest(input, deps) {
     };
   }
 
+  const inputFirst = sanitizeName(input.firstName);
+  const inputLast = sanitizeName(input.lastName);
+  const hasInputNames = !!(inputFirst && inputLast);
+  if (hasInputNames) {
+    const displayName = `${inputFirst} ${inputLast}`.slice(0, 160);
+    if (String(userRecord.displayName || '').trim() !== displayName) {
+      await auth.updateUser(uid, { displayName });
+    }
+  }
+
   if (status === 'pending') {
     await auth.updateUser(uid, { disabled: true });
+    if (hasInputNames) {
+      await ref.set({ firstName: inputFirst, lastName: inputLast }, { merge: true });
+    }
     return {
       ok: true,
       uid,
@@ -663,7 +676,7 @@ async function requestLabAccessApprovalOnSignupRequest(input, deps) {
     };
   }
 
-  const { firstName, lastName } = coalesceNamesWithUserRecord('', '', userRecord);
+  const { firstName, lastName } = coalesceNamesWithUserRecord(inputFirst, inputLast, userRecord);
   const { emailResult, workspaceName, workspaceSlug } = await createPendingLabApprovalAndNotify(
     { uid, adobeEmail, firstName, lastName, origin: input.origin, approvalEmailKind: 'signup' },
     deps,
@@ -863,7 +876,47 @@ async function approveWorkspaceAuthRequest(input, deps = {}) {
   };
 }
 
+/**
+ * Signed-in user sets their own first/last name. Updates Auth displayName, the approval doc
+ * (if present) and merges into the workspace profile (keeping slug / workspace name / email).
+ */
+async function updateLabUserNamesRequest(input) {
+  const uid = String((input && input.uid) || '').trim().slice(0, 128);
+  if (!uid) throw badRequest('Sign in first.');
+  const firstName = sanitizeName(input.firstName).replace(/\s+/g, ' ');
+  const lastName = sanitizeName(input.lastName).replace(/\s+/g, ' ');
+  if (!firstName || !lastName) throw badRequest('First name and last name are required.');
+
+  if (!admin.apps.length) admin.initializeApp();
+  const auth = admin.auth();
+  const userRecord = await auth.getUser(uid);
+  const email = sanitizeEmail(userRecord.email);
+  if (!isValidEmail(email)) throw badRequest('Sign in with your lab email account to set your name.');
+
+  const displayName = `${firstName} ${lastName}`.slice(0, 160);
+  if (String(userRecord.displayName || '').trim() !== displayName) {
+    await auth.updateUser(uid, { displayName });
+  }
+
+  const ref = approvalDocRef(uid);
+  const snap = await ref.get();
+  if (snap.exists) {
+    await ref.set({ firstName, lastName }, { merge: true });
+  }
+
+  const existing = await labUserSandboxStore.getWorkspaceProfile(uid);
+  const profile = await labUserSandboxStore.upsertWorkspaceProfile(uid, {
+    firstName,
+    lastName,
+    adobeEmail: (existing && existing.adobeEmail) || email,
+    workspaceName: (existing && existing.workspaceName) || '',
+    workspaceSlug: (existing && existing.workspaceSlug) || '',
+  });
+  return { ok: true, displayName, profile };
+}
+
 module.exports = {
+  updateLabUserNamesRequest,
   registerWorkspaceAuthRequest,
   registerWorkspaceGoogleAuthRequest,
   registerWorkspaceLabSessionFromIdTokenRequest,

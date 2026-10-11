@@ -98,6 +98,7 @@
     var primary = document.getElementById('aepAccessOnbPrimaryAuthBtn');
     var secondary = document.getElementById('aepAccessOnbSecondaryAuthBtn');
     var confirmWrap = document.getElementById('aepAccessOnbConfirmWrap');
+    var namesWrap = document.getElementById('aepAccessOnbSignupNamesWrap');
     var pwd = document.getElementById('aepAccessOnbPassword');
     var holdPanel = document.getElementById('aepAccessOnbHoldPanel');
     var holdCopy = document.getElementById('aepAccessOnbHoldCopy');
@@ -121,6 +122,7 @@
       }
       if (title) title.textContent = 'Awaiting administrator approval';
       if (confirmWrap) confirmWrap.hidden = true;
+      if (namesWrap) namesWrap.hidden = true;
       return;
     }
 
@@ -140,6 +142,7 @@
       secondary.textContent = 'Create an account';
       secondary.setAttribute('class', 'dashboard-btn-outline');
       if (confirmWrap) confirmWrap.hidden = true;
+      if (namesWrap) namesWrap.hidden = true;
       if (pwd) pwd.setAttribute('autocomplete', 'current-password');
     } else {
       if (title) title.textContent = 'Create an account';
@@ -148,6 +151,7 @@
       secondary.textContent = 'Login';
       secondary.setAttribute('class', 'dashboard-btn-outline');
       if (confirmWrap) confirmWrap.hidden = false;
+      if (namesWrap) namesWrap.hidden = false;
       if (pwd) pwd.setAttribute('autocomplete', 'new-password');
     }
   }
@@ -210,6 +214,8 @@
       '.aep-access-onb-choice{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid var(--dash-border);border-radius:12px;background:var(--dash-surface-alt);min-width:260px;}' +
       '.aep-access-onb-grid{display:grid;gap:10px;margin-top:12px;grid-template-columns:1fr 1fr;}' +
       '.aep-access-onb-grid .full{grid-column:1 / -1;}' +
+      '.aep-access-onb-names{display:grid;grid-template-columns:1fr 1fr;gap:10px;}' +
+      '.aep-access-onb-names[hidden]{display:none;}' +
       '.aep-access-onb-grid label{display:block;font-weight:600;margin-bottom:4px;}' +
       '.aep-access-onb-grid input{width:100%;padding:10px 12px;border:1px solid var(--dash-input-border);border-radius:10px;background:var(--dash-input-bg);color:var(--dash-text);}' +
       '.aep-access-onb-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap;}' +
@@ -503,6 +509,10 @@
         '<div id="aepAccessOnbStep1CredentialWrap" class="aep-access-onb-step1-credentials">' +
         '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. New accounts are reviewed by an administrator; after approval, sign in again to choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
         '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
+        '<div id="aepAccessOnbSignupNamesWrap" class="full aep-access-onb-names">' +
+        '<div><label for="aepAccessOnbSignupFirstName">First name</label><input id="aepAccessOnbSignupFirstName" type="text" autocomplete="given-name" maxlength="80" spellcheck="false"></div>' +
+        '<div><label for="aepAccessOnbSignupLastName">Last name</label><input id="aepAccessOnbSignupLastName" type="text" autocomplete="family-name" maxlength="80" spellcheck="false"></div>' +
+        '</div>' +
         '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
         '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
         '<div id="aepAccessOnbConfirmWrap" class="full"><label for="aepAccessOnbPasswordConfirm">Confirm password</label><input id="aepAccessOnbPasswordConfirm" type="password" autocomplete="new-password" maxlength="128"></div>' +
@@ -1181,10 +1191,19 @@
     return String((e && e.message) || e || 'Sign-in failed.');
   }
 
-  function registerLabAdobeAccount(rawEmail, password, confirm) {
+  function cleanPersonName(v) {
+    return String(v || '').trim().replace(/[\x00-\x1f<>]/g, '').replace(/\s+/g, ' ').slice(0, 80);
+  }
+
+  function registerLabAdobeAccount(rawEmail, password, confirm, names) {
     var auth = ensureFirebaseAuth();
     if (!auth) {
       return Promise.resolve({ ok: false, error: 'Firebase auth is not available on this page.' });
+    }
+    var firstName = cleanPersonName(names && names.firstName);
+    var lastName = cleanPersonName(names && names.lastName);
+    if (!firstName || !lastName) {
+      return Promise.resolve({ ok: false, error: 'Enter your first and last name.' });
     }
     var email = String(rawEmail || '').trim().toLowerCase();
     if (!email.endsWith('@adobe.com')) {
@@ -1202,7 +1221,14 @@
     return auth
       .createUserWithEmailAndPassword(email, password)
       .then(function (cred) {
-        return { ok: true, user: cred && cred.user };
+        var user = cred && cred.user;
+        if (!user || typeof user.updateProfile !== 'function') return { ok: true, user: user };
+        return user
+          .updateProfile({ displayName: firstName + ' ' + lastName })
+          .catch(function () {})
+          .then(function () {
+            return { ok: true, user: user };
+          });
       })
       .catch(function (e) {
         return { ok: false, error: mapFirebaseAuthError(e) };
@@ -1245,7 +1271,7 @@
     });
   }
 
-  function requestLabAccessApprovalSignup(idToken) {
+  function requestLabAccessApprovalSignup(idToken, names) {
     var origin = '';
     try {
       origin = String((global.location && global.location.origin) || '') || '';
@@ -1258,7 +1284,11 @@
         'Content-Type': 'application/json',
         Authorization: 'Bearer ' + String(idToken || ''),
       },
-      body: JSON.stringify({ origin: origin }),
+      body: JSON.stringify({
+        origin: origin,
+        firstName: cleanPersonName(names && names.firstName),
+        lastName: cleanPersonName(names && names.lastName),
+      }),
     })
       .then(function (res) {
         return res
@@ -1567,7 +1597,11 @@
       var emailEl = document.getElementById('aepAccessOnbEmail');
       var passEl = document.getElementById('aepAccessOnbPassword');
       var confEl = document.getElementById('aepAccessOnbPasswordConfirm');
+      var fnEl = document.getElementById('aepAccessOnbSignupFirstName');
+      var lnEl = document.getElementById('aepAccessOnbSignupLastName');
       return {
+        firstName: fnEl ? cleanPersonName(fnEl.value) : '',
+        lastName: lnEl ? cleanPersonName(lnEl.value) : '',
         email: emailEl ? String(emailEl.value || '').trim() : '',
         password: passEl ? String(passEl.value || '') : '',
         confirm: confEl ? String(confEl.value || '') : '',
@@ -1669,7 +1703,8 @@
         });
         return;
       }
-      registerLabAdobeAccount(fields.email, fields.password, fields.confirm)
+      var signupNames = { firstName: fields.firstName, lastName: fields.lastName };
+      registerLabAdobeAccount(fields.email, fields.password, fields.confirm, signupNames)
         .then(function (session) {
           if (!session || !session.ok) {
             primaryAuthBtn.disabled = false;
@@ -1681,7 +1716,7 @@
           return session.user
             .getIdToken(true)
             .then(function (idToken) {
-              return requestLabAccessApprovalSignup(idToken);
+              return requestLabAccessApprovalSignup(idToken, signupNames);
             })
             .then(function (reg) {
               primaryAuthBtn.disabled = false;

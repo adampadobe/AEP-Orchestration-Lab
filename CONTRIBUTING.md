@@ -330,7 +330,12 @@ This is the most important section. Every UI change you make must work in
    `html[data-aep-theme="dark"]` **before first paint** (avoids flash).
 3. **`aep-theme.js`** exposes `window.AepTheme` for toggling, syncing labels,
    and listening to `storage` events for cross-tab sync.
-4. The sidebar (built by `aep-lab-nav.js`) injects a theme toggle button.
+4. The sidebar (built by `aep-lab-nav.js`) puts theme switching in the signed-in
+   user's account menu, alongside **Profile and preferences** and **Sign out**.
+   A standalone theme button is retained only for visitors without an account
+   menu. `aep-theme.js` also supplies a fallback on pages without the shared nav.
+   Global values, profile drawers, and standalone demos retain their own
+   appearance controls.
 
 ### Where tokens live
 
@@ -475,8 +480,9 @@ tokens). If you work on anything in `web/profile-viewer/`, follow the
 
 7. **Use `--dash-*` tokens** in all your CSS. No hardcoded colors.
 
-8. **Test in both themes** — toggle dark mode in the sidebar and verify
+8. **Test in both themes** — toggle dark mode in the sidebar account menu and verify
    everything is readable and correctly contrasted.
+   Run `npm run test:sidebar-account-theme` after changing account or theme controls.
 
 9. **Add to the sidebar navigation** if needed (edit `aep-lab-nav.js`).
 

@@ -262,6 +262,20 @@ function registerLabRoutes(deps) {
 
   if (req.method === 'POST') {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
+    if (body.namesOnly === true) {
+      try {
+        const result = await labWorkspaceAuthService.updateLabUserNamesRequest({
+          uid,
+          firstName: body.firstName,
+          lastName: body.lastName,
+        });
+        res.status(200).json(result);
+      } catch (e) {
+        const status = Number(e && e.status) || 400;
+        res.status(status).json({ ok: false, error: String(e && e.message ? e.message : e) });
+      }
+      return;
+    }
     try {
       const profile = await labUserSandboxStore.upsertWorkspaceProfile(uid, {
         firstName: body.firstName,
@@ -889,6 +903,8 @@ function registerLabRoutes(deps) {
       const result = await labWorkspaceAuthService.requestLabAccessApprovalOnSignupRequest(
         {
           idToken,
+          firstName: body.firstName,
+          lastName: body.lastName,
           origin: req.get('origin') || req.get('referer') || '',
         },
         {
