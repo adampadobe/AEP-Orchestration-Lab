@@ -81,10 +81,12 @@
       current(ctx);
       if (!ok) throw new Error('Profile table loaded, but the profile drawer could not be refreshed.');
       if (tags) await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
-      message(ready ? 'Profile loaded. Control changes are staged until Apply.' : 'AEP readback is still pending. Look up again after ingestion (typically 30-60 seconds).');
+      message(ready ? 'Profile loaded. Control changes are staged until Apply.' : 'AEP readback is still pending. Click Run again after ingestion (typically 30-60 seconds).');
+      return ready;
     } catch (error) {
       loaded = null; loadedKey = '';
       message(error.message, true);
+      return false;
     } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }
   }
   async function preflightSchema(data, ctx, savedState) {
@@ -156,7 +158,7 @@
       dirty = JSON.stringify(visualiser().getState()) !== JSON.stringify(savedState);
       loaded = latest;
       clearImage('Profile update accepted. Previous decision image cleared; await AEP readback before a new decision.');
-      message('Snapshots accepted by AEP, not yet verified. Look up again after ingestion (typically 30-60 seconds).');
+      message('Snapshots accepted by AEP. Run live image decision will look up the profile and verify the saved values before evaluating.');
     } catch (error) {
       message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. ' : '') + error.message, true);
     } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }
@@ -201,9 +203,13 @@
     message('Live hero image, title and description applied to the email/mobile preview. Ranking remains local simulation.');
   }
   async function decide() {
-    if (!loaded || loadedKey !== key(context())) { message('Look up the selected profile before running a decision.', true); return; }
-    if (dirty || pendingVerification) { message('Apply staged changes and verify AEP readback before running a decision.', true); return; }
+    if (busy) return;
+    if (dirty) { message('Apply staged changes before running a decision.', true); return; }
     const ctx = context();
+    if (!await lookup()) {
+      if (pendingVerification && loaded) message('AEP still has the previous values. Wait for ingestion (typically 30-60 seconds), then click Run live image decision again.', true);
+      return;
+    }
     busy = true; message('Evaluating the live hero-banner surface...');
     clearImage('Live decision in progress; showing local simulation imagery.');
     try {
@@ -240,11 +246,9 @@
   async function init() {
     document.addEventListener('click', event => {
       if (!event.target.closest('#cdMicroProfileRunBtn')) return;
-      if (busy || !loaded || loadedKey !== key(context()) || dirty || pendingVerification) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        message('Look up the profile, Apply staged changes and verify AEP readback before running a decision.', true);
-      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void decide();
     }, true);
     const email = document.getElementById('customerEmail');
     global.AepIdentityPicker.init('customerEmail', prefix + 'Ns');

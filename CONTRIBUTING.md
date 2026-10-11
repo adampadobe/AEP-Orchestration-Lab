@@ -819,8 +819,10 @@ it does **not** execute an email/mobile campaign or request separate channel
 policies. The email hero defaults to the supplied BA aircraft image and fills a
 fixed 277px-high block with `object-fit: cover`; the logo remains unchanged.
 Returned title/description replace the email heading/body as escaped text.
-Both Run buttons use the same runtime and hero mount; the popout button is
-blocked while changes are staged or awaiting profile readback. Missing decisions,
+Both Run buttons first look up the selected profile and verify saved values,
+then use the same runtime and hero mount. Unapplied changes block Run; if AEP
+still has the previous values, wait for ingestion and click Run again.
+Missing decisions,
 profile switches and staged changes clear the old live image and explicitly
 label fallback simulation imagery. Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies

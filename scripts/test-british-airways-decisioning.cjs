@@ -117,6 +117,8 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     page.on('pageerror', error => errors.push(error.message));
     const writes = [];
     let profileRows = structuredClone(rows);
+    let staleReadback = false;
+    let tableReads = 0;
     let schemaReady = true;
     await page.addInitScript(() => {
       localStorage.setItem('aepGlobalSandboxName', 'kirkham');
@@ -126,10 +128,13 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       const url = new URL(route.request().url());
       let data = { ok: true, record: {}, targets: [] };
       if (url.pathname === '/api/sandboxes') data = { sandboxes: [{ name: 'kirkham', title: 'Kirkham', state: 'active' }] };
-      if (url.pathname === '/api/profile/table') data = {
-        found: true, rows: profileRows, profileEmail: 'ba+09102026-1@adobetest.com', ecid: '12345678901234567890123456789012345678',
+      if (url.pathname === '/api/profile/table') {
+        tableReads++;
+        data = {
+        found: true, rows: staleReadback ? rows : profileRows, profileEmail: 'ba+09102026-1@adobetest.com', ecid: '12345678901234567890123456789012345678',
         industries: { generic: { writable: true }, travel: { writable: true, schemaId: 'test-schema' } },
-      };
+        };
+      }
       if (url.pathname === '/api/profile/consent') data = {
         found: true, email: 'ba+09102026-1@adobetest.com', firstName: 'Marcus',
         ecid: '12345678901234567890123456789012345678',
@@ -189,8 +194,12 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
     assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.') && !row.path.endsWith('disruptionSeverity')).length, 12);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.disruptionPath).value, 'none');
+    staleReadback = true;
+    const beforeReadback = tableReads;
     await page.locator('#baRunDecision').click();
-    assert.ok((await page.locator('#baProfileStatus').innerText()).includes('verify AEP readback'));
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('AEP still has the previous values'));
+    assert.ok(tableReads > beforeReadback, 'Run must fetch fresh profile rows');
+    staleReadback = false;
     await page.evaluate(() => document.getElementById('queryProfileBtn').click());
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
     assert.equal(await propensityControl.locator('[data-v="3"]').getAttribute('aria-pressed'), 'true');
@@ -216,9 +225,6 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await scenarioButtons.filter({ hasText: 'Trip next week' }).click();
     await page.locator('#baApplyProfile').click();
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
-    await page.evaluate(() => document.getElementById('queryProfileBtn').click());
-    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
-    await page.evaluate(() => { window.envBar.closeOverlay(); window.ProfileViewerModal.close(); });
     await page.evaluate(() => {
       const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
       toggle.checked = true; toggle.dispatchEvent(new Event('change', { bubbles: true }));
@@ -229,8 +235,10 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       window.alloy = sdk;
       window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
     });
-    await page.locator('#baRunDecision').click();
+    const readsBeforeDecision = tableReads;
+    await page.evaluate(() => document.getElementById('cdMicroProfileRunBtn').click());
     await visual.locator('#baPreviewMode').filter({ hasText: 'Live Edge decision image' }).waitFor();
+    assert.ok(tableReads > readsBeforeDecision, 'popout Run must automatically look up and verify the saved profile');
     const sources = await page.evaluate(() => {
       const doc = document.getElementById('baDecisioningFrame').contentDocument;
       return { web: doc.querySelector('.wb-bg').src, email: doc.getElementById('mailFrame').srcdoc };
