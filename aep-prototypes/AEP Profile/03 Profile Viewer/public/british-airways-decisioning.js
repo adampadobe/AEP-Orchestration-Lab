@@ -111,6 +111,9 @@
         ? !['integer', 'number'].includes(fields[leaf].type)
         : fields[leaf].type !== 'string');
     if (incompatible.length) throw new Error('BA schema has incompatible field types: ' + incompatible.map(([, leaf]) => leaf).join(', '));
+    let disruptionField = props[tenant];
+    model.disruptionPath.split('.').forEach(part => { disruptionField = disruptionField && disruptionField.properties && disruptionField.properties[part]; });
+    if (!disruptionField || disruptionField.type !== 'string') throw new Error('Travel schema requires a text field at ' + model.disruptionPath);
     const airline = tenant && props[tenant].properties.airlineCustomer;
     if (!airline || !airline.properties || !airline.properties.loyaltyTier || airline.properties.loyaltyTier.type !== 'string') {
       throw new Error('Travel schema requires a text field at airlineCustomer.loyaltyTier. Complete Travel setup step 2 before applying.');
@@ -137,7 +140,7 @@
       const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
       const expected = groups.flatMap(group => group.updates).filter(update =>
         update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'airlineCustomer.loyaltyTier' ||
-        update.path === 'scoring.core.propensityScore');
+        update.path === model.disruptionPath || update.path === 'scoring.core.propensityScore');
       for (const group of groups) {
         current(ctx);
         const result = await global.postProfileUpdate({
@@ -188,8 +191,14 @@
       image.src = url;
     }).catch(error => { if (version === imageVersion) throw error; });
     if (version !== imageVersion) return;
-    visualiser().setDecisionImage(url);
-    message('Live web decision image applied to web, email and mobile previews. Copy/ranking remain local simulation.');
+    const mount = frame.contentDocument.getElementById('hero-banner');
+    const title = mount.querySelector('.cd-slot-title, h1, h2, h3');
+    const description = mount.querySelector('.cd-slot-desc, p');
+    visualiser().setDecisionImage(url, undefined, {
+      title: title ? title.textContent.trim() : '',
+      description: description ? description.textContent.trim() : '',
+    });
+    message('Live hero image, title and description applied to the email/mobile preview. Ranking remains local simulation.');
   }
   async function decide() {
     if (!loaded || loadedKey !== key(context())) { message('Look up the selected profile before running a decision.', true); return; }
@@ -229,6 +238,14 @@
     doc.getElementById('scenarios').addEventListener('click', event => { if (event.target.closest('.scn')) changed(); });
   }
   async function init() {
+    document.addEventListener('click', event => {
+      if (!event.target.closest('#cdMicroProfileRunBtn')) return;
+      if (busy || !loaded || loadedKey !== key(context()) || dirty || pendingVerification) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        message('Look up the profile, Apply staged changes and verify AEP readback before running a decision.', true);
+      }
+    }, true);
     const email = document.getElementById('customerEmail');
     global.AepIdentityPicker.init('customerEmail', prefix + 'Ns');
     if (global.attachEmailDatalist) global.attachEmailDatalist('customerEmail', 'recentEmails', prefix + 'Ns');

@@ -142,6 +142,10 @@ const TRAVEL_RESERVATIONS_SUBTREE = {
         usaFlight: BOOLEAN_LEAF('usaFlight'),
         numberofPassengers: INT_LEAF('numberofPassengers'),
         flightNumber: STRING_LEAF('flightNumber'),
+        flightDisruption: {
+          type: 'object',
+          properties: { disruptionType: STRING_LEAF('disruptionType') },
+        },
         flightDate: DATE_LEAF('flightDate'),
         flightClass: STRING_LEAF('flightClass'),
         departureCountry: STRING_LEAF('departureCountry'),

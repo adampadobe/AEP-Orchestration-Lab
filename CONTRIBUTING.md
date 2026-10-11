@@ -773,7 +773,10 @@ existing values and checking the schema's allowed tiers); generic loyalty
 fields are preserved, not changed by this control. Propensity writes to Generic
 `scoring.core.propensityScore` (selector values 1, 2 and 3 are saved as numeric
 scores 1, 2 and 3). Legacy 0-100 scores display as 1 (<35), 2 (<65), or 3;
-Apply converts them to the selected 1-3 score. The other 13 fields live under
+Apply converts them to the selected 1-3 score. Disruption reads/writes
+`_<tenant>.travelReservations.flightReservations.flightDisruption.disruptionType`;
+the legacy `britishAirwaysDecisioning.disruptionSeverity` is no longer controlled
+by this page (existing profile values are preserved). The other 12 fields live under
 `_<tenant>.britishAirwaysDecisioning.*`, owned by Travel and declared in
 `functions/profileCoreV2Manifest.js`. Consent/contact-safety controls are
 **demo decision context**, not a replacement for actual AEP channel consent.
@@ -796,15 +799,28 @@ node scripts/ensure-ba-decisioning-profile-core-fields.cjs --sandbox kirkham --v
 node scripts/ensure-ba-decisioning-profile-core-fields.cjs --sandbox kirkham --via-proxy --apply
 ```
 
-For image-only decisioning, configure the web code-based surface for the
+For hero decisioning, configure the web code-based surface for the
 visualiser URL `/profile-viewer/british-airways-decisioning-visualiser.html`
 with the case-sensitive fragment `#hero-banner`. Return an image in HTML,
 for example `<img src="{{item._demoemea.content.mediaAssets.imageHighRes.sourceURL}}" alt="">`,
-or a supported JSON image payload. The shared Decisioning bar uses the injected
+or a supported JSON payload with `imageURL`, `title` and `fullDescription`.
+HTML may include an image followed by a heading and paragraph:
+
+```html
+<img src="{{item._demoemea.content.mediaAssets.imageHighRes.sourceURL}}" alt="">
+<h3>{{item._demoemea.content.textContent.title}}</h3>
+<p>{{item._demoemea.content.textContent.fullDescription}}</p>
+```
+
+The shared Decisioning bar uses the injected
 Web SDK and the configured AJO policy; no Target call or Brand Scraper is
 required. The chosen image is mirrored into web, email and mobile previews;
 it does **not** execute an email/mobile campaign or request separate channel
-policies. Title and description mapping can be added later. Missing decisions,
+policies. The email hero defaults to the supplied BA aircraft image and fills a
+fixed 277px-high block with `object-fit: cover`; the logo remains unchanged.
+Returned title/description replace the email heading/body as escaped text.
+Both Run buttons use the same runtime and hero mount; the popout button is
+blocked while changes are staged or awaiting profile readback. Missing decisions,
 profile switches and staged changes clear the old live image and explicitly
 label fallback simulation imagery. Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies

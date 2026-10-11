@@ -2,11 +2,12 @@
   'use strict';
   const fields = {
     engage: 'engagementStatus', booking: 'journeyStage', days: 'daysToDeparture',
-    docs: 'documentsStatus', anc: 'ancillariesHeld', disruption: 'disruptionSeverity',
+    docs: 'documentsStatus', anc: 'ancillariesHeld',
     caseState: 'caseStatus', intent: 'shoppingIntent', recency: 'hoursSinceActivity',
     fare: 'fareAvailability', consent: 'consentLevel', safe: 'safeToContact', fatigue: 'messages7d',
   };
   const numeric = new Set(['days', 'recency', 'fatigue']);
+  const disruptionPath = 'travelReservations.flightReservations.flightDisruption.disruptionType';
   const propensity = { '1': 1, '2': 2, '3': 3 };
   function readPropensity(score) {
     const value = Number(score);
@@ -35,6 +36,7 @@
       const value = byPath.get('britishAirwaysDecisioning.' + leaf);
       if (value !== undefined) state[key] = numeric.has(key) ? Number(value) : String(value);
     });
+    if (byPath.has(disruptionPath)) state.disruption = String(byPath.get(disruptionPath));
     const tier = byPath.get('airlineCustomer.loyaltyTier');
     if (tier != null) state.tier = String(tier).toLowerCase();
     const score = byPath.get('scoring.core.propensityScore');
@@ -60,13 +62,14 @@
     groups.forEach((updates, industry) => {
       if (industry === 'travel') return;
       Array.from(updates.keys()).forEach(path => {
-        if (path.startsWith('britishAirwaysDecisioning.') || path === 'airlineCustomer.loyaltyTier') updates.delete(path);
+        if (path.startsWith('britishAirwaysDecisioning.') || path === 'airlineCustomer.loyaltyTier' || path === disruptionPath) updates.delete(path);
       });
     });
     Object.entries(fields).forEach(([key, leaf]) => {
       const path = 'britishAirwaysDecisioning.' + leaf;
       travel.set(path, { path, value: state[key], valueType: numeric.has(key) ? 'number' : 'string' });
     });
+    travel.set(disruptionPath, { path: disruptionPath, value: state.disruption, valueType: 'string' });
     const generic = groups.get('generic');
     const unchangedTier = (baseline || readState(rows)).tier === state.tier;
     const existingTier = rows.find(row => relativePath(row.path) === 'airlineCustomer.loyaltyTier');
@@ -80,7 +83,7 @@
     generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });
     return Array.from(groups, ([industry, updates]) => ({ industry, updates: Array.from(updates.values()) }));
   }
-  const api = { fields, propensity, readPropensity, relativePath, readState, buildSnapshots };
+  const api = { fields, disruptionPath, propensity, readPropensity, relativePath, readState, buildSnapshots };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.BaDecisioningModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

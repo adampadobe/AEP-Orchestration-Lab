@@ -500,6 +500,7 @@
   };
   var state = Object.assign({}, DEFAULT);
   var decisionImage = '';
+  var decisionCopy = { title: '', description: '' };
 
   var GROUPS = [
     { id: 'profile', icon: '👤', title: 'Profile', col: 0, ctls: [
@@ -519,7 +520,7 @@
       { k: 'fare', label: 'Fare availability', attr: 'fareAvailability', type: 'pill', opts: [['available','Available'],['unavailable','Sold out']], idleUnless: function (s) { return s.intent !== 'none'; } }
     ]},
     { id: 'ops', icon: '📡', title: 'Operations', col: 2, ctls: [
-      { k: 'disruption', label: 'Flight disruption', attr: 'disruptionSeverity', type: 'pill', opts: [['none','Normal'],['delay','Delay'],['cancelled','Cancelled']], badVal: 'cancelled' }
+      { k: 'disruption', label: 'Flight disruption', attr: 'disruptionType', type: 'pill', opts: [['none','Normal'],['delay','Delay'],['cancelled','Cancelled']], badVal: 'cancelled' }
     ]},
     { id: 'consent', icon: '🛡️', title: 'Consent', col: 3, ctls: [
       { k: 'consent', label: 'Consent level', attr: 'consentLevel', type: 'pill', opts: [['full','Full'],['service','Service only'],['none','None']], badVal: 'none' },
@@ -1098,12 +1099,12 @@
   function variantRows(n, o) {
     var e = n.email, svc = objOf(n.obj).cls === 'service', acc = svc ? SVC : RED, im = IMG[n.obj];
     var h = '';
-    h += '<tr><td style="padding:0;font-size:0;line-height:0;"><img src="' + o.src(im.file) + '" width="600" alt="' + esc(im.alt) + '" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>\n';
+    h += '<tr><td style="padding:0;font-size:0;line-height:0;overflow:hidden;"><img class="email-hero" src="' + o.src(im.file) + '" width="600" height="277" alt="' + esc(im.alt) + '" style="display:block;width:100%;max-width:600px;height:277px;object-fit:cover;object-position:center;border:0;"></td></tr>\n';
     h += '<tr><td class="px" style="padding:30px 36px 6px 36px;' + FONT + '">' +
          '<p style="margin:0 0 14px 0;font-size:15px;line-height:22px;color:#5b6475;">Hi ' + o.first + ',</p>' +
          '<p style="margin:0 0 6px 0;font-size:12px;line-height:16px;letter-spacing:1.5px;text-transform:uppercase;font-weight:bold;color:' + acc + ';">' + sub(e.eyebrow, o.first) + '</p>' +
-         '<h1 class="h1" style="margin:0 0 14px 0;font-size:28px;line-height:34px;font-weight:normal;color:' + NAVY + ';">' + sub(e.headline, o.first) + '</h1>' +
-         '<p style="margin:0;font-size:16px;line-height:24px;color:#3b4558;">' + sub(e.body, o.first) + '</p>' +
+         '<h1 class="h1" style="margin:0 0 14px 0;font-size:28px;line-height:34px;font-weight:normal;color:' + NAVY + ';">' + (o.liveCopy && o.liveCopy.title ? esc(o.liveCopy.title) : sub(e.headline, o.first)) + '</h1>' +
+         '<p class="email-description" style="margin:0;font-size:16px;line-height:24px;color:#3b4558;">' + (o.liveCopy && o.liveCopy.description ? esc(o.liveCopy.description) : sub(e.body, o.first)) + '</p>' +
          '</td></tr>\n';
     h += '<tr><td class="px" style="padding:20px 36px 4px 36px;' + FONT + '">' +
          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f3f6fa;border:1px solid #dde3ec;border-left:5px solid ' + acc + ';border-radius:6px;"><tr><td style="padding:16px 20px;' + FONT + '">' +
@@ -1160,11 +1161,11 @@
   function emailNbas() { return NBAS.filter(function (n) { return n.email; }); }
 
   /* live preview + per-NBA static file: first name = Marcus */
-  function buildStatic(n, srcFn) {
-    var o = { first: FIRST_NAME, src: srcFn, title: sub(n.email.subject, FIRST_NAME), pre: sub(n.email.pre, FIRST_NAME) };
+  function buildStatic(n, srcFn, liveCopy) {
+    var o = { first: FIRST_NAME, src: srcFn, liveCopy: liveCopy, title: sub(n.email.subject, FIRST_NAME), pre: sub(n.email.pre, FIRST_NAME) };
     return emailDoc(variantRows(n, o), o);
   }
-  function buildPreview(n) { return buildStatic(n, function (f) { return (decisionImage || IMG_DATA[f]).replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }); }
+  function buildPreview(n) { return buildStatic(n, function (f) { return (f === 'ba-logo.png' ? IMG_DATA[f] : decisionImage || 'british-airways-decisioning-hero.png').replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }, decisionCopy); }
   function buildVariant(n, base) { return buildStatic(n, function (f) { return base + f; }); }
 
   /* AJO single email: one NBA, AJO first-name token, no conditional logic — import-ready on its own */
@@ -1436,8 +1437,9 @@
       });
       syncControls(); update();
     },
-    setDecisionImage: function (url, message) {
+    setDecisionImage: function (url, message, copy) {
       decisionImage = url || '';
+      decisionCopy = copy || { title: '', description: '' };
       wbBgs.querySelectorAll('.wb-bg').forEach(function (im) {
         im.src = decisionImage || IMG_DATA[IMG[im.dataset.o].file];
       });

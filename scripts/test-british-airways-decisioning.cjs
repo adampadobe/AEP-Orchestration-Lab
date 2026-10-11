@@ -20,6 +20,7 @@ const rows = [
   { path: '_id', value: 'do-not-stream', valueType: 'string', writable: false },
   { path: '_demoemea.airlineCustomer.loyaltyTier', value: 'Gold', valueType: 'string', industry: 'travel', writable: true },
   { path: '_demoemea.loyaltyDetails.level', value: 'Platinum', valueType: 'string', industry: 'generic', writable: true },
+  { path: '_demoemea.britishAirwaysDecisioning.disruptionSeverity', value: 'delay', valueType: 'string', industry: 'travel', writable: true },
 ];
 test('every BA control has a typed Travel schema leaf and ownership', () => {
   const schema = getManifestForIndustry('travel').britishAirwaysDecisioning.properties;
@@ -31,12 +32,15 @@ test('every BA control has a typed Travel schema leaf and ownership', () => {
   assert.equal(getManifestForIndustry('generic').britishAirwaysDecisioning, undefined);
   assert.equal(getManifestForIndustry('travel')['airlineCustomer.loyaltyTier'].type, 'string');
   assert.equal(resolveIndustryForPath('_demoemea.airlineCustomer.loyaltyTier').industry, 'travel');
+  assert.equal(getManifestForIndustry('travel').travelReservations.properties.flightReservations.properties.flightDisruption.properties.disruptionType.type, 'string');
 });
 test('full snapshots preserve siblings, industry groups and scalar types', () => {
   const snapshots = model.buildSnapshots(rows, state);
   const travel = snapshots.find(group => group.industry === 'travel').updates;
   assert.equal(travel.find(row => row.path === 'hotel.bookingDetails.roomNumber').value, '0012');
   assert.equal(travel.find(row => row.path.endsWith('messages7d')).value, 3);
+  assert.equal(travel.find(row => row.path === model.disruptionPath).value, state.disruption);
+  assert.equal(travel.find(row => row.path === 'britishAirwaysDecisioning.disruptionSeverity').value, 'delay');
   const generic = snapshots.find(group => group.industry === 'generic').updates;
   assert.equal(generic.find(row => row.path === 'scoring.core.propensityScore').value, 3);
   assert.equal(generic.find(row => row.path === 'testProfile').value, true);
@@ -134,6 +138,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
         status: 200, platform_response: { properties: { _demoemea: { properties: {
           britishAirwaysDecisioning: { properties: schemaReady ? getManifestForIndustry('travel').britishAirwaysDecisioning.properties : {} },
           airlineCustomer: { properties: { loyaltyTier: { type: 'string', enum: ['Blue', 'Bronze', 'Silver', 'Gold', 'Platinum'] } } },
+          travelReservations: getManifestForIndustry('travel').travelReservations,
         } } } },
       };
       if (url.pathname === '/api/profile/update') {
@@ -169,6 +174,8 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.deepEqual(await propensityControl.locator('[data-v]').allTextContents(), ['1', '2', '3']);
     await propensityControl.locator('[data-v="3"]').click();
     await visual.locator('.toggle-pill[aria-label="Executive Club tier"] [data-v="silver"]').click();
+    await page.evaluate(() => document.getElementById('cdMicroProfileRunBtn').click());
+    assert.ok((await page.locator('#baProfileStatus').innerText()).includes('Apply staged changes'));
     assert.equal(writes.length, 0, 'control changes must not write automatically');
     schemaReady = false;
     await page.locator('#baApplyProfile').click();
@@ -180,7 +187,8 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.equal(writes.length, 3);
     assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'scoring.core.propensityScore').value, 3);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
-    assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.')).length, 13);
+    assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.') && !row.path.endsWith('disruptionSeverity')).length, 12);
+    assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.disruptionPath).value, 'none');
     await page.locator('#baRunDecision').click();
     assert.ok((await page.locator('#baProfileStatus').innerText()).includes('verify AEP readback'));
     await page.evaluate(() => document.getElementById('queryProfileBtn').click());
@@ -216,7 +224,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       toggle.checked = true; toggle.dispatchEvent(new Event('change', { bubbles: true }));
       const sdk = async command => command === 'sendEvent' ? { propositions: [{
         id: 'live-proposition', scope: document.getElementById('baDecisioningFrame').src.split('?')[0].replace(/^http:\/\//, 'web://') + '#hero-banner',
-        items: [{ id: 'decision-item', schema: 'https://ns.adobe.com/personalization/json-content-item', data: { imageURL: 'https://example.test/decision.jpg' } }],
+        items: [{ id: 'decision-item', schema: 'https://ns.adobe.com/personalization/json-content-item', data: { imageURL: 'https://example.test/decision.jpg', title: 'Your next journey', fullDescription: 'A personalised travel offer.' } }],
       }] } : {};
       window.alloy = sdk;
       window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
@@ -229,6 +237,13 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     });
     assert.equal(sources.web, 'https://example.test/decision.jpg');
     assert.ok(sources.email.includes('https://example.test/decision.jpg'));
+    assert.ok(sources.email.includes('Your next journey'));
+    assert.ok(sources.email.includes('A personalised travel offer.'));
+    const emailDoc = await visual.locator('#mailFrame').contentFrame();
+    const hero = emailDoc.locator('.email-hero');
+    assert.equal(await hero.evaluate(el => getComputedStyle(el).objectFit), 'cover');
+    assert.equal(await hero.evaluate(el => el.getBoundingClientRect().height), 277);
+    assert.ok(!(await emailDoc.locator('img[alt="British Airways"]').getAttribute('src')).includes('decision.jpg'), 'decision must not replace logo');
     await visual.locator('#dev [data-m="mobile"]').click();
     assert.ok(await visual.locator('#mailStage').evaluate(el => el.classList.contains('is-mobile')));
     await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
