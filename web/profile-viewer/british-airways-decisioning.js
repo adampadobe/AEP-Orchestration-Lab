@@ -256,7 +256,7 @@
       const profile = global.DemoProfileDrawer.getLastLookedUpProfile();
       if (!profile || !visualiser()) return;
       const values = {};
-      if (profile.propensityScore != null) values.prop = Number(profile.propensityScore) < 35 ? 'low' : Number(profile.propensityScore) < 65 ? 'medium' : 'high';
+      if (profile.propensityScore != null) values.prop = model.readPropensity(profile.propensityScore);
       if (profile.loyaltyStatus) values.tier = String(profile.loyaltyStatus).toLowerCase();
       visualiser().setState(values);
     });

@@ -7,7 +7,7 @@ const model = require('../web/profile-viewer/british-airways-decisioning-model')
 const { getManifestForIndustry } = require('../functions/profileCoreV2Manifest');
 const { resolveIndustryForPath } = require('../functions/industryAttributeMap');
 const state = {
-  tier: 'gold', prop: 'high', engage: 'dormant', booking: 'travelling', days: 2,
+  tier: 'gold', prop: '3', engage: 'dormant', booking: 'travelling', days: 2,
   docs: 'verified', anc: 'added', disruption: 'delay', caseState: 'claim',
   intent: 'abandoned', recency: 24, fare: 'unavailable', consent: 'service', safe: 'no', fatigue: 3,
 };
@@ -34,7 +34,7 @@ test('full snapshots preserve siblings, industry groups and scalar types', () =>
   assert.equal(travel.find(row => row.path === 'hotel.bookingDetails.roomNumber').value, '0012');
   assert.equal(travel.find(row => row.path.endsWith('messages7d')).value, 3);
   const generic = snapshots.find(group => group.industry === 'generic').updates;
-  assert.equal(generic.find(row => row.path === 'scoring.core.propensityScore').value, 80);
+  assert.equal(generic.find(row => row.path === 'scoring.core.propensityScore').value, 3);
   assert.equal(generic.find(row => row.path === 'testProfile').value, true);
   assert.ok(generic.some(row => row.path === 'person.name.firstName'));
   assert.ok(snapshots.some(group => group.industry === 'fsi'));
@@ -46,10 +46,16 @@ test('missing dataflows fail; configured Travel supports a first BA write', () =
   assert.throws(() => model.buildSnapshots([], state), /dataflow is missing/);
   assert.equal(model.buildSnapshots([], state, { generic: { writable: true }, travel: { writable: true } }).length, 2);
 });
-test('unmodified propensity bands preserve the original numeric score', () => {
+test('propensity writes exact 1-3 scores and converts legacy scores on Apply', () => {
   const input = rows.map(row => row.path.endsWith('propensityScore') ? { ...row, value: '45' } : row);
-  const generic = model.buildSnapshots(input, { ...state, prop: 'medium' }).find(group => group.industry === 'generic');
-  assert.equal(generic.updates.find(row => row.path.endsWith('propensityScore')).value, 45);
+  assert.equal(model.readState(input).prop, '2');
+  for (const score of [1, 2, 3]) {
+    const generic = model.buildSnapshots(input, { ...state, prop: String(score) }).find(group => group.industry === 'generic');
+    assert.equal(generic.updates.find(row => row.path.endsWith('propensityScore')).value, score);
+    const updated = [{ ...input[2], value: String(score) }];
+    assert.equal(model.readState(updated).prop, String(score));
+  }
+  assert.throws(() => model.buildSnapshots(input, { ...state, prop: 'medium' }), /Propensity must be/);
   assert.throws(() => model.buildSnapshots([{ ...rows[2], value: 'invalid' }], state), /Invalid numeric/);
 });
 test('unchanged loyalty preserves exact casing and unsupported existing tiers', () => {
@@ -152,6 +158,9 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     });
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
     await page.evaluate(() => { window.envBar.closeOverlay(); window.ProfileViewerModal.close(); });
+    const propensityControl = visual.locator('.toggle-pill[aria-label="Propensity (ML)"]');
+    assert.deepEqual(await propensityControl.locator('[data-v]').allTextContents(), ['1', '2', '3']);
+    await propensityControl.locator('[data-v="3"]').click();
     await visual.locator('.toggle-pill[aria-label="Executive Club tier"] [data-v="gold"]').click();
     assert.equal(writes.length, 0, 'control changes must not write automatically');
     schemaReady = false;
@@ -162,11 +171,13 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.locator('#baApplyProfile').click();
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
     assert.equal(writes.length, 3);
+    assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'scoring.core.propensityScore').value, 3);
     assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.')).length, 13);
     await page.locator('#baRunDecision').click();
     assert.ok((await page.locator('#baProfileStatus').innerText()).includes('verify AEP readback'));
     await page.evaluate(() => document.getElementById('queryProfileBtn').click());
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
+    assert.equal(await propensityControl.locator('[data-v="3"]').getAttribute('aria-pressed'), 'true');
     await page.evaluate(() => {
       const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
       toggle.checked = true; toggle.dispatchEvent(new Event('change', { bubbles: true }));

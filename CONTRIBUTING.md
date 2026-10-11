@@ -770,8 +770,9 @@ preserves scalar types and streams complete writable snapshots to each
 configured dataflow using `postProfileUpdate`. Loyalty writes to Generic
 `loyalty.tier` / `loyaltyDetails.level` (title-case tiers, preserving unchanged
 existing values); propensity writes to Generic
-`scoring.core.propensityScore` (Low=20, Medium=50, High=80; an unchanged band
-preserves the original numeric score). The other 13 fields live under
+`scoring.core.propensityScore` (selector values 1, 2 and 3 are saved as numeric
+scores 1, 2 and 3). Legacy 0-100 scores display as 1 (<35), 2 (<65), or 3;
+Apply converts them to the selected 1-3 score. The other 13 fields live under
 `_<tenant>.britishAirwaysDecisioning.*`, owned by Travel and declared in
 `functions/profileCoreV2Manifest.js`. Consent/contact-safety controls are
 **demo decision context**, not a replacement for actual AEP channel consent.

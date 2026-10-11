@@ -492,7 +492,7 @@
 
   /* ═══════════════════════════ 1. SIGNALS (controls) ═══════════════════════════ */
   var DEFAULT = {
-    tier: 'silver', prop: 'medium', engage: 'active',
+    tier: 'silver', prop: '2', engage: 'active',
     booking: 'upcoming', days: 9, docs: 'action', anc: 'none',
     disruption: 'none', caseState: 'none',
     intent: 'none', recency: 12, fare: 'available',
@@ -504,7 +504,7 @@
   var GROUPS = [
     { id: 'profile', icon: '👤', title: 'Profile', col: 0, ctls: [
       { k: 'tier', label: 'Executive Club tier', attr: 'loyaltyTier', type: 'pill', opts: [['none','None'],['blue','Blue'],['silver','Silver'],['gold','Gold']] },
-      { k: 'prop', label: 'Propensity (ML)', attr: 'propensityScore', type: 'pill', opts: [['low','Low'],['medium','Medium'],['high','High']] },
+      { k: 'prop', label: 'Propensity (ML)', attr: 'propensityScore', type: 'pill', opts: [['1','1'],['2','2'],['3','3']] },
       { k: 'engage', label: 'Engagement history', attr: 'engagementStatus', type: 'pill', opts: [['active','Active'],['dormant','Dormant']] }
     ]},
     { id: 'booking', icon: '🎫', title: 'Booking', col: 1, ctls: [
@@ -533,7 +533,7 @@
 
   var SCENARIOS = [
     { name: 'Loyal, no trip',    set: { booking: 'none', tier: 'gold' } },
-    { name: 'Trip in 40 days',   set: { days: 40, prop: 'high' } },
+    { name: 'Trip in 40 days',   set: { days: 40, prop: '3' } },
     { name: 'Abandoned basket',  set: { booking: 'none', intent: 'abandoned', recency: 6 } },
     { name: 'Just landed',       set: { booking: 'completed', anc: 'added', docs: 'verified' } },
     { name: 'Trip next week',    set: {} },
@@ -607,7 +607,7 @@
       gates: [
         { label: 'Existing products', test: function (c) { return c.booking === 'upcoming'; },
           ev: function (c) { return c.booking === 'upcoming' ? 'Upcoming trip in ' + c.days + 'd' : 'No upcoming booking'; } },
-        { label: 'Relevance / propensity', test: function (c) { return c.prop !== 'low'; },
+        { label: 'Relevance / propensity', test: function (c) { return c.prop !== '1'; },
           ev: function (c) { return 'Propensity ' + c.prop; } },
         { label: 'Value / frequency cap', test: function (c) { return c.fatigueOk && c.consent === 'full'; },
           ev: function (c) { return c.consent !== 'full' ? 'No marketing consent' : c.fatigueOk ? c.fatigue + ' of ' + CAP + ' sent' : 'Cap reached'; } }
@@ -641,7 +641,7 @@
     return { subject: subject, pre: pre, eyebrow: eyebrow, headline: headline, body: body,
              offer: { label: offerLabel, value: offerValue, detail: offerDetail }, cta: cta, link2: link2 };
   }
-  var PROP = { low: 4, medium: 12, high: 20 };
+  var PROP = { '1': 4, '2': 12, '3': 20 };
   var TIER = { none: 4, blue: 8, silver: 14, gold: 20 };
 
   var NBAS = [
@@ -814,7 +814,7 @@
         'Limited time', 'Double Tier Points', 'On your next flight booked this month.',
         'View my progress', 'See my benefits') },
     { id: 'app', obj: 'engage', name: 'App adoption', elig: function () { return true; },
-      rel: function (c) { return c.prop === 'low' ? 18 : 8; }, urg: 4, bv: 12, conf: 16, pa: .4, ca: .2,
+      rel: function (c) { return c.prop === '1' ? 18 : 8; }, urg: 4, bv: 12, conf: 16, pa: .4, ca: .2,
       email: E('{FIRST}, get the British Airways app and earn 500 Avios',
         'Boarding passes, flight updates and offers in one place.',
         'Travel smarter', 'Everything for your trip, in one app',

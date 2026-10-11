@@ -7,7 +7,14 @@
     fare: 'fareAvailability', consent: 'consentLevel', safe: 'safeToContact', fatigue: 'messages7d',
   };
   const numeric = new Set(['days', 'recency', 'fatigue']);
-  const propensity = { low: 20, medium: 50, high: 80 };
+  const propensity = { '1': 1, '2': 2, '3': 3 };
+  function readPropensity(score) {
+    const value = Number(score);
+    if (!Number.isFinite(value)) throw new Error('Invalid numeric propensity score');
+    if (value === 1 || value === 2 || value === 3) return String(value);
+    // Display legacy 0-100 profiles until Apply saves the new 1-3 scale.
+    return value < 35 ? '1' : value < 65 ? '2' : '3';
+  }
   function relativePath(path) {
     return String(path).replace(/^_[a-zA-Z0-9]+\./, '').replace(/^demoemea\./, '');
   }
@@ -31,7 +38,7 @@
     const tier = byPath.get('loyalty.tier') ?? byPath.get('loyaltyDetails.level');
     if (tier != null) state.tier = String(tier).toLowerCase();
     const score = byPath.get('scoring.core.propensityScore');
-    if (score != null) state.prop = Number(score) < 35 ? 'low' : Number(score) < 65 ? 'medium' : 'high';
+    if (score != null) state.prop = readPropensity(score);
     return state;
   }
   function buildSnapshots(rows, state, industries, baseline) {
@@ -70,12 +77,11 @@
       }
     }
     const path = 'scoring.core.propensityScore';
-    if (!generic.has(path) || readState(rows).prop !== state.prop) {
-      generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });
-    }
+    if (!Object.hasOwn(propensity, state.prop)) throw new Error('Propensity must be 1, 2 or 3');
+    generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });
     return Array.from(groups, ([industry, updates]) => ({ industry, updates: Array.from(updates.values()) }));
   }
-  const api = { fields, propensity, relativePath, readState, buildSnapshots };
+  const api = { fields, propensity, readPropensity, relativePath, readState, buildSnapshots };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.BaDecisioningModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
