@@ -26,7 +26,7 @@
         "tool_timeout_seconds": 60
       },
       {
-        "name": "aep-lab-general",
+        "name": "lab-all",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
         "transport": "streamable_http",
         "auth": "aep-lab-ims-passthrough",
@@ -61,7 +61,7 @@
         "tool_timeout_seconds": 300
       },
       {
-        "name": "aep-lab-decisioning",
+        "name": "lab-dps",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning",
         "transport": "streamable_http",
         "auth": "aep-lab-ims-passthrough",
@@ -103,7 +103,7 @@
         "tool_timeout_seconds": 120
       },
       {
-        "name": "aep-lab-commerce-optimizer",
+        "name": "lab-aco",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce-optimizer",
         "transport": "streamable_http",
         "auth": "aep-lab-ims-passthrough",

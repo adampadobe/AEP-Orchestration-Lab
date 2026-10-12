@@ -154,6 +154,11 @@ function registerDemoPrepDomainTools(mcpServer) {
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
 }
 
+function registerDecisioningDomainTools(mcpServer) {
+  registerDecisioningTools(mcpServer);
+  registerBatchJobStatusTool(mcpServer);
+}
+
 function registerCommerceDomainTools(mcpServer) {
   registerCommerceTools(mcpServer);
 }
@@ -187,7 +192,7 @@ const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
   audiences: registerAudienceTools,
   'ajo-cleanup': registerAjoCleanupTools,
-  decisioning: registerDecisioningTools,
+  decisioning: registerDecisioningDomainTools,
   'demo-prep': registerDemoPrepDomainTools,
   pdf: registerPdfTools,
   'command-centre': registerCommandCentreTools,
@@ -236,7 +241,7 @@ export function registerFocusedAjoCleanupTools(mcpServer) {
 /** Decisioning evaluation and catalog tools, plus the access check. */
 export function registerFocusedDecisioningTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
-  registerDecisioningTools(mcpServer);
+  registerDecisioningDomainTools(mcpServer);
 }
 
 /** Focused customer demo preparation: scrape, stable assets, and governed RTDB. */

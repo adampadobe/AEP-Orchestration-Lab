@@ -18,6 +18,8 @@ This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. 
 
 Once added, install the **AEP Orchestration Lab** plugin from the marketplace's Available list. Coworker forwards your signed-in Adobe IMS session automatically; no key is pasted into the plugin. Create at least one sandbox-scoped MCP key in the AEP Lab Portal once to establish your sandbox enrollment, but keep the plaintext key for non-Coworker clients only.
 
+**Plugin 1.9.0:** General, Decisioning, and Commerce Optimizer use shorter connection names (`lab-all`, `lab-dps`, `lab-aco`) to keep qualified tool names within 64 characters. Existing installs must refresh/update or reinstall the plugin and start a new chat; see `aep-lab/README.md` for migration steps. Endpoint URLs, tool names, and IMS authentication do not change.
+
 ## Structure
 
 ```
