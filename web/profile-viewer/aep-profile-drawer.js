@@ -2416,6 +2416,9 @@ function eventThumbForEvent(ev) {
   if (key.includes('login')) {
     return { url: aepProfileImageCssUrl('event-login-icon.png'), variant: 'event-login' };
   }
+  if (ev && isAdobeWebPageViewExperienceEvent(ev)) {
+    return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
+  }
   const typePrefix = primary.trim().toLowerCase();
   const keyLoose = primary.toLowerCase();
   if ((ev && isArmcomExperienceEvent(ev)) || keyLoose.includes('armcom')) {

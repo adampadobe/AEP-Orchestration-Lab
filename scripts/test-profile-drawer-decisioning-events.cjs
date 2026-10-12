@@ -103,6 +103,7 @@ test('Decisioning event cards use sparkles, including BA decisions with a Web ev
   const sandbox = context();
   sandbox.isArmcomExperienceEvent = () => false;
   sandbox.aepProfileImageCssUrl = name => name;
+  vm.runInContext(source.slice(source.indexOf('function aepDrawerEventHeadTypeBlob('), source.indexOf('function isWebInteractionExperienceEvent(')), sandbox);
   vm.runInContext(source.slice(source.indexOf('function eventThumbForEvent('), source.indexOf('function aepProfileDrawerMessageChannelKind(')), sandbox);
   for (const ev of [
     { eventType: 'decisioning.propositionDisplay' },
@@ -117,4 +118,5 @@ test('Decisioning event cards use sparkles, including BA decisions with a Web ev
     assert.ok(icon.svg.includes('aria-hidden="true"'));
   }
   assert.equal(sandbox.eventThumbForEvent({ eventType: 'web.webPageDetails.pageViews' }).variant, 'event-web');
+  assert.equal(sandbox.eventThumbForEvent({ eventName: 'Web Pageview', rows: [{ path: 'web.webPageDetails.pageViews.value', value: 1 }] }).variant, 'event-web');
 });

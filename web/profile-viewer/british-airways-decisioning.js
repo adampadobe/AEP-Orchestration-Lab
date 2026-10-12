@@ -15,6 +15,7 @@
   let imageVersion = 0;
   const displayAttempts = new Set();
   const appliedOperations = new Map();
+  const appliedIntent = new Map();
   let targets = [];
   let tags;
   function visualiser() { return frame.contentWindow && frame.contentWindow.BaDecisioningVisualiser; }
@@ -177,6 +178,42 @@
       timestamp: new Date().toISOString(),
     };
   }
+  function intentEventXdm(data, intent, ecid) {
+    const email = data.profileEmail;
+    if (typeof email !== 'string' || !email.includes('@')) throw new Error('Selected profile email is missing.');
+    if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned; intent event was not sent.');
+    const eventType = { searched: 'flight.search', abandoned: 'flight.abandoned' }[intent];
+    if (!eventType) throw new Error('Shopping intent must be Searched or Abandoned for an intent event.');
+    const rows = new Map(data.rows.map(row => [model.relativePath(row.path), row.value]));
+    const flight = 'travelReservations.flightReservations.';
+    function value(paths, fallback) {
+      for (const path of paths) {
+        const v = rows.get(path);
+        if (v != null && String(v).trim()) return String(v).trim();
+      }
+      return fallback;
+    }
+    const passengerCount = Number(value([flight + 'numberofPassengers', 'flightReservations.numberofPassengers'], '2'));
+    return {
+      identityMap: {
+        Email: [{ id: email, authenticatedState: 'authenticated', primary: true }],
+        ECID: [{ id: ecid, authenticatedState: 'ambiguous', primary: false }],
+      },
+      _demoemea: {
+        identification: { core: { ecid, email } },
+        flightSearch: {
+          originAirport: value([flight + 'departureAirportCode'], 'LHR'),
+          destinationAirport: value([flight + 'arrivalAirportCode'], 'JFK'),
+          cabinClass: value([flight + 'flightClass'], 'Business'),
+          departureDate: value([flight + 'flightDate'], '2026-11-15'),
+          passengerCount: Number.isFinite(passengerCount) && passengerCount > 0 ? passengerCount : 2,
+          searchValue: 2450.00,
+        },
+      },
+      eventType,
+      timestamp: new Date().toISOString(),
+    };
+  }
   async function prepareDisruptionEvent(data, operations, ctx) {
     if (!global.DemoTagsInjection || typeof global.DemoTagsInjection.ensureAlloyReady !== 'function') {
       throw new Error('Web SDK (Alloy) not ready - inject Tags first.');
@@ -186,6 +223,16 @@
     const identity = await alloyFn('getIdentity', { namespaces: ['ECID'] });
     current(ctx);
     return { alloyFn, xdm: disruptionEventXdm(data, operations, identity && identity.identity && identity.identity.ECID) };
+  }
+  async function prepareIntentEvent(data, intent, ctx) {
+    if (!global.DemoTagsInjection || typeof global.DemoTagsInjection.ensureAlloyReady !== 'function') {
+      throw new Error('Web SDK (Alloy) not ready - inject Tags first.');
+    }
+    const alloyFn = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
+    current(ctx);
+    const identity = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+    current(ctx);
+    return { alloyFn, xdm: intentEventXdm(data, intent, identity && identity.identity && identity.identity.ECID) };
   }
   async function save() {
     if (busy) return;
@@ -202,6 +249,9 @@
       const previousOperations = appliedOperations.has(key(ctx))
         ? appliedOperations.get(key(ctx))
         : model.readState(latest.rows).disruption || (controlBaseline && controlBaseline.disruption) || 'none';
+      const previousIntent = appliedIntent.has(key(ctx))
+        ? appliedIntent.get(key(ctx))
+        : model.readState(latest.rows).intent || (controlBaseline && controlBaseline.intent) || 'none';
       await preflightSchema(latest, ctx, savedState);
       if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('Loaded profile has no email identity for streaming.');
       const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
@@ -210,6 +260,8 @@
         update.path === model.disruptionPath || update.path === model.bookingPath || update.path === 'scoring.core.propensityScore');
       const shouldSendDisruption = savedState.disruption !== previousOperations && ['delay', 'cancelled'].includes(savedState.disruption);
       const disruptionEvent = shouldSendDisruption ? await prepareDisruptionEvent(latest, savedState.disruption, ctx) : null;
+      const shouldSendIntent = savedState.intent !== previousIntent && ['searched', 'abandoned'].includes(savedState.intent);
+      const intentEvent = shouldSendIntent ? await prepareIntentEvent(latest, savedState.intent, ctx) : null;
       for (const group of groups) {
         current(ctx);
         const result = await global.postProfileUpdate({
@@ -223,6 +275,7 @@
       pendingVerification = expected;
       controlBaseline = savedState;
       appliedOperations.set(key(ctx), savedState.disruption);
+      appliedIntent.set(key(ctx), savedState.intent);
       dirty = JSON.stringify(visualiser().getState()) !== JSON.stringify(savedState);
       loaded = latest;
       invalidateDecision('Profile update accepted. Displayed hero unchanged; Run will verify the saved profile before replacing it.');
@@ -245,6 +298,25 @@
         console.log(savedState.disruption === previousOperations
           ? 'No disruption event sent - operations unchanged'
           : 'No disruption event sent - operations is Normal');
+      }
+      if (intentEvent) {
+        try {
+          current(ctx);
+          const payload = { renderDecisions: false, personalization: { defaultPersonalizationEnabled: false }, xdm: intentEvent.xdm };
+          console.log('[flight-search] Outbound payload', payload);
+          const response = await intentEvent.alloyFn('sendEvent', payload);
+          console.log('[flight-search] Edge response', response);
+          console.log('[flight-search] Event type sent', intentEvent.xdm.eventType);
+          current(ctx);
+          message('Snapshots accepted by AEP. Flight search event sent: ' + intentEvent.xdm.eventType + '. Profile timeline ingestion may take 30-60 seconds.');
+        } catch (error) {
+          console.error('[flight-search] Event send failed', error);
+          message('Snapshots accepted by AEP, but flight intent tracking failed: ' + error.message + '. No automatic retry.', true);
+        }
+      } else {
+        console.log(savedState.intent === previousIntent
+          ? 'Intent event not sent - shopping intent unchanged'
+          : 'Intent event not sent - shopping intent is ' + (savedState.intent || 'none'));
       }
     } catch (error) {
       message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. ' : '') + error.message, true);
