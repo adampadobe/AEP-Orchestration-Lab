@@ -496,6 +496,22 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.ok(!(await emailDoc.locator('img[alt="British Airways"]').getAttribute('src')).includes('decision.jpg'), 'decision must not replace logo');
     const originalHero = await displayedHero();
     assert.ok(originalHero.text.includes('Your next journey'));
+    await scenarioButtons.filter({ hasText: 'Cancelled flight' }).click();
+    assert.deepEqual(await displayedHero(), originalHero, 'scenario metadata must not replace the live hero');
+    await visual.locator('#dev [data-m="desktop"]').click();
+    let metadata = await visual.locator('#mailMeta').innerText();
+    assert.ok(metadata.includes('Objective 1') && metadata.includes('Protect / Recover'));
+    assert.ok(metadata.includes('NBA') && metadata.includes('Rebook / reroute'));
+    assert.ok(metadata.includes('your flight to Los Angeles has been cancelled'));
+    assert.ok(metadata.includes('Rebook free of charge'));
+    await visual.locator('#dev [data-m="mobile"]').click();
+    assert.equal(await visual.locator('#mailMeta').innerText(), metadata, 'mobile metadata must follow the same scenario');
+    await visual.locator('#dev [data-m="web"]').click();
+    metadata = await visual.locator('#mailMeta').innerText();
+    assert.ok(metadata.includes('Objective 1') && metadata.includes('Protect / Recover'));
+    assert.ok(metadata.includes('Rebook / reroute'));
+    assert.deepEqual(await displayedHero(), originalHero, 'switching channels must preserve the hero');
+    await visual.locator('#dev [data-m="desktop"]').click();
     for (let i = 0; i < await scenarioButtons.count(); i++) {
       await scenarioButtons.nth(i).click();
       assert.deepEqual(await displayedHero(), originalHero, 'scenario must not change displayed hero content');

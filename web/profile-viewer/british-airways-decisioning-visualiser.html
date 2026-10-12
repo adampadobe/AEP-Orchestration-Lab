@@ -1414,7 +1414,7 @@
     webStage.hidden = !web;
     stage.classList.toggle('is-mobile', view === 'mobile');
     renderWeb(res);
-    renderMeta(res);
+    renderMeta(lastRes);
   }
 
   $('dev').addEventListener('click', function (e) {

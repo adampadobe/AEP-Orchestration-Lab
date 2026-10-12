@@ -874,7 +874,11 @@ Hero content is independent of the local scenario simulation. Scenarios, field
 edits, Apply and lookups keep the displayed image/text unchanged. Only a
 successful live decision replaces them; empty/failed responses retain the
 previous content with an explicit status. Profile switches mark the retained
-hero as belonging to the previous context. Run `npm run test:ba-decisioning` for
+hero as belonging to the previous context. The metadata panel's subject,
+preheader, headline and objective/NBA labels follow the current local scenario
+across email, mobile and web tabs; they are simulation metadata, not returned
+live offer metadata. Updating them does not replace or track the hero.
+Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies
 and schema provisioning still require authorized verification.
 
