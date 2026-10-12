@@ -14,6 +14,7 @@
   let pendingVerification = null;
   let imageVersion = 0;
   const displayAttempts = new Set();
+  const appliedOperations = new Map();
   let targets = [];
   let tags;
   function visualiser() { return frame.contentWindow && frame.contentWindow.BaDecisioningVisualiser; }
@@ -139,7 +140,55 @@
       throw new Error('Airline loyalty tier "' + tier + '" is not allowed by this schema. Select one of: ' + allowedTiers.join(', '));
     }
   }
+  function disruptionEventXdm(data, operations, ecid) {
+    const email = data.profileEmail;
+    if (typeof email !== 'string' || !email.includes('@')) throw new Error('Selected profile email is missing.');
+    if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned; disruption event was not sent.');
+    const disruptionType = { delay: 'DELAY', cancelled: 'CANCELLATION' }[operations];
+    if (!disruptionType) throw new Error('Operations must be Delay or Cancelled for a disruption event.');
+    const rows = new Map(data.rows.map(row => [model.relativePath(row.path), row.value]));
+    const flight = 'travelReservations.flightReservations.';
+    function value(paths, fallback) {
+      for (const path of paths) {
+        const v = rows.get(path);
+        if (v != null && String(v).trim()) return String(v).trim();
+      }
+      return fallback;
+    }
+    const delayMinutes = Number(value(['flightDisruption.delayMinutes', flight + 'flightDisruption.delayMinutes'], '180'));
+    if (!Number.isFinite(delayMinutes) || delayMinutes < 0) throw new Error('Profile delayMinutes must be a non-negative number.');
+    return {
+      identityMap: {
+        Email: [{ id: email, authenticatedState: 'authenticated', primary: true }],
+        ECID: [{ id: ecid, authenticatedState: 'ambiguous', primary: false }],
+      },
+      _demoemea: {
+        identification: { core: { ecid, email } },
+        flightDisruption: {
+          disruptionType,
+          flightNumber: value([flight + 'flightNumber'], 'BA117'),
+          bookingReference: value([flight + 'confirmationNumber'], 'ABC123'),
+          originAirport: value([flight + 'departureAirportCode'], 'LHR'),
+          destinationAirport: value([flight + 'arrivalAirportCode'], 'JFK'),
+          delayMinutes,
+        },
+      },
+      eventType: 'flight.disruption',
+      timestamp: new Date().toISOString(),
+    };
+  }
+  async function prepareDisruptionEvent(data, operations, ctx) {
+    if (!global.DemoTagsInjection || typeof global.DemoTagsInjection.ensureAlloyReady !== 'function') {
+      throw new Error('Web SDK (Alloy) not ready - inject Tags first.');
+    }
+    const alloyFn = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
+    current(ctx);
+    const identity = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+    current(ctx);
+    return { alloyFn, xdm: disruptionEventXdm(data, operations, identity && identity.identity && identity.identity.ECID) };
+  }
   async function save() {
+    if (busy) return;
     const ctx = context();
     if (!loaded || loadedKey !== key(ctx) || !visualiser()) { message('Look up the selected profile first.', true); return; }
     busy = true; message('Checking schema and building full writable snapshots...');
@@ -150,12 +199,17 @@
       const isTest = latest.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && String(row.value) === 'true');
       if (!isTest) throw new Error('Only AEP test profiles can be edited by this demo.');
       const savedState = visualiser().getState();
+      const previousOperations = appliedOperations.has(key(ctx))
+        ? appliedOperations.get(key(ctx))
+        : model.readState(latest.rows).disruption || (controlBaseline && controlBaseline.disruption) || 'none';
       await preflightSchema(latest, ctx, savedState);
       if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('Loaded profile has no email identity for streaming.');
       const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
       const expected = groups.flatMap(group => group.updates).filter(update =>
         update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'airlineCustomer.loyaltyTier' ||
         update.path === model.disruptionPath || update.path === model.bookingPath || update.path === 'scoring.core.propensityScore');
+      const shouldSendDisruption = savedState.disruption !== previousOperations && ['delay', 'cancelled'].includes(savedState.disruption);
+      const disruptionEvent = shouldSendDisruption ? await prepareDisruptionEvent(latest, savedState.disruption, ctx) : null;
       for (const group of groups) {
         current(ctx);
         const result = await global.postProfileUpdate({
@@ -168,10 +222,30 @@
       current(ctx);
       pendingVerification = expected;
       controlBaseline = savedState;
+      appliedOperations.set(key(ctx), savedState.disruption);
       dirty = JSON.stringify(visualiser().getState()) !== JSON.stringify(savedState);
       loaded = latest;
       invalidateDecision('Profile update accepted. Displayed hero unchanged; Run will verify the saved profile before replacing it.');
       message('Snapshots accepted by AEP. Run live image decision will look up the profile and verify the saved values before evaluating.');
+      if (disruptionEvent) {
+        try {
+          current(ctx);
+          const payload = { renderDecisions: false, personalization: { defaultPersonalizationEnabled: false }, xdm: disruptionEvent.xdm };
+          console.log('[flight-disruption] Outbound payload', payload);
+          const response = await disruptionEvent.alloyFn('sendEvent', payload);
+          console.log('[flight-disruption] Edge response', response);
+          console.log('[flight-disruption] Disruption type sent', disruptionEvent.xdm._demoemea.flightDisruption.disruptionType);
+          current(ctx);
+          message('Snapshots accepted by AEP. Flight disruption event sent: ' + disruptionEvent.xdm._demoemea.flightDisruption.disruptionType + '. Profile timeline ingestion may take 30-60 seconds.');
+        } catch (error) {
+          console.error('[flight-disruption] Event send failed', error);
+          message('Snapshots accepted by AEP, but flight disruption tracking failed: ' + error.message + '. No automatic retry.', true);
+        }
+      } else {
+        console.log(savedState.disruption === previousOperations
+          ? 'No disruption event sent - operations unchanged'
+          : 'No disruption event sent - operations is Normal');
+      }
     } catch (error) {
       message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. ' : '') + error.message, true);
     } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }

@@ -886,6 +886,19 @@ The British Airways Decisioning event card uses that recorded value, not the
 current tab. Older events without the field retain their Web label. This is
 preview context only, not proof of email delivery; the display payload and
 single-offer/single-display behavior are unchanged.
+Apply also sends one `flight.disruption` event after all profile snapshots are
+accepted when Operations transitions to Delay or Cancelled. It uses the
+existing Tags Alloy instance's active browser ECID (secondary) and selected
+profile email (primary), mirroring both into tenant identification. Flight
+reservation rows supply flight number, confirmation number and airport codes;
+missing values use the approved BA117/ABC123/LHR/JFK demo defaults, with 180
+delay minutes when absent. Delay maps to `DELAY`, Cancelled to `CANCELLATION`.
+The last accepted Operations state is retained per profile/sandbox for this
+page session, even while profile readback is pending. Repeated Apply and
+overlapping clicks do not resend; uncertain send failures are reported without
+automatic retry. Normal changes emit no event. Edge acceptance is not proof
+of dataset storage or profile timeline ingestion; verify those in the live
+sandbox. No offer request, display tracking or SDK configuration is changed.
 Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies
 and schema provisioning still require authorized verification.

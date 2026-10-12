@@ -354,6 +354,10 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.equal(await page.locator('#profileDrawerPropensityScore').textContent(), '3');
     assert.equal(await page.locator('#profileDrawerDetail-flightClass').textContent(), 'Business');
     const scenarioButtons = visual.locator('#scenarios .scn');
+    await page.evaluate(() => {
+      window.DemoTagsInjection.ensureAlloyReady = async () => async command =>
+        command === 'getIdentity' ? { identity: { ECID: '99999999999999999999999999999999999999' } } : {};
+    });
     for (let i = 0; i < await scenarioButtons.count(); i++) {
       const before = writes.length;
       await scenarioButtons.nth(i).click();
