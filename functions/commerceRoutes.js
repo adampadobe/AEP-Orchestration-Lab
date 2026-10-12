@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
 
 function safeEqual(a, b) {
   const left = String(a || '');
@@ -9,9 +10,18 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(Buffer.from(left, 'utf8'), Buffer.from(right, 'utf8'));
 }
 
-async function authorize(req, { internalMcpKey, mcpApiKeyStore }) {
+async function authorize(req, deps) {
+  const { internalMcpKey, mcpApiKeyStore } = deps;
   const provided = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
-  if (!provided) return { ok: false, status: 401, error: 'X-AEP-Lab-Mcp-Key is required.' };
+  if (!provided) {
+    if (req.headers['x-gw-ims-org-id']) {
+      const principal = await resolveLabImsPrincipal(req, deps);
+      return principal.ok
+        ? { ...principal, source: 'ims', principalUid: principal.uid }
+        : { ...principal, error: principal.body.error };
+    }
+    return { ok: false, status: 401, error: 'X-AEP-Lab-Mcp-Key or enrolled Adobe IMS identity is required.' };
+  }
   if (safeEqual(provided, internalMcpKey.value())) return { ok: true, source: 'internal' };
   const user = await mcpApiKeyStore.validateUserApiKey(provided);
   if (!user?.ok) return { ok: false, status: 403, error: 'A valid AEP Lab MCP key is required.' };
@@ -24,18 +34,18 @@ function errorStatus(error) {
 }
 
 function registerCommerceRoutes(deps) {
-  const { onRequest, commerceFnOpts, setCors, internalMcpKey, mcpApiKeyStore, commerceService } = deps;
+  const { onRequest, commerceFnOpts, setCors, commerceService } = deps;
   const commercePrepProxy = onRequest(commerceFnOpts, async (req, res) => {
     setCors(res, 'GET, POST, OPTIONS');
     res.set('Cache-Control', 'private, no-store, max-age=0');
     if (req.method === 'OPTIONS') return res.status(204).send('');
 
     let principal;
-    try { principal = await authorize(req, { internalMcpKey, mcpApiKeyStore }); }
+    try { principal = await authorize(req, deps); }
     catch (error) {
       return res.status(500).json({ ok: false, error: 'MCP key validation failed.', detail: String(error.message || error) });
     }
-    if (!principal.ok) return res.status(principal.status).json({ ok: false, error: principal.error });
+    if (!principal.ok) return res.status(principal.status).json(principal.body || { ok: false, error: principal.error });
 
     const action = String(req.query.action || '').trim().toLowerCase();
     const body = req.body && typeof req.body === 'object' ? req.body : {};

@@ -29,7 +29,12 @@ async function resolveLabImsPrincipal(req, deps = {}) {
     return failure(401, 'IMS_AUTH_REQUIRED', 'Adobe IMS bearer and x-gw-ims-org-id are required.');
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  const sandbox = String(body.sandbox || req.query?.sandbox || '').trim().toLowerCase();
+  const bodySandbox = String(body.sandbox || '').trim().toLowerCase();
+  const querySandbox = String(req.query?.sandbox || '').trim().toLowerCase();
+  if (bodySandbox && querySandbox && bodySandbox !== querySandbox) {
+    return failure(403, 'IMS_SANDBOX_MISMATCH', 'Body and query sandbox must match.');
+  }
+  const sandbox = bodySandbox || querySandbox || String(req.headers['x-sandbox-name'] || '').trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9_-]{0,47}$/.test(sandbox)) {
     return failure(400, 'IMS_SANDBOX_REQUIRED', 'A valid sandbox is required for IMS enrollment lookup.');
   }

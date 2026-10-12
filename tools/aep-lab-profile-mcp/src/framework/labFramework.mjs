@@ -18,6 +18,9 @@ import {
 } from '../personaBuilder/segments.mjs';
 import { INDUSTRY_CONNECTION_COLLECTION } from '../sandboxConfig.mjs';
 import { LAB_EVENT_TOOL_TARGET_ID } from './eventIdentity.mjs';
+import { readFileSync } from 'node:fs';
+
+const MCP_VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 
 /** Lab-default mobile used in Profile Viewer placeholders and bulk seed scripts. */
 export const LAB_DEFAULT_MOBILE_PHONE = '+447425627462';
@@ -222,7 +225,7 @@ export const CRITICAL_RULES = [
     rule:
       'Audience deletion is irreversible: lab_audience_list → lab_audience_audit for one exact id → show sandbox/id/name and risks → explicit colleague confirmation → lab_audience_delete.',
     auth:
-      'Requires a user-generated MCP key. The Firebase proxy enforces that the requested sandbox exactly matches the key sandbox.',
+      'Requires a sandbox-scoped user-generated MCP key or independently validated Adobe IMS Portal enrollment. The Firebase proxy enforces the requested sandbox scope.',
     guardrails:
       'Delete accepts one audience only, requires confirmed=true plus the exact expected_name, and re-fetches immediately before DELETE so stale or mismatched confirmations fail closed.',
     audit_limit:
@@ -235,7 +238,7 @@ export const CRITICAL_RULES = [
     rule:
       'AJO deletion is irreversible: use the matching journey/campaign list → audit one exact id → show sandbox/id/name/status and blockers → obtain explicit colleague confirmation → delete one asset.',
     auth:
-      'Requires a user-generated MCP key. The Firebase proxy enforces that the requested sandbox exactly matches the key sandbox.',
+      'Requires a sandbox-scoped user-generated MCP key or independently validated Adobe IMS Portal enrollment. The Firebase proxy enforces the requested sandbox scope.',
     guardrails:
       'Delete requires confirmed=true plus exact expected_name and expected_status, re-fetches immediately, allows Draft or Finished journeys and Draft campaigns only, and never batch-deletes.',
     api_note:
@@ -254,7 +257,7 @@ export const CRITICAL_RULES = [
       'After lab_generate_profile with dual_load_snowflake:true — pass the same email from the generate response; read profiles[0].columns for every column.',
     never:
       'Snowflake web console SELECT *, generic Snowflake MCP ad-hoc SQL, or asking colleague to paste SQL manually.',
-    mcp: 'Requires user-generated MCP key (ops shared key cannot resolve Snowflake credentials).',
+    mcp: 'Requires a user-generated MCP key or independently validated Adobe IMS Portal enrollment (ops shared key cannot resolve Snowflake credentials).',
   },
   {
     id: 'brand_scrape_offline_fallback',
@@ -468,7 +471,7 @@ const COMMON_FAILURE_MODES = [
  */
 export function getExecutionFramework() {
   return {
-    version: '3.45.0',
+    version: MCP_VERSION,
     criticalRules: CRITICAL_RULES,
     summary:
       'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
@@ -571,7 +574,7 @@ export function getExecutionFramework() {
         ],
         when:
           'Travel, FSI, retail, telecom, media, and sports demos: AEP behavioral persona + independent Snowflake operational CRM with shared email/ECID/CRMID.',
-        requires: 'User-generated MCP key (principalUid) — ops shared key cannot resolve Snowflake credentials.',
+        requires: 'User-generated MCP key or validated Adobe IMS Portal enrollment (principalUid) — ops shared key cannot resolve Snowflake credentials.',
         order: [
           'lab_snowflake_config — hasCredential must be true (save key pair in Profile Viewer if not)',
           'lab_snowflake_test_connection — confirm Snowflake version or NETWORK POLICY hint (static IP 34.58.81.28)',
@@ -604,7 +607,7 @@ export function getExecutionFramework() {
         ],
         when:
           'Governed Snowflake travel table provision + phased generate/enrich via Python runner (AGENTIC_TRAVEL_RUNNER_URL).',
-        requires: 'User-generated MCP key; runner configured on functions deployment.',
+        requires: 'User-generated MCP key or validated Adobe IMS Portal enrollment; runner configured on functions deployment.',
         order: [
           'lab_snowflake_config + lab_snowflake_test_connection',
           'lab_snowflake_industry_catalog — review provisionRecipes + tableCheck + runner.configured',

@@ -52,11 +52,19 @@ function registerSnowflakeRoutes(deps) {
 
   async function resolvePrincipal(req, res) {
     const principal = await snowflakePrincipalAuth.resolveSnowflakePrincipal(req, {
+      ...deps,
       labWorkspaceAuthService,
       mcpApiKeyStore,
     });
     if (!principal.ok) {
       res.status(principal.status).json(principal.body);
+      return null;
+    }
+    const sandbox = String(
+      (req.method === 'POST' && req.body?.sandbox) || resolveSandboxFromQuery(req) || '',
+    ).trim().toLowerCase();
+    if (principal.keySandbox && sandbox !== String(principal.keySandbox).toLowerCase()) {
+      res.status(403).json({ ok: false, error: `The authenticated principal is scoped to sandbox "${principal.keySandbox}", not "${sandbox}".` });
       return null;
     }
     return principal;

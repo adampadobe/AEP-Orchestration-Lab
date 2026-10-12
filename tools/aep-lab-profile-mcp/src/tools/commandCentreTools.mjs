@@ -16,7 +16,7 @@ import { getRequestKeyId, getPrincipalAccess } from '../requestContext.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 
 const USER_KEY_REQUIRED =
-  'Command Centre tools require a user-generated MCP API key (Profile Viewer → MCP servers) that maps to your Firebase uid. ' +
+  'Command Centre tools require a user-generated MCP API key or Adobe IMS Portal enrollment that maps to your Firebase uid. ' +
   'Shared ops keys cannot resolve per-user Command Centre data.';
 
 /**
@@ -30,7 +30,7 @@ function requireUserMcpKeyForCommandCentre() {
       ok: false,
       message: USER_KEY_REQUIRED,
       coworkerPrompt:
-        'Generate an MCP key in Profile Viewer → MCP servers, connect Coworker with that key, then retry this Command Centre tool.',
+        'Create a sandbox-scoped MCP key in Profile Viewer → MCP servers to establish enrollment, then retry with Adobe IMS passthrough or that key. Do not paste the key into Coworker.',
       code: 'MCP_USER_KEY_REQUIRED',
     };
   }

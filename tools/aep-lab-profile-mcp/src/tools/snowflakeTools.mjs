@@ -23,7 +23,7 @@ import { fromLabApi, jsonResult, toolError } from './helpers.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 
 const USER_KEY_REQUIRED =
-  'Snowflake tools require a user-generated MCP API key (Profile Viewer → MCP servers) that maps to your Firebase uid. Shared ops keys cannot access per-user Snowflake credentials.';
+  'Snowflake tools require a user-generated MCP API key or Adobe IMS Portal enrollment that maps to your Firebase uid. Shared ops keys cannot access per-user Snowflake credentials.';
 
 /**
  * Snowflake credentials are stored per Firebase principalUid — ops env key has no uid mapping.
@@ -35,7 +35,7 @@ export function requireUserMcpKeyForSnowflake() {
       ok: false,
       message: USER_KEY_REQUIRED,
       coworkerPrompt:
-        'Generate an MCP key in Profile Viewer → MCP servers for this sandbox, connect Coworker with that key, then retry lab_snowflake_config.',
+        'Create a sandbox-scoped MCP key in Profile Viewer → MCP servers to establish enrollment, then retry with Adobe IMS passthrough or that key. Do not paste the key into Coworker.',
       code: 'MCP_USER_KEY_REQUIRED',
     };
   }
@@ -229,7 +229,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Get Snowflake connection config (redacted)',
       description:
         'GET /api/snowflake/config — public projection of saved Snowflake connection for current MCP principal + sandbox. ' +
-        'Never returns credentials. Requires user-generated MCP key (maps to Firebase uid). ' +
+        'Never returns credentials. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment (maps to Firebase uid). ' +
         `Static egress IP for Snowflake NETWORK POLICY: ${STATIC_EGRESS_IP}.`,
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
@@ -288,7 +288,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Test Snowflake connection',
       description:
         'POST /api/snowflake/connection-test — opens saved Snowflake config and runs SELECT CURRENT_VERSION(). ' +
-        'Requires user-generated MCP key. Surfaces NETWORK POLICY hints with static IP.',
+        'Requires a user-generated MCP key or validated Adobe IMS Portal enrollment. Surfaces NETWORK POLICY hints with static IP.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
       },
@@ -339,7 +339,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       description:
         'POST /api/snowflake/generate-base-profiles — Snowflake-only Faker batch INSERT (not UPS-linked). ' +
         'Default table BASE_PROFILES, count 1–1000. Emails use shared Firestore generation prefs (<local>+DDMMYYYY-N@domain) ' +
-        'unless use_generation_prefs:false (legacy Agentic Snowflake counter). Requires user-generated MCP key.',
+        'unless use_generation_prefs:false (legacy Agentic Snowflake counter). Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         count: z.number().int().min(1).max(1000).optional().describe('Profiles to generate (default 10)'),
@@ -407,7 +407,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       description:
         'POST /api/snowflake/insert-profile-from-aep — default mode crm_generate builds a full industry CRM row ' +
         'with independent operational attributes and shared email/ECID/CRMID from AEP. ' +
-        'Pass mode mirror only for legacy AEP dot-path attribute mapping. Requires user-generated MCP key.',
+        'Pass mode mirror only for legacy AEP dot-path attribute mapping. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         email: z.string().email().describe('Profile email (same as AEP UPS)'),
@@ -482,7 +482,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         'POST /api/snowflake/agentic/query-profiles with email filter — returns the complete selected industry CRM row ' +
         '(all fields in profiles[].columns) plus createdAt from _RECORDCREATEDTIMESTAMP. ' +
         'Use INSTEAD of Snowflake console SQL or raw Snowflake MCP SELECT * after lab_generate_profile dual_load_snowflake. ' +
-        'Requires user-generated MCP key (Profile Viewer → MCP servers).',
+        'Requires a user-generated MCP key or validated Adobe IMS Portal enrollment (Profile Viewer → MCP servers).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: snowflakeProfileIndustryInputSchema(),
@@ -510,7 +510,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         'POST /api/snowflake/agentic/query-profiles — returns every column from the selected industry CRM table in profiles[].columns ' +
         'with createdAt from _RECORDCREATEDTIMESTAMP. Filter by email or ecid for one-profile dual-load verification. ' +
         'Prefer lab_snowflake_get_profile_by_email when you only have email. Use INSTEAD of Snowflake console SQL or raw Snowflake MCP SELECT *. ' +
-        'Requires user-generated MCP key.',
+        'Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: snowflakeProfileIndustryInputSchema(),
@@ -554,7 +554,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Snowflake industry manifest + table existence',
       description:
         'POST /api/snowflake/industry-catalog — read-only travel manifest (phase tables, event groups, dual-load targets, ' +
-        'validation rules) plus optional INFORMATION_SCHEMA table checks. Requires user-generated MCP key.',
+        'validation rules) plus optional INFORMATION_SCHEMA table checks. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.string().optional().describe('Industry key (default travel)'),
@@ -616,7 +616,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Snowflake Agentic travel table structure by phase',
       description:
         'POST /api/snowflake/agentic/table-structure — column metadata for phase1|phase2|phase3 tables. ' +
-        'Requires user-generated MCP key. No arbitrary SQL.',
+        'Requires a user-generated MCP key or validated Adobe IMS Portal enrollment. No arbitrary SQL.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         phase: z.enum(['phase1', 'phase2', 'phase3']).describe('Agentic travel phase'),
@@ -734,7 +734,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Governed Snowflake table provision (allowlisted recipes)',
       description:
         'POST /api/snowflake/provision — executes CREATE TABLE IF NOT EXISTS or preinstalled table checks ' +
-        'for allowlisted recipe_id values only. Supports dry_run. Requires user MCP key. No DROP/ALTER/arbitrary SQL.',
+        'for allowlisted recipe_id values only. Supports dry_run. Requires a user MCP key or validated Adobe IMS Portal enrollment. No DROP/ALTER/arbitrary SQL.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.string().optional().describe('Industry (default travel)'),
@@ -821,7 +821,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Snowflake Agentic travel generate-full (phased)',
       description:
         'POST /api/snowflake/agentic/generate-full — delegates to Python agentic-travel-runner when configured. ' +
-        'Generates Phase 1–3 profiles + events. Requires user MCP key. count 1–1000.',
+        'Generates Phase 1–3 profiles + events. Requires a user MCP key or validated Adobe IMS Portal enrollment. count 1–1000.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         count: z.number().int().min(1).max(1000).describe('Profiles to generate across all phases'),
@@ -889,7 +889,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       description:
         'POST /api/snowflake/agentic/enrich-profiles — add event/enrichment rows for existing CRM profiles. ' +
         'Travel uses the Python runner; fsi, retail, telecom, media, and sports use governed Firebase generators. ' +
-        'Requires a user MCP key. event_types must belong to the selected industry manifest.',
+        'Requires a user MCP key or validated Adobe IMS Portal enrollment. event_types must belong to the selected industry manifest.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: snowflakeProfileIndustryInputSchema(),
