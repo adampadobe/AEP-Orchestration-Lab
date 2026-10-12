@@ -3472,6 +3472,37 @@ function onProfileDrawerEventsStoryKeydown(e) {
   }
 }
 
+function decisioningDisplayCardFields(ev) {
+  if (String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase() !== 'decisioning.propositiondisplay') return [];
+  const propositions = new Map();
+  const rows = Array.isArray(ev && ev.rows) ? ev.rows : [];
+  for (const row of rows) {
+    const match = String(row.path || '').match(/^(?:xdm\.)?_experience\.decisioning\.propositions\.(\d+)\.(?:items\.(\d+)\.(name|itemSelection\.selectionDetail\.strategyName)|scopeDetails\.(decisionProvider|rank))$/);
+    if (!match || row.value == null || !String(row.value).trim()) continue;
+    const index = Number(match[1]);
+    if (!propositions.has(index)) propositions.set(index, { items: new Map() });
+    const proposition = propositions.get(index);
+    const value = String(row.value).trim();
+    if (match[2] != null) {
+      const itemIndex = Number(match[2]);
+      if (!proposition.items.has(itemIndex)) proposition.items.set(itemIndex, {});
+      proposition.items.get(itemIndex)[match[3] === 'name' ? 'offer' : 'strategy'] = value;
+    } else {
+      proposition[match[4]] = value;
+    }
+  }
+  const fields = [];
+  for (const [, proposition] of Array.from(propositions).sort(([a], [b]) => a - b)) {
+    for (const [, item] of Array.from(proposition.items).sort(([a], [b]) => a - b)) {
+      if (item.offer) fields.push(['Offer', item.offer]);
+      if (item.strategy) fields.push(['Strategy', item.strategy]);
+    }
+    if (proposition.decisionProvider) fields.push(['Provider', proposition.decisionProvider]);
+    if (proposition.rank != null) fields.push(['Rank', proposition.rank]);
+  }
+  return fields;
+}
+
 function appendDrawerEventTimelineItem(ev) {
   const item = document.createElement('article');
   item.className = 'aep-profile-drawer-event-item';
@@ -3505,6 +3536,12 @@ function appendDrawerEventTimelineItem(ev) {
 
   textWrap.appendChild(timeEl);
   textWrap.appendChild(titleEl);
+  decisioningDisplayCardFields(ev).forEach(([label, value]) => {
+    const detailEl = document.createElement('span');
+    detailEl.className = 'aep-profile-drawer-event-decision-detail';
+    detailEl.textContent = `${label}: ${value}`;
+    textWrap.appendChild(detailEl);
+  });
   textWrap.appendChild(subEl);
   item.appendChild(thumb);
   item.appendChild(textWrap);
