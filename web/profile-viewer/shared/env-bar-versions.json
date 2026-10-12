@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "20261012-browser-ecid",
+  "manifestVersion": "20261012-preview-channel",
   "moduleVersion": "1.1.0",
   "assets": {
     "bundleCss": "20260713e-armcom-env-bar",
@@ -34,7 +34,7 @@
     "contentDecisionLabConfig": "20260615",
     "contentDecisionEdgeMounts": "20261012-browser-ecid",
     "decisioningEdgeInject": "20261012-browser-ecid",
-    "decisioningProfileRuntime": "20261012-browser-ecid",
+    "decisioningProfileRuntime": "20261012-preview-channel",
     "decisioningProfileModule": "20260617-reset-icon-toolbar",
     "decisioningSurfaceStylesPanel": "20260617-live-preview",
     "decisioningProfilePanel": "20260617-panel-editing-guard",

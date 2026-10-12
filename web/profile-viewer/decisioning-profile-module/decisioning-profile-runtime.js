@@ -539,6 +539,10 @@
       },
     };
     if (browserEcid) sendOpts.xdm._demoemea = { identification: { core: { ecid: browserEcid } } };
+    if (options.previewChannel === 'email' || options.previewChannel === 'web') {
+      if (!sendOpts.xdm._demoemea) sendOpts.xdm._demoemea = {};
+      sendOpts.xdm._demoemea.interactionDetails = { core: { channel: options.previewChannel } };
+    }
     if (options.manualHeroDisplay === true) sendOpts.personalization.sendDisplayEvent = false;
     log('sendEvent', { surfaces: surfaces.length, ns: ns });
     var result = await alloyFn('sendEvent', sendOpts);

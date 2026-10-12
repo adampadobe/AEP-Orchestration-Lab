@@ -79,3 +79,23 @@ test('display cards omit channel even without offer details; other cards retain 
   assert.equal(cards[0].children[1].children.length, 2);
   assert.equal(cards[1].children[1].children.at(-1).textContent, 'Web');
 });
+test('BA channel labels use the recorded Run channel, without rewriting historical Web events', () => {
+  const sandbox = context();
+  sandbox.aepProfileDrawerMessageChannelKind = () => null;
+  sandbox.isArmcomExperienceEvent = () => false;
+  vm.runInContext(source.slice(source.indexOf('function formatDrawerEventChannelDisplay('), source.indexOf('/** Lowercase blob of event head')), sandbox);
+  for (const channel of ['email', 'web']) {
+    const ev = {
+      eventName: 'British Airways Decisioning',
+      rows: flattenEntityToTableRows({
+        web: { webPageDetails: { name: 'British Airways Decisioning' } },
+        _demoemea: { interactionDetails: { core: { channel } } },
+      }),
+    };
+    assert.equal(sandbox.formatDrawerEventChannelDisplay(ev), channel === 'email' ? 'Email' : 'Web');
+    sandbox.appendDrawerEventTimelineItem(ev);
+    assert.equal(sandbox.profileDrawerEvents.children.at(-1).children[1].children.at(-1).textContent, channel === 'email' ? 'Email' : 'Web');
+  }
+  assert.equal(sandbox.formatDrawerEventChannelDisplay({ eventName: 'British Airways Decisioning', rows: [] }), 'Web');
+  assert.equal(sandbox.formatDrawerEventChannelDisplay({ eventName: 'Other demo', channel: 'email', rows: [] }), 'Web');
+});

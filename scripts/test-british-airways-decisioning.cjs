@@ -406,6 +406,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
     });
     const readsBeforeDecision = tableReads;
+    assert.equal(await page.locator('#dpmPanelAnchor').isVisible(), false, 'BA decisioning popout must stay hidden when enabled');
     await page.evaluate(() => document.getElementById('cdMicroProfileRunBtn').click());
     await visual.locator('#baPreviewMode').filter({ hasText: 'Live Edge decision image' }).waitFor();
     await page.waitForFunction(() => window.sdkCalls.some(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay'));
@@ -416,6 +417,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
         metadataUnchanged: window.lastRun.appliedHero.proposition.scopeDetails === window.lastRun.propositions[1].scopeDetails };
     });
     assert.equal(tracked.displays.length, 1);
+    assert.equal(tracked.request.xdm._demoemea.interactionDetails.core.channel, 'email');
     assert.equal(tracked.request.personalization.sendDisplayEvent, false);
     assert.equal(tracked.request.xdm.identityMap.Email[0].primary, true);
     assert.deepEqual(tracked.request.xdm.identityMap.ECID, [{
@@ -505,6 +507,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.ok(metadata.includes('your flight to Los Angeles has been cancelled'));
     assert.ok(metadata.includes('Rebook free of charge'));
     await visual.locator('#dev [data-m="mobile"]').click();
+    assert.equal(await page.evaluate(() => document.getElementById('baDecisioningFrame').contentWindow.BaDecisioningVisualiser.getPreviewChannel()), 'email');
     assert.equal(await visual.locator('#mailMeta').innerText(), metadata, 'mobile metadata must follow the same scenario');
     await visual.locator('#dev [data-m="web"]').click();
     metadata = await visual.locator('#mailMeta').innerText();
@@ -565,6 +568,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.route('https://example.test/decision.jpg?next', route => route.fulfill({
       contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>',
     }));
+    await visual.locator('#dev [data-m="web"]').click();
     await page.locator('#baRunDecision').click();
     await visual.locator('#baPreviewMode').filter({ hasText: 'Live Edge decision image' }).waitFor();
     await page.waitForFunction(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length === 2);
@@ -573,8 +577,10 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.ok(nextHero.text.includes('Next &lt;journey&gt;'));
     assert.ok(nextHero.text.includes('New &lt;description&gt;'));
     assert.ok(nextHero.email.includes('Next &lt;journey&gt;'));
+    assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.personalization?.surfaces).at(-1).options.xdm._demoemea.interactionDetails.core.channel), 'web');
     await visual.locator('#dev [data-m="web"]').click();
     await visual.locator('#dev [data-m="desktop"]').click();
+    assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.personalization?.surfaces)[0].options.xdm._demoemea.interactionDetails.core.channel), 'email', 'tab changes must not alter the recorded request channel');
     assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length), 2);
     const missingBrowserIdentity = await page.evaluate(async () => {
       const commands = [];

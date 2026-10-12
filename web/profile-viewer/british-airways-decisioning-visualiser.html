@@ -1459,6 +1459,7 @@
 
   window.BaDecisioningVisualiser = {
     getState: function () { return Object.assign({}, state); },
+    getPreviewChannel: function () { return view === 'web' ? 'web' : 'email'; },
     setRecipientFirstName: function (name) {
       var first = typeof name === 'string' ? name.trim() : '';
       $('recipientPreviewHeading').textContent = '③ What ' + (first || 'the customer') + ' sees';

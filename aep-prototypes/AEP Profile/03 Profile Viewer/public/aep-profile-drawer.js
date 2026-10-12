@@ -2478,6 +2478,15 @@ function aepProfileDrawerMessageChannelKind(ev) {
 
 /** Human-readable channel for journey modal (aligned with drawer sub-line logic). */
 function formatDrawerEventChannelDisplay(ev) {
+  const rows = Array.isArray(ev && ev.rows) ? ev.rows : [];
+  const isBaDecision = (ev && ev.eventName) === 'British Airways Decisioning' ||
+    rows.some(row => /^(?:xdm\.)?web\.webPageDetails\.(name|viewName)$/.test(row.path || '') && row.value === 'British Airways Decisioning');
+  if (isBaDecision) {
+    const channelRow = rows.find(row => /^(?:xdm\.)?_demoemea\.interactionDetails\.core\.channel$/.test(row.path || ''));
+    const channel = String((channelRow && channelRow.value) || (ev && ev.channel) || '').toLowerCase();
+    if (channel === 'email') return 'Email';
+    if (channel === 'web') return 'Web';
+  }
   const msgKind = aepProfileDrawerMessageChannelKind(ev);
   if (msgKind === 'email') return 'Email';
   if (msgKind === 'push') return 'Push';

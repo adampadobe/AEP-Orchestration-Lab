@@ -878,6 +878,14 @@ hero as belonging to the previous context. The metadata panel's subject,
 preheader, headline and objective/NBA labels follow the current local scenario
 across email, mobile and web tabs; they are simulation metadata, not returned
 live offer metadata. Updating them does not replace or track the hero.
+The BA-only floating Decisioning panel trigger is hidden; the primary Run
+button and underlying runtime remain available. BA captures the active preview
+tab at Run click and records `_demoemea.interactionDetails.core.channel` on the
+existing proposition request: `email` for both email previews, `web` for Web.
+The British Airways Decisioning event card uses that recorded value, not the
+current tab. Older events without the field retain their Web label. This is
+preview context only, not proof of email delivery; the display payload and
+single-offer/single-display behavior are unchanged.
 Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies
 and schema provisioning still require authorized verification.

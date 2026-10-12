@@ -292,6 +292,7 @@
     if (busy) return;
     if (dirty) { message('Apply staged changes before running a decision.', true); return; }
     const ctx = context();
+    const previewChannel = visualiser().getPreviewChannel();
     if (!await lookup()) {
       if (pendingVerification && loaded) message('AEP still has the previous values. Wait for ingestion (typically 30-60 seconds), then click Run live image decision again.', true);
       return;
@@ -300,7 +301,7 @@
     invalidateDecision('Live decision in progress. Displayed hero unchanged until new content is ready.');
     const requestVersion = imageVersion;
     try {
-      const result = await global.DecisioningProfileRuntime.runContentDecision({ manualHeroDisplay: true, useBrowserEcid: true });
+      const result = await global.DecisioningProfileRuntime.runContentDecision({ manualHeroDisplay: true, useBrowserEcid: true, previewChannel });
       current(ctx);
       await acceptDecision({ ...result, requestVersion });
     } catch (error) {
