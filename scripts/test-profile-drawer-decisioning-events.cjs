@@ -99,3 +99,22 @@ test('BA channel labels use the recorded Run channel, without rewriting historic
   assert.equal(sandbox.formatDrawerEventChannelDisplay({ eventName: 'British Airways Decisioning', rows: [] }), 'Web');
   assert.equal(sandbox.formatDrawerEventChannelDisplay({ eventName: 'Other demo', channel: 'email', rows: [] }), 'Web');
 });
+test('Decisioning event cards use sparkles, including BA decisions with a Web event type', () => {
+  const sandbox = context();
+  sandbox.isArmcomExperienceEvent = () => false;
+  sandbox.aepProfileImageCssUrl = name => name;
+  vm.runInContext(source.slice(source.indexOf('function eventThumbForEvent('), source.indexOf('function aepProfileDrawerMessageChannelKind(')), sandbox);
+  for (const ev of [
+    { eventType: 'decisioning.propositionDisplay' },
+    { eventType: 'decisioning.propositionInteract' },
+    { eventType: 'web.webPageDetails.pageViews', eventName: 'British Airways Decisioning' },
+    { eventName: 'Decisioning hotel offer' },
+  ]) {
+    const icon = sandbox.eventThumbForEvent(ev);
+    assert.equal(icon.variant, 'decisioning');
+    assert.ok(icon.svg.includes('M12 2.5'));
+    assert.ok(icon.svg.includes('currentColor'));
+    assert.ok(icon.svg.includes('aria-hidden="true"'));
+  }
+  assert.equal(sandbox.eventThumbForEvent({ eventType: 'web.webPageDetails.pageViews' }).variant, 'event-web');
+});

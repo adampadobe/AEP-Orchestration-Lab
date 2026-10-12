@@ -2382,6 +2382,16 @@ function eventThumbForEvent(ev) {
   const key = primary.toLowerCase().replace(/\s+/g, '');
   const blob = `${eventType} ${eventName}`.toLowerCase();
 
+  if (blob.includes('decisioning')) {
+    return {
+      variant: 'decisioning',
+      svg: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M12 2.5l1.05 3.65L16.7 7.3l-3.65 1.75L12 12.5l-1.05-3.55L7.3 7.3l3.65-1.15L12 2.5z" stroke="currentColor" stroke-width="1.4"/>' +
+        '<path d="M6.2 14.2l.55 1.95 1.95.55-1.95.95-.55 1.95-.95-1.95-1.95-.55 1.95-.95.55-1.95.95 1.95 1.95.55z" fill="currentColor"/>' +
+        '</svg>',
+    };
+  }
+
   if (blob.includes('hotel') || key.includes('hotel')) {
     return hotelEventThumbFromBlob(blob);
   }

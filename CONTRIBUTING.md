@@ -926,6 +926,8 @@ propositions/items remain in array order; absent fields are omitted. This
 display does not fetch profile data or resolve names through additional AEP calls.
 Provider, rank and the channel sub-line are omitted from display cards;
 other event cards retain their channel.
+Decisioning events use the shared sparkle SVG for Last Events and journey
+thumbnails, including British Airways Decisioning events.
 
 **Pre-merge:** there is no dedicated drawer verifier yet. Before PR: ensure demo HTML has **`profileViewerModalMount`** and no inline `id="profileDrawer"` block (grep `web/profile-viewer` for `<aside class="aep-profile-drawer"` outside `shared/profile-viewer-modal.js`). Always run **`npm run verify:profile-viewer-routes`** when any `web/profile-viewer/` path changes; **`npm run sync-profile-viewer-ui`** when the Express mirror must match. One-shot migrator: `node scripts/migrate-profile-viewer-modal.mjs` (idempotent).
 
