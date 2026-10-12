@@ -22,6 +22,7 @@ function registerLiveActivityRoutes(deps) {
 
   async function resolvePrincipal(req, res) {
     const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, {
+      ...deps,
       labWorkspaceAuthService,
     });
     if (!principal.ok) {
@@ -48,13 +49,12 @@ function registerLiveActivityRoutes(deps) {
       return false;
     }
     if (
-      principal.authSource === 'mcp_key' &&
       principal.keySandbox &&
       String(principal.keySandbox).toLowerCase() !== sandbox
     ) {
       res.status(403).json({
         ok: false,
-        error: `MCP key is scoped to sandbox "${principal.keySandbox}".`,
+        error: `Authenticated principal is scoped to sandbox "${principal.keySandbox}".`,
       });
       return false;
     }
@@ -93,7 +93,7 @@ function registerLiveActivityRoutes(deps) {
           body: body.template || body.payload || body.json,
           variableDefinitions: body.variableDefinitions || body.requiredVariables,
           validateOnly: body.validateOnly === true,
-          source: principal.authSource === 'mcp_key' ? 'mcp' : 'portal',
+          source: ['mcp_key', 'ims'].includes(principal.authSource) ? 'mcp' : 'portal',
         });
         res.status(200).json({ ok: true, sandbox, template });
         return;

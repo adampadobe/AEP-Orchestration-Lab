@@ -5,6 +5,7 @@
  */
 
 const labUserSandboxStore = require('./labUserSandboxStore');
+const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
 
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 
@@ -22,7 +23,7 @@ const SNOWFLAKE_ANONYMOUS_ERROR =
  * @param {object} deps
  * @param {import('./mcpApiKeyStore')} deps.mcpApiKeyStore
  * @param {import('./labWorkspaceAuthService')} deps.labWorkspaceAuthService
- * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key', principalEmail?: string | null, principalDisplayName?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
+ * @returns {Promise<{ ok: true, uid: string, authSource: 'firebase'|'mcp_key'|'ims', principalEmail?: string | null, principalDisplayName?: string | null, keySandbox?: string | null } | { ok: false, status: number, body: object }>}
  */
 async function resolveSnowflakePrincipal(req, deps) {
   const { mcpApiKeyStore, labWorkspaceAuthService } = deps;
@@ -50,6 +51,10 @@ async function resolveSnowflakePrincipal(req, deps) {
       principalDisplayName: keyAuth.principalEmail || null,
       keySandbox: keyAuth.sandbox || null,
     };
+  }
+
+  if (req.headers['x-gw-ims-org-id']) {
+    return resolveLabImsPrincipal(req, deps);
   }
 
   const claims = await userStore.verifyIdTokenClaimsFromRequest(req);

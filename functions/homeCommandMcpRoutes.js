@@ -17,10 +17,10 @@ function pathAfterPrefix(req) {
  * @returns {Record<string, import('firebase-functions/v2/https').HttpsFunction>}
  */
 function registerHomeCommandMcpRoutes(deps) {
-  const { onRequest, HOME_COMMAND_MCP_FN_OPTS, setCors, homeCommandMcpAuth, mcpApiKeyStore, homeCommandMcpStore } = deps;
+  const { onRequest, HOME_COMMAND_MCP_FN_OPTS, setCors, homeCommandMcpAuth, homeCommandMcpStore } = deps;
 
   async function resolvePrincipal(req, res) {
-    const principal = await homeCommandMcpAuth.resolveHomeCommandPrincipal(req, { mcpApiKeyStore });
+    const principal = await homeCommandMcpAuth.resolveHomeCommandPrincipal(req, deps);
     if (!principal.ok) {
       res.status(principal.status).json(principal.body);
       return null;

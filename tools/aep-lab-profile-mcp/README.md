@@ -169,7 +169,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_live_activity_upsert_template` | `POST /api/ajo/live-activity/templates` | Create/version principal + sandbox customer template; mirrors Portal |
 | `lab_live_activity_delete_template` | `DELETE /api/ajo/live-activity/templates` | Confirmed custom-template deletion |
 | `lab_live_activity_list_runs` | `GET /api/ajo/live-activity/runs` | Recent principal/sandbox execution audit |
-| `lab_audience_list` | `GET /api/audience-management` | Read-only Segmentation audience inventory/search; user-generated MCP key + exact sandbox scope required |
+| `lab_audience_list` | `GET /api/audience-management` | Read-only Segmentation audience inventory/search; user MCP key or validated IMS enrollment + exact sandbox scope required |
 | `lab_audience_audit` | `GET /api/audience-management?audience_id=…` | Required exact-ID pre-delete review: current name, origin, lifecycle, dates, dependencies/dependents and limitations |
 | `lab_audience_delete` | `DELETE /api/audience-management` | Irreversible single-audience delete only after explicit confirmation; re-reads and exact-matches ID + name |
 | `lab_ajo_journey_list` | `GET /api/ajo-cleanup?asset_type=journey` | Read-only journey inventory/search with exact sandbox scope |
@@ -243,7 +243,7 @@ generations.
 
 ### Governed audience cleanup (Phase 3.32)
 
-Audience deletion uses a dedicated allowlisted proxy, never the generic `/api/aep` route. It requires a user-generated MCP key whose single sandbox scope exactly matches the request.
+Audience deletion uses a dedicated allowlisted proxy, never the generic `/api/aep` route. It requires a user-generated MCP key or independently validated Adobe IMS Portal enrollment scoped to the requested sandbox.
 
 1. `lab_audience_list sandbox apalmer name "demo"` — inspect IDs, origin, lifecycle and timestamps. This is read-only.
 2. `lab_audience_audit sandbox apalmer audience_id {exact id}` — review dependencies/dependents, source-system warning, and the limits of what the audience record can prove. Destination, Account Audience and AJO usage may still cause Adobe to reject deletion.
@@ -254,7 +254,7 @@ Adobe documents successful `DELETE /data/core/ups/audiences/{id}` as HTTP 204. T
 
 ### Governed AJO journey and campaign cleanup (Phase 3.36)
 
-Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cleanup tools through the complete `/mcp` endpoint. The user-generated MCP key must match the requested sandbox exactly.
+Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cleanup tools through the complete `/mcp` endpoint. The user-generated MCP key or independently validated Adobe IMS Portal enrollment must cover the requested sandbox.
 
 1. Run `lab_ajo_journey_list` or `lab_ajo_campaign_list` and select one exact ID.
 2. Run the matching audit tool. It returns current name, status, timestamps, blockers, and exact confirmation values.
@@ -698,7 +698,11 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 
 The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment and its Firebase `principalUid`; Coworker never receives or stores the plaintext key. That verified UID gives Coworker the same profile-generation preferences as the signed-in Profile Viewer. Existing API-key clients are unchanged.
 
-The audience-management route is authenticated with a user-generated MCP key and is not an anonymous profile API. Existing public profile read routes remain unchanged.
+Firebase independently revalidates the forwarded IMS bearer and active Portal enrollment for audience management, AJO cleanup, Adobe API capabilities, measurement quality, Snowflake, Command Centre, Commerce, Commerce Optimizer, and Live Activities. It never trusts forwarded principal UID headers. Request-local IMS credentials take precedence over the MCP server's shared ops key; an explicitly supplied invalid user key still fails closed without IMS fallback.
+
+Sandbox-scoped tools send the requested sandbox in their body or query. Command Centre and Commerce tools have no sandbox argument: the MCP client forwards the first sandbox in the resolved `allowedSandboxes` as `x-sandbox-name`, and Firebase validates enrollment in that scope before resolving the Portal UID. Conflicting body/query sandbox values are rejected. Command Centre resolves the same owner-record → workspace-profile → email-derived workspace as the Portal; Snowflake credentials remain per Portal UID and sandbox.
+
+Audience/AJO deletion still requires exact asset confirmation and a fresh read; Commerce mutation preview/apply gates remain unchanged. No marketplace manifest change is needed. The execution framework reports the version from the MCP package rather than a separately maintained literal. These changes require releasing both the affected Firebase Functions and the MCP Cloud Run service through the normal reviewed release workflow; they do not change live behavior before deployment. Existing public profile read routes and PDF authentication are unchanged.
 
 ## Related
 

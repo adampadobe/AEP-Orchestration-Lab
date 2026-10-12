@@ -57,7 +57,7 @@ function registerAjoCleanupRoutes(deps) {
     if (!['GET', 'DELETE'].includes(req.method)) return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
     let principal;
-    try { principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore); }
+    try { principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore, deps); }
     catch (error) { return res.status(500).json({ ok: false, error: 'MCP key validation failed.', detail: String(error.message || error) }); }
     if (!principal.ok) return res.status(principal.status).json(principal.body);
 

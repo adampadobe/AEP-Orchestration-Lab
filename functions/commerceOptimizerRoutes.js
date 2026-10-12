@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
 
 function safeEqual(a, b) {
   const left = Buffer.from(String(a || '').trim());
@@ -8,9 +9,18 @@ function safeEqual(a, b) {
   return left.length > 0 && left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-async function authorize(req, { internalMcpKey, mcpApiKeyStore }) {
+async function authorize(req, deps) {
+  const { internalMcpKey, mcpApiKeyStore } = deps;
   const key = String(req.headers['x-aep-lab-mcp-key'] || '').trim();
-  if (!key) return { ok: false, status: 401, error: 'Missing MCP API key.' };
+  if (!key) {
+    if (req.headers['x-gw-ims-org-id']) {
+      const principal = await resolveLabImsPrincipal(req, deps);
+      return principal.ok
+        ? { ...principal, source: 'ims', principalUid: principal.uid }
+        : { ...principal, error: principal.body.error };
+    }
+    return { ok: false, status: 401, error: 'MCP API key or enrolled Adobe IMS identity is required.' };
+  }
   if (safeEqual(key, internalMcpKey.value())) return { ok: true, source: 'internal' };
   const result = await mcpApiKeyStore.validateUserApiKey(key);
   return result?.ok ? { ok: true, source: 'user', principalUid: result.principalUid } : { ok: false, status: 403, error: 'Invalid MCP API key.' };
@@ -34,14 +44,20 @@ function queryFor(action, body) {
   return null;
 }
 
-function registerCommerceOptimizerRoutes({ onRequest, optimizerFnOpts, setCors, internalMcpKey, mcpApiKeyStore, commerceOptimizerService }) {
+function registerCommerceOptimizerRoutes(deps) {
+  const { onRequest, optimizerFnOpts, setCors, commerceOptimizerService } = deps;
   return {
     commerceOptimizerPrepProxy: onRequest(optimizerFnOpts, async (req, res) => {
       setCors(res);
       if (req.method === 'OPTIONS') return res.status(204).send('');
       if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
-      const auth = await authorize(req, { internalMcpKey, mcpApiKeyStore });
-      if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+      let auth;
+      try { auth = await authorize(req, deps); }
+      catch (error) {
+        console.error('[commerceOptimizerPrepProxy:auth]', error.message);
+        return res.status(500).json({ ok: false, error: 'MCP principal validation failed.' });
+      }
+      if (!auth.ok) return res.status(auth.status).json(auth.body || { error: auth.error });
       const action = String(req.query.action || '').trim();
       try {
         if (action === 'access') return res.json(await commerceOptimizerService.accessInfo());

@@ -30,7 +30,7 @@ export function registerAudienceTools(mcpServer) {
         'Use this to identify candidates by exact ID, name, origin, lifecycle, and last-updated date before lab_audience_audit. ' +
         'This tool never deletes or changes an audience.',
       inputSchema: {
-        sandbox: z.string().describe('AEP sandbox name; must match the user-generated MCP key scope'),
+        sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
         name: z.string().max(200).optional().describe('Case-insensitive audience name search'),
         start: z.number().int().min(0).optional().describe('Page start offset (default 0)'),
         limit: z.number().int().min(1).max(100).optional().describe('Page size (default 50, max 100)'),
@@ -70,7 +70,7 @@ export function registerAudienceTools(mcpServer) {
         'dependencies/dependents, limitations of the audit, and the exact expected_name needed for deletion. ' +
         'Show the result to the colleague and ask for explicit confirmation; do not call delete in the same turn unless they already confirmed that exact ID and name.',
       inputSchema: {
-        sandbox: z.string().describe('AEP sandbox name; must match the user-generated MCP key scope'),
+        sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
         audience_id: z.string().min(1).describe('Exact AEP audience id field (not a guessed name or audienceId alias)'),
       },
     },
@@ -100,7 +100,7 @@ export function registerAudienceTools(mcpServer) {
         'sandbox, audience_id, and expected_name. The server re-reads the audience and fails closed if its ID/name changed. ' +
         'Never infer confirmation from a general cleanup request and never batch-delete audiences.',
       inputSchema: {
-        sandbox: z.string().describe('AEP sandbox name; must match the user-generated MCP key scope'),
+        sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
         audience_id: z.string().min(1).describe('Exact id returned by lab_audience_audit'),
         expected_name: z.string().min(1).describe('Exact current name returned by lab_audience_audit'),
         confirmed: z.literal(true).describe('True only after the colleague explicitly confirms this exact audience'),

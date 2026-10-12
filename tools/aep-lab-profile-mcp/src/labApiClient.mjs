@@ -3,7 +3,7 @@
  * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
  */
 
-import { getRequestKeyId, getRequestMcpApiKey, getRequestPrincipalUid, getRequestImsAuthHeaders } from './requestContext.mjs';
+import { getRequestKeyId, getRequestMcpApiKey, getRequestPrincipalUid, getRequestImsAuthHeaders, getPrincipalAccess } from './requestContext.mjs';
 import { buildGeneratorPostBody } from './framework/buildGeneratorPostBody.mjs';
 import {
   getGenerationPrefsForPrincipal,
@@ -805,7 +805,7 @@ export async function decisioningTagApplyOne(params) {
   });
 }
 
-/** Read-only AEP audience inventory; requires the caller's user-generated MCP key. */
+/** Read-only AEP audience inventory; requires a user key or validated IMS enrollment. */
 export async function audienceList(params) {
   return labApiRequest('/api/audience-management', {
     query: {
@@ -839,7 +839,7 @@ export async function audienceDelete({ sandbox, audience_id, expected_name, conf
   });
 }
 
-/** Read-only AJO journey or campaign inventory; scoped by the caller's MCP key. */
+/** Read-only AJO journey or campaign inventory; scoped by user key or IMS enrollment. */
 export async function ajoAssetList({ sandbox, asset_type, name, start, limit }) {
   return labApiRequest('/api/ajo-cleanup', {
     query: { sandbox, asset_type, name, start, limit },
@@ -873,11 +873,16 @@ function generationPrefsAuthHeaders() {
 }
 
 export function principalAuthHeaders() {
-  return generationPrefsAuthHeaders();
+  const ims = getRequestImsAuthHeaders();
+  if (!ims) return generationPrefsAuthHeaders();
+  // Workspace/Commerce tools have no sandbox argument; use an enrolled scope,
+  // independently revalidated by Firebase. Explicit body/query scopes win.
+  const sandbox = getPrincipalAccess()?.allowedSandboxes?.[0];
+  return { ...ims, ...(sandbox ? { 'x-sandbox-name': sandbox } : {}) };
 }
 
 export function demoAuthHeaders() {
-  return getRequestImsAuthHeaders() || principalAuthHeaders();
+  return principalAuthHeaders();
 }
 
 const ADOBE_CAPABILITIES_API_BASE = '/api/adobe-capabilities';
@@ -1035,6 +1040,7 @@ export function commerceGraphqlQuery({ query, variables, store }) {
 }
 
 function commerceInternalAuthHeaders() {
+  if (getRequestImsAuthHeaders()) return principalAuthHeaders();
   const userKey = getRequestMcpApiKey();
   const key = userKey || String(process.env.AEP_LAB_COMMERCE_INTERNAL_KEY || '').trim();
   return key ? {
@@ -1046,6 +1052,7 @@ function commerceInternalAuthHeaders() {
 const COMMERCE_OPTIMIZER_API_BASE = '/api/commerce-optimizer-prep';
 
 function commerceOptimizerInternalAuthHeaders() {
+  if (getRequestImsAuthHeaders()) return principalAuthHeaders();
   const userKey = getRequestMcpApiKey();
   const key = userKey || String(process.env.AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY || '').trim();
   return key ? {
@@ -1082,19 +1089,19 @@ const PDF_API_BASE = '/api/pdf-personalisation';
 
 export async function pdfDraftList({ sandbox }) {
   return labApiRequest(`${PDF_API_BASE}/templates`, {
-    query: { sandbox }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+    query: { sandbox }, headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
   });
 }
 
 export async function pdfDraftGet({ sandbox, template_id }) {
   return labApiRequest(`${PDF_API_BASE}/templates/${encodeURIComponent(template_id)}`, {
-    query: { sandbox }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+    query: { sandbox }, headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
   });
 }
 
 export async function pdfDraftSave(params) {
   return labApiRequest(`${PDF_API_BASE}/templates`, {
-    method: 'POST', headers: principalAuthHeaders(), timeoutMs: 60_000,
+    method: 'POST', headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
     body: {
       sandbox: params.sandbox,
       name: params.name,
@@ -1107,14 +1114,14 @@ export async function pdfDraftSave(params) {
 
 export async function pdfExtractDocxData({ sandbox, source_file }) {
   return labApiRequest(`${PDF_API_BASE}/convert-data-document`, {
-    method: 'POST', headers: principalAuthHeaders(), timeoutMs: 120_000,
+    method: 'POST', headers: generationPrefsAuthHeaders(), timeoutMs: 120_000,
     body: { sandbox, sourceDocument: source_file },
   });
 }
 
 export async function pdfHtmlPreview(params) {
   return labApiRequest(`${PDF_API_BASE}/preview`, {
-    method: 'POST', headers: principalAuthHeaders(), timeoutMs: 60_000,
+    method: 'POST', headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
     body: {
       sandbox: params.sandbox,
       templateId: params.template_id,
@@ -1127,7 +1134,7 @@ export async function pdfHtmlPreview(params) {
 
 export async function pdfGenerate(params) {
   return labApiRequest(`${PDF_API_BASE}/generate`, {
-    method: 'POST', headers: principalAuthHeaders(), timeoutMs: 330_000,
+    method: 'POST', headers: generationPrefsAuthHeaders(), timeoutMs: 330_000,
     body: {
       sandbox: params.sandbox,
       conversionMode: params.conversion_mode,
@@ -1144,32 +1151,32 @@ export async function pdfGenerate(params) {
 
 export async function pdfJobList({ sandbox, limit }) {
   return labApiRequest(`${PDF_API_BASE}/jobs`, {
-    query: { sandbox, limit }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+    query: { sandbox, limit }, headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
   });
 }
 
 export async function pdfJobStatus({ sandbox, job_id }) {
   return labApiRequest(`${PDF_API_BASE}/status/${encodeURIComponent(job_id)}`, {
-    query: { sandbox }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+    query: { sandbox }, headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
   });
 }
 
 export async function pdfServerTemplateList({ sandbox }) {
   return labApiRequest(`${PDF_API_BASE}/journey-action/template-library`, {
-    query: { sandbox }, headers: principalAuthHeaders(), timeoutMs: 60_000,
+    query: { sandbox }, headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
   });
 }
 
 export async function pdfServerTemplateAnalyse({ sandbox, source_file }) {
   return labApiRequest(`${PDF_API_BASE}/journey-action/template-analysis`, {
-    method: 'POST', headers: principalAuthHeaders(), timeoutMs: 120_000,
+    method: 'POST', headers: generationPrefsAuthHeaders(), timeoutMs: 120_000,
     body: { sandbox, sourceFile: source_file },
   });
 }
 
 export async function pdfServerTemplatePublish(params) {
   return labApiRequest(`${PDF_API_BASE}/journey-action/template-library`, {
-    method: 'POST', headers: principalAuthHeaders(), timeoutMs: 330_000,
+    method: 'POST', headers: generationPrefsAuthHeaders(), timeoutMs: 330_000,
     body: {
       sandbox: params.sandbox,
       templateName: params.template_name,
@@ -1188,7 +1195,7 @@ export async function pdfServerTemplatePublish(params) {
 export async function pdfServerTemplateArchive({ sandbox, template_name }) {
   return labApiRequest(`${PDF_API_BASE}/journey-action/template-library`, {
     method: 'DELETE', query: { sandbox, templateName: template_name },
-    headers: principalAuthHeaders(), timeoutMs: 60_000,
+    headers: generationPrefsAuthHeaders(), timeoutMs: 60_000,
   });
 }
 
@@ -1294,7 +1301,7 @@ export async function applyDemoCustomerSwitch({ sandbox, asset_preflight_id, con
 }
 
 export function snowflakeAuthHeaders() {
-  return generationPrefsAuthHeaders();
+  return principalAuthHeaders();
 }
 
 export const STATIC_EGRESS_IP = '34.58.81.28';
@@ -1472,7 +1479,7 @@ export async function appendRecentProfile(body) {
 
 const COMMAND_CENTRE_BASE = '/api/home-command/mcp';
 
-/** GET /api/home-command/mcp/state — list all customers/tasks/meetings for this MCP key's principal. */
+/** GET /api/home-command/mcp/state — list customers/tasks/meetings for the verified Portal principal. */
 export async function homeCommandGetState() {
   return labApiRequest(`${COMMAND_CENTRE_BASE}/state`, {
     headers: principalAuthHeaders(),

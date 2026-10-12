@@ -16,7 +16,7 @@ function registerMeasurementQualityRoutes(deps) {
     if (req.method !== 'GET') return res.status(405).set('Allow', 'GET').json({ ok: false, error: 'Use GET.' });
 
     let principal;
-    try { principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore); }
+    try { principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore, deps); }
     catch (_error) { return res.status(500).json({ ok: false, error: 'MCP principal validation failed.' }); }
     if (!principal.ok) return res.status(principal.status).json(principal.body);
 

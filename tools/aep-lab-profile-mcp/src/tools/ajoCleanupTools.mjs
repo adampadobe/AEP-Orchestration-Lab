@@ -21,7 +21,7 @@ function registerAssetTools(server, assetType) {
     description:
       `Read-only inventory of Adobe Journey Optimizer ${titleType}s. Use it to identify one candidate by exact ID, name, status, and modified date before calling ${prefix}_audit. This tool never changes or deletes anything.`,
     inputSchema: {
-      sandbox: z.string().describe('AEP sandbox name; must match the user-generated MCP key scope'),
+      sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
       name: z.string().max(200).optional().describe(`Optional case-insensitive ${titleType} name filter`),
       start: z.number().int().min(0).optional().describe('Page start offset (default 0)'),
       limit: z.number().int().min(1).max(100).optional().describe('Page size (default 50, max 100)'),
@@ -41,7 +41,7 @@ function registerAssetTools(server, assetType) {
     description:
       `Required read-only pre-delete review for one exact AJO ${titleType} ID. Returns current identity, lifecycle, metadata, blockers, and exact confirmation values. Show the audit to the colleague and obtain explicit confirmation before delete.`,
     inputSchema: {
-      sandbox: z.string().describe('AEP sandbox name; must match the user-generated MCP key scope'),
+      sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
       [`${titleType}_id`]: z.string().min(1).describe(`Exact AJO ${titleType} ID returned by the list tool`),
     },
   }, async (params) => {
@@ -60,7 +60,7 @@ function registerAssetTools(server, assetType) {
     description:
       `DESTRUCTIVE AND IRREVERSIBLE. Call only after ${prefix}_audit and explicit colleague confirmation of this exact sandbox, ID, name, and status. The server immediately re-reads the ${titleType}, rejects lifecycle or identity changes, and never batch-deletes.`,
     inputSchema: {
-      sandbox: z.string().describe('AEP sandbox name; must match the user-generated MCP key scope'),
+      sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
       [`${titleType}_id`]: z.string().min(1).describe(`Exact ID returned by ${prefix}_audit`),
       expected_name: z.string().min(1).describe(`Exact current name returned by ${prefix}_audit`),
       expected_status: z.string().min(1).describe(`Exact current status returned by ${prefix}_audit`),
