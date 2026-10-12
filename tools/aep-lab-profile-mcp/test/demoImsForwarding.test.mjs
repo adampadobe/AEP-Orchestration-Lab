@@ -30,8 +30,7 @@ test('every governed demo adapter forwards request-local IMS, never the shared o
         assert.equal((await call(params)).ok, true);
       }
       assert.deepEqual(demoAuthHeaders(), imsAuthHeaders);
-      // Routes not yet supporting IMS retain their existing authentication contract.
-      assert.deepEqual(principalAuthHeaders(), { 'X-AEP-Lab-Mcp-Key': 'server-ops-key' });
+      assert.deepEqual(principalAuthHeaders(), imsAuthHeaders);
     });
     assert.equal(seen.length, 9);
     for (const { init } of seen) {

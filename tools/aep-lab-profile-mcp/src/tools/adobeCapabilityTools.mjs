@@ -9,7 +9,7 @@ export function registerAdobeCapabilityTools(mcpServer) {
     description:
       'Returns the reviewed 35-service Developer Console inventory, service-specific scopes, delivery phases, risk labels, and Lab use cases. ' +
       'Connected does not mean tenant-verified; use a bounded operation probe before claiming access.',
-    inputSchema: { sandbox: z.string().optional().describe('Defaults to the sandbox scoped to the connected MCP key') },
+    inputSchema: { sandbox: z.string().optional().describe('Defaults to the connected user key scope or validated IMS enrollment') },
   }, async (params) => fromLabApi(await adobeCapabilityCatalog(params)));
 
   mcpServer.registerTool('ajo_suppression_addresses', {
@@ -17,7 +17,7 @@ export function registerAdobeCapabilityTools(mcpServer) {
     description:
       'Performs a bounded read of the Journey Optimizer client suppression list or allowed list. Address and domain values are redacted by the server.',
     inputSchema: {
-      sandbox: z.string().optional().describe('Defaults to the sandbox scoped to the connected MCP key'),
+      sandbox: z.string().optional().describe('Defaults to the connected user key scope or validated IMS enrollment'),
       type: z.enum(['client', 'allowed']).optional().describe('client = suppression list; allowed = allowed list'),
       limit: z.number().int().min(1).max(100).optional().describe('Default 20'),
     },

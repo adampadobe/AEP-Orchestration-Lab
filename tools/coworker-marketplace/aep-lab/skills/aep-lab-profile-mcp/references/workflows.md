@@ -97,7 +97,7 @@ Example (user on sandbox **prisacar**):
 
 ## Workflow 1b — Snowflake readiness + dual-load travel
 
-Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared key returns `MCP_USER_KEY_REQUIRED`.
+Requires **a user-generated MCP key or validated Adobe IMS Portal enrollment** (Profile Viewer → MCP servers). Ops shared key returns `MCP_USER_KEY_REQUIRED`.
 
 **Roles:** **AEP** = behavioral intent (events, segmentation, travel persona paths). **Snowflake** = operational CRM (bookings, LTV, holiday history, preferences). Dual-load shares join keys only: **EMAIL**, **ECID**, **CRMID** (+ optional **FIRSTNAME/LASTNAME** from AEP).
 
@@ -133,7 +133,7 @@ Requires **user-generated MCP key** (Profile Viewer → MCP servers). Ops shared
 
 ## Workflow 1c — Snowflake travel governed provision
 
-Requires user MCP key + Snowflake credential. Full generate/enrich need **AGENTIC_TRAVEL_RUNNER_URL** on Cloud Functions (`runner.configured` from **lab_snowflake_industry_catalog**).
+Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowflake credential. Full generate/enrich need **AGENTIC_TRAVEL_RUNNER_URL** on Cloud Functions (`runner.configured` from **lab_snowflake_industry_catalog**).
 
 1. **Catalog + connection**
 
@@ -181,7 +181,7 @@ Use the corresponding `{industry}.all.v1` recipe and manifest event keys for fsi
 
 ## Workflow 1e — AJO Live Activity customer test
 
-Live Activity sends are important external actions. They require a user-generated MCP key, an allowlisted sandbox, a customer template, preflight, and explicit colleague confirmation.
+Live Activity sends are important external actions. They require a user-generated MCP key or validated Adobe IMS Portal enrollment, an allowlisted sandbox, a customer template, preflight, and explicit colleague confirmation.
 
 1. Find a customer template:
 
@@ -490,7 +490,7 @@ Allowlisted DPS catalog proxies — mirrors Profile Viewer **decisioning-catalog
 
 ## Workflow 5f — Governed audience audit + deletion
 
-Audience deletion is irreversible and requires a **user-generated MCP key** whose sandbox scope exactly matches the requested sandbox.
+Audience deletion is irreversible and requires a **user-generated MCP key or validated Adobe IMS Portal enrollment** scoped to the requested sandbox.
 
 1. **List/search (read-only)**
 

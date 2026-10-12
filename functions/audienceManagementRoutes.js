@@ -1,13 +1,20 @@
 'use strict';
 
+const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
+
 function errorStatus(error, fallback = 500) {
   const status = Number(error && error.status);
   return status >= 400 && status <= 599 ? status : fallback;
 }
 
-async function resolveMcpAudiencePrincipal(req, mcpApiKeyStore) {
+async function resolveMcpAudiencePrincipal(req, mcpApiKeyStore, deps = {}) {
   const key = String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
   if (!key) {
+    if (req.headers['x-gw-ims-org-id']) {
+      const principal = await resolveLabImsPrincipal(req, deps);
+      if (!principal.ok) return principal;
+      return { ...principal, principalUid: principal.uid, sandbox: principal.keySandbox };
+    }
     return { ok: false, status: 401, body: { ok: false, error: 'X-AEP-Lab-Mcp-Key is required.' } };
   }
   const auth = await mcpApiKeyStore.validateUserApiKey(key);
@@ -87,7 +94,7 @@ function registerAudienceManagementRoutes(deps) {
 
     let principal;
     try {
-      principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore);
+      principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore, deps);
     } catch (error) {
       res.status(500).json({ ok: false, error: 'MCP key validation failed.', detail: String(error.message || error) });
       return;

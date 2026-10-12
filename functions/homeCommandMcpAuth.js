@@ -9,6 +9,7 @@
 const admin = require('firebase-admin');
 const labUserSandboxStore = require('./labUserSandboxStore');
 const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
+const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
 
 const MCP_KEY_HEADER = 'x-aep-lab-mcp-key';
 
@@ -30,9 +31,9 @@ function getRtdb() {
  * owner record → Firestore workspace profile → deterministic email-derived
  * slug), so an MCP-driven write lands in the SAME bucket the browser reads.
  */
-async function resolveWorkspaceSlugForUid(uid, email) {
+async function resolveWorkspaceSlugForUid(uid, email, deps = {}) {
   try {
-    const snap = await getRtdb().ref('userWorkspaceOwners/' + uid).once('value');
+    const snap = await (deps.rtdb || getRtdb()).ref('userWorkspaceOwners/' + uid).once('value');
     const fromOwner = normalizeLdapSlug(snap.val());
     if (fromOwner) return fromOwner;
   } catch (_e) {
@@ -40,7 +41,7 @@ async function resolveWorkspaceSlugForUid(uid, email) {
   }
 
   try {
-    const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+    const profile = await (deps.labUserSandboxStore || labUserSandboxStore).getWorkspaceProfile(uid);
     const fromProfile = normalizeLdapSlug(profile && profile.workspaceSlug);
     if (fromProfile) return fromProfile;
   } catch (_e) {
@@ -54,7 +55,7 @@ async function resolveWorkspaceSlugForUid(uid, email) {
  * @param {import('firebase-functions/v2/https').Request} req
  * @param {object} deps
  * @param {import('./mcpApiKeyStore')} deps.mcpApiKeyStore
- * @returns {Promise<{ ok: true, uid: string, workspaceSlug: string, authSource: 'firebase'|'mcp_key', principalEmail?: string | null } | { ok: false, status: number, body: object }>}
+ * @returns {Promise<{ ok: true, uid: string, workspaceSlug: string, authSource: 'firebase'|'mcp_key'|'ims', principalEmail?: string | null } | { ok: false, status: number, body: object }>}
  */
 async function resolveHomeCommandPrincipal(req, deps) {
   const { mcpApiKeyStore } = deps;
@@ -70,7 +71,7 @@ async function resolveHomeCommandPrincipal(req, deps) {
         body: { ok: false, error: OPS_KEY_ERROR, code: 'MCP_USER_KEY_REQUIRED' },
       };
     }
-    const workspaceSlug = await resolveWorkspaceSlugForUid(keyAuth.principalUid, keyAuth.principalEmail);
+    const workspaceSlug = await resolveWorkspaceSlugForUid(keyAuth.principalUid, keyAuth.principalEmail, deps);
     return {
       ok: true,
       uid: keyAuth.principalUid,
@@ -78,6 +79,13 @@ async function resolveHomeCommandPrincipal(req, deps) {
       authSource: 'mcp_key',
       principalEmail: keyAuth.principalEmail || null,
     };
+  }
+
+  if (req.headers['x-gw-ims-org-id']) {
+    const principal = await resolveLabImsPrincipal(req, deps);
+    if (!principal.ok) return principal;
+    const workspaceSlug = await resolveWorkspaceSlugForUid(principal.uid, principal.principalEmail, deps);
+    return { ...principal, workspaceSlug };
   }
 
   const claims = await userStore.verifyIdTokenClaimsFromRequest(req);
@@ -96,7 +104,7 @@ async function resolveHomeCommandPrincipal(req, deps) {
     };
   }
 
-  const workspaceSlug = await resolveWorkspaceSlugForUid(claims.uid, claims.email);
+  const workspaceSlug = await resolveWorkspaceSlugForUid(claims.uid, claims.email, deps);
   return {
     ok: true,
     uid: claims.uid,
