@@ -163,6 +163,12 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.waitForFunction(() => window.DemoTagsInjection && document.getElementById('baDecisioningInjectSdkBtn'));
     const visual = page.frameLocator('#baDecisioningFrame');
     await visual.locator('#signals .toggle-opt').first().waitFor();
+    const displayedHero = () => page.evaluate(() => {
+      const doc = document.getElementById('baDecisioningFrame').contentDocument;
+      return { image: doc.querySelector('.wb-bg.on').src, text: doc.getElementById('wbInner').innerHTML, email: doc.getElementById('mailFrame').srcdoc };
+    });
+    const defaultHero = await displayedHero();
+    assert.ok(defaultHero.image.endsWith('/british-airways-decisioning-hero.png'));
     assert.equal(await page.locator('.spectrum-env-card--bc').count(), 0);
     assert.equal(await page.locator('#siteCloneBcDatastreamId').count(), 0);
     assert.equal(await page.locator('#siteCloneDecisioningEnabledToggle').count(), 1);
@@ -212,6 +218,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     for (let i = 0; i < await scenarioButtons.count(); i++) {
       const before = writes.length;
       await scenarioButtons.nth(i).click();
+      assert.deepEqual(await displayedHero(), defaultHero, 'scenario must preserve default hero before first decision');
       const staged = await page.evaluate(() => document.getElementById('baDecisioningFrame').contentWindow.BaDecisioningVisualiser.getState());
       assert.equal(writes.length, before, 'scenario must not save before Apply');
       await page.locator('#baRunDecision').click();
@@ -259,6 +266,15 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.equal(await hero.evaluate(el => getComputedStyle(el).objectFit), 'cover');
     assert.equal(await hero.evaluate(el => el.getBoundingClientRect().height), 277);
     assert.ok(!(await emailDoc.locator('img[alt="British Airways"]').getAttribute('src')).includes('decision.jpg'), 'decision must not replace logo');
+    const originalHero = await displayedHero();
+    assert.ok(originalHero.text.includes('Your next journey'));
+    for (let i = 0; i < await scenarioButtons.count(); i++) {
+      await scenarioButtons.nth(i).click();
+      assert.deepEqual(await displayedHero(), originalHero, 'scenario must not change displayed hero content');
+    }
+    await page.locator('#baApplyProfile').click();
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
+    assert.deepEqual(await displayedHero(), originalHero, 'Apply must not change displayed hero content');
     await visual.locator('#dev [data-m="mobile"]').click();
     assert.ok(await visual.locator('#mailStage').evaluate(el => el.classList.contains('is-mobile')));
     await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
@@ -268,8 +284,42 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       visual: document.getElementById('baDecisioningFrame').contentDocument.documentElement.style.getPropertyValue('--dash-surface').trim(),
     }));
     assert.equal(colors.shell, colors.visual);
-    await page.evaluate(() => window.dispatchEvent(new CustomEvent('decisioning-profile-updated', { detail: { propositionCount: 0 } })));
+    await page.evaluate(() => {
+      const sdk = async () => ({ propositions: [] });
+      window.alloy = sdk;
+      window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
+    });
+    await page.locator('#baRunDecision').click();
     await visual.locator('#baPreviewMode').filter({ hasText: 'No live hero image returned' }).waitFor();
+    assert.deepEqual(await displayedHero(), originalHero, 'empty decision must preserve previous hero');
+    await page.evaluate(() => {
+      const sdk = async () => { throw new Error('Test Edge failure'); };
+      window.alloy = sdk;
+      window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
+    });
+    await page.locator('#baRunDecision').click();
+    await visual.locator('#baPreviewMode').filter({ hasText: 'Live decision failed' }).waitFor();
+    assert.deepEqual(await displayedHero(), originalHero, 'failed decision must preserve previous hero');
+    await page.evaluate(() => {
+      const sdk = async command => command === 'sendEvent' ? { propositions: [{
+        id: 'next-proposition', scope: document.getElementById('baDecisioningFrame').src.split('?')[0].replace(/^http:\/\//, 'web://') + '#hero-banner',
+        items: [{ id: 'next-item', schema: 'https://ns.adobe.com/personalization/json-content-item', data: {
+          image: 'https://example.test/decision.jpg?next', title: 'Next <journey>', text: 'New <description>',
+        } }],
+      }] } : {};
+      window.alloy = sdk;
+      window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
+    });
+    await page.route('https://example.test/decision.jpg?next', route => route.fulfill({
+      contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>',
+    }));
+    await page.locator('#baRunDecision').click();
+    await visual.locator('#baPreviewMode').filter({ hasText: 'Live Edge decision image' }).waitFor();
+    const nextHero = await displayedHero();
+    assert.equal(nextHero.image, 'https://example.test/decision.jpg?next');
+    assert.ok(nextHero.text.includes('Next &lt;journey&gt;'));
+    assert.ok(nextHero.text.includes('New &lt;description&gt;'));
+    assert.ok(nextHero.email.includes('Next &lt;journey&gt;'));
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(500);
     const mobileLayout = await page.evaluate(() => ({

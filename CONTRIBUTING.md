@@ -828,8 +828,11 @@ the 1-3 propensity display, matching the left-hand controls. Booking status
 shows `britishAirwaysDecisioning.journeyStage`, and flight class shows
 `travelReservations.flightReservations.flightClass`. Staged edits do not
 change these saved-profile values until Apply and readback.
-Missing decisions, profile switches and staged changes clear the old live image and explicitly
-label fallback simulation imagery. Run `npm run test:ba-decisioning` for
+Hero content is independent of the local scenario simulation. Scenarios, field
+edits, Apply and lookups keep the displayed image/text unchanged. Only a
+successful live decision replaces them; empty/failed responses retain the
+previous content with an explicit status. Profile switches mark the retained
+hero as belonging to the previous context. Run `npm run test:ba-decisioning` for
 schema/ownership, snapshot and mocked-browser coverage; live sandbox policies
 and schema provisioning still require authorized verification.
 

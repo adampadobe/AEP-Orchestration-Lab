@@ -316,7 +316,7 @@
 <body>
 
 <div class="app" id="app">
-  <p id="baPreviewMode" role="status">Local simulation. Run a live image decision to replace preview imagery.</p>
+  <p id="baPreviewMode" role="status">Default hero content. Run a live decision to update the image and text.</p>
   <div class="ba-decision-mounts" aria-label="Live decision image source">
     <div id="TopRibbon"></div>
     <div id="hero-banner"></div>
@@ -1349,14 +1349,19 @@
   /* ═══════════════════════════ 9. UI: email pane ═══════════════════════════ */
   var frame = $('mailFrame'), stage = $('mailStage'), emptyEl = $('mailEmpty'), metaEl = $('mailMeta'), webStage = $('webStage');
   var shownEmail = null, shownBanner = null, view = 'desktop', lastRes = null;
+  var previewRes = evaluate(DEFAULT);
 
-  /* web banner: one stacked image per objective + a card whose copy follows the NBA */
+  /* Channel previews retain their content independently of the scenario simulation. */
   var wbBgs = $('wbBgs'), wbDots = $('wbDots'), wbCard = $('wbCard'), wbInner = $('wbInner');
   OBJECTIVES.forEach(function (o) {
-    var im = document.createElement('img'); im.className = 'wb-bg'; im.alt = ''; im.dataset.o = o.id; im.src = IMG_DATA[IMG[o.id].file]; wbBgs.appendChild(im);
+    var im = document.createElement('img'); im.className = 'wb-bg'; im.alt = ''; im.dataset.o = o.id; im.src = 'british-airways-decisioning-hero.png'; wbBgs.appendChild(im);
     var d = document.createElement('span'); d.className = 'wb-dot'; d.dataset.o = o.id; wbDots.appendChild(d);
   });
   function bannerHtml(bn) {
+    if (decisionImage) {
+      return '<div class="wb-title">' + esc(decisionCopy.title) + '</div>' +
+        '<p class="wb-caption">' + esc(decisionCopy.description) + '</p>';
+    }
     return '<p class="wb-eyebrow">' + bn.eyebrow + '</p><div class="wb-title">' + bn.title + '</div>' +
       '<div class="wb-row"><div><p class="wb-label">' + bn.label + '</p><p class="wb-price">' + bn.price + '</p>' + (bn.caption ? '<p class="wb-caption">' + bn.caption + '</p>' : '') + '</div>' +
       (bn.cta ? '<a href="#" class="wb-cta" onclick="return false">' + bn.cta + '</a>' : '') + '</div>' + (bn.footer ? '<div class="wb-footer">' + bn.footer + '</div>' : '');
@@ -1399,6 +1404,7 @@
   /* both channels are always kept current, so switching tabs is instant */
   function renderChannel(res) {
     lastRes = res;
+    res = previewRes;
     var web = view === 'web';
     if (res.served) { if (shownEmail !== res.served.n.id) { shownEmail = res.served.n.id; frame.srcdoc = buildPreview(res.served.n); } }
     else shownEmail = null;
@@ -1441,13 +1447,17 @@
       decisionImage = url || '';
       decisionCopy = copy || { title: '', description: '' };
       wbBgs.querySelectorAll('.wb-bg').forEach(function (im) {
-        im.src = decisionImage || IMG_DATA[IMG[im.dataset.o].file];
+        im.src = decisionImage || 'british-airways-decisioning-hero.png';
       });
       shownEmail = null;
+      shownBanner = null;
       $('baPreviewMode').textContent = message || (decisionImage
-        ? 'Live Edge decision image. Copy and ranking remain a local simulation. Email/mobile are previews only.'
-        : 'Local simulation imagery. No live decision image applied.');
+        ? 'Live Edge decision image and text. Ranking remains a local simulation. Email/mobile are previews only.'
+        : 'Default hero content. Run a live decision to update the image and text.');
       update();
+    },
+    setDecisionStatus: function (message) {
+      $('baPreviewMode').textContent = message || 'Displayed hero unchanged. Run a live decision to update it.';
     },
   };
 

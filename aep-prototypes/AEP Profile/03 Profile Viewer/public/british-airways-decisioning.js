@@ -46,14 +46,14 @@
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found for this identifier.');
     return data;
   }
-  function clearImage(text) {
+  function invalidateDecision(text) {
     imageVersion++;
     const api = visualiser();
-    if (api) api.setDecisionImage('', text);
+    if (api) api.setDecisionStatus(text);
   }
   function invalidate() {
     loaded = null; loadedKey = ''; controlBaseline = null; dirty = false; pendingVerification = null;
-    clearImage('Profile or sandbox changed. Local simulation imagery; run a new live decision.');
+    invalidateDecision('Profile or sandbox changed. Displayed hero is from the previous context; run a new live decision to replace it.');
     message('Look up the selected test profile before applying changes.');
   }
   function verified(data) {
@@ -64,7 +64,7 @@
   async function lookup() {
     const ctx = context();
     busy = true; message('Looking up profile...');
-    clearImage('Profile lookup in progress. Run a new decision after lookup.');
+    invalidateDecision('Profile lookup in progress. Run a new decision after lookup.');
     try {
       const data = await table(ctx);
       loaded = data; loadedKey = key(ctx);
@@ -130,7 +130,7 @@
     const ctx = context();
     if (!loaded || loadedKey !== key(ctx) || !visualiser()) { message('Look up the selected profile first.', true); return; }
     busy = true; message('Checking schema and building full writable snapshots...');
-    clearImage('Profile update in progress. Previous live decision image cleared.');
+    invalidateDecision('Profile update in progress. Displayed hero unchanged until a successful live decision.');
     let accepted = 0;
     try {
       const latest = await table(ctx);
@@ -157,7 +157,7 @@
       controlBaseline = savedState;
       dirty = JSON.stringify(visualiser().getState()) !== JSON.stringify(savedState);
       loaded = latest;
-      clearImage('Profile update accepted. Previous decision image cleared; await AEP readback before a new decision.');
+      invalidateDecision('Profile update accepted. Displayed hero unchanged; Run will verify the saved profile before replacing it.');
       message('Snapshots accepted by AEP. Run live image decision will look up the profile and verify the saved values before evaluating.');
     } catch (error) {
       message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. ' : '') + error.message, true);
@@ -180,7 +180,7 @@
     if (detail.propositionCount == null) return;
     const url = detail.propositionCount > 0 && detail.appliedMounts && detail.appliedMounts.hero ? imageFromMount() : '';
     if (!url) {
-      clearImage('No live hero image returned. Showing local simulation imagery, not a live winner.');
+      invalidateDecision('No live hero image returned. Previous hero image and text kept unchanged.');
       message('No live hero image returned. Check the hero-banner surface and the decision item image content.', true);
       return;
     }
@@ -200,7 +200,7 @@
       title: title ? title.textContent.trim() : '',
       description: description ? description.textContent.trim() : '',
     });
-    message('Live hero image, title and description applied to the email/mobile preview. Ranking remains local simulation.');
+    message('Live hero image, title and description applied to the web/email/mobile previews. Ranking remains local simulation.');
   }
   async function decide() {
     if (busy) return;
@@ -211,13 +211,13 @@
       return;
     }
     busy = true; message('Evaluating the live hero-banner surface...');
-    clearImage('Live decision in progress; showing local simulation imagery.');
+    invalidateDecision('Live decision in progress. Displayed hero unchanged until new content is ready.');
     try {
       const result = await global.DecisioningProfileRuntime.runContentDecision();
       current(ctx);
       await acceptDecision({ propositionCount: result.propositions.length, appliedMounts: result.appliedMounts });
     } catch (error) {
-      clearImage('Live decision failed. Showing local simulation imagery.');
+      invalidateDecision('Live decision failed. Previous hero image and text kept unchanged.');
       message(error.message, true);
     } finally { busy = false; run.disabled = false; apply.disabled = !loaded || !dirty; }
   }
@@ -236,7 +236,7 @@
     doc.documentElement.dataset.baWired = '1';
     function changed() {
       dirty = true;
-      clearImage('Staged profile changes. Local simulation imagery until Apply, readback and a new live decision.');
+      invalidateDecision('Staged profile changes. Displayed hero unchanged until Apply and a successful live decision.');
       message(loaded ? 'Profile changes staged. Apply to write the full snapshot to AEP.' : 'Simulation changed. Look up a test profile before applying.');
     }
     doc.getElementById('signals').addEventListener('click', event => { if (event.target.closest('.toggle-opt')) changed(); });
@@ -309,10 +309,6 @@
     });
     apply.addEventListener('click', () => { if (!busy) void save(); });
     run.addEventListener('click', () => { if (!busy) void decide(); });
-    global.addEventListener('decisioning-profile-updated', event => {
-      if (busy || dirty || pendingVerification || !loaded || loadedKey !== key(context())) return;
-      void acceptDecision(event.detail || {}).catch(error => { clearImage(); message(error.message, true); });
-    });
     frame.addEventListener('load', wireFrame);
     wireFrame();
     const anchor = document.querySelector('.mod-demo-top-anchor');
