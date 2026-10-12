@@ -44,7 +44,7 @@ test('event cards use returned rows beneath the unchanged title and preserve tim
   const children = sandbox.profileDrawerEvents.children[0].children[1].children;
   assert.deepEqual(children.map(child => child.textContent), [
     '1791806400000', 'Decisioning PropositionDisplay', 'Offer: Baggage Status',
-    'Strategy: NBA Strategy 2 - Travel now', 'Provider: AJO', 'Rank: 1', 'Web',
+    'Strategy: NBA Strategy 2 - Travel now',
   ]);
   assert.equal(JSON.stringify(ev), before);
 });
@@ -56,8 +56,8 @@ test('all propositions and items retain numeric array order with matching strate
   }]);
   ev.rows.reverse();
   assert.deepEqual(JSON.parse(JSON.stringify(sandbox.decisioningDisplayCardFields(ev))), [
-    ['Offer', 'Baggage Status'], ['Strategy', 'NBA Strategy 2 - Travel now'], ['Provider', 'AJO'], ['Rank', '1'],
-    ['Offer', 'Second'], ['Strategy', 'Second strategy'], ['Offer', 'Third'], ['Provider', 'Other'], ['Rank', '0'],
+    ['Offer', 'Baggage Status'], ['Strategy', 'NBA Strategy 2 - Travel now'],
+    ['Offer', 'Second'], ['Strategy', 'Second strategy'], ['Offer', 'Third'],
   ]);
 });
 test('missing fields are omitted and other event types remain unchanged', () => {
@@ -70,4 +70,12 @@ test('missing fields are omitted and other event types remain unchanged', () => 
   const details = sandbox.profileDrawerEvents.children[0].children[1].children[2];
   assert.equal(details.textContent, 'Offer: <img src=x onerror=alert(1)>');
   assert.equal(details.children.length, 0, 'payload values must render as text, not HTML');
+});
+test('display cards omit channel even without offer details; other cards retain their channel', () => {
+  const sandbox = context();
+  sandbox.appendDrawerEventTimelineItem(event([{ scopeDetails: { decisionProvider: 'AJO', rank: 1 } }]));
+  sandbox.appendDrawerEventTimelineItem(event([], 'web.webPageDetails.pageViews'));
+  const cards = sandbox.profileDrawerEvents.children;
+  assert.equal(cards[0].children[1].children.length, 2);
+  assert.equal(cards[1].children[1].children.at(-1).textContent, 'Web');
 });

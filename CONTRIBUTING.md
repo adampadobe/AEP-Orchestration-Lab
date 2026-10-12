@@ -905,15 +905,15 @@ Keep **`DemoProfileDrawer.init({ emailInputId: 'customerEmail', profileOpenClass
 
 After `ProfileViewerModal.mount()`, stable ids include `#profileHoverZone`, `#profileDrawer`, `#profileDrawerName`, `#profileDrawerEmail`, `#profileDrawerEvents`, identity graph nodes — see `aep-profile-drawer.js` (do not rename without updating the data layer).
 
-Last Events cards for `decisioning.propositionDisplay` show Offer, Strategy,
-Provider and Rank beneath the existing title, when present in the event's
+Last Events cards for `decisioning.propositionDisplay` show only Offer and Strategy
+beneath the existing title, when present in the event's
 already-returned `rows`. Source XDM paths are
-`_experience.decisioning.propositions[].items[].name`,
-`_experience.decisioning.propositions[].items[].itemSelection.selectionDetail.strategyName`,
-`_experience.decisioning.propositions[].scopeDetails.decisionProvider` and
-`_experience.decisioning.propositions[].scopeDetails.rank`. Multiple
+`_experience.decisioning.propositions[].items[].name` and
+`_experience.decisioning.propositions[].items[].itemSelection.selectionDetail.strategyName`. Multiple
 propositions/items remain in array order; absent fields are omitted. This
 display does not fetch profile data or resolve names through additional AEP calls.
+Provider, rank and the channel sub-line are omitted from display cards;
+other event cards retain their channel.
 
 **Pre-merge:** there is no dedicated drawer verifier yet. Before PR: ensure demo HTML has **`profileViewerModalMount`** and no inline `id="profileDrawer"` block (grep `web/profile-viewer` for `<aside class="aep-profile-drawer"` outside `shared/profile-viewer-modal.js`). Always run **`npm run verify:profile-viewer-routes`** when any `web/profile-viewer/` path changes; **`npm run sync-profile-viewer-ui`** when the Express mirror must match. One-shot migrator: `node scripts/migrate-profile-viewer-modal.mjs` (idempotent).
 
