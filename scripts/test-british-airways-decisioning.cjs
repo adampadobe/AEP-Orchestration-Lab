@@ -35,6 +35,8 @@ test('every BA control has a typed Travel schema leaf and ownership', () => {
   assert.equal(getManifestForIndustry('travel')['airlineCustomer.loyaltyTier'].type, 'string');
   assert.equal(resolveIndustryForPath('_demoemea.airlineCustomer.loyaltyTier').industry, 'travel');
   assert.equal(getManifestForIndustry('travel').travelReservations.properties.flightReservations.properties.flightDisruption.properties.disruptionType.type, 'string');
+  assert.equal(getManifestForIndustry('travel').travelReservations.properties.flightReservations.properties.bookingStatus.type, 'string');
+  assert.equal(resolveIndustryForPath('_demoemea.' + model.bookingPath).industry, 'travel');
 });
 test('full snapshots preserve siblings, industry groups and scalar types', () => {
   const snapshots = model.buildSnapshots(rows, state);
@@ -55,6 +57,18 @@ test('full snapshots preserve siblings, industry groups and scalar types', () =>
 test('missing dataflows fail; configured Travel supports a first BA write', () => {
   assert.throws(() => model.buildSnapshots([], state), /dataflow is missing/);
   assert.equal(model.buildSnapshots([], state, { generic: { writable: true }, travel: { writable: true } }).length, 2);
+});
+test('booking reads and writes the Travel field, preserves legacy journeyStage and excludes generic writes', () => {
+  const legacy = { path: '_demoemea.britishAirwaysDecisioning.journeyStage', value: 'completed', valueType: 'string', industry: 'travel', writable: true };
+  const booking = { path: '_demoemea.' + model.bookingPath, value: 'upcoming', valueType: 'string', industry: 'generic', writable: true };
+  assert.equal(model.readState([legacy]).booking, undefined);
+  assert.equal(model.readState([legacy, booking]).booking, 'upcoming');
+  const snapshots = model.buildSnapshots([...rows, legacy, booking], state);
+  const travel = snapshots.find(group => group.industry === 'travel').updates;
+  assert.equal(travel.find(row => row.path === model.bookingPath).value, 'travelling');
+  assert.equal(travel.find(row => row.path === 'britishAirwaysDecisioning.journeyStage').value, 'completed');
+  assert.ok(!snapshots.find(group => group.industry === 'generic').updates.some(row => row.path === model.bookingPath));
+  assert.ok(!model.buildSnapshots(rows, state).find(group => group.industry === 'travel').updates.some(row => row.path === 'britishAirwaysDecisioning.journeyStage'));
 });
 test('propensity writes exact 1-3 scores and converts legacy scores on Apply', () => {
   const input = rows.map(row => row.path.endsWith('propensityScore') ? { ...row, value: '45' } : row);
@@ -323,7 +337,8 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.equal(writes.length, 3);
     assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'scoring.core.propensityScore').value, 3);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
-    assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.') && !row.path.endsWith('disruptionSeverity')).length, 12);
+    assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.') && !row.path.endsWith('disruptionSeverity')).length, 11);
+    assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.bookingPath).value, 'upcoming');
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.disruptionPath).value, 'none');
     staleReadback = true;
     const beforeReadback = tableReads;

@@ -862,9 +862,14 @@ recipient and email copy refresh from the drawer without changing the live offer
 Before lookup, or when the first name is absent, the preview uses neutral wording.
 The BA profile drawer uses fresh profile-table values for airline loyalty and
 the 1-3 propensity display, matching the left-hand controls. Booking status
-shows `britishAirwaysDecisioning.journeyStage`, and flight class shows
+reads and writes `travelReservations.flightReservations.bookingStatus`, and flight class shows
 `travelReservations.flightReservations.flightClass`. Staged edits do not
 change these saved-profile values until Apply and readback.
+The booking control no longer reads or overwrites the legacy BA `journeyStage`
+field. Existing legacy values are preserved by full snapshots. The Travel
+manifest includes `bookingStatus`; if it is absent from the resolved sandbox
+schema, release Functions through the normal main workflow, then run Travel
+setup step 2 (Profile Core v2 top-up) before applying changes.
 Hero content is independent of the local scenario simulation. Scenarios, field
 edits, Apply and lookups keep the displayed image/text unchanged. Only a
 successful live decision replaces them; empty/failed responses retain the

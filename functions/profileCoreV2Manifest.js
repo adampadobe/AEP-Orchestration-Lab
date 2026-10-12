@@ -148,6 +148,7 @@ const TRAVEL_RESERVATIONS_SUBTREE = {
         },
         flightDate: DATE_LEAF('flightDate'),
         flightClass: STRING_LEAF('flightClass'),
+        bookingStatus: STRING_LEAF('bookingStatus'),
         departureCountry: STRING_LEAF('departureCountry'),
         departureAirportCode: STRING_LEAF('departureAirportCode'),
         confirmationNumber: STRING_LEAF('confirmationNumber'),

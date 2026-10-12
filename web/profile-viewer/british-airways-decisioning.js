@@ -123,6 +123,12 @@
     let disruptionField = props[tenant];
     model.disruptionPath.split('.').forEach(part => { disruptionField = disruptionField && disruptionField.properties && disruptionField.properties[part]; });
     if (!disruptionField || disruptionField.type !== 'string') throw new Error('Travel schema requires a text field at ' + model.disruptionPath);
+    let bookingField = props[tenant];
+    model.bookingPath.split('.').forEach(part => { bookingField = bookingField && bookingField.properties && bookingField.properties[part]; });
+    if (!bookingField || bookingField.type !== 'string') throw new Error('Travel schema requires a text field at ' + model.bookingPath + '. Complete Travel setup step 2 after the Functions release before applying.');
+    if (Array.isArray(bookingField.enum) && !bookingField.enum.includes(savedState.booking)) {
+      throw new Error('Booking status "' + savedState.booking + '" is not allowed by this schema. Allowed values: ' + bookingField.enum.join(', '));
+    }
     const airline = tenant && props[tenant].properties.airlineCustomer;
     if (!airline || !airline.properties || !airline.properties.loyaltyTier || airline.properties.loyaltyTier.type !== 'string') {
       throw new Error('Travel schema requires a text field at airlineCustomer.loyaltyTier. Complete Travel setup step 2 before applying.');
@@ -149,7 +155,7 @@
       const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
       const expected = groups.flatMap(group => group.updates).filter(update =>
         update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'airlineCustomer.loyaltyTier' ||
-        update.path === model.disruptionPath || update.path === 'scoring.core.propensityScore');
+        update.path === model.disruptionPath || update.path === model.bookingPath || update.path === 'scoring.core.propensityScore');
       for (const group of groups) {
         current(ctx);
         const result = await global.postProfileUpdate({
