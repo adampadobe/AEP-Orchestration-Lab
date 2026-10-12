@@ -146,6 +146,7 @@ test('display acceptance: readiness, attribution, supersession and at-most-once 
   finish();
   await accepting;
   assert.equal(successful.calls.length, 1);
+  assert.ok(successful.logs.some(args => args[0] === '[decisioning-display] Sending display event'));
   assert.equal(successful.calls[0].options.xdm.identityMap, successful.detail.identityMap);
   assert.equal(successful.calls[0].options.xdm._experience.decisioning.propositions[0].scopeDetails,
     successful.detail.appliedHero.proposition.scopeDetails);
@@ -167,6 +168,7 @@ test('display acceptance: readiness, attribution, supersession and at-most-once 
     await f.win.testApi.acceptDecision(f.detail);
     assert.equal(f.calls.length, 0);
     assert.equal(f.renders(), 0);
+    assert.ok(f.logs.some(args => args[0] === '[decisioning-display] Display skipped'));
   }
   const badImage = fixture();
   badImage.imageFails();
@@ -367,6 +369,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       window.sdkCalls = [];
       const sdk = async (command, options) => {
         window.sdkCalls.push({ command, options });
+        if (command === 'getIdentity') return { identity: { ECID: '99999999999999999999999999999999999999' } };
         if (command !== 'sendEvent' || !options.personalization?.surfaces) return {};
         return { propositions: [{
         id: 'earlier-proposition', scope: 'web://example.test#hero-banner', scopeDetails: { activity: { id: 'earlier' } },
@@ -374,7 +377,8 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       }, {
         id: 'live-proposition', scope: document.getElementById('baDecisioningFrame').src.split('?')[0].replace(/^http:\/\//, 'web://') + '#hero-banner',
         scopeDetails: { activity: { id: 'campaign' }, characteristics: { arbitrary: ['preserve', { nested: true }] } },
-        items: [{ id: 'decision-item', schema: 'https://ns.adobe.com/personalization/json-content-item', data: { imageURL: 'https://example.test/decision.jpg', title: 'Your next journey', fullDescription: 'A personalised travel offer.' } }],
+        items: [{ id: 'decision-item', schema: 'https://ns.adobe.com/personalization/html-content-item',
+          data: { content: '<img src="https://example.test/decision.jpg"><h2>Your next journey</h2><p>A personalised travel offer.</p>' } }],
       }] };
       };
       const originalRun = window.DecisioningProfileRuntime.runContentDecision;
@@ -398,13 +402,20 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     });
     assert.equal(tracked.displays.length, 1);
     assert.equal(tracked.request.personalization.sendDisplayEvent, false);
+    assert.equal(tracked.request.xdm.identityMap.Email[0].primary, true);
+    assert.deepEqual(tracked.request.xdm.identityMap.ECID, [{
+      id: '99999999999999999999999999999999999999', authenticatedState: 'ambiguous', primary: false,
+    }]);
+    assert.equal(tracked.request.xdm._demoemea.identification.core.ecid, '99999999999999999999999999999999999999');
     assert.equal(tracked.winner.id, 'live-proposition');
     assert.equal(tracked.itemId, 'decision-item');
     assert.equal(tracked.metadataUnchanged, true);
+    assert.equal(await page.evaluate(() => window.lastRun.appliedHero.target.querySelector('.cd-banner')), null);
     assert.deepEqual(tracked.displays[0].options, {
       renderDecisions: false,
       personalization: { defaultPersonalizationEnabled: false },
       xdm: { eventType: 'decisioning.propositionDisplay', identityMap: tracked.request.xdm.identityMap,
+        _demoemea: { identification: { core: { ecid: '99999999999999999999999999999999999999' } } },
         _experience: { decisioning: { propositions: [tracked.winner], propositionEventType: { display: 1 } } } },
     });
     assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.personalization?.surfaces).length), 1);
@@ -426,6 +437,32 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
         retained: retained.appliedHero, fallback: fallback.appliedHero.fallback };
     });
     assert.deepEqual(attribution, { winner: 'live-proposition', runId: 'renderer-test', sameMetadata: true, retained: null, fallback: true });
+    const validation = await page.evaluate(() => {
+      function render(content, runId, schema) {
+        const doc = document.implementation.createHTMLDocument('Validation');
+        doc.body.innerHTML = '<div id="hero-banner"></div><div id="TopRibbon"></div><div id="ContentCardContainer"></div>';
+        const proposition = { id: runId, scope: 'web://example.test#hero-banner', scopeDetails: { activity: { id: 'test' } },
+          items: [{ id: 'item', schema: schema || 'https://ns.adobe.com/personalization/html-content-item', data: { content } }] };
+        const result = window.DecisioningEdgeInject.applyDecisioningPropositions([proposition], doc, { layout: 'generic', runId });
+        const hero = doc.getElementById('hero-banner');
+        const legacyRecognised = !!hero.querySelector('.cd-banner, .TopRibbon, .TopRibbon__content, .cd-edge-ajo-card-inner, iframe, .cd-edge-rendered-ribbon');
+        const retained = window.DecisioningEdgeInject.applyDecisioningPropositions([], doc, { layout: 'generic', runId: 'retained' });
+        return { survives: !!result.appliedHero, fallback: !!result.appliedHero?.fallback,
+          exact: !!result.appliedHero && result.appliedHero.appliedNodes.every(node => doc.getElementById('hero-banner').contains(node)),
+          legacyRecognised,
+          retained: !!retained.appliedHero };
+      }
+      return {
+        bare: render('<img src="https://example.test/decision.jpg"><h2>Title</h2><p>Description</p>', 'bare'),
+        wrapper: render('<div class="cd-banner"><img src="https://example.test/decision.jpg"></div>', 'wrapper'),
+        empty: render('', 'empty'),
+        fallback: render('<img src="https://example.test/decision.jpg">', 'fallback', 'https://ns.adobe.com/personalization/default-content-item'),
+      };
+    });
+    assert.deepEqual(validation.bare, { survives: true, fallback: false, exact: true, legacyRecognised: false, retained: false });
+    assert.deepEqual(validation.wrapper, { survives: true, fallback: false, exact: true, legacyRecognised: true, retained: false });
+    assert.equal(validation.empty.survives, false);
+    assert.equal(validation.fallback.fallback, true);
     await page.evaluate(() => window.__baTest.acceptDecision({ ...window.lastRun, requestVersion: window.__baTest.getVersion() }));
     assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length), 1);
     assert.ok(tableReads > readsBeforeDecision, 'popout Run must automatically look up and verify the saved profile');
@@ -462,7 +499,8 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     }));
     assert.equal(colors.shell, colors.visual);
     await page.evaluate(() => {
-      const sdk = async () => ({ propositions: [] });
+      const sdk = async command => command === 'getIdentity'
+        ? { identity: { ECID: '99999999999999999999999999999999999999' } } : { propositions: [] };
       window.alloy = sdk;
       window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
     });
@@ -480,6 +518,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.evaluate(() => {
       const sdk = async (command, options) => {
         window.sdkCalls.push({ command, options });
+        if (command === 'getIdentity') return { identity: { ECID: '99999999999999999999999999999999999999' } };
         if (command !== 'sendEvent' || !options.personalization?.surfaces) return {};
         return { propositions: [{
         id: 'next-proposition', scope: document.getElementById('baDecisioningFrame').src.split('?')[0].replace(/^http:\/\//, 'web://') + '#hero-banner',
@@ -506,6 +545,17 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await visual.locator('#dev [data-m="web"]').click();
     await visual.locator('#dev [data-m="desktop"]').click();
     assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length), 2);
+    const missingBrowserIdentity = await page.evaluate(async () => {
+      const commands = [];
+      const sdk = async command => { commands.push(command); return {}; };
+      window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
+      try {
+        await window.DecisioningProfileRuntime.runContentDecision({ useBrowserEcid: true });
+        return { commands, error: '' };
+      } catch (error) { return { commands, error: error.message }; }
+    });
+    assert.deepEqual(missingBrowserIdentity.commands, ['getIdentity']);
+    assert.match(missingBrowserIdentity.error, /browser ECID was not returned/);
     const sharedDefault = await page.evaluate(async () => {
       const lastRunId = window.lastRun.runId;
       const sdk = async (command, options) => {

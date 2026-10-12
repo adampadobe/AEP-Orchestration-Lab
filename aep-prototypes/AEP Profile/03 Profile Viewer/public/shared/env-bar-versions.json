@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "20261012-display-tracking",
+  "manifestVersion": "20261012-browser-ecid",
   "moduleVersion": "1.1.0",
   "assets": {
     "bundleCss": "20260713e-armcom-env-bar",
@@ -32,9 +32,9 @@
     "profileStreamingShared": "20260615",
     "contentDecisionSurfaceStylesCore": "20260616",
     "contentDecisionLabConfig": "20260615",
-    "contentDecisionEdgeMounts": "20261012-display-tracking",
-    "decisioningEdgeInject": "20261012-display-tracking",
-    "decisioningProfileRuntime": "20261012-display-tracking",
+    "contentDecisionEdgeMounts": "20261012-browser-ecid",
+    "decisioningEdgeInject": "20261012-browser-ecid",
+    "decisioningProfileRuntime": "20261012-browser-ecid",
     "decisioningProfileModule": "20260617-reset-icon-toolbar",
     "decisioningSurfaceStylesPanel": "20260617-live-preview",
     "decisioningProfilePanel": "20260617-panel-editing-guard",

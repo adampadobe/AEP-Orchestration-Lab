@@ -692,9 +692,16 @@
           placement: 'hero',
           runId: opts.runId,
           newlyApplied: true,
+          appliedHtml: el.innerHTML,
+          appliedNodes: Array.prototype.slice.call(el.childNodes),
+          appliedText: el.textContent,
+          appliedImages: Array.prototype.map.call(el.querySelectorAll('img'), function (image) {
+            return { node: image, source: image.getAttribute('src') };
+          }),
           fallback: item.schema === 'https://ns.adobe.com/personalization/default-content-item',
         };
         console.log('[decisioning-display] Applied hero captured', { runId: opts.runId, propositionId: proposition.id, itemId: item.id });
+        if (typeof opts.onAppliedHero === 'function') opts.onAppliedHero(appliedResult.appliedHero);
       }
       return true;
     }

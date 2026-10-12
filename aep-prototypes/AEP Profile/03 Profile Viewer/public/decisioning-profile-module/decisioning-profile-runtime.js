@@ -498,6 +498,16 @@
       typeof global.CdEdgeMounts !== 'undefined' && typeof global.CdEdgeMounts.buildIdentityMap === 'function'
         ? global.CdEdgeMounts.buildIdentityMap(profile, idVal, ns)
         : {};
+    var browserEcid = '';
+    if (options.useBrowserEcid === true) {
+      var identityResult = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+      browserEcid = identityResult && identityResult.identity && identityResult.identity.ECID;
+      if (typeof browserEcid !== 'string' || !/^\d{10,}$/.test(browserEcid)) {
+        throw new Error('Active Web SDK browser ECID was not returned; decision request was not sent.');
+      }
+      var hasOtherIdentity = Object.keys(identityMap).some(function (namespace) { return namespace !== 'ECID'; });
+      identityMap.ECID = [{ id: browserEcid, authenticatedState: 'ambiguous', primary: !hasOtherIdentity }];
+    }
     var surfaces = buildSurfacesForPage();
     var href = resolvePersonalizationPageUrl();
     if (!href && global.location) href = stripUrlQueryHash(global.location.href);
@@ -528,6 +538,7 @@
         },
       },
     };
+    if (browserEcid) sendOpts.xdm._demoemea = { identification: { core: { ecid: browserEcid } } };
     if (options.manualHeroDisplay === true) sendOpts.personalization.sendDisplayEvent = false;
     log('sendEvent', { surfaces: surfaces.length, ns: ns });
     var result = await alloyFn('sendEvent', sendOpts);
@@ -574,6 +585,7 @@
       identityMap: identityMap,
       runId: runId,
       alloy: alloyFn,
+      browserEcid: browserEcid,
     });
   }
 

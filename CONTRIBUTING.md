@@ -831,6 +831,11 @@ keep their existing automatic-display setting. No additional offer request is
 made. The renderer returns the final successful hero writer with the original
 proposition `id`, `scope`, complete `scopeDetails`, item reference and Run ID.
 Restored/retained/default content is not a new tracked hero.
+Hero validation supports plain images/headings/paragraphs as well as the shared
+banner wrappers. Attribution must still match the current Run marker and the
+applied DOM nodes, text and image sources; layout-only style changes are allowed.
+Before/after validation and acceptance-skip diagnostics identify why a fresh
+hero did not reach the tracking sender.
 
 `acceptDecision()` waits for the image and the currently visible preview to
 be ready, then sends `decisioning.propositionDisplay` with the captured request
@@ -841,6 +846,14 @@ is attempted once, including uncertain network failures (no automatic retry).
 Preview tabs, scenarios, profile lookup and hidden channel generation do not
 send additional displays. Missing response metadata and tracking failures are
 reported explicitly; no interaction/dismiss tracking is implemented here.
+BA Run obtains the active browser ECID with the captured Alloy instance's
+`getIdentity` before requesting an offer. Email remains primary; browser ECID
+is secondary and is also sent as `_demoemea.identification.core.ecid` in both
+the offer request and display notification. Missing browser ECID blocks the
+offer request explicitly. The selected profile's stored ECID is not used for
+these BA events. Configure the existing Tags Web SDK extension's Development
+datastream as `46677fd7-9db0-4f16-898c-b424d0245c38` and rebuild its Development
+library; the application does not configure or override that datastream.
 Live Tags rules, datastream/schema compatibility, ingestion and AEP/CJA
 reporting still require runtime verification; SDK acceptance alone is not proof.
 

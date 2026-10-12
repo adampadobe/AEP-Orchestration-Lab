@@ -186,14 +186,25 @@
   async function acceptDecision(detail) {
     const appliedHero = detail.appliedHero;
     const version = detail.requestVersion;
-    if (version !== imageVersion) return;
+    function skipped(reason) {
+      console.log('[decisioning-display] Display skipped', {
+        reason, runId: detail.runId, propositionId: appliedHero && appliedHero.proposition.id,
+      });
+    }
+    if (version !== imageVersion) { skipped('Run superseded before acceptance'); return; }
     const isCurrentHero = () => version === imageVersion && appliedHero &&
       appliedHero.target === frame.contentDocument.getElementById('hero-banner') &&
       appliedHero.target.dataset.cdAppliedRunId === detail.runId;
-    const url = appliedHero && appliedHero.newlyApplied && !appliedHero.fallback &&
-      typeof detail.runId === 'string' && detail.runId &&
-      appliedHero.runId === detail.runId && isCurrentHero() ? imageFromMount() : '';
+    const failedCondition = !appliedHero ? 'No fresh applied hero attribution' :
+      !appliedHero.newlyApplied ? 'Hero was not newly applied' :
+      appliedHero.fallback ? 'Default/fallback hero' :
+      typeof detail.runId !== 'string' || !detail.runId ? 'Missing Run ID' :
+      appliedHero.runId !== detail.runId ? 'Applied hero belongs to a different Run' :
+      appliedHero.target !== frame.contentDocument.getElementById('hero-banner') ? 'Applied target is not the current hero mount' :
+      appliedHero.target.dataset.cdAppliedRunId !== detail.runId ? 'Hero mount Run marker was overwritten' : '';
+    const url = failedCondition ? '' : imageFromMount();
     if (!url) {
+      skipped(failedCondition || 'Applied hero has no extractable image URL');
       invalidateDecision('No live hero image returned. Previous hero image and text kept unchanged.');
       message('No live hero image returned. Check the hero-banner surface and the decision item image content.', true);
       return;
@@ -204,8 +215,14 @@
       image.onload = () => { clearTimeout(timeout); resolve(); };
       image.onerror = () => { clearTimeout(timeout); reject(new Error('Decision image could not be loaded. Check the decision item image URL.')); };
       image.src = url;
-    }).catch(error => { if (version === imageVersion) throw error; });
-    if (!isCurrentHero()) return;
+    }).catch(error => {
+      if (version === imageVersion) throw error;
+      skipped('Image preload failed after Run supersession');
+    });
+    if (!isCurrentHero()) {
+      skipped(version !== imageVersion ? 'Run superseded during image preload' : 'Hero target or Run marker changed during image preload');
+      return;
+    }
     const mount = frame.contentDocument.getElementById('hero-banner');
     const title = mount.querySelector('.cd-slot-title, h1, h2, h3');
     const description = mount.querySelector('.cd-slot-desc, p');
@@ -217,7 +234,10 @@
       throw new Error('Hero preview did not provide render confirmation; display tracking was not sent.');
     }
     await previewReady;
-    if (!isCurrentHero()) return;
+    if (!isCurrentHero()) {
+      skipped(version !== imageVersion ? 'Run superseded during preview readiness' : 'Hero target or Run marker changed during preview readiness');
+      return;
+    }
     console.log('[decisioning-display] Preview confirmed visible', { runId: detail.runId, propositionId: appliedHero.proposition.id });
     message('Live hero image, title and description applied to the web/email/mobile previews. Ranking remains local simulation.');
     const proposition = appliedHero.proposition;
@@ -233,12 +253,21 @@
       }
       // Reserve before sending: an uncertain network failure must not trigger a duplicate retry.
       displayAttempts.add(displayKey);
+      const capturedIdentityMap = detail.identityMap;
+      console.log('[decisioning-display] Sending display event', {
+        runId: detail.runId,
+        propositionId: appliedHero.proposition.id,
+        scope: appliedHero.proposition.scope,
+        itemId: appliedHero.itemId || null,
+        identityMap: capturedIdentityMap,
+      });
       await detail.alloy('sendEvent', {
         renderDecisions: false,
         personalization: { defaultPersonalizationEnabled: false },
         xdm: {
           eventType: 'decisioning.propositionDisplay',
           identityMap: detail.identityMap,
+          ...(detail.browserEcid ? { _demoemea: { identification: { core: { ecid: detail.browserEcid } } } } : {}),
           _experience: {
             decisioning: {
               propositions: [{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails }],
@@ -265,7 +294,7 @@
     invalidateDecision('Live decision in progress. Displayed hero unchanged until new content is ready.');
     const requestVersion = imageVersion;
     try {
-      const result = await global.DecisioningProfileRuntime.runContentDecision({ manualHeroDisplay: true });
+      const result = await global.DecisioningProfileRuntime.runContentDecision({ manualHeroDisplay: true, useBrowserEcid: true });
       current(ctx);
       await acceptDecision({ ...result, requestVersion });
     } catch (error) {

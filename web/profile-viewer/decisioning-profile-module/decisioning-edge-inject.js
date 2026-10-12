@@ -371,9 +371,16 @@
 
   function mountHasRenderedContent(el) {
     if (!el || el.matches(':empty')) return false;
-    return !!el.querySelector(
+    if (el.querySelector(
       '.cd-banner, .TopRibbon, .TopRibbon__content, .cd-edge-ajo-card-inner, iframe, .cd-edge-rendered-ribbon',
-    );
+    )) return true;
+    if (el.id !== FRAGMENTS.hero || !el.dataset.cdAppliedRunId) return false;
+    return Array.prototype.some.call(el.querySelectorAll('img[src]'), function (image) {
+      return !!image.getAttribute('src').trim();
+    }) ||
+      Array.prototype.some.call(el.querySelectorAll('h1, h2, h3, p'), function (node) {
+        return !!node.textContent.trim();
+      }) || (!el.children.length && /^https?:\/\/\S+$/i.test(el.textContent.trim()));
   }
 
   var mountSnapshotStore = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
@@ -1262,6 +1269,7 @@
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
       runId: opts.runId,
+      onAppliedHero: opts.onAppliedHero,
     });
     normalizeTopRibbonMount(mount);
     lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
@@ -1298,16 +1306,21 @@
     ensureDecisioningMounts(scopeRoot, opts.layout);
     captureMountSnapshotsIfNeeded(scopeRoot);
 
+    var appliedResult = { appliedHero: null };
+    opts = Object.assign({}, opts, {
+      onAppliedHero: function (hero) { appliedResult.appliedHero = hero; },
+    });
     applyTopRibbonFromPropositions(propositions, scopeRoot, opts);
 
     if (typeof global.CdEdgeMounts === 'undefined' || typeof global.CdEdgeMounts.applyPropositionsManually !== 'function') {
       return false;
     }
 
-    var appliedResult = global.CdEdgeMounts.applyPropositionsManually(propositions, {
+    global.CdEdgeMounts.applyPropositionsManually(propositions, {
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
       runId: opts.runId,
+      onAppliedHero: opts.onAppliedHero,
     });
 
     applyTopRibbonFromPropositions(propositions, scopeRoot, opts);
@@ -1322,8 +1335,27 @@
     if (opts.surfaceStyles) applySurfaceStyles(scopeRoot, opts.surfaceStyles);
     normalizeSkyHomeDecisionLayouts(scopeRoot, opts.layout, opts.surfaceStyles);
     normalizeGenericDecisionLayouts(scopeRoot, opts.layout);
-    if (appliedResult.appliedHero && !mountHasRenderedContent(appliedResult.appliedHero.target)) {
-      appliedResult.appliedHero = null;
+    if (appliedResult.appliedHero) {
+      var hero = appliedResult.appliedHero;
+      var target = hero.target;
+      var diagnostic = {
+        runId: opts.runId, propositionId: hero.proposition.id,
+        targetMount: target.id, innerHtmlSummary: target.innerHTML.slice(0, 240),
+        childCount: target.childElementCount,
+      };
+      console.log('[decisioning-display] Before hero render validation', Object.assign({}, diagnostic, { appliedHero: hero }));
+      var rendered = mountHasRenderedContent(target);
+      var currentContent = hero.newlyApplied && hero.runId === opts.runId &&
+        target.dataset.cdAppliedRunId === opts.runId && target.textContent === hero.appliedText &&
+        hero.appliedNodes.every(function (node) { return target.contains(node); }) &&
+        hero.appliedImages.every(function (image) {
+          return target.contains(image.node) && image.node.getAttribute('src') === image.source;
+        });
+      if (!rendered || !currentContent) appliedResult.appliedHero = null;
+      console.log('[decisioning-display] After hero render validation', Object.assign({}, diagnostic, {
+        mountHasRenderedContent: rendered, currentRunContentMatches: !!currentContent,
+        appliedHero: appliedResult.appliedHero,
+      }));
     }
     lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
     markHeroHasDecision(scopeRoot);
