@@ -9,25 +9,31 @@ Eighteen MCP connections: the complete General catalog plus seventeen focused ca
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `aep-lab-general` | `/mcp` | Complete 212-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, geo insights, and administration |
+| `lab-all` | `/mcp` | Complete 212-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, geo insights, and administration |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
 | `aep-lab-pdf-prep` | `/mcp/pdf` | HTML/document to PDF, storage, server templates |
 | `aep-lab-audiences` | `/mcp/audiences` | Governed audience list/audit/delete |
-| `aep-lab-decisioning` | `/mcp/decisioning` | Edge decision evaluation, catalog management, and governed bulk migration |
+| `lab-dps` | `/mcp/decisioning` | Edge decision evaluation, catalog management, governed bulk migration, and job polling |
 | `aep-lab-ajo-cleanup` | `/mcp/ajo-cleanup` | Governed AJO journey/campaign list/audit/delete |
 | `aep-lab-command-centre` | `/mcp/command-centre` | Your own Command Centre engagements, tasks, meetings |
 | `aep-lab-weather` | `/mcp/weather` | Live weather + Google Maps for demo scenarios |
 | `aep-lab-geo-insights` | `/mcp/geo-insights` | AEP audience geo-hotspots with live weather context; aggregate-only, k=10 suppression |
 | `aep-lab-commerce` | `/mcp/commerce` | Governed ACCS storefront preparation: products, attributes, categories, assignments, inventory, media, GraphQL discovery, preview/apply, and audited deletion |
-| `aep-lab-commerce-optimizer` | `/mcp/commerce-optimizer` | ACO storefront reads plus confirmation-gated products, metadata, categories, price books, prices, and product-layer ingestion |
+| `lab-aco` | `/mcp/commerce-optimizer` | ACO storefront reads plus confirmation-gated products, metadata, categories, price books, prices, and product-layer ingestion |
 | `aep-lab-firefly` | `/mcp/firefly` | Governed Firefly image, video, Text to Speech, transcription/captions, dubbing/lip sync, and shared async status |
 | `aep-lab-creativity` | `/mcp/creativity` | Governed Photoshop v2 Lightroom-style edits, InDesign data merge, Substance 3D render, Express variations, Illustrator Image Trace, and shared status |
 | `aep-lab-adobe-capabilities` | `/mcp/adobe-capabilities` | Read-only 35-service scope catalog plus bounded AJO suppression and GenStudio Experience probes |
 | `aep-lab-measurement-quality` | `/mcp/measurement-quality` | Read-only Assurance metadata, Tags property/environment audit, and Adobe Status incident correlation |
 | `aep-lab-figma` | `/mcp/figma` | Figma files, node structure, design context, renders, components, styles, variables, and comments via a server-held Figma token (no Figma OAuth in Coworker) |
 
-Use a focused connection for ordinary tasks and `aep-lab-general` when a required advanced tool is not present there. General overlaps with the focused connections, but ensures the marketplace exposes the complete Lab catalog.
+Use a focused connection for ordinary tasks and `lab-all` when a required advanced tool is not present there. General overlaps with the focused connections, but ensures the marketplace exposes the complete Lab catalog.
+
+## Upgrading to plugin 1.9.0
+
+The Coworker connection names for General, Decisioning, and Commerce Optimizer are now `lab-all`, `lab-dps`, and `lab-aco`. Their endpoints and tool names are unchanged. The old names made `<connection>__<tool>` exceed a 64-character callable-name budget for offer-eligibility preview and five Optimizer tools (attribute metadata plus the four ingestion lifecycle tools), matching the observed Coworker omissions. The shorter names also leave room for an additional `mcp__` namespace. Claude/API-key configuration names and the execution framework's context IDs remain unchanged; the directory supplies `coworkerConnectionName` for these three contexts.
+
+Refresh the marketplace and update the plugin (or reinstall it if Coworker retains the old connections). Remove or disconnect the three old named connections, then start a new chat using the new names. A new chat alone cannot update an old installed manifest. Confirm discovery shows General 212 tools, Commerce Optimizer 15, and Decisioning 24 after the server's job-polling update is released. Do not paste a Portal key or change IMS settings to resolve tool discovery.
 
 ## Setup: signed-in Adobe IMS
 

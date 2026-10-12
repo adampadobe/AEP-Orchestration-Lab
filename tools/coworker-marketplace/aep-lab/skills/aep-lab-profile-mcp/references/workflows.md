@@ -2,7 +2,7 @@
 
 Detailed numbered workflows and copy-ready example Coworker prompts, referenced from the parent `SKILL.md`. Load this file when a task matches one of the areas below.
 
-Some advanced workflows use tools available only on the installed `aep-lab-general` integration. If a named tool is not present in a focused integration, use General instead of relying on dynamic tool loading in Coworker.
+Some advanced workflows use tools available only on the installed General integration (`lab-all` in Coworker plugin 1.9.0; `aep-lab-general` in Claude/API-key configuration). If a named tool is not present in a focused integration, use General instead of relying on dynamic tool loading in Coworker.
 
 ## Workflow 0c — Prepare the user-scoped RTDB for a customer demo
 
