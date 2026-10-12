@@ -17,6 +17,10 @@
   let targets = [];
   let tags;
   function visualiser() { return frame.contentWindow && frame.contentWindow.BaDecisioningVisualiser; }
+  function syncPreviewRecipient(profile) {
+    const api = visualiser();
+    if (api) api.setRecipientFirstName(profile && profile.firstName);
+  }
   function context() {
     return {
       sandbox: global.AepGlobalSandbox.getSandboxName(),
@@ -54,6 +58,7 @@
   }
   function invalidate() {
     loaded = null; loadedKey = ''; controlBaseline = null; dirty = false; pendingVerification = null;
+    syncPreviewRecipient(null);
     invalidateDecision('Profile or sandbox changed. Displayed hero is from the previous context; run a new live decision to replace it.');
     message('Look up the selected test profile before applying changes.');
   }
@@ -81,6 +86,7 @@
       const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false });
       current(ctx);
       if (!ok) throw new Error('Profile table loaded, but the profile drawer could not be refreshed.');
+      syncPreviewRecipient(global.DemoProfileDrawer.getLastLookedUpProfile());
       if (tags) await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
       message(ready ? 'Profile loaded. Control changes are staged until Apply.' : 'AEP readback is still pending. Click Run again after ingestion (typically 30-60 seconds).');
       return ready;
@@ -344,6 +350,7 @@
     document.getElementById(prefix + 'Ns').addEventListener('change', invalidate);
     global.addEventListener('aep-global-sandbox-change', invalidate);
     global.addEventListener('aep-profile-drawer-loaded', () => {
+      syncPreviewRecipient(global.DemoProfileDrawer.getLastLookedUpProfile());
       if (busy || dirty || pendingVerification || !loaded || loadedKey !== key(context())) return;
       const profile = global.DemoProfileDrawer.getLastLookedUpProfile();
       if (!profile || !visualiser()) return;

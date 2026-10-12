@@ -368,10 +368,10 @@
     </section>
     <div class="gutter" id="gut1" role="separator" aria-orientation="vertical" aria-label="Resize the preview panel (arrow keys; double-click to reset)" tabindex="0" title="Drag to resize · double-click to reset"><i></i></div>
 
-    <!-- ③ what Marcus sees: email desktop / email mobile / web -->
+    <!-- ③ recipient preview: email desktop / email mobile / web -->
     <aside class="pane mail" aria-label="Channel preview">
       <div class="mail-bar">
-        <h2 class="mail-label">③ What Marcus sees</h2>
+        <h2 class="mail-label" id="recipientPreviewHeading">③ What the customer sees</h2>
         <div class="mb-right">
           <div class="dev" id="dev" role="group" aria-label="Channel preview">
             <button type="button" class="active" data-m="desktop" aria-pressed="true">Email · Desktop</button>
@@ -488,7 +488,7 @@
   'use strict';
 
   var CAP = 3;                 // frequency cap: marketing messages per 7 days
-  var FIRST_NAME = 'Marcus';   // preview recipient
+  var FIRST_NAME = 'there';
 
   /* ═══════════════════════════ 1. SIGNALS (controls) ═══════════════════════════ */
   var DEFAULT = {
@@ -637,7 +637,7 @@
   }
 
   /* ═══════════════════════════ 4. NBAs: eligibility, ranking inputs, EMAIL CREATIVE ═══════════════════════════
-     {FIRST} in any email text becomes "Marcus" in the preview and the AJO first-name token in the export. */
+     {FIRST} uses the selected profile's first name in the preview and the AJO first-name token in the export. */
   function E(subject, pre, eyebrow, headline, body, offerLabel, offerValue, offerDetail, cta, link2) {
     return { subject: subject, pre: pre, eyebrow: eyebrow, headline: headline, body: body,
              offer: { label: offerLabel, value: offerValue, detail: offerDetail }, cta: cta, link2: link2 };
@@ -1078,7 +1078,7 @@
   var FONT = "font-family:Arial,Helvetica,sans-serif;";
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  function sub(s, first) { return esc(s).split('{FIRST}').join(first); }
+  function sub(s, first) { return esc(s).split('{FIRST}').join(esc(first)); }
 
   function footerRow(svc) {
     var link = '<a href="#" style="color:#6b7589;text-decoration:underline;">';
@@ -1101,7 +1101,7 @@
     var h = '';
     h += '<tr><td style="padding:0;font-size:0;line-height:0;overflow:hidden;"><img class="email-hero" src="' + o.src(im.file) + '" width="600" height="277" alt="' + esc(im.alt) + '" style="display:block;width:100%;max-width:600px;height:277px;object-fit:cover;object-position:center;border:0;"></td></tr>\n';
     h += '<tr><td class="px" style="padding:30px 36px 6px 36px;' + FONT + '">' +
-         '<p style="margin:0 0 14px 0;font-size:15px;line-height:22px;color:#5b6475;">Hi ' + o.first + ',</p>' +
+         '<p style="margin:0 0 14px 0;font-size:15px;line-height:22px;color:#5b6475;">Hi ' + esc(o.first) + ',</p>' +
          '<p style="margin:0 0 6px 0;font-size:12px;line-height:16px;letter-spacing:1.5px;text-transform:uppercase;font-weight:bold;color:' + acc + ';">' + sub(e.eyebrow, o.first) + '</p>' +
          '<h1 class="h1" style="margin:0 0 14px 0;font-size:28px;line-height:34px;font-weight:normal;color:' + NAVY + ';">' + (o.liveCopy && o.liveCopy.title ? esc(o.liveCopy.title) : sub(e.headline, o.first)) + '</h1>' +
          '<p class="email-description" style="margin:0;font-size:16px;line-height:24px;color:#3b4558;">' + (o.liveCopy && o.liveCopy.description ? esc(o.liveCopy.description) : sub(e.body, o.first)) + '</p>' +
@@ -1160,7 +1160,7 @@
 
   function emailNbas() { return NBAS.filter(function (n) { return n.email; }); }
 
-  /* live preview + per-NBA static file: first name = Marcus */
+  /* Live preview and static files use the selected recipient. */
   function buildStatic(n, srcFn, liveCopy) {
     var o = { first: FIRST_NAME, src: srcFn, liveCopy: liveCopy, title: sub(n.email.subject, FIRST_NAME), pre: sub(n.email.pre, FIRST_NAME) };
     return emailDoc(variantRows(n, o), o);
@@ -1389,14 +1389,14 @@
       if (view === 'web') rows = '<div class="mm-row"><span class="mm-k">Page</span><span class="mm-v">britishairways.com · home page</span></div>' +
         '<div class="mm-row"><span class="mm-k">Placement</span><span class="mm-v">Hero banner</span></div>' +
         '<div class="mm-row"><span class="mm-k">Headline</span><span class="mm-v subject">' + BANNERS[n.id].title + '</span></div>';
-      else rows = '<div class="mm-row"><span class="mm-k">To</span><span class="mm-v">' + FIRST_NAME + '</span></div>' +
+      else rows = '<div class="mm-row"><span class="mm-k">To</span><span class="mm-v">' + esc(FIRST_NAME) + '</span></div>' +
         '<div class="mm-row"><span class="mm-k">Subject</span><span class="mm-v subject">' + sub(n.email.subject, FIRST_NAME) + '</span></div>' +
         '<div class="mm-row"><span class="mm-k">Preheader</span><span class="mm-v">' + sub(n.email.pre, FIRST_NAME) + '</span></div>';
     } else {
       chips = '<span class="chip s">Do nothing</span>';
       rows = view === 'web'
         ? '<div class="mm-row"><span class="mm-k">Page</span><span class="mm-v">britishairways.com · home page</span></div><div class="mm-row"><span class="mm-k">Headline</span><span class="mm-v">Default page content</span></div>'
-        : '<div class="mm-row"><span class="mm-k">To</span><span class="mm-v">' + FIRST_NAME + '</span></div><div class="mm-row"><span class="mm-k">Subject</span><span class="mm-v">—</span></div>';
+        : '<div class="mm-row"><span class="mm-k">To</span><span class="mm-v">' + esc(FIRST_NAME) + '</span></div><div class="mm-row"><span class="mm-k">Subject</span><span class="mm-v">—</span></div>';
     }
     metaEl.innerHTML = rows + '<div class="mm-chips">' + chips + '</div>';
   }
@@ -1408,7 +1408,7 @@
     var web = view === 'web';
     if (res.served) { if (shownEmail !== res.served.n.id) { shownEmail = res.served.n.id; frame.srcdoc = buildPreview(res.served.n); } }
     else shownEmail = null;
-    $('mailEmptyWhy').textContent = noneReason(res) + ' Marcus receives nothing.';
+    $('mailEmptyWhy').textContent = noneReason(res) + ' ' + (FIRST_NAME === 'there' ? 'The customer' : FIRST_NAME) + ' receives nothing.';
     frame.style.display = (!web && res.served) ? '' : 'none';
     emptyEl.classList.toggle('on', !web && !res.served);
     webStage.hidden = !web;
@@ -1459,6 +1459,14 @@
 
   window.BaDecisioningVisualiser = {
     getState: function () { return Object.assign({}, state); },
+    setRecipientFirstName: function (name) {
+      var first = typeof name === 'string' ? name.trim() : '';
+      $('recipientPreviewHeading').textContent = '③ What ' + (first || 'the customer') + ' sees';
+      if (FIRST_NAME === (first || 'there')) return;
+      FIRST_NAME = first || 'there';
+      shownEmail = null;
+      update();
+    },
     setState: function (values) {
       Object.keys(ctlEls).forEach(function (key) {
         if (!Object.prototype.hasOwnProperty.call(values, key)) return;

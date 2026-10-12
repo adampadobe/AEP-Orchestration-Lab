@@ -250,7 +250,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
         };
       }
       if (url.pathname === '/api/profile/consent') data = {
-        found: true, email: 'ba+09102026-1@adobetest.com', firstName: 'Marcus',
+        found: true, email: 'ba+09102026-1@adobetest.com', firstName: 'Alex & Sam',
         ecid: '12345678901234567890123456789012345678',
       };
       if (url.pathname === '/api/aep') data = {
@@ -280,7 +280,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       const doc = document.getElementById('baDecisioningFrame').contentDocument;
       return { image: doc.querySelector('.wb-bg.on').src, text: doc.getElementById('wbInner').innerHTML, email: doc.getElementById('mailFrame').srcdoc };
     });
-    const defaultHero = await displayedHero();
+    let defaultHero = await displayedHero();
     assert.ok(defaultHero.image.endsWith('/british-airways-decisioning-hero.png'));
     assert.equal(await page.locator('.spectrum-env-card--bc').count(), 0);
     assert.equal(await page.locator('#siteCloneBcDatastreamId').count(), 0);
@@ -295,6 +295,15 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     });
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
     await page.evaluate(() => { window.envBar.closeOverlay(); window.ProfileViewerModal.close(); });
+    assert.equal(await visual.locator('#recipientPreviewHeading').textContent(), '③ What Alex & Sam sees');
+    await visual.locator('#dev button[data-m="desktop"]').click();
+    assert.ok((await visual.locator('#mailMeta').innerText()).includes('Alex & Sam'));
+    assert.ok((await visual.frameLocator('#mailFrame').locator('body').innerText()).includes('Alex & Sam'));
+    assert.equal(await visual.frameLocator('#mailFrame').locator('script').count(), 0);
+    const personalisedHero = await displayedHero();
+    assert.equal(personalisedHero.image, defaultHero.image, 'recipient lookup must not change the hero image');
+    assert.equal(personalisedHero.text, defaultHero.text, 'recipient lookup must not change the live offer copy');
+    defaultHero = personalisedHero;
     const propensityControl = visual.locator('.toggle-pill[aria-label="Propensity (ML)"]');
     assert.deepEqual(await propensityControl.locator('[data-v]').allTextContents(), ['1', '2', '3']);
     await propensityControl.locator('[data-v="3"]').click();

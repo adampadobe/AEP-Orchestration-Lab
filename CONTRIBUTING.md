@@ -844,6 +844,9 @@ reported explicitly; no interaction/dismiss tracking is implemented here.
 Live Tags rules, datastream/schema compatibility, ingestion and AEP/CJA
 reporting still require runtime verification; SDK acceptance alone is not proof.
 
+The BA preview uses the profile drawer's first name (`person.name.firstName`). The preview heading,
+recipient and email copy refresh from the drawer without changing the live offer.
+Before lookup, or when the first name is absent, the preview uses neutral wording.
 The BA profile drawer uses fresh profile-table values for airline loyalty and
 the 1-3 propensity display, matching the left-hand controls. Booking status
 shows `britishAirwaysDecisioning.journeyStage`, and flight class shows
