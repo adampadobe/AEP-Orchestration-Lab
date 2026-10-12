@@ -823,6 +823,27 @@ Both Run buttons first look up the selected profile and verify saved values,
 then use the same runtime and hero mount. Unapplied changes block Run; if AEP
 still has the previous values, wait for ingestion and click Run again.
 
+BA Run owns manual hero display reporting. Its existing proposition request
+uses `personalization.sendDisplayEvent: false`; this suppresses automatic
+display reporting for the whole BA request, including ribbon/content-card
+placements, which are intentionally not measured in this demo. Other callers
+keep their existing automatic-display setting. No additional offer request is
+made. The renderer returns the final successful hero writer with the original
+proposition `id`, `scope`, complete `scopeDetails`, item reference and Run ID.
+Restored/retained/default content is not a new tracked hero.
+
+`acceptDecision()` waits for the image and the currently visible preview to
+be ready, then sends `decisioning.propositionDisplay` with the captured request
+`xdm.identityMap`, `_experience.decisioning.propositions` and
+`propositionEventType.display: 1`. The tracking-only event disables rendering
+and default personalization and has no surfaces/scopes. Each Run/proposition/item
+is attempted once, including uncertain network failures (no automatic retry).
+Preview tabs, scenarios, profile lookup and hidden channel generation do not
+send additional displays. Missing response metadata and tracking failures are
+reported explicitly; no interaction/dismiss tracking is implemented here.
+Live Tags rules, datastream/schema compatibility, ingestion and AEP/CJA
+reporting still require runtime verification; SDK acceptance alone is not proof.
+
 The BA profile drawer uses fresh profile-table values for airline loyalty and
 the 1-3 propensity display, matching the left-hand controls. Booking status
 shows `britishAirwaysDecisioning.journeyStage`, and flight class shows

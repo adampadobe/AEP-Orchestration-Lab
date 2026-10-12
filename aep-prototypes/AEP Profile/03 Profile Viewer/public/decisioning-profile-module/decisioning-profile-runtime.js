@@ -15,6 +15,7 @@
   var labConfigLoadPromise = null;
   var autoLookupInFlight = null;
   var autoLookupLastKey = '';
+  var runSequence = 0;
 
   function lookupIdentityKey() {
     var idVal =
@@ -421,15 +422,16 @@
     return inject.hasMountSnapshots(doc);
   }
 
-  function applyPropositionsToIframe(propositions) {
+  function applyPropositionsToIframe(propositions, runId) {
     var iframeDoc = getIframeDoc();
     if (!iframeDoc) return;
     var inject = global.DecisioningEdgeInject;
     if (!inject) return;
     var layout = mountLayout();
-    inject.applyDecisioningPropositions(propositions, iframeDoc, {
+    return inject.applyDecisioningPropositions(propositions, iframeDoc, {
       layout: layout,
       surfaceStyles: labConfigRecord && labConfigRecord.surfaceStyles,
+      runId: runId,
     });
   }
 
@@ -464,7 +466,11 @@
     }
   }
 
-  async function runContentDecision() {
+  async function runContentDecision(options) {
+    options = options || {};
+    var runId = global.crypto && typeof global.crypto.randomUUID === 'function'
+      ? global.crypto.randomUUID()
+      : Date.now() + '-' + (++runSequence) + '-' + Math.random().toString(36).slice(2);
     if (!isEnabled()) throw new Error('Decisioning is disabled.');
     await ensureLabConfigLoaded();
     ensureMounts();
@@ -522,6 +528,7 @@
         },
       },
     };
+    if (options.manualHeroDisplay === true) sendOpts.personalization.sendDisplayEvent = false;
     log('sendEvent', { surfaces: surfaces.length, ns: ns });
     var result = await alloyFn('sendEvent', sendOpts);
     var propositions = (result && (result.propositions || result.decisions)) || [];
@@ -530,7 +537,11 @@
     } catch (e) {
       log('applyPropositions', String(e && e.message ? e.message : e));
     }
-    applyPropositionsToIframe(propositions);
+    var appliedResult = applyPropositionsToIframe(propositions, runId);
+    var appliedHero = appliedResult && appliedResult.appliedHero || null;
+    if (appliedHero) {
+      log('Final winning proposition selected', { runId: runId, propositionId: appliedHero.proposition.id, itemId: appliedHero.itemId });
+    }
     var appliedMounts = countAppliedMounts(getIframeDoc());
     var appliedCount = propositions.length;
     var autoRestored =
@@ -559,6 +570,10 @@
       autoRestored: autoRestored,
       personalizationPageUrl: href,
       surfaces: surfaces,
+      appliedHero: appliedHero,
+      identityMap: identityMap,
+      runId: runId,
+      alloy: alloyFn,
     });
   }
 

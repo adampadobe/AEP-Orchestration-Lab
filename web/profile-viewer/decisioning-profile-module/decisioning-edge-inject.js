@@ -1261,6 +1261,7 @@
     global.CdEdgeMounts.applyPropositionsManually(propositions, {
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
+      runId: opts.runId,
     });
     normalizeTopRibbonMount(mount);
     lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
@@ -1303,9 +1304,10 @@
       return false;
     }
 
-    global.CdEdgeMounts.applyPropositionsManually(propositions, {
+    var appliedResult = global.CdEdgeMounts.applyPropositionsManually(propositions, {
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
+      runId: opts.runId,
     });
 
     applyTopRibbonFromPropositions(propositions, scopeRoot, opts);
@@ -1320,9 +1322,12 @@
     if (opts.surfaceStyles) applySurfaceStyles(scopeRoot, opts.surfaceStyles);
     normalizeSkyHomeDecisionLayouts(scopeRoot, opts.layout, opts.surfaceStyles);
     normalizeGenericDecisionLayouts(scopeRoot, opts.layout);
+    if (appliedResult.appliedHero && !mountHasRenderedContent(appliedResult.appliedHero.target)) {
+      appliedResult.appliedHero = null;
+    }
     lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
     markHeroHasDecision(scopeRoot);
-    return true;
+    return appliedResult;
   }
 
   global.DecisioningEdgeInject = {

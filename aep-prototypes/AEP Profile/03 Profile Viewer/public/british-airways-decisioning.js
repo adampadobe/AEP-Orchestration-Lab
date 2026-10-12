@@ -13,6 +13,7 @@
   let busy = false;
   let pendingVerification = null;
   let imageVersion = 0;
+  const displayAttempts = new Set();
   let targets = [];
   let tags;
   function visualiser() { return frame.contentWindow && frame.contentWindow.BaDecisioningVisualiser; }
@@ -177,14 +178,20 @@
     return url.href;
   }
   async function acceptDecision(detail) {
-    if (detail.propositionCount == null) return;
-    const url = detail.propositionCount > 0 && detail.appliedMounts && detail.appliedMounts.hero ? imageFromMount() : '';
+    const appliedHero = detail.appliedHero;
+    const version = detail.requestVersion;
+    if (version !== imageVersion) return;
+    const isCurrentHero = () => version === imageVersion && appliedHero &&
+      appliedHero.target === frame.contentDocument.getElementById('hero-banner') &&
+      appliedHero.target.dataset.cdAppliedRunId === detail.runId;
+    const url = appliedHero && appliedHero.newlyApplied && !appliedHero.fallback &&
+      typeof detail.runId === 'string' && detail.runId &&
+      appliedHero.runId === detail.runId && isCurrentHero() ? imageFromMount() : '';
     if (!url) {
       invalidateDecision('No live hero image returned. Previous hero image and text kept unchanged.');
       message('No live hero image returned. Check the hero-banner surface and the decision item image content.', true);
       return;
     }
-    const version = ++imageVersion;
     await new Promise((resolve, reject) => {
       const image = new Image();
       const timeout = setTimeout(() => { image.onload = image.onerror = null; reject(new Error('Decision image did not load within 10 seconds.')); }, 10000);
@@ -192,15 +199,53 @@
       image.onerror = () => { clearTimeout(timeout); reject(new Error('Decision image could not be loaded. Check the decision item image URL.')); };
       image.src = url;
     }).catch(error => { if (version === imageVersion) throw error; });
-    if (version !== imageVersion) return;
+    if (!isCurrentHero()) return;
     const mount = frame.contentDocument.getElementById('hero-banner');
     const title = mount.querySelector('.cd-slot-title, h1, h2, h3');
     const description = mount.querySelector('.cd-slot-desc, p');
-    visualiser().setDecisionImage(url, undefined, {
+    const previewReady = visualiser().setDecisionImage(url, undefined, {
       title: title ? title.textContent.trim() : '',
       description: description ? description.textContent.trim() : '',
     });
+    if (!previewReady || typeof previewReady.then !== 'function') {
+      throw new Error('Hero preview did not provide render confirmation; display tracking was not sent.');
+    }
+    await previewReady;
+    if (!isCurrentHero()) return;
+    console.log('[decisioning-display] Preview confirmed visible', { runId: detail.runId, propositionId: appliedHero.proposition.id });
     message('Live hero image, title and description applied to the web/email/mobile previews. Ranking remains local simulation.');
+    const proposition = appliedHero.proposition;
+    const displayKey = JSON.stringify([detail.runId, proposition.id, appliedHero.itemId || appliedHero.itemIndex]);
+    if (displayAttempts.has(displayKey)) {
+      console.log('[decisioning-display] Duplicate display prevented', { runId: detail.runId, propositionId: proposition.id, itemId: appliedHero.itemId });
+      return;
+    }
+    try {
+      if (!proposition.id || !proposition.scope || !proposition.scopeDetails ||
+        typeof proposition.scopeDetails !== 'object' || !detail.identityMap || typeof detail.alloy !== 'function') {
+        throw new Error('Hero displayed, but original proposition metadata or request identity is missing; display tracking was not sent.');
+      }
+      // Reserve before sending: an uncertain network failure must not trigger a duplicate retry.
+      displayAttempts.add(displayKey);
+      await detail.alloy('sendEvent', {
+        renderDecisions: false,
+        personalization: { defaultPersonalizationEnabled: false },
+        xdm: {
+          eventType: 'decisioning.propositionDisplay',
+          identityMap: detail.identityMap,
+          _experience: {
+            decisioning: {
+              propositions: [{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails }],
+              propositionEventType: { display: 1 },
+            },
+          },
+        },
+      });
+      console.log('[decisioning-display] Display event sent', { runId: detail.runId, propositionId: proposition.id, itemId: appliedHero.itemId });
+    } catch (error) {
+      console.error('[decisioning-display] Display event failure', error.message);
+      message('Hero displayed, but display tracking failed: ' + error.message, true);
+    }
   }
   async function decide() {
     if (busy) return;
@@ -212,10 +257,11 @@
     }
     busy = true; message('Evaluating the live hero-banner surface...');
     invalidateDecision('Live decision in progress. Displayed hero unchanged until new content is ready.');
+    const requestVersion = imageVersion;
     try {
-      const result = await global.DecisioningProfileRuntime.runContentDecision();
+      const result = await global.DecisioningProfileRuntime.runContentDecision({ manualHeroDisplay: true });
       current(ctx);
-      await acceptDecision({ propositionCount: result.propositions.length, appliedMounts: result.appliedMounts });
+      await acceptDecision({ ...result, requestVersion });
     } catch (error) {
       invalidateDecision('Live decision failed. Previous hero image and text kept unchanged.');
       message(error.message, true);

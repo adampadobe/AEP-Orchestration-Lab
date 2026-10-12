@@ -1429,6 +1429,34 @@
     renderLadder(res); renderNbas(res); renderServing(res); renderGuards(res); renderChannel(res);
   }
 
+  function confirmDecisionPreview(url, copy) {
+    return new Promise(function (resolve, reject) {
+      var deadline = Date.now() + 10000;
+      function check() {
+        if (decisionImage !== url || decisionCopy !== copy) {
+          reject(new Error('Hero preview was superseded.'));
+          return;
+        }
+        var web = view === 'web';
+        var doc = web ? document : frame.contentDocument;
+        var image = doc && doc.querySelector(web ? '.wb-bg.on' : '.email-hero');
+        var content = web ? wbInner : doc && doc.body;
+        var host = window.frameElement;
+        var ready = image && image.src === new URL(url, location.href).href &&
+          image.complete && image.naturalWidth > 0 && image.getBoundingClientRect().height > 0 &&
+          (web || frame.getBoundingClientRect().height > 0) &&
+          (!host || host.getBoundingClientRect().height > 0) &&
+          content && content.textContent.includes(copy.title || '') &&
+          content.textContent.includes(copy.description || '') &&
+          document.visibilityState === 'visible';
+        if (ready) { resolve(); return; }
+        if (Date.now() >= deadline) { reject(new Error('Visible hero preview was not ready within 10 seconds.')); return; }
+        setTimeout(check, 50);
+      }
+      check();
+    });
+  }
+
   window.BaDecisioningVisualiser = {
     getState: function () { return Object.assign({}, state); },
     setState: function (values) {
@@ -1455,6 +1483,7 @@
         ? 'Live Edge decision image and text. Ranking remains a local simulation. Email/mobile are previews only.'
         : 'Default hero content. Run a live decision to update the image and text.');
       update();
+      return confirmDecisionPreview(decisionImage, decisionCopy);
     },
     setDecisionStatus: function (message) {
       $('baPreviewMode').textContent = message || 'Displayed hero unchanged. Run a live decision to update it.';

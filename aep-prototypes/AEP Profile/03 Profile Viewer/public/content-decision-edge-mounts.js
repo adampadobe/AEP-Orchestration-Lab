@@ -667,8 +667,9 @@
    *        When omitted, resolves mounts on document with ids cd-edge-{key} (main canvas).
    */
   function applyPropositionsManually(propositions, opts) {
-    if (!propositions || !propositions.length) return;
     opts = opts || {};
+    var appliedResult = { appliedHero: null };
+    if (!propositions || !propositions.length) return appliedResult;
     var scopeRoot = opts.root != null ? opts.root : document;
     var mountIdPrefix = opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '';
     var mountByKey = buildMountByKey(scopeRoot, mountIdPrefix);
@@ -678,13 +679,32 @@
     var p;
     var items;
     var target;
+    function applyTrackedItem(el, item, proposition, itemIndex) {
+      if (!applyItemToElement(el, item)) return false;
+      if (el === mountByKey.hero) {
+        el.dataset.cdAppliedRunId = opts.runId || '';
+        appliedResult.appliedHero = {
+          proposition: { id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails },
+          item: item,
+          itemId: item.id,
+          itemIndex: itemIndex,
+          target: el,
+          placement: 'hero',
+          runId: opts.runId,
+          newlyApplied: true,
+          fallback: item.schema === 'https://ns.adobe.com/personalization/default-content-item',
+        };
+        console.log('[decisioning-display] Applied hero captured', { runId: opts.runId, propositionId: proposition.id, itemId: item.id });
+      }
+      return true;
+    }
     for (i = 0; i < propositions.length; i++) {
       p = propositions[i];
       items = p.items || [];
       target = resolveTargetForProposition(p, mountByKey);
       if (!target) continue;
       for (j = 0; j < items.length; j++) {
-        if (applyItemToElement(target, items[j])) break;
+        if (applyTrackedItem(target, items[j], p, j)) break;
       }
     }
     for (i = 0; i < propositions.length; i++) {
@@ -701,7 +721,7 @@
           normalizeContentCardPayload(getItemData(itm));
         if (!looksLikeCard) continue;
         if (cards && surfaceNotYetRendered(cards)) {
-          applyItemToElement(cards, itm);
+          applyTrackedItem(cards, itm, p, j);
           break;
         }
       }
@@ -715,7 +735,7 @@
       for (j = 0; j < items.length; j++) {
         var ribItm = items[j];
         if (!itemLooksLikeTopRibbon(ribItm) && !propositionScopesHintTopRibbon(p)) continue;
-        if (applyItemToElement(ribbonMount, ribItm)) break;
+        if (applyTrackedItem(ribbonMount, ribItm, p, j)) break;
       }
     }
     for (i = 0; i < propositions.length; i++) {
@@ -725,9 +745,10 @@
       for (j = 0; j < items.length; j++) {
         var exdTarget = firstEmptyExdMount(mountByKey);
         if (!exdTarget) break;
-        if (applyItemToElement(exdTarget, items[j])) break;
+        if (applyTrackedItem(exdTarget, items[j], p, j)) break;
       }
     }
+    return appliedResult;
   }
 
   global.CdEdgeMounts = {

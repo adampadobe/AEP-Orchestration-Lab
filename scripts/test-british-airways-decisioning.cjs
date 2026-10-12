@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
+const vm = require('node:vm');
 const model = require('../web/profile-viewer/british-airways-decisioning-model');
 const { getManifestForIndustry } = require('../functions/profileCoreV2Manifest');
 const { resolveIndustryForPath } = require('../functions/industryAttributeMap');
@@ -93,6 +94,113 @@ test('BA top-up script targets only BA leaves with typed schema', () => {
   assert.equal(leaves['britishAirwaysDecisioning.daysToDeparture'].type, 'integer');
   assert.throws(() => script.parseArgs([]), /--sandbox/);
 });
+test('display acceptance: readiness, attribution, supersession and at-most-once attempts', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'web', 'profile-viewer', 'british-airways-decisioning.js'), 'utf8')
+    .replace('global.envBar.ready().then(init).catch(error => message(\'Demo initialization failed: \' + error.message, true));',
+      'global.testApi = { acceptDecision, invalidateDecision };');
+  function fixture() {
+    const calls = [];
+    const logs = [];
+    let imageFails = false;
+    let renders = 0;
+    let previewReady = async () => {};
+    const mount = {
+      dataset: { cdAppliedRunId: 'run-1' },
+      querySelector: selector => selector === 'img'
+        ? { getAttribute: () => 'https://example.test/hero.jpg' }
+        : { textContent: selector.includes('title') ? 'Title' : 'Description' },
+    };
+    const api = {
+      setDecisionStatus: () => {},
+      setDecisionImage: async () => { renders++; await previewReady(); },
+    };
+    const elements = {
+      baDecisioningFrame: { contentDocument: { getElementById: () => mount }, contentWindow: { BaDecisioningVisualiser: api } },
+      baApplyProfile: {}, baRunDecision: {}, baProfileStatus: { dataset: {} },
+    };
+    const win = { location: { href: 'https://example.test/' } };
+    const consoleMock = { log: (...args) => logs.push(args), error: (...args) => logs.push(args) };
+    class TestImage {
+      set src(value) { queueMicrotask(() => imageFails ? this.onerror() : this.onload()); }
+    }
+    vm.runInNewContext(source, { window: win, document: { getElementById: id => elements[id] }, console: consoleMock,
+      Image: TestImage, URL, setTimeout, clearTimeout });
+    const detail = {
+      runId: 'run-1', requestVersion: 0,
+      appliedHero: { runId: 'run-1', newlyApplied: true, target: mount, itemId: 'item-1',
+        proposition: { id: 'proposition-1', scope: 'web://example.test#hero-banner', scopeDetails: { nested: { tokens: ['unchanged'] } } } },
+      identityMap: { Email: [{ id: 'test@example.test', primary: true }] },
+      alloy: async (command, options) => { calls.push({ command, options }); },
+    };
+    return { win, detail, calls, logs, api, elements,
+      imageFails: () => { imageFails = true; },
+      readiness: callback => { previewReady = callback; },
+      renders: () => renders };
+  }
+  const successful = fixture();
+  let finish;
+  successful.readiness(() => new Promise(resolve => { finish = resolve; }));
+  const accepting = successful.win.testApi.acceptDecision(successful.detail);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(successful.calls.length, 0, 'must wait for visible preview');
+  finish();
+  await accepting;
+  assert.equal(successful.calls.length, 1);
+  assert.equal(successful.calls[0].options.xdm.identityMap, successful.detail.identityMap);
+  assert.equal(successful.calls[0].options.xdm._experience.decisioning.propositions[0].scopeDetails,
+    successful.detail.appliedHero.proposition.scopeDetails);
+  successful.readiness(async () => {});
+  await successful.win.testApi.acceptDecision(successful.detail);
+  assert.equal(successful.calls.length, 1);
+  assert.ok(successful.logs.some(args => String(args[0]).includes('Duplicate display prevented')));
+
+  for (const mutate of [
+    f => { f.detail.appliedHero = null; },
+    f => { f.detail.appliedHero.newlyApplied = false; },
+    f => { f.detail.appliedHero.fallback = true; },
+    f => { f.detail.appliedHero.runId = 'previous-run'; },
+    f => { delete f.detail.runId; },
+    f => { f.detail.requestVersion = -1; },
+  ]) {
+    const f = fixture();
+    mutate(f);
+    await f.win.testApi.acceptDecision(f.detail);
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.renders(), 0);
+  }
+  const badImage = fixture();
+  badImage.imageFails();
+  await assert.rejects(badImage.win.testApi.acceptDecision(badImage.detail), /could not be loaded/);
+  assert.equal(badImage.calls.length, 0);
+  assert.equal(badImage.renders(), 0);
+  const badPreview = fixture();
+  badPreview.readiness(async () => { throw new Error('Preview not ready'); });
+  await assert.rejects(badPreview.win.testApi.acceptDecision(badPreview.detail), /Preview not ready/);
+  assert.equal(badPreview.calls.length, 0);
+  const noConfirmation = fixture();
+  noConfirmation.api.setDecisionImage = () => undefined;
+  await assert.rejects(noConfirmation.win.testApi.acceptDecision(noConfirmation.detail), /render confirmation/);
+  assert.equal(noConfirmation.calls.length, 0);
+  const superseded = fixture();
+  superseded.readiness(async () => { superseded.win.testApi.invalidateDecision('changed'); });
+  await superseded.win.testApi.acceptDecision(superseded.detail);
+  assert.equal(superseded.calls.length, 0);
+  const overwritten = fixture();
+  overwritten.readiness(async () => { overwritten.detail.appliedHero.target.dataset.cdAppliedRunId = 'new-run'; });
+  await overwritten.win.testApi.acceptDecision(overwritten.detail);
+  assert.equal(overwritten.calls.length, 0);
+  const missingMetadata = fixture();
+  delete missingMetadata.detail.appliedHero.proposition.scopeDetails;
+  await missingMetadata.win.testApi.acceptDecision(missingMetadata.detail);
+  assert.equal(missingMetadata.calls.length, 0);
+  assert.ok(missingMetadata.elements.baProfileStatus.textContent.includes('tracking failed'));
+  const failedTracking = fixture();
+  failedTracking.detail.alloy = async (...args) => { failedTracking.calls.push(args); throw new Error('Uncertain network result'); };
+  await failedTracking.win.testApi.acceptDecision(failedTracking.detail);
+  await failedTracking.win.testApi.acceptDecision(failedTracking.detail);
+  assert.equal(failedTracking.calls.length, 1, 'uncertain send failure must not be retried');
+  assert.ok(failedTracking.logs.some(args => String(args[0]).includes('Display event failure')));
+});
 test('browser: shared shell, staging, snapshots, readback, imagery and themes', async () => {
   const { chromium } = require('playwright');
   const root = path.resolve(__dirname, '..', 'web');
@@ -116,6 +224,11 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     }));
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
+    await page.route('**/british-airways-decisioning.js?*', route => route.fulfill({
+      contentType: 'text/javascript',
+      body: fs.readFileSync(path.join(root, 'profile-viewer', 'british-airways-decisioning.js'), 'utf8')
+        .replace('global.envBar.ready().then(init)', 'global.__baTest = { acceptDecision, getVersion: () => imageVersion }; global.envBar.ready().then(init)'),
+    }));
     const writes = [];
     let profileRows = structuredClone(rows);
     let staleReadback = false;
@@ -242,16 +355,70 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.evaluate(() => {
       const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
       toggle.checked = true; toggle.dispatchEvent(new Event('change', { bubbles: true }));
-      const sdk = async command => command === 'sendEvent' ? { propositions: [{
+      window.sdkCalls = [];
+      const sdk = async (command, options) => {
+        window.sdkCalls.push({ command, options });
+        if (command !== 'sendEvent' || !options.personalization?.surfaces) return {};
+        return { propositions: [{
+        id: 'earlier-proposition', scope: 'web://example.test#hero-banner', scopeDetails: { activity: { id: 'earlier' } },
+        items: [{ id: 'earlier-item', data: { image: 'https://example.test/decision.jpg', title: 'Earlier offer' } }],
+      }, {
         id: 'live-proposition', scope: document.getElementById('baDecisioningFrame').src.split('?')[0].replace(/^http:\/\//, 'web://') + '#hero-banner',
+        scopeDetails: { activity: { id: 'campaign' }, characteristics: { arbitrary: ['preserve', { nested: true }] } },
         items: [{ id: 'decision-item', schema: 'https://ns.adobe.com/personalization/json-content-item', data: { imageURL: 'https://example.test/decision.jpg', title: 'Your next journey', fullDescription: 'A personalised travel offer.' } }],
-      }] } : {};
+      }] };
+      };
+      const originalRun = window.DecisioningProfileRuntime.runContentDecision;
+      window.DecisioningProfileRuntime.runContentDecision = async options => {
+        const result = await originalRun(options);
+        window.lastRun = result;
+        return result;
+      };
       window.alloy = sdk;
       window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
     });
     const readsBeforeDecision = tableReads;
     await page.evaluate(() => document.getElementById('cdMicroProfileRunBtn').click());
     await visual.locator('#baPreviewMode').filter({ hasText: 'Live Edge decision image' }).waitFor();
+    await page.waitForFunction(() => window.sdkCalls.some(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay'));
+    const tracked = await page.evaluate(() => {
+      const request = window.sdkCalls.find(call => call.options?.personalization?.surfaces).options;
+      const displays = window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay');
+      return { request, displays, winner: window.lastRun.appliedHero.proposition, itemId: window.lastRun.appliedHero.itemId,
+        metadataUnchanged: window.lastRun.appliedHero.proposition.scopeDetails === window.lastRun.propositions[1].scopeDetails };
+    });
+    assert.equal(tracked.displays.length, 1);
+    assert.equal(tracked.request.personalization.sendDisplayEvent, false);
+    assert.equal(tracked.winner.id, 'live-proposition');
+    assert.equal(tracked.itemId, 'decision-item');
+    assert.equal(tracked.metadataUnchanged, true);
+    assert.deepEqual(tracked.displays[0].options, {
+      renderDecisions: false,
+      personalization: { defaultPersonalizationEnabled: false },
+      xdm: { eventType: 'decisioning.propositionDisplay', identityMap: tracked.request.xdm.identityMap,
+        _experience: { decisioning: { propositions: [tracked.winner], propositionEventType: { display: 1 } } } },
+    });
+    assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.personalization?.surfaces).length), 1);
+    const attribution = await page.evaluate(() => {
+      const doc = document.implementation.createHTMLDocument('Attribution');
+      doc.body.innerHTML = '<div id="hero-banner"></div><div id="TopRibbon"></div><div id="ContentCardContainer"></div>';
+      const props = window.lastRun.propositions;
+      const result = window.CdEdgeMounts.applyPropositionsManually([...props, {
+        id: 'failed-writer', scope: props[1].scope, items: [{ data: {} }],
+      }], { root: doc, runId: 'renderer-test' });
+      const retained = window.CdEdgeMounts.applyPropositionsManually([], { root: doc, runId: 'empty-test' });
+      const fallback = window.CdEdgeMounts.applyPropositionsManually([{
+        id: 'default-writer', scope: props[1].scope,
+        items: [{ id: 'default-item', schema: 'https://ns.adobe.com/personalization/default-content-item',
+          data: { content: '<img src="https://example.test/decision.jpg">' } }],
+      }], { root: doc, runId: 'default-test' });
+      return { winner: result.appliedHero.proposition.id, runId: result.appliedHero.runId,
+        sameMetadata: result.appliedHero.proposition.scopeDetails === props[1].scopeDetails,
+        retained: retained.appliedHero, fallback: fallback.appliedHero.fallback };
+    });
+    assert.deepEqual(attribution, { winner: 'live-proposition', runId: 'renderer-test', sameMetadata: true, retained: null, fallback: true });
+    await page.evaluate(() => window.__baTest.acceptDecision({ ...window.lastRun, requestVersion: window.__baTest.getVersion() }));
+    assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length), 1);
     assert.ok(tableReads > readsBeforeDecision, 'popout Run must automatically look up and verify the saved profile');
     const sources = await page.evaluate(() => {
       const doc = document.getElementById('baDecisioningFrame').contentDocument;
@@ -275,6 +442,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.locator('#baApplyProfile').click();
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
     assert.deepEqual(await displayedHero(), originalHero, 'Apply must not change displayed hero content');
+    assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length), 1);
     await visual.locator('#dev [data-m="mobile"]').click();
     assert.ok(await visual.locator('#mailStage').evaluate(el => el.classList.contains('is-mobile')));
     await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
@@ -301,12 +469,17 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await visual.locator('#baPreviewMode').filter({ hasText: 'Live decision failed' }).waitFor();
     assert.deepEqual(await displayedHero(), originalHero, 'failed decision must preserve previous hero');
     await page.evaluate(() => {
-      const sdk = async command => command === 'sendEvent' ? { propositions: [{
+      const sdk = async (command, options) => {
+        window.sdkCalls.push({ command, options });
+        if (command !== 'sendEvent' || !options.personalization?.surfaces) return {};
+        return { propositions: [{
         id: 'next-proposition', scope: document.getElementById('baDecisioningFrame').src.split('?')[0].replace(/^http:\/\//, 'web://') + '#hero-banner',
+        scopeDetails: { activity: { id: 'next-campaign' } },
         items: [{ id: 'next-item', schema: 'https://ns.adobe.com/personalization/json-content-item', data: {
           image: 'https://example.test/decision.jpg?next', title: 'Next <journey>', text: 'New <description>',
         } }],
-      }] } : {};
+      }] };
+      };
       window.alloy = sdk;
       window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
     });
@@ -315,11 +488,30 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     }));
     await page.locator('#baRunDecision').click();
     await visual.locator('#baPreviewMode').filter({ hasText: 'Live Edge decision image' }).waitFor();
+    await page.waitForFunction(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length === 2);
     const nextHero = await displayedHero();
     assert.equal(nextHero.image, 'https://example.test/decision.jpg?next');
     assert.ok(nextHero.text.includes('Next &lt;journey&gt;'));
     assert.ok(nextHero.text.includes('New &lt;description&gt;'));
     assert.ok(nextHero.email.includes('Next &lt;journey&gt;'));
+    await visual.locator('#dev [data-m="web"]').click();
+    await visual.locator('#dev [data-m="desktop"]').click();
+    assert.equal(await page.evaluate(() => window.sdkCalls.filter(call => call.options?.xdm?.eventType === 'decisioning.propositionDisplay').length), 2);
+    const sharedDefault = await page.evaluate(async () => {
+      const lastRunId = window.lastRun.runId;
+      const sdk = async (command, options) => {
+        window.sdkCalls.push({ command, options });
+        return { propositions: [] };
+      };
+      window.alloy = sdk;
+      window.DemoTagsInjection.ensureAlloyReady = async () => sdk;
+      const result = await window.DecisioningProfileRuntime.runContentDecision();
+      return { uniqueRun: result.runId !== lastRunId, appliedHero: result.appliedHero,
+        suppressed: window.sdkCalls[window.sdkCalls.length - 1].options.personalization.sendDisplayEvent };
+    });
+    assert.equal(sharedDefault.uniqueRun, true);
+    assert.equal(sharedDefault.appliedHero, null);
+    assert.equal(sharedDefault.suppressed, undefined, 'other runtime callers retain automatic-display behavior');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(500);
     const mobileLayout = await page.evaluate(() => ({
