@@ -548,6 +548,12 @@ body.armcom-mobile-demo-page--profile-open .aep-profile-drawer,
   background-position: center;
 }
 
+/* Flight events — inline SVG */
+.aep-profile-drawer-event-thumb--flight-disruption,
+.aep-profile-drawer-event-thumb--flight-abandon {
+  background-color: #f3f4f6;
+}
+
 /* Hotel / hospitality lab — inline SVG (see eventThumbForEvent in aep-profile-drawer.js) */
 .aep-profile-drawer-event-thumb--svg-inline {
   display: flex;

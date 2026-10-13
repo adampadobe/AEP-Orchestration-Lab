@@ -2313,6 +2313,10 @@ const AEP_EVENT_THUMB_SVG = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   commerceCart:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="9" cy="21" r="1" fill="currentColor"/><circle cx="20" cy="21" r="1" fill="currentColor"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  mailCheck:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 19 2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  planeClock:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><g transform="translate(-1, -1) scale(0.75)"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g><circle cx="17.5" cy="17.5" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17.5 15v2.5l1.5 1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
 function hotelEventThumbFromBlob(blob) {
@@ -2380,6 +2384,8 @@ function eventThumbForEvent(ev) {
   const eventName = String((ev && ev.eventName) || '').trim();
   const primary = eventType || eventName;
   const key = primary.toLowerCase().replace(/\s+/g, '');
+  const keyLoose = primary.toLowerCase();
+  const typePrefix = primary.trim().toLowerCase();
   const blob = `${eventType} ${eventName}`.toLowerCase();
 
   if (blob.includes('decisioning')) {
@@ -2404,7 +2410,24 @@ function eventThumbForEvent(ev) {
     return { url: aepProfileImageCssUrl('message-feedback-icon.png'), variant: 'message-feedback' };
   }
   if (key.includes('message.tracking') || key === 'messagetracking') {
-    return { url: aepProfileImageCssUrl('Smock_LocationBasedEvent_18_N.svg'), variant: 'message-tracking' };
+    return { variant: 'message-tracking', svg: AEP_EVENT_THUMB_SVG.mailCheck };
+  }
+  if (
+    keyLoose.includes('flight.disruption') ||
+    keyLoose.includes('flightdisruption') ||
+    blob.includes('flight.disruption') ||
+    blob.includes('flight disruption') ||
+    keyLoose.includes('disruption')
+  ) {
+    return { variant: 'flight-disruption', svg: AEP_EVENT_THUMB_SVG.planeClock };
+  }
+  if (
+    keyLoose.includes('flight.abandon') ||
+    keyLoose.includes('flightabandon') ||
+    blob.includes('flight.abandon') ||
+    blob.includes('flight abandoned')
+  ) {
+    return { variant: 'commerce-cart', svg: AEP_EVENT_THUMB_SVG.commerceCart };
   }
   if (
     key === 'application.launch' ||
@@ -2419,8 +2442,6 @@ function eventThumbForEvent(ev) {
   if (ev && isAdobeWebPageViewExperienceEvent(ev)) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }
-  const typePrefix = primary.trim().toLowerCase();
-  const keyLoose = primary.toLowerCase();
   if ((ev && isArmcomExperienceEvent(ev)) || keyLoose.includes('armcom')) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }

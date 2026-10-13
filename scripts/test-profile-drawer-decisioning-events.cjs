@@ -104,7 +104,7 @@ test('Decisioning event cards use sparkles, including BA decisions with a Web ev
   sandbox.isArmcomExperienceEvent = () => false;
   sandbox.aepProfileImageCssUrl = name => name;
   vm.runInContext(source.slice(source.indexOf('function aepDrawerEventHeadTypeBlob('), source.indexOf('function isWebInteractionExperienceEvent(')), sandbox);
-  vm.runInContext(source.slice(source.indexOf('function eventThumbForEvent('), source.indexOf('function aepProfileDrawerMessageChannelKind(')), sandbox);
+  vm.runInContext(source.slice(source.indexOf('const AEP_EVENT_THUMB_SVG = {'), source.indexOf('function aepProfileDrawerMessageChannelKind(')), sandbox);
   for (const ev of [
     { eventType: 'decisioning.propositionDisplay' },
     { eventType: 'decisioning.propositionInteract' },
@@ -119,4 +119,22 @@ test('Decisioning event cards use sparkles, including BA decisions with a Web ev
   }
   assert.equal(sandbox.eventThumbForEvent({ eventType: 'web.webPageDetails.pageViews' }).variant, 'event-web');
   assert.equal(sandbox.eventThumbForEvent({ eventName: 'Web Pageview', rows: [{ path: 'web.webPageDetails.pageViews.value', value: 1 }] }).variant, 'event-web');
+
+  // Message tracking uses inline SVG mailCheck icon
+  const msgTracking = sandbox.eventThumbForEvent({ eventType: 'message.tracking' });
+  assert.equal(msgTracking.variant, 'message-tracking');
+  assert.ok(msgTracking.svg.includes('m16 19 2 2 4-4'), 'mailCheck SVG should contain checkmark');
+  assert.ok(msgTracking.svg.includes('M22 13V6'), 'mailCheck SVG should contain envelope');
+
+  // Flight abandoned uses shopping cart icon
+  const flightAbandoned = sandbox.eventThumbForEvent({ eventType: 'flight.abandoned' });
+  assert.equal(flightAbandoned.variant, 'commerce-cart');
+  assert.ok(flightAbandoned.svg.includes('M1 1h4l2.68 13.39'), 'flight.abandoned should use shopping cart SVG');
+
+  // Flight disruption uses plane with clock badge icon
+  const flightDisruption = sandbox.eventThumbForEvent({ eventType: 'flight.disruption' });
+  assert.equal(flightDisruption.variant, 'flight-disruption');
+  assert.ok(flightDisruption.svg.includes('M17.8 19.2'), 'flight.disruption should include plane icon');
+  assert.ok(flightDisruption.svg.includes('circle cx="17.5" cy="17.5" r="4.5"'), 'flight.disruption should include clock badge circle');
+  assert.ok(flightDisruption.svg.includes('M17.5 15v2.5l1.5 1'), 'flight.disruption should include clock hands');
 });
