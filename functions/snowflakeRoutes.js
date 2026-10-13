@@ -258,6 +258,7 @@ function registerSnowflakeRoutes(deps) {
         labUser: uid,
         sandbox,
         phase: body.phase,
+        include_ddl: body.include_ddl === true,
       });
       res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
     } catch (e) {

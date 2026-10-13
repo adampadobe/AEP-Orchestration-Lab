@@ -240,6 +240,15 @@ Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowfla
 
    Preinstalled Agentic tables: **lab_snowflake_provision** recipe_id travel.agentic_all.preinstalled.v1 dry_run true (existence check only; no CREATE DDL).
 
+   To capture an existing travel schema for a reviewed provisioning recipe, call
+   **lab_snowflake_table_structure** for each of phase1, phase2, phase3 with
+   **include_ddl:true**. This reads exact `GET_DDL` metadata through the caller's
+   saved connection; it does not select customer rows or change tables. The
+   ordinary structure text omits numeric precision/scale and is not a faithful
+   DDL export. Review `tableDefinitions` before checking definitions into the
+   recipe registry. Never execute the exported `CREATE OR REPLACE` text directly,
+   share credentials, or imply another user's connection is accessible.
+
 4. **Generate full phased data**
 
    > **lab_snowflake_generate_full** sandbox apalmer count 5 — returns 501/`RUNNER_NOT_CONFIGURED` when runner env is unset.

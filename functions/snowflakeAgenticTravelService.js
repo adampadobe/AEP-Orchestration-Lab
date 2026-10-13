@@ -498,12 +498,32 @@ async function formatTableStructure(conn, cfg, tableName) {
   return lines.join('\n');
 }
 
+async function readPhaseTableDdl(conn, cfg, phase) {
+  if (!Object.hasOwn(PHASE_TABLES, phase)) {
+    throw new Error(`Invalid phase. Expected one of: ${Object.keys(PHASE_TABLES).join(', ')}`);
+  }
+  const definitions = [];
+  for (const table of PHASE_TABLES[phase]) {
+    const fqTable = fullyQualified(cfg.database, cfg.schema, table);
+    const rows = await execAsync(conn, {
+      sqlText: "SELECT GET_DDL('TABLE', ?) AS TABLE_DDL",
+      binds: [fqTable],
+    });
+    const ddl = rows.length ? readSnowflakeCell(rows[0], 0, 'TABLE_DDL') : null;
+    if (typeof ddl !== 'string' || !ddl.trim()) {
+      throw new Error(`No table DDL returned for ${fqTable}`);
+    }
+    definitions.push({ table, fqTable, ddl });
+  }
+  return definitions;
+}
+
 async function handleTableStructure(input) {
   const labUser = String(input.labUser || '').trim();
   const sandbox = String(input.sandbox || '').trim();
   if (!sandbox) throw new Error('sandbox is required');
   const phase = String(input.phase || '').trim().toLowerCase();
-  if (!PHASE_TABLES[phase]) {
+  if (!Object.hasOwn(PHASE_TABLES, phase)) {
     throw new Error(`Invalid phase. Expected one of: ${Object.keys(PHASE_TABLES).join(', ')}`);
   }
 
@@ -512,11 +532,15 @@ async function handleTableStructure(input) {
     for (const t of PHASE_TABLES[phase]) {
       blocks.push(await formatTableStructure(conn, cfg, t));
     }
+    const tableDefinitions = input.include_ddl === true
+      ? await readPhaseTableDdl(conn, cfg, phase)
+      : null;
     return {
       ok: true,
       phase,
       table_count: PHASE_TABLES[phase].length,
       structure_text: blocks.join('\n'),
+      ...(tableDefinitions ? { table_definitions: tableDefinitions } : {}),
     };
   });
 }
@@ -597,6 +621,7 @@ module.exports = {
   mapTravelProfileRow,
   handleQueryProfiles,
   handleTableStructure,
+  readPhaseTableDdl,
   handleAgenticGenerateFull,
   handleAgenticEnrich,
 };
