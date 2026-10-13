@@ -90,6 +90,8 @@
   .obj { display: grid; grid-template-columns: 42px 205px minmax(0, 1fr) 118px; gap: 10px; align-items: center; padding: 3px 10px 3px 8px; border-radius: 9px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); transition: background .25s, border-color .25s, opacity .25s; }
   .obj.selected { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.45); box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 4px 14px rgba(0,0,0,.25); }
   .obj.after { opacity: .6; }
+  .obj:not(.selected) .gates, .obj:not(.selected) .obj-sub { display: none; }
+  .obj:not(.selected) .chev { grid-row: auto; }
   .chev { width: 40px; height: 30px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 14px; clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 24% 50%); padding-left: 8px; }
   .obj-name { font-size: 14.5px; font-weight: 600; line-height: 1.15; white-space: nowrap; }
   .obj-sub { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1248,7 +1250,16 @@
   var scnEl = $('scenarios');
   SCENARIOS.forEach(function (sc) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'scn'; b.textContent = sc.name;
-    b.addEventListener('click', function () { state = Object.assign({}, DEFAULT, sc.set); syncControls(); update(); });
+    b.addEventListener('click', function () {
+      var prev = state;
+      state = Object.assign({}, DEFAULT, sc.set);
+      Object.keys(ctlEls).forEach(function (k) {
+        if (prev[k] === state[k]) return;
+        var box = ctlEls[k].el.closest('.sig');
+        if (box && box.classList.contains('collapsed')) { box.classList.remove('collapsed'); var h = box.querySelector('.sig-head'); if (h) h.setAttribute('aria-expanded', 'true'); }
+      });
+      syncControls(); update();
+    });
     scnEl.appendChild(b);
   });
 
