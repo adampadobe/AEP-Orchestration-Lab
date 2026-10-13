@@ -335,13 +335,17 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
   toolServer.registerTool(
     'lab_snowflake_generate_base_profiles',
     {
-      title: 'Generate Snowflake base profiles (Agentic batch)',
+      title: 'Generate Snowflake CRM or legacy base profiles (batch)',
       description:
-        'POST /api/snowflake/generate-base-profiles — Snowflake-only Faker batch INSERT (not UPS-linked). ' +
+        'Snowflake-only Faker batch INSERT (not UPS-linked). Pass industry to use the same governed CRM batch generator as the UI: ' +
+        '/api/snowflake/generate-industry-profiles, then lab_snowflake_enrich_profiles for activity. Omit industry for legacy ' +
+        '/api/snowflake/generate-base-profiles. Provision {industry}.all.v1 first; confirm count before generating. ' +
         'Default table BASE_PROFILES, count 1–1000. Emails use shared Firestore generation prefs (<local>+DDMMYYYY-N@domain) ' +
         'unless use_generation_prefs:false (legacy Agentic Snowflake counter). Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
+        industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional()
+          .describe('Use the governed CRM table for this industry; omit only for legacy BASE_PROFILES'),
         count: z.number().int().min(1).max(1000).optional().describe('Profiles to generate (default 10)'),
         table: z.string().optional().describe('Target table (default BASE_PROFILES for batch generator)'),
         use_generation_prefs: z
@@ -353,7 +357,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
           ),
       },
     },
-    async ({ sandbox, count, table, use_generation_prefs }) => {
+    async ({ sandbox, industry, count, table, use_generation_prefs }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -370,9 +374,13 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
+      if (industry && (table || use_generation_prefs === false)) {
+        return toolError('Industry CRM generation requires the governed table and shared generation preferences; omit table and use_generation_prefs:false.');
+      }
 
       const apiResult = await snowflakeGenerateBaseProfiles({
         sandbox: allowed.sandbox,
+        industry,
         count,
         table,
         use_generation_prefs,
@@ -390,11 +398,14 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         sandbox: allowed.sandbox,
         rowcount: result.rowcount,
         table: result.table,
+        industry: result.industry || null,
+        profiles: industry ? (result.profiles || []).map(({ email, ecid, crmId }) => ({ email, ecid, crmId })) : undefined,
         sample: result.sample,
         emailSource: result.emailSource || (use_generation_prefs === false ? 'legacy_snowflake_table_scan' : 'labProfileGenerationPrefs'),
         use_generation_prefs: use_generation_prefs !== false,
         note:
           'Snowflake-only batch — emails share Portal/MCP Firestore counter when use_generation_prefs is true (default). ' +
+          'Industry CRM profiles can be passed to lab_snowflake_enrich_profiles; provision the industry tables first. ' +
           'For AEP+Snowflake parity use lab_generate_profile dual_load_snowflake:true (omit email).',
       });
     },
@@ -741,21 +752,26 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Governed Snowflake table provision (allowlisted recipes)',
       description:
         'POST /api/snowflake/provision — executes CREATE TABLE IF NOT EXISTS or preinstalled table checks ' +
-        'for allowlisted recipe_id values only. Supports dry_run. Requires a user MCP key or validated Adobe IMS Portal enrollment. No DROP/ALTER/arbitrary SQL.',
+        'for allowlisted recipe_id values only. travel.all.v1 creates all 16 travel tables in your own saved connection: ' +
+        'preview with dry_run:true, show the target and SQL, obtain explicit colleague confirmation, then dry_run:false, confirmed:true with the returned preview_fingerprint. ' +
+        'Travel defaults to preview when dry_run is omitted. Existing tables are unchanged; schemas/grants are not created. ' +
+        'Requires a user MCP key or validated Adobe IMS Portal enrollment. No DROP/ALTER/arbitrary SQL.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.string().optional().describe('Industry (default travel)'),
         recipe_id: z
           .string()
-          .describe('Allowlisted recipe id, e.g. fsi.all.v1 or travel.agentic_all.preinstalled.v1'),
+          .describe('Allowlisted recipe id, e.g. travel.all.v1 or fsi.all.v1'),
         dry_run: z
           .boolean()
           .optional()
           .describe('When true, return planned SQL / table checks without executing DDL'),
         approval_id: z.string().optional().describe('Optional approval reference for audit log'),
+        confirmed: z.boolean().optional().describe('True only after colleague confirms the travel creation preview and target'),
+        preview_fingerprint: z.string().optional().describe('Unchanged fingerprint from the confirmed preview; changed saved connections require a new preview'),
       },
     },
-    async ({ sandbox, industry, recipe_id, dry_run, approval_id }) => {
+    async ({ sandbox, industry, recipe_id, dry_run, approval_id, confirmed, preview_fingerprint }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const userKey = requireUserMcpKeyForSnowflake();
@@ -786,20 +802,22 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         sandbox: allowed.sandbox,
         industry: industry || 'travel',
         recipe_id,
-        dry_run: dry_run === true,
+        dry_run,
         approval_id,
+        confirmed,
+        preview_fingerprint,
       });
+      const result = apiResult.data?.result || {};
       writeAuditLog({
         keyId,
         tool: 'lab_snowflake_provision',
         sandbox: allowed.sandbox,
         recipe_id,
-        dry_run: dry_run === true,
+        dry_run: result.dry_run === true,
         result: apiResult.ok ? 'ok' : 'error',
         durationMs: Date.now() - started,
       });
 
-      const result = apiResult.data?.result || {};
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         recipe_id,
@@ -812,11 +830,13 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         tableResults: result.tableResults || null,
         tableCheck: result.tableCheck || null,
         executed: result.executed === true,
+        requiresConfirmation: result.requiresConfirmation === true,
+        preview_fingerprint: result.preview_fingerprint || null,
         coworkerNextSteps: [
           'lab_snowflake_industry_catalog — confirm tableCheck after create_if_not_exists',
           'fsi|retail|telecom|media|sports.all.v1 — create all six selected-industry tables before enrichment',
           'travel.base_profiles.v1 then lab_snowflake_generate_base_profiles for Node batch rows',
-          'travel.agentic_all.preinstalled.v1 — verify Agentic tables before generate-full',
+          'travel.all.v1 — preview and confirm creation of all 16 travel tables, then verify the catalog before generate-full',
         ],
       });
     },
@@ -971,6 +991,8 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         eventTypes: event_types,
         data: result.data || null,
         runnerNotConfigured,
+        profileResults: result.profileResults || null,
+        insertedRowCount: result.insertedRowCount ?? null,
       });
     },
   );

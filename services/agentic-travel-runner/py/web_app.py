@@ -38,6 +38,8 @@ PHASE_TABLES = {
         'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
         'AGENTIC_TRAVEL_EVENT_WEBSITE',
         'AGENTIC_TRAVEL_EVENT_BOOKING',
+        'AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS',
+        'AGENTIC_TRAVEL_EVENT_ANCILLARIES',
     ],
     'phase2': [
         'AGENTIC_TRAVEL_PROFILE_LOYALTY',
@@ -189,7 +191,8 @@ def format_table_structure(cursor, table_name):
     """Return a readable table structure report for one Snowflake table."""
     lines = []
     upper_table = table_name.upper()
-    fq_table = f"TRAVEL_DATABASE.AEP_SCHEMA.{upper_table}"
+    config = get_snowflake_connection_kwargs()
+    fq_table = f"{config['database']}.{config['schema']}.{upper_table}"
 
     lines.append(f"-- Table: {fq_table}")
     lines.append("-- Columns:")
@@ -201,12 +204,12 @@ def format_table_structure(cursor, table_name):
             DATA_TYPE,
             IS_NULLABLE,
             COLUMN_DEFAULT
-        FROM TRAVEL_DATABASE.INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = 'AEP_SCHEMA'
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = %s
           AND TABLE_NAME = %s
         ORDER BY ORDINAL_POSITION
         """,
-        (upper_table,),
+        (config['schema'].upper(), upper_table),
     )
     columns = cursor.fetchall()
     if columns:
@@ -679,7 +682,8 @@ def enrich_profiles_background(profiles, event_types):
                 
                 if booking_profiles and len(booking_profiles) > 0:
                     # Fetch full profile data WITH ALL COLUMNS in correct order (uppercase for Snowflake)
-                    crm_list = "', '".join([p['crmId'] for p in booking_profiles])
+                    crm_ids = [p['crmId'] for p in booking_profiles]
+                    placeholders = ', '.join(['%s'] * len(crm_ids))
                     query = f"""
                         SELECT 
                             CRMID, ECID, EMAIL, EMAILIDSHA256, GAID, LOYALTYID, PASSPORTID, PHONENUMBER, PUSHTOKENS, STACKCHATID,
@@ -691,12 +695,12 @@ def enrich_profiles_background(profiles, event_types):
                             LIFETIMEVALUE, AVERAGEBOOKINGVALUE, TOTALBOOKINGS, CUSTOMERSEGMENT,
                             TESTPROFILE,
                             _RECORDCREATEDTIMESTAMP, _RECORDUPDATEDTIMESTAMP
-                        FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER
-                        WHERE CRMID IN ('{crm_list}')
+                        FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER
+                        WHERE CRMID IN ({placeholders})
                         ORDER BY CRMID
                     """
                     print(f"Fetching {len(booking_profiles)} profiles (40-50% of total) for booking generation...")
-                    generator.cursor.execute(query)
+                    generator.cursor.execute(query, crm_ids)
                     full_profiles = generator.cursor.fetchall()
                     
                     print(f"Found {len(full_profiles)} full profiles for booking generation")

@@ -27,7 +27,7 @@ function run() {
   assert(nonTravelIndustries.every((industry) => listSupportedIndustries().includes(industry)), 'all non-travel industries registered');
 
   const travel = getIndustryManifest('travel');
-  assert(travel.allTables.length === 14, 'travel allTables count');
+  assert(travel.allTables.length === 16, 'travel allTables count');
   assert(
     travel.allTables.every((t) => /^[A-Z][A-Z0-9_]+$/.test(t)),
     'travel table names uppercase identifiers',
@@ -66,7 +66,12 @@ function run() {
   const manifestAllSorted = [...TRAVEL_MANIFEST.allTables].sort().join(',');
   assert(allSorted === manifestAllSorted, 'all preinstalled recipe matches manifest');
 
-  assert(listProvisionRecipes('travel').length === 3, 'travel recipe list');
+  const travelCreate = getProvisionRecipe('travel.all.v1');
+  assert(travelCreate.requiresConfirmation === true, 'travel create requires confirmation');
+  const travelStatements = buildCreateTableStatements(travelCreate, 'COLLEAGUE_DB', 'LAB');
+  assert(travelStatements.map((entry) => entry.table).join(',') === TRAVEL_MANIFEST.allTables.join(','), 'travel CREATE covers exact manifest');
+  assert(travelStatements.every((entry) => entry.fqTable.startsWith('COLLEAGUE_DB.LAB.')), 'travel uses saved target');
+  assert(listProvisionRecipes('travel').length === 4, 'travel recipe list');
   for (const industry of nonTravelIndustries) {
     const manifest = getIndustryManifest(industry);
     assert(manifest.allTables.length === 6, `${industry} manifest has six tables`);

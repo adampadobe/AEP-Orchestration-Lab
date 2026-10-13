@@ -9,6 +9,7 @@ const { COLUMN_DDL } = require('./snowflakeBaseProfileSchema');
 const { PHASE_TABLES, TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
 const { listIndustryEventTables } = require('./snowflakeIndustryEventRegistry');
+const TRAVEL_TABLE_DEFINITIONS = require('./snowflakeTravelTableDefinitions.json');
 
 /** @typedef {'preinstalled' | 'create_if_not_exists'} ProvisionMode */
 
@@ -16,6 +17,19 @@ const { listIndustryEventTables } = require('./snowflakeIndustryEventRegistry');
  * @type {Record<string, object>}
  */
 const PROVISION_RECIPES = {
+  'travel.all.v1': {
+    id: 'travel.all.v1',
+    industry: 'travel',
+    label: 'All 16 Agentic travel profile, event, and booking detail tables',
+    provisionMode: 'create_if_not_exists',
+    ddlKind: 'industry_all',
+    tables: TRAVEL_TABLE_DEFINITIONS,
+    requiresConfirmation: true,
+    description:
+      'Portable Phase 1–3 schemas exported through GET_DDL on 2026-10-13, plus the runner booking detail schemas. ' +
+      'Preview first, then explicitly confirm creation in your saved database/schema. ' +
+      'Existing tables are never replaced or altered; schemas and grants are not created.',
+  },
   'travel.base_profiles.v1': {
     id: 'travel.base_profiles.v1',
     industry: 'travel',
@@ -33,8 +47,7 @@ const PROVISION_RECIPES = {
     provisionMode: 'preinstalled',
     tables: PHASE_TABLES.phase1,
     note:
-      'Install via AgenticAI Demo Snowflake share or Python agentic-travel-runner generate-full. ' +
-      'Lab provision verifies existence only — no CREATE DDL for these tables yet.',
+      'Read-only existence check. Use travel.all.v1 to preview and create missing tables in your own connection.',
   },
   'travel.agentic_all.preinstalled.v1': {
     id: 'travel.agentic_all.preinstalled.v1',
