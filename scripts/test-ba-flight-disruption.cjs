@@ -108,10 +108,10 @@ test('failed profiles and missing browser identity emit no event; failed sends a
 });
 test('all Shopping Intent transitions send at most once, with flightSearch payload and exact browser identity', async () => {
   for (const [from, to, expectedType] of [
-    ['none', 'searched', 'flight.search'],
+    ['none', 'searched', 'flight.abandoned'],
     ['none', 'abandoned', 'flight.abandoned'],
     ['searched', 'abandoned', 'flight.abandoned'],
-    ['abandoned', 'searched', 'flight.search'],
+    ['abandoned', 'searched', 'flight.abandoned'],
     ['searched', 'searched', null],
     ['abandoned', 'abandoned', null],
     ['none', 'none', null],

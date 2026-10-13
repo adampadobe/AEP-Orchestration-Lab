@@ -182,8 +182,8 @@
     const email = data.profileEmail;
     if (typeof email !== 'string' || !email.includes('@')) throw new Error('Selected profile email is missing.');
     if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned; intent event was not sent.');
-    const eventType = { searched: 'flight.search', abandoned: 'flight.abandoned' }[intent];
-    if (!eventType) throw new Error('Shopping intent must be Searched or Abandoned for an intent event.');
+    if (!['searched', 'abandoned'].includes(intent)) throw new Error('Shopping intent must be Searched or Abandoned for an intent event.');
+    const eventType = 'flight.abandoned';
     const rows = new Map(data.rows.map(row => [model.relativePath(row.path), row.value]));
     const flight = 'travelReservations.flightReservations.';
     function value(paths, fallback) {
