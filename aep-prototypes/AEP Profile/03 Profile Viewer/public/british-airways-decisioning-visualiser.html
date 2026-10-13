@@ -93,6 +93,11 @@
   .obj:not(.open) .gates, .obj:not(.open) .obj-sub { display: none; }
   .obj:not(.open) .chev { grid-row: auto; }
   .obj { cursor: pointer; }
+  .nba-head { cursor: pointer; }
+  .nba-head .sig-chev { margin-left: auto; }
+  .r-nba.collapsed .nba-list { display: none; }
+  .r-nba.collapsed .nba-head .sig-chev { transform: rotate(-90deg); }
+  .r-nba.collapsed .nba-head { margin-bottom: 0; }
   .obj-toggle-all { margin-left: auto; background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 2px 10px; font: inherit; font-size: 11px; cursor: pointer; }
   .obj-toggle-all:hover { background: rgba(255,255,255,.18); }
   .chev { width: 40px; height: 30px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 14px; clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 24% 50%); padding-left: 8px; }
@@ -356,8 +361,8 @@
         </section>
 
         <div class="res-row">
-          <section class="result r-nba" aria-label="Eligible NBAs">
-            <div class="block-head"><h3 class="block-title" id="nbaTitle">Eligible NBAs</h3><span class="block-tag" id="nbaTag"></span></div>
+          <section class="result r-nba collapsed" aria-label="Eligible NBAs" id="nbaSection">
+            <div class="block-head nba-head" id="nbaHead" role="button" tabindex="0" aria-expanded="false"><h3 class="block-title" id="nbaTitle">Eligible NBAs</h3><span class="block-tag" id="nbaTag"></span><span class="sig-chev" aria-hidden="true">▾</span></div>
             <ol class="nba-list" id="nbaList"></ol>
           </section>
         </div>
@@ -1251,17 +1256,26 @@
   }
 
   var scnEl = $('scenarios');
+  var nbaSection = $('nbaSection'), nbaHead = $('nbaHead');
+  function setNbaOpen(open) { nbaSection.classList.toggle('collapsed', !open); nbaHead.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  nbaHead.addEventListener('click', function () { setNbaOpen(nbaSection.classList.contains('collapsed')); });
+  nbaHead.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNbaOpen(nbaSection.classList.contains('collapsed')); } });
   SCENARIOS.forEach(function (sc) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'scn'; b.textContent = sc.name;
     b.addEventListener('click', function () {
-      var prev = state;
+      var prev = state, touched = sc.set || {};
       state = Object.assign({}, DEFAULT, sc.set);
       Object.keys(ctlEls).forEach(function (k) {
         var box = ctlEls[k].el.closest('.sig'); if (!box) return;
-        var open = prev[k] !== state[k];
+        var open = prev[k] !== state[k] || Object.prototype.hasOwnProperty.call(touched, k);
+        if (open) box.dataset.scnOpen = '1';
+      });
+      document.querySelectorAll('#signals .sig').forEach(function (box) {
+        var open = box.dataset.scnOpen === '1'; delete box.dataset.scnOpen;
         box.classList.toggle('collapsed', !open);
         var h = box.querySelector('.sig-head'); if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
+      setNbaOpen(true);
       syncControls(); update();
       openObjs = {};
       ladderEl.querySelectorAll('.obj').forEach(function (li) {
