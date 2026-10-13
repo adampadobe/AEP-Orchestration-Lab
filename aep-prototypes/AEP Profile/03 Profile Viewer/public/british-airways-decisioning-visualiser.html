@@ -1263,6 +1263,13 @@
         var h = box.querySelector('.sig-head'); if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
       syncControls(); update();
+      openObjs = {};
+      ladderEl.querySelectorAll('.obj').forEach(function (li) {
+        var on = li.classList.contains('selected');
+        if (on) openObjs[li.dataset.i] = true;
+        li.classList.toggle('open', on);
+      });
+      syncToggleAll();
     });
     scnEl.appendChild(b);
   });
