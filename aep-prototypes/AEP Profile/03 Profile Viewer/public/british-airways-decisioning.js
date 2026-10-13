@@ -469,6 +469,13 @@
     const doc = frame.contentDocument;
     if (!doc || doc.documentElement.dataset.baWired) return;
     doc.documentElement.dataset.baWired = '1';
+    const modeEl = doc.getElementById('baPreviewMode');
+    const decisionLine = document.getElementById('baDecisionStatus');
+    if (modeEl && decisionLine) {
+      const sync = () => { decisionLine.textContent = modeEl.textContent; decisionLine.title = modeEl.textContent; };
+      new MutationObserver(sync).observe(modeEl, { childList: true, characterData: true, subtree: true });
+      sync();
+    }
     function changed() {
       dirty = true;
       invalidateDecision('Staged profile changes. Displayed hero unchanged until Apply and a successful live decision.');

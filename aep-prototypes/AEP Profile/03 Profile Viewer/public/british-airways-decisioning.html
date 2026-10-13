@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-env-grid">
-  <link rel="stylesheet" href="british-airways-decisioning.css?v=20261012-preview-channel">
+  <link rel="stylesheet" href="british-airways-decisioning.css?v=20261013-status-stack">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20261012-decisioning-event-details">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -30,7 +30,10 @@
   <div class="ba-decisioning-actions">
     <button type="button" id="baApplyProfile" class="btn-lookup" disabled>Apply profile changes</button>
     <button type="button" id="baRunDecision" class="btn-lookup">Run live image decision</button>
-    <span id="baProfileStatus" role="status" aria-live="polite">Look up a test profile before applying changes.</span>
+    <div class="ba-status-stack">
+      <span id="baDecisionStatus"></span>
+      <span id="baProfileStatus" role="status" aria-live="polite">Look up a test profile before applying changes.</span>
+    </div>
   </div>
   <iframe id="baDecisioningFrame" class="mod-demo-site-frame" src="british-airways-decisioning-visualiser.html?v=20261012-preview-channel"
     title="British Airways Decisioning visualiser"></iframe>
@@ -61,7 +64,7 @@
         iframeId: 'baDecisioningFrame', useParentDocument: false,
         mountLayoutPreset: 'generic', viewName: 'British Airways Decisioning',
       },
-      labCoreScript: 'british-airways-decisioning.js?v=20261012-flight-disruption',
+      labCoreScript: 'british-airways-decisioning.js?v=20261013-status-stack',
     };
   </script>
   <script src="shared/env-bar.js?v=20261012-preview-channel"></script>

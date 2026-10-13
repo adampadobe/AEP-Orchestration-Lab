@@ -15,7 +15,10 @@
   border-bottom: 1px solid var(--dash-border);
   transition: top 0.22s ease;
 }
-.ba-decisioning-actions [role="status"] { flex: 1 1 0; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ba-status-stack { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.ba-status-stack > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ba-status-stack > span:empty { display: none; }
+#baDecisionStatus { color: var(--dash-text-secondary, var(--dash-text)); }
 .ba-decisioning-page #dpmPanelAnchor { display: none; }
 .ba-decisioning-actions [data-error="true"] { color: var(--dash-error-text, var(--dash-text)); }
 body.ba-decisioning-page iframe#baDecisioningFrame {
