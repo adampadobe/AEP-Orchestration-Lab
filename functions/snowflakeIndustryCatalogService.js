@@ -73,6 +73,7 @@ function projectManifest(industry) {
       id: r.id,
       label: r.label,
       provisionMode: r.provisionMode,
+      requiresConfirmation: r.requiresConfirmation === true,
     })),
   };
 

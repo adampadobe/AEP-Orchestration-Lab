@@ -15,7 +15,7 @@ const { projectManifest, validateTravelProposal: validateFromService } = require
 
 describe('snowflakeIndustryManifest', () => {
   it('exports travel phase tables matching Agentic runner', () => {
-    assert.equal(PHASE_TABLES.phase1.length, 4);
+    assert.equal(PHASE_TABLES.phase1.length, 6);
     assert.equal(PHASE_TABLES.phase2.length, 5);
     assert.equal(PHASE_TABLES.phase3.length, 5);
     assert.ok(PHASE_TABLES.phase1.includes('AGENTIC_TRAVEL_PROFILE_CUSTOMER'));

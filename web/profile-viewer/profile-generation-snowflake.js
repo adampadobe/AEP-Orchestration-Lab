@@ -90,6 +90,7 @@
   var loadedProfiles = [];
   /** Last governed industry manifest returned by the catalog endpoint. */
   var industryCatalog = null;
+  var industryProvisionPreview = null;
   /** Profile bundle last fetched for the "Inspect generated data" picker on the Full Agentic generate panel. */
   var fullGenBundleCache = null;
 
@@ -851,6 +852,7 @@
   }
 
   function loadConfig() {
+    industryProvisionPreview = null;
     var sandbox = readSandbox();
     var seq = ++loadConfigSeq;
     lastSnowflakeTestOk = false;
@@ -926,6 +928,7 @@
   }
 
   function saveConfig() {
+    industryProvisionPreview = null;
     if (!hasPortalLogin()) {
       setMessage(portalLoginRequiredMessage(), 'error');
       openPortalLoginHint();
@@ -1290,9 +1293,7 @@
       ? manifest.provisionRecipes
       : [];
     var industry = readIndustry();
-    var preferred = industry === 'travel'
-      ? 'travel.agentic_all.preinstalled.v1'
-      : industry + '.all.v1';
+    var preferred = industry + '.all.v1';
     return recipes.find(function (recipe) { return recipe.id === preferred; }) || recipes[0] || null;
   }
 
@@ -1449,6 +1450,21 @@
       setIndustryMessage('Load the industry manifest before provisioning.', 'error');
       return;
     }
+    var sandbox = readSandbox();
+    var industry = readIndustry();
+    var previewKey = sandbox + ':' + industry + ':' + recipe.id;
+    if (dryRun) industryProvisionPreview = null;
+    if (!dryRun && recipe.requiresConfirmation) {
+      if (!industryProvisionPreview || industryProvisionPreview.key !== previewKey) {
+        setIndustryMessage('Preview the table creation first, then confirm the target database and schema.', 'error');
+        return;
+      }
+      if (!window.confirm(
+        'Create missing travel tables in sandbox "' + sandbox + '" using your saved Snowflake connection?\n\n' +
+        industryProvisionPreview.tables.join('\n') +
+        '\n\nExisting tables will not be altered. This does not create schemas or grant permissions.'
+      )) return;
+    }
     setIndustryBusy(true);
     setIndustryMessage(dryRun ? 'Preparing allowlisted SQL preview…' : 'Creating missing allowlisted tables…', 'info');
     authHeaders().then(function (h) {
@@ -1457,26 +1473,32 @@
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
-          sandbox: readSandbox(),
-          industry: readIndustry(),
+          sandbox: sandbox,
+          industry: industry,
           recipe_id: recipe.id,
           dry_run: !!dryRun,
+          confirmed: !dryRun && recipe.requiresConfirmation === true,
+          preview_fingerprint: !dryRun && industryProvisionPreview ? industryProvisionPreview.fingerprint : undefined,
         }),
       });
     }).then(function (res) {
       return res.json().then(function (body) {
         var result = body && body.result;
-        if (!res.ok || !result || !result.ok) {
-          throw new Error((result && result.error && result.error.message) || body.error || 'Provisioning failed.');
-        }
-        if (els.industryProvisionOut) {
+        if (els.industryProvisionOut && result) {
           els.industryProvisionOut.hidden = false;
           els.industryProvisionOut.textContent = safeStringify(result);
         }
+        if (!res.ok || !result || !result.ok) {
+          throw new Error((result && result.error && result.error.message) || body.error || 'Provisioning failed.');
+        }
+        industryProvisionPreview = dryRun
+          ? { key: previewKey, tables: result.tables || [], fingerprint: result.preview_fingerprint }
+          : null;
         setIndustryMessage(dryRun ? 'Provisioning preview ready.' : 'Table provisioning completed.', 'success');
         if (!dryRun) return loadIndustryCatalog(true);
       });
     }).catch(function (error) {
+      industryProvisionPreview = null;
       setIndustryMessage(error && error.message || String(error), 'error');
     }).then(function () {
       setIndustryBusy(false);
@@ -2207,10 +2229,12 @@
     }
     if (els.form) {
       els.form.addEventListener('input', function () {
+        industryProvisionPreview = null;
         lastSnowflakeTestOk = false;
         refreshConnectionUi();
       });
       els.form.addEventListener('change', function () {
+        industryProvisionPreview = null;
         lastSnowflakeTestOk = false;
         refreshConnectionUi();
       });
@@ -2292,6 +2316,7 @@
     if (els.industry) {
       els.industry.addEventListener('change', function () {
         industryCatalog = null;
+        industryProvisionPreview = null;
         reflectIndustrySelection();
         reflectGenerationScope();
         renderIndustryPreviewTable(null);

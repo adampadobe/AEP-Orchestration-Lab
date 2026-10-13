@@ -232,11 +232,13 @@ Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowfla
 
 2. **Validate proposal (read-only)**
 
-   > **lab_snowflake_validate_proposal** sandbox apalmer recipe_id travel.base_profiles.v1 — or count 5 event_types ["website","booking","mobile"] for generate/enrich.
+   > **lab_snowflake_validate_proposal** sandbox `{colleague sandbox}` recipe_id travel.all.v1 — or count 5 event_types ["website","booking","mobile"] for generate/enrich.
 
 3. **Provision dry_run then execute**
 
-   > **lab_snowflake_provision** sandbox apalmer industry travel recipe_id travel.base_profiles.v1 dry_run true — review plannedSql — then **lab_snowflake_provision** same args dry_run false.
+   > **lab_snowflake_provision** sandbox `{colleague sandbox}` industry travel recipe_id travel.all.v1 dry_run true — show all fully qualified targets and plannedStatements. After explicit colleague confirmation, call the same tool with dry_run false, confirmed true, and the returned preview_fingerprint unchanged.
+
+   Creates all **16 travel tables**: the original 14 profile/event tables plus booking segments and ancillaries. It uses the colleague's own saved connection, with exact portable DDL. Omitted dry_run defaults to preview for this recipe. A changed connection or recipe requires a fresh preview. Their database/schema must already exist and their role needs USAGE, CREATE TABLE, SELECT/INSERT, plus UPDATE for booking-detail MERGE. No grants, schema creation, replacement, or migration of existing incompatible tables. Do not share credentials or infer another user's connection.
 
    Preinstalled Agentic tables: **lab_snowflake_provision** recipe_id travel.agentic_all.preinstalled.v1 dry_run true (existence check only; no CREATE DDL).
 
@@ -261,9 +263,9 @@ Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowfla
 
 FSI, retail, telecom, media, and sports each have one CRM profile table, four event tables, and one enrichment profile table. All rows share **EMAIL**, **ECID**, and **CRMID**.
 
-1. Provision all six tables idempotently:
+1. Preview and provision all six tables idempotently:
 
-   > **lab_snowflake_provision** sandbox apalmer industry retail recipe_id retail.all.v1
+   > **lab_snowflake_provision** sandbox `{colleague sandbox}` industry retail recipe_id retail.all.v1 dry_run true — show target + plannedStatements, obtain colleague confirmation, then dry_run false.
 
 2. Generate a dual-load profile and opt into activity generation:
 
@@ -275,9 +277,13 @@ FSI, retail, telecom, media, and sports each have one CRM profile table, four ev
 
    > **lab_snowflake_get_profile_bundle** sandbox apalmer industry retail email `{generated email}` event_limit 25
 
-4. Re-running enrichment is retry-safe. The deterministic `GENERATIONID` causes already-populated tables to be reported as idempotent rather than duplicated.
+4. Re-running enrichment **serially** skips completed tables by deterministic `GENERATIONID`. Each table's chunks commit together or roll back on failure. Never run concurrent enrichment of the same profiles; inspect the target before retrying if rollback itself fails.
 
 Use the corresponding `{industry}.all.v1` recipe and manifest event keys for fsi, telecom, media, or sports. Travel continues to use its Python runner.
+
+**Snowflake-only UI parity:** after confirming shared email preferences and the requested count, call **lab_snowflake_generate_base_profiles** with explicit `industry` (`travel`, `fsi`, `retail`, `telecom`, `media`, or `sports`) and `count`. This uses the UI's governed CRM batch generator, not legacy `BASE_PROFILES`, and returns `profiles` containing email/ECID/CRMID for **lab_snowflake_enrich_profiles**. Pass only those identity selectors and manifest event keys. It does not stream into AEP. For travel use generate-full to populate every phase, or CRM generation plus runner enrichment for selected activity.
+
+All six industries have checked-in creation recipes matching their UI catalog: **travel 16**, **each other industry 6**. Verify the same UID+sandbox connection, explicit database/schema, network access, grants, and catalog readiness before generating. Confirm a small sample first, then scale within tool count/rate limits. Enrichment commits non-travel table chunks together; run same-profile enrichment serially. Profile generation creates new identities and must not be automatically retried. Realistic rules may produce no rows for particular types (e.g. sports betting for a non-bettor); do not fabricate activity merely to fill every table.
 
 ## Workflow 1e — AJO Live Activity customer test (v3.29+)
 
@@ -317,9 +323,9 @@ Live Activity sends are important external actions. They require a user-generate
 
 Create customer templates with **lab_live_activity_upsert_template**. Use `validate_only:true` first, then save. `variable_definitions[]` paths must stay inside APS `attributes`, `content-state`, or `alert`; those definitions drive Coworker's missing-information questions. User templates are scoped to `principalUid + sandbox` and mirrored to the Portal Live Activities saved list.
 
-### Retail draft table proposals (read-only)
+### Legacy table proposals (read-only)
 
-> **lab_snowflake_validate_proposal** sandbox apalmer industry retail proposed_tables ["RETAIL_PROFILE_CUSTOMER","RETAIL_EVENT_PURCHASE"] — no provision recipes for retail yet.
+> **lab_snowflake_validate_proposal** sandbox apalmer industry retail proposed_tables ["RETAIL_PROFILE_CUSTOMER","RETAIL_EVENT_PURCHASE"] — this legacy input is read-only. Use retail.all.v1 for governed creation; arbitrary names are not executable recipes.
 
 ## Workflow 2 — Hotel segment personas (travel)
 

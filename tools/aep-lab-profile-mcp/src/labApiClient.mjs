@@ -1593,14 +1593,18 @@ export async function snowflakeConnectionTest({ sandbox }) {
 }
 
 /**
- * POST /api/snowflake/generate-base-profiles
+ * POST /api/snowflake/generate-industry-profiles when industry is supplied; otherwise legacy generate-base-profiles.
  * @param {object} params
  */
-export async function snowflakeGenerateBaseProfiles({ sandbox, count, table, batch_size, start_index, use_generation_prefs }) {
-  return labApiRequest('/api/snowflake/generate-base-profiles', {
+export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, table, batch_size, start_index, use_generation_prefs }) {
+  if (industry && (table || start_index != null || use_generation_prefs === false)) {
+    throw new Error('Industry CRM generation uses its governed table and shared generation preferences; legacy overrides cannot be combined with industry.');
+  }
+  return labApiRequest(industry ? '/api/snowflake/generate-industry-profiles' : '/api/snowflake/generate-base-profiles', {
     method: 'POST',
     body: {
       sandbox,
+      ...(industry ? { industry } : {}),
       ...(count != null ? { count } : {}),
       ...(table ? { table } : {}),
       ...(batch_size != null ? { batchSize: batch_size } : {}),
@@ -1772,9 +1776,9 @@ export async function snowflakeProfileBundle({
 
 /**
  * POST /api/snowflake/provision — governed allowlisted table recipes
- * @param {{ sandbox: string, industry?: string, recipe_id: string, dry_run?: boolean, approval_id?: string }} params
+ * @param {{ sandbox: string, industry?: string, recipe_id: string, dry_run?: boolean, approval_id?: string, confirmed?: boolean, preview_fingerprint?: string }} params
  */
-export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run, approval_id }) {
+export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run, approval_id, confirmed, preview_fingerprint }) {
   return labApiRequest('/api/snowflake/provision', {
     method: 'POST',
     body: {
@@ -1783,6 +1787,8 @@ export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run
       recipe_id,
       dry_run,
       approval_id,
+      confirmed,
+      preview_fingerprint,
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 120_000,

@@ -90,18 +90,28 @@ async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50) {
   if (!rows.length) return 0;
   const arrayColumns = new Set(tableConfig.arrayColumns);
   let inserted = 0;
-  for (let offset = 0; offset < rows.length; offset += chunkSize) {
-    const chunk = rows.slice(offset, offset + chunkSize);
-    const binds = chunk.flatMap((row) =>
-      tableConfig.columns.map((column) => bindValue(row[column], arrayColumns.has(column))),
-    );
-    await execAsync(conn, {
-      // Snowflake rejects PARSE_JSON bind expressions inside a VALUES clause.
-      // SELECT/UNION ALL keeps array conversion server-side and supports batches.
-      sqlText: buildInsertSql(fqTable, tableConfig, chunk.length),
-      binds,
-    });
-    inserted += chunk.length;
+  await execAsync(conn, { sqlText: 'BEGIN TRANSACTION' });
+  try {
+    for (let offset = 0; offset < rows.length; offset += chunkSize) {
+      const chunk = rows.slice(offset, offset + chunkSize);
+      const binds = chunk.flatMap((row) =>
+        tableConfig.columns.map((column) => bindValue(row[column], arrayColumns.has(column))),
+      );
+      await execAsync(conn, {
+        // SELECT/UNION ALL allows Snowflake ARRAY conversion with bound values.
+        sqlText: buildInsertSql(fqTable, tableConfig, chunk.length),
+        binds,
+      });
+      inserted += chunk.length;
+    }
+    await execAsync(conn, { sqlText: 'COMMIT' });
+  } catch (error) {
+    try {
+      await execAsync(conn, { sqlText: 'ROLLBACK' });
+    } catch (rollbackError) {
+      throw new AggregateError([error, rollbackError], 'Event insertion and rollback failed; inspect the table before retrying.');
+    }
+    throw error;
   }
   return inserted;
 }
@@ -262,6 +272,7 @@ async function handleIndustryProfileBundle(input) {
 
 module.exports = {
   buildInsertSql,
+  insertRows,
   handleIndustryEnrich,
   handleIndustryProfileBundle,
   normalizeProfileSelector,

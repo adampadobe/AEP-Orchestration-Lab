@@ -21,7 +21,7 @@ describe('snowflakeAgenticTravelService query profiles', () => {
   });
 
   describe('snowflakeAgenticTravelService exact schema export', () => {
-    it('reads all 14 allowlisted tables without executing DDL or selecting customer rows', async () => {
+    it('reads all 16 allowlisted tables without executing DDL or selecting customer rows', async () => {
       const calls = [];
       const ddl = 'create or replace TABLE T (PRICE NUMBER(18,2), LABEL VARCHAR(64), ID NUMBER NOT NULL, PRIMARY KEY (ID));';
       const conn = {
@@ -34,7 +34,7 @@ describe('snowflakeAgenticTravelService query profiles', () => {
       for (const phase of Object.keys(PHASE_TABLES)) {
         definitions.push(...await readPhaseTableDdl(conn, { database: 'COLLEAGUE_DB', schema: 'LAB' }, phase));
       }
-      assert.equal(definitions.length, 14);
+      assert.equal(definitions.length, 16);
       assert.deepEqual(definitions.map((entry) => entry.table), Object.values(PHASE_TABLES).flat());
       for (const [index, call] of calls.entries()) {
         assert.equal(call.sqlText, "SELECT GET_DDL('TABLE', ?) AS TABLE_DDL");
