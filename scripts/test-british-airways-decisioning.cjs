@@ -291,7 +291,11 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.evaluate(() => window.envBar.ready());
     await page.waitForFunction(() => window.DemoTagsInjection && document.getElementById('baDecisioningInjectSdkBtn'));
     const visual = page.frameLocator('#baDecisioningFrame');
-    await visual.locator('#signals .toggle-opt').first().waitFor();
+    await visual.locator('#signals .toggle-opt').first().waitFor({ state: 'attached' });
+    const collapsedAtStart = await visual.locator('#signals .sig.collapsed').count();
+    assert.ok(collapsedAtStart >= 5, 'groups start collapsed');
+    await visual.locator('#signals .sig-head').evaluateAll((heads) => heads.forEach((h) => h.click()));
+    assert.equal(await visual.locator('#signals .sig.collapsed').count(), 0, 'groups expand on click');
     const displayedHero = () => page.evaluate(() => {
       const doc = document.getElementById('baDecisioningFrame').contentDocument;
       return { image: doc.querySelector('.wb-bg.on').src, text: doc.getElementById('wbInner').innerHTML, email: doc.getElementById('mailFrame').srcdoc };
