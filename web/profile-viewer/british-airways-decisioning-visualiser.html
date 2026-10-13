@@ -79,7 +79,7 @@
   .block-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 6px; }
   .block-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; font-weight: 400; margin: 0; }
   .block-tag { font-family: 'DM Mono', ui-monospace, monospace; font-size: 11px; color: #7ab4e0; }
-  .res-row { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 12px; flex: 0 0 auto; }
+  .res-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; flex: 0 0 auto; }
 
   .ladder { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; }
   .obj { display: grid; grid-template-columns: 42px 205px minmax(0, 1fr) 118px; gap: 10px; align-items: center; padding: 3px 10px 3px 8px; border-radius: 9px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); transition: background .25s, border-color .25s, opacity .25s; }
@@ -350,19 +350,6 @@
             <div class="block-head"><h3 class="block-title" id="nbaTitle">Eligible NBAs</h3><span class="block-tag" id="nbaTag"></span></div>
             <ol class="nba-list" id="nbaList"></ol>
           </section>
-          <aside class="result r-side" aria-label="Serving and guardrails">
-            <div class="serving" aria-live="polite">
-              <p class="serving-label">Serving</p>
-              <p class="serving-name" id="servName"></p>
-              <p class="serving-via" id="servVia"></p>
-              <hr>
-              <p class="serving-breakdown" id="servBreak"></p>
-            </div>
-            <div class="guards">
-              <p class="guard-label">Hard guardrails</p>
-              <div id="guardList"></div>
-            </div>
-          </aside>
         </div>
       </div>
     </section>
@@ -378,13 +365,9 @@
             <button type="button" data-m="mobile" aria-pressed="false">Email · Mobile</button>
             <button type="button" data-m="web" aria-pressed="false">Web</button>
           </div>
-          <div class="dev layoutbar" id="layoutBar" role="group" aria-label="Panel layout" title="Panel widths — or drag the dividers to resize">
-            <button type="button" data-l="balanced" title="Signals and preview sized to the screen; decision gets the rest">Balanced</button>
-            <button type="button" data-l="equal" title="Three equal columns">Equal thirds</button>
-          </div>
         </div>
       </div>
-      <div class="mail-meta" id="mailMeta"></div>
+      <div class="mail-meta" id="mailMeta" hidden style="display:none"></div>
       <div class="mail-stage" id="mailStage">
         <iframe id="mailFrame" title="Email preview"></iframe>
         <div class="web-stage" id="webStage" hidden>
@@ -540,9 +523,7 @@
     { name: 'Trip next week',    set: {} },
     { name: 'At the airport',    set: { booking: 'travelling' } },
     { name: 'Delayed flight',    set: { booking: 'travelling', disruption: 'delay' } },
-    { name: 'Cancelled flight',  set: { days: 2, disruption: 'cancelled' } },
-    { name: 'No consent',        set: { consent: 'none' } },
-    { name: 'No consent, no trip', set: { booking: 'none', intent: 'abandoned', recency: 6, consent: 'none' } }
+    { name: 'Cancelled flight',  set: { days: 2, disruption: 'cancelled' } }
   ];
 
   /* ═══════════════════════════ 2. DERIVED CONTEXT ═══════════════════════════ */
@@ -1327,6 +1308,7 @@
 
   function renderServing(res) {
     var n = $('servName'), v = $('servVia'), b = $('servBreak');
+    if (!n || !v || !b) return;
     if (!res.served) { n.textContent = 'Do nothing'; v.textContent = 'No email sent'; b.textContent = noneReason(res); return; }
     var r = res.served, t = r.s, o = res.rows[res.selected].o;
     n.textContent = r.n.name;
@@ -1335,6 +1317,7 @@
   }
 
   function renderGuards(res) {
+    if (!$('guardList')) return;
     var c = res.c, rows = [];
     rows.push(['Consent', c.consent === 'full' ? ['ok', 'Full consent'] : c.consent === 'service' ? ['warn', 'Service only — marketing held'] : ['warn', 'None — marketing blocked, service still sent']]);
     rows.push(['Safety', c.safe === 'yes' ? ['ok', 'Safe to contact'] : ['bad', 'Do not contact']]);
@@ -1518,7 +1501,6 @@
   function markPreset() {                 // highlight Balanced / Equal thirds when the current widths match one of them
     var W = panesEl.clientWidth, bw = clampW(balancedW(W), W), ew = clampW(equalW(W), W);
     var near = function (t) { return Math.abs(cur.sig - t.sig) <= 2 && Math.abs(cur.prev - t.prev) <= 2; };
-    $('layoutBar').querySelectorAll('button').forEach(function (x) { var on = x.dataset.l === 'equal' ? near(ew) : near(bw); x.classList.toggle('active', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   }
   function applyW(w) { cur = w; panesEl.style.setProperty('--w-sig', w.sig + 'px'); panesEl.style.setProperty('--w-prev', w.prev + 'px'); markPreset(); }
   function saveRatio() { var W = panesEl.clientWidth; ratio = { sig: cur.sig / W, prev: cur.prev / W }; try { localStorage.setItem(LS_KEY, JSON.stringify(ratio)); } catch (e) {} }
@@ -1554,11 +1536,6 @@
       var W = panesEl.clientWidth;
       applyW(clampW(which === 0 ? { sig: cur.sig + step, prev: cur.prev } : { sig: cur.sig, prev: cur.prev - step }, W, which === 0 ? 'sig' : 'prev')); saveRatio();
     });
-  });
-  $('layoutBar').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return;
-    var W = panesEl.clientWidth;
-    if (b.dataset.l === 'equal') { applyW(clampW(equalW(W), W)); saveRatio(); } else { clearRatio(); relayout(); }
   });
   window.addEventListener('resize', relayout);
   relayout();

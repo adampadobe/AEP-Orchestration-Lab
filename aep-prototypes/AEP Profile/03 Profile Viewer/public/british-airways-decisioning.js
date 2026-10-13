@@ -33,6 +33,7 @@
   function key(ctx) { return JSON.stringify(ctx); }
   function message(text, error) {
     status.textContent = text;
+    status.title = text;
     status.dataset.error = String(!!error);
     apply.disabled = busy || !loaded || !dirty;
     run.disabled = busy;
