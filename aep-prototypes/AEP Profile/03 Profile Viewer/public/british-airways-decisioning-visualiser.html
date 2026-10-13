@@ -90,8 +90,11 @@
   .obj { display: grid; grid-template-columns: 42px 205px minmax(0, 1fr) 118px; gap: 10px; align-items: center; padding: 3px 10px 3px 8px; border-radius: 9px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); transition: background .25s, border-color .25s, opacity .25s; }
   .obj.selected { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.45); box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 4px 14px rgba(0,0,0,.25); }
   .obj.after { opacity: .6; }
-  .obj:not(.selected) .gates, .obj:not(.selected) .obj-sub { display: none; }
-  .obj:not(.selected) .chev { grid-row: auto; }
+  .obj:not(.open) .gates, .obj:not(.open) .obj-sub { display: none; }
+  .obj:not(.open) .chev { grid-row: auto; }
+  .obj { cursor: pointer; }
+  .obj-toggle-all { margin-left: auto; background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 2px 10px; font: inherit; font-size: 11px; cursor: pointer; }
+  .obj-toggle-all:hover { background: rgba(255,255,255,.18); }
   .chev { width: 40px; height: 30px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 14px; clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 24% 50%); padding-left: 8px; }
   .obj-name { font-size: 14.5px; font-weight: 600; line-height: 1.15; white-space: nowrap; }
   .obj-sub { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -348,7 +351,7 @@
 
         <section class="result r-obj" aria-labelledby="resLabel">
           <h2 class="result-label" id="resLabel">② Local simulation (not an AEP decision)</h2>
-          <div class="block-head"><h3 class="block-title">Ranked objectives</h3><span class="block-tag">stop at the first eligible</span></div>
+          <div class="block-head"><h3 class="block-title">Ranked objectives</h3><span class="block-tag">stop at the first eligible</span><button type="button" class="obj-toggle-all" id="objToggleAll">Expand all</button></div>
           <ol class="ladder" id="ladder"></ol>
         </section>
 
@@ -1254,9 +1257,10 @@
       var prev = state;
       state = Object.assign({}, DEFAULT, sc.set);
       Object.keys(ctlEls).forEach(function (k) {
-        if (prev[k] === state[k]) return;
-        var box = ctlEls[k].el.closest('.sig');
-        if (box && box.classList.contains('collapsed')) { box.classList.remove('collapsed'); var h = box.querySelector('.sig-head'); if (h) h.setAttribute('aria-expanded', 'true'); }
+        var box = ctlEls[k].el.closest('.sig'); if (!box) return;
+        var open = prev[k] !== state[k];
+        box.classList.toggle('collapsed', !open);
+        var h = box.querySelector('.sig-head'); if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
       syncControls(); update();
     });
@@ -1266,13 +1270,28 @@
   /* ═══════════════════════════ 8. UI: result ═══════════════════════════ */
   var ladderEl = $('ladder'), nbaList = $('nbaList');
   var PILL = { selected: 'Selected', queued: 'Also eligible', no: 'Not eligible', nocand: 'No eligible NBA' };
+  var openObjs = {}, toggleAllBtn = $('objToggleAll');
+  function syncToggleAll() {
+    var rows = ladderEl.querySelectorAll('.obj'), open = ladderEl.querySelectorAll('.obj.open');
+    toggleAllBtn.textContent = rows.length && open.length === rows.length ? 'Collapse all' : 'Expand all';
+  }
+  ladderEl.addEventListener('click', function (e) {
+    var li = e.target.closest('.obj'); if (!li) return;
+    openObjs[li.dataset.i] = !li.classList.contains('open');
+    li.classList.toggle('open'); syncToggleAll();
+  });
+  toggleAllBtn.addEventListener('click', function () {
+    var expand = toggleAllBtn.textContent === 'Expand all';
+    ladderEl.querySelectorAll('.obj').forEach(function (li) { openObjs[li.dataset.i] = expand; li.classList.toggle('open', expand); });
+    syncToggleAll();
+  });
 
   function renderLadder(res) {
     ladderEl.innerHTML = res.rows.map(function (r, i) {
-      var o = r.o, cls = 'obj' + (r.status === 'selected' ? ' selected' : '') + (r.after ? ' after' : '');
+      var o = r.o, cls = 'obj' + (r.status === 'selected' ? ' selected' : '') + (r.after ? ' after' : '') + (openObjs[i] ? ' open' : '');
       var pillCls = r.status === 'blocked' ? 'blocked' : (r.status === 'nocand' ? 'no' : r.status);
       var pillTxt = r.status === 'blocked' ? 'Blocked · ' + r.guard : (r.after && r.status === 'queued' ? 'Eligible · not reached' : PILL[r.status]);
-      return '<li class="' + cls + '">' +
+      return '<li class="' + cls + '" data-i="' + i + '">' +
         '<div class="chev" style="background:' + o.color + '" aria-hidden="true">' + (i + 1) + '</div>' +
         '<div class="obj-title"><div class="obj-name">' + o.name + '</div><div class="obj-sub">' + o.sub + '</div></div>' +
         '<div class="gates">' + r.gates.map(function (g) {
@@ -1281,6 +1300,7 @@
         }).join('') + '</div>' +
         '<div class="pill ' + pillCls + '">' + pillTxt + '</div></li>';
     }).join('');
+    syncToggleAll();
   }
 
   function noneReason(res) {
