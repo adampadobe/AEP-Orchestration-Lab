@@ -6,6 +6,8 @@ const {
   TRAVEL_PROFILE_COLUMNS,
   buildQueryProfilesSql,
   mapTravelProfileRow,
+  readPhaseTableDdl,
+  PHASE_TABLES,
 } = require('../snowflakeAgenticTravelService');
 const { COLUMNS } = require('../snowflakeTravelProfileSchema');
 const { COLUMNS: FSI_COLUMNS, TABLE: FSI_TABLE } = require('../snowflakeFsiProfileSchema');
@@ -16,6 +18,48 @@ describe('snowflakeAgenticTravelService query profiles', () => {
     assert.ok(COLUMNS.includes('FIRSTNAME'));
     assert.ok(COLUMNS.includes('DATEOFBIRTH'));
     assert.ok(COLUMNS.includes('NATIONALITY'));
+  });
+
+  describe('snowflakeAgenticTravelService exact schema export', () => {
+    it('reads all 14 allowlisted tables without executing DDL or selecting customer rows', async () => {
+      const calls = [];
+      const ddl = 'create or replace TABLE T (PRICE NUMBER(18,2), LABEL VARCHAR(64), ID NUMBER NOT NULL, PRIMARY KEY (ID));';
+      const conn = {
+        execute(options) {
+          calls.push(options);
+          options.complete(null, null, [{ TABLE_DDL: ddl }]);
+        },
+      };
+      const definitions = [];
+      for (const phase of Object.keys(PHASE_TABLES)) {
+        definitions.push(...await readPhaseTableDdl(conn, { database: 'COLLEAGUE_DB', schema: 'LAB' }, phase));
+      }
+      assert.equal(definitions.length, 14);
+      assert.deepEqual(definitions.map((entry) => entry.table), Object.values(PHASE_TABLES).flat());
+      for (const [index, call] of calls.entries()) {
+        assert.equal(call.sqlText, "SELECT GET_DDL('TABLE', ?) AS TABLE_DDL");
+        assert.deepEqual(call.binds, [`COLLEAGUE_DB.LAB.${definitions[index].table}`]);
+        assert.equal(definitions[index].ddl, ddl);
+      }
+    });
+
+    it('rejects phases and target identifiers outside the allowlist before querying', async () => {
+      const conn = { execute() { assert.fail('must not query'); } };
+      for (const phase of ['phase4', 'constructor', '__proto__']) {
+        await assert.rejects(readPhaseTableDdl(conn, { database: 'DB', schema: 'LAB' }, phase), /Invalid phase/);
+      }
+      await assert.rejects(
+        readPhaseTableDdl(conn, { database: 'DB;DROP TABLE X', schema: 'LAB' }, 'phase1'),
+        /invalid identifier/i,
+      );
+    });
+
+    it('propagates permission errors and rejects incomplete schema exports', async () => {
+      const denied = { execute(options) { options.complete(new Error('Insufficient privileges')); } };
+      await assert.rejects(readPhaseTableDdl(denied, { database: 'DB', schema: 'LAB' }, 'phase1'), /Insufficient privileges/);
+      const empty = { execute(options) { options.complete(null, null, []); } };
+      await assert.rejects(readPhaseTableDdl(empty, { database: 'DB', schema: 'LAB' }, 'phase1'), /No table DDL returned/);
+    });
   });
 
   it('buildQueryProfilesSql selects all travel columns', () => {

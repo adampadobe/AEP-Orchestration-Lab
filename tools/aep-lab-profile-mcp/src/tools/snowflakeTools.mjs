@@ -616,13 +616,16 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Snowflake Agentic travel table structure by phase',
       description:
         'POST /api/snowflake/agentic/table-structure — column metadata for phase1|phase2|phase3 tables. ' +
-        'Requires a user-generated MCP key or validated Adobe IMS Portal enrollment. No arbitrary SQL.',
+        'Optional include_ddl returns exact schema-only GET_DDL definitions, preserving precision, scale and constraints. ' +
+        'Requires a user-generated MCP key or validated Adobe IMS Portal enrollment. No arbitrary SQL or customer rows. ' +
+        'Exported DDL is for review, not execution; provision only through allowlisted recipes.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         phase: z.enum(['phase1', 'phase2', 'phase3']).describe('Agentic travel phase'),
+        include_ddl: z.boolean().optional().describe('Read exact table DDL for schema review (default false; no database changes)'),
       },
     },
-    async ({ sandbox, phase }) => {
+    async ({ sandbox, phase, include_ddl }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const userKey = requireUserMcpKeyForSnowflake();
@@ -638,6 +641,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       const apiResult = await snowflakeTableStructure({
         sandbox: allowed.sandbox,
         phase,
+        include_ddl,
       });
       writeAuditLog({
         keyId,
@@ -653,6 +657,9 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         phase: result.phase || phase,
         tableCount: result.table_count,
         structureText: result.structure_text,
+        ...(Array.isArray(result.table_definitions)
+          ? { tableDefinitions: result.table_definitions }
+          : {}),
       });
     },
   );

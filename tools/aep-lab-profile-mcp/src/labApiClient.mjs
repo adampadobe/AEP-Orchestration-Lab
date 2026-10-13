@@ -1675,10 +1675,10 @@ export async function snowflakeIndustryCatalog({ sandbox, industry, check_tables
  * POST /api/snowflake/agentic/table-structure
  * @param {object} params
  */
-export async function snowflakeTableStructure({ sandbox, phase }) {
+export async function snowflakeTableStructure({ sandbox, phase, include_ddl }) {
   return labApiRequest('/api/snowflake/agentic/table-structure', {
     method: 'POST',
-    body: { sandbox, phase },
+    body: { sandbox, phase, ...(include_ddl === true ? { include_ddl: true } : {}) },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 120_000,
   });
