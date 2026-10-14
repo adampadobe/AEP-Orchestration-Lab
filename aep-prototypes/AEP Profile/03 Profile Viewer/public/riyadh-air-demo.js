@@ -12,6 +12,112 @@
   let previewTrip = null;
   const uncertainKey = 'riyadhAirUncertainDelivery';
   let uncertain = global.sessionStorage.getItem(uncertainKey);
+  let signedInOwner = '';
+  let signingIn = false;
+
+  function closeLabOverlays() {
+    if (global.EnvBarCompact) global.EnvBarCompact.closeOverlay({ force: true });
+    if (global.ProfileViewerModal) global.ProfileViewerModal.close();
+    if (global.BrandConciergeMidrailPanel && global.BrandConciergeMidrailPanel._handle) global.BrandConciergeMidrailPanel._handle.setOpen(false);
+    const decisionClose = byId('dpmPanelClose');
+    if (decisionClose) decisionClose.click();
+  }
+
+  function trapDialogFocus(panel) {
+    panel.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      const controls = [...panel.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')]
+        .filter((element) => element.getClientRects().length);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
+  function initAccount() {
+    const panel = byId('raAccountDialog');
+    const launcher = byId('raAccountButton');
+    function show(view) {
+      byId('raAccountWelcome').hidden = view !== 'welcome';
+      byId('raAccountForm').hidden = view !== 'form';
+      byId('raAccountSignedIn').hidden = view !== 'signedIn';
+      panel.setAttribute('aria-labelledby', view === 'form' ? 'raAccountFormTitle' : view === 'signedIn' ? 'raAccountSignedInTitle' : 'raAccountTitle');
+    }
+    launcher.addEventListener('click', () => {
+      show(signingIn ? 'form' : signedInOwner ? 'signedIn' : 'welcome');
+      closeLabOverlays();
+      panel.showModal();
+      launcher.setAttribute('aria-expanded', 'true');
+      (signingIn ? byId('raAccountClose') : signedInOwner ? byId('raAccountActivity') : byId('raJoinNow')).focus();
+    });
+    for (const [id, join] of [['raJoinNow', true], ['raLogIn', false]]) {
+      byId(id).addEventListener('click', () => {
+        show('form');
+        byId('raAccountFormTitle').textContent = join ? 'Join Sfeer' : 'Log in to Sfeer';
+        byId('raAccountFormHint').textContent = join
+          ? 'Try Sfeer with an existing Lab demo profile email. This demo does not create an airline or loyalty account.'
+          : 'Use an existing Lab demo profile email. No password is required.';
+        byId('raAccountEmail').value = verified ? verified.email : '';
+        byId('raAccountError').hidden = true;
+        byId('raAccountEmail').focus();
+      });
+    }
+    byId('raAccountClose').addEventListener('click', () => panel.close());
+    byId('raAccountBack').addEventListener('click', () => { show('welcome'); byId('raJoinNow').focus(); });
+    panel.addEventListener('click', (event) => {
+      const rect = panel.getBoundingClientRect();
+      if (event.target === panel && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) panel.close();
+    });
+    panel.addEventListener('close', () => {
+      launcher.setAttribute('aria-expanded', 'false');
+      launcher.focus();
+    });
+    trapDialogFocus(panel);
+    byId('raAccountActivity').addEventListener('click', () => {
+      panel.close();
+      void global.DemoProfileDrawer.openDrawerAndLoad().catch((error) => api.reportError(error));
+    });
+    byId('raAccountForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (signingIn) return;
+      signingIn = true;
+      const controls = [...byId('raAccountForm').querySelectorAll('input, button')];
+      const email = byId('raAccountEmail').value.trim();
+      const requestedSandbox = sandbox();
+      controls.forEach((control) => { control.disabled = true; });
+      byId('raAccountForm').setAttribute('aria-busy', 'true');
+      byId('raAccountError').hidden = true;
+      try {
+        const profile = await lookup(email, { requireStitch: true });
+        if (requestedSandbox !== sandbox() || !verified || profile !== verified) throw new Error('The selected environment changed during sign-in.');
+        signedInOwner = ownerKey();
+        byId('raAccountLabel').textContent = 'My Sfeer';
+        launcher.setAttribute('aria-label', 'My Sfeer');
+        byId('raAccountGreeting').textContent = profile.firstName ? 'Welcome, ' + profile.firstName + '.' : 'Welcome to your profile.';
+        panel.close();
+      } catch (error) {
+        message(error.message, true);
+        byId('raAccountError').textContent = 'We could not connect your profile. Check your demo email and ask the presenter to verify the selected environment and Adobe connection.';
+        byId('raAccountError').hidden = false;
+        if (!panel.open) {
+          byId('raDeliveryStatus').textContent = byId('raAccountError').textContent;
+          byId('raDeliveryStatus').hidden = false;
+        }
+      } finally {
+        signingIn = false;
+        controls.forEach((control) => { control.disabled = false; });
+        byId('raAccountForm').removeAttribute('aria-busy');
+        if (panel.open) byId('raAccountEmail').focus();
+      }
+    });
+  }
 
   function message(text, error, customer) {
     const diagnostic = byId('raPresenterStatus');
@@ -108,11 +214,7 @@
     let returnFocus = launcher;
     launcher.addEventListener('click', () => {
       returnFocus = document.activeElement;
-      if (global.EnvBarCompact) global.EnvBarCompact.closeOverlay({ force: true });
-      if (global.ProfileViewerModal) global.ProfileViewerModal.close();
-      if (global.BrandConciergeMidrailPanel && global.BrandConciergeMidrailPanel._handle) global.BrandConciergeMidrailPanel._handle.setOpen(false);
-      const decisionClose = byId('dpmPanelClose');
-      if (decisionClose) decisionClose.click();
+      closeLabOverlays();
       updatePreview();
       panel.showModal();
       launcher.setAttribute('aria-expanded', 'true');
@@ -128,20 +230,7 @@
       launcher.setAttribute('aria-expanded', 'false');
       if (returnFocus && returnFocus.isConnected) returnFocus.focus();
     });
-    panel.addEventListener('keydown', (event) => {
-      if (event.key !== 'Tab') return;
-      const controls = [...panel.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')]
-        .filter((element) => element.getClientRects().length);
-      const first = controls[0];
-      const last = controls[controls.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    });
+    trapDialogFocus(panel);
     // Native modal dialogs provide Escape dismissal and inert siblings.
     panel.addEventListener('input', () => updatePreview());
     panel.addEventListener('change', () => updatePreview());
@@ -164,6 +253,14 @@
     } catch (error) {
       label.textContent = error.message;
     }
+    if (signedInOwner) {
+      try { if (signedInOwner !== ownerKey()) signedInOwner = ''; }
+      catch { signedInOwner = ''; }
+      if (!signedInOwner) {
+        byId('raAccountLabel').textContent = 'My profile';
+        byId('raAccountButton').setAttribute('aria-label', 'My profile');
+      }
+    }
     global.dispatchEvent(new CustomEvent('riyadh-air-context-change'));
     updatePreview();
   }
@@ -183,7 +280,7 @@
     notifyContext();
   }
 
-  async function lookup(value) {
+  async function lookup(value, options) {
     if (sending) throw new Error('Wait for the current event to finish before changing profiles.');
     const input = byId('customerEmail');
     if (value != null) {
@@ -195,6 +292,8 @@
       input.value = value;
     }
     const requested = identifier();
+    const requestedSandbox = sandbox();
+    const requestedNamespace = namespace();
     if (!requested) throw new Error('Enter a customer identifier in the Lab bar.');
     verified = null;
     message('Looking up the selected profile...', false);
@@ -202,9 +301,12 @@
       updateMessage: true, sendApplicationLogin: false,
     });
     await identityValidation;
-    if (!found || !verified) throw new Error('Profile lookup did not resolve a usable profile. Check the identifier, namespace and sandbox.');
+    if (!found || !verified || requested !== identifier() || requestedSandbox !== sandbox() || requestedNamespace !== namespace()) throw new Error('Profile lookup did not resolve a usable profile. Check the identifier, namespace and sandbox.');
     if (typeof global.setSessionIdentifier === 'function') global.setSessionIdentifier(requested, namespace());
-    const stitched = await tags.stitchAfterProfileLookup(verified, verified.email);
+    const resolved = verified;
+    const stitched = await tags.stitchAfterProfileLookup(resolved, resolved.email);
+    if (requested !== identifier() || requestedSandbox !== sandbox() || requestedNamespace !== namespace() || resolved !== verified) throw new Error('The selected profile or environment changed during sign-in. Please try again.');
+    if (options && options.requireStitch && !stitched) throw new Error('Adobe identity stitching did not confirm acceptance. Configure and inject Tags in the selected sandbox before signing in.');
     message(stitched
       ? 'Profile resolved. Tags identity stitch accepted; verify the graph in the drawer.'
       : 'Profile resolved for generator events. Tags identity stitch is not verified; inject the selected Tags library if needed.', false);
@@ -315,6 +417,7 @@
 
   async function run() {
     initPresenter();
+    initAccount();
     await global.envBar.ready();
     if (!byId('customerEmail') || !global.DemoTagsInjection || !global.DemoProfileDrawer) {
       throw new Error('Shared Lab components did not load. Reload the page and check the local asset server.');

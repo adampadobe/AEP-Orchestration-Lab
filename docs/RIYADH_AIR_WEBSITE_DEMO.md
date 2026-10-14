@@ -53,6 +53,22 @@ business events go only through `POST /api/events/generator`; there is no busine
 Keep customer Tags rules from independently ingesting the same booking clicks.
 User-supplied Tags rules and datastream configuration are outside this guarantee.
 
+The customer header's **My profile** menu offers the reference-style **Join now**
+and **Log in** experience. Both use an existing Lab profile email, the shared
+profile lookup and the same Tags email/ECID stitching mechanism used by Etihad.
+No password is collected and Join now does not create a real airline or Sfeer
+account. A successful lookup must independently resolve email and ECID in the
+selected sandbox, and the selected Adobe Web SDK must accept the identity stitch
+before the header becomes **My Sfeer**. Inject the chosen Tags library first.
+Failed lookups or stitching remain explicit; changing identity or sandbox clears
+the signed-in display. Signing in adds no generator business/login event.
+The display is tab-memory-only and is not restored as authentication after reload.
+SDK acceptance is not independent confirmation of live Profile ingestion; verify
+the identity graph/activity using the shared profile drawer when connected.
+If context changes while the SDK call is already in flight, the site cannot undo
+that request; it rejects local sign-in rather than claiming the new context was
+stitched. There is no automatic retry.
+
 The shared environment bar, profile drawer, web-push registration, Adobe Target,
 decisioning and Brand Concierge controls remain available. Customer sections and
 the canonical `TopRibbon`, `hero-banner` and `ContentCardContainer` mounts are in
