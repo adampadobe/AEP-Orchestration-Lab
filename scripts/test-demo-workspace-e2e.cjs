@@ -172,7 +172,8 @@ async function main() {
     }
     await page.getByRole('button', { name: 'Enter full screen', exact: true }).click();
     await page.waitForFunction(() => !!document.fullscreenElement);
-    await page.getByRole('button', { name: 'Exit full screen', exact: true }).click();
+    assert.equal(await page.getByRole('button', { name: 'Exit full screen', exact: true }).count(), 0);
+    await page.evaluate(() => document.exitFullscreen());
     await page.waitForFunction(() => !document.fullscreenElement);
     await page.setViewportSize({ width: 1440, height: 1000 });
     const diagnosticPage = await context.newPage();
@@ -235,7 +236,9 @@ async function main() {
     assert.doesNotMatch(await page.locator('#demoAssetsVisualStatus').textContent(), /canvas extends|not centred|script failed/);
     await page.locator('#demoAssetsPreviewFullscreen').click();
     await page.waitForFunction(() => document.fullscreenElement?.id === 'demoAssetsPreviewSurface');
-    await page.locator('#demoAssetsPreviewFullscreen').click();
+    assert.equal(await page.locator('#demoAssetsPreviewFullscreen').isVisible(), false);
+    assert.equal(await page.locator('#demoAssetsVisualStatus').isVisible(), false);
+    await page.evaluate(() => document.exitFullscreen());
     await page.waitForFunction(() => !document.fullscreenElement);
     await page.locator('#demoAssetsPreviewClose').click();
     await page.locator('details.demo-assets-more-actions summary').first().click();
@@ -279,7 +282,10 @@ async function main() {
     assert.match(visualRequest.body.message, /1280 x 800.*390 x 844/);
     await page.locator('#studioPreviewFullscreen').click();
     await page.waitForFunction(() => document.fullscreenElement?.id === 'studioPreviewPanel');
-    await page.locator('#studioPreviewFullscreen').click();
+    assert.equal(await page.locator('#studioPreviewFullscreen').isVisible(), false);
+    assert.equal(await page.locator('#studioCurrentVisual').isVisible(), false);
+    assert.equal(await page.locator('#studioProposalBar').isVisible(), false);
+    await page.evaluate(() => document.exitFullscreen());
     await page.getByRole('button', { name: 'Apply as new version' }).click();
     await page.waitForFunction(() => document.getElementById('studioProposalBar').hidden);
     assert.equal(trace.filter((t) => t.route.endsWith('/studio/apply')).length, appliedBefore + 1);
@@ -311,8 +317,17 @@ async function main() {
           }
           await page.locator('#demoAssetsPreviewFullscreen').click();
           await page.waitForFunction(() => document.fullscreenElement?.id === 'demoAssetsPreviewSurface');
-          await page.locator('#demoAssetsPreviewClose').click();
+          assert.equal(await page.locator('#demoAssetsPreviewClose').isVisible(), false);
+          const frameBounds = await page.locator('#demoAssetsPreviewFrame').boundingBox();
+          const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+          assert.equal(frameBounds.x, 0);
+          assert.equal(frameBounds.y, 0);
+          assert.equal(frameBounds.width, viewport.width);
+          assert.equal(frameBounds.height, viewport.height);
+          await page.evaluate(() => document.exitFullscreen());
           await page.waitForFunction(() => !document.fullscreenElement);
+          assert.equal(await page.locator('#demoAssetsPreviewFullscreen').isVisible(), true);
+          await page.locator('#demoAssetsPreviewClose').click();
         }
       }
     }
