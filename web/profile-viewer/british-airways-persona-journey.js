@@ -269,6 +269,15 @@
       `${b.strategy ? `<span class="bapj-chip bapj-chip--muted">${esc(b.strategy)}</span>` : ''}</span></button>`;
   }
 
+  function itemsPerColumn() {
+    const root = S.ctx && S.ctx.track && S.ctx.track.querySelector('.bapj-root');
+    const scroll = root && root.querySelector('.bapj-scroll');
+    const h = scroll ? scroll.clientHeight : 0;
+    if (!h) return 4;
+    // ~64px pad + ~50px stage header; each item incl. connector ≈ 100px.
+    return Math.max(2, Math.floor((h - 114) / 100));
+  }
+
   function viewC() {
     const E = S.events;
     let h = '<div class="bapj-pad bapj-C"><div class="bapj-row bapj-row--top"><div class="bapj-pill bapj-pill--c">▷ Start</div>';
@@ -281,15 +290,17 @@
         label = gapBetween(E[lastIdx], E[firstIdx]);
       }
       h += conn(label, firstIdx >= S.moment, 'data-bapj-c="1"');
-      h += `<section class="bapj-grp"><h4>${esc(stage.name)}</h4><div class="bapj-rng">${esc(stage.desc)}</div>`;
+      h += `<section class="bapj-grp"><h4>${esc(stage.name)}</h4><div class="bapj-rng">${esc(stage.desc)}</div><div class="bapj-cols"><div class="bapj-col">`;
+      const perCol = itemsPerColumn();
       stage.items.forEach((k, j) => {
+        if (j && j % perCol === 0) h += '</div><div class="bapj-col">';
         if (j) {
           const a = S.items[stage.items[j - 1]].slice(-1)[0];
           h += `<div class="bapj-vc"><b>${esc(gapBetween(E[a], E[S.items[k][0]]))}</b></div>`;
         }
         h += itemC(k);
       });
-      h += '</section>';
+      h += '</div></div></section>';
     });
     return `${h}${conn('', false, 'data-bapj-c="1"')}<div class="bapj-pill bapj-pill--c">Now</div></div></div>`;
   }
@@ -330,12 +341,58 @@
     const x = scroll.scrollLeft;
     const y = scroll.scrollTop;
     scroll.innerHTML = S.view === 'A' ? viewA() : S.view === 'B' ? viewB() : viewC();
+    fitToHeight();
     scroll.scrollLeft = x;
     scroll.scrollTop = y;
     const drawer = root.querySelector('.bapj-drawer');
     root.querySelector('.bapj-dbody').innerHTML = detailsHtml();
     drawer.classList.toggle('is-open', !!S.sel);
     drawer.setAttribute('aria-hidden', S.sel ? 'false' : 'true');
+  }
+
+  const MIN_ZOOM = 0.45;
+  let fitObserver = null;
+
+  /** Scale the canvas down so its full height fits the stage (no vertical scroll). */
+  function fitToHeight() {
+    const root = S.ctx && S.ctx.track && S.ctx.track.querySelector('.bapj-root');
+    const scroll = root && root.querySelector('.bapj-scroll');
+    const pad = scroll && scroll.firstElementChild;
+    if (!pad) return;
+    pad.style.zoom = '';
+    scroll.classList.remove('is-tall');
+    const avail = scroll.clientHeight;
+    if (!avail) return;
+    const needed = pad.offsetHeight;
+    if (needed <= avail) return;
+    let zoom = Math.max(MIN_ZOOM, Math.floor((avail / needed) * 1000) / 1000);
+    pad.style.zoom = String(zoom);
+    // A horizontal scrollbar appearing can steal height; shrink once more if needed.
+    const after = scroll.clientHeight;
+    if (pad.getBoundingClientRect().height > after + 1 && zoom > MIN_ZOOM) {
+      zoom = Math.max(MIN_ZOOM, Math.floor((after / needed) * 1000) / 1000);
+      pad.style.zoom = String(zoom);
+    }
+    if (pad.getBoundingClientRect().height > scroll.clientHeight + 1) scroll.classList.add('is-tall');
+  }
+
+  function observeStage(root) {
+    if (fitObserver) { fitObserver.disconnect(); fitObserver = null; }
+    const scroll = root.querySelector('.bapj-scroll');
+    if (!scroll) return;
+    if (typeof global.ResizeObserver === 'function') {
+      let last = -1;
+      fitObserver = new global.ResizeObserver(() => {
+        const h = scroll.clientHeight;
+        if (h === last) return;
+        last = h;
+        if (S.view === 'C') render();
+        else fitToHeight();
+      });
+      fitObserver.observe(scroll);
+    } else {
+      global.requestAnimationFrame(fitToHeight);
+    }
   }
 
   function scrollToMoment() {
@@ -432,6 +489,7 @@
     const root = track.querySelector('.bapj-root');
     root.addEventListener('click', onClick);
     render();
+    observeStage(root);
     return true;
   }
 

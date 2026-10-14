@@ -6,6 +6,18 @@ body.ba-journey-concepts .bapj-panel .aep-profile-drawer-events-story-track {
   overflow: hidden;
 }
 
+/* Fill the viewport so the whole journey is visible without vertical scrolling. */
+body.ba-journey-concepts .aep-profile-drawer-events-story-backdrop {
+  /* Clear the 48px lab environment toolbar, which stacks above the modal. */
+  padding-top: calc(48px + clamp(8px, 1.5vh, 16px));
+  padding-bottom: clamp(8px, 1.5vh, 16px);
+}
+body.ba-journey-concepts .aep-profile-drawer-events-story-dialog.bapj-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
 .bapj-root {
   --bapj-digital: var(--dash-warning-text);
   --bapj-channel: var(--dash-blue);
@@ -83,7 +95,8 @@ body.ba-journey-concepts .bapj-panel .aep-profile-drawer-events-story-track {
 
 .bapj-stage {
   position: relative;
-  height: clamp(320px, 50vh, 520px);
+  flex: 1 1 auto;
+  min-height: 200px;
   background-color: var(--bapj-canvas);
   background-image: radial-gradient(color-mix(in srgb, var(--dash-muted) 35%, transparent) 1px, transparent 1px);
   background-size: 18px 18px;
@@ -91,8 +104,9 @@ body.ba-journey-concepts .bapj-panel .aep-profile-drawer-events-story-track {
   border-bottom: 1px solid var(--dash-border);
   overflow: hidden;
 }
-.bapj-scroll { position: absolute; inset: 0; overflow: auto; }
-.bapj-pad { padding: 60px 40px; min-width: max-content; }
+.bapj-scroll { position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; }
+.bapj-scroll.is-tall { overflow-y: auto; }
+.bapj-pad { padding: 32px 40px; min-width: max-content; }
 .bapj-row { display: flex; align-items: center; }
 .bapj-row--top { align-items: flex-start; }
 
@@ -263,7 +277,8 @@ body.ba-journey-concepts .bapj-panel .aep-profile-drawer-events-story-track {
 /* C · stages */
 .bapj-grp {
   flex: none;
-  width: 262px;
+  width: auto;
+  min-width: 262px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -281,6 +296,9 @@ body.ba-journey-concepts .bapj-panel .aep-profile-drawer-events-story-track {
   color: var(--dash-text-secondary);
 }
 .bapj-rng { align-self: flex-start; margin-bottom: 8px; font-size: 10.5px; color: var(--dash-muted); }
+/* Long stages wrap into side-by-side columns so the canvas never needs vertical scroll. */
+.bapj-cols { display: flex; align-items: flex-start; gap: 18px; }
+.bapj-col { display: flex; flex-direction: column; align-items: center; width: 238px; }
 .bapj-grp .bapj-node { width: 100%; }
 .bapj-vc { position: relative; flex: none; width: 2px; height: 22px; background: var(--bapj-line); }
 .bapj-vc b { position: absolute; left: 8px; top: 3px; }
