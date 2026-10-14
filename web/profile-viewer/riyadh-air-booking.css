@@ -1,0 +1,185 @@
+.ra-site { --dash-ra-black: rgb(0 0 0); --dash-ra-selected: rgb(82 64 190); }
+.ra-header #raHeaderBooking:empty { display: none; }
+.ra-site .ra-cart-button { display: flex; align-items: center; gap: .25rem; background: none; color: var(--dash-ra-white); border: 0; padding: .6rem; }
+.ra-cart-button span { font-size: .7rem; }
+.ra-booking { width: min(1000px, 90%); }
+.ra-search { grid-template-columns: 1.2fr auto 1.2fr 1fr 1fr .7fr 1fr auto; }
+.ra-search-field { min-width: 0; }
+.ra-search-field > span { display: block; font-size: .66rem; color: var(--dash-ra-mid); }
+.ra-site .ra-search-field button { background: none; border: 0; color: var(--dash-ra-ink); padding: .3rem 0; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.ra-search-field button[aria-expanded="true"] { color: var(--dash-ra-selected); }
+.ra-site .ra-route-arrow { background: none; border: 0; font-size: 1.5rem; padding: .5rem 0; }
+.ra-date-control { display: flex; gap: .3rem; align-items: center; }
+.ra-site .ra-date-control [data-ra-clear-date] { background: var(--dash-ra-mist); border-radius: 50%; width: 20px; height: 20px; padding: 0; font-size: .85rem; line-height: 1; }
+.ra-popover { position: absolute; z-index: 100; top: calc(100% + .5rem); background: var(--dash-ra-white); border-radius: 22px; box-shadow: 0 8px 32px var(--dash-ra-shadow); border: 1px solid var(--dash-ra-line); color: var(--dash-ra-ink); }
+.ra-airport-picker { width: min(390px, 100%); left: 22%; padding: 1rem; }
+.ra-airport-picker[data-field="origin"] { left: 0; }
+.ra-site .ra-airport-picker input { border: 0; border-bottom: 1px solid var(--dash-ra-line); border-radius: 0; padding: 1rem .5rem; }
+.ra-airport-picker > p { padding: 1rem .5rem .5rem; font-size: .8rem; color: var(--dash-ra-mid); }
+#raAirportOptions { max-height: 320px; overflow: auto; }
+.ra-site #raAirportOptions button { display: flex; justify-content: space-between; align-items: center; gap: .75rem; border: 0; background: none; width: 100%; text-align: left; padding: .85rem .5rem; font-size: .9rem; color: var(--dash-ra-ink); }
+#raAirportOptions button:hover, #raAirportOptions button:focus { background: var(--dash-ra-pale); }
+#raAirportOptions small { display: block; font-size: .72rem; color: var(--dash-ra-mid); margin-top: .25rem; }
+#raAirportOptions strong { background: var(--dash-ra-black); color: var(--dash-ra-white); border-radius: 999px; padding: .2rem .8rem; font-size: .75rem; }
+.ra-calendar { width: min(700px, 100%); left: 50%; transform: translateX(-50%); padding: 1.5rem; }
+.ra-calendar-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; font-size: .8rem; }
+.ra-site .ra-calendar-nav button { background: none; border: 0; color: var(--dash-ra-ink); font-size: 1.5rem; width: 44px; height: 44px; }
+.ra-calendar-months { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.ra-calendar h3 { text-align: center; font-size: 1rem; margin-bottom: 1.5rem; }
+.ra-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: .5rem; text-align: center; }
+.ra-calendar-grid > span:not(.ra-calendar-spacer) { font-size: .75rem; color: var(--dash-ra-mid); padding: .3rem 0; }
+.ra-site .ra-calendar-grid button { background: none; border: 0; color: var(--dash-ra-ink); min-height: 40px; padding: 0; font-size: .85rem; }
+.ra-site .ra-calendar-grid .ra-date-endpoint { background: var(--dash-ra-black); color: var(--dash-ra-white); border-radius: 50%; }
+.ra-site .ra-calendar-grid .ra-date-in-range { background: var(--dash-ra-mist); }
+.ra-calendar-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; }
+.ra-site[data-booking-page="true"] .ra-header { gap: 1.2rem; }
+.ra-site[data-booking-page="true"] .ra-header nav { display: none; }
+.ra-site[data-booking-page="true"] #raHeaderBooking { flex: 1; min-width: 0; }
+#raHeaderBooking .ra-booking { width: 100%; margin: 0; padding: .5rem 1rem; background: var(--dash-ra-plum); color: var(--dash-ra-white); }
+#raHeaderBooking .ra-search-field > span, #raHeaderBooking .ra-guests small { display: none; }
+#raHeaderBooking label { font-size: 0; }
+#raHeaderBooking label select { color: var(--dash-ra-white); background: transparent; font-size: .72rem; }
+#raHeaderBooking label option { color: var(--dash-ra-ink); background: var(--dash-ra-white); }
+#raHeaderBooking .ra-search-field button, #raHeaderBooking .ra-route-arrow { color: var(--dash-ra-white); font-size: .72rem; }
+#raHeaderBooking .ra-guests { font-size: .72rem; }
+#raHeaderBooking .ra-search-button { background: var(--dash-ra-white); color: var(--dash-ra-ink); border: 0; width: 36px; height: 36px; }
+#raHeaderBooking .ra-search { grid-template-columns: 1.2fr auto 1.2fr .85fr .85fr .7fr 1fr auto; gap: .5rem; }
+.ra-site[data-booking-page="true"] .ra-journey { padding-top: 2.5rem; }
+.ra-site[data-booking-page="true"] .ra-journey-heading, .ra-site[data-booking-page="true"] .ra-progress { display: none; }
+.ra-site[data-reference-page="true"] #raJourneyTitle { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.ra-site[data-reference-page="true"] .ra-progress, .ra-site[data-reference-page="true"] .ra-journey-heading, .ra-site[data-reference-page="true"] .ra-footer { display: none; }
+.ra-site .ra-error { color: var(--dash-ra-error); }
+.ra-site .ra-cart-total button:disabled { background: var(--dash-ra-line); color: var(--dash-ra-mid); border-color: var(--dash-ra-line); opacity: 1; }
+.ra-results-leg > h2, .ra-selected-leg > h2 { font-size: 1.5rem; margin-bottom: .25rem; }
+.ra-results-leg > p, .ra-selected-leg > p { font-size: .85rem; margin-bottom: 1rem; }
+.ra-results-leg + .ra-results-leg, .ra-selected-leg { margin-bottom: 3rem; }
+.ra-date-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: .75rem; margin: 2rem 0; }
+.ra-site .ra-date-strip button { background: var(--dash-ra-white); color: var(--dash-ra-ink); border: 1px solid var(--dash-ra-line); border-radius: 12px; padding: .7rem .25rem; font-size: .78rem; }
+.ra-site .ra-date-strip button[aria-pressed="true"] { border-color: var(--dash-ra-selected); color: var(--dash-ra-selected); }
+.ra-date-strip small { display: block; font-size: .68rem; margin-top: .3rem; }
+.ra-result-card { position: relative; background: var(--dash-ra-white); padding: 1.5rem; border-radius: 18px; }
+.ra-result-card hr { border: 0; border-top: 1px solid var(--dash-ra-line); margin: 1.5rem 0 1rem; }
+.ra-tag { display: inline-block; background: var(--dash-ra-pale); border-radius: 4px; padding: .25rem .5rem; font-size: .7rem; }
+.ra-flight-row { display: grid; grid-template-columns: .7fr 1fr 1fr 1fr; gap: 1rem; align-items: center; padding: 1rem 0; font-size: .9rem; }
+.ra-flight-row small { display: block; color: var(--dash-ra-mid); margin-top: .4rem; font-size: .82rem; }
+.ra-flight-logo { display: flex; width: 34px; height: 38px; border-radius: 8px; align-items: center; justify-content: center; background: var(--dash-ra-deep); }
+.ra-flight-logo img { width: 20px; height: 28px; object-fit: contain; }
+.ra-flight-detail { display: flex; align-items: center; gap: 2rem; justify-content: flex-end; font-size: .85rem; }
+.ra-flight-detail summary { cursor: pointer; border: 1px solid var(--dash-ra-mid); padding: .4rem 1rem; border-radius: 999px; font-size: .75rem; }
+.ra-flight-detail details[open] { max-width: 50%; }
+.ra-flight-detail details p { margin-top: .75rem; }
+.ra-results-leg .ra-flight-row { margin-right: 15rem; }
+.ra-results-leg .ra-flight-detail { position: absolute; top: 3.4rem; right: 1.5rem; }
+.ra-results-leg .ra-flight-detail details[open] { max-width: 220px; background: var(--dash-ra-white); padding: .5rem; z-index: 1; border: 1px solid var(--dash-ra-line); border-radius: 12px; }
+.ra-result-card h3 { font-size: .9rem; font-weight: 600; margin: .75rem 0; }
+.ra-cabin-options, .ra-bundle-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.ra-site .ra-cabin-options button { display: grid; gap: .3rem; text-align: left; background: var(--dash-ra-white); color: var(--dash-ra-ink); border: 1px solid var(--dash-ra-line); border-radius: 12px; padding: 1rem; font-size: .85rem; }
+.ra-site .ra-cabin-options button[aria-pressed="true"] { background: var(--dash-ra-pale); border-color: var(--dash-ra-selected); }
+.ra-bundle { border: 1px solid var(--dash-ra-line); border-radius: 16px; padding: 1rem; }
+.ra-bundle-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.ra-site .ra-bundle h4 { font-size: .9rem; font-weight: 400; margin: 0 0 .3rem; color: var(--dash-ra-ink); }
+.ra-bundle-heading strong { font-size: 1.1rem; white-space: nowrap; }
+.ra-site .ra-outline-button { background: var(--dash-ra-white); color: var(--dash-ra-ink); border: 1px solid var(--dash-ra-mid); border-radius: 999px; min-height: 40px; padding: .45rem 1.2rem; font-size: .78rem; }
+.ra-outline-button:hover { background: var(--dash-ra-pale); }
+.ra-bundle dl { margin: 1.2rem 0 0; font-size: .85rem; }
+.ra-bundle dt { color: var(--dash-ra-mid); margin-bottom: .2rem; font-size: .8rem; }
+.ra-bundle dd { margin: 0 0 .8rem; }
+.ra-points-icon { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--dash-ra-orange); color: var(--dash-ra-deep); }
+.ra-level-icon { background: var(--dash-ra-plum); color: var(--dash-ra-white); }
+.ra-leg-locked { opacity: .5; margin-top: 3rem; }
+.ra-lock-note { color: var(--dash-ra-ink); }
+.ra-selected-fare { border-top: 1px solid var(--dash-ra-line); margin-top: .75rem; padding-top: 1rem; display: flex; align-items: center; gap: 1rem; font-size: .85rem; }
+.ra-selected-fare > strong { margin-left: auto; white-space: nowrap; }
+.ra-selected-fare .ra-text-button { font-size: .75rem; }
+.ra-guest-intro { margin: 1rem 0 1.75rem !important; font-size: .9rem; }
+.ra-guest-layout { display: grid; grid-template-columns: 1fr 2.8fr; gap: 1.5rem; }
+.ra-guest-layout nav { display: grid; gap: .75rem; align-content: start; }
+.ra-site .ra-guest-tab { background: var(--dash-ra-white); border: 1px solid transparent; border-radius: 16px; padding: 1.3rem; text-align: left; color: var(--dash-ra-ink); }
+.ra-site .ra-guest-tab[aria-current="page"] { border-color: var(--dash-ra-mid); font-weight: 600; }
+.ra-guest-card { background: var(--dash-ra-white); border-radius: 18px; padding: 2rem; }
+.ra-guest-card > p { color: var(--dash-ra-mid); font-size: .85rem; margin-bottom: 1rem; }
+.ra-guest-card .ra-form { max-width: none; }
+.riyadh-air-demo-page .ra-site .ra-guest-card label { color: var(--dash-ra-ink); font-weight: 400; }
+.ra-loyalty-fields { border-top: 1px solid var(--dash-ra-line); padding-top: 1.5rem; margin-top: .5rem; }
+.ra-loyalty-fields h3 { font-size: .95rem; font-weight: 600; }
+.ra-guest-sfeer { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: center; background: var(--dash-ra-bg); border-radius: 16px; padding: 1.25rem; }
+.ra-sfeer-mark { background: var(--dash-ra-orange); color: var(--dash-ra-deep); display: grid; place-items: center; border-radius: 12px; min-height: 160px; font-size: 2.5rem; letter-spacing: .1em; }
+.ra-site .ra-guest-sfeer label { display: flex; align-items: center; margin: .75rem 0; }
+.ra-guest-sfeer p, .ra-guest-sfeer small { font-size: .8rem; }
+.ra-demo-note { font-size: .75rem; color: var(--dash-ra-mid) !important; }
+.ra-cart-total { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin: 1rem 0 4rem; }
+.ra-cart-total strong { font-size: 2.5rem; font-weight: 500; }
+.ra-cart-total p:last-child { color: var(--dash-ra-mid); font-size: .9rem; }
+.ra-cart-draft { max-width: 1000px; margin: 0 auto; }
+.ra-cart-draft > h3 { font-size: .9rem; font-weight: 600; margin: 1.5rem 0; }
+.ra-cart-card { display: grid; grid-template-columns: 90px 1fr auto; gap: 1.25rem; background: var(--dash-ra-white); border-radius: 18px; padding: 2rem; }
+.ra-cart-card > img, .ra-cart-city { width: 90px; height: 100px; border-radius: 8px; object-fit: cover; }
+.ra-cart-city { display: grid; place-items: center; background: var(--dash-ra-mist); color: var(--dash-ra-mid); }
+.ra-cart-card h2 { font-size: 1.25rem; margin-bottom: .5rem; }
+.ra-cart-card p { font-size: .85rem; margin: .5rem 0; }
+.ra-cart-card > strong { align-self: center; font-weight: 500; font-size: 1.25rem; }
+.ra-cart-card .ra-actions { grid-column: 2 / -1; justify-content: flex-end; margin-top: 0; }
+.ra-seat-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.5rem; align-items: start; }
+.ra-seat-map-card, .ra-seat-offer { background: var(--dash-ra-white); padding: 2rem; border-radius: 18px; }
+.ra-seat-map-card h2, .ra-seat-offer h2 { font-size: 1.4rem; margin-bottom: 1rem; }
+.ra-seat-map-card p, .ra-seat-offer p { margin: .75rem 0; font-size: .85rem; }
+.ra-seat-legend { display: grid; gap: .5rem; font-size: .78rem; color: var(--dash-ra-mid); margin-top: 1.5rem; }
+.ra-seat-offer h3 { font-size: 1.8rem; }
+.ra-destination-summary { display: flex; align-items: center; gap: 1.5rem; margin: 2rem 0; }
+.ra-destination-summary img { width: 100px; height: 110px; object-fit: cover; border-radius: 12px; }
+.ra-destination-summary h2 { font-size: 1.5rem; margin-bottom: .5rem; }
+.ra-destination-summary p { font-size: .85rem; margin-top: .5rem; }
+@media (max-width: 1100px) {
+  .ra-site[data-booking-page="true"] .ra-header { flex-wrap: wrap; }
+  .ra-site[data-booking-page="true"] #raHeaderBooking { order: 3; flex-basis: 100%; }
+  .ra-search { grid-template-columns: 1fr auto 1fr 1fr; gap: 1rem; }
+  .ra-search .ra-guests { grid-column: auto; grid-row: auto; }
+  .ra-search .ra-search-button { grid-column: auto; }
+  .ra-bundle-heading { flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  .ra-search { grid-template-columns: 1fr 1fr; }
+  .ra-search .ra-search-button { grid-column: 2; grid-row: auto; }
+  .ra-site .ra-search-field button { white-space: normal; text-align: left; }
+  .ra-search-field > button, .ra-date-control > button[data-ra-calendar] { min-height: 44px; }
+  .ra-search .ra-guests { grid-column: auto; grid-row: auto; }
+  .ra-airport-picker { left: 0; width: 100%; }
+  .ra-calendar { padding: 1rem; max-height: 65vh; overflow-y: auto; }
+  .ra-calendar-months { grid-template-columns: 1fr; gap: 1.5rem; }
+  .ra-calendar-grid button { min-height: 44px; }
+  .ra-calendar-nav span { font-size: .7rem; }
+  #raHeaderBooking .ra-search { grid-template-columns: 1fr 1fr; }
+  #raHeaderBooking .ra-route-arrow { display: none; }
+  .ra-site[data-booking-page="true"] .ra-header .ra-wordmark { margin-right: auto; }
+  .ra-date-strip { display: flex; overflow-x: auto; gap: .5rem; margin: 1rem 0; padding: .3rem; }
+  .ra-date-strip button { min-width: 90px; min-height: 44px; }
+  .ra-result-card { padding: 1rem; }
+  .ra-flight-row { grid-template-columns: auto 1fr; gap: .75rem 1rem; }
+  .ra-flight-row > div:last-child { grid-column: 2; }
+  .ra-flight-detail { margin-top: 1rem; gap: 1rem; justify-content: space-between; }
+  .ra-results-leg .ra-flight-row { margin-right: 0; }
+  .ra-results-leg .ra-flight-detail { position: static; }
+  .ra-cabin-options { gap: .4rem; }
+  .ra-site .ra-cabin-options button { padding: .65rem .4rem; font-size: .7rem; min-width: 0; }
+  .ra-bundle-options { grid-template-columns: 1fr; }
+  .ra-bundle-heading { flex-wrap: nowrap; }
+  .ra-bundle dl { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+  .ra-bundle dd { text-align: right; margin: 0; }
+  .ra-selected-fare { flex-wrap: wrap; }
+  .ra-selected-fare .ra-text-button { flex-basis: 100%; }
+  .ra-guest-layout { grid-template-columns: 1fr; gap: 1rem; }
+  .ra-guest-layout nav { grid-template-columns: 1fr 1fr; }
+  .ra-site .ra-guest-tab { padding: 1rem; font-size: .85rem; }
+  .ra-guest-card { padding: 1.25rem; }
+  .ra-guest-sfeer { grid-template-columns: 1fr; }
+  .ra-sfeer-mark { min-height: 100px; }
+  .ra-cart-total { align-items: start; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem; }
+  .ra-cart-card { grid-template-columns: 65px 1fr; gap: .75rem; padding: 1.25rem; }
+  .ra-cart-card > img, .ra-cart-city { width: 65px; height: 75px; }
+  .ra-cart-card > strong { grid-column: 2; }
+  .ra-cart-card .ra-actions { grid-column: 1 / -1; flex-wrap: wrap; }
+  .ra-seat-layout { grid-template-columns: 1fr; }
+  .ra-seat-map-card, .ra-seat-offer { padding: 1.25rem; }
+  .ra-destination-summary { gap: 1rem; }
+  .ra-destination-summary img { width: 65px; height: 85px; }
+}

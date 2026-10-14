@@ -43,7 +43,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const ENV_BAR_MANIFEST = '20260612-env-bar';
+const ENV_BAR_MANIFEST = JSON.parse(
+  fs.readFileSync(path.join(ROOT, 'web/profile-viewer/shared/env-bar-versions.json'), 'utf8'),
+).manifestVersion;
 
 function parseArgs(argv) {
   const out = { mode: 'iframe', decisioning: true, bcBottom: true, dryRun: false };

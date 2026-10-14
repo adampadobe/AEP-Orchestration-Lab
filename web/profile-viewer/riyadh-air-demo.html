@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!--
-THESIS: A believable airline booking experience, not a presentation dashboard.
-OWN-WORLD: Riyadh Air's deep purple, lavender, generous pale space and pill controls;
-original aviation artwork and system/Georgia font fallbacks, never a copied site.
+THESIS: A reference-led photographic customer website with a working Lab journey.
+OWN-WORLD: Slim purple-gradient chrome, quiet sans typography, pale ground,
+compact booking pill and user-supplied destination and experience photography.
 STORY: Search, book, consider an upgrade, leave it behind, then receive trip care.
-FIRST VIEWPORT: Purple navigation, a broad aviation scene, and a compact booking bar.
-FORM: Brief-pinned airline website; Lab controls remain shared, outside the customer surface.
+FIRST VIEWPORT: Compact navigation and booking, centred travel updates, then destination cards.
+FORM: Reference-pinned section sequence; original markup, shared Lab controls outside the site.
 -->
 <html lang="en">
 <head>
@@ -19,7 +19,8 @@ FORM: Brief-pinned airline website; Lab controls remain shared, outside the cust
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
-  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261014">
+  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261014-photo">
+  <link rel="stylesheet" href="riyadh-air-booking.css?v=20261014-fares">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
 </head>
@@ -68,76 +69,91 @@ FORM: Brief-pinned airline website; Lab controls remain shared, outside the cust
   <main class="ra-site" id="raCustomerSite" aria-label="Riyadh Air customer website">
     <a class="ra-skip" href="#raBooking">Skip to booking</a>
     <header class="ra-header" id="riyadh-air-header" data-ajo-insert-section="Riyadh Air navigation">
-      <a class="ra-wordmark" href="#raHome" aria-label="Riyadh Air home"><span>RIYADH AIR</span><small>A new world of travel</small></a>
+      <a class="ra-wordmark" href="#raHome" aria-label="Riyadh Air home"><img src="riyadh-air-assets/logo.png" alt="Riyadh Air" width="130" height="44"></a>
       <nav aria-label="Customer navigation">
-        <a href="#raBooking">Book a flight</a><button type="button" data-ra-action="manage">Manage booking</button>
-        <a href="#raExperience">Our experience</a><a href="#raSfeer">Sfeer</a>
+        <a href="#raBooking">Plan &amp; book</a><button type="button" data-ra-action="manage">Manage</button>
+        <a href="#raExperience">Experience</a><a href="#raSaudi">Discover Riyadh</a><a href="#raSfeer">Sfeer</a><a href="#raFooter">About us</a><a href="#raContact">Help</a>
       </nav>
-      <button class="ra-account" type="button" data-ra-action="profile">My profile <span aria-hidden="true">&#8599;</span></button>
+      <div id="raHeaderBooking"></div>
+      <button class="ra-cart-button" type="button" data-ra-action="cart" aria-label="Shopping cart"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3h3l3 12h11l3-9H6M9 19h.01M18 19h.01"></path></svg><span id="raCartCount">0</span></button>
+      <button class="ra-account" type="button" data-ra-action="profile" aria-label="My profile">My profile <span aria-hidden="true">&#8599;</span></button>
     </header>
     <section id="TopRibbon" role="region" aria-label="Personalised travel message"></section>
     <div id="raHome">
-      <section class="ra-hero" id="raHero" data-hero-mount data-ajo-insert-section="The journey begins here">
-        <div class="ra-hero-copy"><h1>The journey<br>begins here.</h1><p>A new perspective. A world of possibilities.<br>Your next chapter starts with Riyadh.</p><a class="ra-button ra-button-light" href="#raBooking">Find your journey <span aria-hidden="true">&#8599;</span></a></div>
-        <svg class="ra-hero-art" viewBox="0 0 1100 540" role="img" aria-label="Original illustration of an aircraft above a lavender horizon">
-          <defs>
-            <linearGradient id="raSky" x2="0" y2="1"><stop stop-color="var(--dash-ra-sky)"/><stop offset="1" stop-color="var(--dash-ra-mist)"/></linearGradient>
-            <linearGradient id="raFuselage" x2=".3" y2="1"><stop stop-color="var(--dash-ra-white)"/><stop offset="1" stop-color="var(--dash-ra-lavender)"/></linearGradient>
-          </defs>
-          <path fill="url(#raSky)" d="M0 0h1100v540H0z"/>
-          <circle cx="850" cy="140" r="74" fill="var(--dash-ra-sun)"/>
-          <path fill="var(--dash-ra-mist)" d="M0 430Q200 350 430 435T1100 395v145H0z"/>
-          <path fill="var(--dash-ra-lavender)" opacity=".5" d="M0 495Q350 410 670 490t430-10v60H0z"/>
-          <g transform="translate(385 240) rotate(-13)">
-            <path d="M60 50L255 35 485 47Q565 55 582 75Q565 94 496 93L170 84 48 69Q24 60 60 50" fill="url(#raFuselage)"/>
-            <path d="M159 45L100-53 156-56 235 40M125 79L76 113 164 104 205 84" fill="var(--dash-ra-purple)"/>
-            <path d="M315 41L281-78 318-80 398 50M314 81L233 176 283 169 407 86" fill="var(--dash-ra-lavender)"/>
-            <path d="M300 108q7-22 33-21l26 1q13 10 0 24l-37 8z" fill="var(--dash-ra-purple)"/>
-            <path d="M507 51l35 8 12 9-41-2z" fill="var(--dash-ra-purple)"/>
-            <path d="M220 60h225" stroke="var(--dash-ra-purple)" stroke-width="4" stroke-dasharray="4 9"/>
-            <text x="215" y="79" font-size="13" letter-spacing="2" fill="var(--dash-ra-purple)">RIYADH AIR</text>
-          </g>
-        </svg>
-      </section>
-      <section id="hero-banner" role="region" aria-label="Personalised hero"></section>
       <section class="ra-booking" id="raBooking" data-ajo-insert-section="Flight search">
-        <div class="ra-booking-tabs"><strong>Book a flight</strong><button type="button" data-ra-action="manage">Manage booking</button><span>One way &middot; 1 adult</span></div>
         <form id="raSearchForm" class="ra-search">
-          <label>From<select id="raOrigin" required><option value="LHR">London Heathrow (LHR)</option><option value="DXB">Dubai (DXB)</option><option value="CDG">Paris (CDG)</option></select></label>
-          <span class="ra-route-arrow" aria-hidden="true">&#8644;</span>
-          <label>To<select id="raDestination" required><option value="RUH">Riyadh (RUH)</option></select></label>
-          <label>Departure<input id="raDeparture" type="date" required></label>
-          <label>Cabin<select id="raCabin"><option value="Economy">Economy</option><option value="Business">Business</option></select></label>
-          <button class="ra-button" type="submit">Search flights <span aria-hidden="true">&#8594;</span></button>
+          <div class="ra-search-field"><span>From</span><button id="raOriginButton" type="button" data-ra-picker="origin" aria-expanded="false" aria-controls="raAirportPicker">LHR - London</button><select id="raOrigin" hidden aria-label="Departure airport"></select></div>
+          <button class="ra-route-arrow" type="button" id="raSwapAirports" aria-label="Swap departure and arrival airports">&#8644;</button>
+          <div class="ra-search-field"><span>To</span><button id="raDestinationButton" type="button" data-ra-picker="destination" aria-expanded="false" aria-controls="raAirportPicker">RUH - Riyadh</button><select id="raDestination" hidden aria-label="Arrival airport"></select></div>
+          <div class="ra-search-field"><span>Departure</span><div class="ra-date-control"><button id="raDepartureButton" type="button" data-ra-calendar="departure" aria-expanded="false" aria-controls="raCalendar">Departure</button><button type="button" data-ra-clear-date="departure" aria-label="Clear departure date">&times;</button></div><input id="raDeparture" type="date" hidden></div>
+          <div class="ra-search-field"><span>Return</span><div class="ra-date-control"><button id="raReturnButton" type="button" data-ra-calendar="return" aria-expanded="false" aria-controls="raCalendar">Add return</button><button type="button" data-ra-clear-date="return" aria-label="Clear return date">&times;</button></div><input id="raReturn" type="date" hidden></div>
+          <div class="ra-guests"><small>Guests</small><span>1 Guest</span></div>
+          <label>Cabin<select id="raCabin"><option value="Economy">Economy</option><option value="Premium Economy">Premium Economy</option><option value="Business">Business</option></select></label>
+          <button class="ra-button ra-search-button" type="submit" aria-label="Search flights"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg></button>
         </form>
+        <div id="raAirportPicker" class="ra-airport-picker ra-popover" role="dialog" aria-label="Choose airport" hidden><label class="visually-hidden" for="raAirportSearch">Search by city, country, or airport</label><input id="raAirportSearch" type="search" placeholder="Search by city, country, or airport" autocomplete="off"><p>All airports</p><div id="raAirportOptions"></div><button class="ra-text-button" type="button" data-ra-close-picker>Close airport list</button></div>
+        <div id="raCalendar" class="ra-calendar ra-popover" role="dialog" aria-label="Choose travel dates" hidden></div>
       </section>
       <section class="ra-updates ra-section" id="raTravelUpdates" data-ajo-insert-section="Important travel updates">
-        <h2>Important travel updates</h2><p id="raTravelUpdateCopy">Planning your journey? View your booking for departure details and the latest updates.</p><button class="ra-text-button" type="button" data-ra-action="manage">View my trip &#8594;</button>
+        <h2>Important travel<br>updates</h2><p id="raTravelUpdateCopy">View your booking for departure details and the latest updates.</p><button class="ra-button" type="button" data-ra-action="manage">View travel updates</button>
       </section>
-      <section class="ra-section" id="raDestinations" data-ajo-insert-section="Discover travel">
-        <div class="ra-section-heading"><h2>Discover a new<br>world of possibilities.</h2><p>From the heart of Saudi to your next adventure.<br>Explore our illustrative demo routes.</p></div>
+      <section class="ra-section ra-hero" id="raHero" data-hero-mount data-ajo-insert-section="The journey begins here">
+        <div class="ra-section-heading"><h1>The journey begins here</h1><p>Discover the world from Riyadh. Explore a destination for your next journey.</p></div>
         <div class="ra-destinations">
-          <a class="ra-destination" href="#raBooking"><div class="ra-city-art ra-city-riyadh" aria-hidden="true"><span class="ra-tower"></span><span class="ra-orbit"></span></div><div><h3>Riyadh</h3><p>The heart of modern Saudi</p><span aria-hidden="true">&#8599;</span></div></a>
-          <a class="ra-destination" href="#raBooking" data-ra-origin="LHR"><div class="ra-city-art ra-city-london" aria-hidden="true"><span class="ra-clock"></span><span class="ra-bridge"></span></div><div><h3>London</h3><p>A different perspective</p><span aria-hidden="true">&#8599;</span></div></a>
-          <a class="ra-destination" href="#raBooking" data-ra-origin="DXB"><div class="ra-city-art ra-city-dubai" aria-hidden="true"><span class="ra-spire"></span><span class="ra-orbit"></span></div><div><h3>Dubai</h3><p>Make room for discovery</p><span aria-hidden="true">&#8599;</span></div></a>
+          <a class="ra-destination ra-photo-card" href="#raBooking" data-ra-destination="CGK"><img src="riyadh-air-assets/jakarta.avif" alt="Jakarta skyline at sunset" width="512" height="568"><small>Indonesia</small><div><h2>Jakarta</h2><span class="ra-card-arrow" aria-hidden="true">&#8594;</span></div></a>
+          <a class="ra-destination ra-photo-card" href="#raBooking" data-ra-destination="MXP"><img src="riyadh-air-assets/milan.avif" alt="Milan rooftops and cathedral" width="512" height="568"><small>Italy</small><div><h2>Milan</h2><span class="ra-card-arrow" aria-hidden="true">&#8594;</span></div></a>
+          <a class="ra-destination ra-photo-card" href="#raBooking" data-ra-destination="BKK"><img src="riyadh-air-assets/bangkok.avif" alt="Bangkok river and skyline at sunset" width="512" height="568"><small>Thailand</small><div><h2>Bangkok</h2><span class="ra-card-arrow" aria-hidden="true">&#8594;</span></div></a>
         </div>
       </section>
-      <section class="ra-sfeer" id="raSfeer" data-ajo-insert-section="Sfeer">
-        <div><h2>A new world,<br>with Sfeer.</h2><p>Discover a more personal way to travel. Connect your existing Lab profile to explore your journey.</p><button class="ra-button" type="button" data-ra-action="profile">Discover your profile &#8599;</button></div><div class="ra-sfeer-art" aria-hidden="true"><span>sfeer</span><i></i></div>
+      <section id="hero-banner" role="region" aria-label="Personalised hero"></section>
+      <section class="ra-section ra-readout" id="raOffers" data-ajo-insert-section="Travel offers">
+        <div><h2>Discover the latest travel offers<br>with Riyadh Air</h2><p>Find your next journey, explore cabin options and make your booking your own.</p><a class="ra-button" href="#raBooking">Learn more</a></div><img src="riyadh-air-assets/offers.avif" alt="A collection of destination skylines" loading="lazy" width="814" height="478">
       </section>
-      <section class="ra-experience ra-section" id="raExperience" data-ajo-insert-section="The Riyadh Air experience">
-        <div class="ra-cabin-art" aria-hidden="true"><div class="ra-window"></div><div class="ra-seat"></div><span>Space to make<br>the journey yours.</span></div>
-        <div><h2>The Riyadh Air<br>experience.</h2><p>Thoughtful choices, from the seat you select to the journey you make. Explore a little extra comfort once your booking is confirmed.</p><button class="ra-text-button" type="button" data-ra-action="manage">Explore your booking &#8594;</button></div>
+      <section class="ra-section ra-sfeer" id="raSfeer" data-ajo-insert-section="Sfeer">
+        <div class="ra-section-heading"><h2>A new world, with Sfeer</h2><p>A different way to discover your journey. Connect your profile and explore what comes next.</p></div>
+        <div class="ra-sfeer-banner"><img src="riyadh-air-assets/sfeer.avif" alt="Sfeer welcome banner with a woman in lavender against an orange background" loading="lazy" width="1626" height="581"><div><h3>Welcome to Sfeer</h3><button class="ra-button" type="button" data-ra-action="profile">Discover Sfeer</button></div></div>
       </section>
+      <section class="ra-section" id="raExperience" data-ajo-insert-section="The Riyadh Air experience">
+        <div class="ra-section-heading"><h2>The Riyadh Air experience</h2><p>Explore the details that make your time onboard and at the airport feel different.</p></div>
+        <div class="ra-experience-cards">
+          <button class="ra-photo-card" type="button" data-ra-feature="cabin"><img src="riyadh-air-assets/cabin.avif" alt="Lavender aircraft cabin" loading="lazy" width="512" height="568"><span>Cabin interiors</span><strong>Step inside</strong></button>
+          <button class="ra-photo-card" type="button" data-ra-feature="entertainment"><img src="riyadh-air-assets/entertainment.avif" alt="Seatback entertainment screen" loading="lazy" width="512" height="568"><span>In-flight entertainment</span><strong>Stay entertained</strong></button>
+          <button class="ra-photo-card" type="button" data-ra-feature="lounge"><img src="riyadh-air-assets/lounge.avif" alt="Warmly lit Hafawa lounge seating" loading="lazy" width="512" height="568"><span>Hafawa lounge</span><strong>Experience luxury</strong></button>
+          <button class="ra-photo-card" type="button" data-ra-feature="fleet"><img src="riyadh-air-assets/fleet.avif" alt="Riyadh Air aircraft above clouds" loading="lazy" width="512" height="568"><span>Fleet</span><strong>View fleet</strong></button>
+        </div>
+      </section>
+      <section class="ra-section ra-cargo" id="raCargo" data-ajo-insert-section="Riyadh Cargo">
+        <div class="ra-cargo-main ra-photo-card"><img src="riyadh-air-assets/cargo.avif" alt="Riyadh Air cargo aircraft and ground team" loading="lazy" width="1100" height="600"><div><h2>Riyadh Cargo</h2><p>Explore another side of the journey, from the aircraft to the people and services on the ground.</p><button class="ra-button ra-button-light" type="button" data-ra-feature="cargo">Explore</button></div></div>
+        <div class="ra-cargo-side"><img src="riyadh-air-assets/cargo-freight.avif" alt="Freight prepared for transport" loading="lazy" width="512" height="284"><img src="riyadh-air-assets/cargo-service.avif" alt="Riyadh Air service professional" loading="lazy" width="512" height="284"></div>
+      </section>
+      <section class="ra-section ra-readout" id="raSaudi" data-ajo-insert-section="Discover Riyadh">
+        <div><h2>The heart of modern Saudi</h2><p>See a new perspective on Riyadh, where contemporary city life meets Saudi heritage.</p><a class="ra-button" href="#raHero">Discover Riyadh</a></div><img src="riyadh-air-assets/riyadh.avif" alt="Riyadh tower above a layer of clouds" loading="lazy" width="814" height="478">
+      </section>
+      <section class="ra-newsletter" id="raNewsletter" aria-labelledby="raNewsletterTitle">
+        <div class="ra-newsletter-inner"><h2 id="raNewsletterTitle">Get early updates on destination reveals, upcoming flights, and what comes next.</h2><form class="ra-newsletter-form" data-ra-local-form><label>First name<input name="firstName" autocomplete="given-name" required maxlength="60"></label><label>Last name<input name="lastName" autocomplete="family-name" required maxlength="60"></label><label class="ra-form-wide">Email address<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label class="ra-local-consent"><input type="checkbox" required>I understand this is a local demo form, not a subscription to Riyadh Air communications.</label><button class="ra-button ra-button-light" type="submit">Subscribe</button><p class="ra-form-result" role="status" aria-live="polite"></p></form></div>
+      </section>
+      <section class="ra-section ra-readout ra-readout-reverse" id="raVisa" data-ajo-insert-section="Visa information">
+        <img src="riyadh-air-assets/visit-saudi.avif" alt="Visitors exploring a historic Saudi site" loading="lazy" width="814" height="478"><div><h2>Visa requirements to visit Saudi Arabia</h2><p>Check the requirements for your nationality and travel plans before you depart.</p><button class="ra-button" type="button" data-ra-feature="visa">Get visa information</button></div>
+      </section>
+      <section class="ra-section ra-contact" id="raContact" data-ajo-insert-section="Contact"><h2>Reach out to us</h2><p>Find support for your demo booking and review your trip activity.</p><button class="ra-button" type="button" data-ra-action="profile">Contact us</button></section>
+      <section class="ra-feature-detail ra-section" id="raFeatureDetail" hidden aria-labelledby="raFeatureTitle"><button class="ra-text-button" type="button" id="raCloseFeature">Close details</button><h2 id="raFeatureTitle" tabindex="-1"></h2><p id="raFeatureCopy"></p><a class="ra-button" href="#raBooking">Plan your journey</a></section>
       <section id="ContentCardContainer" class="ContentCardContainer" role="region" aria-label="Personalised content cards"></section>
     </div>
     <section class="ra-journey" id="raJourney" hidden aria-labelledby="raJourneyTitle" data-ajo-insert-section="Booking and trip">
       <div class="ra-journey-heading"><button class="ra-text-button" type="button" data-ra-action="home">&#8592; Back to home</button><p>Demo journey &middot; No ticket or payment is issued</p></div>
       <h1 id="raJourneyTitle" tabindex="-1">Choose your flight</h1>
-      <ol class="ra-progress" aria-label="Booking progress"><li data-ra-step="results">Flight</li><li data-ra-step="passenger">Passenger</li><li data-ra-step="extras">Your extras</li><li data-ra-step="payment">Review</li><li data-ra-step="trip">Your trip</li></ol>
+      <ol class="ra-progress" aria-label="Booking progress"><li data-ra-step="results">Flights</li><li data-ra-step="passenger">Guests</li><li data-ra-step="cart">Cart</li><li data-ra-step="extras">Your extras</li><li data-ra-step="payment">Review</li><li data-ra-step="trip">Your trip</li></ol>
       <div id="raJourneyContent"></div>
     </section>
-    <footer class="ra-footer" id="raFooter" data-ajo-insert-section="Riyadh Air footer"><div class="ra-wordmark">RIYADH AIR<small>A new world of travel</small></div><p>Original demonstration website for Adobe Experience Platform.<br>Not the official Riyadh Air website. Flights, fares and trip status are illustrative.</p><a href="#raBooking">Start your journey &#8599;</a></footer>
+    <footer class="ra-footer" id="raFooter" data-ajo-insert-section="Riyadh Air footer">
+      <div class="ra-footer-inner"><div class="ra-footer-intro"><img src="riyadh-air-assets/footer-logo.avif" alt="Riyadh Air" width="48" height="58" loading="lazy"><h2>Discover what comes next.</h2><p>Explore the journey with your existing Lab profile.</p><button class="ra-button ra-button-light" type="button" data-ra-action="profile">Connect your profile</button></div>
+        <nav aria-label="Riyadh Air"><h3>Riyadh Air</h3><a href="#raFooter">About us</a><a href="#raSfeer">Sfeer</a><a href="#raCargo">Riyadh Cargo</a><a href="#raSaudi">Discover Riyadh</a></nav>
+        <nav aria-label="Experience"><h3>Experience</h3><button type="button" data-ra-feature="cabin">Cabin</button><button type="button" data-ra-feature="fleet">Fleet</button><a href="#raExperience">Onboard experience</a></nav>
+        <nav aria-label="Connect with us"><h3>Connect with us</h3><a href="#raContact">Contact us</a><a href="#raNewsletter">Newsletter</a><button type="button" data-ra-action="profile">My profile</button></nav>
+        <nav aria-label="Travel support"><h3>Travel support</h3><a href="#raVisa">Visa information</a><button type="button" data-ra-action="manage">Manage booking</button><a href="#raTravelUpdates">Travel updates</a></nav>
+        <div class="ra-footer-bottom"><p>Internal AEP demonstration. Not the official Riyadh Air website. No ticket, payment or newsletter subscription is issued.</p><a href="#raBooking">Start your journey &#8599;</a></div>
+      </div>
+    </footer>
   </main>
   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
   <div id="siteCloneBcFrameHost" class="site-clone-bc-frame-host" hidden><div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div></div>
@@ -163,13 +179,14 @@ FORM: Brief-pinned airline website; Lab controls remain shared, outside the cust
     window.SiteCloneDemoEnv = { storagePrefix: 'riyadhAirDemo', webPushBySandboxKey: 'riyadhAirDemoWebPushOnInjectBySandbox', webPushLegacyKey: 'riyadhWebPushOnInjectToggle', webPushToggleId: 'riyadhWebPushOnInjectToggle', bcOnInjectToggleId: 'riyadhBcOnInjectToggle', bcStyleSelectId: 'riyadhBcStyleSelect' };
     window.SiteCloneBcPage = { statusMessageId: 'riyadhMessage', useParentDocument: true, parentSiteSelector: '#raCustomerSite', headerSelector: '#riyadh-air-header', injectedAnchorSelector: '#raHero' };
   </script>
-  <script src="shared/env-bar.js?v=20260903-menu-button-only"></script>
+  <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
   <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="riyadh-air-events.js?v=20261014"></script>
   <script src="riyadh-air-demo.js?v=20261014"></script>
-  <script src="riyadh-air-site.js?v=20261014"></script>
+  <script src="riyadh-air-booking.js?v=20261014-fares"></script>
+  <script src="riyadh-air-site.js?v=20261014-booking"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

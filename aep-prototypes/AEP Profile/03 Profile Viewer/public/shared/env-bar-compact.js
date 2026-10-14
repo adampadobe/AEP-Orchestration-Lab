@@ -681,7 +681,7 @@
   }
 
   function isMenuButtonOnly() {
-    return !!(global.envBarConfig && global.envBarConfig.menuButtonOnly === true);
+    return !(global.envBarConfig && global.envBarConfig.menuButtonOnly === false);
   }
 
   function syncMenuToggleBtn() {

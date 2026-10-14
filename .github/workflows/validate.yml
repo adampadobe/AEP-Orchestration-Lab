@@ -38,6 +38,11 @@ jobs:
       - name: Verify Profile Viewer decisioning routes (journey-arbitration redirects, v3, eds-quickstart)
         run: npm run verify:profile-viewer-routes
 
+      - name: Verify shared environment-bar versions and demo parity
+        run: |
+          npm run verify:env-bar-versions
+          npm run verify:demo-env-strip
+
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
 
@@ -99,3 +104,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Exercise demo workspace with local fixtures (no production data)
         run: npm run test:demo-workspace-e2e
+      - name: Exercise shared environment bar across customer demos (local fixtures)
+        run: npm run test:demo-env-bar
