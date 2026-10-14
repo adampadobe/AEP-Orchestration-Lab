@@ -98,6 +98,9 @@ async function browserTests() {
     const errors = [];
     let failNext = false;
     let missingEcid = false;
+    let abortNext = false;
+    let currentTarget = target;
+    let duringSend = '';
     await browserContext.route('**/*', async (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== origin) { await route.fulfill({ body: '', contentType: 'text/javascript' }); return; }
@@ -105,11 +108,23 @@ async function browserTests() {
       let data = {};
       if (url.pathname === '/api/aep') data = { sandboxes: [{ name: 'apalmer', title: 'apalmer' }, { name: 'kirkham', title: 'kirkham' }] };
       else if (url.pathname === '/api/sandboxes') data = { sandboxes: [{ name: 'apalmer', title: 'apalmer' }, { name: 'kirkham', title: 'kirkham' }] };
-      else if (url.pathname === '/api/events/generator-targets') data = { targets: [target] };
+      else if (url.pathname === '/api/events/generator-targets') data = { sandbox: url.searchParams.get('sandbox'), targets: [currentTarget] };
       else if (url.pathname === '/api/events/generator') {
         const body = route.request().postDataJSON();
         requests.push(body);
-        if (failNext) { failNext = false; await route.fulfill({ status: 502, json: { ok: false, error: 'Fixture ingestion rejection' } }); return; }
+        if (duringSend === 'target') {
+          duringSend = '';
+          currentTarget = { ...target, dataStreamId: 'inflight-changed-datastream' };
+        } else if (duringSend === 'identity') {
+          duringSend = '';
+          await page.evaluate(() => {
+            const input = document.getElementById('customerEmail');
+            input.value = 'changed@example.test';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        }
+        if (abortNext) { abortNext = false; await route.abort('failed'); return; }
+        if (failNext) { failNext = false; await route.fulfill({ status: 400, json: { ok: false, error: 'Fixture ingestion rejection' } }); return; }
         data = { ok: true, transport: 'edge', requestId: 'fixture-' + requests.length };
       } else if (url.pathname === '/api/profile/consent') {
         const identifier = url.searchParams.get('identifier');
@@ -155,7 +170,42 @@ async function browserTests() {
     assert.equal(await page.locator('.ra-experience-cards .ra-photo-card').count(), 4);
     assert.equal(await page.locator('.ra-newsletter-form label').first().evaluate((label) => getComputedStyle(label).color), 'rgb(255, 255, 255)', 'Lab theme does not override newsletter label contrast');
     const sequence = await page.locator('#raHome > [id]').evaluateAll((sections) => sections.map((section) => section.id));
-    assert.deepEqual(sequence, ['raBooking', 'raTravelUpdates', 'raHero', 'hero-banner', 'raOffers', 'raSfeer', 'raExperience', 'raCargo', 'raSaudi', 'raNewsletter', 'raVisa', 'raContact', 'raFeatureDetail', 'ContentCardContainer']);
+    assert.deepEqual(sequence, ['raTravelUpdates', 'raHero', 'hero-banner', 'raOffers', 'raSfeer', 'raExperience', 'raCargo', 'raSaudi', 'raNewsletter', 'raVisa', 'raContact', 'raFeatureDetail', 'ContentCardContainer']);
+    async function searchGeometry(name) {
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.evaluate(() => window.scrollTo(0, 0));
+        assert(await page.locator('#raBooking').evaluate((booker) => {
+          const header = document.getElementById('riyadh-air-header');
+          return !header.contains(booker) && booker.getBoundingClientRect().top >= header.getBoundingClientRect().bottom &&
+            getComputedStyle(booker).backgroundColor === 'rgb(255, 255, 255)' && header.querySelector('nav').checkVisibility();
+        }), name + ': white search pill is separate below full navigation at ' + width);
+        await page.locator('#raDestinationButton').click();
+        assert(await page.locator('#raAirportPicker').evaluate((picker) => {
+          const rect = picker.getBoundingClientRect();
+          const header = document.getElementById('riyadh-air-header').getBoundingClientRect();
+          const rail = document.getElementById('raPresenterLauncher').getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= innerWidth && rect.top >= header.bottom &&
+            (rect.right <= rail.left || rect.left >= rail.right || rect.bottom <= rail.top || rect.top >= rail.bottom);
+        }), name + ': airport list avoids navigation and presenter rail at ' + width);
+        await page.keyboard.press('Escape');
+        await page.locator('#raDepartureButton').click();
+        assert(await page.locator('#raCalendar').evaluate((calendar) => {
+          const rect = calendar.getBoundingClientRect();
+          const rail = document.getElementById('raPresenterLauncher').getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= innerWidth &&
+            (rect.right <= rail.left || rect.left >= rail.right || rect.bottom <= rail.top || rect.top >= rail.bottom);
+        }), name + ': calendar stays clear of presenter rail at ' + width);
+        await page.keyboard.press('Escape');
+        if (process.env.RIYADH_SEARCH_SCREENSHOTS) {
+          await fs.mkdir(process.env.RIYADH_SEARCH_SCREENSHOTS, { recursive: true });
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.screenshot({ path: path.join(process.env.RIYADH_SEARCH_SCREENSHOTS, name + '-' + width + '.png'), animations: 'disabled' });
+        }
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
+    await searchGeometry('homepage');
     assert(await page.evaluate(() => [...document.querySelectorAll('#raCustomerSite img')].every((image) => image.complete && image.naturalWidth > 0)), 'All supplied images decode');
     if (process.env.RIYADH_SCREENSHOTS) {
       await fs.mkdir(process.env.RIYADH_SCREENSHOTS, { recursive: true });
@@ -189,7 +239,8 @@ async function browserTests() {
     assert.equal(requests.length, 0, 'Reference newsletter never sends customer data');
 
     await page.getByRole('button', { name: 'Search flights' }).click();
-    await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('Resolve a valid ECID'));
+    await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('selected profile and environment'));
+    assert.match(await page.locator('#raPresenterStatus').textContent(), /Resolve a valid ECID/);
     assert.equal(requests.length, 0, 'No silent fallback to another identity');
     await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
@@ -231,12 +282,14 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Done', exact: true }).click();
     await page.getByRole('button', { name: 'Search flights' }).click();
     await page.getByRole('heading', { name: 'Choose your flight' }).waitFor();
+    await searchGeometry('results');
     assert.equal(new URL(page.url()).searchParams.get('step'), 'results');
     assert(await page.getByRole('button', { name: 'Select return Smart', exact: true }).isDisabled(), 'Return is locked until outbound is chosen');
     await capture('riyadh-outbound');
     failNext = true;
     await page.getByRole('button', { name: 'Select outbound Flex', exact: true }).click();
-    await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('Fixture ingestion rejection'));
+    await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('could not complete'));
+    assert(await page.locator('#raPresenterStatus').textContent().then((text) => text.includes('Fixture ingestion rejection')));
     assert(await page.getByRole('heading', { name: 'Choose your flight' }).isVisible());
     await page.getByRole('button', { name: 'Select outbound Flex', exact: true }).click();
     await page.getByRole('heading', { name: 'Choose your return flight', exact: true }).waitFor();
@@ -252,10 +305,12 @@ async function browserTests() {
     const originalReturnPrice = await page.locator('.ra-bundle-heading strong').first().textContent();
     const changedDatePrice = await page.locator('[data-ra-action="flightDate"][data-date="2026-11-20"] small').textContent();
     await page.locator('[data-ra-action="flightDate"][data-date="2026-11-20"]').click();
+    await page.waitForFunction(() => document.getElementById('raReturn').value === '2026-11-20');
     assert.equal(await page.locator('#raReturn').inputValue(), '2026-11-20', 'Return date strip changes retained search');
     assert.notEqual(await page.locator('.ra-bundle-heading strong').first().textContent(), originalReturnPrice, 'Changing dates changes fares');
     assert.equal('From ' + await page.locator('.ra-bundle-heading strong').first().textContent(), changedDatePrice, 'Date-strip quote matches selectable fare');
     await page.locator('[data-ra-action="flightDate"][data-date="2026-11-19"]').click();
+    await page.waitForFunction(() => document.getElementById('raReturn').value === '2026-11-19');
     await capture('riyadh-return');
     await page.getByRole('button', { name: 'Select return Smart', exact: true }).click();
     await page.locator('#raPassengerForm').waitFor();
@@ -322,10 +377,12 @@ async function browserTests() {
     assert.equal(new URL(pendingUrl).searchParams.get('offer'), 'extra-legroom-outbound');
     await capture('riyadh-paid-seat');
     await page.getByRole('button', { name: 'Save paid-seat interest' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
     const intent = requests.find((body) => body.eventType === 'travel.ancillary.intent');
     assert.equal(intent.public.travel.confirmationNumber, bookingRef);
     assert.equal(new URL(intent.viewUrl).searchParams.get('currency'), 'SAR');
     await page.getByRole('button', { name: 'Continue without paid seat or extras' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
     const abandonment = requests.find((body) => body.eventType === 'travel.ancillary.abandon');
     assert(abandonment, 'Declining an unpaid seat records ancillary abandonment');
     assert.equal(abandonment.public.travel.confirmationNumber, bookingRef);
@@ -366,8 +423,12 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Not now' }).click();
     await page.getByRole('button', { name: 'Explore a cabin upgrade' }).waitFor();
     assert.equal(requests.filter((body) => body.eventType === 'travel.upgrade.abandon').length, 1);
-    await page.locator('#raPresenter summary').click();
+    await page.locator('#raPresenterLauncher').click();
     await page.locator('#raOrchestrationId').fill('fixture-disruption-id');
+    failNext = true;
+    await page.getByRole('button', { name: 'Send trip update' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(await page.getByRole('heading', { name: 'We are here for your journey.' }).count(), 0, 'Rejected disruption does not pivot to care');
     await page.getByRole('button', { name: 'Send trip update' }).click();
     await page.getByRole('heading', { name: 'We are here for your journey.' }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Explore a cabin upgrade' }).count(), 0);
@@ -379,6 +440,20 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Send trip update' }).click();
     await page.waitForFunction(() => document.querySelector('.ra-care').textContent.includes('B12'));
     assert.equal(requests.find((body) => body.eventType === 'travel.flight.gateChange').public.travel.confirmationNumber, bookingRef);
+    assert(await page.locator('#raDeliveryStatus').isHidden(), 'No technical success on customer surface');
+    assert.equal(await page.locator('#riyadhMessage').textContent(), '');
+    assert(!/Accepted:|Receipt:|ingestion|AJO channels|Not verified/.test(await page.locator('#raCustomerSite').innerText()), 'Customer journey has no technical delivery/channel status');
+    assert(!(await page.locator('#raPayloadPreview').textContent()).includes(profile.email), 'Preview masks identity');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('raPresenter').open);
+    await page.locator('#raPresenterLauncher').click();
+    await page.keyboard.press('Shift+Tab');
+    assert(await page.locator('#raPresenter').evaluate((dialog) => dialog.contains(document.activeElement)), 'Modal contains keyboard focus');
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'raPresenterClose', 'Tab wraps to first control');
+    await page.keyboard.press('Escape');
+    await page.locator('#raPresenterLauncher').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => document.activeElement.id === 'raPresenterLauncher');
     assert(requests.filter((body) => body.eventType.startsWith('travel.')).every((body) => body.email === profile.email && body.ecid === ecid && body.sandbox === 'apalmer'));
     assert(!requests.some((body) => /purchase|whatsapp/i.test(body.eventType)));
 
@@ -391,8 +466,35 @@ async function browserTests() {
         }, theme);
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'No horizontal overflow at ' + width + ' / ' + theme);
         assert(await page.getByRole('heading', { name: 'We are here for your journey.' }).isVisible());
+        assert(await page.locator('#raPresenterLauncher').evaluate((launcher) => {
+          const own = launcher.getBoundingClientRect();
+          return [...document.querySelectorAll('.env-bar-dock-btn, .dpm-panel-trigger, .bcp-panel-trigger, .aep-fullscreen-btn--midrail')].every((button) => {
+            if (!button.checkVisibility()) return true;
+            const rect = button.getBoundingClientRect();
+            return own.right <= rect.left || own.left >= rect.right || own.bottom <= rect.top || own.top >= rect.bottom;
+          });
+        }), 'Presenter rail slot does not collide with shared controls');
+        await page.locator('#raPresenterLauncher').click();
+        assert(await page.locator('#raPresenter').evaluate((dialog) => {
+          const rect = dialog.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight;
+        }), 'Presenter fits viewport in both themes');
+        if (process.env.RIYADH_PRESENTER_SCREENSHOTS) {
+          await fs.mkdir(process.env.RIYADH_PRESENTER_SCREENSHOTS, { recursive: true });
+          await page.screenshot({ path: path.join(process.env.RIYADH_PRESENTER_SCREENSHOTS, 'presenter-' + width + '-' + theme + '.png'), animations: 'disabled' });
+        }
+        await page.mouse.click(1, 1);
+        await page.waitForFunction(() => !document.getElementById('raPresenter').open);
       }
     }
+    await page.evaluate(() => {
+      window.ProfileViewerModal.open();
+      if (window.BrandConciergeMidrailPanel && window.BrandConciergeMidrailPanel._handle) window.BrandConciergeMidrailPanel._handle.setOpen(true);
+    });
+    await page.locator('#raPresenterLauncher').click();
+    assert.equal(await page.locator('body').evaluate((body) => body.classList.contains('aep-profile-drawer-open')), false, 'Presenter closes competing profile drawer');
+    assert.equal(await page.locator('#bcpPanelShell.is-open').count(), 0, 'Presenter closes competing BC panel');
+    await page.locator('#raPresenterClose').click();
     await page.reload();
     await page.evaluate(() => window.RiyadhAirLab.ready);
     await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
@@ -433,9 +535,9 @@ async function browserTests() {
     await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
     assert(await page.locator('#raHome').isVisible(), 'A mismatched booking URL cannot expose a different stored offer');
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
-    await page.locator('#raPresenter summary').click();
+    await page.locator('#raPresenterLauncher').click();
     await page.getByRole('button', { name: 'Reset local trip', exact: true }).click();
-    await page.locator('#raPresenter summary').click();
+    await page.locator('#raPresenterClose').click();
     await page.locator('#raOriginButton').click();
     await page.locator('[data-ra-airport="LHR"]').click();
     await page.locator('#raDestinationButton').click();
@@ -451,9 +553,9 @@ async function browserTests() {
       ['MXP', 'Milan', 'milan', 3877], ['BKK', 'Bangkok', 'bangkok', 3777],
       ['RUH', 'Riyadh', 'riyadh', 4082],
     ]) {
-      await page.evaluate(() => { document.getElementById('raPresenter').open = true; });
+      await page.locator('#raPresenterLauncher').click();
       await page.getByRole('button', { name: 'Reset local trip', exact: true }).click();
-      await page.evaluate(() => { document.getElementById('raPresenter').open = false; });
+      await page.locator('#raPresenterClose').click();
       const departure = destination === 'RUH' ? 'LHR' : 'RUH';
       await page.locator('#raOriginButton').click();
       await page.locator('[data-ra-airport="' + departure + '"]').click();
@@ -494,6 +596,7 @@ async function browserTests() {
       await page.getByRole('button', { name: 'Choose seats and extras' }).click();
       await page.getByRole('button', { name: 'Seat 14A', exact: true }).click();
       await page.getByRole('button', { name: 'Continue without paid seat or extras' }).click();
+      await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
       const abandon = requests.filter((body) => body.eventType === 'travel.ancillary.abandon').at(-1);
       assert.equal(abandon.public.travel.confirmationNumber, ref);
       assert.equal(abandon.public.travel.departureAirport, departure);
@@ -505,9 +608,48 @@ async function browserTests() {
       await page.getByRole('button', { name: 'Search flights' }).click();
       assert.equal(requests.length, beforeSearchChange, 'Searching cannot overwrite a confirmed booking');
     }
-    await page.evaluate(() => { document.getElementById('raPresenter').open = true; });
+    const safetyStart = requests.length;
+    currentTarget = { ...target, dataStreamId: 'changed-fixture-datastream' };
+    const changed = await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).then(() => '', (error) => error.message), trip);
+    assert.match(changed, /configuration changed/);
+    assert.equal(requests.length, safetyStart, 'Same target ID with changed datastream is blocked before POST');
+    currentTarget = target;
+    const concurrent = await page.evaluate((fixture) => Promise.allSettled([
+      window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }),
+      window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }),
+    ]).then((results) => results.map((result) => result.status)), trip);
+    assert.deepEqual(concurrent.sort(), ['fulfilled', 'rejected']);
+    assert.equal(requests.length, safetyStart + 1, 'Concurrent sender calls produce one POST');
+    for (const mutation of ['target', 'identity']) {
+      duringSend = mutation;
+      const changedInflight = await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).catch((error) => error.customerMessage), trip);
+      assert.match(changedInflight, /could not confirm/);
+      await page.locator('#raPresenterLauncher').click();
+      await page.locator('#raAllowRetry').click();
+      await page.locator('#raPresenterClose').click();
+      currentTarget = target;
+      if (mutation === 'identity') await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
+      await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    }
+    abortNext = true;
+    const ambiguous = await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).catch((error) => error.customerMessage), trip);
+    assert.match(ambiguous, /could not confirm/);
+    assert.equal(await page.locator('#raUncertainDelivery').getAttribute('hidden'), null);
+    const afterAmbiguous = requests.length;
+    await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).catch(() => {}), trip);
+    assert.equal(requests.length, afterAmbiguous, 'No silent retry after ambiguous delivery');
+    await page.reload();
+    await page.evaluate(() => window.RiyadhAirLab.ready);
+    await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
+    await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).catch(() => {}), trip);
+    assert.equal(requests.length, afterAmbiguous, 'Uncertain attempt survives reload without resend');
+    await page.locator('#raPresenterLauncher').click();
+    await page.locator('#raAllowRetry').click();
+    await page.locator('#raPresenterClose').click();
+    await page.locator('#raPresenterLauncher').click();
     await page.getByRole('button', { name: 'Reset local trip', exact: true }).click();
-    await page.evaluate(() => { document.getElementById('raPresenter').open = false; });
+    await page.locator('#raPresenterClose').click();
     await page.locator('#raOriginButton').click();
     await page.locator('[data-ra-airport="CGK"]').click();
     await page.locator('#raDestinationButton').click();
@@ -521,7 +663,7 @@ async function browserTests() {
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);
     assert.equal(await page.locator('#etihadSiteFrame').count(), 1, 'Etihad keeps its existing iframe surface');
     assert.equal(await page.evaluate(() => !!window.SiteCloneBcPage.useParentDocument), false, 'Parent-document BC behavior is opt-in');
-    console.log('Riyadh Air: round-trip fares, keyboard airport/calendar, URL history/reload, guest/cart gating, confirmed flight → unpaid-seat abandonment, upgrade/disruption, identity safety and responsive/theme checks passed (fixture APIs only).');
+    console.log('Riyadh Air: booking/seat journeys, unchanged event contracts, customer/diagnostic separation, modal keyboard/backdrop/focus/overlay controls, responsive themes, config and identity drift, rapid clicks, rejection/no pivot, uncertain delivery/reload blocking and history checks passed (fixture APIs only).');
     await browserContext.close();
   } finally {
     if (browser) await browser.close();

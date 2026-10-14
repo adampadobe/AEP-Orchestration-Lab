@@ -9,16 +9,30 @@
   let sending = false;
   let targetGeneration = 0;
   let identityValidation = Promise.resolve();
+  let previewTrip = null;
+  const uncertainKey = 'riyadhAirUncertainDelivery';
+  let uncertain = global.sessionStorage.getItem(uncertainKey);
 
-  function message(text, error) {
+  function message(text, error, customer) {
+    const diagnostic = byId('raPresenterStatus');
+    diagnostic.textContent = text;
+    diagnostic.dataset.error = String(!!error);
     const status = byId('raDeliveryStatus');
-    status.textContent = text;
+    status.textContent = customer && error ? text : '';
+    status.hidden = !(customer && error && text);
     status.dataset.error = String(!!error);
     const strip = byId('riyadhMessage');
     if (strip) {
-      strip.textContent = text;
-      strip.hidden = !text;
+      strip.textContent = '';
+      strip.hidden = true;
     }
+  }
+
+  function recordDelivery(text) {
+    const row = document.createElement('li');
+    row.textContent = text;
+    byId('raEventLog').prepend(row);
+    while (byId('raEventLog').children.length > 12) byId('raEventLog').lastElementChild.remove();
   }
 
   function sandbox() {
@@ -58,19 +72,100 @@
   }
 
   function contextToken() {
-    return ownerKey() + '|' + String(selectedTarget() && selectedTarget().id || '') + '|' + identifier() + '|' + namespace();
+    return ownerKey() + '|' + targetToken(selectedTarget()) + '|' + identifier() + '|' + namespace();
+  }
+
+  function targetToken(target) {
+    return JSON.stringify(target ? [target.id, target.transport, target.dataStreamId, target.xdmStyle, target.streamingUrl] : null);
+  }
+
+  async function checkTarget(ctx) {
+    const response = await global.AepDemoGeneratorTargets.labAuthFetch('/api/events/generator-targets?sandbox=' + encodeURIComponent(ctx.sandbox), { cache: 'no-store' });
+    if (!response.ok) throw new Error('Could not verify the current event target. No automatic retry was made.');
+    const data = await response.json();
+    if (data.sandbox !== ctx.sandbox) throw new Error('Event target verification returned a different sandbox. Reload and review the environment before continuing.');
+    const current = (data.targets || []).find((target) => target.id === ctx.target.id);
+    if (targetToken(current) !== targetToken(ctx.target)) throw new Error('Event tool configuration changed. Reload the page and review the target before continuing.');
+  }
+
+  function updatePreview(trip) {
+    if (trip !== undefined) previewTrip = trip;
+    const output = byId('raPayloadPreview');
+    try {
+      const ctx = context();
+      const body = global.RiyadhAirEvents.build(byId('raDisruptionKind').value, previewTrip || {}, ctx, {
+        delayMinutes: Number(byId('raDelayMinutes').value), gate: byId('raNewGate').value.trim().toUpperCase(),
+        eventID: byId('raOrchestrationId').value.trim(),
+      });
+      const { email, ecid, ...safeBody } = body;
+      output.textContent = JSON.stringify({ ...safeBody, identity: { profile: email ? 'Verified email (hidden)' : 'Anonymous', ecid: ecid ? 'Resolved (hidden)' : 'Missing' }, datastreamId: ctx.target.dataStreamId }, null, 2);
+    } catch (error) { output.textContent = error.message; }
+  }
+
+  function initPresenter() {
+    const panel = byId('raPresenter');
+    const launcher = byId('raPresenterLauncher');
+    let returnFocus = launcher;
+    launcher.addEventListener('click', () => {
+      returnFocus = document.activeElement;
+      if (global.EnvBarCompact) global.EnvBarCompact.closeOverlay({ force: true });
+      if (global.ProfileViewerModal) global.ProfileViewerModal.close();
+      if (global.BrandConciergeMidrailPanel && global.BrandConciergeMidrailPanel._handle) global.BrandConciergeMidrailPanel._handle.setOpen(false);
+      const decisionClose = byId('dpmPanelClose');
+      if (decisionClose) decisionClose.click();
+      updatePreview();
+      panel.showModal();
+      launcher.setAttribute('aria-expanded', 'true');
+      byId('raPresenterClose').focus();
+    });
+    byId('raPresenterClose').addEventListener('click', () => panel.close());
+    panel.addEventListener('click', (event) => {
+      if (event.target !== panel) return;
+      const rect = panel.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) panel.close();
+    });
+    panel.addEventListener('close', () => {
+      launcher.setAttribute('aria-expanded', 'false');
+      if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+    });
+    panel.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      const controls = [...panel.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')]
+        .filter((element) => element.getClientRects().length);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+    // Native modal dialogs provide Escape dismissal and inert siblings.
+    panel.addEventListener('input', () => updatePreview());
+    panel.addEventListener('change', () => updatePreview());
+    byId('raUncertainDelivery').hidden = !uncertain;
+    if (uncertain) byId('raLastAttempt').textContent = uncertain;
+    byId('raAllowRetry').addEventListener('click', () => {
+      uncertain = null;
+      global.sessionStorage.removeItem(uncertainKey);
+      byId('raUncertainDelivery').hidden = true;
+      message('Another explicit attempt is now allowed. The prior event may already exist; deduplication is not guaranteed.', false);
+    });
   }
 
   function notifyContext() {
     const label = byId('raIdentityStatus');
     try {
       const ctx = context();
-      label.textContent = (ctx.known ? 'Verified profile: ' + ctx.email : 'Anonymous browser') +
+      label.textContent = (ctx.known ? 'Verified profile (identity hidden)' : 'Anonymous browser') +
         ' / ' + (ctx.sandbox || 'no sandbox') + ' / ' + (ctx.ecid ? 'ECID resolved' : 'inject Tags to resolve ECID');
     } catch (error) {
       label.textContent = error.message;
     }
     global.dispatchEvent(new CustomEvent('riyadh-air-context-change'));
+    updatePreview();
   }
 
   function invalidateIdentity() {
@@ -119,33 +214,67 @@
   async function send(action, trip, options) {
     await api.ready;
     if (sending) throw new Error('An event is already in progress. Wait before sending another interaction.');
-    const token = contextToken();
-    const ctx = context();
-    const body = global.RiyadhAirEvents.build(action, trip, ctx, options);
+    if (uncertain) {
+      const error = new Error('Previous delivery is uncertain. Reconcile profile activity in Presenter controls before explicitly allowing another attempt.');
+      error.customerMessage = 'Your last action could not be confirmed. Please ask the presenter to check before trying again.';
+      throw error;
+    }
+    let token, ctx, body;
+    try {
+      token = contextToken();
+      ctx = context();
+      body = global.RiyadhAirEvents.build(action, trip, ctx, options);
+    } catch (error) {
+      error.customerMessage = 'We could not complete this action. Please ask the presenter to check the selected profile and environment.';
+      message(error.message, true);
+      throw error;
+    }
     body._id = global.crypto.randomUUID();
     body.timestamp = new Date().toISOString();
+    const { email, ecid, ...safeAttempt } = body;
+    byId('raLastAttempt').textContent = JSON.stringify({ ...safeAttempt, identity: 'Identity values hidden; inspect the selected profile in the shared drawer.' }, null, 2);
     sending = true;
+    let submitted = false;
+    let accepted = false;
+    let rejected = false;
     message('Recording ' + body.eventType + '...', false);
     try {
+      await checkTarget(ctx);
+      if (token !== contextToken()) throw new Error('Identity or environment changed before sending. No event was sent.');
+      submitted = true;
       const response = await global.AepDemoGeneratorTargets.labAuthFetch('/api/events/generator', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
+      rejected = response.status >= 400 && response.status < 500;
       const data = await response.json();
-      if (!response.ok || data.ok !== true) throw new Error(data.error || data.message || 'Event API did not confirm acceptance.');
+      if (!response.ok || data.ok !== true) {
+        throw new Error(data.error || data.message || 'Event API did not confirm acceptance.');
+      }
+      accepted = true;
       const receipt = data.requestId || data.eventId || body._id;
-      const row = document.createElement('li');
-      row.textContent = body.eventType + ' / ' + ctx.sandbox + ' / accepted / ' + receipt;
-      byId('raEventLog').prepend(row);
-      while (byId('raEventLog').children.length > 12) byId('raEventLog').lastElementChild.remove();
+      recordDelivery(body.eventType + ' / ' + ctx.sandbox + ' / accepted / ' + receipt);
       if (token !== contextToken()) {
         throw new Error('Event was accepted for the previous identity/environment. Local journey was not advanced. Restore that environment to continue.');
       }
+      await checkTarget(ctx);
+      if (token !== contextToken()) throw new Error('Identity or environment changed during target verification. Local journey was not advanced.');
       message('Accepted: ' + body.eventType + '. Profile ingestion and AJO execution are not yet verified. Receipt: ' + receipt, false);
       void refreshActivity(ctx).catch((error) => {
         message('Event accepted, but profile activity could not be refreshed: ' + error.message, true);
       });
       return data;
     } catch (error) {
+      if (submitted && !rejected) {
+        uncertain = JSON.stringify({ id: body._id, eventType: body.eventType, sandbox: ctx.sandbox, targetId: body.targetId, timestamp: body.timestamp, accepted });
+        global.sessionStorage.setItem(uncertainKey, uncertain);
+        byId('raUncertainDelivery').hidden = false;
+      }
+      recordDelivery(body.eventType + ' / ' + ctx.sandbox + ' / ' +
+        (accepted ? 'API accepted; local state not advanced' : rejected ? 'API rejected' : submitted ? 'delivery uncertain' : 'not sent') +
+        ' / attempt ' + body._id + ' / ' + error.message);
+      error.customerMessage = submitted && !rejected
+        ? 'We could not confirm this action. Your trip is unchanged here; please ask the presenter to check before trying again.'
+        : 'We could not complete this action. Your trip has not changed. Please check with the presenter and try again.';
       message(error.message || 'Event delivery failed. Check the connection and selected target.', true);
       throw error;
     } finally {
@@ -185,6 +314,7 @@
   }
 
   async function run() {
+    initPresenter();
     await global.envBar.ready();
     if (!byId('customerEmail') || !global.DemoTagsInjection || !global.DemoProfileDrawer) {
       throw new Error('Shared Lab components did not load. Reload the page and check the local asset server.');
@@ -256,7 +386,14 @@
     await reloadTargets();
   }
 
-  const api = { send, lookup, context, ownerKey, message, profile: () => verified, ready: null };
+  const api = { send, lookup, context, ownerKey, previewTrip: updatePreview,
+    reportError: (error) => {
+      message(error.message, true);
+      byId('raDeliveryStatus').textContent = error.customerMessage || error.message;
+      byId('raDeliveryStatus').hidden = false;
+    },
+    message: (text, error) => message(text, error, !!error),
+    profile: () => verified, ready: null };
   global.RiyadhAirLab = api;
   api.ready = run().catch((error) => { message(error.message, true); throw error; });
 })(window);

@@ -23,7 +23,6 @@
   let guest = {};
   let cabin = 'Economy';
   let restored = false;
-  const bookingHome = byId('raHome');
   const controls = booking.setupControls(() => {});
   const price = (value) => trip && !trip.outbound
     ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(value)
@@ -126,12 +125,11 @@
   }
 
   function render() {
+    lab.previewTrip(trip && trip.booked ? trip : null);
     const bookingPage = ['results', 'return', 'passenger', 'contact'].includes(step);
     site.dataset.bookingPage = String(bookingPage);
     site.dataset.referencePage = String(bookingPage || step === 'cart');
-    const booker = byId('raBooking');
-    if (bookingPage) byId('raHeaderBooking').append(booker);
-    else bookingHome.prepend(booker);
+    byId('raBooking').hidden = !(bookingPage || step === 'home');
     byId('raCartCount').textContent = trip ? '1' : '0';
     site.dataset.care = String(!!(trip && trip.disruption));
     byId('raHome').hidden = step !== 'home';
@@ -193,7 +191,7 @@
         '</dd><dt>Seat assignment</dt><dd>' + escape(trip.seat || 'No paid seat purchased or assigned') + '</dd><dt>Standard-seat entitlement</dt><dd>' +
         (trip.outbound && trip.outbound.bundle === 'Flex' ? 'Included with outbound Flex; not an assignment' : 'Subject to selected fare') + '</dd><dt>Extra bag</dt><dd>' +
         (trip.bag ? '23 kg' : 'None') + '</dd><dt>Lounge</dt><dd>' + (trip.lounge ? 'Selected' : 'Not selected') +
-        '</dd><dt>Upgrade purchase via external channels</dt><dd>Not verified</dd></dl>' +
+        '</dd></dl>' +
         '<div class="ra-actions">' + (!trip.disruption && trip.booked ? '<button type="button" class="ra-button" data-ra-action="openExtras">Choose seats and extras</button>' : '') +
         (!trip.disruption && trip.booked && trip.cabin !== 'Business' ? '<button type="button" class="ra-outline-button" data-ra-action="upgrade">Explore a cabin upgrade &#8599;</button>' : '') +
         '<button type="button" class="ra-text-button" data-ra-action="profile">View profile and activity &#8599;</button></div>';
@@ -202,7 +200,7 @@
         '<div><h2>More space.<br>More possibility.</h2><p>Explore Business comfort for your journey. Illustrative upgrade: ' + price(420) +
         '. This website records your interest, not an upgrade purchase.</p><div class="ra-actions"><button class="ra-button" type="button" data-ra-action="upgradeIntent">I am interested &#8594;</button>' +
         '<button class="ra-text-button" type="button" data-ra-action="abandon">Not now &mdash; return to my trip</button></div><p id="raUpgradeNote">' +
-        (trip.upgradeIntent ? 'Your interest was submitted. Your AJO channels manage any follow-up.' : '') + '</p></div></section>';
+        (trip.upgradeIntent ? 'Your interest was submitted. Your booking is unchanged.' : '') + '</p></div></section>';
     }
   }
 
@@ -221,7 +219,7 @@
     const previouslyDisabled = buttons.map((button) => button.disabled);
     buttons.forEach((button) => { button.disabled = true; });
     try { await task(); } catch (error) {
-      lab.message(error.message, true);
+      lab.reportError(error);
       if (step === 'extras') render();
     }
     finally {
@@ -403,7 +401,7 @@
         await lab.send('upgradeIntent', trip);
         trip.upgradeIntent = true;
         save();
-        byId('raUpgradeNote').textContent = 'Your interest was submitted. Your AJO channels manage any follow-up. No upgrade purchase has been made here.';
+        byId('raUpgradeNote').textContent = 'Your interest was submitted. Your booking is unchanged.';
       } else if (action === 'abandon') {
         await abandonUpgrade();
         navigate('trip');
