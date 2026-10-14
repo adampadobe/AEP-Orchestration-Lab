@@ -43,6 +43,7 @@
 
   function getInjectedLayoutAnchor(doc) {
     if (!doc) return null;
+    if (cfg('useParentDocument', false)) return doc.querySelector(cfg('injectedAnchorSelector', '[data-hero-mount]'));
     if (isKsiaHomeLayout()) {
       return (
         doc.querySelector('[data-hero-mount]') ||
@@ -77,6 +78,7 @@
 
   function getFullscreenLayoutHeader(doc) {
     if (!doc) return null;
+    if (cfg('useParentDocument', false)) return doc.querySelector(cfg('headerSelector', 'header'));
     if (isKsiaHomeLayout()) {
       return doc.querySelector('#ksiaScrollHeader') || doc.querySelector('#ksia-chrome-mount');
     }
@@ -329,6 +331,7 @@
   }
 
   function getIframeDoc() {
+    if (cfg('useParentDocument', false)) return document;
     var frame = getSiteCloneFrame();
     if (!frame) return null;
     try {
@@ -763,7 +766,8 @@
 
   function positionBcFrameHost(fullscreen) {
     var host = document.getElementById(FRAME_OVERLAY_HOST_ID);
-    var frame = getSiteCloneFrame();
+    var parentDocument = cfg('useParentDocument', false);
+    var frame = parentDocument ? document.querySelector(cfg('parentSiteSelector', 'main')) : getSiteCloneFrame();
     if (!host || !frame) return;
 
     var frameRect = frame.getBoundingClientRect();
@@ -807,7 +811,7 @@
     host.style.bottom = 'auto';
 
     if (fullscreen) {
-      var height = Math.max(240, frameRect.bottom - top);
+      var height = Math.max(240, (parentDocument ? global.innerHeight : frameRect.bottom) - top);
       host.style.height = height + 'px';
       host.style.maxHeight = '';
       host.style.overflow = '';
@@ -838,6 +842,10 @@
     if (bcFrameHostRepositionBound) return;
     bcFrameHostRepositionBound = true;
     global.addEventListener('resize', onBcFrameHostReposition);
+    if (cfg('useParentDocument', false)) {
+      global.addEventListener('scroll', onBcFrameHostReposition, { passive: true });
+      return;
+    }
     var frame = getSiteCloneFrame();
     if (!frame) return;
     frame.addEventListener('load', onBcFrameHostReposition);
