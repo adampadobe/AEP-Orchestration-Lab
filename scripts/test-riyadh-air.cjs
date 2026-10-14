@@ -206,6 +206,21 @@ async function browserTests() {
       await page.setViewportSize({ width: 1440, height: 1000 });
     }
     await searchGeometry('homepage');
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const hiddenClass of ['lab-env-top-anchor--docked-hidden', 'lab-env-top-anchor--presenter-strip-hidden']) {
+        await page.evaluate((className) => {
+          document.getElementById('riyadhDemoTopAnchor').classList.add(className);
+          window.scrollTo(0, 0);
+        }, hiddenClass);
+        assert(await page.locator('#riyadh-air-header').evaluate((header) => Math.abs(header.getBoundingClientRect().top) <= 1),
+          'Hidden Lab bar leaves no blank strip: ' + hiddenClass + ' at ' + width);
+        await page.evaluate((className) => document.getElementById('riyadhDemoTopAnchor').classList.remove(className), hiddenClass);
+      }
+      assert(await page.locator('#riyadh-air-header').evaluate((header) => header.getBoundingClientRect().top >= document.querySelector('#riyadhDemoTopAnchor .lab-env-toolbar').getBoundingClientRect().bottom - 1),
+        'Visible Lab bar does not overlap customer navigation');
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     assert(await page.evaluate(() => [...document.querySelectorAll('#raCustomerSite img')].every((image) => image.complete && image.naturalWidth > 0)), 'All supplied images decode');
     if (process.env.RIYADH_SCREENSHOTS) {
       await fs.mkdir(process.env.RIYADH_SCREENSHOTS, { recursive: true });

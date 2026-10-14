@@ -24,6 +24,8 @@
 .ra-delivery-status { padding: .5rem 1rem; text-align: center; font-size: .75rem; }
 .ra-delivery-status[hidden] { display: none; }
 .ra-site { margin-top: var(--ra-lab-inset, 3rem); }
+#riyadhDemoTopAnchor.lab-env-top-anchor--docked-hidden ~ .ra-site,
+#riyadhDemoTopAnchor.lab-env-top-anchor--presenter-strip-hidden ~ .ra-site { margin-top: 0; }
 .ra-delivery-status:not([hidden]) { position: sticky; top: var(--ra-lab-inset, 3rem); z-index: 6400; }
 @media (max-width: 480px) {
   .ra-presenter { inset: .5rem; margin: auto; width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
