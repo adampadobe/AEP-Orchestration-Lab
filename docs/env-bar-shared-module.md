@@ -172,6 +172,24 @@ Example Firestore document (KSIA):
 
 ## Version manifest
 
+After editing the manifest, run `npm run sync:env-bar-versions`. This updates all
+existing web/mobile loader references, the brand-scraper shell templates and the
+loader's offline defaults from the same source. The greenfield scaffold reads
+the manifest directly. Run `npm run sync-profile-viewer-ui` afterward.
+
+`npm run verify:env-bar-versions` verifies both offline defaults and every loader
+consumer. CI runs it alongside `npm run verify:demo-env-strip`; no demo-specific
+forks or captured copies of environment-bar styles should be introduced.
+
+Full customer demos share the Spectrum shell. Minimal agent/LLM and sandbox-only
+FNB modes retain their intentionally reduced controls, rather than gaining
+unsupported Tags or decisioning capabilities.
+
+The full shell keeps the Lab sidebar closed on desktop and mobile until the
+configuration panel's **Show menu** control is used (`menuButtonOnly` defaults
+to `true`). This prevents a mobile sidebar from pushing the customer site below
+the fold. Explicit `menuButtonOnly: false` is a legacy opt-out, not the default.
+
 Edit **`shared/env-bar-versions.json`** only when bumping env bar assets:
 
 ```json

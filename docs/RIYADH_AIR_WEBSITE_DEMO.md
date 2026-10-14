@@ -207,9 +207,10 @@ The local walkthrough passed under Node 22, including rejected-request recovery,
 namespace/sandbox isolation, actual shared drawer opening, reload without duplicate
 booking ingestion, responsive layouts, both themes and Etihad's retained iframe.
 The route and decisioning-mount verifiers also passed. The repository-wide
-environment-strip and environment-version checks currently fail on pre-existing
-cache-bust and embedded-version drift in unchanged shared assets and other demos;
-Riyadh Air uses the current manifest. These failures remain release blockers.
+environment-strip and environment-version checks also cover every shared-loader
+consumer, including mobile shells and generated-demo templates. Loader cache
+versions and embedded offline defaults are synchronized from the shared manifest;
+CI rejects drift before merge.
 
 Browser tests intercept all API/cloud requests with fixtures; they do not send
 events or create resources. Test receipts are not proof of live ingestion.

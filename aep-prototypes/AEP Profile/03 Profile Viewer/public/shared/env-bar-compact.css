@@ -509,13 +509,22 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   display: none !important;
 }
 
-/* Opt-in demos expose the left menu only through the configuration-panel control. */
-body[data-lab-menu-button-only]:not([data-lab-menu-user-open]).mod-demo-page .dashboard-sidebar {
+/* Customer demos expose the left menu only through the configuration-panel control. */
+body[data-lab-menu-button-only] .dashboard-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(238px, 100vw);
+  z-index: 7000;
+  overflow-y: auto;
+  background: var(--dash-sidebar);
+}
+
+body[data-lab-menu-button-only]:not([data-lab-menu-user-open]) .dashboard-sidebar {
   transform: translateX(-100%) !important;
   pointer-events: none !important;
 }
 
-body[data-lab-menu-button-only][data-lab-menu-user-open].mod-demo-page .dashboard-sidebar {
+body[data-lab-menu-button-only][data-lab-menu-user-open] .dashboard-sidebar {
   transform: translateX(0) !important;
   pointer-events: auto !important;
 }
