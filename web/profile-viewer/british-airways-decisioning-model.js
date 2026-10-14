@@ -20,6 +20,21 @@
   function relativePath(path) {
     return String(path).replace(/^_[a-zA-Z0-9]+\./, '').replace(/^demoemea\./, '');
   }
+  function normalizeDisruption(value) {
+    const label = String(value).trim().toLowerCase();
+    if (['cancelled', 'canceled', 'cancellation'].includes(label)) return 'cancelled';
+    if (label === 'delay' || label === 'none') return label;
+    return String(value);
+  }
+  function verificationDifferences(rows, expected) {
+    const byPath = new Map(rows.map(row => [relativePath(row.path), row.value]));
+    return expected.flatMap(update => {
+      const actual = byPath.get(update.path);
+      const normalize = update.path === disruptionPath ? normalizeDisruption : String;
+      return actual !== undefined && normalize(actual) === normalize(update.value)
+        ? [] : [{ path: update.path, expected: update.value, actual }];
+    });
+  }
   function scalar(row) {
     if (row.valueType === 'number') {
       const value = Number(row.value);
@@ -37,7 +52,7 @@
       const value = byPath.get('britishAirwaysDecisioning.' + leaf);
       if (value !== undefined) state[key] = numeric.has(key) ? Number(value) : String(value);
     });
-    if (byPath.has(disruptionPath)) state.disruption = String(byPath.get(disruptionPath));
+    if (byPath.has(disruptionPath)) state.disruption = normalizeDisruption(byPath.get(disruptionPath));
     if (byPath.has(bookingPath)) state.booking = String(byPath.get(bookingPath));
     const tier = byPath.get('airlineCustomer.loyaltyTier');
     if (tier != null) state.tier = String(tier).toLowerCase();
@@ -86,7 +101,7 @@
     generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });
     return Array.from(groups, ([industry, updates]) => ({ industry, updates: Array.from(updates.values()) }));
   }
-  const api = { fields, disruptionPath, bookingPath, propensity, readPropensity, relativePath, readState, buildSnapshots };
+  const api = { fields, disruptionPath, bookingPath, propensity, readPropensity, relativePath, normalizeDisruption, verificationDifferences, readState, buildSnapshots };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.BaDecisioningModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

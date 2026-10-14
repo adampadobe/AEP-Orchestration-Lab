@@ -67,8 +67,9 @@
   }
   function verified(data) {
     if (!pendingVerification) return true;
-    const rows = new Map(data.rows.map(row => [model.relativePath(row.path), String(row.value)]));
-    return pendingVerification.every(update => rows.get(update.path) === String(update.value));
+    const differences = model.verificationDifferences(data.rows, pendingVerification);
+    if (differences.length) console.warn('[ba-decisioning] Profile readback differs from saved values', differences);
+    return differences.length === 0;
   }
   async function lookup() {
     const ctx = context();
@@ -91,7 +92,12 @@
       if (!ok) throw new Error('Profile table loaded, but the profile drawer could not be refreshed.');
       syncPreviewRecipient(global.DemoProfileDrawer.getLastLookedUpProfile());
       if (tags) await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
-      message(ready ? 'Profile loaded. Control changes are staged until Apply.' : 'AEP readback is still pending. Click Run again after ingestion (typically 30-60 seconds).');
+      const differences = ready ? [] : model.verificationDifferences(data.rows, pendingVerification);
+      message(ready ? 'Profile loaded. Control changes are staged until Apply.' :
+        'AEP readback does not match the applied changes: ' + differences.map(item =>
+          item.path + ' (expected ' + JSON.stringify(item.expected) + ', received ' +
+          (item.actual === undefined ? 'missing' : JSON.stringify(item.actual)) + ')'
+        ).join('; ') + '. Decision not requested; the previous hero is unchanged. If these changes were just applied, allow time for ingestion and retry.', !ready);
       return ready;
     } catch (error) {
       loaded = null; loadedKey = '';
@@ -441,7 +447,6 @@
     const ctx = context();
     const previewChannel = visualiser().getPreviewChannel();
     if (!await lookup()) {
-      if (pendingVerification && loaded) message('AEP still has the previous values. Wait for ingestion (typically 30-60 seconds), then click Run live image decision again.', true);
       return;
     }
     busy = true; message('Evaluating the live hero-banner surface...');

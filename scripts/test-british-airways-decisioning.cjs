@@ -58,6 +58,26 @@ test('missing dataflows fail; configured Travel supports a first BA write', () =
   assert.throws(() => model.buildSnapshots([], state), /dataflow is missing/);
   assert.equal(model.buildSnapshots([], state, { generic: { writable: true }, travel: { writable: true } }).length, 2);
 });
+test('disruption readback accepts equivalent cancellation labels without accepting stale or missing values', () => {
+  const expected = [{ path: model.disruptionPath, value: 'cancelled' }];
+  for (const value of ['cancelled', 'canceled', 'CANCELLATION', ' Cancelled ']) {
+    const input = [{ path: '_demoemea.' + model.disruptionPath, value, valueType: 'string' }];
+    assert.equal(model.readState(input).disruption, 'cancelled');
+    assert.deepEqual(model.verificationDifferences(input, expected), []);
+  }
+  for (const value of ['none', 'DELAY', 'unknown']) {
+    assert.equal(model.verificationDifferences([{ path: model.disruptionPath, value }], expected).length, 1);
+  }
+  assert.deepEqual(model.verificationDifferences([], expected), [
+    { path: model.disruptionPath, expected: 'cancelled', actual: undefined },
+  ]);
+  assert.deepEqual(model.verificationDifferences([{ path: model.disruptionPath, value: 'DELAY' }], [
+    { path: model.disruptionPath, value: 'delay' },
+  ]), []);
+  assert.equal(model.verificationDifferences([{ path: model.bookingPath, value: 'UPCOMING' }], [
+    { path: model.bookingPath, value: 'upcoming' },
+  ]).length, 1, 'other fields still require exact saved values');
+});
 test('booking reads and writes the Travel field, preserves legacy journeyStage and excludes generic writes', () => {
   const legacy = { path: '_demoemea.britishAirwaysDecisioning.journeyStage', value: 'completed', valueType: 'string', industry: 'travel', writable: true };
   const booking = { path: '_demoemea.' + model.bookingPath, value: 'upcoming', valueType: 'string', industry: 'generic', writable: true };
@@ -261,7 +281,10 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
       if (url.pathname === '/api/profile/table') {
         tableReads++;
         data = {
-        found: true, rows: staleReadback ? rows : profileRows, profileEmail: 'ba+09102026-1@adobetest.com', ecid: '12345678901234567890123456789012345678',
+        found: true, rows: staleReadback ? rows : profileRows.map(row =>
+          model.relativePath(row.path) === model.disruptionPath && row.value === 'cancelled'
+            ? { ...row, value: 'CANCELLATION' } : row
+        ), profileEmail: 'ba+09102026-1@adobetest.com', ecid: '12345678901234567890123456789012345678',
         industries: { generic: { writable: true }, travel: { writable: true, schemaId: 'test-schema' } },
         };
       }
@@ -347,7 +370,9 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     staleReadback = true;
     const beforeReadback = tableReads;
     await page.locator('#baRunDecision').click();
-    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('AEP still has the previous values'));
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('AEP readback does not match'));
+    assert.ok((await page.locator('#baProfileStatus').innerText()).includes('expected'));
+    assert.ok((await page.locator('#baProfileStatus').innerText()).includes('received'));
     assert.ok(tableReads > beforeReadback, 'Run must fetch fresh profile rows');
     staleReadback = false;
     await page.evaluate(() => document.getElementById('queryProfileBtn').click());

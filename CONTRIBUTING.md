@@ -909,6 +909,8 @@ Demo pages that show the **hover profile drawer** must use the shared shell. Dra
 
 **Messages Sent** email/push counts refresh with event polling, using the full returned AEP event list and the profile's selected engagement time window (24 hours by default). They do not count local send attempts; AJO feedback ingestion latency still applies.
 
+The BA demo verifies applied profile values before requesting a live hero decision. Disruption readback treats `CANCELLATION`, `cancelled`, and `canceled` as the same cancelled-flight state; other saved fields must still match. A mismatch reports its path and expected/received values rather than assuming ingestion latency.
+
 | Layer | Single source of truth | Do not |
 |-------|------------------------|--------|
 | **Markup** | `shared/profile-viewer-modal.js` injected into `#profileViewerModalMount` | Paste `<div class="aep-profile-drawer-hover-zone">…</div>` or `<aside id="profileDrawer">…</aside>` in demo HTML |
