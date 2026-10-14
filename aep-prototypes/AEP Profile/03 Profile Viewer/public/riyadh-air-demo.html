@@ -19,7 +19,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
-  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261014-hidden-strip-inset">
+  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261014-sfeer-login">
   <link rel="stylesheet" href="riyadh-air-booking.css?v=20261014-search-placement">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
@@ -84,8 +84,28 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
         <a href="#raExperience">Experience</a><a href="#raSaudi">Discover Riyadh</a><a href="#raSfeer">Sfeer</a><a href="#raFooter">About us</a><a href="#raContact">Help</a>
       </nav>
       <button class="ra-cart-button" type="button" data-ra-action="cart" aria-label="Shopping cart"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3h3l3 12h11l3-9H6M9 19h.01M18 19h.01"></path></svg><span id="raCartCount">0</span></button>
-      <button class="ra-account" type="button" data-ra-action="profile" aria-label="My profile">My profile <span aria-hidden="true">&#8599;</span></button>
+      <button class="ra-account" id="raAccountButton" type="button" aria-label="My profile" aria-haspopup="dialog" aria-controls="raAccountDialog" aria-expanded="false"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19c1-6 13-6 14 0"/></svg><span id="raAccountLabel">My profile</span><span aria-hidden="true">&#9776;</span></button>
     </header>
+    <dialog id="raAccountDialog" class="ra-account-dialog" aria-labelledby="raAccountTitle">
+      <button id="raAccountClose" class="ra-account-close" type="button" aria-label="Close Sfeer account menu">&times;</button>
+      <div id="raAccountWelcome">
+        <h2 id="raAccountTitle">Join Sfeer, Riyadh Air's lifestyle program</h2>
+        <p>Sfeer, powered by Riyadh Air, is a lifestyle program designed for a generation in motion.</p>
+        <div class="ra-actions"><button id="raJoinNow" type="button" class="ra-button ra-button-light">Join now</button><button id="raLogIn" type="button" class="ra-outline-button">Log in</button></div>
+      </div>
+      <form id="raAccountForm" hidden>
+        <h2 id="raAccountFormTitle">Log in to Sfeer</h2>
+        <p id="raAccountFormHint">Use an existing Lab demo profile email. No password is required.</p>
+        <label for="raAccountEmail">Email address</label>
+        <input id="raAccountEmail" type="email" autocomplete="email" required maxlength="254" aria-describedby="raAccountFormHint raAccountError">
+        <p id="raAccountError" class="ra-account-error" role="alert" hidden></p>
+        <div class="ra-actions"><button id="raAccountSubmit" class="ra-button ra-button-light" type="submit">Continue</button><button id="raAccountBack" type="button" class="ra-outline-button">Back</button></div>
+      </form>
+      <div id="raAccountSignedIn" hidden>
+        <h2 id="raAccountSignedInTitle">Welcome to Sfeer</h2><p id="raAccountGreeting"></p>
+        <button id="raAccountActivity" type="button" class="ra-button ra-button-light">View profile and activity</button>
+      </div>
+    </dialog>
     <section id="TopRibbon" role="region" aria-label="Personalised travel message"></section>
     <section class="ra-booking" id="raBooking" data-ajo-insert-section="Flight search">
         <form id="raSearchForm" class="ra-search">
@@ -192,8 +212,8 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="riyadh-air-events.js?v=20261014"></script>
-  <script src="riyadh-air-demo.js?v=20261014-presenter"></script>
-  <script src="riyadh-air-booking.js?v=20261014-fares"></script>
+  <script src="riyadh-air-demo.js?v=20261014-sfeer-login"></script>
+  <script src="riyadh-air-booking.js?v=20261014-sfeer-label"></script>
   <script src="riyadh-air-site.js?v=20261014-presenter"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>

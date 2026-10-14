@@ -148,7 +148,7 @@
       '<label>Program<select name="program"><option value="">Select</option><option' + (guest.program === 'Sfeer' ? ' selected' : '') +
       '>Sfeer</option></select></label><label>Email<input name="loyaltyEmail" type="email" maxlength="254" value="' + value(guest, 'loyaltyEmail') +
       '" placeholder="Enter email"></label><div class="ra-guest-sfeer ra-form-wide"><div class="ra-sfeer-mark">·sfeer·</div><div><p>Explore Sfeer</p>' +
-      '<label><input type="checkbox" name="joinSfeer"' + (guest.joinSfeer ? ' checked' : '') + '>Join Sfeer (demo only)</label><small>No membership is created.</small></div></div>';
+      '<label><input type="checkbox" name="joinSfeer"' + (guest.joinSfeer ? ' checked' : '') + '>Join Sfeer</label><small>No membership is created.</small></div></div>';
     const contactFields = '<label>Email address<input name="contactEmail" type="email" autocomplete="email" maxlength="254" required value="' +
       value(guest, 'contactEmail') + '"></label><label>Phone number<input name="phone" type="tel" autocomplete="tel" maxlength="30" required value="' +
       value(guest, 'phone') + '"></label>';

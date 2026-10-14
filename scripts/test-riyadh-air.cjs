@@ -257,7 +257,107 @@ async function browserTests() {
     await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('selected profile and environment'));
     assert.match(await page.locator('#raPresenterStatus').textContent(), /Resolve a valid ECID/);
     assert.equal(requests.length, 0, 'No silent fallback to another identity');
-    await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
+    await page.evaluate(() => {
+      window.raIdentitySends = [];
+      window.raRejectIdentity = false;
+      window.alloy = async (command, options) => {
+        if (command === 'sendEvent') {
+          window.raIdentitySends.push(options);
+          if (window.raRejectIdentity) throw new Error('Fixture Adobe identity rejection');
+        }
+        return {};
+      };
+    });
+    await page.locator('#raAccountButton').click();
+    assert(await page.getByRole('heading', { name: "Join Sfeer, Riyadh Air's lifestyle program" }).isVisible());
+    await page.locator('#raLogIn').focus();
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'raAccountClose', 'Account focus wraps inside dialog');
+    await page.keyboard.press('Shift+Tab');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'raLogIn');
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      assert(await page.locator('#raAccountDialog').evaluate((dialog) => {
+        const rect = dialog.getBoundingClientRect();
+        return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight;
+      }), 'Sfeer menu fits desktop/mobile');
+      await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+      assert.equal(await page.locator('#raAccountTitle').evaluate((heading) => getComputedStyle(heading).color), 'rgb(255, 255, 255)', 'Sfeer text retains brand contrast in dark theme');
+      await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+      if (process.env.RIYADH_ACCOUNT_SCREENSHOTS) {
+        await fs.mkdir(process.env.RIYADH_ACCOUNT_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.RIYADH_ACCOUNT_SCREENSHOTS, 'sfeer-menu-' + width + '.png'), animations: 'disabled' });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.locator('#raLogIn').click();
+    await page.locator('#raAccountEmail').fill('missing@example.test');
+    await page.locator('#raAccountSubmit').click();
+    await page.locator('#raAccountError:not([hidden])').waitFor();
+    assert.equal(await page.locator('#raAccountLabel').textContent(), 'My profile', 'Missing profile cannot sign in');
+    await page.evaluate(() => { window.raRejectIdentity = true; });
+    await page.locator('#raAccountEmail').fill(profile.email);
+    await page.locator('#raAccountSubmit').click();
+    await page.waitForFunction(() => !document.getElementById('raAccountForm').hasAttribute('aria-busy'));
+    assert(await page.locator('#raAccountDialog').evaluate((dialog) => dialog.open), 'Adobe rejection keeps login open');
+    assert.equal(await page.locator('#raAccountLabel').textContent(), 'My profile', 'No success when Adobe did not accept identity');
+    await page.locator('#raAccountBack').click();
+    await page.locator('#raJoinNow').click();
+    assert.match(await page.locator('#raAccountFormHint').textContent(), /does not create/);
+    for (const change of ['identity', 'sandbox']) {
+      await page.evaluate(() => {
+        window.raIdentitySends = [];
+        window.alloy = async (command, options) => {
+          if (command !== 'sendEvent') return {};
+          window.raIdentitySends.push(options);
+          await new Promise((resolve) => { window.raCompleteStitch = resolve; });
+          return {};
+        };
+      });
+      await page.locator('#raAccountEmail').fill(profile.email);
+      await page.locator('#raAccountForm').evaluate((form) => {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      });
+      await page.waitForFunction(() => !!window.raCompleteStitch);
+      await page.evaluate((mutation) => {
+        if (mutation === 'sandbox') window.AepGlobalSandbox.setSelected('kirkham', { source: 'user' });
+        else {
+          document.getElementById('customerEmail').value = 'different@example.test';
+          document.getElementById('customerEmail').dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        window.raCompleteStitch();
+        window.raCompleteStitch = null;
+      }, change);
+      await page.waitForFunction(() => !document.getElementById('raAccountForm').hasAttribute('aria-busy'));
+      assert.equal(await page.locator('#raAccountLabel').textContent(), 'My profile', 'In-flight ' + change + ' change cannot sign in');
+      assert.equal(await page.evaluate(() => window.raIdentitySends.length), 1, 'Rapid login submits do not duplicate stitching');
+      assert(await page.locator('#raAccountError').isVisible());
+      if (change === 'sandbox') await page.evaluate(() => window.AepGlobalSandbox.setSelected('apalmer', { source: 'user' }));
+    }
+    await page.evaluate(() => {
+      window.raIdentitySends = [];
+      window.alloy = async (command, options) => {
+        if (command === 'sendEvent') window.raIdentitySends.push(options);
+        return {};
+      };
+    });
+    await page.locator('#raAccountEmail').fill(profile.email);
+    await page.locator('#raAccountSubmit').click();
+    await page.waitForFunction(() => !document.getElementById('raAccountDialog').open);
+    assert.equal(await page.locator('#raAccountLabel').textContent(), 'My Sfeer');
+    const identitySends = await page.evaluate(() => window.raIdentitySends);
+    assert.equal(identitySends.length, 1, 'One shared Adobe identity stitch per explicit successful sign-in');
+    assert.equal(identitySends[0].xdm.eventType, 'riyadhAir.identity.stitch');
+    assert.equal(identitySends[0].xdm.identityMap.Email[0].id, profile.email);
+    assert.equal(identitySends[0].xdm.identityMap.ECID[0].id, ecid);
+    assert.equal(identitySends[0].xdm.identityMap.Email[0].authenticatedState, 'authenticated');
+    assert.equal(requests.length, 0, 'Login does not duplicate a business event through generator');
+    assert(!page.url().includes(profile.email), 'Login email never appears in URL');
+    await page.locator('#raAccountButton').click();
+    assert(await page.locator('#raAccountGreeting').isVisible());
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.activeElement.id === 'raAccountButton');
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     async function capture(name) {
       if (!process.env.RIYADH_SCREENSHOTS) return;
@@ -359,6 +459,7 @@ async function browserTests() {
     const beforeReload = requests.length;
     await page.reload();
     await page.evaluate(() => window.RiyadhAirLab.ready);
+    assert.equal(await page.locator('#raAccountLabel').textContent(), 'My profile', 'Reload does not manufacture airline authentication');
     await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await page.getByRole('button', { name: 'Check out now' }).waitFor();
@@ -532,6 +633,7 @@ async function browserTests() {
     assert(await page.locator('body').evaluate((body) => body.classList.contains('aep-profile-drawer-open')), 'Shared profile drawer actually opens');
     await page.evaluate(() => document.body.classList.remove('aep-profile-drawer-open'));
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham', { source: 'user' }));
+    assert.equal(await page.locator('#raAccountLabel').textContent(), 'My profile', 'Sandbox switch clears customer login display');
     assert.equal(await page.getByRole('heading', { name: 'We are here for your journey.' }).isVisible(), false, 'Different sandbox cannot inherit the trip');
     const beforeSandbox = requests.length;
     await page.evaluate(() => window.RiyadhAirLab.send('search', { origin: 'LHR', destination: 'RUH' }).catch(() => {}));
@@ -678,7 +780,7 @@ async function browserTests() {
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);
     assert.equal(await page.locator('#etihadSiteFrame').count(), 1, 'Etihad keeps its existing iframe surface');
     assert.equal(await page.evaluate(() => !!window.SiteCloneBcPage.useParentDocument), false, 'Parent-document BC behavior is opt-in');
-    console.log('Riyadh Air: booking/seat journeys, unchanged event contracts, customer/diagnostic separation, modal keyboard/backdrop/focus/overlay controls, responsive themes, config and identity drift, rapid clicks, rejection/no pivot, uncertain delivery/reload blocking and history checks passed (fixture APIs only).');
+    console.log('Riyadh Air: Sfeer login/profile lookup and single Adobe identity stitch, rejected/stale/rapid login safety, booking/seat journeys, unchanged event contracts, customer/diagnostic separation, modal keyboard/backdrop/focus/overlay controls, responsive themes, config and identity drift, rapid clicks, rejection/no pivot, uncertain delivery/reload blocking and history checks passed (fixture APIs only).');
     await browserContext.close();
   } finally {
     if (browser) await browser.close();

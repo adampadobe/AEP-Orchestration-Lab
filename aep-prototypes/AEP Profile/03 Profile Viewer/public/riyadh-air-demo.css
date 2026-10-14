@@ -67,6 +67,24 @@
 .ra-header nav { display: flex; align-items: center; gap: 1.3rem; flex: 1; }
 .ra-header nav a, .ra-header nav button, .ra-account { font-size: .72rem; color: var(--dash-ra-white); background: none; border: 0; padding: .6rem 0; white-space: nowrap; }
 .ra-account { padding: .5rem .85rem; border-radius: 999px; background: var(--dash-ra-deep); }
+.ra-site .ra-account { display: inline-flex; align-items: center; gap: .65rem; padding: .65rem 1rem; }
+.ra-account-dialog { position: fixed; inset: calc(var(--ra-lab-inset, 3rem) + 5rem) max(1rem, calc((100vw - 1120px) / 2)) auto auto; margin: 0; box-sizing: border-box; width: min(35rem, calc(100vw - 2rem)); max-height: calc(100dvh - var(--ra-lab-inset, 3rem) - 6rem); overflow: auto; padding: 2rem; border: 0; border-radius: 26px; color: var(--dash-ra-white); background: linear-gradient(120deg, var(--dash-ra-plum), var(--dash-ra-gradient-end)); box-shadow: 0 12px 36px var(--dash-ra-shadow); }
+.ra-account-dialog::backdrop { background: transparent; }
+.ra-account-dialog { --dash-ra-sfeer-warm: rgb(182 104 108 / .8); --dash-ra-sfeer-plum: rgb(116 53 114 / .6); }
+.ra-account-dialog > div, .ra-account-dialog > form { padding: 1.5rem; border: 1px solid var(--dash-ra-lavender); border-radius: 22px; background: radial-gradient(ellipse at 75% 55%, var(--dash-ra-sfeer-warm), var(--dash-ra-sfeer-plum) 70%); }
+.ra-site .ra-account-dialog h2 { font-size: clamp(1.5rem, 2.1vw, 2rem); line-height: 1.5; margin-bottom: 1rem; }
+.ra-site .ra-account-dialog p { font-size: 1rem; line-height: 1.6; margin-bottom: 1.25rem; }
+.ra-account-dialog .ra-actions { margin-top: 1.25rem; flex-wrap: wrap; }
+.ra-site .ra-account-dialog .ra-outline-button { background: transparent; color: var(--dash-ra-white); border: 1px solid var(--dash-ra-white); }
+.ra-site .ra-account-dialog button { min-height: 44px; }
+.ra-site .ra-account-close { position: absolute; top: .15rem; right: .5rem; border: 0; background: transparent; color: var(--dash-ra-white); font-size: 1.5rem; min-width: 44px; }
+.ra-account-dialog :focus-visible { outline-color: var(--dash-ra-white); }
+.ra-site .ra-account-dialog input { font-size: 1rem; margin-top: .5rem; }
+.ra-site .ra-account-dialog .ra-account-error { background: var(--dash-ra-white); color: var(--dash-ra-error); border-radius: 8px; padding: .75rem; margin-top: .75rem; font-size: .9rem; }
+@media (max-width: 600px) {
+  .ra-account-dialog { inset: 1rem; width: calc(100vw - 2rem); max-height: calc(100dvh - 2rem); margin: auto; padding: 1.5rem .75rem .75rem; }
+  .ra-account-dialog > div, .ra-account-dialog > form { padding: 1.25rem; }
+}
 .ra-header a:hover, .ra-header button:hover { text-decoration: underline; text-underline-offset: .4rem; }
 .ra-header :focus-visible { outline-color: var(--dash-ra-white); }
 .ra-booking { margin: 2rem auto; position: relative; width: min(830px, 90%); padding: .8rem 1.4rem; background: var(--dash-ra-white); border-radius: 999px; }
