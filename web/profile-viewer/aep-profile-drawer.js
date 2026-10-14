@@ -3326,6 +3326,36 @@ function renderProfileDrawerEventsStoryModalContent() {
   const win = getJourneyStoryWindowBoundsFromUi();
   const storyEvents = win.active ? filterEventsByJourneyWindow(ordered, win.startMs, win.endMs) : ordered;
 
+  // Opt-in page-level renderer (e.g. BA Decisioning journey concepts); classic strip when unset or on failure.
+  if (typeof journeyModalRenderer === 'function') {
+    let handled = false;
+    try {
+      handled =
+        journeyModalRenderer({
+          panel: eventsStoryModalPanel,
+          track: eventsStoryModalTrack,
+          summary: eventsStoryModalSummary,
+          events: storyEvents,
+          allEvents: ordered,
+          windowActive: !!win.active,
+          profile: lastLookedUpProfile,
+          helpers: journeyRendererHelpers,
+        }) === true;
+    } catch (err) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('[aep-profile-drawer] custom journey renderer failed; using classic view', err);
+      }
+      eventsStoryModalTrack.innerHTML = '';
+    }
+    if (handled) {
+      journeyModalGroups = [];
+      journeyModalStep = 0;
+      if (eventsStoryModalControlsWrap) eventsStoryModalControlsWrap.hidden = true;
+      if (eventsStoryModalStepMeta) eventsStoryModalStepMeta.textContent = '';
+      return;
+    }
+  }
+
   if (!ordered.length) {
     const empty = document.createElement('p');
     empty.className = 'aep-profile-drawer-events-story-empty';
@@ -4722,6 +4752,19 @@ async function openDrawerAndLoad(email) {
   if (email) await loadProfileDataForDrawer(email, { updateMessage: false });
 }
 
+let journeyModalRenderer = null;
+const journeyRendererHelpers = {
+  title: formatExperienceEventDisplayTitle,
+  fallbackTitle: drawerEventTitleFallback,
+  thumb: eventThumbForEvent,
+  channel: formatDrawerEventChannelDisplay,
+  messageChannelKind: aepProfileDrawerMessageChannelKind,
+  decisionFields: decisioningDisplayCardFields,
+  timestampMs: eventTimestampMsForDrawer,
+  formatDate: formatEventTimelineDate,
+  isWebPageview: isAdobeWebPageViewExperienceEvent,
+};
+
 const api = {
   init,
   loadProfileDataForDrawer,
@@ -4729,6 +4772,10 @@ const api = {
   updateProfileDrawer,
   getLastLookedUpProfile: () => lastLookedUpProfile,
   getLastProfile: () => lastLookedUpProfile,
+  setJourneyModalRenderer(fn) {
+    journeyModalRenderer = typeof fn === 'function' ? fn : null;
+  },
+  closeJourneyModal: () => closeProfileDrawerEventsStoryModal(),
   patchLastProfileOrUpdate,
   refreshDrawerEventsForIdentity,
   refreshDrawerEventsForLoadedProfile,
