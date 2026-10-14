@@ -907,6 +907,8 @@ and schema provisioning still require authorized verification.
 
 Demo pages that show the **hover profile drawer** must use the shared shell. Drawer markup drifted across ~25 pages before centralisation — see [`docs/profile-viewer-modal-migration-audit.md`](docs/profile-viewer-modal-migration-audit.md).
 
+**Messages Sent** email/push counts refresh with event polling, using the full returned AEP event list and the profile's selected engagement time window (24 hours by default). They do not count local send attempts; AJO feedback ingestion latency still applies.
+
 | Layer | Single source of truth | Do not |
 |-------|------------------------|--------|
 | **Markup** | `shared/profile-viewer-modal.js` injected into `#profileViewerModalMount` | Paste `<div class="aep-profile-drawer-hover-zone">…</div>` or `<aside id="profileDrawer">…</aside>` in demo HTML |

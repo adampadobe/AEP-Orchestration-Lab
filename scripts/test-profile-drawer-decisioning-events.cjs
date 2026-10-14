@@ -36,6 +36,64 @@ const proposition = {
   items: [{ name: 'Baggage Status', itemSelection: { selectionDetail: { strategyName: 'NBA Strategy 2 - Travel now' } } }],
   scopeDetails: { decisionProvider: 'AJO', rank: 1 },
 };
+function engagementContext(events, hoursBack = 24) {
+  let requests = 0;
+  const sandbox = {
+    window: {},
+    _config: {},
+    lastLookedUpProfile: { engagementMetricsHoursBack: hoursBack, events: [] },
+    cacheDomRefs() {},
+    getNamespaceForDrawer: () => 'email',
+    fetchProfileEventsList: async () => { requests++; return events; },
+    filterDrawerEventsForTimeline: events => events,
+    visibleDrawerEventsForPanel: (events, limit) => events.slice(0, limit),
+    DRAWER_EVENTS_STORY_MAX: 100,
+    patchLastProfileOrUpdate(partial) { Object.assign(sandbox.lastLookedUpProfile, partial); },
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'web', 'profile-viewer', 'email-engagement-metrics.js'), 'utf8'), sandbox);
+  vm.runInContext(source.slice(source.indexOf('function resolveEngagementMetricsHoursBack('), source.indexOf('function formatEngagementMetricsRangeHint(')), sandbox);
+  vm.runInContext(source.slice(source.indexOf('async function refreshDrawerEventsForIdentity('), source.indexOf('/** Re-fetch events using')), sandbox);
+  return { sandbox, requests: () => requests };
+}
+function messageEvent(channel, ageHours = 0) {
+  return {
+    eventName: 'message sent',
+    timestamp: Date.now() - ageHours * 3600000,
+    rows: [{ path: `_experience.customerJourneyManagement.${channel}ChannelContext.namespace`, value: channel }],
+  };
+}
+test('event polling refreshes email and push counts from the full event list without extra requests', async () => {
+  const events = Array.from({ length: 7 }, () => messageEvent('email'));
+  events.push(messageEvent('push'), messageEvent('email', 25));
+  const { sandbox, requests } = engagementContext(events);
+  await sandbox.refreshDrawerEventsForIdentity('test@example.com', 'email');
+  assert.equal(sandbox.lastLookedUpProfile.emailSendsLast24h, 7);
+  assert.equal(sandbox.lastLookedUpProfile.pushSendsLast24h, 1);
+  assert.equal(sandbox.lastLookedUpProfile.events.length, 5);
+  assert.equal(requests(), 1);
+  events.push(messageEvent('email'));
+  await sandbox.refreshDrawerEventsForIdentity('test@example.com', 'email');
+  assert.equal(sandbox.lastLookedUpProfile.emailSendsLast24h, 8);
+});
+test('event polling preserves the selected metrics window and removes expired sends', async () => {
+  const events = [messageEvent('email', 25), messageEvent('email', 169)];
+  const { sandbox } = engagementContext(events, 168);
+  await sandbox.refreshDrawerEventsForIdentity('test@example.com', 'email');
+  assert.equal(sandbox.lastLookedUpProfile.emailSendsLast24h, 1);
+  assert.equal(sandbox.lastLookedUpProfile.engagementMetricsHoursBack, 168);
+  events[0].timestamp = Date.now() - 170 * 3600000;
+  await sandbox.refreshDrawerEventsForIdentity('test@example.com', 'email');
+  assert.equal(sandbox.lastLookedUpProfile.emailSendsLast24h, 0);
+  assert.equal(sandbox.lastLookedUpProfile.pushSendsLast24h, 0);
+});
+test('event polling leaves metrics unavailable when engagement helpers are absent', async () => {
+  const { sandbox } = engagementContext([messageEvent('email')]);
+  delete sandbox.window.EmailEngagementMetrics;
+  await sandbox.refreshDrawerEventsForIdentity('test@example.com', 'email');
+  assert.equal(sandbox.lastLookedUpProfile.emailSendsLast24h, undefined);
+  assert.equal(sandbox.lastLookedUpProfile.pushSendsLast24h, undefined);
+});
 test('event cards use returned rows beneath the unchanged title and preserve timestamp', () => {
   const sandbox = context();
   const ev = event([proposition]);

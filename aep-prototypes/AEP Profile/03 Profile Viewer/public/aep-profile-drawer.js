@@ -763,6 +763,17 @@ function resolveEngagementMetricsHoursBack(opts) {
   return 24;
 }
 
+function drawerEngagementMetrics(events, hoursBack) {
+  const metrics = window.EmailEngagementMetrics;
+  return {
+    emailSendsLast24h: metrics && metrics.getEmailSendsLastHours
+      ? metrics.getEmailSendsLastHours(events, hoursBack) : undefined,
+    pushSendsLast24h: metrics && metrics.getPushSendsLastHours
+      ? metrics.getPushSendsLastHours(events, hoursBack) : undefined,
+    engagementMetricsHoursBack: hoursBack,
+  };
+}
+
 /** @param {number} hours */
 function formatEngagementMetricsRangeHint(hours) {
   const h = Number(hours);
@@ -4103,23 +4114,7 @@ async function loadProfileDataForDrawer(email, options) {
     const events = visibleDrawerEventsForPanel(eventsAll, 5);
     const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
     const engagementH = resolveEngagementMetricsHoursBack(opts);
-    let emailSendsLast24h;
-    let pushSendsLast24h;
-    if (typeof window.EmailEngagementMetrics !== 'undefined') {
-      if (window.EmailEngagementMetrics.getEmailSendsLastHours) {
-        emailSendsLast24h = window.EmailEngagementMetrics.getEmailSendsLastHours(eventsAll, engagementH);
-      } else {
-        emailSendsLast24h = undefined;
-      }
-      if (window.EmailEngagementMetrics.getPushSendsLastHours) {
-        pushSendsLast24h = window.EmailEngagementMetrics.getPushSendsLastHours(eventsAll, engagementH);
-      } else {
-        pushSendsLast24h = undefined;
-      }
-    } else {
-      emailSendsLast24h = undefined;
-      pushSendsLast24h = undefined;
-    }
+    const { emailSendsLast24h, pushSendsLast24h } = drawerEngagementMetrics(eventsAll, engagementH);
 
     const profileEmailForGraph =
       data.email != null && String(data.email).trim() ? String(data.email).trim() : '';
@@ -4266,7 +4261,12 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
   const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
   const events = visibleDrawerEventsForPanel(eventsAll, 5);
   const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
-  patchLastProfileOrUpdate({ events, eventsStory });
+  const engagementH = resolveEngagementMetricsHoursBack(lastLookedUpProfile);
+  patchLastProfileOrUpdate({
+    events,
+    eventsStory,
+    ...drawerEngagementMetrics(eventsAll, engagementH),
+  });
 }
 
 /** Re-fetch events using the same identity as the last profile load (avoids ECID/email poll drift). */
