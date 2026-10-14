@@ -1,5 +1,4 @@
 .ra-site { --dash-ra-black: rgb(0 0 0); --dash-ra-selected: rgb(82 64 190); }
-.ra-header #raHeaderBooking:empty { display: none; }
 .ra-site .ra-cart-button { display: flex; align-items: center; gap: .25rem; background: none; color: var(--dash-ra-white); border: 0; padding: .6rem; }
 .ra-cart-button span { font-size: .7rem; }
 .ra-booking { width: min(1000px, 90%); }
@@ -32,18 +31,6 @@
 .ra-site .ra-calendar-grid .ra-date-endpoint { background: var(--dash-ra-black); color: var(--dash-ra-white); border-radius: 50%; }
 .ra-site .ra-calendar-grid .ra-date-in-range { background: var(--dash-ra-mist); }
 .ra-calendar-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; }
-.ra-site[data-booking-page="true"] .ra-header { gap: 1.2rem; }
-.ra-site[data-booking-page="true"] .ra-header nav { display: none; }
-.ra-site[data-booking-page="true"] #raHeaderBooking { flex: 1; min-width: 0; }
-#raHeaderBooking .ra-booking { width: 100%; margin: 0; padding: .5rem 1rem; background: var(--dash-ra-plum); color: var(--dash-ra-white); }
-#raHeaderBooking .ra-search-field > span, #raHeaderBooking .ra-guests small { display: none; }
-#raHeaderBooking label { font-size: 0; }
-#raHeaderBooking label select { color: var(--dash-ra-white); background: transparent; font-size: .72rem; }
-#raHeaderBooking label option { color: var(--dash-ra-ink); background: var(--dash-ra-white); }
-#raHeaderBooking .ra-search-field button, #raHeaderBooking .ra-route-arrow { color: var(--dash-ra-white); font-size: .72rem; }
-#raHeaderBooking .ra-guests { font-size: .72rem; }
-#raHeaderBooking .ra-search-button { background: var(--dash-ra-white); color: var(--dash-ra-ink); border: 0; width: 36px; height: 36px; }
-#raHeaderBooking .ra-search { grid-template-columns: 1.2fr auto 1.2fr .85fr .85fr .7fr 1fr auto; gap: .5rem; }
 .ra-site[data-booking-page="true"] .ra-journey { padding-top: 2.5rem; }
 .ra-site[data-booking-page="true"] .ra-journey-heading, .ra-site[data-booking-page="true"] .ra-progress { display: none; }
 .ra-site[data-reference-page="true"] #raJourneyTitle { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -130,8 +117,7 @@
 .ra-destination-summary h2 { font-size: 1.5rem; margin-bottom: .5rem; }
 .ra-destination-summary p { font-size: .85rem; margin-top: .5rem; }
 @media (max-width: 1100px) {
-  .ra-site[data-booking-page="true"] .ra-header { flex-wrap: wrap; }
-  .ra-site[data-booking-page="true"] #raHeaderBooking { order: 3; flex-basis: 100%; }
+  .ra-calendar { max-width: calc(100% - 3rem); }
   .ra-search { grid-template-columns: 1fr auto 1fr 1fr; gap: 1rem; }
   .ra-search .ra-guests { grid-column: auto; grid-row: auto; }
   .ra-search .ra-search-button { grid-column: auto; }
@@ -143,14 +129,11 @@
   .ra-site .ra-search-field button { white-space: normal; text-align: left; }
   .ra-search-field > button, .ra-date-control > button[data-ra-calendar] { min-height: 44px; }
   .ra-search .ra-guests { grid-column: auto; grid-row: auto; }
-  .ra-airport-picker { left: 0; width: 100%; }
-  .ra-calendar { padding: 1rem; max-height: 65vh; overflow-y: auto; }
+  .ra-airport-picker { left: 0; width: calc(100% - 2.5rem); }
+  .ra-calendar { left: 0; transform: none; width: calc(100% - 2.5rem); max-width: none; padding: 1rem; max-height: 65vh; overflow-y: auto; }
   .ra-calendar-months { grid-template-columns: 1fr; gap: 1.5rem; }
   .ra-calendar-grid button { min-height: 44px; }
   .ra-calendar-nav span { font-size: .7rem; }
-  #raHeaderBooking .ra-search { grid-template-columns: 1fr 1fr; }
-  #raHeaderBooking .ra-route-arrow { display: none; }
-  .ra-site[data-booking-page="true"] .ra-header .ra-wordmark { margin-right: auto; }
   .ra-date-strip { display: flex; overflow-x: auto; gap: .5rem; margin: 1rem 0; padding: .3rem; }
   .ra-date-strip button { min-width: 90px; min-height: 44px; }
   .ra-result-card { padding: 1rem; }

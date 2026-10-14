@@ -7,15 +7,27 @@
 .riyadh-air-demo-page .dashboard-shell.ra-lab-navigation { position: absolute; width: 0; height: 0; min-height: 0 !important; overflow: visible; pointer-events: none; }
 .ra-lab-navigation .dashboard-sidebar { position: fixed; z-index: 7100; top: 0; left: 0; bottom: 0; transform: translateX(-100%); pointer-events: auto; }
 .ra-lab-navigation .dashboard-sidebar:focus-within, .ra-lab-navigation .dashboard-sidebar:hover { transform: translateX(0); }
-.ra-presenter { padding: .5rem 1rem; font-size: .8rem; margin-top: var(--ra-lab-inset, 3rem); scroll-margin-top: var(--ra-lab-inset, 3rem); }
-.ra-presenter summary { cursor: pointer; width: fit-content; font-weight: 600; }
-.ra-presenter-body { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; max-width: 1400px; margin: 1rem auto; }
-.ra-presenter-body p, #raEventLog { flex: 1 0 100%; margin: .25rem 0; }
-.ra-presenter-body input, .ra-presenter-body select { max-width: 15rem; padding: .5rem; color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm); }
+.ra-presenter-launcher { position: fixed; right: var(--lab-env-midrail-right, .85rem); top: calc(50% + 3 * var(--lab-env-midrail-slot, 2.55rem)); transform: translateY(-50%); z-index: 7152; display: grid; place-items: center; width: var(--lab-env-midrail-btn-size, 2rem); height: var(--lab-env-midrail-btn-size, 2rem); padding: 0; border: 1px solid var(--dash-border); border-radius: 50%; color: var(--dash-blue); background: var(--dash-surface); box-shadow: var(--dash-shadow); cursor: pointer; }
+.ra-presenter { position: fixed; inset: 1rem 3.5rem 1rem auto; width: min(28rem, calc(100vw - 4.5rem)); max-height: calc(100dvh - 2rem); box-sizing: border-box; padding: 1.25rem; margin: auto 0; border: 1px solid var(--dash-border); border-radius: var(--dash-radius); box-shadow: var(--dash-shadow); font-size: .875rem; overflow: auto; overscroll-behavior: contain; }
+.ra-presenter::backdrop { background: var(--dash-shadow-color, rgb(0 0 0 / .35)); }
+.ra-presenter-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.ra-presenter-heading h2 { margin: 0; font-size: 1.2rem; color: var(--dash-text); }
+.ra-presenter-heading button { background: var(--dash-surface-alt); color: var(--dash-text); border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); padding: .5rem; cursor: pointer; }
+.ra-presenter summary { cursor: pointer; font-weight: 600; }
+.ra-presenter-body { display: grid; gap: .65rem; margin: 1rem 0 0; }
+.ra-presenter-body p, #raEventLog { margin: .25rem 0; overflow-wrap: anywhere; }
+.ra-presenter-body pre { font-size: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ra-presenter-body input, .ra-presenter-body select { box-sizing: border-box; width: 100%; min-width: 0; padding: .5rem; font-size: 1rem; color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm); }
 .ra-presenter-body button { padding: .5rem .8rem; background: var(--dash-surface-alt); color: var(--dash-text); border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); cursor: pointer; }
 .ra-presenter-body button:disabled { opacity: .5; cursor: not-allowed; }
 .ra-presenter [data-error="true"], .ra-delivery-status[data-error="true"] { color: var(--dash-error-text); }
 .ra-delivery-status { padding: .5rem 1rem; text-align: center; font-size: .75rem; }
+.ra-delivery-status[hidden] { display: none; }
+.ra-site { margin-top: var(--ra-lab-inset, 3rem); }
+.ra-delivery-status:not([hidden]) { position: sticky; top: var(--ra-lab-inset, 3rem); z-index: 6400; }
+@media (max-width: 480px) {
+  .ra-presenter { inset: .5rem; margin: auto; width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
+}
 .ra-site {
   --dash-ra-purple: rgb(29 21 51); --dash-ra-plum: rgb(55 44 91); --dash-ra-mid: rgb(85 71 131);
   --dash-ra-lavender: rgb(204 199 217); --dash-ra-mist: rgb(232 229 241); --dash-ra-pale: rgb(246 241 253);

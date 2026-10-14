@@ -9,6 +9,11 @@ booking pill, travel updates, photographic destinations, offers, Sfeer,
 experience cards, cargo, Riyadh, newsletter, visa information, contact and footer.
 There is no oversized illustrated airplane hero.
 
+The full gradient customer navigation remains visible on booking screens.
+Flight-search controls stay in a separate white pill below that header on home,
+results, return and guest/contact screens; they are never embedded in the navigation.
+Mobile airport/calendar popovers reserve space beside the floating presenter rail.
+
 Seventeen user-supplied logo/photographic assets are stored locally in
 `web/profile-viewer/riyadh-air-assets/` (about 760 KB total). They include Jakarta,
 Milan, Bangkok, the offers collage, Sfeer banner, cabin/entertainment/lounge/fleet,
@@ -55,6 +60,30 @@ the **top document**, suitable for AJO visual web authoring. Brand Concierge
 supports the existing modal, bottom dock and opt-in parent-document overlay modes;
 its configured runtime/catalog still requires working external bindings.
 
+The Riyadh-only screen icon below the shared side rail opens a modal presenter
+panel. Close, Escape and outside click dismiss it; native dialog focus containment
+and focus return keep keyboard use within the panel. The panel includes the
+existing controls, a read-only disruption payload preview (identity values masked),
+technical status and receipt history. Technical loading/success/ingestion notes
+are not shown on the customer surface or shared environment-strip message.
+Customer action errors remain visible; checkout retains the demo-payment disclosure.
+
+Before each business event and after API acceptance, the sender reads the current
+authenticated sandbox target and compares its transport/datastream/style with
+the loaded selection. Identity, namespace and environment changes also prevent
+local advancement. This detects observable configuration changes, not an atomic
+backend configuration lock: changes between reads or schema changes behind an
+unchanged datastream cannot be ruled out. The existing target-based generator and
+event schema mapping are unchanged; there is no raw JSON sender or new schema leaf.
+
+Network/response uncertainty, server errors and accepted events whose context
+changed preserve local trip state and block further sends, including after reload.
+The presenter must check profile/AJO activity and explicitly allow another attempt.
+Only non-PII attempt metadata is retained in tab storage. The prior UUID is available
+for reconciliation, not automatically replayed; neither reused nor new UUIDs are
+claimed to guarantee deduplication. Definitive 4xx rejections can be corrected and
+retried. Profile refresh is a read, not proof of the exact event or AJO execution.
+
 ## Customer walkthrough
 
 1. Search a one-way or round-trip flight. London → Riyadh remains the initial
@@ -76,8 +105,9 @@ its configured runtime/catalog still requires working external bindings.
 3. Deliver engagement and complete any purchase using the user's existing AJO
    channels, including WhatsApp. This page does **not** simulate purchase success
    or claim to read an external booking system. The shared drawer remains the
-   source for real profile/channel activity; external upgrade state is labelled
-   **Not verified**.
+   source for real profile/channel activity; unverified external purchase state is
+   not presented as part of the customer's booking. Channel/verification caveats
+   remain in the presenter panel.
 4. Open **Presenter controls** and send a delay or gate change for the confirmed
    booking. Optional **AJO disruption event ID** uses the user's existing event
    binding. After API acceptance, the website shows care instead of its local
