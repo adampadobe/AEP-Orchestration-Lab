@@ -6,6 +6,7 @@
     booking: 'travel.booking.confirm', upgradeView: 'travel.upgrade.view',
     upgradeIntent: 'travel.upgrade.intent', abandon: 'travel.upgrade.abandon',
     manage: 'travel.booking.view', delay: 'travel.flight.delay', gate: 'travel.flight.gateChange',
+    ancillaryView: 'travel.ancillary.view', ancillaryIntent: 'travel.ancillary.intent', ancillaryAbandon: 'travel.ancillary.abandon',
   });
 
   function build(action, trip, context, options) {
@@ -36,10 +37,18 @@
     if (trip.reference) url.searchParams.set('booking', trip.reference);
     if (trip.flight) url.searchParams.set('flight', trip.flight);
     if (trip.date) url.searchParams.set('departure', trip.date);
+    if (trip.returnDate) url.searchParams.set('return', trip.returnDate);
     if (trip.cabin) url.searchParams.set('cabin', trip.cabin);
     if (trip.seat) url.searchParams.set('seat', trip.seat);
     if (trip.bag) url.searchParams.set('bag', 'extra-23kg');
     if (trip.lounge) url.searchParams.set('lounge', 'true');
+    if (['select', 'extras', 'ancillaryView', 'ancillaryIntent', 'ancillaryAbandon'].includes(action)) {
+      for (const key of ['offer', 'seat', 'seatTier', 'amount', 'currency', 'leg', 'bundle']) {
+        if (extra[key] !== undefined && extra[key] !== null) url.searchParams.set(key, String(extra[key]));
+      }
+      if (extra.bag) url.searchParams.set('bag', 'extra-23kg');
+      if (extra.lounge) url.searchParams.set('lounge', 'true');
+    }
     if (action === 'delay') url.searchParams.set('delayMinutes', String(extra.delayMinutes));
     if (action === 'gate') url.searchParams.set('gate', extra.gate);
     const travel = { departureAirport: trip.origin, arrivalAirport: trip.destination };

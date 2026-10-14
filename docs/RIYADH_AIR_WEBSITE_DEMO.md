@@ -3,9 +3,27 @@
 Canonical route: `/profile-viewer/riyadh-air-demo.html`. Find it under **Demos →
 Riyadh Air → Web**, with Show in development capabilities enabled. The owner filter
 is `apalmer`; Global values → All lab demos also exposes it. This is an original
-interactive customer website, not the official site. Aviation/city/cabin artwork
-is authored SVG/CSS, and font stacks are local fallbacks; no saved proprietary
-page, brand photography or font binaries are copied.
+interactive customer website, not the official site. The revised homepage follows
+the user-supplied screenshot/HTML composition: compact gradient navigation and
+booking pill, travel updates, photographic destinations, offers, Sfeer,
+experience cards, cargo, Riyadh, newsletter, visa information, contact and footer.
+There is no oversized illustrated airplane hero.
+
+Seventeen user-supplied logo/photographic assets are stored locally in
+`web/profile-viewer/riyadh-air-assets/` (about 760 KB total). They include Jakarta,
+Milan, Bangkok, the offers collage, Sfeer banner, cabin/entertainment/lounge/fleet,
+cargo mosaic, Riyadh and Saudi visitors. No captured scripts, trackers, fonts,
+forms or original site code are imported. The saved HTML is used only as a visual
+and structural reference; markup, CSS and interactions are implemented here.
+System font fallbacks are used because proprietary font binaries were not supplied.
+This is a close visual adaptation, not a certified pixel-identical reproduction.
+The booking revision also uses the supplied London photograph for the cart.
+
+Destination cards populate the booking bar with Riyadh departures. The initial
+London-to-Riyadh route remains available for the original demo story. Experience,
+cargo and visa controls open local informational details; they do not invent
+connected airline services. The newsletter form validates locally, clears its
+fields and explicitly confirms that no data was sent or subscription created.
 
 ## Presenter setup
 
@@ -39,13 +57,22 @@ its configured runtime/catalog still requires working external bindings.
 
 ## Customer walkthrough
 
-1. Search a one-way flight, choose an illustrative fare, complete passenger names,
-   choose a seat/bag/lounge, and confirm the explicitly labelled demo payment.
-   No card data is requested and no ticket is issued.
-2. Manage the booking and explore an Economy-to-Business upgrade. Record interest,
-   then choose **Not now** or return home/manage booking to record abandonment.
-   Closing the browser is not treated as verified abandonment: no unreliable
-   unload beacon or timer is used.
+1. Search a one-way or round-trip flight. London → Riyadh remains the initial
+   route; the supplied reference journey Riyadh → London is also selectable.
+   Searchable airport popovers, a keyboard-operable two-month departure/return
+   calendar and a seven-day results strip work locally. Past dates are disabled.
+   Select an outbound cabin/bundle to unlock return selection. Complete Adult 1
+   and contact details, review the basket and confirm the **base-flight-only**
+   demo payment. No card data is requested and no ticket is issued.
+2. From the **confirmed** My Trip, choose **Choose seats and extras**. Inspect
+   extra-legroom seat 14A at illustrative **SAR 180**, optionally record interest,
+   then **Continue without paid seat or extras**. This records booking-correlated
+   **ancillary abandonment**, not flight-booking abandonment or an ancillary
+   purchase. Tentative seat/bag/lounge selections are separate from assignment,
+   purchased extras and the paid booking amount. Flex includes an outbound
+   standard-seat entitlement; the paid offer is extra legroom/preferred, not
+   charging again for the included standard tier. The confirmed flight amount
+   remains unchanged. Cabin-upgrade interest remains separately available.
 3. Deliver engagement and complete any purchase using the user's existing AJO
    channels, including WhatsApp. This page does **not** simulate purchase success
    or claim to read an external booking system. The shared drawer remains the
@@ -64,12 +91,66 @@ advances the customer flow; rejected requests leave the current step intact.
 No automatic event retry is performed (an ambiguous network failure requires
 checking profile activity before manually repeating the action).
 
+### Booking reference coverage and navigation
+
+Steps have stable query URLs on the canonical HTML entry point:
+`?step=results`, `return`, `passenger`, `contact`, `cart`, `payment`, `trip`,
+`extras` and `upgrade`. Browser back/forward and reload restore the valid step
+without sending events. Selections are retained in tab-local state, not encoded
+as personal data in URLs. Invalid/deep-linked steps are gated by available
+selections/completion. The same selected profile must be resolved after reload.
+The site does not turn a URL into permission to access a different booking.
+
+The supplied references cover airport/calendar controls, outbound/return
+results and Lite/Smart/Flex bundles, guest/loyalty fields, incomplete cart and
+completed cart. Economy outbound Flex **SAR 2,341** plus return Smart **SAR 1,788**
+is exactly **SAR 4,129**, including illustrative taxes. All new booking-path
+amounts use SAR. Premium/Business base prices come from the reference; their
+bundle differences and non-London schedules use illustrative fixture values,
+not live fare or policy claims. Benefits are sample reference inventory, not a
+promise of availability. No fare lookup or airline reservation API is connected.
+Fares also vary deterministically with travel date: illustrative weekday demand,
+seasonality and route-specific inventory demand adjust each directional base.
+Premium/Business bundle increments scale with cabin. The seven-day strip shows
+the matching starting fare for each date. This is simulated pricing, not live
+yield management; the same route/date/cabin/bundle always quotes the same amount.
+Selected fares are retained through basket, checkout and reload. The supplied
+1 November outbound / 19 November return reference fares remain the baseline.
+Supported airports are RUH, LHR, CGK, MXP and BKK, each with supplied imagery.
+Direct demo inventory is offered only to/from Riyadh; other combinations return
+explicit availability feedback. Route-specific fixture flight numbers, local
+times/durations, fares and destination images propagate into both leg summaries,
+basket, checkout, confirmation and My Trip. Return reverses the airports and uses
+the selected return date. New searches invalidate draft selections; confirmed
+bookings require an explicit local reset before replacement.
+
+Guest title, name, DOB, optional loyalty/contact fields and the Sfeer toggle are
+demo-only tab-local inputs. They are never added to ExperienceEvent fields or
+URLs and do not change the selected Lab identity or enrol anyone in Sfeer.
+Reset clears these tab-local details. No real guest data should be entered.
+
+Paid-seat interaction adapts the existing Etihad pattern (seat rows, availability,
+tentative selection and seat benefits/price), restyled for Riyadh Air. It does not
+copy Etihad's free-seat confirmation behavior. Checkout, confirmation, My Trip
+and upgrade-detail screens remain original demo layouts; actual reference
+captures for those screens would improve their visual fidelity. Real seat-map
+screenshots are not required for this user-authorised illustrative adaptation.
+
+A same-tab offer link such as
+`?step=extras&booking=RA123ABC&offer=extra-legroom-outbound` can reopen the stored
+booking/offer after the same profile is resolved. It is **not** a server booking
+lookup, cross-device handoff or connected WhatsApp purchase callback. Reload and
+history do not re-ingest intent/abandonment. Explicit decline/home/manage records
+abandonment once for the current selection; back, closing a browser or timing out
+does not claim a verified abandonment event.
+
 ## ExperienceEvent contract
 
 | Interaction | `eventType` |
 |---|---|
 | Flight search / selection | `travel.flight.search` / `travel.flight.select` |
 | Passenger step / extras | `travel.booking.passengerDetails` / `travel.ancillary.select` |
+| Post-booking ancillary browse / intent / leave | `travel.ancillary.view` / `travel.ancillary.intent` / `travel.ancillary.abandon` |
 | Demo booking confirmed / viewed | `travel.booking.confirm` / `travel.booking.view` |
 | Upgrade browse / intent / leave | `travel.upgrade.view` / `travel.upgrade.intent` / `travel.upgrade.abandon` |
 | Delay / gate change | `travel.flight.delay` / `travel.flight.gateChange` |
@@ -88,6 +169,10 @@ Within `_<tenant>.public.generic`, `ctaLabel` is the exact event type and
 Parameters: `journey=riyadh-air-v1`, `action`, `booking`, `flight`, `departure`,
 `cabin`, optional `seat`, `bag=extra-23kg`, `lounge=true`, and disruption-specific
 `delayMinutes` or `gate`. No passenger identity/name or payment data is in the URL.
+Round-trip context adds `return`; fare/ancillary context can add `leg`, `bundle`,
+`offer`, `seatTier`, `amount` and `currency=SAR`. Ancillary `seat` is the tentative
+offer selection, **not** a confirmed assignment. Base-flight confirmation carries
+no unpaid seat or ancillary selection.
 For example:
 
 ```text
@@ -105,6 +190,11 @@ without an explicit ID the generator's existing default applies.
 These are append-only **ExperienceEvents**, not updates to profile travel
 reservations, loyalty, purchase status or suppression attributes. No
 `/api/profile/update` request is made.
+The `travel.ancillary.*` event strings fit the existing generic `eventType` /
+`ctaLabel` and context URL schema; no new XDM leaves are introduced. They are
+an explicit demo contract, **not a verified pre-existing AJO event binding**.
+Configure/verify the user's AJO targeting against ancillary abandonment and the
+booking reference separately; no AJO resources are modified by this change.
 
 ## Local validation and remaining live checks
 
