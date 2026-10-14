@@ -87,6 +87,8 @@ function renderRuntime() {
       });
       document.addEventListener('fullscreenchange', function () {
         var on = !!document.fullscreenElement;
+        button.hidden = on;
+        status.hidden = on;
         button.textContent = on ? 'Exit full screen' : 'Full screen';
         button.setAttribute('aria-label', on ? 'Exit full screen' : 'Enter full screen');
         button.setAttribute('aria-pressed', String(on));

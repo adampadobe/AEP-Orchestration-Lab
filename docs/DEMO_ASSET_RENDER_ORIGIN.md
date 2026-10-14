@@ -161,6 +161,9 @@ Preview has **Check desktop + narrow view**, **Propose visual fixes**, and
 **Full screen** controls. Studio checks both selected and proposed versions at
 their actual frame size and can expand its preview panel to full screen. A
 standalone **Present** tab also offers a full-screen button; Esc exits.
+Full screen shows only the asset (or the selected side-by-side comparison),
+without lab titles, toolbars, diagnostics or proposal controls. Esc restores
+those controls. Standalone renderer controls also hide while full screen is active.
 Normal responsive and scrolling documents keep their native layout. The
 renderer does not impose 16:9 or silently rewrite a fixed canvas.
 
