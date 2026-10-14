@@ -145,3 +145,38 @@ Run `npm run test:demo-workspace-e2e` for the Chromium workflow fixture (require
 the existing Playwright dependency and `npx playwright install chromium`).
 It intercepts authentication and APIs locally; it never writes production
 customer assets. These checks also run in the required Validate workflow.
+
+## Visual checks and full-screen presentation
+
+After each HTML upload (including a new version), the Library checks the rendered
+asset in sandboxed desktop (1280 x 800) and narrow (390 x 844) frames. This runs
+the uploaded scripts locally in the browser; no screenshots or customer HTML
+are sent to an external visual-analysis service. Checks run sequentially and
+report script/resource errors, broken images, horizontal overflow and clipped
+or off-centre `#stage` / `[data-presentation-stage]` canvases. They inspect the
+initial view, not every animation, hidden slide or interaction, and are advisory.
+A timeout is reported as unavailable, never as a pass.
+
+Preview has **Check desktop + narrow view**, **Propose visual fixes**, and
+**Full screen** controls. Studio checks both selected and proposed versions at
+their actual frame size and can expand its preview panel to full screen. A
+standalone **Present** tab also offers a full-screen button; Esc exits.
+Normal responsive and scrolling documents keep their native layout. The
+renderer does not impose 16:9 or silently rewrite a fixed canvas.
+
+The render response includes an early compatibility script. When the sandbox
+blocks Web Storage, it supplies document-private, in-memory `getItem`, `setItem`,
+`removeItem`, `clear`, `key` and `length` support so a preference read cannot
+abort later layout initialization. Direct property-style storage access is
+not emulated. Preferences reset on reload and are not shared across embedded
+subpages or tabs. Use of temporary storage is included in the report. The
+separate origin and CSP sandbox remain unchanged; `allow-same-origin` is not
+enabled. Stored HTML, exports and historical versions are unchanged.
+
+**Propose visual fixes** hands a bounded check summary and the exact checked
+version to the existing Gemini Studio edit workflow. Stale or historical
+checks cannot edit a newer current version: recheck the current asset first.
+Gemini proposes changes for side-by-side preview. Only **Apply as new version**
+persists the changes; the original stays in History. Proposals still require
+manual visual and interaction review. Check summaries live only in the current
+browser session; this is not a persistent certification of an asset.

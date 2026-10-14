@@ -10,7 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="demo-studio.css?v=20261009-workspace">
+  <link rel="stylesheet" href="demo-studio.css?v=20261014-visual">
+  <link rel="stylesheet" href="demo-visual-check.css?v=20261014-visual">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -86,7 +87,7 @@
               </form>
             </section>
 
-            <section class="panel demo-studio-preview" aria-labelledby="studioPreviewHeading">
+            <section id="studioPreviewPanel" class="panel demo-studio-preview" aria-labelledby="studioPreviewHeading">
               <header class="demo-studio-preview-header">
                 <h3 id="studioPreviewHeading">Preview</h3>
                 <div class="demo-studio-tabs" role="tablist">
@@ -94,6 +95,7 @@
                   <button type="button" role="tab" id="studioTabProposed" aria-selected="false" disabled>Proposed</button>
                   <button type="button" role="tab" id="studioTabSplit" aria-selected="false" disabled>Side by side</button>
                 </div>
+                <button type="button" id="studioPreviewFullscreen" class="dashboard-btn-outline demo-visual-fullscreen" aria-label="Enter full screen" aria-pressed="false">Full screen</button>
               </header>
               <div class="demo-studio-version-selection" role="status">
                 <span id="studioSelectedVersion">Current version</span>
@@ -107,9 +109,11 @@
                 <button type="button" id="studioApply" class="dashboard-btn-primary">Apply as new version</button>
               </div>
               <div id="studioFrames" class="demo-studio-frames" data-view="current">
-                <iframe id="studioFrameCurrent" title="Current version" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
-                <iframe id="studioFrameProposed" title="Proposed version" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
+                <iframe id="studioFrameCurrent" title="Current version" sandbox="allow-scripts allow-popups allow-forms allow-modals" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
+                <iframe id="studioFrameProposed" title="Proposed version" sandbox="allow-scripts allow-popups allow-forms allow-modals" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
               </div>
+              <p id="studioCurrentVisual" class="demo-visual-status" role="status"></p>
+              <p id="studioProposedVisual" class="demo-visual-status" role="status"></p>
               <details class="demo-studio-versions" id="studioVersionsBox">
                 <summary>Version history <span id="studioVersionCount" class="dashboard-env-pill">0</span></summary>
                 <ol id="studioVersions"></ol>
@@ -151,6 +155,7 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260903-demo-flows"></script>
-  <script src="demo-studio.js?v=20261009-workspace"></script>
+  <script src="demo-visual-check.js?v=20261014-visual"></script>
+  <script src="demo-studio.js?v=20261014-visual"></script>
 </body>
 </html>
