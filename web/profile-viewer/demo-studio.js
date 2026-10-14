@@ -260,7 +260,23 @@
     if (!data.url) {
       throw new Error('The isolated demo preview host is not configured. Please try again after the lab update.');
     }
+
     return data.url;
+  }
+
+  var visualObservers = {};
+  function loadVisualFrame(frame, url, proposed) {
+    var status = $(proposed ? 'studioProposedVisual' : 'studioCurrentVisual');
+    if (visualObservers[frame.id]) visualObservers[frame.id]();
+    status.textContent = (proposed ? 'Proposed' : 'Selected') + ' version: checking this view...';
+    if (!window.AepDemoVisual) {
+      frame.src = url;
+      status.textContent = 'Reload Studio to enable visual checks.';
+      return;
+    }
+    visualObservers[frame.id] = window.AepDemoVisual.observe(frame, url, function (report) {
+      status.textContent = (proposed ? 'Proposed' : 'Selected') + ' version: ' + window.AepDemoVisual.describe([report]);
+    });
   }
 
   function setView(view) {
@@ -276,7 +292,7 @@
     var versionId = state.asset.currentVersionId;
     var url = await renderUrl({ versionId: versionId });
     state.selectedVersionId = versionId;
-    els.frameCurrent.src = url;
+    loadVisualFrame(els.frameCurrent, url, false);
     renderSelectedVersion();
   }
 
@@ -311,7 +327,7 @@
     els.tabProposed.disabled = false;
     els.tabSplit.disabled = false;
     try {
-      els.frameProposed.src = await renderUrl({ proposalId: proposalId });
+      loadVisualFrame(els.frameProposed, await renderUrl({ proposalId: proposalId }), true);
       setView('split');
     } catch (e) {
       setStatus('Could not render the proposal: ' + e.message, true);
@@ -324,6 +340,8 @@
     els.tabProposed.disabled = true;
     els.tabSplit.disabled = true;
     els.frameProposed.src = 'about:blank';
+    if (visualObservers[els.frameProposed.id]) visualObservers[els.frameProposed.id]();
+    $('studioProposedVisual').textContent = '';
     setView('current');
   }
 
@@ -391,7 +409,7 @@
       if (state.proposal) { setStatus('Apply or discard the proposal before switching versions.', true); return; }
       var url = await renderUrl({ versionId: versionId });
       state.selectedVersionId = versionId;
-      els.frameCurrent.src = url;
+      loadVisualFrame(els.frameCurrent, url, false);
       renderSelectedVersion();
       setView('current');
       setStatus('Preview and Present now use this version. Editing remains available on the current version.');
@@ -565,6 +583,21 @@
       els.input.value = 'Adapt this copy for ' + state.asset.customer + '. ' + (brief.objective || '') +
         (brief.audience ? ' Audience: ' + brief.audience + '.' : '') + ' Use only approved facts; label illustrative examples.';
     }
+    if (params.get('visual') === '1') {
+      try {
+        var key = 'demoVisualFix:' + state.assetId;
+        var fix = JSON.parse(sessionStorage.getItem(key) || 'null');
+        if (!fix || fix.versionId !== state.asset.currentVersionId || !Number.isFinite(fix.at) || Date.now() - fix.at > 3600000 ||
+            typeof fix.prompt !== 'string' || fix.prompt.length > 4000) {
+          throw new Error('The visual check is missing, expired or for an older version. Check the current asset in the library before proposing fixes.');
+        }
+        sessionStorage.removeItem(key);
+        newChat();
+        els.form.querySelector('input[value="edit"]').checked = true;
+        syncIntent();
+        await send({ message: fix.prompt, intent: 'edit' });
+      } catch (e) { setStatus('Could not prepare visual fixes: ' + e.message, true); }
+    }
   }
 
   async function restoreConversation() {
@@ -598,6 +631,9 @@
   }
 
   function bindUi() {
+    if (window.AepDemoVisual) window.AepDemoVisual.fullscreen($('studioPreviewFullscreen'), $('studioPreviewPanel'), function (message) {
+      setStatus(message, true);
+    });
     els.form.addEventListener('submit', onSubmit);
     els.input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); els.form.requestSubmit(); }

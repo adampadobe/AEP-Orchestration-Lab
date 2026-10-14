@@ -39,6 +39,11 @@
     uploadQueue: [],
     activeUploads: 0,
     assetCommitQueues: new Map(),
+    visualQueue: Promise.resolve(),
+    previewSequence: 0,
+    previewObserver: null,
+    previewReports: [],
+    previewUrl: null,
   };
 
   function $(id) { return document.getElementById(id); }
@@ -668,6 +673,7 @@
       }
       var asset = data.asset;
       upsertAsset(asset);
+      checkUploadedAsset(asset, row);
       if (mode.target) {
         job.status = 'done';
         setRow(row, 'ok', 'New version saved for "' + asset.title + '". Older versions are in History.');
@@ -1051,6 +1057,40 @@
 
   // ---- Preview / present / export ----
 
+  function proposeVisualFixes(id, versionId, reports) {
+    try { window.AepDemoVisual.prepareFixes(id, versionId, reports); }
+    catch (e) { setStatus('Could not open visual fixes: ' + e.message, true); }
+  }
+
+  function checkUploadedAsset(asset, row) {
+    var status = el('span', 'demo-assets-upload-msg', 'Visual check queued');
+    status.setAttribute('role', 'status');
+    row.li.appendChild(status);
+    state.visualQueue = state.visualQueue.then(async function () {
+      status.textContent = 'Checking desktop and narrow views...';
+      try {
+        if (!window.AepDemoVisual) throw new Error('Reload the library to enable visual checks.');
+        var url = await renderUrl(asset.id, asset.currentVersionId);
+        var reports = await window.AepDemoVisual.check(url);
+        status.textContent = window.AepDemoVisual.describe(reports);
+        status.dataset.visualState = reports.some(function (r) { return r.issues.length; }) ? 'review' : 'checked';
+        row.actions.appendChild(button('View checked asset', null, function () { openPreview(asset.id, asset.currentVersionId); }));
+        if (reports.some(function (r) { return r.issues.length; })) {
+          row.actions.appendChild(button('Propose visual fixes', null, function () {
+            proposeVisualFixes(asset.id, asset.currentVersionId, reports);
+          }));
+        }
+      } catch (e) {
+        status.textContent = 'Upload saved, but visual check failed: ' + e.message;
+        status.dataset.visualState = 'error';
+        row.actions.appendChild(button('Retry visual check', null, function () {
+          status.remove();
+          checkUploadedAsset(asset, row);
+        }));
+      }
+    });
+  }
+
   async function renderUrl(id, versionId) {
     var data = await api('/' + encodeURIComponent(id) + '/render-token', { method: 'POST', body: { versionId: versionId || undefined } });
     if (!data.url) {
@@ -1061,14 +1101,36 @@
 
   async function openPreview(id, versionId) {
     var a = state.assets.find(function (x) { return x.id === id; });
+    var sequence = ++state.previewSequence;
+    if (state.previewObserver) state.previewObserver();
     state.previewId = id;
-    state.previewVersionId = versionId || null;
+    state.previewVersionId = versionId || (a && a.currentVersionId) || null;
+    state.previewReports = [];
+    state.previewUrl = null;
+    $('demoAssetsVisualFix').hidden = true;
+    $('demoAssetsVisualCheck').disabled = true;
+    $('demoAssetsVisualStatus').textContent = 'Checking this view...';
     $('demoAssetsPreviewTitle').textContent = (a ? (a.title || a.originalFilename) : 'Preview') + (versionId ? ' · version ' + versionId.slice(0, 8) : '');
     els.previewFrame.src = 'about:blank';
     els.previewDialog.showModal();
     try {
-      els.previewFrame.src = await renderUrl(id, versionId);
+      var url = await renderUrl(id, state.previewVersionId);
+      if (sequence !== state.previewSequence) return;
+      state.previewUrl = url;
+      $('demoAssetsVisualCheck').disabled = false;
+      if (window.AepDemoVisual) {
+        state.previewObserver = window.AepDemoVisual.observe(els.previewFrame, url, function (report) {
+          if (sequence !== state.previewSequence) return;
+          state.previewReports = [report];
+          $('demoAssetsVisualStatus').textContent = window.AepDemoVisual.describe([report]);
+          $('demoAssetsVisualFix').hidden = !!report.error || !report.issues.length;
+        });
+      } else {
+        els.previewFrame.src = url;
+        $('demoAssetsVisualStatus').textContent = 'Reload the library to enable visual checks.';
+      }
     } catch (e) {
+      if (sequence !== state.previewSequence) return;
       els.previewDialog.close();
       setStatus(e.message, true);
     }
@@ -1296,7 +1358,36 @@
     $('demoAssetsPreviewPresent').addEventListener('click', function () {
       if (state.previewId) present(state.previewId, state.previewVersionId);
     });
+    if (window.AepDemoVisual) {
+      window.AepDemoVisual.fullscreen($('demoAssetsPreviewFullscreen'), $('demoAssetsPreviewSurface'), function (message) {
+        $('demoAssetsVisualStatus').textContent = message;
+      });
+    }
+    $('demoAssetsVisualFix').addEventListener('click', function () {
+      proposeVisualFixes(state.previewId, state.previewVersionId, state.previewReports);
+    });
+    $('demoAssetsVisualCheck').addEventListener('click', async function () {
+      var sequence = state.previewSequence;
+      this.disabled = true;
+      $('demoAssetsVisualStatus').textContent = 'Checking desktop and narrow views...';
+      try {
+        if (!window.AepDemoVisual) throw new Error('Reload the library to enable visual checks.');
+        var reports = await window.AepDemoVisual.check(state.previewUrl);
+        if (sequence !== state.previewSequence) return;
+        state.previewReports = reports;
+        $('demoAssetsVisualStatus').textContent = window.AepDemoVisual.describe(reports);
+        $('demoAssetsVisualFix').hidden = !reports.some(function (r) { return r.issues.length; });
+      } catch (e) {
+        if (sequence === state.previewSequence) $('demoAssetsVisualStatus').textContent = 'Visual check failed: ' + e.message;
+      } finally { if (sequence === state.previewSequence) this.disabled = false; }
+    });
     els.previewDialog.addEventListener('close', function () {
+      if (document.fullscreenElement === $('demoAssetsPreviewSurface')) {
+        document.exitFullscreen().catch(function (e) { setStatus('Could not exit full screen: ' + e.message, true); });
+      }
+      state.previewSequence += 1;
+      if (state.previewObserver) state.previewObserver();
+      state.previewObserver = null;
       els.previewFrame.src = 'about:blank';
       state.previewId = null;
       state.previewVersionId = null;

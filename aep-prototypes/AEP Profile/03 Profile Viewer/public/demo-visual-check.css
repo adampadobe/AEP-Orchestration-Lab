@@ -1,0 +1,51 @@
+.demo-visual-check-frame {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  border: 0;
+  pointer-events: none;
+}
+.demo-visual-status {
+  margin: 0;
+  padding: 0.65rem 1rem;
+  color: var(--dash-text-secondary);
+  background: var(--dash-surface-alt);
+  border-bottom: 1px solid var(--dash-border);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.demo-visual-status:empty { display: none; }
+.demo-visual-fullscreen { display: inline-flex; align-items: center; gap: 0.4rem; }
+.demo-visual-fullscreen::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  mask: url('vendor/spectrum-workflow-icons/S2_Icon_FullScreen_20_N.svg') center / contain no-repeat;
+}
+.demo-visual-fullscreen.is-fullscreen::before {
+  mask-image: url('vendor/spectrum-workflow-icons/S2_Icon_FullScreenExit_20_N.svg');
+}
+.demo-assets-preview-surface { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; }
+.demo-assets-preview-surface:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--dash-surface);
+}
+.demo-studio-preview:fullscreen {
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  padding: 1rem;
+  overflow: auto;
+  background: var(--dash-surface);
+}
+.demo-studio-preview:fullscreen .demo-studio-frames { flex: 1; min-height: 0; }
+.demo-studio-preview:fullscreen .demo-studio-frames iframe { height: 100%; min-height: 0; }
+.demo-studio-preview:fullscreen .demo-studio-versions { display: none; }
+.demo-assets-preview-actions { flex-wrap: wrap; }
