@@ -529,6 +529,8 @@
           loyaltyStatus: values.tier ? values.tier.charAt(0).toUpperCase() + values.tier.slice(1) : null,
           bookingStatus: values.booking || null,
           flightClass: flightClass ? flightClass.value : null,
+          disruptionType: values.disruption || null,
+          shoppingIntent: values.intent || null,
         };
       },
     });

@@ -1,0 +1,174 @@
+/* British Airways Decisioning — hero banner layout for profile drawer blocks 1–2.
+   Rollback: ?baDrawer=classic (see british-airways-profile-hero.js). */
+body.ba-profile-hero #profileDrawer .aep-profile-drawer-block--customer,
+body.ba-profile-hero #profileDrawer .aep-profile-drawer-block--identity {
+  display: none !important;
+}
+
+.ba-ph {
+  grid-column: span 2;
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  min-width: 0;
+  color: var(--dash-text);
+}
+
+.ba-ph-card {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.65rem 0.8rem;
+  min-width: 0;
+}
+
+.ba-ph-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: var(--dash-radius-sm);
+  background: linear-gradient(120deg, var(--dash-blue), var(--dash-purple));
+  color: var(--dash-on-accent);
+}
+html[data-aep-theme='dark'] .ba-ph-hero {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--dash-blue) 55%, var(--dash-bg)),
+    color-mix(in srgb, var(--dash-purple) 55%, var(--dash-bg))
+  );
+}
+
+.ba-ph-avatar {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid color-mix(in srgb, var(--dash-on-accent) 70%, transparent);
+  background: var(--dash-surface-alt);
+}
+
+.ba-ph-who { min-width: 0; }
+.ba-ph-who h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.ba-ph-who p { margin: 0.1rem 0 0.4rem; font-size: 0.8rem; opacity: 0.85; }
+
+.ba-ph-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ba-ph-chip {
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  background: color-mix(in srgb, var(--dash-on-accent) 18%, transparent);
+}
+
+.ba-ph-clv { margin-left: auto; text-align: right; flex: none; }
+.ba-ph-clv small { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+.ba-ph-clv b { display: block; font-size: 1.45rem; line-height: 1.15; }
+
+.ba-ph-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+.ba-ph-kpi small,
+.ba-ph-label,
+.ba-ph-card h3 {
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+.ba-ph-kpi b { display: block; margin: 0.15rem 0 0.4rem; font-size: 1.1rem; line-height: 1.2; }
+.ba-ph-bar { height: 6px; border-radius: 9px; overflow: hidden; background: var(--dash-border); }
+.ba-ph-bar i { display: block; height: 100%; width: 0; border-radius: 9px; background: var(--dash-muted); transition: width 0.25s ease; }
+
+.ba-ph-kpi[data-tone='good'] .ba-ph-bar i { background: var(--dash-success-text); }
+.ba-ph-kpi[data-tone='warn'] .ba-ph-bar i { background: var(--dash-warning-text); }
+.ba-ph-kpi[data-tone='bad'] .ba-ph-bar i { background: var(--dash-error-text); }
+.ba-ph-kpi[data-tone='info'] .ba-ph-bar i { background: var(--dash-info-text); }
+.ba-ph-kpi[data-kpi='ops'][data-tone='good'] b { color: var(--dash-success-text); }
+.ba-ph-kpi[data-kpi='ops'][data-tone='warn'] b,
+.ba-ph-kpi[data-kpi='intent'][data-tone='warn'] b { color: var(--dash-warning-text); }
+.ba-ph-kpi[data-kpi='ops'][data-tone='bad'] b { color: var(--dash-error-text); }
+.ba-ph-kpi[data-kpi='intent'][data-tone='info'] b { color: var(--dash-info-text); }
+
+.ba-ph-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 0.6rem; }
+.ba-ph-card h3 { margin: 0 0 0.45rem; font-weight: 700; }
+
+.ba-ph-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+}
+.ba-ph-card dt { color: var(--dash-muted); }
+.ba-ph-card dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.ba-ph-consent { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+.ba-ph-tog {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-control, 8px);
+  font-size: 0.74rem;
+  color: var(--dash-text-secondary);
+}
+.ba-ph-box {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 3px;
+  border: 1.5px solid var(--dash-muted);
+}
+.ba-ph-tog.on { border-color: var(--dash-blue); color: var(--dash-text); background: color-mix(in srgb, var(--dash-blue) 10%, transparent); }
+.ba-ph-tog.on .ba-ph-box {
+  border-color: var(--dash-blue);
+  background: var(--dash-blue);
+  box-shadow: inset 0 0 0 2px var(--dash-surface);
+}
+
+.ba-ph-ecid {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--dash-radius-control, 8px);
+  background: var(--dash-surface-alt);
+  font: 0.74rem ui-monospace, Consolas, monospace;
+  word-break: break-all;
+}
+.ba-ph-ecid span { flex: 1; min-width: 0; }
+.ba-ph-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 6px;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  font: 600 0.7rem system-ui, sans-serif;
+  cursor: pointer;
+}
+.ba-ph-copy:hover { background: var(--dash-hover); }
+.ba-ph-copy:focus-visible { outline: 2px solid var(--dash-focus-ring, var(--dash-blue)); outline-offset: 1px; }
+#baPhEcidReset .aep-profile-drawer-identity-reset-wrap { margin-top: 0.5rem; }
+
+@media (max-width: 1100px) {
+  .ba-ph { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .ba-ph-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ba-ph-cols { grid-template-columns: 1fr; }
+  .ba-ph-hero { flex-wrap: wrap; }
+  .ba-ph-clv { margin-left: 0; text-align: left; }
+}
