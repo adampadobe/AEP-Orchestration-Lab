@@ -258,6 +258,7 @@ function registerSnowflakeRoutes(deps) {
         labUser: uid,
         sandbox,
         phase: body.phase,
+        include_ddl: body.include_ddl === true,
       });
       res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
     } catch (e) {
@@ -497,7 +498,7 @@ function registerSnowflakeRoutes(deps) {
 
   /**
    * POST /api/snowflake/provision — governed table provisioning (allowlisted recipes only).
-   * Body { sandbox, industry?, recipe_id, dry_run?, approval_id? }.
+   * Body { sandbox, industry?, recipe_id, dry_run?, confirmed?, preview_fingerprint?, approval_id? }.
    */
   routes.snowflakeProvision = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
     setCors(res, 'POST, OPTIONS');
@@ -521,7 +522,11 @@ function registerSnowflakeRoutes(deps) {
         sandbox,
         industry: body.industry,
         recipe_id: body.recipe_id || body.recipeId,
-        dry_run: body.dry_run === true || body.dryRun === true,
+        dry_run: body.dry_run === undefined && body.dryRun === undefined
+          ? undefined
+          : body.dry_run === true || body.dryRun === true,
+        confirmed: body.confirmed === true,
+        preview_fingerprint: body.preview_fingerprint,
         approval_id: body.approval_id || body.approvalId,
       });
       const status = result.ok

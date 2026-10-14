@@ -12,9 +12,11 @@ description: >-
 
 MCP server: **AEP Orchestration Lab MCP v3.52.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (9), `/mcp/demo-prep` (21), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Directly connect the focused endpoint(s) for the domains actually used (e.g. `/mcp/profile`, `/mcp/demo-prep`) alongside `/mcp/entry`, rather than relying on `lab_load_toolset` alone in Coworker.
+Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24, including bulk-job polling), `/mcp/demo-prep` (21), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Directly connect the focused endpoint(s) for the domains actually used (e.g. `/mcp/profile`, `/mcp/demo-prep`) alongside `/mcp/entry`, rather than relying on `lab_load_toolset` alone in Coworker. Start a new chat after releases that change tool registrations.
 
 **One-click Coworker install:** `tools/coworker-marketplace/` packages all eleven focused endpoints, including read-only Commerce at `/mcp/commerce` and Commerce Optimizer at `/mcp/commerce-optimizer`, into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
+
+Coworker plugin 1.9.0 names General, Decisioning, and Commerce Optimizer `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Framework context IDs and Claude/API-key configuration names remain unchanged; the directory exposes `coworkerConnectionName` for these three contexts. Existing Coworker installs must update or reinstall the plugin, disconnect old named connections, and start a new chat.
 
 Configure in Codex or another API-key MCP client with a **single** header:
 
@@ -230,13 +232,24 @@ Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowfla
 
 2. **Validate proposal (read-only)**
 
-   > **lab_snowflake_validate_proposal** sandbox apalmer recipe_id travel.base_profiles.v1 — or count 5 event_types ["website","booking","mobile"] for generate/enrich.
+   > **lab_snowflake_validate_proposal** sandbox `{colleague sandbox}` recipe_id travel.all.v1 — or count 5 event_types ["website","booking","mobile"] for generate/enrich.
 
 3. **Provision dry_run then execute**
 
-   > **lab_snowflake_provision** sandbox apalmer industry travel recipe_id travel.base_profiles.v1 dry_run true — review plannedSql — then **lab_snowflake_provision** same args dry_run false.
+   > **lab_snowflake_provision** sandbox `{colleague sandbox}` industry travel recipe_id travel.all.v1 dry_run true — show all fully qualified targets and plannedStatements. After explicit colleague confirmation, call the same tool with dry_run false, confirmed true, and the returned preview_fingerprint unchanged.
+
+   Creates all **16 travel tables**: the original 14 profile/event tables plus booking segments and ancillaries. It uses the colleague's own saved connection, with exact portable DDL. Omitted dry_run defaults to preview for this recipe. A changed connection or recipe requires a fresh preview. Their database/schema must already exist and their role needs USAGE, CREATE TABLE, SELECT/INSERT, plus UPDATE for booking-detail MERGE. No grants, schema creation, replacement, or migration of existing incompatible tables. Do not share credentials or infer another user's connection.
 
    Preinstalled Agentic tables: **lab_snowflake_provision** recipe_id travel.agentic_all.preinstalled.v1 dry_run true (existence check only; no CREATE DDL).
+
+   To capture an existing travel schema for a reviewed provisioning recipe, call
+   **lab_snowflake_table_structure** for each of phase1, phase2, phase3 with
+   **include_ddl:true**. This reads exact `GET_DDL` metadata through the caller's
+   saved connection; it does not select customer rows or change tables. The
+   ordinary structure text omits numeric precision/scale and is not a faithful
+   DDL export. Review `tableDefinitions` before checking definitions into the
+   recipe registry. Never execute the exported `CREATE OR REPLACE` text directly,
+   share credentials, or imply another user's connection is accessible.
 
 4. **Generate full phased data**
 
@@ -250,9 +263,9 @@ Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowfla
 
 FSI, retail, telecom, media, and sports each have one CRM profile table, four event tables, and one enrichment profile table. All rows share **EMAIL**, **ECID**, and **CRMID**.
 
-1. Provision all six tables idempotently:
+1. Preview and provision all six tables idempotently:
 
-   > **lab_snowflake_provision** sandbox apalmer industry retail recipe_id retail.all.v1
+   > **lab_snowflake_provision** sandbox `{colleague sandbox}` industry retail recipe_id retail.all.v1 dry_run true — show target + plannedStatements, obtain colleague confirmation, then dry_run false.
 
 2. Generate a dual-load profile and opt into activity generation:
 
@@ -264,9 +277,13 @@ FSI, retail, telecom, media, and sports each have one CRM profile table, four ev
 
    > **lab_snowflake_get_profile_bundle** sandbox apalmer industry retail email `{generated email}` event_limit 25
 
-4. Re-running enrichment is retry-safe. The deterministic `GENERATIONID` causes already-populated tables to be reported as idempotent rather than duplicated.
+4. Re-running enrichment **serially** skips completed tables by deterministic `GENERATIONID`. Each table's chunks commit together or roll back on failure. Never run concurrent enrichment of the same profiles; inspect the target before retrying if rollback itself fails.
 
 Use the corresponding `{industry}.all.v1` recipe and manifest event keys for fsi, telecom, media, or sports. Travel continues to use its Python runner.
+
+**Snowflake-only UI parity:** after confirming shared email preferences and the requested count, call **lab_snowflake_generate_base_profiles** with explicit `industry` (`travel`, `fsi`, `retail`, `telecom`, `media`, or `sports`) and `count`. This uses the UI's governed CRM batch generator, not legacy `BASE_PROFILES`, and returns `profiles` containing email/ECID/CRMID for **lab_snowflake_enrich_profiles**. Pass only those identity selectors and manifest event keys. It does not stream into AEP. For travel use generate-full to populate every phase, or CRM generation plus runner enrichment for selected activity.
+
+All six industries have checked-in creation recipes matching their UI catalog: **travel 16**, **each other industry 6**. Verify the same UID+sandbox connection, explicit database/schema, network access, grants, and catalog readiness before generating. Confirm a small sample first, then scale within tool count/rate limits. Enrichment commits non-travel table chunks together; run same-profile enrichment serially. Profile generation creates new identities and must not be automatically retried. Realistic rules may produce no rows for particular types (e.g. sports betting for a non-bettor); do not fabricate activity merely to fill every table.
 
 ## Workflow 1e — AJO Live Activity customer test (v3.29+)
 
@@ -306,9 +323,9 @@ Live Activity sends are important external actions. They require a user-generate
 
 Create customer templates with **lab_live_activity_upsert_template**. Use `validate_only:true` first, then save. `variable_definitions[]` paths must stay inside APS `attributes`, `content-state`, or `alert`; those definitions drive Coworker's missing-information questions. User templates are scoped to `principalUid + sandbox` and mirrored to the Portal Live Activities saved list.
 
-### Retail draft table proposals (read-only)
+### Legacy table proposals (read-only)
 
-> **lab_snowflake_validate_proposal** sandbox apalmer industry retail proposed_tables ["RETAIL_PROFILE_CUSTOMER","RETAIL_EVENT_PURCHASE"] — no provision recipes for retail yet.
+> **lab_snowflake_validate_proposal** sandbox apalmer industry retail proposed_tables ["RETAIL_PROFILE_CUSTOMER","RETAIL_EVENT_PURCHASE"] — this legacy input is read-only. Use retail.all.v1 for governed creation; arbitrary names are not executable recipes.
 
 ## Workflow 2 — Hotel segment personas (travel)
 

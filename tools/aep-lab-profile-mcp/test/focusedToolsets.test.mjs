@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { listMcpContexts } from '../src/framework/mcpContextGuide.mjs';
+import { registerFocusedDecisioningTools } from '../src/tools/index.mjs';
+import { requestContext } from '../src/requestContext.mjs';
+import { installToolAnnotations } from '../src/toolAnnotations.mjs';
+import { installUsageTelemetry } from '../src/usageTelemetry.mjs';
 
 import {
   registerConfirmProfileGenerationTool,
@@ -18,6 +26,46 @@ function registrationRecorder() {
     },
   };
 }
+
+test('initial tools/list exposes focused change workflows equally for IMS and key sessions', async () => {
+  const contexts = listMcpContexts();
+  const eligibility = 'lab_decisioning_attach_offer_eligibility_preview';
+  const optimizerChanges = [
+    'commerce_optimizer_attribute_metadata',
+    'commerce_optimizer_ingestion_change_preview',
+    'commerce_optimizer_ingestion_change_apply',
+    'commerce_optimizer_ingestion_delete_audit',
+    'commerce_optimizer_ingestion_delete_apply',
+  ];
+  for (const authSource of ['ims', 'user']) {
+    for (const [id, register, required] of [
+      ['aep-lab-decisioning', registerFocusedDecisioningTools, [eligibility, 'lab_batch_job_status']],
+      ['aep-lab-commerce-optimizer', registerFocusedCommerceOptimizerTools, optimizerChanges],
+      ['aep-lab-general', registerProfileTools, [eligibility, 'lab_batch_job_status', ...optimizerChanges]],
+    ]) {
+      await requestContext.run({ authSource, principalUid: 'test-principal' }, async () => {
+        const server = new McpServer({ name: 'registration-test', version: '1.0.0' });
+        installToolAnnotations(server);
+        installUsageTelemetry(server, { toolset: id }, { enabled: () => false });
+        register(server);
+        const client = new Client({ name: 'registration-test-client', version: '1.0.0' });
+        const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+        try {
+          await server.connect(serverTransport);
+          await client.connect(clientTransport);
+          const { tools } = await client.listTools();
+          const names = tools.map((tool) => tool.name);
+          assert.equal(names.length, contexts.find((context) => context.id === id).toolCount, id);
+          assert.equal(new Set(names).size, names.length, `${id} has no duplicate tools`);
+          for (const name of required) assert.ok(names.includes(name), `${id}/${authSource}: ${name}`);
+        } finally {
+          await client.close();
+          await server.close();
+        }
+      });
+    }
+  }
+});
 
 test('full generation preferences registration remains backward compatible', () => {
   const { names, server } = registrationRecorder();

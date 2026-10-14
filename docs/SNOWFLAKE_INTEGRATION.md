@@ -208,15 +208,40 @@ Allowlisted recipes live in [`functions/snowflakeProvisionRecipes.js`](../functi
 
 | Recipe id | Mode | Purpose |
 | --------- | ---- | ------- |
+| `travel.all.v1` | `create_if_not_exists` | Create all 16 travel tables in the caller's saved database/schema; preview and explicit confirmation required |
 | `travel.base_profiles.v1` | `create_if_not_exists` | `CREATE TABLE IF NOT EXISTS BASE_PROFILES` (38-column batch shape) |
 | `travel.agentic_phase1.preinstalled.v1` | `preinstalled` | Verify Phase 1 Agentic tables exist (no DDL) |
-| `travel.agentic_all.preinstalled.v1` | `preinstalled` | Verify all 14 manifest tables exist (no DDL) |
+| `travel.agentic_all.preinstalled.v1` | `preinstalled` | Verify all 16 manifest tables exist (no DDL) |
+| `{industry}.all.v1` | `create_if_not_exists` | All six tables for `fsi`, `retail`, `telecom`, `media`, or `sports` |
 
-Coworker workflow: **lab_snowflake_industry_catalog** → **lab_snowflake_validate_proposal** (`recipe_id`) → **lab_snowflake_provision** `dry_run true` → **lab_snowflake_provision** `dry_run false`.
+Coworker workflow: **lab_snowflake_config** → **lab_snowflake_test_connection** → **lab_snowflake_industry_catalog** → **lab_snowflake_validate_proposal** (`recipe_id`) → **lab_snowflake_provision** `dry_run true`. Show the fully qualified targets and SQL, then obtain explicit colleague confirmation before execution. For `travel.all.v1`, execute with `dry_run:false`, `confirmed:true`, and the unchanged `preview_fingerprint`. Omitting `dry_run` on this recipe defaults to preview. A changed saved connection or recipe requires a new preview.
+
+The travel recipe contains the 14 original Phase 1–3 tables captured using exact `GET_DDL` metadata, plus `AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS` and `AGENTIC_TRAVEL_EVENT_ANCILLARIES` from the runner's fixed CREATE definitions. Monetary precision/scale, arrays, defaults, nullability, and primary keys are preserved. All targets use the caller's saved database/schema; the runner no longer hardcodes Adam's target for booking detail writes or enrichment reads.
+
+Every colleague must save credentials under the **same Lab identity and sandbox** used by MCP/Coworker. A user-generated key or independently validated IMS enrollment selects that user's connection, not Adam's. Their role needs USAGE on the existing database/schema/warehouse, CREATE TABLE on the schema, and SELECT/INSERT on the target tables (booking detail MERGE also needs UPDATE). No recipe creates databases/schemas or grants privileges. Snowflake network policy must permit the Lab's static egress IP.
+
+`CREATE TABLE IF NOT EXISTS` is not a migration or a column-compatibility check: existing incompatible tables remain unchanged. A successful connection test does not prove DDL/DML permissions. Creation stops at the first failure, returns per-table results, and can be retried safely without replacing existing tables.
 
 Verifier: `npm run verify:snowflake-industry-manifest` (manifest ↔ recipe registry alignment).
 
-Retail **draft** manifest supports read-only **proposed_tables** validation only — no CREATE recipes yet.
+### Setup-to-generation coverage
+
+| Industry | Governed table count | Activity/enrichment keys |
+| -------- | -------------------- | ------------------------ |
+| Travel | 16 | website, booking (segments and ancillaries), mobile, call, checkin, disruption, inflight, hotel, loyalty, pos; full generation also creates base/customer/loyalty/preferences profiles |
+| FSI | 6 | digital, transaction, application, advisory, products |
+| Retail | 6 | order, browse, return, service, rewards |
+| Telecom | 6 | usage, billing, service, network, devices |
+| Media | 6 | viewing, engagement, billing, download, watchlist |
+| Sports | 6 | attendance, merchandise, engagement, betting, membership |
+
+For a **Snowflake-only** demo, confirm generation preferences and the requested count, then call **lab_snowflake_generate_base_profiles** with explicit `industry` and `count` after provisioning. This selects the same `/api/snowflake/generate-industry-profiles` CRM generator as the UI and returns compact `profiles` identity selectors for **lab_snowflake_enrich_profiles**. Omit `industry` only for the legacy `BASE_PROFILES` generator; do not combine industry mode with a `table` override or legacy email preferences. This path does not create AEP profiles.
+
+For **AEP + Snowflake**, use **lab_generate_profile** or **lab_generate_profiles_batch** with `dual_load_snowflake:true`, shared generation preferences, and `snowflake_enrichment:true` for non-travel activity. Alternatively enrich existing CRM profiles using the manifest keys above. Verify non-travel joins with **lab_snowflake_get_profile_bundle** and bounded samples; use the catalog/table preview for travel, including booking details. Full travel generation/enrichment still requires the configured Python runner; saving a Snowflake connection alone does not configure it.
+
+Start with a small batch, inspect representative rows, then scale in bounded batches, honoring returned rate-limit hints. Identity keys are shared; operational profile data and correlated activity are synthetic. Realistic conditions intentionally leave some tables empty for individual profiles (for example, non-bettors have no betting rows). Non-travel activity uses deterministic generation IDs; each table's INSERT chunks commit together so a failed chunk can be retried without silently skipping earlier partial rows. Do not run concurrent enrichment for the same identities, or automatically retry a profile-generation request: profile generation creates new identities and is not idempotent.
+
+`proposed_tables` remains a read-only legacy validation input; it does not authorize arbitrary table creation.
 
 ---
 

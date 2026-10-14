@@ -54,6 +54,12 @@ jobs:
       - name: Verify MCP dispatch telemetry and existing authentication/tool registration
         run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs
 
+      - name: Verify Snowflake setup and generation contracts (offline)
+        run: |
+          node --test functions/test/snowflake*.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs
+          npm run verify:snowflake-industry-manifest
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
+
       - name: Verify decisioning mount zones (site-clone demos)
         run: npm run verify:decisioning-mount-zones
 

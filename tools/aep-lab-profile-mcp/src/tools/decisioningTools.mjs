@@ -128,7 +128,7 @@ export function registerDecisioningTools(mcpServer) {
           },
           audience_to_eligibility_rule: {
             tools: ['lab_decisioning_attach_offer_eligibility_preview', 'lab_decisioning_selection_strategy_preview'],
-            note: 'audience_id_or_name on either tool auto-wraps an RT-CDP audience into an "Audience: <name>" eligibility rule (PQL segment-membership condition), reusing it by name on repeat calls rather than duplicating. If no such rule exists yet, returns a ready-to-run lab_decisioning_catalog_change_preview payload to create it first — never creates it silently. The PQL shape is Adobe\'s documented pattern, not yet confirmed live in this codebase; verify the created rule. Requires the same user-generated MCP key (X-AEP-Lab-Mcp-Key) as lab_audience_list/lab_audience_audit — 401s under pure Adobe IMS Coworker auth.',
+            note: 'audience_id_or_name on either tool auto-wraps an RT-CDP audience into an "Audience: <name>" eligibility rule (PQL segment-membership condition), reusing it by name on repeat calls rather than duplicating. If no such rule exists yet, returns a ready-to-run lab_decisioning_catalog_change_preview payload to create it first — never creates it silently. The PQL shape is Adobe\'s documented pattern, not yet confirmed live in this codebase; verify the created rule. Audience lookup requires the same sandbox-scoped user-generated MCP key or validated Adobe IMS Portal enrollment as lab_audience_list/lab_audience_audit.',
           },
           schema_extend: {
             tools: ['lab_decisioning_schema_extend_preview', 'lab_decisioning_schema_extend_apply'],

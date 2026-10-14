@@ -86,16 +86,16 @@ class TravelDataGenerator:
             'count_all': """
 -- Count all records in each table
 SELECT 'Base Profiles' as table_name, COUNT(*) as count 
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
 UNION ALL
 SELECT 'Full Profiles', COUNT(*) 
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER
 UNION ALL
 SELECT 'Website Events', COUNT(*) 
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_WEBSITE
+FROM AGENTIC_TRAVEL_EVENT_WEBSITE
 UNION ALL
 SELECT 'Bookings', COUNT(*) 
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING;
+FROM AGENTIC_TRAVEL_EVENT_BOOKING;
 """,
             'latest_base_profiles': """
 -- View latest 10 base profiles
@@ -118,7 +118,7 @@ SELECT
     HOMEADDRESS_COUNTRY,
     TESTPROFILE,
     _RECORDCREATEDTIMESTAMP
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
 ORDER BY _RECORDCREATEDTIMESTAMP DESC
 LIMIT 10;
 """,
@@ -127,7 +127,7 @@ LIMIT 10;
 SELECT 
     crmId, firstName, lastName, email, gender, 
     customerSegment, lifetimeValue, testProfile, _recordCreatedTimestamp
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER
 ORDER BY _recordCreatedTimestamp DESC
 LIMIT 10;
 """,
@@ -136,7 +136,7 @@ LIMIT 10;
 SELECT 
     crmId, eventType, searchTerm, originAirport, destinationAirport,
     deviceType, _recordCreatedTimestamp
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_WEBSITE
+FROM AGENTIC_TRAVEL_EVENT_WEBSITE
 ORDER BY _recordCreatedTimestamp DESC
 LIMIT 10;
 """,
@@ -146,7 +146,7 @@ SELECT
     crmId, pnr, bookingStatus, totalPrice, currency,
     outboundFlightNumber, outboundOrigin, outboundDestination,
     _recordCreatedTimestamp
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING
+FROM AGENTIC_TRAVEL_EVENT_BOOKING
 ORDER BY _recordCreatedTimestamp DESC
 LIMIT 10;
 """
@@ -177,7 +177,7 @@ SELECT
     HOMEADDRESS_COUNTRY,
     PERSONALEMAIL_STATUS,
     TESTPROFILE
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
 WHERE CRMID IN ('{crm_list}')
 ORDER BY CRMID;
 """
@@ -188,7 +188,7 @@ SELECT
     crmId, ecid, firstName, lastName, email, gender, dateOfBirth,
     lastHolidayDestination, upcomingHolidayDestination,
     totalFlightsTaken, preferredCabinClass, lifetimeValue, customerSegment
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER
 WHERE crmId IN ('{crm_list}')
 ORDER BY crmId;
 """
@@ -198,7 +198,7 @@ ORDER BY crmId;
 SELECT 
     crmId, eventType, pageType, searchTerm, 
     originAirport, destinationAirport, deviceType
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_WEBSITE
+FROM AGENTIC_TRAVEL_EVENT_WEBSITE
 WHERE crmId IN ('{crm_list}')
 ORDER BY crmId, _recordCreatedTimestamp;
 """
@@ -209,7 +209,7 @@ SELECT
     crmId, pnr, bookingStatus, totalPrice, currency,
     outboundFlightNumber, outboundOrigin, outboundDestination,
     totalPassengers, paymentMethod, paymentStatus
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING
+FROM AGENTIC_TRAVEL_EVENT_BOOKING
 WHERE crmId IN ('{crm_list}')
 ORDER BY crmId;
 """
@@ -219,7 +219,7 @@ ORDER BY crmId;
             queries['by_email'] = f"""
 -- Find profiles by email
 SELECT crmId, firstName, lastName, email, customerSegment
-FROM TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER
+FROM AGENTIC_TRAVEL_PROFILE_CUSTOMER
 WHERE email IN ('{email_list}')
 ORDER BY email;
 """
@@ -1218,7 +1218,7 @@ ORDER BY email;
     def ensure_booking_segments_table(self):
         """Create AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS table if it does not exist."""
         create_sql = """
-        CREATE TABLE IF NOT EXISTS TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS (
+        CREATE TABLE IF NOT EXISTS AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS (
             SEGMENT_ID VARCHAR(100) NOT NULL,
             BOOKING_ID VARCHAR(50) NOT NULL,
             EMAIL VARCHAR(320),
@@ -1320,7 +1320,7 @@ ORDER BY email;
             return
 
         merge_sql = """
-        MERGE INTO TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS t
+        MERGE INTO AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS t
         USING (
             SELECT
                 column1 AS SEGMENT_ID,
@@ -1377,7 +1377,7 @@ ORDER BY email;
     def ensure_ancillaries_table(self):
         """Create AGENTIC_TRAVEL_EVENT_ANCILLARIES table if it does not exist."""
         create_sql = """
-        CREATE TABLE IF NOT EXISTS TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_ANCILLARIES (
+        CREATE TABLE IF NOT EXISTS AGENTIC_TRAVEL_EVENT_ANCILLARIES (
             ANCILLARY_ID VARCHAR(100) NOT NULL,
             BOOKING_ID VARCHAR(50) NOT NULL,
             SEGMENT_ID VARCHAR(100),
@@ -1533,7 +1533,7 @@ ORDER BY email;
             return 0
 
         merge_sql = """
-        MERGE INTO TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_ANCILLARIES t
+        MERGE INTO AGENTIC_TRAVEL_EVENT_ANCILLARIES t
         USING (
             SELECT
                 column1 AS ANCILLARY_ID,

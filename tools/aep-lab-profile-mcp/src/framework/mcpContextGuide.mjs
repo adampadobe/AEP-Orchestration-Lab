@@ -15,6 +15,7 @@ export const MCP_CONTEXTS = Object.freeze([
   },
   {
     id: 'aep-lab-general',
+    coworkerConnectionName: 'lab-all',
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
@@ -59,10 +60,11 @@ export const MCP_CONTEXTS = Object.freeze([
   },
   {
     id: 'aep-lab-decisioning',
+    coworkerConnectionName: 'lab-dps',
     name: 'AEP Lab decisioning',
     url: `${LAB_BASE_URL}/mcp/decisioning`,
     kind: 'lab-focused',
-    toolCount: 23,
+    toolCount: 24,
     access: LAB_ACCESS,
     risk: 'governed writes and destructive delete',
     capabilities: ['Edge decision evaluation', 'decision explanation', 'decisioning catalog', 'decisioning health', 'governed create/update/delete', 'async bulk migration', 'cloning', 'compound builders', 'offer eligibility attach', 'add-only schema field extension', 'async bulk tag attach/detach'],
@@ -136,6 +138,7 @@ export const MCP_CONTEXTS = Object.freeze([
   },
   {
     id: 'aep-lab-commerce-optimizer',
+    coworkerConnectionName: 'lab-aco',
     name: 'AEP Lab Commerce Optimizer demo preparation',
     url: `${LAB_BASE_URL}/mcp/commerce-optimizer`,
     kind: 'lab-focused',

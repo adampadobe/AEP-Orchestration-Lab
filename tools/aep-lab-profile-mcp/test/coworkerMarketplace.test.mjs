@@ -3,6 +3,8 @@ import { lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import * as registrations from '../src/tools/index.mjs';
+import { listMcpContexts } from '../src/framework/mcpContextGuide.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pluginRoot = join(here, '..', '..', 'coworker-marketplace', 'aep-lab');
@@ -32,6 +34,12 @@ const expectedEndpoints = new Map([
   ['aep-lab-adobe-capabilities', '/mcp/adobe-capabilities'],
   ['aep-lab-measurement-quality', '/mcp/measurement-quality'],
   ['aep-lab-figma', '/mcp/figma'],
+]);
+
+const coworkerNames = new Map([
+  ['aep-lab-general', 'lab-all'],
+  ['aep-lab-decisioning', 'lab-dps'],
+  ['aep-lab-commerce-optimizer', 'lab-aco'],
 ]);
 
 test('Coworker plugin manifest explicitly preserves the workflow skill', async () => {
@@ -68,7 +76,9 @@ test('Coworker MCP manifest uses Integration schema for General and all focused 
   assert.ok(Array.isArray(servers));
   assert.equal(servers.length, expectedEndpoints.size);
 
-  const remainingEndpoints = new Map(expectedEndpoints);
+  const remainingEndpoints = new Map([...expectedEndpoints].map(([name, endpoint]) => [
+    coworkerNames.get(name) ?? name, endpoint,
+  ]));
   for (const server of servers) {
     const endpoint = remainingEndpoints.get(server.name);
     assert.ok(endpoint, `unexpected Coworker Integration ${server.name}`);
@@ -83,6 +93,68 @@ test('Coworker MCP manifest uses Integration schema for General and all focused 
   }
 
   assert.deepEqual([...remainingEndpoints], []);
+});
+
+test('Coworker connection prefixes keep every catalog tool within the 64-character qualified-name budget', async () => {
+  const config = await readJson(join(pluginRoot, '.mcp.json'));
+  const registrars = new Map([
+    ['/mcp', registrations.registerProfileTools],
+    ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
+    ['/mcp/profile', registrations.registerFocusedProfileTools],
+    ['/mcp/demo-prep', registrations.registerFocusedDemoPrepTools],
+    ['/mcp/pdf', registrations.registerFocusedPdfTools],
+    ['/mcp/audiences', registrations.registerFocusedAudienceTools],
+    ['/mcp/decisioning', registrations.registerFocusedDecisioningTools],
+    ['/mcp/ajo-cleanup', registrations.registerFocusedAjoCleanupTools],
+    ['/mcp/command-centre', registrations.registerFocusedCommandCentreTools],
+    ['/mcp/weather', registrations.registerFocusedWeatherTools],
+    ['/mcp/geo-insights', registrations.registerFocusedGeoInsightsTools],
+    ['/mcp/commerce', registrations.registerFocusedCommerceTools],
+    ['/mcp/commerce-optimizer', registrations.registerFocusedCommerceOptimizerTools],
+    ['/mcp/firefly', registrations.registerFocusedFireflyTools],
+    ['/mcp/creativity', registrations.registerFocusedCreativityTools],
+    ['/mcp/adobe-capabilities', registrations.registerFocusedAdobeCapabilityTools],
+    ['/mcp/measurement-quality', registrations.registerFocusedMeasurementQualityTools],
+    ['/mcp/figma', registrations.registerFocusedFigmaTools],
+  ]);
+  const contexts = listMcpContexts({ includeAdobe: false });
+  const reportedOmissions = new Map([
+    ['aep-lab-general', ['lab_decisioning_attach_offer_eligibility_preview']],
+    ['aep-lab-decisioning', ['lab_decisioning_attach_offer_eligibility_preview']],
+    ['aep-lab-commerce-optimizer', [
+      'commerce_optimizer_attribute_metadata',
+      'commerce_optimizer_ingestion_change_preview',
+      'commerce_optimizer_ingestion_change_apply',
+      'commerce_optimizer_ingestion_delete_audit',
+      'commerce_optimizer_ingestion_delete_apply',
+    ]],
+  ]);
+  for (const server of config.mcp_servers.servers) {
+    const context = contexts.find((entry) => entry.url === server.source);
+    assert.ok(context, server.source);
+    assert.equal(server.name, context.coworkerConnectionName ?? context.id);
+    const register = registrars.get(new URL(server.source).pathname);
+    assert.equal(typeof register, 'function', server.source);
+    const names = [];
+    register({ registerTool: (name) => names.push(name) });
+    assert.equal(names.length, context.toolCount, server.name);
+    assert.equal(new Set(names).size, names.length, server.name);
+    if (reportedOmissions.has(context.id)) {
+      assert.deepEqual(
+        names.filter((name) => `${context.id}__${name}`.length > 64).sort(),
+        [...reportedOmissions.get(context.id)].sort(),
+        `${context.id}: old-prefix overflows match the reported missing tools exactly`,
+      );
+    }
+    for (const name of names) {
+      const qualifiedName = `${server.name}__${name}`;
+      assert.ok(qualifiedName.length <= 64, `${qualifiedName}: ${qualifiedName.length} > 64`);
+      // Leave room for an additional mcp__ namespace on the renamed connections.
+      if (coworkerNames.has(context.id)) {
+        assert.ok(`mcp__${qualifiedName}`.length <= 64, qualifiedName);
+      }
+    }
+  }
 });
 
 test('repository root exposes a Claude marketplace with a runtime-specific plugin', async () => {
@@ -123,7 +195,7 @@ test('Claude plugin prompts securely for one Portal key and preserves the workfl
   assert.equal(target, join(pluginRoot, 'skills', 'aep-lab-profile-mcp'));
 });
 
-test('Claude and Coworker packages expose the same eighteen endpoints with runtime-specific auth', async () => {
+test('Claude and Coworker packages expose the same eighteen endpoints with runtime-specific names and auth', async () => {
   const coworker = await readJson(join(pluginRoot, '.mcp.json'));
   const claude = await readJson(join(claudePluginRoot, '.mcp.json'));
   const coworkerServers = new Map(coworker.mcp_servers.servers.map((server) => [server.name, server]));
@@ -133,7 +205,7 @@ test('Claude and Coworker packages expose the same eighteen endpoints with runti
   assert.equal(Object.keys(claudeServers).length, expectedEndpoints.size);
 
   for (const [name, endpoint] of expectedEndpoints) {
-    const coworkerServer = coworkerServers.get(name);
+    const coworkerServer = coworkerServers.get(coworkerNames.get(name) ?? name);
     const claudeServer = claudeServers[name];
     const url = `https://aep-lab-profile-mcp-109406613852.us-central1.run.app${endpoint}`;
 
