@@ -153,7 +153,8 @@ describe('demoAssetsApi route', () => {
       resolveRenderTarget: async () => ({ assetId: 'a1', proposalId: 'p1' }),
     }, null, { loadProposalRenderedHtml: async (a, p) => `<p>${a}:${p}</p>` })('GET', '/render/tok');
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body, '<p>a1:p1</p>');
+    assert.match(res.body, /data-aep-demo-runtime/);
+    assert.ok(res.body.endsWith('<p>a1:p1</p>'));
   });
 
   it('checks proposal ownership before minting a preview token', async () => {
@@ -308,7 +309,8 @@ describe('demoAssetsApi route', () => {
       loadRenderedHtml: async () => ({ html: '<p>hi</p>' }),
     }, null)('GET', '/render/tok');
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body, '<p>hi</p>');
+    assert.match(res.body, /data-aep-demo-runtime/);
+    assert.ok(res.body.endsWith('<p>hi</p>'));
     assert.match(res.headers['Content-Security-Policy'], /^sandbox /);
     assert.equal(res.headers['Cache-Control'], 'private, no-store');
     assert.equal(res.headers['X-Robots-Tag'], 'noindex, nofollow');

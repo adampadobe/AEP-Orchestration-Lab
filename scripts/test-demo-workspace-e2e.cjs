@@ -6,6 +6,15 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { instrumentRenderedHtml } = require('../functions/demoRenderRuntime');
+
+const presentationHtml = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}#stageOuter{position:fixed;inset:0}
+#stage{position:absolute;left:50%;top:50%;width:1680px;height:1040px;transform-origin:center center}</style>
+</head><body><div id="stageOuter"><div id="stage"><h1>Local demo preview</h1></div></div>
+<script>var speed=localStorage.getItem('tourSpeed');var stage=document.getElementById('stage');
+function fit(){var scale=Math.min(innerWidth/1680,innerHeight/1040);stage.style.transform='translate(-50%,-50%) scale('+scale+')';}
+window.addEventListener('resize',fit);fit();</script></body></html>`;
 
 const root = path.resolve(__dirname, '../web');
 const assets = [
@@ -32,6 +41,11 @@ function respond(url, method, body) {
   trace.push({ route, method, body });
   if (route === '/usage') return { usage: { used: 2, limit: 80, remaining: 78 } };
   if (route === '/audit') return { entries: [{ action: 'asset.create', email: 'fixture@adobe.com', at: '2026-10-09T07:00:00Z' }] };
+  if (route === '' && method === 'POST') {
+    const asset = { ...assets[0], id: 'asset_upload', title: 'Uploaded canvas', originalFilename: body.filename };
+    assets.push(asset);
+    return { asset };
+  }
   if (route === '') return { assets: assets.filter((a) => !!a.deletedAt === (parsed.searchParams.get('deleted') === 'true')), nextCursor: null, conversationTypes: ['Decisioning', 'Architecture'] };
   if (route === '/flows' && method === 'GET') return { flows, nextCursor: null };
   if (route === '/flows/suggest') return { suggestion: { title: 'Suggested meeting', rationale: 'Lead with outcomes, then explain the platform.',
@@ -100,7 +114,13 @@ async function main() {
       }
       if (url.pathname.startsWith('/render/')) {
         res.setHeader('Content-Type', 'text/html');
-        res.end('<!doctype html><html><body><h1>Local demo preview</h1></body></html>');
+        res.setHeader('Content-Security-Policy', 'sandbox allow-scripts allow-popups allow-forms allow-modals');
+        const source = url.pathname.endsWith('/broken')
+          ? presentationHtml.replace("window.addEventListener('resize',fit);fit();", "throw new Error('fixture-script-failure');")
+          : url.pathname.endsWith('/responsive')
+            ? '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><h1>Responsive document</h1><p style="height:2000px">A scrolling document is not a fixed-ratio slide.</p></main></body></html>'
+            : presentationHtml;
+        res.end(instrumentRenderedHtml(source));
         return;
       }
       const file = path.resolve(root, '.' + decodeURIComponent(url.pathname));
@@ -135,6 +155,41 @@ async function main() {
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('dialog', (dialog) => dialog.accept());
+    // Reproduce the actual storage-aborts-fit bug inside the production sandbox.
+    await page.goto(base.replace('/profile-viewer/', '/render/standalone'));
+    for (const [width, height] of [[1920, 1080], [1280, 800], [390, 844]]) {
+      await page.setViewportSize({ width, height });
+      await page.waitForFunction(() => {
+        const r = document.getElementById('stage').getBoundingClientRect();
+        const scale = Math.min(innerWidth / 1680, innerHeight / 1040);
+        return Math.abs(r.width - 1680 * scale) < 1 && Math.abs(r.height - 1040 * scale) < 1 &&
+          Math.abs(r.x + r.width / 2 - innerWidth / 2) < 1 && Math.abs(r.y + r.height / 2 - innerHeight / 2) < 1;
+      });
+      const bounds = await page.locator('#stage').boundingBox();
+      assert.ok(bounds.x >= -1 && bounds.y >= -1);
+      assert.ok(bounds.x + bounds.width <= width + 1 && bounds.y + bounds.height <= height + 1);
+      assert.ok(Math.abs(bounds.width / bounds.height - 1680 / 1040) < 0.001);
+    }
+    await page.getByRole('button', { name: 'Enter full screen', exact: true }).click();
+    await page.waitForFunction(() => !!document.fullscreenElement);
+    await page.getByRole('button', { name: 'Exit full screen', exact: true }).click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    const diagnosticPage = await context.newPage();
+    const expectedErrors = [];
+    diagnosticPage.on('pageerror', (error) => expectedErrors.push(error.message));
+    await diagnosticPage.goto(base + 'demo-asset-library.html');
+    await diagnosticPage.waitForFunction(() => !!window.AepDemoVisual);
+    const brokenReports = await diagnosticPage.evaluate(() => window.AepDemoVisual.check('/render/broken'));
+    for (const report of brokenReports) {
+      assert.ok(report.issues.includes('script-error'));
+      assert.ok(report.issues.includes('canvas-clipped'));
+      assert.ok(report.issues.includes('canvas-offset'));
+    }
+    assert.deepEqual(expectedErrors, ['fixture-script-failure', 'fixture-script-failure']);
+    const responsiveReports = await diagnosticPage.evaluate(() => window.AepDemoVisual.check('/render/responsive'));
+    for (const report of responsiveReports) assert.deepEqual(report.issues, []);
+    await diagnosticPage.close();
     await page.goto(base + 'demo-flows.html?flow=flow_001');
     await page.getByRole('button', { name: 'Load version choices' }).click();
     await page.getByLabel('Version for step 1').selectOption('version_old');
@@ -174,6 +229,15 @@ async function main() {
     await page.getByText('Previous review.', { exact: true }).waitFor();
     await page.goto(base + 'demo-asset-library.html');
     await page.locator('#demoAssetsGrid').getByText('Airline decisioning', { exact: true }).waitFor();
+    await page.locator('article.demo-assets-card').filter({ hasText: 'Airline decisioning' })
+      .getByRole('button', { name: 'Preview', exact: true }).click();
+    await page.locator('#demoAssetsVisualStatus').getByText(/temporary storage/).waitFor();
+    assert.doesNotMatch(await page.locator('#demoAssetsVisualStatus').textContent(), /canvas extends|not centred|script failed/);
+    await page.locator('#demoAssetsPreviewFullscreen').click();
+    await page.waitForFunction(() => document.fullscreenElement?.id === 'demoAssetsPreviewSurface');
+    await page.locator('#demoAssetsPreviewFullscreen').click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.locator('#demoAssetsPreviewClose').click();
     await page.locator('details.demo-assets-more-actions summary').first().click();
     await page.locator('#demoAssetsGrid').getByRole('button', { name: /Share/ }).first().click();
     await page.getByRole('button', { name: 'Create expiring link' }).click();
@@ -197,6 +261,30 @@ async function main() {
       .getByRole('button', { name: 'Restore', exact: true }).click();
     await page.getByRole('button', { name: 'Active', exact: true }).click();
     await page.locator('#demoAssetsGrid').getByText('Airline decisioning', { exact: true }).waitFor();
+    await page.locator('#demoAssetsFileInput').setInputFiles({
+      name: 'unique-canvas.html', mimeType: 'text/html', buffer: Buffer.from(presentationHtml),
+    });
+    const checked = page.locator('[data-visual-state="review"]');
+    await checked.waitFor();
+    assert.match(await checked.textContent(), /1280 x 800.*390 x 844/);
+    assert.doesNotMatch(await checked.textContent(), /canvas extends|not centred|script failed/);
+    const appliedBefore = trace.filter((t) => t.route.endsWith('/studio/apply')).length;
+    await page.locator('#demoAssetsUploadList').getByRole('button', { name: 'Propose visual fixes' }).click();
+    await page.waitForURL((url) => url.searchParams.get('visual') === '1');
+    await page.locator('#studioProposalBar').waitFor({ state: 'visible' });
+    assert.equal(trace.filter((t) => t.route.endsWith('/studio/apply')).length, appliedBefore);
+    const visualRequest = trace.findLast((t) => t.route.endsWith('/studio/chat'));
+    assert.equal(visualRequest.body.intent, 'edit');
+    assert.match(visualRequest.body.message, /native aspect ratio/);
+    assert.match(visualRequest.body.message, /1280 x 800.*390 x 844/);
+    await page.locator('#studioPreviewFullscreen').click();
+    await page.waitForFunction(() => document.fullscreenElement?.id === 'studioPreviewPanel');
+    await page.locator('#studioPreviewFullscreen').click();
+    await page.getByRole('button', { name: 'Apply as new version' }).click();
+    await page.waitForFunction(() => document.getElementById('studioProposalBar').hidden);
+    assert.equal(trace.filter((t) => t.route.endsWith('/studio/apply')).length, appliedBefore + 1);
+    await page.goto(base + 'demo-asset-library.html');
+    await page.locator('#demoAssetsGrid').getByText('Airline decisioning', { exact: true }).waitFor();
     for (const [width, theme] of [[1440, 'light'], [390, 'dark']]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.evaluate((mode) => {
@@ -206,11 +294,25 @@ async function main() {
       }, theme);
       for (const name of ['demo-asset-library.html', 'demo-studio.html?asset=asset_001', 'demo-flows.html?flow=flow_001']) {
         await page.goto(base + name);
-        await page.waitForTimeout(300);
+        if (name.startsWith('demo-studio')) await page.locator('#studioCurrentVisual').getByText(/temporary storage/).waitFor();
+        else await page.waitForTimeout(300);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Overflow: ' + name + ' ' + width);
         if (process.env.DEMO_TEST_SCREENSHOTS) {
           await fs.mkdir(process.env.DEMO_TEST_SCREENSHOTS, { recursive: true });
           await page.screenshot({ path: path.join(process.env.DEMO_TEST_SCREENSHOTS, name.split('?')[0] + '-' + theme + '.png'), fullPage: true });
+        }
+        if (name === 'demo-asset-library.html') {
+          await page.locator('article.demo-assets-card').filter({ hasText: 'Airline decisioning' })
+            .getByRole('button', { name: 'Preview', exact: true }).click();
+          await page.locator('#demoAssetsVisualStatus').getByText(/temporary storage/).waitFor();
+          assert.equal(await page.locator('#demoAssetsPreviewSurface').evaluate((el) => el.scrollWidth <= el.clientWidth), true);
+          if (process.env.DEMO_TEST_SCREENSHOTS) {
+            await page.screenshot({ path: path.join(process.env.DEMO_TEST_SCREENSHOTS, 'asset-preview-' + theme + '.png') });
+          }
+          await page.locator('#demoAssetsPreviewFullscreen').click();
+          await page.waitForFunction(() => document.fullscreenElement?.id === 'demoAssetsPreviewSurface');
+          await page.locator('#demoAssetsPreviewClose').click();
+          await page.waitForFunction(() => !document.fullscreenElement);
         }
       }
     }

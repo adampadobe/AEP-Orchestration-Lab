@@ -10,7 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="demo-asset-library.css?v=20261009-library-ux">
+  <link rel="stylesheet" href="demo-asset-library.css?v=20261014-visual">
+  <link rel="stylesheet" href="demo-visual-check.css?v=20261014-visual">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -138,14 +139,20 @@
   </dialog>
 
   <dialog id="demoAssetsPreviewDialog" class="demo-assets-dialog demo-assets-preview-dialog" aria-labelledby="demoAssetsPreviewTitle">
+    <div id="demoAssetsPreviewSurface" class="demo-assets-preview-surface">
     <header class="demo-assets-preview-header">
       <h2 id="demoAssetsPreviewTitle">Preview</h2>
       <div class="demo-assets-preview-actions">
+        <button type="button" id="demoAssetsVisualCheck" class="dashboard-btn-outline">Check desktop + narrow view</button>
+        <button type="button" id="demoAssetsVisualFix" class="dashboard-btn-outline" hidden>Propose visual fixes</button>
+        <button type="button" id="demoAssetsPreviewFullscreen" class="dashboard-btn-outline demo-visual-fullscreen" aria-label="Enter full screen" aria-pressed="false">Full screen</button>
         <button type="button" id="demoAssetsPreviewPresent" class="dashboard-btn-outline">Present in new tab</button>
         <button type="button" id="demoAssetsPreviewClose" class="dashboard-btn-primary">Close</button>
       </div>
     </header>
-    <iframe id="demoAssetsPreviewFrame" title="Demo asset preview" sandbox="allow-scripts allow-popups allow-forms allow-modals" referrerpolicy="no-referrer"></iframe>
+    <p id="demoAssetsVisualStatus" class="demo-visual-status" role="status"></p>
+    <iframe id="demoAssetsPreviewFrame" title="Demo asset preview" sandbox="allow-scripts allow-popups allow-forms allow-modals" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
+    </div>
   </dialog>
 
   <dialog id="demoAssetsHistoryDialog" class="demo-assets-dialog" aria-labelledby="demoAssetsHistoryTitle">
@@ -209,6 +216,7 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260903-demo-flows"></script>
-  <script src="demo-asset-library.js?v=20261009-library-ux"></script>
+  <script src="demo-visual-check.js?v=20261014-visual"></script>
+  <script src="demo-asset-library.js?v=20261014-visual"></script>
 </body>
 </html>

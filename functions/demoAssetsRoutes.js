@@ -1,5 +1,7 @@
 'use strict';
 
+const { instrumentRenderedHtml } = require('./demoRenderRuntime');
+
 /**
  * HTTP surface for the Demo Asset Library.
  *
@@ -96,7 +98,7 @@ function registerDemoAssetsRoutes(deps) {
           ? await studio.loadProposalRenderedHtml(target.assetId, target.proposalId)
           : (await service.loadRenderedHtml(target.assetId, { versionId: target.versionId })).html;
         res.set(service.RENDER_HEADERS);
-        return res.status(200).send(html);
+        return res.status(200).send(instrumentRenderedHtml(html));
       } catch (e) {
         res.set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
         return res.status(errorStatus(e)).send(errorStatus(e) < 500 ? e.message : 'Unable to render asset');
