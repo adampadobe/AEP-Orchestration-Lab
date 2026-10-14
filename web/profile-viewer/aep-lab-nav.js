@@ -601,6 +601,23 @@
           ],
         },
         {
+          id: 'demoRiyadhAir',
+          label: 'Riyadh Air',
+          demoCustomer: true,
+          channels: [{
+            id: 'riyadhAirWeb',
+            label: 'Web',
+            items: [{
+              label: 'Riyadh Air website (in development)',
+              href: 'riyadh-air-demo.html',
+              inDevelopment: true,
+              navHideKey: 'riyadhAirWebDemo',
+              demoMeta: { owners: ['apalmer'] },
+              ico: '&#9992;',
+            }],
+          }],
+        },
+        {
           id: 'demoEtihad',
           label: 'Etihad',
           demoCustomer: true,
