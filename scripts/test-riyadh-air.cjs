@@ -16,6 +16,9 @@ const trip = { reference: 'RA123ABC', origin: 'LHR', destination: 'RUH', date: '
 const context = { sandbox: 'apalmer', email: profile.email, ecid, known: true, target, url: 'https://example.test/profile-viewer/riyadh-air-demo.html' };
 
 function contractTests() {
+  const nav = require('node:fs').readFileSync(path.resolve(__dirname, '../web/profile-viewer/aep-lab-nav.js'), 'utf8');
+  const riyadhIcon = nav.match(/navHideKey: 'riyadhAirWebDemo',[\s\S]*?ico: '([^']+)'/);
+  assert(riyadhIcon && riyadhIcon[1].startsWith('<svg '), 'Riyadh navigation uses an SVG, not a literal HTML entity');
   for (const action of Object.keys(events.TYPES)) {
     const body = events.build(action, trip, context, { delayMinutes: 90, gate: 'B12', eventID: 'fixture-disruption-id' });
     const xdm = buildGeneratorEdgeInteractXdm(body, target);
