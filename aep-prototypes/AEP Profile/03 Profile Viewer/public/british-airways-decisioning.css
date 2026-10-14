@@ -32,3 +32,8 @@ body.ba-decisioning-page iframe#baDecisioningFrame {
 @media (max-width: 768px) {
   .ba-decisioning-actions { left: 0; min-height: 100px; }
 }
+
+/* Keep drawer blocks below the 22px strip shown when the profile drawer is minimised. */
+body.ba-decisioning-page #profileDrawer .aep-profile-drawer-inner {
+  padding-top: 1.9rem;
+}
