@@ -38,6 +38,14 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 
 Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local JSON, or team-documented env vars. See [Credentials, secrets and .env files](CONTRIBUTING.md#credentials-secrets-and-env-files).
 
+## Decisioning demo skill
+
+For requests such as "Create a decisioning demo from these website files", use
+[`.github/skills/create-decisioning-demo/SKILL.md`](.github/skills/create-decisioning-demo/SKILL.md).
+It defines the upload-first workflow for branded Email, Mobile and Web previews,
+industry-specific profile attributes, decision rules and guardrails. No existing
+customer demo is required. The default is a local simulation, not a live integration.
+
 ## Codex skills in this workspace
 
 Project skills live under `.agents/skills/`:

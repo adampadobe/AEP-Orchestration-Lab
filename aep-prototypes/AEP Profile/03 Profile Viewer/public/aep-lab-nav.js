@@ -565,6 +565,55 @@
           ],
         },
         {
+          id: 'demoNatWestDecisioning',
+          label: 'NatWest',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'natWestDecisioningEmail',
+              label: 'Email',
+              items: [
+                {
+                  label: 'NatWest email decisioning',
+                  href: 'natwest-decisioning-demo.html?channel=email',
+                  inDevelopment: true,
+                  navHideKey: 'natWestDecisioningEmail',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\u2709\uFE0F',
+                },
+              ],
+            },
+            {
+              id: 'natWestDecisioningMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'NatWest mobile decisioning',
+                  href: 'natwest-decisioning-demo.html?channel=mobile',
+                  inDevelopment: true,
+                  navHideKey: 'natWestDecisioningMobile',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83D\uDCF1',
+                },
+              ],
+            },
+            {
+              id: 'natWestDecisioningWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'NatWest web decisioning',
+                  href: 'natwest-decisioning-demo.html?channel=web',
+                  inDevelopment: true,
+                  navHideKey: 'natWestDecisioningWeb',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83C\uDF10',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoBritishAirwaysTest',
           label: 'British Airways Test',
           demoCustomer: true,
