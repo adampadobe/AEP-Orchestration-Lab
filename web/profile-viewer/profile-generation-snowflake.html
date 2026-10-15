@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Industry Profile Generation – Snowflake – AEP Profile Viewer</title>
+  <title>Recipient &amp; Industry Data – Snowflake – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260723-contained-preview">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20261015-recipient-workspace">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -31,10 +31,9 @@
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingSfGen">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingSfGen" class="dashboard-hero-title">Industry profile generation – Snowflake</h2>
+              <h2 id="bannerHeadingSfGen" class="dashboard-hero-title">Recipients &amp; industry data</h2>
               <p class="dashboard-hero-subtitle">
-                Select an industry, verify its governed Snowflake tables, generate operational CRM profiles,
-                add industry events, and validate the complete profile bundle.
+                Create linked demo data in Snowflake, ready for your separately configured AEP and AJO ingestion.
               </p>
             </header>
           </div>
@@ -165,10 +164,9 @@
           <article class="sf-gen-card sf-gen-card--workflow" aria-labelledby="sfIndustryHeading">
             <header class="sf-gen-card-header sf-gen-industry-header">
               <div>
-                <h3 id="sfIndustryHeading" class="sf-gen-card-title">1. Industry &amp; table readiness</h3>
+                <h3 id="sfIndustryHeading" class="sf-gen-card-title">Choose your industry</h3>
                 <p class="sf-gen-card-subtitle">
-                  The industry manifest controls the profile table, event types, and allowlisted provisioning recipe.
-                  Arbitrary table names and SQL are not accepted.
+                  One shared recipient parent. Relevant profiles, events and details for the industry you choose.
                 </p>
               </div>
               <div class="form-group sf-gen-industry-select">
@@ -185,7 +183,7 @@
             </header>
             <div class="sf-gen-readiness-bar">
               <div>
-                <span class="sf-gen-result-label">Target profile table</span>
+                <span class="sf-gen-result-label">Linked industry profile table</span>
                 <code id="sfIndustryProfileTable">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>
               </div>
               <strong id="sfIndustryReadinessStatus">Check readiness to inspect Snowflake</strong>
@@ -237,13 +235,21 @@
             </details>
           </article>
 
+          <section class="sf-gen-data-path" aria-label="How your data is linked">
+            <div><strong>Shared recipients</strong><span>Your top-level campaign audience</span></div>
+            <span class="sf-gen-data-path-arrow" aria-hidden="true">&rarr;</span>
+            <div><strong>Industry profiles &amp; events</strong><span>Linked through the recipient identity</span></div>
+            <span class="sf-gen-data-path-arrow" aria-hidden="true">&rarr;</span>
+            <div><strong>Relational tables</strong><span>Available to your configured ingestion flows</span></div>
+          </section>
+
           <div class="sf-gen-dual">
           <article class="sf-gen-card" aria-labelledby="sfUpdaterHeading">
             <header class="sf-gen-card-header">
-              <h3 id="sfUpdaterHeading" class="sf-gen-card-title">3. Query, enrich &amp; verify</h3>
+              <h3 id="sfUpdaterHeading" class="sf-gen-card-title">Explore &amp; enrich profiles</h3>
               <p class="sf-gen-card-subtitle">
-                Load rows from <code id="sfQueryTableName">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>,
-                add the event types defined by the selected industry manifest, then read back the profile bundle.
+                Load existing industry profiles, select recipients and add events or inspect their data.
+                <span class="sf-gen-query-source">Source: <code id="sfQueryTableName">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code></span>
               </p>
             </header>
             <div class="sf-gen-form" id="sfUpdaterForm" aria-busy="false">
@@ -283,7 +289,7 @@
                 <table class="sf-gen-profile-table" id="sfProfileTable" aria-label="Loaded profiles">
                   <thead id="sfProfileThead">
                     <tr>
-                      <th scope="col"><input type="checkbox" id="sfSelectAll" title="Select all" /></th>
+                      <th scope="col"><input type="checkbox" id="sfSelectAll" title="Select all" aria-label="Select all loaded profiles" /></th>
                       <th scope="col">CRMID</th>
                       <th scope="col">Email</th>
                       <th scope="col">Segment</th>
@@ -293,6 +299,7 @@
                   <tbody id="sfProfileTbody"></tbody>
                 </table>
               </div>
+              <p class="sf-gen-empty-hint">Load profiles to see recipients here. You can also load a previous batch from the generation panel.</p>
               <p class="field-hint">Select rows and event types, then enrich. Adds events only (no new profile rows).</p>
               <div class="sf-gen-checkbox-grid" id="sfEventTypes" aria-label="Event types"></div>
               <div class="form-row form-row--actions sf-gen-actions">
@@ -306,22 +313,22 @@
 
           <article class="sf-gen-card sf-gen-card--phase2" aria-labelledby="sfGenerateHeading">
             <header class="sf-gen-card-header">
-              <h3 id="sfGenerateHeading" class="sf-gen-card-title">2. Seed recipients &amp; industry data</h3>
+              <h3 id="sfGenerateHeading" class="sf-gen-card-title">Generate linked demo data</h3>
               <p class="sf-gen-card-subtitle">
-                Create shared recipients in the existing base-profile table, plus linked profiles, events,
-                and details for the industry selected above. Writes Snowflake only; your AEP flows ingest separately.
+                Creates the shared recipient first, then the selected industry's profiles, events and details.
+                This writes to Snowflake only.
               </p>
             </header>
 
             <div class="sf-gen-form sf-gen-generate-form" id="sfGenerateForm" aria-busy="false">
               <div class="form-row form-row--inline">
                 <div class="form-group">
-                  <label for="sfGenCount">Number of profiles (1–1000)</label>
+                  <label for="sfGenCount">How many recipients?</label>
                   <div class="sf-gen-slider-row">
-                    <input type="range" id="sfGenCount" min="1" max="1000" step="1" value="10" />
+                    <input type="number" id="sfGenCount" min="1" max="1000" step="1" value="10" required aria-describedby="sfGenCountHint" />
                     <span id="sfGenCountDisplay" class="sf-gen-slider-value" aria-live="polite">10</span>
                   </div>
-                  <p class="field-hint">Same control pattern as AgenticAI <code>index_enhanced.html</code>. Maximum 1000 per run.</p>
+                  <p class="field-hint" id="sfGenCountHint">1–1,000 recipients per run, each with linked industry data.</p>
                 </div>
                 <div class="form-group" id="sfGenTargetTableGroup">
                   <label>Industry profile table</label>
@@ -332,6 +339,9 @@
                 </div>
               </div>
 
+              <details class="sf-gen-advanced sf-gen-generation-options">
+                <summary>Advanced generation options</summary>
+                <div class="sf-gen-advanced-body">
               <div class="form-row form-row--inline">
                 <div class="form-group">
                   <label class="sf-gen-label-block">Generation scope</label>
@@ -347,11 +357,8 @@
                     </label>
                   </div>
                   <p class="field-hint" id="sfGenScopeHint">
-                    Full phased runs the same pipeline as AgenticAI <code>web_app.py → generate_data_background</code>
-                    (base + full profile + website/booking + phase 2 loyalty/mobile/call/check-in + phase 3
-                    disruption/in-flight/hotel/loyalty/POS) using the count above. Requires the runner URL on the
-                    function; otherwise you get HTTP 501 with setup instructions. Only available when Travel is
-                    the selected industry.
+                    Keep the shared-recipient option for this workflow. The legacy Python runner is for separate,
+                    unmanaged travel targets and is blocked on sequence-managed targets.
                   </p>
                 </div>
               </div>
@@ -364,12 +371,14 @@
                 </div>
               </div>
 
+                </div>
+              </details>
               <div class="form-row form-row--actions sf-gen-actions">
                 <button type="button" id="sfGenerateBtn" class="btn btn-primary">Seed recipients &amp; industry data</button>
               </div>
 
-              <div class="sf-gen-batch-history" id="sfGenBatchHistoryGroup" aria-label="Base profile batch history">
-                <label for="sfGenBatchHistorySelect" class="field-hint sf-gen-label-block">Batch history</label>
+              <div class="sf-gen-batch-history" id="sfGenBatchHistoryGroup" aria-label="Recipient batch history">
+                <label for="sfGenBatchHistorySelect" class="field-hint sf-gen-label-block">Previous batches</label>
                 <div class="sf-gen-batch-history-row">
                   <select id="sfGenBatchHistorySelect">
                     <option value="">No saved batches yet</option>
@@ -438,6 +447,9 @@
                 </div>
                 <pre id="sfPhaseStructureOut" class="sf-gen-sql-pre" hidden></pre>
               </div>
+                <p id="sfTravelRunnerHint" class="sf-gen-side-hint sf-gen-roadmap-hint">
+                  Legacy generation requires a separately configured Cloud Run runner. It does not use the shared CRM allocator and must not write to sequence-managed targets.
+                </p>
                 </div>
               </details>
 
@@ -462,10 +474,6 @@
               </details>
             </div>
 
-            <p id="sfTravelRunnerHint" class="sf-gen-side-hint sf-gen-roadmap-hint">
-              <strong>Runner:</strong> deploy <code>services/agentic-travel-runner</code> (Dockerfile) to Cloud Run in the same VPC egress path, set
-              <code>AGENTIC_TRAVEL_RUNNER_URL</code> and <code>AGENTIC_TRAVEL_RUNNER_HMAC_SECRET</code> on the Snowflake Cloud Functions, matching <code>RUNNER_HMAC_SECRET</code> on the container.
-            </p>
           </article>
           </div>
         </section>
@@ -480,6 +488,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20261015-context-safe"></script>
+  <script src="profile-generation-snowflake.js?v=20261015-recipient-workspace"></script>
 </body>
 </html>
