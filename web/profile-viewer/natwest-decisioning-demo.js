@@ -49,6 +49,7 @@
   function invalidate() {
     contextVersion++;
     loaded = null; baseline = null; loadedKey = ''; pending = null; dirty = false;
+    if (global.DemoProfileDrawer.clearDrawerVisitorState) global.DemoProfileDrawer.clearDrawerVisitorState();
     if (api()) { api().setRecipientFirstName(null); api().clearDecision(); }
     document.getElementById('nwDecisionStatus').textContent = 'New context - no live decision applied.';
     message('Look up the selected test profile before applying changes.');
@@ -69,12 +70,23 @@
       const row = document.createElement('div'); row.className = 'aep-profile-drawer-identity-row';
       const title = document.createElement('strong'); title.textContent = label;
       const value = document.createElement('span');
+      value.id = 'nwDrawerDetail-' + name;
       const present = loaded && loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name) ||
         name === 'account' && /^industryFsi\.financialProducts\./.test(model.relativePath(row.path)) && model.scalar(row) === true);
       value.textContent = values && present ? model.labels[values[name]] : loaded ? 'Not set' : 'Not loaded';
       row.append(title, value); section.appendChild(row);
     }
+    global.dispatchEvent(new CustomEvent('natwest-drawer-signals-changed'));
   }
+  global.NatwestDecisioningDrawer = {
+    getSignals() {
+      if (!loaded) return null;
+      const state = model.readState(loaded.rows);
+      return Object.fromEntries(['operations', 'intent'].map(name => [
+        name, loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name)) ? state[name] : null,
+      ]));
+    },
+  };
   async function load(ctx, version) {
     const data = await table(ctx, version);
     if (pending) {
@@ -98,7 +110,9 @@
     busy = true; message('Looking up profile...');
     try {
       await load(ctx, version);
-      const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false });
+      const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
+        updateMessage: false, sendApplicationLogin: false,
+      });
       current(ctx, version);
       if (!ok) throw new Error('Profile signals loaded, but the profile drawer could not be refreshed.');
       bankingDetails();

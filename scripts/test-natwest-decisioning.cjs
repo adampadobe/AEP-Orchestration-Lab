@@ -123,6 +123,20 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
   const { chromium } = require('playwright');
   let data = fixture(), missingSchema = false, lag = false, updateFailure = false, missingHero = false, mockLoader = true;
   let badImage = false, decisionGate = null, decisionsRequested = 0, updateFailureIndustry = '';
+  const eventTime = Date.now() - 60000;
+  let drawerEvents = [
+    { eventType: 'web.webpagedetails.pageViews', eventName: 'Banking products', timestamp: eventTime - 10000, rows: [
+      { path: 'web.webPageDetails.name', value: 'Banking products' },
+    ] },
+    { eventType: 'web.webpagedetails.pageViews', eventName: 'NatWest Decisioning', timestamp: eventTime, rows: [
+      { path: 'web.webPageDetails.name', value: 'NatWest Decisioning' },
+      { path: '_tenant.interactionDetails.core.channel', value: 'email' },
+    ] },
+    { eventType: 'decisioning.propositionDisplay', timestamp: eventTime + 1000, rows: [
+      { path: '_experience.decisioning.propositions.0.items.0.name', value: 'Savings <offer>' },
+      { path: '_experience.decisioning.propositions.0.items.0.itemSelection.selectionDetail.strategyName', value: 'Banking strategy' },
+    ] },
+  ];
   const writes = [];
   const schema = () => {
     const properties = {};
@@ -160,6 +174,13 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     const url = new URL(req.url, 'http://localhost');
     const json = value => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(value)); };
     if (url.pathname === '/api/profile/table') return json(data);
+    if (url.pathname === '/api/profile/consent') return json({
+      found: true, firstName: 'Sam', lastName: 'Fixture', gender: 'female', age: 36, city: 'London',
+      email: data.profileEmail, phone: '+440000000000', ecid: data.ecid, propensityScore: 2,
+      churnPrediction: 1, customerLifetimeValue: 12000, channels: { email: 'in', sms: 'out', push: 'in' },
+      identities: [{ namespace: 'Email', value: data.profileEmail }, { namespace: 'ECID', value: data.ecid }],
+    });
+    if (url.pathname === '/api/profile/events') return json({ events: drawerEvents });
     if (url.pathname === '/api/aep') return json({ platform_response: schema(), status: 200 });
     if (url.pathname === '/api/profile/update') {
       let body = ''; for await (const chunk of req) body += chunk;
@@ -366,10 +387,101 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await smoke.waitForFunction(() => window.envBar && window.envBar.getConfig && window.DemoProfileDrawer);
       await smoke.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
       assert.ok(!await smoke.locator('#nwProfileStatus').textContent().then(text => text.startsWith('Demo initialization failed')));
+      await smoke.waitForSelector('#nwProfileHero', { state: 'attached' });
+      await smoke.evaluate(() => {
+        const sandbox = document.getElementById('sandboxSelect');
+        sandbox.add(new Option('Fixture sandbox', 'fixture'));
+        sandbox.value = 'fixture';
+        window.AepGlobalSandbox.setSelected('fixture');
+      });
+      await smoke.locator('#customerEmail').fill(data.profileEmail);
+      await smoke.locator('#queryProfileBtn').click();
+      await smoke.waitForFunction(() => !document.getElementById('nwProfileStatus').textContent.startsWith('Looking up'));
+      assert.match(await smoke.locator('#nwProfileStatus').textContent(), /^Test profile loaded/);
+      await smoke.waitForFunction(() => document.getElementById('nwPhName').textContent === 'Sam Fixture');
+      await smoke.getByRole('button', { name: 'Hide environment bar', exact: true }).click();
+      await smoke.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
+      assert.equal(await smoke.locator('#nwPhAccount').textContent(), 'Current account');
+      assert.equal(await smoke.locator('#nwPhPhone').textContent(), '+440000000000');
+      assert.equal(await smoke.locator('#nwProfileHero [data-kpi="ops"] [data-v]').textContent(), 'Normal');
+      assert.equal(await smoke.locator('#nwProfileHero [data-kpi="intent"] [data-v]').textContent(), 'Browsed');
+      assert.equal(await smoke.locator('.aep-profile-drawer-block--customer').isVisible(), false);
+      assert.equal(await smoke.locator('#nwPhEcid').textContent(), data.ecid);
+      assert.ok(await smoke.locator('#nwPhEcidReset button').count());
+      assert.ok((await smoke.locator('#profileDrawerEvents').textContent()).includes('Offer: Savings <offer>'));
+      assert.ok((await smoke.locator('#profileDrawerEvents').textContent()).includes('Strategy: Banking strategy'));
+      await smoke.locator('#profileDrawerEventsStoryOpen').click();
+      await smoke.locator('.dpj-root').waitFor({ state: 'visible' });
+      assert.equal(await smoke.locator('.dpj-node').count(), 3);
+      await smoke.locator('[data-dpj-sel="2"]').click();
+      assert.ok((await smoke.locator('.dpj-dbody').textContent()).includes('Savings <offer>'));
+      assert.ok((await smoke.locator('.dpj-dbody').textContent()).includes('Banking strategy'));
+      await smoke.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
+      assert.equal(await smoke.locator('.dpj-drawer').getAttribute('aria-hidden'), 'false');
+      await smoke.locator('[data-dpj-view="B"]').click();
+      assert.equal(await smoke.locator('.dpj-lane').count(), 4);
+      await smoke.locator('[data-dpj-view="C"]').click();
+      assert.equal(await smoke.locator('.dpj-dec').count(), 1);
+      assert.ok((await smoke.locator('.dpj-dec').textContent()).includes('Email'));
+      await smoke.getByRole('button', { name: 'Close journey', exact: true }).click();
+      await smoke.locator('.aep-profile-drawer-identity-graph-heading-open').click();
+      await smoke.locator('.aep-profile-drawer-identity-graph-modal-dialog').waitFor({ state: 'visible' });
+      assert.ok(await smoke.locator('.aep-profile-drawer-identity-graph-modal-slider').count());
+      await smoke.getByRole('button', { name: 'Close identity graph', exact: true }).click();
+      if (process.env.AEP_DEMO_SCREENSHOT_DIR) await smoke.screenshot({ path: path.join(process.env.AEP_DEMO_SCREENSHOT_DIR, 'natwest-new-profile-drawer.png') });
+      for (const width of [1800, 390]) for (const dark of [false, true]) {
+        await smoke.setViewportSize({ width, height: 1100 });
+        await smoke.evaluate(dark => {
+          if (dark) document.documentElement.setAttribute('data-aep-theme', 'dark');
+          else document.documentElement.removeAttribute('data-aep-theme');
+        }, dark);
+        assert.ok(await smoke.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        await smoke.locator('#profileDrawerEventsStoryOpen').click();
+        await smoke.locator('.dpj-root').waitFor({ state: 'visible' });
+        assert.ok(await smoke.locator('.dpj-root').evaluate(el => el.getBoundingClientRect().right <= innerWidth));
+        await smoke.getByRole('button', { name: 'Close journey', exact: true }).click();
+      }
+      await smoke.setViewportSize({ width: 1800, height: 1100 });
+      await smoke.getByRole('button', { name: 'Show environment bar', exact: true }).click();
+      await smoke.getByRole('button', { name: 'Show environment configuration', exact: true }).click();
+      await smoke.locator('#customerEmail').fill('different@example.invalid');
+      await smoke.waitForFunction(() => document.getElementById('nwPhName').textContent === 'No profile loaded');
+      assert.equal(await smoke.locator('#nwPhAccount').textContent(), 'Not loaded');
+      assert.ok(!(await smoke.locator('#profileDrawerEvents').textContent()).includes('Savings <offer>'));
+      let releaseConsent, consentStarted;
+      const consentGate = new Promise(resolve => { releaseConsent = resolve; });
+      const consentSeen = new Promise(resolve => { consentStarted = resolve; });
+      await smoke.route('**/api/profile/consent?**', async route => {
+        consentStarted();
+        await consentGate;
+        await route.continue();
+      });
+      await smoke.evaluate(() => {
+        window.pendingDrawerLookup = window.DemoProfileDrawer.loadProfileDataForDrawer('old@example.invalid', { sendApplicationLogin: false });
+      });
+      await consentSeen;
+      await smoke.evaluate(() => window.DemoProfileDrawer.clearDrawerVisitorState());
+      releaseConsent();
+      assert.equal(await smoke.evaluate(() => window.pendingDrawerLookup), false);
+      assert.equal(await smoke.locator('#nwPhName').textContent(), 'No profile loaded');
+      await smoke.unroute('**/api/profile/consent?**');
+      await smoke.goto(base + '/profile-viewer/natwest-decisioning-demo.html?nwDrawer=classic&journey=classic');
+      await smoke.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
+      assert.equal(await smoke.locator('#nwProfileHero').count(), 0);
+      assert.equal(await smoke.locator('body.decisioning-journey-concepts').count(), 0);
+      await smoke.evaluate(events => {
+        window.DemoProfileDrawer.patchLastProfileOrUpdate({ firstName: 'Sam', events, eventsStory: events });
+        document.body.classList.add('mod-demo-page--profile-open');
+      }, drawerEvents);
+      await smoke.getByRole('button', { name: 'Hide environment bar', exact: true }).first().click();
+      await smoke.locator('#profileDrawerEventsStoryOpen').click();
+      await smoke.locator('.aep-profile-drawer-events-story-track').waitFor({ state: 'visible' });
+      assert.equal(await smoke.locator('.dpj-root').count(), 0);
+      assert.ok((await smoke.locator('.aep-profile-drawer-events-story-track').textContent()).includes('Decisioning'));
       assert.deepEqual(smokeErrors, []);
       if (process.env.AEP_DEMO_SCREENSHOT_DIR) {
         const hide = smoke.getByRole('button', { name: 'Hide environment bar', exact: true });
-        if (await hide.count()) await hide.click();
+        if (await hide.count()) await hide.first().click();
         await smoke.screenshot({ path: path.join(process.env.AEP_DEMO_SCREENSHOT_DIR, 'natwest-real-shell.png') });
       }
       await smoke.close();

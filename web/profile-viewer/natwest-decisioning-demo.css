@@ -24,6 +24,12 @@ body.home-dashboard-concierge {
 .nw-decisioning-page .dashboard-sidebar:hover, .nw-decisioning-page .dashboard-sidebar:focus-within { transform: translateX(0); }
 .nw-decisioning-page #dpmPanelAnchor { display: none !important; }
 .nw-decisioning-page .aep-profile-drawer-identity-row[hidden] { display: none; }
+.nw-decisioning-page.mod-demo-page--profile-open #profileDrawer { transform: translateY(0); }
+.nw-decisioning-page #profileDrawer .aep-profile-drawer-inner {
+  padding-top: 1.9rem;
+  max-height: calc(100dvh - var(--nw-content-top, 96px));
+  overflow-y: auto;
+}
 .nw-visualiser { margin: 0 !important; padding: 0 !important; font-family: "Outfit", "Segoe UI", sans-serif; font-size: 14px; background: var(--dash-bg); color: var(--dash-text); }
 .nw-visualiser *, .nw-visualiser *::before, .nw-visualiser *::after { box-sizing: border-box; }
 .nw-visualiser button, .nw-visualiser input { font: inherit; }

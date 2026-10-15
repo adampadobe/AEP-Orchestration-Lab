@@ -580,6 +580,15 @@ body.armcom-mobile-demo-page--profile-open .aep-profile-drawer,
   margin-bottom: 0.15rem;
 }
 
+.aep-profile-drawer-event-decision-detail {
+  display: block;
+  color: var(--dash-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
 .aep-profile-drawer-event-sub {
   display: block;
   color: var(--dash-text-secondary, #bfc3c9);

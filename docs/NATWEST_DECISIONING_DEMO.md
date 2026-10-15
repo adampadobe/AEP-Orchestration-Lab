@@ -10,6 +10,24 @@ previews. The uploaded NatWest logo and photography are local assets. The Web
 view is a reconstruction, not a running copy of the captured site. Product copy
 is illustrative; no email, application, or live product offer is delivered.
 
+## Profile drawer
+
+The bottom drawer includes the BA-style customer hero, contact and consent cards,
+banking KPIs, and ECID copy / new-anonymous-visitor controls. Account Type,
+application status, product intent and service case come from the loaded profile,
+not staged simulator edits. Missing banking attributes remain **Not set**.
+
+The event count opens the **Canvas flow**, **Swimlanes**, and **Stages** journey
+views. Select an event for its details; Stages pairs a consecutive NatWest decision
+request and PropositionDisplay within two minutes. Offer and strategy names are
+shown only when present in the ingested event. The identity graph still opens
+its linked-identifier timeline. Changing identity or sandbox clears the drawer.
+Profile lookup does not send an application-login event.
+
+Use `?nwDrawer=classic` to restore the classic customer/identity blocks and
+`?journey=classic` for the classic event timeline. Restore with `?nwDrawer=hero`
+and `?journey=concepts`; these choices persist in local storage.
+
 ## Live controls and setup
 
 The shell uses the shared Spectrum environment strip, Tags injection, profile

@@ -8,9 +8,11 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20261015-natwest-rebuild">
   <link rel="stylesheet" href="mod-demo.css">
-  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20261015-decisioning-details">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
-  <link rel="stylesheet" href="natwest-decisioning-demo.css?v=20261015-rebuild">
+  <link rel="stylesheet" href="natwest-decisioning-demo.css?v=20261015-drawer">
+  <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261015-drawer">
+  <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261015-drawer">
   <link rel="stylesheet" href="aep-theme.css">
 </head>
 <body class="mod-demo-page nw-decisioning-page home-dashboard-concierge">
@@ -51,9 +53,10 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js"></script>
-  <script src="aep-profile-drawer.js"></script>
+  <script src="aep-profile-drawer.js?v=20261015-journey-views"></script>
   <script src="aep-demo-generator-targets.js"></script>
   <script src="natwest-decisioning-model.js?v=20261015-rebuild"></script>
+  <script src="natwest-profile-hero.js?v=20261015-drawer"></script>
   <script>
     window.envBarConfig = {
       prefix: 'nwDecisioning', variant: 'spectrum', localOverride: true, firestoreListen: false,
@@ -63,9 +66,10 @@
         iframeId: 'nwDecisioningFrame', useParentDocument: false, mountLayoutPreset: 'generic',
         autoRunDecisioning: false, viewName: 'NatWest Decisioning'
       },
-      labCoreScript: 'natwest-decisioning-demo.js?v=20261015-rebuild'
+      labCoreScript: 'natwest-decisioning-demo.js?v=20261015-drawer'
     };
   </script>
+  <script src="decisioning-persona-journey.js?v=20261015-drawer"></script>
   <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
   <script src="aep-lab-nav.js?v=20261015-natwest-rebuild"></script>
   <script src="aep-theme.js" defer></script>

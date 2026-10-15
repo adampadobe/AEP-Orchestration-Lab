@@ -89,6 +89,13 @@ name a reference customer, or replace this layout with a generic dashboard.
 
 Use a full-bleed visualiser iframe with a peek sidebar and, for live demos, the
 canonical shared Spectrum environment strip plus explicit Apply / Run actions.
+For live demos, include the customer hero/contact/identity drawer presentation
+and the Canvas flow, Swimlanes and Stages event views. Reuse
+`decisioning-profile-hero.css`, `decisioning-persona-journey.js` and its stylesheet,
+with an industry-specific hero adapter like `natwest-profile-hero.js`.
+Show ingested decisioning offer/strategy details, preserve the identity graph
+timeline, and clear previous customer/events on an identity or sandbox change.
+Read drawer values from the loaded profile, never staged simulation values.
 Keep `home-dashboard-concierge`, the early-paint theme IIFE and shared navigation.
 Follow stylesheet order with
 `aep-theme.css` last. Use `--dash-*` colour tokens, not hardcoded CSS colours.
