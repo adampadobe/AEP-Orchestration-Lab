@@ -22,7 +22,7 @@ test('HTTP diagnostics correlate authentication and parser failures without cred
   let output = '';
   child.stdout.on('data', (chunk) => { output += chunk; });
   child.stderr.on('data', (chunk) => { output += chunk; });
-  const exited = once(child, 'exit');
+  const closed = once(child, 'close');
   const base = `http://127.0.0.1:${port}`;
   try {
     let ready = false;
@@ -53,8 +53,15 @@ test('HTTP diagnostics correlate authentication and parser failures without cred
     });
     assert.equal(malformed.status, 400);
     await malformed.text();
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const completeLogs = output.split('\n').slice(0, -1)
+        .filter((line) => line.startsWith('{"type":"aep-lab-mcp-request"'));
+      if (completeLogs.length === 3) break;
+      assert.equal(child.exitCode, null, 'server must stay running until logs are received');
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     child.kill('SIGTERM');
-    await exited;
+    await closed;
     const rows = output.split('\n').filter((line) => line.startsWith('{'))
       .map((line) => JSON.parse(line))
       .filter((row) => row.type === 'aep-lab-mcp-request');
@@ -72,7 +79,7 @@ test('HTTP diagnostics correlate authentication and parser failures without cred
   } finally {
     if (child.exitCode === null && child.signalCode === null) {
       child.kill('SIGTERM');
-      await exited;
+      await closed;
     }
   }
 });
