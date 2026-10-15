@@ -1101,6 +1101,7 @@ async function browserTests() {
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);
     assert.equal(await page.locator('#etihadSiteFrame').count(), 1, 'Etihad keeps its existing iframe surface');
     assert.equal(await page.evaluate(() => !!window.SiteCloneBcPage.useParentDocument), false, 'Parent-document BC behavior is opt-in');
+    await page.waitForFunction(() => !!window.raTagsInstance);
     const legacyStitch = await page.evaluate(async (fixture) => {
       let sent;
       window.alloy = async (_command, options) => { sent = options; };
