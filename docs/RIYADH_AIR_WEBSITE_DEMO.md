@@ -14,8 +14,8 @@ Flight-search controls stay in a separate white pill below that header on home,
 results, return and guest/contact screens; they are never embedded in the navigation.
 Mobile airport/calendar popovers reserve space beside the floating presenter rail.
 
-Seventeen user-supplied logo/photographic assets are stored locally in
-`web/profile-viewer/riyadh-air-assets/` (about 760 KB total). They include Jakarta,
+User-supplied logo/photographic assets are stored locally in
+`web/profile-viewer/riyadh-air-assets/`. They include Jakarta,
 Milan, Bangkok, the offers collage, Sfeer banner, cabin/entertainment/lounge/fleet,
 cargo mosaic, Riyadh and Saudi visitors. No captured scripts, trackers, fonts,
 forms or original site code are imported. The saved HTML is used only as a visual
@@ -23,12 +23,63 @@ and structural reference; markup, CSS and interactions are implemented here.
 System font fallbacks are used because proprietary font binaries were not supplied.
 This is a close visual adaptation, not a certified pixel-identical reproduction.
 The booking revision also uses the supplied London photograph for the cart.
+The browsing revision adds sixteen supplied Riyadh photographs, two photographic
+panels extracted from the supplied Plan & book screenshot (about 1.3 MB combined),
+and an original scalable purple-wave illustration. The current live reference
+site returned HTTP 403 and the supplied Riyadh folder contained photos, not HTML:
+the compositions follow the supplied reference, without claiming a pixel-identical
+reproduction or importing the airline’s runtime.
 
 Destination cards populate the booking bar with Riyadh departures. The initial
 London-to-Riyadh route remains available for the original demo story. Experience,
 cargo and visa controls open local informational details; they do not invent
 connected airline services. The newsletter form validates locally, clears its
 fields and explicitly confirms that no data was sent or subscription created.
+
+## Browsing pages and natural event titles
+
+The same mounted customer shell supports the following shareable page routes:
+
+| `?step=` | Page |
+| --- | --- |
+| `home` | Home page |
+| `plan` | Plan & book: reference-style wave hero, destinations and manage-order readouts |
+| `discover` | Discover Riyadh: places, culture, dining, outdoor inspiration and events |
+| `destinations` | Where we fly: Riyadh, London, Jakarta, Milan and Bangkok |
+| `experience` | Cabin, lounge and onboard inspiration |
+| `diriyah`, `edge-of-world`, `masmak`, `kafd`, `boulevard-city`, `souq` | Individual place pages with related places and a flight-search CTA |
+
+Header, homepage and footer links connect these pages. Place/destination CTAs
+populate the existing search controls without inventing a booking or sending
+flight intent before Search. Public editorial deep links and reloads do not need
+a stored booking. History restores pages without re-ingesting booking events.
+The environment bar, Sfeer login, profile drawer, decisioning, Brand Concierge
+and personalisation mounts remain in the same document.
+
+Page titles are natural labels such as **Web page view - Home page** and
+**Web page view - Discover Riyadh**, rather than “AEP Lab customer website”.
+The shared Tags initial page view uses that document title. Subsequent actual
+page transitions, including Back/Forward, send one standard
+`web.webPageDetails.pageViews` event via the existing injected Alloy SDK.
+Rerenders, same-page clicks, selecting a cabin tab and profile refresh do not
+send additional page views. The SDK uses the shared per-sandbox datastream
+override (`DemoLabEdgeConfig`) or its injected Tags configuration, **not** a new
+generator mirror. Virtual views require an SDK-resolved ECID in the current
+sandbox; changing sandbox requires reinjection. A typed but unverified identity
+cannot be substituted. Known views carry the same verified email/ECID context
+as the existing profile stitch, plus the required tenant core ECID.
+
+Virtual page URLs contain only the route (`step`), never email, booking reference
+or arbitrary query values. Page-view failures remain in presenter diagnostics,
+do not block reading, and are never retried automatically. A request already in
+flight cannot be recalled on context change. Tags rules configured to independently
+send on the same navigation can still duplicate tracking; do not add such a rule.
+SDK acceptance is not proof of Profile ingestion or AJO execution.
+
+Business events also use natural labels such as **Flight search**, **Booking
+confirmed**, **Flight delayed** and **Gate changed** in existing `viewName` and
+generic CTA-label fields. Their event types, travel fields, URL context,
+orchestration event ID and generator transport are unchanged.
 
 ## Presenter setup
 

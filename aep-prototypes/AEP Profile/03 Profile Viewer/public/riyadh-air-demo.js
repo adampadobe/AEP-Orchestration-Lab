@@ -14,6 +14,41 @@
   let uncertain = global.sessionStorage.getItem(uncertainKey);
   let signedInOwner = '';
   let signingIn = false;
+  let sdkSandbox = '';
+
+  async function pageView() {
+    try {
+      if (!browserEcid || sdkSandbox !== sandbox() || !global.DemoTagsInjection.isAlloyReady() ||
+        global.AepLabTagsInjectGuard.isInProgress('riyadhAirDemo')) {
+        throw new Error('Page view not sent. Inject the selected sandbox’s Tags library before browsing.');
+      }
+      const ctx = context();
+      const before = contextToken();
+      const overrides = global.DemoLabEdgeConfig.edgeConfigOverrides();
+      const url = new URL(global.location.href);
+      const page = url.searchParams.get('step');
+      url.search = '';
+      url.hash = '';
+      if (page) url.searchParams.set('step', page);
+      const options = {
+        ...overrides,
+        xdm: {
+          eventType: 'web.webPageDetails.pageViews',
+          web: { webPageDetails: { name: document.title, URL: url.href, pageViews: { value: 1 } } },
+          _demoemea: { identification: { core: { ecid: ctx.ecid } } },
+          identityMap: { ECID: [{ id: ctx.ecid, authenticatedState: ctx.known ? 'authenticated' : 'ambiguous', primary: true }] },
+        },
+      };
+      if (ctx.known) options.xdm.identityMap.Email = [{ id: ctx.email, authenticatedState: 'authenticated', primary: false }];
+      await global.alloy('sendEvent', options);
+      if (before !== contextToken() || JSON.stringify(overrides) !== JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides())) {
+        throw new Error('Page view was submitted while the selected context changed. Check activity before another attempt.');
+      }
+      recordDelivery(options.xdm.web.webPageDetails.name + ' — SDK accepted');
+    } catch (error) {
+      message(error.message, true);
+    }
+  }
 
   function closeLabOverlays() {
     if (global.EnvBarCompact) global.EnvBarCompact.closeOverlay({ force: true });
@@ -445,7 +480,7 @@
       changeConfigButtonId: 'riyadhChangeSdkConfigBtn', hideTagsCompanyUi: true,
       iframeIds: [], getEmail: () => verified ? verified.email : '',
       // Do not give Tags a generator target: its anonymous page view must not be mirrored twice.
-      onEcidResolved: (ecid) => { browserEcid = String(ecid); notifyContext(); },
+      onEcidResolved: (ecid) => { browserEcid = String(ecid); sdkSandbox = sandbox(); notifyContext(); },
       webPush: { enabled: true, subscribeAfterInject: webPushDesired, requestPermissionOnInject: webPushDesired },
       brandConcierge: {
         enabled: () => !!byId('riyadhBcOnInjectToggle').checked,
@@ -489,7 +524,7 @@
     await reloadTargets();
   }
 
-  const api = { send, lookup, context, ownerKey, previewTrip: updatePreview,
+  const api = { send, lookup, pageView, context, ownerKey, previewTrip: updatePreview,
     reportError: (error) => {
       message(error.message, true);
       byId('raDeliveryStatus').textContent = error.customerMessage || error.message;

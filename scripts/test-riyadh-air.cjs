@@ -46,6 +46,8 @@ function contractTests() {
   for (const action of Object.keys(events.TYPES)) {
     const body = events.build(action, trip, context, { delayMinutes: 90, gate: 'B12', eventID: 'fixture-disruption-id' });
     const xdm = buildGeneratorEdgeInteractXdm(body, target);
+    assert(!/lab|customer website|riyadh air \//i.test(body.viewName), 'Business event titles use natural action labels');
+    assert.equal(body.public.generic.ctaLabel, body.viewName);
     assert.equal(xdm.eventType, events.TYPES[action]);
     assert.equal(xdm.identityMap.ECID[0].id, ecid);
     assert.equal(xdm.identityMap.ECID[0].primary, true);
@@ -85,7 +87,7 @@ async function browserTests() {
     try {
       const body = await fs.readFile(filename);
       const extension = path.extname(filename);
-      res.writeHead(200, { 'Content-Type': { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.avif': 'image/avif', '.png': 'image/png' }[extension] || 'application/octet-stream' }).end(body);
+      res.writeHead(200, { 'Content-Type': { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.avif': 'image/avif', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' }[extension] || 'application/octet-stream' }).end(body);
     } catch { res.writeHead(404).end(); }
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -138,6 +140,15 @@ async function browserTests() {
       await route.fulfill({ json: data });
     });
     await browserContext.addInitScript(() => {
+      let tags;
+      Object.defineProperty(window, 'DemoTagsInjection', {
+        configurable: true,
+        get() { return tags; },
+        set(value) {
+          const init = value.init;
+          tags = { ...value, init(options) { window.raTagsOptions = options; return init(options); } };
+        },
+      });
       localStorage.setItem('aepGlobalSandboxName', 'apalmer');
       localStorage.setItem('aepShowInDevCapabilities_apalmer', 'true');
       localStorage.setItem('aepDemoNavVisibility', 'all');
@@ -151,6 +162,7 @@ async function browserTests() {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(origin + '/profile-viewer/riyadh-air-demo.html');
     await page.evaluate(() => window.RiyadhAirLab.ready);
+    assert.equal(await page.title(), 'Web page view - Home page');
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     assert.equal(await page.locator('#aepDemoEnvSection').count(), 1);
     assert.equal(await page.locator('#profileDrawer').count(), 1);
@@ -170,7 +182,7 @@ async function browserTests() {
     assert.equal(await page.locator('.ra-experience-cards .ra-photo-card').count(), 4);
     assert.equal(await page.locator('.ra-newsletter-form label').first().evaluate((label) => getComputedStyle(label).color), 'rgb(255, 255, 255)', 'Lab theme does not override newsletter label contrast');
     const sequence = await page.locator('#raHome > [id]').evaluateAll((sections) => sections.map((section) => section.id));
-    assert.deepEqual(sequence, ['raTravelUpdates', 'raHero', 'hero-banner', 'raOffers', 'raSfeer', 'raExperience', 'raCargo', 'raSaudi', 'raNewsletter', 'raVisa', 'raContact', 'raFeatureDetail', 'ContentCardContainer']);
+    assert.deepEqual(sequence, ['raTravelUpdates', 'raHero', 'raOffers', 'raSfeer', 'raExperience', 'raCargo', 'raSaudi', 'raNewsletter', 'raVisa', 'raContact', 'raFeatureDetail']);
     async function searchGeometry(name) {
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 1000 });
@@ -217,8 +229,7 @@ async function browserTests() {
           'Hidden Lab bar leaves no blank strip: ' + hiddenClass + ' at ' + width);
         await page.evaluate((className) => document.getElementById('riyadhDemoTopAnchor').classList.remove(className), hiddenClass);
       }
-      assert(await page.locator('#riyadh-air-header').evaluate((header) => header.getBoundingClientRect().top >= document.querySelector('#riyadhDemoTopAnchor .lab-env-toolbar').getBoundingClientRect().bottom - 1),
-        'Visible Lab bar does not overlap customer navigation');
+      await page.waitForFunction(() => document.getElementById('riyadh-air-header').getBoundingClientRect().top >= document.querySelector('#riyadhDemoTopAnchor .lab-env-toolbar').getBoundingClientRect().bottom - 1);
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
     assert(await page.evaluate(() => [...document.querySelectorAll('#raCustomerSite img')].every((image) => image.complete && image.naturalWidth > 0)), 'All supplied images decode');
@@ -359,6 +370,117 @@ async function browserTests() {
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => document.activeElement.id === 'raAccountButton');
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    const businessBeforeBrowse = requests.length;
+    await page.locator('.ra-header [data-ra-page="plan"]').click();
+    await page.locator('#raExploreTitle').filter({ hasText: 'Plan your next journey with ease' }).waitFor();
+    assert.equal(await page.title(), 'Web page view - Plan & book');
+    assert.equal(await page.evaluate(() => window.raIdentitySends.length), 1, 'No deferred page-view send without sandbox SDK identity');
+    await page.evaluate((fixtureEcid) => {
+      window.raTagsOptions.onEcidResolved(fixtureEcid);
+      window.raPageViews = [];
+      window.raFailPageView = false;
+      window.alloy = async (command, options) => {
+        if (command === 'sendEvent' && options.xdm.eventType === 'web.webPageDetails.pageViews') {
+          window.raPageViews.push(options);
+          if (window.raFailPageView) throw new Error('Fixture page-view transport failure');
+        }
+        return {};
+      };
+      localStorage.setItem('siteCloneBcDatastreamIdBySandbox', JSON.stringify({ apalmer: '11111111-2222-3333-4444-555555555555' }));
+    }, ecid);
+    for (const [route, title] of [['discover', 'Discover Riyadh'], ['diriyah', 'Diriyah'], ['edge-of-world', 'Edge of the World'], ['masmak', 'Al Masmak Palace'], ['kafd', 'King Abdullah Financial District'], ['boulevard-city', 'Boulevard City'], ['souq', 'Souq Al Zal'], ['destinations', 'Where we fly'], ['experience', 'The Riyadh Air experience'], ['plan', 'Plan your next journey with ease']]) {
+      if (!await page.locator('[data-ra-page="' + route + '"]:visible').count()) {
+        await page.locator('.ra-header [data-ra-page="discover"]').click();
+        await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+      }
+      await page.locator('[data-ra-page="' + route + '"]:visible').first().click();
+      await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+      assert.equal(await page.locator('#raExploreTitle').textContent(), title);
+      assert.equal(new URL(page.url()).searchParams.get('step'), route);
+      assert.equal(await page.locator('#raBooking').isVisible(), true, 'Shared search available while browsing');
+      assert.equal(await page.locator('#raJourney').isVisible(), false, 'No booking progress on editorial pages');
+      assert(await page.evaluate(() => ['TopRibbon', 'hero-banner', 'ContentCardContainer'].every((id) => !document.getElementById(id).closest('[hidden]'))), 'Personalisation mounts stay available beyond home');
+      assert(await page.evaluate(() => document.querySelector(window.SiteCloneBcPage.injectedAnchorSelector).checkVisibility()), 'Brand Concierge anchors to the visible page');
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'raExploreTitle', 'Navigation focuses page heading');
+      assert.equal(await page.title(), 'Web page view - ' + await page.evaluate((key) => window.RiyadhAirExplore.title(key), route));
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), route + ' has no horizontal overflow at ' + width);
+        assert(await page.locator('.ra-search-button').evaluate((button) => {
+          const rect = button.getBoundingClientRect();
+          const rail = document.getElementById('raPresenterLauncher').getBoundingClientRect();
+          return rect.right <= rail.left || rect.left >= rail.right || rect.bottom <= rail.top || rect.top >= rail.bottom;
+        }), 'Search button avoids presenter rail at ' + width);
+        await page.evaluate(async () => {
+          const images = [...document.querySelectorAll('#raExplore img')];
+          images.forEach((image) => { image.loading = 'eager'; });
+          await Promise.all(images.map((image) => image.decode()));
+        });
+        if (process.env.RIYADH_EXPLORE_SCREENSHOTS && ['plan', 'discover'].includes(route)) {
+          await fs.mkdir(process.env.RIYADH_EXPLORE_SCREENSHOTS, { recursive: true });
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.screenshot({ path: path.join(process.env.RIYADH_EXPLORE_SCREENSHOTS, route + '-' + width + '.png'), fullPage: true,
+            animations: 'disabled', style: '#profileDrawer { visibility: hidden !important; }' });
+        }
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
+    const pageViews = await page.evaluate(() => window.raPageViews);
+    assert(pageViews.length >= 10);
+    assert(pageViews.every((options) => options.edgeConfigOverrides.datastreamId === '11111111-2222-3333-4444-555555555555'));
+    assert(pageViews.every((options) => options.xdm.identityMap.ECID[0].id === ecid && options.xdm.identityMap.Email[0].id === profile.email));
+    assert(pageViews.every((options) => options.xdm._demoemea.identification.core.ecid === ecid));
+    assert(pageViews.every((options) => !options.xdm.web.webPageDetails.URL.includes(profile.email) && options.xdm.web.webPageDetails.pageViews.value === 1));
+    const viewCount = pageViews.length;
+    await page.locator('.ra-header [data-ra-page="plan"]').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(await page.evaluate(() => window.raPageViews.length), viewCount, 'Same-page click is not a second view');
+    await page.goBack();
+    await page.waitForFunction(() => document.title === 'Web page view - The Riyadh Air experience');
+    await page.goForward();
+    await page.waitForFunction(() => document.title === 'Web page view - Plan & book');
+    assert.equal(await page.evaluate(() => window.raPageViews.length), viewCount + 2, 'History records one view per restored page, not business events');
+    await page.evaluate(() => { window.raFailPageView = true; });
+    await page.locator('.ra-header [data-ra-page="experience"]').click();
+    await page.waitForFunction(() => document.getElementById('raPresenterStatus').textContent.includes('Fixture page-view transport failure'));
+    assert.equal(await page.locator('#raExploreTitle').textContent(), 'The Riyadh Air experience', 'Tracking failure does not block browsing');
+    await page.evaluate(() => { window.raFailPageView = false; });
+    await page.locator('.ra-header [data-ra-page="plan"]').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    await page.locator('#raExplore [data-ra-page="destinations"]').click();
+    await page.locator('#raExplore [data-ra-book-destination="LHR"]').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(await page.locator('#raOrigin').inputValue(), 'RUH');
+    assert.equal(await page.locator('#raDestination').inputValue(), 'LHR', 'Destination CTA populates the existing booking bar');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'raDepartureButton');
+    assert.equal(requests.length, businessBeforeBrowse, 'Browsing sends no generator duplicates or booking events');
+    const beforeDrift = await page.evaluate(() => window.raPageViews.length);
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham', { source: 'user' }));
+    await page.locator('.ra-header [data-ra-page="discover"]').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(await page.evaluate(() => window.raPageViews.length), beforeDrift, 'Old SDK sandbox cannot send a virtual view');
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('apalmer', { source: 'user' }));
+    await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
+    await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    await page.evaluate((fixtureEcid) => window.raTagsOptions.onEcidResolved(fixtureEcid), ecid);
+    await page.locator('.ra-wordmark').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    const direct = await browserContext.newPage();
+    await direct.goto(origin + '/profile-viewer/riyadh-air-demo.html?step=diriyah&booking=unrelated&email=ignored');
+    await direct.evaluate(() => window.RiyadhAirLab.ready);
+    assert.equal(await direct.locator('#raExploreTitle').textContent(), 'Diriyah', 'Public deep links do not require a stored booking or resolved profile');
+    assert.equal(await direct.title(), 'Web page view - Diriyah');
+    await direct.reload();
+    await direct.evaluate(() => window.RiyadhAirLab.ready);
+    assert.equal(await direct.locator('#raExploreTitle').textContent(), 'Diriyah', 'Editorial route survives reload');
+    assert.equal(requests.length, businessBeforeBrowse, 'Public deep links and reload do not ingest business events');
+    await direct.close();
+    await page.evaluate(() => {
+      document.getElementById('raOrigin').value = 'LHR';
+      document.getElementById('raDestination').value = 'RUH';
+    });
+    await page.locator('#raSwapAirports').click();
+    await page.locator('#raSwapAirports').click();
     async function capture(name) {
       if (!process.env.RIYADH_SCREENSHOTS) return;
       for (const width of [1440, 390]) {
@@ -780,7 +902,7 @@ async function browserTests() {
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);
     assert.equal(await page.locator('#etihadSiteFrame').count(), 1, 'Etihad keeps its existing iframe surface');
     assert.equal(await page.evaluate(() => !!window.SiteCloneBcPage.useParentDocument), false, 'Parent-document BC behavior is opt-in');
-    console.log('Riyadh Air: Sfeer login/profile lookup and single Adobe identity stitch, rejected/stale/rapid login safety, booking/seat journeys, unchanged event contracts, customer/diagnostic separation, modal keyboard/backdrop/focus/overlay controls, responsive themes, config and identity drift, rapid clicks, rejection/no pivot, uncertain delivery/reload blocking and history checks passed (fixture APIs only).');
+    console.log('Riyadh Air: reference-led browsing routes/deep links, natural SDK page views without generator duplication, sandbox/config safety, Sfeer identity stitching, booking/seat journeys, preserved event types/schema, accessible modals, responsive themes, sender rejection/uncertainty and history checks passed (fixture APIs only).');
     await browserContext.close();
   } finally {
     if (browser) await browser.close();
