@@ -30,6 +30,28 @@ Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or
 
 ## Framework knowledge (server-side — no manual retraining)
 
+### Profile creation target (Snowflake-first)
+
+`lab_generate_profile`, `lab_generate_profiles_batch`, and
+`lab_preflight_profile_generate` default to `target:"snowflake"`. Ask for an
+explicit industry (travel, fsi, retail, telecom, media, sports), confirm shared
+email preferences and count, then preflight and generate. This writes the shared
+base recipient parent first, followed by linked industry data in one transaction.
+`REL.RECIPIENT` is its read-only view. AEP/AJO ingestion remains separate.
+Preparation can add missing source/REL objects and nullable recipient columns;
+non-travel dynamic tables refresh asynchronously. No Python runner or separate
+enrichment call is needed for this seed path. Default batches return synchronously
+(1–100); do not poll them as jobs. Run serially and never automatically retry
+new-identity generation.
+
+For **every AEP streaming/persona, UPS, event, decisioning or place/geo example
+below**, explicitly add `target:"aep"` to `lab_generate_profile`,
+`lab_generate_profiles_batch`, and `lab_preflight_profile_generate`.
+AEP-specific options are rejected on the Snowflake default, not ignored.
+Brand-scrape and geo-specific tools retain their existing AEP streaming behavior.
+Read recipient IDs, parent/per-table counts and refresh status from seed responses.
+After deploying this change, start a new MCP chat to refresh tool descriptions.
+
 Codex should call these **before** improvising lab conventions:
 
 | Tool / resource | Purpose |

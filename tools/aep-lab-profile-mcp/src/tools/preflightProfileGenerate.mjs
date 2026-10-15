@@ -15,6 +15,7 @@ import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 import { buildEmailFormatRules } from '../framework/emailFormatGuardrails.mjs';
 import { getGenerationPrefs } from '../labApiClient.mjs';
+import { generationTargetSchema, preflightSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -25,16 +26,18 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
     {
       title: 'Preflight profile generate (no stream)',
       description:
-        'Dry-run before lab_generate_profile: checks lab_sandbox_profile_config readiness for sandbox+industry, ' +
+        'Default target snowflake: read-only saved Snowflake connection and email-preference check for recipient-and-industry seeding. ' +
+        'Set target:"aep" explicitly for the following AEP dry-run: checks lab_sandbox_profile_config readiness for sandbox+industry, ' +
         'lists connection manifest (url, flowId, datasetId, schemaId, xdmKey), and shows what would be sent ' +
         '(testProfile:true, preferredLanguage paths, sample persona paths when randomize). Does NOT POST to AEP. ' +
         'Includes email/mobile FORMAT RULES and Firestore generation prefs preview when available.',
       inputSchema: {
+        target: generationTargetSchema,
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
           .string()
           .optional()
-          .describe('Industry key or alias (default generic)'),
+          .describe('Snowflake target requires travel, fsi, telecom, retail, media, or sports. AEP target defaults to generic.'),
         email: z
           .string()
           .email()
@@ -46,15 +49,17 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         test_profile_override_reason: z.string().optional(),
       },
     },
-    async ({
-      sandbox,
-      industry,
-      email,
-      randomize,
-      segment_hint,
-      test_profile,
-      test_profile_override_reason,
-    }) => {
+    async (params) => {
+      if (params.target !== 'aep') return preflightSnowflakeProfiles(params);
+      const {
+        sandbox,
+        industry,
+        email,
+        randomize,
+        segment_hint,
+        test_profile,
+        test_profile_override_reason,
+      } = params;
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
@@ -159,6 +164,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
       }
 
       return jsonResult({
+        target: 'aep',
         ok: assessment.ready,
         ready: assessment.ready,
         sandbox: allowed.sandbox,

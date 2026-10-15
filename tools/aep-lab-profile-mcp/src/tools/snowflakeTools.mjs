@@ -335,17 +335,19 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
   toolServer.registerTool(
     'lab_snowflake_generate_base_profiles',
     {
-      title: 'Generate Snowflake CRM or legacy base profiles (batch)',
+      title: 'Seed Snowflake recipients and industry data (or legacy base batch)',
       description:
-        'Snowflake-only Faker batch INSERT (not UPS-linked). Pass industry to use the same governed CRM batch generator as the UI: ' +
-        '/api/snowflake/generate-industry-profiles, then lab_snowflake_enrich_profiles for activity. Omit industry for legacy ' +
-        '/api/snowflake/generate-base-profiles. Provision {industry}.all.v1 first; confirm count before generating. ' +
+        'Pass industry to seed the shared recipient parent FIRST, then linked industry CRM/activity/relational data in one transaction, matching the UI. ' +
+        'Uses /api/snowflake/generate-industry-profiles; no separate enrichment or Python runner is required for this seed path. ' +
+        'Adds missing source/REL objects and nullable recipient columns; existing identities are preserved. AEP ingestion remains separate. ' +
+        'Run serially, confirm industry/count/preferences, and never automatically retry new-identity generation. Omit industry only for legacy ' +
+        '/api/snowflake/generate-base-profiles. ' +
         'Default table BASE_PROFILES, count 1–1000. Emails use shared Firestore generation prefs (<local>+DDMMYYYY-N@domain) ' +
         'unless use_generation_prefs:false (legacy Agentic Snowflake counter). Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional()
-          .describe('Use the governed CRM table for this industry; omit only for legacy BASE_PROFILES'),
+          .describe('Seed shared recipients plus linked data for this industry; omit only for legacy BASE_PROFILES'),
         count: z.number().int().min(1).max(1000).optional().describe('Profiles to generate (default 10)'),
         table: z.string().optional().describe('Target table (default BASE_PROFILES for batch generator)'),
         use_generation_prefs: z
@@ -399,14 +401,18 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         rowcount: result.rowcount,
         table: result.table,
         industry: result.industry || null,
-        profiles: industry ? (result.profiles || []).map(({ email, ecid, crmId }) => ({ email, ecid, crmId })) : undefined,
+        profiles: industry ? (result.profiles || []).map(({ email, ecid, crmId, recipientId }) => ({ email, ecid, crmId, recipientId })) : undefined,
+        recipientTable: result.recipientTable,
+        recipientRowcount: result.recipientRowcount,
+        tableRowcounts: result.tableRowcounts,
+        relationalRefresh: result.relationalRefresh,
         sample: result.sample,
         emailSource: result.emailSource || (use_generation_prefs === false ? 'legacy_snowflake_table_scan' : 'labProfileGenerationPrefs'),
         use_generation_prefs: use_generation_prefs !== false,
         note:
           'Snowflake-only batch — emails share Portal/MCP Firestore counter when use_generation_prefs is true (default). ' +
-          'Industry CRM profiles can be passed to lab_snowflake_enrich_profiles; provision the industry tables first. ' +
-          'For AEP+Snowflake parity use lab_generate_profile dual_load_snowflake:true (omit email).',
+          'With industry, shared recipients and linked industry data are already seeded; non-travel REL tables refresh asynchronously. ' +
+          'For explicit AEP+Snowflake dual-load use lab_generate_profile target:"aep" dual_load_snowflake:true (omit email).',
       });
     },
   );
