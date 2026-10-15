@@ -56,6 +56,43 @@ for identity attribution, outcome semantics, reporting limits and release gates.
 
 **One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
+### Troubleshooting Coworker HTTP 403
+
+Search Cloud Run logs for `ims-auth-rejected`. An `enrollment-rejected` event
+means IMS identity validation succeeded, but Lab enrollment failed. The
+`enrollmentReason` distinguishes `no-enrollment`, `all-enrollments-revoked`,
+`no-sandbox-scope`, `store-unavailable`, and `lookup-failed` (the last two
+return 503). Available `enrollmentCounts` report matched, active and revoked
+records without exposing their contents. Events include the registered endpoint,
+HTTP method, and identity source (`userinfo` or authenticated `profile` fallback).
+
+Enrollment rejections include `principalEmailHash`: the first 12 lowercase hex
+characters of SHA-256 over the verified, trimmed, lowercase Adobe email. Operators
+can compute this locally for a known colleague to correlate failures across
+sessions. This is pseudonymous operational data, not anonymized usage telemetry;
+restrict access to logs accordingly. Raw emails, UIDs, token values, enrollment
+contents, query strings and tool arguments are not included in these diagnostics.
+Forwarded email alone is never used for this hash or to grant access.
+
+POST and DELETE completion events (`aep-lab-mcp-request`) now include requests
+rejected before body parsing. Each has a server-generated `requestId`, also
+returned as `X-AEP-Lab-Request-Id` and included in IMS rejection diagnostics.
+Authenticated IMS completion events carry the same `principalEmailHash` so
+operators can follow a colleague's RPC methods and tool names after enrollment
+is fixed. HTTP status and duration include authentication time. Rejected
+requests have `authSource: "unverified"` and no trusted principal hash in their
+completion event; correlate their rejection event by request ID instead.
+Missing bearer/org headers have explicit rejection reasons. HTTP 200 does not
+prove a tool succeeded: a JSON-RPC or tool error can still use HTTP 200.
+This operational logging does not enable the separate Firestore usage collector.
+
+For missing or revoked enrollment, the colleague signs into the
+[Lab Portal](https://aep-orchestration-lab.web.app/profile-viewer/home.html)
+with the same Adobe account and generates a sandbox-scoped MCP key under
+**MCP servers**, then reconnects Coworker. The active record establishes
+enrollment; do not paste the plaintext key into Coworker. For `no-sandbox-scope`,
+check the Portal enrollment's configured sandbox rather than bypassing the gate.
+
 ### Entry point (Phase 3.38)
 
 Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
