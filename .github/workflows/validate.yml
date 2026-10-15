@@ -62,7 +62,7 @@ jobs:
         run: npm ci
 
       - name: Verify MCP dispatch telemetry and existing authentication/tool registration
-        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
+        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/requestLogging.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
