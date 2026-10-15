@@ -709,3 +709,32 @@ Audience/AJO deletion still requires exact asset confirmation and a fresh read; 
 - Coworker skill: `.cursor/skills/aep-lab-profile-mcp-coworker/SKILL.md`
 - Stdio Adobe MCP: `tools/aep-lab-adobe-mcp/`
 - Hotel segment seed reference: `scripts/bulk-seed-travel-hotel-segment-profiles.mjs`
+# Profile creation target
+
+`lab_generate_profile`, `lab_generate_profiles_batch`, and
+`lab_preflight_profile_generate` default to `target: "snowflake"`.
+Choose `industry` explicitly: `travel`, `fsi`, `retail`, `telecom`, `media`,
+or `sports`. Confirm shared email preferences and requested count first.
+
+The default path uses the same Node generator as **Seed recipients & industry
+data** in the Snowflake UI. It writes the existing
+`AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE` parent before linked industry data
+in one transaction. `REL.RECIPIENT` is a read-only compatibility view.
+Preparation creates missing source/REL objects and adds nullable recipient
+columns; the saved role needs the documented DDL/DML/warehouse privileges.
+Non-travel relational dynamic tables refresh asynchronously.
+
+Single and batch defaults do **not** stream into AEP; configure the downstream
+Snowflake-to-AEP/AJO ingestion separately. Default batches return synchronously
+(maximum 100), with no job polling. Generation creates new identities: run
+serially and do not automatically retry failures. Read `recipientTable`,
+`recipientRowcount`, `profiles[].recipientId`, `tableRowcounts`, and
+`relationalRefresh` from the response.
+
+For AEP personas, UPS/Edge/event demos, place/geo controls, custom attributes,
+or the existing optional CRM dual-load workflow, explicitly pass
+`target: "aep"` to generation and preflight tools. Existing AEP examples below
+require this explicit target. Unsupported AEP-only options on the default
+Snowflake path return an error before reserving email or writing data.
+Brand-scrape demo-prep and geo-specific tools retain their explicit AEP
+workflows; this change does not redirect their internal streaming calls.

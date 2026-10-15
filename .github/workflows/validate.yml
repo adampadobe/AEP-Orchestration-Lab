@@ -66,7 +66,7 @@ jobs:
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
-          node --test functions/test/snowflake*.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs
+          node --test functions/test/snowflake*.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs
           npm run verify:snowflake-industry-manifest
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
 
