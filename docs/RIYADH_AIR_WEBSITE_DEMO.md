@@ -44,6 +44,8 @@ The same mounted customer shell supports the following shareable page routes:
 | --- | --- |
 | `home` | Home page |
 | `plan` | Plan & book: reference-style wave hero, destinations and manage-order readouts |
+| `manage` | Manage: supplied airport-support hero and order/cancellation service links |
+| `cancellation` | Cancellation information; no ticket cancellation or refund is performed |
 | `discover` | Discover Riyadh: places, culture, dining, outdoor inspiration and events |
 | `destinations` | Where we fly: Riyadh, London, Jakarta, Milan and Bangkok |
 | `experience` | Cabin, lounge and onboard inspiration |
@@ -56,8 +58,22 @@ a stored booking. History restores pages without re-ingesting booking events.
 The environment bar, Sfeer login, profile drawer, decisioning, Brand Concierge
 and personalisation mounts remain in the same document.
 
+Manage follows the supplied screenshot and uses only its supplied hero photograph
+and two service icons from the Manage folder. Header and footer Manage links open
+the public landing page without requiring a booking. **Manage your order** uses
+the existing identity-owned, tab-local confirmed trip and unchanged
+`travel.booking.view` event. Missing bookings show the existing explicit action
+failure; no booking lookup or airline connection is invented. The cancellation
+page is informational and leaves the trip untouched. Both pages use the existing
+SDK virtual page-view path, with natural **Manage** / **Cancel your booking**
+titles; browsing itself never sends a booking or cancellation event.
+
 Page titles are natural labels such as **Web page view - Home page** and
 **Web page view - Discover Riyadh**, rather than “AEP Lab customer website”.
+The exact clicked page label is also sent in `web.webPageDetails.name` (for
+example **Web page view - Plan & book** or **Web page view - Manage**), which
+the existing Profile events service uses as the page-view event title. The
+standard `web.webPageDetails.pageViews` event type remains unchanged.
 The shared Tags initial page view uses that document title. Subsequent actual
 page transitions, including Back/Forward, send one standard
 `web.webPageDetails.pageViews` event via the existing injected Alloy SDK.

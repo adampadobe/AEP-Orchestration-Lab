@@ -19,7 +19,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
-  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261015-explore">
+  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261015-manage">
   <link rel="stylesheet" href="riyadh-air-booking.css?v=20261014-search-placement">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
@@ -80,7 +80,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
     <header class="ra-header" id="riyadh-air-header" data-ajo-insert-section="Riyadh Air navigation">
       <a class="ra-wordmark" href="?step=home" data-ra-page="home" aria-label="Riyadh Air home"><img src="riyadh-air-assets/logo.png" alt="Riyadh Air" width="130" height="44"></a>
       <nav aria-label="Customer navigation">
-        <a href="?step=plan" data-ra-page="plan">Plan &amp; book</a><button type="button" data-ra-action="manage">Manage</button>
+        <a href="?step=plan" data-ra-page="plan">Plan &amp; book</a><a href="?step=manage" data-ra-page="manage">Manage</a>
         <a href="?step=experience" data-ra-page="experience">Experience</a><a href="?step=discover" data-ra-page="discover">Discover Riyadh</a><a href="#raSfeer">Sfeer</a><a href="#raFooter">About us</a><a href="#raContact">Help</a>
       </nav>
       <button class="ra-cart-button" type="button" data-ra-action="cart" aria-label="Shopping cart"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3h3l3 12h11l3-9H6M9 19h.01M18 19h.01"></path></svg><span id="raCartCount">0</span></button>
@@ -179,7 +179,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
         <nav aria-label="Riyadh Air"><h3>Riyadh Air</h3><a href="#raFooter">About us</a><a href="#raSfeer">Sfeer</a><a href="#raCargo">Riyadh Cargo</a><a href="?step=discover" data-ra-page="discover">Discover Riyadh</a></nav>
         <nav aria-label="Experience"><h3>Experience</h3><button type="button" data-ra-feature="cabin">Cabin</button><button type="button" data-ra-feature="fleet">Fleet</button><a href="#raExperience">Onboard experience</a></nav>
         <nav aria-label="Connect with us"><h3>Connect with us</h3><a href="#raContact">Contact us</a><a href="#raNewsletter">Newsletter</a><button type="button" data-ra-action="profile">My profile</button></nav>
-        <nav aria-label="Travel support"><h3>Travel support</h3><a href="?step=plan" data-ra-page="plan">Plan &amp; book</a><a href="?step=destinations" data-ra-page="destinations">Where we fly</a><a href="#raVisa">Visa information</a><button type="button" data-ra-action="manage">Manage booking</button><a href="#raTravelUpdates">Travel updates</a></nav>
+        <nav aria-label="Travel support"><h3>Travel support</h3><a href="?step=plan" data-ra-page="plan">Plan &amp; book</a><a href="?step=destinations" data-ra-page="destinations">Where we fly</a><a href="#raVisa">Visa information</a><a href="?step=manage" data-ra-page="manage">Manage booking</a><a href="#raTravelUpdates">Travel updates</a></nav>
         <div class="ra-footer-bottom"><p>Internal AEP demonstration. Not the official Riyadh Air website. No ticket, payment or newsletter subscription is issued.</p><a href="#raBooking">Start your journey &#8599;</a></div>
       </div>
     </footer>
@@ -213,10 +213,10 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="riyadh-air-events.js?v=20261015-labels"></script>
-  <script src="riyadh-air-explore.js?v=20261015-explore"></script>
+  <script src="riyadh-air-explore.js?v=20261015-manage"></script>
   <script src="riyadh-air-demo.js?v=20261015-explore"></script>
   <script src="riyadh-air-booking.js?v=20261014-sfeer-label"></script>
-  <script src="riyadh-air-site.js?v=20261015-explore"></script>
+  <script src="riyadh-air-site.js?v=20261015-manage"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
