@@ -148,7 +148,11 @@ async function browserTests() {
         get() { return tags; },
         set(value) {
           const init = value.init;
-          tags = { ...value, init(options) { window.raTagsOptions = options; return init(options); } };
+          tags = { ...value, init(options) {
+            window.raTagsOptions = options;
+            window.raTagsInstance = init(options);
+            return window.raTagsInstance;
+          } };
         },
       });
       localStorage.setItem('aepGlobalSandboxName', 'apalmer');
@@ -873,6 +877,10 @@ async function browserTests() {
       window.alloy = async (command, options) => {
         if (command === 'sendEvent' && options.xdm.eventType === 'riyadhAir.identity.stitch') {
           window.raBookingStitches.push(options);
+          if (options.edgeConfigOverrides?.datastreamId !== '11111111-2222-3333-4444-555555555555' ||
+            options.xdm._demoemea?.identification?.core?.ecid !== options.xdm.identityMap.ECID[0].id) {
+            throw new Error('Fixture rejected missing datastream override or required tenant core.ecid');
+          }
           if (window.raStitchMode === 'reject') throw new Error('Fixture rejected booking stitch');
           if (window.raStitchMode === 'hold') await new Promise((resolve) => { window.raReleaseBookingStitch = resolve; });
         }
@@ -912,6 +920,8 @@ async function browserTests() {
     const stitchedBooking = await page.evaluate(() => window.raBookingStitches.at(-1));
     assert.equal(stitchedBooking.xdm.identityMap.Email[0].id, bookingProfile.email);
     assert.equal(stitchedBooking.xdm.identityMap.ECID[0].id, ecid, 'Shared stitch connects the resolved browser ECID to the submitted email');
+    assert.equal(stitchedBooking.xdm._demoemea.identification.core.ecid, ecid, 'Identity stitch satisfies the same required tenant ECID as page views');
+    assert.equal(stitchedBooking.edgeConfigOverrides.datastreamId, '11111111-2222-3333-4444-555555555555', 'Identity stitch uses the selected Lab datastream rather than the Tags default');
     await page.locator('[name="contactEmail"]').fill(profile.email);
     await page.locator('[name="phone"]').fill('+440000000000');
     await page.getByRole('button', { name: 'Save guest details' }).click();
@@ -947,26 +957,33 @@ async function browserTests() {
     assert.equal(requests.at(-1).ecid, bookingProfile.ecid);
     assert(!requests.some((body) => body.eventType === 'travel.booking.confirm'), 'No legacy booking event duplicates the journey trigger');
     const afterBookingIdentity = requests.length;
-    await page.evaluate((email) => {
-      window.raStitchMode = 'hold';
-      window.raDriftResult = null;
-      window.raDriftPromise = window.RiyadhAirLab.connectBookingEmail(email).then(
-        () => { window.raDriftResult = 'accepted'; },
-        (error) => { window.raDriftResult = error.message; },
-      );
-    }, profile.email);
-    await page.waitForFunction(() => !!window.raReleaseBookingStitch);
-    await page.evaluate(() => {
-      const input = document.getElementById('customerEmail');
-      input.value = 'changed-during-stitch@example.test';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      window.raReleaseBookingStitch();
-      window.raReleaseBookingStitch = null;
-      window.raStitchMode = 'accept';
-    });
-    await page.waitForFunction(() => window.raDriftResult !== null);
-    assert.notEqual(await page.evaluate(() => window.raDriftResult), 'accepted', 'In-flight identity change rejects local connection');
-    assert.equal(requests.length, afterBookingIdentity, 'No business event after in-flight identity drift');
+    for (const mutation of ['identity', 'datastream']) {
+      await page.evaluate((email) => {
+        window.raStitchMode = 'hold';
+        window.raDriftResult = null;
+        window.raDriftPromise = window.RiyadhAirLab.connectBookingEmail(email).then(
+          () => { window.raDriftResult = 'accepted'; },
+          (error) => { window.raDriftResult = error.message; },
+        );
+      }, profile.email);
+      await page.waitForFunction(() => !!window.raReleaseBookingStitch);
+      await page.evaluate((kind) => {
+        if (kind === 'identity') {
+          const input = document.getElementById('customerEmail');
+          input.value = 'changed-during-stitch@example.test';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          window.AepLabEnvBarPrefs.writeMapSilent('siteCloneBcDatastreamIdBySandbox', { apalmer: '22222222-2222-3333-4444-555555555555' });
+        }
+        window.raReleaseBookingStitch();
+        window.raReleaseBookingStitch = null;
+        window.raStitchMode = 'accept';
+      }, mutation);
+      await page.waitForFunction(() => window.raDriftResult !== null);
+      assert.notEqual(await page.evaluate(() => window.raDriftResult), 'accepted', 'In-flight ' + mutation + ' change rejects local connection');
+      assert.equal(requests.length, afterBookingIdentity, 'No business event after in-flight ' + mutation + ' drift');
+    }
+    await page.evaluate(() => window.AepLabEnvBarPrefs.writeMapSilent('siteCloneBcDatastreamIdBySandbox', { apalmer: '11111111-2222-3333-4444-555555555555' }));
     await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     for (const [destination, city, image, expectedTotal] of [
@@ -1084,6 +1101,19 @@ async function browserTests() {
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);
     assert.equal(await page.locator('#etihadSiteFrame').count(), 1, 'Etihad keeps its existing iframe surface');
     assert.equal(await page.evaluate(() => !!window.SiteCloneBcPage.useParentDocument), false, 'Parent-document BC behavior is opt-in');
+    await page.waitForFunction(() => !!window.raTagsInstance);
+    const legacyStitch = await page.evaluate(async (fixture) => {
+      let sent;
+      window.alloy = async (_command, options) => { sent = options; };
+      const accepted = await window.raTagsInstance.stitchAfterProfileLookup(fixture, fixture.email);
+      window.alloy = async () => { throw new Error('Fixture rejection'); };
+      const rejected = await window.raTagsInstance.stitchAfterProfileLookup(fixture, fixture.email);
+      return { accepted, rejected, sent };
+    }, profile);
+    assert.equal(legacyStitch.accepted, true, 'Etihad keeps successful shared stitching');
+    assert.equal(legacyStitch.rejected, false, 'Etihad keeps its existing boolean rejection contract');
+    assert.equal(legacyStitch.sent.edgeConfigOverrides, undefined, 'Lab Edge stitch context remains opt-in for other demos');
+    assert.equal(legacyStitch.sent.xdm._demoemea, undefined, 'Other demos do not acquire new tenant fields');
     console.log('Riyadh Air: reference-led browsing routes/deep links, natural SDK page views without generator duplication, sandbox/config safety, Sfeer identity stitching, booking/seat journeys, preserved event types/schema, accessible modals, responsive themes, sender rejection/uncertainty and history checks passed (fixture APIs only).');
     await browserContext.close();
   } finally {
