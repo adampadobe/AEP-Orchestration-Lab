@@ -140,6 +140,11 @@ function logImsRejection(reason, req, token, options = {}, details = {}) {
   const logger = options.logger || console;
   logger.warn?.('[aep-lab-profile-mcp] ims-auth-rejected', JSON.stringify({
     reason,
+    endpoint: typeof req.route?.path === 'string' && /^\/mcp(?:\/[a-z-]+)?$/.test(req.route.path)
+      ? req.route.path : null,
+    httpMethod: ['GET', 'POST', 'DELETE'].includes(req.method) ? req.method : null,
+    requestId: typeof options.requestId === 'string'
+      && /^[a-f0-9-]{36}$/.test(options.requestId) ? options.requestId : null,
     ...details,
     bearer: describeImsBearerForLog(token, req),
   }));
@@ -187,7 +192,10 @@ async function fetchImsJson(fetchImpl, url, token, method = 'GET') {
 
 async function resolveImsEnrollment(email, db) {
   if (!db) {
-    return { ok: false, status: 503, message: 'IMS enrollment lookup is temporarily unavailable.' };
+    return {
+      ok: false, status: 503, enrollmentReason: 'store-unavailable',
+      message: 'IMS enrollment lookup is temporarily unavailable.',
+    };
   }
 
   try {
@@ -195,10 +203,17 @@ async function resolveImsEnrollment(email, db) {
     const active = snap.docs
       .map((doc) => ({ id: doc.id, ...(doc.data() || {}) }))
       .filter((entry) => !entry.revoked);
+    const enrollmentCounts = {
+      matched: snap.docs.length,
+      active: active.length,
+      revoked: snap.docs.length - active.length,
+    };
     if (active.length === 0) {
       return {
         ok: false,
         status: 403,
+        enrollmentReason: snap.docs.length ? 'all-enrollments-revoked' : 'no-enrollment',
+        enrollmentCounts,
         message: 'No active AEP Lab enrollment was found for this Adobe user. Generate one sandbox-scoped MCP key in the AEP Lab Portal, then retry; the key itself is not entered in Coworker.',
       };
     }
@@ -207,7 +222,10 @@ async function resolveImsEnrollment(email, db) {
       entry.sandbox ? [entry.sandbox] : entry.allowedSandboxes
     )));
     if (allowedSandboxes.length === 0) {
-      return { ok: false, status: 403, message: 'The AEP Lab enrollment has no active sandbox scope.' };
+      return {
+        ok: false, status: 403, enrollmentReason: 'no-sandbox-scope', enrollmentCounts,
+        message: 'The AEP Lab enrollment has no active sandbox scope.',
+      };
     }
 
     const principalUid = String(active.find((entry) => entry.principalUid)?.principalUid || '').trim().slice(0, 128);
@@ -225,7 +243,10 @@ async function resolveImsEnrollment(email, db) {
     };
   } catch (err) {
     console.warn('[aep-lab-profile-mcp] IMS enrollment lookup failed:', err?.message || err);
-    return { ok: false, status: 503, message: 'IMS enrollment lookup is temporarily unavailable.' };
+    return {
+      ok: false, status: 503, enrollmentReason: 'lookup-failed',
+      message: 'IMS enrollment lookup is temporarily unavailable.',
+    };
   }
 }
 
@@ -240,11 +261,13 @@ async function resolveImsEnrollment(email, db) {
 export async function validateImsBearer(req, options = {}) {
   const authHeader = String(req.headers.authorization || '').trim();
   if (!/^Bearer\s+\S+$/i.test(authHeader)) {
+    logImsRejection('missing-or-malformed-bearer', req, '', options);
     return { ok: false, status: 401, message: 'Missing Authorization: Bearer IMS token.' };
   }
 
   const orgId = String(req.headers['x-gw-ims-org-id'] || '').trim();
   if (!/^[A-Za-z0-9]+@AdobeOrg$/.test(orgId)) {
+    logImsRejection('missing-or-invalid-org-header', req, '', options);
     return { ok: false, status: 401, message: 'Missing or invalid x-gw-ims-org-id header.' };
   }
 
@@ -260,7 +283,7 @@ export async function validateImsBearer(req, options = {}) {
   try {
     userInfoResult = await fetchImsJson(fetchImpl, IMS_USERINFO_URL, token);
   } catch (err) {
-    console.warn('[aep-lab-profile-mcp] IMS UserInfo request failed:', err?.message || err);
+    logImsRejection('userinfo-request-failed', req, token, options);
     return { ok: false, status: 503, message: 'Adobe IMS authentication is temporarily unavailable.' };
   }
 
@@ -279,7 +302,7 @@ export async function validateImsBearer(req, options = {}) {
     try {
       profileResult = await fetchImsJson(fetchImpl, IMS_PROFILE_URL, token, 'POST');
     } catch (err) {
-      console.warn('[aep-lab-profile-mcp] IMS Profile request failed:', err?.message || err);
+      logImsRejection('profile-request-failed', req, token, options);
       return { ok: false, status: 503, message: 'Adobe IMS authentication is temporarily unavailable.' };
     }
     if (!profileResult.ok) {
@@ -313,7 +336,14 @@ export async function validateImsBearer(req, options = {}) {
   const db = Object.hasOwn(options, 'db') ? options.db : await getFirestoreDb();
   const enrollment = await resolveImsEnrollment(email, db);
   if (!enrollment.ok) {
-    logImsRejection('enrollment-rejected', req, token, options, { enrollmentStatus: enrollment.status });
+    logImsRejection('enrollment-rejected', req, token, options, {
+      enrollmentStatus: enrollment.status,
+      enrollmentReason: enrollment.enrollmentReason,
+      enrollmentCounts: enrollment.enrollmentCounts,
+      identitySource,
+      // Correlate a verified colleague across tokens without logging their email.
+      principalEmailHash: hashApiKey(email).slice(0, 12),
+    });
     return enrollment;
   }
 
@@ -323,6 +353,7 @@ export async function validateImsBearer(req, options = {}) {
     keyId,
     source: 'ims',
     principalEmail: email,
+    principalEmailHash: hashApiKey(email).slice(0, 12),
     principalUid: enrollment.principalUid,
     usagePrincipalUid: enrollment.usagePrincipalUid,
     principalAccess: {
