@@ -48,7 +48,7 @@
       '<span aria-hidden="true">/</span>' + link('manage', 'Manage', '') + '<span aria-hidden="true">/</span><span aria-current="page">Cancel your booking</span></nav>' +
       hero('manage-hero.avif', 'A Riyadh Air colleague assisting a guest', 'Cancel your booking', 'Understand your options before changing your travel plans.') +
       '<section class="ra-section ra-place-intro"><h2>Before you cancel</h2><p>Check the fare conditions and any cancellation charges in your booking confirmation. Refund eligibility and timing depend on the fare and the original booking channel.</p>' +
-      '<p>For a real reservation, contact the airline or the travel provider you booked with. This website cannot cancel airline tickets or issue refunds. Your local demo booking remains unchanged.</p>' +
+      '<p>For a real reservation, contact the airline or the travel provider you booked with. This website cannot cancel airline tickets or issue refunds. Your booking remains unchanged.</p>' +
       '<div class="ra-actions"><button class="ra-button" type="button" data-ra-action="manage">View your order</button>' +
       link('manage', 'Back to Manage', 'ra-text-button') + '</div></section>';
     if (page === 'plan') return hero('plan-waves.svg', '', 'Plan your next journey with ease', '', 'Plan &amp; manage') +

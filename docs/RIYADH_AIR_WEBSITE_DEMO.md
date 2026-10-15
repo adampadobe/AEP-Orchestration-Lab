@@ -9,6 +9,14 @@ booking pill, travel updates, photographic destinations, offers, Sfeer,
 experience cards, cargo, Riyadh, newsletter, visa information, contact and footer.
 There is no oversized illustrated airplane hero.
 
+Customer-facing copy uses ordinary booking language, including **Confirm booking**
+and **Your booking is confirmed**, without “demo” labels. The required checkout
+acknowledgement still states that no payment is taken, no payment details are
+collected and no ticket is issued. Account, newsletter and cancellation limitations
+remain explicit; this copy change does not connect airline transactions or change
+event types, identity resolution or transport. Technical identifiers and presenter
+diagnostics retain their existing names.
+
 The full gradient customer navigation remains visible on booking screens.
 Flight-search controls stay in a separate white pill below that header on home,
 results, return and guest/contact screens; they are never embedded in the navigation.
@@ -94,8 +102,9 @@ SDK acceptance is not proof of Profile ingestion or AJO execution.
 
 Business events also use natural labels such as **Flight search**, **Booking
 confirmed**, **Flight delayed** and **Gate changed** in existing `viewName` and
-generic CTA-label fields. Their event types, travel fields, URL context,
-orchestration event ID and generator transport are unchanged.
+generic CTA-label fields. Booking confirmation uses **`flight.booked`**; all other
+event types, travel fields, URL context, orchestration event ID and generator
+transport are unchanged.
 
 ## Presenter setup
 
@@ -237,10 +246,31 @@ basket, checkout, confirmation and My Trip. Return reverses the airports and use
 the selected return date. New searches invalidate draft selections; confirmed
 bookings require an explicit local reset before replacement.
 
-Guest title, name, DOB, optional loyalty/contact fields and the Sfeer toggle are
-demo-only tab-local inputs. They are never added to ExperienceEvent fields or
-URLs and do not change the selected Lab identity or enrol anyone in Sfeer.
-Reset clears these tab-local details. No real guest data should be entered.
+Submitting the optional Sfeer email on **Continue to contact details**, or the
+required contact email on **Save guest details**, uses the existing profile
+lookup and Tags stitching flow. The submitted email becomes the selected Lab
+identity. It must resolve an existing profile with its own canonical email and
+ECID in the selected sandbox; unknown profiles are not silently created. Inject
+Tags for that sandbox first. The stitch connects the SDK-resolved **browser ECID**
+to that email; generator business events use the independently resolved **profile
+ECID**. The same successfully stitched identity can be reused within this page
+session, but changing the identity, browser ECID or environment requires another
+connection. Optional Sfeer and contact emails must match when both are populated.
+
+**Confirm booking** verifies that connection again, then sends exactly one
+`flight.booked` request through the selected generator target. Only API acceptance
+advances to confirmation. A rejected lookup, stitch or event leaves the booking
+unconfirmed; there is no automatic retry. The legacy `travel.booking.confirm`
+event is not also sent. Bind the existing AJO journey to `flight.booked` in its
+configured event dataset/identity context; this change does not modify AJO
+configuration or prove journey execution.
+
+Guest title, name, DOB, phone and the Sfeer toggle remain tab-local inputs. They
+are not added to ExperienceEvent fields or URLs and do not enrol anyone in Sfeer.
+Reset clears the local details, not previously accepted Adobe identity events.
+There are no profile attribute writes: SDK acceptance of an identity event is
+not independent proof of identity-graph stitching or Profile ingestion. Use
+illustrative guest details and verify live activity separately.
 
 Paid-seat interaction adapts the existing Etihad pattern (seat rows, availability,
 tentative selection and seat benefits/price), restyled for Riyadh Air. It does not
@@ -264,7 +294,7 @@ does not claim a verified abandonment event.
 | Flight search / selection | `travel.flight.search` / `travel.flight.select` |
 | Passenger step / extras | `travel.booking.passengerDetails` / `travel.ancillary.select` |
 | Post-booking ancillary browse / intent / leave | `travel.ancillary.view` / `travel.ancillary.intent` / `travel.ancillary.abandon` |
-| Demo booking confirmed / viewed | `travel.booking.confirm` / `travel.booking.view` |
+| Booking confirmed / viewed | `flight.booked` / `travel.booking.view` |
 | Upgrade browse / intent / leave | `travel.upgrade.view` / `travel.upgrade.intent` / `travel.upgrade.abandon` |
 | Delay / gate change | `travel.flight.delay` / `travel.flight.gateChange` |
 

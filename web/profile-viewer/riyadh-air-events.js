@@ -3,7 +3,7 @@
   const TYPES = Object.freeze({
     search: 'travel.flight.search', select: 'travel.flight.select',
     passenger: 'travel.booking.passengerDetails', extras: 'travel.ancillary.select',
-    booking: 'travel.booking.confirm', upgradeView: 'travel.upgrade.view',
+    booking: 'flight.booked', upgradeView: 'travel.upgrade.view',
     upgradeIntent: 'travel.upgrade.intent', abandon: 'travel.upgrade.abandon',
     manage: 'travel.booking.view', delay: 'travel.flight.delay', gate: 'travel.flight.gateChange',
     ancillaryView: 'travel.ancillary.view', ancillaryIntent: 'travel.ancillary.intent', ancillaryAbandon: 'travel.ancillary.abandon',
@@ -28,6 +28,7 @@
     if (context.known && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(context.email || '')) {
       throw new Error('The selected profile needs a resolved email and ECID. Look up the profile again.');
     }
+    if (action === 'booking' && !context.known) throw new Error('Resolve and stitch the booking email before confirming the booking.');
     if (action !== 'search' && !trip.reference) throw new Error('Select a flight before sending a booking event.');
     const url = new URL(context.url);
     url.search = '';

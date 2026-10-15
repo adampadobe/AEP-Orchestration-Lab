@@ -31,7 +31,7 @@
     if (!search || search.origin === search.destination ||
       !destinationImages[search.origin] || !destinationImages[search.destination] ||
       search.origin !== 'RUH' && search.destination !== 'RUH') {
-      throw new Error('Demo flights are available between Riyadh and London, Jakarta, Milan or Bangkok. Choose a route to or from RUH.');
+      throw new Error('Flights are available between Riyadh and London, Jakarta, Milan or Bangkok. Choose a route to or from RUH.');
     }
     return inventory[search.origin === 'RUH' ? search.destination : search.origin];
   }
@@ -152,12 +152,12 @@
     const contactFields = '<label>Email address<input name="contactEmail" type="email" autocomplete="email" maxlength="254" required value="' +
       value(guest, 'contactEmail') + '"></label><label>Phone number<input name="phone" type="tel" autocomplete="tel" maxlength="30" required value="' +
       value(guest, 'phone') + '"></label>';
-    return selected + '<h2>Guest details</h2><p class="ra-guest-intro">Enter guest details exactly as shown on the passport. Use demo details only.</p>' +
+    return selected + '<h2>Guest details</h2><p class="ra-guest-intro">Enter guest details as they would appear on a passport. Use fictional details only.</p>' +
       '<div class="ra-guest-layout"><nav aria-label="Guest details sections"><button class="ra-guest-tab" type="button" data-ra-action="adult" aria-current="' +
       (contact ? 'false' : 'page') + '">Adult 1</button><button class="ra-guest-tab" type="button" data-ra-action="contact" aria-current="' +
       (contact ? 'page' : 'false') + '">Contact details</button></nav><section class="ra-guest-card"><p>Already a member? <button class="ra-text-button" type="button" data-ra-action="profile">Log in</button></p>' +
       '<form id="' + (contact ? 'raContactForm' : 'raPassengerForm') + '" class="ra-form">' + (contact ? contactFields : adultFields) +
-      '<p class="ra-form-wide ra-demo-note">Details are retained only in this tab for the demo and cleared on reset. They are not sent to AEP, Sfeer or the airline. The selected Lab profile remains the event identity.</p>' +
+      '<p class="ra-form-wide ra-demo-note">Your email connects this journey to your Adobe profile when you continue. Use the same email for Sfeer and contact details. Other guest details stay in this tab and are not sent to the airline. No Sfeer membership is created.</p>' +
       '<button class="ra-button ra-form-wide" type="submit">' + (contact ? 'Save guest details' : 'Continue to contact details') + ' →</button></form></section></div>';
   }
 

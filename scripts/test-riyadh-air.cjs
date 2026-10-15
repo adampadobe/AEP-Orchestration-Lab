@@ -11,6 +11,7 @@ const { chromium } = require('playwright');
 
 const ecid = '12345678901234567890123456789012345678';
 const profile = { found: true, email: 'traveller@example.test', ecid, firstName: 'Nour', lastName: 'Alam', identities: [], audiences: [], events: [] };
+const bookingProfile = { ...profile, email: 'booking@example.test', ecid: '98765432109876543210987654321098765432' };
 const target = { id: 'lab-event-tool-edge', label: 'Lab Event tool Edge', transport: 'edge', dataStreamId: 'fixture-datastream', xdmStyle: 'minimal' };
 const trip = { reference: 'RA123ABC', origin: 'LHR', destination: 'RUH', date: '2026-11-01', flight: 'RX100', cabin: 'Economy', seat: '14A', bag: true };
 const context = { sandbox: 'apalmer', email: profile.email, ecid, known: true, target, url: 'https://example.test/profile-viewer/riyadh-air-demo.html' };
@@ -76,6 +77,8 @@ function contractTests() {
   assert.throws(() => events.build('search', trip, { ...context, target: { id: 'other' } }), /Lab Event tool/);
   assert.throws(() => events.build('delay', trip, context, { delayMinutes: 0 }), /15-720/);
   assert.throws(() => events.build('gate', trip, context, { gate: '<invalid>' }), /valid gate/);
+  assert.equal(events.TYPES.booking, 'flight.booked', 'Booking confirmation matches the requested AJO rule contract');
+  assert.throws(() => events.build('booking', trip, { ...context, known: false }), /booking email/);
 }
 
 async function browserTests() {
@@ -130,9 +133,8 @@ async function browserTests() {
         data = { ok: true, transport: 'edge', requestId: 'fixture-' + requests.length };
       } else if (url.pathname === '/api/profile/consent') {
         const identifier = url.searchParams.get('identifier');
-        data = identifier === profile.email || identifier === ecid
-          ? { ...profile, ecid: missingEcid ? null : ecid }
-          : { found: false };
+        const found = [profile, bookingProfile].find((candidate) => identifier === candidate.email || identifier === candidate.ecid);
+        data = found ? { ...found, ecid: missingEcid ? null : found.ecid } : { found: false };
       } else if (url.pathname === '/api/profile/events') data = { events: [], eventsStory: [] };
       else if (url.pathname === '/api/env-bar-config') data = { config: null };
       else if (url.pathname === '/api/tags/reactor') data = { data: [] };
@@ -164,6 +166,11 @@ async function browserTests() {
     await page.evaluate(() => window.RiyadhAirLab.ready);
     assert.equal(await page.title(), 'Web page view - Home page');
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    async function assertCustomerCopy(surface) {
+      assert.doesNotMatch(await page.locator('#raCustomerSite').innerText(), /\bdemo(?:nstration)?\b/i,
+        surface + ': customer copy must not use demo labels');
+    }
+    await assertCustomerCopy('Home page');
     assert.equal(await page.locator('#aepDemoEnvSection').count(), 1);
     assert.equal(await page.locator('#profileDrawer').count(), 1);
     assert.equal(await page.locator('#siteCloneDecisioningEnabledToggle').count(), 1);
@@ -261,7 +268,8 @@ async function browserTests() {
     await newsletter.locator('[name="email"]').fill('nour@example.test');
     await newsletter.locator('[type="checkbox"]').check();
     await newsletter.getByRole('button', { name: 'Subscribe', exact: true }).click();
-    await newsletter.getByText('Demo form completed locally.', { exact: false }).waitFor();
+    await newsletter.getByText('Form completed locally.', { exact: false }).waitFor();
+    await assertCustomerCopy('Newsletter result');
     assert.equal(requests.length, 0, 'Reference newsletter never sends customer data');
 
     await page.getByRole('button', { name: 'Search flights' }).click();
@@ -315,6 +323,7 @@ async function browserTests() {
     await page.locator('#raAccountBack').click();
     await page.locator('#raJoinNow').click();
     assert.match(await page.locator('#raAccountFormHint').textContent(), /does not create/);
+    assert.doesNotMatch(await page.locator('#raAccountDialog').innerText(), /\bdemo\b/i);
     for (const change of ['identity', 'sandbox']) {
       await page.evaluate(() => {
         window.raIdentitySends = [];
@@ -396,6 +405,7 @@ async function browserTests() {
       await page.locator('[data-ra-page="' + route + '"]:visible').first().click();
       await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
       assert.equal(await page.locator('#raExploreTitle').textContent(), title);
+      await assertCustomerCopy(route);
       assert.equal(new URL(page.url()).searchParams.get('step'), route);
       assert.equal(await page.locator('#raBooking').isVisible(), true, 'Shared search available while browsing');
       assert.equal(await page.locator('#raJourney').isVisible(), false, 'No booking progress on editorial pages');
@@ -517,6 +527,7 @@ async function browserTests() {
     await page.locator('#raSwapAirports').click();
     await page.locator('#raSwapAirports').click();
     async function capture(name) {
+      await assertCustomerCopy(name);
       if (!process.env.RIYADH_SCREENSHOTS) return;
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 1000 });
@@ -595,7 +606,7 @@ async function browserTests() {
     await page.locator('[name="title"]').selectOption('Ms');
     await page.locator('[name="dob"]').fill('1990-01-10');
     await page.getByRole('button', { name: 'Continue to contact details' }).click();
-    await page.locator('[name="contactEmail"]').fill('contact@example.test');
+    await page.locator('[name="contactEmail"]').fill(profile.email);
     await page.locator('[name="phone"]').fill('+440000000000');
     await page.getByRole('button', { name: 'Save guest details' }).click();
     await page.getByRole('button', { name: 'Check out now' }).waitFor();
@@ -625,20 +636,34 @@ async function browserTests() {
     assert.equal(await page.locator('[name="dob"]').inputValue(), '1990-01-10');
     assert.equal(await page.locator('#raPassengerForm [name="firstName"]').inputValue(), 'Nour');
     await page.getByRole('button', { name: 'Continue to contact details' }).click();
-    assert.equal(await page.locator('[name="contactEmail"]').inputValue(), 'contact@example.test');
+    assert.equal(await page.locator('[name="contactEmail"]').inputValue(), profile.email);
+    await page.evaluate((fixtureEcid) => {
+      window.raTagsOptions.onEcidResolved(fixtureEcid);
+      window.alloy = async () => ({});
+    }, ecid);
     await page.getByRole('button', { name: 'Save guest details' }).click();
     assert.equal(requests.filter((body) => body.eventType === 'travel.booking.passengerDetails').length, 1, 'Guest editing is not duplicate ingestion');
     await capture('riyadh-cart-complete');
     await page.getByRole('button', { name: 'Check out now' }).click();
     assert.equal(new URL(page.url()).searchParams.get('step'), 'payment');
     assert.equal(requests.filter((body) => body.eventType.startsWith('travel.ancillary')).length, 0, 'No ancillary event before base-flight booking');
+    await assertCustomerCopy('Booking review');
+    assert.match(await page.locator('.ra-payment-consent').textContent(), /no payment is taken.*no ticket is issued/);
+    const beforeUncheckedConfirm = requests.length;
+    await page.getByRole('button', { name: 'Confirm booking', exact: false }).click();
+    assert.equal(requests.length, beforeUncheckedConfirm, 'Acknowledgement remains required before confirmation');
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'payment');
     await page.locator('#raPaymentForm input').check();
-    await page.getByRole('button', { name: 'Confirm demo booking' }).click();
+    await page.getByRole('button', { name: 'Confirm booking' }).click();
     await page.getByRole('button', { name: 'Explore a cabin upgrade' }).waitFor();
-    const booking = requests.find((body) => body.eventType === 'travel.booking.confirm');
+    await assertCustomerCopy('Booking confirmation');
+    assert.match(await page.locator('#raJourneyContent').textContent(), /Your booking is confirmed/);
+    const booking = requests.find((body) => body.eventType === 'flight.booked');
     assert(booking.public.travel.confirmationNumber);
     const bookingRef = booking.public.travel.confirmationNumber;
-    assert.equal(requests.filter((body) => body.eventType === 'travel.booking.confirm').length, 1);
+    assert.equal(requests.filter((body) => body.eventType === 'flight.booked').length, 1);
+    assert.equal(booking.email, profile.email);
+    assert.equal(booking.ecid, ecid);
     assert.equal(new URL(booking.public.generic.linkUrl).searchParams.get('seat'), null, 'Base flight has no purchased seat');
     assert.equal(await page.locator('#raPaidAmount').textContent(), 'SAR 4,129');
     const beforeManage = requests.filter((body) => body.eventType === 'travel.booking.view').length;
@@ -783,7 +808,7 @@ async function browserTests() {
     await page.evaluate(() => window.RiyadhAirLab.ready);
     await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
     await page.getByRole('heading', { name: 'We are here for your journey.' }).waitFor();
-    assert.equal(requests.filter((body) => body.eventType === 'travel.booking.confirm').length, 1, 'Reload does not re-ingest the booking');
+    assert.equal(requests.filter((body) => body.eventType === 'flight.booked').length, 1, 'Reload does not re-ingest the booking');
     await page.evaluate(() => {
       document.getElementById('riyadhNs').value = 'ecid';
       document.getElementById('riyadhNs').dispatchEvent(new Event('change', { bubbles: true }));
@@ -833,6 +858,117 @@ async function browserTests() {
     await page.locator('#raPassengerForm').waitFor();
     assert.equal(await page.locator('.ra-selected-leg').count(), 1, 'Original direction also supports a one-way booking');
     assert.equal(new URL(page.url()).searchParams.get('step'), 'passenger');
+    await page.locator('[name="title"]').selectOption('Ms');
+    await page.locator('[name="dob"]').fill('1990-01-10');
+    await page.locator('[name="loyaltyEmail"]').fill(bookingProfile.email);
+    const beforeBookingIdentity = requests.length;
+    await page.getByRole('button', { name: 'Continue to contact details' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'passenger', 'Missing SDK cannot advance an identifying booking form');
+    assert.equal(requests.length, beforeBookingIdentity);
+    await page.evaluate((fixtureEcid) => {
+      window.raTagsOptions.onEcidResolved(fixtureEcid);
+      window.raBookingStitches = [];
+      window.raStitchMode = 'reject';
+      window.alloy = async (command, options) => {
+        if (command === 'sendEvent' && options.xdm.eventType === 'riyadhAir.identity.stitch') {
+          window.raBookingStitches.push(options);
+          if (window.raStitchMode === 'reject') throw new Error('Fixture rejected booking stitch');
+          if (window.raStitchMode === 'hold') await new Promise((resolve) => { window.raReleaseBookingStitch = resolve; });
+        }
+        return {};
+      };
+    }, ecid);
+    await page.locator('[name="loyaltyEmail"]').fill('unknown@example.test');
+    await page.getByRole('button', { name: 'Continue to contact details' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'passenger', 'Unknown email cannot advance or create a booking profile');
+    assert.equal(await page.evaluate(() => window.raBookingStitches.length), 0);
+    await page.locator('[name="loyaltyEmail"]').fill(bookingProfile.email);
+    missingEcid = true;
+    await page.getByRole('button', { name: 'Continue to contact details' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'passenger', 'A profile without its own ECID cannot borrow the previous profile ECID');
+    assert.equal(await page.evaluate(() => window.raBookingStitches.length), 0);
+    missingEcid = false;
+    await page.getByRole('button', { name: 'Continue to contact details' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'passenger', 'Rejected SDK stitch preserves the passenger form');
+    assert.equal(await page.locator('[name="loyaltyEmail"]').inputValue(), bookingProfile.email);
+    assert.equal(requests.length, beforeBookingIdentity, 'No business event after rejected identity stitch');
+    await page.evaluate(() => { window.raStitchMode = 'hold'; });
+    await page.locator('#raPassengerForm').evaluate((form) => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => !!window.raReleaseBookingStitch);
+    assert(await page.locator('[name="loyaltyEmail"]').isDisabled(), 'Submitted identity cannot be edited during stitching');
+    const heldCount = await page.evaluate(() => window.raBookingStitches.length);
+    await page.evaluate(() => { window.raReleaseBookingStitch(); window.raReleaseBookingStitch = null; window.raStitchMode = 'accept'; });
+    await page.locator('#raContactForm').waitFor();
+    assert.equal(await page.evaluate(() => window.raBookingStitches.length), heldCount, 'Rapid submits perform one stitch');
+    assert.equal(await page.evaluate(() => window.RiyadhAirLab.context().email), bookingProfile.email, 'Submitted Sfeer email becomes the selected event identity');
+    assert.equal(await page.evaluate(() => window.RiyadhAirLab.context().ecid), bookingProfile.ecid, 'Canonical profile ECID is not borrowed from the previous profile');
+    const stitchedBooking = await page.evaluate(() => window.raBookingStitches.at(-1));
+    assert.equal(stitchedBooking.xdm.identityMap.Email[0].id, bookingProfile.email);
+    assert.equal(stitchedBooking.xdm.identityMap.ECID[0].id, ecid, 'Shared stitch connects the resolved browser ECID to the submitted email');
+    await page.locator('[name="contactEmail"]').fill(profile.email);
+    await page.locator('[name="phone"]').fill('+440000000000');
+    await page.getByRole('button', { name: 'Save guest details' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'contact', 'Conflicting emails cannot silently stitch two people');
+    await page.locator('[name="contactEmail"]').fill(bookingProfile.email);
+    await page.getByRole('button', { name: 'Save guest details' }).click();
+    await page.getByRole('button', { name: 'Check out now' }).waitFor();
+    assert.equal(requests.at(-1).email, bookingProfile.email);
+    for (const email of [profile.email, bookingProfile.email]) {
+      await page.getByRole('button', { name: 'Edit guest details' }).click();
+      await page.locator('[name="loyaltyEmail"]').fill('');
+      await page.getByRole('button', { name: 'Continue to contact details' }).click();
+      assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('riyadhAirJourneyV1')).guest.contactComplete), false, 'Passenger edits require contact confirmation again');
+      await page.locator('[name="contactEmail"]').fill(email);
+      await page.getByRole('button', { name: 'Save guest details' }).click();
+      await page.getByRole('button', { name: 'Check out now' }).waitFor();
+      assert.equal(requests.at(-1).email, email, 'Contact email alone can select a different existing profile without discarding the flight');
+      assert.equal(requests.at(-1).eventType, 'travel.booking.passengerDetails', 'An identity change does not reuse a different profile’s passenger receipt');
+    }
+    await page.getByRole('button', { name: 'Check out now' }).click();
+    await page.locator('#raPaymentForm input').check();
+    const beforeBookingFailure = requests.filter((body) => body.eventType === 'flight.booked').length;
+    failNext = true;
+    await page.getByRole('button', { name: 'Confirm booking' }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'payment', 'API rejection cannot confirm the booking');
+    assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('riyadhAirJourneyV1')).trip.booked), false);
+    await page.getByRole('button', { name: 'Confirm booking' }).click();
+    await page.getByRole('button', { name: 'Choose seats and extras' }).waitFor();
+    assert.equal(requests.filter((body) => body.eventType === 'flight.booked').length, beforeBookingFailure + 2, 'Only explicit confirmation retries send flight.booked');
+    assert.equal(requests.at(-1).email, bookingProfile.email);
+    assert.equal(requests.at(-1).ecid, bookingProfile.ecid);
+    assert(!requests.some((body) => body.eventType === 'travel.booking.confirm'), 'No legacy booking event duplicates the journey trigger');
+    const afterBookingIdentity = requests.length;
+    await page.evaluate((email) => {
+      window.raStitchMode = 'hold';
+      window.raDriftResult = null;
+      window.raDriftPromise = window.RiyadhAirLab.connectBookingEmail(email).then(
+        () => { window.raDriftResult = 'accepted'; },
+        (error) => { window.raDriftResult = error.message; },
+      );
+    }, profile.email);
+    await page.waitForFunction(() => !!window.raReleaseBookingStitch);
+    await page.evaluate(() => {
+      const input = document.getElementById('customerEmail');
+      input.value = 'changed-during-stitch@example.test';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      window.raReleaseBookingStitch();
+      window.raReleaseBookingStitch = null;
+      window.raStitchMode = 'accept';
+    });
+    await page.waitForFunction(() => window.raDriftResult !== null);
+    assert.notEqual(await page.evaluate(() => window.raDriftResult), 'accepted', 'In-flight identity change rejects local connection');
+    assert.equal(requests.length, afterBookingIdentity, 'No business event after in-flight identity drift');
+    await page.evaluate((email) => window.RiyadhAirLab.lookup(email), profile.email);
+    await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     for (const [destination, city, image, expectedTotal] of [
       ['LHR', 'London', 'london', 4129], ['CGK', 'Jakarta', 'jakarta', 3577],
       ['MXP', 'Milan', 'milan', 3877], ['BKK', 'Bangkok', 'bangkok', 3777],
@@ -863,7 +999,7 @@ async function browserTests() {
       await page.locator('[name="title"]').selectOption('Ms');
       await page.locator('[name="dob"]').fill('1990-01-10');
       await page.getByRole('button', { name: 'Continue to contact details' }).click();
-      await page.locator('[name="contactEmail"]').fill('contact@example.test');
+      await page.locator('[name="contactEmail"]').fill(profile.email);
       await page.locator('[name="phone"]').fill('+440000000000');
       await page.getByRole('button', { name: 'Save guest details' }).click();
       assert.equal(await page.locator('.ra-cart-total strong').textContent(), 'SAR ' + expectedTotal.toLocaleString('en-GB'), city + ' has route-specific round-trip total');
@@ -872,11 +1008,11 @@ async function browserTests() {
       assert.equal(await page.locator('.ra-destination-summary img').getAttribute('src'), 'riyadh-air-assets/' + image + '.avif');
       assert((await page.locator('.ra-destination-summary').textContent()).includes(departure + ' → ' + destination));
       await page.locator('#raPaymentForm input').check();
-      await page.getByRole('button', { name: 'Confirm demo booking' }).click();
+      await page.getByRole('button', { name: 'Confirm booking' }).click();
       await page.getByRole('button', { name: 'Choose seats and extras' }).waitFor();
       assert.equal(await page.locator('.ra-destination-summary img').getAttribute('src'), 'riyadh-air-assets/' + image + '.avif');
       assert.equal(await page.locator('#raPaidAmount').textContent(), 'SAR ' + expectedTotal.toLocaleString('en-GB'));
-      const baseBooking = requests.filter((body) => body.eventType === 'travel.booking.confirm').at(-1);
+      const baseBooking = requests.filter((body) => body.eventType === 'flight.booked').at(-1);
       const ref = baseBooking.public.travel.confirmationNumber;
       await page.getByRole('button', { name: 'Choose seats and extras' }).click();
       await page.getByRole('button', { name: 'Seat 14A', exact: true }).click();
@@ -941,7 +1077,7 @@ async function browserTests() {
     await page.locator('[data-ra-airport="MXP"]').click();
     const beforeUnavailable = requests.length;
     await page.getByRole('button', { name: 'Search flights' }).click();
-    await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('Demo flights are available between Riyadh'));
+    await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('Flights are available between Riyadh'));
     assert.equal(requests.length, beforeUnavailable, 'Unsupported airport combinations give availability feedback, not invented flights');
     assert.deepEqual(errors, [], 'No uncaught browser errors');
     await page.goto(origin + '/profile-viewer/etihad-demo.html');
