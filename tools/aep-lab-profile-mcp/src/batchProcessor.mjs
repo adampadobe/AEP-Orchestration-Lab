@@ -97,6 +97,7 @@ export async function processBatchJob(jobId, { keyId }) {
       const personaOpts = {
         loyalty_member: params.loyalty_member === true,
         last_order_details: params.last_order_details,
+        active_flight: typeof params.active_flight === 'boolean' ? params.active_flight : undefined,
         place_mode: params.place_mode || undefined,
         place_area: params.place_area || undefined,
         place: plannedPlaceForIndex(params.place_plan ? { places: params.place_plan } : null, i),

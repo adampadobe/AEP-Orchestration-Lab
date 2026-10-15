@@ -118,6 +118,15 @@ const DATE_LEAF = (title) => ({
   'meta:xdmType': 'date',
 });
 
+const DATETIME_LEAF = (title) => ({
+  type: 'string',
+  format: 'date-time',
+  title,
+  description: '',
+  required: [],
+  'meta:xdmType': 'date-time',
+});
+
 /**
  * `travelReservations.flightReservations` + its `multiLeg` sub-object.
  * Mirrors apalmer mixin verbatim (confirmed Apr 2026 by diffing the
@@ -150,6 +159,26 @@ const TRAVEL_RESERVATIONS_SUBTREE = {
         childrenTravelling: BOOLEAN_LEAF('childrenTravelling'),
         arrivalCountry: STRING_LEAF('arrivalCountry'),
         arrivalAirportCode: STRING_LEAF('arrivalAirportCode'),
+        // Lab-owned trip detail (2026-07) — streamed by the Travel generator and
+        // the MCP travel persona via travel-flight-trip.js. Datetimes are ISO-8601
+        // with the airport's local UTC offset.
+        departureAirportName: STRING_LEAF('departureAirportName'),
+        departureCity: STRING_LEAF('departureCity'),
+        arrivalAirportName: STRING_LEAF('arrivalAirportName'),
+        arrivalCity: STRING_LEAF('arrivalCity'),
+        airlineName: STRING_LEAF('airlineName'),
+        departureDateTime: DATETIME_LEAF('departureDateTime'),
+        arrivalDateTime: DATETIME_LEAF('arrivalDateTime'),
+        flightDurationMinutes: INT_LEAF('flightDurationMinutes'),
+        flightStatus: STRING_LEAF('flightStatus'),
+        tripType: STRING_LEAF('tripType'),
+        returnFlightNumber: STRING_LEAF('returnFlightNumber'),
+        returnDepartureDateTime: DATETIME_LEAF('returnDepartureDateTime'),
+        returnArrivalDateTime: DATETIME_LEAF('returnArrivalDateTime'),
+        seatNumber: STRING_LEAF('seatNumber'),
+        checkedBags: INT_LEAF('checkedBags'),
+        bookingChannel: STRING_LEAF('bookingChannel'),
+        bookingDate: DATE_LEAF('bookingDate'),
         multiLeg: {
           type: 'object',
           title: 'multiLeg',
@@ -440,5 +469,5 @@ module.exports = {
   // Exposed for tests / docs.
   TRAVEL_RESERVATIONS_SUBTREE,
   HOTEL_EXPERIENCE_SUBTREE,
-  _schemaLeafBuilders: { NUMBER_LEAF, INT_LEAF, STRING_LEAF, BOOLEAN_LEAF, DATE_LEAF },
+  _schemaLeafBuilders: { NUMBER_LEAF, INT_LEAF, STRING_LEAF, BOOLEAN_LEAF, DATE_LEAF, DATETIME_LEAF },
 };

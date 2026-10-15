@@ -11,7 +11,7 @@ import { LTV_MIDPOINT } from './retail.mjs';
 import { applyTravelSegmentHint } from './travel.mjs';
 
 /** Travel segment hints (hotel edge segments). */
-export const TRAVEL_SEGMENT_HINTS = ['hotel_high_value', 'hotel_reactivation'];
+export const TRAVEL_SEGMENT_HINTS = ['hotel_high_value', 'hotel_reactivation', 'active_flyer', 'lapsed_flyer'];
 
 /** FSI segment hints for wealth / credit-rebuild demos. */
 export const FSI_SEGMENT_HINTS = ['high_net_worth', 'credit_rebuild'];

@@ -8,7 +8,7 @@ import { buildMediaPersonaAttributes } from './media.mjs';
 import { buildRetailPersonaAttributes } from './retail.mjs';
 import { buildSportsPersonaAttributes } from './sports.mjs';
 import { buildTelecomPersonaAttributes } from './telecom.mjs';
-import { buildTravelPersonaAttributes } from './travel.mjs';
+import { buildTravelPersonaAttributes, TRAVEL_ACTIVE_FLIGHT_HINTS } from './travel.mjs';
 import { applySegmentHint } from './segments.mjs';
 
 export {
@@ -42,6 +42,8 @@ const INDUSTRIES_WITH_LOYALTY_TOGGLE = new Set(LAB_INDUSTRY_KEYS);
  * @property {string} [place_mode] - 'featured' (default: random featured area) | 'global' (anywhere on Earth) | 'area'
  * @property {string} [place_area] - featured area key/name or any catalog city (implies mode 'area' when place_mode is omitted)
  * @property {Record<string, unknown>} [place] - pre-planned place leaves (batch clustering); wins over mode/area
+ * @property {boolean} [active_flight] - Travel only: true → upcoming / in-the-air trip (flightBookings.activeFlight "Yes"),
+ *   false → completed trip ("No"); omitted → random, or pinned by segment_hint active_flyer / lapsed_flyer
  */
 
 /**
@@ -79,6 +81,20 @@ export function mergePersonaAttributes(base, overrides) {
 }
 
 /**
+ * Travel active_flyer / lapsed_flyer hints pin active_flight; an explicit
+ * active_flight option wins.
+ * @param {string} industry
+ * @param {string | undefined} segmentHint
+ * @param {PersonaBuildOptions} options
+ * @returns {PersonaBuildOptions}
+ */
+function withSegmentPinnedOptions(industry, segmentHint, options) {
+  if (industry !== 'travel' || !segmentHint || typeof options.active_flight === 'boolean') return options;
+  const pinned = TRAVEL_ACTIVE_FLIGHT_HINTS[String(segmentHint).trim().toLowerCase()];
+  return typeof pinned === 'boolean' ? { ...options, active_flight: pinned } : options;
+}
+
+/**
  * Build randomized persona attributes for an industry + email.
  * @param {string} industry - canonical industry key
  * @param {string} email
@@ -91,10 +107,11 @@ export function buildPersonaAttributes(industry, email, segmentHint, options = {
   const industryBuilder = INDUSTRY_BUILDERS[key] || INDUSTRY_BUILDERS.generic;
   const skipLoyalty = INDUSTRIES_WITH_LOYALTY_TOGGLE.has(key);
   const loyaltyMember = options.loyalty_member === true;
+  const buildOptions = withSegmentPinnedOptions(key, segmentHint, options);
 
   let attrs = {
     ...buildCommonPersonaAttributes(email, { skipLoyalty }),
-    ...industryBuilder(options),
+    ...industryBuilder(buildOptions),
     ...buildPlaceContextPersonaAttributes({
       mode: options.place_mode,
       area: options.place_area,

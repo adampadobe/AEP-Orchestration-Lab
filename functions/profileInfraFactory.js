@@ -1192,6 +1192,22 @@ function createProfileInfraService(config) {
     return need.every((r) => refs.has(r));
   }
 
+  function optionalFieldGroupStatus(fullSchema, tenantFgList, globalFgList) {
+    const refs = collectSchemaRefUris(fullSchema);
+    const out = [];
+    for (const entry of industryFieldGroups) {
+      if (entry.optional !== true) continue;
+      const r = resolveIndustryFgEntry(entry, tenantFgList, globalFgList);
+      const resolvedRefs = r.resolved ? (r.ref ? [r.ref] : (r.refs || []).map((x) => x.ref)) : [];
+      out.push({
+        label: entry.label || r.label || (entry.match ? String(entry.match) : 'optional'),
+        exists: resolvedRefs.length > 0,
+        attached: resolvedRefs.length > 0 && resolvedRefs.every((x) => refs.has(x)),
+      });
+    }
+    return out;
+  }
+
   /* ---- Identity descriptor ---- */
 
   async function listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, schemaMetaAltId) {
@@ -1918,6 +1934,8 @@ function createProfileInfraService(config) {
     let hasDescriptor = false;
     let fieldGroupsAttached = false;
     let schemaInProfileUnion = false;
+    /** @type {Array<{label: string, exists: boolean, attached: boolean}>} */
+    const optionalFieldGroups = [];
     if (schema) {
       const desc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schema.$id, schema['meta:altId']);
       hasDescriptor = desc.some((d) => isPrimaryEmailIdentityDescriptor(d));
@@ -1928,6 +1946,7 @@ function createProfileInfraService(config) {
           if (profileCore) {
             fieldGroupsAttached = profileFieldGroupsComplete(full, profileCore.$id, mixins, globalFgList);
           }
+          optionalFieldGroups.push(...optionalFieldGroupStatus(full, mixins, globalFgList));
         }
       }
     }
@@ -1957,6 +1976,10 @@ function createProfileInfraService(config) {
       datasetId: dataset?.id || null,
       datasetProfileEnabled,
       tenantSubtreePrefix,
+      // Optional industry field groups are not part of `ready`; clients gate
+      // the paths those groups own on `attached` so records don't fail XDM
+      // validation in sandboxes where step 2 has not been re-run.
+      optionalFieldGroups,
       prepSteps: {
         step1_schemaShell: !!schema,
         step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached),
