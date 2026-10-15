@@ -39,6 +39,13 @@ via add-only JSON-Patch.
   recomputes the diff, and retries once. A second conflict fails cleanly.
 - **Smallest non-overlapping ops.** If the entire `travelReservations` parent
   is missing, ONE `add` op for the whole subtree — not 21 per-leaf ops.
+- **Present subtrees are walked.** When a whole-subtree manifest entry (e.g.
+  `travelReservations`) already exists, the diff descends into it and adds any
+  missing child objects/leaves, so new leaves reach sandboxes created earlier.
+- **One bad subtree doesn't block the rest.** If the batched PATCH returns 400
+  (e.g. `Cannot merge incompatible data types` from another field group in a
+  schema using Profile Core v2), each gap is retried on its own. Rejected paths
+  are listed in `conflicts` as `<path> (patch rejected: …)`; the rest still land.
 - **Schema-typo fidelity.** `travelReservations.flightReservations.multiLeg.layoverAiport_2`
   (no 'r' in `Aiport`) is preserved on purpose — that's the canonical leaf name
   today and the UI streams that exact key.

@@ -490,6 +490,31 @@ function diffManifestAgainstMixin(manifest, presentPathSet, presentNodeMap, refB
     return false;
   }
 
+  function descendIntoPresentSubtree(parentPath, parentSchema) {
+    const props = parentSchema && parentSchema.type === 'object' && parentSchema.properties;
+    if (!props || typeof props !== 'object') return;
+    for (const [key, childSchema] of Object.entries(props)) {
+      const childPath = `${parentPath}.${key}`;
+      const blockedBy = pathIsUnderRefAncestor(childPath);
+      if (blockedBy) {
+        if (!presentPathSet.has(childPath)) {
+          conflicts.push({ path: childPath, reason: `ancestor '${blockedBy}' is a $ref to a shared datatype; FG PATCH cannot add leaves here (edit the datatype instead)` });
+        }
+        continue;
+      }
+      if (!presentPathSet.has(childPath)) {
+        needsAdd.push({ path: childPath, schema: childSchema });
+        continue;
+      }
+      const live = presentNodeMap.get(childPath);
+      if (!schemasTypesAgree(childSchema, live)) {
+        conflicts.push({ path: childPath, reason: `existing leaf has type '${live && live.type}' but manifest expects '${childSchema && childSchema.type}'` });
+        continue;
+      }
+      descendIntoPresentSubtree(childPath, childSchema);
+    }
+  }
+
   for (const mpath of manifestPaths) {
     // If a shallower ancestor is in this manifest AND was added to
     // `needsAdd` above, skip this entry — it'll come along for the ride
@@ -517,6 +542,9 @@ function diffManifestAgainstMixin(manifest, presentPathSet, presentNodeMap, refB
         conflicts.push({ path: mpath, reason: `existing leaf has type '${live && live.type}' but manifest expects '${manifest[mpath].type}'` });
       } else {
         alreadyPresent.push(mpath);
+        // Whole-subtree manifest entries (e.g. `travelReservations`) may gain
+        // new leaves after a sandbox already has the parent — add those too.
+        descendIntoPresentSubtree(mpath, manifest[mpath]);
       }
       continue;
     }
@@ -1533,6 +1561,52 @@ function createProfileInfraService(config) {
         };
       }
     }
+    if (lastError && lastError.status === 400 && plan.diff.needsAdd.length > 1) {
+      // One incompatible subtree (e.g. a type clash with another field group in
+      // a schema that uses Profile Core v2) rejects the whole batch. Retry each
+      // gap on its own so unrelated additions still land.
+      log(sandbox, 'topUpProfileCoreV2.batchRejectedFallbackPerPath', {
+        message: String(lastError.message || '').slice(0, 240),
+        pathCount: plan.diff.needsAdd.length,
+      });
+      const added = [];
+      const rejected = [];
+      let version = String(plan.rawBody.version || '1');
+      for (const item of plan.diff.needsAdd) {
+        const ops = buildTopUpJsonPatchOps(plan.walked.tenantKey, [item]);
+        const r = await patchTenantFieldGroupJsonPatch(token, clientId, orgId, sandbox, altId, version, ops);
+        if (r.ok) {
+          added.push(item.path);
+          const fresh = await getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, altId, ACCEPT_XED);
+          version = String((fresh && fresh.version) || version);
+        } else {
+          rejected.push(`${item.path} (patch rejected: HTTP ${r.status} — ${String(r.message || '').slice(0, 200)})`);
+        }
+      }
+      if (added.length === 0) {
+        throw new Error(
+          `Profile Core v2 top-up PATCH failed in sandbox ${sandbox} for every path: ${rejected.join('; ')}. AltId: ${altId}.`
+        );
+      }
+      const verifyResolved = await getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, altId, ACCEPT_XED_FULL);
+      const verifyWalked = walkResolvedMixinTenantTree(verifyResolved);
+      const stillMissing = added.filter((p) => !verifyWalked.presentPathSet.has(p));
+      if (stillMissing.length) {
+        throw new Error(
+          `topUpProfileCoreV2 per-path PATCH returned 2xx but post-check could not see: ${stillMissing.join(', ')}. Sandbox: ${sandbox}, altId: ${altId}.`
+        );
+      }
+      log(sandbox, 'topUpProfileCoreV2.patchedPartial', { industryKey, added, rejected, newVersion: version });
+      return {
+        mixinAltId: altId,
+        mixinPriorVersion: String(plan.rawBody.version || ''),
+        mixinNewVersion: version,
+        added,
+        alreadyPresent: plan.diff.alreadyPresent,
+        conflicts: plan.diff.conflicts.map((c) => `${c.path} (${c.reason})`).concat(rejected),
+        patchOpCount: added.length,
+      };
+    }
     throw new Error(
       `Profile Core v2 top-up PATCH failed in sandbox ${sandbox} after ${attempt + 1} attempt(s): HTTP ${lastError && lastError.status} — ${(lastError && lastError.message) || 'unknown'}. AltId: ${altId}.`
     );
@@ -1634,7 +1708,7 @@ function createProfileInfraService(config) {
         // top-level title like "Descriptor validation error") arrives in
         // the message and `looksLikeAlreadyExists` matches it.
         const msg = String(e.message || e);
-        if (looksLikeAlreadyExists(msg)) {
+        if (looksLikeAlreadyExists(msg) || /already defines a primary identity/i.test(msg)) {
           log(sandbox, 'createPrimaryEmailDescriptor.alreadyExists', { msg: msg.slice(0, 240) });
           descriptorOk = true;
         } else {
