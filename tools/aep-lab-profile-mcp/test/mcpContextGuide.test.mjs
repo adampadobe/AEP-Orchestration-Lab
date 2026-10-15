@@ -11,7 +11,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 212);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 21);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 23);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-decisioning').toolCount, 24);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);

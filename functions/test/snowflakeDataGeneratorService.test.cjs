@@ -21,17 +21,23 @@ const { scaleEmail } = require('../labProfileGenerationPrefsStore');
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
 
-function serviceWithConnection(rowsForSql = () => []) {
+function serviceWithConnection(rowsForSql = () => [], { allocator = true } = {}) {
   const calls = [];
   let destroyed = false;
   let emailCounter = 0;
+  let crmSequence = 1000;
   const connection = {
     connect(callback) { callback(null); },
     destroy(callback) { destroyed = true; callback(); },
     execute(options) {
       calls.push(options);
       try {
-        options.complete(null, null, rowsForSql(options.sqlText));
+        const rows = rowsForSql(options.sqlText);
+        if (options.sqlText.startsWith('SELECT "INCREMENT"')) options.complete(null, null, allocator ? [{ INCREMENT: 1000 }] : []);
+        else if (options.sqlText.endsWith('.NEXTVAL AS START_INDEX')) {
+          options.complete(null, null, [{ START_INDEX: crmSequence }]);
+          crmSequence += 1000;
+        } else options.complete(null, null, rows);
       } catch (error) {
         options.complete(error);
       }
@@ -56,10 +62,40 @@ function serviceWithConnection(rowsForSql = () => []) {
       return originalRequire(id);
     },
   }, { filename: servicePath });
-  return { service: module.exports, calls, isDestroyed: () => destroyed };
+  return { service: module.exports, calls, isDestroyed: () => destroyed, reservedEmailCount: () => emailCounter };
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('requires the migrated sequence before reserving emails or writing any profile data', async () => {
+    const fixture = serviceWithConnection(undefined, { allocator: false });
+    const result = await fixture.service.handleGenerateIndustryProfiles({
+      labUser: 'offline-user', sandbox: 'test', industry: 'retail', count: 2,
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.error.message, /allocator.*migration|CRM sequence migration/);
+    assert.equal(fixture.reservedEmailCount(), 0);
+    assert.equal(fixture.calls.some(({ sqlText }) => /^MERGE|^BEGIN/.test(sqlText)), false);
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
+  it('API seeding and AEP dual-load consume the same physical-target sequence', async () => {
+    const fixture = serviceWithConnection();
+    const seeded = await fixture.service.handleGenerateIndustryProfiles({
+      labUser: 'offline-user', sandbox: 'test', industry: 'retail', count: 2,
+    });
+    const dual = await fixture.service.handleInsertProfileFromAep({
+      labUser: 'offline-user', sandbox: 'test', industry: 'fsi',
+      email: 'aep@example.com', ecid: '12345678901234567890123456789012345678', attributes: {},
+    });
+    assert.equal(seeded.ok, true);
+    assert.equal(dual.ok, true, JSON.stringify(dual.error));
+    const allocations = fixture.calls.filter(({ sqlText }) => sqlText.endsWith('.NEXTVAL AS START_INDEX'));
+    assert.equal(allocations.length, 2);
+    assert.equal(allocations[0].sqlText, allocations[1].sqlText);
+    assert.match(allocations[0].sqlText, /DEMO_DB.LAB.AEP_LAB_RECIPIENT_CRM_SEQUENCE/);
+    assert.notEqual(dual.crmId, seeded.profiles[0].crmId);
+  });
+
   it('runs the page endpoint through parent and child writes for all six industries', async () => {
     for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
       const fixture = serviceWithConnection();

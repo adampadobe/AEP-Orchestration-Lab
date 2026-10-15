@@ -122,6 +122,8 @@ test('Snowflake UI displays partial DDL results, invalidates failed preview, and
     readSandbox: () => 'colleague', readIndustry: () => 'travel',
     window: { confirm: () => true },
     authHeaders: async () => ({ Authorization: 'test-only' }),
+    readContext: () => ({}), isCurrentContext: () => true,
+    contextHeaders: async () => ({ Authorization: 'test-only' }),
     fetch: async (_url, init) => { requests.push(JSON.parse(init.body)); return { ok: false, json: async () => ({ result }) }; },
     els: { industryProvisionOut: { hidden: true, textContent: '' } },
     safeStringify: JSON.stringify, setIndustryBusy() {},

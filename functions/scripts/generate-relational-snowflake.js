@@ -11,7 +11,7 @@ const { generateIndustryProfileRow } = require('../snowflakeIndustryProfileGener
 const { listSnowflakeProfileIndustries } = require('../snowflakeIndustryProfileRegistry');
 const { qualifiedRecipientTable } = require('../snowflakeRecipientStore');
 const { HERO_PROFILE_NAMES } = require('../snowflakeRelationalGenerator');
-const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex } = require('../snowflakeSeedStore');
+const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex, planCrmSequenceMigration } = require('../snowflakeSeedStore');
 
 function usage() {
   return [
@@ -22,6 +22,7 @@ function usage() {
     '  --base-email <email>       Required demo email; also accepts SNOWFLAKE_SEED_BASE_EMAIL',
     '  --hero-profiles <number>   Travel heroes (default: up to 5 for travel/all)',
     '  --as-of-date <YYYY-MM-DD>  Reference date for generated trips (default: today)',
+    '  --plan-crm-sequence        Read-only allocation migration plan; no profiles or DDL',
     '',
     'Writes Snowflake only. Existing AEP ingestion flows are not modified.',
     'Connection: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_WAREHOUSE,',
@@ -34,6 +35,7 @@ function parseArgs(argv) {
   const result = { industry: 'all', count: 10, heroProfiles: null, asOfDate: null, baseEmail: null };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--help' || argv[i] === '-h') return { help: true };
+    if (argv[i] === '--plan-crm-sequence') { result.planCrmSequence = true; continue; }
     const [flag, inlineValue] = argv[i].split('=', 2);
     const value = inlineValue === undefined ? argv[++i] : inlineValue;
     if (value === undefined || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -121,7 +123,7 @@ async function seedNewProfiles(execute, cfg, options) {
   const industries = options.industry === 'all' ? listSnowflakeProfileIndustries() : [options.industry];
   for (const industry of industries) await prepareSeedTables(execute, cfg, industry);
   const parent = qualifiedRecipientTable(cfg.database, cfg.schema);
-  const start = await getNextSeedCrmIndex(execute, cfg, industries);
+  const start = await getNextSeedCrmIndex(execute, cfg, industries, options.count);
   const runStamp = new Date().toISOString();
   const [local, domain] = baseEmail.split('@');
   const identities = Array.from({ length: options.count }, (_, index) => ({
@@ -169,14 +171,17 @@ async function main(argv = process.argv.slice(2)) {
   }
   // Validate the seed address before opening a connection.
   const baseEmail = args.baseEmail || process.env.SNOWFLAKE_SEED_BASE_EMAIL;
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(baseEmail || ''))) {
+  if (!args.planCrmSequence && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(baseEmail || ''))) {
     throw new Error('--base-email must be a valid email');
   }
   const { options, cfg } = snowflakeOptionsFromEnv();
   const connection = require('snowflake-sdk').createConnection(options);
   try {
     await new Promise((resolve, reject) => connection.connect((error) => error ? reject(error) : resolve()));
-    const result = await seedNewProfiles((sql, binds) => executeAsync(connection, sql, binds), cfg, args);
+    const execute = (sql, binds) => executeAsync(connection, sql, binds);
+    const result = args.planCrmSequence
+      ? await planCrmSequenceMigration(execute, cfg)
+      : await seedNewProfiles(execute, cfg, args);
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } finally {
     await new Promise((resolve) => connection.destroy(resolve));

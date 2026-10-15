@@ -62,11 +62,11 @@ jobs:
         run: npm ci
 
       - name: Verify MCP dispatch telemetry and existing authentication/tool registration
-        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
+        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/requestLogging.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
-          node --test functions/test/snowflake*.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs
+          node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs
           npm run verify:snowflake-industry-manifest
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
 

@@ -21,7 +21,7 @@
   /** Anonymous Firebase uid from this browser before Portal login — sent once for migration. */
   var LS_LEGACY_ANON_UID = 'aepLabSnowflakeLegacyAnonymousUid';
   /** Base-profile generate runs only (separate from Agentic full-gen batches). */
-  var LS_SF_BASE_GEN_BATCHES = 'aepLabSnowflakeBaseProfileBatchesV1';
+  var LS_SF_BASE_GEN_BATCHES = 'aepLabSnowflakeBaseProfileBatchesV2';
   var MAX_SF_BASE_BATCH_HISTORY = 20;
   var STATIC_EGRESS_IP = '34.58.81.28';
   /** Max PEM / PKCS#8 file size read in the browser before Save. */
@@ -88,11 +88,97 @@
   var loadConfigSeq = 0;
   /** Rows last returned from /api/snowflake/agentic/query-profiles (for enrich payload). */
   var loadedProfiles = [];
+  var loadedProfilesContext = null;
   /** Last governed industry manifest returned by the catalog endpoint. */
   var industryCatalog = null;
   var industryProvisionPreview = null;
   /** Profile bundle last fetched for the "Inspect generated data" picker on the Full Agentic generate panel. */
   var fullGenBundleCache = null;
+  var contextEpoch = 0;
+  var fullGenBundleSeq = 0;
+  var connectionWriteBusy = false;
+
+  function readContext() {
+    return {
+      sandbox: readSandbox(),
+      industry: readIndustry(),
+      uid: currentFirebaseUid(),
+      epoch: contextEpoch,
+    };
+  }
+
+  function isCurrentContext(context) {
+    return context.epoch === contextEpoch && context.sandbox === readSandbox() &&
+      context.industry === readIndustry() && context.uid === currentFirebaseUid();
+  }
+
+  function contextHeaders(context, allowConnectionWrite) {
+    return authHeaders().then(function (headers) {
+      if (!isCurrentContext(context)) throw new Error('Snowflake context changed. Select the current target before trying again.');
+      if (connectionWriteBusy && !allowConnectionWrite) throw new Error('Wait for the Snowflake connection change to finish before using this target.');
+      if (!headers.Authorization) throw new Error('Sign-in not ready yet.');
+      return headers;
+    });
+  }
+
+  function batchHistoryKey() {
+    var context = readContext();
+    return context.uid && context.sandbox
+      ? LS_SF_BASE_GEN_BATCHES + ':' + encodeURIComponent(context.uid) + ':' +
+        encodeURIComponent(context.sandbox) + ':' + encodeURIComponent(context.industry)
+      : null;
+  }
+
+  function resetWorkflowContext() {
+    var wasGenerating = els.genForm && els.genForm.getAttribute('aria-busy') === 'true';
+    contextEpoch += 1;
+    connectionWriteBusy = false;
+    loadConfigSeq += 1;
+    fullGenBundleSeq += 1;
+    industryCatalog = null;
+    industryProvisionPreview = null;
+    fullGenBundleCache = null;
+    renderProfileRows([]);
+    if (els.profileBundleOut) els.profileBundleOut.hidden = true;
+    if (els.industryProvisionOut) els.industryProvisionOut.hidden = true;
+    if (els.industryTableGrid) els.industryTableGrid.textContent = '';
+    if (els.industryPreviewTable) els.industryPreviewTable.textContent = '';
+    if (els.industryReadinessStatus) els.industryReadinessStatus.textContent = 'Check readiness to inspect Snowflake';
+    if (els.industryTableDetailsStatus) els.industryTableDetailsStatus.textContent = 'Expand to inspect governed tables';
+    renderIndustryPreviewTable(null);
+    setIndustryPreviewMessage('', 'info');
+    setIndustryPreviewBusy(false);
+    setIndustryBusy(false);
+    setBusy(false);
+    setUpdaterBusy(false);
+    setGenerateBusy(false);
+    setFullGenBusy(false);
+    reflectIndustrySelection();
+    reflectGenerationScope();
+    setIndustryMessage('', 'info');
+    setUpdaterMessage('', 'info');
+    renderBaseBatchHistorySelect();
+    if (els.genDebug) els.genDebug.hidden = true;
+    if (wasGenerating) {
+      setGenerateMessage('Target changed. The previous run may still finish in its original Snowflake target. Inspect that target before retrying.', 'info');
+    }
+  }
+
+  function reloadWorkflowContext() {
+    resetWorkflowContext();
+    ['account', 'user', 'role', 'warehouse', 'database', 'schema', 'credential', 'keyPassphrase', 'keyFile'].forEach(function (key) {
+      if (els[key]) els[key].value = '';
+    });
+    lastConfigMeta.labUserUidPrefix = '';
+    lastConfigMeta.labUserEmail = '';
+    lastConfigMeta.labUserDisplayName = '';
+    if (els.debug) els.debug.hidden = true;
+    syncConnectionUi(null);
+    var context = readContext();
+    return loadConfig().then(function () {
+      if (isCurrentContext(context)) return loadIndustryCatalog(true);
+    });
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -129,7 +215,9 @@
 
   function safeGetBaseBatchHistory() {
     try {
-      var raw = localStorage.getItem(LS_SF_BASE_GEN_BATCHES);
+      var key = batchHistoryKey();
+      if (!key) return [];
+      var raw = localStorage.getItem(key);
       if (!raw) return [];
       var parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
@@ -140,7 +228,9 @@
 
   function saveBaseBatchHistory(history) {
     try {
-      localStorage.setItem(LS_SF_BASE_GEN_BATCHES, JSON.stringify(history.slice(0, MAX_SF_BASE_BATCH_HISTORY)));
+      var key = batchHistoryKey();
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify(history.slice(0, MAX_SF_BASE_BATCH_HISTORY)));
     } catch (_) {
       /* quota / private mode */
     }
@@ -852,6 +942,7 @@
   }
 
   function loadConfig() {
+    var context = readContext();
     industryProvisionPreview = null;
     var sandbox = readSandbox();
     var seq = ++loadConfigSeq;
@@ -872,18 +963,14 @@
     }
     setBusy(true);
     setMessage('Loading saved Snowflake config…', 'info');
-    return authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setMessage('Firebase auth is initializing — refresh the page in a second.', 'info');
-        return null;
-      }
+    return contextHeaders(context).then(function (h) {
       var url =
         '/api/snowflake/config?sandbox=' +
         encodeURIComponent(sandbox) +
         snowflakeQuerySuffix(currentFirebaseUid());
       return fetch(url, { headers: h }).then(function (res) {
         return res.json().then(function (body) {
-          if (seq !== loadConfigSeq) return;
+          if (seq !== loadConfigSeq || !isCurrentContext(context)) return;
           setDebug('GET ' + url, null, res.status, body);
           if (res.ok && body && body.ok) {
             var rec = body.record || null;
@@ -921,8 +1008,10 @@
         });
       });
     }).catch(function (e) {
+      if (seq !== loadConfigSeq || !isCurrentContext(context)) return;
       setMessage('Network error while loading config: ' + (e && e.message || e), 'error');
     }).then(function () {
+      if (seq !== loadConfigSeq || !isCurrentContext(context)) return;
       setBusy(false);
     });
   }
@@ -943,14 +1032,15 @@
       setMessage('Account and user are required before saving.', 'error');
       return;
     }
+    resetWorkflowContext();
+    var context = readContext();
+    connectionWriteBusy = true;
+    setGenerateBusy(true);
+    setUpdaterBusy(true);
+    setIndustryBusy(true);
     setBusy(true);
     setMessage('Saving connection…', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setBusy(false);
-        return;
-      }
+    contextHeaders(context, true).then(function (h) {
       attachLegacyAnonymousPayload(payload, currentFirebaseUid());
       var url = '/api/snowflake/config';
       var body = JSON.stringify(payload);
@@ -958,12 +1048,13 @@
       var debugPayload = Object.assign({}, payload);
       if (debugPayload.credential) debugPayload.credential = '«redacted, length=' + payload.credential.length + '»';
       if (debugPayload.keyPassphrase) debugPayload.keyPassphrase = '«redacted»';
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: body,
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           setDebug('POST ' + url, debugPayload, res.status, data);
           if (res.ok && data && data.ok) {
             lastSnowflakeTestOk = false;
@@ -976,19 +1067,28 @@
                 '. Click Test connection to validate the IP allowlist round-trip.',
               'success'
             );
+            connectionWriteBusy = false;
+            return loadIndustryCatalog(true);
           } else if (!handleSnowflakeAuthError(data)) {
             setMessage((data && data.error) || ('Save failed (HTTP ' + res.status + ')'), 'error');
           }
         });
-      }).catch(function (e) {
-        setMessage('Network error while saving: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) setMessage('Could not save connection: ' + (e && e.message || e), 'error');
+    }).then(function () {
+      if (isCurrentContext(context)) {
+        connectionWriteBusy = false;
+        setBusy(false);
+        setGenerateBusy(false);
+        setUpdaterBusy(false);
+        setIndustryBusy(false);
+      }
     });
   }
 
   function testConnection() {
+    var context = readContext();
     if (!hasPortalLogin()) {
       setMessage(portalLoginRequiredMessage(), 'error');
       openPortalLoginHint();
@@ -1001,21 +1101,17 @@
     }
     setBusy(true);
     setMessage('Opening Snowflake connection (egress via static IP ' + STATIC_EGRESS_IP + ')…', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setBusy(false);
-        return;
-      }
+    contextHeaders(context).then(function (h) {
       var testPayload = attachLegacyAnonymousPayload({ sandbox: sandbox }, currentFirebaseUid());
       var url = '/api/snowflake/connection-test';
       var body = JSON.stringify(testPayload);
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: body,
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           setDebug('POST ' + url, testPayload, res.status, data);
           var result = data && data.result;
           if (res.ok && result && result.ok) {
@@ -1035,11 +1131,11 @@
             }
           }
         });
-      }).catch(function (e) {
-        setMessage('Network error during connection test: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) setMessage('Connection test failed: ' + (e && e.message || e), 'error');
+    }).then(function () {
+      if (isCurrentContext(context)) setBusy(false);
     });
   }
 
@@ -1057,25 +1153,27 @@
     if (!window.confirm('Delete the stored Snowflake credential for sandbox "' + sandbox + '"?\n\nThis removes the secret in Secret Manager. Connection tests will fail until a new credential is saved.')) {
       return;
     }
+    resetWorkflowContext();
+    var context = readContext();
+    connectionWriteBusy = true;
+    setGenerateBusy(true);
+    setUpdaterBusy(true);
+    setIndustryBusy(true);
     setBusy(true);
     setMessage('Clearing stored credential…', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setBusy(false);
-        return;
-      }
+    contextHeaders(context, true).then(function (h) {
       var url = '/api/snowflake/config';
       var payload = attachLegacyAnonymousPayload(
         { sandbox: sandbox, clearCredential: true, clearKeyPassphrase: true },
         currentFirebaseUid()
       );
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify(payload),
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           setDebug('POST ' + url, payload, res.status, data);
           if (res.ok && data && data.ok) {
             rememberConfigMeta(data, data.record || null);
@@ -1085,11 +1183,17 @@
             setMessage((data && data.error) || ('Clear failed (HTTP ' + res.status + ')'), 'error');
           }
         });
-      }).catch(function (e) {
-        setMessage('Network error while clearing: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) setMessage('Could not clear credential: ' + (e && e.message || e), 'error');
+    }).then(function () {
+      if (isCurrentContext(context)) {
+        connectionWriteBusy = false;
+        setBusy(false);
+        setGenerateBusy(false);
+        setUpdaterBusy(false);
+        setIndustryBusy(false);
+      }
     });
   }
 
@@ -1128,6 +1232,7 @@
   }
 
   function setGenerateBusy(busy) {
+    busy = !!busy || connectionWriteBusy;
     if (els.genForm) els.genForm.setAttribute('aria-busy', busy ? 'true' : 'false');
     if (els.generateBtn) els.generateBtn.disabled = !!busy;
     if (els.genBatchLoadBtn) els.genBatchLoadBtn.disabled = !!busy;
@@ -1173,6 +1278,7 @@
   }
 
   function setIndustryBusy(busy) {
+    busy = !!busy || connectionWriteBusy;
     [els.industry, els.industryRefreshBtn, els.industryDryRunBtn, els.industryProvisionBtn]
       .forEach(function (node) { if (node) node.disabled = !!busy; });
     if (!busy) {
@@ -1241,6 +1347,7 @@
   }
 
   function previewIndustryTable() {
+    var context = readContext();
     var table = els.industryPreviewTable && els.industryPreviewTable.value;
     if (!table) {
       setIndustryPreviewMessage('Choose a ready table first.', 'error');
@@ -1250,20 +1357,20 @@
     setIndustryPreviewMessage('Loading a read-only sample from ' + table + '…', 'info');
     if (els.industryPreviewWrap) els.industryPreviewWrap.hidden = true;
 
-    authHeaders().then(function (h) {
-      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+    contextHeaders(context).then(function (h) {
       return fetch('/api/snowflake/industry-table-preview', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
-          sandbox: readSandbox(),
-          industry: readIndustry(),
+          sandbox: context.sandbox,
+          industry: context.industry,
           table: table,
           limit: els.industryPreviewLimit ? parseInt(els.industryPreviewLimit.value, 10) : 10,
         }),
       });
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (!isCurrentContext(context)) return;
         var result = body && body.result;
         if (!res.ok || !result || !result.ok) {
           throw new Error(
@@ -1281,9 +1388,11 @@
         );
       });
     }).catch(function (error) {
+      if (!isCurrentContext(context)) return;
       renderIndustryPreviewTable(null);
       setIndustryPreviewMessage(error && error.message || String(error), 'error');
     }).then(function () {
+      if (!isCurrentContext(context)) return;
       setIndustryPreviewBusy(false);
     });
   }
@@ -1405,6 +1514,7 @@
   }
 
   function loadIndustryCatalog(checkTables) {
+    var context = readContext();
     var sandbox = readSandbox();
     if (!sandbox) {
       setIndustryMessage('Pick a sandbox from Global values first.', 'error');
@@ -1412,19 +1522,19 @@
     }
     setIndustryBusy(true);
     setIndustryMessage('Checking the governed ' + titleCase(readIndustry()) + ' manifest…', 'info');
-    return authHeaders().then(function (h) {
-      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+    return contextHeaders(context).then(function (h) {
       return fetch('/api/snowflake/industry-catalog', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
           sandbox: sandbox,
-          industry: readIndustry(),
+          industry: context.industry,
           checkTables: checkTables !== false,
         }),
       });
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (!isCurrentContext(context)) return;
         var result = body && body.result;
         if (!res.ok || !result || !result.ok) {
           throw new Error((result && result.error && result.error.message) || body.error || 'Catalog check failed.');
@@ -1436,14 +1546,17 @@
         );
       });
     }).catch(function (error) {
+      if (!isCurrentContext(context)) return;
       if (els.industryTableDetails) els.industryTableDetails.open = true;
       setIndustryMessage(error && error.message || String(error), 'error');
     }).then(function () {
+      if (!isCurrentContext(context)) return;
       setIndustryBusy(false);
     });
   }
 
   function provisionIndustry(dryRun) {
+    var context = readContext();
     var manifest = industryCatalog && industryCatalog.manifest;
     var recipe = selectedProvisionRecipe(manifest);
     if (!recipe) {
@@ -1467,8 +1580,7 @@
     }
     setIndustryBusy(true);
     setIndustryMessage(dryRun ? 'Preparing allowlisted SQL preview…' : 'Creating missing allowlisted tables…', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+    contextHeaders(context).then(function (h) {
       return fetch('/api/snowflake/provision', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
@@ -1483,6 +1595,7 @@
       });
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (!isCurrentContext(context)) return;
         var result = body && body.result;
         if (els.industryProvisionOut && result) {
           els.industryProvisionOut.hidden = false;
@@ -1498,9 +1611,11 @@
         if (!dryRun) return loadIndustryCatalog(true);
       });
     }).catch(function (error) {
+      if (!isCurrentContext(context)) return;
       industryProvisionPreview = null;
       setIndustryMessage(error && error.message || String(error), 'error');
     }).then(function () {
+      if (!isCurrentContext(context)) return;
       setIndustryBusy(false);
     });
   }
@@ -1532,6 +1647,7 @@
   }
 
   function setUpdaterBusy(busy) {
+    busy = !!busy || connectionWriteBusy;
     if (els.updaterForm) els.updaterForm.setAttribute('aria-busy', busy ? 'true' : 'false');
     if (els.loadProfilesBtn) els.loadProfilesBtn.disabled = !!busy;
     if (els.enrichBtn) els.enrichBtn.disabled = !!busy;
@@ -1566,7 +1682,7 @@
     if (els.genTargetTableGroup) els.genTargetTableGroup.hidden = isFull;
     if (els.genBatchSizeGroup) els.genBatchSizeGroup.hidden = isFull;
     if (els.genBatchHistoryGroup) els.genBatchHistoryGroup.hidden = isFull;
-    if (els.generateBtn) els.generateBtn.textContent = isFull ? 'Run full phased generate' : 'Generate profiles';
+    if (els.generateBtn) els.generateBtn.textContent = isFull ? 'Run full phased generate' : 'Seed recipients & industry data';
     setGenerateMessage('', 'info');
     setFullGenMessage('', 'info');
     if (els.genResult) els.genResult.hidden = true;
@@ -1594,6 +1710,7 @@
 
   function renderProfileRows(rows) {
     loadedProfiles = Array.isArray(rows) ? rows : [];
+    loadedProfilesContext = loadedProfiles.length ? readContext() : null;
     var tb = els.profileTbody;
     if (!tb) return;
     tb.textContent = '';
@@ -1605,6 +1722,7 @@
       cb.type = 'checkbox';
       cb.className = 'sf-pick';
       cb.setAttribute('data-idx', String(i));
+      cb.setAttribute('aria-label', 'Select profile ' + String(r.crmId || r.ecid || r.email || (i + 1)));
       td0.appendChild(cb);
       tr.appendChild(td0);
       function cell(t) {
@@ -1622,6 +1740,7 @@
   }
 
   function loadProfiles() {
+    var context = readContext();
     var sandbox = readSandbox();
     if (!sandbox) {
       setUpdaterMessage('Pick a sandbox from Global values first.', 'error');
@@ -1630,26 +1749,22 @@
     setUpdaterBusy(true);
     setUpdaterMessage('Loading profiles…', 'info');
     if (els.profileBundleOut) els.profileBundleOut.hidden = true;
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setUpdaterMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setUpdaterBusy(false);
-        return;
-      }
+    contextHeaders(context).then(function (h) {
       var url = '/api/snowflake/agentic/query-profiles';
       var body = JSON.stringify({
         sandbox: sandbox,
         filterType: els.filterType ? els.filterType.value : 'all',
         timePeriod: els.timePeriod ? els.timePeriod.value : 'all_time',
         limit: els.queryLimit ? parseInt(els.queryLimit.value, 10) : 50,
-        industry: readIndustry(),
+        industry: context.industry,
       });
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: body,
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           var result = data && data.result;
           if (res.ok && result && result.ok && Array.isArray(result.profiles)) {
             renderProfileRows(result.profiles);
@@ -1662,11 +1777,11 @@
             renderProfileRows([]);
           }
         });
-      }).catch(function (e) {
-        setUpdaterMessage('Network error: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setUpdaterBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) setUpdaterMessage(e && e.message || String(e), 'error');
+    }).then(function () {
+      if (isCurrentContext(context)) setUpdaterBusy(false);
     });
   }
 
@@ -1682,9 +1797,15 @@
   }
 
   function enrichSelected() {
+    var context = readContext();
     var sandbox = readSandbox();
     if (!sandbox) {
       setUpdaterMessage('Pick a sandbox from Global values first.', 'error');
+      return;
+    }
+    if (loadedProfiles.length && (!loadedProfilesContext || !isCurrentContext(loadedProfilesContext))) {
+      renderProfileRows([]);
+      setUpdaterMessage('The Snowflake target changed. Load profiles again before enriching.', 'error');
       return;
     }
     var picks = document.querySelectorAll('.sf-pick:checked');
@@ -1712,25 +1833,21 @@
     }
     setUpdaterBusy(true);
     setUpdaterMessage('Enriching ' + profiles.length + ' profile(s)… This may take several minutes.', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setUpdaterMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setUpdaterBusy(false);
-        return;
-      }
+    contextHeaders(context).then(function (h) {
       var url = '/api/snowflake/agentic/enrich-profiles';
       var payload = {
         sandbox: sandbox,
-        industry: readIndustry(),
+        industry: context.industry,
         profiles: profiles,
         eventTypes: eventTypes,
       };
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify(payload),
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           var result = data && data.result;
           if (res.status === 501) {
             setUpdaterMessage(
@@ -1757,11 +1874,14 @@
             setUpdaterMessage(msg, 'error');
           }
         });
-      }).catch(function (e) {
-        setUpdaterMessage('Network error: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setUpdaterBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) {
+        setUpdaterMessage('Enrichment could not be confirmed: ' + (e && e.message || e) +
+          '. Inspect the original target before retrying.', 'error');
+      }
+    }).then(function () {
+      if (isCurrentContext(context)) setUpdaterBusy(false);
     });
   }
 
@@ -1773,6 +1893,12 @@
   }
 
   function viewProfileBundle() {
+    var context = readContext();
+    if (loadedProfiles.length && (!loadedProfilesContext || !isCurrentContext(loadedProfilesContext))) {
+      renderProfileRows([]);
+      setUpdaterMessage('The Snowflake target changed. Load profiles again before inspecting.', 'error');
+      return;
+    }
     var profile = selectedProfile();
     if (!profile) {
       setUpdaterMessage('Select exactly one profile row to view its bundle.', 'error');
@@ -1780,14 +1906,13 @@
     }
     setUpdaterBusy(true);
     setUpdaterMessage('Loading the complete industry profile bundle…', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+    contextHeaders(context).then(function (h) {
       return fetch('/api/snowflake/agentic/profile-bundle', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
-          sandbox: readSandbox(),
-          industry: readIndustry(),
+          sandbox: context.sandbox,
+          industry: context.industry,
           email: profile.email,
           ecid: profile.ecid,
           crmId: profile.crmId,
@@ -1796,6 +1921,7 @@
       });
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (!isCurrentContext(context)) return;
         var result = body && body.result;
         if (!res.ok || !result || !result.ok) {
           throw new Error((result && result.error && result.error.message) || body.error || 'Bundle lookup failed.');
@@ -1807,8 +1933,10 @@
         setUpdaterMessage('Profile bundle loaded with ' + result.totalReturnedRows + ' event/enrichment row(s).', 'success');
       });
     }).catch(function (error) {
+      if (!isCurrentContext(context)) return;
       setUpdaterMessage(error && error.message || String(error), 'error');
     }).then(function () {
+      if (!isCurrentContext(context)) return;
       setUpdaterBusy(false);
     });
   }
@@ -1884,17 +2012,18 @@
   /** Fetch every table a generated Travel profile touched (base, customer, loyalty, preferences, all event tables). */
   function loadFullGenProfileBundle(crmId) {
     if (!crmId) return;
+    var context = readContext();
+    var seq = ++fullGenBundleSeq;
     fullGenBundleCache = null;
     setFullGenInspectMessage('Loading tables for ' + crmId + '…', 'info');
     if (els.fullGenTableSelect) els.fullGenTableSelect.disabled = true;
     if (els.fullGenInspectOut) els.fullGenInspectOut.hidden = true;
-    authHeaders().then(function (h) {
-      if (!h.Authorization) throw new Error('Sign-in not ready yet.');
+    contextHeaders(context).then(function (h) {
       return fetch('/api/snowflake/agentic/profile-bundle', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
-          sandbox: readSandbox(),
+          sandbox: context.sandbox,
           industry: 'travel',
           crmId: crmId,
           eventLimit: 25,
@@ -1902,6 +2031,7 @@
       });
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (!isCurrentContext(context) || seq !== fullGenBundleSeq) return;
         var result = body && body.result;
         if (!res.ok || !result || !result.ok) {
           throw new Error((result && result.error && result.error.message) || body.error || 'Bundle lookup failed.');
@@ -1915,6 +2045,7 @@
         );
       });
     }).catch(function (error) {
+      if (!isCurrentContext(context) || seq !== fullGenBundleSeq) return;
       setFullGenInspectMessage(error && error.message || String(error), 'error');
     });
   }
@@ -1951,6 +2082,7 @@
   }
 
   function runFullPhasedGenerate() {
+    var context = readContext();
     var sandbox = readSandbox();
     if (!sandbox) {
       setFullGenMessage('Pick a sandbox from Global values first.', 'error');
@@ -1969,19 +2101,15 @@
     if (els.fullGenInspect) els.fullGenInspect.hidden = true;
     fullGenBundleCache = null;
     setFullGenMessage('Running full phased generate… This may take several minutes.', 'info');
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setFullGenMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setGenerateBusy(false);
-        return;
-      }
+    contextHeaders(context).then(function (h) {
       var url = '/api/snowflake/agentic/generate-full';
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({ sandbox: sandbox, count: count }),
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           var result = data && data.result;
           if (res.status === 501) {
             setFullGenMessage(
@@ -2012,15 +2140,19 @@
             );
           }
         });
-      }).catch(function (e) {
-        setFullGenMessage('Network error: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setGenerateBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) {
+        setFullGenMessage('Generation could not be confirmed: ' + (e && e.message || e) +
+          '. Inspect the original target before retrying.', 'error');
+      }
+    }).then(function () {
+      if (isCurrentContext(context)) setGenerateBusy(false);
     });
   }
 
   function describePhaseTables() {
+    var context = readContext();
     var sandbox = readSandbox();
     if (!sandbox) {
       setFullGenMessage('Pick a sandbox from Global values first.', 'error');
@@ -2028,19 +2160,15 @@
     }
     var phase = els.phaseSelect ? els.phaseSelect.value : 'phase1';
     setFullGenBusy(true);
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setFullGenMessage('Sign-in not ready yet.', 'error');
-        setFullGenBusy(false);
-        return;
-      }
+    contextHeaders(context).then(function (h) {
       var url = '/api/snowflake/agentic/table-structure';
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({ sandbox: sandbox, phase: phase }),
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           var result = data && data.result;
           if (res.ok && result && result.ok && result.structure_text) {
             if (els.phaseStructureOut) {
@@ -2053,15 +2181,16 @@
             setFullGenMessage(msg, 'error');
           }
         });
-      }).catch(function (e) {
-        setFullGenMessage('Network error: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setFullGenBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) setFullGenMessage(e && e.message || String(e), 'error');
+    }).then(function () {
+      if (isCurrentContext(context)) setFullGenBusy(false);
     });
   }
 
   function generateProfiles() {
+    var context = readContext();
     if (!hasPortalLogin()) {
       setGenerateMessage(portalLoginRequiredMessage(), 'error');
       openPortalLoginHint();
@@ -2083,20 +2212,16 @@
         (payload.count === 1 ? '' : 's') + ' (egress IP ' + STATIC_EGRESS_IP + ')…',
       'info'
     );
-    authHeaders().then(function (h) {
-      if (!h.Authorization) {
-        setGenerateMessage('Sign-in not ready yet — try again in a second.', 'error');
-        setGenerateBusy(false);
-        return;
-      }
+    contextHeaders(context).then(function (h) {
       var url = '/api/snowflake/generate-industry-profiles';
       var body = JSON.stringify(payload);
-      fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: body,
       }).then(function (res) {
         return res.json().then(function (data) {
+          if (!isCurrentContext(context)) return;
           setGenerateDebug('POST ' + url, payload, res.status, data);
           var result = data && data.result;
           if (res.ok && result && result.ok) {
@@ -2118,11 +2243,14 @@
             showGenerateResult(null);
           }
         });
-      }).catch(function (e) {
-        setGenerateMessage('Network error during generation: ' + (e && e.message || e), 'error');
-      }).then(function () {
-        setGenerateBusy(false);
       });
+    }).catch(function (e) {
+      if (isCurrentContext(context)) {
+        setGenerateMessage('Generation could not be confirmed: ' + (e && e.message || e) +
+          '. Inspect the original target before retrying; do not automatically generate another batch.', 'error');
+      }
+    }).then(function () {
+      if (isCurrentContext(context)) setGenerateBusy(false);
     });
   }
 
@@ -2261,8 +2389,12 @@
     if (els.genBatchClearBtn) {
       els.genBatchClearBtn.addEventListener('click', function () {
         try {
-          localStorage.removeItem(LS_SF_BASE_GEN_BATCHES);
-        } catch (_) {}
+          var key = batchHistoryKey();
+          if (key) localStorage.removeItem(key);
+        } catch (error) {
+          setGenerateMessage('Could not clear batch history: ' + error.message, 'error');
+          return;
+        }
         renderBaseBatchHistorySelect();
         setGenerateMessage('Batch history cleared.', 'info');
       });
@@ -2318,17 +2450,7 @@
     }
     if (els.industry) {
       els.industry.addEventListener('change', function () {
-        industryCatalog = null;
-        industryProvisionPreview = null;
-        reflectIndustrySelection();
-        reflectGenerationScope();
-        renderIndustryPreviewTable(null);
-        setIndustryPreviewMessage('', 'info');
-        setIndustryPreviewBusy(false);
-        loadedProfiles = [];
-        renderProfileRows([]);
-        if (els.profileBundleOut) els.profileBundleOut.hidden = true;
-        if (els.industryProvisionOut) els.industryProvisionOut.hidden = true;
+        resetWorkflowContext();
         loadIndustryCatalog(true);
       });
     }
@@ -2355,11 +2477,11 @@
 
     bindKeyFileUi();
 
-    document.addEventListener('aep-lab-sandbox-synced', function () {
-      loadConfig().then(function () { return loadIndustryCatalog(true); });
+    window.addEventListener('aep-lab-sandbox-synced', function () {
+      reloadWorkflowContext();
     });
     window.addEventListener('storage', function (e) {
-      if (e && e.key === LS_SANDBOX) loadConfig();
+      if (e && e.key === LS_SANDBOX) reloadWorkflowContext();
     });
     reflectAuthMethod();
     syncConnectionUi(null);
@@ -2368,6 +2490,16 @@
   document.addEventListener('DOMContentLoaded', function () {
     bind();
     ensureFirebaseReady().then(function () {
+      var f = window.firebase;
+      if (f && f.auth) {
+        var lastUid = currentFirebaseUid();
+        f.auth().onAuthStateChanged(function () {
+          var uid = currentFirebaseUid();
+          if (uid === lastUid) return;
+          lastUid = uid;
+          reloadWorkflowContext();
+        });
+      }
       return loadConfig();
     }).then(function () {
       return loadIndustryCatalog(true);
