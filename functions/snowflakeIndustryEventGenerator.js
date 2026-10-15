@@ -445,6 +445,34 @@ function generateSports(profile, ctx) {
 
 const GENERATORS = { fsi: generateFsi, retail: generateRetail, telecom: generateTelecom, media: generateMedia, sports: generateSports };
 
+function linkGeneratedRows(industry, generated) {
+  const key = (prefix, identity) => `${prefix}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
+  if (industry === 'retail') {
+    const orders = new Map();
+    for (const row of generated.order) {
+      const id = key('ORD', row.EVENTID);
+      orders.set(row.ORDER_ID, id);
+      row.ORDER_ID = id;
+    }
+    for (const row of generated.return) {
+      const orderId = orders.get(row.ORDER_ID);
+      if (!orderId) throw new Error('Generated retail return has no matching generated order.');
+      row.ORDER_ID = orderId;
+      row.RETURN_ID = key('RET', row.EVENTID);
+    }
+  }
+  if (industry === 'sports') {
+    generated.attendance.forEach((row) => { row.EVENT_ID = key('MATCH', row.EVENTID); });
+    generated.merchandise.forEach((row) => { row.ORDER_ID = key('MERCH', row.EVENTID); });
+    generated.betting.forEach((row, index) => {
+      const fixture = generated.attendance[index % generated.attendance.length];
+      if (!fixture) throw new Error('Generated sports bet has no matching generated fixture.');
+      row.EVENT_ID = fixture.EVENT_ID;
+      row.EVENT_NAME = fixture.EVENT_NAME;
+    });
+  }
+}
+
 function normalizeProfile(profile) {
   return Object.fromEntries(
     Object.entries(profile || {}).map(([key, value]) => [String(key).toUpperCase(), value]),
@@ -466,13 +494,16 @@ function generateIndustryEventRows(industry, profileInput, options = {}) {
       createHash('sha256').update(`${key}:${profile.ECID}:industry-events-v1`).digest('hex').slice(0, 32),
   );
   const generated = GENERATORS[key](profile, context(key, profile, generationId, now));
+  linkGeneratedRows(key, generated);
   const requested = Array.isArray(options.eventTypes) && options.eventTypes.length
     ? options.eventTypes.map((value) => String(value).trim().toLowerCase())
     : listIndustryEventTypes(key);
   const rowsByType = {};
   for (const type of requested) {
     if (!Object.hasOwn(generated, type)) throw new Error(`Unsupported ${key} event type "${type}"`);
-    rowsByType[type] = generated[type];
+    rowsByType[type] = getIndustryEventConfig(key)[type].kind === 'enrichment'
+      ? generated[type].map((row, index) => ({ ...row, GENERATIONID: `${generationId}-${index}` }))
+      : generated[type];
   }
   return { industry: key, generationId, rowsByType };
 }

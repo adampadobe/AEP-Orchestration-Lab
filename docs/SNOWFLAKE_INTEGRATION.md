@@ -14,6 +14,38 @@ API calls are required. The CLI uses the same seed writer. Existing AEP flows
 remain separate and unchanged; map added recipient and relational fields
 explicitly before using them in Campaign Orchestration.
 
+### Generator context and relational subscription upgrade
+
+The Snowflake UI clears selected profiles and pending results when the Portal
+identity, sandbox, or industry changes. Responses from the previous context
+cannot repopulate the new one. A submitted mutation may still complete in its
+original target: inspect that target before retrying. Batch history is scoped
+to Portal user, sandbox, and industry; older unscoped history is not imported.
+
+Telecom subscriptions expose `PLAN_CODE` alongside the existing `PLAN` tier.
+Join `PLAN_CODE` to the catalog's `PLAN_CODE`: its stable composite identifier
+covers tier, bundle, and data allowance. Telecom and media subscription
+version/update timestamps use the source update timestamp, falling back to
+creation time only when needed.
+
+Existing dynamic tables are **not** upgraded by `CREATE ... IF NOT EXISTS`.
+Generate the targeted SQL for review, using the intended connection's explicit
+database, source schema, and warehouse:
+
+```bash
+node functions/scripts/plan-relational-subscription-migration.js \
+  --database YOUR_DATABASE --schema YOUR_SCHEMA --warehouse YOUR_WAREHOUSE
+```
+
+This command only prints SQL; it does not authenticate or execute it. The plan
+replaces the two subscription projections and telecom plan catalog, not their
+source tables. Before an approved application, inspect current definitions,
+ownership/grants, downstream dependencies and ingestion mappings. Replacement
+DDL is not transactional; pause incremental ingestion and plan a refreshed
+snapshot, then run `functions/sql/rel/90_validate.sql` after the projections
+have refreshed. Update any tier-based telecom catalog relationship to the
+new `PLAN_CODE` on both sides.
+
 The integration ports the AgenticAI Demo (`AI Projects/AgenticAI Demo/Agentic_Demo_Platform/`)
 into the lab. **Phase 1** ships per-user Snowflake connection management plus a
 server-side connection test. **Phase 2 (this commit)** adds a minimal

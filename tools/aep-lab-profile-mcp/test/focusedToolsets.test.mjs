@@ -6,6 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { listMcpContexts } from '../src/framework/mcpContextGuide.mjs';
 import { registerFocusedDecisioningTools } from '../src/tools/index.mjs';
 import { requestContext } from '../src/requestContext.mjs';
+import { registerSession, deleteSession } from '../src/sessionRegistry.mjs';
 import { installToolAnnotations } from '../src/toolAnnotations.mjs';
 import { installUsageTelemetry } from '../src/usageTelemetry.mjs';
 
@@ -39,6 +40,7 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
   ];
   for (const authSource of ['ims', 'user']) {
     for (const [id, register, required] of [
+      ['aep-lab-profiles', registerFocusedProfileTools, ['lab_generate_profile', 'lab_generate_profiles_batch', 'lab_batch_job_status']],
       ['aep-lab-decisioning', registerFocusedDecisioningTools, [eligibility, 'lab_batch_job_status']],
       ['aep-lab-commerce-optimizer', registerFocusedCommerceOptimizerTools, optimizerChanges],
       ['aep-lab-general', registerProfileTools, [eligibility, 'lab_batch_job_status', ...optimizerChanges]],
@@ -94,6 +96,8 @@ test('focused profile endpoint exposes the complete governed profile lifecycle',
     'lab_preflight_profile_generate',
     'lab_confirm_profile_generation',
     'lab_generate_profile',
+    'lab_generate_profiles_batch',
+    'lab_batch_job_status',
     'lab_lookup_profile',
     'lab_get_profile',
     'lab_update_profile',
@@ -110,6 +114,34 @@ test('focused profile endpoint exposes the complete governed profile lifecycle',
     'lab_snowflake_get_profile_bundle',
     'lab_run_playbook',
   ]);
+});
+
+test('loading profile and decisioning in either order registers shared batch polling once', async () => {
+  for (const categories of [['profile', 'decisioning'], ['decisioning', 'profile']]) {
+    const tools = new Map();
+    const server = {
+      registerTool(name, config, callback) {
+        assert.equal(tools.has(name), false, `duplicate ${name}`);
+        tools.set(name, { config, callback });
+      },
+      sendToolListChanged() {},
+    };
+    registerFocusedMcpGuideTools(server);
+    const sessionId = `test-load-${categories.join('-')}`;
+    registerSession(sessionId, { server, loadedCategories: new Set(), endpoint: '/mcp/entry' });
+    try {
+      await requestContext.run({ sessionId, keyId: 'offline-test' }, async () => {
+        for (const category of categories) {
+          const result = await tools.get('lab_load_toolset').callback({ category });
+          assert.equal(JSON.parse(result.content[0].text).ok, true);
+        }
+      });
+      assert.ok(tools.has('lab_generate_profiles_batch'));
+      assert.ok(tools.has('lab_batch_job_status'));
+    } finally {
+      deleteSession(sessionId);
+    }
+  }
 });
 
 test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orchestration only', () => {

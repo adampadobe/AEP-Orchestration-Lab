@@ -7,14 +7,21 @@ const path = require('node:path');
 const { generateTravelProfileRow } = require('../snowflakeTravelProfileGenerator');
 const { generateIndustryProfileRow } = require('../snowflakeIndustryProfileGenerator');
 const { seedNewProfiles } = require('../scripts/generate-relational-snowflake');
-const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex } = require('../snowflakeSeedStore');
+const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration } = require('../snowflakeSeedStore');
 const { getIndustryProfileConfig, listSnowflakeProfileIndustries } = require('../snowflakeIndustryProfileRegistry');
 const { listIndustryEventTables } = require('../snowflakeIndustryEventRegistry');
 const travelDefinitions = require('../snowflakeTravelTableDefinitions.json');
 const { RECIPIENT_COLUMNS } = require('../snowflakeRecipientStore');
+const { snowflakeMemoryFixture } = require('./snowflakeMemoryFixture.cjs');
 
 const CFG = { database: 'DEMO_DB', schema: 'CUSTOM_SCHEMA', warehouse: 'DEMO_WH' };
 const STAMP = '2026-10-15T12:00:00.000Z';
+
+function allocationResponse(sql) {
+  if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+  if (sql.endsWith('.NEXTVAL AS START_INDEX')) return [{ START_INDEX: 1000 }];
+  return [];
+}
 
 function record(industry, index = 0) {
   const input = {
@@ -138,13 +145,43 @@ describe('Snowflake-first shared base seeding', () => {
         const prefix = sql.slice(0, sql.indexOf(' AS CONSENT_WHATSAPP'));
         parentConsents.push(binds[(prefix.match(/\?/g) || []).length - 1]);
       }
-      return [];
+      return allocationResponse(sql);
     }, CFG, { industry: 'all', count: 1, heroProfiles: 1, asOfDate: '2026-10-15', baseEmail: 'demo@example.com' });
     assert.equal(counts.recipientsCreated, 1);
     assert.equal(Object.keys(counts.tableRowcounts).length, 6);
     assert.equal(parentIds.length, 6);
     assert.equal(new Set(parentIds).size, 1);
     assert.deepEqual(parentConsents, ['y', 'y', 'y', 'y', 'y', 'y']);
+  });
+
+  it('preserves travel-owned fields in the final all-industry parent while allowing explicit updates and clears', async () => {
+    const db = snowflakeMemoryFixture();
+    let travelParent;
+    await seedNewProfiles(async (sql, binds) => {
+      const result = db.execute(sql, binds);
+      if (sql === 'COMMIT' && !travelParent) {
+        travelParent = { ...db.rows('DEMO_DB.CUSTOM_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE')[0] };
+      }
+      return result;
+    }, CFG, { industry: 'all', count: 1, heroProfiles: 1, asOfDate: '2026-10-15', baseEmail: 'demo@example.com' });
+    const parentTable = 'DEMO_DB.CUSTOM_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE';
+    const finalParent = db.rows(parentTable)[0];
+    assert.equal(db.rows(parentTable).length, 1);
+    assert.equal(finalParent.INDUSTRY, 'sports');
+    for (const column of ['PASSPORTID', 'UPCOMINGHOLIDAYDATE', 'UPCOMINGHOLIDAYDESTINATION', 'PREFERREDSEATTYPE']) {
+      assert.ok(travelParent[column], column);
+      assert.equal(finalParent[column], travelParent[column], column);
+    }
+    const { mergeRecipientRows } = require('../snowflakeRecipientStore');
+    await mergeRecipientRows(db.execute, CFG.database, [{
+      RECIPIENT_ID: finalParent.RECIPIENT_ID, INDUSTRY: 'travel',
+      UPCOMINGHOLIDAYDATE: null, UPCOMINGHOLIDAYDESTINATION: 'Updated destination',
+      PREFERREDSEATTYPE: 'aisle', PASSPORTID: null,
+    }], CFG.schema);
+    assert.equal(finalParent.UPCOMINGHOLIDAYDATE, null);
+    assert.equal(finalParent.PASSPORTID, null);
+    assert.equal(finalParent.UPCOMINGHOLIDAYDESTINATION, 'Updated destination');
+    assert.equal(finalParent.PREFERREDSEATTYPE, 'aisle');
   });
 
   it('references only actual source columns and stable timestamps in dynamic SQL', () => {
@@ -179,11 +216,11 @@ describe('Snowflake-first shared base seeding', () => {
   });
 
   it('reads shared CRM ordinals from object or positional rows and propagates SQL errors', async () => {
-    assert.equal(await getNextSeedCrmIndex(async () => [{ MX: 1200 }], CFG), 1201);
-    assert.equal(await getNextSeedCrmIndex(async () => [[null]], CFG), 1000);
-    assert.equal(await getNextSeedCrmIndex(async () => [[0]], CFG), 1);
-    await assert.rejects(getNextSeedCrmIndex(async () => [{ MX: 'invalid' }], CFG), /ordinal is invalid/);
-    await assert.rejects(getNextSeedCrmIndex(async () => { throw new Error('not authorized'); }, CFG), /not authorized/);
+    assert.equal(await readNextSeedCrmIndex(async () => [{ MX: 1200 }], CFG), 1201);
+    assert.equal(await readNextSeedCrmIndex(async () => [[null]], CFG), 1000);
+    assert.equal(await readNextSeedCrmIndex(async () => [[0]], CFG), 1);
+    await assert.rejects(readNextSeedCrmIndex(async () => [{ MX: 'invalid' }], CFG), /ordinal is invalid/);
+    await assert.rejects(readNextSeedCrmIndex(async () => { throw new Error('not authorized'); }, CFG), /not authorized/);
   });
 
   it('reports industries already committed if a later CLI industry fails', async () => {
@@ -191,8 +228,91 @@ describe('Snowflake-first shared base seeding', () => {
       if (sql.startsWith('MERGE INTO') && sql.includes('AGENTIC_FSI_PROFILE_CUSTOMER target')) {
         throw new Error('injected FSI failure');
       }
-      return [];
+      return allocationResponse(sql);
     }, CFG, { industry: 'all', count: 1, heroProfiles: 0, asOfDate: '2026-10-15', baseEmail: 'demo@example.com' }),
     /Previously committed industries: travel\. injected FSI failure/);
+  });
+
+  it('reserves disjoint blocks across concurrent sessions sharing stale MAX results', async () => {
+    let next = 22001;
+    const session = () => async (sql) => {
+      if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+      if (sql.startsWith('SELECT MAX')) { await new Promise((resolve) => setImmediate(resolve)); return [{ MX: 22000 }]; }
+      if (sql.endsWith('.NEXTVAL AS START_INDEX')) {
+        const start = next;
+        next += 1000;
+        return [[start]];
+      }
+      assert.fail(sql);
+    };
+    const starts = await Promise.all(Array.from({ length: 20 }, (_, index) => (
+      getNextSeedCrmIndex(session(), CFG, [index % 2 ? 'fsi' : 'travel'], 1000)
+    )));
+    assert.equal(new Set(starts).size, 20);
+    const ids = starts.flatMap((start) => Array.from({ length: 1000 }, (_, index) => `CRM${start + index}`));
+    assert.equal(new Set(ids).size, 20000);
+    assert.ok(starts.every((start) => start > 22000));
+  });
+
+  it('fails closed on missing privileges, incompatible sequences, stale allocations and oversize batches', async () => {
+    await assert.rejects(getNextSeedCrmIndex(async () => { throw new Error('not authorized'); }, CFG), /not authorized/);
+    for (const metadata of [[], [{ INCREMENT: 1 }], [{ INCREMENT: -1000 }]]) {
+      const calls = [];
+      await assert.rejects(getNextSeedCrmIndex(async (sql) => {
+        calls.push(sql); return metadata;
+      }, CFG), /MAX\+1 fallback is disabled/);
+      assert.equal(calls.length, 1);
+    }
+    for (const start of [1200, null, 'invalid', Number.MAX_SAFE_INTEGER]) {
+      await assert.rejects(getNextSeedCrmIndex(async (sql) => {
+        if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+        if (sql.startsWith('SELECT MAX')) return [{ MX: 1200 }];
+        return [{ START_INDEX: start }];
+      }, CFG), /behind existing rows|supported range/);
+    }
+    for (const count of [0, 1001, 1.5]) {
+      await assert.rejects(getNextSeedCrmIndex(() => assert.fail('no SQL'), CFG, [], count), /allocation count/);
+    }
+  });
+
+  it('plans initialization above all existing industry maxima without executing DDL or NEXTVAL', async () => {
+    const calls = [];
+    const plan = await planCrmSequenceMigration(async (sql) => {
+      calls.push(sql);
+      if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [
+        ['AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE'], ['AGENTIC_RETAIL_PROFILE_CUSTOMER'], ['AGENTIC_FSI_PROFILE_CUSTOMER'],
+      ];
+      return [{ MX: 99999 }];
+    }, CFG);
+    assert.equal(plan.start, 100000);
+    assert.equal(plan.scannedTables.length, 3);
+    assert.match(plan.sql, /^CREATE SEQUENCE IF NOT EXISTS DEMO_DB.CUSTOM_SCHEMA.AEP_LAB_RECIPIENT_CRM_SEQUENCE START WITH 100000 INCREMENT BY 1000 ORDER;$/);
+    assert.doesNotMatch(plan.sql, /REPLACE|ALTER/);
+    assert.ok(calls.every((sql) => sql.startsWith('SELECT') && !sql.includes('NEXTVAL')));
+    assert.match(plan.warning, /Stop every writer/);
+  });
+
+  it('concurrent bootstrap plans preserve the first allocator rather than restarting consumed blocks', async () => {
+    const read = async (sql) => sql.includes('INFORMATION_SCHEMA.TABLES')
+      ? [['AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE']] : [{ MX: 22000 }];
+    const plans = await Promise.all([planCrmSequenceMigration(read, CFG), planCrmSequenceMigration(read, CFG)]);
+    let allocator;
+    function applyReviewedPlan(plan) {
+      assert.match(plan.sql, /^CREATE SEQUENCE IF NOT EXISTS /);
+      allocator ||= { next: plan.start, increment: plan.blockSize };
+    }
+    const session = async (sql) => {
+      if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: allocator.increment }];
+      if (sql.startsWith('SELECT MAX')) return [{ MX: 22000 }];
+      const start = allocator.next;
+      allocator.next += allocator.increment;
+      return [{ START_INDEX: start }];
+    };
+    applyReviewedPlan(plans[0]);
+    const first = await getNextSeedCrmIndex(session, CFG, [], 1000);
+    applyReviewedPlan(plans[1]);
+    const second = await getNextSeedCrmIndex(session, CFG, [], 1000);
+    assert.equal(first, 22001);
+    assert.equal(second, 23001);
   });
 });

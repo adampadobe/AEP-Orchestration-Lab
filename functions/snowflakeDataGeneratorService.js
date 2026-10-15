@@ -571,7 +571,7 @@ async function handleGenerateIndustryProfiles(input) {
 
     const execute = (sqlText, binds) => execAsync(conn, { sqlText, binds });
     await prepareSeedTables(execute, cfg, industry);
-    const startIndex = await getNextSeedCrmIndex(execute, cfg, [industry]);
+    const startIndex = await getNextSeedCrmIndex(execute, cfg, [industry], count);
     const records = [];
     const profiles = [];
     for (let i = 0; i < count; i += 1) {

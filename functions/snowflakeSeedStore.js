@@ -2,7 +2,6 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { createHash } = require('node:crypto');
 const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
 const { listIndustryEventTables, getIndustryEventTable } = require('./snowflakeIndustryEventRegistry');
 const { generateIndustryEventRows } = require('./snowflakeIndustryEventGenerator');
@@ -16,6 +15,8 @@ const SQL_FILES = {
   travel: '10_travel.sql', fsi: '20_fsi.sql', retail: '30_retail.sql',
   telecom: '40_telecom.sql', media: '50_media.sql', sports: '60_sports.sql',
 };
+const CRM_SEQUENCE = 'AEP_LAB_RECIPIENT_CRM_SEQUENCE';
+const CRM_BLOCK_SIZE = 1000;
 
 function identifier(value) {
   if (!/^[A-Za-z_][A-Za-z0-9_]{0,254}$/.test(String(value || ''))) {
@@ -28,7 +29,7 @@ function sourceTable(cfg, table) {
   return [cfg.database, cfg.schema, table].map(identifier).join('.');
 }
 
-async function getNextSeedCrmIndex(execute, cfg, industries = []) {
+async function readNextSeedCrmIndex(execute, cfg, industries = []) {
   const tables = [qualifiedRecipientTable(cfg.database, cfg.schema), ...industries.map((industry) => {
     const config = getIndustryProfileConfig(industry);
     if (!config) throw new Error(`Unsupported seed industry "${industry}"`);
@@ -40,6 +41,46 @@ async function getNextSeedCrmIndex(execute, cfg, industries = []) {
   const next = max == null ? 1000 : Number(max) + 1;
   if (!Number.isSafeInteger(next) || next < 1) throw new Error('Shared base CRM ordinal is invalid or exceeds the supported integer range.');
   return next;
+}
+
+function crmSequence(cfg) {
+  return sourceTable(cfg, CRM_SEQUENCE);
+}
+
+async function getNextSeedCrmIndex(execute, cfg, industries = [], count = 1) {
+  if (!Number.isInteger(count) || count < 1 || count > CRM_BLOCK_SIZE) {
+    throw new Error(`CRM allocation count must be between 1 and ${CRM_BLOCK_SIZE}`);
+  }
+  const sequence = crmSequence(cfg);
+  const metadata = await execute(`SELECT INCREMENT FROM ${identifier(cfg.database)}.INFORMATION_SCHEMA.SEQUENCES
+WHERE SEQUENCE_SCHEMA = ? AND SEQUENCE_NAME = ?`, [identifier(cfg.schema).toUpperCase(), CRM_SEQUENCE]);
+  if (metadata.length !== 1 || Number(readSnowflakeCell(metadata[0], 0, 'INCREMENT')) !== CRM_BLOCK_SIZE) {
+    throw new Error(`CRM allocator ${sequence} is missing, inaccessible, or has an incompatible increment. Apply the reviewed CRM sequence migration; MAX+1 fallback is disabled.`);
+  }
+  const minimum = await readNextSeedCrmIndex(execute, cfg, industries);
+  const allocated = await execute(`SELECT ${sequence}.NEXTVAL AS START_INDEX`);
+  const start = Number(readSnowflakeCell(allocated[0], 0, 'START_INDEX'));
+  if (!Number.isSafeInteger(start) || start < minimum || !Number.isSafeInteger(start + CRM_BLOCK_SIZE - 1)) {
+    throw new Error(`CRM allocator ${sequence} is behind existing rows or outside the supported range. Stop all writers and review the allocator migration; do not reset the sequence or retry generation automatically.`);
+  }
+  return start;
+}
+
+async function planCrmSequenceMigration(execute, cfg) {
+  const tables = await execute(`SELECT TABLE_NAME FROM ${identifier(cfg.database)}.INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = ?`, [identifier(cfg.schema).toUpperCase()]);
+  const existing = new Set(tables.map((row) => String(readSnowflakeCell(row, 0, 'TABLE_NAME')).toUpperCase()));
+  const industries = Object.keys(SQL_FILES).filter((industry) => existing.has(getIndustryProfileConfig(industry).table));
+  const parent = qualifiedRecipientTable(cfg.database, cfg.schema);
+  if (!existing.has(parent.split('.').at(-1))) throw new Error('Prepare the shared recipient parent before planning CRM sequence migration.');
+  const start = await readNextSeedCrmIndex(execute, cfg, industries);
+  if (!Number.isSafeInteger(start + CRM_BLOCK_SIZE - 1)) throw new Error('CRM sequence start exceeds supported integer range.');
+  return {
+    sequence: crmSequence(cfg), start, blockSize: CRM_BLOCK_SIZE,
+    scannedTables: [parent, ...industries.map((industry) => sourceTable(cfg, getIndustryProfileConfig(industry).table))],
+    sql: `CREATE SEQUENCE IF NOT EXISTS ${crmSequence(cfg)} START WITH ${start} INCREMENT BY ${CRM_BLOCK_SIZE} ORDER;`,
+    warning: 'READ-ONLY PLAN. Stop every writer before computing/applying this plan. Existing sequences are never reset. After applying, verify INCREMENT=1000 and a reserved NEXTVAL above all scanned CRMIDs. Keep legacy Python/MAX+1 writers stopped; only sequence-backed writers may share this target.',
+  };
 }
 
 async function prepareSeedTables(execute, cfg, industry) {
@@ -131,33 +172,6 @@ function buildSeedRecord(industry, profile, { index = 0, asOfDate, runStamp, her
     } : {}),
   };
   const events = trip ? null : generateIndustryEventRows(industry, updatedProfile, { now: runStamp });
-  const key = (prefix, identity) => `${prefix}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
-  if (industry === 'retail') {
-    const orders = new Map();
-    for (const row of events.rowsByType.order) {
-      const id = key('ORD', row.EVENTID);
-      orders.set(row.ORDER_ID, id);
-      row.ORDER_ID = id;
-    }
-    for (const row of events.rowsByType.return) {
-      const orderId = orders.get(row.ORDER_ID);
-      if (!orderId) throw new Error('Generated retail return has no matching seeded order.');
-      row.ORDER_ID = orderId;
-      row.RETURN_ID = key('RET', row.EVENTID);
-    }
-  }
-  if (industry === 'sports') {
-    const fixtures = events.rowsByType.attendance;
-    fixtures.forEach((row) => { row.EVENT_ID = key('MATCH', row.EVENTID); });
-    events.rowsByType.merchandise.forEach((row) => { row.ORDER_ID = key('MERCH', row.EVENTID); });
-    events.rowsByType.betting.forEach((row, i) => {
-      const fixture = fixtures[i % fixtures.length];
-      if (!fixture) throw new Error('Generated sports bet has no matching seeded fixture.');
-      row.EVENT_ID = fixture.EVENT_ID;
-      row.EVENT_NAME = fixture.EVENT_NAME;
-      row.SPORT = fixture.SPORT;
-    });
-  }
   return {
     profile: updatedProfile,
     parent: recipientRow(recipient, updatedProfile, runStamp, profile.TESTPROFILE !== false),
@@ -198,10 +212,7 @@ async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50)
       }
     } else {
       for (const table of listIndustryEventTables(industry)) {
-        const rows = records.flatMap(({ events }) => (events.rowsByType[table.key] || []).map((row, index) => ({
-          ...row,
-          ...(table.kind === 'enrichment' ? { GENERATIONID: `${row.GENERATIONID}-${index}` } : {}),
-        })));
+        const rows = records.flatMap(({ events }) => events.rowsByType[table.key] || []);
         await merge(sourceTable(cfg, table.table), table.kind === 'event' ? 'EVENTID' : 'GENERATIONID', rows);
       }
       if (industry === 'sports') {
@@ -220,4 +231,4 @@ async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50)
   return counts;
 }
 
-module.exports = { prepareSeedTables, buildSeedRecord, writeSeedRecords, mergeRows, withTransaction, sourceTable, getNextSeedCrmIndex };
+module.exports = { prepareSeedTables, buildSeedRecord, writeSeedRecords, mergeRows, withTransaction, sourceTable, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration, CRM_BLOCK_SIZE, CRM_SEQUENCE };

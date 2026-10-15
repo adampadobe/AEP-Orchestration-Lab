@@ -24,7 +24,8 @@ table or a replacement ingestion source.
    AEP/AJO as appropriate. This code does not create or change Adobe schemas,
    flows, identities, or Campaign Orchestration relationships automatically.
 
-The **legacy travel Python runner** remains an alternative phased generator.
+The **legacy travel Python runner** remains an alternative phased generator,
+but must not write to a sequence-managed target (see allocator cutover below).
 It carries the same ECID-derived recipient key in its base and customer rows,
 but does not run this Node relational seed writer or populate its campaign
 consent fields. The legacy `BASE_PROFILES` endpoint also remains unchanged;
@@ -51,6 +52,12 @@ synchronously; do not poll it as an AEP batch job. Responses include
 `tableRowcounts` and `relationalRefresh`. Preflight checks saved configuration
 and preferences only; use `lab_snowflake_test_connection` to test reachability.
 Run serially and never automatically retry new-identity generation.
+
+The focused `/mcp/profile` endpoint exposes single generation, batch generation,
+and `lab_batch_job_status`. Polling applies only to the explicit `target:"aep"`
+asynchronous batch workflow, not Snowflake seeding. Generic AEP batches do not
+currently provide a cancellation tool; do not describe closing the client as
+cancelling a submitted job.
 
 For the existing AEP persona/streaming workflow, explicitly pass
 `target:"aep"` to these three tools. AEP-only persona options are rejected on
@@ -98,11 +105,15 @@ generated detail rows are then written in a single transaction per industry;
 an insertion failure rolls the related data writes back. Prepared schemas and
 tables can remain after failure. The CLI's `all` mode commits each industry
 separately, so an error can leave earlier industries populated.
-The error identifies those already-committed industries. Run seed jobs
-serially: CRM ordinals use a maximum-plus-one scan of the shared base and
-selected industry customer sources,
-not a concurrent multi-writer allocator. ECID-derived recipient keys do not
-make legacy CRMID allocation safe for overlapping jobs.
+The error identifies those already-committed industries. The Node API, CLI, and
+AEP industry dual-load writer reserve disjoint 1,000-ID blocks from one
+Snowflake sequence per physical parent. Each invocation uses at most 1,000 IDs,
+retaining `CRM<number>` identifiers; unused IDs and rolled-back reservations
+leave intentional gaps. MAX+1 is now only a migration/sanity check, never the
+runtime allocator. Missing/inaccessible or incompatible sequences fail explicitly,
+without an unsafe fallback. Run serially when practical and never automatically
+retry generation: allocation uniqueness does not make creating new people
+idempotent or serialize simultaneous updates to the same existing ECID.
 
 Each seed invocation creates new people. Reusing the writer with the same
 records uses conditional `MERGE` operations with stable keys and preserves
@@ -112,11 +123,79 @@ rows are derived from the same recipient/reservation/segment data as the
 booking and disruption event payloads. A disrupted trip's event references
 its actual segment key.
 
+For non-travel industries, the seed and enrich paths share generated event,
+order, fixture, and enrichment row identities. Enrichment rows use a group
+`GENERATIONID` plus a row suffix; existence checks also recognize historical
+unsuffixed groups. Enriching a seeded recipient (or repeating enrichment)
+ensures missing selected table activity, rather than appending a second rewards,
+membership, products, or device snapshot. It does not request a new activity run.
+Previously duplicated rows are not deleted automatically by this change.
+
 Preparation requires a role with permission to inspect existing object
 definitions, read/write the relevant source tables, alter their schema, create
 the `REL` schema/view/tables/dynamic tables, and use the configured warehouse.
 Dynamic tables use warehouse compute for refreshes. The seeder does not grant
 permissions or change network policies.
+
+### CRM allocator migration and release gate
+
+This implementation does **not** create or reset its sequence during generation.
+It requires a separately approved migration before enabling the updated writers.
+No live migration is implied by tests or by installing/deploying this code.
+
+1. Pause **all** writers to the target account/database/schema: UI/MCP generation,
+   CLI jobs, AEP dual-load, legacy Python runner generation, scheduled imports,
+   and any external process allocating CRMIDs. Wait for active requests to finish.
+   Prepare the shared parent and required industry tables through the existing
+   approved setup if they do not exist.
+2. From an already authorized connection, generate the read-only plan:
+   `npm --prefix functions run snowflake:generate-relational -- --plan-crm-sequence`.
+   It requires no seed email, performs SELECTs only, scans the shared parent and
+   **all existing governed customer tables** in the configured schema, and prints
+   a candidate statement such as:
+   ```sql
+   CREATE SEQUENCE IF NOT EXISTS <database>.<schema>.AEP_LAB_RECIPIENT_CRM_SEQUENCE
+     START WITH <maximum-existing-ordinal-plus-one> INCREMENT BY 1000 ORDER;
+   ```
+   Keep every writer paused between planning and applying. A stale plan must be
+   recomputed; never use an earlier captured MAX while writes continue.
+3. Review the physical target and plan, then obtain separate approval to apply
+   its CREATE statement using the migration role. That role needs `CREATE SEQUENCE`
+   on the configured schema plus usage of its database/schema. Runtime roles need
+   `USAGE` on that exact sequence and its database/schema, as well as their existing
+   table/warehouse privileges. Apply grants only through the approved IAM process.
+   `IF NOT EXISTS` makes competing bootstrap applications preserve the first
+   created sequence; it never resets an existing allocator. Never use
+   `CREATE OR REPLACE`, decrement/alter its interval, or recreate an allocator.
+4. Verify `INFORMATION_SCHEMA.SEQUENCES` reports `INCREMENT = 1000`. In the approved
+   migration session, reserve **one** `SELECT <qualified-sequence>.NEXTVAL` and
+   compare it with a fresh maximum across all plan tables. Its full 1,000-ID block
+   must be above existing CRMIDs and within JavaScript's safe-integer range.
+   This verification consumes a block but creates no profiles. If an existing
+   sequence is behind, stop and review forward-only recovery with the owner;
+   neither the planner nor runtime resets/reseeds it automatically.
+5. Deploy/enable the sequence-backed Node API, CLI and AEP dual-load together,
+   while legacy writers remain paused. Confirm allocation failures surface
+   without reserving profile emails or inserting profiles. Resume only compatible
+   writers after the normal release gates. The CLI's `all` mode reserves one block
+   and shares its identities across all six industries.
+
+The legacy Python runner and legacy `BASE_PROFILES` generator **do not** consume
+this sequence. The backend full-generation endpoint checks the actual saved
+database/schema for the allocator before contacting the Python runner and returns
+`LEGACY_GENERATION_BLOCKED` with the recipient-seeding alternative when present.
+Connection/metadata failures return `CRM_ALLOCATOR_CHECK_FAILED`; they never
+fall back to invoking the runner. Unmanaged targets retain legacy generation.
+The saved role must be able to see target sequence metadata; do not use a
+restricted legacy-only role that hides the allocator. This preflight does not
+replace pausing writers during allocator cutover, since a legacy job already
+running when the sequence is created cannot be stopped by a later check.
+Keep direct Python generation disabled/paused against the shared parent
+and governed customer tables, or use a separate physical database/schema.
+Legacy custom/base-only targets remain independent. Arbitrary external writers
+must join the allocation protocol or remain excluded; this is not a universal
+database lock. A runtime maximum sanity check can detect some incompatible writes
+but is not protection against a concurrent bypassing writer.
 
 ## Recipient model
 
@@ -134,6 +213,12 @@ Rows without ECIDs need identity remediation, not a guessed cross-industry join.
 Industry source joins use ECID; relational children expose `RECIPIENT_ID`.
 `INDUSTRY` on the shared parent is the most recently seeded industry, **not**
 an exclusive membership filter; use child-table relationships for membership.
+
+Travel owns the parent's passport, upcoming holiday, and seat-preference fields.
+Other industry writes omit those columns when their profiles do not supply them,
+so CLI `--industry all` retains the travel campaign fields after its final Sports
+pass. Explicitly supplied updates (including null clears) are still applied;
+this is not a blanket “ignore nulls” merge policy.
 
 The base parent stores deterministic demo push tokens, language, timezone,
 channel consent, preferred channel, `INDUSTRY`, `VERSION_TS`, record timestamps,
