@@ -15,6 +15,7 @@
   let signedInOwner = '';
   let signingIn = false;
   let sdkSandbox = '';
+  let bookingIdentity = '';
 
   async function pageView() {
     try {
@@ -96,8 +97,8 @@
         show('form');
         byId('raAccountFormTitle').textContent = join ? 'Join Sfeer' : 'Log in to Sfeer';
         byId('raAccountFormHint').textContent = join
-          ? 'Try Sfeer with an existing Lab demo profile email. This demo does not create an airline or loyalty account.'
-          : 'Use an existing Lab demo profile email. No password is required.';
+          ? 'Use your existing profile email to explore Sfeer. This website does not create an airline or loyalty account.'
+          : 'Use your existing profile email. No password is required.';
         byId('raAccountEmail').value = verified ? verified.email : '';
         byId('raAccountError').hidden = true;
         byId('raAccountEmail').focus();
@@ -139,7 +140,7 @@
         panel.close();
       } catch (error) {
         message(error.message, true);
-        byId('raAccountError').textContent = 'We could not connect your profile. Check your demo email and ask the presenter to verify the selected environment and Adobe connection.';
+        byId('raAccountError').textContent = 'We could not connect your profile. Check your email and ask the presenter to verify the selected environment and Adobe connection.';
         byId('raAccountError').hidden = false;
         if (!panel.open) {
           byId('raDeliveryStatus').textContent = byId('raAccountError').textContent;
@@ -301,6 +302,7 @@
   }
 
   function invalidateIdentity() {
+    bookingIdentity = '';
     verified = null;
     notifyContext();
   }
@@ -339,6 +341,13 @@
     if (!found || !verified || requested !== identifier() || requestedSandbox !== sandbox() || requestedNamespace !== namespace()) throw new Error('Profile lookup did not resolve a usable profile. Check the identifier, namespace and sandbox.');
     if (typeof global.setSessionIdentifier === 'function') global.setSessionIdentifier(requested, namespace());
     const resolved = verified;
+    if (options && options.requireStitch && options.booking &&
+      (!browserEcid || sdkSandbox !== requestedSandbox || !global.DemoTagsInjection.isAlloyReady() ||
+        global.AepLabTagsInjectGuard.isInProgress('riyadhAirDemo'))) {
+      throw new Error('Inject Tags for the selected environment before connecting the booking email.');
+    }
+    // The shared stitch prefers this display field: link the current browser, not a prior profile hint.
+    if (options && options.booking) byId('infoEcid').textContent = browserEcid;
     const stitched = await tags.stitchAfterProfileLookup(resolved, resolved.email);
     if (requested !== identifier() || requestedSandbox !== sandbox() || requestedNamespace !== namespace() || resolved !== verified) throw new Error('The selected profile or environment changed during sign-in. Please try again.');
     if (options && options.requireStitch && !stitched) throw new Error('Adobe identity stitching did not confirm acceptance. Configure and inject Tags in the selected sandbox before signing in.');
@@ -346,6 +355,27 @@
       ? 'Profile resolved. Tags identity stitch accepted; verify the graph in the drawer.'
       : 'Profile resolved for generator events. Tags identity stitch is not verified; inject the selected Tags library if needed.', false);
     return verified;
+  }
+
+  async function connectBookingEmail(value) {
+    await api.ready;
+    const email = String(value || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid booking email address.');
+    const beforeSandbox = sandbox();
+    const beforeTarget = targetToken(selectedTarget());
+    const beforeBrowserEcid = browserEcid;
+    if (!browserEcid || sdkSandbox !== beforeSandbox || !global.DemoTagsInjection.isAlloyReady() ||
+      global.AepLabTagsInjectGuard.isInProgress('riyadhAirDemo')) {
+      throw new Error('Inject Tags for the selected environment before connecting the booking email.');
+    }
+    if (verified && bookingIdentity === contextToken() + '|' + browserEcid && verified.email.toLowerCase() === email.toLowerCase()) return verified;
+    const profile = await lookup(email, { requireStitch: true, booking: true });
+    if (beforeSandbox !== sandbox() || beforeTarget !== targetToken(selectedTarget()) || beforeBrowserEcid !== browserEcid) {
+      throw new Error('The booking environment changed while connecting your email. Review the selected profile before continuing.');
+    }
+    if (profile.email.toLowerCase() !== email.toLowerCase()) throw new Error('The resolved profile email does not match the booking email.');
+    bookingIdentity = contextToken() + '|' + browserEcid;
+    return profile;
   }
 
   async function send(action, trip, options) {
@@ -426,6 +456,7 @@
   }
 
   async function validateIdentity(detail) {
+    bookingIdentity = '';
     verified = null;
     const requestedSandbox = sandbox();
     const requestedNamespace = namespace();
@@ -524,7 +555,8 @@
     await reloadTargets();
   }
 
-  const api = { send, lookup, pageView, context, ownerKey, previewTrip: updatePreview,
+  const api = { send, lookup, connectBookingEmail, pageView, context, ownerKey,
+    environmentKey: () => sandbox() + '|' + targetToken(selectedTarget()), previewTrip: updatePreview,
     reportError: (error) => {
       message(error.message, true);
       byId('raDeliveryStatus').textContent = error.customerMessage || error.message;

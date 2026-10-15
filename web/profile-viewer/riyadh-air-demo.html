@@ -95,7 +95,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
       </div>
       <form id="raAccountForm" hidden>
         <h2 id="raAccountFormTitle">Log in to Sfeer</h2>
-        <p id="raAccountFormHint">Use an existing Lab demo profile email. No password is required.</p>
+        <p id="raAccountFormHint">Use your existing profile email. No password is required.</p>
         <label for="raAccountEmail">Email address</label>
         <input id="raAccountEmail" type="email" autocomplete="email" required maxlength="254" aria-describedby="raAccountFormHint raAccountError">
         <p id="raAccountError" class="ra-account-error" role="alert" hidden></p>
@@ -158,17 +158,17 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
         <div><h2>The heart of modern Saudi</h2><p>See a new perspective on Riyadh, where contemporary city life meets Saudi heritage.</p><a class="ra-button" href="?step=discover" data-ra-page="discover">Discover Riyadh</a></div><img src="riyadh-air-assets/riyadh.avif" alt="Riyadh tower above a layer of clouds" loading="lazy" width="814" height="478">
       </section>
       <section class="ra-newsletter" id="raNewsletter" aria-labelledby="raNewsletterTitle">
-        <div class="ra-newsletter-inner"><h2 id="raNewsletterTitle">Get early updates on destination reveals, upcoming flights, and what comes next.</h2><form class="ra-newsletter-form" data-ra-local-form><label>First name<input name="firstName" autocomplete="given-name" required maxlength="60"></label><label>Last name<input name="lastName" autocomplete="family-name" required maxlength="60"></label><label class="ra-form-wide">Email address<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label class="ra-local-consent"><input type="checkbox" required>I understand this is a local demo form, not a subscription to Riyadh Air communications.</label><button class="ra-button ra-button-light" type="submit">Subscribe</button><p class="ra-form-result" role="status" aria-live="polite"></p></form></div>
+        <div class="ra-newsletter-inner"><h2 id="raNewsletterTitle">Get early updates on destination reveals, upcoming flights, and what comes next.</h2><form class="ra-newsletter-form" data-ra-local-form><label>First name<input name="firstName" autocomplete="given-name" required maxlength="60"></label><label>Last name<input name="lastName" autocomplete="family-name" required maxlength="60"></label><label class="ra-form-wide">Email address<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label class="ra-local-consent"><input type="checkbox" required>I understand that this form does not send my details or create a subscription to Riyadh Air communications.</label><button class="ra-button ra-button-light" type="submit">Subscribe</button><p class="ra-form-result" role="status" aria-live="polite"></p></form></div>
       </section>
       <section class="ra-section ra-readout ra-readout-reverse" id="raVisa" data-ajo-insert-section="Visa information">
         <img src="riyadh-air-assets/visit-saudi.avif" alt="Visitors exploring a historic Saudi site" loading="lazy" width="814" height="478"><div><h2>Visa requirements to visit Saudi Arabia</h2><p>Check the requirements for your nationality and travel plans before you depart.</p><button class="ra-button" type="button" data-ra-feature="visa">Get visa information</button></div>
       </section>
-      <section class="ra-section ra-contact" id="raContact" data-ajo-insert-section="Contact"><h2>Reach out to us</h2><p>Find support for your demo booking and review your trip activity.</p><button class="ra-button" type="button" data-ra-action="profile">Contact us</button></section>
+      <section class="ra-section ra-contact" id="raContact" data-ajo-insert-section="Contact"><h2>Reach out to us</h2><p>Find support for your booking and review your trip activity.</p><button class="ra-button" type="button" data-ra-action="profile">Contact us</button></section>
       <section class="ra-feature-detail ra-section" id="raFeatureDetail" hidden aria-labelledby="raFeatureTitle"><button class="ra-text-button" type="button" id="raCloseFeature">Close details</button><h2 id="raFeatureTitle" tabindex="-1"></h2><p id="raFeatureCopy"></p><a class="ra-button" href="#raBooking">Plan your journey</a></section>
     </div>
     <article class="ra-explore" id="raExplore" hidden aria-labelledby="raExploreTitle" data-ajo-insert-section="Travel inspiration"></article>
     <section class="ra-journey" id="raJourney" hidden aria-labelledby="raJourneyTitle" data-ajo-insert-section="Booking and trip">
-      <div class="ra-journey-heading"><button class="ra-text-button" type="button" data-ra-action="home">&#8592; Back to home</button><p>Demo journey &middot; No ticket or payment is issued</p></div>
+      <div class="ra-journey-heading"><button class="ra-text-button" type="button" data-ra-action="home">&#8592; Back to home</button><p>No payment is taken and no ticket is issued</p></div>
       <h1 id="raJourneyTitle" tabindex="-1">Choose your flight</h1>
       <ol class="ra-progress" aria-label="Booking progress"><li data-ra-step="results">Flights</li><li data-ra-step="passenger">Guests</li><li data-ra-step="cart">Cart</li><li data-ra-step="extras">Your extras</li><li data-ra-step="payment">Review</li><li data-ra-step="trip">Your trip</li></ol>
       <div id="raJourneyContent"></div>
@@ -180,7 +180,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
         <nav aria-label="Experience"><h3>Experience</h3><button type="button" data-ra-feature="cabin">Cabin</button><button type="button" data-ra-feature="fleet">Fleet</button><a href="#raExperience">Onboard experience</a></nav>
         <nav aria-label="Connect with us"><h3>Connect with us</h3><a href="#raContact">Contact us</a><a href="#raNewsletter">Newsletter</a><button type="button" data-ra-action="profile">My profile</button></nav>
         <nav aria-label="Travel support"><h3>Travel support</h3><a href="?step=plan" data-ra-page="plan">Plan &amp; book</a><a href="?step=destinations" data-ra-page="destinations">Where we fly</a><a href="#raVisa">Visa information</a><a href="?step=manage" data-ra-page="manage">Manage booking</a><a href="#raTravelUpdates">Travel updates</a></nav>
-        <div class="ra-footer-bottom"><p>Internal AEP demonstration. Not the official Riyadh Air website. No ticket, payment or newsletter subscription is issued.</p><a href="#raBooking">Start your journey &#8599;</a></div>
+        <div class="ra-footer-bottom"><p>Not the official Riyadh Air website. No payment is taken, no ticket is issued and no newsletter subscription is created.</p><a href="#raBooking">Start your journey &#8599;</a></div>
       </div>
     </footer>
   </main>
@@ -212,11 +212,11 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
-  <script src="riyadh-air-events.js?v=20261015-labels"></script>
-  <script src="riyadh-air-explore.js?v=20261015-manage"></script>
-  <script src="riyadh-air-demo.js?v=20261015-explore"></script>
-  <script src="riyadh-air-booking.js?v=20261014-sfeer-label"></script>
-  <script src="riyadh-air-site.js?v=20261015-manage"></script>
+  <script src="riyadh-air-events.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-explore.js?v=20261015-customer-copy"></script>
+  <script src="riyadh-air-demo.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-booking.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-site.js?v=20261015-booking-identity"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

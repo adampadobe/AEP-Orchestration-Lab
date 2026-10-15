@@ -10,11 +10,11 @@
   const airportNames = { LHR: 'London', RUH: 'Riyadh', DXB: 'Dubai', CDG: 'Paris', CGK: 'Jakarta', MXP: 'Milan', BKK: 'Bangkok' };
   const features = {
     cabin: ['Cabin interiors', 'Explore your seat and cabin options in the booking flow. A confirmed Economy booking also lets you browse an illustrative Business upgrade.'],
-    entertainment: ['In-flight entertainment', 'Discover the onboard setting in the supplied cabin imagery. Entertainment selection is not part of this demo booking.'],
-    lounge: ['Hafawa lounge', 'Add illustrative lounge access in the extras step of your booking. No airport admission is issued by this demo.'],
-    fleet: ['Fleet', 'Explore Riyadh Air aircraft imagery, then plan an illustrative flight using the booking bar. Schedules are demo data, not live airline inventory.'],
-    cargo: ['Riyadh Cargo', 'This section introduces the cargo service visually. Cargo quotes, bookings and shipment tracking are not connected in this customer demo.'],
-    visa: ['Visa information', 'Requirements vary by nationality and purpose of travel. Consult the official Saudi visa service before travelling; this demo does not assess eligibility or collect documents.'],
+    entertainment: ['In-flight entertainment', 'Discover the onboard setting in the supplied cabin imagery. Entertainment selection is not available with this booking.'],
+    lounge: ['Hafawa lounge', 'Explore lounge access in the extras step of your booking. No airport admission is issued.'],
+    fleet: ['Fleet', 'Explore Riyadh Air aircraft imagery, then plan a flight using the booking bar. Schedules are illustrative, not live airline inventory.'],
+    cargo: ['Riyadh Cargo', 'Discover the cargo service. Cargo quotes, bookings and shipment tracking are not available on this website.'],
+    visa: ['Visa information', 'Requirements vary by nationality and purpose of travel. Consult the official Saudi visa service before travelling; this website does not assess eligibility or collect documents.'],
   };
   let owner = '';
   let trip = null;
@@ -25,6 +25,7 @@
   let guest = {};
   let cabin = 'Economy';
   let restored = false;
+  let connectingBooking = false;
   const controls = booking.setupControls(() => {});
   const price = (value) => trip && !trip.outbound
     ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(value)
@@ -40,11 +41,12 @@
     try {
       global.sessionStorage.setItem('riyadhAirJourneyV1', JSON.stringify({ owner, trip, search, step, guest, cabin }));
     } catch (error) {
-      lab.message('This browser cannot retain the local demo trip across reloads: ' + error.message, true);
+      lab.message('This browser cannot retain the local trip across reloads: ' + error.message, true);
     }
   }
 
   function syncOwner() {
+    if (connectingBooking) return;
     let nextOwner;
     try { nextOwner = lab.ownerKey(); } catch { nextOwner = ''; }
     if (nextOwner === owner) return;
@@ -69,7 +71,7 @@
         restored = true;
       }
     } catch (error) {
-      lab.message('Stored demo trip could not be restored: ' + error.message + '. Use Reset local trip.', true);
+      lab.message('Stored trip could not be restored: ' + error.message + '. Use Reset local trip.', true);
     }
     byId('raTriggerDisruption').disabled = !trip || !trip.booked;
     render();
@@ -80,7 +82,7 @@
     if (explore.has(next)) return next;
     const requestedBooking = new URL(global.location.href).searchParams.get('booking');
     if (requestedBooking && (!trip || requestedBooking !== trip.reference)) {
-      lab.message('This booking link does not match the selected identity’s stored demo booking. Resolve the original profile in this tab or start a new booking.', true);
+      lab.message('This booking link does not match the selected identity’s stored booking. Resolve the original profile in this tab or start a new booking.', true);
       return 'home';
     }
     if (trip && trip.booked && ['results', 'return', 'passenger', 'contact', 'cart', 'payment'].includes(next)) return 'trip';
@@ -203,10 +205,10 @@
       content.innerHTML = booking.destinationHeader(trip) + summary() + '<h2>Your booking summary</h2><dl class="ra-review"><dt>Flights</dt><dd>' + price(trip.fare) +
         '</dd><dt>Paid seat / ancillaries</dt><dd>Not purchased · explore after booking</dd>' +
         '<dt><strong>Total</strong></dt><dd><strong>' + price(total()) + '</strong></dd></dl>' +
-        '<form id="raPaymentForm"><label class="ra-payment-consent"><input type="checkbox" required>I understand this is a demo booking. No payment details are collected and no ticket is issued.</label>' +
-        '<div class="ra-actions"><button type="submit" class="ra-button">Confirm demo booking &#8594;</button><button type="button" class="ra-text-button" data-ra-action="cart">Back to cart</button></div></form>';
+        '<form id="raPaymentForm"><label class="ra-payment-consent"><input type="checkbox" required>I understand that no payment is taken, no payment details are collected and no ticket is issued.</label>' +
+        '<div class="ra-actions"><button type="submit" class="ra-button">Confirm booking &#8594;</button><button type="button" class="ra-text-button" data-ra-action="cart">Back to cart</button></div></form>';
     } else if (step === 'trip') {
-      content.innerHTML = '<p>' + (trip.booked ? 'Your demo booking is confirmed.' : 'Your booking is not yet confirmed.') + '</p>' + booking.destinationHeader(trip) + summary() +
+      content.innerHTML = '<p>' + (trip.booked ? 'Your booking is confirmed.' : 'Your booking is not yet confirmed.') + '</p>' + booking.destinationHeader(trip) + summary() +
         (trip.disruption ? '<section class="ra-care" role="status"><h2>We are here for your journey.</h2><p>' + escape(careCopy()) +
           '</p><p>Please check the airport departure boards. Our team will help with your onward journey.</p></section>' :
           '<p>Trip status: On time (illustrative) &middot; Gate A08 &middot; ' + escape(trip.outbound ? trip.outbound.times : trip.index ? '18:20' : '10:30') + '</p>') +
@@ -235,11 +237,12 @@
       : trip.flight + ' now departs from gate ' + trip.disruption.gate + '. Please proceed to the new gate for booking ' + trip.reference + '.';
   }
 
-  async function actionTask(task) {
+  async function actionTask(task, form) {
     if (busy) return;
     busy = true;
     site.setAttribute('aria-busy', 'true');
-    const buttons = [...site.querySelectorAll('button'), byId('raTriggerDisruption')];
+    const buttons = [...site.querySelectorAll('button'), byId('raTriggerDisruption'),
+      ...(form ? form.querySelectorAll('input, select, textarea') : [])];
     const previouslyDisabled = buttons.map((button) => button.disabled);
     buttons.forEach((button) => { button.disabled = true; });
     try { await task(); } catch (error) {
@@ -251,6 +254,36 @@
       site.removeAttribute('aria-busy');
       buttons.forEach((button, index) => { if (button.isConnected) button.disabled = previouslyDisabled[index]; });
       byId('raTriggerDisruption').disabled = !trip || !trip.booked;
+    }
+  }
+
+  async function connectBookingEmail(email) {
+    const originalEnvironment = lab.environmentKey();
+    const originalIdentifier = byId('customerEmail').value.trim();
+    const originalNamespace = byId('riyadhNs').value;
+    const draft = { trip, search, guest, cabin, step };
+    connectingBooking = true;
+    try {
+      await lab.connectBookingEmail(email);
+      if (lab.environmentKey() !== originalEnvironment) {
+        throw new Error('The selected environment changed. Review your profile before continuing.');
+      }
+      owner = lab.ownerKey();
+      save();
+    } catch (error) {
+      const input = byId('customerEmail').value.trim();
+      const unchanged = input === originalIdentifier && byId('riyadhNs').value === originalNamespace;
+      const requested = input.toLowerCase() === String(email).trim().toLowerCase() && byId('riyadhNs').value === 'email';
+      if (lab.environmentKey() !== originalEnvironment || (!unchanged && !requested)) {
+        connectingBooking = false;
+        syncOwner();
+      } else {
+        ({ trip, search, guest, cabin, step } = draft);
+        render();
+      }
+      throw error;
+    } finally {
+      connectingBooking = false;
     }
   }
 
@@ -372,7 +405,7 @@
       }
       if (action === 'cabin') { cabin = trigger.dataset.cabin; render(); save(); return; }
       if (action === 'editFlight') {
-        if (!trip || trip.booked) throw new Error('Confirmed flights cannot be edited in this demo.');
+        if (!trip || trip.booked) throw new Error('Confirmed flights cannot be edited on this website.');
         cabin = (trigger.dataset.leg === 'return' ? trip.inbound : trip.outbound).cabin;
         navigate(trigger.dataset.leg === 'return' ? 'return' : 'results');
         return;
@@ -462,9 +495,10 @@
     if (!form.reportValidity()) return;
     if (form.hasAttribute('data-ra-local-form')) {
       form.reset();
-      form.querySelector('.ra-form-result').textContent = 'Demo form completed locally. No data was stored or sent, and no subscription was created.';
+      form.querySelector('.ra-form-result').textContent = 'Form completed locally. No data was stored or sent, and no subscription was created.';
       return;
     }
+    const submittedFields = new FormData(form);
     void actionTask(async () => {
       if (form.id === 'raSearchForm') {
         const candidate = controls.read();
@@ -480,30 +514,39 @@
         cabin = candidate.cabin;
         navigate('results');
       } else if (form.id === 'raPassengerForm') {
-        const fields = new FormData(form);
+        const fields = submittedFields;
         if (!String(fields.get('firstName')).trim() || !String(fields.get('lastName')).trim()) throw new Error('Enter the passenger first and last name.');
         const dob = fields.get('dob');
         const oldestAdult = new Date(trip.date + 'T12:00:00');
         oldestAdult.setFullYear(oldestAdult.getFullYear() - 12);
         if (!dob || dob > oldestAdult.toISOString().slice(0, 10)) throw new Error('Adult 1 must be at least 12 on departure. Use illustrative guest details.');
+        const loyaltyEmail = String(fields.get('loyaltyEmail') || '').trim();
+        if (loyaltyEmail) await connectBookingEmail(loyaltyEmail);
         guest = { ...guest, ...Object.fromEntries(fields), firstName: String(fields.get('firstName')).trim(),
-          lastName: String(fields.get('lastName')).trim(), joinSfeer: fields.has('joinSfeer'), adultComplete: true };
+          lastName: String(fields.get('lastName')).trim(), joinSfeer: fields.has('joinSfeer'), adultComplete: true, contactComplete: false };
         navigate('contact');
       } else if (form.id === 'raContactForm') {
-        const fields = new FormData(form);
+        const fields = submittedFields;
         if (!guest.adultComplete) throw new Error('Complete Adult 1 details first.');
-        if (!String(fields.get('phone')).trim()) throw new Error('Enter a demo contact phone number.');
-        if (!guest.eventRecorded) await lab.send('passenger', trip);
-        guest = { ...guest, ...Object.fromEntries(fields), contactComplete: true, eventRecorded: true };
+        if (!String(fields.get('phone')).trim()) throw new Error('Enter a contact phone number.');
+        const email = String(fields.get('contactEmail') || '').trim();
+        if (guest.loyaltyEmail && guest.loyaltyEmail.trim().toLowerCase() !== email.toLowerCase()) {
+          throw new Error('Use the same email for the traveller’s Sfeer profile and booking contact, or clear the optional Sfeer email.');
+        }
+        await connectBookingEmail(email);
+        if (guest.eventOwner !== lab.ownerKey()) await lab.send('passenger', trip);
+        guest = { ...guest, ...Object.fromEntries(fields), contactComplete: true, eventOwner: lab.ownerKey() };
         navigate('cart');
       } else if (form.id === 'raPaymentForm') {
         if (trip.booked) throw new Error('This booking is already confirmed.');
+        if (!guestsComplete()) throw new Error('Complete guest and contact details before confirming.');
+        await connectBookingEmail(guest.contactEmail);
         await lab.send('booking', trip);
         trip.booked = true;
         trip.paidAmount = total();
         navigate('trip');
       }
-    });
+    }, form);
   });
 
   byId('raTriggerDisruption').addEventListener('click', () => {
