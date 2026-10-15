@@ -67,7 +67,7 @@ describe('snowflakeAgenticTravelService query profiles', () => {
       fqTable: 'TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER',
       limit: 10,
     });
-    assert.match(sql, /SELECT CRMID, ECID, EMAIL/);
+    assert.match(sql, /SELECT 'R-' \|\| LEFT\(SHA2\(ECID, 256\), 32\) AS RECIPIENT_ID, CRMID, ECID, EMAIL/);
     assert.match(sql, /FIRSTNAME, LASTNAME, DATEOFBIRTH, GENDER, NATIONALITY/);
     assert.match(sql, /FROM TRAVEL_DATABASE\.AEP_SCHEMA\.AGENTIC_TRAVEL_PROFILE_CUSTOMER/);
     assert.match(sql, /LIMIT 10/);

@@ -8,6 +8,7 @@ const {
   normalizeAepAttributesForSnowflake,
 } = require('./snowflakeProfileMapper');
 const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
+const { createRecipient } = require('./snowflakeRecipientFactory');
 
 const DAY_MS = 86400000;
 
@@ -56,6 +57,25 @@ function commonProfile(input, attrs, industry) {
     : dateYmd(faker.date.birthdate({ min: 21, max: 78, mode: 'age' }));
   const email = String(input.email || '').trim();
   const stamp = formatSnowflakeRecordTimestamp(input.runStamp);
+  const recipient = input.recipient || createRecipient({
+    industry,
+    crmId: input.crmId || `CRM${input.idx}`,
+    ecid: input.ecid,
+    email,
+    index: input.idx,
+    hero: input.hero === true,
+  });
+  const ukLocations = [
+    ['London', 'SW1A 1AA'],
+    ['Manchester', 'M1 1AE'],
+    ['Birmingham', 'B1 1AA'],
+    ['Leeds', 'LS1 1UR'],
+    ['Glasgow', 'G1 1AA'],
+    ['Liverpool', 'L1 1AA'],
+    ['Edinburgh', 'EH1 1AA'],
+    ['Bristol', 'BS1 1AA'],
+  ];
+  const [addressCity, addressPostalCode] = ukLocations[Number(input.idx) % ukLocations.length];
   const customerSegments = {
     fsi: ['mass_market', 'affluent', 'private_banking', 'credit_builder'],
     retail: ['occasional', 'regular', 'loyalty_vip', 'high_value'],
@@ -64,6 +84,7 @@ function commonProfile(input, attrs, industry) {
     sports: ['casual', 'regular', 'superfan', 'day_one'],
   };
   return {
+    RECIPIENT_ID: recipient.recipientId,
     CRMID: String(input.crmId || `CRM${input.idx}`),
     ECID: String(input.ecid || ''),
     EMAIL: email,
@@ -71,7 +92,7 @@ function commonProfile(input, attrs, industry) {
     GAID: `GAID${input.idx}`,
     LOYALTYID: bool(0.6) ? `LOYALTY${Number(input.idx) + 2000}` : null,
     PHONENUMBER: '+447425627462',
-    PUSHTOKENS: null,
+    PUSHTOKENS: recipient.pushTokens,
     STACKCHATID: `STACK${input.idx}`,
     FIRSTNAME: firstName,
     LASTNAME: lastName,
@@ -79,10 +100,10 @@ function commonProfile(input, attrs, industry) {
     GENDER: gender,
     NATIONALITY: String(getAttr(attrs, 'person.nationality') || 'GB'),
     PRIMARYEMAIL: email,
-    PRIMARYPHONE: faker.phone.number({ style: 'international' }),
-    ADDRESSSTREET: faker.location.streetAddress(),
-    ADDRESSCITY: faker.location.city(),
-    ADDRESSPOSTALCODE: faker.location.zipCode(),
+    PRIMARYPHONE: `+447${String(int(0, 999999999)).padStart(9, '0')}`,
+    ADDRESSSTREET: `${int(1, 180)} ${pick(['High Street', 'Station Road', 'Church Road', 'King Street'])}`,
+    ADDRESSCITY: addressCity,
+    ADDRESSPOSTALCODE: addressPostalCode,
     ADDRESSCOUNTRY: 'United Kingdom',
     LIFETIMEVALUE: money(500, 25000),
     CUSTOMERSEGMENT: pick(customerSegments[industry]),
@@ -92,7 +113,7 @@ function commonProfile(input, attrs, industry) {
   };
 }
 
-function generateFsi(attrs) {
+function generateFsi(attrs, _input) {
   const incomeBand = String(getAttr(attrs, 'industryFsi.householdIncomeBand') || '100k_200k');
   const incomeRanges = {
     under_50k: [25000, 49999], '50k_100k': [50000, 99999], '100k_200k': [100000, 199999],
@@ -125,7 +146,7 @@ function generateFsi(attrs) {
   };
 }
 
-function generateRetail(attrs) {
+function generateRetail(attrs, _input) {
   const aepLtv = Number(getAttr(attrs, 'orderProfile.lifetimeValue'));
   const ltv = Number.isFinite(aepLtv) && aepLtv > 0
     ? Math.round(aepLtv * pick([0.86, 0.91, 1.08, 1.14]) * 100) / 100
@@ -152,7 +173,7 @@ function generateRetail(attrs) {
   };
 }
 
-function generateTelecom(attrs) {
+function generateTelecom(attrs, _input) {
   const tier = String(getAttr(attrs, 'industryTelecom.planTier') || pick(['basic', 'standard', 'premium']));
   const deviceTier = String(getAttr(attrs, 'industryTelecom.deviceTier') || pick(['budget', 'mid_range', 'flagship']));
   const spendRanges = { basic: [12, 30], standard: [30, 65], premium: [65, 140] };
@@ -182,7 +203,7 @@ function generateTelecom(attrs) {
   };
 }
 
-function generateMedia(attrs) {
+function generateMedia(attrs, _input) {
   const tier = String(getAttr(attrs, 'industryMedia.subscriptionTier') || pick(['free', 'standard', 'premium', 'family']));
   const fees = { free: 0, standard: 10.99, premium: 17.99, premium_plus: 22.99, family: 25.99 };
   const viewBand = String(getAttr(attrs, 'industryMedia.viewingMinutesBand') || '300_600');
@@ -206,7 +227,7 @@ function generateMedia(attrs) {
   };
 }
 
-function generateSports(attrs) {
+function generateSports(attrs, _input) {
   const fanSegment = String(getAttr(attrs, 'industrySports.fanSegment') || pick(['casual', 'regular', 'superfan', 'day_one']));
   const sport = String(getAttr(attrs, 'industrySports.favouriteSport') || pick(['football', 'rugby', 'cricket', 'tennis', 'motorsport']));
   const team = String(getAttr(attrs, 'industrySports.favouriteTeam') || pick(['Arsenal', 'Liverpool', 'England', 'McLaren']));
@@ -241,7 +262,10 @@ function generateIndustryProfileRow(industry, input) {
   if (!String(input.email || '').trim()) throw new Error('email is required for CRM profile generation');
   if (!String(input.ecid || '').trim()) throw new Error('ecid is required for CRM profile generation');
   const attrs = normalizeAepAttributesForSnowflake(input.attributes);
-  const rowObject = { ...commonProfile(input, attrs, config.industry), ...GENERATORS[config.industry](attrs) };
+  const rowObject = {
+    ...commonProfile(input, attrs, config.industry),
+    ...GENERATORS[config.industry](attrs, input),
+  };
   const row = config.columns.map((column) => Object.prototype.hasOwnProperty.call(rowObject, column) ? rowObject[column] : null);
   return { row, rowObject, columns: config.columns.slice() };
 }

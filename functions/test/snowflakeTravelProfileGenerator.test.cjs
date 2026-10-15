@@ -20,7 +20,12 @@ describe('snowflakeTravelProfileGenerator', () => {
     assert.equal(rowObject.EMAIL, 'apalmer+22072026-1@adobetest.com');
     assert.equal(rowObject.ECID, '00000000000000000000000000000001');
     assert.equal(rowObject.CRMID, 'CRM1001');
+    assert.equal(rowObject.RECIPIENT_ID, require('../snowflakeRecipientFactory').getRecipientId(
+      'travel', 'CRM1001', rowObject.ECID,
+    ));
     assert.equal(rowObject.PRIMARYEMAIL, 'apalmer+22072026-1@adobetest.com');
+    assert.match(rowObject.PRIMARYPHONE, /^\+44\d{10,11}$/);
+    assert.deepEqual(rowObject.PUSHTOKENS, [`demo-fcm-${require('node:crypto').createHash('sha256').update(`${rowObject.RECIPIENT_ID}:push`).digest('hex').slice(0, 32)}`]);
     assert.ok(rowObject.LIFETIMEVALUE > 0);
     assert.ok(rowObject.TOTALBOOKINGS >= 1);
     assert.ok(rowObject.LASTHOLIDAYDATE);
@@ -53,6 +58,26 @@ describe('snowflakeTravelProfileGenerator', () => {
     assert.ok(diamond.avgBooking >= 1200);
     assert.ok(bronze.avgBooking >= 250);
     assert.ok(diamond.totalBookings >= bronze.totalBookings);
+  });
+
+  it('generates a hero-compatible gold profile with UK locale values', () => {
+    const { rowObject } = generateTravelProfileRow({
+      idx: 1005,
+      email: 'hero@example.com',
+      ecid: 'ecid-hero',
+      crmId: 'CRM1005',
+      hero: true,
+      asOfDate: '2026-10-15',
+      upcomingTripDate: '2027-04-03',
+      upcomingDestination: 'Paris',
+    });
+
+    assert.equal(rowObject.CUSTOMERSEGMENT, 'gold');
+    assert.equal(rowObject.PREFERREDSEATTYPE, 'window');
+    assert.equal(rowObject.UPCOMINGHOLIDAYDATE, '2027-04-03');
+    assert.equal(rowObject.UPCOMINGHOLIDAYDESTINATION, 'Paris');
+    assert.equal(rowObject.ADDRESSCOUNTRY, 'United Kingdom');
+    assert.match(rowObject.PRIMARYPHONE, /^\+44\d{10,11}$/);
   });
 });
 

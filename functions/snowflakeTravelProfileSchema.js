@@ -6,6 +6,7 @@
  * Dual-load + lab_snowflake_query_profiles target this table (not BASE_PROFILES).
  */
 const COLUMNS = [
+  'RECIPIENT_ID',
   'CRMID', 'ECID', 'EMAIL', 'EMAILIDSHA256', 'GAID', 'LOYALTYID', 'PASSPORTID',
   'PHONENUMBER', 'PUSHTOKENS', 'STACKCHATID',
   'FIRSTNAME', 'LASTNAME', 'DATEOFBIRTH', 'GENDER', 'NATIONALITY',
