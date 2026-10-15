@@ -8,6 +8,14 @@
     manage: 'travel.booking.view', delay: 'travel.flight.delay', gate: 'travel.flight.gateChange',
     ancillaryView: 'travel.ancillary.view', ancillaryIntent: 'travel.ancillary.intent', ancillaryAbandon: 'travel.ancillary.abandon',
   });
+  const LABELS = Object.freeze({
+    search: 'Flight search', select: 'Flight selected', passenger: 'Guest details saved',
+    extras: 'Seat or extra selected', booking: 'Booking confirmed', upgradeView: 'Cabin upgrade viewed',
+    upgradeIntent: 'Cabin upgrade interest', abandon: 'Cabin upgrade left without purchase',
+    manage: 'Booking viewed', delay: 'Flight delayed', gate: 'Gate changed',
+    ancillaryView: 'Seats and extras viewed', ancillaryIntent: 'Seat and extras interest',
+    ancillaryAbandon: 'Seats and extras left without purchase',
+  });
 
   function build(action, trip, context, options) {
     const eventType = TYPES[action];
@@ -57,8 +65,8 @@
       targetId: context.target.id, sandbox: context.sandbox,
       eventType, channel: 'Web', ecid: context.ecid,
       xdmStyle: 'full', identityMapEcidKey: 'ECID',
-      viewName: 'Riyadh Air / ' + action, viewUrl: url.href,
-      public: { travel, generic: { ctaLabel: eventType, linkUrl: url.href } },
+      viewName: LABELS[action], viewUrl: url.href,
+      public: { travel, generic: { ctaLabel: LABELS[action], linkUrl: url.href } },
     };
     if (context.known) body.email = context.email;
     if (extra.eventID) body.eventID = extra.eventID;

@@ -98,6 +98,50 @@
 .ra-guests small { font-size: .66rem; color: var(--dash-ra-mid); }
 .ra-site .ra-search-button { width: 42px; height: 42px; padding: 0; }
 .ra-section { width: min(1120px, 84%); margin: 0 auto; padding: 3rem 0; }
+.ra-header [aria-current="page"] { font-weight: 700; text-decoration: underline; text-underline-offset: .5rem; }
+.ra-explore { padding: 1rem 0 3rem; min-height: 65vh; }
+.ra-explore-hero { width: min(1120px, 84%); margin: 0 auto; position: relative; overflow: hidden; border-radius: 28px; min-height: 360px; aspect-ratio: 1.95; color: var(--dash-ra-white); background: var(--dash-ra-deep); }
+.ra-explore-hero > img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+.ra-explore-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--dash-ra-photo-shade), transparent); }
+.ra-explore-hero > div { position: absolute; z-index: 1; inset: auto 9% 36%; max-width: 75%; }
+.ra-site .ra-explore-hero h1 { font-size: clamp(2rem, 3.1vw, 3rem); line-height: 1.2; }
+.ra-explore-hero p { margin: 1rem 0; }
+.ra-explore-hero > div > p:first-child { font-size: .85rem; }
+.ra-explore-intro { width: min(1120px, 84%); margin: 3.5rem auto 1rem !important; max-width: none !important; }
+.ra-explore .ra-readout { padding-block: 4rem; gap: 2rem; }
+.ra-explore .ra-readout-reverse > img { order: 2; }
+.ra-explore .ra-readout-reverse > div { order: 1; }
+.ra-explore .ra-readout h2 { font-size: clamp(1.8rem, 2.5vw, 2.5rem); }
+.ra-explore-book { width: min(1120px, 84%); margin: 1rem auto; }
+.ra-place-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.ra-place-card { position: relative; display: block; min-width: 0; border-radius: 22px; overflow: hidden; background: var(--dash-ra-plum); color: var(--dash-ra-white) !important; }
+.ra-place-card > img { display: block; width: 100%; aspect-ratio: 1.05; object-fit: cover; }
+.ra-place-card > div { padding: 1.5rem; min-height: 145px; position: relative; background: linear-gradient(115deg, var(--dash-ra-plum), var(--dash-ra-mid)); }
+.ra-place-card h3 { max-width: 75%; margin-top: .4rem; }
+.ra-place-card .ra-card-arrow { position: absolute; bottom: 1.5rem; right: 1.25rem; }
+.ra-place-card small { font-size: .75rem; }
+.ra-place-card:hover .ra-card-arrow { background: var(--dash-ra-mist); }
+.ra-editorial-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+.ra-editorial-grid img { display: block; width: 100%; aspect-ratio: 2; object-fit: cover; border-radius: 18px; margin-bottom: 1.5rem; }
+.ra-editorial-grid p { font-size: .9rem; margin: .75rem 0; }
+.ra-explore-banner { position: relative; padding-block: 0; margin: 2rem auto; border-radius: 24px; overflow: hidden; color: var(--dash-ra-white); background: var(--dash-ra-deep); }
+.ra-explore-banner > img { width: 100%; min-height: 280px; display: block; object-fit: cover; }
+.ra-explore-banner > div { position: absolute; inset: 0; padding: 4rem; background: linear-gradient(90deg, var(--dash-ra-photo-shade), transparent); display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 1.5rem; }
+.ra-explore-breadcrumb { display: flex; flex-wrap: wrap; gap: .75rem; width: min(1120px, 84%); margin: 1rem auto 2rem; font-size: .85rem; }
+.ra-explore-breadcrumb a { text-decoration: underline; text-underline-offset: .25rem; }
+.ra-place-intro { max-width: 800px; }
+.ra-place-intro p { margin-top: 1.5rem; max-width: 70ch; }
+@media (max-width: 700px) {
+  .ra-site .ra-booking { width: calc(100% - 5rem); }
+  .ra-explore-hero { width: 90%; min-height: 340px; aspect-ratio: 1; border-radius: 22px; }
+  .ra-explore-hero > div { inset: auto 7% 15%; max-width: 86%; }
+  .ra-explore .ra-readout { display: flex; flex-direction: column; gap: 1.5rem; padding-block: 2.5rem; }
+  .ra-explore .ra-readout > img, .ra-explore .ra-readout > div { order: initial; width: 100%; }
+  .ra-place-grid, .ra-editorial-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .ra-place-card > img { aspect-ratio: 1.3; }
+  .ra-explore-banner > div { padding: 1.5rem; }
+  .ra-explore-banner h2 { max-width: 15ch; }
+}
 .ra-updates { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.25rem; background: var(--dash-ra-white); padding: 3.3rem 2rem; margin-bottom: .6rem; }
 .ra-updates h2 { font-size: 2rem; }
 .ra-updates p { font-size: .9rem; max-width: 80ch; }

@@ -2,6 +2,7 @@
   'use strict';
   const lab = global.RiyadhAirLab;
   const booking = global.RiyadhAirBooking;
+  const explore = global.RiyadhAirExplore;
   const byId = (id) => document.getElementById(id);
   const site = byId('raCustomerSite');
   const content = byId('raJourneyContent');
@@ -18,7 +19,8 @@
   let owner = '';
   let trip = null;
   let search = null;
-  let step = 'home';
+  let step = explore.has(new URL(global.location.href).searchParams.get('step'))
+    ? new URL(global.location.href).searchParams.get('step') : 'home';
   let busy = false;
   let guest = {};
   let cabin = 'Economy';
@@ -31,6 +33,8 @@
   const total = () => trip.outbound ? trip.outbound.fare + (trip.inbound ? trip.inbound.fare : 0) : trip.fare;
   const ancillaryTotal = () => (trip.pendingSeat ? trip.pendingSeat.price : 0) + (trip.pendingBag ? 250 : 0) + (trip.pendingLounge ? 300 : 0);
   const guestsComplete = () => !!(guest.adultComplete && guest.contactComplete);
+  const pageTitle = () => 'Web page view - ' + explore.title(step);
+  document.title = pageTitle();
 
   function save() {
     try {
@@ -49,7 +53,8 @@
     trip = null;
     search = null;
     guest = {};
-    step = 'home';
+    const requestedPage = new URL(global.location.href).searchParams.get('step');
+    step = explore.has(requestedPage) ? requestedPage : 'home';
     try {
       const raw = global.sessionStorage.getItem('riyadhAirJourneyV1');
       const saved = raw ? JSON.parse(raw) : null;
@@ -72,6 +77,7 @@
   }
 
   function validStep(next) {
+    if (explore.has(next)) return next;
     const requestedBooking = new URL(global.location.href).searchParams.get('booking');
     if (requestedBooking && (!trip || requestedBooking !== trip.reference)) {
       lab.message('This booking link does not match the selected identity’s stored demo booking. Resolve the original profile in this tab or start a new booking.', true);
@@ -105,14 +111,21 @@
   }
 
   function navigate(next, replace) {
+    const previous = step;
     controls.close(false);
     step = validStep(next);
-    route(step, replace);
+    route(step, replace || previous === step);
     render();
     save();
-    if (next !== 'home') {
+    if (previous !== step) void lab.pageView();
+    if (explore.has(step)) {
+      byId('raExploreTitle').focus({ preventScroll: true });
+      byId('raCustomerSite').scrollIntoView({ block: 'start' });
+    } else if (step !== 'home') {
       byId('raJourneyTitle').focus();
       byId('raJourney').scrollIntoView({ block: 'start' });
+    } else {
+      byId('riyadh-air-header').scrollIntoView({ block: 'start' });
     }
   }
 
@@ -125,19 +138,29 @@
   }
 
   function render() {
+    document.title = pageTitle();
+    const browsing = explore.has(step);
     lab.previewTrip(trip && trip.booked ? trip : null);
     const bookingPage = ['results', 'return', 'passenger', 'contact'].includes(step);
     site.dataset.bookingPage = String(bookingPage);
     site.dataset.referencePage = String(bookingPage || step === 'cart');
-    byId('raBooking').hidden = !(bookingPage || step === 'home');
+    byId('raBooking').hidden = !(bookingPage || step === 'home' || browsing);
     byId('raCartCount').textContent = trip ? '1' : '0';
     site.dataset.care = String(!!(trip && trip.disruption));
     byId('raHome').hidden = step !== 'home';
-    byId('raJourney').hidden = step === 'home';
+    byId('raJourney').hidden = step === 'home' || browsing;
+    byId('raExplore').hidden = !browsing;
+    document.querySelectorAll('.ra-header [data-ra-page]').forEach((item) => {
+      const current = item.dataset.raPage === step ||
+        (item.dataset.raPage === 'discover' && browsing && !['plan', 'destinations', 'experience'].includes(step));
+      if (current) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
+    });
+    if (browsing) byId('raExplore').innerHTML = explore.render(step);
     byId('raTriggerDisruption').disabled = busy || !trip || !trip.booked;
     byId('raTravelUpdateCopy').textContent = trip && trip.disruption
       ? careCopy() : 'Planning your journey? View your booking for departure details and the latest updates.';
-    if (step === 'home') return;
+    if (step === 'home' || browsing) return;
     byId('raJourneyTitle').textContent = titles[step];
     document.querySelectorAll('[data-ra-step]').forEach((item) => {
       if (item.dataset.raStep === step || (step === 'upgrade' && item.dataset.raStep === 'trip') ||
@@ -267,6 +290,29 @@
   }
 
   site.addEventListener('click', (event) => {
+    const pageLink = event.target.closest('[data-ra-page]');
+    if (pageLink) {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button) return;
+      event.preventDefault();
+      void actionTask(async () => { await abandonUpgrade(); navigate(pageLink.dataset.raPage); });
+      return;
+    }
+    const bookLink = event.target.closest('[data-ra-book-destination]');
+    if (bookLink) {
+      void actionTask(async () => {
+        await abandonUpgrade();
+        const destination = bookLink.dataset.raBookDestination;
+        byId('raOrigin').value = destination === 'RUH' ? 'LHR' : 'RUH';
+        byId('raDestination').value = destination;
+        controls.update();
+        navigate('plan');
+      }).then(() => {
+        if (step !== 'plan') return;
+        byId('raDepartureButton').focus();
+        byId('raBooking').scrollIntoView({ block: 'center' });
+      });
+      return;
+    }
     const originLink = event.target.closest('[data-ra-origin]');
     if (originLink) byId('raOrigin').value = originLink.dataset.raOrigin;
     const destinationLink = event.target.closest('[data-ra-destination]');
@@ -293,7 +339,7 @@
     const trigger = event.target.closest('[data-ra-action]');
     if (!trigger) {
       const link = event.target.closest('a[href^="#"]');
-      if (link && step !== 'home') {
+      if (link && step !== 'home' && !byId('raExplore').contains(document.getElementById(link.hash.slice(1)))) {
         event.preventDefault();
         void actionTask(async () => {
           await abandonUpgrade();
@@ -490,11 +536,13 @@
   });
   global.addEventListener('riyadh-air-context-change', syncOwner);
   global.addEventListener('popstate', () => {
+    const previous = step;
     controls.close(false);
     const requested = new URL(global.location.href).searchParams.get('step') || 'home';
     step = validStep(requested);
     if (step !== requested) route(step, true);
     render(); save();
+    if (previous !== step) void lab.pageView();
   });
   site.addEventListener('input', (event) => {
     if (event.target.closest('#raPassengerForm, #raContactForm')) {
@@ -524,5 +572,6 @@
   tomorrow.setDate(tomorrow.getDate() + 14);
   byId('raDeparture').value = localDate(tomorrow);
   controls.update();
+  render();
   lab.ready.then(syncOwner).catch((error) => lab.message(error.message, true));
 })(window);

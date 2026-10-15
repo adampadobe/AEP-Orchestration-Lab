@@ -106,3 +106,5 @@ jobs:
         run: npm run test:demo-workspace-e2e
       - name: Exercise shared environment bar across customer demos (local fixtures)
         run: npm run test:demo-env-bar
+      - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
+        run: npm run test:riyadh-air
