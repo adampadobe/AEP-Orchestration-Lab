@@ -16,7 +16,12 @@ const result = spawnSync(
   {
     stdio: 'inherit',
     env: { ...process.env, AEP_DEPLOY_MODE: 'preview' },
+    shell: process.platform === 'win32',
   },
 );
+
+if (result.error) {
+  console.error(`Could not start Firebase preview deployment: ${result.error.message}`);
+}
 
 process.exit(result.status ?? 1);
