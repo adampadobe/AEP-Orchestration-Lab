@@ -253,9 +253,18 @@ identity. It must resolve an existing profile with its own canonical email and
 ECID in the selected sandbox; unknown profiles are not silently created. Inject
 Tags for that sandbox first. The stitch connects the SDK-resolved **browser ECID**
 to that email; generator business events use the independently resolved **profile
-ECID**. The same successfully stitched identity can be reused within this page
+ECID**. Riyadh opts into the shared stitch's Lab Edge context: the identity request
+uses the same per-sandbox datastream override and required
+`_demoemea.identification.core.ecid` as SDK page views. Previously the bare identity
+request omitted both, which can leave a successful drawer lookup followed by a
+rejected identity event that blocks booking progression. Other demo consumers keep
+their existing stitch behavior unless they enable `identityStitchLabEdgeContext`.
+SDK rejection remains an explicit failure, never a manufactured success.
+The same successfully stitched identity can be reused within this page
 session, but changing the identity, browser ECID or environment requires another
 connection. Optional Sfeer and contact emails must match when both are populated.
+Changing the SDK datastream override also invalidates the cached connection;
+changing it during a stitch rejects local advancement without retrying the event.
 
 **Confirm booking** verifies that connection again, then sends exactly one
 `flight.booked` request through the selected generator target. Only API acceptance

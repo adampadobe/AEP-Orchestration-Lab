@@ -15,7 +15,7 @@
     "bootstrap": "20260720-global-lab-console",
     "prefsLocal": "20260721-linkedin-prefs-loop-fix",
     "prefsSync": "20260616-tags-incognito-load",
-    "tagsInjection": "20260721-presenter-connect-silent",
+    "tagsInjection": "20261015-booking-stitch-context",
     "aepDemoEnvBar": "20260720-global-lab-console",
     "siteCloneBcEnv": "20260721-cross-tab-bc-restore",
     "siteCloneBcChrome": "20260614-modal-dock-parity",

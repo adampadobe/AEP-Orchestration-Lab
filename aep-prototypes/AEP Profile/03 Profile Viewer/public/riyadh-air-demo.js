@@ -364,17 +364,19 @@
     const beforeSandbox = sandbox();
     const beforeTarget = targetToken(selectedTarget());
     const beforeBrowserEcid = browserEcid;
+    const beforeEdgeConfig = JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides());
     if (!browserEcid || sdkSandbox !== beforeSandbox || !global.DemoTagsInjection.isAlloyReady() ||
       global.AepLabTagsInjectGuard.isInProgress('riyadhAirDemo')) {
       throw new Error('Inject Tags for the selected environment before connecting the booking email.');
     }
-    if (verified && bookingIdentity === contextToken() + '|' + browserEcid && verified.email.toLowerCase() === email.toLowerCase()) return verified;
+    if (verified && bookingIdentity === contextToken() + '|' + browserEcid + '|' + beforeEdgeConfig && verified.email.toLowerCase() === email.toLowerCase()) return verified;
     const profile = await lookup(email, { requireStitch: true, booking: true });
-    if (beforeSandbox !== sandbox() || beforeTarget !== targetToken(selectedTarget()) || beforeBrowserEcid !== browserEcid) {
+    if (beforeSandbox !== sandbox() || beforeTarget !== targetToken(selectedTarget()) || beforeBrowserEcid !== browserEcid ||
+      beforeEdgeConfig !== JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides())) {
       throw new Error('The booking environment changed while connecting your email. Review the selected profile before continuing.');
     }
     if (profile.email.toLowerCase() !== email.toLowerCase()) throw new Error('The resolved profile email does not match the booking email.');
-    bookingIdentity = contextToken() + '|' + browserEcid;
+    bookingIdentity = contextToken() + '|' + browserEcid + '|' + beforeEdgeConfig;
     return profile;
   }
 
@@ -502,6 +504,7 @@
     const webPushDesired = () => !!byId('riyadhWebPushOnInjectToggle').checked;
     tags = global.DemoTagsInjection.init({
       storagePrefix: 'riyadhAirDemo', identityEventType: 'riyadhAir.identity.stitch',
+      identityStitchLabEdgeContext: true,
       messageSetter: (text, type) => message(text, type === 'error'),
       infoEcidId: 'infoEcid', tagsCompanyId: 'riyadhTagsCompany',
       tagsPropertyInputId: 'riyadhTagsProperty', tagsPropertyListId: 'riyadhTagsPropertyList',
