@@ -414,9 +414,19 @@ const INDUSTRY_EXTENSIONS = {
     // here. See functions/retailProfileInfraService.js for the FG resolver.
   },
   fsi: {
-    // FSI streams almost everything to root (`personalFinances.*`) or to
-    // the `industryFsi.*` subtree typed by the separate Profile FSI v2 FG.
-    // Nothing extra needed under Profile Core v2.
+    'natwestDecisioning.accountType': STRING_LEAF('Account Type'),
+    'natwestDecisioning.engagementStatus': STRING_LEAF('Engagement status'),
+    'natwestDecisioning.applicationStatus': STRING_LEAF('Application status'),
+    'natwestDecisioning.documentsStatus': STRING_LEAF('Documents status'),
+    'natwestDecisioning.accountStatus': STRING_LEAF('Account status'),
+    'natwestDecisioning.caseStatus': STRING_LEAF('Service case'),
+    'natwestDecisioning.productIntent': STRING_LEAF('Product intent'),
+    'natwestDecisioning.shoppingIntent': STRING_LEAF('Shopping intent'),
+    'natwestDecisioning.hoursSinceActivity': INT_LEAF('Hours since activity'),
+    'natwestDecisioning.productAvailability': STRING_LEAF('Product availability'),
+    'natwestDecisioning.consentLevel': STRING_LEAF('Contact permission'),
+    'natwestDecisioning.safeToContact': STRING_LEAF('Safe to contact'),
+    'natwestDecisioning.messages7d': INT_LEAF('Messages in 7 days'),
   },
   media: {
     // Media streams to `subscriptions.*` (root) and `industryMedia.*`

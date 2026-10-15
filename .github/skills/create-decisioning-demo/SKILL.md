@@ -21,11 +21,13 @@ Example request:
 
 - Default to a local, static simulation with fictional customer data, not live
   AEP decisioning, profile generation, email delivery or product eligibility.
-- Include Email, Mobile and Web views driven by the same profile and decision.
-  Email must support desktop and narrow-screen layouts. Mobile is an app-style
-  preview unless the user specifically asks for mobile email instead.
-- Put editable industry-specific profile attributes at the bottom of the page.
-- Include a ranked next-best-action explanation, guardrails and scenario presets.
+- Use the decisioning visualiser layout: three resizable panes for collapsible
+  profile signals, ranked objectives/NBAs, and branded channel previews.
+- Default tabs are **Email · Desktop**, **Email · Mobile**, and **Web**.
+  Mobile means the same responsive email in a phone frame, not an app mockup.
+- Include industry-specific attributes (also in the shared bottom profile drawer
+  when live integration is requested), scenario presets, a seven-step objective
+  ladder that stops at the first eligible objective, and expandable NBA scores.
 - Use the uploaded files without a live crawl or external service by default.
 - Do not deploy, publish templates, send messages, provision infrastructure or
   change shared sandbox configuration as part of creating the demo.
@@ -75,22 +77,29 @@ Use the smallest implementation consistent with existing repository patterns:
 - `web/profile-viewer/<brand>-decisioning-demo.html`
 - `web/profile-viewer/<brand>-decisioning-demo.css`
 - `web/profile-viewer/<brand>-decisioning-demo.js`
+- `<brand>-decisioning-visualiser.html` and `.js` for the isolated three-pane UI
+- `<brand>-decisioning-model.js` for profile mappings and deterministic rules
 
-Keep offer content and scenario presets data-driven so a new brand does not
-require rewriting the rendering and channel-switching logic.
+Use `natwest-decisioning-demo.html`, `natwest-decisioning-visualiser.html` and
+their model/controller as structural prior art, not as brand/content sources.
+Keep offer content and scenario presets data-driven. Do not require the user to
+name a reference customer, or replace this layout with a generic dashboard.
 
 ### Layout and branding
 
-Use the dashboard shell, `home-dashboard-concierge` body class, early-paint theme
-IIFE, shared navigation and theme scripts. Follow stylesheet order with
+Use a full-bleed visualiser iframe with a peek sidebar and, for live demos, the
+canonical shared Spectrum environment strip plus explicit Apply / Run actions.
+Keep `home-dashboard-concierge`, the early-paint theme IIFE and shared navigation.
+Follow stylesheet order with
 `aep-theme.css` last. Use `--dash-*` colour tokens, not hardcoded CSS colours.
 Keep the brand logo, local photography, tone and website structure recognisable;
 check both themes rather than relying on a generic recolouring alone.
 
-Above the bottom profile editor, show scenario buttons, the selected decision,
-ranked actions, guardrails, and the channel preview. Make the layout responsive
-without horizontal overflow. Use labelled controls, accessible tabs, keyboard
-navigation, useful image alternatives and a concise live decision status.
+At desktop widths keep compact collapsible signals on the left, scenario pills
+and the dark branded seven-row objective ladder in the middle, and the channel
+preview on the right. Use keyboard/pointer-resizable gutters with saved widths.
+Signal groups and Eligible NBAs start collapsed. On narrow screens stack panes.
+Use labelled controls, accessible tabs, useful image alternatives and clear status.
 
 ### Profile and offers
 
@@ -115,9 +124,11 @@ when nothing is eligible, and remove stale offer images and CTAs in every view.
 
 ### Channels
 
-All previews use the same selected offer and profile, with channel-specific
-presentation: email subject/preheader/body/CTA, a mobile card or requested mobile
-email, and a branded web hero/banner. Do not send any content.
+All previews share one hero/copy and recipient: a table-based 600px email, the
+same responsive email in a 390px phone frame, and a recognisable reconstruction
+of the supplied website. Do not send any content. In a live demo, distinguish
+local objective ranking from live preview content: staged controls must not
+pretend to be an Edge decision. Replace live content only on a successful Run.
 
 Support `?channel=email`, `?channel=mobile` and `?channel=web` deep links. Keep URL,
 active tab and visible panel aligned, including browser history navigation.
@@ -127,12 +138,22 @@ broken or placeholder links as working product journeys.
 
 ## 4. Wire and verify the complete demo
 
-1. Add owner-scoped entries under Demos -> customer -> Email / Mobile / Web in
-   `aep-lab-nav.js`, following existing metadata patterns. Reuse the customer's
-   group if it already exists. Do not guess the owner or sandbox.
+1. Add owner-scoped entries under Demos -> customer -> Web, following repository
+   metadata patterns. If adding Mobile, use Phone plus an iPad link/placeholder.
+   Email is an internal preview tab, not a new navigation channel. Reuse the
+   customer group; do not guess the owner or sandbox.
 2. For an explicitly requested live Tags/profile-generator demo, inspect and use
    the canonical environment strip, profile drawer and governed APIs documented
    in `CONTRIBUTING.md`. Do not invent a parallel strip or backend integration.
+   Require `testProfile`, re-fetch the latest full writable industry snapshots,
+   validate resolved schema types/enums before any writes, and verify ingestion
+   readback before evaluating. Add new tenant paths to the same-commit industry
+   manifest; explain that a Hosting preview does not release/provision Functions.
+   Do not auto-write, auto-provision or auto-run decisions. Use the shared runtime
+   manual-display mode: accept only a fresh, unambiguous hero-surface proposition,
+   wait for the selected preview image to be visibly loaded, then send exactly
+   one display notification using the original scope/metadata/request identity.
+   Never count stale/fallback content or hidden preview mounts as a display.
 3. Run JavaScript syntax checks and `npm run verify:profile-viewer-routes`.
    Use browser tools or existing Playwright tooling to exercise presets, field
    effects, ranking/ties, consent, safety, service priority, frequency boundaries,

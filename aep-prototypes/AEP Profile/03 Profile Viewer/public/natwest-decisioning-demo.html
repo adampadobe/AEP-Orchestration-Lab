@@ -1,236 +1,73 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NatWest decisioning channels – AEP Profile Viewer</title>
+  <title>NatWest Decisioning - AEP Orchestration Lab</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="natwest-decisioning-demo.css">
-  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="home.css?v=20261015-natwest-rebuild">
+  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css">
+  <link rel="stylesheet" href="natwest-decisioning-demo.css?v=20261015-rebuild">
+  <link rel="stylesheet" href="aep-theme.css">
 </head>
-<body class="home-dashboard-concierge natwest-decisioning-page">
-  <div class="dashboard-shell">
-    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
-    <div class="dashboard-main-wrap">
-      <header class="dashboard-topbar">
-        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
-        <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill">NatWest demo</span>
-        </div>
-      </header>
-      <main class="dashboard-main app-page natwest-main">
-        <div class="nw-page-heading">
-          <div>
-            <p class="nw-eyebrow">CUSTOMER DECISIONING · CHANNEL PREVIEW</p>
-            <h2>NatWest next best experience</h2>
-            <p class="nw-intro">Change the customer profile to see the decision, guardrails and matching experience update across email, mobile and web.</p>
-          </div>
-          <span class="nw-demo-badge">SIMULATION · NO LIVE CUSTOMER DATA</span>
-        </div>
-
-        <section class="nw-scenarios" aria-label="Try a customer scenario">
-          <span class="nw-section-label">SCENARIOS</span>
-          <button type="button" class="nw-scenario" data-scenario="isa">ISA saver</button>
-          <button type="button" class="nw-scenario" data-scenario="mortgage">Moving home</button>
-          <button type="button" class="nw-scenario" data-scenario="borrowing">Borrowing intent</button>
-          <button type="button" class="nw-scenario" data-scenario="suppressed">Marketing suppressed</button>
-        </section>
-
-        <div class="nw-workspace">
-          <section class="nw-panel nw-decision-panel" aria-labelledby="decision-heading">
-            <div class="nw-panel-heading">
-              <div>
-                <p class="nw-section-label">REAL-TIME DECISION</p>
-                <h3 id="decision-heading">Next best action</h3>
-              </div>
-              <span id="decisionStatus" class="nw-status" aria-live="polite">Evaluating profile</span>
-            </div>
-            <div class="nw-winner" aria-live="polite">
-              <div class="nw-winner-topline">
-                <span id="winnerType" class="nw-winner-type">PERSONALISATION</span>
-                <span id="winnerScore" class="nw-score">—</span>
-              </div>
-              <h4 id="winnerName">Loading decision…</h4>
-              <p id="winnerWhy" class="nw-winner-why"></p>
-              <div id="decisionTags" class="nw-tags"></div>
-            </div>
-            <div class="nw-ranking-heading">
-              <h4>Offer ranking</h4>
-              <span>Eligibility · relevance · safety</span>
-            </div>
-            <ol id="offerRanking" class="nw-ranking" aria-label="Ranked offers"></ol>
-            <div class="nw-guardrails">
-              <div class="nw-guardrails-heading">
-                <h4>Guardrails</h4>
-                <span id="guardrailSummary">Checking</span>
-              </div>
-              <ul id="guardrailList"></ul>
-            </div>
-          </section>
-
-          <section class="nw-panel nw-preview-panel" aria-labelledby="preview-heading">
-            <div class="nw-panel-heading">
-              <div>
-                <p class="nw-section-label">DECISIONED CONTENT</p>
-                <h3 id="preview-heading">Experience preview</h3>
-              </div>
-              <span id="profileSummary" class="nw-profile-summary"></span>
-            </div>
-            <div class="nw-channel-tabs" role="tablist" aria-label="Preview channel">
-              <button type="button" id="tab-email" class="nw-channel-tab" role="tab" aria-selected="false" aria-controls="preview-email" data-channel="email">Email</button>
-              <button type="button" id="tab-mobile" class="nw-channel-tab" role="tab" aria-selected="false" aria-controls="preview-mobile" data-channel="mobile">Mobile</button>
-              <button type="button" id="tab-web" class="nw-channel-tab" role="tab" aria-selected="false" aria-controls="preview-web" data-channel="web">Web</button>
-            </div>
-
-            <div id="preview-email" class="nw-preview-stage" role="tabpanel" aria-labelledby="tab-email" hidden>
-              <div class="nw-email-meta">
-                <div><span>From</span><strong>NatWest · Customer updates</strong></div>
-                <div><span>Subject</span><strong id="emailSubject"></strong></div>
-                <div><span>Preheader</span><span id="emailPreheader"></span></div>
-              </div>
-              <article class="nw-email">
-                <header class="nw-brand-bar"><img src="natwest-decisioning-assets/natwest-logo.svg" alt="NatWest"></header>
-                <div class="nw-email-body">
-                  <p class="nw-email-greeting">Hello Alex,</p>
-                  <h4 id="emailHeadline"></h4>
-                  <p id="emailCopy"></p>
-                  <img id="emailImage" class="nw-content-image" src="natwest-decisioning-assets/isa-savings-couple.png" alt="">
-                  <a id="emailCta" class="nw-cta" href="#preview-email">Explore your options</a>
-                  <p class="nw-email-footnote" id="emailFootnote"></p>
-                </div>
-                <footer class="nw-email-footer">You can manage your preferences in the NatWest app. This is a fictional demonstration.</footer>
-              </article>
-            </div>
-
-            <div id="preview-mobile" class="nw-preview-stage" role="tabpanel" aria-labelledby="tab-mobile" hidden>
-              <div class="nw-phone">
-                <div class="nw-phone-top"><span>9:41</span><span aria-hidden="true">● ● ●</span></div>
-                <div class="nw-app-header">
-                  <img src="natwest-decisioning-assets/natwest-logo.svg" alt="NatWest">
-                  <span>Good morning, Alex</span>
-                </div>
-                <div class="nw-app-balance">
-                  <span>Everyday account</span>
-                  <strong>•••• 4821</strong>
-                  <span>Your banking, made personal</span>
-                </div>
-                <img id="mobileImage" class="nw-mobile-image" src="natwest-decisioning-assets/mobile-app-customer.png" alt="">
-                <article class="nw-mobile-offer">
-                  <span id="mobileKicker" class="nw-mobile-kicker"></span>
-                  <h4 id="mobileHeadline"></h4>
-                  <p id="mobileCopy"></p>
-                  <a id="mobileCta" class="nw-cta" href="#preview-mobile">See details</a>
-                </article>
-                <div class="nw-app-nav" aria-label="App navigation"><span>Home</span><span>Payments</span><span>Cards</span><span>More</span></div>
-              </div>
-            </div>
-
-            <div id="preview-web" class="nw-preview-stage" role="tabpanel" aria-labelledby="tab-web" hidden>
-              <div class="nw-browser">
-                <div class="nw-browser-bar"><span></span><span></span><span></span><div>natwest.com</div></div>
-                <div class="nw-site-nav">
-                  <img src="natwest-decisioning-assets/natwest-logo.svg" alt="NatWest">
-                  <span>Current accounts</span><span>Mortgages</span><span>Savings</span><span>Loans</span>
-                  <b>Log in</b>
-                </div>
-                <div class="nw-web-hero">
-                  <img id="webImage" src="natwest-decisioning-assets/isa-savings-couple.png" alt="">
-                  <div class="nw-web-copy">
-                    <span id="webKicker" class="nw-web-kicker"></span>
-                    <h4 id="webHeadline"></h4>
-                    <p id="webCopy"></p>
-                    <a id="webCta" class="nw-cta" href="#preview-web">Find out more</a>
-                  </div>
-                </div>
-                <p class="nw-web-disclaimer">A simulated personalisation on a captured NatWest site reference. Product terms and rates can change.</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <section class="nw-panel nw-profile-panel" aria-labelledby="profile-heading">
-          <div class="nw-panel-heading nw-profile-heading">
-            <div>
-              <p class="nw-section-label">SIMULATED CUSTOMER PROFILE</p>
-              <h3 id="profile-heading">Decisioning attributes</h3>
-            </div>
-            <span class="nw-profile-note">Edit the signals below to see how the decision changes.</span>
-          </div>
-          <div class="nw-fields">
-            <label class="nw-field" for="nwAccountType">
-              <span>Account Type</span>
-              <select id="nwAccountType" data-profile-field="accountType">
-                <option>Current account</option>
-                <option>Savings</option>
-                <option>Mortgage</option>
-                <option>Personal loan</option>
-                <option>No active account</option>
-              </select>
-            </label>
-            <label class="nw-field" for="nwSegment">
-              <span>Customer segment</span>
-              <select id="nwSegment" data-profile-field="segment">
-                <option>Reward</option>
-                <option>Select</option>
-                <option>Premier</option>
-                <option>Standard</option>
-              </select>
-            </label>
-            <label class="nw-field" for="nwIntent">
-              <span>Product intent</span>
-              <select id="nwIntent" data-profile-field="intent">
-                <option>Save</option>
-                <option>Move home</option>
-                <option>Borrow</option>
-                <option>Everyday banking</option>
-              </select>
-            </label>
-            <label class="nw-field" for="nwActivity">
-              <span>Recent activity</span>
-              <select id="nwActivity" data-profile-field="activity">
-                <option>Viewed Fixed Rate ISA</option>
-                <option>Used mortgage calculator</option>
-                <option>Viewed borrowing options</option>
-                <option>Active in mobile app</option>
-                <option>No recent activity</option>
-              </select>
-            </label>
-            <label class="nw-field" for="nwPermission">
-              <span>Marketing permission</span>
-              <select id="nwPermission" data-profile-field="permission">
-                <option>Opted in</option>
-                <option>Opted out</option>
-              </select>
-            </label>
-            <label class="nw-field" for="nwService">
-              <span>Service case</span>
-              <select id="nwService" data-profile-field="service">
-                <option>Clear</option>
-                <option>Open</option>
-              </select>
-            </label>
-            <label class="nw-field" for="nwSafety">
-              <span>Contact safety</span>
-              <select id="nwSafety" data-profile-field="safety">
-                <option>Clear</option>
-                <option>Review required</option>
-              </select>
-            </label>
-            <label class="nw-field nw-range-field" for="nwContactCount">
-              <span>Marketing contacts in last 30 days <strong id="contactCountValue">1</strong></span>
-              <input id="nwContactCount" data-profile-field="contacts" type="range" min="0" max="5" step="1" value="1">
-            </label>
-          </div>
-        </section>
-        <p class="nw-disclaimer">Demonstration only. Profile values and decision scores are simulated; this page does not make eligibility, affordability or product recommendations.</p>
-      </main>
-    </div>
+<body class="mod-demo-page nw-decisioning-page home-dashboard-concierge">
+  <div class="mod-demo-top-anchor">
+    <section class="mod-demo-id-banner" aria-label="Lab configuration">
+      <div class="aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-prefix="nwDecisioning"
+        data-demo-env-strip-title="NatWest Decisioning"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-message-id="nwDecisioningMessage"
+        data-demo-env-strip-disclaimer="Internal test-profile demo. Objective ranking is simulated. Email desktop/mobile and Web preview the same live image decision; no messages are delivered. Captured website content is not a current product offer.">
+      </div>
+    </section>
   </div>
-  <script src="natwest-decisioning-demo.js" defer></script>
-  <script src="aep-lab-nav.js" defer></script>
+  <div class="nw-decisioning-actions" role="region" aria-label="Live decision controls">
+    <button id="nwApplyProfile" type="button" disabled>Apply profile changes</button>
+    <button id="nwRunDecision" type="button">Run live image decision</button>
+    <span id="nwDecisionStatus">Local preview - no live decision applied.</span>
+    <span id="nwProfileStatus" role="status" aria-live="polite">Look up a test profile to stage live changes.</span>
+  </div>
+  <iframe id="nwDecisioningFrame" class="mod-demo-site-frame" title="NatWest decisioning visualiser"
+    src="natwest-decisioning-visualiser.html?v=20261015-rebuild"
+    sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Lab navigation"></aside>
+    <div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div>
+  </div>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js"></script>
+  <script src="aep-profile-drawer.js"></script>
+  <script src="aep-demo-generator-targets.js"></script>
+  <script src="natwest-decisioning-model.js?v=20261015-rebuild"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'nwDecisioning', variant: 'spectrum', localOverride: true, firestoreListen: false,
+      features: { webPush: false, bc: false, target: false, decisioning: true },
+      iframeIds: ['nwDecisioningFrame'],
+      decisioning: {
+        iframeId: 'nwDecisioningFrame', useParentDocument: false, mountLayoutPreset: 'generic',
+        autoRunDecisioning: false, viewName: 'NatWest Decisioning'
+      },
+      labCoreScript: 'natwest-decisioning-demo.js?v=20261015-rebuild'
+    };
+  </script>
+  <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
+  <script src="aep-lab-nav.js?v=20261015-natwest-rebuild"></script>
   <script src="aep-theme.js" defer></script>
 </body>
 </html>

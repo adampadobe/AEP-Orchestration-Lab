@@ -58,6 +58,7 @@ const SANDBOX_ONLY_ENV_BAR_HTML = [
 ];
 
 const SITE_CLONE_DEMO_HTML = [
+  'natwest-decisioning-demo.html',
   'sky-demo.html',
   'jlr-demo.html',
   'mod-demo.html',

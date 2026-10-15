@@ -43,7 +43,7 @@
 
 ## Copilot behavior
 
-- For a decisioning demo from uploaded website files, use `.github/skills/create-decisioning-demo/SKILL.md`. Infer the brand and industry, build Email/Mobile/Web previews and bottom-of-page profile controls, and do not require another customer's demo as a starting point.
+- For a decisioning demo from uploaded website files, use `.github/skills/create-decisioning-demo/SKILL.md`. Infer the brand and industry; build the resizable three-pane visualiser with Email Desktop, Email Mobile and Web previews, ranked objectives and industry-specific profile controls. Do not require another customer's demo as an input.
 - Explain the intended files and validation before making broad changes.
 - When a request could affect production data, hosting, Cloud Functions, IAM, secrets, or protected branches, stop and identify the safety boundary before suggesting commands.
 - Prefer small patches and preserve existing conventions.

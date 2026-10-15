@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NatWest decisioning visualiser</title>
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="natwest-decisioning-demo.css?v=20261015-rebuild">
+  <link rel="stylesheet" href="aep-theme.css">
+</head>
+<body class="nw-visualiser home-dashboard-concierge">
+  <div id="TopRibbon" hidden></div><div id="hero-banner" hidden></div><div id="ContentCardContainer" hidden></div>
+  <div class="app">
+    <div class="panes" id="panes">
+      <section class="pane p-sig" aria-label="Profile signals">
+        <div class="card sim"><div class="signals" id="signals"></div></div>
+      </section>
+      <div class="gutter" id="gut0" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Resize signals"><i></i></div>
+      <section class="pane p-res" aria-label="Decision explanation">
+        <div class="results">
+          <div class="card scn-block"><span class="card-label">Scenarios</span><div class="scenarios" id="scenarios"></div></div>
+          <section class="result r-obj">
+            <p class="result-label">Local simulation (not an AEP decision)</p>
+            <div class="block-head"><h1 class="block-title">Ranked objectives</h1><span class="block-tag">Stop at the first eligible</span><button id="expandAll" class="obj-toggle-all" type="button">Expand all</button></div>
+            <ol class="ladder" id="ladder"></ol>
+          </section>
+          <section class="result r-nba collapsed" id="nbaPanel">
+            <button class="block-head nba-head" id="nbaHead" type="button" aria-expanded="false" aria-controls="nbaList"><span class="block-title">Eligible NBAs</span><span class="block-tag" id="nbaCount"></span><span class="sig-chev" aria-hidden="true">&#9660;</span></button>
+            <ol class="nba-list" id="nbaList"></ol>
+          </section>
+          <p class="simulation-note" id="localStatus" role="status">Local simulation only.</p>
+        </div>
+      </section>
+      <div class="gutter" id="gut1" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Resize preview"><i></i></div>
+      <section class="pane mail" aria-label="Channel preview">
+        <div class="mail-bar">
+          <span class="card-label">What the customer sees</span>
+          <div class="dev" id="dev" role="tablist" aria-label="Preview channel">
+            <button type="button" id="tab-desktop" data-mode="desktop" role="tab" aria-controls="channelPanel" aria-selected="true">Email &middot; Desktop</button>
+            <button type="button" id="tab-mobile" data-mode="mobile" role="tab" aria-controls="channelPanel" aria-selected="false" tabindex="-1">Email &middot; Mobile</button>
+            <button type="button" id="tab-web" data-mode="web" role="tab" aria-controls="channelPanel" aria-selected="false" tabindex="-1">Web</button>
+          </div>
+        </div>
+        <div class="mail-stage" id="channelPanel" role="tabpanel" aria-labelledby="tab-desktop">
+          <iframe id="mailFrame" title="NatWest email preview" sandbox="allow-same-origin"></iframe>
+          <div class="web-stage" id="webStage" hidden>
+            <div class="browser"><div class="browser-bar"><i></i><i></i><i></i><span>natwest.com</span></div>
+              <div class="nw-site">
+                <header class="nw-site-header"><img src="natwest-decisioning-assets/natwest-logo.svg" alt="NatWest"><span>Personal</span><span>Premier</span><span>Business</span><b>Log in</b></header>
+                <nav class="nw-products" aria-label="Website preview products"><span>Bank accounts</span><span>Mortgages</span><span>Loans</span><span>Savings</span><span>Help &amp; support</span></nav>
+                <div class="nw-site-hero"><div class="nw-hero-copy"><p class="eyebrow" id="webEyebrow">Tomorrow begins today</p><h2 id="webTitle"></h2><p id="webDescription"></p><button type="button" id="webCta" disabled></button><small>Illustrative preview &middot; not a live offer</small></div><img id="webImage" alt="NatWest lifestyle photography"></div>
+                <div class="nw-site-links"><span>Explore bank accounts</span><span>Find a mortgage</span><span>Start saving</span><span>Manage your money</span></div>
+                <section class="nw-site-support"><h3>A little help with your next step</h3><p>Explore our savings accounts, home-moving support and ways to bank in the app.</p><div class="nw-site-cards"><article><img src="natwest-decisioning-assets/isa-savings-couple.png" alt="Couple planning their finances"><h4>Make saving part of your plans</h4><p>Discover savings accounts and ISAs.</p></article><article><img src="natwest-decisioning-assets/mobile-app-customer.png" alt="Customer using a phone at home"><h4>Banking in your hands</h4><p>Explore the NatWest app.</p></article></div></section>
+                <footer class="nw-site-footer">NatWest &middot; Internal decisioning demonstration. Reconstructed from supplied website files; no applications or messages are submitted.</footer>
+              </div>
+            </div>
+          </div>
+          <div class="mail-empty" id="mailEmpty" hidden><h2>No message served</h2><p id="mailEmptyWhy"></p></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="natwest-decisioning-model.js?v=20261015-rebuild"></script>
+  <script src="natwest-decisioning-visualiser.js?v=20261015-rebuild"></script>
+</body>
+</html>

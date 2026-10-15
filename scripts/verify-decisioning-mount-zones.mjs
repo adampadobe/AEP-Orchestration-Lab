@@ -14,6 +14,7 @@ const pv = path.join(root, 'web/profile-viewer');
 
 /** Align with scripts/verify-demo-env-strip.mjs */
 const SITE_CLONE_DEMO_HTML = [
+  'natwest-decisioning-demo.html',
   'sky-demo.html',
   'jlr-demo.html',
   'mod-demo.html',

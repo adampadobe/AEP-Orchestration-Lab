@@ -1,439 +1,336 @@
-(function () {
+(function (global) {
   'use strict';
-
-  var assets = 'natwest-decisioning-assets/';
-  var profiles = {
-    isa: {
-      accountType: 'Current account',
-      segment: 'Reward',
-      intent: 'Save',
-      activity: 'Viewed Fixed Rate ISA',
-      permission: 'Opted in',
-      service: 'Clear',
-      safety: 'Clear',
-      contacts: '1',
-    },
-    mortgage: {
-      accountType: 'Mortgage',
-      segment: 'Premier',
-      intent: 'Move home',
-      activity: 'Used mortgage calculator',
-      permission: 'Opted in',
-      service: 'Clear',
-      safety: 'Clear',
-      contacts: '1',
-    },
-    borrowing: {
-      accountType: 'Personal loan',
-      segment: 'Select',
-      intent: 'Borrow',
-      activity: 'Viewed borrowing options',
-      permission: 'Opted in',
-      service: 'Clear',
-      safety: 'Clear',
-      contacts: '1',
-    },
-    suppressed: {
-      accountType: 'Current account',
-      segment: 'Reward',
-      intent: 'Save',
-      activity: 'Viewed Fixed Rate ISA',
-      permission: 'Opted out',
-      service: 'Clear',
-      safety: 'Clear',
-      contacts: '4',
-    },
-  };
-
-  var offers = [
-    {
-      id: 'isa',
-      name: 'Explore a Fixed Rate ISA',
-      type: 'SAVINGS',
-      subject: 'A little more from your savings?',
-      preheader: 'Explore NatWest savings options that fit your plans.',
-      headline: 'Make more of your savings',
-      copy:
-        'The captured NatWest homepage featured a one year Fixed Rate ISA at 4.25% AER / tax-free p.a. (fixed). This is a historical page reference, not a live rate.',
-      cta: 'Explore savings options',
-      image: 'isa-savings-couple.png',
-      imageAlt: 'A couple reviewing their finances together',
-      tags: ['Savings intent', 'Recent ISA interest'],
-      score: function (profile) {
-        return 32 +
-          (profile.intent === 'Save' ? 32 : 0) +
-          (profile.activity === 'Viewed Fixed Rate ISA' ? 20 : 0) +
-          (profile.accountType === 'Current account' || profile.accountType === 'Savings' ? 12 : 0) +
-          (profile.segment === 'Premier' || profile.segment === 'Select' ? 4 : 0);
-      },
-      why: 'Savings intent and recent ISA activity make this the strongest relevant content.',
-    },
-    {
-      id: 'mortgage',
-      name: 'Moving home mortgage options',
-      type: 'HOME FINANCE',
-      subject: 'Planning your next move?',
-      preheader: 'See what to consider when moving home with a mortgage.',
-      headline: 'A new home starts with a plan',
-      copy:
-        'Explore the steps involved in moving home with a mortgage, including the questions to ask and options to review with NatWest.',
-      cta: 'Explore mortgage options',
-      image: 'isa-savings-couple.png',
-      imageAlt: 'Customers discussing their finances at home',
-      tags: ['Home-move intent', 'Mortgage activity'],
-      score: function (profile) {
-        return 30 +
-          (profile.intent === 'Move home' ? 34 : 0) +
-          (profile.activity === 'Used mortgage calculator' ? 22 : 0) +
-          (profile.accountType === 'Mortgage' ? 12 : 0);
-      },
-      why: 'Moving-home intent and mortgage research make this the most relevant next step.',
-    },
-    {
-      id: 'loan',
-      name: 'Explore borrowing options',
-      type: 'BORROWING',
-      subject: 'Exploring ways to borrow?',
-      preheader: 'Review borrowing information and important considerations.',
-      headline: 'Understand your borrowing options',
-      copy:
-        'Review the information available about borrowing and consider what may suit your circumstances. This content does not indicate approval or affordability.',
-      cta: 'Review borrowing information',
-      image: 'mobile-app-customer.png',
-      imageAlt: 'A customer using a mobile phone at home',
-      tags: ['Borrowing intent', 'Product research'],
-      score: function (profile) {
-        return 28 +
-          (profile.intent === 'Borrow' ? 34 : 0) +
-          (profile.activity === 'Viewed borrowing options' ? 22 : 0) +
-          (profile.accountType === 'Personal loan' ? 12 : 0);
-      },
-      why: 'Borrowing intent and recent product research align with informational content.',
-    },
-    {
-      id: 'app',
-      name: 'Discover the NatWest app',
-      type: 'DIGITAL BANKING',
-      subject: 'Banking on your terms',
-      preheader: 'Discover ways to manage day-to-day banking in the app.',
-      headline: 'Your everyday banking, in one place',
-      copy:
-        'Explore the NatWest app features shown in the captured site reference and find out how to manage everyday banking from your mobile.',
-      cta: 'Explore the app',
-      image: 'mobile-app-customer.png',
-      imageAlt: 'A customer using a mobile phone at home',
-      tags: ['Everyday banking', 'Digital experience'],
-      score: function (profile) {
-        return 35 +
-          (profile.intent === 'Everyday banking' ? 28 : 0) +
-          (profile.activity === 'Active in mobile app' ? 18 : 0) +
-          (profile.accountType === 'Current account' ? 10 : 0);
-      },
-      why: 'Day-to-day banking intent makes app features a useful supporting experience.',
-    },
-  ];
-
-  var serviceMessage = {
-    id: 'service',
-    name: 'Service case update',
-    type: 'SERVICE MESSAGE',
-    subject: 'An update about your NatWest service request',
-    preheader: 'A service update is available for you.',
-    headline: 'We’re here to help',
-    copy:
-      'There is an open service case on this simulated profile. The demo prioritises a service update and suppresses promotional content.',
-    cta: 'View service information',
-    image: 'mobile-app-customer.png',
-    imageAlt: 'A customer using a mobile phone at home',
-    tags: ['Service-first', 'Promotions suppressed'],
-    score: function () {
-      return 100;
-    },
-    why: 'An open service case takes priority over promotional communications.',
-  };
-
-  var fieldNames = {
-    accountType: 'nwAccountType',
-    segment: 'nwSegment',
-    intent: 'nwIntent',
-    activity: 'nwActivity',
-    permission: 'nwPermission',
-    service: 'nwService',
-    safety: 'nwSafety',
-    contacts: 'nwContactCount',
-  };
-
-  var elements = {
-    status: document.getElementById('decisionStatus'),
-    winnerType: document.getElementById('winnerType'),
-    winnerScore: document.getElementById('winnerScore'),
-    winnerName: document.getElementById('winnerName'),
-    winnerWhy: document.getElementById('winnerWhy'),
-    tags: document.getElementById('decisionTags'),
-    ranking: document.getElementById('offerRanking'),
-    guardrailSummary: document.getElementById('guardrailSummary'),
-    guardrails: document.getElementById('guardrailList'),
-    profileSummary: document.getElementById('profileSummary'),
-    contactCountValue: document.getElementById('contactCountValue'),
-    emailSubject: document.getElementById('emailSubject'),
-    emailPreheader: document.getElementById('emailPreheader'),
-    emailHeadline: document.getElementById('emailHeadline'),
-    emailCopy: document.getElementById('emailCopy'),
-    emailImage: document.getElementById('emailImage'),
-    emailCta: document.getElementById('emailCta'),
-    emailFootnote: document.getElementById('emailFootnote'),
-    mobileKicker: document.getElementById('mobileKicker'),
-    mobileHeadline: document.getElementById('mobileHeadline'),
-    mobileCopy: document.getElementById('mobileCopy'),
-    mobileImage: document.getElementById('mobileImage'),
-    mobileCta: document.getElementById('mobileCta'),
-    webKicker: document.getElementById('webKicker'),
-    webHeadline: document.getElementById('webHeadline'),
-    webCopy: document.getElementById('webCopy'),
-    webImage: document.getElementById('webImage'),
-    webCta: document.getElementById('webCta'),
-  };
-
-  function readProfile() {
-    var profile = {};
-    Object.keys(fieldNames).forEach(function (key) {
-      var field = document.getElementById(fieldNames[key]);
-      profile[key] = field.value;
+  const prefix = 'nwDecisioning';
+  const frame = document.getElementById('nwDecisioningFrame');
+  const apply = document.getElementById('nwApplyProfile');
+  const run = document.getElementById('nwRunDecision');
+  const model = global.NatwestDecisioningModel;
+  const status = document.getElementById('nwProfileStatus');
+  let loaded = null, baseline = null, loadedKey = '', pending = null;
+  let busy = false, dirty = false, contextVersion = 0, signalRevision = 0, decisionRun = 0;
+  let targets = [], tags;
+  const displayAttempts = new Set();
+  const api = () => frame.contentWindow && frame.contentWindow.NatwestDecisioningVisualiser;
+  function context() {
+    return {
+      sandbox: global.AepGlobalSandbox.getSandboxName(),
+      namespace: document.getElementById(prefix + 'Ns').value.toLowerCase(),
+      identifier: document.getElementById('customerEmail').value.trim(),
+    };
+  }
+  const key = value => JSON.stringify(value);
+  function testProfile(data) {
+    return data.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && model.scalar(row) === true);
+  }
+  function message(text, error) {
+    status.textContent = text; status.title = text; status.dataset.error = String(!!error);
+    apply.disabled = busy || !loaded || !testProfile(loaded) || !dirty || !!pending;
+    run.disabled = busy;
+  }
+  function current(ctx, version) {
+    if (key(context()) !== key(ctx) || version !== contextVersion) {
+      throw new Error('Profile or sandbox changed during the operation. Look up the selected profile again.');
+    }
+  }
+  async function jsonFetch(url, options) {
+    const response = await fetch(url, options);
+    const data = await response.json();
+    if (!response.ok || data.error || data.ok === false) throw new Error(
+      typeof data.error === 'string' ? data.error : data.message || 'Request failed (HTTP ' + response.status + ').');
+    return data;
+  }
+  async function table(ctx, version) {
+    if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier first.');
+    const data = await jsonFetch('/api/profile/table?' + new URLSearchParams(ctx));
+    current(ctx, version);
+    if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found for this identifier.');
+    return data;
+  }
+  function invalidate() {
+    contextVersion++;
+    loaded = null; baseline = null; loadedKey = ''; pending = null; dirty = false;
+    if (api()) { api().setRecipientFirstName(null); api().clearDecision(); }
+    document.getElementById('nwDecisionStatus').textContent = 'New context - no live decision applied.';
+    message('Look up the selected test profile before applying changes.');
+    bankingDetails();
+  }
+  function bankingDetails() {
+    const loyalty = document.getElementById('profileDrawerLoyalty');
+    if (!loyalty) return;
+    loyalty.closest('.aep-profile-drawer-identity-row').hidden = true;
+    let section = document.getElementById('nwBankingDetails');
+    if (!section) {
+      section = document.createElement('div'); section.id = 'nwBankingDetails';
+      loyalty.closest('.aep-profile-drawer-col').appendChild(section);
+    }
+    section.replaceChildren();
+    const values = loaded && model.readState(loaded.rows);
+    for (const [name, label] of [['account', 'Account Type'], ['application', 'Application status'], ['product', 'Product intent'], ['cases', 'Service case']]) {
+      const row = document.createElement('div'); row.className = 'aep-profile-drawer-identity-row';
+      const title = document.createElement('strong'); title.textContent = label;
+      const value = document.createElement('span');
+      const present = loaded && loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name) ||
+        name === 'account' && /^industryFsi\.financialProducts\./.test(model.relativePath(row.path)) && model.scalar(row) === true);
+      value.textContent = values && present ? model.labels[values[name]] : loaded ? 'Not set' : 'Not loaded';
+      row.append(title, value); section.appendChild(row);
+    }
+  }
+  async function load(ctx, version) {
+    const data = await table(ctx, version);
+    if (pending) {
+      const differences = model.differences(data.rows, pending);
+      if (differences.length) throw new Error('Saved values are not yet visible in AEP: ' +
+        differences.map(item => item.path).join(', ') + '. Allow time for ingestion, then look up again. No decision was requested.');
+      pending = null;
+    }
+    loaded = data; loadedKey = key(ctx);
+    const preserve = dirty && baseline;
+    baseline = model.readState(data.rows);
+    if (!preserve) { api().setState(baseline); dirty = false; }
+    else dirty = key(api().getState()) !== key(baseline);
+    const first = data.rows.find(row => model.relativePath(row.path) === 'person.name.firstName');
+    api().setRecipientFirstName(first ? model.scalar(first) : null);
+    return data;
+  }
+  async function lookup() {
+    if (busy) return;
+    const ctx = context(), version = contextVersion;
+    busy = true; message('Looking up profile...');
+    try {
+      await load(ctx, version);
+      const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false });
+      current(ctx, version);
+      if (!ok) throw new Error('Profile signals loaded, but the profile drawer could not be refreshed.');
+      bankingDetails();
+      if (testProfile(loaded) && tags) {
+        await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
+        current(ctx, version);
+      }
+      const missingSignals = Object.values(model.fields).some(leaf =>
+        !loaded.rows.some(row => model.relativePath(row.path) === 'natwestDecisioning.' + leaf));
+      message(testProfile(loaded) ? 'Test profile loaded. ' + (missingSignals ?
+        'Missing NatWest signals use illustrative defaults; Apply requires the FSI schema top-up.' : 'Signal changes are staged until Apply.') :
+        'Profile loaded read-only. Only AEP test profiles can be edited or used for this demo decision.');
+    } catch (error) {
+      if (version === contextVersion) { loaded = null; loadedKey = ''; message(error.message, true); }
+    } finally { busy = false; message(status.textContent, status.dataset.error === 'true'); }
+  }
+  async function preflight(data, groups, ctx, version) {
+    for (const group of groups) {
+      const config = data.industries[group.industry];
+      const result = await jsonFetch('/api/aep', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'GET', path: '/data/foundation/schemaregistry/tenant/schemas/' + encodeURIComponent(config.schemaId),
+          platform_headers: { Accept: 'application/vnd.adobe.xed-full+json; version=1', 'x-sandbox-name': ctx.sandbox },
+        }),
+      });
+      current(ctx, version);
+      const schema = result.platform_response;
+      if (!schema || result.status >= 400 || !schema.properties) throw new Error('Could not read the resolved ' + group.industry + ' profile schema.');
+      const tenant = Object.keys(schema.properties).find(name =>
+        /^_[a-zA-Z0-9]+$/.test(name) && schema.properties[name].properties &&
+        schema.properties[name].properties[group.industry === 'fsi' ? 'natwestDecisioning' : 'scoring']);
+      const changed = group.updates.filter(update => Object.hasOwn(group.expected, update.path));
+      for (const update of changed) {
+        let leaf = tenant && schema.properties[tenant];
+        for (const part of update.path.split('.')) leaf = leaf && leaf.properties && leaf.properties[part];
+        if (!leaf) throw new Error('Schema field missing: ' + update.path +
+          '. After the Functions manifest release, run FSI setup step 2 (Attach field groups / Profile Core v2 top-up). This demo does not provision schemas.');
+        const validType = typeof update.value === 'number' ? ['number', 'integer'].includes(leaf.type) : leaf.type === 'string';
+        if (!validType || Array.isArray(leaf.enum) && !leaf.enum.includes(update.value)) throw new Error('Schema type or allowed values do not match ' + update.path + '.');
+      }
+    }
+  }
+  async function save() {
+    if (busy) return;
+    if (pending) { message('Verify the accepted update by lookup before applying more changes.', true); return; }
+    const ctx = context(), version = contextVersion;
+    if (!loaded || loadedKey !== key(ctx) || !baseline) { message('Look up the selected test profile first.', true); return; }
+    busy = true; message('Checking schema and full writable snapshots...');
+    let accepted = 0;
+    try {
+      const latest = await table(ctx, version);
+      if (!testProfile(latest)) throw new Error('Only AEP test profiles can be edited by this demo.');
+      const saved = api().getState();
+      const batch = model.buildSnapshots(latest, saved, baseline);
+      const groups = batch.snapshots.map(group => ({ ...group, expected: batch.expected }));
+      await preflight(latest, groups, ctx, version);
+      if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('The selected profile has no email identity for streaming.');
+      const acceptedExpected = {};
+      for (const group of groups) {
+        current(ctx, version);
+        const response = await global.postProfileUpdate({
+          sandbox: ctx.sandbox, industry: group.industry, email: latest.profileEmail,
+          ecid: latest.ecid || undefined, updates: group.updates,
+        });
+        if (!response.ok || response.data.ok === false) throw new Error(global.formatProfileUpdateError(response.data));
+        accepted++;
+        for (const update of group.updates) if (Object.hasOwn(batch.expected, update.path)) acceptedExpected[update.path] = update.value;
+        if (version === contextVersion) pending = { ...acceptedExpected };
+      }
+      current(ctx, version);
+      baseline = saved; dirty = key(api().getState()) !== key(saved); loaded = latest;
+      message('Snapshots accepted. Run will verify AEP readback before evaluating; ingestion may take time.');
+    } catch (error) {
+      if (version === contextVersion) message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. Verify by lookup before retrying. ' : '') + error.message, true);
+    } finally { busy = false; message(status.textContent, status.dataset.error === 'true'); }
+  }
+  function heroFromResult(result) {
+    const matches = [];
+    for (const proposition of result.propositions || []) {
+      // Never attribute an unrouted/fallback item to the hero.
+      const scopes = [proposition.scope, proposition.scopeDetails && proposition.scopeDetails.scope];
+      if (!scopes.some(scope => /#hero-banner$/i.test(String(scope || '')))) continue;
+      if (!proposition.id || !proposition.scope || !proposition.scopeDetails) continue;
+      if (!Array.isArray(proposition.items) || !proposition.items.length ||
+        proposition.items.some(item => /default-content-item$/.test(item.schema || ''))) continue;
+      const scratch = document.implementation.createHTMLDocument('Decision image');
+      scratch.body.innerHTML = '<div id="TopRibbon"></div><div id="hero-banner"></div><div id="ContentCardContainer"></div>';
+      global.CdEdgeMounts.applyPropositionsManually([proposition], { root: scratch });
+      const mount = scratch.getElementById('hero-banner');
+      const image = mount.querySelector('img');
+      const raw = image && image.getAttribute('src') || (!mount.children.length && mount.textContent.trim());
+      if (!raw) continue;
+      const url = new URL(raw, global.location.href);
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('The live decision image must use HTTP(S).');
+      const title = mount.querySelector('.cd-slot-title,h1,h2,h3');
+      const description = mount.querySelector('.cd-slot-desc,p');
+      matches.push({ proposition, url: url.href, copy: {
+        title: title ? title.textContent.trim() : '', description: description ? description.textContent.trim() : '',
+      } });
+    }
+    if (matches.length !== 1) throw new Error('Expected one fresh hero-banner image decision; received ' + matches.length + '. Check the configured surface and decision content. Previous preview retained.');
+    return matches[0];
+  }
+  async function decide() {
+    if (busy) return;
+    if (dirty) { message('Apply staged profile changes before running a live decision.', true); return; }
+    const ctx = context(), version = contextVersion;
+    const revision = signalRevision, runId = ++decisionRun;
+    busy = true; message('Verifying profile readback before live decision...');
+    try {
+      const data = await load(ctx, version);
+      if (!testProfile(data)) throw new Error('Only AEP test profiles can be used for this demo decision.');
+      const runtime = global.DecisioningProfileRuntime;
+      if (!runtime || !runtime.supportsManualDisplay) throw new Error('The live decision runtime is not ready. Reload to load the updated shared runtime.');
+      if (!await runtime.runProfileLookup({ skipHydrate: true })) throw new Error('Decision runtime profile lookup failed.');
+      current(ctx, version);
+      message('Evaluating the live hero-banner surface...');
+      const result = await runtime.runContentDecision({ manualDisplay: true });
+      current(ctx, version);
+      if (revision !== signalRevision) throw new Error('Signals changed during the live decision. Apply changes and run again.');
+      const hero = heroFromResult(result);
+      if (!result.manualDisplay || typeof result.manualDisplay.alloy !== 'function') throw new Error('Decision attribution is missing. Display tracking was not sent.');
+      await api().setDecisionImage(hero.url, hero.copy);
+      current(ctx, version);
+      if (revision !== signalRevision) throw new Error('Signals changed while rendering the decision. Display tracking was not sent.');
+      message('Live image and copy applied. Objective ranking remains a local simulation.');
+      const displayKey = key([version, runId, hero.proposition.id, hero.proposition.items]);
+      if (displayAttempts.has(displayKey)) return;
+      // Reserve before send; an uncertain network failure must not cause a duplicate retry.
+      displayAttempts.add(displayKey);
+      try {
+        await result.manualDisplay.alloy('sendEvent', {
+          renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+          xdm: { eventType: 'decisioning.propositionDisplay', identityMap: result.manualDisplay.identityMap,
+            _experience: { decisioning: {
+              propositions: [{ id: hero.proposition.id, scope: hero.proposition.scope, scopeDetails: hero.proposition.scopeDetails }],
+              propositionEventType: { display: 1 },
+            } } },
+        });
+        current(ctx, version);
+        document.getElementById('nwDecisionStatus').textContent = 'Live decision applied to Web / Email / Email Mobile.';
+      } catch (error) {
+        if (version === contextVersion) message('Hero displayed, but display tracking failed: ' + error.message + '. No automatic retry.', true);
+      }
+    } catch (error) {
+      if (version === contextVersion) message(error.message, true);
+    } finally { busy = false; message(status.textContent, status.dataset.error === 'true'); }
+  }
+  function themeFrame() {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    const theme = document.documentElement.getAttribute('data-aep-theme');
+    if (theme) doc.documentElement.setAttribute('data-aep-theme', theme); else doc.documentElement.removeAttribute('data-aep-theme');
+    if (api()) api().setRecipientFirstName(loaded && loaded.rows.find(row => model.relativePath(row.path) === 'person.name.firstName')?.value);
+  }
+  function wireFrame() {
+    if (!api() || frame.contentDocument.documentElement.dataset.nwWired) return;
+    frame.contentDocument.documentElement.dataset.nwWired = 'true';
+    themeFrame();
+    if (baseline) api().setState(baseline);
+    frame.contentWindow.addEventListener('natwest-signals-changed', () => {
+      signalRevision++;
+      dirty = !baseline || key(api().getState()) !== key(baseline);
+      message(loaded ? 'Profile changes staged. Apply writes full snapshots to AEP.' : 'Simulation changed. Look up a test profile before applying.');
     });
-    return profile;
-  }
-
-  function evaluate(profile) {
-    var blockedReasons = [];
-    if (profile.safety === 'Review required') {
-      blockedReasons.push('Contact safety review holds all outbound messages.');
-    }
-    if (profile.service === 'Open') {
-      blockedReasons.push('Open service case suppresses promotional content.');
-    }
-    if (Number(profile.contacts) >= 3) {
-      blockedReasons.push('Contact-frequency cap reached (3 or more in 30 days).');
-    }
-    if (profile.permission !== 'Opted in') {
-      blockedReasons.push('Marketing permission is opted out.');
-    }
-
-    var promoAllowed = blockedReasons.length === 0;
-    var ranked = offers.map(function (offer) {
-      return {
-        offer: offer,
-        score: Math.min(99, Math.round(offer.score(profile))),
-        allowed: promoAllowed,
-      };
-    }).sort(function (a, b) {
-      return b.score - a.score;
-    });
-
-    if (profile.safety === 'Review required') {
-      return { winner: null, ranked: ranked, blockedReasons: blockedReasons, status: 'Contact hold' };
-    }
-    if (profile.service === 'Open') {
-      return { winner: serviceMessage, ranked: ranked, blockedReasons: blockedReasons, status: 'Service first' };
-    }
-    if (!promoAllowed) {
-      return { winner: null, ranked: ranked, blockedReasons: blockedReasons, status: 'Promotions suppressed' };
-    }
-    return { winner: ranked[0].offer, ranked: ranked, blockedReasons: blockedReasons, status: 'Decision ready' };
-  }
-
-  function addTag(parent, text) {
-    var tag = document.createElement('span');
-    tag.className = 'nw-tag';
-    tag.textContent = text;
-    parent.appendChild(tag);
-  }
-
-  function renderTags(winner) {
-    elements.tags.replaceChildren();
-    if (!winner) {
-      addTag(elements.tags, 'No content served');
-      return;
-    }
-    winner.tags.forEach(function (tag) {
-      addTag(elements.tags, tag);
-    });
-  }
-
-  function renderRanking(result) {
-    elements.ranking.replaceChildren();
-    result.ranked.forEach(function (item) {
-      var row = document.createElement('li');
-      var name = document.createElement('span');
-      var detail = document.createElement('span');
-      var score = document.createElement('span');
-      var isWinner = result.winner && item.offer.id === result.winner.id;
-
-      name.className = 'nw-rank-name';
-      name.textContent = item.offer.name;
-      detail.className = 'nw-rank-detail';
-      detail.textContent = item.allowed ? item.offer.type : 'Suppressed by guardrail';
-      name.appendChild(detail);
-      score.className = 'nw-rank-score' + (item.allowed ? '' : ' is-suppressed');
-      score.textContent = item.allowed ? item.score + ' pts' : 'Held';
-      if (isWinner) row.classList.add('is-winner');
-      if (!item.allowed) row.classList.add('is-suppressed');
-      row.appendChild(name);
-      row.appendChild(score);
-      elements.ranking.appendChild(row);
+    frame.contentWindow.addEventListener('natwest-channel-changed', event => {
+      const url = new URL(global.location.href);
+      url.searchParams.set('channel', event.detail === 'desktop' ? 'email' : event.detail);
+      global.history.pushState({}, '', url);
     });
   }
-
-  function renderGuardrails(profile, result) {
-    var checks = [
-      { name: 'Contact safety', ok: profile.safety === 'Clear', message: profile.safety === 'Clear' ? 'Clear' : 'Review required' },
-      { name: 'Service case', ok: profile.service === 'Clear', message: profile.service === 'Clear' ? 'No open case' : 'Promotions paused' },
-      { name: 'Marketing permission', ok: profile.permission === 'Opted in', message: profile.permission === 'Opted in' ? 'Opted in' : 'Opted out' },
-      { name: 'Contact frequency', ok: Number(profile.contacts) < 3, message: Number(profile.contacts) < 3 ? profile.contacts + ' / 3 cap' : 'Frequency cap reached' },
-    ];
-    elements.guardrails.replaceChildren();
-    checks.forEach(function (check) {
-      var row = document.createElement('li');
-      var dot = document.createElement('span');
-      var text = document.createElement('span');
-      dot.className = 'nw-guardrail-dot';
-      text.textContent = check.name + ': ' + check.message;
-      if (!check.ok) row.classList.add('is-blocked');
-      row.appendChild(dot);
-      row.appendChild(text);
-      elements.guardrails.appendChild(row);
+  async function init() {
+    const email = document.getElementById('customerEmail');
+    global.AepIdentityPicker.init('customerEmail', prefix + 'Ns');
+    if (global.attachEmailDatalist) global.attachEmailDatalist('customerEmail', 'recentEmails', prefix + 'Ns');
+    if (global.hydrateIdentifierFromSession) global.hydrateIdentifierFromSession('customerEmail', prefix + 'Ns');
+    const getTarget = () => targets.find(target => target.id === document.getElementById('generatorTarget').value) || null;
+    tags = global.DemoTagsInjection.init({
+      storagePrefix: prefix, identityEventType: 'natwest.decisioning.identity.stitch',
+      messageSetter: (text, type) => message(text, type === 'error'), infoEcidId: 'infoEcid',
+      tagsCompanyId: prefix + 'TagsCompany', tagsPropertyInputId: prefix + 'TagsProperty',
+      tagsPropertyListId: prefix + 'TagsPropertyList', tagsEnvironmentId: prefix + 'TagsEnvironment',
+      injectButtonId: prefix + 'InjectSdkBtn', selectedScriptId: prefix + 'SelectedScript',
+      configFieldsId: prefix + 'SdkConfigFields', configSummaryId: prefix + 'SdkConfigSummary',
+      configSummaryTextId: prefix + 'SdkConfigSummaryText', changeConfigButtonId: prefix + 'ChangeSdkConfigBtn',
+      getSelectedGeneratorTarget: getTarget, getEmail: () => email.value, iframeIds: ['nwDecisioningFrame'],
+      hideTagsCompanyUi: true, webPush: { enabled: false }, brandConcierge: { enabled: false },
     });
-    elements.guardrailSummary.textContent = result.blockedReasons.length ?
-      result.blockedReasons.length + ' promotion hold' + (result.blockedReasons.length > 1 ? 's' : '') :
-      'All checks passed';
-  }
-
-  function setImage(element, winner) {
-    element.src = assets + winner.image;
-    element.alt = winner.imageAlt;
-  }
-
-  function renderExperience(winner) {
-    if (!winner) {
-      elements.emailSubject.textContent = 'No promotional message selected';
-      elements.emailPreheader.textContent = 'The profile does not currently meet the demo send rules.';
-      elements.emailHeadline.textContent = 'No promotional content will be sent';
-      elements.emailCopy.textContent = 'The decision was held by a contact-safety, consent or frequency guardrail. Update the profile signals to preview eligible content.';
-      elements.emailImage.hidden = true;
-      elements.emailCta.hidden = true;
-      elements.emailFootnote.textContent = 'No promotional content is rendered while a hold is active.';
-      elements.mobileKicker.textContent = 'MESSAGE HELD';
-      elements.mobileHeadline.textContent = 'We’ve paused this message';
-      elements.mobileCopy.textContent = 'No promotional content is selected for this profile.';
-      elements.mobileImage.hidden = true;
-      elements.mobileCta.hidden = true;
-      elements.webKicker.textContent = 'PERSONALISED CONTENT HELD';
-      elements.webHeadline.textContent = 'No promotional banner is shown';
-      elements.webCopy.textContent = 'The current profile signals require the decision to hold promotional content.';
-      elements.webImage.hidden = true;
-      elements.webCta.hidden = true;
-      return;
+    global.envBar.registerTagsInjection(tags);
+    global.DemoProfileDrawer.init({
+      emailInputId: 'customerEmail', profileOpenClass: 'mod-demo-page--profile-open',
+      viewName: 'NatWest Decisioning', emailGetter: () => email.value,
+      messageSetter: (text, type) => message(text, type === 'error'), getSelectedGeneratorTarget: getTarget,
+      fetchBrowserEcidOnInit: true,
+    });
+    global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(async () => {
+      targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(document.getElementById('generatorTarget'), {});
+    });
+    document.getElementById('queryProfileBtn').addEventListener('click', () => void lookup());
+    email.addEventListener('input', invalidate);
+    document.getElementById(prefix + 'Ns').addEventListener('change', invalidate);
+    global.addEventListener('aep-global-sandbox-change', invalidate);
+    global.addEventListener('aep-profile-drawer-loaded', bankingDetails);
+    document.addEventListener('click', event => {
+      if (!event.target.closest('#cdMicroProfileRunBtn')) return;
+      event.preventDefault(); event.stopImmediatePropagation(); void decide();
+    }, true);
+    apply.addEventListener('click', () => void save()); run.addEventListener('click', () => void decide());
+    frame.addEventListener('load', wireFrame); wireFrame();
+    global.addEventListener('popstate', () => {
+      const channel = new URLSearchParams(global.location.search).get('channel');
+      api().setMode(channel === 'email' ? 'desktop' : channel, false);
+    });
+    const anchor = document.querySelector('.mod-demo-top-anchor');
+    const toolbar = document.querySelector('.spectrum-env-status-bar');
+    const actions = document.querySelector('.nw-decisioning-actions');
+    function layout() {
+      const hidden = anchor && (anchor.classList.contains('lab-env-top-anchor--docked-hidden') || anchor.classList.contains('lab-env-top-anchor--presenter-strip-hidden'));
+      const top = hidden ? 0 : toolbar && anchor ? toolbar.getBoundingClientRect().bottom - anchor.getBoundingClientRect().top + anchor.offsetTop : 48;
+      document.body.style.setProperty('--nw-toolbar-top', top + 'px');
+      document.body.style.setProperty('--nw-content-top', (top + actions.getBoundingClientRect().height) + 'px');
     }
-
-    elements.emailSubject.textContent = winner.subject;
-    elements.emailPreheader.textContent = winner.preheader;
-    elements.emailHeadline.textContent = winner.headline;
-    elements.emailCopy.textContent = winner.copy;
-    elements.emailImage.hidden = false;
-    elements.emailCta.hidden = false;
-    elements.emailCta.textContent = winner.cta;
-    elements.emailFootnote.textContent = winner.id === 'isa' ?
-      'The rate shown is from the supplied captured page and may no longer be current.' :
-      'Explore information only; product availability and terms may vary.';
-    setImage(elements.emailImage, winner);
-    elements.mobileKicker.textContent = winner.type;
-    elements.mobileHeadline.textContent = winner.headline;
-    elements.mobileCopy.textContent = winner.copy;
-    elements.mobileImage.hidden = false;
-    elements.mobileCta.hidden = false;
-    elements.mobileCta.textContent = winner.cta;
-    elements.mobileImage.src = assets + (winner.id === 'isa' ? 'mobile-app-customer.png' : winner.image);
-    elements.mobileImage.alt = winner.id === 'isa' ? 'A NatWest customer using a mobile phone' : winner.imageAlt;
-    elements.webKicker.textContent = winner.type;
-    elements.webHeadline.textContent = winner.headline;
-    elements.webCopy.textContent = winner.copy;
-    elements.webImage.hidden = false;
-    elements.webCta.hidden = false;
-    elements.webCta.textContent = winner.cta;
-    setImage(elements.webImage, winner);
+    const resize = new ResizeObserver(layout);
+    if (toolbar) resize.observe(toolbar);
+    resize.observe(actions);
+    if (anchor) new MutationObserver(layout).observe(anchor, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(themeFrame).observe(document.documentElement, { attributes: true, attributeFilter: ['data-aep-theme'] });
+    layout(); bankingDetails();
   }
-
-  function render() {
-    var profile = readProfile();
-    var result = evaluate(profile);
-    var winner = result.winner;
-    elements.status.textContent = result.status;
-    elements.status.classList.toggle('is-blocked', !winner || result.status === 'Service first');
-    elements.winnerType.textContent = winner ? winner.type : 'NO CONTENT SERVED';
-    elements.winnerScore.textContent = winner ? (winner.id === 'service' ? 'Priority' : result.ranked[0].score + ' pts') : 'Held';
-    elements.winnerName.textContent = winner ? winner.name : 'Promotional message suppressed';
-    elements.winnerWhy.textContent = winner ?
-      winner.why :
-      result.blockedReasons.join(' ') || 'No eligible experience is available for this profile.';
-    elements.profileSummary.textContent = profile.accountType + ' · ' + profile.segment + ' · ' + profile.intent;
-    elements.contactCountValue.textContent = profile.contacts;
-    renderTags(winner);
-    renderRanking(result);
-    renderGuardrails(profile, result);
-    renderExperience(winner);
-  }
-
-  function setScenario(name) {
-    var values = profiles[name];
-    if (!values) return;
-    Object.keys(values).forEach(function (key) {
-      document.getElementById(fieldNames[key]).value = values[key];
-    });
-    render();
-  }
-
-  function setChannel(channel) {
-    var validChannels = ['email', 'mobile', 'web'];
-    var activeChannel = validChannels.indexOf(channel) >= 0 ? channel : 'email';
-    validChannels.forEach(function (name) {
-      var tab = document.querySelector('[data-channel="' + name + '"]');
-      var panel = document.getElementById('preview-' + name);
-      var selected = name === activeChannel;
-      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      tab.tabIndex = selected ? 0 : -1;
-      panel.hidden = !selected;
-    });
-    var url = new URL(window.location.href);
-    if (url.searchParams.get('channel') !== activeChannel) {
-      url.searchParams.set('channel', activeChannel);
-      window.history.replaceState(null, '', url);
-    }
-  }
-
-  document.querySelectorAll('[data-profile-field]').forEach(function (field) {
-    field.addEventListener('input', render);
-    field.addEventListener('change', render);
+  global.addEventListener('natwest-preview-status', event => {
+    document.getElementById('nwDecisionStatus').textContent = event.detail;
   });
-  document.querySelectorAll('[data-scenario]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      setScenario(button.getAttribute('data-scenario'));
-    });
-  });
-  document.querySelectorAll('[data-channel]').forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      setChannel(tab.getAttribute('data-channel'));
-    });
-    tab.addEventListener('keydown', function (event) {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-      event.preventDefault();
-      var channels = ['email', 'mobile', 'web'];
-      var current = channels.indexOf(tab.getAttribute('data-channel'));
-      var next = (current + (event.key === 'ArrowRight' ? 1 : channels.length - 1)) % channels.length;
-      var nextTab = document.querySelector('[data-channel="' + channels[next] + '"]');
-      setChannel(channels[next]);
-      nextTab.focus();
-    });
-  });
-
-  setChannel(new URLSearchParams(window.location.search).get('channel'));
-  render();
-})();
+  global.envBar.ready().then(init).catch(error => message('Demo initialization failed: ' + error.message, true));
+})(window);

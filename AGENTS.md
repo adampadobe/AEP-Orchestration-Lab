@@ -42,8 +42,9 @@ Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local
 
 For requests such as "Create a decisioning demo from these website files", use
 [`.github/skills/create-decisioning-demo/SKILL.md`](.github/skills/create-decisioning-demo/SKILL.md).
-It defines the upload-first workflow for branded Email, Mobile and Web previews,
-industry-specific profile attributes, decision rules and guardrails. No existing
+It defines the upload-first, three-pane visualiser with Email Desktop, Email
+Mobile and Web previews, industry-specific profile attributes, decision rules
+and guardrails. No existing
 customer demo is required. The default is a local simulation, not a live integration.
 
 ## Codex skills in this workspace

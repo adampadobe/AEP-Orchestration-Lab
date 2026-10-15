@@ -570,28 +570,22 @@
           demoCustomer: true,
           channels: [
             {
-              id: 'natWestDecisioningEmail',
-              label: 'Email',
-              items: [
-                {
-                  label: 'NatWest email decisioning',
-                  href: 'natwest-decisioning-demo.html?channel=email',
-                  inDevelopment: true,
-                  navHideKey: 'natWestDecisioningEmail',
-                  demoMeta: { owners: ['kirkham'] },
-                  ico: '\u2709\uFE0F',
-                },
-              ],
-            },
-            {
               id: 'natWestDecisioningMobile',
               label: 'Mobile',
               items: [
                 {
-                  label: 'NatWest mobile decisioning',
+                  label: 'Phone - email decisioning',
                   href: 'natwest-decisioning-demo.html?channel=mobile',
                   inDevelopment: true,
                   navHideKey: 'natWestDecisioningMobile',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83D\uDCF1',
+                },
+                {
+                  label: 'iPad (to be built)',
+                  navPlaceholder: true,
+                  inDevelopment: true,
+                  navHideKey: 'natWestDecisioningIpad',
                   demoMeta: { owners: ['kirkham'] },
                   ico: '\uD83D\uDCF1',
                 },
@@ -602,7 +596,7 @@
               label: 'Web',
               items: [
                 {
-                  label: 'NatWest web decisioning',
+                  label: 'NatWest decisioning',
                   href: 'natwest-decisioning-demo.html?channel=web',
                   inDevelopment: true,
                   navHideKey: 'natWestDecisioningWeb',

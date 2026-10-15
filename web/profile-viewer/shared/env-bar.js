@@ -50,7 +50,7 @@
       contentDecisionLabConfig: '20260615',
       contentDecisionEdgeMounts: '20260615-edge-mounts-syntax',
       decisioningEdgeInject: '20260617-mount-reset',
-      decisioningProfileRuntime: '20260617-mount-reset',
+      decisioningProfileRuntime: '20261015-manual-display',
       decisioningProfileModule: '20260617-reset-icon-toolbar',
       decisioningSurfaceStylesPanel: '20260617-live-preview',
       decisioningProfilePanel: '20260617-panel-editing-guard',
