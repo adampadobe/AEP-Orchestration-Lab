@@ -1701,6 +1701,10 @@
   }
 
   function handleGenerateClick() {
+    if (els.genCount && !els.genCount.reportValidity()) {
+      setGenerateMessage('Enter a whole number of recipients from 1 to 1,000.', 'error');
+      return;
+    }
     if (readGenerationMode() === 'full') {
       runFullPhasedGenerate();
     } else {
