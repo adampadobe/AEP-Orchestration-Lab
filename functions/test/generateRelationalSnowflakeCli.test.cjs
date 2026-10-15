@@ -36,4 +36,8 @@ describe('relational Snowflake generator CLI arguments', () => {
   it('accepts the base demo email without requiring existing profiles', () => {
     assert.equal(parseArgs(['--base-email', 'demo@example.com']).baseEmail, 'demo@example.com');
   });
+
+  it('accepts the read-only CRM sequence plan without a seed email', () => {
+    assert.equal(parseArgs(['--plan-crm-sequence']).planCrmSequence, true);
+  });
 });

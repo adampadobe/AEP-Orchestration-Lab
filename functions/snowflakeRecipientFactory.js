@@ -77,7 +77,7 @@ function getCountryCode(country) {
 }
 
 function recipientRow(recipient, profile, timestamp, testProfile = true) {
-  return {
+  const row = {
     RECIPIENT_ID: recipient.recipientId,
     INDUSTRY: recipient.industry,
     CRMID: profile.CRMID || recipient.crmId,
@@ -119,6 +119,12 @@ function recipientRow(recipient, profile, timestamp, testProfile = true) {
     _RECORDUPDATEDTIMESTAMP: timestamp,
     TESTPROFILE: testProfile,
   };
+  if (recipient.industry !== 'travel') {
+    for (const column of ['PASSPORTID', 'UPCOMINGHOLIDAYDATE', 'UPCOMINGHOLIDAYDESTINATION', 'PREFERREDSEATTYPE']) {
+      if (!Object.hasOwn(profile, column) || profile[column] === undefined) delete row[column];
+    }
+  }
+  return row;
 }
 
 module.exports = {

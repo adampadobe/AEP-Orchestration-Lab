@@ -41,13 +41,14 @@ describe('Snowflake industry event registry and generators', () => {
       const first = generateIndustryEventRows(industry, profiles[industry], options);
       assert.deepEqual(first, generateIndustryEventRows(industry, profiles[industry], options));
       assert.deepEqual(Object.keys(first.rowsByType), listIndustryEventTypes(industry));
-      for (const rows of Object.values(first.rowsByType)) {
+      for (const [type, rows] of Object.entries(first.rowsByType)) {
         assert.ok(rows.length >= 1);
-        for (const row of rows) {
+        for (const [index, row] of rows.entries()) {
           assert.equal(row.EMAIL, identity.EMAIL);
           assert.equal(row.ECID, identity.ECID);
           assert.equal(row.CRMID, identity.CRMID);
-          assert.equal(row.GENERATIONID, first.generationId);
+          const enrichment = listIndustryEventTables(industry).find((table) => table.key === type).kind === 'enrichment';
+          assert.equal(row.GENERATIONID, enrichment ? `${first.generationId}-${index}` : first.generationId);
         }
       }
     });
@@ -68,5 +69,16 @@ describe('Snowflake industry event registry and generators', () => {
       { now: '2026-07-23T10:00:00.000Z' },
     );
     assert.equal(generated.rowsByType.betting.length, 0);
+  });
+
+  it('sports bets reference generated fixtures without inventing source columns', () => {
+    const generated = generateIndustryEventRows('sports', profiles.sports, { now: '2026-10-15T12:00:00Z' });
+    const fixtures = new Map(generated.rowsByType.attendance.map((row) => [row.EVENT_ID, row]));
+    const columns = listIndustryEventTables('sports').find((table) => table.key === 'betting').columns;
+    assert.ok(generated.rowsByType.betting.length);
+    for (const row of generated.rowsByType.betting) {
+      assert.equal(row.EVENT_NAME, fixtures.get(row.EVENT_ID).EVENT_NAME);
+      assert.ok(Object.keys(row).every((column) => columns.includes(column)));
+    }
   });
 });

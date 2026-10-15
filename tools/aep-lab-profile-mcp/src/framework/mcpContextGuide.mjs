@@ -52,7 +52,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab profiles and events',
     url: `${LAB_BASE_URL}/mcp/profile`,
     kind: 'lab-focused',
-    toolCount: 21,
+    toolCount: 23,
     access: LAB_ACCESS,
     risk: 'governed profile and event writes',
     capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment', 'profile and event place context (ten featured areas, any catalog city, or anywhere on Earth; k-anonymous clustering for batches)'],

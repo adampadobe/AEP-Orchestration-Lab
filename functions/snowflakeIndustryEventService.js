@@ -80,8 +80,9 @@ function buildInsertSql(fqTable, tableConfig, rowCount) {
 
 async function generationExists(conn, fqTable, generationId) {
   const rows = await execAsync(conn, {
-    sqlText: `SELECT COUNT(*) AS ROW_COUNT FROM ${fqTable} WHERE GENERATIONID = ?`,
-    binds: [generationId],
+    sqlText: `SELECT COUNT(*) AS ROW_COUNT FROM ${fqTable}
+WHERE GENERATIONID = ? OR STARTSWITH(GENERATIONID, ?)`,
+    binds: [generationId, `${generationId}-`],
   });
   return Number(readSnowflakeCell(rows[0], 0, 'ROW_COUNT') || 0) > 0;
 }
