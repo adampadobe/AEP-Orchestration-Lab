@@ -89,13 +89,8 @@ name a reference customer, or replace this layout with a generic dashboard.
 
 Use a full-bleed visualiser iframe with a peek sidebar and, for live demos, the
 canonical shared Spectrum environment strip plus explicit Apply / Run actions.
-For live demos, include the customer hero/contact/identity drawer presentation
-and the Canvas flow, Swimlanes and Stages event views. Reuse
-`decisioning-profile-hero.css`, `decisioning-persona-journey.js` and its stylesheet,
-with an industry-specific hero adapter like `natwest-profile-hero.js`.
-Show ingested decisioning offer/strategy details, preserve the identity graph
-timeline, and clear previous customer/events on an identity or sandbox change.
-Read drawer values from the loaded profile, never staged simulation values.
+For live demos, include the complete drawer design specified below, not only
+the classic shared drawer or a few additional attribute rows.
 Keep `home-dashboard-concierge`, the early-paint theme IIFE and shared navigation.
 Follow stylesheet order with
 `aep-theme.css` last. Use `--dash-*` colour tokens, not hardcoded CSS colours.
@@ -107,6 +102,67 @@ and the dark branded seven-row objective ladder in the middle, and the channel
 preview on the right. Use keyboard/pointer-resizable gutters with saved widths.
 Signal groups and Eligible NBAs start collapsed. On narrow screens stack panes.
 Use labelled controls, accessible tabs, useful image alternatives and clear status.
+
+### Customer, identity and events drawer
+
+The updated NatWest drawer is the structural reference. Preserve the complete
+experience without requiring the user to request it separately:
+
+- **Customer hero:** avatar, customer name, demographic/location summary,
+  industry-specific chips and lifetime value. Below it, show compact propensity,
+  churn and industry-relevant operational/intent KPI cards.
+- **Contact and consent:** email, phone, city and the customer's relevant industry
+  attributes, plus read-only Email/SMS/Push consent indicators. Banking includes
+  Account Type, application status, product intent and service case; substitute
+  the correct industry fields rather than retaining banking or airline labels.
+- **Identity:** ECID with copy feedback and the shared New anonymous visitor
+  control. Preserve its existing explicit-action behavior; never reset identity
+  during initialization or profile lookup.
+- **Linked identities:** retain the shared identity graph, clickable heading/count,
+  expanded graph dialog and approximate linked-identifier timeline. Do not replace
+  it with an ECID-only card.
+- **Audiences and activity:** retain audience membership, message counts and the
+  recent-events column. Decisioning PropositionDisplay cards show offer and
+  strategy names only when present in the ingested event; never invent them from
+  the locally selected NBA or current preview.
+- **Journey views:** the event count opens Canvas flow, Swimlanes and Stages,
+  including time-window filters, moment playback and selectable event details.
+  Preserve Events/Channel/Web/Decisioning lanes. Stages pairs a consecutive
+  configured-brand decision request and PropositionDisplay within two minutes;
+  do not hardcode another brand's request name or tenant prefix.
+
+Reuse `aep-profile-drawer.js` and `.css`, `decisioning-profile-hero.css`, and
+`decisioning-persona-journey.js` and `.css`. Create a small industry-specific
+hero adapter using `natwest-profile-hero.js` as prior art. Load the shared drawer
+before the adapters; define `envBarConfig.decisioning.viewName` before loading
+the journey adapter. Keep `aep-theme.css` last and version changed asset URLs.
+Use `DemoProfileDrawer.setJourneyModalRenderer` rather than duplicating event
+fetching, filtering, graph logic or modal infrastructure.
+
+Keep the original shared customer/identity blocks in the DOM as the adapter's
+data source, hidden only while the hero layout is active. Mirror actual loaded
+profile values, not staged simulator controls. Show missing attributes as
+**Not set**, unloaded values as **Not loaded**, and unavailable KPI values as
+unavailable rather than presenting illustrative defaults as customer facts.
+For a simulation-only demo, any fixture-backed drawer must be explicitly labelled
+fictional and must not introduce live API calls.
+
+Wire the bottom hover strip and keyboard/focus opening to a supported open-state
+CSS selector. Keep drawer content below the minimised strip, scrollable within the
+available viewport, and usable in narrow layouts. Move, rather than clone, the
+shared anonymous-visitor control into the hero identity card.
+
+On identity or sandbox changes, clear the customer, banking fields, events and
+open dialogs; discard late lookup/poll responses for the previous context.
+Preserve the selected journey view/event during unchanged polling refreshes,
+and refresh message counts from the same fetched event set. Pass
+`sendApplicationLogin: false` for read-only drawer lookups. Do not create profile
+or decisioning events merely to populate the drawer.
+
+Retain a per-demo classic-layout escape hatch, following NatWest's
+`?nwDrawer=classic` / `?nwDrawer=hero`, plus `?journey=classic` /
+`?journey=concepts`. Use a brand-specific preference key for the customer adapter;
+document the actual query parameters and persistence behavior.
 
 ### Profile and offers
 
@@ -169,6 +225,15 @@ broken or placeholder links as working product journeys.
 4. Visually inspect all channels in light/dark themes and narrow/desktop layouts.
    Verify images load, no stale content survives suppression, no unexpected
    third-party requests occur, and no runtime errors or horizontal overflow occur.
+   Exercise the actual shared drawer and adapters with intercepted fixture APIs,
+   not a stubbed `DemoProfileDrawer`: verify real hover/focus opening, customer
+   fields and missing values, ECID copy/reset-control placement, identity graph
+   dialog/timeline, audiences/message counts, decisioning offer/strategy details,
+   all three journey views, event selection, request/display pairing and filters.
+   Check unchanged polling preserves selection, identity changes clear old data,
+   late responses cannot restore it, and classic-layout rollback still works.
+   Use `scripts/test-natwest-decisioning.cjs` as fixture-test prior art. Never
+   write to AEP, reset a real identity or run a live decision to validate layout.
 5. Run `npm run sync-profile-viewer-ui` and inspect the resulting changes. If
    `rsync` is unavailable, copy only the known changed canonical files and assets
    to the Express mirror, verify matching hashes, and report the fallback rather
