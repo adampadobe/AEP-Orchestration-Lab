@@ -33,7 +33,7 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true } = {})
       calls.push(options);
       try {
         const rows = rowsForSql(options.sqlText);
-        if (options.sqlText.startsWith('SELECT INCREMENT')) options.complete(null, null, allocator ? [{ INCREMENT: 1000 }] : []);
+        if (options.sqlText.startsWith('SELECT "INCREMENT"')) options.complete(null, null, allocator ? [{ INCREMENT: 1000 }] : []);
         else if (options.sqlText.endsWith('.NEXTVAL AS START_INDEX')) {
           options.complete(null, null, [{ START_INDEX: crmSequence }]);
           crmSequence += 1000;

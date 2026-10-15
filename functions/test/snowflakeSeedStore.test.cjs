@@ -18,7 +18,7 @@ const CFG = { database: 'DEMO_DB', schema: 'CUSTOM_SCHEMA', warehouse: 'DEMO_WH'
 const STAMP = '2026-10-15T12:00:00.000Z';
 
 function allocationResponse(sql) {
-  if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+  if (sql.startsWith('SELECT "INCREMENT"')) return [{ INCREMENT: 1000 }];
   if (sql.endsWith('.NEXTVAL AS START_INDEX')) return [{ START_INDEX: 1000 }];
   return [];
 }
@@ -236,7 +236,7 @@ describe('Snowflake-first shared base seeding', () => {
   it('reserves disjoint blocks across concurrent sessions sharing stale MAX results', async () => {
     let next = 22001;
     const session = () => async (sql) => {
-      if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+      if (sql.startsWith('SELECT "INCREMENT"')) return [{ INCREMENT: 1000 }];
       if (sql.startsWith('SELECT MAX')) { await new Promise((resolve) => setImmediate(resolve)); return [{ MX: 22000 }]; }
       if (sql.endsWith('.NEXTVAL AS START_INDEX')) {
         const start = next;
@@ -265,7 +265,7 @@ describe('Snowflake-first shared base seeding', () => {
     }
     for (const start of [1200, null, 'invalid', Number.MAX_SAFE_INTEGER]) {
       await assert.rejects(getNextSeedCrmIndex(async (sql) => {
-        if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+        if (sql.startsWith('SELECT "INCREMENT"')) return [{ INCREMENT: 1000 }];
         if (sql.startsWith('SELECT MAX')) return [{ MX: 1200 }];
         return [{ START_INDEX: start }];
       }, CFG), /behind existing rows|supported range/);
@@ -302,7 +302,7 @@ describe('Snowflake-first shared base seeding', () => {
       allocator ||= { next: plan.start, increment: plan.blockSize };
     }
     const session = async (sql) => {
-      if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: allocator.increment }];
+      if (sql.startsWith('SELECT "INCREMENT"')) return [{ INCREMENT: allocator.increment }];
       if (sql.startsWith('SELECT MAX')) return [{ MX: 22000 }];
       const start = allocator.next;
       allocator.next += allocator.increment;

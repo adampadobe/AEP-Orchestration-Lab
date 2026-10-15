@@ -12,7 +12,7 @@ function snowflakeMemoryFixture() {
     return tables.get(table);
   };
   function execute(sql, binds = []) {
-    if (sql.startsWith('SELECT INCREMENT')) return [{ INCREMENT: 1000 }];
+    if (sql.startsWith('SELECT "INCREMENT"')) return [{ INCREMENT: 1000 }];
     if (sql.endsWith('.NEXTVAL AS START_INDEX')) {
       const start = sequenceNext;
       sequenceNext += 1000;

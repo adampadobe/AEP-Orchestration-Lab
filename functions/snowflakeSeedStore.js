@@ -52,7 +52,7 @@ async function getNextSeedCrmIndex(execute, cfg, industries = [], count = 1) {
     throw new Error(`CRM allocation count must be between 1 and ${CRM_BLOCK_SIZE}`);
   }
   const sequence = crmSequence(cfg);
-  const metadata = await execute(`SELECT INCREMENT FROM ${identifier(cfg.database)}.INFORMATION_SCHEMA.SEQUENCES
+  const metadata = await execute(`SELECT "INCREMENT" FROM ${identifier(cfg.database)}.INFORMATION_SCHEMA.SEQUENCES
 WHERE SEQUENCE_SCHEMA = ? AND SEQUENCE_NAME = ?`, [identifier(cfg.schema).toUpperCase(), CRM_SEQUENCE]);
   if (metadata.length !== 1 || Number(readSnowflakeCell(metadata[0], 0, 'INCREMENT')) !== CRM_BLOCK_SIZE) {
     throw new Error(`CRM allocator ${sequence} is missing, inaccessible, or has an incompatible increment. Apply the reviewed CRM sequence migration; MAX+1 fallback is disabled.`);
