@@ -32,6 +32,33 @@ it is not the shared parent described here.
 
 ## Run the generator
 
+### MCP
+
+`lab_generate_profile`, `lab_generate_profiles_batch`, and
+`lab_preflight_profile_generate` default to `target:"snowflake"`.
+Confirm the selected industry and shared email preferences first:
+
+```text
+lab_preflight_profile_generate sandbox apalmer industry travel target snowflake
+lab_generate_profile sandbox apalmer industry travel target snowflake
+```
+
+These calls use the same recipient-first Node writer as the Snowflake UI,
+without streaming into AEP or requiring the legacy Python runner. Omit email
+so the shared counter supplies it. Batch generation accepts 1–100 and returns
+synchronously; do not poll it as an AEP batch job. Responses include
+`recipientTable`, `recipientRowcount`, `profiles[].recipientId`,
+`tableRowcounts` and `relationalRefresh`. Preflight checks saved configuration
+and preferences only; use `lab_snowflake_test_connection` to test reachability.
+Run serially and never automatically retry new-identity generation.
+
+For the existing AEP persona/streaming workflow, explicitly pass
+`target:"aep"` to these three tools. AEP-only persona options are rejected on
+the default Snowflake path rather than silently ignored. Brand-scrape demo prep
+and geo-specific tools retain their existing AEP workflows.
+
+### CLI
+
 The standalone generator creates new profiles and uses the same writer as the
 Snowflake page. It provisions missing allowlisted seed tables and adds shared
 fields without replacing existing columns, tables, or flow mappings.
