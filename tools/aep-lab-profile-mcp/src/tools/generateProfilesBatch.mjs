@@ -37,7 +37,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         'Call lab_confirm_profile_generation before first batch. ' +
         'Every randomized profile carries place context; place_mode featured (ten common areas) | global (anywhere on Earth) | area + place_area. ' +
         'Batches of 10+ are clustered (cluster_size default 12, >= k=10) so each cluster shows on the k-anonymous hotspot map; response lists place_clusters. ' +
-        'Travel loyalty_member (all industries, default false): LYL-* when true. Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
+        'Travel loyalty_member (all industries, default false): LYL-* when true. Travel active_flight (true/false, omitted → random per profile). Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
@@ -69,7 +69,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         segment_hint: z
           .string()
           .optional()
-          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
+          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation | active_flyer | lapsed_flyer; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
         loyalty_member: z
           .boolean()
           .optional()
@@ -78,6 +78,10 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .boolean()
           .optional()
           .describe('Retail only: when false, omit orderProfile last-order detail block'),
+        active_flight: z
+          .boolean()
+          .optional()
+          .describe('Travel only: true → upcoming (0–30 days) or in-the-air trip, flightBookings.activeFlight "Yes" with next* leaves; false → completed trip, "No" with last* leaves only. Omitted → random (or pinned by segment_hint active_flyer / lapsed_flyer). Requires Profile Travel v2 attached for the flag itself.'),
         delay_ms: z
           .number()
           .int()
@@ -140,6 +144,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       segment_hint,
       loyalty_member,
       last_order_details,
+      active_flight,
       delay_ms,
       attributes,
       append_if_existing,
@@ -267,6 +272,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
           loyalty_member: loyalty_member === true,
           last_order_details,
+          active_flight: typeof active_flight === 'boolean' ? active_flight : null,
           delay_ms,
           attributes,
           append_if_existing,

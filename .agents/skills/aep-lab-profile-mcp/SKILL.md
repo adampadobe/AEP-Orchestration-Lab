@@ -90,7 +90,8 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 - **Email format (required)**: `<local>+DDMMYYYY-N@<domain>` — e.g. `apalmer+14072026-3@adobetest.com` (today's date + daily counter N). Legacy `travel.demo+001@adobetest.com` is **rejected** by MCP guardrails.
 - **Base email**: stored in Firestore `labProfileGenerationPrefs` (Profile Viewer Profile Generation field or `lab_set_generation_prefs`). MCP `lab_generate_profile` **omits email** to auto-reserve the next counter value.
 - **Mobile**: static E.164 from prefs — lab default **`+447425627462`** (visible in Portal + MCP responses).
-- **segment_hint** (with `randomize:true`): travel `hotel_high_value` \| `hotel_reactivation`; fsi `high_net_worth` \| `credit_rebuild`; retail `loyalty_vip` \| `cart_abandoner`.
+- **segment_hint** (with `randomize:true`): travel `hotel_high_value` \| `hotel_reactivation` \| `active_flyer` \| `lapsed_flyer`; fsi `high_net_worth` \| `credit_rebuild`; retail `loyalty_vip` \| `cart_abandoner`.
+- **active_flight** (travel, with `randomize:true`): `true` makes an upcoming (≤30 days) or in-the-air flight. That sets `individualCharacteristics.travel.flightBookings.activeFlight` to `"Yes"` and fills the `next*` leaves. `false` makes a completed trip: `"No"`, with `last*` leaves only. Omitting it picks at random. An explicit value overrides `active_flyer`/`lapsed_flyer`. Every travel persona also carries trip detail under `travelReservations.flightReservations.*`: airport names and cities, departure/arrival datetimes with local offsets, duration, `flightStatus`, `tripType`, the return leg, seat, bags and booking channel/date. The flag needs **Profile Travel v2** attached; provision step 2 creates and attaches it if missing.
 - **Industry aliases**: `telco` / `telecommunications` → `telecom`; `public` → `generic`.
 - **Known-profile events** (MCP / Event tool): after `lab_generate_profile`, capture **ecid** from response. Send with **both** email + ecid so `identityMap.ECID` is primary and `identityMap.Email` secondary; `_demoemea.identification.core` carries the same strings. See `lab_get_execution_framework` → `criticalRules.event_identity_stitch`.
 - **Anonymous Edge** (Web SDK demos): `getIdentity` then `sendEvent` with `identityMap.ECID` **and** `_<tenant>.identification.core.ecid` (same ECID string). See `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`.
@@ -795,7 +796,7 @@ End-to-end chain for customer-specific demo prep.
 
 - Set MCP client tool timeout ≥ **300s** for infra status, get/lookup/update/activity/onboarding, and provisioning. ≥ **540s** for **lab_brand_scrape** with `wait_for_complete:true`. ≥ **600s** when **`include.demoWebsite:true`** or **lab_build_demo_website**.
 - **lab_mcp_access_info** — check allowlist without secrets; use after ops adds Kirkham ACL.
-- **segment_hint** — travel: `hotel_high_value`, `hotel_reactivation`; fsi: `high_net_worth`, `credit_rebuild`; retail: `loyalty_vip`, `cart_abandoner`.
+- **segment_hint** — travel: `hotel_high_value`, `hotel_reactivation`, `active_flyer`, `lapsed_flyer`; fsi: `high_net_worth`, `credit_rebuild`; retail: `loyalty_vip`, `cart_abandoner`.
 - Rate limits (per instance): 30 generates/min, 30 event sends/min, 3 batch jobs/hr — backoff using retryAfterSec.
 - Batch jobs max **100** profiles; use `email_pattern` for custom addressing (`{n}`, `{industry}`).
 - Industry aliases: `telco` → `telecom`, `public` → `generic`.

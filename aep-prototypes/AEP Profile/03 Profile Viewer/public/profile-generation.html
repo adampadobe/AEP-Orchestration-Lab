@@ -2023,7 +2023,8 @@
 
       <!-- Travel-specific attributes — aligned with `AEP Lab - Travel Profile - Schema`
            in the configured sandbox. Paths streamed by Generate / Update include:
-             _<tenant>.travelReservations.flightReservations.* (full set incl. multiLeg)
+             _<tenant>.travelReservations.flightReservations.* (full set incl. multiLeg + trip detail)
+             _<tenant>.individualCharacteristics.travel.* (Profile Travel v1 + v2 FGs — incl. flightBookings.activeFlight)
              _<tenant>.hotel.* when Recent stay is enabled (Travel - Hotel Experience v1 FG)
              travelPreferences.* (root-level OOTB Adobe travel-preferences mixin)
            "Hotel reservation" / "Car reservation" rows stay client-side (no schema home).
@@ -2035,7 +2036,9 @@
           <code>travelPreferences.*</code> bundle (meal, seat, roomType, vehicleType, …)
           so the resulting AEP profile carries substantive travel data, not just analytics.
           With Recent stay enabled, lifecycle fields stream to <code>hotel.*</code> when the
-          Travel - Hotel Experience v1 field group is on the schema. Hotel reservation and
+          Travel - Hotel Experience v1 field group is on the schema. Favourite airline, travel
+          class and Active flight stream to <code>individualCharacteristics.travel.*</code> once the
+          Profile Travel v1 / v2 field groups are attached (Travel wizard step 2). Hotel reservation and
           Car reservation subsections are not in the Travel Profile schema and stay client-side.
         </p>
         <div class="gen-identity-grid">
@@ -2053,7 +2056,25 @@
               <option value="first">First</option>
             </select>
           </div>
+          <div class="form-group">
+            <label for="travelActiveFlight">Active flight</label>
+            <select id="travelActiveFlight" title="Controls the trip Generate builds for each profile">
+              <option value="">Random per profile</option>
+              <option value="Yes">Yes — departs within 30 days / in the air</option>
+              <option value="No">No — last trip completed</option>
+            </select>
+          </div>
         </div>
+        <p class="field-hint" style="margin-top: 4px;">
+          <strong>Active flight</strong> streams <code>individualCharacteristics.travel.flightBookings.activeFlight</code>
+          ("Yes" / "No", Profile Travel v2). <em>Yes</em> builds an upcoming or in-progress trip and fills
+          <code>flightBookings.next*</code>; <em>No</em> builds a completed trip and fills <code>flightBookings.last*</code>.
+          The flight reservation below always describes the same trip. Segment on <code>activeFlight</code>, not on
+          <code>next*</code>: an update from Yes to No leaves earlier <code>next*</code> values in place.
+        </p>
+        <input type="hidden" id="travelFlightBookingsState" value="">
+        <p class="field-hint" id="travelFlightBookingsSummary" hidden></p>
+        <p class="field-hint" id="travelActiveFlightSchemaHint" role="status" hidden></p>
 
         <div class="generic-identity-section" style="margin-top: 16px;">
           <h4 class="generic-subhead" style="font-size: 0.95em;">Recent stay</h4>
@@ -2379,6 +2400,107 @@
               <div class="form-group">
                 <label for="travelFlightLayovers"># Layovers</label>
                 <input type="number" id="travelFlightLayovers" min="0" step="1" placeholder="0">
+              </div>
+            </div>
+
+            <!-- Trip detail (Profile Core v2 lab leaves). Datetimes are ISO-8601 in the
+                 airport's local time with its UTC offset. Generate fills these from the
+                 Active flight setting; manual edits stick. -->
+            <div class="form-row form-row--inline" style="margin-top: 6px;">
+              <div class="form-group">
+                <label for="travelFlightDepartureCity">Departure city</label>
+                <input type="text" id="travelFlightDepartureCity" placeholder="London">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightDepartureAirportName">Departure airport name</label>
+                <input type="text" id="travelFlightDepartureAirportName" placeholder="London Heathrow Airport">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightArrivalCity">Arrival city</label>
+                <input type="text" id="travelFlightArrivalCity" placeholder="New York">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightArrivalAirportName">Arrival airport name</label>
+                <input type="text" id="travelFlightArrivalAirportName" placeholder="John F. Kennedy International Airport">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightAirlineName">Airline</label>
+                <input type="text" id="travelFlightAirlineName" placeholder="British Airways">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightDepartureDateTime">Departs (local)</label>
+                <input type="text" id="travelFlightDepartureDateTime" placeholder="2026-10-18T09:55:00+01:00">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightArrivalDateTime">Arrives (local)</label>
+                <input type="text" id="travelFlightArrivalDateTime" placeholder="2026-10-18T12:10:00-04:00">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightDurationMinutes">Duration (min)</label>
+                <input type="number" id="travelFlightDurationMinutes" min="0" step="5" placeholder="435">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightStatus">Flight status</label>
+                <select id="travelFlightStatus">
+                  <option value="">— Select —</option>
+                  <option value="booked">Booked</option>
+                  <option value="checked_in">Checked in</option>
+                  <option value="boarded">Boarded</option>
+                  <option value="in_air">In the air</option>
+                  <option value="landed">Landed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightTripType">Trip type</label>
+                <select id="travelFlightTripType">
+                  <option value="">— Select —</option>
+                  <option value="return">Return</option>
+                  <option value="one_way">One way</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightSeatNumber">Seat</label>
+                <input type="text" id="travelFlightSeatNumber" placeholder="23A">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightCheckedBags">Checked bags</label>
+                <input type="number" id="travelFlightCheckedBags" min="0" step="1" placeholder="1">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightReturnFlightNumber">Return flight #</label>
+                <input type="text" id="travelFlightReturnFlightNumber" placeholder="BA178">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightReturnDepartureDateTime">Return departs (local)</label>
+                <input type="text" id="travelFlightReturnDepartureDateTime" placeholder="2026-10-25T19:30:00-04:00">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightReturnArrivalDateTime">Return arrives (local)</label>
+                <input type="text" id="travelFlightReturnArrivalDateTime" placeholder="2026-10-26T07:20:00Z">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightBookingChannel">Booking channel</label>
+                <select id="travelFlightBookingChannel">
+                  <option value="">— Select —</option>
+                  <option value="website">Website</option>
+                  <option value="mobile_app">Mobile app</option>
+                  <option value="travel_agent">Travel agent</option>
+                  <option value="call_centre">Call centre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightBookingDate">Booking date</label>
+                <input type="date" id="travelFlightBookingDate">
               </div>
             </div>
 
@@ -5640,7 +5762,8 @@
   <script src="place-catalog.js?v=20260928-global-places"></script>
   <script src="profile-place-context.js?v=20260928-global-places"></script>
   <script src="profile-generation-generic.js?v=20260717-place-context"></script>
-  <script src="profile-generation-travel.js?v=20260702-shared-counter"></script>
+  <script src="travel-flight-trip.js?v=20260720-active-flight"></script>
+  <script src="profile-generation-travel.js?v=20260720-active-flight"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->

@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import {
   assign,
   isoDateFromMs,
@@ -6,6 +7,13 @@ import {
   randomPick,
   weightedBool,
 } from './utils.mjs';
+
+// Shared with the Profile Viewer (web/profile-viewer/travel-flight-trip.js);
+// synced by `npm run sync:travel-flight-trip`, never edited here.
+const FlightTrip = createRequire(import.meta.url)('./flightTrip.cjs');
+
+/** Segment hints that only pin the Active flight flag (no attribute overlay). */
+export const TRAVEL_ACTIVE_FLIGHT_HINTS = Object.freeze({ active_flyer: true, lapsed_flyer: false });
 
 /** Segment overlay hotel names (hotel_reactivation / hotel_high_value). */
 const HOTEL_NAMES = ['Premier Inn Demo Central', 'Grand Plaza', 'Harbour Inn', 'Demo Hotel'];
@@ -180,25 +188,6 @@ function pickLayoverDurationMinutes() {
   return randomBetween(240, 540);
 }
 
-function isoFutureDate(daysAhead) {
-  const d = new Date();
-  d.setDate(d.getDate() + daysAhead);
-  return d.toISOString().slice(0, 10);
-}
-
-function isoPastDate(daysAgo) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
-}
-
-function randomFlightDateBiased() {
-  if (Math.random() < 0.30) {
-    return isoPastDate(randomBetween(1, 90));
-  }
-  return isoFutureDate(randomBetween(1, 180));
-}
-
 function randomConfirmationCode() {
   const ALPHA_NUMERIC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const ALPHA_ONLY = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -220,11 +209,13 @@ function rCost(lo, hi) {
 }
 
 /**
- * Flight reservation paths — mirrors portal buildUpdatesFromForm flight block.
+ * Flight reservation paths — mirrors portal buildUpdatesFromForm flight block,
+ * plus the trip detail and Profile Travel v1 / v2 leaves from the shared
+ * flight-trip builder.
  * @param {Record<string, unknown>} attrs
- * @param {{ dep: object, arr: object, airline: string }} route
+ * @param {{ dep: object, arr: object, airline: string, activeFlight?: boolean }} route
  */
-function assignFlightReservationAttributes(attrs, { dep, arr, airline }) {
+function assignFlightReservationAttributes(attrs, { dep, arr, airline, activeFlight }) {
   const fp = 'travelReservations.flightReservations';
   const passengers = randomBetween(1, 4);
   const childrenTravelling = passengers >= 2 && Math.random() < 0.3;
@@ -243,18 +234,28 @@ function assignFlightReservationAttributes(attrs, { dep, arr, airline }) {
   const layover1 = layoverPicks[0] || null;
   const layover2 = layoverPicks[1] || null;
 
-  assign(attrs, `${fp}.departureAirportCode`, dep.code);
-  assign(attrs, `${fp}.arrivalAirportCode`, arr.code);
-  assign(attrs, `${fp}.flightNumber`, randomFlightNumber(airline));
-  assign(attrs, `${fp}.flightDate`, randomFlightDateBiased());
+  const trip = FlightTrip.buildFlightTrip({
+    activeFlight: typeof activeFlight === 'boolean' ? activeFlight : undefined,
+    dep: { code: dep.code, city: dep.city, country: dep.country },
+    arr: { code: arr.code, city: arr.city, country: arr.country },
+    airline,
+    flightNumber: randomFlightNumber(airline),
+    confirmationNumber: randomConfirmationCode(),
+    flightClass: flightClassRaw,
+  });
+
+  // departure/arrival code + country, flightNumber, flightDate, confirmationNumber,
+  // trip detail, flightBookings.* and individualCharacteristics.travel.*.
+  for (const [path, value] of Object.entries(FlightTrip.tripToAttributePaths(trip))) {
+    assign(attrs, path, value);
+  }
+  assign(attrs, 'individualCharacteristics.travel.favouriteAirlineCompany', airline);
+  assign(attrs, 'individualCharacteristics.travel.primaryTravelClass', flightClassRaw);
   assign(attrs, `${fp}.flightClass`, flightClassRaw);
-  assign(attrs, `${fp}.confirmationNumber`, randomConfirmationCode());
   assign(attrs, `${fp}.numberofPassengers`, passengers);
   assign(attrs, `${fp}.childrenTravelling`, childrenTravelling);
   assign(attrs, `${fp}.multiLeg.multiLeg`, isMultiLeg);
   assign(attrs, `${fp}.multiLeg.numberofLayovers`, layovers);
-  assign(attrs, `${fp}.departureCountry`, dep.country);
-  assign(attrs, `${fp}.arrivalCountry`, arr.country);
   assign(attrs, `${fp}.usaFlight`, dep.isUSA || arr.isUSA);
 
   if (isMultiLeg && layovers >= 1 && layover1) {
@@ -268,7 +269,7 @@ function assignFlightReservationAttributes(attrs, { dep, arr, airline }) {
     }
   }
 
-  return { passengers, childrenTravelling };
+  return { passengers, childrenTravelling, activeFlight: trip.activeFlight };
 }
 
 /**
@@ -388,15 +389,18 @@ function assignHotelAttributes(attrs, arrivalCity) {
 
 /**
  * Portal-equivalent travel persona (paths actually streamed by Profile Viewer).
- * @param {object} [options]
+ * @param {{ active_flight?: boolean }} [options] - active_flight true → upcoming /
+ *   in-progress trip (flightBookings.activeFlight "Yes"); false → completed trip ("No");
+ *   omitted → random 50/50.
  * @returns {Record<string, unknown>}
  */
-export function buildTravelPersonaAttributes(_options = {}) {
+export function buildTravelPersonaAttributes(options = {}) {
   const attrs = {};
   const airline = randomPick(RANDOM_AIRLINES);
   const { dep, arr } = pickAirportPair();
+  const activeFlight = typeof options.active_flight === 'boolean' ? options.active_flight : undefined;
 
-  const { childrenTravelling } = assignFlightReservationAttributes(attrs, { dep, arr, airline });
+  const { childrenTravelling } = assignFlightReservationAttributes(attrs, { dep, arr, airline, activeFlight });
   assignTravelPreferencesAttributes(attrs, { dep, childrenTravelling });
   assignHotelAttributes(attrs, arr.city);
 
