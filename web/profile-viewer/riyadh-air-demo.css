@@ -129,6 +129,23 @@
 .ra-explore-banner > div { position: absolute; inset: 0; padding: 4rem; background: linear-gradient(90deg, var(--dash-ra-photo-shade), transparent); display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 1.5rem; }
 .ra-explore-breadcrumb { display: flex; flex-wrap: wrap; gap: .75rem; width: min(1120px, 84%); margin: 1rem auto 2rem; font-size: .85rem; }
 .ra-explore-breadcrumb a { text-decoration: underline; text-underline-offset: .25rem; }
+.ra-manage .ra-explore-hero::after { background: linear-gradient(0deg, var(--dash-ra-photo-shade), transparent); }
+.ra-manage .ra-explore-hero > div { inset: 0; max-width: none; padding: 2rem 5%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.ra-manage .ra-explore-hero p { max-width: 58ch; font-size: clamp(1rem, 1.5vw, 1.25rem); }
+.ra-manage-services { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3rem; padding-block: 0; margin: clamp(3rem, 9vw, 10rem) auto 1rem; }
+.ra-site .ra-manage-service { display: grid; grid-template-columns: 52px 1fr 44px; align-items: start; gap: 1.2rem; min-height: 180px; padding: 1.8rem; border: 1px solid var(--dash-ra-lavender); border-radius: 22px; background: transparent; color: var(--dash-ra-ink); text-align: left; }
+.ra-manage-service > img { display: block; width: 52px; height: 52px; object-fit: contain; }
+.ra-manage-service-copy { display: flex; flex-direction: column; gap: 1.5rem; font-size: .8rem; }
+.ra-manage-service-title { font-size: clamp(1.1rem, 1.5vw, 1.3rem); font-weight: 500; }
+.ra-manage-arrow { display: grid; place-items: center; align-self: end; width: 44px; height: 44px; border-radius: 50%; background: var(--dash-ra-deep); color: var(--dash-ra-white); font-size: 1.5rem; }
+.ra-manage-service:hover { background: var(--dash-ra-mist); }
+@media (max-width: 700px) {
+  .ra-manage-services { grid-template-columns: 1fr; }
+  .ra-site .ra-manage-service { grid-template-columns: 44px 1fr 44px; padding: 1.2rem; gap: .8rem; min-height: 165px; }
+  .ra-manage-service > img { width: 44px; height: 44px; }
+  .ra-manage .ra-explore-hero { min-height: 400px; }
+  .ra-manage .ra-explore-hero > img { object-position: 60% center; }
+}
 .ra-place-intro { max-width: 800px; }
 .ra-place-intro p { margin-top: 1.5rem; max-width: 70ch; }
 @media (max-width: 700px) {

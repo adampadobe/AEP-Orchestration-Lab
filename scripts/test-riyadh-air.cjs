@@ -388,7 +388,7 @@ async function browserTests() {
       };
       localStorage.setItem('siteCloneBcDatastreamIdBySandbox', JSON.stringify({ apalmer: '11111111-2222-3333-4444-555555555555' }));
     }, ecid);
-    for (const [route, title] of [['discover', 'Discover Riyadh'], ['diriyah', 'Diriyah'], ['edge-of-world', 'Edge of the World'], ['masmak', 'Al Masmak Palace'], ['kafd', 'King Abdullah Financial District'], ['boulevard-city', 'Boulevard City'], ['souq', 'Souq Al Zal'], ['destinations', 'Where we fly'], ['experience', 'The Riyadh Air experience'], ['plan', 'Plan your next journey with ease']]) {
+    for (const [route, title] of [['manage', 'We’re here to support your journey'], ['cancellation', 'Cancel your booking'], ['discover', 'Discover Riyadh'], ['diriyah', 'Diriyah'], ['edge-of-world', 'Edge of the World'], ['masmak', 'Al Masmak Palace'], ['kafd', 'King Abdullah Financial District'], ['boulevard-city', 'Boulevard City'], ['souq', 'Souq Al Zal'], ['destinations', 'Where we fly'], ['experience', 'The Riyadh Air experience'], ['plan', 'Plan your next journey with ease']]) {
       if (!await page.locator('[data-ra-page="' + route + '"]:visible').count()) {
         await page.locator('.ra-header [data-ra-page="discover"]').click();
         await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
@@ -403,6 +403,25 @@ async function browserTests() {
       assert(await page.evaluate(() => document.querySelector(window.SiteCloneBcPage.injectedAnchorSelector).checkVisibility()), 'Brand Concierge anchors to the visible page');
       assert.equal(await page.evaluate(() => document.activeElement.id), 'raExploreTitle', 'Navigation focuses page heading');
       assert.equal(await page.title(), 'Web page view - ' + await page.evaluate((key) => window.RiyadhAirExplore.title(key), route));
+      assert.equal(await page.evaluate(() => window.raPageViews.at(-1).xdm.web.webPageDetails.name), await page.title(),
+        'Customer timeline page-view name identifies the exact page clicked: ' + route);
+      if (['manage', 'cancellation'].includes(route)) {
+        assert.equal(await page.locator('.ra-header [aria-current="page"]').textContent(), 'Manage');
+        for (const theme of ['dark', 'light']) {
+          await page.evaluate((value) => document.documentElement.setAttribute('data-aep-theme', value), theme);
+          assert.equal(await page.locator('#raExploreTitle').evaluate((heading) => getComputedStyle(heading).color), 'rgb(255, 255, 255)',
+            'Manage hero keeps brand contrast in ' + theme);
+        }
+        if (route === 'manage') {
+          await page.locator('.ra-manage-service[data-ra-action="manage"]').click();
+          await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+          assert(await page.locator('#raDeliveryStatus').isVisible(), 'Missing booking has an explicit customer action failure');
+          assert.match(await page.locator('#raPresenterStatus').textContent(), /no confirmed booking/i);
+          assert.equal(requests.length, businessBeforeBrowse, 'Missing booking cannot generate a booking view');
+        } else {
+          assert.match(await page.locator('#raExplore').textContent(), /cannot cancel airline tickets or issue refunds/);
+        }
+      }
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 1000 });
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), route + ' has no horizontal overflow at ' + width);
@@ -416,7 +435,7 @@ async function browserTests() {
           images.forEach((image) => { image.loading = 'eager'; });
           await Promise.all(images.map((image) => image.decode()));
         });
-        if (process.env.RIYADH_EXPLORE_SCREENSHOTS && ['plan', 'discover'].includes(route)) {
+        if (process.env.RIYADH_EXPLORE_SCREENSHOTS && ['plan', 'discover', 'manage', 'cancellation'].includes(route)) {
           await fs.mkdir(process.env.RIYADH_EXPLORE_SCREENSHOTS, { recursive: true });
           await page.evaluate(() => window.scrollTo(0, 0));
           await page.screenshot({ path: path.join(process.env.RIYADH_EXPLORE_SCREENSHOTS, route + '-' + width + '.png'), fullPage: true,
@@ -431,6 +450,10 @@ async function browserTests() {
     assert(pageViews.every((options) => options.xdm.identityMap.ECID[0].id === ecid && options.xdm.identityMap.Email[0].id === profile.email));
     assert(pageViews.every((options) => options.xdm._demoemea.identification.core.ecid === ecid));
     assert(pageViews.every((options) => !options.xdm.web.webPageDetails.URL.includes(profile.email) && options.xdm.web.webPageDetails.pageViews.value === 1));
+    for (const label of ['Manage', 'Cancel your booking', 'Plan & book', 'Discover Riyadh']) {
+      assert(pageViews.some((options) => options.xdm.web.webPageDetails.name === 'Web page view - ' + label),
+        'Profile timeline receives natural page names: ' + label);
+    }
     const viewCount = pageViews.length;
     await page.locator('.ra-header [data-ra-page="plan"]').click();
     await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
@@ -465,6 +488,8 @@ async function browserTests() {
     await page.evaluate((fixtureEcid) => window.raTagsOptions.onEcidResolved(fixtureEcid), ecid);
     await page.locator('.ra-wordmark').click();
     await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(await page.evaluate(() => window.raPageViews.at(-1).xdm.web.webPageDetails.name), 'Web page view - Home page',
+      'Returning home sends the natural customer timeline label');
     const direct = await browserContext.newPage();
     await direct.goto(origin + '/profile-viewer/riyadh-air-demo.html?step=diriyah&booking=unrelated&email=ignored');
     await direct.evaluate(() => window.RiyadhAirLab.ready);
@@ -474,6 +499,16 @@ async function browserTests() {
     await direct.evaluate(() => window.RiyadhAirLab.ready);
     assert.equal(await direct.locator('#raExploreTitle').textContent(), 'Diriyah', 'Editorial route survives reload');
     assert.equal(requests.length, businessBeforeBrowse, 'Public deep links and reload do not ingest business events');
+    for (const route of ['manage', 'cancellation']) {
+      await direct.goto(origin + '/profile-viewer/riyadh-air-demo.html?step=' + route);
+      await direct.evaluate(() => window.RiyadhAirLab.ready);
+      assert.equal(await direct.title(), 'Web page view - ' + (route === 'manage' ? 'Manage' : 'Cancel your booking'));
+      await direct.reload();
+      await direct.evaluate(() => window.RiyadhAirLab.ready);
+      assert.equal(new URL(direct.url()).searchParams.get('step'), route);
+      assert(await direct.locator('#raExplore').isVisible());
+      assert.equal(requests.length, businessBeforeBrowse, 'Manage deep links and reload never send booking/cancellation events');
+    }
     await direct.close();
     await page.evaluate(() => {
       document.getElementById('raOrigin').value = 'LHR';
@@ -606,6 +641,17 @@ async function browserTests() {
     assert.equal(requests.filter((body) => body.eventType === 'travel.booking.confirm').length, 1);
     assert.equal(new URL(booking.public.generic.linkUrl).searchParams.get('seat'), null, 'Base flight has no purchased seat');
     assert.equal(await page.locator('#raPaidAmount').textContent(), 'SAR 4,129');
+    const beforeManage = requests.filter((body) => body.eventType === 'travel.booking.view').length;
+    await page.locator('.ra-header [data-ra-page="manage"]').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    await page.locator('#raExplore [data-ra-page="cancellation"]').click();
+    await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
+    assert.equal(requests.filter((body) => body.eventType === 'travel.booking.view').length, beforeManage, 'Manage browsing does not send booking events');
+    await page.locator('#raExplore [data-ra-action="manage"]').click();
+    await page.getByRole('button', { name: 'Choose seats and extras' }).waitFor();
+    assert.equal(requests.filter((body) => body.eventType === 'travel.booking.view').length, beforeManage + 1, 'View order retains the existing business contract');
+    assert.equal(requests.at(-1).public.travel.confirmationNumber, bookingRef);
+    assert.equal(await page.locator('#raPaidAmount').textContent(), 'SAR 4,129', 'Cancellation information never changes the confirmed trip');
     await page.getByRole('button', { name: 'Choose seats and extras' }).click();
     await page.getByRole('button', { name: 'Seat 14A', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('[data-seat="14A"]').getAttribute('aria-pressed') === 'true');

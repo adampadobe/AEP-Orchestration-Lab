@@ -10,7 +10,7 @@
     souq: { title: 'Souq Al Zal', image: 'souq.avif', category: 'Culture', intro: 'Follow the textures, colours and scents of a traditional Riyadh market. Discover carpets, crafts and the pleasure of taking your time.', detail: 'Explore the stalls around the historic centre and meet the people behind the craft. Leave room in your day for Saudi coffee and a slower look at the city.' },
   };
   const labels = Object.freeze({
-    home: 'Home page', plan: 'Plan & book', discover: 'Discover Riyadh',
+    home: 'Home page', plan: 'Plan & book', manage: 'Manage', cancellation: 'Cancel your booking', discover: 'Discover Riyadh',
     destinations: 'Where we fly', experience: 'The Riyadh Air experience',
     results: 'Flight search results', return: 'Return flights', passenger: 'Guest details',
     contact: 'Contact details', cart: 'Shopping cart', extras: 'Seats and extras',
@@ -34,6 +34,23 @@
     '</h1>' + (copy ? '<p>' + copy + '</p>' : '') + '</div></section>';
 
   function render(page) {
+    if (page === 'manage') return '<div class="ra-manage">' +
+      hero('manage-hero.avif', 'A Riyadh Air colleague helping a guest at the airport', 'We’re here to support your journey',
+        'Access your booking details, make changes, or follow up on your travel plans securely and simply through Riyadh Air.') +
+      '<section class="ra-section ra-manage-services" aria-label="Manage your journey">' +
+      '<button class="ra-manage-service" type="button" data-ra-action="manage">' + image('manage-order.avif', '') +
+      '<span class="ra-manage-service-copy"><span class="ra-manage-service-title">Manage your order</span>' +
+      '<span>Access your confirmed journey, review your booking details, and explore seats and extras.</span></span><span class="ra-manage-arrow" aria-hidden="true">&#8594;</span></button>' +
+      link('cancellation', image('manage-cancel.avif', '') + '<span class="ra-manage-service-copy"><span class="ra-manage-service-title">Cancel your booking</span>' +
+        '<span>Find out what to check before cancelling your booking and where to get support.</span></span><span class="ra-manage-arrow" aria-hidden="true">&#8594;</span>', 'ra-manage-service') +
+      '</section></div>';
+    if (page === 'cancellation') return '<nav class="ra-explore-breadcrumb" aria-label="Breadcrumb">' + link('home', 'Home', '') +
+      '<span aria-hidden="true">/</span>' + link('manage', 'Manage', '') + '<span aria-hidden="true">/</span><span aria-current="page">Cancel your booking</span></nav>' +
+      hero('manage-hero.avif', 'A Riyadh Air colleague assisting a guest', 'Cancel your booking', 'Understand your options before changing your travel plans.') +
+      '<section class="ra-section ra-place-intro"><h2>Before you cancel</h2><p>Check the fare conditions and any cancellation charges in your booking confirmation. Refund eligibility and timing depend on the fare and the original booking channel.</p>' +
+      '<p>For a real reservation, contact the airline or the travel provider you booked with. This website cannot cancel airline tickets or issue refunds. Your local demo booking remains unchanged.</p>' +
+      '<div class="ra-actions"><button class="ra-button" type="button" data-ra-action="manage">View your order</button>' +
+      link('manage', 'Back to Manage', 'ra-text-button') + '</div></section>';
     if (page === 'plan') return hero('plan-waves.svg', '', 'Plan your next journey with ease', '', 'Plan &amp; manage') +
       '<p class="ra-explore-intro">Discover Riyadh Air destinations, explore travel options, and book with confidence. Your next adventure begins here.</p>' +
       readout('plan-destinations.webp', 'Riyadh Air aircraft above the Earth', 'Where we fly', 'Every destination tells a story. Find your next journey, from the heart of Saudi Arabia to a new horizon.', link('destinations', 'View destinations'), true) +
@@ -73,7 +90,7 @@
   }
   global.RiyadhAirExplore = Object.freeze({
     render, labels,
-    has: (page) => ['plan', 'discover', 'destinations', 'experience'].includes(page) || Object.hasOwn(places, page),
+    has: (page) => ['plan', 'manage', 'cancellation', 'discover', 'destinations', 'experience'].includes(page) || Object.hasOwn(places, page),
     title: (page) => labels[page] || labels.home,
   });
 })(window);

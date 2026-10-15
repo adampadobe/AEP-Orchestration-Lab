@@ -152,7 +152,8 @@
     byId('raExplore').hidden = !browsing;
     document.querySelectorAll('.ra-header [data-ra-page]').forEach((item) => {
       const current = item.dataset.raPage === step ||
-        (item.dataset.raPage === 'discover' && browsing && !['plan', 'destinations', 'experience'].includes(step));
+        (item.dataset.raPage === 'manage' && step === 'cancellation') ||
+        (item.dataset.raPage === 'discover' && browsing && !['plan', 'manage', 'cancellation', 'destinations', 'experience'].includes(step));
       if (current) item.setAttribute('aria-current', 'page');
       else item.removeAttribute('aria-current');
     });
