@@ -74,6 +74,39 @@ describe('labProfileRecentSummaryLabel', () => {
     assert.match(tail, /Alex Kim \(42\)/);
     assert.match(tail, /female/);
   });
+
+  it('marks active flights from snapshot and flat MCP attributes', () => {
+    const fromSnap = buildSummaryTail({
+      industry: 'travel',
+      snapshot: {
+        travel: {
+          activeFlight: 'Yes',
+          reservations: { enabled: true, flight: { departure: 'LHR', arrival: 'JFK' } },
+        },
+      },
+    });
+    assert.match(fromSnap, /LHR→JFK ✈ active/);
+
+    const fromAttrs = buildSummaryTail({
+      industry: 'travel',
+      attributes: {
+        'travelReservations.flightReservations.departureAirportCode': 'LHR',
+        'travelReservations.flightReservations.arrivalAirportCode': 'JFK',
+        'individualCharacteristics.travel.flightBookings.activeFlight': 'Yes',
+      },
+    });
+    assert.match(fromAttrs, /LHR→JFK ✈ active/);
+
+    const inactive = buildSummaryTail({
+      industry: 'travel',
+      attributes: {
+        'travelReservations.flightReservations.departureAirportCode': 'LHR',
+        'travelReservations.flightReservations.arrivalAirportCode': 'JFK',
+        'individualCharacteristics.travel.flightBookings.activeFlight': 'No',
+      },
+    });
+    assert.doesNotMatch(inactive, /active/);
+  });
 });
 
 describe('labProfileRecentGeneratedStore helpers', () => {

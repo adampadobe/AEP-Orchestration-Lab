@@ -89,6 +89,7 @@ function travelTailFromSnapshot(snap) {
     const flightBits = [route];
     if (r.flight.number) flightBits.push(r.flight.number);
     if (r.flight.class) flightBits.push(r.flight.class);
+    if (t.activeFlight === 'Yes') flightBits.push('✈ active');
     parts.push(flightBits.join(' '));
   } else if (t.favouriteAirline) {
     parts.push(`Airline: ${t.favouriteAirline}`);
@@ -124,6 +125,9 @@ function travelTailFromAttributes(attrs) {
     const cls = pickAttr(attrs, 'travelReservations.flightReservations.flightClass');
     if (num) flightBits.push(num);
     if (cls) flightBits.push(cls);
+    if (pickAttr(attrs, 'individualCharacteristics.travel.flightBookings.activeFlight') === 'Yes') {
+      flightBits.push('✈ active');
+    }
     parts.push(flightBits.join(' '));
   } else {
     const airline = pickAttr(attrs, 'individualCharacteristics.travel.favouriteAirlineCompany');

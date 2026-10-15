@@ -66,7 +66,7 @@ export function registerGenerateProfileTool(mcpServer) {
         segment_hint: z
           .string()
           .optional()
-          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
+          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation | active_flyer | lapsed_flyer; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
         loyalty_member: z
           .boolean()
           .optional()
@@ -75,6 +75,10 @@ export function registerGenerateProfileTool(mcpServer) {
           .boolean()
           .optional()
           .describe('Retail only: when false, omit orderProfile last-order SKU/store/YTD block (Portal #retailLastOrderEnabled; default true on randomize)'),
+        active_flight: z
+          .boolean()
+          .optional()
+          .describe('Travel only: true → upcoming (0–30 days) or in-the-air trip, flightBookings.activeFlight "Yes" with next* leaves; false → completed trip, "No" with last* leaves only. Omitted → random (or pinned by segment_hint active_flyer / lapsed_flyer). Requires Profile Travel v2 attached for the flag itself.'),
         append_if_existing: z
           .boolean()
           .optional()
@@ -133,6 +137,7 @@ export function registerGenerateProfileTool(mcpServer) {
       segment_hint,
       loyalty_member,
       last_order_details,
+      active_flight,
       append_if_existing,
       test_profile,
       test_profile_override_reason,
@@ -239,6 +244,7 @@ export function registerGenerateProfileTool(mcpServer) {
       const personaOpts = {
         loyalty_member: loyalty_member === true,
         last_order_details,
+        active_flight,
         place_mode: placeCheck.place_mode,
         place_area: placeCheck.place_area,
       };
