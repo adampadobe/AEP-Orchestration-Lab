@@ -4,6 +4,16 @@ This page covers the AEP Orchestration Lab's Snowflake integration, surfaced
 in the Profile Viewer at **`/profile-viewer/profile-generation-snowflake.html`**
 (menu: **Profiles → Profile generation – Snowflake (in development)**).
 
+The shared base-recipient model and Snowflake-first seed generator are
+documented in [`SNOWFLAKE_RELATIONAL_LAYER.md`](SNOWFLAKE_RELATIONAL_LAYER.md).
+On this page, select an industry and use **Seed recipients & industry data**:
+the authenticated API writes the existing
+`AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE` parent plus the selected industry's
+profile, event, and detail records. No prior industry profile rows or Adobe
+API calls are required. The CLI uses the same seed writer. Existing AEP flows
+remain separate and unchanged; map added recipient and relational fields
+explicitly before using them in Campaign Orchestration.
+
 The integration ports the AgenticAI Demo (`AI Projects/AgenticAI Demo/Agentic_Demo_Platform/`)
 into the lab. **Phase 1** ships per-user Snowflake connection management plus a
 server-side connection test. **Phase 2 (this commit)** adds a minimal

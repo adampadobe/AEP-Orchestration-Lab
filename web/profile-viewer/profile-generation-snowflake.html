@@ -306,10 +306,10 @@
 
           <article class="sf-gen-card sf-gen-card--phase2" aria-labelledby="sfGenerateHeading">
             <header class="sf-gen-card-header">
-              <h3 id="sfGenerateHeading" class="sf-gen-card-title">2. Generate industry profiles</h3>
+              <h3 id="sfGenerateHeading" class="sf-gen-card-title">2. Seed recipients &amp; industry data</h3>
               <p class="sf-gen-card-subtitle">
-                Generate operational CRM data in the selected industry table. Identity emails use the shared
-                Profile Generation counter and the table schema is fixed by the governed manifest.
+                Create shared recipients in the existing base-profile table, plus linked profiles, events,
+                and details for the industry selected above. Writes Snowflake only; your AEP flows ingest separately.
               </p>
             </header>
 
@@ -324,9 +324,11 @@
                   <p class="field-hint">Same control pattern as AgenticAI <code>index_enhanced.html</code>. Maximum 1000 per run.</p>
                 </div>
                 <div class="form-group" id="sfGenTargetTableGroup">
-                  <label>Target table</label>
+                  <label>Industry profile table</label>
                   <code id="sfGenerateTargetTable" class="sf-gen-target-table">AGENTIC_TRAVEL_PROFILE_CUSTOMER</code>
-                  <p class="field-hint">Use the readiness panel to provision this allowlisted table before generation.</p>
+                  <p class="field-hint">Shared parent: <code>AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE</code>.
+                    Missing seed tables and additive recipient fields are prepared automatically.
+                    Non-travel relational tables refresh asynchronously (target lag: one minute).</p>
                 </div>
               </div>
 
@@ -336,11 +338,11 @@
                   <div class="sf-gen-radio-group">
                     <label class="sf-gen-radio">
                       <input type="radio" name="sfGenScope" id="sfGenScopeSingle" value="single" checked>
-                      Selected table only
+                      Shared recipients + selected industry data
                     </label>
                     <label class="sf-gen-radio" id="sfGenScopeFullLabel">
                       <input type="radio" name="sfGenScope" id="sfGenScopeFull" value="full">
-                      Full phased — base, events, customer &amp; enrichment
+                      Legacy travel runner — base, events, customer &amp; enrichment
                       <span class="sf-gen-pill">Travel only · Python</span>
                     </label>
                   </div>
@@ -358,12 +360,12 @@
                 <div class="form-group">
                   <label for="sfGenBatchSize">Batch size <span class="sf-gen-optional">(optional)</span></label>
                   <input type="number" id="sfGenBatchSize" min="1" max="1000" step="1" placeholder="200">
-                  <p class="field-hint">Rows per INSERT. Defaults to 200.</p>
+                  <p class="field-hint">Maximum rows per write; capped at 50 for linked seed records.</p>
                 </div>
               </div>
 
               <div class="form-row form-row--actions sf-gen-actions">
-                <button type="button" id="sfGenerateBtn" class="btn btn-primary">Generate profiles</button>
+                <button type="button" id="sfGenerateBtn" class="btn btn-primary">Seed recipients &amp; industry data</button>
               </div>
 
               <div class="sf-gen-batch-history" id="sfGenBatchHistoryGroup" aria-label="Base profile batch history">
@@ -478,6 +480,6 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20261013-travel-provision"></script>
+  <script src="profile-generation-snowflake.js?v=20261015-shared-recipient"></script>
 </body>
 </html>

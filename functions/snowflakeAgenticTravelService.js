@@ -127,7 +127,9 @@ function buildQueryProfilesSql({
   email,
   ecid,
 }) {
-  const selectList = columns.join(', ');
+  const selectList = columns.map((column) => column === 'RECIPIENT_ID'
+    ? "'R-' || LEFT(SHA2(ECID, 256), 32) AS RECIPIENT_ID"
+    : column).join(', ');
   const tf = timeFilterSql(timePeriod);
   const lw = loyaltyWhere(filterType);
   const binds = [];

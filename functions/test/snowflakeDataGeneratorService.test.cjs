@@ -2,6 +2,9 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const { createRequire } = require('node:module');
 const { isCanonicalEcid } = require('../ecidGenerator');
 const {
   generateBaseProfileRow,
@@ -17,6 +20,95 @@ const { scaleEmail } = require('../labProfileGenerationPrefsStore');
 
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
+
+function serviceWithConnection(rowsForSql = () => []) {
+  const calls = [];
+  let destroyed = false;
+  let emailCounter = 0;
+  const connection = {
+    connect(callback) { callback(null); },
+    destroy(callback) { destroyed = true; callback(); },
+    execute(options) {
+      calls.push(options);
+      try {
+        options.complete(null, null, rowsForSql(options.sqlText));
+      } catch (error) {
+        options.complete(error);
+      }
+    },
+  };
+  const servicePath = require.resolve('../snowflakeDataGeneratorService');
+  const originalRequire = createRequire(servicePath);
+  const module = { exports: {} };
+  vm.runInNewContext(fs.readFileSync(servicePath, 'utf8'), {
+    module, process, Buffer, console,
+    require(id) {
+      if (id === 'snowflake-sdk') return { createConnection: () => connection };
+      if (id === './snowflakeConnectionStore') return {
+        resolveConnection: async () => ({
+          config: { database: 'DEMO_DB', schema: 'LAB', warehouse: 'DEMO_WH', authMethod: 'password' },
+          credential: 'offline-test-only',
+        }),
+      };
+      if (id === './labProfileGenerationPrefsStore') return {
+        reserveNextEmail: async () => ({ scaledEmail: `demo+${++emailCounter}@example.com` }),
+      };
+      return originalRequire(id);
+    },
+  }, { filename: servicePath });
+  return { service: module.exports, calls, isDestroyed: () => destroyed };
+}
+
+describe('Snowflake seed API offline integration', () => {
+  it('runs the page endpoint through parent and child writes for all six industries', async () => {
+    for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline-user', sandbox: 'test', industry, count: 2,
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      assert.equal(result.recipientRowcount, 2);
+      assert.equal(result.tableRowcounts[result.recipientTable], 2);
+      assert.ok(Object.keys(result.tableRowcounts).length > 2);
+      assert.equal(result.profiles[0].recipientId, result.profiles[0].columns.RECIPIENT_ID);
+      assert.equal(fixture.calls.at(-1).sqlText, 'COMMIT');
+      assert.equal(fixture.isDestroyed(), true);
+    }
+  });
+
+  it('returns failure and rolls back the parent when a source write fails', async () => {
+    const fixture = serviceWithConnection((sql) => {
+      if (sql.startsWith('MERGE INTO') && sql.includes('AGENTIC_RETAIL_PROFILE_CUSTOMER target')) {
+        throw new Error('injected source write failure');
+      }
+      return [];
+    });
+    const result = await fixture.service.handleGenerateIndustryProfiles({
+      labUser: 'offline-user', sandbox: 'test', industry: 'retail', count: 1,
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.error.message, /injected source write failure/);
+    assert.equal(fixture.calls.at(-1).sqlText, 'ROLLBACK');
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
+  it('keeps legacy/custom base dual-load targets independent of the shared parent', async () => {
+    for (const table of ['BASE_PROFILES', 'CUSTOM_BASE']) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleInsertProfileFromAep({
+        labUser: 'offline-user', sandbox: 'test', table,
+        email: 'demo@example.com', ecid: '123', attributes: {},
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      assert.equal(result.schemaKey, 'BASE_PROFILES');
+      assert.equal(result.columnsWritten, 38);
+      assert.ok(fixture.calls[0].sqlText.startsWith(`CREATE TABLE IF NOT EXISTS DEMO_DB.LAB.${table}`));
+      assert.equal(fixture.calls.some(({ sqlText }) => sqlText.includes('REL.RECIPIENT')), false);
+      assert.equal(fixture.calls.some(({ sqlText }) => sqlText.includes('RECIPIENT_ID')), false);
+      assert.equal(fixture.isDestroyed(), true);
+    }
+  });
+});
 
 describe('snowflakeDataGeneratorService email alignment', () => {
   it('generateBaseProfileRow uses emailOverride for EMAIL columns', () => {
@@ -60,6 +152,12 @@ describe('snowflakeDataGeneratorService email alignment', () => {
     assert.equal(legacy.schemaKey, 'BASE_PROFILES');
     assert.equal(legacy.skipCreateTable, false);
     assert.ok(legacy.columns.includes('BIRTHDATE'));
+    for (const table of ['BASE_PROFILES', 'CUSTOM_BASE']) {
+      const withIndustry = resolveDualLoadInsertSchema(table, 'travel');
+      assert.equal(withIndustry.schemaKey, 'BASE_PROFILES');
+      assert.equal(withIndustry.industry, null);
+      assert.equal(withIndustry.skipCreateTable, false);
+    }
   });
 
   it('resolveDualLoadInsertSchema routes every new industry table to crm_generate', () => {

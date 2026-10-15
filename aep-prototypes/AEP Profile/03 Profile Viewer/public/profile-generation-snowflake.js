@@ -1142,10 +1142,10 @@
     }
     els.genResult.hidden = false;
     if (els.genResultRowcount) els.genResultRowcount.textContent = String(result.rowcount || 0);
-    if (els.genResultTable) els.genResultTable.textContent = result.table || '—';
+    if (els.genResultTable) els.genResultTable.textContent = result.recipientTable || result.table || '—';
     if (els.genResultSample) {
       els.genResultSample.textContent = Array.isArray(result.sample) && result.sample.length
-        ? safeStringify(result.sample)
+        ? safeStringify({ tableRowcounts: result.tableRowcounts, sample: result.sample })
         : '(no rows generated)';
     }
   }
@@ -2102,8 +2102,11 @@
           if (res.ok && result && result.ok) {
             appendBaseBatchHistory(result);
             setGenerateMessage(
-              'Inserted ' + result.rowcount + ' ' + titleCase(payload.industry) + ' profile' + (result.rowcount === 1 ? '' : 's') +
-                ' into ' + result.table + '.',
+              'Seeded ' + result.rowcount + ' shared recipient' + (result.rowcount === 1 ? '' : 's') +
+                ' in ' + result.recipientTable + ' with linked ' + titleCase(payload.industry) +
+                ' profiles and detail records. ' + (result.relationalRefresh === 'immediate'
+                  ? 'Relational travel data is ready in Snowflake.'
+                  : 'Relational tables refresh asynchronously (target lag: one minute).'),
               'success'
             );
             showGenerateResult(result);
