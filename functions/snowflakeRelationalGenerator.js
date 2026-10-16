@@ -255,7 +255,7 @@ function generateTravelRelationalRecords({
     TAXES: 50,
     FEES: 10,
     CURRENCY: 'GBP',
-    SEATSELECTION: scenario === 'seat_bought_in_journey' ? '18A' : null,
+    SEATSELECTION: scenario === 'seat_bought_in_journey',
     CHANNEL: reservation.booking_channel,
     _RECORDCREATEDTIMESTAMP: runStamp,
   };
