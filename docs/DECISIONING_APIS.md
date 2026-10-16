@@ -68,8 +68,10 @@ re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibil
   registry, not a small DSL.
 - **Offer-item tagging (`itemTags`)** — confirmed the value is *not* the tag's `dps:tag:...`
   id (`"Invalid [tagId] id"`) and *not* its bare hex suffix either (`"At least one of the
-  tags is invalid"`) — but neither of those was the tag's actual dashed UUID (the `id` field
-  `GET /tags` returns), which was never tried at the time. A separately deployed ExD
+  tags is invalid"`). The October 2026 kirkham audit confirms DPS `GET /tags`
+  returns legacy `dps:tag:...` IDs, while raw offer `itemTags` and `itemTagDetails`
+  contain distinct unified tag UUIDs. These are separate identities, not alternate
+  encodings of one ID. A separately deployed ExD
   accelerator MCP (`exd-accelerator-mcp`) confirms that full UUID, used verbatim in a plain
   array, is the correct value. Rather than hard-code even a well-evidenced answer,
   `lab_decisioning_tag_bulk_apply` still resolves this live at write time: it tries the raw
@@ -77,6 +79,19 @@ re-verified). Schema tags seen: `offer-rules` → `.../offer-management/eligibil
   against the real first write in a sandbox, and caches whichever format DPS accepts
   (`functions/decisioningTagFormatStore.js`) so every later call in that sandbox skips
   straight to it. See "MCP write/bulk layer" below.
+  The format probe cannot turn a legacy DPS tag into a unified tag. Do not use
+  DPS tag creation as a substitute for verified unified-tag creation. Reuse a
+  UUID verified from a raw offer, or stop until an authorised compatible tag
+  creation path is available.
+
+### Customer website catalog plans
+
+See [Website-to-AJO catalog plans](DECISIONING_CATALOG_PLANS.md) for the
+seven-objective plan contract and `npm run decisioning:catalog-plan` runner.
+It uses the existing governed catalog preview/apply routes without requiring
+Coworker, creates draft assets only, verifies raw readback, and resumes using a
+durable journal. Unified tags, live resolved-schema checks and later
+policy activation/Edge verification remain explicit prerequisites/gates.
 
 Many **list decision items** calls require header **`x-schema-id`** (your decision item schema). Pass it through the local proxy as `platform_headers` (see below).
 

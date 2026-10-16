@@ -51,6 +51,9 @@ jobs:
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
 
+      - name: Verify governed decisioning catalog plans (offline)
+        run: npm run test:decisioning-catalog-plan
+
       - name: Verify owner-only usage statistics
         run: node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs
 

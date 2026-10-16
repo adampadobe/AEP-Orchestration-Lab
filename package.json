@@ -7,6 +7,8 @@
     "npm": ">=10"
   },
   "scripts": {
+    "decisioning:catalog-plan": "node scripts/provision-decisioning-catalog.mjs",
+    "test:decisioning-catalog-plan": "node --test scripts/provision-decisioning-catalog.test.mjs",
     "aep:create-hotel-edge-segments": "node scripts/create-hotel-edge-segments.mjs",
     "ajo:create-content-template": "node scripts/create-ajo-content-template.mjs",
     "ajo:loyalty-configure": "node scripts/ajo-loyalty-setup.mjs",
