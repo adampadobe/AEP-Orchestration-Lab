@@ -1133,7 +1133,9 @@ function registerLabRoutes(deps) {
     }
 
     try {
-      const reserved = await labProfileGenerationPrefsStore.reserveNextEmail(principal.uid, sandbox);
+      const reserved = await labProfileGenerationPrefsStore.reserveNextEmail(principal.uid, sandbox, {
+        expectedBaseEmail: body.expectedBaseEmail,
+      });
       res.status(200).json({ ok: true, ...reserved, authSource: principal.authSource });
     } catch (e) {
       const status = Number(e && e.status) || 400;

@@ -16,6 +16,7 @@ import { buildPlaceContextPersonaAttributes, hasPlaceContextAttributes } from '.
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
 import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
+import { generationTargetSchema, generateSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
 import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
 import {
   personHintsFromAttributes,
@@ -29,9 +30,12 @@ export function registerGenerateProfileTool(mcpServer) {
   mcpServer.registerTool(
     'lab_generate_profile',
     {
-      title: 'Generate / stream test profile',
+      title: 'Generate recipient and industry data (Snowflake default)',
       description:
-        'Generate and stream one governed AEP test profile through the saved sandbox and industry connection. ' +
+        'Default target snowflake: generate one shared recipient plus linked data for an explicit industry, matching the Snowflake UI. ' +
+        'AEP ingestion is separate; never send AEP events or claim UPS readback for Snowflake-only recipients. ' +
+        'Confirm shared email preferences and industry first; run serially and never automatically retry generation. ' +
+        'Set target:"aep" explicitly to generate and stream one governed AEP test profile through the saved sandbox and industry connection. ' +
         'Preflight first. Omit email to reserve the next shared <local>+DDMMYYYY-N@domain address; custom emails must use that format. ' +
         'test_profile defaults true, preferred language is enforced, and non-generic industries dual-stream generic then industry attributes. ' +
         'Use randomize plus an optional segment_hint for a correlated persona. Every randomized profile carries place context ' +
@@ -39,6 +43,7 @@ export function registerGenerateProfileTool(mcpServer) {
         'Optional dual_load_snowflake creates an independent CRM row with shared EMAIL/ECID/CRMID. ' +
         'See the parameter descriptions and lab_get_execution_framework for advanced options.',
       inputSchema: {
+        target: generationTargetSchema,
         email: z
           .string()
           .email()
@@ -50,7 +55,7 @@ export function registerGenerateProfileTool(mcpServer) {
         industry: z
           .string()
           .optional()
-          .describe('Industry key or alias (default generic). Canonical: generic, travel, fsi, telecom, retail, media, sports'),
+          .describe('Snowflake target requires travel, fsi, telecom, retail, media, or sports. AEP target defaults to generic. Aliases accepted.'),
         attributes: z
           .record(z.unknown())
           .optional()
@@ -66,7 +71,7 @@ export function registerGenerateProfileTool(mcpServer) {
         segment_hint: z
           .string()
           .optional()
-          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
+          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation | active_flyer | lapsed_flyer; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
         loyalty_member: z
           .boolean()
           .optional()
@@ -75,6 +80,10 @@ export function registerGenerateProfileTool(mcpServer) {
           .boolean()
           .optional()
           .describe('Retail only: when false, omit orderProfile last-order SKU/store/YTD block (Portal #retailLastOrderEnabled; default true on randomize)'),
+        active_flight: z
+          .boolean()
+          .optional()
+          .describe('Travel only: true → upcoming (0–30 days) or in-the-air trip, flightBookings.activeFlight "Yes" with next* leaves; false → completed trip, "No" with last* leaves only. Omitted → random (or pinned by segment_hint active_flyer / lapsed_flyer). Requires Profile Travel v2 attached for the flag itself.'),
         append_if_existing: z
           .boolean()
           .optional()
@@ -123,28 +132,31 @@ export function registerGenerateProfileTool(mcpServer) {
         ...placeInputSchema(),
       },
     },
-    async ({
-      email,
-      sandbox,
-      industry,
-      attributes,
-      randomize,
-      fill_sample_data,
-      segment_hint,
-      loyalty_member,
-      last_order_details,
-      append_if_existing,
-      test_profile,
-      test_profile_override_reason,
-      use_stored_prefs,
-      dual_load_snowflake,
-      dual_load_snowflake_mode,
-      snowflake_enrichment,
-      snowflake_event_types,
-      snowflake_table,
-      place_mode,
-      place_area,
-    }) => {
+    async (params) => {
+      if (params.target !== 'aep') return generateSnowflakeProfiles(params, 'lab_generate_profile');
+      const {
+        email,
+        sandbox,
+        industry,
+        attributes,
+        randomize,
+        fill_sample_data,
+        segment_hint,
+        loyalty_member,
+        last_order_details,
+        active_flight,
+        append_if_existing,
+        test_profile,
+        test_profile_override_reason,
+        use_stored_prefs,
+        dual_load_snowflake,
+        dual_load_snowflake_mode,
+        snowflake_enrichment,
+        snowflake_event_types,
+        snowflake_table,
+        place_mode,
+        place_area,
+      } = params;
       const started = Date.now();
       const keyId = getRequestKeyId();
 
@@ -239,6 +251,7 @@ export function registerGenerateProfileTool(mcpServer) {
       const personaOpts = {
         loyalty_member: loyalty_member === true,
         last_order_details,
+        active_flight,
         place_mode: placeCheck.place_mode,
         place_area: placeCheck.place_area,
       };
@@ -409,6 +422,7 @@ export function registerGenerateProfileTool(mcpServer) {
           };
 
       return fromLabApi(labApiShape, {
+        target: 'aep',
         sandbox: allowed.sandbox,
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,

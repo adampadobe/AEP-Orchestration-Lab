@@ -238,9 +238,30 @@ async function main() {
 
   function registerEndpoint(endpoint) {
     const authenticate = async (req, res, next) => {
-      const auth = await validateMcpRequest(req);
+      const startedAt = Date.now();
+      const requestId = randomUUID();
+      res.set('X-AEP-Lab-Request-Id', requestId);
+      res.once('finish', () => {
+        const auth = req.mcpAuth?.auth;
+        const rpcMethod = String(req.body?.method || 'unknown');
+        const toolName = rpcMethod === 'tools/call' ? String(req.body?.params?.name || '') : undefined;
+        console.log(JSON.stringify({
+          type: 'aep-lab-mcp-request',
+          requestId,
+          endpoint: endpoint.path,
+          toolset: endpoint.toolset,
+          method: rpcMethod,
+          ...(toolName ? { tool: toolName } : {}),
+          authSource: auth?.source || 'unverified',
+          ...(auth?.principalEmailHash ? { principalEmailHash: auth.principalEmailHash } : {}),
+          httpStatus: res.statusCode,
+          durationMs: Date.now() - startedAt,
+        }));
+      });
+      const auth = await validateMcpRequest(req, { requestId });
       if (!auth.ok) {
-        jsonRpcError(res, auth.status, auth.message);
+        if (req.method === 'DELETE') res.status(auth.status).json({ error: auth.message });
+        else jsonRpcError(res, auth.status, auth.message);
         return;
       }
       const principalAccess = auth.principalAccess
@@ -250,21 +271,6 @@ async function main() {
     };
     const parser = endpoint.bodyLimit || endpoint.toolset === 'full' ? largeJson : smallJson;
     app.post(endpoint.path, authenticate, parser, async (req, res) => {
-      const startedAt = Date.now();
-      const rpcMethod = String(req.body?.method || 'unknown');
-      const toolName = rpcMethod === 'tools/call' ? String(req.body?.params?.name || '') : undefined;
-      res.once('finish', () => {
-        console.log(JSON.stringify({
-          type: 'aep-lab-mcp-request',
-          endpoint: endpoint.path,
-          toolset: endpoint.toolset,
-          method: rpcMethod,
-          ...(toolName ? { tool: toolName } : {}),
-          httpStatus: res.statusCode,
-          durationMs: Date.now() - startedAt,
-        }));
-      });
-
       const { auth, principalAccess } = req.mcpAuth;
       const mcpKey = auth.forwardMcpApiKey
         || String(req.headers['x-aep-lab-mcp-key'] || req.headers['X-AEP-Lab-Mcp-Key'] || '').trim();
@@ -332,12 +338,7 @@ async function main() {
       });
     });
 
-    app.delete(endpoint.path, async (req, res) => {
-      const auth = await validateMcpRequest(req);
-      if (!auth.ok) {
-        res.status(auth.status).json({ error: auth.message });
-        return;
-      }
+    app.delete(endpoint.path, authenticate, async (req, res) => {
       const sessionId = req.headers['mcp-session-id'];
       const active = sessionId ? getSession(sessionId) : undefined;
       if (active?.endpoint === endpoint.path) {

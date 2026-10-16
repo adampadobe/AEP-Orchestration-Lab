@@ -37,15 +37,20 @@
   border-radius: 0;
   background: var(--dash-surface);
 }
+.demo-assets-preview-surface:fullscreen > :not(iframe) { display: none; }
+.demo-assets-preview-surface:fullscreen > iframe { height: 100%; }
 .demo-studio-preview:fullscreen {
   box-sizing: border-box;
   width: 100vw;
   height: 100vh;
-  padding: 1rem;
-  overflow: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
   background: var(--dash-surface);
 }
+.demo-studio-preview:fullscreen > :not(.demo-studio-frames) { display: none; }
 .demo-studio-preview:fullscreen .demo-studio-frames { flex: 1; min-height: 0; }
-.demo-studio-preview:fullscreen .demo-studio-frames iframe { height: 100%; min-height: 0; }
+.demo-studio-preview:fullscreen .demo-studio-frames iframe { height: 100%; min-height: 0; border: 0; border-radius: 0; }
 .demo-studio-preview:fullscreen .demo-studio-versions { display: none; }
 .demo-assets-preview-actions { flex-wrap: wrap; }

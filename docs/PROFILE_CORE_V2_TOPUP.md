@@ -39,6 +39,13 @@ via add-only JSON-Patch.
   recomputes the diff, and retries once. A second conflict fails cleanly.
 - **Smallest non-overlapping ops.** If the entire `travelReservations` parent
   is missing, ONE `add` op for the whole subtree — not 21 per-leaf ops.
+- **Present subtrees are walked.** When a whole-subtree manifest entry (e.g.
+  `travelReservations`) already exists, the diff descends into it and adds any
+  missing child objects/leaves, so new leaves reach sandboxes created earlier.
+- **One bad subtree doesn't block the rest.** If the batched PATCH returns 400
+  (e.g. `Cannot merge incompatible data types` from another field group in a
+  schema using Profile Core v2), each gap is retried on its own. Rejected paths
+  are listed in `conflicts` as `<path> (patch rejected: …)`; the rest still land.
 - **Schema-typo fidelity.** `travelReservations.flightReservations.multiLeg.layoverAiport_2`
   (no 'r' in `Aiport`) is preserved on purpose — that's the canonical leaf name
   today and the UI streams that exact key.
@@ -105,6 +112,50 @@ the same path in the Profile union would conflict, and
   place (`source: mcp-persona`) to every industry. Dual-stream generate routes it
   to the generic step, and a caller-supplied place replaces the persona block
   wholesale.
+
+### Travel active flight: trip leaves in Core v2, `individualCharacteristics.travel.*` in Profile Travel v1 / v2
+
+The Travel generator and the MCP travel persona both build flights with the
+shared `web/profile-viewer/travel-flight-trip.js` builder. The MCP copy is
+`tools/aep-lab-profile-mcp/src/personaBuilder/flightTrip.cjs`, written by
+`npm run sync:travel-flight-trip`; CI runs `verify:travel-flight-trip`. The
+builder's leaves are owned in two places:
+
+- **`travelReservations.flightReservations.*`** trip detail lives in this
+  manifest. That covers the airport names, cities, airline, the
+  `departureDateTime` and `arrivalDateTime` (ISO-8601 with the airport's local
+  offset, via `DATETIME_LEAF`), duration, `flightStatus`, `tripType`, the
+  return leg, seat, bags, `bookingChannel` and `bookingDate`. The normal
+  top-up adds these leaves.
+- **`individualCharacteristics.travel.*`** is owned by the tenant field groups
+  **Profile Travel v1** (trip purpose, class, favourite airline, booking lead
+  time) and **Profile Travel v2** (`flightBookings.activeFlight` `"Yes"`/`"No"`
+  plus `next*`/`last*` booking leaves). Never add these to the manifest.
+  `functions/test/travelActiveFlightSchema.test.cjs` checks both owners.
+  - The specs are `TRAVEL_PROFILE_V1_PROPERTIES` and
+    `TRAVEL_PROFILE_V2_PROPERTIES` in `functions/travelProfileInfraService.js`.
+    They mirror the apalmer groups exactly, including the string-typed
+    `activeFlight`.
+  - Step 2 (`attachFieldGroups`) creates and attaches the groups when they are
+    missing. Both groups are optional `createIfMissing` entries with
+    exact-title matches.
+  - `npm run ensure:travel-profile-fieldgroups -- <sandbox>` runs a read-only
+    dry run. Add `--apply` to run step 2, and only after review: attaching to
+    the Profile-enabled Travel schema is additive-only.
+  - Infra status reports `optionalFieldGroups: [{label, exists, attached}]`.
+    The UI hides the v1/v2 leaves only when a group is known to be unattached.
+    AEP silently drops unknown paths in any case.
+
+Active flight semantics:
+- **Yes:** the next departure is within 30 days, or the flight is in the air
+  now (~10% of generated trips). The builder writes the `next*` and `last*`
+  values.
+- **No:** the trip is fully in the past, and only `last*` is written.
+- Switching an existing profile from Yes to No leaves the old `next*` values in
+  place, so segment on `activeFlight` rather than on whether `next*` is present.
+- MCP: `active_flight: true|false` on `lab_generate_profile` and
+  `lab_generate_profiles_batch`, or the segment hint `active_flyer` /
+  `lapsed_flyer`. An explicit `active_flight` wins over the hint.
 
 ## API response shape (step 2 / `attachFieldGroups`)
 

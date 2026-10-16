@@ -615,6 +615,23 @@
           ],
         },
         {
+          id: 'demoRiyadhAir',
+          label: 'Riyadh Air',
+          demoCustomer: true,
+          channels: [{
+            id: 'riyadhAirWeb',
+            label: 'Web',
+            items: [{
+              label: 'Riyadh Air website (in development)',
+              href: 'riyadh-air-demo.html',
+              inDevelopment: true,
+              navHideKey: 'riyadhAirWebDemo',
+              demoMeta: { owners: ['apalmer'] },
+              ico: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+            }],
+          }],
+        },
+        {
           id: 'demoEtihad',
           label: 'Etihad',
           demoCustomer: true,

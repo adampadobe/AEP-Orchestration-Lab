@@ -54,6 +54,13 @@ import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
 import { registerGeoInsightsTools } from './geoInsightsTools.mjs';
 
+const batchStatusServers = new WeakSet();
+function registerSharedBatchJobStatusTool(mcpServer) {
+  if (batchStatusServers.has(mcpServer)) return;
+  registerBatchJobStatusTool(mcpServer);
+  batchStatusServers.add(mcpServer);
+}
+
 /**
  * Register all Profile MCP tools on the MCP server.
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -93,7 +100,7 @@ export function registerProfileTools(mcpServer) {
   registerSendRetailJourneyEventsTool(mcpServer);
   registerSendProfileEventsBatchTool(mcpServer);
   registerGenerateProfilesBatchTool(mcpServer);
-  registerBatchJobStatusTool(mcpServer);
+  registerSharedBatchJobStatusTool(mcpServer);
   registerRunPlaybookTool(mcpServer);
   registerProvisionProfileInfraStepTool(mcpServer);
   registerEnableProfileTool(mcpServer);
@@ -126,6 +133,8 @@ function registerProfileDomainTools(mcpServer) {
   registerPreflightProfileGenerateTool(mcpServer);
   registerConfirmProfileGenerationTool(mcpServer);
   registerGenerateProfileTool(mcpServer);
+  registerGenerateProfilesBatchTool(mcpServer);
+  registerSharedBatchJobStatusTool(mcpServer);
   registerLookupProfileTool(mcpServer);
   registerGetProfileTool(mcpServer);
   registerUpdateProfileTool(mcpServer);
@@ -156,7 +165,7 @@ function registerDemoPrepDomainTools(mcpServer) {
 
 function registerDecisioningDomainTools(mcpServer) {
   registerDecisioningTools(mcpServer);
-  registerBatchJobStatusTool(mcpServer);
+  registerSharedBatchJobStatusTool(mcpServer);
 }
 
 function registerCommerceDomainTools(mcpServer) {

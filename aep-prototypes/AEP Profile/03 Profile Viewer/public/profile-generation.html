@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation.css?v=20260717-place-context">
+  <link rel="stylesheet" href="profile-generation.css?v=20261016-shared-email">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1194,7 +1194,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
+            We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. The shared counter resets at midnight UTC for your account and sandbox, not when you change email.
             Your base email syncs to your account when signed in (shared with MCP/Coworker). Local copy kept for fast reload.
           </p>
           <p class="profile-gen-prefs-sync-status" data-profile-gen-prefs-sync aria-live="polite" hidden></p>
@@ -1208,8 +1208,8 @@
               <input type="tel" id="genMobilePhone" class="generic-pattern-contact-input" name="genMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="genCounter">Counter (N)</label>
-              <input type="number" id="genCounter" min="1" step="1" value="1">
+              <label for="genCounter">Next counter (N)</label>
+              <input type="number" id="genCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="genGenerateCount">Count</label>
@@ -1219,7 +1219,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="genEmailPreview">—</code>
-            <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="genResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -1721,7 +1721,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic and a Travel profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -1734,8 +1734,8 @@
               <input type="tel" id="travelMobilePhone" class="generic-pattern-contact-input" name="travelMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="travelCounter">Counter (N)</label>
-              <input type="number" id="travelCounter" min="1" step="1" value="1">
+              <label for="travelCounter">Next counter (N)</label>
+              <input type="number" id="travelCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="travelGenerateCount">Count</label>
@@ -1745,7 +1745,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="travelEmailPreview">—</code>
-            <button type="button" id="travelResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="travelResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -2023,7 +2023,8 @@
 
       <!-- Travel-specific attributes — aligned with `AEP Lab - Travel Profile - Schema`
            in the configured sandbox. Paths streamed by Generate / Update include:
-             _<tenant>.travelReservations.flightReservations.* (full set incl. multiLeg)
+             _<tenant>.travelReservations.flightReservations.* (full set incl. multiLeg + trip detail)
+             _<tenant>.individualCharacteristics.travel.* (Profile Travel v1 + v2 FGs — incl. flightBookings.activeFlight)
              _<tenant>.hotel.* when Recent stay is enabled (Travel - Hotel Experience v1 FG)
              travelPreferences.* (root-level OOTB Adobe travel-preferences mixin)
            "Hotel reservation" / "Car reservation" rows stay client-side (no schema home).
@@ -2035,7 +2036,9 @@
           <code>travelPreferences.*</code> bundle (meal, seat, roomType, vehicleType, …)
           so the resulting AEP profile carries substantive travel data, not just analytics.
           With Recent stay enabled, lifecycle fields stream to <code>hotel.*</code> when the
-          Travel - Hotel Experience v1 field group is on the schema. Hotel reservation and
+          Travel - Hotel Experience v1 field group is on the schema. Favourite airline, travel
+          class and Active flight stream to <code>individualCharacteristics.travel.*</code> once the
+          Profile Travel v1 / v2 field groups are attached (Travel wizard step 2). Hotel reservation and
           Car reservation subsections are not in the Travel Profile schema and stay client-side.
         </p>
         <div class="gen-identity-grid">
@@ -2053,7 +2056,25 @@
               <option value="first">First</option>
             </select>
           </div>
+          <div class="form-group">
+            <label for="travelActiveFlight">Active flight</label>
+            <select id="travelActiveFlight" title="Controls the trip Generate builds for each profile">
+              <option value="">Random per profile</option>
+              <option value="Yes">Yes — departs within 30 days / in the air</option>
+              <option value="No">No — last trip completed</option>
+            </select>
+          </div>
         </div>
+        <p class="field-hint" style="margin-top: 4px;">
+          <strong>Active flight</strong> streams <code>individualCharacteristics.travel.flightBookings.activeFlight</code>
+          ("Yes" / "No", Profile Travel v2). <em>Yes</em> builds an upcoming or in-progress trip and fills
+          <code>flightBookings.next*</code>; <em>No</em> builds a completed trip and fills <code>flightBookings.last*</code>.
+          The flight reservation below always describes the same trip. Segment on <code>activeFlight</code>, not on
+          <code>next*</code>: an update from Yes to No leaves earlier <code>next*</code> values in place.
+        </p>
+        <input type="hidden" id="travelFlightBookingsState" value="">
+        <p class="field-hint" id="travelFlightBookingsSummary" hidden></p>
+        <p class="field-hint" id="travelActiveFlightSchemaHint" role="status" hidden></p>
 
         <div class="generic-identity-section" style="margin-top: 16px;">
           <h4 class="generic-subhead" style="font-size: 0.95em;">Recent stay</h4>
@@ -2379,6 +2400,107 @@
               <div class="form-group">
                 <label for="travelFlightLayovers"># Layovers</label>
                 <input type="number" id="travelFlightLayovers" min="0" step="1" placeholder="0">
+              </div>
+            </div>
+
+            <!-- Trip detail (Profile Core v2 lab leaves). Datetimes are ISO-8601 in the
+                 airport's local time with its UTC offset. Generate fills these from the
+                 Active flight setting; manual edits stick. -->
+            <div class="form-row form-row--inline" style="margin-top: 6px;">
+              <div class="form-group">
+                <label for="travelFlightDepartureCity">Departure city</label>
+                <input type="text" id="travelFlightDepartureCity" placeholder="London">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightDepartureAirportName">Departure airport name</label>
+                <input type="text" id="travelFlightDepartureAirportName" placeholder="London Heathrow Airport">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightArrivalCity">Arrival city</label>
+                <input type="text" id="travelFlightArrivalCity" placeholder="New York">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightArrivalAirportName">Arrival airport name</label>
+                <input type="text" id="travelFlightArrivalAirportName" placeholder="John F. Kennedy International Airport">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightAirlineName">Airline</label>
+                <input type="text" id="travelFlightAirlineName" placeholder="British Airways">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightDepartureDateTime">Departs (local)</label>
+                <input type="text" id="travelFlightDepartureDateTime" placeholder="2026-10-18T09:55:00+01:00">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightArrivalDateTime">Arrives (local)</label>
+                <input type="text" id="travelFlightArrivalDateTime" placeholder="2026-10-18T12:10:00-04:00">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightDurationMinutes">Duration (min)</label>
+                <input type="number" id="travelFlightDurationMinutes" min="0" step="5" placeholder="435">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightStatus">Flight status</label>
+                <select id="travelFlightStatus">
+                  <option value="">— Select —</option>
+                  <option value="booked">Booked</option>
+                  <option value="checked_in">Checked in</option>
+                  <option value="boarded">Boarded</option>
+                  <option value="in_air">In the air</option>
+                  <option value="landed">Landed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightTripType">Trip type</label>
+                <select id="travelFlightTripType">
+                  <option value="">— Select —</option>
+                  <option value="return">Return</option>
+                  <option value="one_way">One way</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightSeatNumber">Seat</label>
+                <input type="text" id="travelFlightSeatNumber" placeholder="23A">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightCheckedBags">Checked bags</label>
+                <input type="number" id="travelFlightCheckedBags" min="0" step="1" placeholder="1">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightReturnFlightNumber">Return flight #</label>
+                <input type="text" id="travelFlightReturnFlightNumber" placeholder="BA178">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightReturnDepartureDateTime">Return departs (local)</label>
+                <input type="text" id="travelFlightReturnDepartureDateTime" placeholder="2026-10-25T19:30:00-04:00">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="travelFlightReturnArrivalDateTime">Return arrives (local)</label>
+                <input type="text" id="travelFlightReturnArrivalDateTime" placeholder="2026-10-26T07:20:00Z">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightBookingChannel">Booking channel</label>
+                <select id="travelFlightBookingChannel">
+                  <option value="">— Select —</option>
+                  <option value="website">Website</option>
+                  <option value="mobile_app">Mobile app</option>
+                  <option value="travel_agent">Travel agent</option>
+                  <option value="call_centre">Call centre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightBookingDate">Booking date</label>
+                <input type="date" id="travelFlightBookingDate">
               </div>
             </div>
 
@@ -2790,7 +2912,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and FSI profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -2803,8 +2925,8 @@
               <input type="tel" id="fsiMobilePhone" class="generic-pattern-contact-input" name="fsiMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="fsiCounter">Counter (N)</label>
-              <input type="number" id="fsiCounter" min="1" step="1" value="1">
+              <label for="fsiCounter">Next counter (N)</label>
+              <input type="number" id="fsiCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="fsiGenerateCount">Count</label>
@@ -2814,7 +2936,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="fsiEmailPreview">—</code>
-            <button type="button" id="fsiResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="fsiResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -3346,7 +3468,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Sports profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -3359,8 +3481,8 @@
               <input type="tel" id="sportsMobilePhone" class="generic-pattern-contact-input" name="sportsMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="sportsCounter">Counter (N)</label>
-              <input type="number" id="sportsCounter" min="1" step="1" value="1">
+              <label for="sportsCounter">Next counter (N)</label>
+              <input type="number" id="sportsCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="sportsGenerateCount">Count</label>
@@ -3370,7 +3492,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="sportsEmailPreview">—</code>
-            <button type="button" id="sportsResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="sportsResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -3845,7 +3967,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Media profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -3858,8 +3980,8 @@
               <input type="tel" id="mediaMobilePhone" class="generic-pattern-contact-input" name="mediaMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="mediaCounter">Counter (N)</label>
-              <input type="number" id="mediaCounter" min="1" step="1" value="1">
+              <label for="mediaCounter">Next counter (N)</label>
+              <input type="number" id="mediaCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="mediaGenerateCount">Count</label>
@@ -3869,7 +3991,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="mediaEmailPreview">—</code>
-            <button type="button" id="mediaResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="mediaResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -4464,7 +4586,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Retail profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -4477,8 +4599,8 @@
               <input type="tel" id="retailMobilePhone" class="generic-pattern-contact-input" name="retailMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="retailCounter">Counter (N)</label>
-              <input type="number" id="retailCounter" min="1" step="1" value="1">
+              <label for="retailCounter">Next counter (N)</label>
+              <input type="number" id="retailCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="retailGenerateCount">Count</label>
@@ -4488,7 +4610,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="retailEmailPreview">—</code>
-            <button type="button" id="retailResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="retailResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -5159,7 +5281,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Telecom profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -5172,8 +5294,8 @@
               <input type="tel" id="telecomMobilePhone" class="generic-pattern-contact-input" name="telecomMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="telecomCounter">Counter (N)</label>
-              <input type="number" id="telecomCounter" min="1" step="1" value="1">
+              <label for="telecomCounter">Next counter (N)</label>
+              <input type="number" id="telecomCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="telecomGenerateCount">Count</label>
@@ -5183,7 +5305,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="telecomEmailPreview">—</code>
-            <button type="button" id="telecomResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="telecomResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -5632,19 +5754,20 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260623prefs"></script>
-  <script src="profile-generation-prefs-sync.js?v=20260702-shared-counter"></script>
+  <script src="profile-generation-shared.js?v=20261016-shared-email"></script>
+  <script src="profile-generation-prefs-sync.js?v=20261016-shared-email"></script>
   <script src="profile-generation-recent-sync.js?v=20260623recent1"></script>
   <script src="profile-generation.js?v=20260511a"></script>
   <script src="place-catalog-data.js?v=20260928-global-places"></script>
   <script src="place-catalog.js?v=20260928-global-places"></script>
   <script src="profile-place-context.js?v=20260928-global-places"></script>
-  <script src="profile-generation-generic.js?v=20260717-place-context"></script>
-  <script src="profile-generation-travel.js?v=20260702-shared-counter"></script>
+  <script src="profile-generation-generic.js?v=20261016-shared-email"></script>
+  <script src="travel-flight-trip.js?v=20260720-active-flight"></script>
+  <script src="profile-generation-travel.js?v=20261016-shared-email"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260515payload-preview"></script>
+  <script src="profile-generation-industry-runtime.js?v=20261016-shared-email"></script>
   <script src="profile-generation-fsi.js?v=20260511a"></script>
   <script src="profile-generation-telecom.js?v=20260511a"></script>
   <script src="profile-generation-retail.js?v=20260511a"></script>

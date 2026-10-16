@@ -4,6 +4,86 @@ This page covers the AEP Orchestration Lab's Snowflake integration, surfaced
 in the Profile Viewer at **`/profile-viewer/profile-generation-snowflake.html`**
 (menu: **Profiles → Profile generation – Snowflake (in development)**).
 
+The shared base-recipient model and Snowflake-first seed generator are
+documented in [`SNOWFLAKE_RELATIONAL_LAYER.md`](SNOWFLAKE_RELATIONAL_LAYER.md).
+On this page, select an industry and use **Seed recipients & industry data**:
+the authenticated API writes the existing
+`AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE` parent plus the selected industry's
+profile, event, and detail records. No prior industry profile rows or Adobe
+API calls are required. The CLI uses the same seed writer. Existing AEP flows
+remain separate and unchanged; map added recipient and relational fields
+explicitly before using them in Campaign Orchestration.
+
+### Shared recipient email settings
+
+**Recipient email** shows the saved base email, read-only next counter, and
+server-generated address previews before generation. Save edits explicitly;
+generation is blocked while settings are missing, unsaved, loading, or in error.
+Use **Refresh** after changes from another device. Returning to the page or
+receiving a cross-tab settings notification refreshes saved settings without
+discarding an unsaved email edit.
+
+The settings are shared with Profile Generator and MCP for the **same authenticated
+account and sandbox**, across industries. Counters reset at midnight **UTC**;
+changing the base email does not reset N. Different accounts or sandboxes have
+independent counters, so choosing the same base email does not guarantee global
+address uniqueness. Browser caches for signed-in users are account-scoped, and
+an empty server setting is not automatically populated from a legacy local cache.
+
+Preview requests do not reserve emails. Snowflake generation validates the saved
+email before preparing tables or reserving CRM IDs, then atomically reserves the
+whole batch against one base-email/date snapshot using the same Firestore counter
+as single-profile generation. If the saved email changes before reservation, the
+run stops rather than silently switching base addresses. Concurrent requests can
+advance N after a preview; each batch's actual email allocation is returned with
+the generated profiles and displayed in the result.
+
+**Advanced email counter** allows a confirmed reset/manual override, including on
+the standard Profile Generator. Lowering N can reuse addresses. Email reservations
+are independent of the Snowflake write transaction: failed writes can consume
+numbers, and retries never automatically rewind them. This email counter is
+separate from the Snowflake CRMID sequence.
+
+### Generator context and relational subscription upgrade
+
+The recipient workspace separates **Generate linked demo data** from
+**Explore & enrich profiles**. Enter an exact recipient count (1–1,000), then
+use **Seed recipients & industry data** for the shared-parent workflow.
+Batch-size tuning and the separate legacy generation mode are under
+**Advanced generation options**; legacy runner diagnostics remain collapsed.
+The data-path strip explains the shared recipient → industry data → relational
+table relationship without implying automatic AEP/AJO ingestion.
+
+The Snowflake UI clears selected profiles and pending results when the Portal
+identity, sandbox, or industry changes. Responses from the previous context
+cannot repopulate the new one. A submitted mutation may still complete in its
+original target: inspect that target before retrying. Batch history is scoped
+to Portal user, sandbox, and industry; older unscoped history is not imported.
+
+Telecom subscriptions expose `PLAN_CODE` alongside the existing `PLAN` tier.
+Join `PLAN_CODE` to the catalog's `PLAN_CODE`: its stable composite identifier
+covers tier, bundle, and data allowance. Telecom and media subscription
+version/update timestamps use the source update timestamp, falling back to
+creation time only when needed.
+
+Existing dynamic tables are **not** upgraded by `CREATE ... IF NOT EXISTS`.
+Generate the targeted SQL for review, using the intended connection's explicit
+database, source schema, and warehouse:
+
+```bash
+node functions/scripts/plan-relational-subscription-migration.js \
+  --database YOUR_DATABASE --schema YOUR_SCHEMA --warehouse YOUR_WAREHOUSE
+```
+
+This command only prints SQL; it does not authenticate or execute it. The plan
+replaces the two subscription projections and telecom plan catalog, not their
+source tables. Before an approved application, inspect current definitions,
+ownership/grants, downstream dependencies and ingestion mappings. Replacement
+DDL is not transactional; pause incremental ingestion and plan a refreshed
+snapshot, then run `functions/sql/rel/90_validate.sql` after the projections
+have refreshed. Update any tier-based telecom catalog relationship to the
+new `PLAN_CODE` on both sides.
+
 The integration ports the AgenticAI Demo (`AI Projects/AgenticAI Demo/Agentic_Demo_Platform/`)
 into the lab. **Phase 1** ships per-user Snowflake connection management plus a
 server-side connection test. **Phase 2 (this commit)** adds a minimal

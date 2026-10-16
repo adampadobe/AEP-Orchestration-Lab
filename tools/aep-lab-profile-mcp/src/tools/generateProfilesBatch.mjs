@@ -19,6 +19,7 @@ import { buildEmailFormatRules, validateScaledLabEmail } from '../framework/emai
 import { checkGenerationPrefsConfigured } from './generationPrefs.mjs';
 import { resolveBatchEmail } from '../personaBuilder.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
+import { generationTargetSchema, generateSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
 
 const BATCH_MAX = 100;
 const MAX_DELAY_MS = 5000;
@@ -30,20 +31,24 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
   mcpServer.registerTool(
     'lab_generate_profiles_batch',
     {
-      title: 'Batch generate test profiles (async)',
+      title: 'Batch generate recipients (Snowflake default; AEP async opt-in)',
       description:
+        'Default target snowflake seeds shared recipients and linked industry data synchronously (1–100); specify industry. ' +
+        'No AEP streaming, no batch job polling, no automatic retry. Confirm count and shared email preferences first. ' +
+        'Set target:"aep" explicitly for the following asynchronous AEP persona workflow and options: ' +
         'Batch generate 1–100 test profiles. FORMAT RULES: prefer use_stored_prefs:true (default when base_email omitted) — each profile reserves <local>+DDMMYYYY-N@<domain>. ' +
         'Legacy base_email patterns (e.g. kirkham+retail-seed) are rejected unless email_pattern produces scaled addresses. ' +
         'Call lab_confirm_profile_generation before first batch. ' +
         'Every randomized profile carries place context; place_mode featured (ten common areas) | global (anywhere on Earth) | area + place_area. ' +
         'Batches of 10+ are clustered (cluster_size default 12, >= k=10) so each cluster shows on the k-anonymous hotspot map; response lists place_clusters. ' +
-        'Travel loyalty_member (all industries, default false): LYL-* when true. Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
+        'Travel loyalty_member (all industries, default false): LYL-* when true. Travel active_flight (true/false, omitted → random per profile). Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
+        target: generationTargetSchema,
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
           .string()
           .optional()
-          .describe('Industry key or alias (default generic)'),
+          .describe('Snowflake target requires travel, fsi, telecom, retail, media, or sports. AEP target defaults to generic.'),
         count: z
           .number()
           .int()
@@ -69,7 +74,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         segment_hint: z
           .string()
           .optional()
-          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
+          .describe('Segment overlay: travel hotel_high_value | hotel_reactivation | active_flyer | lapsed_flyer; fsi high_net_worth | credit_rebuild; retail loyalty_vip | cart_abandoner'),
         loyalty_member: z
           .boolean()
           .optional()
@@ -78,6 +83,10 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           .boolean()
           .optional()
           .describe('Retail only: when false, omit orderProfile last-order detail block'),
+        active_flight: z
+          .boolean()
+          .optional()
+          .describe('Travel only: true → upcoming (0–30 days) or in-the-air trip, flightBookings.activeFlight "Yes" with next* leaves; false → completed trip, "No" with last* leaves only. Omitted → random (or pinned by segment_hint active_flyer / lapsed_flyer). Requires Profile Travel v2 attached for the flag itself.'),
         delay_ms: z
           .number()
           .int()
@@ -129,33 +138,36 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         ...batchPlaceInputSchema(),
       },
     },
-    async ({
-      sandbox,
-      industry,
-      count,
-      base_email,
-      email_pattern,
-      randomize,
-      fill_sample_data,
-      segment_hint,
-      loyalty_member,
-      last_order_details,
-      delay_ms,
-      attributes,
-      append_if_existing,
-      test_profile,
-      test_profile_override_reason,
-      use_stored_prefs,
-      dual_load_snowflake,
-      dual_load_snowflake_mode,
-      snowflake_enrichment,
-      snowflake_event_types,
-      snowflake_table,
-      place_mode,
-      place_area,
-      place_clustering,
-      cluster_size,
-    }) => {
+    async (params) => {
+      if (params.target !== 'aep') return generateSnowflakeProfiles(params, 'lab_generate_profiles_batch');
+      const {
+        sandbox,
+        industry,
+        count,
+        base_email,
+        email_pattern,
+        randomize,
+        fill_sample_data,
+        segment_hint,
+        loyalty_member,
+        last_order_details,
+        active_flight,
+        delay_ms,
+        attributes,
+        append_if_existing,
+        test_profile,
+        test_profile_override_reason,
+        use_stored_prefs,
+        dual_load_snowflake,
+        dual_load_snowflake_mode,
+        snowflake_enrichment,
+        snowflake_event_types,
+        snowflake_table,
+        place_mode,
+        place_area,
+        place_clustering,
+        cluster_size,
+      } = params;
       const keyId = getRequestKeyId();
 
       const rate = checkBatchJobRate(keyId);
@@ -267,6 +279,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
           segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
           loyalty_member: loyalty_member === true,
           last_order_details,
+          active_flight: typeof active_flight === 'boolean' ? active_flight : null,
           delay_ms,
           attributes,
           append_if_existing,
@@ -303,6 +316,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
 
       return jsonResult({
         ok: true,
+        target: 'aep',
         job_id: job.jobId,
         job_type: 'profile_batch',
         status: job.status,

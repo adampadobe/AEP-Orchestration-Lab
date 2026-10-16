@@ -1979,9 +1979,12 @@
       const alloyFn = await waitForAlloy(8000);
       if (!alloyFn) return false;
       if (!email || !ecid) return false;
+      const labContext = cfg.identityStitchLabEdgeContext === true;
       try {
         await alloyFn('sendEvent', {
+          ...(labContext ? labEdgeConfigOverrides() : {}),
           xdm: {
+            ...(labContext ? xdmDemoemeaTenantForEdge(ecid) : {}),
             eventType: identityEventType,
             identityMap: {
               ECID: [{ id: ecid, authenticatedState: 'authenticated', primary: true }],
@@ -1990,7 +1993,10 @@
           },
         });
         return true;
-      } catch {
+      } catch (error) {
+        if (labContext) {
+          throw new Error('Adobe did not accept the identity event. Check the selected datastream and its Web SDK response before retrying; the booking has not advanced.', { cause: error });
+        }
         return false;
       }
     }

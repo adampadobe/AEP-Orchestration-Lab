@@ -52,11 +52,11 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab profiles and events',
     url: `${LAB_BASE_URL}/mcp/profile`,
     kind: 'lab-focused',
-    toolCount: 21,
+    toolCount: 23,
     access: LAB_ACCESS,
     risk: 'governed profile and event writes',
     capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment', 'profile and event place context (ten featured areas, any catalog city, or anywhere on Earth; k-anonymous clustering for batches)'],
-    useWhen: 'Use for the complete profile lifecycle and Snowflake verification.',
+    useWhen: 'Use for Snowflake-first recipient/industry generation (default), or explicit target:"aep" profile streaming, events and verification.',
   },
   {
     id: 'aep-lab-decisioning',
@@ -230,7 +230,13 @@ export const MCP_WORKFLOWS = Object.freeze({
   profile_and_events: {
     title: 'Create and enrich a profile',
     contexts: ['aep-lab-profiles'],
-    steps: ['Check access and readiness.', 'Confirm generation preferences.', 'Generate the profile; place context is added automatically (set place_area or place_mode to choose where).', 'Send governed industry events, passing the profile\'s place_context.city as place_area so events land in the same area.', 'Verify AEP activity and optional Snowflake readback.'],
+    steps: [
+      'Check access, confirm shared email preferences, industry and count.',
+      'Default: lab_preflight_profile_generate then lab_generate_profile target snowflake (or lab_generate_profiles_batch) seeds the shared recipient parent before linked industry data. No AEP stream; downstream ingestion is separate.',
+      'For AEP/event demos explicitly use target aep on preflight and generate; place context is added by the AEP persona workflow.',
+      'Only for the AEP path: send governed industry events, passing place_context.city as place_area, then verify AEP activity.',
+      'Snowflake path: inspect recipientId, recipientTable, tableRowcounts and relationalRefresh; verify industry readback. Never poll a Snowflake-default batch as an async AEP job.',
+    ],
   },
   audience_cleanup: {
     title: 'Audit and delete one audience',

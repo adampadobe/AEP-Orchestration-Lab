@@ -111,6 +111,160 @@ const TRAVEL_HOTEL_EXPERIENCE_V1_PROPERTIES = {
   },
 };
 
+/*
+ * Profile Travel v1 / v2 — mirrors of the field groups already present in the
+ * reference `apalmer` sandbox (tenant-relative). Leaf names and types MUST stay
+ * identical to the live groups: other sandboxes that already own these paths
+ * would otherwise reject the schema patch with a type conflict. Notable quirks
+ * preserved verbatim: `flightBookings.activeFlight` / `openComplaint` are
+ * strings ("Yes" / "No"), and `holidayBookings.nextBooked_Hol_Outbound` is a
+ * plain string while `nextBooked_Hol_Outbound_Date` is the date.
+ */
+const leaf = (type, extra) => (name) => ({ type, title: name, ...(extra || {}) });
+const S = leaf('string');
+const D = leaf('string', { format: 'date' });
+const I = leaf('integer');
+const N = leaf('number');
+const B = leaf('boolean');
+function obj(spec) {
+  const properties = {};
+  for (const [name, def] of Object.entries(spec)) {
+    properties[name] = typeof def === 'function' ? def(name) : def;
+  }
+  return { type: 'object', properties };
+}
+
+const TRAVEL_PROFILE_V1_PROPERTIES = {
+  individualCharacteristics: obj({
+    travel: obj({
+      primaryTravelClass: S,
+      primaryTripPurpose: S,
+      favouriteAirlineCompany: S,
+      lastTravelCode: S,
+      avgTripLength: I,
+      avgDaysBookingBeforeTrip: I,
+    }),
+  }),
+  scoring: obj({
+    travel: obj({
+      propensityForPlanUpgrade: N,
+      propensityForCobrandedCreditCardSignUp: N,
+      propensityForClubMembership: N,
+      propensityForSeatUpgrade: N,
+      propensityInternationalTravel: N,
+    }),
+  }),
+};
+
+const TRAVEL_PROFILE_V2_PROPERTIES = {
+  individualCharacteristics: obj({
+    travel: obj({
+      preferences: obj({
+        hotel: obj({
+          stayPreference: obj({ highFloor: B, nearElevator: B, lateCheckOut: B }),
+          hotelRoomPreference: obj({ mobilityAccessible: B, hearingAccessible: B, pillowType: S }),
+        }),
+      }),
+      recentStay: obj({
+        hotelRoomType: S,
+        hotelName: S,
+        hotelClass: S,
+        hotelLengthDays: I,
+        amountTotal: N,
+        amountDailyAvg: N,
+      }),
+      primaryTravelerType: S,
+      propertyClassAffinity: S,
+      cobrandedCreditCardHolder: B,
+      luxuryChauffeurService: S,
+      flightBookings: obj({
+        activeFlight: S,
+        destinationPropensity: S,
+        openComplaint: S,
+        bookings: I,
+        lastBookedAirport: S,
+        lastBookedBookingRef: S,
+        lastBookedExtras: S,
+        lastBookedSeason: S,
+        lastBookedInbound: D,
+        lastBookedOutbound: D,
+        nextBookedAirport: S,
+        nextBookedBookingRef: S,
+        nextBookedExtras: S,
+        nextBookedSeason: S,
+        nextBookedInbound: D,
+        nextBookedOutbound: D,
+      }),
+      holidayBookings: obj({
+        openComplaint: S,
+        activeHoliday: S,
+        lastBooked_Hol_Bookingref: S,
+        lastBooked_Hol_Extras: S,
+        lastBooked_Hol_Season: S,
+        lastBooked_Holiday: S,
+        lastBooked_Hol_Inbound: D,
+        lastBooked_Hol_Outbound: D,
+        nextBooked_Hol_Bookingref: S,
+        nextBooked_Hol_Extras: S,
+        nextBooked_Hol_Season: S,
+        nextBooked_Holiday: S,
+        nextBooked_Hol_Inbound: D,
+        nextBooked_Hol_Outbound: S,
+        nextBooked_Hol_Outbound_Date: D,
+      }),
+    }),
+  }),
+  scoring: obj({
+    travel: obj({ propensityForAddonPurchase: N, propensityForDestination: N }),
+  }),
+};
+
+const TRAVEL_INDUSTRY_FIELD_GROUPS = [
+  {
+    source: 'ootb',
+    $id: 'https://ns.adobe.com/xdm/mixins/profile/travel-preferences',
+    label: 'Travel Preferences',
+  },
+  {
+    source: 'tenantTitlePattern',
+    match: /Travel\s*[-–]?\s*Hotel\s*Experience\s*v1/i,
+    optional: true,
+    label: 'Travel - Hotel Experience v1',
+    createIfMissing: {
+      title: 'Travel - Hotel Experience v1',
+      description:
+        'AEP Orchestration Lab — auto-created Profile-class field group for the Travel industry hotel stay lifecycle (booking, check-in, housekeeping, amenities, room service, check-out).',
+      properties: TRAVEL_HOTEL_EXPERIENCE_V1_PROPERTIES,
+    },
+  },
+  // Exact-title matches: the factory picks the highest version among matches,
+  // so a loose /Profile Travel/ regex would select "Profile Travel v3".
+  {
+    source: 'tenantTitlePattern',
+    match: /^Profile Travel v1$/i,
+    optional: true,
+    label: 'Profile Travel v1',
+    createIfMissing: {
+      title: 'Profile Travel v1',
+      description:
+        'AEP Orchestration Lab — Profile-class travel attributes (trip purpose, class, favourite airline, booking lead time) and travel propensity scores.',
+      properties: TRAVEL_PROFILE_V1_PROPERTIES,
+    },
+  },
+  {
+    source: 'tenantTitlePattern',
+    match: /^Profile Travel v2$/i,
+    optional: true,
+    label: 'Profile Travel v2',
+    createIfMissing: {
+      title: 'Profile Travel v2',
+      description:
+        'AEP Orchestration Lab — Profile-class travel booking state: activeFlight (Yes/No), next/last flight and holiday bookings, hotel stay preferences, recent stay.',
+      properties: TRAVEL_PROFILE_V2_PROPERTIES,
+    },
+  },
+];
+
 const service = createProfileInfraService({
   industryKey: 'travel',
   industryDisplayName: 'Travel',
@@ -121,25 +275,7 @@ const service = createProfileInfraService({
   datasetDescription:
     'AEP Lab Travel Profile streaming dataset (Profile-enabled). Sourced via HTTP API streaming for Travel-industry sample profile generation in this lab.',
   dataflowName: TRAVEL_PROFILE_HTTP_DATAFLOW_NAME,
-  industryFieldGroups: [
-    {
-      source: 'ootb',
-      $id: 'https://ns.adobe.com/xdm/mixins/profile/travel-preferences',
-      label: 'Travel Preferences',
-    },
-    {
-      source: 'tenantTitlePattern',
-      match: /Travel\s*[-–]?\s*Hotel\s*Experience\s*v1/i,
-      optional: true,
-      label: 'Travel - Hotel Experience v1',
-      createIfMissing: {
-        title: 'Travel - Hotel Experience v1',
-        description:
-          'AEP Orchestration Lab — auto-created Profile-class field group for the Travel industry hotel stay lifecycle (booking, check-in, housekeeping, amenities, room service, check-out).',
-        properties: TRAVEL_HOTEL_EXPERIENCE_V1_PROPERTIES,
-      },
-    },
-  ],
+  industryFieldGroups: TRAVEL_INDUSTRY_FIELD_GROUPS,
   tenantSubtreePrefix: 'travel',
 });
 
@@ -150,6 +286,9 @@ module.exports = {
   TRAVEL_PROFILE_SCHEMA_TITLE,
   TRAVEL_PROFILE_DATASET_NAME,
   TRAVEL_PROFILE_HTTP_DATAFLOW_NAME,
+  TRAVEL_PROFILE_V1_PROPERTIES,
+  TRAVEL_PROFILE_V2_PROPERTIES,
+  TRAVEL_INDUSTRY_FIELD_GROUPS,
   TRAVEL_PROFILE_INFRA_STEP_NAMES: service.STEP_NAMES,
   runTravelProfileInfraStatus: (...args) => service.runStatus(...args),
   runTravelProfileInfraStep: (...args) => service.runStep(...args),

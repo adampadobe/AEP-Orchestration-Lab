@@ -15,7 +15,7 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20261012-preview-channel',
+    manifestVersion: '20261014-shared-env-parity',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260713e-armcom-env-bar',
@@ -26,12 +26,12 @@
       aepLabDebug: '20260616-hide-lab-debug-ui',
       aepLabDebugCss: '20260616-hide-lab-debug-ui',
       aepLabConsole: '20260720-global-lab-console',
-      compactCss: '20260903-menu-button-only',
-      compactJs: '20260903-menu-button-only',
+      compactCss: '20261014-shared-env-parity',
+      compactJs: '20261014-shared-env-parity',
       bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260721-linkedin-prefs-loop-fix',
       prefsSync: '20260616-tags-incognito-load',
-      tagsInjection: '20260721-presenter-connect-silent',
+      tagsInjection: '20261015-booking-stitch-context',
       aepDemoEnvBar: '20260720-global-lab-console',
       siteCloneBcEnv: '20260721-cross-tab-bc-restore',
       siteCloneBcChrome: '20260614-modal-dock-parity',
@@ -89,7 +89,7 @@
    * @property {string} [storagePrefix] — SiteCloneDemoEnv storage prefix override
    * @property {object} [siteCloneDemoEnv] — Merge into window.SiteCloneDemoEnv
    * @property {boolean} [settingsButtonOnly=false] — Keep configuration closed until the right-side settings button is used
-   * @property {boolean} [menuButtonOnly=false] — Keep the left menu hidden except when toggled inside configuration
+   * @property {boolean} [menuButtonOnly=true] — Keep the left menu hidden except when toggled inside configuration
    * @property {string} [defaultBcStyle] — BC style default for Tags remount
    * @property {object} [envBar] — Extra passthrough to initLabDemoEnvBar → AepDemoEnvStrip
    * @property {string} [demoId] — Firestore envBarConfigs doc id (defaults to prefix)

@@ -109,6 +109,10 @@
   // Travel-specific attributes
   const favouriteAirlineEl = document.getElementById('travelFavouriteAirlineCompany');
   const primaryTravelClassEl = document.getElementById('travelPrimaryTravelClass2');
+  const activeFlightEl = document.getElementById('travelActiveFlight');
+  const flightBookingsStateEl = document.getElementById('travelFlightBookingsState');
+  const flightBookingsSummaryEl = document.getElementById('travelFlightBookingsSummary');
+  const FlightTrip = typeof window !== 'undefined' ? window.AepTravelFlightTrip : null;
 
   const recentStayEnabledEl = document.getElementById('travelRecentStayEnabled');
   const recentStayFieldsEl = document.getElementById('travelRecentStayFields');
@@ -168,6 +172,24 @@
   const flightLayover2CodeEl = document.getElementById('travelFlightLayover2Code');
   const flightLayover2NameEl = document.getElementById('travelFlightLayover2Name');
   const flightLayover2DurationEl = document.getElementById('travelFlightLayover2Duration');
+  // Trip detail (Profile Core v2 lab leaves, July 2026).
+  const flightDepartureCityEl = document.getElementById('travelFlightDepartureCity');
+  const flightDepartureAirportNameEl = document.getElementById('travelFlightDepartureAirportName');
+  const flightArrivalCityEl = document.getElementById('travelFlightArrivalCity');
+  const flightArrivalAirportNameEl = document.getElementById('travelFlightArrivalAirportName');
+  const flightAirlineNameEl = document.getElementById('travelFlightAirlineName');
+  const flightDepartureDateTimeEl = document.getElementById('travelFlightDepartureDateTime');
+  const flightArrivalDateTimeEl = document.getElementById('travelFlightArrivalDateTime');
+  const flightDurationMinutesEl = document.getElementById('travelFlightDurationMinutes');
+  const flightStatusEl = document.getElementById('travelFlightStatus');
+  const flightTripTypeEl = document.getElementById('travelFlightTripType');
+  const flightSeatNumberEl = document.getElementById('travelFlightSeatNumber');
+  const flightCheckedBagsEl = document.getElementById('travelFlightCheckedBags');
+  const flightReturnFlightNumberEl = document.getElementById('travelFlightReturnFlightNumber');
+  const flightReturnDepartureDateTimeEl = document.getElementById('travelFlightReturnDepartureDateTime');
+  const flightReturnArrivalDateTimeEl = document.getElementById('travelFlightReturnArrivalDateTime');
+  const flightBookingChannelEl = document.getElementById('travelFlightBookingChannel');
+  const flightBookingDateEl = document.getElementById('travelFlightBookingDate');
   const hotelNameEl = document.getElementById('travelHotelName');
   const hotelCityEl = document.getElementById('travelHotelCity');
   const hotelCountryEl = document.getElementById('travelHotelCountry');
@@ -257,6 +279,8 @@
         'travelLoadFromFirebaseBtn', 'travelFetchFlowFromAepBtn', 'travelSaveStreamBtn',
         'travelLookupBtn', 'travelResetCounterBtn', 'travelUpdateProfileBtn', 'travelGenerateBtn',
         'travelRecentLoadBtn', 'travelLoyaltyRandomBtn', 'travelRecentSelect',
+        // Generation control, not a profile field: Random / Yes / No.
+        'travelActiveFlight', 'travelFlightBookingsState',
       ]),
     });
     guard.wireListeners();
@@ -333,6 +357,69 @@
     _profileEnabledCache = { sandbox: getSandboxName(), enabled: !!enabled };
   }
 
+  // Profile Travel v1 / v2 own `individualCharacteristics.travel.*` (incl.
+  // flightBookings.activeFlight). They are optional infra field groups, so
+  // only stream their paths once status confirms they are on the schema —
+  // otherwise the whole record fails XDM validation. null = unknown.
+  let _travelFgAttached = { sandbox: '', v1: null, v2: null };
+
+  function setTravelFgAttachedFromStatus(data) {
+    const list = data && Array.isArray(data.optionalFieldGroups) ? data.optionalFieldGroups : null;
+    if (!list) return false;
+    const find = (label) => list.find((g) => g && String(g.label).toLowerCase() === label.toLowerCase());
+    const v1 = find('Profile Travel v1');
+    const v2 = find('Profile Travel v2');
+    _travelFgAttached = {
+      sandbox: getSandboxName(),
+      v1: !!(v1 && v1.attached),
+      v2: !!(v2 && v2.attached),
+    };
+    updateActiveFlightSchemaHint();
+    return true;
+  }
+
+  function getTravelFgAttached() {
+    const sb = getSandboxName();
+    if (!sb || _travelFgAttached.sandbox !== sb) return { v1: null, v2: null };
+    return { v1: _travelFgAttached.v1, v2: _travelFgAttached.v2 };
+  }
+
+  /** Fetch status (bypassing a cache entry that predates optionalFieldGroups). */
+  async function ensureTravelFgAttachedState() {
+    const sb = getSandboxName();
+    if (!sb) return getTravelFgAttached();
+    const known = getTravelFgAttached();
+    if (known.v1 !== null && known.v2 !== null) return known;
+    for (const refresh of [false, true]) {
+      try {
+        const res = await fetch('/api/travel-profile-infra/status' + querySuffix(refresh ? { refresh: '1' } : null));
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok !== false && setTravelFgAttachedFromStatus(data)) break;
+      } catch (_) {
+        break;
+      }
+    }
+    return getTravelFgAttached();
+  }
+
+  function updateActiveFlightSchemaHint() {
+    const hintEl = document.getElementById('travelActiveFlightSchemaHint');
+    if (!hintEl) return;
+    const st = getTravelFgAttached();
+    if (st.v2 === false || st.v1 === false) {
+      const missing = [st.v1 === false ? 'Profile Travel v1' : '', st.v2 === false ? 'Profile Travel v2' : '']
+        .filter(Boolean)
+        .join(' and ');
+      hintEl.textContent =
+        `${missing} not attached to the Travel schema in this sandbox — those fields stay client-side. ` +
+        'Click "Set up schema, field groups & dataset" in the setup wizard to create and attach them.';
+      hintEl.hidden = false;
+    } else {
+      hintEl.textContent = '';
+      hintEl.hidden = true;
+    }
+  }
+
   async function refreshProfileEnabledState() {
     const sb = getSandboxName();
     if (!sb) {
@@ -349,6 +436,7 @@
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.ok !== false) {
           setProfileEnabledCache(profileEnabledFromStatusFlags(data));
+          setTravelFgAttachedFromStatus(data);
         }
       } catch (_) { /* ignore — keep panel expanded until confirmed */ }
       applyConfiguredCollapseState();
@@ -652,6 +740,8 @@
 
   // ---------- Setup wizard ----------
   function applyStepResultToFields(data) {
+    // Field groups may have just been created/attached — re-read on next use.
+    _travelFgAttached = { sandbox: '', v1: null, v2: null };
     if (!data || typeof data !== 'object') return;
     if (streamDatasetIdEl && data.datasetId) streamDatasetIdEl.value = String(data.datasetId);
     if (streamSchemaIdEl && data.schemaId) streamSchemaIdEl.value = String(data.schemaId);
@@ -1285,9 +1375,19 @@
   //     preferredDepartureAirportCode, ticketDelivery, gym, pool, earlyCheckIn, ...}
   //     (root-level OOTB Adobe travel-preferences mixin)
   //
+  //   _<tenant>.travelReservations.flightReservations trip detail (July 2026): departure/arrival
+  //     city + airport name, airlineName, departure/arrival/return DateTime (ISO with offset),
+  //     flightDurationMinutes, flightStatus, tripType, seatNumber, checkedBags,
+  //     returnFlightNumber, bookingChannel, bookingDate — built by travel-flight-trip.js
+  //   _<tenant>.individualCharacteristics.travel.* (Profile Travel v1 / v2 FGs):
+  //     favouriteAirlineCompany, primaryTravelClass, primaryTripPurpose, avgTripLength,
+  //     avgDaysBookingBeforeTrip, lastTravelCode, flightBookings.{activeFlight, next*, last*,
+  //     bookings, destinationPropensity, openComplaint}
+  //
+  // Active flight (Yes / No / Random) drives the trip: Yes = departs within 30 days or is in
+  // the air (fills flightBookings.next*), No = completed trip (fills flightBookings.last*).
+  //
   // What is NOT streamed (no schema home today — see hint banner in profile-generation.html):
-  //   _<tenant>.individualCharacteristics.travel.* (favouriteAirline, primaryTravelClass only —
-  //     used by the Generate randomizer for flight IATA / class, not persisted as tenant leaves)
   //   _<tenant>.travelReservations.{hotelReservations, carReservations}.*
   // Recent stay maps to `_<tenant>.hotel.*` when the Recent stay toggle is on (Travel - Hotel
   // Experience v1 FG). The reservation "hotel" row inputs remain client-side previews until
@@ -1552,6 +1652,110 @@
     return out;
   }
 
+  /**
+   * Build the trip for this persona from the Active flight control
+   * (Random / Yes / No). Locked (manually edited) flight number, PNR,
+   * departure time and trip type are honoured. Returns null when the shared
+   * builder (travel-flight-trip.js) failed to load.
+   */
+  function buildActiveFlightTrip({ dep, arr, airline, flightClass }) {
+    if (!FlightTrip) return null;
+    const lockedText = (el) => (el && el.id && !fieldShouldRandomize(el.id) ? trimVal(el) : '');
+    const control = activeFlightEl ? activeFlightEl.value : '';
+    const lockedDeparture = lockedText(flightDepartureDateTimeEl);
+    const lockedTripType = lockedText(flightTripTypeEl);
+    try {
+      return FlightTrip.buildFlightTrip({
+        activeFlight: control === 'Yes' || control === 'No' ? control : undefined,
+        dep: { code: dep.code, city: dep.city, country: dep.country },
+        arr: { code: arr.code, city: arr.city, country: arr.country },
+        airline,
+        flightNumber: lockedText(flightNumberEl) || randomFlightNumber(airline),
+        confirmationNumber: lockedText(flightConfirmationEl) || randomConfirmationCode(),
+        flightClass,
+        departureDateTime: lockedDeparture || undefined,
+        tripType: lockedTripType || undefined,
+      });
+    } catch (e) {
+      console.warn('[travel-profile] flight trip:', e && e.message);
+      return null;
+    }
+  }
+
+  /** Fill the trip-detail inputs and the hidden flightBookings / travel state. */
+  function applyFlightTripToForm(trip) {
+    if (!trip) {
+      setFlightBookingsState(null);
+      return;
+    }
+    const r = trip.reservation;
+    const str = (v) => (v == null ? '' : String(v));
+    maybeSetEl(flightDepartureCityEl, str(r.departureCity));
+    maybeSetEl(flightDepartureAirportNameEl, str(r.departureAirportName));
+    maybeSetEl(flightArrivalCityEl, str(r.arrivalCity));
+    maybeSetEl(flightArrivalAirportNameEl, str(r.arrivalAirportName));
+    maybeSetEl(flightAirlineNameEl, str(r.airlineName));
+    maybeSetEl(flightDepartureDateTimeEl, str(r.departureDateTime));
+    maybeSetEl(flightArrivalDateTimeEl, str(r.arrivalDateTime));
+    maybeSetEl(flightDurationMinutesEl, str(r.flightDurationMinutes));
+    maybeSetEl(flightStatusEl, str(r.flightStatus));
+    maybeSetEl(flightTripTypeEl, str(r.tripType));
+    maybeSetEl(flightSeatNumberEl, str(r.seatNumber));
+    maybeSetEl(flightCheckedBagsEl, str(r.checkedBags));
+    maybeSetEl(flightReturnFlightNumberEl, str(r.returnFlightNumber));
+    maybeSetEl(flightReturnDepartureDateTimeEl, str(r.returnDepartureDateTime));
+    maybeSetEl(flightReturnArrivalDateTimeEl, str(r.returnArrivalDateTime));
+    maybeSetEl(flightBookingChannelEl, str(r.bookingChannel));
+    maybeSetEl(flightBookingDateEl, str(r.bookingDate));
+    if (r.departureCountry) maybeSetEl(flightDepartureCountryEl, r.departureCountry);
+    if (r.arrivalCountry) maybeSetEl(flightArrivalCountryEl, r.arrivalCountry);
+    setFlightBookingsState({ bookings: trip.bookings, travel: trip.travel });
+  }
+
+  function getFlightBookingsState() {
+    if (!flightBookingsStateEl || !flightBookingsStateEl.value) return null;
+    try {
+      const parsed = JSON.parse(flightBookingsStateEl.value);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setFlightBookingsState(state) {
+    if (flightBookingsStateEl) flightBookingsStateEl.value = state ? JSON.stringify(state) : '';
+    renderFlightBookingsSummary();
+  }
+
+  /** Effective activeFlight: an explicit Yes/No control wins over generated state. */
+  function effectiveActiveFlight() {
+    const control = activeFlightEl ? activeFlightEl.value : '';
+    if (control === 'Yes' || control === 'No') return control;
+    const state = getFlightBookingsState();
+    const v = state && state.bookings ? state.bookings.activeFlight : '';
+    return v === 'Yes' || v === 'No' ? v : '';
+  }
+
+  function renderFlightBookingsSummary() {
+    if (!flightBookingsSummaryEl) return;
+    const active = effectiveActiveFlight();
+    const b = (getFlightBookingsState() || {}).bookings || {};
+    if (!active) {
+      flightBookingsSummaryEl.textContent = '';
+      flightBookingsSummaryEl.hidden = true;
+      return;
+    }
+    const route = [trimVal(flightDepartureEl), trimVal(flightArrivalEl)].filter(Boolean).join('→');
+    const parts = [`Active flight: ${active}`];
+    if (route) parts.push(route);
+    if (active === 'Yes' && b.nextBookedOutbound) parts.push(`next out ${b.nextBookedOutbound}`);
+    if (b.lastBookedOutbound) parts.push(`last out ${b.lastBookedOutbound}`);
+    if (b.bookings != null) parts.push(`${b.bookings} bookings`);
+    if (b.destinationPropensity) parts.push(`propensity ${b.destinationPropensity}`);
+    flightBookingsSummaryEl.textContent = parts.join(' · ');
+    flightBookingsSummaryEl.hidden = false;
+  }
+
   function randomFlightNumber(airlineDisplay) {
     const code = AIRLINE_IATA[airlineDisplay] || randomPick(['BA', 'AF', 'LH', 'EK', 'QR']);
     return `${code}${String(randomBetween(100, 4999)).padStart(4, '0')}`;
@@ -1583,8 +1787,18 @@
       try { applyRecentStayToggleVisibility(); } catch (_) {}
     }
 
-    const airline = randomPick(RANDOM_AIRLINES);
-    const { dep, arr } = pickAirportPair();
+    const lockedText = (el) => (el && el.id && !fieldShouldRandomize(el.id) ? trimVal(el) : '');
+    const airline = lockedText(favouriteAirlineEl) || randomPick(RANDOM_AIRLINES);
+    // Manually-entered airport codes stick: resolve them against AIRPORTS so
+    // city/country/name stay consistent with the code.
+    const lockedAirport = (el, fallback) => {
+      const code = lockedText(el).toUpperCase();
+      if (!code) return fallback;
+      return AIRPORTS.find((a) => a.code === code) || { code, city: '', country: '', isUSA: false };
+    };
+    const pair = pickAirportPair();
+    const dep = lockedAirport(flightDepartureEl, pair.dep);
+    const arr = lockedAirport(flightArrivalEl, pair.arr);
     const passengers = randomBetween(1, 4);
     const childrenTravelling = passengers >= 2 && Math.random() < 0.3;
     const flightClassRaw = randomPick(['economy', 'economy', 'economy', 'premium_economy', 'business', 'business', 'first']);
@@ -1609,10 +1823,12 @@
       });
     }
 
+    const trip = buildActiveFlightTrip({ dep, arr, airline, flightClass: flightClassRaw });
+
     maybeSetEl(flightDepartureEl, dep.code);
     maybeSetEl(flightArrivalEl, arr.code);
-    maybeSetEl(flightNumberEl, randomFlightNumber(airline));
-    maybeSetEl(flightDateEl, randomFlightDateBiased());
+    maybeSetEl(flightNumberEl, trip ? trip.reservation.flightNumber : randomFlightNumber(airline));
+    maybeSetEl(flightDateEl, trip ? trip.reservation.flightDate : randomFlightDateBiased());
     if (flightClassEl && fieldShouldRandomize(flightClassEl.id)) {
       runPersonaProgrammatic(() => {
         const opts = selectNonEmptyValues(flightClassEl);
@@ -1635,6 +1851,8 @@
     maybeSetEl(flightLayover2CodeEl, layover2 ? layover2.code : '');
     maybeSetEl(flightLayover2NameEl, layover2 ? layover2.city : '');
     maybeSetEl(flightLayover2DurationEl, layover2 ? String(pickLayoverDurationMinutes()) : '');
+
+    applyFlightTripToForm(trip);
 
     const setSel = (el, val) => {
       if (!el || !fieldShouldRandomize(el.id)) return;
@@ -1876,6 +2094,8 @@
       travel: {
         favouriteAirline: trimVal(favouriteAirlineEl),
         primaryTravelClass: trimVal(primaryTravelClassEl),
+        activeFlight: effectiveActiveFlight(),
+        flightBookingsState: flightBookingsStateEl ? flightBookingsStateEl.value : '',
         prefs: (travelPrefsEnabledEl && travelPrefsEnabledEl.checked) ? {
           enabled: true,
           meal: trimVal(prefMealEl),
@@ -1932,6 +2152,23 @@
             children: trimVal(flightChildrenEl),
             multiLeg: trimVal(flightMultiLegEl),
             layovers: trimVal(flightLayoversEl),
+            departureCity: trimVal(flightDepartureCityEl),
+            departureAirportName: trimVal(flightDepartureAirportNameEl),
+            arrivalCity: trimVal(flightArrivalCityEl),
+            arrivalAirportName: trimVal(flightArrivalAirportNameEl),
+            airlineName: trimVal(flightAirlineNameEl),
+            departureDateTime: trimVal(flightDepartureDateTimeEl),
+            arrivalDateTime: trimVal(flightArrivalDateTimeEl),
+            durationMinutes: trimVal(flightDurationMinutesEl),
+            status: trimVal(flightStatusEl),
+            tripType: trimVal(flightTripTypeEl),
+            seatNumber: trimVal(flightSeatNumberEl),
+            checkedBags: trimVal(flightCheckedBagsEl),
+            returnFlightNumber: trimVal(flightReturnFlightNumberEl),
+            returnDepartureDateTime: trimVal(flightReturnDepartureDateTimeEl),
+            returnArrivalDateTime: trimVal(flightReturnArrivalDateTimeEl),
+            bookingChannel: trimVal(flightBookingChannelEl),
+            bookingDate: trimVal(flightBookingDateEl),
           },
           hotel: {
             name: trimVal(hotelNameEl),
@@ -2070,9 +2307,10 @@
     // value (or leave it empty) instead of unticking the toggle.
     //
     // NOTE on tenant / root paths:
-    //   - `individualCharacteristics.travel.{favouriteAirlineCompany, primaryTravelClass}`
-    //     are not in Profile Core v2; they still drive the Generate randomizer (IATA prefix,
-    //     flightClass).
+    //   - `individualCharacteristics.travel.*` lives in the Profile Travel v1 / v2 field
+    //     groups (not Profile Core v2). v1 carries favouriteAirlineCompany, primaryTravelClass
+    //     and the trip-purpose / lead-time scores; v2 carries flightBookings.* incl.
+    //     activeFlight. Each block is skipped when infra status reports its group missing.
     //   - `hotel.*` (Travel - Hotel Experience v1 FG) streams when Recent stay is enabled.
     //   - `travelReservations.{hotelReservations, carReservations}.*` have no schema home today.
     //     OOTB `travelPreferences.{roomType, vehicleType}` covers room/vehicle preferences; Generate
@@ -2153,6 +2391,61 @@
           const ld2 = intVal(flightLayover2DurationEl);
           if (ld2 != null) push(`${flightPath}.multiLeg.layoverDuration_2`, ld2);
         }
+      }
+
+      // Trip detail (Profile Core v2 lab leaves). Datetimes are ISO-8601 with offset.
+      const textLeaves = [
+        ['departureCity', flightDepartureCityEl],
+        ['departureAirportName', flightDepartureAirportNameEl],
+        ['arrivalCity', flightArrivalCityEl],
+        ['arrivalAirportName', flightArrivalAirportNameEl],
+        ['airlineName', flightAirlineNameEl],
+        ['departureDateTime', flightDepartureDateTimeEl],
+        ['arrivalDateTime', flightArrivalDateTimeEl],
+        ['flightStatus', flightStatusEl],
+        ['tripType', flightTripTypeEl],
+        ['seatNumber', flightSeatNumberEl],
+        ['bookingChannel', flightBookingChannelEl],
+        ['bookingDate', flightBookingDateEl],
+      ];
+      for (const [leaf, el] of textLeaves) {
+        if (v(el)) push(`${flightPath}.${leaf}`, v(el));
+      }
+      const duration = intVal(flightDurationMinutesEl);
+      if (duration != null) push(`${flightPath}.flightDurationMinutes`, duration);
+      const bags = intVal(flightCheckedBagsEl);
+      if (bags != null) push(`${flightPath}.checkedBags`, bags);
+      // Return leg only for return trips, so a switch to one-way drops stale values.
+      if (v(flightTripTypeEl) !== 'one_way') {
+        if (v(flightReturnFlightNumberEl)) push(`${flightPath}.returnFlightNumber`, v(flightReturnFlightNumberEl));
+        if (v(flightReturnDepartureDateTimeEl)) push(`${flightPath}.returnDepartureDateTime`, v(flightReturnDepartureDateTimeEl));
+        if (v(flightReturnArrivalDateTimeEl)) push(`${flightPath}.returnArrivalDateTime`, v(flightReturnArrivalDateTimeEl));
+      }
+    }
+
+    // Profile Travel v1 / v2 (`individualCharacteristics.travel.*`). Unknown
+    // attachment state (status not loaded yet) still sends; only a confirmed
+    // "not attached" skips the block.
+    {
+      const fg = getTravelFgAttached();
+      const travelPath = 'individualCharacteristics.travel';
+      const state = getFlightBookingsState() || {};
+      if (fg.v1 !== false) {
+        if (trimVal(favouriteAirlineEl)) push(`${travelPath}.favouriteAirlineCompany`, trimVal(favouriteAirlineEl));
+        if (trimVal(primaryTravelClassEl)) push(`${travelPath}.primaryTravelClass`, trimVal(primaryTravelClassEl));
+        const t = state.travel && typeof state.travel === 'object' ? state.travel : {};
+        for (const [k, val] of Object.entries(t)) {
+          if (val !== '' && val != null) push(`${travelPath}.${k}`, val);
+        }
+      }
+      if (fg.v2 !== false) {
+        const active = effectiveActiveFlight();
+        const b = state.bookings && typeof state.bookings === 'object' ? state.bookings : {};
+        for (const [k, val] of Object.entries(b)) {
+          if (k === 'activeFlight' || val === '' || val == null) continue;
+          push(`${travelPath}.flightBookings.${k}`, val);
+        }
+        if (active) push(`${travelPath}.flightBookings.activeFlight`, active);
       }
     }
 
@@ -2418,9 +2711,7 @@
       }
     }
 
-    // Travel — favourite airline / primary travel class are operator-only fields
-    // (not in schema today), but if a previous tool happened to write them we
-    // still hydrate so the operator sees something familiar.
+    // Travel — favourite airline / primary travel class (Profile Travel v1).
     const favAirline = findBySuffix(['favouriteairlinecompany', 'favoriteairlinecompany']);
     const travelClass = findBySuffix(['primarytravelclass']);
 
@@ -2449,6 +2740,46 @@
     const layover2Code = findBySuffix(['multileg.layoverairportcode.2', 'multileg.layoverairportcode2']);
     const layover2Name = findBySuffix(['multileg.layoverairport.2', 'multileg.layoverairport2', 'multileg.layoveraiport.2']);
     const layover2Duration = findBySuffix(['multileg.layoverduration.2', 'multileg.layoverduration2']);
+    // Trip detail leaves (Profile Core v2 lab extensions).
+    const tripDetailLookup = [
+      [flightDepartureCityEl, 'departurecity'],
+      [flightDepartureAirportNameEl, 'departureairportname'],
+      [flightArrivalCityEl, 'arrivalcity'],
+      [flightArrivalAirportNameEl, 'arrivalairportname'],
+      [flightAirlineNameEl, 'airlinename'],
+      [flightDepartureDateTimeEl, 'departuredatetime'],
+      [flightArrivalDateTimeEl, 'arrivaldatetime'],
+      [flightDurationMinutesEl, 'flightdurationminutes'],
+      [flightStatusEl, 'flightstatus'],
+      [flightTripTypeEl, 'triptype'],
+      [flightSeatNumberEl, 'seatnumber'],
+      [flightCheckedBagsEl, 'checkedbags'],
+      [flightReturnFlightNumberEl, 'returnflightnumber'],
+      [flightReturnDepartureDateTimeEl, 'returndeparturedatetime'],
+      [flightReturnArrivalDateTimeEl, 'returnarrivaldatetime'],
+      [flightBookingChannelEl, 'bookingchannel'],
+      [flightBookingDateEl, 'bookingdate'],
+    ].map(([el, leaf]) => [el, findBySuffix([`flightreservations.${leaf}`])]);
+    // Profile Travel v1 / v2 state that has no visible input — rebuilt into
+    // the hidden flightBookings state so Update re-streams it unchanged.
+    const lookedUpBookings = {};
+    for (const k of [
+      'activeFlight', 'bookings', 'destinationPropensity', 'openComplaint',
+      'nextBookedAirport', 'nextBookedBookingRef', 'nextBookedOutbound', 'nextBookedInbound',
+      'nextBookedSeason', 'nextBookedExtras',
+      'lastBookedAirport', 'lastBookedBookingRef', 'lastBookedOutbound', 'lastBookedInbound',
+      'lastBookedSeason', 'lastBookedExtras',
+    ]) {
+      const val = findBySuffix([`flightbookings.${k.toLowerCase()}`]);
+      if (val === '') continue;
+      lookedUpBookings[k] = k === 'bookings' ? (parseInt(val, 10) || 0) : String(val).slice(0, k.endsWith('bound') ? 10 : undefined);
+    }
+    const lookedUpTravel = {};
+    for (const k of ['primaryTripPurpose', 'avgTripLength', 'avgDaysBookingBeforeTrip', 'lastTravelCode']) {
+      const val = findBySuffix([`travel.${k.toLowerCase()}`]);
+      if (val === '') continue;
+      lookedUpTravel[k] = k.startsWith('avg') ? (parseInt(val, 10) || 0) : String(val);
+    }
 
     // Root-level OOTB Travel Preferences (`travelPreferences.*`). Use compound
     // suffix so e.g. `meal` doesn't collide with an unrelated XDM `meal` field.
@@ -2547,6 +2878,16 @@
     if (layover2Code && flightLayover2CodeEl) flightLayover2CodeEl.value = layover2Code;
     if (layover2Name && flightLayover2NameEl) flightLayover2NameEl.value = layover2Name;
     if (layover2Duration && flightLayover2DurationEl) flightLayover2DurationEl.value = layover2Duration;
+    for (const [el, val] of tripDetailLookup) {
+      if (!el) continue;
+      if (el.tagName === 'SELECT') setSelectValueLoose(el, val);
+      else if (el.type === 'date') el.value = val ? String(val).slice(0, 10) : '';
+      else el.value = val || '';
+    }
+    if (flightBookingsStateEl) {
+      const hasState = Object.keys(lookedUpBookings).length || Object.keys(lookedUpTravel).length;
+      flightBookingsStateEl.value = hasState ? JSON.stringify({ bookings: lookedUpBookings, travel: lookedUpTravel }) : '';
+    }
 
     // Hydrate the OOTB Travel Preferences block. Auto-open the toggle if any
     // preference came back; checkboxes preserve `false` from the lookup so
@@ -2601,6 +2942,7 @@
 
     if (personaGuard) personaGuard.runProgrammatic(fillLookupForm);
     else fillLookupForm();
+    renderFlightBookingsSummary();
     capturePersonaBaseline();
   }
 
@@ -2730,6 +3072,7 @@
     }
     const streaming = ensureStreamingReady();
     if (!streaming) return;
+    await ensureTravelFgAttachedState();
     const updates = buildUpdatesFromForm(email);
     if (!updates.length) {
       setMessage(messageEl, 'No fields to update — fill identity, mobile phone, Customer Analytics, or Travel fields.', 'warning');
@@ -2776,6 +3119,7 @@
     if (!streaming) return;
     const count = Math.max(1, Math.min(100, parseInt(generateCountEl.value || '1', 10) || 1));
     const dryRun = !!(dryRunEl && dryRunEl.checked);
+    await ensureTravelFgAttachedState();
 
     generateBtn.disabled = true;
     setMessage(messageEl, `Generating ${count} Travel profile${count === 1 ? '' : 's'}…`, '');
@@ -2923,6 +3267,7 @@
       const flightBits = [route];
       if (r.flight.number) flightBits.push(r.flight.number);
       if (r.flight.class) flightBits.push(r.flight.class);
+      if (t.activeFlight === 'Yes') flightBits.push('✈ active');
       parts.push(flightBits.join(' '));
     } else if (t.favouriteAirline) {
       parts.push(`Airline: ${t.favouriteAirline}`);
@@ -3000,6 +3345,7 @@
     const t = s.travel || {};
     if (favouriteAirlineEl) favouriteAirlineEl.value = t.favouriteAirline || '';
     if (primaryTravelClassEl) primaryTravelClassEl.value = t.primaryTravelClass || '';
+    if (flightBookingsStateEl) flightBookingsStateEl.value = t.flightBookingsState || '';
     if (recentStayEnabledEl && t.recentStay) {
       recentStayEnabledEl.checked = !!t.recentStay.enabled;
       if (t.recentStay.enabled) {
@@ -3056,6 +3402,26 @@
         if (flightChildrenEl) flightChildrenEl.value = f.children || '';
         if (flightMultiLegEl) flightMultiLegEl.value = f.multiLeg || '';
         if (flightLayoversEl) flightLayoversEl.value = f.layovers || '';
+        const tripDetail = [
+          [flightDepartureCityEl, f.departureCity],
+          [flightDepartureAirportNameEl, f.departureAirportName],
+          [flightArrivalCityEl, f.arrivalCity],
+          [flightArrivalAirportNameEl, f.arrivalAirportName],
+          [flightAirlineNameEl, f.airlineName],
+          [flightDepartureDateTimeEl, f.departureDateTime],
+          [flightArrivalDateTimeEl, f.arrivalDateTime],
+          [flightDurationMinutesEl, f.durationMinutes],
+          [flightStatusEl, f.status],
+          [flightTripTypeEl, f.tripType],
+          [flightSeatNumberEl, f.seatNumber],
+          [flightCheckedBagsEl, f.checkedBags],
+          [flightReturnFlightNumberEl, f.returnFlightNumber],
+          [flightReturnDepartureDateTimeEl, f.returnDepartureDateTime],
+          [flightReturnArrivalDateTimeEl, f.returnArrivalDateTime],
+          [flightBookingChannelEl, f.bookingChannel],
+          [flightBookingDateEl, f.bookingDate],
+        ];
+        for (const [el, val] of tripDetail) if (el) el.value = val || '';
         if (hotelNameEl) hotelNameEl.value = h.name || '';
         if (hotelCityEl) hotelCityEl.value = h.city || '';
         if (hotelCountryEl) hotelCountryEl.value = h.country || '';
@@ -3083,6 +3449,7 @@
 
     if (personaGuard) personaGuard.runProgrammatic(fillForm);
     else fillForm();
+    renderFlightBookingsSummary();
     capturePersonaBaseline();
     setMessage(messageEl, `Loaded ${entry.scaledEmail}. Edit fields then click Update profile, or Generate to create a new profile after this one.`, 'success');
   }
@@ -3140,19 +3507,10 @@
       persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
     });
   }
-  if (counterEl) {
-    counterEl.addEventListener('input', () => {
-      const n = parseInt(counterEl.value || '1', 10) || 1;
+  if (window.AepProfileGenPrefsSync) {
+    window.AepProfileGenPrefsSync.bindCounterOverride(counterEl, resetCounterBtn, (n) => {
+      counterEl.value = String(n);
       persistCounter(n);
-      persistPrefsField({ counterN: n });
-      updateEmailPreview();
-    });
-  }
-  if (resetCounterBtn) {
-    resetCounterBtn.addEventListener('click', () => {
-      counterEl.value = '1';
-      persistCounter(1);
-      persistPrefsField({ resetCounter: true });
       updateEmailPreview();
     });
   }
@@ -3245,9 +3603,16 @@
       if (payloadPreviewDetails && payloadPreviewDetails.open) refreshPayloadPreview();
     });
   }
+  if (activeFlightEl) {
+    activeFlightEl.addEventListener('change', () => {
+      renderFlightBookingsSummary();
+      if (payloadPreviewDetails && payloadPreviewDetails.open) refreshPayloadPreview();
+    });
+  }
 
   // Sandbox change
   function onSandboxChange() {
+    updateActiveFlightSchemaHint();
     // Reset the auto-discover cache so the new sandbox gets one fresh
     // attempt; the cache exists to avoid re-hitting AEP on panel-show /
     // firestore-reload cycles within a single sandbox, not to suppress

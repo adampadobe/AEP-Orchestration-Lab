@@ -38,6 +38,18 @@ export const LAB_DEFAULT_PREFERRED_LANGUAGE = 'en-US';
  */
 export const CRITICAL_RULES = [
   {
+    id: 'snowflake_first_generation',
+    rule:
+      'Default profile creation is Snowflake-first. lab_generate_profile, lab_generate_profiles_batch and lab_preflight_profile_generate default target:"snowflake". ' +
+      'Ask for an explicit industry (travel, fsi, retail, telecom, media, sports) and confirm shared email preferences/count. ' +
+      'Seeding writes AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE first, then linked industry data in one transaction. REL.RECIPIENT is a read-only view, not another parent. ' +
+      'No AEP stream is sent: AEP/AJO ingestion is configured separately. Non-travel REL dynamic tables refresh asynchronously. ' +
+      'Default batches are synchronous, not pollable jobs. Run serially; never automatically retry generation after an error. ' +
+      'AEP persona, UPS, Edge/event, geo and dual-load demos must explicitly use target:"aep"; all AEP-specific rules below apply only to that mode. ' +
+      'AEP-only options on the Snowflake path are rejected, not silently ignored.',
+    tools: ['lab_preflight_profile_generate', 'lab_generate_profile', 'lab_generate_profiles_batch'],
+  },
+  {
     id: 'test_profile_required',
     rule:
       'Every lab-generated profile MUST be an AEP test profile. MCP defaults test_profile:true; ' +
@@ -67,7 +79,7 @@ export const CRITICAL_RULES = [
   },
   {
     id: 'sandbox_config_preflight',
-    rule: 'Generate/update fail until lab_sandbox_profile_config reports ready for the target industry.',
+    rule: 'AEP target generate/update fail until lab_sandbox_profile_config reports ready for the target industry. Snowflake target needs saved Snowflake credentials and generation preferences, not AEP streaming infrastructure.',
     connectionFields: ['streaming.url', 'streaming.flowId', 'streaming.datasetId', 'streaming.schemaId', 'streaming.xdmKey'],
     firestore: 'One collection per industry ({industry}ProfileConnections), doc id = sanitized sandbox name.',
     tool: 'lab_preflight_profile_generate or lab_sandbox_profile_config before first generate on a sandbox.',
@@ -75,14 +87,14 @@ export const CRITICAL_RULES = [
   {
     id: 'dual_stream_generate',
     rule:
-      'Non-generic lab_generate_profile MUST dual-stream: step 1 POST /api/profile/generate industry generic ' +
+      'With target:"aep", non-generic lab_generate_profile MUST dual-stream: step 1 POST /api/profile/generate industry generic ' +
       '(generic-owned paths — person, scoring, loyalty, personalEmail, …), step 2 POST industry travel|fsi|… ' +
       'with appendIfExisting:true (industry-owned paths, same email/ECID). Matches Profile Viewer Attributes table Source column.',
     split: 'functions/industryAttributeMap.js resolveIndustryForPath — MCP planDualStreamGenerate mirrors ownership.',
     portal:
       'Travel Generate panel streams via POST /api/profile/update to the travel HTTP connection; union profile Source pills ' +
       'reflect path ownership (generic vs travel), not a single physical dataflow.',
-    mcp: 'lab_generate_profile and lab_generate_profiles_batch apply dual-stream automatically when industry !== generic.',
+    mcp: 'lab_generate_profile and lab_generate_profiles_batch apply dual-stream automatically only with target:"aep" and industry !== generic.',
   },
   {
     id: 'full_snapshot_update',
@@ -156,7 +168,7 @@ export const CRITICAL_RULES = [
         '{ "event": { "xdm": { "identityMap": { "ECID": [{"id":"…","primary":true}], "Email": [{"id":"…","primary":false}] }, "_id": "…", "eventType": "donation.made", "timestamp": "2026-07-15T18:41:26.946Z", "interactionDetails": { "core": { "channel": "web" } } } } }',
     },
     intent_demo_flow:
-      'lab_generate_profile → capture email + ecid → lab_send_profile_events_batch with event_types [donation.made, web.webPageDetails.pageViews, transaction] and channel web → lab_profile_activity after 30–60s.',
+      'lab_generate_profile target aep → capture email + ecid → lab_send_profile_events_batch with event_types [donation.made, web.webPageDetails.pageViews, transaction] and channel web → lab_profile_activity after 30–60s.',
     mcp:
       'Default remains minimal. Rich opt-in: industry generic|retail|fsi|telecom|media|travel|sports|public plus optional industry_fields. Omit industry_fields for safe sample defaults.',
   },
@@ -474,8 +486,9 @@ export function getExecutionFramework() {
     version: MCP_VERSION,
     criticalRules: CRITICAL_RULES,
     summary:
-      'The lab streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
-      'Generate creates/streams a profile; update re-streams a full writable snapshot (not deltas); ' +
+      'Profile creation defaults to Snowflake: shared recipient parent first, then linked industry data, with separate AEP ingestion. ' +
+      'Explicit target aep streams Profile-class XDM via per-industry HTTP API connections (Firestore manifest). ' +
+      'AEP update re-streams a full writable snapshot (not deltas); ' +
       'events add ExperienceEvent rows via Edge or DCS generator targets.',
     workflows: {
       mcp_first_run: {
@@ -550,10 +563,22 @@ export function getExecutionFramework() {
         doc: 'docs/COWORKER_HTTP_STREAMING_FLOWS.md',
       },
       generate_profile: {
+        default_target: 'snowflake',
+        tools: ['lab_confirm_profile_generation', 'lab_preflight_profile_generate', 'lab_generate_profile', 'lab_snowflake_get_profile_by_email'],
+        steps: [
+          'Confirm explicit industry and shared email preferences with lab_confirm_profile_generation',
+          'lab_preflight_profile_generate sandbox {sandbox} industry {industry} target snowflake; test connection with lab_snowflake_test_connection',
+          'lab_generate_profile sandbox {sandbox} industry {industry} target snowflake (omit email and AEP-only persona options)',
+          'Inspect recipientTable, recipientId, recipientRowcount, tableRowcounts and relationalRefresh; verify industry CRM row with lab_snowflake_get_profile_by_email',
+        ],
+        api: 'POST /api/snowflake/generate-industry-profiles',
+        aep_ingestion: 'Separate downstream Snowflake-to-AEP/AJO flow; this tool does not stream into AEP.',
+      },
+      generate_aep_profile: {
         tools: ['lab_profile_infra_status', 'lab_generate_profile', 'lab_lookup_profile', 'lab_get_profile'],
         steps: [
           'Optional: lab_profile_infra_status for sandbox + industry',
-          'lab_generate_profile with email, sandbox, industry, randomize:true (or explicit attributes)',
+          'lab_generate_profile target aep with email, sandbox, industry, randomize:true (or explicit attributes)',
           'Verify: lab_get_profile namespace=email',
         ],
         api: 'POST /api/profile/generate',
@@ -580,7 +605,7 @@ export function getExecutionFramework() {
           'lab_snowflake_test_connection — confirm Snowflake version or NETWORK POLICY hint (static IP 34.58.81.28)',
           'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, dualLoad.defaultMode (crm_generate), tableCheck',
           'lab_confirm_profile_generation — shared AEP email prefs (Firestore labProfileGenerationPrefs)',
-          'lab_generate_profile industry {non-generic industry} randomize true dual_load_snowflake true — omit email; AEP streams persona and Snowflake independently generates operational CRM fields',
+          'lab_generate_profile target aep industry {non-generic industry} randomize true dual_load_snowflake true — omit email; AEP streams persona and Snowflake independently generates operational CRM fields',
           'lab_get_profile + lab_snowflake_get_profile_by_email industry {same industry} email {same email} — verify shared identity plus complementary CRM columns; never Snowflake console SQL',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
@@ -631,13 +656,13 @@ export function getExecutionFramework() {
           'Inspect config, test connection, read industry catalog and event keys',
           'Preview {industry}.all.v1 with dry_run true; show fully qualified targets and obtain explicit confirmation',
           'Execute dry_run false; travel requires confirmed true and unchanged preview_fingerprint (16 tables; others six)',
-          'Confirm generation preferences and count; lab_snowflake_generate_base_profiles with explicit industry for Snowflake-only CRM rows',
-          'lab_snowflake_enrich_profiles with returned profiles identity selectors and manifest event_types',
+          'Confirm generation preferences and count; lab_generate_profile or lab_generate_profiles_batch target snowflake with explicit industry seeds the shared recipient parent and linked industry data',
+          'No separate enrichment is required for this Node seed path; use lab_snowflake_enrich_profiles only for additional selected activity',
           'Verify bounded samples with lab_snowflake_get_profile_bundle (non-travel) or catalog table preview (travel)',
         ],
         rules: [
-          'Travel full phased generation/enrichment needs the Python runner; credentials alone do not enable it.',
-          'No arbitrary SQL, credential sharing, schema creation, grants, or changes to existing table layouts.',
+          'Legacy lab_snowflake_generate_full/travel enrichment needs the Python runner; the new recipient-and-industry Node seed path does not.',
+          'No arbitrary SQL, credential sharing or grants. Node seed preparation creates missing REL/source objects and adds nullable recipient columns; role privileges are required.',
           'Small sample first, then bounded batches; generation is not idempotent, same-profile enrichment must run serially.',
           'Realistic profile conditions may intentionally leave an activity table empty.',
         ],
@@ -660,7 +685,7 @@ export function getExecutionFramework() {
           'lab_profile_activity',
         ],
         steps: [
-          'lab_generate_profile — capture ecid from response + email',
+          'lab_generate_profile target aep — capture ecid from response + email',
           'lab_list_event_targets — pick target_id (default lab-event-tool-edge)',
           'Optional: lab_preflight_profile_event — shows identityMap + generatorPostBody (NOT raw XDM to construct)',
           'lab_send_profile_event with email AND ecid, event_type, channel — server builds minimal XDM by default',
@@ -685,7 +710,7 @@ export function getExecutionFramework() {
         coworker_event_send_recipe: {
           summary: 'Profile + intent events — params only, server builds XDM',
           steps: [
-            'lab_generate_profile sandbox {sandbox} industry {industry} — save email + ecid from response',
+            'lab_generate_profile target aep sandbox {sandbox} industry {industry} — save email + ecid from response',
             'lab_send_profile_events_batch sandbox {sandbox} email {email} ecid {ecid} channel web event_types ["donation.made","web.webPageDetails.pageViews","transaction"]',
             'Wait 30–60s, then lab_profile_activity sandbox {sandbox} identifier {email}',
           ],
@@ -782,7 +807,7 @@ export function getExecutionFramework() {
         when:
           'Coworker needs server-side Edge personalization propositions for Decisioning lab (surfaces or decisionScopes) without browser Alloy.',
         order: [
-          'lab_generate_profile — capture email + ecid',
+          'lab_generate_profile target aep — capture email + ecid',
           'lab_decision_lab_config sandbox {sandbox} — datastreamId, targetPageUrl, placements, edgePersonalizationMode',
           'lab_decisioning_edge_evaluate sandbox {sandbox} email {email} ecid {ecid}',
           'lab_explain_decision_response with propositions from evaluate (or pass email/ecid to evaluate+explain)',
@@ -836,8 +861,10 @@ export function getExecutionFramework() {
         never: 'No generic /api/aep access, deletion by name, inferred confirmation, or batch delete.',
       },
       batch_seed: {
-        tools: ['lab_generate_profiles_batch', 'lab_batch_job_status'],
-        limits: { maxCount: 100, rateLimit: '3 batch jobs/hour per MCP key' },
+        tools: ['lab_generate_profiles_batch'],
+        default_target: 'snowflake',
+        limits: { maxCount: 100, rateLimit: 'Snowflake generation rate limit per principal; run serially' },
+        aep_target: 'Explicit target aep retains async profile_batch jobs: poll lab_batch_job_status; limit 3 jobs/hour.',
       },
       brand_scrape_to_profile: {
         tools: [
@@ -911,7 +938,7 @@ export function getExecutionFramework() {
     },
     when_to_use: {
       lab_generate_profile:
-        'New test identity, first stream into sandbox, or refresh with randomize/segment_hint. Sets testProfile by default.',
+        'Default target snowflake: shared recipient plus industry data, not an AEP stream. Explicit target aep retains persona streaming and optional CRM dual-load.',
       lab_update_profile:
         'Change existing profile attributes after discuss step. Requires profile already in UPS. Uses industry dataflow from argument.',
       lab_preflight_profile_event:
@@ -1062,13 +1089,13 @@ const INDUSTRY_PLAYBOOKS = {
     testProfile: TEST_PROFILE_PLAYBOOK,
     language: LANGUAGE_PLAYBOOK,
     dataflow: dataflowPlaybook('generic'),
-    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry generic', 'lab_preflight_profile_generate sandbox {sandbox} industry generic email demo+001@adobetest.com'],
+    preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry generic', 'lab_preflight_profile_generate target aep sandbox {sandbox} industry generic email demo+001@adobetest.com'],
     failure_modes: COMMON_FAILURE_MODES,
     infra_prerequisites: ['genericProfileConnections Firestore doc with full streaming manifest', 'Profile enabled on generic dataset', 'Profile Core v2 top-up (shared leaves)'],
     example_prompt_chain: [
       'lab_get_industry_playbook industry generic',
-      'lab_preflight_profile_generate sandbox apalmer industry generic email demo+001@adobetest.com randomize true',
-      'lab_generate_profile sandbox apalmer industry generic email demo+001@adobetest.com randomize true',
+      'lab_preflight_profile_generate target aep sandbox apalmer industry generic email demo+001@adobetest.com randomize true',
+      'lab_generate_profile target aep sandbox apalmer industry generic email demo+001@adobetest.com randomize true',
       'lab_get_profile sandbox apalmer identifier demo+001@adobetest.com',
       'lab_preflight_profile_event sandbox apalmer email demo+001@adobetest.com ecid <from-generate>',
       'lab_send_profile_event sandbox apalmer email demo+001@adobetest.com ecid <from-generate> event_type donation.made',
@@ -1086,10 +1113,12 @@ const INDUSTRY_PLAYBOOKS = {
       ],
       verify:
         'lab_lookup_profile or Profile Viewer attribute table: rows show Source pills Generic AND Travel for the same email.',
-      mcp: 'lab_generate_profile industry travel — dual_stream:true in response; generate_plan lists both steps.',
+      mcp: 'lab_generate_profile target aep industry travel — dual_stream:true in response; generate_plan lists both steps.',
     },
     persona_fields: [
-      'travelReservations.flightReservations.* (airports, IATA, dates, class, passengers, layovers)',
+      'travelReservations.flightReservations.* (airports, IATA, cities, airport names, departure/arrival datetimes with offsets, duration, status, trip type, return leg, seat, bags, booking channel/date, class, passengers, layovers)',
+      'individualCharacteristics.travel.flightBookings.* (Profile Travel v2: activeFlight "Yes"/"No", next*/last* airports, dates, booking refs, bookings count) when active_flight is set or randomised',
+      'individualCharacteristics.travel.* (Profile Travel v1: favouriteAirlineCompany, primaryTravelClass, primaryTripPurpose, lastTravelCode, avgTripLength, avgDaysBookingBeforeTrip)',
       'travelPreferences.* (OOTB root mixin — meal/seat/room/vehicle enums, amenity booleans)',
       'hotel.* (bookingDetails, checkIn, housekeeping, amenities, roomService, checkOut)',
       'loyalty.* when loyalty_member:true (LYL-{6 digits}; Portal #travelLoyaltyEnabled)',
@@ -1098,11 +1127,20 @@ const INDUSTRY_PLAYBOOKS = {
       'travelReservations.*',
       'hotel.*',
     ],
-    field_groups: ['Profile Travel v1', 'Hotel Experience', 'Travel Preferences (root)', 'Profile Core v2 top-up: travelReservations + hotel'],
+    field_groups: ['Profile Travel v1', 'Profile Travel v2', 'Hotel Experience', 'Travel Preferences (root)', 'Profile Core v2 top-up: travelReservations + hotel'],
     segment_hints: TRAVEL_SEGMENT_HINTS,
     segment_semantics: {
       hotel_reactivation: 'Checkout >12 months ago, totalNights≥5, elevated churn/propensity — hotel edge segments',
       hotel_high_value: 'Platinum tier, high LTV, recent stay, rich hotel.bookingDetails',
+      active_flyer: 'Pins active_flight:true — upcoming (≤30 days) or in-the-air flight; activeFlight "Yes" with next* leaves',
+      lapsed_flyer: 'Pins active_flight:false — completed trip only; activeFlight "No" with last* leaves',
+    },
+    active_flight: {
+      option: 'active_flight: true | false (omit for random). Explicit option wins over active_flyer / lapsed_flyer.',
+      yes: 'Departure between +2h and +30 days (≈10% currently in the air, flightStatus in_air); next* and last* filled.',
+      no: 'Departure 3–120 days ago, every leg in the past (flightStatus completed); only last* filled.',
+      stale_next: 'Switching an existing profile Yes → No leaves earlier next* values in place — segment on activeFlight, not on next* presence.',
+      schema: 'activeFlight lives in Profile Travel v2 (individualCharacteristics.travel.flightBookings). If v2 is not attached, AEP drops those leaves silently — run lab infra attachFieldGroups (creates/attaches Profile Travel v1 + v2) or npm run ensure:travel-profile-fieldgroups -- <sandbox> --apply.',
     },
     testProfile: TEST_PROFILE_PLAYBOOK,
     language: LANGUAGE_PLAYBOOK,
@@ -1118,12 +1156,14 @@ const INDUSTRY_PLAYBOOKS = {
     ],
     infra_prerequisites: [
       'travelProfileConnections doc with streaming.url/flowId/datasetId/schemaId/xdmKey',
-      'Profile Travel v1 + Hotel Experience FG',
+      'Profile Travel v1 + Profile Travel v2 + Hotel Experience FG (v1/v2 created and attached by attachFieldGroups when missing)',
       'Profile Core v2 top-up for travelReservations + hotel subtrees',
     ],
     example_prompt_chain: [
-      'lab_generate_profile sandbox apalmer industry travel email hotel.reactivation+001@adobetest.com randomize true segment_hint hotel_reactivation',
-      'lab_generate_profile sandbox apalmer industry travel email travel.demo+001@adobetest.com randomize true loyalty_member true',
+      'lab_generate_profile target aep sandbox apalmer industry travel email hotel.reactivation+001@adobetest.com randomize true segment_hint hotel_reactivation',
+      'lab_generate_profile target aep sandbox apalmer industry travel email travel.demo+001@adobetest.com randomize true loyalty_member true',
+      'lab_generate_profile target aep sandbox apalmer industry travel email flyer.active+001@adobetest.com randomize true active_flight true',
+      'lab_generate_profiles_batch target aep sandbox apalmer industry travel count 10 randomize true segment_hint lapsed_flyer',
       'lab_send_profile_event sandbox apalmer email hotel.reactivation+001@adobetest.com ecid <from-generate> event_type transaction channel web',
       'lab_profile_activity sandbox apalmer identifier hotel.reactivation+001@adobetest.com',
     ],
@@ -1152,7 +1192,7 @@ const INDUSTRY_PLAYBOOKS = {
     failure_modes: COMMON_FAILURE_MODES,
     infra_prerequisites: ['fsiProfileConnections full manifest', 'Profile FSI v2 FG', 'personalFinances on schema union'],
     example_prompt_chain: [
-      'lab_generate_profile sandbox apalmer industry fsi email fsi.hnw+001@adobetest.com randomize true segment_hint high_net_worth',
+      'lab_generate_profile target aep sandbox apalmer industry fsi email fsi.hnw+001@adobetest.com randomize true segment_hint high_net_worth',
     ],
   },
   retail: {
@@ -1178,7 +1218,7 @@ const INDUSTRY_PLAYBOOKS = {
     failure_modes: COMMON_FAILURE_MODES,
     infra_prerequisites: ['retailProfileConnections full manifest', 'Profile Retail v2 FG'],
     example_prompt_chain: [
-      'lab_generate_profiles_batch sandbox apalmer industry retail count 25 base_email kirkham+retail-vip randomize true segment_hint loyalty_vip',
+      'lab_generate_profiles_batch target aep sandbox apalmer industry retail count 25 base_email kirkham+retail-vip randomize true segment_hint loyalty_vip',
     ],
   },
   telecom: {
@@ -1279,6 +1319,11 @@ export function getIndustryPlaybook(rawIndustry) {
     industry: resolved,
     playbook: {
       ...INDUSTRY_PLAYBOOKS[resolved],
+      generation_targets: {
+        default: resolved === 'generic' ? 'Choose a supported Snowflake industry or explicitly use target aep for generic profiles.' : 'snowflake',
+        snowflake: 'lab_preflight_profile_generate then lab_generate_profile (or lab_generate_profiles_batch), explicit industry, omit email. Confirm preferences/count. Parent first, linked industry data next, no AEP stream.',
+        aep: 'Existing persona, dataflow and event recipes below require explicit target aep on preflight and generation tools.',
+      },
       criticalRules: CRITICAL_RULES,
       conventions: getLabConventions(),
       framework_tools: [

@@ -27,6 +27,7 @@ const {
   listSnowflakeProfileIndustries,
 } = require('./snowflakeIndustryProfileRegistry');
 const { readSnowflakeCell } = require('./snowflakeRow');
+const { CRM_SEQUENCE } = require('./snowflakeSeedStore');
 
 const QUERY_PROFILES_TABLE = TRAVEL_MANIFEST.dualLoad.queryTable;
 
@@ -127,7 +128,9 @@ function buildQueryProfilesSql({
   email,
   ecid,
 }) {
-  const selectList = columns.join(', ');
+  const selectList = columns.map((column) => column === 'RECIPIENT_ID'
+    ? "'R-' || LEFT(SHA2(ECID, 256), 32) AS RECIPIENT_ID"
+    : column).join(', ');
   const tf = timeFilterSql(timePeriod);
   const lw = loyaltyWhere(filterType);
   const binds = [];
@@ -570,6 +573,41 @@ async function handleAgenticGenerateFull(input) {
     sfPayload = snowflakePayloadFromResolved(resolved);
   } catch (e) {
     return { ok: false, error: describeConnectError(e) };
+  }
+  let conn;
+  try {
+    conn = await connectAsync(require('snowflake-sdk'), buildSnowflakeConnectOptions(resolved));
+    const database = safeIdentifier(sfPayload.database, '');
+    const schema = safeIdentifier(sfPayload.schema, '');
+    if (!database || !schema) throw new Error('Saved Snowflake database and schema are required for the legacy allocator check.');
+    const rows = await execAsync(conn, {
+      sqlText: `SELECT SEQUENCE_NAME FROM ${database}.INFORMATION_SCHEMA.SEQUENCES
+WHERE SEQUENCE_SCHEMA = ? AND SEQUENCE_NAME = ?`,
+      binds: [schema.toUpperCase(), CRM_SEQUENCE],
+    });
+    if (rows.length) {
+      return {
+        ok: false,
+        error: {
+          code: 'LEGACY_GENERATION_BLOCKED',
+          message: 'Legacy full phased generation is disabled on this sequence-managed Snowflake target to prevent duplicate CRMIDs.',
+          sqlState: null,
+          hints: ['Use Seed recipients & industry data, or lab_generate_profile / lab_generate_profiles_batch with target:"snowflake". The Python generator does not use the shared CRM allocator.'],
+        },
+      };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: 'CRM_ALLOCATOR_CHECK_FAILED',
+        message: `Could not verify whether legacy generation is safe: ${String(error.message || error)}`,
+        sqlState: error.sqlState || null,
+        hints: ['Check the saved target connection and sequence metadata permissions. No legacy runner request was sent; generation does not fall back when this check fails.'],
+      },
+    };
+  } finally {
+    if (conn) await destroyAsync(conn);
   }
   return postSignedRunner('/internal/generate', sfPayload, { count });
 }

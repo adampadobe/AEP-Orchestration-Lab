@@ -38,6 +38,16 @@ jobs:
       - name: Verify Profile Viewer decisioning routes (journey-arbitration redirects, v3, eds-quickstart)
         run: npm run verify:profile-viewer-routes
 
+      - name: Verify travel flight-trip builder parity (web ↔ MCP copy)
+        run: |
+          npm run verify:travel-flight-trip
+          node --test functions/test/travelActiveFlightSchema.test.cjs
+
+      - name: Verify shared environment-bar versions and demo parity
+        run: |
+          npm run verify:env-bar-versions
+          npm run verify:demo-env-strip
+
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
 
@@ -52,11 +62,11 @@ jobs:
         run: npm ci
 
       - name: Verify MCP dispatch telemetry and existing authentication/tool registration
-        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs
+        run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/requestLogging.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
-          node --test functions/test/snowflake*.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs
+          node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs
           npm run verify:snowflake-industry-manifest
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
 
@@ -101,3 +111,7 @@ jobs:
         run: npm run test:demo-workspace-e2e
       - name: Exercise British Airways profile editing and image decisioning (no production data)
         run: npm run test:ba-decisioning
+      - name: Exercise shared environment bar across customer demos (local fixtures)
+        run: npm run test:demo-env-bar
+      - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
+        run: npm run test:riyadh-air

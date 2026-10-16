@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import random
 import sys
 import uuid
+import hashlib
 from attribution_helper import AttributionHelper
 from session_journey_helper import SessionJourneyHelper
 from snowflake_settings import get_snowflake_connection_kwargs
@@ -301,28 +302,26 @@ ORDER BY email;
     def generate_phone():
         """Generate mobile phone number following standards - same for all profiles"""
         return "+447425627462"
+
+    @staticmethod
+    def generate_push_tokens(idx):
+        """Return a stable demo-only token; it is not registered with a push provider."""
+        token = uuid.uuid5(uuid.NAMESPACE_URL, f"aep-demo-push:{idx}").hex
+        return [f"demo-fcm-{token}"]
     
     @staticmethod
     def generate_landline(idx):
         """
-        Generate unique UK landline number per customer
-        Format: +44 {AREA_CODE} {XXXX} {XXXX}
+        Generate a unique E.164 UK landline number per customer.
         """
         area_codes = ["20", "121", "131", "161"]  # London, Birmingham, Edinburgh, Manchester
         
         # Use idx to determine area code and generate unique number
         area_code = area_codes[idx % len(area_codes)]
         
-        # Generate unique 8-digit number based on index
-        # Format: XXXX XXXX
-        base_number = 10000000 + (idx % 90000000)  # Ensures 8 digits
-        number_str = str(base_number)
-        
-        # Format as: +44 {area} {first4} {last4}
-        first_four = number_str[:4]
-        last_four = number_str[4:]
-        
-        return f"+44 {area_code} {first_four} {last_four}"
+        subscriber_length = 8 if area_code == "20" else 7
+        subscriber = str(1000000 + (idx % 9000000)).zfill(subscriber_length)
+        return f"+44{area_code}{subscriber}"
     
     def get_next_customer_id(self):
         """Get the next available customer ID"""
@@ -407,7 +406,16 @@ ORDER BY email;
             "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"
         ]
         cities = ["London", "Manchester", "Birmingham", "Leeds", "Glasgow", "Liverpool", "Edinburgh", "Bristol"]
-        countries = ["United Kingdom", "United States", "Canada", "Australia", "Germany", "France", "Spain", "Italy"]
+        postcodes = {
+            "London": "SW1A 1AA",
+            "Manchester": "M1 1AE",
+            "Birmingham": "B1 1AA",
+            "Leeds": "LS1 1UR",
+            "Glasgow": "G1 1AA",
+            "Liverpool": "L1 1AA",
+            "Edinburgh": "EH1 1AA",
+            "Bristol": "BS1 1AA",
+        }
         
         base_profiles = []
         journey_flags_list = []  # Store journey flags separately
@@ -462,7 +470,7 @@ ORDER BY email;
             
             # Generate home address
             city = random.choice(cities)
-            country = random.choice(countries)
+            country = "United Kingdom"
             
             # Import customer journey configuration (force reload to get latest loyalty rate)
             import importlib
@@ -489,7 +497,7 @@ ORDER BY email;
                 loyalty_id,                            # LOYALTYID (None for 5% of customers)
                 f"PASS{idx}",                          # PASSPORTID
                 self.generate_phone(),                 # PHONENUMBER
-                None,                                  # PUSHTOKENS (array)
+                self.generate_push_tokens(idx),         # PUSHTOKENS (demo token array)
                 f"STACK{idx}",                         # STACKCHATID
                 
                 # Person Details (4 fields)
@@ -502,7 +510,7 @@ ORDER BY email;
                 f"{idx} High Street",                  # HOMEADDRESS_STREET1
                 city,                                  # HOMEADDRESS_CITY
                 random.choice(["England", "Scotland", "Wales", "California", "Ontario"]),  # HOMEADDRESS_STATEPROVINCE
-                f"SW{idx % 10}A 1AA",                  # HOMEADDRESS_POSTALCODE
+                postcodes[city],                       # HOMEADDRESS_POSTALCODE
                 country,                               # HOMEADDRESS_COUNTRY
                 
                 # Personal Email (6 fields)
@@ -642,7 +650,7 @@ ORDER BY email;
                 loyalty_id_from_base = None
                 passport_val = f"PASS{idx}"
                 phone_val = self.generate_phone()
-                push_tokens_val = None
+                push_tokens_val = self.generate_push_tokens(idx)
                 stack_val = f"STACK{idx}"
                 gender = random.choice(["male", "female"])
                 first_name = random.choice(first_names_male if gender == "male" else first_names_female)
@@ -717,8 +725,24 @@ ORDER BY email;
                 email_val,
                 self.generate_landline(idx),  # Unique landline per customer
                 f"{idx} High Street",
-                random.choice(cities),
-                f"SW{idx % 10}A 1AA",
+                (city := random.choice(cities)),
+                {
+                    "London": "SW1A 1AA", "Manchester": "M1 1AE",
+                    "Birmingham": "B1 1AA", "Leeds": "LS1 1UR",
+                    "Glasgow": "G1 1AA", "Liverpool": "L1 1AA",
+                    "Edinburgh": "EH1 1AA", "Bristol": "BS1 1AA",
+                    "Cardiff": "CF10 1AA", "Belfast": "BT1 1AA",
+                    "Newcastle": "NE1 1AA", "Sheffield": "S1 1AA",
+                    "Nottingham": "NG1 1AA", "Leicester": "LE1 1AA",
+                    "Southampton": "SO14 1AA", "Portsmouth": "PO1 1AA",
+                    "Brighton": "BN1 1AA", "Oxford": "OX1 1AA",
+                    "Cambridge": "CB1 1AA", "York": "YO1 1AA",
+                    "Bath": "BA1 1AA", "Aberdeen": "AB10 1AA",
+                    "Dundee": "DD1 1AA", "Inverness": "IV1 1AA",
+                    "Plymouth": "PL1 1AA", "Exeter": "EX1 1AA",
+                    "Norwich": "NR1 1AA", "Derby": "DE1 1AA",
+                    "Coventry": "CV1 1AA", "Bradford": "BD1 1AA",
+                }[city],
                 "United Kingdom",
                 
                 # Travel History
@@ -747,7 +771,8 @@ ORDER BY email;
                 
                 # Metadata
                 self.generate_timestamp_utc(),
-                self.generate_timestamp_utc()
+                self.generate_timestamp_utc(),
+                "R-" + hashlib.sha256(str(ecid_val).encode()).hexdigest()[:32]
             )
             profiles.append(profile)
         
@@ -1133,6 +1158,10 @@ ORDER BY email;
     
     def insert_base_profiles(self, base_profiles):
         """Insert base profile data into Snowflake"""
+        self.cursor.execute("""
+            ALTER TABLE AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE
+            ADD COLUMN IF NOT EXISTS RECIPIENT_ID VARCHAR(64)
+        """)
         insert_sql = """
         INSERT INTO AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE (
             CRMID, ECID, EMAIL, EMAILIDSHA256, GAID, LOYALTYID, PASSPORTID, PHONENUMBER, PUSHTOKENS, STACKCHATID,
@@ -1144,13 +1173,19 @@ ORDER BY email;
             TESTPROFILE,
             _RECORDCREATEDTIMESTAMP, _RECORDUPDATEDTIMESTAMP,
             PERSON_NAME_COURTESYTITLE, PERSON_NAME_SUFFIX, PERSON_NAME_FULLNAME,
-            PERSON_BIRTHDAY, PERSON_BIRTHMONTH, PERSON_BIRTHYEAR, PERSON_BIRTHDAYANDMONTH
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            PERSON_BIRTHDAY, PERSON_BIRTHMONTH, PERSON_BIRTHYEAR, PERSON_BIRTHDAYANDMONTH, RECIPIENT_ID
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, base_profiles)
+        rows = [tuple(profile) + ("R-" + hashlib.sha256(str(profile[1]).encode()).hexdigest()[:32],)
+                for profile in base_profiles]
+        self.cursor.executemany(insert_sql, rows)
     
     def insert_profiles(self, profiles):
         """Insert profile data into Snowflake"""
+        self.cursor.execute("""
+            ALTER TABLE AGENTIC_TRAVEL_PROFILE_CUSTOMER
+            ADD COLUMN IF NOT EXISTS RECIPIENT_ID VARCHAR(64)
+        """)
         insert_sql = """
         INSERT INTO AGENTIC_TRAVEL_PROFILE_CUSTOMER (
             crmId, ecid, email, emailIdSha256, gaid, loyaltyId, passportId, phoneNumber, pushTokens, stackchatId,
@@ -1161,8 +1196,8 @@ ORDER BY email;
             preferredCabinClass, preferredSeatType, mealPreference, specialAssistance,
             lifetimeValue, averageBookingValue, totalBookings, customerSegment,
             testProfile,
-            _recordCreatedTimestamp, _recordUpdatedTimestamp
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            _recordCreatedTimestamp, _recordUpdatedTimestamp, recipient_id
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         self.cursor.executemany(insert_sql, profiles)
         

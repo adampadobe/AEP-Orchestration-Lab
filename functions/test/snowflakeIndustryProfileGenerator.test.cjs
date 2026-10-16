@@ -36,6 +36,15 @@ describe('Snowflake industry CRM profile registry', () => {
       assert.equal(generated.rowObject.FIRSTNAME, 'Avery');
       assert.equal(generated.rowObject.LASTNAME, 'Tester');
       assert.equal(generated.rowObject.TESTPROFILE, true);
+      assert.equal(generated.rowObject.RECIPIENT_ID,
+        require('../snowflakeRecipientFactory').getRecipientId(industry, INPUT.crmId, INPUT.ecid));
+      assert.ok(Array.isArray(generated.rowObject.PUSHTOKENS));
+      assert.match(generated.rowObject.PRIMARYPHONE, /^\+447\d{9}$/);
+      assert.equal(generated.rowObject.ADDRESSCOUNTRY, 'United Kingdom');
+      assert.ok([
+        'SW1A 1AA', 'M1 1AE', 'B1 1AA', 'LS1 1UR', 'G1 1AA',
+        'L1 1AA', 'EH1 1AA', 'BS1 1AA',
+      ].includes(generated.rowObject.ADDRESSPOSTALCODE));
       assert.equal(generated.rowObject._RECORDCREATEDTIMESTAMP, '2026-07-22 10:20:30.000');
       for (const column of config.columns) {
         assert.ok(Object.prototype.hasOwnProperty.call(generated.rowObject, column), `${industry}.${column}`);

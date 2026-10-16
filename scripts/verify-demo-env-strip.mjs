@@ -64,6 +64,7 @@ const SITE_CLONE_DEMO_HTML = [
   'mod-demo.html',
   'premier-inn-demo.html',
   'etihad-demo.html',
+  'riyadh-air-demo.html',
   'qia-demo.html',
   'ksia-demo.html',
   'starbucks-demo.html',
@@ -93,6 +94,7 @@ const SITE_CLONE_DEMO_JS = [
   'mod-demo.js',
   'premier-inn-demo.js',
   'etihad-demo.js',
+  'riyadh-air-demo.js',
   'qia-demo.js',
   'demos/ksia/ksia-lab-core.js',
   'demos/alshaya/starbucks/starbucks-lab-core.js',
@@ -168,7 +170,7 @@ const FORBIDDEN_LOADER_SCRIPT_BASENAMES = [
 
 function htmlHasForbiddenLoaderScript(html) {
   for (const base of FORBIDDEN_LOADER_SCRIPT_BASENAMES) {
-    if (new RegExp('<script[^>]+src="[^"]*' + base.replace(/\./g, '\\.') + '"', 'i').test(html)) {
+    if (new RegExp('<script[^>]+src="[^"]*' + base.replace(/\./g, '\\.') + '(?:\\?[^"]*)?"', 'i').test(html)) {
       return base;
     }
   }
@@ -286,9 +288,19 @@ for (const rel of SANDBOX_ONLY_ENV_BAR_HTML) {
 }
 
 for (const rel of walkHtml(pv)) {
+  const html = read(rel);
+  if (/<script[^>]+src=["'][^"']*shared\/env-bar\.js/.test(html)) {
+    if (!html.includes(`env-bar.js?v=${ENV_BAR_MANIFEST}`)) {
+      fail(`${rel}: shared loader version must match ${ENV_BAR_MANIFEST}`);
+    }
+    if (/<link[^>]+href=["'][^"']*(?:demo-env-bar\.bundle|demo-env-bar-spectrum|env-bar-compact)\.css/.test(html)) {
+      fail(`${rel}: env bar CSS must be loaded only by ${ENV_BAR_JS}`);
+    }
+    const forbidden = htmlHasForbiddenLoaderScript(html);
+    if (forbidden) fail(`${rel}: must not preload ${forbidden} alongside ${ENV_BAR_JS}`);
+  }
   if (isEnvStripException(rel) || SITE_CLONE_DEMO_HTML.includes(rel)) continue;
   if (MINIMAL_ENV_BAR_HTML.includes(rel) || SANDBOX_ONLY_ENV_BAR_HTML.includes(rel)) continue;
-  const html = read(rel);
   if (/href="[^"]*\/aep-demo-env-bar\.css/.test(html) || /href="aep-demo-env-bar\.css/.test(html)) {
     fail(`${rel}: must not load aep-demo-env-bar.css directly — use shared/env-bar.js`);
   }
