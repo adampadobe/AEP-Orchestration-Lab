@@ -23,6 +23,7 @@ function element() {
     addEventListener(name, handler) { listeners[name] = handler; },
     querySelectorAll() { return []; },
     scrollIntoView() {},
+    reportValidity() { return true; },
   };
   let text = '';
   Object.defineProperty(node, 'textContent', {
@@ -42,6 +43,9 @@ function fixture() {
   let token = async () => 'fixture-token';
   let selected = [];
   let authChanged;
+  let prefs = { baseEmail: 'demo@example.com', counterN: 7, nextScaledEmail: 'demo+16102026-7@example.com' };
+  let readPrefs = async () => prefs;
+  let savePrefs = async (patch) => ({ ok: true, prefs: { ...prefs, ...patch } });
   let respond = async () => ({ ok: true, json: async () => ({ result: { ok: true, profiles: [] } }) });
   const auth = {
     get currentUser() { return { uid, email: 'fixture@adobe.com', isAnonymous: false, getIdToken: () => token() }; },
@@ -67,6 +71,12 @@ function fixture() {
     },
     window: {
       firebase: { auth: () => auth }, confirm: () => true,
+      AepProfileGenPrefsSync: {
+        pull: () => readPrefs(),
+        savePatch: (patch) => savePrefs(patch),
+        getSyncState: () => ({ status: 'error', error: 'fixture load error' }),
+        notifyChange() {},
+      },
       addEventListener: (name, handler) => { events[name] = handler; eventTargets[name] = 'window'; },
     },
     fetch: async (url, options) => {
@@ -79,6 +89,7 @@ function fixture() {
       history: safeGetBaseBatchHistory, append: appendBaseBatchHistory,
       load: loadProfiles, enrich: enrichSelected, generate: generateProfiles, generateClick: handleGenerateClick,
       catalog: loadIndustryCatalog, render: renderProfileRows,
+      loadEmail: loadEmailPrefs, saveEmail: saveEmailPrefs,
       profiles: function () { return loadedProfiles; } };
   })();`);
   runInNewContext(instrumented, context);
@@ -89,6 +100,9 @@ function fixture() {
     user(value) { uid = value; },
     token(fn) { token = fn; },
     respond(fn) { respond = fn; },
+    readPrefs(fn) { readPrefs = fn; },
+    savePrefs(fn) { savePrefs = fn; },
+    readyEmail() { return context.ui.loadEmail(); },
     async start() { events.DOMContentLoaded(); await flush(); },
     authChanged() { authChanged(); },
     selectFirst() {
@@ -198,6 +212,7 @@ test('retained rows cannot be enriched after a target change even before its not
 
 test('late generation success neither renders nor stores a batch in the next user context', async () => {
   const f = fixture();
+  await f.readyEmail();
   let finish;
   f.respond(() => new Promise((resolveRequest) => { finish = resolveRequest; }));
   f.ui.generate();
@@ -248,6 +263,7 @@ test('Portal identity changes clear the previous user selection, result and cred
 
 test('saving a connection blocks generation until the target change is confirmed', async () => {
   const f = fixture();
+  await f.readyEmail();
   f.nodes.get('sfAccount').value = 'fixture-account';
   f.nodes.get('sfUser').value = 'fixture-user';
   let finishSave;
@@ -264,4 +280,59 @@ test('saving a connection blocks generation until the target change is confirmed
   finishSave({ ok: false, json: async () => ({ error: 'fixture save denied' }) });
   await flush();
   assert.equal(f.nodes.get('sfGenerateBtn').disabled, false);
+});
+
+test('email preferences gate generation until saved and send the saved base as a precondition', async () => {
+  const f = fixture();
+  f.ui.generate();
+  await flush();
+  assert.equal(f.calls.length, 0);
+  await f.readyEmail();
+  assert.equal(f.nodes.get('sfEmailCounter').textContent, '7');
+  assert.equal(f.nodes.get('sfGenerateBtn').disabled, false);
+  f.nodes.get('sfBaseEmail').value = 'new@example.com';
+  f.nodes.get('sfBaseEmail').listeners.input();
+  assert.equal(f.nodes.get('sfGenerateBtn').disabled, true);
+  f.ui.generate();
+  assert.equal(f.calls.length, 0);
+  f.ui.saveEmail(false);
+  await flush();
+  f.ui.generate();
+  await flush();
+  assert.equal(f.calls[0].body.expectedBaseEmail, 'new@example.com');
+});
+
+test('missing settings, load failures and save errors do not allow generation', async () => {
+  for (const prefs of [null, { baseEmail: '', counterN: 1, nextScaledEmail: '' }]) {
+    const f = fixture();
+    f.readPrefs(async () => prefs);
+    await f.readyEmail();
+    assert.equal(f.nodes.get('sfGenerateBtn').disabled, true);
+  }
+  const f = fixture();
+  await f.readyEmail();
+  f.nodes.get('sfBaseEmail').value = 'new@example.com';
+  f.nodes.get('sfBaseEmail').listeners.input();
+  f.savePrefs(async () => ({ ok: false, error: 'offline' }));
+  f.ui.saveEmail(false);
+  await flush();
+  assert.equal(f.nodes.get('sfBaseEmail').value, 'new@example.com');
+  assert.match(f.nodes.get('sfEmailStatus').textContent, /offline/);
+  assert.equal(f.nodes.get('sfGenerateBtn').disabled, true);
+});
+
+test('late email loads cannot populate the next account or sandbox', async () => {
+  const f = fixture();
+  let resolveOld;
+  f.readPrefs(() => new Promise((resolveRequest) => { resolveOld = resolveRequest; }));
+  const old = f.readyEmail();
+  f.user('user-b');
+  f.readPrefs(async () => ({ baseEmail: '', counterN: 1, nextScaledEmail: '' }));
+  f.ui.reset();
+  resolveOld({ baseEmail: 'old@example.com', counterN: 99, nextScaledEmail: 'old+99@example.com' });
+  await old;
+  await flush();
+  assert.equal(f.nodes.get('sfBaseEmail').value, '');
+  assert.equal(f.nodes.get('sfEmailCounter').textContent, '1');
+  assert.equal(f.nodes.get('sfGenerateBtn').disabled, true);
 });

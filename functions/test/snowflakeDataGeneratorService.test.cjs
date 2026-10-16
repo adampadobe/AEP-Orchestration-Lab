@@ -21,7 +21,7 @@ const { scaleEmail } = require('../labProfileGenerationPrefsStore');
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
 
-function serviceWithConnection(rowsForSql = () => [], { allocator = true } = {}) {
+function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEmail = 'demo@example.com' } = {}) {
   const calls = [];
   let destroyed = false;
   let emailCounter = 0;
@@ -57,7 +57,17 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true } = {})
         }),
       };
       if (id === './labProfileGenerationPrefsStore') return {
+        getPrefs: async () => ({ baseEmail }),
+        isValidEmail: (email) => !!email,
         reserveNextEmail: async () => ({ scaledEmail: `demo+${++emailCounter}@example.com` }),
+        reserveEmails: async (_uid, _sandbox, count, options) => {
+          assert.equal(options.expectedBaseEmail, baseEmail);
+          const first = emailCounter + 1;
+          const emails = Array.from({ length: count }, () => ({
+            scaledEmail: `demo+${++emailCounter}@example.com`, counterN: emailCounter,
+          }));
+          return { emails, baseEmail, counterN: first, nextCounterN: emailCounter + 1, counterDate: '20261016' };
+        },
       };
       return originalRequire(id);
     },
@@ -66,6 +76,20 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true } = {})
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('rejects missing or stale email preferences before connecting or reserving IDs', async () => {
+    for (const baseEmail of ['', 'new@example.com']) {
+      const fixture = serviceWithConnection(undefined, { baseEmail });
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline-user', sandbox: 'test', industry: 'retail', count: 2,
+        expectedBaseEmail: 'old@example.com',
+      });
+      assert.equal(result.ok, false);
+      assert.match(result.error.code, /EMAIL_PREFS_/);
+      assert.equal(fixture.calls.length, 0);
+      assert.equal(fixture.reservedEmailCount(), 0);
+    }
+  });
+
   it('requires the migrated sequence before reserving emails or writing any profile data', async () => {
     const fixture = serviceWithConnection(undefined, { allocator: false });
     const result = await fixture.service.handleGenerateIndustryProfiles({
@@ -107,6 +131,9 @@ describe('Snowflake seed API offline integration', () => {
       assert.equal(result.tableRowcounts[result.recipientTable], 2);
       assert.ok(Object.keys(result.tableRowcounts).length > 2);
       assert.equal(result.profiles[0].recipientId, result.profiles[0].columns.RECIPIENT_ID);
+      assert.equal(result.emailAllocation.nextCounterN, 3);
+      assert.equal(result.profiles[1].emailCounterN, 2);
+      assert.equal(fixture.reservedEmailCount(), 2);
       assert.equal(fixture.calls.at(-1).sqlText, 'COMMIT');
       assert.equal(fixture.isDestroyed(), true);
     }
@@ -124,6 +151,7 @@ describe('Snowflake seed API offline integration', () => {
     });
     assert.equal(result.ok, false);
     assert.match(result.error.message, /injected source write failure/);
+    assert.ok(result.error.hints.some((hint) => /reserved.*not be reused/.test(hint)));
     assert.equal(fixture.calls.at(-1).sqlText, 'ROLLBACK');
     assert.equal(fixture.isDestroyed(), true);
   });
