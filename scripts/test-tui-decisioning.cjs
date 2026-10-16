@@ -143,7 +143,6 @@ async function main() {
     assert.deepEqual(unexpected, [], 'Simulation must make no external or API requests');
     await context.close();
     const shellContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    await shellContext.addInitScript(() => localStorage.setItem('aepGlobalSandboxName', 'kirkham'));
     const shellCalls = [];
     let rejectGeneric = false, delayNextLookup = false;
     const fixture = {
@@ -213,6 +212,7 @@ async function main() {
     shell.on('pageerror', error => errors.push(error.message));
     await shell.goto(origin + '/profile-viewer/tui-decisioning-demo.html?channel=web');
     await shell.waitForFunction(() => !!window.TuiDecisioningDrawer, null, { timeout: 30000 });
+    assert.equal(await shell.evaluate(() => window.AepGlobalSandbox.getSandboxName()), 'kirkham', 'A fresh TUI browser defaults to kirkham');
     const minimize = shell.getByRole('button', { name: 'Minimize configuration panels', exact: true });
     if (await minimize.isVisible()) await minimize.click();
     const frame = shell.frameLocator('#tui-visualiser');
@@ -328,6 +328,10 @@ async function main() {
     await shell.locator('#customerEmail').fill('third@example.invalid');
     await shell.waitForTimeout(750);
     assert.equal(await shell.locator('#tuiPhSignal-booking').textContent(), 'Not loaded', 'Late lookup cannot restore the previous profile');
+    await shell.evaluate(() => window.AepGlobalSandbox.setSelected('apalmer'));
+    await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Select kirkham before Run'));
     await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     await shell.locator('#tui-visualiser').contentFrame().locator('html[data-aep-theme="dark"]').waitFor();
     assert.equal(await frame.locator('html').getAttribute('data-aep-theme'), 'dark');

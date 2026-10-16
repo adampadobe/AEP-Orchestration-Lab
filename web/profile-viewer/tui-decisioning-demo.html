@@ -72,13 +72,16 @@
       window.addEventListener('popstate',function(){frame.contentWindow.postMessage({type:'tui-set-channel',channel:new URLSearchParams(location.search).get('channel')||'email'},location.origin);});
     })();
     window.envBarConfig = {
-      prefix: 'tuiDecisioning', variant: 'spectrum', localOverride: true, firestoreListen: false,
+      prefix: 'tuiDecisioning', variant: 'spectrum', defaultSandbox: 'kirkham', localOverride: true, firestoreListen: false,
       features: { webPush: false, bc: false, target: false, decisioning: true },
       iframeIds: ['tui-visualiser'],
       decisioning: { iframeId: 'tui-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
         autoRunDecisioning: false, viewName: 'TUI Decisioning' },
-      labCoreScript: 'tui-decisioning-demo.js?v=20261016-shell'
+      labCoreScript: 'tui-decisioning-demo.js?v=20261016-kirkham'
     };
+    if (!window.AepGlobalSandbox.getSelected()) {
+      window.AepGlobalSandbox.setSelected('kirkham', { source: 'tui-demo-default' });
+    }
   </script>
   <script src="decisioning-persona-journey.js?v=20261016"></script>
   <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>

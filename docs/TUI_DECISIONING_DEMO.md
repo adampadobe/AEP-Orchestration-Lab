@@ -47,6 +47,10 @@ the drawer, dialogs and signals and discard late responses.
 the selected journey view in `decisioningPersonaJourneyView`. Channel deep
 links and history remain aligned between shell and iframe.
 
+The shell defaults a new browser context to `kirkham` without overwriting an
+existing sandbox selection. Apply and Run both reject other sandboxes because
+the provisioned TUI catalog belongs to `kirkham`.
+
 **Apply** is explicit and restricted to test profiles. It fetches current full
 writable snapshots, overlays only staged fields and validates them against the
 exact current owning schema version before streaming. It does not provision

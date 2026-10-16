@@ -112,6 +112,7 @@
     const ctx = context(), token = version; busy = true;
     let accepted = 0;
     try {
+      if (ctx.sandbox !== 'kirkham') throw new Error('This TUI catalog targets kirkham. Select kirkham before Apply.');
       if (pending) { await confirm(ctx, token); return; }
       message('Validating test profile and full writable snapshots...');
       const latest = await table(ctx, token);
@@ -149,6 +150,7 @@
     const ctx = context(), token = version, changedAt = revision; busy = true;
     message('Checking profile and consent before live decision...');
     try {
+      if (ctx.sandbox !== 'kirkham') throw new Error('This TUI catalog targets kirkham. Select kirkham before Run.');
       if (pending) await confirm(ctx, token);
       if (edited.size) throw new Error('Apply staged changes before Run.');
       if (!loaded) throw new Error('Look up the current test profile before Run.');
