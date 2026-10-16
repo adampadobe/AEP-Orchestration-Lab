@@ -64,14 +64,19 @@ body.home-dashboard-concierge {
 .sig.collapsed > .ctl { display: none; }
 .sig.collapsed .sig-head { margin-bottom: 0; }
 .ctl { margin: 0 0 4px; }
-.ctl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+.ctl-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 8px; margin-bottom: 2px; }
 .ctl-label { font-size: 12.5px; font-weight: 500; }
-.ctl-attr { font-family: ui-monospace, monospace; font-size: 10px; color: var(--dash-muted); overflow-wrap: anywhere; }
+.ctl-attr { flex-basis: 100%; min-width: 0; order: 2; font-family: ui-monospace, monospace; font-size: 10px; color: var(--dash-muted); overflow-wrap: anywhere; }
 .toggle-pill { display: flex; flex-wrap: wrap; gap: 1px; background: var(--dash-surface-alt); border-radius: 16px; padding: 2px; }
 .toggle-opt { padding: 3px 9px; border-radius: 14px; border: 0; background: none; font-size: 12.5px !important; color: var(--dash-muted) !important; }
 .toggle-opt.active { background: var(--dash-surface); color: var(--dash-blue) !important; box-shadow: var(--dash-shadow); }
 .slider-val { color: var(--dash-blue); font-family: ui-monospace, monospace; font-size: 12px; }
 .ctl input[type="range"] { width: 100%; accent-color: var(--dash-blue); margin: 7px 0 0; }
+.ctl input[type="text"], .ctl input[type="number"] {
+  box-sizing: border-box; width: 100%; margin-top: 7px; padding: 7px 9px;
+  color: var(--dash-text); background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm);
+}
 .result { background: linear-gradient(135deg, var(--dash-nw-deep), var(--dash-nw-brand)); border-radius: 14px; padding: 10px 14px 12px; color: var(--dash-nw-white); min-width: 0; }
 .result-label { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dash-nw-tint); margin: 0 0 4px; }
 .block-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 6px; }

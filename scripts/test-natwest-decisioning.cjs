@@ -7,6 +7,10 @@ const vm = require('node:vm');
 const model = require('../web/profile-viewer/natwest-decisioning-model');
 const { getManifestForIndustry } = require('../functions/profileCoreV2Manifest');
 const root = path.resolve(__dirname, '..', 'web');
+const samples = path.resolve(__dirname, '..', '.github', 'skills', 'create-decisioning-demo', 'references');
+const profileSample = JSON.parse(fs.readFileSync(path.join(samples, 'operational-profile-sample.json'), 'utf8'));
+const eventSample = JSON.parse(fs.readFileSync(path.join(samples, 'operational-event-sample.json'), 'utf8'));
+const { resolveIndustryForPath } = require('../functions/industryAttributeMap');
 
 function fixture() {
   return {
@@ -19,34 +23,43 @@ function fixture() {
       { path: '_demoemea.industryFsi.primaryBankingChannel', value: 'mobile', valueType: 'string', writable: true, industry: 'fsi' },
       { path: '_demoemea.industryFsi.financialProducts.checking', value: 'true', valueType: 'boolean', writable: true, industry: 'fsi' },
       ...Object.entries(model.defaults).map(([name, value]) => ({
-        path: '_demoemea.' + model.pathFor(name), value, valueType: typeof value === 'number' ? 'number' : 'string',
-        writable: true, industry: name === 'prop' ? 'generic' : 'fsi',
+        path: (model.pathFor(name).startsWith('consents.') ? '' : '_demoemea.') + model.pathFor(name), value, valueType: typeof value,
+        writable: true, industry: model.industryFor(name),
       })),
     ],
   };
 }
-test('all banking fields have typed FSI manifest leaves; propensity remains generic', () => {
-  const manifest = getManifestForIndustry('fsi');
+test('every control matches the supplied profile sample type, stream owner and manifest', () => {
   for (const [name, value] of Object.entries(model.defaults)) {
-    assert.equal(manifest[model.pathFor(name)].type, typeof value === 'number' ? name === 'prop' ? 'number' : 'integer' : 'string');
-    assert.ok(manifest[model.pathFor(name)].title);
+    const field = model.pathFor(name);
+    const actual = field.split('.').reduce((obj, key) => obj[key], field.startsWith('consents.') ? profileSample : profileSample._demoemea);
+    assert.equal(typeof actual, typeof value, field);
+    assert.equal(resolveIndustryForPath('_otherTenant.' + field).industry, model.industryFor(name), field);
+    if (!field.startsWith('consents.')) {
+      const manifest = getManifestForIndustry(model.industryFor(name));
+      assert.equal(manifest[field].type, typeof value, field);
+    }
   }
+  assert.ok(!Object.keys(getManifestForIndustry('fsi')).some(field => field.startsWith('natwestDecisioning.')));
 });
-test('priority, contact safety, service permissions and exact cap/recency boundaries', () => {
+test('complaint priority, explicit consent, holdings and exact score/offer boundaries', () => {
   const evaluate = state => model.evaluate({ ...model.defaults, ...state }).winner?.id || null;
-  assert.equal(evaluate({ operations: 'fraud', cases: 'open' }), 'protect');
-  assert.equal(evaluate({ safe: 'no', operations: 'fraud' }), null);
-  assert.equal(evaluate({ consent: 'none', operations: 'fraud' }), null);
-  assert.equal(evaluate({ consent: 'service', cases: 'open', fatigue: 6 }), 'service');
-  assert.equal(evaluate({ consent: 'service' }), null);
-  assert.equal(evaluate({ fatigue: 2 }), 'convert');
-  assert.equal(evaluate({ fatigue: 3 }), null);
-  assert.equal(evaluate({ account: 'none', recency: 48 }), 'convert');
-  assert.equal(evaluate({ account: 'none', recency: 49 }), 'engage');
-  assert.equal(evaluate({ application: 'started', documents: 'required' }), 'prepare');
-  assert.equal(evaluate({ application: 'approved' }), 'complete');
-  assert.equal(evaluate({ account: 'savings', product: 'savings' }), 'engage');
-  assert.equal(evaluate({ available: 'no' }), 'engage');
+  assert.equal(evaluate({ churn: 80, cases: 'open' }), 'service');
+  for (const consent of ['n', 'p', 'unknown', '']) assert.equal(evaluate({ consent, cases: 'open' }), null);
+  assert.equal(evaluate({ personalisation: 'n' }), null);
+  assert.equal(evaluate({ churn: 65 }), 'protect');
+  assert.equal(evaluate({ churn: 64, prop: 65 }), 'convert');
+  assert.equal(evaluate({ prop: 64 }), 'engage');
+  assert.equal(evaluate({ checking: false, product: 'current' }), 'prepare');
+  assert.equal(evaluate({ savings: true }), 'complete');
+  assert.equal(evaluate({ savings: true, product: 'investment', prop: 35 }), 'grow');
+  assert.equal(evaluate({ savings: true, product: 'investment', prop: 34 }), 'engage');
+  assert.equal(evaluate({ available: 0, prop: 80 }), 'engage');
+  for (const product of ['current', 'savings', 'mortgage', 'loan', 'investment']) {
+    const state = { product, [product === 'current' ? 'checking' : product]: true };
+    assert.equal(evaluate(state), 'complete');
+  }
+  assert.equal(evaluate({ cases: 'Unrecognised status' }), 'service');
 });
 test('presets validate and NBA scores sum deterministically', () => {
   for (const [, preset] of model.scenarios) {
@@ -54,35 +67,37 @@ test('presets validate and NBA scores sum deterministically', () => {
     assert.deepEqual(a, model.evaluate(a.state));
     for (const candidate of a.candidates) assert.equal(candidate.score, Object.values(candidate.parts).reduce((a, b) => a + b, 0));
   }
-  assert.throws(() => model.validate({ fatigue: 3.2 }), /Invalid/);
-  assert.throws(() => model.validate({ account: 'Gold' }), /Invalid/);
+  assert.throws(() => model.validate({ available: 3.2 }), /Invalid/);
+  assert.throws(() => model.validate({ checking: 'true' }), /Invalid/);
+  assert.equal(model.validate({ account: 'Gold', prop: 85.25 }).account, 'Gold');
 });
 test('full industry snapshots preserve unrelated values and types, without cross-stream leakage', () => {
-  const data = fixture(), next = { ...model.defaults, account: 'savings', prop: 3 };
+  const data = fixture(), next = { ...model.defaults, account: 'Savings-linked', prop: 85.25, savings: true };
   const batch = model.buildSnapshots(data, next, model.defaults);
   assert.equal(batch.snapshots.length, 2);
   const fsi = batch.snapshots.find(group => group.industry === 'fsi').updates;
   assert.ok(fsi.some(update => update.path === 'industryFsi.primaryBankingChannel' && update.value === 'mobile'));
   assert.ok(fsi.some(update => update.path === 'industryFsi.financialProducts.checking' && update.value === true));
-  assert.ok(fsi.some(update => update.path === 'natwestDecisioning.accountType' && update.value === 'savings'));
+  assert.ok(fsi.some(update => update.path === model.pathFor('account') && update.value === 'Savings-linked'));
+  assert.ok(fsi.some(update => update.path === model.pathFor('savings') && update.value === true && update.valueType === 'boolean'));
   assert.ok(!fsi.some(update => update.path === 'scoring.core.propensityScore'));
   const generic = batch.snapshots.find(group => group.industry === 'generic').updates;
   assert.ok(generic.some(update => update.path === 'person.name.firstName' && update.value === 'Sam'));
   assert.ok(!generic.some(update => update.path.startsWith('natwestDecisioning.')));
-  assert.equal(model.differences(data.rows, batch.expected).length, 2);
+  assert.equal(model.differences(data.rows, batch.expected).length, 3);
   assert.throws(() => model.buildSnapshots(data, model.defaults, model.defaults), /No profile/);
   data.industries.fsi.writable = false;
   assert.throws(() => model.buildSnapshots(data, next, model.defaults), /setup/);
 });
-test('profile values are parsed by type, including legacy propensity and FSI account fallback', () => {
+test('profile values retain exact generic values without score scaling or invented account types', () => {
   const data = fixture();
-  data.rows = data.rows.filter(row => !row.path.includes('natwestDecisioning.accountType'));
+  data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('account')));
   data.rows.find(row => row.path.endsWith('propensityScore')).value = '85';
-  assert.equal(model.readState(data.rows).account, 'current');
-  assert.equal(model.readState(data.rows).prop, 3);
-  for (const [score, expected] of [[0, 1], [34, 1], [35, 2], [65, 3]]) {
+  assert.equal(model.readState(data.rows).account, model.defaults.account);
+  assert.equal(model.readState(data.rows).prop, 85);
+  for (const score of [0, 1, 34.5, 35, 65, 12345.67]) {
     data.rows.find(row => row.path.endsWith('propensityScore')).value = score;
-    assert.equal(model.readState(data.rows).prop, expected);
+    assert.equal(model.readState(data.rows).prop, score);
   }
   assert.equal(model.scalar({ path: 'text', value: '123', valueType: 'string' }), '123');
   assert.throws(() => model.scalar({ path: 'number', value: 'oops', valueType: 'number' }), /Invalid/);
@@ -122,6 +137,7 @@ test('shared runtime manual-display mode never auto-renders; legacy callers reta
 test('browser: faithful panes, channels and fixture-only profile/decision lifecycle', { timeout: 120000 }, async t => {
   const { chromium } = require('playwright');
   let data = fixture(), missingSchema = false, lag = false, updateFailure = false, missingHero = false, mockLoader = true;
+  let wrongSchemaType = false, maximumScore = null;
   let badImage = false, decisionGate = null, decisionsRequested = 0, updateFailureIndustry = '';
   const eventTime = Date.now() - 60000;
   let drawerEvents = [
@@ -146,10 +162,14 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       for (const part of parts.slice(0, -1)) {
         current[part] ||= { type: 'object', properties: {} }; current = current[part].properties;
       }
-      current[parts.at(-1)] = { type: typeof value === 'number' ? 'number' : 'string' };
+      current[parts.at(-1)] = { type: typeof value };
+      if (name === 'account' && wrongSchemaType) current[parts.at(-1)].type = 'boolean';
+      if (name === 'prop' && maximumScore !== null) current[parts.at(-1)].maximum = maximumScore;
+      if (name === 'consent' || name === 'personalisation') current[parts.at(-1)].enum = ['y', 'n', 'p'];
     }
-    if (missingSchema) delete properties.natwestDecisioning.properties.accountType;
-    return { properties: { _demoemea: { properties } } };
+    const consents = properties.consents; delete properties.consents;
+    if (missingSchema) delete properties.individualCharacteristics.properties.fsi.properties.productOverview.properties.checkingAcctType;
+    return { properties: { consents, _demoemea: { properties } } };
   };
   const harness = `
     document.querySelector('[data-demo-env-strip-mount]').innerHTML =
@@ -199,6 +219,8 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       return json({ propositions: missingHero ? [] : [{
       id: 'fixture-hero', scope: 'web://fixture.invalid/profile-viewer/natwest-decisioning-visualiser.html#hero-banner',
       items: [{ id: 'fixture-item', schema: 'https://ns.adobe.com/personalization/html-content-item',
+        name: 'Fixture savings offer',
+        itemSelection: { selectionDetail: { strategyName: 'Fixture banking strategy', strategyID: 'fixture-strategy' } },
         data: { content: '<img src="' + image + '"><h2>Your live NatWest next step</h2><p>Fixture live banking content</p>' } }],
       scopeDetails: { activity: { id: 'fixture-activity' } }, title: 'Your live NatWest next step',
       image,
@@ -267,14 +289,18 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await page.getByRole('button', { name: 'Look up profile', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Test profile loaded'));
       await visual.locator('[data-group="profile"] .sig-head').click();
-      await visual.locator('[aria-labelledby="label-account"]').getByRole('button', { name: 'Savings', exact: true }).click();
+      await visual.locator('#input-account').fill('Savings-linked'); await visual.locator('#input-account').blur();
       await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
       assert.match(await page.locator('#nwProfileStatus').textContent(), /Apply staged/);
       missingSchema = true;
       await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Schema field missing'));
       assert.equal(writes.length, 0);
-      missingSchema = false; lag = true;
+      missingSchema = false; wrongSchemaType = true;
+      await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
+      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Schema type or allowed values'));
+      assert.equal(writes.length, 0);
+      wrongSchemaType = false; lag = true;
       await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Snapshots accepted'));
       assert.equal(writes.length, 1);
@@ -282,11 +308,16 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('not yet visible'));
       assert.equal(await page.evaluate(() => window.__decisions), 0);
-      data.rows.find(row => row.path.endsWith('natwestDecisioning.accountType')).value = 'savings'; lag = false;
+      data.rows.find(row => row.path.endsWith(model.pathFor('account'))).value = 'Savings-linked'; lag = false;
       await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
       await page.waitForFunction(() => window.__displays.length === 1);
       assert.equal(await visual.evaluate(() => document.getElementById('mailFrame').contentDocument.querySelector('h1').textContent), 'Your live NatWest next step');
       assert.equal(await page.evaluate(() => window.__displays[0].xdm.eventType), 'decisioning.propositionDisplay');
+      const display = await page.evaluate(() => window.__displays[0].xdm);
+      assert.equal(display._experience.decisioning.propositionEventType.display, 1);
+      assert.equal(typeof display._experience.decisioning.propositionEventType.display, typeof eventSample._experience.decisioning.propositionEventType.display);
+      assert.equal(display._experience.decisioning.propositions[0].items[0].name, 'Fixture savings offer');
+      assert.equal(display._experience.decisioning.propositions[0].items[0].itemSelection.selectionDetail.strategyName, 'Fixture banking strategy');
       await visual.getByRole('tab', { name: 'Web', exact: true }).click();
       assert.equal(await visual.locator('#webTitle').textContent(), 'Your live NatWest next step');
       assert.equal(await page.evaluate(() => window.__displays.length), 1);
@@ -329,7 +360,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     });
     await t.test('write failures are explicit; non-test profiles cannot write or decide', async () => {
       updateFailure = true;
-      await visual.locator('[aria-labelledby="label-account"]').getByRole('button', { name: 'Mortgage', exact: true }).click();
+      await visual.locator('#input-account').fill('Premier'); await visual.locator('#input-account').blur();
       await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Fixture update rejected'));
       updateFailure = false;
@@ -351,10 +382,16 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await page.locator('#customerEmail').fill('natwest-fixture@example.invalid');
       await page.getByRole('button', { name: 'Look up profile', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Test profile loaded'));
-      await visual.locator('[aria-labelledby="label-account"]').getByRole('button', { name: 'Savings', exact: true }).click();
-      await visual.locator('[aria-labelledby="label-prop"]').getByRole('button', { name: 'High', exact: true }).click();
+      await visual.locator('#input-account').fill('Savings-linked'); await visual.locator('#input-account').blur();
+      await visual.locator('[data-group="scores"] .sig-head').click();
+      await visual.locator('#input-prop').fill('85.25'); await visual.locator('#input-prop').blur();
       updateFailureIndustry = 'generic';
       const before = writes.length;
+      maximumScore = 80;
+      await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
+      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Schema type or allowed values'));
+      assert.equal(writes.length, before);
+      maximumScore = null;
       await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('update is partial'));
       assert.equal(writes.length, before + 2);
@@ -377,8 +414,33 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
         assert.equal(await visual.evaluate(() => document.documentElement.getAttribute('data-aep-theme')), dark ? 'dark' : null);
       }
     });
+    await t.test('boolean holdings and root consent write with their real types and no tenant consent duplicate', async () => {
+      await page.setViewportSize({ width: 1800, height: 1100 });
+      await page.mouse.move(1000, 100);
+      await page.getByRole('button', { name: 'Look up profile', exact: true }).click();
+      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Test profile loaded'));
+      await visual.locator('[data-group="holdings"] .sig-head').click();
+      await visual.locator('[aria-labelledby="label-savings"]').getByRole('button', { name: 'Yes', exact: true }).click();
+      const consentHead = visual.locator('[data-group="consent"] .sig-head');
+      if (await consentHead.getAttribute('aria-expanded') === 'false') await consentHead.click();
+      await visual.locator('#input-consent').fill('n'); await visual.locator('#input-consent').blur();
+      const before = writes.length;
+      await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
+      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Snapshots accepted'));
+      const updates = writes.slice(before).flatMap(write => write.updates);
+      assert.ok(updates.some(update => update.path === model.pathFor('savings') && update.value === true && update.valueType === 'boolean'));
+      assert.ok(updates.some(update => update.path === 'consents.marketing.email.val' && update.value === 'n'));
+      assert.ok(!updates.some(update => update.path.startsWith('_demoemea.consents.')));
+      assert.equal(await visual.locator('#mailEmpty').isVisible(), true);
+      const decisions = await page.evaluate(() => window.__decisions);
+      await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
+      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('requires explicit y consent'));
+      assert.equal(await page.evaluate(() => window.__decisions), decisions);
+    });
     await t.test('actual shared environment loader initializes the complete shell without live services', async () => {
       mockLoader = false; data = fixture();
+      data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('mortgage')));
+      Object.assign(data.rows.find(row => row.path.endsWith(model.pathFor('loan'))), { value: '', valueType: 'null' });
       const smoke = await browser.newPage({ viewport: { width: 1800, height: 1100 } });
       const smokeErrors = [];
       smoke.on('pageerror', error => smokeErrors.push(error.message));
@@ -403,8 +465,18 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await smoke.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
       assert.equal(await smoke.locator('#nwPhAccount').textContent(), 'Current account');
       assert.equal(await smoke.locator('#nwPhPhone').textContent(), '+440000000000');
-      assert.equal(await smoke.locator('#nwProfileHero [data-kpi="ops"] [data-v]').textContent(), 'Normal');
-      assert.equal(await smoke.locator('#nwProfileHero [data-kpi="intent"] [data-v]').textContent(), 'Browsed');
+      assert.equal(await smoke.locator('#nwProfileHero [data-kpi="offers"] [data-v]').textContent(), '2');
+      assert.equal(await smoke.locator('#nwProfileHero [data-kpi="interest"] [data-v]').textContent(), 'Savings');
+      assert.equal(await smoke.locator('#nwPhSignal-savings').textContent(), 'No');
+      assert.equal(await smoke.locator('#nwPhSignal-mortgage').textContent(), 'Not set');
+      assert.equal(await smoke.locator('#nwPhSignal-loan').textContent(), 'Not set');
+      assert.equal(await smoke.locator('#nwPhCase').textContent(), 'None');
+      await smoke.evaluate(() => {
+        const visual = document.getElementById('nwDecisioningFrame').contentWindow.NatwestDecisioningVisualiser;
+        visual.setState({ ...visual.getState(), account: 'Staged only' });
+        window.NatwestProfileHero.render();
+      });
+      assert.equal(await smoke.locator('#nwPhAccount').textContent(), 'Current account');
       assert.equal(await smoke.locator('.aep-profile-drawer-block--customer').isVisible(), false);
       assert.equal(await smoke.locator('#nwPhEcid').textContent(), data.ecid);
       assert.ok(await smoke.locator('#nwPhEcidReset button').count());

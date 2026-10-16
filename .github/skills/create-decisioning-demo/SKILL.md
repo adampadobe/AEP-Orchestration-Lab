@@ -45,10 +45,19 @@ Example request:
 3. Identify the main HTML, logo, useful product/lifestyle images, fonts, palette,
    typography, page structure, product names, offer copy and disclaimers. Inspect
    relevant text and a few representative assets, not every minified library.
-4. Search for an existing demo for this brand and its profile field definitions.
-   Honour explicit requested labels, options and attribute mappings. Reuse known
-   fields exactly; never claim to match an unavailable page. Ask for the missing
-   source if an exact match is required; otherwise state the inferred fields.
+4. Inspect supplied profile and event schemas before selecting controls. Start
+   with [the operational sample references](references/README.md) if no newer
+   files are provided. These are sample payloads, not Schema Registry definitions:
+   they establish paths and example types, not enums, ranges or required fields.
+   Reuse existing generic/industry fields; **never create a brand-named AEP
+   subtree** such as `natwestDecisioning.*` or copy legacy branded paths from a
+   sample. Brand names belong in presentation, not reusable data attributes.
+   Keep profile and event fields separate: an event-only application field is
+   not a profile control. If a requested signal has no matching profile field,
+   replace it with a relevant available field and adapt the rules, or obtain
+   approval to keep it explicitly local-only. Never relabel an unrelated field
+   to imply application, fraud, recency, contact safety or frequency facts.
+   Document every control's exact path, primitive type, owning dataflow and rule.
 5. Inspect existing shared shell, navigation and preview helpers for reusable
    patterns. Do not copy another customer's content, scoring or embedded images.
    No reference demo is an input requirement.
@@ -112,9 +121,11 @@ experience without requiring the user to request it separately:
   industry-specific chips and lifetime value. Below it, show compact propensity,
   churn and industry-relevant operational/intent KPI cards.
 - **Contact and consent:** email, phone, city and the customer's relevant industry
-  attributes, plus read-only Email/SMS/Push consent indicators. Banking includes
-  Account Type, application status, product intent and service case; substitute
-  the correct industry fields rather than retaining banking or airline labels.
+  attributes, plus read-only Email/SMS/Push consent indicators. Banking uses
+  checking Account Type, actual product-holding booleans, product interest,
+  complaint status, eligible offer count and content-personalisation consent.
+  Substitute only fields present in the supplied industry schema; do not retain
+  unsupported application, account-restriction or shopping-activity labels.
 - **Identity:** ECID with copy feedback and the shared New anonymous visitor
   control. Preserve its existing explicit-action behavior; never reset identity
   during initialization or profile lookup.
@@ -166,11 +177,18 @@ document the actual query parameters and persistence behavior.
 
 ### Profile and offers
 
-Choose relevant fields from the source brand and industry. For banking, start
-with Account Type, customer segment, product intent, recent activity, marketing
-permission, service case, contact safety and contact frequency; replace these
-with industry-appropriate fields for other brands. Do not reuse airline fields
-for banking or carry over unrelated customer attributes.
+Choose relevant **existing schema fields**, not fields inferred from website
+copy. The current banking mapping uses
+`individualCharacteristics.fsi.productOverview.*`,
+`individualCharacteristics.fsi.financialDetails.customerBehavior.productInterest`,
+`complaint.status`, `offersAndPromotions.eligibleOffers`, `scoring.core.*`,
+`scoring.churn.*`, and root `consents.*`. See the mapping table in
+`docs/NATWEST_DECISIONING_DEMO.md`. Preserve arbitrary schema-valid string values
+and exact numeric scores; do not compress scores to low/medium/high then write
+that lossy value back. Numeric thresholds and preset strings are explicitly
+local demo conventions, not schema constraints or model predictions.
+Keep booleans boolean, strings string, decimals intact, and root fields at root.
+Resolve tenant keys from the selected schema rather than hardcoding `_demoemea`.
 
 Include a few source-grounded offers and one service-first scenario when relevant.
 Use deterministic scoring with explicit eligibility, relevance contributions,
@@ -179,10 +197,15 @@ documented effect on the decision, displayed content or eligibility; do not add
 decorative fields with no behaviour. Explanations must describe the actual
 triggered signals, not assert intent/activity that is absent from the profile.
 
-Safety holds take precedence over service and promotional messages. Open service
-cases can suppress promotions and select service content if contact safety allows.
-Marketing opt-out and a documented frequency cap suppress marketing; they must
-not silently become consent for another channel. Show a clear no-content state
+Use only supported safety and service facts. An unresolved complaint can
+suppress promotions and select support content. Do not infer transactional
+permission from marketing opt-out: the current email-first preview requires
+explicit `y` for email marketing and content personalisation for every objective,
+including support. Other/unknown consent values hold content. Add frequency,
+recency or fraud gates only when a matching, sourced field exists. Never silently
+turn one channel's consent into permission for another. Require the relevant
+explicit consent in actual readback before a live decision; missing fields or
+illustrative defaults do not grant permission. Show a clear no-content state
 when nothing is eligible, and remove stale offer images and CTAs in every view.
 
 ### Channels
@@ -210,16 +233,26 @@ broken or placeholder links as working product journeys.
    in `CONTRIBUTING.md`. Do not invent a parallel strip or backend integration.
    Require `testProfile`, re-fetch the latest full writable industry snapshots,
    validate resolved schema types/enums before any writes, and verify ingestion
-   readback before evaluating. Add new tenant paths to the same-commit industry
-   manifest; explain that a Hosting preview does not release/provision Functions.
+   readback before evaluating. Preserve unrelated writable values and unchanged
+   mapped fields even with older ownership annotations. Use resolved schema
+   types/enums/ranges as the live gate, not the sample values. If reusing existing
+   tenant fields that the lab now streams, keep the same-commit industry manifest
+   and ownership map aligned; never use this as permission to provision a new
+   brand-specific schema. A Hosting preview does not release/provision Functions.
    Do not auto-write, auto-provision or auto-run decisions. Use the shared runtime
    manual-display mode: accept only a fresh, unambiguous hero-surface proposition,
    wait for the selected preview image to be visibly loaded, then send exactly
    one display notification using the original scope/metadata/request identity.
+   Preserve returned item IDs, names and selection metadata for event details;
+   never invent offer/strategy names. Validate event paths separately against the
+   event reference: standard `_experience.decisioning.*`, `identityMap` and
+   `web.webPageDetails.*` stay at root; tenant identification/channel/FSI fields
+   remain under the resolved tenant. Do not send profile control paths as events.
    Never count stale/fallback content or hidden preview mounts as a display.
 3. Run JavaScript syntax checks and `npm run verify:profile-viewer-routes`.
    Use browser tools or existing Playwright tooling to exercise presets, field
-   effects, ranking/ties, consent, safety, service priority, frequency boundaries,
+   effects, ranking/ties, consent, service priority, exact score/offer thresholds
+   (and frequency boundaries only when a sourced frequency control exists),
    all-held states, and restoring content after a hold. Check all channel deep
    links, tab keyboard behaviour and back/forward navigation.
 4. Visually inspect all channels in light/dark themes and narrow/desktop layouts.

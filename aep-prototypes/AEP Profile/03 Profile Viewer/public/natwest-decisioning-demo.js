@@ -66,14 +66,14 @@
     }
     section.replaceChildren();
     const values = loaded && model.readState(loaded.rows);
-    for (const [name, label] of [['account', 'Account Type'], ['application', 'Application status'], ['product', 'Product intent'], ['cases', 'Service case']]) {
+    for (const [name, label] of model.groups.flatMap(group => group[2])) {
       const row = document.createElement('div'); row.className = 'aep-profile-drawer-identity-row';
       const title = document.createElement('strong'); title.textContent = label;
       const value = document.createElement('span');
       value.id = 'nwDrawerDetail-' + name;
-      const present = loaded && loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name) ||
-        name === 'account' && /^industryFsi\.financialProducts\./.test(model.relativePath(row.path)) && model.scalar(row) === true);
-      value.textContent = values && present ? model.labels[values[name]] : loaded ? 'Not set' : 'Not loaded';
+      const present = loaded && loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name) && model.scalar(row) !== null);
+      value.textContent = values && present ? model.labelFor(values[name]) : loaded ? 'Not set' : 'Not loaded';
+      value.title = model.pathFor(name);
       row.append(title, value); section.appendChild(row);
     }
     global.dispatchEvent(new CustomEvent('natwest-drawer-signals-changed'));
@@ -82,8 +82,8 @@
     getSignals() {
       if (!loaded) return null;
       const state = model.readState(loaded.rows);
-      return Object.fromEntries(['operations', 'intent'].map(name => [
-        name, loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name)) ? state[name] : null,
+      return Object.fromEntries(Object.keys(model.fields).map(name => [
+        name, loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name) && model.scalar(row) !== null) ? state[name] : null,
       ]));
     },
   };
@@ -120,13 +120,13 @@
         await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
         current(ctx, version);
       }
-      const missingSignals = Object.values(model.fields).some(leaf =>
-        !loaded.rows.some(row => model.relativePath(row.path) === 'natwestDecisioning.' + leaf));
+      const missingSignals = Object.values(model.fields).some(path =>
+        !loaded.rows.some(row => model.relativePath(row.path) === path && model.scalar(row) !== null));
       message(testProfile(loaded) ? 'Test profile loaded. ' + (missingSignals ?
-        'Missing NatWest signals use illustrative defaults; Apply requires the FSI schema top-up.' : 'Signal changes are staged until Apply.') :
+        'Missing signals use illustrative defaults in the local simulation only; the drawer shows Not set. Apply checks the existing schema.' : 'Signal changes are staged until Apply.') :
         'Profile loaded read-only. Only AEP test profiles can be edited or used for this demo decision.');
     } catch (error) {
-      if (version === contextVersion) { loaded = null; loadedKey = ''; message(error.message, true); }
+      if (version === contextVersion) { loaded = null; loadedKey = ''; bankingDetails(); message(error.message, true); }
     } finally { busy = false; message(status.textContent, status.dataset.error === 'true'); }
   }
   async function preflight(data, groups, ctx, version) {
@@ -142,17 +142,25 @@
       current(ctx, version);
       const schema = result.platform_response;
       if (!schema || result.status >= 400 || !schema.properties) throw new Error('Could not read the resolved ' + group.industry + ' profile schema.');
-      const tenant = Object.keys(schema.properties).find(name =>
-        /^_[a-zA-Z0-9]+$/.test(name) && schema.properties[name].properties &&
-        schema.properties[name].properties[group.industry === 'fsi' ? 'natwestDecisioning' : 'scoring']);
       const changed = group.updates.filter(update => Object.hasOwn(group.expected, update.path));
       for (const update of changed) {
-        let leaf = tenant && schema.properties[tenant];
+        const rootField = update.path.startsWith('consents.');
+        const tenant = Object.keys(schema.properties).filter(name =>
+          /^_[a-zA-Z0-9]+$/.test(name) && schema.properties[name].properties &&
+          schema.properties[name].properties[update.path.split('.')[0]]);
+        if (!rootField && tenant.length > 1) throw new Error('Ambiguous schema tenant for ' + update.path + '.');
+        let leaf = rootField ? schema : tenant.length === 1 && schema.properties[tenant[0]];
         for (const part of update.path.split('.')) leaf = leaf && leaf.properties && leaf.properties[part];
         if (!leaf) throw new Error('Schema field missing: ' + update.path +
-          '. After the Functions manifest release, run FSI setup step 2 (Attach field groups / Profile Core v2 top-up). This demo does not provision schemas.');
-        const validType = typeof update.value === 'number' ? ['number', 'integer'].includes(leaf.type) : leaf.type === 'string';
-        if (!validType || Array.isArray(leaf.enum) && !leaf.enum.includes(update.value)) throw new Error('Schema type or allowed values do not match ' + update.path + '.');
+          '. Select a profile dataflow whose schema already contains this generic field. This demo does not provision schemas.');
+        const validType = typeof update.value === 'number' ?
+          leaf.type === 'number' || leaf.type === 'integer' && Number.isInteger(update.value) : leaf.type === typeof update.value;
+        const invalidRange = typeof update.value === 'number' &&
+          (typeof leaf.minimum === 'number' && update.value < leaf.minimum ||
+           typeof leaf.maximum === 'number' && update.value > leaf.maximum);
+        if (!validType || invalidRange || Array.isArray(leaf.enum) && !leaf.enum.includes(update.value)) {
+          throw new Error('Schema type or allowed values do not match ' + update.path + '.');
+        }
       }
     }
   }
@@ -226,6 +234,11 @@
     try {
       const data = await load(ctx, version);
       if (!testProfile(data)) throw new Error('Only AEP test profiles can be used for this demo decision.');
+      for (const name of ['consent', 'personalisation']) {
+        if (!data.rows.some(row => model.relativePath(row.path) === model.pathFor(name) && model.scalar(row) === 'y')) {
+          throw new Error('Live preview requires explicit y consent in ' + model.pathFor(name) + '. Missing values and local defaults do not grant consent.');
+        }
+      }
       const runtime = global.DecisioningProfileRuntime;
       if (!runtime || !runtime.supportsManualDisplay) throw new Error('The live decision runtime is not ready. Reload to load the updated shared runtime.');
       if (!await runtime.runProfileLookup({ skipHydrate: true })) throw new Error('Decision runtime profile lookup failed.');
@@ -249,7 +262,12 @@
           renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
           xdm: { eventType: 'decisioning.propositionDisplay', identityMap: result.manualDisplay.identityMap,
             _experience: { decisioning: {
-              propositions: [{ id: hero.proposition.id, scope: hero.proposition.scope, scopeDetails: hero.proposition.scopeDetails }],
+              propositions: [{ id: hero.proposition.id, scope: hero.proposition.scope, scopeDetails: hero.proposition.scopeDetails,
+                items: hero.proposition.items.map(item => ({
+                  id: item.id, ...(item.name ? { name: item.name } : {}),
+                  ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}),
+                })),
+              }],
               propositionEventType: { display: 1 },
             } } },
         });

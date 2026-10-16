@@ -36,7 +36,7 @@
       field.className = 'ctl';
       field.innerHTML = '<div class="ctl-top"><span class="ctl-label" id="label-' + name + '">' + escape(label) +
         '</span><span class="ctl-attr" title="' + model.pathFor(name) + '">' +
-        (name === 'prop' ? 'scoring.core' : 'natwestDecisioning') + '</span></div>';
+        escape(model.pathFor(name)) + '</span></div>';
       if (Array.isArray(choices)) {
         const pills = document.createElement('div');
         pills.className = 'toggle-pill';
@@ -54,15 +54,24 @@
         });
         field.appendChild(pills);
         controls.set(name, pills);
+      } else if (choices.text) {
+        const input = document.createElement('input');
+        input.id = 'input-' + name; input.type = 'text';
+        input.setAttribute('aria-labelledby', 'label-' + name);
+        input.addEventListener('change', () => { state[name] = input.value; update(); changed(); });
+        field.appendChild(input); controls.set(name, input);
       } else {
         const output = document.createElement('output');
         output.id = 'value-' + name; output.className = 'slider-val';
         output.htmlFor = 'input-' + name;
         field.querySelector('.ctl-top').appendChild(output);
         const slider = document.createElement('input');
-        slider.id = 'input-' + name; slider.type = 'range'; slider.min = choices.min; slider.max = choices.max; slider.step = 1;
+        slider.id = 'input-' + name; slider.type = 'number'; slider.min = choices.min; slider.step = choices.integer ? 1 : 'any';
         slider.setAttribute('aria-labelledby', 'label-' + name);
-        slider.addEventListener('input', () => { state[name] = Number(slider.value); update(); changed(); });
+        slider.addEventListener('change', () => {
+          if (!slider.value || !slider.checkValidity()) { slider.reportValidity(); slider.value = state[name]; return; }
+          state[name] = Number(slider.value); update(); changed();
+        });
         field.appendChild(slider);
         controls.set(name, slider);
       }
@@ -109,7 +118,7 @@
     $('nbaList').innerHTML = result.candidates.map((candidate, index) =>
       '<li class="nba' + (index ? '' : ' winner') + '"><span class="nba-rank">' + (index + 1) +
       '</span><div class="nba-main"><div class="nba-name">' + escape(candidate.title) + '</div><p class="nba-why">' +
-      escape(result.winner.title) + ' &middot; ' + escape(model.labels[state.product]) +
+      escape(result.winner.title) + ' &middot; ' + escape(model.labelFor(state.product)) +
       '</p><div class="bar"><i style="width:' + Math.min(100, candidate.score) + '%"></i></div><div class="comps">' +
       Object.entries(candidate.parts).map(([key, value]) => '<span>' + key + ' <b>' + value + '</b></span>').join('') +
       '</div></div><span class="nba-score">' + candidate.score + '</span></li>'
@@ -212,7 +221,10 @@
   function update() {
     result = model.evaluate(state);
     controls.forEach((control, name) => {
-      if (control.tagName === 'INPUT') { control.value = state[name]; $('value-' + name).value = state[name]; }
+      if (control.tagName === 'INPUT') {
+        control.value = state[name];
+        if ($('value-' + name)) $('value-' + name).value = state[name];
+      }
       else control.querySelectorAll('button').forEach(button => {
         const active = button.dataset.value === String(state[name]);
         button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active));

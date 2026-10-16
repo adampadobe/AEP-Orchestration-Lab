@@ -322,6 +322,8 @@ const HOTEL_EXPERIENCE_SUBTREE = {
  * direction.
  */
 const SHARED_TENANT_LEAVES = {
+  'complaint.status': STRING_LEAF('Complaint status'),
+  'offersAndPromotions.eligibleOffers': NUMBER_LEAF('Eligible offer count'),
   // Streamed from the shared runtime's `buildCustomerAnalyticsUpdates`
   // helper (the `churn` / `propensity` / `nps` / `aov` quad).
   'scoring.churn.churnPrediction': NUMBER_LEAF('churnPrediction'),
@@ -414,19 +416,13 @@ const INDUSTRY_EXTENSIONS = {
     // here. See functions/retailProfileInfraService.js for the FG resolver.
   },
   fsi: {
-    'natwestDecisioning.accountType': STRING_LEAF('Account Type'),
-    'natwestDecisioning.engagementStatus': STRING_LEAF('Engagement status'),
-    'natwestDecisioning.applicationStatus': STRING_LEAF('Application status'),
-    'natwestDecisioning.documentsStatus': STRING_LEAF('Documents status'),
-    'natwestDecisioning.accountStatus': STRING_LEAF('Account status'),
-    'natwestDecisioning.caseStatus': STRING_LEAF('Service case'),
-    'natwestDecisioning.productIntent': STRING_LEAF('Product intent'),
-    'natwestDecisioning.shoppingIntent': STRING_LEAF('Shopping intent'),
-    'natwestDecisioning.hoursSinceActivity': INT_LEAF('Hours since activity'),
-    'natwestDecisioning.productAvailability': STRING_LEAF('Product availability'),
-    'natwestDecisioning.consentLevel': STRING_LEAF('Contact permission'),
-    'natwestDecisioning.safeToContact': STRING_LEAF('Safe to contact'),
-    'natwestDecisioning.messages7d': INT_LEAF('Messages in 7 days'),
+    'individualCharacteristics.fsi.productOverview.checkingAcctType': STRING_LEAF('Checking account type'),
+    'individualCharacteristics.fsi.productOverview.checkingAcct': { type: 'boolean', title: 'Checking account held' },
+    'individualCharacteristics.fsi.productOverview.savingsAcct': { type: 'boolean', title: 'Savings account held' },
+    'individualCharacteristics.fsi.productOverview.mortgageHolder': { type: 'boolean', title: 'Mortgage held' },
+    'individualCharacteristics.fsi.productOverview.loansAcct': { type: 'boolean', title: 'Loan account held' },
+    'individualCharacteristics.fsi.productOverview.investmentAcct': { type: 'boolean', title: 'Investment account held' },
+    'individualCharacteristics.fsi.financialDetails.customerBehavior.productInterest': STRING_LEAF('Product interest'),
   },
   media: {
     // Media streams to `subscriptions.*` (root) and `industryMedia.*`

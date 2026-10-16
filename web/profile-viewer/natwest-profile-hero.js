@@ -38,19 +38,8 @@
   function scoreKpi(raw) {
     const n = Number(raw);
     if (raw === '' || !Number.isFinite(n)) return { value: '—', width: 0 };
-    const max = n <= 1 ? 1 : n <= 3 ? 3 : 100;
-    return { value: raw, width: pct(n, max) };
+    return { value: raw, width: pct(n, 100) };
   }
-  const OPS = {
-    normal: { label: 'Normal', tone: 'good', width: 100 },
-    restricted: { label: 'Restricted', tone: 'warn', width: 60 },
-    fraud: { label: 'Fraud alert', tone: 'bad', width: 100 },
-  };
-  const INTENT = {
-    none: { label: 'None', tone: 'mute', width: 0 },
-    browsed: { label: 'Browsed', tone: 'info', width: 35 },
-    abandoned: { label: 'Abandoned', tone: 'warn', width: 60 },
-  };
 
   const COPY_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 2a1 1 0 0 0-1 1v1H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1h1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5zm0 2h6v8H5V4zm-2 2h1v6a2 2 0 0 0 2 2h6v1H3V6z"/></svg>';
 
@@ -64,14 +53,18 @@
       '<div class="dph-clv"><small>Lifetime value</small><b id="nwPhLtv">—</b></div>' +
       '</div>' +
       '<div class="dph-kpis">' +
-      kpi('prop', 'Propensity') + kpi('churn', 'Churn risk') + kpi('ops', 'Operations') + kpi('intent', 'Shopping intent') +
+      kpi('prop', 'Propensity score') + kpi('churn', 'Churn prediction') + kpi('offers', 'Eligible offers') + kpi('interest', 'Product interest') +
       '</div>' +
       '<div class="dph-cols">' +
       '<div class="dph-card"><h3>Contact</h3><dl>' +
       '<dt>Email</dt><dd id="nwPhEmail">—</dd><dt>Phone</dt><dd id="nwPhPhone">—</dd>' +
-      '<dt>City</dt><dd id="nwPhCity">—</dd><dt>Account Type</dt><dd id="nwPhAccount">—</dd>' +
-      '<dt>Application</dt><dd id="nwPhApplication">—</dd><dt>Product intent</dt><dd id="nwPhProduct">—</dd>' +
-      '<dt>Service case</dt><dd id="nwPhCase">—</dd></dl>' +
+      '<dt>City</dt><dd id="nwPhCity">—</dd><dt>Account Type (checking)</dt><dd id="nwPhAccount">—</dd>' +
+      '<dt>Eligible offer count</dt><dd id="nwPhOffers">—</dd><dt>Product interest</dt><dd id="nwPhProduct">—</dd>' +
+      '<dt>Complaint status</dt><dd id="nwPhCase">—</dd>' +
+      ['checking', 'savings', 'mortgage', 'loan', 'investment', 'personalisation'].map(key => {
+        const control = global.NatwestDecisioningModel.groups.flatMap(group => group[2]).find(control => control[0] === key);
+        return '<dt>' + control[1] + '</dt><dd id="nwPhSignal-' + key + '">—</dd>';
+      }).join('') + '</dl>' +
       '<div class="dph-consent" aria-label="Marketing channel consent">' +
       ['Email', 'Sms', 'Push'].map(ch => '<span class="dph-tog" data-ch="' + ch + '"><span class="dph-box" aria-hidden="true"></span>' + (ch === 'Sms' ? 'SMS' : ch) + '</span>').join('') +
       '</div></div>' +
@@ -105,35 +98,35 @@
     doc.getElementById('nwPhLtv').textContent = text('profileDrawerLtv') || '—';
 
     const account = text('nwDrawerDetail-account');
-    const application = text('nwDrawerDetail-application');
     const product = text('nwDrawerDetail-product');
     const chips = [];
     if (account && account !== 'Not loaded') chips.push(account);
-    if (application && !['Not loaded', 'Not set'].includes(application)) chips.push(application);
     if (product && !['Not loaded', 'Not set'].includes(product)) chips.push(product);
     const chipsEl = doc.getElementById('nwPhChips');
     chipsEl.textContent = '';
     chips.forEach(label => { const s = doc.createElement('span'); s.className = 'dph-chip'; s.textContent = label; chipsEl.appendChild(s); });
 
-    const prop = scoreKpi(text('profileDrawerPropensityScore'));
-    setKpi('prop', prop.value, prop.width, 'good');
-    const churn = scoreKpi(text('profileDrawerChurnScore'));
-    setKpi('churn', churn.value, churn.width, 'warn');
     const banking = global.NatwestDecisioningDrawer && global.NatwestDecisioningDrawer.getSignals();
-    const ops = banking && banking.operations ? OPS[banking.operations] : null;
-    setKpi('ops', ops ? ops.label : '—', ops ? ops.width : 0, ops ? ops.tone : '');
-    const intent = banking && banking.intent ? INTENT[banking.intent] : null;
-    setKpi('intent', intent ? intent.label : '—', intent ? intent.width : 0, intent ? intent.tone : '');
+    const prop = scoreKpi(banking && banking.prop !== null ? String(banking.prop) : '');
+    setKpi('prop', prop.value, prop.width, 'good');
+    const churn = scoreKpi(banking && banking.churn !== null ? String(banking.churn) : '');
+    setKpi('churn', churn.value, churn.width, 'warn');
+    const offers = banking && banking.available;
+    setKpi('offers', offers === null || offers === undefined ? '—' : String(offers), offers > 0 ? 100 : 0, 'info');
+    setKpi('interest', product && !['Not set', 'Not loaded'].includes(product) ? product : '—', banking && banking.product ? 100 : 0, 'info');
 
     doc.getElementById('nwPhEmail').textContent = text('profileDrawerEmail') || '—';
     doc.getElementById('nwPhPhone').textContent = text('profileDrawerPhone') || '—';
     doc.getElementById('nwPhCity').textContent = city || '—';
     doc.getElementById('nwPhAccount').textContent = account || '—';
-    doc.getElementById('nwPhApplication').textContent = application || '—';
+    doc.getElementById('nwPhOffers').textContent = text('nwDrawerDetail-available') || '—';
     doc.getElementById('nwPhProduct').textContent = product || '—';
     doc.getElementById('nwPhCase').textContent = text('nwDrawerDetail-cases') || '—';
+    ['checking', 'savings', 'mortgage', 'loan', 'investment', 'personalisation'].forEach(key => {
+      doc.getElementById('nwPhSignal-' + key).textContent = text('nwDrawerDetail-' + key) || '—';
+    });
     doc.querySelectorAll('#nwProfileHero .dph-tog').forEach(tog => {
-      const on = checked('profileDrawerConsent' + tog.dataset.ch);
+      const on = tog.dataset.ch === 'Email' ? !!banking && banking.consent === 'y' : checked('profileDrawerConsent' + tog.dataset.ch);
       tog.classList.toggle('on', on);
       tog.setAttribute('aria-label', tog.textContent + (on ? ' consent: yes' : ' consent: no'));
     });

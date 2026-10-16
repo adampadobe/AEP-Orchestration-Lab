@@ -110,6 +110,7 @@ const RAW_PATH_OWNERSHIP = [
     industry: 'fsi',
     prefixes: [
       'industryFsi.',
+      'individualCharacteristics.fsi.',
       'personalFinances.',
       '<TENANT>industryFsi.',
       '<TENANT>individualCharacteristics.fsi.',
@@ -243,6 +244,8 @@ const RAW_PATH_OWNERSHIP = [
       'profilePlaceContext.',
       'identityMap.',
       'scoring.',
+      'complaint.',
+      'offersAndPromotions.',
       'media.',
       'interestTypes',
       'demoEnvironment.',
