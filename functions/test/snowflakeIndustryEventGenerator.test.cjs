@@ -71,6 +71,56 @@ describe('Snowflake industry event registry and generators', () => {
     assert.equal(generated.rowsByType.betting.length, 0);
   });
 
+  it('fsi generates funded personal loans with a repayment and future term end', () => {
+    const now = '2026-10-16T11:00:00.000Z';
+    const generated = generateIndustryEventRows('fsi', {
+      ...profiles.fsi, TOTALACCOUNTS: 7, HOUSEHOLDINCOME: 60000, MONTHLYCREDITSPEND: 500,
+    }, { now });
+    const products = generated.rowsByType.products;
+    const loan = products.find((row) => row.PRODUCT_TYPE === 'personal_loan');
+    assert.ok(loan, 'FSI products must include a loan scenario');
+    assert.ok(loan.BALANCE > 0);
+    assert.ok(loan.INTEREST_RATE > 0);
+    assert.ok(loan.MONTHLY_PAYMENT > loan.BALANCE * loan.INTEREST_RATE / 1200);
+    assert.ok(Date.parse(loan.TERM_END_DATE) > Date.parse(now));
+    assert.ok(products.length <= 7);
+    assert.equal(new Set(products.map((row) => row.ACCOUNT_NUMBER)).size, products.length);
+  });
+
+  it('fsi keeps low-account-count profiles within their account limit without forcing a loan', () => {
+    const generated = generateIndustryEventRows('fsi', {
+      ...profiles.fsi, TOTALACCOUNTS: 2,
+    }, { now: '2026-10-16T11:00:00.000Z' });
+    assert.deepEqual(generated.rowsByType.products.map((row) => row.PRODUCT_TYPE), ['current_account', 'savings']);
+  });
+
+  it('sports merchandise has stable product SKUs across recipients and distinct team/size variants', () => {
+    const options = { now: '2026-10-16T11:00:00.000Z' };
+    const products = new Map();
+    const skus = new Map();
+    for (const team of ['Arsenal', 'Liverpool']) {
+      for (const size of ['M', 'L']) {
+        for (let index = 0; index < 10; index += 1) {
+          const generated = generateIndustryEventRows('sports', {
+            ...profiles.sports, ECID: `sku-recipient-${index}`, FAVOURITETEAM: team,
+            JERSEYSIZEPREFERENCE: size,
+          }, options);
+          for (const order of generated.rowsByType.merchandise) {
+            for (const item of order.ITEMS) {
+              assert.match(item.sku, /^SKU-[a-f0-9]{32}$/);
+              const variant = JSON.stringify([team, item.name, item.size]);
+              if (products.has(variant)) assert.equal(item.sku, products.get(variant));
+              if (skus.has(item.sku)) assert.equal(variant, skus.get(item.sku));
+              products.set(variant, item.sku);
+              skus.set(item.sku, variant);
+            }
+          }
+        }
+      }
+    }
+    assert.equal(products.size, 20);
+  });
+
   it('sports bets reference generated fixtures without inventing source columns', () => {
     const generated = generateIndustryEventRows('sports', profiles.sports, { now: '2026-10-15T12:00:00Z' });
     const fixtures = new Map(generated.rowsByType.attendance.map((row) => [row.EVENT_ID, row]));
