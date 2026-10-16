@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20261015-recipient-workspace">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20261016-shared-email">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -321,6 +321,34 @@
             </header>
 
             <div class="sf-gen-form sf-gen-generate-form" id="sfGenerateForm" aria-busy="false">
+              <section class="sf-gen-email" aria-labelledby="sfEmailHeading">
+                <h4 id="sfEmailHeading">Recipient email</h4>
+                <p class="field-hint" id="sfEmailScope">Shared with Profile Generator and MCP for your account and sandbox.</p>
+                <div class="sf-gen-email-edit">
+                  <div class="form-group">
+                    <label for="sfBaseEmail">Base email</label>
+                    <input type="email" id="sfBaseEmail" maxlength="200" autocomplete="email" placeholder="you@example.com" aria-describedby="sfEmailScope sfEmailStatus" required />
+                  </div>
+                  <button type="button" id="sfEmailSave" class="btn btn-secondary">Save email</button>
+                  <button type="button" id="sfEmailRefresh" class="btn btn-link">Refresh</button>
+                </div>
+                <dl class="sf-gen-email-preview">
+                  <div><dt>Next counter (N)</dt><dd id="sfEmailCounter">Not loaded</dd></div>
+                  <div><dt>Next expected address</dt><dd id="sfEmailPreview">Save a base email to see the preview.</dd></div>
+                </dl>
+                <p id="sfEmailBatchPreview" class="field-hint"></p>
+                <p id="sfEmailStatus" class="field-hint" role="status" aria-live="polite">Loading saved email settings...</p>
+                <p class="field-hint">The counter resets at midnight UTC and is shared across industries. This preview does not reserve an address; another run may advance it. Failed runs can leave gaps.</p>
+                <details class="sf-gen-advanced">
+                  <summary>Advanced email counter</summary>
+                  <div class="sf-gen-advanced-body">
+                    <p class="field-hint">Lowering the counter can reuse addresses. Changing your base email does not reset it. Other accounts and sandboxes have independent counters.</p>
+                    <label for="sfEmailOverride">New next counter</label>
+                    <input type="number" id="sfEmailOverride" min="1" max="9007199254739991" step="1" value="1" />
+                    <button type="button" id="sfEmailOverrideApply" class="btn btn-secondary">Override counter...</button>
+                  </div>
+                </details>
+              </section>
               <div class="form-row form-row--inline">
                 <div class="form-group">
                   <label for="sfGenCount">How many recipients?</label>
@@ -399,6 +427,7 @@
                   <code id="sfGenResultTable" class="sf-gen-result-code">—</code>
                 </div>
                 <h4 class="sf-gen-result-title">Sample (first 3 rows generated)</h4>
+                <p id="sfEmailReceipt" class="field-hint"></p>
                 <pre id="sfGenResultSample" class="sf-gen-result-sample"></pre>
               </div>
 
@@ -488,6 +517,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20261015-recipient-workspace"></script>
+  <script src="profile-generation-prefs-sync.js?v=20261016-shared-email"></script>
+  <script src="profile-generation-snowflake.js?v=20261016-shared-email"></script>
 </body>
 </html>

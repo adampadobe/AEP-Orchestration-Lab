@@ -14,6 +14,36 @@ API calls are required. The CLI uses the same seed writer. Existing AEP flows
 remain separate and unchanged; map added recipient and relational fields
 explicitly before using them in Campaign Orchestration.
 
+### Shared recipient email settings
+
+**Recipient email** shows the saved base email, read-only next counter, and
+server-generated address previews before generation. Save edits explicitly;
+generation is blocked while settings are missing, unsaved, loading, or in error.
+Use **Refresh** after changes from another device. Returning to the page or
+receiving a cross-tab settings notification refreshes saved settings without
+discarding an unsaved email edit.
+
+The settings are shared with Profile Generator and MCP for the **same authenticated
+account and sandbox**, across industries. Counters reset at midnight **UTC**;
+changing the base email does not reset N. Different accounts or sandboxes have
+independent counters, so choosing the same base email does not guarantee global
+address uniqueness. Browser caches for signed-in users are account-scoped, and
+an empty server setting is not automatically populated from a legacy local cache.
+
+Preview requests do not reserve emails. Snowflake generation validates the saved
+email before preparing tables or reserving CRM IDs, then atomically reserves the
+whole batch against one base-email/date snapshot using the same Firestore counter
+as single-profile generation. If the saved email changes before reservation, the
+run stops rather than silently switching base addresses. Concurrent requests can
+advance N after a preview; each batch's actual email allocation is returned with
+the generated profiles and displayed in the result.
+
+**Advanced email counter** allows a confirmed reset/manual override, including on
+the standard Profile Generator. Lowering N can reuse addresses. Email reservations
+are independent of the Snowflake write transaction: failed writes can consume
+numbers, and retries never automatically rewind them. This email counter is
+separate from the Snowflake CRMID sequence.
+
 ### Generator context and relational subscription upgrade
 
 The recipient workspace separates **Generate linked demo data** from

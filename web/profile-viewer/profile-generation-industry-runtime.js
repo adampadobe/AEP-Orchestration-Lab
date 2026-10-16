@@ -2461,20 +2461,11 @@
         persistPrefsField({ mobilePhone: mobilePhoneEl.value || '' });
       });
     }
-    if (counterEl) {
-      counterEl.addEventListener('input', () => {
-        const n = parseInt(counterEl.value || '1', 10) || 1;
+    if (window.AepProfileGenPrefsSync) {
+      window.AepProfileGenPrefsSync.bindCounterOverride(counterEl, resetCounterBtn, (n) => {
+        counterEl.value = String(n);
         persistCounter(n);
-        persistPrefsField({ counterN: n });
         updateEmailPreview();
-      });
-    }
-    if (resetCounterBtn) {
-      resetCounterBtn.addEventListener('click', () => {
-        counterEl.value = '1';
-        persistCounter(1);
-        updateEmailPreview();
-        persistPrefsField({ resetCounter: true });
       });
     }
 

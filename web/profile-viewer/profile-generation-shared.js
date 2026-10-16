@@ -1,19 +1,21 @@
 /**
  * Profile Generation — shared cross-industry helpers.
  *
- * Owns the email scaler, the daily per-(sandbox, base email) counter, the
+ * Owns the UTC email scaler, the local counter cache, the
  * last-streamed cache, the recently-generated picker, and the per-sandbox
  * base email / base mobile persistence used by every industry-specific profile
  * generator module on this page (Generic, Travel, and industry-runtime panels).
  *
  * Exposes a single global `window.AepProfileGenShared` so each industry
- * module reads/writes the SAME counter and recent list — guaranteeing that
- * Generic and Travel can never produce the same scaled email twice in one
- * day for the same sandbox + base email.
+ * module reads/writes the SAME counter and recent list. Signed-in allocation
+ * uses the server's per-account/sandbox counter; local-only sessions retain
+ * a per-base-email counter and do not guarantee cross-device uniqueness.
  *
  * STORAGE KEY POLICY
  * ------------------
- * All keys live under the `profileGen` prefix:
+ * All keys live under the `profileGen` prefix. Signed-in sandbox keys include
+ * `:account:<uid>` and signed-in counter keys use `shared` instead of baseLower.
+ * Legacy anonymous keys remain:
  *
  *   profileGenBaseEmail:<sandbox>
  *   profileGenBaseMobile:<sandbox>
@@ -88,9 +90,9 @@
 
   function todayYmd(date) {
     const d = date instanceof Date ? date : new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
     return `${y}${m}${day}`;
   }
 
@@ -109,9 +111,9 @@
     const domain = s.slice(at + 1);
     if (!local || !domain) return '';
     const d = date instanceof Date ? date : new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const yyyy = d.getUTCFullYear();
     const counter = Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
     if (local.includes('+')) {
       return `${local}-${dd}${mm}${yyyy}-${counter}@${domain}`;
@@ -139,7 +141,10 @@
   // ---------- Storage key builders ----------
 
   function normSandbox(sandbox) {
-    return String(sandbox || '').trim() || 'default';
+    const name = String(sandbox || '').trim() || 'default';
+    const auth = window.firebase && window.firebase.auth && window.firebase.auth();
+    const user = auth && auth.currentUser;
+    return user && !user.isAnonymous ? `${name}:account:${encodeURIComponent(user.uid)}` : name;
   }
 
   function normBaseEmail(baseEmail) {
@@ -155,7 +160,10 @@
   }
 
   function counterStorageKey(sandbox, baseEmail, date) {
-    return `${PREFIX_NEW}Counter:${normSandbox(sandbox)}:${normBaseEmail(baseEmail)}:${todayYmd(date)}`;
+    const auth = window.firebase && window.firebase.auth && window.firebase.auth();
+    const user = auth && auth.currentUser;
+    const base = user && !user.isAnonymous ? 'shared' : normBaseEmail(baseEmail);
+    return `${PREFIX_NEW}Counter:${normSandbox(sandbox)}:${base}:${todayYmd(date)}`;
   }
 
   function lastStreamedKey(sandbox, baseEmail, date) {
