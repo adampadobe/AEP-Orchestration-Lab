@@ -26,6 +26,12 @@
     if (label === 'delay' || label === 'none') return label;
     return String(value);
   }
+  // Paths read by the sandbox's "Airline - NBA" eligibility rules. Airline loyalty is
+  // saved but not gated on: those rules read loyaltyDetails.level instead.
+  function isDecisionPath(path) {
+    return path.startsWith('britishAirwaysDecisioning.') || path === disruptionPath ||
+      path === bookingPath || path === 'scoring.core.propensityScore';
+  }
   function verificationDifferences(rows, expected) {
     const byPath = new Map(rows.map(row => [relativePath(row.path), row.value]));
     return expected.flatMap(update => {
@@ -101,7 +107,7 @@
     generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });
     return Array.from(groups, ([industry, updates]) => ({ industry, updates: Array.from(updates.values()) }));
   }
-  const api = { fields, disruptionPath, bookingPath, propensity, readPropensity, relativePath, normalizeDisruption, verificationDifferences, readState, buildSnapshots };
+  const api = { fields, disruptionPath, bookingPath, propensity, readPropensity, relativePath, normalizeDisruption, isDecisionPath, verificationDifferences, readState, buildSnapshots };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.BaDecisioningModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

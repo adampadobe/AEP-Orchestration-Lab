@@ -22,6 +22,7 @@ function setup(previous = 'none', previousIntent = 'none') {
     busy: false, loaded: data, loadedKey: JSON.stringify(ctx), prefix: 'baDecisioning',
     controlBaseline: { disruption: previous, intent: previousIntent }, appliedOperations: new Map(), appliedIntent: new Map(),
     dirty: true, pendingVerification: null,
+    ingestionToken: 0, ingestion: null, ingestionNote: '', confirmIngestion: async () => true,
     state: { disruption: previous, intent: previousIntent }, apply: {}, run: {},
     context: () => ctx, key: JSON.stringify, current() {},
     visualiser: () => ({ getState: () => ({ ...sandbox.state }) }),

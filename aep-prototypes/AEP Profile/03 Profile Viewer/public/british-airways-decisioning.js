@@ -61,6 +61,7 @@
   }
   function invalidate() {
     loaded = null; loadedKey = ''; controlBaseline = null; dirty = false; pendingVerification = null;
+    ingestionToken++; ingestion = null;
     syncPreviewRecipient(null);
     invalidateDecision('Profile or sandbox changed. Displayed hero is from the previous context; run a new live decision to replace it.');
     message('Look up the selected test profile before applying changes.');
@@ -70,6 +71,60 @@
     const differences = model.verificationDifferences(data.rows, pendingVerification);
     if (differences.length) console.warn('[ba-decisioning] Profile readback differs from saved values', differences);
     return differences.length === 0;
+  }
+  const ingestionTimeoutMs = 120000;
+  let ingestion = null;
+  let ingestionToken = 0;
+  let runWaiting = false;
+  let ingestionNote = '';
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  // Hub ingestion of streamed snapshots typically takes 30-60s; poll quietly instead of failing the Run.
+  function confirmIngestion(ctx) {
+    if (ingestion && ingestion.key === key(ctx)) return ingestion.promise;
+    const token = ++ingestionToken;
+    const started = Date.now();
+    const live = () => token === ingestionToken && pendingVerification && key(context()) === key(ctx);
+    const progress = () => {
+      if (!live() || (busy && !runWaiting)) return;
+      const seconds = Math.round((Date.now() - started) / 1000);
+      message(runWaiting
+        ? 'Waiting for AEP to confirm the profile update, then requesting the decision... ' + seconds + 's'
+        : 'Snapshots accepted by AEP.' + ingestionNote + ' Confirming the update in the profile... ' + seconds + 's');
+    };
+    const promise = (async () => {
+      let delay = 1500;
+      progress();
+      while (live()) {
+        try {
+          const data = await table(ctx);
+          if (!live()) return false;
+          if (verified(data)) {
+            pendingVerification = null;
+            loaded = data; loadedKey = key(ctx);
+            console.log('[ba-decisioning] Profile update confirmed in AEP after ' + Math.round((Date.now() - started) / 1000) + 's');
+            if (!runWaiting && !busy) message('Snapshots accepted and confirmed in the profile. Ready to run live image decision.');
+            global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false }).catch(() => {});
+            return true;
+          }
+        } catch (error) {
+          console.warn('[ba-decisioning] Profile confirmation check failed', error.message);
+          if (!live()) return false;
+        }
+        if (Date.now() - started >= ingestionTimeoutMs) {
+          if (!runWaiting && !busy) message('AEP is still processing the profile update. Run live image decision will check again.');
+          return false;
+        }
+        const ticker = setInterval(progress, 1000);
+        await sleep(delay);
+        clearInterval(ticker);
+        delay = Math.min(delay * 1.5, 6000);
+        progress();
+      }
+      return false;
+    })();
+    ingestion = { key: key(ctx), promise };
+    promise.finally(() => { if (ingestion && ingestion.promise === promise) ingestion = null; });
+    return promise;
   }
   async function lookup() {
     const ctx = context();
@@ -93,11 +148,10 @@
       syncPreviewRecipient(global.DemoProfileDrawer.getLastLookedUpProfile());
       if (tags) await tags.stitchAfterProfileLookup(global.DemoProfileDrawer.getLastLookedUpProfile(), ctx.identifier);
       const differences = ready ? [] : model.verificationDifferences(data.rows, pendingVerification);
+      if (!ready) console.info('[ba-decisioning] Awaiting AEP ingestion', differences);
       message(ready ? 'Profile loaded. Control changes are staged until Apply.' :
-        'AEP readback does not match the applied changes: ' + differences.map(item =>
-          item.path + ' (expected ' + JSON.stringify(item.expected) + ', received ' +
-          (item.actual === undefined ? 'missing' : JSON.stringify(item.actual)) + ')'
-        ).join('; ') + '. Decision not requested; the previous hero is unchanged. If these changes were just applied, allow time for ingestion and retry.', !ready);
+        'AEP is still processing the latest profile update; checking automatically.');
+      if (!ready) void confirmIngestion(ctx);
       return ready;
     } catch (error) {
       loaded = null; loadedKey = '';
@@ -248,6 +302,8 @@
     busy = true; message('Checking schema and building full writable snapshots...');
     invalidateDecision('Profile update in progress. Displayed hero unchanged until a successful live decision.');
     let accepted = 0;
+    let saved = false;
+    let trackingFailed = false;
     try {
       const latest = await table(ctx);
       const isTest = latest.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && String(row.value) === 'true');
@@ -262,9 +318,7 @@
       await preflightSchema(latest, ctx, savedState);
       if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('Loaded profile has no email identity for streaming.');
       const groups = model.buildSnapshots(latest.rows, savedState, latest.industries, controlBaseline);
-      const expected = groups.flatMap(group => group.updates).filter(update =>
-        update.path.startsWith('britishAirwaysDecisioning.') || update.path === 'airlineCustomer.loyaltyTier' ||
-        update.path === model.disruptionPath || update.path === model.bookingPath || update.path === 'scoring.core.propensityScore');
+      const expected = groups.flatMap(group => group.updates).filter(update => model.isDecisionPath(update.path));
       const shouldSendDisruption = savedState.disruption !== previousOperations && ['delay', 'cancelled'].includes(savedState.disruption);
       const disruptionEvent = shouldSendDisruption ? await prepareDisruptionEvent(latest, savedState.disruption, ctx) : null;
       const shouldSendIntent = savedState.intent !== previousIntent && ['searched', 'abandoned'].includes(savedState.intent);
@@ -279,7 +333,9 @@
         accepted++;
       }
       current(ctx);
+      ingestionToken++; ingestion = null; ingestionNote = '';
       pendingVerification = expected;
+      saved = true;
       controlBaseline = savedState;
       appliedOperations.set(key(ctx), savedState.disruption);
       appliedIntent.set(key(ctx), savedState.intent);
@@ -296,9 +352,11 @@
           console.log('[flight-disruption] Edge response', response);
           console.log('[flight-disruption] Disruption type sent', disruptionEvent.xdm._demoemea.flightDisruption.disruptionType);
           current(ctx);
-          message('Snapshots accepted by AEP. Flight disruption event sent: ' + disruptionEvent.xdm._demoemea.flightDisruption.disruptionType + '. Profile timeline ingestion may take 30-60 seconds.');
+          ingestionNote = ' Flight disruption event sent: ' + disruptionEvent.xdm._demoemea.flightDisruption.disruptionType + '.';
+          message('Snapshots accepted by AEP.' + ingestionNote);
         } catch (error) {
           console.error('[flight-disruption] Event send failed', error);
+          trackingFailed = true;
           message('Snapshots accepted by AEP, but flight disruption tracking failed: ' + error.message + '. No automatic retry.', true);
         }
       } else {
@@ -315,9 +373,11 @@
           console.log('[flight-search] Edge response', response);
           console.log('[flight-search] Event type sent', intentEvent.xdm.eventType);
           current(ctx);
-          message('Snapshots accepted by AEP. Flight search event sent: ' + intentEvent.xdm.eventType + '. Profile timeline ingestion may take 30-60 seconds.');
+          ingestionNote += ' Flight search event sent: ' + intentEvent.xdm.eventType + '.';
+          message('Snapshots accepted by AEP.' + ingestionNote);
         } catch (error) {
           console.error('[flight-search] Event send failed', error);
+          trackingFailed = true;
           message('Snapshots accepted by AEP, but flight intent tracking failed: ' + error.message + '. No automatic retry.', true);
         }
       } else {
@@ -328,6 +388,7 @@
     } catch (error) {
       message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. ' : '') + error.message, true);
     } finally { busy = false; apply.disabled = !loaded || !dirty; run.disabled = false; }
+    if (saved && !trackingFailed && pendingVerification) void confirmIngestion(ctx);
   }
   function imageFromMount() {
     const doc = frame.contentDocument;
@@ -446,6 +507,17 @@
     if (dirty) { message('Apply staged changes before running a decision.', true); return; }
     const ctx = context();
     const previewChannel = visualiser().getPreviewChannel();
+    if (pendingVerification && loadedKey === key(ctx)) {
+      busy = true; runWaiting = true; run.disabled = true; apply.disabled = true;
+      invalidateDecision('Waiting for AEP to confirm the profile update. Displayed hero unchanged.');
+      let confirmed = false;
+      try { confirmed = await confirmIngestion(ctx); } finally { runWaiting = false; busy = false; }
+      if (!confirmed) {
+        message('AEP is still processing the profile update. Try Run live image decision again in a moment.');
+        run.disabled = false; apply.disabled = !loaded || !dirty;
+        return;
+      }
+    }
     if (!await lookup()) {
       return;
     }

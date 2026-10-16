@@ -786,8 +786,9 @@ a lookup verifies every saved control field, including airline loyalty.
 After releasing the Functions changes through the normal PR gates, run Travel
 Profile Generation step 2 (attach field groups / Profile Core v2 top-up) in the
 intended sandbox. The demo's read-only schema preflight blocks writes until
-these fields exist. Acceptance is not readback: look up again after ingestion
-before running a new decision.
+these fields exist. Acceptance is not readback: after Apply the page polls the
+profile (up to 120 seconds) until the decision fields match, and Run live image
+decision waits for that confirmation before requesting a new decision.
 
 To add only the BA leaves to one sandbox before that release, use the governed
 script (dry run by default; `--via-proxy` uses the lab `/api/aep` proxy instead
@@ -909,7 +910,7 @@ Demo pages that show the **hover profile drawer** must use the shared shell. Dra
 
 **Messages Sent** email/push counts refresh with event polling, using the full returned AEP event list and the profile's selected engagement time window (24 hours by default). They do not count local send attempts; AJO feedback ingestion latency still applies.
 
-The BA demo verifies applied profile values before requesting a live hero decision. Disruption readback treats `CANCELLATION`, `cancelled`, and `canceled` as the same cancelled-flight state; other saved fields must still match. A mismatch reports its path and expected/received values rather than assuming ingestion latency.
+The BA demo verifies applied profile values before requesting a live hero decision. Disruption readback treats `CANCELLATION`, `cancelled`, and `canceled` as the same cancelled-flight state; other decision fields must still match. Only decision-relevant paths are verified (`britishAirwaysDecisioning.*`, booking, disruption, and `scoring.core.propensityScore`); `airlineCustomer.loyaltyTier` is written but not verified because AJO loyalty rules read `loyaltyDetails.level`. While readback lags, the page shows calm progress and checks automatically; mismatch details are logged to the console.
 
 | Layer | Single source of truth | Do not |
 |-------|------------------------|--------|

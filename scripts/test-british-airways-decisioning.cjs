@@ -78,6 +78,14 @@ test('disruption readback accepts equivalent cancellation labels without accepti
     { path: model.bookingPath, value: 'upcoming' },
   ]).length, 1, 'other fields still require exact saved values');
 });
+test('ingestion confirmation checks decision fields only', () => {
+  assert.equal(model.isDecisionPath('britishAirwaysDecisioning.daysToDeparture'), true);
+  assert.equal(model.isDecisionPath(model.bookingPath), true);
+  assert.equal(model.isDecisionPath(model.disruptionPath), true);
+  assert.equal(model.isDecisionPath('scoring.core.propensityScore'), true);
+  assert.equal(model.isDecisionPath('airlineCustomer.loyaltyTier'), false);
+  assert.equal(model.isDecisionPath('person.name.firstName'), false);
+});
 test('booking reads and writes the Travel field, preserves legacy journeyStage and excludes generic writes', () => {
   const legacy = { path: '_demoemea.britishAirwaysDecisioning.journeyStage', value: 'completed', valueType: 'string', industry: 'travel', writable: true };
   const booking = { path: '_demoemea.' + model.bookingPath, value: 'upcoming', valueType: 'string', industry: 'generic', writable: true };
@@ -359,22 +367,23 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('schema fields are missing'));
     assert.equal(writes.length, 0, 'schema preflight must block missing leaves');
     schemaReady = true;
+    staleReadback = true;
     await page.locator('#baApplyProfile').click();
-    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Snapshots accepted'));
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Confirming the update in the profile'));
     assert.equal(writes.length, 3);
     assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'scoring.core.propensityScore').value, 3);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
     assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.') && !row.path.endsWith('disruptionSeverity')).length, 11);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.bookingPath).value, 'upcoming');
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.disruptionPath).value, 'none');
-    staleReadback = true;
     const beforeReadback = tableReads;
     await page.locator('#baRunDecision').click();
-    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('AEP readback does not match'));
-    assert.ok((await page.locator('#baProfileStatus').innerText()).includes('expected'));
-    assert.ok((await page.locator('#baProfileStatus').innerText()).includes('received'));
-    assert.ok(tableReads > beforeReadback, 'Run must fetch fresh profile rows');
+    await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Waiting for AEP to confirm'));
+    assert.equal(await page.locator('#baRunDecision').isDisabled(), true, 'Run waits instead of failing on stale readback');
+    assert.ok(!(await page.locator('#baProfileStatus').innerText()).includes('readback does not match'));
     staleReadback = false;
+    await page.waitForFunction(() => !document.getElementById('baProfileStatus').textContent.includes('Waiting for AEP') && !document.getElementById('baRunDecision').disabled, null, { timeout: 30000 });
+    assert.ok(tableReads > beforeReadback, 'Run must poll fresh profile rows');
     await page.evaluate(() => document.getElementById('queryProfileBtn').click());
     await page.waitForFunction(() => document.getElementById('baProfileStatus').textContent.includes('Profile loaded.'));
     assert.equal(await propensityControl.locator('[data-v="3"]').getAttribute('aria-pressed'), 'true');
