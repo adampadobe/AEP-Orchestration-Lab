@@ -47,8 +47,14 @@ Example request:
    relevant text and a few representative assets, not every minified library.
 4. Inspect supplied profile and event schemas before selecting controls. Start
    with [the operational sample references](references/README.md) if no newer
-   files are provided. These are sample payloads, not Schema Registry definitions:
-   they establish paths and example types, not enums, ranges or required fields.
+   files are provided. Prefer the saved **Schema Registry exports** for declared
+   types, references, constraints and identity descriptors; use the sample payloads
+   only for example shapes. Resolve `$ref`/`allOf` by resource ID, retain the root
+   versus tenant distinction, and replace `<XDM_TENANTID_PLACEHOLDER>` only after
+   resolving the selected sandbox's tenant. Exports may omit Adobe standard
+   dependencies and describe a different schema version: live resolved-schema
+   preflight remains required. Samples do not establish enums, ranges or required
+   fields, and advisory `meta:enum` labels are not JSON Schema `enum` constraints.
    Reuse existing generic/industry fields; **never create a brand-named AEP
    subtree** such as `natwestDecisioning.*` or copy legacy branded paths from a
    sample. Brand names belong in presentation, not reusable data attributes.
@@ -160,7 +166,17 @@ fictional and must not introduce live API calls.
 
 Wire the bottom hover strip and keyboard/focus opening to a supported open-state
 CSS selector. Keep drawer content below the minimised strip, scrollable within the
-available viewport, and usable in narrow layouts. Move, rather than clone, the
+available viewport, and usable in narrow layouts. **Do not grow the entire drawer
+to fit profile fields.** Use a desktop height budget of roughly five recent event
+cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
+Use compact Contact / Banking (or industry-specific) / Identity tabs below the
+hero and KPIs; group holdings into a two-column tile grid rather than a long
+single label/value list. Keep all actual values accessible, including full long
+strings through panel scrolling. Tabs need ARIA relationships, roving focus,
+Left/Right and Home/End keys. Scroll panel/event/audience overflow internally;
+on narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
+stacked sections. Verify exact loaded/unloaded height limits with five fixture
+events, all tabs, both themes, and desktop/narrow viewports. Move, rather than clone, the
 shared anonymous-visitor control into the hero identity card.
 
 On identity or sandbox changes, clear the customer, banking fields, events and

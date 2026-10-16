@@ -45,8 +45,9 @@
 
   function markup() {
     const kpi = (key, label) => '<div class="dph-card dph-kpi" data-kpi="' + key + '"><small>' + label + '</small><b data-v>—</b><div class="dph-bar"><i></i></div></div>';
+    const signal = (label, id) => '<div class="dph-signal"><dt>' + label + '</dt><dd id="' + id + '">—</dd></div>';
     return (
-      '<section class="dph" id="nwProfileHero" aria-label="Customer profile">' +
+      '<section class="dph dph--compact" id="nwProfileHero" aria-label="Customer profile">' +
       '<div class="dph-hero">' +
       '<img class="dph-avatar" id="nwPhAvatar" alt="Customer profile photo" width="88" height="88" />' +
       '<div class="dph-who"><h2 id="nwPhName">No profile loaded</h2><p id="nwPhMeta"></p><div class="dph-chips" id="nwPhChips"></div></div>' +
@@ -55,24 +56,30 @@
       '<div class="dph-kpis">' +
       kpi('prop', 'Propensity score') + kpi('churn', 'Churn prediction') + kpi('offers', 'Eligible offers') + kpi('interest', 'Product interest') +
       '</div>' +
-      '<div class="dph-cols">' +
-      '<div class="dph-card"><h3>Contact</h3><dl>' +
+      '<div class="dph-card dph-details">' +
+      '<div class="dph-tabs" role="tablist" aria-label="Customer profile sections">' +
+      ['Contact', 'Banking', 'Identity'].map((label, index) =>
+        '<button type="button" role="tab" id="nwPhTab-' + index + '" aria-controls="nwPhPanel-' + index +
+        '" aria-selected="' + (index === 0) + '" tabindex="' + (index === 0 ? '0' : '-1') + '">' + label + '</button>'
+      ).join('') + '</div>' +
+      '<div class="dph-panel" role="tabpanel" id="nwPhPanel-0" aria-labelledby="nwPhTab-0" tabindex="0"><dl>' +
       '<dt>Email</dt><dd id="nwPhEmail">—</dd><dt>Phone</dt><dd id="nwPhPhone">—</dd>' +
-      '<dt>City</dt><dd id="nwPhCity">—</dd><dt>Account Type (checking)</dt><dd id="nwPhAccount">—</dd>' +
-      '<dt>Eligible offer count</dt><dd id="nwPhOffers">—</dd><dt>Product interest</dt><dd id="nwPhProduct">—</dd>' +
-      '<dt>Complaint status</dt><dd id="nwPhCase">—</dd>' +
-      ['checking', 'savings', 'mortgage', 'loan', 'investment', 'personalisation'].map(key => {
-        const control = global.NatwestDecisioningModel.groups.flatMap(group => group[2]).find(control => control[0] === key);
-        return '<dt>' + control[1] + '</dt><dd id="nwPhSignal-' + key + '">—</dd>';
-      }).join('') + '</dl>' +
+      '<dt>City</dt><dd id="nwPhCity">—</dd><dt>Personalisation</dt><dd id="nwPhSignal-personalisation">—</dd></dl>' +
       '<div class="dph-consent" aria-label="Marketing channel consent">' +
       ['Email', 'Sms', 'Push'].map(ch => '<span class="dph-tog" data-ch="' + ch + '"><span class="dph-box" aria-hidden="true"></span>' + (ch === 'Sms' ? 'SMS' : ch) + '</span>').join('') +
       '</div></div>' +
-      '<div class="dph-card"><h3>Identity</h3><small class="dph-label">ECID</small>' +
+      '<div class="dph-panel" role="tabpanel" id="nwPhPanel-1" aria-labelledby="nwPhTab-1" tabindex="0" hidden><dl class="dph-signals">' +
+      signal('Account Type (checking)', 'nwPhAccount') +
+      signal('Product interest', 'nwPhProduct') +
+      signal('Eligible offers', 'nwPhOffers') +
+      signal('Complaint status', 'nwPhCase') +
+      [['checking', 'Current account'], ['savings', 'Savings'], ['mortgage', 'Mortgage'], ['loan', 'Loan'], ['investment', 'Investments']].map(([key, label]) =>
+        signal(label + ' held', 'nwPhSignal-' + key)
+      ).join('') + '</dl></div>' +
+      '<div class="dph-panel" role="tabpanel" id="nwPhPanel-2" aria-labelledby="nwPhTab-2" tabindex="0" hidden><small class="dph-label">ECID</small>' +
       '<div class="dph-ecid"><span id="nwPhEcid">—</span><button type="button" class="dph-copy" id="nwPhEcidCopy" aria-label="Copy ECID">' + COPY_ICON + 'Copy</button></div>' +
       '<div id="nwPhEcidReset"></div>' +
-      '</div>' +
-      '</div>' +
+      '</div></div>' +
       '</section>'
     );
   }
@@ -136,6 +143,14 @@
   }
 
   let queued = false;
+  function selectTab(index, focus) {
+    doc.querySelectorAll('#nwProfileHero [role="tab"]').forEach((tab, i) => {
+      tab.setAttribute('aria-selected', String(i === index));
+      tab.tabIndex = i === index ? 0 : -1;
+      doc.getElementById(tab.getAttribute('aria-controls')).hidden = i !== index;
+      if (focus && i === index) tab.focus();
+    });
+  }
   function schedule() {
     if (queued) return;
     queued = true;
@@ -147,6 +162,18 @@
     if (!inner || doc.getElementById('nwProfileHero')) return !!inner;
     doc.body.classList.add(BODY_CLASS);
     inner.insertAdjacentHTML('afterbegin', markup());
+    doc.querySelectorAll('#nwProfileHero [role="tab"]').forEach((tab, index) => {
+      tab.addEventListener('click', () => selectTab(index, false));
+      tab.addEventListener('keydown', event => {
+        let next;
+        if (event.key === 'ArrowRight') next = (index + 1) % 3;
+        else if (event.key === 'ArrowLeft') next = (index + 2) % 3;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = 2;
+        else return;
+        event.preventDefault(); selectTab(next, true);
+      });
+    });
     // Keep the shared "New anonymous visitor" control usable by moving it into the hero Identity card.
     const reset = doc.getElementById('profileDrawerEcidResetWrap');
     if (reset) doc.getElementById('nwPhEcidReset').appendChild(reset);

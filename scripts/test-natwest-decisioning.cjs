@@ -11,6 +11,15 @@ const samples = path.resolve(__dirname, '..', '.github', 'skills', 'create-decis
 const profileSample = JSON.parse(fs.readFileSync(path.join(samples, 'operational-profile-sample.json'), 'utf8'));
 const eventSample = JSON.parse(fs.readFileSync(path.join(samples, 'operational-event-sample.json'), 'utf8'));
 const { resolveIndustryForPath } = require('../functions/industryAttributeMap');
+test('saved Registry exports identify separate operational profile and event schemas', () => {
+  for (const [kind, className] of [['profile', 'profile'], ['event', 'experienceevent']]) {
+    const resources = JSON.parse(fs.readFileSync(path.join(samples, 'operational-' + kind + '-schema-export.json'), 'utf8'));
+    const schemas = resources.filter(resource => resource['meta:resourceType'] === 'schemas');
+    assert.equal(schemas.length, 1);
+    assert.equal(schemas[0]['meta:class'], 'https://ns.adobe.com/xdm/context/' + className);
+    assert.ok(schemas[0].allOf.length > 0);
+  }
+});
 
 function fixture() {
   return {
@@ -439,6 +448,11 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     });
     await t.test('actual shared environment loader initializes the complete shell without live services', async () => {
       mockLoader = false; data = fixture();
+      drawerEvents = [...drawerEvents, ...[1, 2].map(index => ({
+        eventType: 'web.webpagedetails.pageViews', eventName: 'Banking guidance ' + index,
+        timestamp: eventTime - index * 20000,
+        rows: [{ path: 'web.webPageDetails.name', value: 'Banking guidance ' + index }],
+      }))];
       data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('mortgage')));
       Object.assign(data.rows.find(row => row.path.endsWith(model.pathFor('loan'))), { value: '', valueType: 'null' });
       const smoke = await browser.newPage({ viewport: { width: 1800, height: 1100 } });
@@ -450,6 +464,9 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await smoke.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
       assert.ok(!await smoke.locator('#nwProfileStatus').textContent().then(text => text.startsWith('Demo initialization failed')));
       await smoke.waitForSelector('#nwProfileHero', { state: 'attached' });
+      const drawerHeight = () => smoke.locator('#profileDrawer').evaluate(el => el.getBoundingClientRect().height);
+      const unloadedHeight = await drawerHeight();
+      assert.ok(unloadedHeight <= 561 && unloadedHeight >= 500, 'Unloaded drawer stays approximately five events tall');
       await smoke.evaluate(() => {
         const sandbox = document.getElementById('sandboxSelect');
         sandbox.add(new Option('Fixture sandbox', 'fixture'));
@@ -471,6 +488,21 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       assert.equal(await smoke.locator('#nwPhSignal-mortgage').textContent(), 'Not set');
       assert.equal(await smoke.locator('#nwPhSignal-loan').textContent(), 'Not set');
       assert.equal(await smoke.locator('#nwPhCase').textContent(), 'None');
+      assert.equal(await drawerHeight(), unloadedHeight, 'Loaded profile must not increase drawer height');
+      assert.equal(await smoke.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 5);
+      await smoke.getByRole('tab', { name: 'Banking', exact: true }).click();
+      assert.equal(await smoke.locator('#nwPhPanel-1').isVisible(), true);
+      assert.equal(await smoke.locator('#nwPhSignal-investment').isVisible(), true);
+      if (process.env.AEP_DEMO_SCREENSHOT_DIR) await smoke.screenshot({
+        path: path.join(process.env.AEP_DEMO_SCREENSHOT_DIR, 'natwest-compact-banking.png'),
+      });
+      await smoke.keyboard.press('ArrowRight');
+      assert.equal(await smoke.getByRole('tab', { name: 'Identity', exact: true }).getAttribute('aria-selected'), 'true');
+      assert.equal(await smoke.locator('#nwPhEcid').isVisible(), true);
+      await smoke.keyboard.press('Home');
+      assert.equal(await smoke.getByRole('tab', { name: 'Contact', exact: true }).getAttribute('aria-selected'), 'true');
+      assert.equal(await smoke.locator('#nwPhPhone').isVisible(), true);
+      assert.equal(await smoke.locator('#nwPhPanel-2').isVisible(), false);
       await smoke.evaluate(() => {
         const visual = document.getElementById('nwDecisioningFrame').contentWindow.NatwestDecisioningVisualiser;
         visual.setState({ ...visual.getState(), account: 'Staged only' });
@@ -484,8 +516,8 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       assert.ok((await smoke.locator('#profileDrawerEvents').textContent()).includes('Strategy: Banking strategy'));
       await smoke.locator('#profileDrawerEventsStoryOpen').click();
       await smoke.locator('.dpj-root').waitFor({ state: 'visible' });
-      assert.equal(await smoke.locator('.dpj-node').count(), 3);
-      await smoke.locator('[data-dpj-sel="2"]').click();
+      assert.equal(await smoke.locator('.dpj-node').count(), 5);
+      await smoke.locator('[data-dpj-sel="4"]').click();
       assert.ok((await smoke.locator('.dpj-dbody').textContent()).includes('Savings <offer>'));
       assert.ok((await smoke.locator('.dpj-dbody').textContent()).includes('Banking strategy'));
       await smoke.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
@@ -501,13 +533,24 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       assert.ok(await smoke.locator('.aep-profile-drawer-identity-graph-modal-slider').count());
       await smoke.getByRole('button', { name: 'Close identity graph', exact: true }).click();
       if (process.env.AEP_DEMO_SCREENSHOT_DIR) await smoke.screenshot({ path: path.join(process.env.AEP_DEMO_SCREENSHOT_DIR, 'natwest-new-profile-drawer.png') });
-      for (const width of [1800, 390]) for (const dark of [false, true]) {
-        await smoke.setViewportSize({ width, height: 1100 });
+      for (const width of [1800, 1280, 1024, 390]) for (const dark of [false, true]) {
+        await smoke.setViewportSize({ width, height: width === 1800 ? 1100 : 740 });
         await smoke.evaluate(dark => {
           if (dark) document.documentElement.setAttribute('data-aep-theme', 'dark');
           else document.documentElement.removeAttribute('data-aep-theme');
         }, dark);
         assert.ok(await smoke.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        assert.ok(await drawerHeight() <= 561, 'Drawer remains capped across themes and viewport sizes');
+        for (const label of ['Banking', 'Identity', 'Contact']) {
+          await smoke.getByRole('tab', { name: label, exact: true }).click();
+          assert.ok(await smoke.locator('#nwProfileHero [role="tabpanel"]:not([hidden])').evaluate(el => {
+            const panel = el.getBoundingClientRect(), hero = document.getElementById('nwProfileHero').getBoundingClientRect();
+            return panel.right <= hero.right + 1 && panel.bottom <= hero.bottom + 1;
+          }), 'Profile tab content stays within its bounded area');
+        }
+        if (process.env.AEP_DEMO_SCREENSHOT_DIR) await smoke.screenshot({
+          path: path.join(process.env.AEP_DEMO_SCREENSHOT_DIR, 'natwest-compact-drawer-' + width + '-' + (dark ? 'dark' : 'light') + '.png'),
+        });
         await smoke.locator('#profileDrawerEventsStoryOpen').click();
         await smoke.locator('.dpj-root').waitFor({ state: 'visible' });
         assert.ok(await smoke.locator('.dpj-root').evaluate(el => el.getBoundingClientRect().right <= innerWidth));
@@ -519,6 +562,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await smoke.locator('#customerEmail').fill('different@example.invalid');
       await smoke.waitForFunction(() => document.getElementById('nwPhName').textContent === 'No profile loaded');
       assert.equal(await smoke.locator('#nwPhAccount').textContent(), 'Not loaded');
+      assert.equal(await drawerHeight(), unloadedHeight, 'Clearing the profile keeps the drawer height stable');
       assert.ok(!(await smoke.locator('#profileDrawerEvents').textContent()).includes('Savings <offer>'));
       let releaseConsent, consentStarted;
       const consentGate = new Promise(resolve => { releaseConsent = resolve; });

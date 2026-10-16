@@ -18,6 +18,13 @@ Type, product holdings, product interest, complaint status, eligible offers and
 personalisation consent come from the loaded profile, not staged simulator edits.
 Missing banking attributes remain **Not set**, not inferred from other holdings.
 The KPIs show raw propensity/churn scores, eligible offers and product interest.
+The full drawer is capped at **35rem (560px at the default font size)** on desktop,
+or the available viewport if shorter, roughly the height of five recent events.
+The compact profile card uses keyboard-accessible **Contact**, **Banking** and
+**Identity** tabs below the hero/KPIs. Banking holdings are two-column tiles;
+long content and events scroll internally rather than stretching every column.
+On narrow screens the stacked drawer is capped at 55dvh with scrolling.
+The height stays stable with unloaded, loaded and cleared profiles.
 
 The event count opens the **Canvas flow**, **Swimlanes**, and **Stages** journey
 views. Select an event for its details; Stages pairs a consecutive NatWest decision
@@ -126,3 +133,7 @@ verifiers. Mirror canonical UI changes using the documented sync workflow.
 The reusable upload-first workflow is
 `.github/skills/create-decisioning-demo/SKILL.md`; it defaults to this three-pane
 experience without requiring another customer's demo as an input.
+Its `references/` now includes both actual Operational Profile/Event Schema
+Registry exports alongside the sample payloads. Exports include resource links
+and constraints but may omit Adobe standard dependencies; live resolved-schema
+preflight remains the authority for explicit writes.
