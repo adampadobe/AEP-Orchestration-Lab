@@ -10,6 +10,24 @@ const model = createRequire(import.meta.url)('../web/profile-viewer/tui-decision
 const profile = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-profile.js');
 const { getManifestForIndustry } = createRequire(import.meta.url)('../functions/profileCoreV2Manifest.js');
 const { resolveIndustryForPath } = createRequire(import.meta.url)('../functions/industryAttributeMap.js');
+test('schema preflight distinguishes tenant fields from reserved XDM roots and fails closed on disagreement', () => {
+  const tenant = { type: 'object', properties: { airlineCustomer: { properties: { journeyStage: { type: 'string' } } } } };
+  const schema = { 'meta:tenantNamespace': 'demoemea', properties: {
+    _id: { type: 'string' }, _repo: { properties: {} }, _experience: { properties: {} },
+    _demoemea: tenant, consents: { properties: { marketing: { type: 'string' } } },
+  } };
+  assert.deepEqual(profile.schemaLeaf(schema, { xdmKey: '_demoemea' }, 'airlineCustomer.journeyStage'), { type: 'string' });
+  assert.deepEqual(profile.schemaLeaf(schema, { xdmKey: 'demoemea' }, 'consents.marketing'), { type: 'string' });
+  const fallback = { properties: schema.properties };
+  assert.deepEqual(profile.schemaLeaf(fallback, {}, 'airlineCustomer.journeyStage'), { type: 'string' });
+  assert.equal(profile.schemaLeaf(schema, {}, 'airlineCustomer.missing'), undefined);
+  assert.throws(() => profile.schemaLeaf(schema, { xdmKey: '_other' }, 'airlineCustomer.journeyStage'), /does not match/);
+  assert.throws(() => profile.schemaLeaf(schema, { xdmKey: '_other' }, 'consents.marketing'), /does not match/);
+  assert.throws(() => profile.schemaLeaf({ ...schema, 'meta:tenantNamespace': {} }, {}, 'airlineCustomer.journeyStage'), /Invalid/);
+  assert.throws(() => profile.schemaLeaf(fallback, { xdmKey: '_missing' }, 'airlineCustomer.journeyStage'), /missing/);
+  assert.throws(() => profile.schemaLeaf({ properties: { ...fallback.properties, _other: tenant } }, {}, 'airlineCustomer.journeyStage'), /one schema tenant/);
+  assert.throws(() => profile.schemaLeaf({ properties: { _id: { type: 'string' }, _repo: { properties: {} } } }, {}, 'airlineCustomer.journeyStage'), /one schema tenant/);
+});
 const raw = model.tags.map(([id, name], i) => ({
   id: `dps:fixture:${i}`, _experience: { decisioning: { decisionitem: {
     itemCatalogID: 'xcore:decision-catalog:18c6b876319b00e4',

@@ -97,11 +97,25 @@ async function main() {
     assert.equal(await page.locator('.objective[open]').count(), 7);
     await page.locator('#collapse').click();
     assert.equal(await page.locator('.objective[open]').count(), 0);
+    const signalWidth = Number(await page.locator('.gutter').first().getAttribute('aria-valuenow'));
     await page.locator('.gutter').first().focus();
     await page.keyboard.press('ArrowRight');
-    assert.equal(await page.locator('.gutter').first().getAttribute('aria-valuenow'), '280');
+    assert.equal(Number(await page.locator('.gutter').first().getAttribute('aria-valuenow')), signalWidth + 24);
     await page.reload();
-    assert.equal(await page.locator('.gutter').first().getAttribute('aria-valuenow'), '280');
+    assert.equal(Number(await page.locator('.gutter').first().getAttribute('aria-valuenow')), signalWidth + 24);
+    for (const width of [1600, 2400, 3200]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.waitForTimeout(60);
+      const preview = await page.locator('.preview-pane').boundingBox();
+      assert(preview.width / width < .5, 'Balanced columns do not force two-thirds preview at wide widths');
+      const gutter = page.locator('[data-pane="preview"]'), bounds = await gutter.boundingBox();
+      const before = Number(await gutter.getAttribute('aria-valuenow'));
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 80);
+      await page.mouse.down(); await page.mouse.move(bounds.x + bounds.width / 2 - 120, bounds.y + 80, { steps: 6 }); await page.mouse.up();
+      assert(Math.abs(Number(await gutter.getAttribute('aria-valuenow')) - before - 120) <= 1, 'Preview divider moves freely');
+      await gutter.dblclick();
+    }
+    await page.setViewportSize({ width: 1600, height: 1000 });
     await page.locator('#tab-email').focus();
     await page.keyboard.press('ArrowRight');
     assert.equal(await page.locator('#tab-mobile').getAttribute('aria-selected'), 'true');
@@ -144,10 +158,11 @@ async function main() {
     await context.close();
     const shellContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const shellCalls = [];
-    let rejectGeneric = false, delayNextLookup = false;
+    let rejectGeneric = false, delayNextLookup = false, mismatchTenant = false;
     const fixture = {
       found: true, profileEmail: 'traveller@example.invalid', ecid: '12345678901234567890123456789012345678',
-      industries: { generic: { writable: true, schemaId: 'generic-schema' }, travel: { writable: true, schemaId: 'travel-schema' } },
+      industries: { generic: { writable: true, schemaId: 'generic-schema', xdmKey: '_demoemea' },
+        travel: { writable: true, schemaId: 'travel-schema', xdmKey: '_demoemea' } },
       rows: [
         ...model.fields.map(field => ({ path: field.path, value: field.key === 'score' ? 2.99 : model.defaults[field.key], valueType: field.type,
           industry: profile.industry(field), writable: true })),
@@ -185,7 +200,9 @@ async function main() {
         if (parsed.pathname === '/api/profile/events') json = { events };
         if (parsed.pathname === '/api/profile/audiences') json = { realized: [{ id: 'test-audience', name: 'Fixture holiday audience' }], exited: [] };
         if (parsed.pathname === '/api/aep' && body?.path?.includes('schemaregistry')) {
-          const schema = { version: '1.11', properties: { _demoemea: { properties: {} }, consents: { properties: {} } } };
+          const schema = { version: '1.11', 'meta:tenantNamespace': mismatchTenant ? 'different' : 'demoemea',
+            properties: { _id: { type: 'string' }, _repo: { properties: {} }, _experience: { properties: {} },
+              _demoemea: { properties: {} }, consents: { properties: {} } } };
           for (const field of model.fields) {
             let at = schema;
             for (const part of field.path.split('.')) {
@@ -217,6 +234,15 @@ async function main() {
     if (await minimize.isVisible()) await minimize.click();
     const frame = shell.frameLocator('#tui-visualiser');
     await frame.locator('#panel-web').waitFor({ state: 'visible' });
+    const mountLayout = await shell.evaluate(() => {
+      const doc = document.getElementById('tui-visualiser').contentDocument;
+      const before = doc.querySelector('.boundary-note').getBoundingClientRect().top;
+      window.DecisioningEdgeInject.ensureDecisioningMounts(doc, 'generic');
+      return { before, after: doc.querySelector('.boundary-note').getBoundingClientRect().top,
+        mounts: ['TopRibbon', 'hero-banner', 'ContentCardContainer'].map(id => doc.defaultView.getComputedStyle(doc.getElementById(id)).display) };
+    });
+    assert.equal(mountLayout.after, mountLayout.before, 'Runtime mounts add no grey spacer above content');
+    assert.deepEqual(mountLayout.mounts, ['none', 'none', 'none']);
     await frame.locator('#tab-mobile').click();
     await shell.waitForURL('**/tui-decisioning-demo.html?channel=mobile');
     await frame.locator('#tab-email').click();
@@ -239,10 +265,9 @@ async function main() {
     assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 5);
     assert.equal(shellCalls.some(call => call.path === '/api/events/generator'), false, 'Read-only lookup sends no event');
     await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
-    await shell.locator('#tuiPhTab-0').focus(); await shell.keyboard.press('End');
-    assert.equal(await shell.locator('#tuiPhTab-2').getAttribute('aria-selected'), 'true');
+    assert.equal(await shell.locator('#tuiProfileHero [role="tab"]').count(), 0, 'Profile sections have no tabs');
+    for (const index of [0, 1, 2]) assert.equal(await shell.locator('#tuiPhPanel-' + index).isVisible(), true);
     assert.equal(await shell.locator('#profileDrawerEcidResetWrap').count(), 1, 'Anonymous control moved, not cloned');
-    await shell.locator('#tuiPhTab-1').click();
     assert.equal(await shell.locator('#tuiPhSignal-score').textContent(), '2.99');
     for (const dark of [false, true]) {
       await shell.evaluate(dark => document.documentElement.setAttribute('data-aep-theme', dark ? 'dark' : 'light'), dark);
@@ -252,10 +277,16 @@ async function main() {
         const height = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(n => n.getBoundingClientRect().height);
         assert(height <= Math.min(560, width < 1100 ? 844 * .55 : 844) + 1, 'Drawer obeys bounded five-card budget');
         assert.equal(await shell.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await shell.mouse.move(width / 2, 550);
+        await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+        await shell.locator('#tuiPhSignal-booking').scrollIntoViewIfNeeded();
+        assert.equal(await shell.locator('#tuiPhSignal-booking').isVisible(), true, 'Travel values remain accessible without tabs');
         if (screenshotDir) await shell.screenshot({ path: path.join(screenshotDir, `shell-${dark ? 'dark' : 'light'}-${width}.png`) });
       }
     }
     await shell.setViewportSize({ width: 1440, height: 1000 });
+    await shell.mouse.move(700, 500);
+    if (await minimize.isVisible()) await minimize.click();
     await shell.locator('#profileDrawerEventsStoryOpen').click();
     await shell.locator('.dpj-root').waitFor();
     for (const view of ['A', 'B', 'C']) {
@@ -270,6 +301,11 @@ async function main() {
     await shell.mouse.move(700, 100);
     await frame.locator('details[data-group="Holiday"] summary').click();
     await frame.locator('#signal-booking').selectOption('Booked');
+    mismatchTenant = true;
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('does not match'));
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/update').length, 0, 'Tenant disagreement blocks every write');
+    mismatchTenant = false;
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
     const updates = shellCalls.filter(call => call.path === '/api/profile/update');

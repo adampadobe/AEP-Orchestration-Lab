@@ -281,35 +281,60 @@
     setChannel(new URLSearchParams(location.search).get('channel'), false);
   }
   function resizePanes() {
+    const workspace = $('workspace'), storage = 'tuiDecisioningPaneRatios';
+    const minima = { signals: 230, decision: 300, preview: 340 };
+    let ratios = { signals: .22, preview: .36 }, widths;
+    try {
+      const saved = JSON.parse(localStorage.getItem(storage));
+      if (saved && ['signals', 'preview'].every(key => Number.isFinite(saved[key]) && saved[key] > 0 && saved[key] < 1) &&
+        saved.signals + saved.preview < 1) ratios = saved;
+    } catch (error) { console.warn('Pane ratios could not be read', error); }
+    const available = () => workspace.clientWidth - parseFloat(getComputedStyle(workspace).paddingLeft) -
+      parseFloat(getComputedStyle(workspace).paddingRight) - 20;
+    function layout() {
+      if (innerWidth <= 1150) return;
+      const total = available();
+      widths = {
+        signals: Math.max(minima.signals, Math.min(total - minima.decision - minima.preview, total * ratios.signals)),
+        preview: Math.max(minima.preview, total * ratios.preview),
+      };
+      widths.preview = Math.min(widths.preview, total - widths.signals - minima.decision);
+      workspace.style.setProperty('--signals-width', widths.signals + 'px');
+      workspace.style.setProperty('--preview-width', widths.preview + 'px');
+      document.querySelectorAll('.gutter').forEach(gutter => {
+        const key = gutter.dataset.pane, other = key === 'signals' ? 'preview' : 'signals';
+        gutter.setAttribute('aria-valuemin', minima[key]);
+        gutter.setAttribute('aria-valuemax', Math.floor(total - widths[other] - minima.decision));
+        gutter.setAttribute('aria-valuenow', Math.round(widths[key]));
+      });
+    }
+    function size(key, value) {
+      const total = available(), other = key === 'signals' ? 'preview' : 'signals';
+      widths[key] = Math.max(minima[key], Math.min(total - widths[other] - minima.decision, value));
+      ratios = { signals: widths.signals / total, preview: widths.preview / total };
+      layout();
+      try { localStorage.setItem(storage, JSON.stringify(ratios)); }
+      catch (error) { console.warn('Pane ratios could not be saved', error); }
+    }
     document.querySelectorAll('.gutter').forEach(gutter => {
-      const key = 'tuiDecisioningWidth-' + gutter.dataset.pane;
-      const property = '--' + gutter.dataset.pane + '-width';
-      const min = Number(gutter.getAttribute('aria-valuemin'));
-      const max = Number(gutter.getAttribute('aria-valuemax'));
-      function size(value) {
-        const width = Math.max(min, Math.min(max, value));
-        $('workspace').style.setProperty(property, width + 'px');
-        gutter.setAttribute('aria-valuenow', width);
-        try { localStorage.setItem(key, String(width)); } catch (error) { console.warn('Pane width could not be saved', error); }
-      }
-      try {
-        const saved = localStorage.getItem(key);
-        if (saved && Number.isFinite(Number(saved))) size(Number(saved));
-      } catch (error) { console.warn('Pane width could not be read', error); }
+      const key = gutter.dataset.pane, direction = key === 'signals' ? 1 : -1;
+      gutter.addEventListener('dblclick', () => size(key, available() * (key === 'signals' ? .22 : .36)));
       gutter.addEventListener('keydown', event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
-        size(event.key === 'Home' ? min : event.key === 'End' ? max :
-          Number(gutter.getAttribute('aria-valuenow')) + (event.key === 'ArrowRight' ? 10 : -10));
+        size(key, event.key === 'Home' ? Number(gutter.getAttribute('aria-valuemin')) :
+          event.key === 'End' ? Number(gutter.getAttribute('aria-valuemax')) :
+          widths[key] + direction * (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 96 : 24));
       });
       gutter.addEventListener('pointerdown', event => {
         if (event.button !== 0) return;
         event.preventDefault();
         const start = event.clientX;
-        const width = Number(gutter.getAttribute('aria-valuenow'));
+        const width = widths[key];
         gutter.setPointerCapture(event.pointerId);
-        const move = current => size(width + current.clientX - start);
+        const move = current => size(key, width + direction * (current.clientX - start));
         const done = () => {
+          if (gutter.hasPointerCapture(event.pointerId)) gutter.releasePointerCapture(event.pointerId);
           gutter.removeEventListener('pointermove', move);
           gutter.removeEventListener('pointerup', done);
           gutter.removeEventListener('pointercancel', done);
@@ -319,6 +344,8 @@
         gutter.addEventListener('pointercancel', done);
       });
     });
+    new ResizeObserver(layout).observe(workspace);
+    layout();
   }
   $('reset').addEventListener('click', () => {
     state = { ...model.defaults };

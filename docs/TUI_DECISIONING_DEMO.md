@@ -34,8 +34,9 @@ consent, travel attributes, linked identities, audiences and five recent events
 are separate from staged simulator values. Missing values show Not set,
 unloaded values Not loaded, and unavailable KPIs Unavailable.
 
-The compact traveller hero has keyboard-accessible Contact / Travel / Identity
-tabs. The shared anonymous-visitor control is moved, not cloned; reset remains
+The compact traveller hero has visible Contact / Travel / Identity sections,
+without profile tabs. Overflow scrolls inside the existing bounded drawer.
+The shared anonymous-visitor control is moved, not cloned; reset remains
 an explicit action. Drawer height is capped at 560px and available viewport,
 or 55dvh on narrow screens, with internal scrolling. The event count opens
 Canvas flow / Swimlanes / Stages. Offer and strategy names come only from
@@ -172,7 +173,15 @@ Email desktop and mobile share the same table-based content. The web hero uses
 the same selected item. Suppression removes prior personalised images and CTAs.
 Tabs support roving focus, Left/Right/Home/End, deep links and back/forward.
 The shell and iframe keep their channel state aligned. Theme follows `aepTheme`;
-pane widths use `tuiDecisioningWidth-signals` and `tuiDecisioningWidth-decision`.
+pane proportions use `tuiDecisioningPaneRatios` and adapt to viewport width.
+The default split is approximately 22% signals, 42% objectives and 36% preview;
+drag either divider, use arrow keys (Shift for larger steps), or double-click
+to reset that pane. Old fixed-pixel preferences are ignored.
+Shared Edge mounts are hidden staging targets: only explicit Run populates the
+channel previews, so an empty runtime ribbon never reserves top-of-page space.
+Apply resolves tenant fields using the dataflow XDM key and schema namespace
+metadata, rejects mismatches, and excludes reserved `_id` / `_repo` roots from
+fallback tenant discovery.
 Resizable gutters support pointer and keyboard input. On narrower viewports
 panes stack without horizontal scrolling.
 The dashboard sidebar peeks from the left edge and opens on hover/focus; the

@@ -4,6 +4,28 @@
     ? require('./tui-decisioning-model.js') : root.TuiDecisioning;
   const relative = path => String(path).replace(/^_[A-Za-z0-9]+\./, '');
   const industry = field => /^(consents\.|_[^.]+\.(scoring|loyaltyDetails)\.)/.test(field.path) ? 'generic' : 'travel';
+  function schemaLeaf(schema, config, path) {
+    const walk = node => path.split('.').reduce((at, part) => at?.properties?.[part], node);
+    const key = value => {
+      if (value === undefined || value === null || value === '') return '';
+      if (typeof value !== 'string' || !/^_?[A-Za-z][A-Za-z0-9]*$/.test(value)) throw new Error('Invalid schema tenant metadata.');
+      return '_' + value.replace(/^_/, '');
+    };
+    const configured = key(config.xdmKey), declared = key(schema['meta:tenantNamespace']);
+    if (configured && declared && configured !== declared) throw new Error('Write schema tenant does not match the configured dataflow.');
+    if (path.startsWith('consents.')) return walk(schema);
+    const explicit = configured || declared;
+    if (explicit) {
+      if (schema.properties?.[explicit]?.type !== 'object' && !schema.properties?.[explicit]?.properties) {
+        throw new Error('Configured schema tenant is missing: ' + explicit);
+      }
+      return walk(schema.properties[explicit]);
+    }
+    const candidates = Object.entries(schema.properties || {}).filter(([name, node]) =>
+      /^_[A-Za-z0-9]+$/.test(name) && !['_id', '_repo', '_experience', '_links'].includes(name) && node?.properties);
+    if (candidates.length !== 1) throw new Error('Cannot resolve one schema tenant for ' + path + '. Check the dataflow XDM key.');
+    return walk(candidates[0][1]);
+  }
   function scalar(row) {
     if (row.valueType === 'number') {
       if (row.value === '' || row.value === null || !Number.isFinite(Number(row.value))) throw new Error('Invalid number: ' + row.path);
@@ -62,7 +84,7 @@
         ? value.toLowerCase() !== wanted.toLowerCase() : value !== wanted;
     });
   }
-  const api = { relative, industry, scalar, signals, snapshots, differences };
+  const api = { relative, industry, schemaLeaf, scalar, signals, snapshots, differences };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TuiDecisioningProfile = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

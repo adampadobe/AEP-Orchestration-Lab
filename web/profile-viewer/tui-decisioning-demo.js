@@ -75,10 +75,7 @@
       const schema = await read('application/vnd.adobe.xed-full+json; version=' + meta.version);
       if (schema.version !== meta.version || !schema.properties) throw new Error('Current resolved schema unavailable.');
       for (const update of group.updates.filter(update => Object.hasOwn(batch.expected, update.path))) {
-        const tenants = Object.keys(schema.properties).filter(key => /^_[A-Za-z0-9]+$/.test(key));
-        if (!update.path.startsWith('consents.') && tenants.length !== 1) throw new Error('Ambiguous schema tenant.');
-        let leaf = update.path.startsWith('consents.') ? schema : schema.properties[tenants[0]];
-        for (const part of update.path.split('.')) leaf = leaf?.properties?.[part];
+        const leaf = profile.schemaLeaf(schema, config, update.path);
         const type = typeof update.value;
         if (!leaf || !(leaf.type === type || leaf.type === 'integer' && Number.isInteger(update.value)) ||
           Array.isArray(leaf.enum) && !leaf.enum.includes(update.value) ||

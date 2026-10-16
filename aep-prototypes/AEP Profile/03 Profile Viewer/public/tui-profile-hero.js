@@ -10,20 +10,14 @@
   }
   const text = id => {
     const value = $(id)?.textContent?.trim();
-    return !value || ['Unknown', '\u2014'].includes(value) ? 'Not loaded' : value;
+    return !value || ['Unknown', '\u2014'].includes(value)
+      ? (global.TuiDecisioningDrawer?.getSignals() ? 'Not set' : 'Not loaded') : value;
   };
   function el(tag, value, cls) {
     const node = doc.createElement(tag);
     if (value !== undefined) node.textContent = value;
     if (cls) node.className = cls;
     return node;
-  }
-  function tab(index, focus) {
-    doc.querySelectorAll('#tuiProfileHero [role="tab"]').forEach((button, i) => {
-      button.setAttribute('aria-selected', String(i === index)); button.tabIndex = i === index ? 0 : -1;
-      $(button.getAttribute('aria-controls')).hidden = i !== index;
-      if (focus && i === index) button.focus();
-    });
   }
   function render() {
     const hero = $('tuiProfileHero');
@@ -67,19 +61,11 @@
       const card = el('div', undefined, 'dph-card dph-kpi'), value = el('b', 'Unavailable');
       value.id = 'tuiPhKpi-' + key; card.append(el('small', label), value); kpis.append(card);
     }
-    const details = el('div', undefined, 'dph-card dph-details'), tabs = el('div', undefined, 'dph-tabs');
-    tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Traveller profile sections'); details.append(tabs);
+    const details = el('div', undefined, 'tui-profile-sections');
     ['Contact', 'Travel', 'Identity'].forEach((label, index) => {
-      const button = el('button', label); button.type = 'button'; button.id = 'tuiPhTab-' + index;
-      button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', 'tuiPhPanel-' + index);
-      button.addEventListener('click', () => tab(index));
-      button.addEventListener('keydown', event => {
-        const next = { ArrowRight: (index + 1) % 3, ArrowLeft: (index + 2) % 3, Home: 0, End: 2 }[event.key];
-        if (next !== undefined) { event.preventDefault(); tab(next, true); }
-      });
-      tabs.append(button);
-      const panel = el('div', undefined, 'dph-panel'); panel.id = 'tuiPhPanel-' + index; panel.tabIndex = 0;
-      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', button.id);
+      const panel = el('section', undefined, 'dph-card tui-profile-section'); panel.id = 'tuiPhPanel-' + index; panel.tabIndex = 0;
+      const heading = el('h3', label); heading.id = 'tuiPhHeading-' + index;
+      panel.setAttribute('aria-labelledby', heading.id); panel.append(heading);
       const list = el('dl', undefined, index === 1 ? 'dph-signals' : '');
       const fields = index === 0 ? [['Email', 'Email'], ['Phone', 'Phone'], ['City', 'City']]
         : index === 1 ? global.TuiDecisioning.fields.map(f => [f.key, f.label]) : [['DesktopId', 'ECID']];
@@ -97,7 +83,7 @@
         const copy = el('button', 'Copy ECID'); copy.type = 'button';
         copy.addEventListener('click', async () => {
           const id = text('profileDrawerDesktopId');
-          if (id === 'Not loaded') { copy.textContent = 'No ECID loaded'; return; }
+          if (['Not loaded', 'Not set'].includes(id)) { copy.textContent = 'No ECID loaded'; return; }
           try { await navigator.clipboard.writeText(id); copy.textContent = 'Copied'; }
           catch (error) { console.warn('ECID copy failed', error); copy.textContent = 'Copy unavailable'; }
         });
@@ -106,7 +92,7 @@
       }
       details.append(panel);
     });
-    hero.append(head, kpis, details); inner.prepend(hero); doc.body.classList.add('decisioning-profile-hero'); tab(0);
+    hero.append(head, kpis, details); inner.prepend(hero); doc.body.classList.add('decisioning-profile-hero');
     let scheduled = false;
     const schedule = () => {
       if (!scheduled) { scheduled = true; requestAnimationFrame(() => { scheduled = false; render(); }); }

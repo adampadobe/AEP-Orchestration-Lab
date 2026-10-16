@@ -8,18 +8,30 @@
 #tuiLiveStatus { flex: 1 1 240px; }
 #tuiLiveStatus[data-error="true"] { color: var(--dash-error-text); }
 .tui-demo-shell #dpmPanelAnchor { display: none !important; }
+.tui-demo-shell .aep-profile-drawer-events-story-backdrop,
+.tui-demo-shell .aep-profile-drawer-audiences-modal-backdrop,
+.tui-demo-shell .aep-profile-drawer-identity-graph-modal-backdrop { z-index: 8000; }
 .tui-demo-shell.mod-demo-page--profile-open #profileDrawer { transform: translateY(0); }
 .tui-demo-shell #profileDrawer .aep-profile-drawer-inner { padding-top: 1.9rem; max-height: calc(100dvh - var(--tui-content-top, 100px)); overflow-y: auto; }
 .tui-demo-shell:not(.mod-demo-page--profile-open):not(.aep-profile-drawer-open) #profileDrawer:not(:focus-within) .aep-profile-drawer-inner { opacity: 0; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-events,
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-audiences { overflow-y: auto; overscroll-behavior: contain; }
+.tui-profile-sections { min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; gap: .6rem; }
+.tui-profile-section { min-width: 0; }
+#tuiPhPanel-1 { grid-column: 1 / -1; order: 1; }
+.tui-profile-section .dph-tog { margin-top: .35rem; }
 @media (max-width: 1100px) {
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, 55dvh, calc(100dvh - var(--tui-content-top, 100px))); display: flex; flex-direction: column; overflow-y: auto; }
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > * { flex: none; height: auto; }
   .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiProfileHero { height: 30rem; }
 }
+@media (max-width: 700px) {
+  .tui-profile-sections { grid-template-columns: minmax(0, 1fr); }
+}
 body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-text); font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; line-height: 1.5; }
+/* Shared runtime mounts are staging only; explicit Run renders the three previews. */
+.tui-visualiser #TopRibbon, .tui-visualiser #hero-banner, .tui-visualiser #ContentCardContainer { display: none !important; }
 .tui-visualiser * { box-sizing: border-box; }
 .tui-visualiser [hidden] { display: none !important; }
 .tui-visualiser button, .tui-visualiser select, .tui-visualiser input { font: inherit; color: var(--dash-text); }
@@ -34,7 +46,7 @@ body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-t
 .eyebrow { display: block; color: var(--dash-text-secondary); font-size: 9px; font-weight: 750; letter-spacing: 1.5px; }
 .simulation-badge { padding: 6px 10px; border: 1px solid var(--dash-info-border); color: var(--dash-info-text); background: var(--dash-surface); border-radius: 30px; font-size: 11px; }
 .boundary-note { padding: 9px 24px; color: var(--dash-text-secondary); font-size: 11px; background: var(--dash-surface); }
-.tui-workspace { --signals-width: 270px; --decision-width: 360px; display: grid; grid-template-columns: var(--signals-width) 8px var(--decision-width) 8px minmax(0, 1fr); min-height: calc(100dvh - 160px); padding: 14px 16px 55px; align-items: start; }
+.tui-workspace { --signals-width: 22%; --preview-width: 36%; display: grid; grid-template-columns: var(--signals-width) 10px minmax(0, 1fr) 10px var(--preview-width); min-height: calc(100dvh - 160px); padding: 14px 16px 55px; align-items: start; }
 .pane { min-width: 0; padding: 16px; border: 1px solid var(--dash-border); border-radius: var(--dash-radius); background: var(--dash-surface); }
 .pane-heading { display: flex; justify-content: space-between; align-items: center; gap: 5px; margin-bottom: 14px; }
 .pane-heading h2 { font-size: 17px; letter-spacing: -.5px; margin-top: 3px; line-height: 1.25; }
@@ -52,7 +64,8 @@ body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-t
 .mapping-details { margin-top: 14px; font-size: 11px; color: var(--dash-text-secondary); }
 .mapping-details p { margin: 9px 0 !important; }
 .gutter { min-height: 560px; height: 100%; cursor: col-resize; position: relative; touch-action: none; }
-.gutter::after { content: ""; position: absolute; top: 45%; left: 3px; width: 2px; height: 40px; background: var(--dash-border); border-radius: 3px; }
+.gutter::after { content: ""; position: absolute; top: 45%; left: 3px; width: 4px; height: 44px; background: var(--dash-border); border-radius: 3px; }
+.gutter:hover::after, .gutter:focus-visible::after { background: var(--dash-blue); }
 .scenario-select-label { display: block; font-size: 11px; font-weight: 650; margin-bottom: 5px; }
 .scenario-pills { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 14px; }
 .scenario-pills button { font-size: 10px; padding: 5px 7px; border-radius: 30px; }
@@ -129,9 +142,9 @@ body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-t
 .fictional-drawer > div { padding: 10px 24px 25px; font-size: 12px; }
 .fictional-drawer p { margin-top: 9px; }
 @media (max-width: 1150px) {
-  .tui-workspace { grid-template-columns: 240px 8px minmax(285px, 1fr); }
+  .tui-workspace { grid-template-columns: 240px minmax(285px, 1fr); gap: 12px; }
   .preview-pane { grid-column: 1 / -1; margin-top: 14px; }
-  .gutter[data-pane="decision"] { display: none; }
+  .gutter { display: none; }
   .channel-panel { max-width: 760px; margin: auto; }
   .website-preview .web-hero > img { height: 300px; }
 }

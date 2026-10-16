@@ -150,7 +150,9 @@ check both themes rather than relying on a generic recolouring alone.
 
 At desktop widths keep compact collapsible signals on the left, scenario pills
 and the dark branded seven-row objective ladder in the middle, and the channel
-preview on the right. Use keyboard/pointer-resizable gutters with saved widths.
+preview on the right. Use keyboard/pointer-resizable gutters with saved proportions
+that adapt to viewport width; avoid tiny fixed maxima that force the preview to
+take most of an ultrawide screen. Provide a double-click reset.
 Signal groups, ranked objectives and Eligible NBAs start collapsed. Provide
 Expand all / Collapse all for objectives and keep rank numbers visible when
 compressed. Choosing a scenario first collapses every signal group, then opens
@@ -216,14 +218,15 @@ vertical page scrolling; use columns, bounded internal areas and fit-to-height
 zoom rather than an indefinitely tall canvas. **Do not grow the entire drawer
 to fit profile fields.** Use a desktop height budget of roughly five recent event
 cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
-Use compact Contact / Banking (or industry-specific) / Identity tabs below the
-hero and KPIs; group holdings into a two-column tile grid rather than a long
+Use compact, visible Contact / industry-specific / Identity sections below the
+hero and KPIs, following the BA reference. Do not introduce NatWest-style profile
+section tabs unless explicitly requested. Keep the Email/Desktop, Email/Mobile,
+and Web channel selector. Group holdings into a two-column tile grid rather than a long
 single label/value list. Keep all actual values accessible, including full long
-strings through panel scrolling. Tabs need ARIA relationships, roving focus,
-Left/Right and Home/End keys. Scroll panel/event/audience overflow internally;
+strings through panel scrolling. Scroll panel/event/audience overflow internally;
 on narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
 stacked sections. Verify exact loaded/unloaded height limits with five fixture
-events, all tabs, both themes, and desktop/narrow viewports. Move, rather than clone, the
+events, all sections, both themes, and desktop/narrow viewports. Move, rather than clone, the
 shared anonymous-visitor control into the hero identity card.
 
 On identity or sandbox changes, clear the customer, banking fields, events and
