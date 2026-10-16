@@ -58,7 +58,7 @@ body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-t
 .tui-visualiser summary { cursor: pointer; font-weight: 650; }
 .signal-field { display: block; margin-top: 12px; }
 .signal-field > span { display: block; margin-bottom: 4px; font-weight: 600; }
-.signal-field select, .signal-field input, #scenario-select { width: 100%; padding: 7px 9px; background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: 8px; }
+.signal-field select, .signal-field input { width: 100%; padding: 7px 9px; background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: 8px; }
 .signal-field code { display: block; color: var(--dash-muted); font-size: 9px; margin-top: 4px; overflow-wrap: anywhere; }
 .signal-field [aria-invalid="true"] { border-color: var(--dash-error-border); background: var(--dash-error-bg); }
 .mapping-details { margin-top: 14px; font-size: 11px; color: var(--dash-text-secondary); }
@@ -66,32 +66,69 @@ body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-t
 .gutter { min-height: 560px; height: 100%; cursor: col-resize; position: relative; touch-action: none; }
 .gutter::after { content: ""; position: absolute; top: 45%; left: 3px; width: 4px; height: 44px; background: var(--dash-border); border-radius: 3px; }
 .gutter:hover::after, .gutter:focus-visible::after { background: var(--dash-blue); }
-.scenario-select-label { display: block; font-size: 11px; font-weight: 650; margin-bottom: 5px; }
 .scenario-pills { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 14px; }
 .scenario-pills button { font-size: 10px; padding: 5px 7px; border-radius: 30px; }
 .scenario-pills button[aria-pressed="true"] { background: var(--dash-info-bg); border-color: var(--dash-blue); color: var(--dash-info-text); }
-.ladder-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 9px; font-size: 10px; color: var(--dash-muted); }
-.ladder-toolbar button { padding: 3px 5px; font-size: 9px; border: 0; }
-.objective-ladder { padding: 8px; background: var(--dash-text); border-radius: var(--dash-radius); }
-.objective { background: var(--dash-surface); border: 1px solid var(--dash-border); border-radius: 10px; margin-bottom: 6px; overflow: hidden; }
+.ranking-panel { --tui-rank-bg: color-mix(in srgb, var(--dash-blue) 35%, var(--dash-text)); --tui-rank-text: var(--dash-surface); background: var(--tui-rank-bg); color: var(--tui-rank-text); border-radius: var(--dash-radius); padding: 14px; }
+html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, var(--dash-blue) 25%, var(--dash-bg)); --tui-rank-text: var(--dash-text); }
+.ranking-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.ranking-heading h3, #eligible-details > summary > span { font: 700 23px Georgia, serif; }
+.ranking-heading > span, #eligible-objective { font: 11px ui-monospace, monospace; color: color-mix(in srgb, var(--tui-rank-text) 65%, var(--dash-blue)); }
+.ladder-toolbar { display: flex; gap: 5px; margin-left: auto; }
+.ranking-panel .ladder-toolbar button { padding: 3px 8px; font-size: 11px; border: 1px solid color-mix(in srgb, var(--tui-rank-text) 30%, transparent); background: color-mix(in srgb, var(--tui-rank-text) 10%, transparent); color: var(--tui-rank-text); border-radius: 8px; }
+.objective { background: color-mix(in srgb, var(--tui-rank-text) 6%, transparent); border: 1px solid color-mix(in srgb, var(--tui-rank-text) 12%, transparent); border-radius: 9px; margin-bottom: 5px; overflow: hidden; }
 .objective:last-child { margin-bottom: 0; }
-.objective summary { list-style: none; display: flex; align-items: center; gap: 9px; padding: 10px; }
+.objective summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 4px 10px; min-height: 46px; }
 .objective summary::-webkit-details-marker { display: none; }
-.rank { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; font-size: 12px; border-radius: 50%; color: var(--dash-text-secondary); background: var(--dash-surface-alt); }
-.objective-name { font-size: 12px; flex: 1; }
-.objective-name small { display: block; color: var(--dash-muted); font-size: 9px; font-weight: 400; }
-.objective-state { color: var(--dash-muted); font-size: 9px; font-weight: 600; }
-.objective[data-winner="true"] { border-color: var(--dash-success-border); box-shadow: inset 3px 0 var(--dash-success-border); }
-.objective[data-winner="true"] .rank { background: var(--dash-success-bg); color: var(--dash-success-text); }
-.objective[data-winner="true"] .objective-state { color: var(--dash-success-text); }
-.objective-body { padding: 0 10px 10px; font-size: 10px; }
-.rule-label { color: var(--dash-text-secondary); padding: 6px 0 10px; }
-.nba-row { padding: 8px; background: var(--dash-surface-alt); border: 1px solid var(--dash-border); border-radius: 7px; margin-top: 5px; }
-.nba-row strong { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; }
-.nba-row p { margin-top: 4px; color: var(--dash-muted); }
+.rank { display: grid; place-items: center; width: 42px; height: 40px; flex-shrink: 0; font-size: 18px; font-weight: 750; color: var(--tui-rank-text); background: var(--dash-blue); clip-path: polygon(0 0, 75% 0, 100% 50%, 75% 100%, 0 100%, 24% 50%); }
+.objective[data-rank="1"] .rank { background: var(--dash-error-text); }
+.objective[data-rank="2"] .rank { background: color-mix(in srgb, var(--dash-error-text) 70%, var(--dash-warning-text)); }
+.objective[data-rank="3"] .rank { background: var(--dash-warning-text); }
+.objective[data-rank="4"] .rank { background: color-mix(in srgb, var(--dash-warning-text) 60%, var(--dash-success-text)); }
+.objective[data-rank="6"] .rank { background: color-mix(in srgb, var(--dash-blue) 75%, var(--dash-success-text)); }
+.objective[data-rank="7"] .rank { background: var(--dash-success-text); }
+.objective-name { font-size: 14px; flex: 1; min-width: 0; }
+.objective-name small { display: block; font-size: 11px; font-weight: 400; opacity: .7; margin-top: 4px; }
+.objective:not([open]) .objective-name small { display: none; }
+.objective-state { text-align: center; font-size: 10px; font-weight: 650; padding: 4px 10px; border-radius: 20px; background: color-mix(in srgb, var(--tui-rank-text) 12%, transparent); flex: none; max-width: 130px; }
+.objective[data-after="true"] { opacity: .6; }
+.objective[data-winner="true"] { background: color-mix(in srgb, var(--tui-rank-text) 16%, transparent); border-color: color-mix(in srgb, var(--tui-rank-text) 50%, transparent); }
+.objective[data-winner="true"] .objective-state { background: var(--tui-rank-text); color: var(--tui-rank-bg); }
+.objective-body { padding: 0 10px 10px; font-size: 11px; }
+.rule-label { opacity: .8; padding: 6px 0 10px; }
+.nba-card { display: flex; align-items: center; gap: 12px; border: 1px solid color-mix(in srgb, var(--tui-rank-text) 18%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--tui-rank-text) 7%, transparent); padding: 9px 12px; margin-top: 6px; }
+.nba-card--winner { background: color-mix(in srgb, var(--tui-rank-text) 16%, transparent); border-color: color-mix(in srgb, var(--tui-rank-text) 40%, transparent); }
+.nba-rank { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--tui-rank-text) 12%, transparent); font: 600 12px ui-monospace, monospace; }
+.nba-card--winner .nba-rank { background: var(--dash-blue); }
+.nba-main { flex: 1; min-width: 0; }
+.nba-name { display: block; font-size: 15px; font-weight: 650; }
+.nba-why { font-size: 12px; opacity: .7; margin-top: 4px !important; }
+.nba-bar { display: flex; height: 5px; border-radius: 4px; overflow: hidden; margin: 7px 0 4px; background: color-mix(in srgb, var(--tui-rank-text) 12%, transparent); }
+.nba-component-0 { --nba-color: var(--dash-blue); }
+.nba-component-1 { --nba-color: var(--dash-warning-text); }
+.nba-bar i, .nba-components i { background: var(--nba-color); }
+.nba-components { display: flex; gap: 12px; flex-wrap: wrap; font: 11px ui-monospace, monospace; }
+.nba-components i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 4px; }
+.nba-score { font-size: 23px; font-variant-numeric: tabular-nums; }
+.nba-card--off { opacity: .6; border-style: dashed; background: transparent; }
+.nba-card--off .nba-rank { border: 1px solid currentColor; background: transparent; }
+.nba-off-label { text-transform: uppercase; letter-spacing: .06em; font: 11px ui-monospace, monospace; opacity: .65; margin-top: 14px !important; }
+.nba-ranking-note { font-size: 10px; opacity: .7; margin: 5px 0 10px !important; }
 .decision-status { padding: 12px; margin: 12px 0; background: var(--dash-info-bg); color: var(--dash-info-text); border: 1px solid var(--dash-info-border); border-radius: var(--dash-radius-sm); font-size: 11px; }
-#eligible-details { font-size: 11px; }
-#eligible-items p { padding: 6px 0; border-bottom: 1px solid var(--dash-border); }
+#eligible-details > summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; list-style: none; }
+#eligible-details > summary::-webkit-details-marker { display: none; }
+#eligible-details > summary::after { content: "+"; margin-left: auto; }
+#eligible-details[open] > summary::after { content: "-"; }
+#eligible-details:not([open]) .nba-ranking-note { display: none; }
+@media (max-width: 620px) {
+  .ranking-panel { padding: 10px; }
+  .objective summary { gap: 8px; padding-inline: 5px; }
+  .rank { width: 32px; height: 34px; font-size: 15px; }
+  .objective-name { font-size: 12px; }
+  .objective-state { max-width: 85px; padding: 4px 6px; font-size: 9px; }
+  .nba-card { padding: 8px; gap: 8px; }
+  .nba-name { font-size: 13px; }
+}
 .preview-pane { background: var(--dash-surface-alt); padding: 0; display: flex; flex-direction: column; max-height: calc(100dvh - 28px); overflow: hidden; position: sticky; top: 14px; }
 .preview-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 12px 16px; background: var(--dash-surface); flex: none; }
 .preview-header h2 { margin: 0; font: 600 12px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--dash-text-secondary); }

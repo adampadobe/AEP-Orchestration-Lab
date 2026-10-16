@@ -51,8 +51,29 @@ async function main() {
     assert.equal(await page.locator('.objective').count(), 7);
     assert.equal(await page.locator('.objective[open]').count(), 0);
     assert.equal(await page.locator('.signal-group[open]').count(), 0);
+    assert.equal(await page.locator('#scenario-select').count(), 0, 'No duplicate scenario dropdown');
+    assert.equal(await page.locator('#scenario-pills button').count(), 7);
+    for (const [index, scenario] of model.demoScenarios.entries()) {
+      await page.locator('#scenario-pills button').nth(index).click();
+      assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective);
+      assert.equal(await page.locator('#eligible-details').getAttribute('open'), '');
+      assert.equal(await page.locator('#eligible-items .nba-card--winner').getAttribute('data-offer'), scenario.expectedOffer);
+      assert.deepEqual((await page.locator('.signal-group[open]').evaluateAll(nodes => nodes.map(n => n.dataset.group))).sort(),
+        [...new Set(Object.keys(scenario.preset).map(key => model.fields.find(f => f.key === key).group))].sort());
+      const objective = model.objectives[index], result = model.evaluate(scenario.preset);
+      const expected = result.ladder[index].offers.filter(item => item.eligible).sort((a, b) => b.priority - a.priority);
+      assert.deepEqual(await page.locator('#eligible-items .nba-card:not(.nba-card--off)').evaluateAll(cards => cards.map(card => card.dataset.offer)),
+        expected.map(item => item.key), 'NBA panel ranks only the selected objective');
+      assert.equal(await page.locator('#eligible-items .nba-card--off').count(), objective.offers.length - expected.length);
+      for (const card of await page.locator('#eligible-items .nba-card:not(.nba-card--off)').all()) {
+        const contributions = await card.locator('.nba-components b').allTextContents();
+        assert.equal(contributions.map(Number).reduce((a, b) => a + b, 0), Number(await card.locator('.nba-score').textContent()),
+          'Displayed priority contributions add to the actual unchanged catalog priority');
+      }
+    }
     for (const [index, scenario] of model.scenarios.entries()) {
-      await page.locator('#scenario-select').selectOption(String(index));
+      await page.evaluate(state => window.TuiDecisioningVisualiser.setProfile({ state, firstName: 'Alex' }),
+        { ...model.defaults, ...scenario.preset });
       if (scenario.expectedObjective) {
         assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective, scenario.name);
         const objective = model.objectives.find(o => o.key === scenario.expectedObjective);
@@ -67,24 +88,20 @@ async function main() {
           assert.equal(await page.locator('#' + id + ' .preview-cta').count(), 0);
         }
       }
-      const expectedGroups = [...new Set(Object.keys(scenario.preset)
-        .map(key => model.fields.find(f => f.key === key).group))].sort();
-      assert.deepEqual((await page.locator('.signal-group[open]').evaluateAll(nodes => nodes.map(n => n.dataset.group))).sort(), expectedGroups);
     }
-    const holdIndex = model.scenarios.findIndex(s => s.name === 'No email consent');
-    await page.locator('#scenario-select').selectOption(String(holdIndex));
+    await page.locator('#scenario-pills button').last().click();
+    await page.locator('#signal-emailConsent').selectOption('n');
+    assert.equal(await page.locator('#eligible-items .nba-card').count(), 0, 'Consent hold clears ranked NBA cards');
     await page.locator('#signal-emailConsent').selectOption('y');
     assert.equal(await page.locator('#email-preview .email-card').count(), 1, 'Held content restores');
     await page.locator('#email-preview .preview-cta').click();
     assert.match(await page.locator('#preview-feedback').textContent(), /Simulation only/);
     const count = await page.locator('.signal-field').count();
     assert.equal(count, model.fields.length);
-    await page.locator('details[data-group="Holiday"] summary').click();
     await page.locator('#signal-days').fill('-1');
     assert.equal(await page.locator('#email-preview .email-card').count(), 0, 'Invalid number removes stale content');
     await page.locator('#signal-days').fill('30');
     assert.equal(await page.locator('#email-preview .email-card').count(), 1);
-    await page.locator('details[data-group="Preferences"] summary').click();
     await page.locator('#signal-score').fill('5.1');
     for (const id of ['email-preview', 'mobile-preview', 'web-preview']) {
       assert.equal(await page.locator('#' + id + ' img').count(), 0);
@@ -186,6 +203,14 @@ async function main() {
           assert.equal(await page.evaluate(() => [...document.images].every(img => img.naturalWidth > 0)), true, 'All local assets load');
           if (screenshotDir) await page.screenshot({ path: path.join(screenshotDir, `${dark ? 'dark' : 'light'}-${width}-${channel}.png`), fullPage: true });
         }
+        await page.locator('#scenario-pills button').nth(5).click();
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Expanded NBA cards fit both themes and widths');
+        assert.equal(await page.locator('#eligible-items .nba-card--winner').count(), 1);
+        if (screenshotDir) {
+          await page.locator('#objectives').screenshot({ path: path.join(screenshotDir, `objectives-${dark ? 'dark' : 'light'}-${width}.png`) });
+          await page.locator('#eligible-details').evaluate(node => node.scrollIntoView({ block: 'center', behavior: 'instant' }));
+          await page.locator('#eligible-details').screenshot({ path: path.join(screenshotDir, `nba-${dark ? 'dark' : 'light'}-${width}.png`) });
+        }
         await page.locator('.fictional-drawer summary').click();
         const height = await page.locator('.fictional-drawer').evaluate(node => node.getBoundingClientRect().height);
         assert(height <= 550, 'Fictional drawer stays within viewport budget');
@@ -197,7 +222,8 @@ async function main() {
     await context.close();
     const shellContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const shellCalls = [];
-    let rejectGeneric = false, delayNextLookup = false, mismatchTenant = false;
+    let rejectGeneric = false, delayNextLookup = false, mismatchTenant = false, missingRecoveredField = false;
+    let recoveredSchemaField = { type: 'string' };
     const fixture = {
       found: true, profileEmail: 'traveller@example.invalid', ecid: '12345678901234567890123456789012345678',
       industries: { generic: { writable: true, schemaId: 'generic-schema', xdmKey: '_demoemea' },
@@ -210,6 +236,10 @@ async function main() {
         { path: '_demoemea.airlineCustomer.preservedSibling', value: 'Keep exact value', valueType: 'string', industry: 'travel', writable: true },
       ],
     };
+    // Older deployed table maps labelled airlineCustomer as Generic; preserve its entire subtree.
+    fixture.rows.filter(row => row.path.includes('.airlineCustomer.')).forEach(row => {
+      row.industry = 'generic'; row.writable = false;
+    });
     const events = Array.from({ length: 5 }, (_, i) => ({ id: 'fixture-' + i, timestamp: Date.now() - i * 60000,
       eventType: i === 0 ? 'decisioning.propositionDisplay' : 'web.webPageDetails.pageViews', channel: 'web',
       rows: [{ path: 'web.webPageDetails.name', value: 'TUI Decisioning' }] }));
@@ -249,6 +279,7 @@ async function main() {
             }
             at.type = field.type;
           }
+          if (!missingRecoveredField) schema.properties._demoemea.properties.airlineCustomer.properties.preservedSibling = recoveredSchemaField;
           json = { status: 200, platform_response: schema };
         }
         if (parsed.pathname === '/api/profile/update') {
@@ -256,8 +287,14 @@ async function main() {
             await route.fulfill({ status: 400, json: { ok: false, error: 'Fixture rejected generic dataflow' } }); return;
           }
           for (const update of body.updates) {
-            const row = fixture.rows.find(row => profile.relative(row.path) === update.path);
-            assert(row, 'Fixture updates known paths only'); row.value = update.value;
+            let row = fixture.rows.find(row => profile.relative(row.path) === update.path);
+            if (!row) {
+              const field = model.fields.find(field => profile.relative(field.path) === update.path);
+              assert(field && field.type === update.valueType, 'New fixture rows must be declared typed signals');
+              row = { path: field.path, valueType: field.type, industry: body.industry, writable: true };
+              fixture.rows.push(row);
+            }
+            row.value = update.value;
           }
           json = { ok: true };
         }
@@ -348,6 +385,18 @@ async function main() {
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('does not match'));
     assert.equal(shellCalls.filter(call => call.path === '/api/profile/update').length, 0, 'Tenant disagreement blocks every write');
     mismatchTenant = false;
+    missingRecoveredField = true;
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('preservedSibling'));
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/update').length, 0, 'Every recovered sibling is schema-checked before any write');
+    missingRecoveredField = false;
+    for (const incompatible of [{ type: 'number' }, { type: 'string', readOnly: true }]) {
+      recoveredSchemaField = incompatible;
+      await shell.locator('#tuiApplyProfile').click();
+      await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('preservedSibling'));
+      assert.equal(shellCalls.filter(call => call.path === '/api/profile/update').length, 0, 'Wrong types and readonly siblings block all writes');
+    }
+    recoveredSchemaField = { type: 'string' };
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
     const updates = shellCalls.filter(call => call.path === '/api/profile/update');
@@ -395,6 +444,7 @@ async function main() {
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Actual loaded consent'));
     assert.equal(await frame.locator('#email-preview img').count(), 0, 'Missing consent removes stale live content');
+    assert.equal(await frame.locator('#eligible-items .nba-card').count(), 0, 'Actual consent hold clears stale eligible NBA cards');
     assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'Consent hold sends no display');
     await shell.evaluate(() => window.EnvBarCompact.openOverlay());
     await shell.locator('#customerEmail').fill('another@example.invalid');
@@ -410,6 +460,21 @@ async function main() {
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Select kirkham before Run'));
+    await shell.evaluate(() => {
+      window.AepGlobalSandbox.setSelected('kirkham');
+      window.EnvBarCompact.openOverlay();
+    });
+    fixture.rows = fixture.rows.filter(row => !/^_demoemea\.(airlineCustomer|travelReservations)\./.test(row.path));
+    await shell.locator('#queryProfileBtn').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Test profile loaded.'));
+    await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    await shell.mouse.move(700, 100);
+    await frame.locator('#signal-booking').selectOption('Booked');
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
+    assert.deepEqual(shellCalls.filter(call => call.path === '/api/profile/update').at(-1).body.updates,
+      [{ path: 'airlineCustomer.journeyStage', value: 'Booked', valueType: 'string' }],
+      'Configured writable dataflow allows first-time Travel population with no existing rows');
     await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     await shell.locator('#tui-visualiser').contentFrame().locator('html[data-aep-theme="dark"]').waitFor();
     assert.equal(await frame.locator('html').getAttribute('data-aep-theme'), 'dark');
@@ -419,7 +484,7 @@ async function main() {
       'Only explicit Apply writes a profile');
     assert.deepEqual(errors, []);
     await shellContext.close();
-    console.log(`TUI browser checks passed: ${model.scenarios.length} scenarios, 3 channels, 2 themes, 2 viewport widths; shared configuration/drawer and history verified; no live requests.`);
+    console.log(`TUI browser checks passed: 7 scenario buttons, ${model.scenarios.length} regression cases, ranked NBA cards, 3 channels, 2 themes; legacy ownership and first-time snapshots verified; no live requests.`);
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));

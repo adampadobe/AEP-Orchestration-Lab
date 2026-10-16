@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>TUI | Next holiday, best moment</title>
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016-channels">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016-ranked">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="home-dashboard-concierge tui-visualiser">
@@ -28,13 +28,14 @@
     <section class="decision-pane pane" aria-labelledby="decision-title">
       <div class="pane-heading"><div><span class="eyebrow">02 / THE NEXT BEST MOMENT</span><h2 id="decision-title">Seven objectives. One choice.</h2></div></div>
       <p class="microcopy">First eligible objective. Highest eligible item priority. Not a live AJO response.</p>
-      <label class="scenario-select-label" for="scenario-select">Choose a holiday moment</label>
-      <select id="scenario-select"><option value="">Explore all scenarios...</option></select>
-      <div id="scenario-pills" class="scenario-pills" aria-label="Featured scenarios"></div>
-      <div class="ladder-toolbar"><span id="scenario-label">Illustrative starting profile</span><div><button id="expand" type="button">Expand all</button><button id="collapse" type="button">Collapse all</button></div></div>
-      <div id="objectives" class="objective-ladder"></div>
+      <div id="scenario-pills" class="scenario-pills" role="group" aria-label="Seven holiday scenarios"></div>
+      <p id="scenario-label" class="microcopy" role="status">Illustrative starting profile</p>
+      <section class="ranking-panel" aria-labelledby="ranking-title">
+        <div class="ranking-heading"><h3 id="ranking-title">Ranked objectives</h3><span>Stop at the first eligible</span><div class="ladder-toolbar"><button id="expand" type="button">Expand all</button><button id="collapse" type="button">Collapse all</button></div></div>
+        <div id="objectives" class="objective-ladder"></div>
+      </section>
       <div id="decision-status" class="decision-status" role="status" aria-live="polite"></div>
-      <details id="eligible-details"><summary>Eligible next-best actions</summary><div id="eligible-items"></div></details>
+      <details id="eligible-details" class="ranking-panel"><summary><span>Eligible NBAs</span><small id="eligible-objective"></small></summary><p class="nba-ranking-note">Local catalog priority, not an AJO/ML score</p><div id="eligible-items"></div></details>
       <details class="mapping-details"><summary>Draft catalog / local simulation</summary><p>21 draft items / 7 tag collections / 7 strategies were created and read back in kirkham on 16 October 2026. Objective and item rules each read 1-2 existing profile attributes.</p><p id="catalog-stats"></p><p>Shared BA/TUI tag membership was explicitly approved. No policy was activated; this page still simulates decisions locally. Static strategy priority is not policy ordering. Live use needs hosted media, reviewed policy ordering and consent gating, and Edge verification.</p></details>
     </section>
     <div class="gutter" role="separator" aria-label="Resize channel preview; double-click to reset" aria-orientation="vertical" tabindex="0" data-pane="preview" aria-valuemin="340" aria-valuemax="1200" aria-valuenow="560"></div>
@@ -65,7 +66,7 @@
     </section>
   </main>
   <details class="fictional-drawer"><summary>Fictional profile / Alex Morgan / View signals and identity</summary><div><strong>Local fixture only</strong><p>No ECID, linked identities, audiences or real activity have been loaded. This static demonstration has no live profile drawer and performs no identity reset.</p><p id="fixture-summary"></p></div></details>
-  <script src="tui-decisioning-model.js?v=20261016"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261016-layout"></script>
+  <script src="tui-decisioning-model.js?v=20261016-ranked"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261016-ranked"></script>
 </body>
 </html>

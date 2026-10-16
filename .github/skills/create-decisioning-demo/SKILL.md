@@ -31,8 +31,9 @@ Example request:
 - Default tabs are **Email · Desktop**, **Email · Mobile**, and **Web**.
   Mobile means the same responsive email in a phone frame, not an app mockup.
 - Include industry-specific attributes (also in the shared bottom profile drawer
-  when live integration is requested), scenario presets, a seven-step objective
-  ladder that stops at the first eligible objective, and expandable NBA scores.
+  when live integration is requested), exactly seven scenario buttons (one per
+  ranked objective), a seven-step ladder that stops at the first eligible
+  objective, and expandable NBA priorities/scores.
 - Use the uploaded files without a live crawl or external service by default.
 - Do not deploy, publish templates, send messages, provision infrastructure or
   change shared sandbox configuration as part of creating the demo.
@@ -160,10 +161,32 @@ Expand all / Collapse all for objectives and keep rank numbers visible when
 compressed. Choosing a scenario first collapses every signal group, then opens
 every group containing any field in the scenario's full preset, even if that
 value did not change. Expand the selected objective and the Eligible NBAs only
-after a scenario is chosen. Hide no-consent scenarios when consent is not
-applicable to that demo; retain genuine consent holds where it is applicable.
+after a scenario is chosen. Present exactly seven scenario buttons in objective
+order, each with a complete deterministic preset that reaches its intended
+objective from any previous state. Do not add a scenario dropdown, duplicate
+selector or extra reset/consent scenario buttons. Keep manual signal controls
+and the separate Reset action. Retain exhaustive item, negative, boundary and
+consent cases in the model/test matrix, not the presentation selector.
 On narrow screens stack panes.
 Use labelled controls, accessible tabs, useful image alternatives and clear status.
+
+Match BA's ranked-objective and Eligible NBA design, adapted to the new brand:
+dark branded panels, coloured numbered chevrons, a selected pill and explicit
+not-eligible/eligible-but-not-reached states. Expanding an objective shows its
+actual gate and eligible-item count, not another duplicated card list.
+Eligible NBAs shows the selected objective's rank/name, eligible items in
+descending priority/score order, numbered circles, a highlighted winner,
+horizontal coloured breakdown bars with a component legend, and a prominent
+right-aligned total. Separate excluded items under **Not eligible right now**
+using muted dashed cards and their actual rule conditions. Clear cards when
+no objective qualifies or consent holds content.
+
+The card design does not authorise copying BA's scoring model. If the customer
+catalog uses static item priority, label it as local catalog priority and show
+only its real contributions (TUI: objective base + item priority). Components
+must sum to the unchanged total. Do not invent relevance/propensity/confidence
+scores, relabel catalog priority as an AJO/ML response, or change winners just
+to reproduce a visual. Keep this local explanation distinct from live content.
 
 The preview is a separate, bounded scrolling stage: keep its channel header
 visible while the reconstructed site scrolls internally. Web fills the available
@@ -482,9 +505,20 @@ is the field template, not permission to reuse BA copy for another customer.
    a missing field even if its value equals the illustrative default.
    Do not require existing writable rows when the industry's dataflow is already
    configured and writable: first-time population must work. Preserve known
-   industry subtrees when an older backend omits ownership annotations, without
-   bypassing the industry configuration or resolved-schema checks. Test with
-   zero writable industry rows and with absent fields, not just ideal metadata.
+   industry subtrees when an older backend omits or mislabels ownership
+   annotations, without bypassing industry configuration or resolved-schema
+   checks. The table's ownership labels are a static map, not dataset provenance
+   or proof that a supplied schema lacks a field. Recover only known canonical
+   owning subtrees, preserving every existing scalar sibling and its exact type,
+   and validate every recovered path against the configured live write schema
+   before sending any industry group. Keep unrelated industry data out of the
+   snapshot. Respect root fields, array indices, integer/nullable types and
+   read-only leaves. Missing/incompatible fields must identify the exact path,
+   industry, sandbox and schema, with zero writes and no auto-provisioning.
+   Missing/disabled write configuration still blocks Apply. Test stale Generic
+   labels, omitted annotations, sibling preservation, incompatible/read-only
+   siblings, zero writable industry rows and absent fields, not just ideal
+   metadata. A client compatibility fix must not require a Functions release.
    Confirm the intended sandbox before any infrastructure change. Compare every
    mapped field with the actual resolved write-dataflow schema, not just the
    supplied Operational reference or merged profile. Report sandbox/schema IDs

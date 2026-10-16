@@ -113,6 +113,10 @@
   scenario('Nothing eligible', { engagement: 'Dormant' }, null, null, true);
   scenario('No email consent', { emailConsent: 'n' }, null, null, true);
   scenario('Unknown personalisation', { personalize: 'u' }, null, null);
+  const demoScenarios = ['protect', 'travel', 'prepare', 'posttrip', 'convert', 'grow', 'engage'].map(key => {
+    const example = scenarios.find(s => s.expectedObjective === key);
+    return { ...example, preset: { ...defaults, ...example.preset } };
+  });
 
   function attributes(state) {
     return Object.fromEntries(fields.map(f => [f.path, state[f.key]]));
@@ -190,7 +194,7 @@
         })),
     };
   }
-  const model = { fields, objectives, defaults, scenarios, evaluate, describe, attributes, catalogPlan, tags };
+  const model = { fields, objectives, defaults, scenarios, demoScenarios, evaluate, describe, attributes, catalogPlan, tags };
   if (typeof module !== 'undefined' && module.exports) module.exports = model;
   else root.TuiDecisioning = model;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

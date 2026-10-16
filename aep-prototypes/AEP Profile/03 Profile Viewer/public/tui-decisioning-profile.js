@@ -4,8 +4,17 @@
     ? require('./tui-decisioning-model.js') : root.TuiDecisioning;
   const relative = path => String(path).replace(/^_[A-Za-z0-9]+\./, '');
   const industry = field => /^(consents\.|_[^.]+\.(scoring|loyaltyDetails)\.)/.test(field.path) ? 'generic' : 'travel';
+  function knownOwner(path) {
+    const value = relative(path);
+    if (/^(airlineCustomer|travelReservations|travelPreferences|industryTravel|hotel)\./.test(value) ||
+      value.startsWith('individualCharacteristics.travel.')) return 'travel';
+    if (/^(consents|scoring\.core|scoring\.churn|loyaltyDetails)\./.test(value)) return 'generic';
+    return null;
+  }
   function schemaLeaf(schema, config, path) {
-    const walk = node => path.split('.').reduce((at, part) => at?.properties?.[part], node);
+    const walk = node => path.split('.').reduce((at, part) =>
+      (at?.type === 'array' || Array.isArray(at?.type) && at.type.includes('array')) && /^\d+$/.test(part)
+        ? at.items : at?.properties?.[part], node);
     const key = value => {
       if (value === undefined || value === null || value === '') return '';
       if (typeof value !== 'string' || !/^_?[A-Za-z][A-Za-z0-9]*$/.test(value)) throw new Error('Invalid schema tenant metadata.');
@@ -13,7 +22,7 @@
     };
     const configured = key(config.xdmKey), declared = key(schema['meta:tenantNamespace']);
     if (configured && declared && configured !== declared) throw new Error('Write schema tenant does not match the configured dataflow.');
-    if (path.startsWith('consents.')) return walk(schema);
+    if (Object.hasOwn(schema.properties || {}, path.split('.')[0])) return walk(schema);
     const explicit = configured || declared;
     if (explicit) {
       if (schema.properties?.[explicit]?.type !== 'object' && !schema.properties?.[explicit]?.properties) {
@@ -57,21 +66,24 @@
       }
       const owner = industry(field), config = data.industries?.[owner];
       if (!config?.writable || !config.schemaId) throw new Error('Configure the existing ' + owner + ' profile dataflow first.');
-      const incompatible = model.fields.filter(f => industry(f) === owner).some(f =>
-        data.rows.some(row => relative(row.path) === relative(f.path) && (row.industry !== owner || row.writable !== true)));
-      if (incompatible) throw new Error('Profile API ownership is not ready for ' + owner + '. Do not stream a partial snapshot.');
       if (!groups.has(owner)) {
-        const rows = data.rows.filter(row => row.industry === owner && row.writable === true);
-        if (!rows.length) throw new Error('No writable snapshot for ' + owner + '. Load a profile from its configured dataflow first.');
-        groups.set(owner, new Map(rows.map(row => [relative(row.path), {
+        // Ownership labels are a static API map, not dataset provenance.
+        // Recover only known industry subtrees, then verify them against the live write schema.
+        const rows = data.rows.filter(row => knownOwner(row.path) === owner ||
+          !knownOwner(row.path) && row.industry === owner && row.writable === true);
+        const schemaPaths = rows.filter(row => row.industry !== owner || row.writable !== true).map(row => relative(row.path));
+        if (schemaPaths.length) console.info('Verifying legacy profile ownership against the write schema:', owner, schemaPaths);
+        groups.set(owner, { schemaPaths, updates: new Map(rows.map(row => [relative(row.path), {
           path: relative(row.path), value: scalar(row), valueType: row.valueType,
-        }])));
+        }])) });
       }
       const path = relative(field.path);
       expected[path] = state[key];
-      groups.get(owner).set(path, { path, value: state[key], valueType: field.type });
+      groups.get(owner).updates.set(path, { path, value: state[key], valueType: field.type });
     }
-    return { expected, snapshots: [...groups].map(([owner, rows]) => ({ industry: owner, updates: [...rows.values()] })) };
+    return { expected, snapshots: [...groups].map(([owner, group]) => ({
+      industry: owner, schemaPaths: group.schemaPaths, updates: [...group.updates.values()],
+    })) };
   }
   function differences(rows, expected) {
     const actual = new Map(rows.map(row => [relative(row.path), scalar(row)]));

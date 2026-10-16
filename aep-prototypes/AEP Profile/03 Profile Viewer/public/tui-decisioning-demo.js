@@ -74,13 +74,15 @@
       if (!/^\d+\.\d+$/.test(meta.version || '')) throw new Error('Missing current schema version.');
       const schema = await read('application/vnd.adobe.xed-full+json; version=' + meta.version);
       if (schema.version !== meta.version || !schema.properties) throw new Error('Current resolved schema unavailable.');
-      for (const update of group.updates.filter(update => Object.hasOwn(batch.expected, update.path))) {
+      for (const update of group.updates.filter(update => Object.hasOwn(batch.expected, update.path) || group.schemaPaths.includes(update.path))) {
         const leaf = profile.schemaLeaf(schema, config, update.path);
         const type = typeof update.value;
-        if (!leaf || !(leaf.type === type || leaf.type === 'integer' && Number.isInteger(update.value)) ||
+        const types = Array.isArray(leaf?.type) ? leaf.type : [leaf?.type];
+        if (!leaf || leaf.readOnly === true || !(types.includes(update.value === null ? 'null' : type) || types.includes('integer') && Number.isInteger(update.value)) ||
           Array.isArray(leaf.enum) && !leaf.enum.includes(update.value) ||
           type === 'number' && (leaf.minimum !== undefined && update.value < leaf.minimum || leaf.maximum !== undefined && update.value > leaf.maximum)) {
-          throw new Error('Write schema missing/incompatible field: ' + update.path + ' (' + group.industry + '). No automatic provisioning.');
+          throw new Error('Write schema missing/incompatible field: ' + update.path + ' (' + group.industry + ', sandbox ' + ctx.sandbox +
+            ', schema ' + config.schemaId + '). No profile changes sent; no automatic provisioning.');
         }
       }
     }

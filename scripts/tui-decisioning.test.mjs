@@ -21,6 +21,10 @@ test('schema preflight distinguishes tenant fields from reserved XDM roots and f
   const fallback = { properties: schema.properties };
   assert.deepEqual(profile.schemaLeaf(fallback, {}, 'airlineCustomer.journeyStage'), { type: 'string' });
   assert.equal(profile.schemaLeaf(schema, {}, 'airlineCustomer.missing'), undefined);
+  const arraySchema = { properties: { travelPreferences: { properties: { destinations: {
+    type: ['array', 'null'], items: { properties: { city: { type: 'string' } } },
+  } } } } };
+  assert.deepEqual(profile.schemaLeaf(arraySchema, {}, 'travelPreferences.destinations.0.city'), { type: 'string' });
   assert.throws(() => profile.schemaLeaf(schema, { xdmKey: '_other' }, 'airlineCustomer.journeyStage'), /does not match/);
   assert.throws(() => profile.schemaLeaf(schema, { xdmKey: '_other' }, 'consents.marketing'), /does not match/);
   assert.throws(() => profile.schemaLeaf({ ...schema, 'meta:tenantNamespace': {} }, {}, 'airlineCustomer.journeyStage'), /Invalid/);
@@ -42,6 +46,14 @@ test('every TUI scenario selects its expected objective and offer, including con
     const result = model.evaluate({ ...model.defaults, ...scenario.preset });
     assert.equal(result.objective, scenario.expectedObjective, scenario.name);
     assert.equal(result.offer, scenario.expectedOffer, scenario.name);
+  }
+});
+test('exactly seven visible scenario presets independently select each ranked objective', () => {
+  assert.equal(model.demoScenarios.length, 7);
+  assert.deepEqual(model.demoScenarios.map(s => s.expectedObjective), model.objectives.map(o => o.key));
+  for (const scenario of model.demoScenarios) {
+    assert.deepEqual(Object.keys(scenario.preset).sort(), model.fields.map(field => field.key).sort());
+    assert.equal(model.evaluate(scenario.preset).objective, scenario.expectedObjective);
   }
 });
 
@@ -139,8 +151,20 @@ test('profile snapshots preserve typed industry siblings and write only explicit
   assert.deepEqual(batch.snapshots[0].updates.find(u => u.path.endsWith('mobileAppUser')).value, false);
   assert.equal(batch.snapshots[0].updates.some(u => u.path.startsWith('consents.')), false);
   assert.throws(() => profile.snapshots({ ...data, industries: {} }, model.defaults, ['booking']), /Configure/);
-  assert.throws(() => profile.snapshots({ ...data, rows: data.rows.map(row => ({ ...row, industry: 'generic' })) },
-    model.defaults, ['booking']), /ownership/);
+  const legacy = profile.snapshots({ ...data, rows: [
+    ...data.rows.map(row => ({ ...row, industry: 'generic', writable: false })),
+    { path: '_demoemea.airlineCustomer.savedSibling', value: 'Keep', valueType: 'string', writable: false },
+    { path: '_demoemea.travelReservations.flightReservations.segments.0.airline', value: 'TUI', valueType: 'string', industry: null, writable: false },
+    { path: '_demoemea.industryFsi.balance', value: '100', valueType: 'number', industry: 'fsi', writable: true },
+  ] }, { ...model.defaults, booking: 'Booked' }, ['booking', 'score']);
+  assert.equal(legacy.snapshots[0].updates.find(u => u.path.endsWith('savedSibling')).value, 'Keep');
+  assert.equal(legacy.snapshots[0].updates.find(u => u.path.endsWith('segments.0.airline')).value, 'TUI');
+  assert(legacy.snapshots[0].schemaPaths.includes('airlineCustomer.savedSibling'));
+  assert.equal(legacy.snapshots[0].updates.some(u => u.path.startsWith('scoring.') || u.path.startsWith('industryFsi.')), false);
+  assert.equal(legacy.snapshots[1].updates.some(u => u.path.startsWith('airlineCustomer.')), false);
+  const first = profile.snapshots({ ...data, rows: [] }, { ...model.defaults, booking: 'Booked' }, ['booking']);
+  assert.deepEqual(first.snapshots[0].updates, [{ path: 'airlineCustomer.journeyStage', value: 'Booked', valueType: 'string' }]);
+  assert.throws(() => profile.snapshots({ ...data, industries: { travel: { writable: false, schemaId: 'travel-schema' } } }, model.defaults, ['booking']), /Configure/);
   assert.deepEqual(profile.differences(data.rows, { 'scoring.core.propensityScore': 2.99 }), []);
   assert.deepEqual(profile.differences(data.rows, { 'airlineCustomer.journeyStage': 'CUSTOM STAGE' }), []);
 });

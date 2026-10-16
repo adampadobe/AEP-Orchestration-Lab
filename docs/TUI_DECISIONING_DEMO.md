@@ -55,8 +55,17 @@ the provisioned TUI catalog belongs to `kirkham`.
 **Apply** is explicit and restricted to test profiles. It fetches current full
 writable snapshots, overlays only staged fields and validates them against the
 exact current owning schema version before streaming. It does not provision
-schemas. Unknown API ownership or missing write configuration blocks Apply
-rather than sending a partial snapshot. Accepted or ambiguous writes are
+schemas. Older deployed API ownership labels can incorrectly call
+`airlineCustomer.*` Generic or non-writable even when the saved Travel schema
+and dataflow are correct. These labels are static mappings, not dataset
+provenance. Apply recovers the complete known owning subtrees, including
+unchanged scalar siblings, and checks every recovered path/type against the
+configured live write schema before sending any group. It never works around
+the problem by streaming only edited leaves. Missing/disabled write
+configuration, tenant disagreement, incompatible fields and read-only leaves
+still block all writes with a specific schema/path error. A configured writable
+industry can be populated for the first time without existing writable rows.
+Accepted or ambiguous writes are
 reconciled by readback without automatic resending. A partial multi-dataflow
 update preserves the remaining staged fields. No live profile writes were
 performed while implementing this correction.
@@ -74,8 +83,21 @@ different live policy's result.
 `web/profile-viewer/tui-decisioning-model.js` is the source for all seven
 objectives, 21 items, typed controls, rule conditions and scenario assertions.
 The website tests eligibility before item priority and stops at the first
-qualifying objective. Explanations show those actual conditions and priorities,
-not invented model predictions. Numeric thresholds are demo conventions.
+qualifying objective. Exactly seven scenario buttons map to the seven objectives
+in order; there is no scenario dropdown or duplicate selector. Each button stages
+a complete preset, so its intended objective wins regardless of the previous
+scenario. Twenty-five regression cases remain in the model for all 21 winning
+items, negative/consent holds and boundaries; they are not extra UI buttons.
+
+The TUI-branded dark objective panel follows BA's numbered chevrons and status
+pills. The separate Eligible NBAs panel shows only the selected objective's
+eligible offers, ordered by unchanged catalog priority, with numbered cards,
+a highlighted winner, a coloured contribution bar/legend and right-aligned total.
+The total is the actual objective base plus item priority, not fabricated
+six-factor model scores or a live AJO response. Excluded items appear separately
+as muted dashed cards with their actual rule conditions. Explanations show those
+actual conditions and priorities, not invented model predictions. Numeric
+thresholds are demo conventions.
 
 | Ranked objective | Item choices | Main strategy fields |
 |---|---|---|
@@ -96,8 +118,9 @@ owning dataflows; Apply verifies their actual writable metadata and schemas.
 Newly streamed airline and reservation leaves are included in the Travel
 manifest and both backend/MCP ownership maps. These backend changes require
 normal PR validation/merge and a separately authorised production Functions
-release; a Hosting preview does not deploy them. Until the live API reports
-compatible ownership/configuration, Apply fails closed.
+release; a Hosting preview does not deploy them. The schema-checked client
+compatibility path handles older ownership labels without that Functions release;
+it does not bypass missing write configuration or schema incompatibility.
 Holiday stage uses the actual `airlineCustomer.journeyStage` field with its
 suggested `Dreaming`, `Booked`, `In-Trip` and `Post-Trip` values, not itinerary
 booking status relabelled as a journey stage.

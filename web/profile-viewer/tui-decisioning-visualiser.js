@@ -63,7 +63,6 @@
           field.type === 'number' ? Number(input.value) : input.value;
         changed([field.key]);
         $('scenario-label').textContent = 'Custom holiday signals';
-        $('scenario-select').value = '';
         document.querySelectorAll('#scenario-pills button').forEach(button => button.setAttribute('aria-pressed', 'false'));
         render();
       });
@@ -73,7 +72,7 @@
     }
   }
   function useScenario(index) {
-    const scenario = model.scenarios[index];
+    const scenario = model.demoScenarios[index];
     const previous = state;
     state = { ...model.defaults, ...scenario.preset };
     changed([...new Set([...Object.keys(scenario.preset), ...model.fields.filter(f => previous[f.key] !== state[f.key]).map(f => f.key)])]);
@@ -86,7 +85,6 @@
       const field = model.fields.find(f => f.key === key);
       groups.get(field.group).open = true;
     }
-    $('scenario-select').value = String(index);
     $('scenario-label').textContent = scenario.name;
     document.querySelectorAll('#scenario-pills button').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.scenario === String(index)));
@@ -94,21 +92,40 @@
     render(true);
   }
   function buildScenarios() {
-    model.scenarios.forEach((scenario, index) => {
-      const option = el('option', scenario.name);
-      option.value = index;
-      $('scenario-select').append(option);
-      if (!scenario.featured) return;
+    model.demoScenarios.forEach((scenario, index) => {
       const button = el('button', scenario.name);
       button.type = 'button';
       button.dataset.scenario = index;
+      button.title = model.objectives[index].label;
       button.setAttribute('aria-pressed', 'false');
       button.addEventListener('click', () => useScenario(index));
       $('scenario-pills').append(button);
     });
-    $('scenario-select').addEventListener('change', event => {
-      if (event.target.value !== '') useScenario(Number(event.target.value));
-    });
+  }
+  function nbaCard(item, objective, eligible, rank, selected) {
+    const card = el('div', undefined, 'nba-card' + (!eligible ? ' nba-card--off' : '') + (selected ? ' nba-card--winner' : ''));
+    card.dataset.offer = item.key;
+    card.append(el('span', eligible ? String(rank) : '-', 'nba-rank'));
+    const main = el('div', undefined, 'nba-main');
+    main.append(el('strong', (selected ? '\u2605 ' : '') + item.name, 'nba-name'));
+    if (eligible) {
+      const objectivePriority = (7 - model.objectives.indexOf(objective)) * 100;
+      const contributions = [['Objective', objectivePriority], ['Item', item.priority - objectivePriority]];
+      const bar = el('div', undefined, 'nba-bar'), legend = el('div', undefined, 'nba-components');
+      bar.setAttribute('aria-hidden', 'true');
+      contributions.forEach(([label, value], index) => {
+        const segment = el('i', undefined, 'nba-component-' + index);
+        segment.style.width = (value / item.priority * 100) + '%'; bar.append(segment);
+        const entry = el('span', undefined, 'nba-component-' + index);
+        entry.append(el('i'), document.createTextNode(label + ' '), el('b', String(value))); legend.append(entry);
+      });
+      main.append(bar, legend);
+      card.append(main, el('b', String(item.priority), 'nba-score'));
+    } else {
+      main.append(el('p', item.rule ? model.describe(item.rule) : 'Requires the objective and consent gates.', 'nba-why'));
+      card.append(main);
+    }
+    return card;
   }
   function renderLadder(result, scenarioChosen) {
     const open = new Set(Array.from(document.querySelectorAll('.objective[open]')).map(n => n.dataset.key));
@@ -119,35 +136,34 @@
       const detail = el('details', undefined, 'objective');
       detail.dataset.key = o.key;
       detail.dataset.winner = String(winner);
+      detail.dataset.rank = index + 1;
+      detail.dataset.after = String(!!result.objective && index > model.objectives.findIndex(o => o.key === result.objective));
       detail.open = scenarioChosen ? winner : open.has(o.key);
       const summary = el('summary');
       const title = el('span', o.label, 'objective-name');
       title.append(el('small', o.subtitle));
-      const status = winner ? 'SELECTED' : row.eligible
-        ? (row.offers.some(item => item.eligible) ? 'LOWER RANK' : 'NO ITEM') : 'HELD';
-      summary.append(el('span', String(index + 1).padStart(2, '0'), 'rank'), title, el('span', status, 'objective-state'));
+      const status = winner ? 'Selected' : row.eligible
+        ? (row.offers.some(item => item.eligible) ? 'Eligible \u00b7 not reached' : 'No eligible item') : 'Not eligible';
+      summary.append(el('span', String(index + 1), 'rank'), title, el('span', status, 'objective-state'));
       const body = el('div', undefined, 'objective-body');
       body.append(el('p', model.describe(o.rule), 'rule-label'));
-      o.offers.forEach((item, j) => {
-        const card = el('div', undefined, 'nba-row');
-        const heading = el('strong', item.name);
-        heading.append(el('span', String(item.priority)));
-        const eligibility = row.offers[j].eligible;
-        card.append(heading, el('p', item.rule ? model.describe(item.rule) : 'Fallback within this eligible objective.'),
-          el('p', eligibility ? (winner && result.offer === item.key ? 'Selected / highest eligible priority' : 'Eligible / lower objective or item priority')
-            : 'Held / strategy, item rule or consent did not pass'));
-        body.append(card);
-      });
+      body.append(el('p', row.offers.filter(item => item.eligible).length + ' of ' + o.offers.length +
+        ' items eligible. ' + (winner ? 'See the ranked cards below.' : 'Only the first qualifying objective is selected.'), 'rule-label'));
       detail.append(summary, body);
       $('objectives').append(detail);
     }
     if (scenarioChosen) $('eligible-details').open = !!result.offer;
     $('eligible-items').replaceChildren();
-    result.ladder.forEach((o, i) => o.offers.filter(item => item.eligible).forEach(item => {
-      const offer = model.objectives[i].offers.find(candidate => candidate.key === item.key);
-      $('eligible-items').append(el('p', model.objectives[i].label + ' / ' + offer.name + ' / priority ' + offer.priority));
-    }));
-    if (!$('eligible-items').childElementCount) $('eligible-items').append(el('p', 'No eligible items.'));
+    const objective = model.objectives.find(o => o.key === result.objective);
+    $('eligible-objective').textContent = objective ? (model.objectives.indexOf(objective) + 1) + ' \u00b7 ' + objective.label : 'No objective selected';
+    if (!objective) { $('eligible-items').append(el('p', result.reason, 'nba-why')); return; }
+    const row = result.ladder.find(o => o.key === objective.key);
+    const ranked = objective.offers.filter(item => row.offers.find(candidate => candidate.key === item.key).eligible)
+      .sort((a, b) => b.priority - a.priority);
+    ranked.forEach((item, index) => $('eligible-items').append(nbaCard(item, objective, true, index + 1, index === 0)));
+    const off = objective.offers.filter(item => !row.offers.find(candidate => candidate.key === item.key).eligible);
+    if (off.length) $('eligible-items').append(el('p', 'Not eligible right now', 'nba-off-label'));
+    off.forEach(item => $('eligible-items').append(nbaCard(item, objective, false)));
   }
   function cta(text) {
     const button = el('button', text, 'preview-cta');
@@ -212,11 +228,11 @@
   function render(scenarioChosen) {
     const result = model.evaluate(state);
     const invalid = Array.from(controls.values()).some(input => input.getAttribute('aria-invalid') === 'true');
-    if (invalid) {
+    if (invalid || held) {
       live = null;
       result.objective = null;
       result.offer = null;
-      result.reason = 'Content held: enter valid values for the highlighted signals. Previous content has been removed.';
+      result.reason = held || 'Content held: enter valid values for the highlighted signals. Previous content has been removed.';
       result.ladder.forEach(row => {
         row.eligible = false;
         row.offers.forEach(item => { item.eligible = false; });
@@ -355,22 +371,21 @@
     document.querySelectorAll('.objective').forEach(detail => { detail.open = false; });
     document.querySelectorAll('#scenario-pills button').forEach(button => button.setAttribute('aria-pressed', 'false'));
     $('eligible-details').open = false;
-    $('scenario-select').value = '';
     $('scenario-label').textContent = 'Illustrative starting profile';
     render();
   });
   $('expand').addEventListener('click', () => document.querySelectorAll('.objective').forEach(detail => { detail.open = true; }));
   $('collapse').addEventListener('click', () => document.querySelectorAll('.objective').forEach(detail => { detail.open = false; }));
   const rules = model.objectives.reduce((count, o) => count + 1 + o.offers.filter(item => item.rule).length, 0);
-  $('catalog-stats').textContent = rules + ' eligibility rules / ' + model.scenarios.length +
-    ' simulation scenarios (including consent holds). Priorities run from 730 to 110.';
+  $('catalog-stats').textContent = rules + ' eligibility rules / 7 scenario buttons, one per objective. ' +
+    model.scenarios.length + ' regression cases cover all items and consent holds. Priorities run from 730 to 110.';
   buildSignals();
   buildScenarios();
   setupTabs();
   resizePanes();
   window.TuiDecisioningVisualiser = {
     setBusy(busy) {
-      document.querySelectorAll('#signals input,#signals select,#scenario-select,#scenario-pills button,#reset').forEach(input => { input.disabled = busy; });
+      document.querySelectorAll('#signals input,#signals select,#scenario-pills button,#reset').forEach(input => { input.disabled = busy; });
     },
     getState() {
       if ([...controls.values()].some(input => input.value === '' || !input.checkValidity())) throw new Error('Enter valid profile signals before Apply.');
