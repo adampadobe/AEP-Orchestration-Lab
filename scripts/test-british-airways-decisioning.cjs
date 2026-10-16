@@ -84,6 +84,8 @@ test('ingestion confirmation checks decision fields only', () => {
   assert.equal(model.isDecisionPath(model.disruptionPath), true);
   assert.equal(model.isDecisionPath('scoring.core.propensityScore'), true);
   assert.equal(model.isDecisionPath('airlineCustomer.loyaltyTier'), false);
+  assert.equal(model.isDecisionPath('loyaltyDetails.level'), true);
+  assert.equal(model.verificationDifferences([{ path: '_demoemea.loyaltyDetails.level', value: 'silver' }], [{ path: 'loyaltyDetails.level', value: 'Silver' }]).length, 0, 'tier readback is case-insensitive like the AJO rule');
   assert.equal(model.isDecisionPath('person.name.firstName'), false);
 });
 test('booking reads and writes the Travel field, preserves legacy journeyStage and excludes generic writes', () => {
@@ -110,15 +112,16 @@ test('propensity writes exact 1-3 scores and converts legacy scores on Apply', (
   assert.throws(() => model.buildSnapshots(input, { ...state, prop: 'medium' }), /Propensity must be/);
   assert.throws(() => model.buildSnapshots([{ ...rows[2], value: 'invalid' }], state), /Invalid numeric/);
 });
-test('airline Gold to Silver updates the exact Travel path without changing generic loyalty', () => {
+test('airline Gold to Silver updates the Travel tier and mirrors it to the decision loyalty level', () => {
   const input = rows;
   assert.equal(model.readState(input).tier, 'gold');
   const generic = model.buildSnapshots(input, state, null, state).find(group => group.industry === 'generic');
-  assert.equal(generic.updates.find(row => row.path === 'loyaltyDetails.level').value, 'Platinum');
+  assert.equal(generic.updates.find(row => row.path === 'loyaltyDetails.level').value, 'Gold', 'AJO tier rule must see the displayed tier');
   assert.ok(!generic.updates.some(row => row.path === 'loyalty.tier'));
   const changed = model.buildSnapshots(input, { ...state, tier: 'silver' }, null, state);
   assert.equal(changed.find(group => group.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
-  assert.equal(changed.find(group => group.industry === 'generic').updates.find(row => row.path === 'loyaltyDetails.level').value, 'Platinum');
+  assert.equal(changed.find(group => group.industry === 'generic').updates.find(row => row.path === 'loyaltyDetails.level').value, 'Silver');
+  assert.ok(!changed.find(group => group.industry === 'travel').updates.some(row => row.path === 'loyaltyDetails.level'));
 });
 test('BA rows mis-tagged generic (pre-release ownership) are written only via Travel', () => {
   const input = [...rows, { path: '_demoemea.britishAirwaysDecisioning.messages7d', value: '9', valueType: 'number', industry: 'generic', writable: true }];
@@ -373,6 +376,7 @@ test('browser: shared shell, staging, snapshots, readback, imagery and themes', 
     assert.equal(writes.length, 3);
     assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'scoring.core.propensityScore').value, 3);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === 'airlineCustomer.loyaltyTier').value, 'Silver');
+    assert.equal(writes.find(body => body.industry === 'generic').updates.find(row => row.path === 'loyaltyDetails.level').value, 'Silver');
     assert.equal(writes.find(body => body.industry === 'travel').updates.filter(row => row.path.startsWith('britishAirwaysDecisioning.') && !row.path.endsWith('disruptionSeverity')).length, 11);
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.bookingPath).value, 'upcoming');
     assert.equal(writes.find(body => body.industry === 'travel').updates.find(row => row.path === model.disruptionPath).value, 'none');

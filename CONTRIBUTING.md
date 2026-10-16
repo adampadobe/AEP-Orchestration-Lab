@@ -769,8 +769,9 @@ profiles can be written. The demo reads fresh `/api/profile/table` rows,
 preserves scalar types and streams complete writable snapshots to each
 configured dataflow using `postProfileUpdate`. Loyalty writes to Travel
 `_<tenant>.airlineCustomer.loyaltyTier` (title-case tiers, preserving unchanged
-existing values and checking the schema's allowed tiers); generic loyalty
-fields are preserved, not changed by this control. Propensity writes to Generic
+existing values and checking the schema's allowed tiers); the same tier is mirrored to
+generic `loyaltyDetails.level`, which the AJO "Airline - NBA Offer - Silver or Gold Tier"
+rule reads (case-insensitive). `loyalty.tier` is not changed by this control. Propensity writes to Generic
 `scoring.core.propensityScore` (selector values 1, 2 and 3 are saved as numeric
 scores 1, 2 and 3). Legacy 0-100 scores display as 1 (<35), 2 (<65), or 3;
 Apply converts them to the selected 1-3 score. Disruption reads/writes
@@ -910,7 +911,7 @@ Demo pages that show the **hover profile drawer** must use the shared shell. Dra
 
 **Messages Sent** email/push counts refresh with event polling, using the full returned AEP event list and the profile's selected engagement time window (24 hours by default). They do not count local send attempts; AJO feedback ingestion latency still applies.
 
-The BA demo verifies applied profile values before requesting a live hero decision. Disruption readback treats `CANCELLATION`, `cancelled`, and `canceled` as the same cancelled-flight state; other decision fields must still match. Only decision-relevant paths are verified (`britishAirwaysDecisioning.*`, booking, disruption, and `scoring.core.propensityScore`); `airlineCustomer.loyaltyTier` is written but not verified because AJO loyalty rules read `loyaltyDetails.level`. While readback lags, the page shows calm progress and checks automatically; mismatch details are logged to the console.
+The BA demo verifies applied profile values before requesting a live hero decision. Disruption readback treats `CANCELLATION`, `cancelled`, and `canceled` as the same cancelled-flight state; other decision fields must still match. Only decision-relevant paths are verified (`britishAirwaysDecisioning.*`, booking, disruption, `scoring.core.propensityScore`, and `loyaltyDetails.level`, compared case-insensitively); `airlineCustomer.loyaltyTier` is written but not verified because AJO tier rules read the mirrored `loyaltyDetails.level`. While readback lags, the page shows calm progress and checks automatically; mismatch details are logged to the console.
 
 | Layer | Single source of truth | Do not |
 |-------|------------------------|--------|

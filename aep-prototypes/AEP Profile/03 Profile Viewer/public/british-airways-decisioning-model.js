@@ -26,17 +26,20 @@
     if (label === 'delay' || label === 'none') return label;
     return String(value);
   }
-  // Paths read by the sandbox's "Airline - NBA" eligibility rules. Airline loyalty is
-  // saved but not gated on: those rules read loyaltyDetails.level instead.
+  // The "Airline - NBA" tier rule reads generic loyaltyDetails.level (case-insensitive), so
+  // the tier control mirrors the Travel airlineCustomer.loyaltyTier value there.
+  const decisionTierPath = 'loyaltyDetails.level';
+  // Paths read by the sandbox's "Airline - NBA" eligibility rules.
   function isDecisionPath(path) {
     return path.startsWith('britishAirwaysDecisioning.') || path === disruptionPath ||
-      path === bookingPath || path === 'scoring.core.propensityScore';
+      path === bookingPath || path === 'scoring.core.propensityScore' || path === decisionTierPath;
   }
   function verificationDifferences(rows, expected) {
     const byPath = new Map(rows.map(row => [relativePath(row.path), row.value]));
     return expected.flatMap(update => {
       const actual = byPath.get(update.path);
-      const normalize = update.path === disruptionPath ? normalizeDisruption : String;
+      const normalize = update.path === disruptionPath ? normalizeDisruption
+        : update.path === decisionTierPath ? value => String(value).toLowerCase() : String;
       return actual !== undefined && normalize(actual) === normalize(update.value)
         ? [] : [{ path: update.path, expected: update.value, actual }];
     });
@@ -97,17 +100,15 @@
     const generic = groups.get('generic');
     const unchangedTier = (baseline || readState(rows)).tier === state.tier;
     const existingTier = rows.find(row => relativePath(row.path) === 'airlineCustomer.loyaltyTier');
-    travel.set('airlineCustomer.loyaltyTier', {
-      path: 'airlineCustomer.loyaltyTier',
-      value: unchangedTier && existingTier ? scalar(existingTier) : state.tier.charAt(0).toUpperCase() + state.tier.slice(1),
-      valueType: 'string',
-    });
+    const tierValue = unchangedTier && existingTier ? scalar(existingTier) : state.tier.charAt(0).toUpperCase() + state.tier.slice(1);
+    travel.set('airlineCustomer.loyaltyTier', { path: 'airlineCustomer.loyaltyTier', value: tierValue, valueType: 'string' });
+    generic.set(decisionTierPath, { path: decisionTierPath, value: tierValue, valueType: 'string' });
     const path = 'scoring.core.propensityScore';
     if (!Object.hasOwn(propensity, state.prop)) throw new Error('Propensity must be 1, 2 or 3');
     generic.set(path, { path, value: propensity[state.prop], valueType: 'number' });
     return Array.from(groups, ([industry, updates]) => ({ industry, updates: Array.from(updates.values()) }));
   }
-  const api = { fields, disruptionPath, bookingPath, propensity, readPropensity, relativePath, normalizeDisruption, isDecisionPath, verificationDifferences, readState, buildSnapshots };
+  const api = { fields, disruptionPath, bookingPath, decisionTierPath, propensity, readPropensity, relativePath, normalizeDisruption, isDecisionPath, verificationDifferences, readState, buildSnapshots };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.BaDecisioningModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
