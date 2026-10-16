@@ -97,6 +97,115 @@
   var contextEpoch = 0;
   var fullGenBundleSeq = 0;
   var connectionWriteBusy = false;
+  var emailPrefs = null;
+  var emailContext = '';
+  var emailSeq = 0;
+  var emailLoading = false;
+  var emailDirty = false;
+  var emailError = '';
+  var generationBusy = false;
+
+  function emailContextKey() {
+    return currentFirebaseUid() + ':' + readSandbox();
+  }
+
+  function emailReady() {
+    return emailContext === emailContextKey() && emailPrefs && emailPrefs.nextScaledEmail &&
+      !emailLoading && !emailDirty && !emailError;
+  }
+
+  function renderEmailPrefs() {
+    if (!els.baseEmail) return;
+    var validContext = emailContext === emailContextKey();
+    var prefs = validContext && emailPrefs;
+    var message = emailError || (emailLoading ? 'Loading or saving shared email settings...' :
+      emailDirty ? 'Unsaved email. Save it before generating.' :
+      prefs && prefs.nextScaledEmail ? 'Saved to your account. Ready to generate.' : 'Add and save a base email before generating.');
+    els.emailStatus.textContent = message;
+    els.emailStatus.setAttribute('data-tone', emailError ? 'error' : 'info');
+    els.emailCounter.textContent = prefs ? String(prefs.counterN) : 'Not loaded';
+    els.emailPreview.textContent = prefs && !emailDirty && !emailLoading && !emailError
+      ? prefs.nextScaledEmail || 'Save a base email to see the preview.' : 'Preview unavailable until settings are saved and refreshed.';
+    var count = els.genCount ? Number(els.genCount.value) : 0;
+    els.emailBatchPreview.textContent = emailReady() && Number.isInteger(count) && count > 0 && count <= 1000
+      ? 'For this run: expected counters ' + prefs.counterN + '–' + (prefs.counterN + count - 1) +
+        '. Assigned when generation starts.'
+      : '';
+    els.emailScope.textContent = 'Your account · sandbox ' + (readSandbox() || '(select a sandbox)') +
+      ' · shared with Profile Generator and MCP.';
+    els.baseEmail.disabled = emailLoading || generationBusy;
+    els.emailSave.disabled = emailLoading || generationBusy || !emailDirty;
+    els.emailRefresh.disabled = emailLoading || generationBusy;
+    els.emailOverrideApply.disabled = emailLoading || generationBusy || !prefs || emailDirty || !!emailError;
+    if (els.generateBtn) els.generateBtn.disabled = generationBusy || connectionWriteBusy ||
+      (!(els.genScopeFull && els.genScopeFull.checked) && !emailReady());
+  }
+
+  function loadEmailPrefs() {
+    if (!els.baseEmail) return Promise.resolve();
+    var key = emailContextKey();
+    var sequence = ++emailSeq;
+    emailContext = key;
+    emailLoading = true;
+    emailError = '';
+    renderEmailPrefs();
+    var sync = window.AepProfileGenPrefsSync;
+    if (!hasPortalLogin() || !sync) {
+      emailLoading = false;
+      emailPrefs = null;
+      emailError = 'Sign in through Home to load your shared email settings.';
+      renderEmailPrefs();
+      return Promise.resolve();
+    }
+    return sync.pull(readSandbox()).then(function (prefs) {
+      if (sequence !== emailSeq || key !== emailContextKey()) return;
+      emailLoading = false;
+      if (!prefs) {
+        var state = sync.getSyncState();
+        emailError = 'Could not load shared email settings: ' +
+          (state.error || (state.status === 'local-only' ? 'sign in through Home.' : 'use Refresh to retry.'));
+      } else {
+        emailPrefs = prefs;
+        emailDirty = false;
+        els.baseEmail.value = prefs.baseEmail || '';
+      }
+      renderEmailPrefs();
+    });
+  }
+
+  function saveEmailPrefs(override) {
+    if (emailLoading || generationBusy || !hasPortalLogin()) return;
+    var patch;
+    if (override) {
+      var n = Number(els.emailOverride.value);
+      if (!Number.isSafeInteger(n) || n < 1 || n > 9007199254739991) {
+        els.emailStatus.textContent = 'Counter was not changed. Enter a positive whole counter within the allowed range.';
+        els.emailStatus.setAttribute('data-tone', 'error');
+        return;
+      }
+      if (!window.confirm('Set the shared counter to ' + n + '? Lowering it can reuse addresses already generated today. This affects Profile Generator and MCP for this account and sandbox.')) return;
+      patch = { counterN: n };
+    } else {
+      if (!els.baseEmail.reportValidity()) return;
+      patch = { baseEmail: els.baseEmail.value.trim() };
+    }
+    var key = emailContextKey();
+    var sequence = ++emailSeq;
+    emailLoading = true;
+    emailError = '';
+    renderEmailPrefs();
+    window.AepProfileGenPrefsSync.savePatch(patch, readSandbox()).then(function (result) {
+      if (sequence !== emailSeq || key !== emailContextKey()) return;
+      emailLoading = false;
+      if (!result.ok) emailError = 'Could not save shared settings: ' + result.error;
+      else {
+        emailPrefs = result.prefs;
+        emailDirty = false;
+        els.baseEmail.value = result.prefs.baseEmail || '';
+      }
+      renderEmailPrefs();
+    });
+  }
 
   function readContext() {
     return {
@@ -132,6 +241,12 @@
   function resetWorkflowContext() {
     var wasGenerating = els.genForm && els.genForm.getAttribute('aria-busy') === 'true';
     contextEpoch += 1;
+    emailSeq += 1;
+    emailPrefs = null;
+    emailError = '';
+    emailDirty = false;
+    emailLoading = false;
+    if (els.baseEmail) els.baseEmail.value = '';
     connectionWriteBusy = false;
     loadConfigSeq += 1;
     fullGenBundleSeq += 1;
@@ -162,6 +277,7 @@
     if (wasGenerating) {
       setGenerateMessage('Target changed. The previous run may still finish in its original Snowflake target. Inspect that target before retrying.', 'info');
     }
+    loadEmailPrefs();
   }
 
   function reloadWorkflowContext() {
@@ -1237,6 +1353,8 @@
     if (els.generateBtn) els.generateBtn.disabled = !!busy;
     if (els.genBatchLoadBtn) els.genBatchLoadBtn.disabled = !!busy;
     if (els.genBatchClearBtn) els.genBatchClearBtn.disabled = !!busy;
+    generationBusy = busy;
+    renderEmailPrefs();
   }
 
   function showGenerateResult(result) {
@@ -1248,6 +1366,15 @@
     els.genResult.hidden = false;
     if (els.genResultRowcount) els.genResultRowcount.textContent = String(result.rowcount || 0);
     if (els.genResultTable) els.genResultTable.textContent = result.recipientTable || result.table || '—';
+    if (els.emailReceipt) {
+      var allocation = result.emailAllocation;
+      els.emailReceipt.textContent = allocation
+        ? 'Email used: ' + allocation.baseEmail + '. Reserved counters ' + allocation.firstCounterN +
+          '–' + (allocation.nextCounterN - 1) + ' (' + allocation.counterDate + ', UTC). Addresses: ' +
+          (result.profiles || []).slice(0, 3).map(function (profile) { return profile.email; }).join(', ') +
+          '. Next counter after reservation: ' + allocation.nextCounterN + '.'
+        : '';
+    }
     if (els.genResultSample) {
       els.genResultSample.textContent = Array.isArray(result.sample) && result.sample.length
         ? safeStringify({ tableRowcounts: result.tableRowcounts, sample: result.sample })
@@ -1688,6 +1815,7 @@
     if (els.genResult) els.genResult.hidden = true;
     if (els.fullGenResultDetails) els.fullGenResultDetails.hidden = true;
     if (els.fullGenInspect) els.fullGenInspect.hidden = true;
+    renderEmailPrefs();
   }
 
   /** Full phased generate only exists for Travel (the Python runner) — hide/reset the option for other industries. */
@@ -2200,7 +2328,12 @@
       openPortalLoginHint();
       return;
     }
+    if (!emailReady()) {
+      setGenerateMessage('Save or refresh Recipient email settings before generating.', 'error');
+      return;
+    }
     var payload = readGenerateForm();
+    payload.expectedBaseEmail = emailPrefs.baseEmail;
     if (!payload.sandbox) {
       setGenerateMessage('Pick a sandbox from Global values first.', 'error');
       return;
@@ -2254,11 +2387,45 @@
           '. Inspect the original target before retrying; do not automatically generate another batch.', 'error');
       }
     }).then(function () {
-      if (isCurrentContext(context)) setGenerateBusy(false);
+      if (isCurrentContext(context)) {
+        setGenerateBusy(false);
+        window.AepProfileGenPrefsSync.notifyChange();
+        loadEmailPrefs();
+      }
     });
   }
 
   function bind() {
+    els.baseEmail = $('sfBaseEmail');
+    els.emailSave = $('sfEmailSave');
+    els.emailRefresh = $('sfEmailRefresh');
+    els.emailScope = $('sfEmailScope');
+    els.emailCounter = $('sfEmailCounter');
+    els.emailPreview = $('sfEmailPreview');
+    els.emailStatus = $('sfEmailStatus');
+    els.emailBatchPreview = $('sfEmailBatchPreview');
+    els.emailOverride = $('sfEmailOverride');
+    els.emailOverrideApply = $('sfEmailOverrideApply');
+    els.emailReceipt = $('sfEmailReceipt');
+    if (els.baseEmail) {
+      els.baseEmail.addEventListener('input', function () {
+        emailDirty = true;
+        emailError = '';
+        renderEmailPrefs();
+      });
+      els.emailSave.addEventListener('click', function () { saveEmailPrefs(false); });
+      els.emailRefresh.addEventListener('click', function () {
+        if (!emailDirty || window.confirm('Discard the unsaved email and reload shared settings?')) loadEmailPrefs();
+      });
+      els.emailOverrideApply.addEventListener('click', function () { saveEmailPrefs(true); });
+      $('sfGenCount').addEventListener('input', renderEmailPrefs);
+      window.addEventListener('focus', function () {
+        if (!emailDirty && !emailLoading && !generationBusy) loadEmailPrefs();
+      });
+      window.addEventListener('storage', function (event) {
+        if (event.key === 'aepGenerationPrefsChanged' && !emailDirty && !emailLoading && !generationBusy) loadEmailPrefs();
+      });
+    }
     els.form = $('sfConfigForm');
     els.account = $('sfAccount');
     els.user = $('sfUser');
@@ -2506,6 +2673,7 @@
       }
       return loadConfig();
     }).then(function () {
+      loadEmailPrefs();
       return loadIndustryCatalog(true);
     });
   });

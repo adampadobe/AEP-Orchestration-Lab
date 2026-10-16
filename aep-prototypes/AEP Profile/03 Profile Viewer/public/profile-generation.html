@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation.css?v=20260717-place-context">
+  <link rel="stylesheet" href="profile-generation.css?v=20261016-shared-email">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1194,7 +1194,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
+            We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. The shared counter resets at midnight UTC for your account and sandbox, not when you change email.
             Your base email syncs to your account when signed in (shared with MCP/Coworker). Local copy kept for fast reload.
           </p>
           <p class="profile-gen-prefs-sync-status" data-profile-gen-prefs-sync aria-live="polite" hidden></p>
@@ -1208,8 +1208,8 @@
               <input type="tel" id="genMobilePhone" class="generic-pattern-contact-input" name="genMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="genCounter">Counter (N)</label>
-              <input type="number" id="genCounter" min="1" step="1" value="1">
+              <label for="genCounter">Next counter (N)</label>
+              <input type="number" id="genCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="genGenerateCount">Count</label>
@@ -1219,7 +1219,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="genEmailPreview">—</code>
-            <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="genResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -1721,7 +1721,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic and a Travel profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -1734,8 +1734,8 @@
               <input type="tel" id="travelMobilePhone" class="generic-pattern-contact-input" name="travelMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="travelCounter">Counter (N)</label>
-              <input type="number" id="travelCounter" min="1" step="1" value="1">
+              <label for="travelCounter">Next counter (N)</label>
+              <input type="number" id="travelCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="travelGenerateCount">Count</label>
@@ -1745,7 +1745,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="travelEmailPreview">—</code>
-            <button type="button" id="travelResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="travelResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -2912,7 +2912,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and FSI profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -2925,8 +2925,8 @@
               <input type="tel" id="fsiMobilePhone" class="generic-pattern-contact-input" name="fsiMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="fsiCounter">Counter (N)</label>
-              <input type="number" id="fsiCounter" min="1" step="1" value="1">
+              <label for="fsiCounter">Next counter (N)</label>
+              <input type="number" id="fsiCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="fsiGenerateCount">Count</label>
@@ -2936,7 +2936,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="fsiEmailPreview">—</code>
-            <button type="button" id="fsiResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="fsiResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -3468,7 +3468,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Sports profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -3481,8 +3481,8 @@
               <input type="tel" id="sportsMobilePhone" class="generic-pattern-contact-input" name="sportsMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="sportsCounter">Counter (N)</label>
-              <input type="number" id="sportsCounter" min="1" step="1" value="1">
+              <label for="sportsCounter">Next counter (N)</label>
+              <input type="number" id="sportsCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="sportsGenerateCount">Count</label>
@@ -3492,7 +3492,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="sportsEmailPreview">—</code>
-            <button type="button" id="sportsResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="sportsResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -3967,7 +3967,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Media profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -3980,8 +3980,8 @@
               <input type="tel" id="mediaMobilePhone" class="generic-pattern-contact-input" name="mediaMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="mediaCounter">Counter (N)</label>
-              <input type="number" id="mediaCounter" min="1" step="1" value="1">
+              <label for="mediaCounter">Next counter (N)</label>
+              <input type="number" id="mediaCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="mediaGenerateCount">Count</label>
@@ -3991,7 +3991,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="mediaEmailPreview">—</code>
-            <button type="button" id="mediaResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="mediaResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -4586,7 +4586,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Retail profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -4599,8 +4599,8 @@
               <input type="tel" id="retailMobilePhone" class="generic-pattern-contact-input" name="retailMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="retailCounter">Counter (N)</label>
-              <input type="number" id="retailCounter" min="1" step="1" value="1">
+              <label for="retailCounter">Next counter (N)</label>
+              <input type="number" id="retailCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="retailGenerateCount">Count</label>
@@ -4610,7 +4610,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="retailEmailPreview">—</code>
-            <button type="button" id="retailResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="retailResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -5281,7 +5281,7 @@
         <div class="generic-pattern-block">
           <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
           <p class="generic-helper">
-            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code>. Shared counter resets at midnight UTC for your account and sandbox.
             The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Telecom profile in this sandbox can never reuse the same scaled email on the same day.
           </p>
           <div class="form-row form-row--inline">
@@ -5294,8 +5294,8 @@
               <input type="tel" id="telecomMobilePhone" class="generic-pattern-contact-input" name="telecomMobilePhone" placeholder="+447425627462" autocomplete="tel" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="telecomCounter">Counter (N)</label>
-              <input type="number" id="telecomCounter" min="1" step="1" value="1">
+              <label for="telecomCounter">Next counter (N)</label>
+              <input type="number" id="telecomCounter" min="1" step="1" value="1" readonly>
             </div>
             <div class="form-group">
               <label for="telecomGenerateCount">Count</label>
@@ -5305,7 +5305,7 @@
           <p class="email-pattern-preview">
             <strong>Will scale to:</strong>
             <code id="telecomEmailPreview">—</code>
-            <button type="button" id="telecomResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+            <button type="button" id="telecomResetCounterBtn" class="btn btn-link">Reset N...</button>
           </p>
 
           <div class="generic-actions button-row">
@@ -5754,20 +5754,20 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260623prefs"></script>
-  <script src="profile-generation-prefs-sync.js?v=20260702-shared-counter"></script>
+  <script src="profile-generation-shared.js?v=20261016-shared-email"></script>
+  <script src="profile-generation-prefs-sync.js?v=20261016-shared-email"></script>
   <script src="profile-generation-recent-sync.js?v=20260623recent1"></script>
   <script src="profile-generation.js?v=20260511a"></script>
   <script src="place-catalog-data.js?v=20260928-global-places"></script>
   <script src="place-catalog.js?v=20260928-global-places"></script>
   <script src="profile-place-context.js?v=20260928-global-places"></script>
-  <script src="profile-generation-generic.js?v=20260717-place-context"></script>
+  <script src="profile-generation-generic.js?v=20261016-shared-email"></script>
   <script src="travel-flight-trip.js?v=20260720-active-flight"></script>
-  <script src="profile-generation-travel.js?v=20260720-active-flight"></script>
+  <script src="profile-generation-travel.js?v=20261016-shared-email"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260515payload-preview"></script>
+  <script src="profile-generation-industry-runtime.js?v=20261016-shared-email"></script>
   <script src="profile-generation-fsi.js?v=20260511a"></script>
   <script src="profile-generation-telecom.js?v=20260511a"></script>
   <script src="profile-generation-retail.js?v=20260511a"></script>

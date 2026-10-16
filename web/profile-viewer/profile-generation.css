@@ -1,5 +1,31 @@
 /* Profile Generation – widened view with boxed sections */
 
+.profile-gen-counter-advanced {
+  margin-block: 12px 20px;
+  color: var(--dash-text);
+}
+
+.profile-gen-counter-advanced summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.profile-gen-counter-advanced input {
+  display: block;
+  width: min(100%, 220px);
+  box-sizing: border-box;
+  min-height: 42px;
+  font-size: 1rem;
+  margin-block: 8px 12px;
+}
+
+.profile-gen-counter-advanced .field-hint {
+  font-size: 0.875rem;
+  color: var(--dash-text-secondary);
+  max-width: 65ch;
+}
+
 body.profile-generation-page.consent-page {
   background: var(--dash-bg, linear-gradient(135deg, #e8e4f0 0%, #f0ecf5 50%, #e8e4f0 100%));
   color: var(--dash-text);
@@ -1631,4 +1657,3 @@ html[data-aep-theme='dark'] .profile-generation-page .analytics-card--place inpu
   white-space: pre-wrap;
   word-break: break-word;
 }
-

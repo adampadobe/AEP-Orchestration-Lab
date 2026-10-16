@@ -523,6 +523,15 @@ async function handleGenerateIndustryProfiles(input) {
   }
   const count = requestedCount;
   const batchSize = Math.max(1, Math.min(Number(input.batchSize) || DEFAULT_BATCH_SIZE, count));
+  const generationPrefs = await prefsStore.getPrefs(labUser, sandbox);
+  if (!prefsStore.isValidEmail(generationPrefs.baseEmail)) {
+    return { ok: false, error: { code: 'EMAIL_PREFS_REQUIRED',
+      message: 'Add and save a base email in Recipient email before generating.', hints: [] } };
+  }
+  if (input.expectedBaseEmail != null && input.expectedBaseEmail !== generationPrefs.baseEmail) {
+    return { ok: false, error: { code: 'EMAIL_PREFS_CHANGED',
+      message: 'Saved base email changed. Refresh email settings before generating.', hints: [] } };
+  }
 
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
@@ -557,6 +566,7 @@ async function handleGenerateIndustryProfiles(input) {
   const runStamp = new Date().toISOString();
   const schema = resolveDualLoadInsertSchema(config.table, industry);
   let conn;
+  let emailAllocation;
   try {
     conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
     if (cfg.warehouse) {
@@ -572,10 +582,13 @@ async function handleGenerateIndustryProfiles(input) {
     const execute = (sqlText, binds) => execAsync(conn, { sqlText, binds });
     await prepareSeedTables(execute, cfg, industry);
     const startIndex = await getNextSeedCrmIndex(execute, cfg, [industry], count);
+    emailAllocation = await prefsStore.reserveEmails(labUser, sandbox, count, {
+      expectedBaseEmail: generationPrefs.baseEmail,
+    });
     const records = [];
     const profiles = [];
     for (let i = 0; i < count; i += 1) {
-      const reserved = await prefsStore.reserveNextEmail(labUser, sandbox);
+      const reserved = emailAllocation.emails[i];
       const idx = startIndex + i;
       const email = reserved.scaledEmail;
       const ecid = generateEcid();
@@ -599,6 +612,7 @@ async function handleGenerateIndustryProfiles(input) {
         crmId,
         ecid,
         email,
+        emailCounterN: reserved.counterN,
         phoneNumber: generated.rowObject.PHONENUMBER || generated.rowObject.PRIMARYPHONE || null,
         loyaltyId: generated.rowObject.LOYALTYID || null,
         recipientId: record.parent.RECIPIENT_ID,
@@ -623,6 +637,13 @@ async function handleGenerateIndustryProfiles(input) {
       startIndex,
       runStamp,
       profiles,
+      emailAllocation: {
+        baseEmail: emailAllocation.baseEmail,
+        counterDate: emailAllocation.counterDate,
+        firstCounterN: emailAllocation.counterN,
+        nextCounterN: emailAllocation.nextCounterN,
+        count,
+      },
       sample: profiles.slice(0, SAMPLE_SIZE).map((profile) => profile.columns),
     };
   } catch (err) {
@@ -633,6 +654,11 @@ async function handleGenerateIndustryProfiles(input) {
       described.hints = [
         'Check that the saved role can inspect, read, and alter the shared base and selected industry tables, create REL views/tables/dynamic tables, and use the configured warehouse.',
       ];
+    }
+    if (emailAllocation) {
+      described.hints = (described.hints || []).concat(
+        'Email numbers were reserved for this run and will not be reused. Failed writes can leave counter gaps.',
+      );
     }
     return { ok: false, error: described };
   } finally {

@@ -29,9 +29,9 @@ function docId(uid, sandbox) {
 
 function todayYmd(date) {
   const d = date instanceof Date ? date : new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
   return `${y}${m}${day}`;
 }
 
@@ -47,9 +47,9 @@ function scaleEmail(base, n, date) {
   const domain = s.slice(at + 1);
   if (!local || !domain) return '';
   const d = date instanceof Date ? date : new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const yyyy = d.getUTCFullYear();
   const counter = Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
   if (local.includes('+')) {
     return `${local}-${dd}${mm}${yyyy}-${counter}@${domain}`;
@@ -63,9 +63,9 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
-function normalizePrefs(data, sandbox) {
+function normalizePrefs(data, sandbox, date = new Date()) {
   const raw = data && typeof data === 'object' ? data : {};
-  const today = todayYmd();
+  const today = todayYmd(date);
   let counterN = Number(raw.counterN);
   if (!Number.isFinite(counterN) || counterN < 1) counterN = 1;
   counterN = Math.floor(counterN);
@@ -94,14 +94,14 @@ function normalizePrefs(data, sandbox) {
   };
 }
 
-function prefsWithPreview(prefs) {
+function prefsWithPreview(prefs, date = new Date()) {
   const nextScaledEmail = prefs.baseEmail && isValidEmail(prefs.baseEmail)
-    ? scaleEmail(prefs.baseEmail, prefs.counterN, new Date())
+    ? scaleEmail(prefs.baseEmail, prefs.counterN, date)
     : '';
   return {
     ...prefs,
     nextScaledEmail,
-    emailPattern: '<local>+DDMMYYYY-N@<domain> (daily counter resets per sandbox)',
+    emailPattern: '<local>+DDMMYYYY-N@<domain> (daily UTC counter per account and sandbox)',
   };
 }
 
@@ -113,6 +113,7 @@ async function getPrefs(uid, sandbox) {
 
   const ref = getDb().collection(COLLECTION).doc(docId(userId, name));
   const snap = await ref.get();
+  const date = new Date();
   if (!snap.exists) {
     return prefsWithPreview(normalizePrefs({
       uid: userId,
@@ -120,11 +121,11 @@ async function getPrefs(uid, sandbox) {
       baseEmail: '',
       mobilePhone: DEFAULT_MOBILE_PHONE,
       counterN: 1,
-      counterDate: todayYmd(),
+      counterDate: todayYmd(date),
       testProfile: true,
-    }, name));
+    }, name, date), date);
   }
-  return prefsWithPreview(normalizePrefs({ ...snap.data(), uid: userId, sandbox: name }, name));
+  return prefsWithPreview(normalizePrefs({ ...snap.data(), uid: userId, sandbox: name }, name, date), date);
 }
 
 /**
@@ -140,16 +141,17 @@ async function updatePrefs(uid, sandbox, patch) {
 
   const body = patch && typeof patch === 'object' ? patch : {};
   const ref = getDb().collection(COLLECTION).doc(docId(userId, name));
-  const today = todayYmd();
 
   await getDb().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
+    const date = new Date();
+    const today = todayYmd(date);
     const prev = snap.exists ? (snap.data() || {}) : {};
-    const normalized = normalizePrefs({ ...prev, uid: userId, sandbox: name }, name);
+    const normalized = normalizePrefs({ ...prev, uid: userId, sandbox: name }, name, date);
 
     let baseEmail = normalized.baseEmail;
     if (body.baseEmail != null) {
-      const next = String(body.baseEmail || '').trim().slice(0, MAX_EMAIL_LEN);
+      const next = String(body.baseEmail || '').trim();
       if (next && !isValidEmail(next)) {
         throw Object.assign(new Error('baseEmail is invalid'), { status: 400 });
       }
@@ -168,10 +170,10 @@ async function updatePrefs(uid, sandbox, patch) {
       counterDate = today;
     } else if (body.counterN != null) {
       const n = Number(body.counterN);
-      if (!Number.isFinite(n) || n < 1) {
+      if (!Number.isSafeInteger(n) || n < 1 || n >= Number.MAX_SAFE_INTEGER) {
         throw Object.assign(new Error('counterN must be a positive integer'), { status: 400 });
       }
-      counterN = Math.floor(n);
+      counterN = n;
       counterDate = today;
     }
 
@@ -196,27 +198,34 @@ async function updatePrefs(uid, sandbox, patch) {
 }
 
 /**
- * Atomically reserve the next scaled email and advance counterN.
+ * Atomically reserve a batch from one base-email/date snapshot and advance counterN.
  * @returns {Promise<object>}
  */
-async function reserveNextEmail(uid, sandbox) {
+async function reserveEmails(uid, sandbox, count, { expectedBaseEmail } = {}) {
   const name = String(sandbox || '').trim();
   if (!name) throw new Error('sandbox is required');
   const userId = String(uid || '').trim().slice(0, 128);
   if (!userId) throw new Error('uid is required');
+  if (!Number.isSafeInteger(count) || count < 1 || count > 1000) {
+    throw Object.assign(new Error('count must be an integer between 1 and 1000'), { status: 400 });
+  }
 
   const ref = getDb().collection(COLLECTION).doc(docId(userId, name));
-  const today = todayYmd();
   const now = admin.firestore.FieldValue.serverTimestamp();
 
   const result = await getDb().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
+    const date = new Date();
+    const today = todayYmd(date);
     const prev = snap.exists ? (snap.data() || {}) : {};
-    const normalized = normalizePrefs({ ...prev, uid: userId, sandbox: name }, name);
+    const normalized = normalizePrefs({ ...prev, uid: userId, sandbox: name }, name, date);
 
     const baseEmail = String(normalized.baseEmail || '').trim();
     if (!baseEmail || !isValidEmail(baseEmail)) {
       throw Object.assign(new Error('baseEmail is required — set it in Profile Viewer or lab_set_generation_prefs'), { status: 400 });
+    }
+    if (expectedBaseEmail != null && baseEmail !== String(expectedBaseEmail).trim()) {
+      throw Object.assign(new Error('Saved base email changed. Refresh email settings before generating.'), { status: 409 });
     }
 
     let counterN = normalized.counterN;
@@ -226,9 +235,15 @@ async function reserveNextEmail(uid, sandbox) {
       counterDate = today;
     }
 
-    const scaledEmail = scaleEmail(baseEmail, counterN, new Date());
+    if (!Number.isSafeInteger(counterN + count)) {
+      throw Object.assign(new Error('Email counter limit reached. Set a valid counter before generating.'), { status: 400 });
+    }
+    const emails = Array.from({ length: count }, (_, offset) => ({
+      scaledEmail: scaleEmail(baseEmail, counterN + offset, date),
+      counterN: counterN + offset,
+    }));
     const usedN = counterN;
-    const nextCounterN = counterN + 1;
+    const nextCounterN = counterN + count;
 
     tx.set(ref, {
       uid: userId,
@@ -246,7 +261,9 @@ async function reserveNextEmail(uid, sandbox) {
       sandbox: name,
       baseEmail,
       mobilePhone: normalized.mobilePhone || DEFAULT_MOBILE_PHONE,
-      scaledEmail,
+      scaledEmail: emails[0].scaledEmail,
+      emails,
+      count,
       counterN: usedN,
       nextCounterN,
       counterDate: today,
@@ -256,6 +273,11 @@ async function reserveNextEmail(uid, sandbox) {
   });
 
   return result;
+}
+
+async function reserveNextEmail(uid, sandbox, options) {
+  const { emails, count, ...reserved } = await reserveEmails(uid, sandbox, 1, options);
+  return reserved;
 }
 
 module.exports = {
@@ -270,4 +292,5 @@ module.exports = {
   getPrefs,
   updatePrefs,
   reserveNextEmail,
+  reserveEmails,
 };
