@@ -86,15 +86,34 @@ inventories and journals outside Hosting. The generic runner's contract and
 explicit apply confirmation are documented in
 [DECISIONING_CATALOG_PLANS.md](DECISIONING_CATALOG_PLANS.md).
 
-**This is a draft preview, not live-ready provisioning.** Existing objective
-tags also match BA items; their reuse has not been approved for TUI writes.
-Collections would not be TUI-exclusive. New customer-scoped unified tags remain
-a prerequisite to an isolated catalog. The imported local images are omitted
+**Draft catalog provisioned; live decisions are not verified.** On 16 October
+2026 the user explicitly approved shared BA/TUI objective tags. The governed
+runner created and read back all 59 assets in `kirkham`: 21 draft items,
+24 eligibility rules, seven collections and seven strategies. Collections are
+not TUI-exclusive; customer-scoped tags remain necessary if isolation is later
+required. The imported local images are omitted
 from DPS payloads because there are no verified publicly hosted TUI media URLs.
 Offer schema/content fields and owning dataflow schemas need live validation.
 Policy ordering, fallback, consent gating, draft approval and Edge scenario
 verification remain separate reviewed steps. No AJO objects are created by
 building or previewing this plan.
+
+Applied plan fingerprint:
+`9c90403dae0c7010644c46ac7678f283b3c5cb6f972d3a30cab587e20ffde324`.
+The complete per-asset IDs and readback status are preserved in the session's
+`tui-catalog-journal.json`; reuse that journal, never create a fresh one to retry
+this bundle. No offers were approved and no policy was activated. The website
+remains a local simulation, not a client of these newly created strategies.
+
+| Objective | Created collection | Created strategy |
+|---|---|---|
+| Protect / Recover | `dps:item-collection:1d4c6e582ec09cb1` | `dps:selection-strategy:1d4c6e59a587f5ca` |
+| Enjoy the holiday | `dps:item-collection:1d4c6e6a7618c156` | `dps:selection-strategy:1d4c6e6bfec7f5cb` |
+| Get ready to go | `dps:item-collection:1d4c6e7d2b409cb2` | `dps:selection-strategy:1d4c6e7e9887f5cc` |
+| Welcome home | `dps:item-collection:1d4c6e8fe2d8c157` | `dps:selection-strategy:1d4c6e915d07f5cd` |
+| Find your getaway | `dps:item-collection:1d4c6ea50bd8c158` | `dps:selection-strategy:1d4c6ea671a7c833` |
+| Make it extra special | `dps:item-collection:1d4c6eb9ca809cb3` | `dps:selection-strategy:1d4c6ebb4787f5ce` |
+| Keep the smiles coming | `dps:item-collection:1d4c6ecf7998c159` | `dps:selection-strategy:1d4c6ed13867c834` |
 
 ## Interaction and checks
 
