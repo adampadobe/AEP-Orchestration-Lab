@@ -81,4 +81,19 @@ describe('Snowflake industry CRM profile registry', () => {
     assert.ok(rowObject.MONTHLYSPEND >= 65);
     assert.equal(rowObject.DATAALLOWANCEGB, 999);
   });
+
+  it('only produces sports betting activity after an explicit profile opt-in', () => {
+    const { generateIndustryEventRows } = require('../snowflakeIndustryEventGenerator');
+    for (const enabled of [false, true]) {
+      const { rowObject } = generateIndustryProfileRow('sports', {
+        ...INPUT,
+        attributes: enabled ? { industrySports: { fanFlags: { betsRegularly: true } } } : {},
+      });
+      assert.equal(rowObject.BETSREGULARLY, enabled);
+      const { rowsByType } = generateIndustryEventRows('sports', rowObject, { now: INPUT.runStamp });
+      assert.equal(rowsByType.betting.length > 0, enabled);
+      const fixtures = new Set(rowsByType.attendance.map((row) => row.EVENT_ID));
+      for (const bet of rowsByType.betting) assert.ok(fixtures.has(bet.EVENT_ID));
+    }
+  });
 });

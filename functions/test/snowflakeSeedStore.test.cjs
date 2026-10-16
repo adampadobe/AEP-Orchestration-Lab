@@ -90,6 +90,31 @@ describe('Snowflake-first shared base seeding', () => {
     assert.equal(calls.includes('COMMIT'), false);
   });
 
+  it('persists loan products and merchandise SKUs without duplicating their replay', async () => {
+    const db = snowflakeMemoryFixture();
+    const fsi = buildSeedRecord('fsi', { ...record('fsi').profile, TOTALACCOUNTS: 7 }, {
+      index: 0, asOfDate: '2026-10-15', runStamp: STAMP,
+    });
+    const sports = record('sports', 1);
+    for (const [industry, item] of [['fsi', fsi], ['sports', sports]]) {
+      await writeSeedRecords(db.execute, CFG, industry, [item]);
+    }
+    const productsTable = 'DEMO_DB.CUSTOM_SCHEMA.AGENTIC_FSI_PROFILE_PRODUCTS';
+    const ordersTable = 'DEMO_DB.CUSTOM_SCHEMA.AGENTIC_SPORTS_EVENT_MERCHANDISE';
+    const products = structuredClone(db.rows(productsTable));
+    const orders = structuredClone(db.rows(ordersTable));
+    assert.ok(products.some((row) => row.PRODUCT_TYPE === 'personal_loan' && row.MONTHLY_PAYMENT > 0));
+    assert.ok(orders.length);
+    for (const order of orders) {
+      assert.ok(order.ITEMS.length);
+      for (const item of order.ITEMS) assert.match(item.sku, /^SKU-[a-f0-9]{32}$/);
+    }
+    await writeSeedRecords(db.execute, CFG, 'fsi', [fsi]);
+    await writeSeedRecords(db.execute, CFG, 'sports', [sports]);
+    assert.deepEqual(db.rows(productsTable), products);
+    assert.deepEqual(db.rows(ordersTable), orders);
+  });
+
   it('surfaces rollback failures rather than returning seed success', async () => {
     await assert.rejects(writeSeedRecords(async (sql) => {
       if (sql.startsWith('MERGE') || sql === 'ROLLBACK') throw new Error('injected failure');
