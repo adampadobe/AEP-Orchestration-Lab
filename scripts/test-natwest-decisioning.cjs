@@ -98,6 +98,13 @@ test('full industry snapshots preserve unrelated values and types, without cross
   data.industries.fsi.writable = false;
   assert.throws(() => model.buildSnapshots(data, next, model.defaults), /setup/);
 });
+test('explicit edits can initialise missing fields even when the selected value matches the illustrative default', () => {
+  const data = fixture();
+  data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('checking')));
+  const batch = model.buildSnapshots(data, model.defaults, model.defaults, ['checking']);
+  assert.deepEqual(batch.expected, { [model.pathFor('checking')]: true });
+  assert.ok(!Object.hasOwn(batch.expected, model.pathFor('consent')));
+});
 test('profile values retain exact generic values without score scaling or invented account types', () => {
   const data = fixture();
   data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('account')));
@@ -258,6 +265,59 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     await page.waitForFunction(() => window.NatwestDecisioningModel && document.getElementById('nwDecisioningFrame').contentWindow.NatwestDecisioningVisualiser && window.__decisions === 0);
     const visual = page.frames().find(frame => frame.url().includes('natwest-decisioning-visualiser'));
     await visual.locator('#webImage').waitFor({ state: 'visible' });
+    await t.test('Apply looks up the selected profile on demand and preserves only explicitly edited fields', async () => {
+      const firstApply = await browser.newPage({ viewport: { width: 1800, height: 1100 } });
+      await firstApply.route('https://**', route => route.abort());
+      try {
+        await firstApply.goto(base + '/profile-viewer/natwest-decisioning-demo.html');
+        await firstApply.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
+        const firstVisual = firstApply.frames().find(frame => frame.url().includes('natwest-decisioning-visualiser'));
+        assert.equal(await firstApply.locator('#nwApplyProfile').isEnabled(), true);
+        data.rows.find(row => row.path.endsWith(model.pathFor('prop'))).value = 82.5;
+        await firstVisual.locator('[data-group="profile"] .sig-head').click();
+        await firstVisual.locator('#input-account').fill('Premier');
+        assert.equal(await firstApply.locator('#nwApplyProfile').isEnabled(), true, 'Typing stages changes without requiring blur');
+        const before = writes.length;
+        await firstApply.locator('#nwApplyProfile').click();
+        await firstApply.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Snapshots accepted'));
+        assert.equal(writes.length, before + 1);
+        assert.equal(writes.at(-1).industry, 'fsi');
+        assert.ok(writes.at(-1).updates.some(update => update.path === model.pathFor('account') && update.value === 'Premier'));
+        assert.equal(data.rows.find(row => row.path.endsWith(model.pathFor('prop'))).value, 82.5, 'Unedited profile scores must not be overwritten by simulator defaults');
+        assert.equal(await firstVisual.evaluate(() => window.NatwestDecisioningVisualiser.getState().prop), 82.5);
+      } finally { await firstApply.close(); data = fixture(); writes.length = 0; }
+    });
+    await t.test('initial Apply without edits only loads; numeric input enables Apply immediately; on-demand lookup rejects non-test profiles', async () => {
+      const firstApply = await browser.newPage({ viewport: { width: 1800, height: 1100 } });
+      await firstApply.route('https://**', route => route.abort());
+      try {
+        await firstApply.goto(base + '/profile-viewer/natwest-decisioning-demo.html');
+        await firstApply.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
+        await firstApply.locator('#nwApplyProfile').click();
+        await firstApply.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Test profile loaded.'));
+        assert.equal(writes.length, 0);
+        assert.equal(await firstApply.locator('#nwApplyProfile').isDisabled(), true);
+        const firstVisual = firstApply.frames().find(frame => frame.url().includes('natwest-decisioning-visualiser'));
+        await firstVisual.locator('[data-group="scores"] .sig-head').click();
+        await firstVisual.locator('#input-prop').fill('83.75');
+        assert.equal(await firstApply.locator('#nwApplyProfile').isEnabled(), true);
+        assert.equal(await firstVisual.evaluate(() => window.NatwestDecisioningVisualiser.getState().prop), 83.75);
+        await firstApply.locator('#nwApplyProfile').click();
+        await firstApply.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Snapshots accepted'));
+        assert.ok(writes[0].updates.some(update => update.path === model.pathFor('prop') && update.value === 83.75 && update.valueType === 'number'));
+        writes.length = 0;
+        data.rows.find(row => row.path === 'testProfile').value = false;
+        await firstApply.reload();
+        await firstApply.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
+        const nextVisual = firstApply.frames().find(frame => frame.url().includes('natwest-decisioning-visualiser'));
+        await nextVisual.locator('[data-group="profile"] .sig-head').click();
+        await nextVisual.locator('#input-account').fill('Premier');
+        await firstApply.locator('#nwApplyProfile').click();
+        await firstApply.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Only AEP test profiles'));
+        assert.equal(writes.length, 0);
+        assert.equal(await firstApply.locator('#nwApplyProfile').isDisabled(), true);
+      } finally { await firstApply.close(); data = fixture(); writes.length = 0; }
+    });
     await t.test('three panes match BA geometry, initially collapsed, keyboard-resizable', async () => {
       assert.equal(await visual.locator('.sig.collapsed').count(), 6);
       assert.equal(await visual.locator('.obj').count(), 7);
@@ -299,6 +359,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Test profile loaded'));
       await visual.locator('[data-group="profile"] .sig-head').click();
       await visual.locator('#input-account').fill('Savings-linked'); await visual.locator('#input-account').blur();
+      assert.equal(await page.locator('#nwApplyProfile').isEnabled(), true);
       await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
       assert.match(await page.locator('#nwProfileStatus').textContent(), /Apply staged/);
       missingSchema = true;
@@ -449,7 +510,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     await t.test('actual shared environment loader initializes the complete shell without live services', async () => {
       mockLoader = false; data = fixture();
       drawerEvents = [...drawerEvents, ...[1, 2].map(index => ({
-        eventType: 'web.webpagedetails.pageViews', eventName: 'Banking guidance ' + index,
+        eventType: index === 1 ? 'message.tracking' : 'web.webpagedetails.pageViews', eventName: index === 1 ? 'Message tracking' : 'Banking guidance ' + index,
         timestamp: eventTime - index * 20000,
         rows: [{ path: 'web.webPageDetails.name', value: 'Banking guidance ' + index }],
       }))];
@@ -514,6 +575,8 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       assert.ok(await smoke.locator('#nwPhEcidReset button').count());
       assert.ok((await smoke.locator('#profileDrawerEvents').textContent()).includes('Offer: Savings <offer>'));
       assert.ok((await smoke.locator('#profileDrawerEvents').textContent()).includes('Strategy: Banking strategy'));
+      assert.equal(await smoke.locator('#profileDrawerEvents .aep-profile-drawer-event-thumb--message-tracking svg').count(), 1);
+      assert.equal(await smoke.locator('#profileDrawerEvents .aep-profile-drawer-event-thumb--message-tracking svg path').last().getAttribute('d'), 'm16 19 2 2 4-4');
       await smoke.locator('#profileDrawerEventsStoryOpen').click();
       await smoke.locator('.dpj-root').waitFor({ state: 'visible' });
       assert.equal(await smoke.locator('.dpj-node').count(), 5);

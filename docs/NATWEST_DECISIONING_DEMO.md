@@ -32,6 +32,8 @@ request and PropositionDisplay within two minutes. Offer and strategy names are
 shown only when present in the ingested event. The identity graph still opens
 its linked-identifier timeline. Changing identity or sandbox clears the drawer.
 Profile lookup does not send an application-login event.
+Message-tracking events use the same envelope-with-tick SVG as the BA drawer,
+in both recent events and the shared journey views.
 
 Use `?nwDrawer=classic` to restore the classic customer/identity blocks and
 `?journey=classic` for the classic event timeline. Restore with `?nwDrawer=hero`
@@ -45,6 +47,15 @@ the existing Tags environment, enable Decisioning, and look up a **test profile*
 Local signal edits are staged. **Apply profile changes** re-fetches the latest
 profile, validates the resolved schemas, and submits full writable snapshots for
 the affected industry dataflows. It never provisions infrastructure.
+Text and numeric edits stage immediately without waiting for blur. Apply can
+look up the selected profile itself: enter an identifier and select the sandbox,
+edit the controls, then Apply. Only explicitly edited signals are overlaid onto
+the fetched profile; untouched illustrative defaults never overwrite its data.
+An initial Apply without edits loads the profile and asks for a signal change,
+without writing. Non-test profiles stay read-only and accepted updates must be
+verified by lookup or Run before another Apply. Disabled Apply buttons explain
+why in their tooltip. Explicitly selecting a value can initialise a missing
+field even when that value matches the simulator default.
 
 All controls reuse existing generic fields from the supplied Operational profile
 sample. Paths below are tenant-relative except root `consents.*`.

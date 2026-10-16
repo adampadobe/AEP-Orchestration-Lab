@@ -125,9 +125,10 @@
     return Object.entries(expected).filter(([path, value]) => values.get(path) !== value)
       .map(([path, expectedValue]) => ({ path, expected: expectedValue, actual: values.get(path) }));
   }
-  function buildSnapshots(data, state, baseline) {
+  function buildSnapshots(data, state, baseline, edited = []) {
     validate(state);
-    const changed = Object.keys(defaults).filter(name => state[name] !== baseline[name]);
+    const changed = Object.keys(defaults).filter(name => state[name] !== baseline[name] ||
+      edited.includes(name) && !data.rows.some(row => relativePath(row.path) === pathFor(name) && scalar(row) !== null));
     if (!changed.length) throw new Error('No profile attributes have changed.');
     const expected = Object.fromEntries(changed.map(name => [pathFor(name), state[name]]));
     const snapshots = new Map();

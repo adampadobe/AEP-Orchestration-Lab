@@ -17,8 +17,8 @@
   function status(text) {
     if (global.parent !== global) global.parent.dispatchEvent(new CustomEvent('natwest-preview-status', { detail: text }));
   }
-  function changed() {
-    global.dispatchEvent(new CustomEvent('natwest-signals-changed'));
+  function changed(names) {
+    global.dispatchEvent(new CustomEvent('natwest-signals-changed', { detail: { names } }));
     status('Staged signals - displayed hero changes only after a successful live decision.');
   }
   model.groups.forEach(([id, title, fields], index) => {
@@ -48,7 +48,7 @@
           button.textContent = model.labels[value] || String(value);
           button.dataset.value = String(value);
           button.addEventListener('click', () => {
-            state[name] = value; update(); changed();
+            state[name] = value; update(); changed([name]);
           });
           pills.appendChild(button);
         });
@@ -58,7 +58,7 @@
         const input = document.createElement('input');
         input.id = 'input-' + name; input.type = 'text';
         input.setAttribute('aria-labelledby', 'label-' + name);
-        input.addEventListener('change', () => { state[name] = input.value; update(); changed(); });
+        input.addEventListener('input', () => { state[name] = input.value; update(); changed([name]); });
         field.appendChild(input); controls.set(name, input);
       } else {
         const output = document.createElement('output');
@@ -68,9 +68,12 @@
         const slider = document.createElement('input');
         slider.id = 'input-' + name; slider.type = 'number'; slider.min = choices.min; slider.step = choices.integer ? 1 : 'any';
         slider.setAttribute('aria-labelledby', 'label-' + name);
+        slider.addEventListener('input', () => {
+          if (!slider.value || !slider.checkValidity()) return;
+          state[name] = Number(slider.value); update(); changed([name]);
+        });
         slider.addEventListener('change', () => {
-          if (!slider.value || !slider.checkValidity()) { slider.reportValidity(); slider.value = state[name]; return; }
-          state[name] = Number(slider.value); update(); changed();
+          if (!slider.value || !slider.checkValidity()) { slider.reportValidity(); slider.value = state[name]; }
         });
         field.appendChild(slider);
         controls.set(name, slider);
@@ -94,7 +97,7 @@
         }
       });
       $('nbaPanel').classList.remove('collapsed'); $('nbaHead').setAttribute('aria-expanded', 'true');
-      update(); changed();
+      update(); changed(Object.keys(model.defaults));
     });
     $('scenarios').appendChild(button);
   });

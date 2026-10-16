@@ -37,7 +37,7 @@
     <span id="nwProfileStatus" role="status" aria-live="polite">Look up a test profile to stage live changes.</span>
   </div>
   <iframe id="nwDecisioningFrame" class="mod-demo-site-frame" title="NatWest decisioning visualiser"
-    src="natwest-decisioning-visualiser.html?v=20261016-schema"
+    src="natwest-decisioning-visualiser.html?v=20261016-apply"
     sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Lab navigation"></aside>
@@ -53,9 +53,9 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js"></script>
-  <script src="aep-profile-drawer.js?v=20261015-journey-views"></script>
+  <script src="aep-profile-drawer.js?v=20261016-mail-check"></script>
   <script src="aep-demo-generator-targets.js"></script>
-  <script src="natwest-decisioning-model.js?v=20261016-schema"></script>
+  <script src="natwest-decisioning-model.js?v=20261016-apply"></script>
   <script src="natwest-profile-hero.js?v=20261016-compact"></script>
   <script>
     window.envBarConfig = {
@@ -66,7 +66,7 @@
         iframeId: 'nwDecisioningFrame', useParentDocument: false, mountLayoutPreset: 'generic',
         autoRunDecisioning: false, viewName: 'NatWest Decisioning'
       },
-      labCoreScript: 'natwest-decisioning-demo.js?v=20261016-schema'
+      labCoreScript: 'natwest-decisioning-demo.js?v=20261016-apply'
     };
   </script>
   <script src="decisioning-persona-journey.js?v=20261015-drawer"></script>

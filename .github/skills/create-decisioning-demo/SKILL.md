@@ -255,6 +255,14 @@ broken or placeholder links as working product journeys.
    tenant fields that the lab now streams, keep the same-commit industry manifest
    and ownership map aligned; never use this as permission to provision a new
    brand-specific schema. A Hosting preview does not release/provision Functions.
+   Stage valid text/number edits on input, not only blur. Explain any disabled
+   Apply state. Support an explicit Apply that looks up the selected profile
+   when necessary, preserving only explicitly edited fields over the fetched
+   state, never untouched simulator defaults. A first Apply without edits may
+   load the profile but must not write. Allow an explicit selection to populate
+   a missing field even if its value equals the illustrative default.
+   Use the shared envelope-with-tick SVG for message-tracking events consistently
+   across recent events and journey views; do not reuse a location-event icon.
    Do not auto-write, auto-provision or auto-run decisions. Use the shared runtime
    manual-display mode: accept only a fresh, unambiguous hero-surface proposition,
    wait for the selected preview image to be visibly loaded, then send exactly

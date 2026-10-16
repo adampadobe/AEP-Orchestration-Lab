@@ -10,6 +10,7 @@
   let busy = false, dirty = false, contextVersion = 0, signalRevision = 0, decisionRun = 0;
   let targets = [], tags;
   const displayAttempts = new Set();
+  const stagedFields = new Set();
   const api = () => frame.contentWindow && frame.contentWindow.NatwestDecisioningVisualiser;
   function context() {
     return {
@@ -22,9 +23,17 @@
   function testProfile(data) {
     return data.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && model.scalar(row) === true);
   }
+  function hasStagedChanges() {
+    return !baseline || key(api().getState()) !== key(baseline) || [...stagedFields].some(name =>
+      loaded && !loaded.rows.some(row => model.relativePath(row.path) === model.pathFor(name) && model.scalar(row) !== null));
+  }
   function message(text, error) {
     status.textContent = text; status.title = text; status.dataset.error = String(!!error);
-    apply.disabled = busy || !loaded || !testProfile(loaded) || !dirty || !!pending;
+    apply.disabled = busy || !!pending || !!loaded && (!testProfile(loaded) || !dirty);
+    apply.title = busy ? 'An operation is in progress.' : pending ? 'Look up the profile to verify accepted changes before applying again.' :
+      loaded && !testProfile(loaded) ? 'Only AEP test profiles can be updated.' :
+      loaded && !dirty ? 'Change a profile signal to enable Apply.' :
+      !loaded ? 'Apply will first look up and validate the selected test profile.' : 'Send staged changes as full writable JSON profile snapshots.';
     run.disabled = busy;
   }
   function current(ctx, version) {
@@ -49,6 +58,7 @@
   function invalidate() {
     contextVersion++;
     loaded = null; baseline = null; loadedKey = ''; pending = null; dirty = false;
+    stagedFields.clear();
     if (global.DemoProfileDrawer.clearDrawerVisitorState) global.DemoProfileDrawer.clearDrawerVisitorState();
     if (api()) { api().setRecipientFirstName(null); api().clearDecision(); }
     document.getElementById('nwDecisionStatus').textContent = 'New context - no live decision applied.';
@@ -96,10 +106,12 @@
       pending = null;
     }
     loaded = data; loadedKey = key(ctx);
-    const preserve = dirty && baseline;
+    const staged = dirty ? api().getState() : null;
     baseline = model.readState(data.rows);
-    if (!preserve) { api().setState(baseline); dirty = false; }
-    else dirty = key(api().getState()) !== key(baseline);
+    if (staged) {
+      api().setState({ ...baseline, ...Object.fromEntries([...stagedFields].map(name => [name, staged[name]])) });
+      dirty = hasStagedChanges();
+    } else { api().setState(baseline); dirty = false; stagedFields.clear(); }
     const first = data.rows.find(row => model.relativePath(row.path) === 'person.name.firstName');
     api().setRecipientFirstName(first ? model.scalar(first) : null);
     return data;
@@ -168,14 +180,26 @@
     if (busy) return;
     if (pending) { message('Verify the accepted update by lookup before applying more changes.', true); return; }
     const ctx = context(), version = contextVersion;
-    if (!loaded || loadedKey !== key(ctx) || !baseline) { message('Look up the selected test profile first.', true); return; }
     busy = true; message('Checking schema and full writable snapshots...');
     let accepted = 0;
     try {
-      const latest = await table(ctx, version);
+      const needsLookup = !loaded || loadedKey !== key(ctx) || !baseline;
+      const latest = needsLookup ? await load(ctx, version) : await table(ctx, version);
       if (!testProfile(latest)) throw new Error('Only AEP test profiles can be edited by this demo.');
+      if (needsLookup) {
+        const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
+          updateMessage: false, sendApplicationLogin: false,
+        });
+        current(ctx, version);
+        if (!ok) {
+          loaded = null; loadedKey = ''; bankingDetails();
+          throw new Error('Profile signals loaded, but the profile drawer could not be refreshed. Look up again before applying.');
+        }
+      }
+      bankingDetails();
+      if (!dirty) { message('Test profile loaded. Change a signal, then Apply to send the JSON profile update.'); return; }
       const saved = api().getState();
-      const batch = model.buildSnapshots(latest, saved, baseline);
+      const batch = model.buildSnapshots(latest, saved, baseline, [...stagedFields]);
       const groups = batch.snapshots.map(group => ({ ...group, expected: batch.expected }));
       await preflight(latest, groups, ctx, version);
       if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('The selected profile has no email identity for streaming.');
@@ -193,6 +217,7 @@
       }
       current(ctx, version);
       baseline = saved; dirty = key(api().getState()) !== key(saved); loaded = latest;
+      if (!dirty) stagedFields.clear();
       message('Snapshots accepted. Run will verify AEP readback before evaluating; ingestion may take time.');
     } catch (error) {
       if (version === contextVersion) message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. Verify by lookup before retrying. ' : '') + error.message, true);
@@ -292,10 +317,12 @@
     frame.contentDocument.documentElement.dataset.nwWired = 'true';
     themeFrame();
     if (baseline) api().setState(baseline);
-    frame.contentWindow.addEventListener('natwest-signals-changed', () => {
+    frame.contentWindow.addEventListener('natwest-signals-changed', event => {
       signalRevision++;
-      dirty = !baseline || key(api().getState()) !== key(baseline);
-      message(loaded ? 'Profile changes staged. Apply writes full snapshots to AEP.' : 'Simulation changed. Look up a test profile before applying.');
+      for (const name of event.detail && event.detail.names || []) if (Object.hasOwn(model.fields, name)) stagedFields.add(name);
+      dirty = hasStagedChanges();
+      message(loaded ? 'Profile changes staged. Apply writes full snapshots to AEP.' :
+        'Profile changes staged. Apply will look up the selected test profile, validate the schema and send full JSON snapshots.');
     });
     frame.contentWindow.addEventListener('natwest-channel-changed', event => {
       const url = new URL(global.location.href);
@@ -359,7 +386,7 @@
     resize.observe(actions);
     if (anchor) new MutationObserver(layout).observe(anchor, { attributes: true, attributeFilter: ['class'] });
     new MutationObserver(themeFrame).observe(document.documentElement, { attributes: true, attributeFilter: ['data-aep-theme'] });
-    layout(); bankingDetails();
+    layout(); bankingDetails(); message('Select a profile and edit signals, then Apply. Apply looks up and validates the test profile before sending JSON snapshots.');
   }
   global.addEventListener('natwest-preview-status', event => {
     document.getElementById('nwDecisionStatus').textContent = event.detail;
