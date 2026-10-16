@@ -182,6 +182,12 @@ test('numeric boundaries, boolean types and string IN generate matching PQL', ()
   assert.match(compiled.assets.find(a => a.key === 'objective-1-preferred-rule').item.condition.value, /stage >= 1/);
   assert.match(compiled.assets.find(a => a.key === 'objective-1-preferred-rule').item.condition.value, /enabled = true/);
   assert.match(compiled.assets.find(a => a.key === 'objective-1-renew-rule').item.condition.value, /stringCompare/);
+  const visual = compiled.assets.find(a => a.key === 'objective-1-preferred-rule').item.segmentModel.expression.profileAttributesContainer;
+  assert.equal(visual.items[0].comparisonType, '>=');
+  assert.equal(visual.items[0].value, 1);
+  assert.deepEqual(visual.items[1].value, [true]);
+  assert.deepEqual(compiled.assets.find(a => a.key === 'objective-1-renew-rule').item.segmentModel.expression
+    .profileAttributesContainer.items[0].value, ['renew', 'RENEWAL']);
   const rule = plan.objectives[0].rule;
   rule.conditions = [
     { path: '_tenant.test.stage', op: 'gte', value: 1 },

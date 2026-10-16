@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>TUI | Next holiday, best moment</title>
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016-shell">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="home-dashboard-concierge tui-visualiser">
@@ -46,8 +46,8 @@
         <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
       </div>
       <div class="preview-caption"><span id="preview-caption">Responsive email / 600px</span><span>Illustrative content</span></div>
-      <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata">To: Alex Morgan &lt;alex.morgan@example.invalid&gt;<br><span class="subject-line"></span></div><div id="email-preview"></div></div>
-      <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden><div class="phone-frame"><div class="phone-status">9:41 <span>SIMULATION</span></div><div class="phone-mail">To: Alex Morgan<br><span class="subject-line"></span></div><div id="mobile-preview"></div></div></div>
+      <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata"><span class="recipient-label">To: Alex Morgan &lt;alex.morgan@example.invalid&gt;</span><br><span class="subject-line"></span></div><div id="email-preview"></div></div>
+      <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden><div class="phone-frame"><div class="phone-status">9:41 <span>PREVIEW</span></div><div class="phone-mail"><span class="recipient-label">To: Alex Morgan</span><br><span class="subject-line"></span></div><div id="mobile-preview"></div></div></div>
       <div id="panel-web" role="tabpanel" aria-labelledby="tab-web" class="channel-panel" tabindex="0" hidden>
         <div class="website-preview">
           <div class="site-utility">Travel information <span>Help Centre / My booking</span></div>
@@ -63,6 +63,6 @@
   </main>
   <details class="fictional-drawer"><summary>Fictional profile / Alex Morgan / View signals and identity</summary><div><strong>Local fixture only</strong><p>No ECID, linked identities, audiences or real activity have been loaded. This static demonstration has no live profile drawer and performs no identity reset.</p><p id="fixture-summary"></p></div></details>
   <script src="tui-decisioning-model.js?v=20261016"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261016"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261016-shell"></script>
 </body>
 </html>

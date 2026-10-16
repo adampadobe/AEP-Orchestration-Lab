@@ -152,6 +152,11 @@ const TRAVEL_RESERVATIONS_SUBTREE = {
         numberofPassengers: INT_LEAF('numberofPassengers'),
         flightNumber: STRING_LEAF('flightNumber'),
         flightDate: DATE_LEAF('flightDate'),
+        daysUntilDeparture: INT_LEAF('daysUntilDeparture'),
+        flightDisruption: {
+          type: 'object',
+          properties: { disruptionType: STRING_LEAF('disruptionType') },
+        },
         flightClass: STRING_LEAF('flightClass'),
         departureCountry: STRING_LEAF('departureCountry'),
         departureAirportCode: STRING_LEAF('departureAirportCode'),
@@ -405,6 +410,19 @@ const INDUSTRY_EXTENSIONS = {
     // `travelReservations.*`. Stream paths mirror
     // `buildUpdatesFromForm` in `web/profile-viewer/profile-generation-travel.js`.
     travelReservations: TRAVEL_RESERVATIONS_SUBTREE,
+    airlineCustomer: {
+      type: 'object',
+      properties: {
+        journeyStage: STRING_LEAF('journeyStage'),
+        documentsStatus: STRING_LEAF('documentsStatus'),
+        caseStatus: STRING_LEAF('caseStatus'),
+        shoppingIntent: STRING_LEAF('shoppingIntent'),
+        abandonedSearchFlag: BOOLEAN_LEAF('abandonedSearchFlag'),
+        fareAvailability: STRING_LEAF('fareAvailability'),
+        engagementStatus: STRING_LEAF('engagementStatus'),
+        mobileAppUser: BOOLEAN_LEAF('mobileAppUser'),
+      },
+    },
     hotel: HOTEL_EXPERIENCE_SUBTREE,
   },
   retail: {

@@ -6,6 +6,10 @@ Both accept `?channel=email`, `?channel=mobile`, `?channel=web`.
 The dashboard navigation lists Demos -> TUI -> Web for owner/sandbox `kirkham`
 with in-development capabilities enabled.
 
+Feature preview:
+`https://aep-orchestration-lab--tui-decisioning-jc5oi5wy.web.app/profile-viewer/tui-decisioning-demo.html`.
+This is an expiring Hosting preview, not a production release or Functions deploy.
+
 ## Source and limits
 
 Built from the owner-supplied **TUI.co.uk | Holidays, Flights & Cruises
@@ -21,13 +25,44 @@ Personalised service wording is illustrative demo copy, not an actual TUI
 product promise or policy. No current prices, rewards balances, eligibility or
 availability are asserted. CTAs explicitly simulate an interaction.
 
-All profile data belongs to a fictional local fixture, Alex Morgan. There is no
-ECID, AEP lookup, ingestion, identity reset or real customer drawer. The compact
-fixture drawer is explicitly labelled fictional. The outer dashboard retains
-shared Lab navigation and its standard usage-configuration/telemetry loader;
-the standalone simulator itself makes no API/external requests or tracking.
-The live shared environment strip/drawer is intentionally absent because this
-test is static. No deployment or AJO activation is implied.
+The standalone simulator retains the clearly labelled fictional Alex Morgan
+fixture and makes no API/external requests. The dashboard shell instead uses
+the canonical Spectrum site-configuration strip, Tags controls and shared
+bottom profile drawer. Lookup is read-only and disables application-login
+events; it never creates activity to fill the drawer. Actual loaded identity,
+consent, travel attributes, linked identities, audiences and five recent events
+are separate from staged simulator values. Missing values show Not set,
+unloaded values Not loaded, and unavailable KPIs Unavailable.
+
+The compact traveller hero has keyboard-accessible Contact / Travel / Identity
+tabs. The shared anonymous-visitor control is moved, not cloned; reset remains
+an explicit action. Drawer height is capped at 560px and available viewport,
+or 55dvh on narrow screens, with internal scrolling. The event count opens
+Canvas flow / Swimlanes / Stages. Offer and strategy names come only from
+ingested event data, never the simulated winner. Identity/sandbox changes clear
+the drawer, dialogs and signals and discard late responses.
+
+`?tuiDrawer=classic|hero` persists in `tuiProfileDrawerLayout`;
+`?journey=classic|concepts` persists in `decisioningPersonaJourneyLayout`, and
+the selected journey view in `decisioningPersonaJourneyView`. Channel deep
+links and history remain aligned between shell and iframe.
+
+**Apply** is explicit and restricted to test profiles. It fetches current full
+writable snapshots, overlays only staged fields and validates them against the
+exact current owning schema version before streaming. It does not provision
+schemas. Unknown API ownership or missing write configuration blocks Apply
+rather than sending a partial snapshot. Accepted or ambiguous writes are
+reconciled by readback without automatic resending. A partial multi-dataflow
+update preserves the remaining staged fields. No live profile writes were
+performed while implementing this correction.
+
+**Run** checks actual test-profile and email/personalisation consent readback,
+then requests the explicitly configured live policy through the shared runtime.
+A genuine hero image/copy replaces all three channel previews only after a
+successful response and image load, followed by one attributed display event.
+It does not send messages or activate the TUI drafts. The objective ladder
+remains an explicitly labelled local simulation, not an explanation of a
+different live policy's result.
 
 ## One model for the website and catalog
 
@@ -52,8 +87,12 @@ Controls display their exact Operational Profile paths. Travel data uses
 `_demoemea.airlineCustomer.*`; generic scoring/loyalty data uses
 `_demoemea.scoring.core.propensityScore` and `_demoemea.loyaltyDetails.points`.
 These are existing schema paths, not a new TUI subtree. Mappings declare the
-intended owning dataflow only; they do not provision or verify live write
-connections. No manifest change is necessary because nothing is streamed.
+owning dataflows; Apply verifies their actual writable metadata and schemas.
+Newly streamed airline and reservation leaves are included in the Travel
+manifest and both backend/MCP ownership maps. These backend changes require
+normal PR validation/merge and a separately authorised production Functions
+release; a Hosting preview does not deploy them. Until the live API reports
+compatible ownership/configuration, Apply fails closed.
 Holiday stage uses the actual `airlineCustomer.journeyStage` field with its
 suggested `Dreaming`, `Booked`, `In-Trip` and `Post-Trip` values, not itinerary
 booking status relabelled as a journey stage.
@@ -100,10 +139,18 @@ building or previewing this plan.
 
 Applied plan fingerprint:
 `9c90403dae0c7010644c46ac7678f283b3c5cb6f972d3a30cab587e20ffde324`.
+All 24 original rules subsequently received matching visual `segmentModel`
+attributes through governed in-place patches. Their original IDs, PQL and
+strategy/item links were retained and read back. Repair fingerprint:
+`446f8580f62d74ae66c7c53865bbc7d54da2fc1769594ed29542d21cbc547f7b`.
+The repair journal is `tui-rule-model-repair.json`; do not recreate these rules.
+Readback verifies stored metadata, not a visual inspection of Adobe's editor.
+
 The complete per-asset IDs and readback status are preserved in the session's
 `tui-catalog-journal.json`; reuse that journal, never create a fresh one to retry
 this bundle. No offers were approved and no policy was activated. The website
-remains a local simulation, not a client of these newly created strategies.
+does not automatically select these newly created strategies. A configured live
+policy can be tested explicitly, separately from the local ranking.
 
 | Objective | Created collection | Created strategy |
 |---|---|---|
@@ -124,8 +171,8 @@ The shell and iframe keep their channel state aligned. Theme follows `aepTheme`;
 pane widths use `tuiDecisioningWidth-signals` and `tuiDecisioningWidth-decision`.
 Resizable gutters support pointer and keyboard input. On narrower viewports
 panes stack without horizontal scrolling.
-The dashboard sidebar peeks from the left edge and opens on hover/focus or the
-Lab menu button; Escape closes the explicitly opened menu.
+The dashboard sidebar peeks from the left edge and opens on hover/focus; the
+shared configuration bar retains its Lab menu controls.
 
 ```powershell
 npm run test:tui-decisioning
@@ -135,8 +182,9 @@ npm run verify:profile-viewer-routes
 ```
 
 Browser checks use only a local read-only server. Standalone external/API
-requests fail the test; shell navigation reads use local fixtures and writes
-or external requests fail. Set `TUI_SCREENSHOTS` to a session artifact directory
+requests fail the test; shell lookup and explicit Apply use local fixtures.
+No test reaches live profile, schema or decisioning services.
+Set `TUI_SCREENSHOTS` to a session artifact directory
 for screenshots.
 Canonical UI files and the exact imported assets must be copied to the Express
 mirror if `rsync` is unavailable; verify matching hashes, never reverse-sync.

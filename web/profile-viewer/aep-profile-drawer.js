@@ -331,6 +331,13 @@ function aepProfileImageCssUrl(filename) {
 
 /** @type {Record<string, unknown> | null} */
 let lastLookedUpProfile = null;
+let profileContextVersion = 0;
+
+function isCurrentDrawerContext(version) {
+  if (version === profileContextVersion) return true;
+  labLog('info', 'discarding drawer response for a superseded identity', {});
+  return false;
+}
 
 /** Last identifier (email or ECID) used to load the drawer — used by the refresh button */
 let _lastLoadedIdentifier = null;
@@ -616,7 +623,11 @@ async function handleProfileDrawerEcidResetClick(btn) {
 }
 
 function clearDrawerVisitorState() {
+  profileContextVersion++;
   stopEventsPoll();
+  closeProfileDrawerEventsStoryModal();
+  closeIdentityGraphModal();
+  closeAudiencesModal();
   lastLookedUpProfile = null;
   _lastLoadedIdentifier = null;
   _lastEventsPollIdentifier = null;
@@ -2261,6 +2272,8 @@ function formatEventTimelineDate(value) {
 
 /** Inline SVG snippets for timeline thumbs (hospitality / hotel journey lab). */
 const AEP_EVENT_THUMB_SVG = {
+  mailCheck:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 19 2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   hotelSearch:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   hotelAvailability:
@@ -2365,6 +2378,13 @@ function eventThumbForEvent(ev) {
   const key = primary.toLowerCase().replace(/\s+/g, '');
   const blob = `${eventType} ${eventName}`.toLowerCase();
 
+  if (blob.includes('decisioning')) {
+    return {
+      variant: 'decisioning',
+      svg: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2L12 3z" stroke="currentColor" stroke-width="1.5"/></svg>',
+    };
+  }
+
   if (blob.includes('hotel') || key.includes('hotel')) {
     return hotelEventThumbFromBlob(blob);
   }
@@ -2377,7 +2397,7 @@ function eventThumbForEvent(ev) {
     return { url: aepProfileImageCssUrl('message-feedback-icon.png'), variant: 'message-feedback' };
   }
   if (key.includes('message.tracking') || key === 'messagetracking') {
-    return { url: aepProfileImageCssUrl('Smock_LocationBasedEvent_18_N.svg'), variant: 'message-tracking' };
+    return { variant: 'message-tracking', svg: AEP_EVENT_THUMB_SVG.mailCheck };
   }
   if (
     key === 'application.launch' ||
@@ -2461,6 +2481,15 @@ function aepProfileDrawerMessageChannelKind(ev) {
 
 /** Human-readable channel for journey modal (aligned with drawer sub-line logic). */
 function formatDrawerEventChannelDisplay(ev) {
+  const rows = Array.isArray(ev && ev.rows) ? ev.rows : [];
+  const isDecisionRequest = _config.viewName && ((ev && ev.eventName) === _config.viewName ||
+    rows.some(row => /^(?:xdm\.)?web\.webPageDetails\.(name|viewName)$/.test(row.path || '') && row.value === _config.viewName));
+  if (isDecisionRequest) {
+    const channelRow = rows.find(row => /^(?:xdm\.)?(?:_[^.]+\.)?interactionDetails\.core\.channel$/.test(row.path || ''));
+    const channel = String((channelRow && channelRow.value) || (ev && ev.channel) || '').toLowerCase();
+    if (channel === 'email') return 'Email';
+    if (channel === 'web') return 'Web';
+  }
   const msgKind = aepProfileDrawerMessageChannelKind(ev);
   if (msgKind === 'email') return 'Email';
   if (msgKind === 'push') return 'Push';
@@ -3253,7 +3282,6 @@ function renderProfileDrawerEventsStoryModalContent() {
   ensureProfileDrawerEventsStoryModal();
   ensureProfileDrawerJourneyFilterRow();
   if (!eventsStoryModalTrack || !eventsStoryModalSummary) return;
-  eventsStoryModalTrack.innerHTML = '';
   appendPersonaSummaryDom(eventsStoryModalSummary);
 
   const src =
@@ -3266,6 +3294,25 @@ function renderProfileDrawerEventsStoryModalContent() {
   const win = getJourneyStoryWindowBoundsFromUi();
   const storyEvents = win.active ? filterEventsByJourneyWindow(ordered, win.startMs, win.endMs) : ordered;
 
+  if (typeof journeyModalRenderer === 'function') {
+    try {
+      if (journeyModalRenderer({
+        panel: eventsStoryModalPanel, track: eventsStoryModalTrack, summary: eventsStoryModalSummary,
+        events: storyEvents, allEvents: ordered, windowActive: !!win.active,
+        profile: lastLookedUpProfile, helpers: journeyRendererHelpers,
+      }) === true) {
+        journeyModalGroups = [];
+        journeyModalStep = 0;
+        if (eventsStoryModalControlsWrap) eventsStoryModalControlsWrap.hidden = true;
+        if (eventsStoryModalStepMeta) eventsStoryModalStepMeta.textContent = '';
+        return;
+      }
+    } catch (err) {
+      console.warn('[aep-profile-drawer] custom journey renderer failed; using classic view', err);
+    }
+  }
+
+  eventsStoryModalTrack.innerHTML = '';
   if (!ordered.length) {
     const empty = document.createElement('p');
     empty.className = 'aep-profile-drawer-events-story-empty';
@@ -3455,6 +3502,23 @@ function onProfileDrawerEventsStoryKeydown(e) {
   }
 }
 
+function decisioningDisplayCardFields(ev) {
+  if (String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase() !== 'decisioning.propositiondisplay') return [];
+  const items = new Map();
+  for (const row of Array.isArray(ev && ev.rows) ? ev.rows : []) {
+    const match = String(row.path || '').match(/^(?:xdm\.)?_experience\.decisioning\.propositions\.(\d+)\.items\.(\d+)\.(name|itemSelection\.selectionDetail\.strategyName)$/);
+    if (!match || row.value == null || !String(row.value).trim()) continue;
+    const key = match[1] + ':' + match[2];
+    if (!items.has(key)) items.set(key, { proposition: Number(match[1]), item: Number(match[2]) });
+    items.get(key)[match[3] === 'name' ? 'offer' : 'strategy'] = String(row.value).trim();
+  }
+  return Array.from(items.values()).sort((a, b) => a.proposition - b.proposition || a.item - b.item)
+    .flatMap(item => [
+      ...(item.offer ? [['Offer', item.offer]] : []),
+      ...(item.strategy ? [['Strategy', item.strategy]] : []),
+    ]);
+}
+
 function appendDrawerEventTimelineItem(ev) {
   const item = document.createElement('article');
   item.className = 'aep-profile-drawer-event-item';
@@ -3488,7 +3552,15 @@ function appendDrawerEventTimelineItem(ev) {
 
   textWrap.appendChild(timeEl);
   textWrap.appendChild(titleEl);
-  textWrap.appendChild(subEl);
+  decisioningDisplayCardFields(ev).forEach(([label, value]) => {
+    const detailEl = document.createElement('span');
+    detailEl.className = 'aep-profile-drawer-event-decision-detail';
+    detailEl.textContent = `${label}: ${value}`;
+    textWrap.appendChild(detailEl);
+  });
+  if (String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase() !== 'decisioning.propositiondisplay') {
+    textWrap.appendChild(subEl);
+  }
   item.appendChild(thumb);
   item.appendChild(textWrap);
   profileDrawerEvents.appendChild(item);
@@ -3884,6 +3956,8 @@ async function loadProfileDataForDrawer(email, options) {
   }
 
   const ns = getNamespaceForDrawer(emailTrim);
+  const version = ++profileContextVersion;
+  stopEventsPoll();
   labLog('info', 'profile lookup start', { namespace: ns, identifierLength: emailTrim.length });
 
   _lastLoadedIdentifier = emailTrim;
@@ -3910,6 +3984,7 @@ async function loadProfileDataForDrawer(email, options) {
         getSandboxParam(),
     );
     const data = await res.json();
+    if (!isCurrentDrawerContext(version)) return false;
     if (!res.ok) {
       if (notifyUser) {
         let errMsg = String(data.message || data.error || 'Profile request failed.');
@@ -3976,6 +4051,7 @@ async function loadProfileDataForDrawer(email, options) {
       fetchAudienceMembership(emailTrim),
       fetchProfileEventsList(emailTrim, ns),
     ]);
+    if (!isCurrentDrawerContext(version)) return false;
     const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
     const events = visibleDrawerEventsForPanel(eventsAll, 5);
     const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
@@ -4031,6 +4107,7 @@ async function loadProfileDataForDrawer(email, options) {
       npsScore: normalizeDrawerNpsScore(data.npsScore),
       loyaltyStatus: data.loyaltyStatus != null && data.loyaltyStatus !== '' ? data.loyaltyStatus : null,
       email: data.email != null && data.email !== '' ? data.email : null,
+      phone: data.phone != null && data.phone !== '' ? data.phone : null,
       customerLifetimeValue:
         data.customerLifetimeValue != null && data.customerLifetimeValue !== ''
           ? data.customerLifetimeValue
@@ -4085,6 +4162,7 @@ async function loadProfileDataForDrawer(email, options) {
     });
     return true;
   } catch (err) {
+    if (!isCurrentDrawerContext(version)) return false;
     if (notifyUser) notifyUser(err.message || 'Network error', 'error');
     labLog('error', 'profile lookup failed — network or parse error', {
       namespace: ns,
@@ -4114,11 +4192,13 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
   const id = String(identifier || '').trim();
   if (!id) return;
   cacheDomRefs();
+  const version = profileContextVersion;
   const ns =
     namespaceOverride != null && String(namespaceOverride).trim()
       ? String(namespaceOverride).trim().toLowerCase()
       : getNamespaceForDrawer(id);
   let eventsAll = await fetchProfileEventsList(id, ns);
+  if (!isCurrentDrawerContext(version)) return;
   if (
     !eventsAll.length &&
     lastLookedUpProfile &&
@@ -4134,13 +4214,23 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
     const altNs = altId && altId.indexOf('@') !== -1 ? 'email' : altId ? 'ecid' : '';
     if (altId && altNs && (altId !== id || altNs !== ns)) {
       const retry = await fetchProfileEventsList(altId, altNs);
+      if (!isCurrentDrawerContext(version)) return;
       if (retry.length) eventsAll = retry;
     }
   }
   const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
   const events = visibleDrawerEventsForPanel(eventsAll, 5);
   const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
-  patchLastProfileOrUpdate({ events, eventsStory });
+  const engagementH = resolveEngagementMetricsHoursBack(lastLookedUpProfile);
+  const metrics = window.EmailEngagementMetrics;
+  patchLastProfileOrUpdate({
+    events, eventsStory,
+    emailSendsLast24h: metrics && metrics.getEmailSendsLastHours
+      ? metrics.getEmailSendsLastHours(eventsAll, engagementH) : undefined,
+    pushSendsLast24h: metrics && metrics.getPushSendsLastHours
+      ? metrics.getPushSendsLastHours(eventsAll, engagementH) : undefined,
+    engagementMetricsHoursBack: engagementH,
+  });
 }
 
 /** Re-fetch events using the same identity as the last profile load (avoids ECID/email poll drift). */
@@ -4626,6 +4716,19 @@ async function openDrawerAndLoad(email) {
   if (email) await loadProfileDataForDrawer(email, { updateMessage: false });
 }
 
+let journeyModalRenderer = null;
+const journeyRendererHelpers = {
+  title: formatExperienceEventDisplayTitle,
+  fallbackTitle: drawerEventTitleFallback,
+  thumb: eventThumbForEvent,
+  channel: formatDrawerEventChannelDisplay,
+  messageChannelKind: aepProfileDrawerMessageChannelKind,
+  decisionFields: decisioningDisplayCardFields,
+  timestampMs: eventTimestampMsForDrawer,
+  formatDate: formatEventTimelineDate,
+  isWebPageview: isAdobeWebPageViewExperienceEvent,
+};
+
 const api = {
   init,
   loadProfileDataForDrawer,
@@ -4633,6 +4736,10 @@ const api = {
   updateProfileDrawer,
   getLastLookedUpProfile: () => lastLookedUpProfile,
   getLastProfile: () => lastLookedUpProfile,
+  setJourneyModalRenderer(fn) {
+    journeyModalRenderer = typeof fn === 'function' ? fn : null;
+  },
+  closeJourneyModal: () => closeProfileDrawerEventsStoryModal(),
   patchLastProfileOrUpdate,
   refreshDrawerEventsForIdentity,
   refreshDrawerEventsForLoadedProfile,

@@ -464,7 +464,9 @@
     }
   }
 
-  async function runContentDecision() {
+  async function runContentDecision(options) {
+    options = options || {};
+    var manualDisplay = options.manualDisplay === true;
     if (!isEnabled()) throw new Error('Decisioning is disabled.');
     await ensureLabConfigLoaded();
     ensureMounts();
@@ -509,7 +511,7 @@
             'https://ns.adobe.com/personalization/dom-action',
           ];
     var sendOpts = {
-      renderDecisions: true,
+      renderDecisions: !manualDisplay,
       personalization: { surfaces: surfaces, schemas: schemas },
       xdm: {
         identityMap: identityMap,
@@ -526,11 +528,11 @@
     var result = await alloyFn('sendEvent', sendOpts);
     var propositions = (result && (result.propositions || result.decisions)) || [];
     try {
-      if (propositions.length) await alloyFn('applyPropositions', { propositions: propositions });
+      if (!manualDisplay && propositions.length) await alloyFn('applyPropositions', { propositions: propositions });
     } catch (e) {
       log('applyPropositions', String(e && e.message ? e.message : e));
     }
-    applyPropositionsToIframe(propositions);
+    if (!manualDisplay) applyPropositionsToIframe(propositions);
     var appliedMounts = countAppliedMounts(getIframeDoc());
     var appliedCount = propositions.length;
     var autoRestored =
@@ -554,6 +556,7 @@
       });
     }
     return Object.assign({}, result || {}, {
+      manualDisplay: manualDisplay ? { alloy: alloyFn, identityMap: identityMap } : null,
       propositions: propositions,
       appliedMounts: appliedMounts,
       autoRestored: autoRestored,
@@ -643,6 +646,7 @@
   }
 
   global.DecisioningProfileRuntime = {
+    supportsManualDisplay: true,
     CACHE_BUST: CACHE_BUST,
     init: init,
     getApi: getApi,

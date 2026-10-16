@@ -5,6 +5,11 @@
   const $ = id => document.getElementById(id);
   const controls = new Map();
   const groups = new Map();
+  let recipient = 'Alex', live = null, held = '', embedded = false, generation = 0;
+  function changed(keys) {
+    generation++; live = null; held = '';
+    window.dispatchEvent(new CustomEvent('tui-signals-changed', { detail: { keys } }));
+  }
   function el(tag, text, className) {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -49,12 +54,14 @@
       input.addEventListener(field.type === 'number' ? 'input' : 'change', () => {
         if (!input.checkValidity() || input.value === '') {
           input.setAttribute('aria-invalid', 'true');
+          changed([field.key]);
           render();
           return;
         }
         input.removeAttribute('aria-invalid');
         state[field.key] = field.type === 'boolean' ? input.value === 'true' :
           field.type === 'number' ? Number(input.value) : input.value;
+        changed([field.key]);
         $('scenario-label').textContent = 'Custom holiday signals';
         $('scenario-select').value = '';
         document.querySelectorAll('#scenario-pills button').forEach(button => button.setAttribute('aria-pressed', 'false'));
@@ -67,7 +74,9 @@
   }
   function useScenario(index) {
     const scenario = model.scenarios[index];
+    const previous = state;
     state = { ...model.defaults, ...scenario.preset };
+    changed([...new Set([...Object.keys(scenario.preset), ...model.fields.filter(f => previous[f.key] !== state[f.key]).map(f => f.key)])]);
     for (const [key, input] of controls) {
       input.value = String(state[key]);
       input.removeAttribute('aria-invalid');
@@ -163,7 +172,7 @@
     }
     row(image('tui-decisioning-assets/tui-logo.svg', 'TUI', 'email-logo'));
     row(image(offer.image, offer.imageAlt, 'email-photo'), 'email-photo-cell');
-    row(el('span', 'Hi Alex, here is your next holiday moment.', 'eyebrow'));
+    row(el('span', 'Hi ' + recipient + ', here is your next holiday moment.', 'eyebrow'));
     row(el('div', offer.content.title), 'email-heading');
     row(el('div', offer.content.fullDescription), 'email-copy');
     row(cta(offer.content.fullCTA));
@@ -178,13 +187,17 @@
   }
   function renderPreview(result) {
     const objective = model.objectives.find(o => o.key === result.objective);
-    const offer = objective && objective.offers.find(item => item.key === result.offer);
+    let offer = objective && objective.offers.find(item => item.key === result.offer);
+    if (live) offer = { image: live.url, imageAlt: 'Image returned by the configured live decision',
+      content: { title: live.title || 'Live decision image', fullDescription: live.description || 'No copy was returned by the live decision.',
+        fullCTA: 'Preview interaction' } };
+    if (held) offer = null;
     $('preview-feedback').textContent = '';
     document.querySelectorAll('.subject-line').forEach(node => {
       node.textContent = offer ? 'Subject: ' + offer.content.title : 'Content held / no email';
     });
     if (!offer) {
-      for (const id of ['email-preview', 'mobile-preview', 'web-preview']) $(id).replaceChildren(hold(result.reason));
+      for (const id of ['email-preview', 'mobile-preview', 'web-preview']) $(id).replaceChildren(hold(held || result.reason));
       return;
     }
     $('email-preview').replaceChildren(email(offer));
@@ -200,6 +213,7 @@
     const result = model.evaluate(state);
     const invalid = Array.from(controls.values()).some(input => input.getAttribute('aria-invalid') === 'true');
     if (invalid) {
+      live = null;
       result.objective = null;
       result.offer = null;
       result.reason = 'Content held: enter valid values for the highlighted signals. Previous content has been removed.';
@@ -212,11 +226,14 @@
     renderPreview(result);
     const objective = model.objectives.find(o => o.key === result.objective);
     const offer = objective?.offers.find(item => item.key === result.offer);
-    $('decision-status').textContent = offer
+    $('decision-status').textContent = held || (live ? 'Live policy preview / local objective ladder below is illustrative. ' : '') + (offer
       ? objective.label + ' / ' + offer.name + '. ' + result.reason
-      : result.reason;
+      : result.reason);
     $('fixture-summary').textContent = 'Holiday stage: ' + state.booking + '. Documents: ' + state.documents +
-      '. Email consent: ' + state.emailConsent + '. Personalisation: ' + state.personalize + '. No data was loaded from AEP.';
+      '. Email consent: ' + state.emailConsent + '. Personalisation: ' + state.personalize +
+      (embedded ? '. Staged signals, not confirmed profile facts.' : '. No data was loaded from AEP.');
+    $('preview-feedback').textContent = live ? 'Live policy content. Objective ranking is still simulated.' :
+      embedded ? 'Local simulation / staged signals. Run explicitly to request the configured live policy.' : '';
   }
   function setChannel(channel, push) {
     if (!['email', 'mobile', 'web'].includes(channel)) channel = 'email';
@@ -305,6 +322,7 @@
   }
   $('reset').addEventListener('click', () => {
     state = { ...model.defaults };
+    changed(model.fields.map(f => f.key));
     controls.forEach((input, key) => { input.value = String(state[key]); input.removeAttribute('aria-invalid'); });
     groups.forEach(group => { group.open = false; });
     document.querySelectorAll('.objective').forEach(detail => { detail.open = false; });
@@ -323,5 +341,49 @@
   buildScenarios();
   setupTabs();
   resizePanes();
+  window.TuiDecisioningVisualiser = {
+    setBusy(busy) {
+      document.querySelectorAll('#signals input,#signals select,#scenario-select,#scenario-pills button,#reset').forEach(input => { input.disabled = busy; });
+    },
+    getState() {
+      if ([...controls.values()].some(input => input.value === '' || !input.checkValidity())) throw new Error('Enter valid profile signals before Apply.');
+      return { ...state };
+    },
+    setEmbedded() {
+      embedded = true; document.querySelector('.fictional-drawer').hidden = true;
+      document.querySelector('.signals-pane > .microcopy').textContent = 'Local ranking uses staged signals. Only Apply writes profile changes; Run requests live content.';
+      for (const input of controls.values()) if (input.type === 'number') {
+        input.removeAttribute('min'); input.removeAttribute('max'); input.step = 'any';
+      }
+      this.setProfile(null);
+    },
+    setProfile(data) {
+      generation++; live = null; held = ''; state = { ...model.defaults, ...data?.state };
+      recipient = data?.firstName || 'traveller';
+      document.querySelector('.avatar').textContent = data ? recipient.slice(0, 2).toUpperCase() : '--';
+      document.querySelectorAll('.recipient-label').forEach(node => { node.textContent = data ? 'To: ' + recipient + (data.email ? ' <' + data.email + '>' : '') : 'Illustrative preview / no recipient selected'; });
+      document.querySelector('.fictional-person strong').textContent = data ? recipient : 'No profile loaded';
+      document.querySelector('.fictional-person small').textContent = data ? 'Loaded signals / missing values simulate defaults' : 'Local simulation only';
+      document.querySelector('.fictional-person small + small').textContent = data ? 'See actual identity and consent in the shared drawer' : 'No live profile selected';
+      document.querySelector('.simulation-badge').textContent = data ? 'Loaded profile / local ranking' : 'Local simulation';
+      document.querySelector('.boundary-note').textContent = 'Local signals are staged. Apply validates test-profile updates; Run separately requests the configured live policy. No messages are sent.';
+      for (const [key, input] of controls) {
+        if (input.tagName === 'SELECT' && ![...input.options].some(option => option.value === String(state[key]))) {
+          const option = el('option', String(state[key])); option.value = String(state[key]); input.append(option);
+        }
+        input.value = String(state[key]); input.removeAttribute('aria-invalid');
+      }
+      render();
+    },
+    hold(reason) { generation++; live = null; held = reason; render(); },
+    async setDecision(decision) {
+      const current = generation;
+      await new Promise((resolve, reject) => {
+        const img = new Image(); img.onload = resolve; img.onerror = () => reject(new Error('Live decision image could not load. Previous preview retained.')); img.src = decision.url;
+      });
+      if (current !== generation) throw new Error('Profile context changed while loading decision image.');
+      live = decision; held = ''; render();
+    },
+  };
   render();
 })();

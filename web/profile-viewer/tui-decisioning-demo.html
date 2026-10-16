@@ -7,64 +7,81 @@
   <title>TUI | Holiday decisioning lab</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016">
+  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20261016-decisioning">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css">
+  <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
+  <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261016">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016-shell">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
-<body class="home-dashboard-concierge tui-demo-shell">
-  <div class="dashboard-shell">
-    <aside id="tui-lab-sidebar" class="dashboard-sidebar" aria-label="Primary"></aside>
-    <div class="dashboard-main-wrap">
-      <header class="dashboard-topbar">
-        <h1 class="dashboard-topbar-title">TUI / Holiday decisioning lab</h1>
-        <div class="dashboard-topbar-right">
-          <button id="menu-toggle" type="button" aria-controls="tui-lab-sidebar" aria-expanded="false">Lab menu</button>
-          <span class="dashboard-env-pill">Local simulation / kirkham plan</span>
-          <button id="theme-toggle" type="button">Switch theme</button>
-        </div>
-      </header>
-      <main class="tui-shell-main">
-        <iframe id="tui-visualiser" title="TUI holiday decisioning simulator" src="tui-decisioning-visualiser.html"></iframe>
-      </main>
-    </div>
+<body class="mod-demo-page home-dashboard-concierge tui-demo-shell">
+  <div class="mod-demo-top-anchor">
+    <section class="mod-demo-id-banner" aria-label="Lab configuration">
+      <div class="aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-prefix="tuiDecisioning"
+        data-demo-env-strip-title="TUI Holiday Decisioning"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-message-id="tuiDecisioningMessage"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-disclaimer="Internal test-profile demo. Local ranking is a simulation; Run uses the configured live policy, not automatically the TUI drafts. No messages are delivered.">
+      </div>
+    </section>
   </div>
+  <div class="tui-live-actions" aria-label="Decision controls">
+    <button id="tuiApplyProfile" type="button" disabled>Apply profile changes</button>
+    <button id="tuiRunDecision" type="button">Run live decision</button>
+    <span id="tuiLiveStatus" role="status" aria-live="polite">Local simulation. Look up a test profile to stage changes.</span>
+  </div>
+  <iframe id="tui-visualiser" class="mod-demo-site-frame" title="TUI holiday decisioning simulator"
+    src="tui-decisioning-visualiser.html?v=20261016-shell" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Lab navigation"></aside>
+    <div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div>
+  </div>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js"></script>
+  <script src="aep-profile-drawer.js?v=20261016-decisioning"></script>
+  <script src="aep-demo-generator-targets.js"></script>
+  <script src="tui-decisioning-model.js?v=20261016-shell"></script>
+  <script src="tui-decisioning-profile.js?v=20261016-shell"></script>
+  <script src="tui-profile-hero.js?v=20261016-shell"></script>
   <script>
-    (function () {
-      var frame = document.getElementById('tui-visualiser');
-      var menu = document.getElementById('menu-toggle');
-      menu.addEventListener('click',function(){
-        var open=document.body.toggleAttribute('data-menu-open');
-        menu.setAttribute('aria-expanded',String(open));
-      });
-      document.addEventListener('keydown',function(event){
-        if(event.key==='Escape'&&document.body.hasAttribute('data-menu-open')){
-          document.body.removeAttribute('data-menu-open');menu.setAttribute('aria-expanded','false');menu.focus();
-        }
-      });
-      var channel = new URLSearchParams(location.search).get('channel');
-      if (['email', 'mobile', 'web'].includes(channel)) frame.src += '?channel=' + channel;
-      function theme() {
-        frame.contentWindow.postMessage({type:'tui-theme',dark:document.documentElement.getAttribute('data-aep-theme')==='dark'},location.origin);
-      }
-      document.getElementById('theme-toggle').addEventListener('click',function(){
-        var dark=document.documentElement.getAttribute('data-aep-theme')!=='dark';
-        document.documentElement.toggleAttribute('data-aep-theme',dark);
-        if(dark)document.documentElement.setAttribute('data-aep-theme','dark');
-        try{localStorage.setItem('aepTheme',dark?'dark':'light');}catch(e){console.warn('Theme preference could not be saved',e);}
-      });
+    (function(){
+      var frame=document.getElementById('tui-visualiser');
+      var channel=new URLSearchParams(location.search).get('channel');
+      if(['email','mobile','web'].includes(channel))frame.src+='&channel='+channel;
+      function theme(){frame.contentWindow.postMessage({type:'tui-theme',dark:document.documentElement.getAttribute('data-aep-theme')==='dark'},location.origin);}
       frame.addEventListener('load',theme);
       new MutationObserver(theme).observe(document.documentElement,{attributes:true,attributeFilter:['data-aep-theme']});
       window.addEventListener('message',function(event){
         if(event.origin!==location.origin||event.source!==frame.contentWindow||!event.data||event.data.type!=='tui-channel')return;
-        var next=event.data.channel;
-        if(!['email','mobile','web'].includes(next))return;
-        var url=new URL(location.href);url.searchParams.set('channel',next);
-        history.pushState({},'',url);
+        if(!['email','mobile','web'].includes(event.data.channel))return;
+        var url=new URL(location.href);url.searchParams.set('channel',event.data.channel);history.pushState({},'',url);
       });
-      window.addEventListener('popstate',function(){
-        frame.contentWindow.postMessage({type:'tui-set-channel',channel:new URLSearchParams(location.search).get('channel')||'email'},location.origin);
-      });
+      window.addEventListener('popstate',function(){frame.contentWindow.postMessage({type:'tui-set-channel',channel:new URLSearchParams(location.search).get('channel')||'email'},location.origin);});
     })();
+    window.envBarConfig = {
+      prefix: 'tuiDecisioning', variant: 'spectrum', localOverride: true, firestoreListen: false,
+      features: { webPush: false, bc: false, target: false, decisioning: true },
+      iframeIds: ['tui-visualiser'],
+      decisioning: { iframeId: 'tui-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
+        autoRunDecisioning: false, viewName: 'TUI Decisioning' },
+      labCoreScript: 'tui-decisioning-demo.js?v=20261016-shell'
+    };
   </script>
+  <script src="decisioning-persona-journey.js?v=20261016"></script>
+  <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
   <script src="aep-lab-nav.js?v=20261016-tui"></script>
   <script src="aep-theme.js" defer></script>
 </body>

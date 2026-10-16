@@ -87,6 +87,10 @@ Rules have `operator: "and" | "or"` and one or two conditions.
 Operators: `eq`, `in` (non-empty value array), `gt`, `gte`, `lt`, `lte`.
 Ordering comparisons are numeric only. String comparisons are case-insensitive,
 matching the generated PQL. Preserve numeric values and booleans, not UI labels.
+The compiler also emits AJO's visual `segmentModel` from the same conditions.
+It retains exact attribute paths, and/or grouping, numeric thresholds and typed
+boolean/multi-value comparisons. Raw readback checks both representations.
+PQL without this model may evaluate correctly but show no visual attributes.
 `profileFields` is a mapping declaration, **not a live schema validator**:
 the skill must verify live resolved schemas (profile and owning write-dataflow)
 before approval. The runner verifies the offer schema ID, not its full custom
@@ -142,6 +146,22 @@ its persisted IDs and blocker. Material plan changes require a new review and
 deliberate reconciliation, not discarding the original journal.
 
 ## Live readiness is a separate gate
+
+For an already-provisioned plan lacking visual models, use the original plan and
+creation journal with the narrowly scoped repair tool:
+
+```powershell
+node scripts\repair-decisioning-rule-models.mjs "<plan>" "<original-journal>" "<new-repair-journal>" --preview
+node scripts\repair-decisioning-rule-models.mjs "<plan>" "<original-journal>" "<new-repair-journal>" --apply "<reviewed-repair-fingerprint>"
+```
+
+Review and approve the preview first. This adds only missing `/segmentModel` on
+verified original rule IDs; it refuses name/PQL drift or a conflicting existing
+model. It never creates assets or activates policies. An exclusive, flushed
+repair journal records each pending write and verified readback; a partial or
+interrupted run requires inspection, not an automatic retry/new journal.
+Older journals need this reconciliation before the updated compiler can verify
+them; never rerun creates with a fresh creation journal to fix editor metadata.
 
 Static priority ranks items within a strategy. Strategy `rank.priority: 1` is
 not the seven-objective ordering of a decision policy. Wire the returned IDs and

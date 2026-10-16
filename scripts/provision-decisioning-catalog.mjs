@@ -54,6 +54,33 @@ function pql(rule, fields) {
   }).map(text => `(${text})`).join(` ${rule.operator} `);
 }
 
+export function ruleSegmentModel(name, rule, fields) {
+  const items = conditions(rule, fields).map(c => ({
+    comparisonType: ['eq', 'in'].includes(c.op) ? 'equals' : SYMBOLS[c.op],
+    component: { id: `profile.${c.path}`, __entity__: true, type: 'bx' },
+    isCaseSensitive: false, isPlaceholder: false, originalLocation: [],
+    value: c.op === 'in' ? c.value : c.op === 'eq' ? [c.value] : c.value,
+    itemType: 'segmentRule',
+  }));
+  return {
+    lifecycleState: 'published',
+    expression: {
+      isValid: true, logicalOperator: rule.operator,
+      profileAttributesContainer: {
+        exclude: false, isCollapsed: false, items, logicalOperator: rule.operator, itemType: 'segmentContainer',
+      },
+      xEventAttributesContainer: {
+        exclude: false, isCollapsed: false, items: [], logicalOperator: 'then', itemType: 'eventTypeCardContainer',
+      },
+      itemType: 'segmentDefinition',
+    },
+    isMissingAnsibleModel: false, relationalExpression: false,
+    deprecated: { status: false, reason: '' }, description: '',
+    evaluationInfo: { batch: { enabled: true }, continuous: { enabled: false }, synchronous: { enabled: false } },
+    payloadInfo: { schemaPath: '' }, labels: [], tags: [], canHaveFolder: true, name, namespace: 'ups',
+  };
+}
+
 function matches(rule, attributes) {
   const tests = rule.conditions.map(c => {
     const actual = attributes[c.path];
@@ -119,9 +146,11 @@ export function compilePlan(plan) {
     assets.push({ key, entity_type, item });
   };
   const ruleAsset = (key, label, rule) => {
+    const name = `${plan.customer} - ${label}`;
     add(key, 'offer-rules', {
-      name: `${plan.customer} - ${label}`, exdRule: true, type: 'DECISION_ITEM',
+      name, exdRule: true, type: 'DECISION_ITEM',
       condition: { type: 'PQL', format: 'pql/text', value: pql(rule, fields) },
+      segmentModel: ruleSegmentModel(name, rule, fields),
     });
     return { profileConstraintType: 'eligibilityRule', eligibilityRule: { ref: key } };
   };

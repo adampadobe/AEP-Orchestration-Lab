@@ -164,6 +164,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'travel',
     prefixes: [
+      'airlineCustomer.',
       'travelReservations.',
       'travelPreferences.',
       'industryTravel.',

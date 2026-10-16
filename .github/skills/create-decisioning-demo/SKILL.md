@@ -313,6 +313,12 @@ is the field template, not permission to reuse BA copy for another customer.
    Do not infer consent or safety from an unrelated score. Use the same exact
    paths and comparison semantics in scenario controls and PQL. Keep actual
    consent gating explicit; neither a tag nor a strategy name implements it.
+   Include a matching `segmentModel` for AJO's visual rule editor: populate
+   `expression.profileAttributesContainer.items` from those same typed
+   conditions, including `profile.<path>`, comparison, values and and/or.
+   PQL alone can evaluate correctly while showing an empty attribute editor.
+   Verify both representations on readback; do not copy another customer's
+   model or recreate existing rules to fix missing editor metadata.
 4. Resolve a compatible unified tag UUID per objective from live item
    `itemTags`/`itemTagDetails`, or create a customer-scoped unified tag through an
    actually exposed, authorised tool after preview/confirmation. Legacy

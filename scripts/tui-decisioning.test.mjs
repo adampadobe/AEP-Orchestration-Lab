@@ -4,8 +4,12 @@ import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { compilePlan, evaluateScenario } from './provision-decisioning-catalog.mjs';
 import { buildTuiPlan } from './tui-decisioning-catalog-plan.mjs';
+import { ruleModelRepair } from './repair-decisioning-rule-models.mjs';
 
 const model = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-model.js');
+const profile = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-profile.js');
+const { getManifestForIndustry } = createRequire(import.meta.url)('../functions/profileCoreV2Manifest.js');
+const { resolveIndustryForPath } = createRequire(import.meta.url)('../functions/industryAttributeMap.js');
 const raw = model.tags.map(([id, name], i) => ({
   id: `dps:fixture:${i}`, _experience: { decisioning: { decisionitem: {
     itemCatalogID: 'xcore:decision-catalog:18c6b876319b00e4',
@@ -76,6 +80,65 @@ test('missing verified tags fail closed rather than inventing UUIDs', () => {
   const bad = structuredClone(raw);
   bad[0]._experience.decisioning.decisionitem.itemTagDetails = [];
   assert.throws(() => buildTuiPlan(bad), /Missing live unified tag/);
+});
+
+test('every TUI rule has typed visual attributes matching the PQL source and safe repair patches', () => {
+  const bundle = compilePlan(buildTuiPlan(raw));
+  const sources = model.objectives.flatMap(o => [o.rule, ...o.offers.filter(i => i.rule).map(i => i.rule)]);
+  const rules = bundle.assets.filter(a => a.entity_type === 'offer-rules');
+  for (const [index, asset] of rules.entries()) {
+    const visual = asset.item.segmentModel.expression.profileAttributesContainer;
+    assert.equal(visual.logicalOperator, sources[index].operator);
+    assert.equal(visual.items.length, sources[index].conditions.length);
+    for (const [j, item] of visual.items.entries()) {
+      const source = sources[index].conditions[j];
+      assert.equal(item.component.id, 'profile.' + source.path);
+      assert.deepEqual(item.value, source.op === 'eq' ? [source.value] : source.value);
+      assert(asset.item.condition.value.includes(source.path));
+      assert.equal(item.isCaseSensitive, false);
+    }
+    const before = { ...asset.item }; delete before.segmentModel;
+    assert.equal(ruleModelRepair(asset, before)[0].path, '/segmentModel');
+    assert.deepEqual(ruleModelRepair(asset, asset.item), []);
+    assert.throws(() => ruleModelRepair(asset, { ...before, condition: {} }), /drift/);
+    assert.throws(() => ruleModelRepair(asset, { ...before, segmentModel: {} }), /differs/);
+  }
+});
+
+test('profile snapshots preserve typed industry siblings and write only explicitly edited fields', () => {
+  const data = { industries: { travel: { writable: true, schemaId: 'travel-schema' }, generic: { writable: true, schemaId: 'generic-schema' } },
+    rows: [
+      { path: '_demoemea.airlineCustomer.journeyStage', value: 'Custom stage', valueType: 'string', writable: true, industry: 'travel' },
+      { path: '_demoemea.airlineCustomer.mobileAppUser', value: 'false', valueType: 'boolean', writable: true, industry: 'travel' },
+      { path: '_demoemea.scoring.core.propensityScore', value: '2.99', valueType: 'number', writable: true, industry: 'generic' },
+    ] };
+  assert.equal(profile.signals(data.rows).booking, 'Custom stage');
+  assert.equal(profile.signals(data.rows).score, 2.99);
+  assert.equal(profile.signals(data.rows).emailConsent, undefined);
+  const batch = profile.snapshots(data, { ...model.defaults, booking: 'Booked' }, ['booking']);
+  assert.deepEqual(batch.expected, { 'airlineCustomer.journeyStage': 'Booked' });
+  assert.equal(batch.snapshots.length, 1);
+  assert.deepEqual(batch.snapshots[0].updates.find(u => u.path.endsWith('mobileAppUser')).value, false);
+  assert.equal(batch.snapshots[0].updates.some(u => u.path.startsWith('consents.')), false);
+  assert.throws(() => profile.snapshots({ ...data, industries: {} }, model.defaults, ['booking']), /Configure/);
+  assert.throws(() => profile.snapshots({ ...data, rows: data.rows.map(row => ({ ...row, industry: 'generic' })) },
+    model.defaults, ['booking']), /ownership/);
+  assert.deepEqual(profile.differences(data.rows, { 'scoring.core.propensityScore': 2.99 }), []);
+  assert.deepEqual(profile.differences(data.rows, { 'airlineCustomer.journeyStage': 'CUSTOM STAGE' }), []);
+});
+
+test('every streamed travel field is declared in the manifest and both ownership maps', async () => {
+  const mcp = await import('../tools/aep-lab-profile-mcp/src/framework/attributeOwnership.mjs');
+  const manifest = getManifestForIndustry('travel');
+  for (const field of model.fields.filter(field => profile.industry(field) === 'travel')) {
+    const path = profile.relative(field.path);
+    let leaf = { properties: manifest };
+    for (const part of path.split('.')) leaf = leaf?.properties?.[part];
+    assert(leaf, path);
+    assert.equal(leaf.type, field.type === 'number' ? 'integer' : field.type);
+    assert.equal(resolveIndustryForPath('_otherTenant.' + path).industry, 'travel');
+    assert.equal(mcp.resolveIndustryForPath('_otherTenant.' + path).industry, 'travel');
+  }
 });
 
 test('captured analytics/scripts are not imported and presentation uses dashboard color tokens', async () => {
