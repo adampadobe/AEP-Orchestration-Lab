@@ -19,6 +19,7 @@
   grid-template-areas:
     "config"
     "workflow"
+    "path"
     "dual";
   width: 100%;
   min-width: 0;
@@ -33,6 +34,147 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+
+.sf-gen-main .sf-gen-card {
+  box-shadow: none;
+  padding: 24px;
+}
+
+.sf-gen-main details.sf-gen-card--config {
+  padding: 0;
+}
+
+.sf-gen-data-path {
+  grid-area: path;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 4px 24px;
+  color: var(--dash-text);
+}
+
+.sf-gen-data-path div {
+  display: grid;
+  gap: 4px;
+}
+
+.sf-gen-data-path strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sf-gen-data-path span {
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
+.sf-gen-data-path .sf-gen-data-path-arrow {
+  font-size: 1.3rem;
+}
+
+.sf-gen-query-source {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.sf-gen-main .sf-gen-form .form-row.sf-gen-actions {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.sf-gen-main .sf-gen-actions .btn {
+  min-height: 42px;
+}
+
+.sf-gen-main .sf-gen-actions .btn-primary {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+}
+
+.sf-gen-main .sf-gen-actions .btn-primary:hover {
+  filter: brightness(0.92);
+}
+
+.sf-gen-main .sf-gen-form > .form-row--inline,
+.sf-gen-main .sf-gen-generation-options .form-row--inline {
+  align-items: flex-start;
+}
+
+.sf-gen-main .sf-gen-generate-form > .form-row--inline {
+  flex-direction: column;
+}
+
+.sf-gen-main .sf-gen-generate-form > .form-row--inline > .form-group {
+  width: 100%;
+}
+
+.sf-gen-main .sf-gen-slider-row input {
+  max-width: 160px;
+}
+
+.sf-gen-main .sf-gen-slider-value {
+  display: none;
+}
+
+.sf-gen-generation-options {
+  margin: 20px 0;
+}
+
+.sf-gen-main .sf-gen-batch-history {
+  margin-top: 24px;
+  padding-top: 20px;
+}
+
+.sf-gen-main .sf-gen-batch-history-row {
+  flex-wrap: wrap;
+}
+
+.sf-gen-empty-hint {
+  display: none;
+  color: var(--dash-text-secondary);
+  font-size: 0.85rem;
+  padding: 20px 0;
+  line-height: 1.6;
+}
+
+.sf-gen-profile-table-wrap:has(#sfProfileTbody:empty) + .sf-gen-empty-hint {
+  display: block;
+}
+
+.sf-gen-main :is(button, input, select, summary, textarea):focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 3px;
+}
+
+@media (min-width: 1200px) {
+  .sf-gen-dual {
+    grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.4fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .sf-gen-data-path {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px;
+  }
+
+  .sf-gen-data-path-arrow {
+    display: none;
+  }
+
+  .sf-gen-main .sf-gen-card {
+    padding: 18px;
+  }
+
+  .sf-gen-main .sf-gen-actions .btn {
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 960px) {

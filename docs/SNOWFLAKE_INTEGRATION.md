@@ -16,6 +16,14 @@ explicitly before using them in Campaign Orchestration.
 
 ### Generator context and relational subscription upgrade
 
+The recipient workspace separates **Generate linked demo data** from
+**Explore & enrich profiles**. Enter an exact recipient count (1–1,000), then
+use **Seed recipients & industry data** for the shared-parent workflow.
+Batch-size tuning and the separate legacy generation mode are under
+**Advanced generation options**; legacy runner diagnostics remain collapsed.
+The data-path strip explains the shared recipient → industry data → relational
+table relationship without implying automatic AEP/AJO ingestion.
+
 The Snowflake UI clears selected profiles and pending results when the Portal
 identity, sandbox, or industry changes. Responses from the previous context
 cannot repopulate the new one. A submitted mutation may still complete in its

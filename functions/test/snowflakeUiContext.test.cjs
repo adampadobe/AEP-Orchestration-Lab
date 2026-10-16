@@ -77,7 +77,7 @@ function fixture() {
   const instrumented = source.replace(/\}\)\(\);\s*$/, `
     globalThis.ui = { bind: bind, reset: resetWorkflowContext, reload: reloadWorkflowContext,
       history: safeGetBaseBatchHistory, append: appendBaseBatchHistory,
-      load: loadProfiles, enrich: enrichSelected, generate: generateProfiles,
+      load: loadProfiles, enrich: enrichSelected, generate: generateProfiles, generateClick: handleGenerateClick,
       catalog: loadIndustryCatalog, render: renderProfileRows,
       profiles: function () { return loadedProfiles; } };
   })();`);
@@ -97,6 +97,19 @@ function fixture() {
     },
   };
 }
+
+test('invalid recipient counts show an error before either generation path submits', () => {
+  const f = fixture();
+  f.nodes.get('sfGenCount').reportValidity = () => false;
+  for (const full of [false, true]) {
+    f.nodes.get('sfGenScopeFull').checked = full;
+    f.ui.generateClick();
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.nodes.get('sfGenerateMessage').hidden, false);
+    assert.equal(f.nodes.get('sfGenerateMessage').getAttribute('data-tone'), 'error');
+  }
+  assert.match(html, /type="number" id="sfGenCount"[^>]*min="1"[^>]*max="1000"[^>]*step="1"[^>]*required/);
+});
 
 test('batch history is isolated by user, sandbox and industry; unscoped legacy data is not imported', () => {
   const f = fixture();

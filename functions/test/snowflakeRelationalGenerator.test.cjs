@@ -58,6 +58,20 @@ describe('snowflakeRelationalGenerator travel model', () => {
     assert.ok(disrupted.segments.some((segment) => segment.segment_id === disrupted.disruptionEvents[0].SEGMENT_ID));
   });
 
+  it('uses a Boolean booking seat flag and keeps the seat number on the ancillary purchase', () => {
+    for (let index = 0; index < 10; index += 1) {
+      const records = generate(index);
+      const seatPurchases = records.ancillaries.filter(({ product_code }) => product_code.startsWith('SEAT'));
+      assert.equal(records.bookingEvent.SEATSELECTION, seatPurchases.length > 0, records.scenario);
+      for (const purchase of seatPurchases) {
+        assert.equal(purchase.seat_number, '18A');
+        assert.equal(purchase.recipient_id, records.reservation.recipient_id);
+        assert.equal(purchase.segment_id, records.segments[0].segment_id);
+        assert.equal(purchase.passenger_id, records.passengers[0].passenger_id);
+      }
+    }
+  });
+
   it('guarantees hero trip, tier, seat, consent, and scenario requirements', () => {
     const recipient = createRecipient({ industry: 'travel', crmId: 'CRM1001', hero: true });
     const records = generateTravelRelationalRecords({

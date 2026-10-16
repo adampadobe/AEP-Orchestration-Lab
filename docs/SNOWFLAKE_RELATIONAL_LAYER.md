@@ -121,7 +121,9 @@ creation timestamps; rerunning the CLI is intentionally not an idempotent
 replay of the previous invocation. Generated travel
 rows are derived from the same recipient/reservation/segment data as the
 booking and disruption event payloads. A disrupted trip's event references
-its actual segment key.
+its actual segment key. Booking `SEATSELECTION` is a Boolean purchase flag;
+the selected seat number (for example, `18A`) belongs in
+`REL.REL_TRAVEL_ANCILLARY_PURCHASE.SEAT_NUMBER`, not in the booking flag.
 
 For non-travel industries, the seed and enrich paths share generated event,
 order, fixture, and enrichment row identities. Enrichment rows use a group

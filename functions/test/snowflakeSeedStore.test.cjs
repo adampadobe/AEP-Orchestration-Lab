@@ -97,7 +97,7 @@ describe('Snowflake-first shared base seeding', () => {
     }, CFG, 'retail', [record('retail')]), AggregateError);
   });
 
-  it('fits generated travel events to existing source columns and VARCHAR limits', () => {
+  it('fits generated travel events to existing source columns, BOOLEAN types, and VARCHAR limits', () => {
     for (let index = 0; index < 10; index += 1) {
       const { trip } = record('travel', index);
       for (const [table, rows] of [
@@ -109,6 +109,9 @@ describe('Snowflake-first shared base seeding', () => {
         for (const row of rows) {
           for (const [column, value] of Object.entries(row)) {
             assert.ok(fields.has(column), `${table}.${column}`);
+            if (value != null && /\bBOOLEAN\b/.test(fields.get(column))) {
+              assert.equal(typeof value, 'boolean', `${table}.${column}`);
+            }
             const max = fields.get(column).match(/VARCHAR\((\d+)\)/)?.[1];
             if (max && value != null) assert.ok(String(value).length <= Number(max), `${table}.${column}`);
           }
