@@ -206,6 +206,17 @@ test('schema drift and a failed pending-journal save prevent all writes', async 
   assert.equal(b.calls.filter(c => c.route === 'change-apply').length, 0);
 });
 
+test('invalid collection UI metadata fails preflight before creating any rules or items', async () => {
+  const plan = fixture();
+  const state = { fingerprint: compilePlan(plan).fingerprint, assets: {} };
+  const b = backend(plan);
+  b.saved.get(plan.collectionTemplateId).constraints[0].uiModel = '{"operator":"and","value":[]}';
+  await assert.rejects(runPlan(plan, { ...b, state, save: async () => {}, confirm: state.fingerprint }),
+    /single tag IN predicate/);
+  assert.equal(b.calls.filter(c => c.route === 'change-apply').length, 0);
+  assert.deepEqual(state.assets, {});
+});
+
 test('CLI dry run emits the full 21-item bundle without a journal; existing lock is preserved', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'aep-catalog-plan-test-'));
   try {

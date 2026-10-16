@@ -266,6 +266,9 @@ export async function runPlan(plan, { call, state, save, confirm }) {
   const template = await get('item-collections', plan.collectionTemplateId);
   requireValue(template.constraints?.length === 1 &&
     template.constraints[0].itemCatalogId === plan.catalogId, 'Wrong collection template catalog/shape');
+  for (const objective of plan.objectives) {
+    substitute({ tagTemplate: objective.tag.id }, {}, template.constraints[0].uiModel);
+  }
   const ids = {};
   for (const asset of compiled.assets) {
     const item = substitute(asset.item, ids, template.constraints[0].uiModel);
