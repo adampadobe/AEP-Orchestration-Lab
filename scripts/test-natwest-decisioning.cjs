@@ -129,6 +129,23 @@ test('configured writable dataflows accept first field population but missing co
   delete data.industries.fsi.schemaId;
   assert.throws(() => model.buildSnapshots(data, model.defaults, model.defaults, ['checking']), /setup/);
 });
+test('Generic snapshots preserve unowned offers and complaint siblings, independently of delivery events', () => {
+  const data = fixture();
+  for (const row of data.rows.filter(row => /offersAndPromotions|complaint/.test(row.path))) {
+    row.industry = null; row.writable = false;
+  }
+  data.rows.push({ path: '_demoemea.offersAndPromotions.eligibleOfferNames', value: 'Savings',
+    valueType: 'string', industry: null, writable: false });
+  data.rows.push({ path: '_demoemea.complaint.caseReference', value: 'fixture-case',
+    valueType: 'string', industry: null, writable: false });
+  const batch = model.buildSnapshots(data, { ...model.defaults, available: 3 }, model.defaults);
+  const updates = batch.snapshots[0].updates;
+  assert.equal(batch.snapshots[0].industry, 'generic');
+  assert.ok(updates.some(row => row.path === model.pathFor('available') && row.value === 3));
+  assert.ok(updates.some(row => row.path === 'offersAndPromotions.eligibleOfferNames' && row.value === 'Savings'));
+  assert.ok(updates.some(row => row.path === 'complaint.caseReference' && row.value === 'fixture-case'));
+  assert.ok(!updates.some(row => row.path.startsWith('individualCharacteristics.fsi.')));
+});
 test('explicit edits can initialise missing fields even when the selected value matches the illustrative default', () => {
   const data = fixture();
   data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('checking')));
@@ -210,13 +227,14 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
         current[part] ||= { type: 'object', properties: {} }; current = current[part].properties;
       }
       current[parts.at(-1)] = { type: typeof value };
+      if (name === 'available') current[parts.at(-1)] = { type: 'integer', minimum: 0, maximum: 2147483647 };
       if (name === 'account' && wrongSchemaType) current[parts.at(-1)].type = 'boolean';
       if (name === 'prop' && maximumScore !== null) current[parts.at(-1)].maximum = maximumScore;
       if (name === 'consent' || name === 'personalisation') current[parts.at(-1)].enum = ['y', 'n', 'p'];
     }
     const consents = properties.consents; delete properties.consents;
     if (missingSchema) delete properties.individualCharacteristics.properties.fsi.properties.productOverview.properties.checkingAcctType;
-    return { properties: { consents, _demoemea: { properties } } };
+    return { version: '1.5', properties: { consents, _demoemea: { properties } } };
   };
   const harness = `
     document.querySelector('[data-demo-env-strip-mount]').innerHTML =
@@ -248,7 +266,21 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       identities: [{ namespace: 'Email', value: data.profileEmail }, { namespace: 'ECID', value: data.ecid }],
     });
     if (url.pathname === '/api/profile/events') return json({ events: drawerEvents });
-    if (url.pathname === '/api/aep') return json({ platform_response: schema(), status: 200 });
+    if (url.pathname === '/api/aep') {
+      let body = ''; for await (const chunk of req) body += chunk;
+      const request = JSON.parse(body);
+      if (!String(request.path || '').includes('/schemaregistry/tenant/schemas/')) return json({
+        platform_response: {}, status: 200,
+      });
+      const accept = request.platform_headers.Accept;
+      if (accept === 'application/vnd.adobe.xed+json; version=1') return json({
+        platform_response: { version: '1.5' }, status: 200,
+      });
+      if (accept !== 'application/vnd.adobe.xed-full+json; version=1.5') return json({
+        platform_response: { version: '1.4', properties: {} }, status: 200,
+      });
+      return json({ platform_response: schema(), status: 200 });
+    }
     if (url.pathname === '/api/profile/update') {
       let body = ''; for await (const chunk of req) body += chunk;
       const update = JSON.parse(body); writes.push(update);
@@ -400,6 +432,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       missingSchema = true;
       await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Schema field missing'));
+      assert.match(await page.locator('#nwProfileStatus').textContent(), /Sandbox: fixture; dataflow: fsi; schema: fsi-schema/);
       assert.equal(writes.length, 0);
       missingSchema = false; wrongSchemaType = true;
       await page.getByRole('button', { name: 'Apply profile changes', exact: true }).click();

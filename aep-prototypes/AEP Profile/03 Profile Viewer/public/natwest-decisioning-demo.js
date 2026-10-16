@@ -144,16 +144,27 @@
   async function preflight(data, groups, ctx, version) {
     for (const group of groups) {
       const config = data.industries[group.industry];
-      const result = await jsonFetch('/api/aep', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'GET', path: '/data/foundation/schemaregistry/tenant/schemas/' + encodeURIComponent(config.schemaId),
-          platform_headers: { Accept: 'application/vnd.adobe.xed-full+json; version=1', 'x-sandbox-name': ctx.sandbox },
-        }),
-      });
+      async function readSchema(accept) {
+        const result = await jsonFetch('/api/aep', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'GET', path: '/data/foundation/schemaregistry/tenant/schemas/' + encodeURIComponent(config.schemaId),
+            platform_headers: { Accept: accept, 'x-sandbox-name': ctx.sandbox },
+          }),
+        });
+        current(ctx, version);
+        if (result.status >= 400 || !result.platform_response) throw new Error('Could not read the ' + group.industry +
+          ' profile schema in sandbox ' + ctx.sandbox + ': ' + config.schemaId + '.');
+        return result.platform_response;
+      }
+      // Pin the resolved read: a major-only request can return an older cached minor.
+      const metadata = await readSchema('application/vnd.adobe.xed+json; version=1');
+      if (!/^\d+\.\d+$/.test(String(metadata.version || ''))) throw new Error('Could not determine the current ' +
+        group.industry + ' schema version in sandbox ' + ctx.sandbox + '.');
+      const schema = await readSchema('application/vnd.adobe.xed-full+json; version=' + metadata.version);
       current(ctx, version);
-      const schema = result.platform_response;
-      if (!schema || result.status >= 400 || !schema.properties) throw new Error('Could not read the resolved ' + group.industry + ' profile schema.');
+      if (schema.version !== metadata.version || !schema.properties) throw new Error('Could not read the current resolved ' +
+        group.industry + ' profile schema version ' + metadata.version + ' in sandbox ' + ctx.sandbox + '.');
       const changed = group.updates.filter(update => Object.hasOwn(group.expected, update.path));
       for (const update of changed) {
         const rootField = update.path.startsWith('consents.');
@@ -164,7 +175,9 @@
         let leaf = rootField ? schema : tenant.length === 1 && schema.properties[tenant[0]];
         for (const part of update.path.split('.')) leaf = leaf && leaf.properties && leaf.properties[part];
         if (!leaf) throw new Error('Schema field missing: ' + update.path +
-          '. Select a profile dataflow whose schema already contains this generic field. This demo does not provision schemas.');
+          '. Sandbox: ' + ctx.sandbox + '; dataflow: ' + group.industry + '; schema: ' +
+          (schema.title || config.schemaId) + ' (' + config.schemaId + '). The loaded profile can merge values from other datasets; ' +
+          'this write schema must contain the field. An administrator must review any field-group attachment; Apply does not provision schemas.');
         const validType = typeof update.value === 'number' ?
           leaf.type === 'number' || leaf.type === 'integer' && Number.isInteger(update.value) : leaf.type === typeof update.value;
         const invalidRange = typeof update.value === 'number' &&

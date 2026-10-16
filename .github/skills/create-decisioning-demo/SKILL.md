@@ -266,6 +266,15 @@ broken or placeholder links as working product journeys.
    industry subtrees when an older backend omits ownership annotations, without
    bypassing the industry configuration or resolved-schema checks. Test with
    zero writable industry rows and with absent fields, not just ideal metadata.
+   Confirm the intended sandbox before any infrastructure change. Compare every
+   mapped field with the actual resolved write-dataflow schema, not just the
+   supplied Operational reference or merged profile. Report sandbox/schema IDs
+   in preflight failures. Reusing an existing field group still needs explicit
+   approval before attachment; never do this automatically in Apply. Offer
+   delivery events do not establish a profile eligible-offer count.
+   Resolve the current schema metadata version, then fetch the full schema pinned
+   to that exact minor version. Test a stale major-only resolved response after
+   a field-group attachment rather than trusting cached `version=1` responses.
    Use the shared envelope-with-tick SVG for message-tracking events consistently
    across recent events and journey views; do not reuse a location-event icon.
    Do not auto-write, auto-provision or auto-run decisions. Use the shared runtime

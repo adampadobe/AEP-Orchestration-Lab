@@ -98,6 +98,26 @@ Apply requires configured Generic/FSI dataflows whose resolved schemas contain
 the affected paths; it refuses missing fields, wrong types, enums and numeric
 bounds. **A Hosting preview does not deploy Functions or provision fields.**
 
+The supplied Operational schema is a reference, not necessarily the schema used
+by the selected sandbox's Lab dataflows. Missing-field errors identify the
+sandbox, dataflow and actual schema ID. Offer delivery/display events do not
+populate `offersAndPromotions.eligibleOffers`, which is a profile eligibility
+count. Existing unowned `offersAndPromotions.*` and `complaint.*` siblings are
+preserved in Generic full snapshots, not replaced by simulator defaults.
+Preflight reads schema metadata first and requests the resolved schema at that
+exact minor version. A major-only `version=1` resolved response can remain cached
+at an older revision after an approved field-group attachment.
+
+On 2026-10-16, following explicit user approval for **kirkham**, the existing
+**Offers and Promotions Details** field group
+(`https://ns.adobe.com/demoemea/mixins/feb718b0e3d9cf6e1709b2688ddf2219781c4b8b577f6a90`)
+was attached additively to **AEP Lab - Generic Profile - Schema**
+(`https://ns.adobe.com/demoemea/schemas/1c3c9979ae2192f041bf21b8ddeaca63b6042f79d0e3e091`).
+The schema advanced from 1.4 to 1.5. No field definitions or profile values were
+changed; `complaint.status` was already present in kirkham. No schema changes
+were made in apalmer. Other sandboxes still need their own inspected and approved
+configuration; the demo never attaches field groups automatically.
+
 ## Local rule conventions
 
 The email-first preview requires explicit `y` in both email marketing and content

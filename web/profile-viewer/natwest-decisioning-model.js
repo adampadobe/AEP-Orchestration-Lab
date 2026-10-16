@@ -141,7 +141,8 @@
           const path = relativePath(row.path);
           // Older table backends omit ownership for Operational banking fields.
           const legacyFsi = industry === 'fsi' && /^(individualCharacteristics\.fsi|industryFsi|personalFinances)\./.test(path);
-          return row.writable === true && row.industry === industry || legacyFsi;
+          const legacyGeneric = industry === 'generic' && /^(complaint|offersAndPromotions)\./.test(path);
+          return row.writable === true && row.industry === industry || legacyFsi || legacyGeneric;
         });
         // Preserve recognised sample fields even on older servers without their ownership annotations.
         for (const signal of Object.keys(fields).filter(signal => industryFor(signal) === industry)) {
