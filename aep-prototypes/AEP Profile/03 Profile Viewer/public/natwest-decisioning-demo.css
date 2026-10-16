@@ -30,6 +30,10 @@ body.home-dashboard-concierge {
   max-height: calc(100dvh - var(--nw-content-top, 96px));
   overflow-y: auto;
 }
+.nw-decisioning-page:not(.mod-demo-page--profile-open):not(.aep-profile-drawer-open) #profileDrawer:not(:focus-within) .aep-profile-drawer-inner {
+  /* Keep focus targets available so keyboard focus can reopen the drawer. */
+  opacity: 0;
+}
 .nw-decisioning-page.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner {
   height: min(35rem, calc(100dvh - var(--nw-content-top, 96px)));
   grid-template-rows: minmax(0, 1fr);

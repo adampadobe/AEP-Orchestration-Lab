@@ -67,6 +67,13 @@ Example request:
 5. Inspect existing shared shell, navigation and preview helpers for reusable
    patterns. Do not copy another customer's content, scoring or embedded images.
    No reference demo is an input requirement.
+6. For live decisioning, audit the selected sandbox's actual AJO eligibility
+   rules before mapping controls. Read-only `GET /data/core/dps/offer-rules?limit=50`
+   through `/api/aep` must include `x-sandbox-name`; follow `_links.next` using
+   its `start` cursor until exhausted, detecting repeated/invalid cursors.
+   List the rule-read paths and map every control to them. Report controls no
+   rule reads as local-simulation-only (consent can still be an explicit client
+   safety gate). Do not silently remap fields, rewrite rules or provision fields.
 
 ## 2. Prepare a small, safe asset set
 
@@ -115,7 +122,14 @@ check both themes rather than relying on a generic recolouring alone.
 At desktop widths keep compact collapsible signals on the left, scenario pills
 and the dark branded seven-row objective ladder in the middle, and the channel
 preview on the right. Use keyboard/pointer-resizable gutters with saved widths.
-Signal groups and Eligible NBAs start collapsed. On narrow screens stack panes.
+Signal groups, ranked objectives and Eligible NBAs start collapsed. Provide
+Expand all / Collapse all for objectives and keep rank numbers visible when
+compressed. Choosing a scenario first collapses every signal group, then opens
+every group containing any field in the scenario's full preset, even if that
+value did not change. Expand the selected objective and the Eligible NBAs only
+after a scenario is chosen. Hide no-consent scenarios when consent is not
+applicable to that demo; retain genuine consent holds where it is applicable.
+On narrow screens stack panes.
 Use labelled controls, accessible tabs, useful image alternatives and clear status.
 
 ### Customer, identity and events drawer
@@ -166,7 +180,11 @@ fictional and must not introduce live API calls.
 
 Wire the bottom hover strip and keyboard/focus opening to a supported open-state
 CSS selector. Keep drawer content below the minimised strip, scrollable within the
-available viewport, and usable in narrow layouts. **Do not grow the entire drawer
+available viewport, and usable in narrow layouts. No block tops may peek above
+the strip when minimised; verify at desktop and narrow widths without increasing
+the expanded height. The Persona Journey modal must fit the viewport without
+vertical page scrolling; use columns, bounded internal areas and fit-to-height
+zoom rather than an indefinitely tall canvas. **Do not grow the entire drawer
 to fit profile fields.** Use a desktop height budget of roughly five recent event
 cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
 Use compact Contact / Banking (or industry-specific) / Identity tabs below the
@@ -185,6 +203,9 @@ Preserve the selected journey view/event during unchanged polling refreshes,
 and refresh message counts from the same fetched event set. Pass
 `sendApplicationLogin: false` for read-only drawer lookups. Do not create profile
 or decisioning events merely to populate the drawer.
+Refresh **Messages Sent** in the same event-poll update as the drawer's events
+and journey data, using the same identity and time window, not a separate slow
+profile lookup.
 
 Retain a per-demo classic-layout escape hatch, following NatWest's
 `?nwDrawer=classic` / `?nwDrawer=hero`, plus `?journey=classic` /
@@ -239,6 +260,45 @@ an explicit simulated interaction or be visibly non-interactive; do not present
 broken or placeholder links as working product journeys.
 
 ## 4. Wire and verify the complete demo
+
+### Apply -> ingestion -> Run (live demos)
+
+- Dataflow acceptance is not profile readback. After every snapshot has been
+  accepted (and any Apply-triggered tracking has succeeded), automatically start
+  one background confirmation promise per sandbox/identity context. Invalidate
+  its token, timers, request and promise on a new Apply or context change.
+- Poll `/api/profile/table`: first wait 1.5 seconds, multiply by 1.5 up to six
+  seconds, and stop after 120 seconds. Update elapsed progress every second:
+  "Snapshots accepted by AEP. Confirming the update in the profile... Ns".
+- Verify only edited paths read by the audited live rules, plus explicit client
+  safety gates such as consent. Keep every accepted snapshot intact, including
+  other saved fields. Normalise only documented equivalent enum labels for the
+  specific field; all other fields match exactly. Log path/expected/actual
+  differences to `console.info`/`console.warn`, never the demo UI.
+- On confirmation, clear pending state, refresh loaded data/baseline and the
+  drawer quietly, preserving newer staged edits. Say "Snapshots accepted and
+  confirmed in the profile. Ready to run live image decision."
+- If Run is pressed while pending, disable Run/Apply, show "Waiting for AEP to
+  confirm the profile update, then requesting the decision... Ns", await that
+  same promise, then perform the normal fresh lookup and decision. Timeout is
+  a calm non-error: "AEP is still processing the profile update. Try Run live
+  image decision again in a moment." A later Run may start a fresh bounded wait.
+  Never show field-by-field mismatches or "allow time for ingestion and retry"
+  as an error. Network/schema failures remain explicit and are not timeouts.
+- The Edge decision request carries no profile attributes; it relies on the
+  Edge profile. Confirm Hub readback first, but do not claim it guarantees Edge
+  propagation or that local simulator controls were sent with the decision.
+- If operational/intent transitions trigger Apply events (e.g.
+  `flight.disruption`, `flight.search`, `flight.abandoned`), send only on a state
+  transition, at most once, using the same captured Alloy instance and browser
+  ECID. Reserve before sending, never automatically retry an uncertain failure,
+  and log outbound payload, response and skip reasons. Do not start the
+  confirmation watcher if such tracking failed. Do not invent an event pipeline
+  in demos that do not require it.
+- Test stale Apply readback/progress, disabled waiting Run, eventual continuation,
+  timeout/retry, shared promises, context cancellation, partial writes, rule-field
+  filtering and field-specific aliases. VM-sliced `save()` harnesses must include
+  `ingestionToken`, `ingestion`, `ingestionNote` and a `confirmIngestion` stub.
 
 1. Add owner-scoped entries under Demos -> customer -> Web, following repository
    metadata patterns. If adding Mobile, use Phone plus an iPad link/placeholder.
@@ -313,3 +373,20 @@ broken or placeholder links as working product journeys.
    or dependency changes. Do not claim checks passed if they were blocked.
 7. Keep the handoff concise: identify the created demo, channels, profile fields,
    inferred assumptions and any incomplete work. No deployment is implied.
+
+### Windows preview publication
+
+When publication is explicitly requested, use the existing preview workflow,
+never production from a feature branch. If `npm run deploy:preview -- <channel>`
+fails silently because of Windows npx spawning, its equivalent is:
+
+```powershell
+$env:AEP_DEPLOY_MODE='preview'
+npx -y firebase-tools@latest hosting:channel:deploy <channel> --only app,demo-render --expires 7d --project aep-orchestration-lab
+```
+
+Verify the release SHA and affected routes. Restore only the generated stamps
+with `git restore -- functions/version.json web/version.json` afterward.
+If rsync is unavailable, use `Copy-Item` for the exact changed canonical files,
+then compare `Get-FileHash` SHA256 values with their Express mirrors. Do not
+resynchronise or delete unrelated files.

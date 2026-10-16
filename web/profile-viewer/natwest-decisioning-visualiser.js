@@ -92,9 +92,9 @@
       if (selected) openObjectives.add(selected.id);
       document.querySelectorAll('.sig').forEach(group => {
         const definition = model.groups.find(([id]) => group.dataset.group === id);
-        if (definition[2].some(([name]) => name in preset)) {
-          group.classList.remove('collapsed'); group.querySelector('button').setAttribute('aria-expanded', 'true');
-        }
+        const expanded = definition[2].some(([name]) => name in preset);
+        group.classList.toggle('collapsed', !expanded);
+        group.querySelector('button').setAttribute('aria-expanded', String(expanded));
       });
       $('nbaPanel').classList.remove('collapsed'); $('nbaHead').setAttribute('aria-expanded', 'true');
       update(); changed(Object.keys(model.defaults));

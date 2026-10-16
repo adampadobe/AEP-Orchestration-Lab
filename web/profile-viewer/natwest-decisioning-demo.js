@@ -9,6 +9,13 @@
   let loaded = null, baseline = null, loadedKey = '', pending = null;
   let busy = false, dirty = false, contextVersion = 0, signalRevision = 0, decisionRun = 0;
   let targets = [], tags;
+  let ingestionToken = 0, ingestion = null, ingestionNote = '', decisionPaths = [];
+  const ingestionTimeout = 'AEP is still processing the profile update. Try Run live image decision again in a moment.';
+  function cancelIngestion() {
+    ingestionToken++;
+    if (ingestion) ingestion.controller.abort();
+    ingestion = null; ingestionNote = '';
+  }
   const displayAttempts = new Set();
   const stagedFields = new Set();
   const api = () => frame.contentWindow && frame.contentWindow.NatwestDecisioningVisualiser;
@@ -30,7 +37,7 @@
   function message(text, error) {
     status.textContent = text; status.title = text; status.dataset.error = String(!!error);
     apply.disabled = busy || !!pending || !!loaded && (!testProfile(loaded) || !dirty);
-    apply.title = busy ? 'An operation is in progress.' : pending ? 'Look up the profile to verify accepted changes before applying again.' :
+    apply.title = busy ? 'An operation is in progress.' : pending ? 'Accepted changes are being confirmed. Run waits for confirmation.' :
       loaded && !testProfile(loaded) ? 'Only AEP test profiles can be updated.' :
       loaded && !dirty ? 'Change a profile signal to enable Apply.' :
       !loaded ? 'Apply will first look up and validate the selected test profile.' : 'Send staged changes as full writable JSON profile snapshots.';
@@ -48,14 +55,15 @@
       typeof data.error === 'string' ? data.error : data.message || 'Request failed (HTTP ' + response.status + ').');
     return data;
   }
-  async function table(ctx, version) {
+  async function table(ctx, version, signal) {
     if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier first.');
-    const data = await jsonFetch('/api/profile/table?' + new URLSearchParams(ctx));
+    const data = await jsonFetch('/api/profile/table?' + new URLSearchParams(ctx), { signal });
     current(ctx, version);
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found for this identifier.');
     return data;
   }
   function invalidate() {
+    cancelIngestion();
     contextVersion++;
     loaded = null; baseline = null; loadedKey = ''; pending = null; dirty = false;
     stagedFields.clear();
@@ -97,14 +105,7 @@
       ]));
     },
   };
-  async function load(ctx, version) {
-    const data = await table(ctx, version);
-    if (pending) {
-      const differences = model.differences(data.rows, pending);
-      if (differences.length) throw new Error('Saved values are not yet visible in AEP: ' +
-        differences.map(item => item.path).join(', ') + '. Allow time for ingestion, then look up again. No decision was requested.');
-      pending = null;
-    }
+  function adoptProfile(data, ctx) {
     loaded = data; loadedKey = key(ctx);
     const staged = dirty ? api().getState() : null;
     baseline = model.readState(data.rows);
@@ -116,12 +117,97 @@
     api().setRecipientFirstName(first ? model.scalar(first) : null);
     return data;
   }
+  async function readDecisionPaths(ctx, version) {
+    const rules = [], cursors = new Set();
+    let cursor = '';
+    do {
+      const result = await jsonFetch('/api/aep', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method: 'GET',
+          path: '/data/core/dps/offer-rules?limit=50' + (cursor ? '&start=' + encodeURIComponent(cursor) : ''),
+          platform_headers: { 'x-sandbox-name': ctx.sandbox, Accept: 'application/json' } }),
+      });
+      current(ctx, version);
+      const page = result.platform_response;
+      if (result.status >= 400 || !page || !Array.isArray(page.results)) throw new Error('Could not audit AJO eligibility rules. No profile updates were sent.');
+      rules.push(...page.results);
+      const next = page._links && page._links.next;
+      cursor = next ? new URL(typeof next === 'string' ? next : next.href, global.location.origin).searchParams.get('start') : '';
+      if (next && !cursor || cursor && cursors.has(cursor)) throw new Error('Invalid AJO eligibility-rule pagination. No profile updates were sent.');
+      if (cursor) cursors.add(cursor);
+    } while (cursor);
+    const paths = model.decisionFields(rules);
+    console.info('[NatWest] AJO control audit', { sandbox: ctx.sandbox, paths,
+      simulationOnly: Object.entries(model.fields).filter(([, path]) => !paths.includes(path)).map(([name, path]) => ({ name, path })) });
+    return paths;
+  }
+  function confirmIngestion(ctx) {
+    const version = contextVersion, contextKey = key(ctx);
+    if (ingestion && ingestion.key === contextKey && ingestion.token === ingestionToken) return ingestion.promise;
+    const token = ingestionToken, controller = new AbortController(), started = Date.now();
+    const active = () => token === ingestionToken && version === contextVersion && contextKey === key(context());
+    const waiting = () => {
+      if (active() && (!busy || ingestionNote)) message((ingestionNote ||
+        'Snapshots accepted by AEP. Confirming the update in the profile...') + ' ' + Math.floor((Date.now() - started) / 1000) + 's');
+    };
+    const operation = { key: contextKey, token, controller, promise: null };
+    ingestion = operation;
+    operation.promise = (async () => {
+      const ticker = setInterval(waiting, 1000);
+      const deadline = setTimeout(() => controller.abort(), 120000);
+      let delay = 1500;
+      try {
+        while (active() && !controller.signal.aborted && pending) {
+          await new Promise(resolve => {
+            const finish = () => { clearTimeout(timer); controller.signal.removeEventListener('abort', finish); resolve(); };
+            const timer = setTimeout(finish, delay);
+            controller.signal.addEventListener('abort', finish, { once: true });
+          });
+          if (!active() || controller.signal.aborted) break;
+          const data = await table(ctx, version, controller.signal);
+          if (!active()) return false;
+          const differences = model.differences(data.rows, model.decisionExpected(pending, decisionPaths));
+          if (!differences.length) {
+            pending = null;
+            adoptProfile(data, ctx); bankingDetails();
+            const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
+              updateMessage: false, sendApplicationLogin: false,
+            });
+            if (!active()) return false;
+            if (!ok) console.warn('[NatWest] Confirmed profile; drawer refresh was unavailable.');
+            bankingDetails();
+            if (!busy) message('Snapshots accepted and confirmed in the profile. Ready to run live image decision.');
+            return true;
+          }
+          console.info('[NatWest] Waiting for decision-relevant profile fields', differences);
+          delay = Math.min(6000, delay * 1.5);
+        }
+      } catch (error) {
+        if (active() && !controller.signal.aborted) {
+          console.warn('[NatWest] Profile confirmation failed', error);
+          message('Profile confirmation could not complete. Try Run live image decision again.', true);
+          return false;
+        }
+      } finally {
+        clearInterval(ticker); clearTimeout(deadline);
+        if (ingestion === operation) ingestion = null;
+      }
+      if (active()) message(ingestionTimeout);
+      return false;
+    })();
+    return operation.promise;
+  }
+  async function load(ctx, version) {
+    if (pending && !await confirmIngestion(ctx)) return null;
+    current(ctx, version);
+    return adoptProfile(await table(ctx, version), ctx);
+  }
   async function lookup() {
     if (busy) return;
     const ctx = context(), version = contextVersion;
     busy = true; message('Looking up profile...');
     try {
-      await load(ctx, version);
+      if (!await load(ctx, version)) return;
       const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
         updateMessage: false, sendApplicationLogin: false,
       });
@@ -191,7 +277,8 @@
   }
   async function save() {
     if (busy) return;
-    if (pending) { message('Verify the accepted update by lookup before applying more changes.', true); return; }
+    if (pending) { message('Accepted changes are being confirmed. Run waits for confirmation.'); return; }
+    cancelIngestion();
     const ctx = context(), version = contextVersion;
     busy = true; message('Checking schema and full writable snapshots...');
     let accepted = 0;
@@ -215,6 +302,7 @@
       const batch = model.buildSnapshots(latest, saved, baseline, [...stagedFields]);
       const groups = batch.snapshots.map(group => ({ ...group, expected: batch.expected }));
       await preflight(latest, groups, ctx, version);
+      decisionPaths = await readDecisionPaths(ctx, version);
       if (!latest.profileEmail || !latest.profileEmail.includes('@')) throw new Error('The selected profile has no email identity for streaming.');
       const acceptedExpected = {};
       for (const group of groups) {
@@ -231,7 +319,8 @@
       current(ctx, version);
       baseline = saved; dirty = key(api().getState()) !== key(saved); loaded = latest;
       if (!dirty) stagedFields.clear();
-      message('Snapshots accepted. Run will verify AEP readback before evaluating; ingestion may take time.');
+      message('Snapshots accepted by AEP. Confirming the update in the profile... 0s');
+      void confirmIngestion(ctx);
     } catch (error) {
       if (version === contextVersion) message((accepted ? accepted + ' dataflow(s) accepted before failure; update is partial. Verify by lookup before retrying. ' : '') + error.message, true);
     } finally { busy = false; message(status.textContent, status.dataset.error === 'true'); }
@@ -270,7 +359,15 @@
     const revision = signalRevision, runId = ++decisionRun;
     busy = true; message('Verifying profile readback before live decision...');
     try {
+      if (pending) {
+        ingestionNote = 'Waiting for AEP to confirm the profile update, then requesting the decision...';
+        message(ingestionNote + ' 0s');
+        if (!await confirmIngestion(ctx)) return;
+        ingestionNote = '';
+      }
       const data = await load(ctx, version);
+      if (!data) return;
+      if (revision !== signalRevision || dirty) throw new Error('Signals changed while waiting. Apply changes before running a live decision.');
       if (!testProfile(data)) throw new Error('Only AEP test profiles can be used for this demo decision.');
       for (const name of ['consent', 'personalisation']) {
         if (!data.rows.some(row => model.relativePath(row.path) === model.pathFor(name) && model.scalar(row) === 'y')) {
@@ -316,7 +413,7 @@
       }
     } catch (error) {
       if (version === contextVersion) message(error.message, true);
-    } finally { busy = false; message(status.textContent, status.dataset.error === 'true'); }
+    } finally { ingestionNote = ''; busy = false; message(status.textContent, status.dataset.error === 'true'); }
   }
   function themeFrame() {
     const doc = frame.contentDocument;

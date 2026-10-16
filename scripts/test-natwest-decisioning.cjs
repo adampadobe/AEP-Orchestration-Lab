@@ -166,6 +166,158 @@ test('profile values retain exact generic values without score scaling or invent
   assert.equal(model.scalar({ path: 'text', value: '123', valueType: 'string' }), '123');
   assert.throws(() => model.scalar({ path: 'number', value: 'oops', valueType: 'number' }), /Invalid/);
 });
+test('decision verification uses audited rule paths and explicit consent gates, not local-only fields', () => {
+  const paths = model.decisionFields([
+    { condition: { value: '_demoemea.' + model.pathFor('account') + '.equals("Current Account", false)' } },
+    { condition: { value: '_another.' + model.pathFor('prop') + ' >= 65' } },
+    { condition: { value: '_demoemea.scoring.churn.churnPredictionOther > 1' } },
+  ]);
+  assert.deepEqual(paths, [model.pathFor('account'), model.pathFor('prop')]);
+  const expected = Object.fromEntries(Object.entries(model.defaults).map(([name, value]) => [model.pathFor(name), value]));
+  assert.deepEqual(Object.keys(model.decisionExpected(expected, paths)), [
+    model.pathFor('account'), model.pathFor('prop'), model.pathFor('consent'), model.pathFor('personalisation'),
+  ]);
+});
+test('equivalent account labels are field-specific; other strings and scores remain exact', () => {
+  const rows = fixture().rows;
+  rows.find(row => row.path.endsWith(model.pathFor('account'))).value = 'Current Account';
+  rows.find(row => row.path.endsWith(model.pathFor('product'))).value = 'Savings';
+  assert.deepEqual(model.differences(rows, { [model.pathFor('account')]: 'Current account' }), []);
+  assert.equal(model.differences(rows, { [model.pathFor('product')]: 'savings' }).length, 1);
+  assert.equal(model.differences(rows, { [model.pathFor('account')]: 'CURRENT ACCOUNT' }).length, 1);
+  assert.equal(model.differences(rows, { [model.pathFor('prop')]: 50.1 }).length, 1);
+});
+test('rule audit follows start cursors with the selected sandbox and rejects incomplete pagination', async () => {
+  const source = fs.readFileSync(path.join(root, 'profile-viewer', 'natwest-decisioning-demo.js'), 'utf8');
+  const calls = [], pages = [
+    { results: [{ condition: { value: '_demoemea.' + model.pathFor('account') + '.equals("Current Account", false)' } }],
+      _links: { next: { href: '/offer-rules?limit=50&start=next!cursor' } } },
+    { results: [{ condition: { value: '_demoemea.' + model.pathFor('prop') + ' > 65' } }], _links: {} },
+  ];
+  const context = vm.createContext({
+    model, URL, console: { info() {} }, global: { location: { origin: 'https://fixture.invalid' } },
+    current() {}, jsonFetch: async (url, options) => {
+      calls.push(JSON.parse(options.body));
+      return { status: 200, platform_response: pages.shift() };
+    },
+  });
+  vm.runInContext(source.slice(source.indexOf('  async function readDecisionPaths'), source.indexOf('  function confirmIngestion')), context);
+  const result = await vm.runInContext('readDecisionPaths({sandbox:"kirkham"}, 0)', context);
+  assert.deepEqual([...result], [model.pathFor('account'), model.pathFor('prop')]);
+  assert.match(calls[1].path, /&start=next!cursor$/);
+  assert.ok(calls.every(call => call.method === 'GET' && call.platform_headers['x-sandbox-name'] === 'kirkham'));
+  pages.push({ results: [], _links: { next: { href: '/offer-rules?limit=50' } } });
+  await assert.rejects(vm.runInContext('readDecisionPaths({sandbox:"kirkham"}, 0)', context), /pagination/);
+});
+function ingestionHarness() {
+  const source = fs.readFileSync(path.join(root, 'profile-viewer', 'natwest-decisioning-demo.js'), 'utf8');
+  let now = 0, nextId = 0;
+  const timers = new Map(), messages = [], reads = [];
+  const schedule = (fn, delay, interval = 0) => {
+    const id = ++nextId; timers.set(id, { fn, at: now + delay, interval }); return id;
+  };
+  const state = { rows: fixture().rows, refreshed: 0, adopted: 0, failure: false };
+  const context = vm.createContext({
+    model, AbortController, Date: { now: () => now },
+    setTimeout: (fn, delay) => schedule(fn, delay), clearTimeout: id => timers.delete(id),
+    setInterval: (fn, delay) => schedule(fn, delay, delay), clearInterval: id => timers.delete(id),
+    console: { info() {}, warn() {} }, key: JSON.stringify,
+    context: () => ({ sandbox: 'fixture', namespace: 'email', identifier: 'fixture@example.invalid' }),
+    message: (text, error) => messages.push({ text, error: !!error }),
+    table: async () => {
+      reads.push(now);
+      if (state.failure) throw new Error('Fixture unavailable');
+      return { rows: state.rows };
+    },
+    adoptProfile: () => state.adopted++, bankingDetails() {},
+    global: { DemoProfileDrawer: { loadProfileDataForDrawer: async () => { state.refreshed++; return true; } } },
+  });
+  vm.runInContext(`
+    let contextVersion = 0, busy = false;
+    let ingestionToken = 0, ingestion = null, ingestionNote = '';
+    let decisionPaths = [model.pathFor('account')];
+    let pending = { [model.pathFor('account')]: 'Premier' };
+  ` + source.slice(source.indexOf('  const ingestionTimeout'), source.indexOf('  const displayAttempts')) +
+    source.slice(source.indexOf('  function confirmIngestion'), source.indexOf('  async function load')), context);
+  return {
+    state, messages, reads, timers,
+    run: expression => vm.runInContext(expression, context),
+    async tick(milliseconds) {
+      const end = now + milliseconds;
+      while (true) {
+        const entry = [...timers].filter(([, timer]) => timer.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!entry) break;
+        const [id, timer] = entry; now = timer.at;
+        if (timer.interval) timer.at += timer.interval; else timers.delete(id);
+        timer.fn();
+        await new Promise(resolve => setImmediate(resolve));
+      }
+      now = end;
+    },
+  };
+}
+test('ingestion shares one promise, backs off, confirms quietly and releases all timers', async () => {
+  const h = ingestionHarness();
+  const first = h.run('confirmIngestion(context())');
+  assert.equal(h.run('confirmIngestion(context())'), first);
+  await h.tick(1499); assert.deepEqual(h.reads, []);
+  assert.match(h.messages.at(-1).text, /Confirming.*1s$/);
+  await h.tick(1); assert.deepEqual(h.reads, [1500]);
+  h.state.rows.find(row => row.path.endsWith(model.pathFor('account'))).value = 'Premier';
+  await h.tick(2250);
+  assert.equal(await first, true);
+  assert.equal(h.run('pending'), null);
+  assert.equal(h.state.adopted, 1); assert.equal(h.state.refreshed, 1);
+  assert.match(h.messages.at(-1).text, /accepted and confirmed/);
+  assert.equal(h.timers.size, 0);
+});
+test('ingestion timeout is calm, bounded and retryable; context cancellation cannot refresh old data', async () => {
+  const h = ingestionHarness(), first = h.run('confirmIngestion(context())');
+  await h.tick(120000);
+  assert.equal(await first, false);
+  assert.equal(h.messages.at(-1).error, false);
+  assert.match(h.messages.at(-1).text, /still processing.*Try Run/);
+  assert.ok(h.reads.length < 24);
+  assert.ok(h.reads.slice(4).every((time, i, times) => !i || time - times[i - 1] === 6000));
+  const retry = h.run('confirmIngestion(context())');
+  assert.notEqual(retry, first);
+  h.run('cancelIngestion(); contextVersion++');
+  await h.tick(6000);
+  assert.equal(await retry, false);
+  assert.equal(h.state.refreshed, 0); assert.equal(h.timers.size, 0);
+});
+test('ingestion read failures stay explicit and are not retried as writes', async () => {
+  const h = ingestionHarness(); h.state.failure = true;
+  const confirmation = h.run('confirmIngestion(context())');
+  await h.tick(1500);
+  assert.equal(await confirmation, false);
+  assert.equal(h.messages.at(-1).error, true);
+  assert.match(h.messages.at(-1).text, /could not complete/);
+  assert.equal(h.reads.length, 1); assert.equal(h.timers.size, 0);
+});
+test('shared drawer event polling refreshes Messages Sent from that same response and time window', async () => {
+  const source = fs.readFileSync(path.join(root, 'profile-viewer', 'aep-profile-drawer.js'), 'utf8');
+  const events = [{ eventType: 'message.feedback' }], metricCalls = [];
+  let patch;
+  const context = vm.createContext({
+    profileContextVersion: 1, lastLookedUpProfile: { events: [] }, DRAWER_EVENTS_STORY_MAX: 100,
+    cacheDomRefs() {}, getNamespaceForDrawer: () => 'email', isCurrentDrawerContext: () => true,
+    fetchProfileEventsList: async () => events,
+    filterDrawerEventsForTimeline: values => values, visibleDrawerEventsForPanel: values => values,
+    resolveEngagementMetricsHoursBack: () => 168,
+    patchLastProfileOrUpdate: value => { patch = value; },
+    window: { EmailEngagementMetrics: {
+      getEmailSendsLastHours: (values, hours) => { metricCalls.push({ values, hours }); return 3; },
+      getPushSendsLastHours: (values, hours) => { metricCalls.push({ values, hours }); return 2; },
+    } },
+  });
+  const start = source.indexOf('async function refreshDrawerEventsForIdentity(');
+  vm.runInContext(source.slice(start, source.indexOf('/** Re-fetch events', start)), context);
+  await vm.runInContext('refreshDrawerEventsForIdentity("fixture@example.invalid", "email")', context);
+  assert.equal(patch.events, events); assert.equal(patch.emailSendsLast24h, 3);
+  assert.equal(patch.pushSendsLast24h, 2); assert.equal(patch.engagementMetricsHoursBack, 168);
+  assert.ok(metricCalls.every(call => call.values === events && call.hours === 168));
+});
 test('shared runtime manual-display mode never auto-renders; legacy callers retain behaviour', async () => {
   const calls = [], injections = [];
   const doc = { title: 'Fixture', getElementById: () => null };
@@ -269,6 +421,12 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     if (url.pathname === '/api/aep') {
       let body = ''; for await (const chunk of req) body += chunk;
       const request = JSON.parse(body);
+      if (String(request.path || '').includes('/data/core/dps/offer-rules')) return json({
+        status: 200, platform_response: { results: [
+          { condition: { value: '_demoemea.' + model.pathFor('account') + '.equals("Current Account", false)' } },
+          { condition: { value: '_demoemea.' + model.pathFor('prop') + ' >= 65' } },
+        ], _links: {} },
+      });
       if (!String(request.path || '').includes('/schemaregistry/tenant/schemas/')) return json({
         platform_response: {}, status: 200,
       });
@@ -388,6 +546,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     await t.test('three panes match BA geometry, initially collapsed, keyboard-resizable', async () => {
       assert.equal(await visual.locator('.sig.collapsed').count(), 6);
       assert.equal(await visual.locator('.obj').count(), 7);
+      assert.equal(await visual.locator('.obj.open').count(), 0);
       assert.equal(await visual.locator('.r-nba.collapsed').count(), 1);
       const bounds = await visual.evaluate(() => ['.p-sig', '.p-res', '.mail'].map(selector => {
         const rect = document.querySelector(selector).getBoundingClientRect(); return { x: rect.x, width: rect.width, height: rect.height };
@@ -420,6 +579,14 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       assert.equal(await visual.locator('#mailFrame').isVisible(), false);
       await visual.getByRole('button', { name: 'Everyday banking', exact: true }).click();
       assert.equal(await visual.locator('#mailEmpty').isVisible(), false);
+      await visual.getByRole('button', { name: 'Explore new product', exact: true }).click();
+      assert.deepEqual(await visual.locator('.sig:not(.collapsed)').evaluateAll(groups => groups.map(group => group.dataset.group)), ['scores', 'intent']);
+      await visual.getByRole('button', { name: 'Open complaint', exact: true }).click();
+      assert.deepEqual(await visual.locator('.sig:not(.collapsed)').evaluateAll(groups => groups.map(group => group.dataset.group)), ['cases']);
+      await visual.getByRole('button', { name: 'Open complaint', exact: true }).click();
+      assert.deepEqual(await visual.locator('.sig:not(.collapsed)').evaluateAll(groups => groups.map(group => group.dataset.group)), ['cases']);
+      assert.equal(await visual.locator('.obj.selected.open').count(), 1);
+      await visual.getByRole('button', { name: 'Everyday banking', exact: true }).click();
     });
     await t.test('lookup, schema refusal, full snapshots, readback lag and manual live display', async () => {
       await page.getByRole('button', { name: 'Look up profile', exact: true }).click();
@@ -443,11 +610,15 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
       await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.startsWith('Snapshots accepted'));
       assert.equal(writes.length, 1);
       assert.ok(writes[0].updates.some(update => update.path === 'industryFsi.primaryBankingChannel' && update.value === 'mobile'));
+      await page.waitForFunction(() => /Confirming.*1s$/.test(document.getElementById('nwProfileStatus').textContent));
       await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
-      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('not yet visible'));
+      await page.waitForFunction(() => document.getElementById('nwProfileStatus').textContent.includes('Waiting for AEP'));
+      assert.equal(await page.locator('#nwRunDecision').isDisabled(), true);
+      assert.equal(await page.locator('#nwApplyProfile').isDisabled(), true);
+      assert.equal(await page.locator('#nwProfileStatus').getAttribute('data-error'), 'false');
+      assert.doesNotMatch(await page.locator('#nwProfileStatus').textContent(), /not yet visible|checkingAcctType|expected|received/);
       assert.equal(await page.evaluate(() => window.__decisions), 0);
       data.rows.find(row => row.path.endsWith(model.pathFor('account'))).value = 'Savings-linked'; lag = false;
-      await page.getByRole('button', { name: 'Run live image decision', exact: true }).click();
       await page.waitForFunction(() => window.__displays.length === 1);
       assert.equal(await visual.evaluate(() => document.getElementById('mailFrame').contentDocument.querySelector('h1').textContent), 'Your live NatWest next step');
       assert.equal(await page.evaluate(() => window.__displays[0].xdm.eventType), 'decisioning.propositionDisplay');
@@ -684,8 +855,30 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
         });
         await smoke.locator('#profileDrawerEventsStoryOpen').click();
         await smoke.locator('.dpj-root').waitFor({ state: 'visible' });
-        assert.ok(await smoke.locator('.dpj-root').evaluate(el => el.getBoundingClientRect().right <= innerWidth));
+        assert.ok(await smoke.locator('.dpj-root').evaluate(el => {
+          const rect = el.getBoundingClientRect();
+          return rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight + 1;
+        }));
         await smoke.getByRole('button', { name: 'Close journey', exact: true }).click();
+        await smoke.mouse.move(10, 0);
+        await smoke.evaluate(() => {
+          document.activeElement.blur();
+          document.body.classList.remove('mod-demo-page--profile-open', 'aep-profile-drawer-open');
+        });
+        await smoke.waitForFunction(() => !document.getElementById('profileDrawer').getAnimations().length);
+        const minimised = await smoke.locator('#profileDrawer .aep-profile-drawer-inner > *').evaluateAll(blocks => ({
+          height: innerHeight, bodyClass: document.body.className,
+          transform: getComputedStyle(document.getElementById('profileDrawer')).transform,
+          opacity: getComputedStyle(document.querySelector('#profileDrawer .aep-profile-drawer-inner')).opacity,
+          blocks: blocks.map(block => ({ id: block.id, top: block.getBoundingClientRect().top,
+            height: block.getBoundingClientRect().height, visibility: getComputedStyle(block).visibility })),
+        }));
+        assert.ok(minimised.opacity === '0' || minimised.blocks.every(block => !block.height || block.visibility === 'hidden' || block.top >= minimised.height),
+          'Minimised drawer at ' + width + ': ' + JSON.stringify(minimised));
+        await smoke.getByRole('tab', { name: 'Contact', exact: true }).focus();
+        assert.equal(await smoke.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(el => getComputedStyle(el).opacity), '1',
+          'Keyboard focus reopens the drawer content');
+        await smoke.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
       }
       await smoke.setViewportSize({ width: 1800, height: 1100 });
       await smoke.getByRole('button', { name: 'Show environment bar', exact: true }).click();
@@ -736,6 +929,6 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
-    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
   }
 });

@@ -52,8 +52,8 @@ look up the selected profile itself: enter an identifier and select the sandbox,
 edit the controls, then Apply. Only explicitly edited signals are overlaid onto
 the fetched profile; untouched illustrative defaults never overwrite its data.
 An initial Apply without edits loads the profile and asks for a signal change,
-without writing. Non-test profiles stay read-only and accepted updates must be
-verified by lookup or Run before another Apply. Disabled Apply buttons explain
+without writing. Non-test profiles stay read-only and accepted updates are
+confirmed automatically before another Apply. Disabled Apply buttons explain
 why in their tooltip. Explicitly selecting a value can initialise a missing
 field even when that value matches the simulator default.
 
@@ -137,11 +137,40 @@ Account Type contributes to the local customer score; holdings, interest, offers
 propensity and churn affect gates or scores. These are illustrative thresholds
 and preset values, not inferred schema enums, financial advice or underwriting.
 
-**Run live image decision** refuses staged edits and verifies accepted changes
-against AEP readback before evaluating. Ingestion lag blocks evaluation rather
-than pretending the new profile is available. Failed or partial writes are
-explicit; there is no automatic write retry. Look up again to verify accepted
-dataflows before retrying the remaining changes.
+**Apply -> confirmation -> Run:** after all snapshots are accepted, the demo
+automatically polls Hub profile readback after 1.5 seconds, increasing the delay
+by 1.5 up to six seconds, with a 120-second deadline and one-second progress text.
+Run joins the same confirmation promise and disables Run/Apply while waiting,
+then continues without another click. A timeout is a calm processing message;
+a later Run starts another bounded wait. Context changes cancel the watcher.
+Mismatch details are console-only. Failed or partial writes remain explicit;
+there is no automatic write retry. A partial Apply is confirmed by lookup before
+retrying only the remaining staged fields. NatWest has no Apply-triggered
+operational tracking events.
+
+Before writing, Apply reads all AJO eligibility-rule pages in the selected
+sandbox and filters confirmation to changed rule-read fields plus the two
+explicit consent gates. Other saved attributes are not readback gates. The
+2026-10-16 read-only audit of **51 kirkham rules** found:
+
+| Control | AJO rule usage |
+|---|---|
+| Account Type | `FSI - Current Account Holder` reads `checkingAcctType`, comparing to `Current Account` case-insensitively |
+| Propensity | Read by existing sandbox rules, but not the sole FSI-named rule; this does not establish NatWest strategy linkage |
+| Current/savings/mortgage/loan/investment holdings, product interest, churn, complaint status, eligible offer count | No current rule reads these paths; they affect only the local simulation, though Apply still saves them |
+| Email/content-personalisation consent | Not read by current AJO rules; retained as mandatory client-side safety gates |
+
+No controls or AJO rules were remapped. Only the known `Current account` /
+`Current Account` labels are equivalent during readback, and only for Account
+Type; other strings and numbers remain exact. Hub confirmation does not guarantee
+Edge propagation. The Edge request carries no profile-attribute overrides.
+
+Signal groups, objectives and Eligible NBAs start collapsed. Scenario selection
+collapses all previous signal groups, opens all groups named in the full preset,
+and expands the selected objective and NBAs. Consent-hold scenarios remain
+applicable to this email-first demo. The existing compact drawer prevents block
+tops peeking above the minimised strip; Messages Sent uses the same events poll,
+and the shared Persona Journey supports viewport-fit layouts.
 
 The optional `manualDisplay: true` mode in the shared runtime disables automatic
 rendering. This demo accepts one fresh, explicitly hero-scoped proposition,

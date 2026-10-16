@@ -120,9 +120,23 @@
     }
     return validate(result);
   }
+  function decisionFields(rules) {
+    const expressions = rules.map(rule => rule.condition && rule.condition.value || '');
+    return Object.values(fields).filter(path => expressions.some(expression =>
+      new RegExp('(?:^|[^\\w.])(?:_[A-Za-z0-9]+\\.)?' + path.replace(/\./g, '\\.') + '(?![\\w])').test(expression)));
+  }
+  function decisionExpected(expected, paths) {
+    const relevant = new Set([...paths, fields.consent, fields.personalisation]);
+    return Object.fromEntries(Object.entries(expected).filter(([path]) => relevant.has(path)));
+  }
+  function equivalent(path, value) {
+    // The current-account eligibility rule uses a case-insensitive comparison.
+    if (path === fields.account && ['Current account', 'Current Account'].includes(value)) return 'Current Account';
+    return value;
+  }
   function differences(rows, expected) {
     const values = new Map(rows.map(row => [relativePath(row.path), scalar(row)]));
-    return Object.entries(expected).filter(([path, value]) => values.get(path) !== value)
+    return Object.entries(expected).filter(([path, value]) => equivalent(path, values.get(path)) !== equivalent(path, value))
       .map(([path, expectedValue]) => ({ path, expected: expectedValue, actual: values.get(path) }));
   }
   function buildSnapshots(data, state, baseline, edited = []) {
@@ -212,7 +226,7 @@
       hold: !contact ? 'Email marketing and content personalisation both require explicit y consent.' : 'No eligible next-best action.' };
   }
   const api = { defaults, fields, groups, scenarios, labels, labelFor, industryFor, objectives, content, pathFor, relativePath, scalar,
-    validate, readState, differences, buildSnapshots, evaluate };
+    validate, readState, differences, decisionFields, decisionExpected, buildSnapshots, evaluate };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.NatwestDecisioningModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
