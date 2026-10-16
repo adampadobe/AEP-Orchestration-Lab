@@ -69,11 +69,25 @@ Example request:
    No reference demo is an input requirement.
 6. For live decisioning, audit the selected sandbox's actual AJO eligibility
    rules before mapping controls. Read-only `GET /data/core/dps/offer-rules?limit=50`
-   through `/api/aep` must include `x-sandbox-name`; follow `_links.next` using
-   its `start` cursor until exhausted, detecting repeated/invalid cursors.
+   through `/api/aep` must put the sandbox in the JSON body's `platform_headers`:
+   `{ path, method: 'GET', platform_headers: { 'x-sandbox-name': '<sandbox>' } }`.
+   The proxy ignores a top-level `sandbox` field and a request HTTP
+   `x-sandbox-name` header, silently falling back to the Functions default
+   sandbox. This returned 11 unrelated rules instead of kirkham's 51 in a
+   previous audit. Sanity-check that the expected brand rules appear before
+   trusting the audit. Follow `_links.next` using its `start` cursor until
+   exhausted, detecting repeated/invalid cursors.
    List the rule-read paths and map every control to them. Report controls no
    rule reads as local-simulation-only (consent can still be an explicit client
    safety gate). Do not silently remap fields, rewrite rules or provision fields.
+   When a control writes a different field from the one the rule reads, report
+   the mismatch. With explicit user approval, mirror the same value to the
+   rule-read path in that path's owning dataflow, retaining the original field.
+   Check the target schema's type/enum first, keep the industry manifest and
+   ownership map aligned, and add the mirrored path to decision verification.
+   Prior art: BA Executive Club tier retains Travel `airlineCustomer.loyaltyTier`
+   and also writes Generic `loyaltyDetails.level`, read by
+   `Airline - NBA Offer - Silver or Gold Tier`.
 
 ## 2. Prepare a small, safe asset set
 
@@ -273,7 +287,10 @@ broken or placeholder links as working product journeys.
 - Verify only edited paths read by the audited live rules, plus explicit client
   safety gates such as consent. Keep every accepted snapshot intact, including
   other saved fields. Normalise only documented equivalent enum labels for the
-  specific field; all other fields match exactly. Log path/expected/actual
+  specific field. When the rule compares case-insensitively (PQL
+  `equals(..., false)` / `stringCompare(..., false)`, or segmentModel
+  `isCaseSensitive:false`), readback for that path must also compare
+  case-insensitively. Otherwise match exactly. Log path/expected/actual
   differences to `console.info`/`console.warn`, never the demo UI.
 - On confirmation, clear pending state, refresh loaded data/baseline and the
   drawer quietly, preserving newer staged edits. Say "Snapshots accepted and
