@@ -83,6 +83,11 @@ Missing fields use illustrative defaults **only in the local simulator**, with
 an explicit status warning. Only changed controls are overlaid onto full industry
 snapshots. Known mapped values are preserved even on older servers that do not
 yet annotate their ownership.
+Existing `individualCharacteristics.fsi.*`, `industryFsi.*` and
+`personalFinances.*` values are preserved in the FSI snapshot even when an older
+table backend marks them unowned. A configured, writable dataflow does not need
+existing writable rows before its first field update; only explicitly edited
+missing signals are added, never the whole set of simulator defaults.
 
 There are no `natwestDecisioning.*` definitions or writes. Unsupported application,
 document, restriction, shopping-recency, contact-safety and frequency controls

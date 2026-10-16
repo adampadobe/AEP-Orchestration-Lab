@@ -261,6 +261,11 @@ broken or placeholder links as working product journeys.
    state, never untouched simulator defaults. A first Apply without edits may
    load the profile but must not write. Allow an explicit selection to populate
    a missing field even if its value equals the illustrative default.
+   Do not require existing writable rows when the industry's dataflow is already
+   configured and writable: first-time population must work. Preserve known
+   industry subtrees when an older backend omits ownership annotations, without
+   bypassing the industry configuration or resolved-schema checks. Test with
+   zero writable industry rows and with absent fields, not just ideal metadata.
    Use the shared envelope-with-tick SVG for message-tracking events consistently
    across recent events and journey views; do not reuse a location-event icon.
    Do not auto-write, auto-provision or auto-run decisions. Use the shared runtime

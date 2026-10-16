@@ -137,8 +137,12 @@
       const config = data.industries && data.industries[industry];
       if (!config || !config.writable || !config.schemaId) throw new Error('Complete ' + industry + ' Profile Generation setup before applying changes.');
       if (!snapshots.has(industry)) {
-        const rows = data.rows.filter(row => row.writable === true && row.industry === industry);
-        if (!rows.length) throw new Error('No writable snapshot rows for ' + industry + '.');
+        const rows = data.rows.filter(row => {
+          const path = relativePath(row.path);
+          // Older table backends omit ownership for Operational banking fields.
+          const legacyFsi = industry === 'fsi' && /^(individualCharacteristics\.fsi|industryFsi|personalFinances)\./.test(path);
+          return row.writable === true && row.industry === industry || legacyFsi;
+        });
         // Preserve recognised sample fields even on older servers without their ownership annotations.
         for (const signal of Object.keys(fields).filter(signal => industryFor(signal) === industry)) {
           const row = data.rows.find(row => relativePath(row.path) === pathFor(signal));

@@ -98,6 +98,37 @@ test('full industry snapshots preserve unrelated values and types, without cross
   data.industries.fsi.writable = false;
   assert.throws(() => model.buildSnapshots(data, next, model.defaults), /setup/);
 });
+test('Operational FSI snapshots preserve legacy unowned banking rows without requiring an existing writable row', () => {
+  const data = fixture();
+  for (const row of data.rows.filter(row => row.industry === 'fsi')) {
+    row.industry = null; row.writable = false;
+  }
+  data.rows.push({
+    path: '_demoemea.individualCharacteristics.fsi.financialDetails.accountBalance',
+    value: 1234.5, valueType: 'number', industry: null, writable: false,
+  });
+  const next = { ...model.defaults, account: 'Premier' };
+  const batch = model.buildSnapshots(data, next, model.defaults);
+  const updates = batch.snapshots[0].updates;
+  assert.equal(batch.snapshots[0].industry, 'fsi');
+  assert.ok(updates.some(row => row.path === model.pathFor('account') && row.value === 'Premier'));
+  assert.ok(updates.some(row => row.path === model.pathFor('checking') && row.value === true));
+  assert.ok(updates.some(row => row.path === 'individualCharacteristics.fsi.financialDetails.accountBalance' && row.value === 1234.5));
+  assert.ok(updates.some(row => row.path === 'industryFsi.primaryBankingChannel' && row.value === 'mobile'));
+  assert.ok(!updates.some(row => row.path === 'person.name.firstName' || row.path.startsWith('scoring.')));
+  data.industries.fsi.writable = false;
+  assert.throws(() => model.buildSnapshots(data, next, model.defaults), /setup/);
+});
+test('configured writable dataflows accept first field population but missing configuration remains blocked', () => {
+  const data = fixture();
+  data.rows = data.rows.filter(row => row.industry !== 'fsi');
+  const batch = model.buildSnapshots(data, model.defaults, model.defaults, ['checking']);
+  assert.deepEqual(batch.snapshots, [{ industry: 'fsi', updates: [{
+    path: model.pathFor('checking'), value: true, valueType: 'boolean',
+  }] }]);
+  delete data.industries.fsi.schemaId;
+  assert.throws(() => model.buildSnapshots(data, model.defaults, model.defaults, ['checking']), /setup/);
+});
 test('explicit edits can initialise missing fields even when the selected value matches the illustrative default', () => {
   const data = fixture();
   data.rows = data.rows.filter(row => !row.path.endsWith(model.pathFor('checking')));
@@ -273,6 +304,9 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
         await firstApply.waitForFunction(() => document.getElementById('nwDecisioningFrame').contentDocument.documentElement.dataset.nwWired === 'true');
         const firstVisual = firstApply.frames().find(frame => frame.url().includes('natwest-decisioning-visualiser'));
         assert.equal(await firstApply.locator('#nwApplyProfile').isEnabled(), true);
+        for (const row of data.rows.filter(row => row.industry === 'fsi')) {
+          row.industry = null; row.writable = false;
+        }
         data.rows.find(row => row.path.endsWith(model.pathFor('prop'))).value = 82.5;
         await firstVisual.locator('[data-group="profile"] .sig-head').click();
         await firstVisual.locator('#input-account').fill('Premier');
@@ -283,6 +317,7 @@ test('browser: faithful panes, channels and fixture-only profile/decision lifecy
         assert.equal(writes.length, before + 1);
         assert.equal(writes.at(-1).industry, 'fsi');
         assert.ok(writes.at(-1).updates.some(update => update.path === model.pathFor('account') && update.value === 'Premier'));
+        assert.ok(writes.at(-1).updates.some(update => update.path === 'industryFsi.primaryBankingChannel' && update.value === 'mobile'));
         assert.equal(data.rows.find(row => row.path.endsWith(model.pathFor('prop'))).value, 82.5, 'Unedited profile scores must not be overwritten by simulator defaults');
         assert.equal(await firstVisual.evaluate(() => window.NatwestDecisioningVisualiser.getState().prop), 82.5);
       } finally { await firstApply.close(); data = fixture(); writes.length = 0; }
