@@ -130,6 +130,45 @@ async function main() {
       await page.goto(url + '?channel=' + channel);
       assert.equal(await page.locator('#panel-' + channel).isVisible(), true);
     }
+    assert.deepEqual(await page.locator('.channel-tabs button').allTextContents(), ['Email · Desktop', 'Email · Mobile', 'Web']);
+    if (screenshotDir) await fs.mkdir(screenshotDir, { recursive: true });
+    for (const width of [1100, 3200]) {
+      await page.setViewportSize({ width, height: 1000 });
+      if (width > 1150) {
+        await page.waitForFunction(() => Number(document.querySelector('[data-pane="preview"]').getAttribute('aria-valuemax')) > 1500);
+        await page.locator('[data-pane="preview"]').focus();
+        await page.keyboard.press('End');
+      }
+      await page.waitForTimeout(80);
+      const dimensions = await page.evaluate(() => {
+        const box = selector => document.querySelector(selector).getBoundingClientRect();
+        const panel = document.getElementById('panel-web'), website = box('.website-preview');
+        return { web: website.width, panel: panel.clientWidth, hero: box('.web-hero > img').height,
+          title: box('#preview-title'), switcher: box('.channel-tabs'), header: box('.preview-header'),
+          scrollable: panel.scrollHeight > panel.clientHeight, browserAddress: document.querySelector('.site-browser-address').textContent };
+      });
+      assert(dimensions.web > 760, 'Web is not capped to an email-sized stage');
+      if (width > 1150) assert(dimensions.web > 1600, 'Expanded Web supports a full desktop website width');
+      assert(Math.abs(dimensions.web - (dimensions.panel - 32)) <= 2, 'Website fills the stage except browser inset');
+      assert(dimensions.hero > 300, 'Web hero scales with the preview container');
+      assert(Math.abs(dimensions.title.y + dimensions.title.height / 2 - dimensions.switcher.y - dimensions.switcher.height / 2) < 2,
+        'Compact switcher shares the preview title row');
+      assert(dimensions.switcher.width < 340 && dimensions.switcher.height < 36, 'Channel switcher remains compact');
+      assert(dimensions.scrollable, 'Full website scrolls within its stage');
+      assert.equal(dimensions.browserAddress, 'tui.co.uk');
+      if (screenshotDir) await page.screenshot({ path: path.join(screenshotDir, `web-stage-${width}.png`), fullPage: true });
+      const headerBefore = await page.locator('.preview-header').boundingBox();
+      await page.locator('#panel-web').evaluate(node => { node.scrollTop = 500; });
+      const headerAfter = await page.locator('.preview-header').boundingBox();
+      assert.equal(headerAfter.y, headerBefore.y, 'Web scrolling leaves channel header in place');
+      await page.locator('#tab-email').click();
+      assert((await page.locator('.email-card').first().boundingBox()).width <= 601, 'Email keeps its own 600px cap');
+      await page.locator('#tab-mobile').click();
+      assert((await page.locator('.phone-frame').boundingBox()).width <= 391, 'Phone keeps its own 390px cap');
+      await page.locator('#tab-web').click();
+      await page.locator('#panel-web').evaluate(node => { node.scrollTop = 0; });
+      if (width > 1150) await page.locator('[data-pane="preview"]').dblclick();
+    }
     if (screenshotDir) await fs.mkdir(screenshotDir, { recursive: true });
     for (const dark of [false, true]) {
       await page.evaluate(dark => {
@@ -243,6 +282,8 @@ async function main() {
     });
     assert.equal(mountLayout.after, mountLayout.before, 'Runtime mounts add no grey spacer above content');
     assert.deepEqual(mountLayout.mounts, ['none', 'none', 'none']);
+    await shell.mouse.move(1000, 500);
+    await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await frame.locator('#tab-mobile').click();
     await shell.waitForURL('**/tui-decisioning-demo.html?channel=mobile');
     await frame.locator('#tab-email').click();
@@ -256,6 +297,7 @@ async function main() {
     assert.equal(await shell.locator('[data-demo-env-strip-prefix="tuiDecisioning"]').count(), 1);
     assert.equal(await shell.locator('#customerEmail').count(), 1);
     assert.equal(await shell.locator('#tuiProfileHero').count(), 1);
+    await shell.evaluate(() => window.EnvBarCompact.openOverlay());
     await shell.locator('#customerEmail').fill(fixture.profileEmail);
     await shell.locator('#queryProfileBtn').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Test profile loaded.'));

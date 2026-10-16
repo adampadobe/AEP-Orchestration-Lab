@@ -131,8 +131,10 @@ Use the smallest implementation consistent with existing repository patterns:
 - `<brand>-decisioning-visualiser.html` and `.js` for the isolated three-pane UI
 - `<brand>-decisioning-model.js` for profile mappings and deterministic rules
 
-Use `natwest-decisioning-demo.html`, `natwest-decisioning-visualiser.html` and
-their model/controller as structural prior art, not as brand/content sources.
+Use the BA demo as the visual reference for the channel switcher and full-page
+Web stage; use the NatWest/TUI model, shared shell and drawer integrations as
+structural prior art, not as brand/content sources. Inspect the actual reference
+markup/styles when available rather than approximating it from feature names.
 Keep offer content and scenario presets data-driven. Do not require the user to
 name a reference customer, or replace this layout with a generic dashboard.
 
@@ -163,10 +165,16 @@ applicable to that demo; retain genuine consent holds where it is applicable.
 On narrow screens stack panes.
 Use labelled controls, accessible tabs, useful image alternatives and clear status.
 
+The preview is a separate, bounded scrolling stage: keep its channel header
+visible while the reconstructed site scrolls internally. Web fills the available
+preview width, including when the panes stack. Do not apply an email/phone
+max-width to the Web panel or shrink it into a miniature offer card.
+
 ### Customer, identity and events drawer
 
-The updated NatWest drawer is the structural reference. Preserve the complete
-experience without requiring the user to request it separately:
+Reuse the shared drawer capabilities from NatWest/TUI, with BA-style visible
+profile sections rather than NatWest's optional section tabs. Preserve the
+complete experience without requiring the user to request it separately:
 
 - **Customer hero:** avatar, customer name, demographic/location summary,
   industry-specific chips and lifetime value. Below it, show compact propensity,
@@ -257,7 +265,17 @@ and exact numeric scores; do not compress scores to low/medium/high then write
 that lossy value back. Numeric thresholds and preset strings are explicitly
 local demo conventions, not schema constraints or model predictions.
 Keep booleans boolean, strings string, decimals intact, and root fields at root.
-Resolve tenant keys from the selected schema rather than hardcoding `_demoemea`.
+Resolve tenant keys from the selected write schema rather than hardcoding
+`_demoemea`. Compare the configured dataflow `xdmKey` with the resolved schema's
+`meta:tenantNamespace`, normalising only the optional leading underscore.
+Reject malformed metadata, missing declared tenant nodes and disagreement before
+any write. `_id`, `_repo`, `_experience` and `_links` are reserved XDM roots,
+not tenant candidates. If both metadata sources are absent, accept only one
+non-reserved tenant object; never pick the first underscore-prefixed property.
+Keep root `consents.*` at root, while still checking available tenant metadata
+for dataflow/schema disagreement. Test realistic resolved schemas containing
+`_id` and `_repo`, multiple actual tenants, missing fields and mismatch cases;
+every failing preflight must result in zero profile writes.
 
 Include a few source-grounded offers and one service-first scenario when relevant.
 Use deterministic scoring with explicit eligibility, relevance contributions,
@@ -285,11 +303,47 @@ of the supplied website. Do not send any content. In a live demo, distinguish
 local objective ranking from live preview content: staged controls must not
 pretend to be an Edge decision. Replace live content only on a successful Run.
 
+Match BA's **compact segmented switcher**, not a full-width row of equally
+stretched buttons. Put the preview label on the left and the switcher on the
+right of the same header, wrapping only when necessary. Use the exact labels
+**Email · Desktop**, **Email · Mobile**, **Web**, a muted pill track, and a raised
+selected pill with the theme accent. Keep keyboard and selected-state semantics;
+do not remove channel tabs when removing unwanted profile-section tabs.
+
+Give each channel its own sizing rules. Centre the 600px desktop email and
+390px phone, but let Web use **all available stage width** without a 600/760px
+cap, phone frame, or large card inset. Add neutral browser/address chrome,
+recognisable site navigation, a substantial responsive hero, the source site's
+search/product area and below-the-fold sections supported by the uploaded
+assets. Use readable website-scale typography, not 8-9px miniature labels.
+Keep the selected offer in its intended hero position; do not replace the
+whole website with an offer card. Adapt to the preview container width using
+container queries, because pane resizing is independent of viewport resizing.
+Do not fabricate prices, working booking/search, or source claims to fill space.
+
+For manual live Run, shared runtime mounts are staging targets, not additional
+visible content. Ensure enabling decisioning creates no empty ribbon/hero spacer
+above the demo and does not replace the site or display an offer before Run.
+Contain/hide those mounts only in this demo; do not change shared mount styles
+for other sites. Test with the real shared injector creating all three mounts,
+not just with decisioning disabled.
+
 Support `?channel=email`, `?channel=mobile` and `?channel=web` deep links. Keep URL,
 active tab and visible panel aligned, including browser history navigation.
 Use safe DOM/text rendering for source-derived strings. CTAs should either have
 an explicit simulated interaction or be visibly non-interactive; do not present
 broken or placeholder links as working product journeys.
+
+Verify the actual rendered result, not just that three buttons exist: compact
+switcher alignment and selected appearance; 600px email/390px phone sizing;
+Web wider than 760px when space permits; no horizontal overflow at narrow
+widths; readable, full-width web content after gutter dragging; independent
+stage scrolling with the header still accessible. Cover both themes, stacked
+layouts and normal/ultrawide desktops (e.g. 1600/2400/3200px). Preserve scenario,
+Apply/readback, consent, context-race and genuine live-proposition regressions
+while refining presentation. Refresh asset versions and sync exact changed
+canonical files to the Express mirror. A deployed page must report the intended
+commit SHA and serve the same assets before calling the preview updated.
 
 ## 4. Provision a matching AJO catalog when requested
 

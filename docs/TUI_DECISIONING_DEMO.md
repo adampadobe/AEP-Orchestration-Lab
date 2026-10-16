@@ -184,6 +184,11 @@ metadata, rejects mismatches, and excludes reserved `_id` / `_repo` roots from
 fallback tenant discovery.
 Resizable gutters support pointer and keyboard input. On narrower viewports
 panes stack without horizontal scrolling.
+The compact BA-style channel switcher sits beside the preview title: **Email ·
+Desktop**, **Email · Mobile**, **Web**. Only email is capped at 600px and the
+phone at 390px. Web fills the stage, with browser chrome, readable navigation
+and search, a container-responsive hero, and destination sections. Its scroll
+area is independent of the channel header; stacked layouts have no 760px cap.
 The dashboard sidebar peeks from the left edge and opens on hover/focus; the
 shared configuration bar retains its Lab menu controls.
 
