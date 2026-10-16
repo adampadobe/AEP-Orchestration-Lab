@@ -52,7 +52,9 @@ jobs:
         run: node --test scripts/predeploy-policy.test.mjs
 
       - name: Verify governed decisioning catalog plans (offline)
-        run: npm run test:decisioning-catalog-plan
+        run: |
+          npm run test:decisioning-catalog-plan
+          npm run test:tui-decisioning
 
       - name: Verify owner-only usage statistics
         run: node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs
@@ -116,3 +118,5 @@ jobs:
         run: npm run test:demo-env-bar
       - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
         run: npm run test:riyadh-air
+      - name: Exercise TUI decisioning scenarios and preview channels (local only)
+        run: npm run test:tui-browser

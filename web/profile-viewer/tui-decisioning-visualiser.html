@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TUI | Next holiday, best moment</title>
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="home-dashboard-concierge tui-visualiser">
+  <header class="tui-lab-header">
+    <img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="78" height="35">
+    <div><span class="eyebrow">NEXT HOLIDAY. BEST MOMENT.</span><h1>A little more you.</h1></div>
+    <span class="simulation-badge">Fictional profile / local simulation</span>
+  </header>
+  <p class="boundary-note">Built from your saved TUI website. Illustrative copy, not a current offer. No live decision, profile update, booking or message send.</p>
+  <main id="workspace" class="tui-workspace">
+    <section class="signals-pane pane" aria-labelledby="signals-title">
+      <div class="pane-heading"><div><span class="eyebrow">01 / THE TRAVELLER</span><h2 id="signals-title">Holiday signals</h2></div><button id="reset" type="button">Reset</button></div>
+      <div class="fictional-person"><span class="avatar" aria-hidden="true">AM</span><div><strong>Alex Morgan</strong><small>Fictional traveller / Manchester</small><small>alex.morgan@example.invalid</small></div></div>
+      <p class="microcopy">Change a signal to see its actual effect. Nothing leaves this browser.</p>
+      <div id="signals"></div>
+      <details class="mapping-details"><summary>Schema &amp; catalog boundary</summary><p>Existing Operational Profile fields, tenant <code>_demoemea</code>. The schema paths are shown on every control. No new TUI subtree.</p><p>Consent is an explicit local hold. The draft catalog does not encode this consent gate; a reviewed policy gate is required before live use.</p><p>Seven reused objective tags also include existing BA items. They are not TUI-exclusive. New tags and media hosting are not provisioned.</p></details>
+    </section>
+    <div class="gutter" role="separator" aria-label="Resize profile signals" aria-orientation="vertical" tabindex="0" data-pane="signals" aria-valuemin="230" aria-valuemax="390" aria-valuenow="270"></div>
+    <section class="decision-pane pane" aria-labelledby="decision-title">
+      <div class="pane-heading"><div><span class="eyebrow">02 / THE NEXT BEST MOMENT</span><h2 id="decision-title">Seven objectives. One choice.</h2></div></div>
+      <p class="microcopy">First eligible objective. Highest eligible item priority. Not a live AJO response.</p>
+      <label class="scenario-select-label" for="scenario-select">Choose a holiday moment</label>
+      <select id="scenario-select"><option value="">Explore all scenarios...</option></select>
+      <div id="scenario-pills" class="scenario-pills" aria-label="Featured scenarios"></div>
+      <div class="ladder-toolbar"><span id="scenario-label">Illustrative starting profile</span><div><button id="expand" type="button">Expand all</button><button id="collapse" type="button">Collapse all</button></div></div>
+      <div id="objectives" class="objective-ladder"></div>
+      <div id="decision-status" class="decision-status" role="status" aria-live="polite"></div>
+      <details id="eligible-details"><summary>Eligible next-best actions</summary><div id="eligible-items"></div></details>
+      <details class="mapping-details"><summary>Catalog plan / preview only</summary><p>21 draft items / 7 tag collections / 7 strategies. Objective and item rules each read 1-2 existing profile attributes.</p><p id="catalog-stats"></p><p>No catalog objects or policy have been created. Static strategy priority is not policy ordering. A live release also needs customer-scoped tags, hosted media, consent gating and Edge verification.</p></details>
+    </section>
+    <div class="gutter" role="separator" aria-label="Resize objective ladder" aria-orientation="vertical" tabindex="0" data-pane="decision" aria-valuemin="300" aria-valuemax="490" aria-valuenow="360"></div>
+    <section class="preview-pane pane" aria-labelledby="preview-title">
+      <div class="pane-heading"><div><span class="eyebrow">03 / THE CUSTOMER EXPERIENCE</span><h2 id="preview-title">A reason to smile.</h2></div></div>
+      <div class="channel-tabs" role="tablist" aria-label="Preview channel">
+        <button id="tab-email" type="button" role="tab" aria-controls="panel-email" aria-selected="true" data-channel="email">Email / Desktop</button>
+        <button id="tab-mobile" type="button" role="tab" aria-controls="panel-mobile" aria-selected="false" tabindex="-1" data-channel="mobile">Email / Mobile</button>
+        <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
+      </div>
+      <div class="preview-caption"><span id="preview-caption">Responsive email / 600px</span><span>Illustrative content</span></div>
+      <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata">To: Alex Morgan &lt;alex.morgan@example.invalid&gt;<br><span class="subject-line"></span></div><div id="email-preview"></div></div>
+      <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden><div class="phone-frame"><div class="phone-status">9:41 <span>SIMULATION</span></div><div class="phone-mail">To: Alex Morgan<br><span class="subject-line"></span></div><div id="mobile-preview"></div></div></div>
+      <div id="panel-web" role="tabpanel" aria-labelledby="tab-web" class="channel-panel" tabindex="0" hidden>
+        <div class="website-preview">
+          <div class="site-utility">Travel information <span>Help Centre / My booking</span></div>
+          <div class="site-nav"><img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="64" height="29"><span>Holidays &nbsp; Cruises &nbsp; Flights &nbsp; Hotels &nbsp; Deals</span></div>
+          <div class="site-search"><strong>Package Holidays</strong><span>Manchester</span><span>Your next destination</span><span>Choose dates</span><span>2 adults</span><span class="search-label">Search preview</span></div>
+          <div id="web-preview"></div>
+          <div class="site-inspiration"><span class="eyebrow">HOLIDAYS DESIGNED BY TUI</span><h3>Find your kind of happy.</h3><div class="destination-grid"><figure><img src="tui-decisioning-assets/crete.jpg" alt="Crete coastline" width="220" height="130"><figcaption>Crete / Beach holidays</figcaption></figure><figure><img src="tui-decisioning-assets/gran-canaria.jpg" alt="Gran Canaria coast" width="220" height="130"><figcaption>Gran Canaria / A sunny escape</figcaption></figure><figure><img src="tui-decisioning-assets/mexico.jpg" alt="Holiday in Mexico" width="220" height="130"><figcaption>Mexico / Something special</figcaption></figure></div></div>
+          <p class="site-disclaimer">Reconstructed from the supplied website, not an exact snapshot. Search and booking are non-interactive. No current prices or availability are shown.</p>
+        </div>
+      </div>
+      <p id="preview-feedback" class="preview-feedback" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <details class="fictional-drawer"><summary>Fictional profile / Alex Morgan / View signals and identity</summary><div><strong>Local fixture only</strong><p>No ECID, linked identities, audiences or real activity have been loaded. This static demonstration has no live profile drawer and performs no identity reset.</p><p id="fixture-summary"></p></div></details>
+  <script src="tui-decisioning-model.js?v=20261016"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261016"></script>
+</body>
+</html>

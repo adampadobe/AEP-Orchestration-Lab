@@ -9,6 +9,8 @@
   "scripts": {
     "decisioning:catalog-plan": "node scripts/provision-decisioning-catalog.mjs",
     "test:decisioning-catalog-plan": "node --test scripts/provision-decisioning-catalog.test.mjs",
+    "test:tui-decisioning": "node --test scripts/tui-decisioning.test.mjs",
+    "test:tui-browser": "node scripts/test-tui-decisioning.cjs",
     "aep:create-hotel-edge-segments": "node scripts/create-hotel-edge-segments.mjs",
     "ajo:create-content-template": "node scripts/create-ajo-content-template.mjs",
     "ajo:loyalty-configure": "node scripts/ajo-loyalty-setup.mjs",

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TUI | Holiday decisioning lab</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="home-dashboard-concierge tui-demo-shell">
+  <div class="dashboard-shell">
+    <aside id="tui-lab-sidebar" class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">TUI / Holiday decisioning lab</h1>
+        <div class="dashboard-topbar-right">
+          <button id="menu-toggle" type="button" aria-controls="tui-lab-sidebar" aria-expanded="false">Lab menu</button>
+          <span class="dashboard-env-pill">Local simulation / kirkham plan</span>
+          <button id="theme-toggle" type="button">Switch theme</button>
+        </div>
+      </header>
+      <main class="tui-shell-main">
+        <iframe id="tui-visualiser" title="TUI holiday decisioning simulator" src="tui-decisioning-visualiser.html"></iframe>
+      </main>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var frame = document.getElementById('tui-visualiser');
+      var menu = document.getElementById('menu-toggle');
+      menu.addEventListener('click',function(){
+        var open=document.body.toggleAttribute('data-menu-open');
+        menu.setAttribute('aria-expanded',String(open));
+      });
+      document.addEventListener('keydown',function(event){
+        if(event.key==='Escape'&&document.body.hasAttribute('data-menu-open')){
+          document.body.removeAttribute('data-menu-open');menu.setAttribute('aria-expanded','false');menu.focus();
+        }
+      });
+      var channel = new URLSearchParams(location.search).get('channel');
+      if (['email', 'mobile', 'web'].includes(channel)) frame.src += '?channel=' + channel;
+      function theme() {
+        frame.contentWindow.postMessage({type:'tui-theme',dark:document.documentElement.getAttribute('data-aep-theme')==='dark'},location.origin);
+      }
+      document.getElementById('theme-toggle').addEventListener('click',function(){
+        var dark=document.documentElement.getAttribute('data-aep-theme')!=='dark';
+        document.documentElement.toggleAttribute('data-aep-theme',dark);
+        if(dark)document.documentElement.setAttribute('data-aep-theme','dark');
+        try{localStorage.setItem('aepTheme',dark?'dark':'light');}catch(e){console.warn('Theme preference could not be saved',e);}
+      });
+      frame.addEventListener('load',theme);
+      new MutationObserver(theme).observe(document.documentElement,{attributes:true,attributeFilter:['data-aep-theme']});
+      window.addEventListener('message',function(event){
+        if(event.origin!==location.origin||event.source!==frame.contentWindow||!event.data||event.data.type!=='tui-channel')return;
+        var next=event.data.channel;
+        if(!['email','mobile','web'].includes(next))return;
+        var url=new URL(location.href);url.searchParams.set('channel',next);
+        history.pushState({},'',url);
+      });
+      window.addEventListener('popstate',function(){
+        frame.contentWindow.postMessage({type:'tui-set-channel',channel:new URLSearchParams(location.search).get('channel')||'email'},location.origin);
+      });
+    })();
+  </script>
+  <script src="aep-lab-nav.js?v=20261016-tui"></script>
+  <script src="aep-theme.js" defer></script>
+</body>
+</html>

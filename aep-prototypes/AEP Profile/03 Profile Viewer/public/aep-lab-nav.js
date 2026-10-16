@@ -565,6 +565,23 @@
           ],
         },
         {
+          id: 'demoTuiDecisioning',
+          label: 'TUI',
+          demoCustomer: true,
+          channels: [{
+            id: 'tuiDecisioningWeb',
+            label: 'Web',
+            items: [{
+              label: 'TUI holiday decisioning (in development)',
+              href: 'tui-decisioning-demo.html?channel=web',
+              inDevelopment: true,
+              navHideKey: 'tuiDecisioningDemo',
+              demoMeta: { owners: ['kirkham'], sandbox: 'kirkham' },
+              ico: '\u2600',
+            }],
+          }],
+        },
+        {
           id: 'demoBritishAirwaysTest',
           label: 'British Airways Test',
           demoCustomer: true,
