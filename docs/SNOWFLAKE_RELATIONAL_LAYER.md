@@ -133,6 +133,18 @@ ensures missing selected table activity, rather than appending a second rewards,
 membership, products, or device snapshot. It does not request a new activity run.
 Previously duplicated rows are not deleted automatically by this change.
 
+FSI product generation includes a funded personal-loan scenario when the
+profile's account count leaves room after its current/savings, mortgage, and
+card products. Loans include an interest rate, future term end, and amortized
+monthly payment, and feed `REL.REL_FSI_LOAN` through the existing products
+projection. Low-account-count profiles need not have a loan.
+Sports merchandise items include a stable SKU derived from the team, product
+name, and size; the existing merchandise order-line projection exposes it.
+Sports betting remains opt-in through
+`industrySports.fanFlags.betsRegularly`; the standard Snowflake-first seed
+path does not enable that flag automatically. These changes apply to newly
+generated activity; they do not backfill historical products or merchandise.
+
 Preparation requires a role with permission to inspect existing object
 definitions, read/write the relevant source tables, alter their schema, create
 the `REL` schema/view/tables/dynamic tables, and use the configured warehouse.
