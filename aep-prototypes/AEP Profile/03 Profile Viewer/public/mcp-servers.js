@@ -40,7 +40,7 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Coworker marketplace also installs all seventeen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins also install all seventeen focused integrations.',
       connectionKind: 'Complete · backward compatible',
       toolCount: 212,
       docUrl:
@@ -63,7 +63,7 @@
         'Plan a customer demo workflow across several Lab domains',
       ],
       configNotes:
-        'The marketplace installs this directory plus all eight focused task integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
+        'The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins install this directory, General, and all seventeen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
       connectionKind: 'Focused · read-only entry point',
       toolCount: 5,
       docUrl:
