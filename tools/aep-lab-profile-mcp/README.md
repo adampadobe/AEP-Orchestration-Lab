@@ -56,6 +56,8 @@ for identity attribution, outcome semantics, reporting limits and release gates.
 
 **One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
+**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus seventeen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
+
 ### Troubleshooting Coworker HTTP 403
 
 Search Cloud Run logs for `ims-auth-rejected`. An `enrollment-rejected` event
