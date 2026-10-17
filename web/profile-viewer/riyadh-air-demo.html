@@ -19,7 +19,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
-  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261015-manage">
+  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261017-presenter-events">
   <link rel="stylesheet" href="riyadh-air-booking.css?v=20261014-search-placement">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
@@ -53,6 +53,23 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
     <header class="ra-presenter-heading"><h2 id="raPresenterTitle">Presenter controls</h2><button id="raPresenterClose" type="button" aria-label="Close presenter controls">Close</button></header>
     <div class="ra-presenter-body">
       <p id="raIdentityStatus">Connect an identity using the Lab environment bar.</p>
+      <button id="raResolvePresenterProfile" type="button">Look up selected profile</button>
+      <form id="raCustomEventForm" class="ra-presenter-event-form">
+        <h3>Send an event</h3>
+        <p>Enter any event type, as in the Lab Event tool. Uses the selected profile, sandbox and Lab Event tool Edge target; no booking is required.</p>
+        <label for="raCustomEventType">Event type</label>
+        <input id="raCustomEventType" type="text" required maxlength="256" autocomplete="off" spellcheck="false" list="raEventTypeSuggestions" placeholder="e.g. flight.booked">
+        <datalist id="raEventTypeSuggestions"><option value="flight.booked"></option><option value="travel.flight.delay"></option><option value="travel.flight.gateChange"></option><option value="travel.upgrade.intent"></option><option value="travel.ancillary.intent"></option></datalist>
+        <label for="raCustomEventId">AJO orchestration event ID (optional)</label>
+        <input id="raCustomEventId" type="text" maxlength="128" pattern="[a-zA-Z0-9_-]{1,128}" autocomplete="off" spellcheck="false" aria-describedby="raCustomEventHelp">
+        <p id="raCustomEventHelp">Event type and AJO event ID are different fields. Use your existing journey binding; sending does not configure a journey.</p>
+        <label class="ra-presenter-check"><input id="raCustomIncludeTrip" type="checkbox">Include this tab's confirmed booking reference and airports</label>
+        <details><summary>Event payload preview</summary><pre id="raCustomEventPreview">Enter an event type to preview the request.</pre></details>
+        <button id="raSendCustomEvent" type="submit">Send event</button>
+        <p>Manual sends record an event only. They do not confirm a booking, purchase an upgrade or change the customer-care display.</p>
+      </form>
+      <h3>Booking-linked trip update</h3>
+      <p>These presets require a confirmed booking and switch its website display to customer care after acceptance.</p>
       <details><summary>Trip update payload preview</summary><pre id="raPayloadPreview">Confirm a booking to preview a trip update.</pre></details>
       <label for="raDisruptionKind">Trip update</label>
       <select id="raDisruptionKind"><option value="delay">Departure delay</option><option value="gate">Gate change</option></select>
@@ -212,9 +229,9 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
-  <script src="riyadh-air-events.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-events.js?v=20261017-presenter-events"></script>
   <script src="riyadh-air-explore.js?v=20261015-customer-copy"></script>
-  <script src="riyadh-air-demo.js?v=20261015-booking-stitch-context"></script>
+  <script src="riyadh-air-demo.js?v=20261017-presenter-events"></script>
   <script src="riyadh-air-booking.js?v=20261015-booking-identity"></script>
   <script src="riyadh-air-site.js?v=20261015-booking-identity"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
