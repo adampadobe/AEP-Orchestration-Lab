@@ -56,6 +56,43 @@ for identity attribution, outcome semantics, reporting limits and release gates.
 
 **One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
+### Troubleshooting Coworker HTTP 403
+
+Search Cloud Run logs for `ims-auth-rejected`. An `enrollment-rejected` event
+means IMS identity validation succeeded, but Lab enrollment failed. The
+`enrollmentReason` distinguishes `no-enrollment`, `all-enrollments-revoked`,
+`no-sandbox-scope`, `store-unavailable`, and `lookup-failed` (the last two
+return 503). Available `enrollmentCounts` report matched, active and revoked
+records without exposing their contents. Events include the registered endpoint,
+HTTP method, and identity source (`userinfo` or authenticated `profile` fallback).
+
+Enrollment rejections include `principalEmailHash`: the first 12 lowercase hex
+characters of SHA-256 over the verified, trimmed, lowercase Adobe email. Operators
+can compute this locally for a known colleague to correlate failures across
+sessions. This is pseudonymous operational data, not anonymized usage telemetry;
+restrict access to logs accordingly. Raw emails, UIDs, token values, enrollment
+contents, query strings and tool arguments are not included in these diagnostics.
+Forwarded email alone is never used for this hash or to grant access.
+
+POST and DELETE completion events (`aep-lab-mcp-request`) now include requests
+rejected before body parsing. Each has a server-generated `requestId`, also
+returned as `X-AEP-Lab-Request-Id` and included in IMS rejection diagnostics.
+Authenticated IMS completion events carry the same `principalEmailHash` so
+operators can follow a colleague's RPC methods and tool names after enrollment
+is fixed. HTTP status and duration include authentication time. Rejected
+requests have `authSource: "unverified"` and no trusted principal hash in their
+completion event; correlate their rejection event by request ID instead.
+Missing bearer/org headers have explicit rejection reasons. HTTP 200 does not
+prove a tool succeeded: a JSON-RPC or tool error can still use HTTP 200.
+This operational logging does not enable the separate Firestore usage collector.
+
+For missing or revoked enrollment, the colleague signs into the
+[Lab Portal](https://aep-orchestration-lab.web.app/profile-viewer/home.html)
+with the same Adobe account and generates a sandbox-scoped MCP key under
+**MCP servers**, then reconnects Coworker. The active record establishes
+enrollment; do not paste the plaintext key into Coworker. For `no-sandbox-scope`,
+check the Portal enrollment's configured sandbox rather than bypassing the gate.
+
 ### Entry point (Phase 3.38)
 
 Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
@@ -709,3 +746,32 @@ Audience/AJO deletion still requires exact asset confirmation and a fresh read; 
 - Coworker skill: `.cursor/skills/aep-lab-profile-mcp-coworker/SKILL.md`
 - Stdio Adobe MCP: `tools/aep-lab-adobe-mcp/`
 - Hotel segment seed reference: `scripts/bulk-seed-travel-hotel-segment-profiles.mjs`
+# Profile creation target
+
+`lab_generate_profile`, `lab_generate_profiles_batch`, and
+`lab_preflight_profile_generate` default to `target: "snowflake"`.
+Choose `industry` explicitly: `travel`, `fsi`, `retail`, `telecom`, `media`,
+or `sports`. Confirm shared email preferences and requested count first.
+
+The default path uses the same Node generator as **Seed recipients & industry
+data** in the Snowflake UI. It writes the existing
+`AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE` parent before linked industry data
+in one transaction. `REL.RECIPIENT` is a read-only compatibility view.
+Preparation creates missing source/REL objects and adds nullable recipient
+columns; the saved role needs the documented DDL/DML/warehouse privileges.
+Non-travel relational dynamic tables refresh asynchronously.
+
+Single and batch defaults do **not** stream into AEP; configure the downstream
+Snowflake-to-AEP/AJO ingestion separately. Default batches return synchronously
+(maximum 100), with no job polling. Generation creates new identities: run
+serially and do not automatically retry failures. Read `recipientTable`,
+`recipientRowcount`, `profiles[].recipientId`, `tableRowcounts`, and
+`relationalRefresh` from the response.
+
+For AEP personas, UPS/Edge/event demos, place/geo controls, custom attributes,
+or the existing optional CRM dual-load workflow, explicitly pass
+`target: "aep"` to generation and preflight tools. Existing AEP examples below
+require this explicit target. Unsupported AEP-only options on the default
+Snowflake path return an error before reserving email or writing data.
+Brand-scrape demo-prep and geo-specific tools retain their explicit AEP
+workflows; this change does not redirect their internal streaming calls.

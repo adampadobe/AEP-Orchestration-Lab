@@ -15,6 +15,7 @@ const {
   getAttr,
   normalizeAepAttributesForSnowflake,
 } = require('./snowflakeProfileMapper');
+const { createRecipient } = require('./snowflakeRecipientFactory');
 
 const AGENTIC_MOBILE = '+447425627462';
 const LOYALTY_ENROLLMENT_RATE = 0.6;
@@ -65,9 +66,9 @@ function sha256Email(email) {
 function generateLandline(idx) {
   const areaCodes = ['20', '121', '131', '161'];
   const areaCode = areaCodes[idx % areaCodes.length];
-  const baseNumber = 10000000 + (idx % 90000000);
-  const numberStr = String(baseNumber);
-  return `+44 ${areaCode} ${numberStr.slice(0, 4)} ${numberStr.slice(4)}`;
+  const subscriberLength = areaCode === '20' ? 8 : 7;
+  const subscriber = String(1000000 + (idx % 9000000)).padStart(subscriberLength, '0');
+  return `+44${areaCode}${subscriber}`;
 }
 
 function resolveNameOverrides(input, attrs) {
@@ -95,14 +96,14 @@ function resolveGenderAndNames(input, attrs) {
   };
 }
 
-function resolveDateOfBirth(attrs) {
+function resolveDateOfBirth(attrs, asOfDate) {
   const birthDate = String(getAttr(attrs, 'person.birthDate') || getAttr(attrs, 'birthDate') || '').trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
     return new Date(`${birthDate}T12:00:00.000Z`);
   }
   const ageYears = 21 + Math.floor(Math.random() * 55);
   const jitterDays = Math.floor(Math.random() * 366);
-  return new Date(Date.now() - (ageYears * 365 + jitterDays) * 86400000);
+  return new Date(new Date(asOfDate || Date.now()).getTime() - (ageYears * 365 + jitterDays) * 86400000);
 }
 
 function segmentEconomics(segment) {
@@ -144,12 +145,12 @@ function randInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
-function randomDaysAgo(minDays, maxDays) {
-  return new Date(Date.now() - randInt(minDays, maxDays) * 86400000);
+function randomDaysAgo(minDays, maxDays, asOfDate) {
+  return new Date(new Date(asOfDate || Date.now()).getTime() - randInt(minDays, maxDays) * 86400000);
 }
 
-function randomDaysAhead(minDays, maxDays) {
-  return new Date(Date.now() + randInt(minDays, maxDays) * 86400000);
+function randomDaysAhead(minDays, maxDays, asOfDate) {
+  return new Date(new Date(asOfDate || Date.now()).getTime() + randInt(minDays, maxDays) * 86400000);
 }
 
 /**
@@ -179,15 +180,25 @@ function generateTravelProfileRow(input) {
 
   const attrs = normalizeAepAttributesForSnowflake(input.attributes);
   const { firstName, lastName, gender } = resolveGenderAndNames(input, attrs);
-  const dob = resolveDateOfBirth(attrs);
+  const dob = resolveDateOfBirth(attrs, input.asOfDate);
   const runStamp = formatSnowflakeRecordTimestamp(input.runStamp);
+  const recipient = input.recipient || createRecipient({
+    industry: 'travel',
+    crmId,
+    ecid,
+    email,
+    index: idx,
+    hero: input.hero === true,
+  });
 
-  const lastHoliday = randomDaysAgo(14, 730);
-  const upcomingHoliday = randomDaysAhead(14, 365);
+  const lastHoliday = randomDaysAgo(14, 730, input.asOfDate);
+  const upcomingHoliday = input.upcomingTripDate
+    ? new Date(input.upcomingTripDate)
+    : randomDaysAhead(input.hero ? 150 : 14, input.hero ? 200 : 365, input.asOfDate);
   const totalFlights = randInt(1, 100);
   const totalDistance = round2(totalFlights * (400 + Math.random() * 4600));
 
-  const segment = pickRandom(SEGMENTS);
+  const segment = input.hero === true ? 'gold' : pickRandom(SEGMENTS);
   const { avgBooking, totalBookings } = segmentEconomics(segment);
   const lifetimeValue = round2(avgBooking * totalBookings);
 
@@ -200,6 +211,7 @@ function generateTravelProfileRow(input) {
   const testProfile = input.testProfile === false ? false : true;
 
   const rowByCol = {
+    RECIPIENT_ID: recipient.recipientId,
     CRMID: crmId,
     ECID: ecid,
     EMAIL: email,
@@ -208,7 +220,7 @@ function generateTravelProfileRow(input) {
     LOYALTYID: loyaltyId,
     PASSPORTID: `PASS${idx}`,
     PHONENUMBER: AGENTIC_MOBILE,
-    PUSHTOKENS: null,
+    PUSHTOKENS: recipient.pushTokens,
     STACKCHATID: `STACK${idx}`,
     FIRSTNAME: firstName,
     LASTNAME: lastName,
@@ -218,18 +230,22 @@ function generateTravelProfileRow(input) {
     PRIMARYEMAIL: email,
     PRIMARYPHONE: generateLandline(idx),
     ADDRESSSTREET: `${idx} High Street`,
-    ADDRESSCITY: pickRandom(CITIES),
-    ADDRESSPOSTALCODE: `SW${idx % 10}A 1AA`,
+    ADDRESSCITY: CITIES[idx % CITIES.length],
+    ADDRESSPOSTALCODE: [
+      'SW1A 1AA', 'M1 1AE', 'B1 1AA', 'LS1 1UR', 'G1 1AA',
+      'L1 1AA', 'EH1 1AA', 'BS1 1AA', 'CF10 1AA', 'BT1 1AA',
+      'NE1 1AA', 'S1 1AA', 'NG1 1AA', 'LE1 1AA', 'SO14 1AA',
+    ][idx % CITIES.length],
     ADDRESSCOUNTRY: 'United Kingdom',
     LASTHOLIDAYDATE: formatDateYmd(lastHoliday),
     LASTHOLIDAYDESTINATION: pickRandom(DESTINATIONS),
     UPCOMINGHOLIDAYDATE: formatDateYmd(upcomingHoliday),
-    UPCOMINGHOLIDAYDESTINATION: pickRandom(DESTINATIONS),
+    UPCOMINGHOLIDAYDESTINATION: input.upcomingDestination || pickRandom(DESTINATIONS),
     TOTALFLIGHTSTAKEN: totalFlights,
     TOTALDISTANCEFLOWN: totalDistance,
     FAVORITEDESTINATIONS: null,
     PREFERREDCABINCLASS: pickRandom(CABIN_CLASSES),
-    PREFERREDSEATTYPE: pickRandom(SEAT_TYPES),
+    PREFERREDSEATTYPE: input.hero === true ? 'window' : pickRandom(SEAT_TYPES),
     MEALPREFERENCE: pickRandom(MEAL_PREFS),
     SPECIALASSISTANCE: null,
     LIFETIMEVALUE: lifetimeValue,

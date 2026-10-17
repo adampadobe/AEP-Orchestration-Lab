@@ -123,20 +123,30 @@ function generateFsi(profile, ctx) {
     ['savings', Number(profile.SAVINGSBALANCE || 0)],
     ['mortgage', Number(profile.MORTGAGEBALANCE || 0)],
     ['credit_card', Number(profile.MONTHLYCREDITSPEND || 0)],
+    ['personal_loan', ctx.number(1000, Math.max(5000, Number(profile.HOUSEHOLDINCOME || 60000) * 0.25))],
     ['isa', Number(profile.INVESTMENTVALUE || 0)],
     ['pension', Number(profile.INVESTMENTVALUE || 0) * 0.75],
   ].filter(([, value]) => value > 0);
-  const products = balances.slice(0, Math.max(2, Math.min(6, Number(profile.TOTALACCOUNTS || 3))))
-    .map(([type, value]) => ctx.enrichment({
-      PRODUCT_TYPE: type,
-      ACCOUNT_NUMBER: `GB-${ctx.int(10000000, 99999999)}`,
-      OPEN_DATE: ctx.date(3650),
-      BALANCE: Number(value.toFixed(2)),
-      INTEREST_RATE: ctx.number(0.1, type === 'mortgage' ? 6.5 : 5.2, 4),
-      TERM_END_DATE: ['mortgage', 'personal_loan'].includes(type) ? ctx.futureDate(180, 3650) : null,
-      MONTHLY_PAYMENT: type === 'mortgage' ? ctx.number(500, 3500) : null,
-      STATUS: 'active',
-    }));
+  const products = balances.slice(0, Math.max(2, Math.min(7, Number(profile.TOTALACCOUNTS || 3))))
+    .map(([type, value]) => {
+      const loanMonths = type === 'personal_loan' ? ctx.pick([12, 24, 36, 48, 60]) : null;
+      const interestRate = ctx.number(type === 'personal_loan' ? 5.9 : 0.1,
+        type === 'personal_loan' ? 14.9 : type === 'mortgage' ? 6.5 : 5.2, 4);
+      const monthlyRate = interestRate / 1200;
+      return ctx.enrichment({
+        PRODUCT_TYPE: type,
+        ACCOUNT_NUMBER: `GB-${ctx.int(10000000, 99999999)}`,
+        OPEN_DATE: ctx.date(3650),
+        BALANCE: Number(value.toFixed(2)),
+        INTEREST_RATE: interestRate,
+        TERM_END_DATE: loanMonths ? ctx.futureDate(loanMonths * 30, loanMonths * 30)
+          : type === 'mortgage' ? ctx.futureDate(180, 3650) : null,
+        MONTHLY_PAYMENT: loanMonths
+          ? Number((value * monthlyRate / (1 - (1 + monthlyRate) ** -loanMonths)).toFixed(2))
+          : type === 'mortgage' ? ctx.number(500, 3500) : null,
+        STATUS: 'active',
+      });
+    });
   return { digital, transaction, application, advisory, products };
 }
 
@@ -394,6 +404,7 @@ function generateSports(profile, ctx) {
       qty: 1,
       price: Number(total.toFixed(2)),
     };
+    item.sku = `SKU-${createHash('sha256').update(JSON.stringify([team, item.name, item.size])).digest('hex').slice(0, 32)}`;
     return ctx.event('merchandise', {
       ORDER_ID: `MERCH-${ctx.int(100000, 999999)}`,
       ITEMS: [item],
@@ -445,6 +456,34 @@ function generateSports(profile, ctx) {
 
 const GENERATORS = { fsi: generateFsi, retail: generateRetail, telecom: generateTelecom, media: generateMedia, sports: generateSports };
 
+function linkGeneratedRows(industry, generated) {
+  const key = (prefix, identity) => `${prefix}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
+  if (industry === 'retail') {
+    const orders = new Map();
+    for (const row of generated.order) {
+      const id = key('ORD', row.EVENTID);
+      orders.set(row.ORDER_ID, id);
+      row.ORDER_ID = id;
+    }
+    for (const row of generated.return) {
+      const orderId = orders.get(row.ORDER_ID);
+      if (!orderId) throw new Error('Generated retail return has no matching generated order.');
+      row.ORDER_ID = orderId;
+      row.RETURN_ID = key('RET', row.EVENTID);
+    }
+  }
+  if (industry === 'sports') {
+    generated.attendance.forEach((row) => { row.EVENT_ID = key('MATCH', row.EVENTID); });
+    generated.merchandise.forEach((row) => { row.ORDER_ID = key('MERCH', row.EVENTID); });
+    generated.betting.forEach((row, index) => {
+      const fixture = generated.attendance[index % generated.attendance.length];
+      if (!fixture) throw new Error('Generated sports bet has no matching generated fixture.');
+      row.EVENT_ID = fixture.EVENT_ID;
+      row.EVENT_NAME = fixture.EVENT_NAME;
+    });
+  }
+}
+
 function normalizeProfile(profile) {
   return Object.fromEntries(
     Object.entries(profile || {}).map(([key, value]) => [String(key).toUpperCase(), value]),
@@ -466,13 +505,16 @@ function generateIndustryEventRows(industry, profileInput, options = {}) {
       createHash('sha256').update(`${key}:${profile.ECID}:industry-events-v1`).digest('hex').slice(0, 32),
   );
   const generated = GENERATORS[key](profile, context(key, profile, generationId, now));
+  linkGeneratedRows(key, generated);
   const requested = Array.isArray(options.eventTypes) && options.eventTypes.length
     ? options.eventTypes.map((value) => String(value).trim().toLowerCase())
     : listIndustryEventTypes(key);
   const rowsByType = {};
   for (const type of requested) {
     if (!Object.hasOwn(generated, type)) throw new Error(`Unsupported ${key} event type "${type}"`);
-    rowsByType[type] = generated[type];
+    rowsByType[type] = getIndustryEventConfig(key)[type].kind === 'enrichment'
+      ? generated[type].map((row, index) => ({ ...row, GENERATIONID: `${generationId}-${index}` }))
+      : generated[type];
   }
   return { industry: key, generationId, rowsByType };
 }

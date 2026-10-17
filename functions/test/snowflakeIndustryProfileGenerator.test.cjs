@@ -36,6 +36,15 @@ describe('Snowflake industry CRM profile registry', () => {
       assert.equal(generated.rowObject.FIRSTNAME, 'Avery');
       assert.equal(generated.rowObject.LASTNAME, 'Tester');
       assert.equal(generated.rowObject.TESTPROFILE, true);
+      assert.equal(generated.rowObject.RECIPIENT_ID,
+        require('../snowflakeRecipientFactory').getRecipientId(industry, INPUT.crmId, INPUT.ecid));
+      assert.ok(Array.isArray(generated.rowObject.PUSHTOKENS));
+      assert.match(generated.rowObject.PRIMARYPHONE, /^\+447\d{9}$/);
+      assert.equal(generated.rowObject.ADDRESSCOUNTRY, 'United Kingdom');
+      assert.ok([
+        'SW1A 1AA', 'M1 1AE', 'B1 1AA', 'LS1 1UR', 'G1 1AA',
+        'L1 1AA', 'EH1 1AA', 'BS1 1AA',
+      ].includes(generated.rowObject.ADDRESSPOSTALCODE));
       assert.equal(generated.rowObject._RECORDCREATEDTIMESTAMP, '2026-07-22 10:20:30.000');
       for (const column of config.columns) {
         assert.ok(Object.prototype.hasOwnProperty.call(generated.rowObject, column), `${industry}.${column}`);
@@ -71,5 +80,20 @@ describe('Snowflake industry CRM profile registry', () => {
     assert.equal(rowObject.DEVICETIER, 'flagship');
     assert.ok(rowObject.MONTHLYSPEND >= 65);
     assert.equal(rowObject.DATAALLOWANCEGB, 999);
+  });
+
+  it('only produces sports betting activity after an explicit profile opt-in', () => {
+    const { generateIndustryEventRows } = require('../snowflakeIndustryEventGenerator');
+    for (const enabled of [false, true]) {
+      const { rowObject } = generateIndustryProfileRow('sports', {
+        ...INPUT,
+        attributes: enabled ? { industrySports: { fanFlags: { betsRegularly: true } } } : {},
+      });
+      assert.equal(rowObject.BETSREGULARLY, enabled);
+      const { rowsByType } = generateIndustryEventRows('sports', rowObject, { now: INPUT.runStamp });
+      assert.equal(rowsByType.betting.length > 0, enabled);
+      const fixtures = new Set(rowsByType.attendance.map((row) => row.EVENT_ID));
+      for (const bet of rowsByType.betting) assert.ok(fixtures.has(bet.EVENT_ID));
+    }
   });
 });

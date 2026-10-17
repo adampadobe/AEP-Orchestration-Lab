@@ -1,0 +1,18 @@
+{
+  "name": "aep-orchestration-lab-copilot",
+  "owner": {
+    "name": "Adam Palmer"
+  },
+  "metadata": {
+    "description": "GitHub Copilot CLI plugins for the AEP Orchestration Lab",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "aep-lab",
+      "description": "AEP Orchestration Lab MCP connections and safe workflow guidance for GitHub Copilot CLI.",
+      "version": "1.0.0",
+      "source": "./tools/copilot-marketplace/aep-lab"
+    }
+  ]
+}

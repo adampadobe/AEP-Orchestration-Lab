@@ -11,6 +11,82 @@ const {
 } = require('../snowflakeAgenticTravelService');
 const { COLUMNS } = require('../snowflakeTravelProfileSchema');
 const { COLUMNS: FSI_COLUMNS, TABLE: FSI_TABLE } = require('../snowflakeFsiProfileSchema');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const { createRequire } = require('node:module');
+
+function guardedService({ rows = [], error, connectError } = {}) {
+  const queries = [];
+  const runnerCalls = [];
+  let destroyed = false;
+  const filename = require.resolve('../snowflakeAgenticTravelService');
+  const originalRequire = createRequire(filename);
+  const module = { exports: {} };
+  vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+    module, Buffer, console, URL, AbortController, setTimeout, clearTimeout,
+    process: { env: { AGENTIC_TRAVEL_RUNNER_URL: 'https://runner.example.invalid', AGENTIC_TRAVEL_RUNNER_HMAC_SECRET: 'offline-fixture' } },
+    fetch: async (url, init) => {
+      runnerCalls.push({ url, init });
+      return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    },
+    require(id) {
+      if (id === './snowflakeConnectionStore') return { resolveConnection: async () => ({
+        config: { database: 'TARGET_DB', schema: 'CUSTOM_SCHEMA' },
+      }) };
+      if (id === './snowflakeService') return {
+        buildSnowflakeConnectOptions: () => ({ database: 'TARGET_DB', schema: 'CUSTOM_SCHEMA', password: 'offline-only' }),
+        describeConnectError: (e) => ({ message: e.message }),
+      };
+      if (id === 'snowflake-sdk') return { createConnection: () => ({
+        connect(callback) { callback(connectError); },
+        execute(options) { queries.push(options); options.complete(error, null, rows); },
+        destroy(callback) { destroyed = true; callback(); },
+      }) };
+      return originalRequire(id);
+    },
+  }, { filename });
+  return { service: module.exports, queries, runnerCalls, destroyed: () => destroyed };
+}
+
+describe('legacy full generation allocator guard', () => {
+  it('blocks the Python runner when the actual saved target has an allocator', async () => {
+    const fixture = guardedService({ rows: [{ SEQUENCE_NAME: 'AEP_LAB_RECIPIENT_CRM_SEQUENCE' }] });
+    const result = await fixture.service.handleAgenticGenerateFull({ labUser: 'test', sandbox: 'test', count: 2 });
+    assert.equal(result.ok, false);
+    assert.equal(result.error.code, 'LEGACY_GENERATION_BLOCKED');
+    assert.match(result.error.hints[0], /Seed recipients/);
+    assert.equal(fixture.runnerCalls.length, 0);
+    assert.match(fixture.queries[0].sqlText, /FROM TARGET_DB.INFORMATION_SCHEMA.SEQUENCES/);
+    assert.deepEqual(Array.from(fixture.queries[0].binds), ['CUSTOM_SCHEMA', 'AEP_LAB_RECIPIENT_CRM_SEQUENCE']);
+    assert.equal(fixture.destroyed(), true);
+  });
+
+  it('fails closed on metadata or connection errors without calling the runner', async () => {
+    for (const options of [{ error: new Error('not authorized') }, { connectError: new Error('connection refused') }]) {
+      const fixture = guardedService(options);
+      const result = await fixture.service.handleAgenticGenerateFull({ labUser: 'test', sandbox: 'test', count: 1 });
+      assert.equal(result.ok, false);
+      assert.equal(result.error.code, 'CRM_ALLOCATOR_CHECK_FAILED');
+      assert.equal(fixture.runnerCalls.length, 0);
+      assert.match(result.error.hints[0], /No legacy runner request/);
+      if (!options.connectError) assert.equal(fixture.destroyed(), true);
+    }
+  });
+
+  it('retains legacy generation on unmanaged targets after a successful metadata check', async () => {
+    const fixture = guardedService();
+    const result = await fixture.service.handleAgenticGenerateFull({ labUser: 'test', sandbox: 'test', count: 2 });
+    assert.equal(result.ok, true);
+    assert.equal(fixture.queries.length, 1);
+    assert.equal(fixture.runnerCalls.length, 1);
+    assert.match(fixture.runnerCalls[0].url, /internal\/generate$/);
+    const body = JSON.parse(fixture.runnerCalls[0].init.body);
+    assert.equal(body.count, 2);
+    assert.equal(body.snowflake.database, 'TARGET_DB');
+    assert.equal(body.snowflake.schema, 'CUSTOM_SCHEMA');
+    assert.equal(fixture.destroyed(), true);
+  });
+});
 
 describe('snowflakeAgenticTravelService query profiles', () => {
   it('TRAVEL_PROFILE_COLUMNS matches travel schema', () => {
@@ -67,7 +143,7 @@ describe('snowflakeAgenticTravelService query profiles', () => {
       fqTable: 'TRAVEL_DATABASE.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER',
       limit: 10,
     });
-    assert.match(sql, /SELECT CRMID, ECID, EMAIL/);
+    assert.match(sql, /SELECT 'R-' \|\| LEFT\(SHA2\(ECID, 256\), 32\) AS RECIPIENT_ID, CRMID, ECID, EMAIL/);
     assert.match(sql, /FIRSTNAME, LASTNAME, DATEOFBIRTH, GENDER, NATIONALITY/);
     assert.match(sql, /FROM TRAVEL_DATABASE\.AEP_SCHEMA\.AGENTIC_TRAVEL_PROFILE_CUSTOMER/);
     assert.match(sql, /LIMIT 10/);

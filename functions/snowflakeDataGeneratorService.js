@@ -47,6 +47,9 @@ const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowfl
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const { readSnowflakeCell } = require('./snowflakeRow');
 const prefsStore = require('./labProfileGenerationPrefsStore');
+const { createRecipient, recipientRow } = require('./snowflakeRecipientFactory');
+const { ensureRecipientTable, mergeRecipientRows, qualifiedRecipientTable } = require('./snowflakeRecipientStore');
+const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex, withTransaction } = require('./snowflakeSeedStore');
 
 const DEFAULT_TABLE = 'BASE_PROFILES';
 const DUAL_LOAD_DEFAULT_TABLE = TRAVEL_MANIFEST.dualLoad.defaultTargetTable;
@@ -244,6 +247,21 @@ function execAsync(conn, options) {
       },
     });
   });
+}
+
+async function withSnowflakeTransaction(conn, work) {
+  return withTransaction((sqlText, binds) => execAsync(conn, { sqlText, binds }), work);
+}
+
+async function prepareRecipientStore(conn, database, profileTable, schema) {
+  await execAsync(conn, {
+    sqlText: `ALTER TABLE IF EXISTS ${profileTable} ADD COLUMN IF NOT EXISTS RECIPIENT_ID VARCHAR(64)`,
+  });
+  await ensureRecipientTable(
+    (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+    database,
+    schema,
+  );
 }
 
 function connectAsync(snowflake, options) {
@@ -505,6 +523,15 @@ async function handleGenerateIndustryProfiles(input) {
   }
   const count = requestedCount;
   const batchSize = Math.max(1, Math.min(Number(input.batchSize) || DEFAULT_BATCH_SIZE, count));
+  const generationPrefs = await prefsStore.getPrefs(labUser, sandbox);
+  if (!prefsStore.isValidEmail(generationPrefs.baseEmail)) {
+    return { ok: false, error: { code: 'EMAIL_PREFS_REQUIRED',
+      message: 'Add and save a base email in Recipient email before generating.', hints: [] } };
+  }
+  if (input.expectedBaseEmail != null && input.expectedBaseEmail !== generationPrefs.baseEmail) {
+    return { ok: false, error: { code: 'EMAIL_PREFS_CHANGED',
+      message: 'Saved base email changed. Refresh email settings before generating.', hints: [] } };
+  }
 
   const resolved = await store.resolveConnection(labUser, sandbox);
   if (!resolved) {
@@ -539,6 +566,7 @@ async function handleGenerateIndustryProfiles(input) {
   const runStamp = new Date().toISOString();
   const schema = resolveDualLoadInsertSchema(config.table, industry);
   let conn;
+  let emailAllocation;
   try {
     conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
     if (cfg.warehouse) {
@@ -551,44 +579,48 @@ async function handleGenerateIndustryProfiles(input) {
       await execAsync(conn, { sqlText: `USE SCHEMA ${safeIdentifier(cfg.schema, '')}` });
     }
 
-    const startIndex = await getNextCrmStartIndex(conn, fqTable);
-    const rows = [];
+    const execute = (sqlText, binds) => execAsync(conn, { sqlText, binds });
+    await prepareSeedTables(execute, cfg, industry);
+    const startIndex = await getNextSeedCrmIndex(execute, cfg, [industry], count);
+    emailAllocation = await prefsStore.reserveEmails(labUser, sandbox, count, {
+      expectedBaseEmail: generationPrefs.baseEmail,
+    });
+    const records = [];
     const profiles = [];
     for (let i = 0; i < count; i += 1) {
-      const reserved = await prefsStore.reserveNextEmail(labUser, sandbox);
+      const reserved = emailAllocation.emails[i];
       const idx = startIndex + i;
       const email = reserved.scaledEmail;
       const ecid = generateEcid();
       const crmId = `CRM${idx}`;
+      const recipient = createRecipient({ industry, crmId, ecid, email, index: idx });
       const generated = schema.generateRow({
         idx,
         email,
         ecid,
         crmId,
+        recipient,
         attributes: {},
         testProfile: true,
         runStamp,
       });
-      rows.push(generated.row);
+      const record = buildSeedRecord(industry, generated.rowObject, {
+        index: i, asOfDate: runStamp.slice(0, 10), runStamp,
+      });
+      records.push(record);
       profiles.push({
         crmId,
         ecid,
         email,
+        emailCounterN: reserved.counterN,
         phoneNumber: generated.rowObject.PHONENUMBER || generated.rowObject.PRIMARYPHONE || null,
         loyaltyId: generated.rowObject.LOYALTYID || null,
-        columns: generated.rowObject,
+        recipientId: record.parent.RECIPIENT_ID,
+        columns: record.profile,
       });
     }
 
-    const placeholders = schema.columns.map(() => '?').join(', ');
-    const insertSql =
-      `INSERT INTO ${fqTable} (${schema.columns.join(', ')}) VALUES (${placeholders})`;
-    let inserted = 0;
-    for (let i = 0; i < rows.length; i += batchSize) {
-      const slice = rows.slice(i, i + batchSize);
-      await execAsync(conn, { sqlText: insertSql, binds: slice });
-      inserted += slice.length;
-    }
+    const tableRowcounts = await writeSeedRecords(execute, cfg, industry, records, batchSize);
 
     return {
       ok: true,
@@ -596,21 +628,37 @@ async function handleGenerateIndustryProfiles(input) {
       industry,
       table: fqTable,
       tableName: config.table,
-      rowcount: inserted,
+      rowcount: records.length,
+      recipientRowcount: records.length,
+      recipientTable: qualifiedRecipientTable(cfg.database, cfg.schema),
+      tableRowcounts,
+      relationalRefresh: industry === 'travel' ? 'immediate' : 'dynamic tables refresh asynchronously (target lag: 1 minute)',
       batchSize,
       startIndex,
       runStamp,
       profiles,
+      emailAllocation: {
+        baseEmail: emailAllocation.baseEmail,
+        counterDate: emailAllocation.counterDate,
+        firstCounterN: emailAllocation.counterN,
+        nextCounterN: emailAllocation.nextCounterN,
+        count,
+      },
       sample: profiles.slice(0, SAMPLE_SIZE).map((profile) => profile.columns),
     };
   } catch (err) {
     const described = describeConnectError(err);
     const message = String(err && err.message || '');
-    if (/does not exist|not authorized/i.test(message)) {
+    if (/does not exist|not authorized|insufficient privileges/i.test(message)) {
       described.code = 'INDUSTRY_TABLE_NOT_READY';
       described.hints = [
-        `Provision ${industry}.all.v1 from the industry readiness panel, then retry.`,
+        'Check that the saved role can inspect, read, and alter the shared base and selected industry tables, create REL views/tables/dynamic tables, and use the configured warehouse.',
       ];
+    }
+    if (emailAllocation) {
+      described.hints = (described.hints || []).concat(
+        'Email numbers were reserved for this run and will not be reused. Failed writes can leave counter gaps.',
+      );
     }
     return { ok: false, error: described };
   } finally {
@@ -626,7 +674,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
   const normalized = String(tableName || '').trim().toUpperCase();
   const industryConfig = industry ? getIndustryProfileConfig(industry) : null;
   const tableConfig = getIndustryProfileConfigByTable(normalized);
-  const config = tableConfig || industryConfig;
+  const config = tableConfig || (!normalized ? industryConfig : null);
   if (config && config.industry === 'travel') {
     return {
       schemaKey: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
@@ -748,18 +796,54 @@ async function handleInsertProfileFromAep(input) {
   let conn;
   try {
     conn = await connectAsync(snowflake, connectOpts);
-    const startIndex = await getNextCrmStartIndex(conn, fqTable);
+    if (!skipCreateTable) {
+      await execAsync(conn, { sqlText: `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)` });
+    }
+    if (industry) await prepareRecipientStore(conn, cfg.database, fqTable, cfg.schema);
+    const startIndex = industry
+      ? await getNextSeedCrmIndex((sqlText, binds) => execAsync(conn, { sqlText, binds }), cfg, [industry])
+      : await getNextCrmStartIndex(conn, fqTable);
     const crmId = `CRM${startIndex}`;
 
     const existing = await execAsync(conn, {
-      sqlText: `SELECT CRMID FROM ${fqTable} WHERE ECID = ? LIMIT 1`,
+      sqlText: `SELECT ${insertColumns.join(', ')} FROM ${fqTable} WHERE ECID = ? LIMIT 1`,
       binds: [ecid],
     });
     if (existing.length > 0) {
+      const existingProfile = Object.fromEntries(insertColumns.map((column, index) => [
+        column,
+        readSnowflakeCell(existing[0], index, column),
+      ]));
+      const existingCrmId = String(existingProfile.CRMID || '');
+      const recipient = industry ? createRecipient({
+        industry,
+        crmId: existingCrmId,
+        ecid,
+        email: existingProfile.EMAIL || email,
+        index: Number(existingCrmId.match(/(\d+)$/)?.[1] || startIndex),
+      }) : null;
+      if (recipient) await withSnowflakeTransaction(conn, async () => {
+        await execAsync(conn, {
+          sqlText: `UPDATE ${fqTable} SET RECIPIENT_ID = ?, PUSHTOKENS = PARSE_JSON(?) WHERE ECID = ?`,
+          binds: [recipient.recipientId, JSON.stringify(recipient.pushTokens), ecid],
+        });
+        await mergeRecipientRows(
+          (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+          cfg.database,
+          [recipientRow(
+            recipient,
+            existingProfile,
+            runStamp,
+            existingProfile.TESTPROFILE !== false,
+          )],
+          cfg.schema,
+        );
+      });
       return {
         ok: true,
         table: fqTable,
-        crmId: String(existing[0][0] || ''),
+        crmId: existingCrmId,
+        ...(recipient ? { recipientId: recipient.recipientId } : {}),
         ecid,
         email,
         idempotent: true,
@@ -770,20 +854,17 @@ async function handleInsertProfileFromAep(input) {
       };
     }
 
-    if (!skipCreateTable) {
-      const ddl = `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)`;
-      await execAsync(conn, { sqlText: ddl });
-    }
-
     const normalizedAttrs = normalizeAepAttributesForSnowflake(input.attributes);
     const testProfileAttr = getAttr(normalizedAttrs, 'testProfile');
     const testProfile = testProfileAttr === false || testProfileAttr === 'false' ? false : true;
-    const mapped = mode === 'crm_generate' && typeof generateRow === 'function'
+    const recipient = industry ? createRecipient({ industry, crmId, ecid, email, index: startIndex }) : null;
+    const generated = mode === 'crm_generate' && typeof generateRow === 'function'
       ? generateRow({
         idx: startIndex,
         email,
         ecid,
         crmId,
+        recipient,
         attributes: normalizedAttrs,
         firstName: String(
           getAttr(normalizedAttrs, 'person.name.firstName') || getAttr(normalizedAttrs, 'firstName') || '',
@@ -798,14 +879,32 @@ async function handleInsertProfileFromAep(input) {
         email,
         ecid,
         crmId,
+        recipient,
         attributes: normalizedAttrs,
         runStamp,
       });
+    const rowObject = {
+      ...generated.rowObject,
+      ...(recipient ? { RECIPIENT_ID: recipient.recipientId, PUSHTOKENS: recipient.pushTokens } : {}),
+    };
+    const profileRow = {
+      ...generated,
+      rowObject,
+      row: insertColumns.map((column) => rowObject[column] ?? null),
+    };
 
     const placeholders = insertColumns.map(() => '?').join(', ');
-    await execAsync(conn, {
-      sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) VALUES (${placeholders})`,
-      binds: mapped.row,
+    await withSnowflakeTransaction(conn, async () => {
+      await execAsync(conn, {
+        sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) VALUES (${placeholders})`,
+        binds: profileRow.row,
+      });
+      if (recipient) await mergeRecipientRows(
+        (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+        cfg.database,
+        [recipientRow(recipient, rowObject, runStamp, testProfile)],
+        cfg.schema,
+      );
     });
 
     return {
@@ -819,7 +918,7 @@ async function handleInsertProfileFromAep(input) {
       industry,
       mode,
       columnsWritten: insertColumns.length,
-      sample: mapped.rowObject,
+      sample: profileRow.rowObject,
     };
   } catch (err) {
     return { ok: false, error: describeConnectError(err) };

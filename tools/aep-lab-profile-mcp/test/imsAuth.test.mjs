@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 process.env.AEP_LAB_MCP_API_KEY = 'server-held-test-key';
@@ -104,6 +105,7 @@ test('IMS auth validates token identity and uses active Portal enrollment', asyn
   assert.equal(result.ok, true);
   assert.equal(result.source, 'ims');
   assert.equal(result.principalEmail, 'apalmer@adobe.com');
+  assert.equal(result.principalEmailHash, createHash('sha256').update('apalmer@adobe.com').digest('hex').slice(0, 12));
   assert.equal(result.principalUid, 'firebase-user-1');
   assert.equal(result.usagePrincipalUid, 'firebase-user-1');
   assert.deepEqual(result.principalAccess.allowedSandboxes, ['apalmer', 'kirkham']);
@@ -204,6 +206,136 @@ test('dual auth keeps API-key clients on the existing path', async () => {
   const result = await validateMcpRequest(request({ 'x-aep-lab-mcp-key': 'server-held-test-key' }));
   assert.equal(result.ok, true);
   assert.equal(result.source, 'env');
+});
+
+test('IMS enrollment rejection diagnostics distinguish missing, revoked and unscoped enrollments', async () => {
+  const cases = [
+    { entries: [], reason: 'no-enrollment', counts: { matched: 0, active: 0, revoked: 0 } },
+    {
+      entries: [{ sandbox: 'sensitive-sandbox', principalUid: 'sensitive-uid', revoked: true }],
+      reason: 'all-enrollments-revoked', counts: { matched: 1, active: 0, revoked: 1 },
+    },
+    {
+      entries: [{ revoked: false, sandbox: 'invalid scope' }, { revoked: true }],
+      reason: 'no-sandbox-scope', counts: { matched: 2, active: 1, revoked: 1 },
+    },
+  ];
+  const expectedHash = createHash('sha256').update('apalmer@adobe.com').digest('hex').slice(0, 12);
+  for (const { entries, reason, counts } of cases) {
+    const warnings = [];
+    const req = {
+      ...request(imsHeaders({ authorization: `Bearer enrollment-diagnostic-${reason}` })),
+      route: { path: '/mcp/profile' },
+      method: 'POST',
+      originalUrl: '/mcp/profile?secret=sensitive-query',
+    };
+    const result = await validateImsBearer(req, {
+      requestId: '5c54abb2-936e-4d80-a31b-30cf4f9595ea',
+      db: enrollmentDb(entries),
+      fetchImpl: async () => validUserInfo(),
+      logger: { warn: (...args) => warnings.push(args) },
+    });
+    assert.equal(result.status, 403);
+    assert.equal(warnings.length, 1);
+    const diagnostic = JSON.parse(warnings[0][1]);
+    assert.equal(diagnostic.reason, 'enrollment-rejected');
+    assert.equal(diagnostic.enrollmentReason, reason);
+    assert.deepEqual(diagnostic.enrollmentCounts, counts);
+    assert.equal(diagnostic.principalEmailHash, expectedHash);
+    assert.equal(diagnostic.identitySource, 'userinfo');
+    assert.equal(diagnostic.endpoint, '/mcp/profile');
+    assert.equal(diagnostic.httpMethod, 'POST');
+    assert.equal(diagnostic.requestId, '5c54abb2-936e-4d80-a31b-30cf4f9595ea');
+    assert.doesNotMatch(JSON.stringify(warnings), /apalmer@adobe\.com|ims-user-123|sensitive-|Bearer|enrollment-diagnostic/);
+  }
+});
+
+test('IMS enrollment diagnostics identify unavailable storage without invented enrollment counts', async () => {
+  const warnings = [];
+  const result = await validateImsBearer(request(imsHeaders({
+    authorization: 'Bearer enrollment-diagnostic-unavailable',
+  })), {
+    db: null,
+    fetchImpl: async () => validUserInfo(),
+    logger: { warn: (...args) => warnings.push(args) },
+  });
+  assert.equal(result.status, 503);
+  const diagnostic = JSON.parse(warnings[0][1]);
+  assert.equal(diagnostic.enrollmentReason, 'store-unavailable');
+  assert.equal(diagnostic.enrollmentCounts, undefined);
+  assert.equal(diagnostic.endpoint, null);
+  assert.equal(diagnostic.httpMethod, null);
+});
+
+test('IMS enrollment diagnostics preserve profile fallback and report lookup failures', async () => {
+  const warnings = [];
+  const originalWarn = console.warn;
+  let lookupWarning;
+  console.warn = (...args) => { lookupWarning = args; };
+  try {
+    const result = await validateImsBearer({
+      ...request(imsHeaders({ authorization: 'Bearer enrollment-diagnostic-lookup-failed' })),
+      route: { path: '/mcp/profile?sensitive-query' },
+      method: 'sensitive-method',
+    }, {
+      db: { collection() { throw new Error('test lookup failure'); } },
+      fetchImpl: async (url) => ({
+        ok: true, status: 200,
+        async json() {
+          return url.endsWith('/ims/profile/v1')
+            ? { email: 'apalmer@adobe.com', userId: 'ims-user-123' }
+            : { email_verified: true };
+        },
+      }),
+      logger: { warn: (...args) => warnings.push(args) },
+    });
+    assert.equal(result.status, 503);
+    assert.ok(lookupWarning);
+    const diagnostic = JSON.parse(warnings[0][1]);
+    assert.equal(diagnostic.enrollmentReason, 'lookup-failed');
+    assert.equal(diagnostic.identitySource, 'profile');
+    assert.equal(diagnostic.enrollmentCounts, undefined);
+    assert.equal(diagnostic.endpoint, null);
+    assert.equal(diagnostic.httpMethod, null);
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test('IMS diagnostics do not attribute a forwarded identity mismatch to a colleague', async () => {
+  const warnings = [];
+  const result = await validateImsBearer(request(imsHeaders({
+    authorization: 'Bearer enrollment-diagnostic-forged-email',
+    'x-gw-ims-email': 'forged@adobe.com',
+  })), {
+    db: enrollmentDb(),
+    fetchImpl: async () => validUserInfo(),
+    logger: { warn: (...args) => warnings.push(args) },
+  });
+  assert.equal(result.status, 403);
+  const diagnostic = JSON.parse(warnings[0][1]);
+  assert.equal(diagnostic.reason, 'forwarded-email-mismatch');
+  assert.equal(diagnostic.principalEmailHash, undefined);
+  assert.doesNotMatch(JSON.stringify(warnings), /forged@adobe\.com|apalmer@adobe\.com/);
+});
+
+test('IMS diagnostics explain missing authentication headers without trusting caller request IDs', async () => {
+  for (const [headers, reason] of [
+    [{}, 'missing-or-malformed-bearer'],
+    [{ authorization: 'Bearer sensitive-token' }, 'missing-or-invalid-org-header'],
+  ]) {
+    const warnings = [];
+    const result = await validateImsBearer(request(headers), {
+      requestId: 'sensitive-caller-value',
+      logger: { warn: (...args) => warnings.push(args) },
+    });
+    assert.equal(result.status, 401);
+    const diagnostic = JSON.parse(warnings[0][1]);
+    assert.equal(diagnostic.reason, reason);
+    assert.equal(diagnostic.requestId, null);
+    assert.equal(diagnostic.principalEmailHash, undefined);
+    assert.doesNotMatch(JSON.stringify(warnings), /sensitive-/);
+  }
 });
 
 test('IMS rejection diagnostics report token shape without credential or identity values', async () => {
