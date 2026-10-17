@@ -1,0 +1,131 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "aep-lab-entry": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-general": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-profiles": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-demo-prep": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-pdf-prep": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-audiences": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/audiences",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-decisioning": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-ajo-cleanup": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-cleanup",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-command-centre": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-weather": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/weather",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-geo-insights": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/geo-insights",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-commerce": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-commerce-optimizer": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce-optimizer",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-firefly": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/firefly",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-creativity": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/creativity",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-adobe-capabilities": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/adobe-capabilities",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-measurement-quality": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/measurement-quality",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-figma": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/figma",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    }
+  }
+}
