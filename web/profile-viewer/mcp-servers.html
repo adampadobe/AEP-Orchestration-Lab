@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Catalog of lab-hosted, Adobe-hosted, and third-party MCP servers — endpoints and setup notes for Cursor and Adobe AI Coworker. Lab MCP keys are managed per sandbox below; most Adobe servers use browser-based Adobe OAuth on connect.
+                Catalog of lab-hosted, Adobe-hosted, and third-party MCP servers — endpoints and setup notes for Adobe CX Coworker, Claude, GitHub Copilot CLI, and Cursor. Lab MCP keys are managed per sandbox below; most Adobe servers use browser-based Adobe OAuth on connect.
               </p>
               <p class="mcp-claude-hint" id="mcpClaudeHint">
                 <span class="mcp-claude-hint-label" aria-hidden="true">Tip</span>
@@ -71,7 +71,7 @@
 
           <div class="mcp-section" data-mcp-section="lab" aria-labelledby="mcpSectionLabHeading">
             <h2 id="mcpSectionLabHeading" class="mcp-section-heading">AEP Orchestration Lab</h2>
-            <p class="mcp-section-lead">Lab-hosted MCP on Cloud Run for preparing and operating AEP demos. Not an Adobe product MCP.</p>
+            <p class="mcp-section-lead">Lab-hosted MCP on Cloud Run for preparing and operating AEP demos. Marketplace plugins are available for Adobe CX Coworker, Claude, and GitHub Copilot CLI. Not an Adobe product MCP.</p>
 
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h3 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
@@ -91,7 +91,7 @@
                   <li><strong>Source Type:</strong> GitHub</li>
                   <li><strong>GitHub Repository:</strong> <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code></li>
                   <li><strong>Subdirectory:</strong> <code>tools/coworker-marketplace</code></li>
-                  <li>Generate at least one sandbox-scoped key below to establish your enrollment, then install the <strong>AEP Orchestration Lab</strong> plugin. Keep the plaintext key for Codex/Cursor; Coworker authenticates with your Adobe sign-in.</li>
+                  <li>Generate at least one sandbox-scoped key below to establish your enrollment, then install the <strong>AEP Orchestration Lab</strong> plugin. Keep the plaintext key for key-based clients such as Claude, GitHub Copilot CLI, Codex, or Cursor; Coworker authenticates with your Adobe sign-in.</li>
                 </ol>
                 <a class="dashboard-btn-primary mcp-generate-key-link" href="#mcpLabKeyPanel">Generate or manage keys</a>
               </div>
@@ -100,6 +100,19 @@
                 <span class="mcp-connection-badge">Claude</span>
                 <h4 id="mcpClaudeMarketplaceHeading">Add the same repository directly to Claude</h4>
                 <p>In Claude, add <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code> as the marketplace with no subdirectory. Install <strong>AEP Orchestration Lab</strong>, then enter a sandbox-scoped Portal MCP key when prompted. Claude stores it as sensitive plugin configuration; Adobe Coworker continues to use IMS passthrough.</p>
+              </div>
+
+              <div class="mcp-marketplace-callout" aria-labelledby="mcpCopilotMarketplaceHeading">
+                <span class="mcp-connection-badge">GitHub Copilot CLI</span>
+                <h4 id="mcpCopilotMarketplaceHeading">Install the Lab plugin in GitHub Copilot CLI</h4>
+                <p>The same repository provides a Copilot-specific marketplace with General plus seventeen focused integrations. Use the CLI commands below; Claude and Coworker keep their existing setup.</p>
+                <ol>
+                  <li>Generate a sandbox-scoped Portal MCP key below. Load it into <code>AEP_LAB_MCP_KEY</code> in the environment that launches Copilot CLI, using your local secret manager or the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/copilot-marketplace/README.md" target="_blank" rel="noopener noreferrer">Copilot setup guide</a>. Never paste a key into chat, source files, or shell history.</li>
+                  <li>Register the marketplace: <code>copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab</code></li>
+                  <li>Install the plugin: <code>copilot plugin install aep-lab@aep-orchestration-lab-copilot</code></li>
+                  <li>Start a new Copilot CLI session and check <code>/mcp</code> for the Lab connections. Begin with <code>lab_mcp_access_info</code> to confirm sandbox access.</li>
+                </ol>
+                <p>This package is for <strong>GitHub Copilot CLI</strong>; it is not a VS Code marketplace extension. Copilot uses your Portal key, not Coworker's Adobe IMS session or Claude's sensitive plugin configuration.</p>
               </div>
 
               <div class="mcp-included-list" aria-labelledby="mcpIncludedHeading">
@@ -130,7 +143,7 @@
               <details class="mcp-advanced-details">
                 <summary>Advanced: connect individually instead of using the marketplace</summary>
                 <p class="mcp-direct-connections-lead">
-                  Connect these directly only if you don't want the marketplace bundle — for example to use just one domain, to connect the full catch-all <code>aep-lab-general</code>, or on a host that can't install Coworker Marketplace plugins.
+                  Connect these directly only if you don't want the marketplace bundle — for example to use just one domain, to connect the full catch-all <code>aep-lab-general</code>, or on a host that can't install the Lab marketplace plugins.
                 </p>
                 <div class="mcp-connection-choice-grid" aria-label="Direct AEP Lab MCP connections">
                   <article class="mcp-connection-choice mcp-connection-choice--recommended">
@@ -199,7 +212,7 @@
               <div class="mcp-lab-overview-cols">
                 <div class="mcp-lab-overview-block">
                   <h4 class="mcp-lab-overview-block-title">Your sandbox enrollment and API key</h4>
-                  <p>Create one key per Adobe sandbox to establish enrollment. Coworker uses your Adobe sign-in to resolve that enrollment and Firebase user; it does not need the plaintext key. Codex, Cursor, and other key-based clients authenticate with <code>X-AEP-Lab-Mcp-Key</code>.</p>
+                  <p>Create one key per Adobe sandbox to establish enrollment. Coworker uses your Adobe sign-in to resolve that enrollment and Firebase user; it does not need the plaintext key. Claude, GitHub Copilot CLI, Codex, Cursor, and other key-based clients authenticate with <code>X-AEP-Lab-Mcp-Key</code>.</p>
                 </div>
                 <div class="mcp-lab-overview-block">
                   <h4 class="mcp-lab-overview-block-title">Shared profile defaults</h4>
@@ -227,7 +240,7 @@
                   <ol class="mcp-lab-overview-list mcp-lab-overview-list--ordered">
                     <li>Select your sandbox in the Profile Viewer nav</li>
                     <li>Sign in and <strong>Generate key</strong> below — workspace slug is <em>not</em> required first</li>
-                    <li>Add the <strong>Coworker Marketplace</strong> above and install the plugin (see <strong>Advanced</strong> below to connect individually instead)</li>
+                    <li>Follow the <strong>Adobe CX Coworker</strong>, <strong>Claude</strong>, or <strong>GitHub Copilot CLI</strong> marketplace instructions above and install the plugin (use <strong>Advanced</strong> to connect individually instead)</li>
                     <li>Test <code>aep-lab-entry</code>, then use the installed focused integration that matches your task</li>
                     <li>Begin focused work with <code>lab_mcp_access_info</code> to confirm your identity and sandbox access</li>
                     <li>Before generating profiles, run <code>lab_confirm_profile_generation</code> to review or update the same base email and mobile shown in Profile Generation</li>
@@ -313,7 +326,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20260918-profile-prefs"></script>
+  <script src="mcp-servers.js?v=20261017-copilot-marketplace"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
