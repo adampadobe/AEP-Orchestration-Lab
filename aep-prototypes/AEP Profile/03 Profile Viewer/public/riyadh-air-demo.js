@@ -232,6 +232,7 @@
 
   function updatePreview(trip) {
     if (trip !== undefined) previewTrip = trip;
+    updateCustomPreview();
     const output = byId('raPayloadPreview');
     try {
       const ctx = context();
@@ -242,6 +243,27 @@
       const { email, ecid, ...safeBody } = body;
       output.textContent = JSON.stringify({ ...safeBody, identity: { profile: email ? 'Verified email (hidden)' : 'Anonymous', ecid: ecid ? 'Resolved (hidden)' : 'Missing' }, datastreamId: ctx.target.dataStreamId }, null, 2);
     } catch (error) { output.textContent = error.message; }
+  }
+
+  function customEventOptions() {
+    return {
+      eventType: byId('raCustomEventType').value.trim(),
+      eventID: byId('raCustomEventId').value.trim(),
+      trip: byId('raCustomIncludeTrip').checked ? previewTrip || {} : null,
+    };
+  }
+
+  function updateCustomPreview() {
+    try {
+      const ctx = context();
+      const options = customEventOptions();
+      const body = global.RiyadhAirEvents.buildCustom(options.eventType, ctx, options);
+      const { email, ecid, ...safeBody } = body;
+      byId('raCustomEventPreview').textContent = JSON.stringify({
+        ...safeBody, identity: email ? 'Verified email and ECID (hidden)' : 'Resolved anonymous ECID (hidden)',
+        datastreamId: ctx.target.dataStreamId,
+      }, null, 2);
+    } catch (error) { byId('raCustomEventPreview').textContent = error.message; }
   }
 
   function initPresenter() {
@@ -270,6 +292,31 @@
     // Native modal dialogs provide Escape dismissal and inert siblings.
     panel.addEventListener('input', () => updatePreview());
     panel.addEventListener('change', () => updatePreview());
+    byId('raResolvePresenterProfile').addEventListener('click', async () => {
+      const button = byId('raResolvePresenterProfile');
+      button.disabled = true;
+      try { await lookup(); } catch (error) { message(error.message, true); }
+      finally { button.disabled = false; }
+    });
+    const form = byId('raCustomEventForm');
+    let customSending = false;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (customSending || !form.reportValidity()) return;
+      const options = customEventOptions();
+      customSending = true;
+      const controls = [...form.querySelectorAll('input, button')];
+      const disabled = controls.map((control) => control.disabled);
+      controls.forEach((control) => { control.disabled = true; });
+      form.setAttribute('aria-busy', 'true');
+      try { await send('custom', null, options); }
+      catch (error) { message(error.message, true); }
+      finally {
+        customSending = false;
+        form.removeAttribute('aria-busy');
+        controls.forEach((control, index) => { control.disabled = disabled[index]; });
+      }
+    });
     byId('raUncertainDelivery').hidden = !uncertain;
     if (uncertain) byId('raLastAttempt').textContent = uncertain;
     byId('raAllowRetry').addEventListener('click', () => {
@@ -392,7 +439,9 @@
     try {
       token = contextToken();
       ctx = context();
-      body = global.RiyadhAirEvents.build(action, trip, ctx, options);
+      body = action === 'custom'
+        ? global.RiyadhAirEvents.buildCustom(options && options.eventType, ctx, options)
+        : global.RiyadhAirEvents.build(action, trip, ctx, options);
     } catch (error) {
       error.customerMessage = 'We could not complete this action. Please ask the presenter to check the selected profile and environment.';
       message(error.message, true);

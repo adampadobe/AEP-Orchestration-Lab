@@ -160,6 +160,28 @@ technical status and receipt history. Technical loading/success/ingestion notes
 are not shown on the customer surface or shared environment-strip message.
 Customer action errors remain visible; checkout retains the demo-payment disclosure.
 
+**Send an event** accepts a free-text event type, as the Lab Event tool does.
+Suggestions are conveniences, not an allowlist. An optional **AJO orchestration
+event ID** is separate from `eventType`. The request uses the selected sandbox,
+Lab Event tool Edge target and independently resolved email/ECID (or an already
+resolved anonymous ECID); a merely typed profile is still rejected. **Look up
+selected profile** resolves the Lab bar selection without leaving the presenter
+panel. No booking or injected Tags is required for a known-profile generator send.
+
+Simple manual events use the Event tool's minimal payload; an explicit AJO event
+ID or checked **Include this tab's confirmed booking** opts into the existing full
+payload. Booking context includes only the existing reference/airport fields and
+requires a confirmed local trip. Preview/receipts mask identity values. Manual
+sends share the normal sender's target checks, rejection reporting, concurrent-send
+guard and uncertain-delivery block; there is no automatic replay. They never
+confirm a local booking, manufacture external purchases or pivot the care display,
+even when the typed event name matches a booking/disruption event.
+
+The separate **Booking-linked trip update** presets retain their confirmed-booking
+requirement and explicit customer-care pivot. No AJO event/journey is configured
+by either control; API acceptance remains distinct from live Profile ingestion or
+journey execution.
+
 Before each business event and after API acceptance, the sender reads the current
 authenticated sandbox target and compares its transport/datastream/style with
 the loaded selection. Identity, namespace and environment changes also prevent
