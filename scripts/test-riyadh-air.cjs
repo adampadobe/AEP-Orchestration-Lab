@@ -79,6 +79,22 @@ function contractTests() {
   assert.throws(() => events.build('gate', trip, context, { gate: '<invalid>' }), /valid gate/);
   assert.equal(events.TYPES.booking, 'flight.booked', 'Booking confirmation matches the requested AJO rule contract');
   assert.throws(() => events.build('booking', trip, { ...context, known: false }), /booking email/);
+  const custom = events.buildCustom('  my.journey.trigger  ', context);
+  assert.equal(custom.eventType, 'my.journey.trigger');
+  assert.equal(custom.xdmStyle, 'minimal');
+  assert.equal(custom.public, undefined, 'Simple manual events do not fabricate a booking');
+  assert.equal(custom.email, profile.email);
+  assert.equal(buildGeneratorEdgeInteractXdm(custom, target).eventType, 'my.journey.trigger');
+  const boundCustom = events.buildCustom('flight.delayed', context, { eventID: 'my-ajo-event', trip: { ...trip, booked: true } });
+  const boundXdm = buildGeneratorEdgeInteractXdm(boundCustom, target);
+  assert.equal(boundXdm._experience.campaign.orchestration.eventID, 'my-ajo-event');
+  assert.equal(boundXdm._demoemea.public.travel.confirmationNumber, trip.reference);
+  assert.throws(() => events.buildCustom(' ', context), /event type/);
+  assert.throws(() => events.buildCustom('x'.repeat(257), context), /event type/);
+  assert.throws(() => events.buildCustom('bad\nevent', context), /event type/);
+  assert.throws(() => events.buildCustom('my.event', context, { eventID: '<bad>' }), /AJO event ID/);
+  assert.throws(() => events.buildCustom('my.event', context, { trip }), /Confirm a booking/);
+  assert.throws(() => events.buildCustom('my.event', { ...context, ecid: '' }), /ECID/);
 }
 
 async function browserTests() {
@@ -1082,6 +1098,8 @@ async function browserTests() {
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).catch(() => {}), trip);
     assert.equal(requests.length, afterAmbiguous, 'Uncertain attempt survives reload without resend');
+    await page.evaluate(() => window.RiyadhAirLab.send('custom', null, { eventType: 'blocked.manual' }).catch(() => {}));
+    assert.equal(requests.length, afterAmbiguous, 'Manual events share the uncertain-delivery block');
     await page.locator('#raPresenterLauncher').click();
     await page.locator('#raAllowRetry').click();
     await page.locator('#raPresenterClose').click();
@@ -1096,6 +1114,50 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Search flights' }).click();
     await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('Flights are available between Riyadh'));
     assert.equal(requests.length, beforeUnavailable, 'Unsupported airport combinations give availability feedback, not invented flights');
+    await page.locator('#raPresenterLauncher').click();
+    await page.locator('#raCustomEventType').fill('my.journey.trigger');
+    await page.locator('#raCustomEventId').fill('my-ajo-binding');
+    const beforeManual = requests.length;
+    await page.locator('#raCustomIncludeTrip').check();
+    await page.getByRole('button', { name: 'Send event', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.equal(requests.length, beforeManual, 'Including trip context fails explicitly without a booking');
+    await page.locator('#raCustomIncludeTrip').uncheck();
+    assert(!(await page.locator('#raCustomEventPreview').textContent()).includes(profile.email), 'Manual preview masks profile email');
+    failNext = true;
+    await page.getByRole('button', { name: 'Send event', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.match(await page.locator('#raPresenterStatus').textContent(), /Fixture ingestion rejection/);
+    assert.equal(requests.length, beforeManual + 1, 'Rejected manual send is not retried automatically');
+    await page.locator('#raCustomEventForm').evaluate((form) => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.equal(requests.length, beforeManual + 2, 'Double manual submit records only one explicit request');
+    assert.equal(requests.at(-1).eventType, 'my.journey.trigger');
+    assert.equal(requests.at(-1).eventID, 'my-ajo-binding');
+    assert.equal(requests.at(-1).email, profile.email);
+    assert.equal(requests.at(-1).ecid, ecid);
+    assert.equal(requests.at(-1).targetId, target.id);
+    assert.equal(requests.at(-1).public, undefined);
+    assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('riyadhAirJourneyV1')).trip), null, 'Manual sends never manufacture a local booking');
+    await page.evaluate(() => {
+      const input = document.getElementById('customerEmail');
+      input.value = 'unverified@example.test';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.getByRole('button', { name: 'Send event', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.equal(requests.length, beforeManual + 2, 'Typed but unverified profile cannot receive manual events');
+    await page.evaluate((email) => {
+      document.getElementById('customerEmail').value = email;
+      window.alloy = async () => ({});
+    }, profile.email);
+    await page.getByRole('button', { name: 'Look up selected profile', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raResolvePresenterProfile').disabled);
+    assert.equal(await page.evaluate(() => window.RiyadhAirLab.context().email), profile.email, 'Presenter can resolve the selected profile without leaving controls');
+    await page.locator('#raPresenterClose').click();
     assert.deepEqual(errors, [], 'No uncaught browser errors');
     await page.goto(origin + '/profile-viewer/etihad-demo.html');
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);
