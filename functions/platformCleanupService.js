@@ -126,6 +126,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         : path === CATALOG ? '/dataSets' : null;
     // Adobe uses service-relative continuation paths; only the same exact resource is allowed.
     if (url.origin === BASE && url.pathname === relativePath) url.pathname = path;
+    if (url.origin === BASE && url.pathname === `${relativePath}/`) url.pathname = path;
     if (url.origin === BASE && url.pathname === `${path}/`) url.pathname = path;
     url.searchParams.sort();
     const reason = url.origin !== BASE || url.username || url.password || url.hash ? 'unexpected_origin'
@@ -141,21 +142,49 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     return url;
   }
 
-  function continuation(data) {
-    for (const key of ['_page', '_links']) {
-      if (data[key] != null && (typeof data[key] !== 'object' || Array.isArray(data[key]))) {
-        throw failure(502, 'Invalid inventory pagination metadata; cleanup audit stopped.');
-      }
+  function continuation(data, { catalog = false } = {}) {
+    if (data._links != null && (typeof data._links !== 'object' || Array.isArray(data._links))) {
+      throw failure(502, 'Invalid inventory pagination metadata; cleanup audit stopped.');
+    }
+    if (data._page != null && (typeof data._page !== 'object' || Array.isArray(data._page))
+        && !(catalog && (typeof data._page === 'string' || Number.isSafeInteger(data._page)))) {
+      throw failure(502, 'Invalid inventory pagination metadata; cleanup audit stopped.');
     }
     const link = data._links?.next;
-    const href = typeof link === 'string' ? link : link?.href;
+    const linkedHref = typeof link === 'string' ? link : link?.href;
     const cursor = data._page?.next;
-    if ((link != null && (typeof href !== 'string' || !href))
+    const rootNext = catalog ? data.next : undefined;
+    const rawRootHref = typeof rootNext === 'string' ? rootNext : rootNext?.href;
+    const rootHref = catalog && typeof rawRootHref === 'string' && rawRootHref.startsWith('@/')
+      ? rawRootHref.slice(1) : rawRootHref;
+    if ((link != null && (typeof linkedHref !== 'string' || !linkedHref))
+        || (rootNext != null && (typeof rootHref !== 'string' || !rootHref))
         || (cursor != null && typeof cursor !== 'string'
           && !(typeof cursor === 'number' && Number.isSafeInteger(cursor) && cursor >= 0))) {
       throw failure(502, 'Invalid inventory continuation; cleanup audit stopped.');
     }
-    return { link, href, cursor };
+    const candidates = [linkedHref, rootHref, cursor].filter((value) => value != null && value !== '');
+    if (new Set(candidates).size > 1) throw failure(502, 'Conflicting inventory continuations; cleanup audit stopped.');
+    const href = rootHref || linkedHref;
+    return { link: link ?? rootNext, href, cursor: href ? null : cursor };
+  }
+
+  function catalogId(value) {
+    if (typeof value !== 'string') return null;
+    if (/^[a-f0-9]{24}$/i.test(value)) return value;
+    const match = value.match(/^(?:@\/dataSets\/|\/data\/foundation\/catalog\/dataSets\/|https:\/\/platform\.adobe\.io\/data\/foundation\/catalog\/dataSets\/)([a-f0-9]{24})$/i);
+    return match?.[1] || null;
+  }
+
+  function catalogIdShape(value) {
+    if (typeof value !== 'string') return 'missing';
+    if (/^[a-f0-9]+$/i.test(value)) return `hex-${value.length}`;
+    if (value === 'next') return 'catalog-continuation';
+    if (value.startsWith('@/dataSets/')) return 'catalog-link';
+    if (value.startsWith('/')) return 'path';
+    if (/^https?:\/\//i.test(value)) return 'url';
+    if (/^[a-z][a-z0-9_.-]{0,31}$/i.test(value)) return 'name-like';
+    return 'other';
   }
 
   async function listCatalog(auth) {
@@ -172,30 +201,37 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       const wrappers = ['children', 'results', 'datasets'].filter((key) => Object.hasOwn(data, key));
       if (wrappers.length > 1 || (wrappers.length && (
         !Array.isArray(data[wrappers[0]])
-        || Object.keys(data).some((key) => ![wrappers[0], '_page', '_links'].includes(key))
+        || Object.keys(data).some((key) => ![wrappers[0], '_page', '_links', 'next'].includes(key))
       ))) throw failure(502, 'Ambiguous Catalog inventory envelope; cleanup audit stopped.');
       const entries = wrappers.length
-        ? data[wrappers[0]].map((raw) => [raw?.id || raw?.['@id'], raw])
-        : Object.entries(data).filter(([key]) => !key.startsWith('_'));
-      for (const [id, raw] of entries) {
+        ? data[wrappers[0]].map((raw) => ({ key: raw?.id || raw?.['@id'], raw }))
+        : Object.entries(data).filter(([key]) => !key.startsWith('_') && key !== 'next')
+          .map(([key, raw]) => ({ key, raw }));
+      for (const { key, raw } of entries) {
+        const keyId = catalogId(key);
+        const recordIdValues = raw && typeof raw === 'object' && !Array.isArray(raw)
+          ? ['id', '@id'].filter((field) => Object.hasOwn(raw, field)).map((field) => raw[field]) : [];
+        const recordIds = recordIdValues.map(catalogId);
+        const validIds = [keyId, ...recordIds].filter(Boolean);
+        const id = recordIdValues.some((_value, index) => !recordIds[index])
+          || new Set(validIds).size > 1 ? null : validIds[0];
         const reason = seen.has(id) ? 'repeated_dataset_id'
-          : typeof id !== 'string' || !/^[a-f0-9]{24}$/i.test(id) ? 'invalid_dataset_id'
-            : !raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.name !== 'string'
+          : !id ? 'invalid_dataset_id'
+            : !raw || typeof raw !== 'object' || Array.isArray(raw)
               ? 'invalid_dataset_metadata' : null;
         if (reason) {
           throw failure(502, 'Incomplete or repeated Catalog page; cleanup audit stopped.', {
             inventory: 'datasets', page: page + 1, reason,
             ...(reason === 'invalid_dataset_id' ? {
-              keyShape: typeof id !== 'string' ? 'missing'
-                : id.startsWith('_') ? 'metadata'
-                  : /^[a-f0-9]+$/i.test(id) ? `hex-${id.length}` : 'other',
+              keyShape: catalogIdShape(key),
+              recordIdShape: recordIdValues.length ? catalogIdShape(recordIdValues[0]) : 'missing',
             } : {}),
           });
         }
         seen.add(id);
         result.push({ ...raw, id });
       }
-      const { link, href, cursor } = continuation(data);
+      const { link, href, cursor } = continuation(data, { catalog: true });
       if (href) next = href;
       else if (cursor != null && cursor !== '') {
         if (typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)) next = cursor;
