@@ -260,6 +260,77 @@ test('Catalog pagination continues after server-capped short pages', async () =>
   assert.ok(calls.some((call) => call.url.searchParams.get('start') === '2'));
 });
 
+test('dataset name discovery filters in Catalog, escapes patterns, and retains duplicate names', async () => {
+  const other = '69c38a17866d0ec0db681794';
+  for (const name of ['frescopa', 'Fres.Copa+[test](x)*?^$|\\', 'frescopa &property=id==other']) {
+    const { service, calls } = fixture({
+      catalog: (url) => {
+        const property = url.searchParams.get('property');
+        assert.ok(property.startsWith('name~'));
+        assert.equal(url.searchParams.getAll('property').length, 1);
+        const pattern = new RegExp(property.slice('name~'.length));
+        assert.ok(pattern.test(`prefix ${name.toUpperCase()} suffix`));
+        assert.equal(pattern.test('unrelated'), false);
+        if (name.includes('.')) assert.equal(pattern.test(name.replace('.', 'X')), false);
+        return url.searchParams.get('start') === '0'
+          ? { [id]: { ...dataset, name }, [other]: { ...dataset, name } } : {};
+      },
+    });
+    const inventory = await service.list(auth, { resource_type: 'dataset', name });
+    assert.deepEqual(inventory.resources.map((row) => row.id), [id, other]);
+    assert.deepEqual(calls.map((call) => call.url.searchParams.get('start')), ['0', '2']);
+    assert.ok(calls.every((call) => call.method === 'GET'));
+  }
+});
+
+test('dataset name filters persist across numeric and linked continuation pages', async () => {
+  const other = '69c38a17866d0ec0db681794';
+  for (const next of [1, '/dataSets?start=1&limit=20']) {
+    const { service, calls } = fixture({
+      catalog: (url) => url.searchParams.get('start') === '0'
+        ? { [id]: { ...dataset, name: 'frescopa' }, _page: { next } }
+        : { [other]: { ...dataset, name: 'FRESCOPA' }, _page: { next: null } },
+    });
+    const inventory = await service.list(auth, { resource_type: 'dataset', name: 'frescopa' });
+    assert.equal(inventory.count, 2);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].url.searchParams.get('property'), calls[1].url.searchParams.get('property'));
+  }
+});
+
+test('dataset name discovery rejects changed filters and unsafe links without another request', async () => {
+  for (const next of [
+    '/dataSets?start=1&property=name~different',
+    '/dataSets?start=1&property=name~different&property=id==other',
+    'https://example.com/dataSets?start=1',
+  ]) {
+    const { service, calls } = fixture({
+      catalog: () => ({ [id]: { ...dataset, name: 'frescopa' }, _links: { next: { href: next } } }),
+    });
+    await assert.rejects(service.list(auth, { resource_type: 'dataset', name: 'frescopa' }), { status: 502 });
+    assert.equal(calls.length, 1);
+  }
+});
+
+test('successful name discovery never narrows subsequent dependency audits', async () => {
+  const { service, calls } = fixture({
+    catalog: (url) => url.searchParams.has('property')
+      ? { [id]: dataset, _page: { next: null } }
+      : { unknown: {} },
+  });
+  assert.equal((await service.list(auth, { resource_type: 'dataset', name: 'Example' })).count, 1);
+  for (const target of [params, { resource_type: 'schema', resource_id: schemaId }]) {
+    await assert.rejects(service.audit(auth, target), (error) => {
+      assert.equal(error.detail.reason, 'invalid_dataset_id');
+      return true;
+    });
+  }
+  const catalogCalls = calls.filter((call) => call.path.endsWith('/dataSets'));
+  assert.equal(catalogCalls.length, 3);
+  assert.ok(catalogCalls.slice(1).every((call) => !call.url.searchParams.has('property')));
+  assert.ok(calls.every((call) => call.method === 'GET'));
+});
+
 test('Catalog metadata is not interpreted as a dataset or counted in offsets', async () => {
   const { service, calls } = fixture({
     catalog: (url) => url.searchParams.get('start') === '0'

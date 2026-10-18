@@ -199,14 +199,36 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     return 'other';
   }
 
-  async function listCatalog(auth) {
+  async function listCatalog(auth, name = '') {
     const result = [];
     const seen = new Set();
     const seenPages = new Set();
+    // Catalog's property regex keeps name discovery server-side; audits omit it.
+    const namePattern = Array.from(name, (character) => {
+      const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const variants = [...new Set([character, character.toLowerCase(), character.toUpperCase()])];
+      return variants.length === 1 ? escape(character) : `(?:${variants.map(escape).join('|')})`;
+    }).join('');
+    const property = name ? `name~${namePattern}` : null;
+    const catalogPage = (start) => {
+      const url = new URL(CATALOG, BASE);
+      url.searchParams.set('start', String(start));
+      url.searchParams.set('limit', String(PAGE_SIZE));
+      url.searchParams.set('properties', 'name,schemaRef,tags,updated');
+      if (property) url.searchParams.set('property', property);
+      return url.href;
+    };
     let next = null;
     for (let page = 0, start = 0; page < MAX_PAGES; page++) {
-      const url = inventoryUrl(next || `${CATALOG}?start=${start}&limit=${PAGE_SIZE}&properties=name,schemaRef,tags,updated`,
-        CATALOG, page, seenPages);
+      const candidate = new URL(next || catalogPage(start), `${BASE}${CATALOG}`);
+      if (property) {
+        const filters = candidate.searchParams.getAll('property');
+        if (filters.length && (filters.length !== 1 || filters[0] !== property)) {
+          throw failure(502, 'Catalog name filter changed during pagination; cleanup inventory stopped.');
+        }
+        candidate.searchParams.set('property', property);
+      }
+      const url = inventoryUrl(candidate.href, CATALOG, page, seenPages);
       const { data } = await request(auth, url.href);
       if (!data || Array.isArray(data) || typeof data !== 'object') throw failure(502, 'Unexpected Catalog list response.');
       // The Data Viewer supports keyed Catalog objects plus children/results envelopes.
@@ -248,7 +270,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       else if (cursor != null && cursor !== '') {
         if (typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)) next = cursor;
         else if (/^\d+$/.test(String(cursor))) {
-          next = `${CATALOG}?start=${encodeURIComponent(cursor)}&limit=${PAGE_SIZE}&properties=name,schemaRef,tags,updated`;
+          next = catalogPage(cursor);
         } else throw failure(502, 'Unverifiable Catalog continuation; cleanup audit stopped.');
       } else {
         if (data._page?.next === null || link === null || !entries.length) return result;
@@ -317,7 +339,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
   async function list(auth, { resource_type, name = '' }) {
     if (!['dataset', 'schema'].includes(resource_type)) throw failure(400, 'resource_type must be dataset or schema.');
     const rows = resource_type === 'dataset'
-      ? (await listCatalog(auth)).map((raw) => summary('dataset', raw, raw.id))
+      ? (await listCatalog(auth, name)).map((raw) => summary('dataset', raw, raw.id))
       : (await listPaged(auth, `${REGISTRY}/schemas`, 'application/vnd.adobe.xed-id+json', 'results'))
         .map((raw) => ({ id: raw.$id, name: raw.title, version: raw.version }));
     const resources = rows.filter((row) => String(row.name || '').toLowerCase().includes(name.toLowerCase()));
