@@ -10,7 +10,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(new Set(contexts.map((context) => context.id)).size, contexts.length);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 212);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 215);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 23);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-decisioning').toolCount, 24);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
@@ -56,6 +56,9 @@ test('workflow plans retain confirmation gates', () => {
   assert.deepEqual(audience.contexts, ['aep-lab-audiences']);
   assert.equal(audience.steps.some((step) => /exact confirmation/i.test(step)), true);
   assert.equal(getMcpWorkflow('missing'), null);
+  const cleanup = getMcpWorkflow('platform_cleanup');
+  assert.deepEqual(cleanup.contexts, ['aep-lab-general']);
+  assert.ok(cleanup.steps.some((step) => /single-use audit_id/.test(step)));
   assert.deepEqual(getMcpWorkflow('geo_insights').contexts, ['aep-lab-geo-insights']);
   assert.deepEqual(getMcpWorkflow('pdf_preparation').contexts, ['aep-lab-pdf-prep']);
   assert.deepEqual(getMcpWorkflow('commerce_demo_preparation').contexts, ['aep-lab-commerce']);
@@ -63,6 +66,14 @@ test('workflow plans retain confirmation gates', () => {
   assert.deepEqual(getMcpWorkflow('firefly_image_generation').contexts, ['aep-lab-firefly']);
   assert.deepEqual(getMcpWorkflow('creative_asset_production').contexts, ['aep-lab-creativity']);
   assert.deepEqual(getMcpWorkflow('adobe_api_discovery').contexts, ['aep-lab-adobe-capabilities']);
+});
+
+test('dataset/schema cleanup recommends the governed Lab tools before Coworker', () => {
+  for (const goal of ['delete dataset', 'delete schema', 'delete Frescopa datasets and schemas', 'remove the relational tables']) {
+    const result = recommendMcpContexts(goal);
+    assert.equal(result.primary.id, 'aep-lab-general');
+    assert.equal(result.destructiveRisk, true);
+  }
 });
 
 test('guide tools are closed-world and read-only', () => {
@@ -144,7 +155,7 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   assert.match(html, /Add the same repository directly to Claude/i);
   assert.match(html, /Claude stores it as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 212 tools/);
+  assert.match(catalog, /Complete Lab MCP · 215 tools/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);
   assert.match(catalog, /\/mcp\/commerce/);
   assert.match(catalog, /id: 'aep-lab-commerce-optimizer'/);

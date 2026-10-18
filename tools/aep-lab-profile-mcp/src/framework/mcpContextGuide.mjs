@@ -19,10 +19,10 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 212,
+    toolCount: 215,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
-    capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration'],
+    capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration', 'governed dataset and schema cleanup (list, audit, exact single-resource delete)'],
     useWhen: 'Use for broad work, first-run setup, infrastructure, Snowflake, administration, or existing key-based configurations.',
   },
   {
@@ -248,6 +248,17 @@ export const MCP_WORKFLOWS = Object.freeze({
     contexts: ['aep-lab-ajo-cleanup'],
     steps: ['List journeys or campaigns.', 'Audit one exact asset and its lifecycle.', 'Obtain exact ID, name, and status confirmation.', 'Delete one eligible asset and verify.'],
   },
+  platform_cleanup: {
+    title: 'Audit and delete one AEP dataset or tenant schema',
+    contexts: ['aep-lab-general'],
+    steps: [
+      'Use the complete /mcp endpoint (or load platform-cleanup through entry on clients that refresh tools). Check access and list exact asset IDs.',
+      'Run lab_platform_asset_audit for one exact ID; review incoming relationships, datasets, connections, owned descriptors and irreversible/partial-failure warnings.',
+      'Independently clear AJO, audience, campaign and external usage. Obtain explicit confirmation of the exact org, sandbox, resource ID/name and owned-descriptor cleanup.',
+      'Call lab_platform_asset_delete with the fresh single-use audit_id, expected_name, confirmed true and usage_cleared true. Never automatically retry.',
+      'Verify absence before proceeding. Delete each dataset before its schema, child schemas before parents; remaining connections and incoming links block cleanup.',
+    ],
+  },
   pdf_preparation: {
     title: 'Prepare and store a personalised PDF',
     contexts: ['aep-lab-pdf-prep'],
@@ -360,6 +371,7 @@ export const MCP_WORKFLOWS = Object.freeze({
 });
 
 const KEYWORDS = Object.freeze({
+  'aep-lab-general': ['delete dataset', 'delete schema', 'dataset cleanup', 'schema cleanup', 'delete tables', 'platform cleanup'],
   'aep-lab-demo-prep': ['brand', 'customer', 'logo', 'hero', 'image', 'asset', 'scrape', 'website', 'rtdb', 'demo prep', 'restore customer'],
   'aep-lab-pdf-prep': ['pdf', 'html to pdf', 'document to pdf', 'docx', 'word document', 'boarding pass', 'attachment', 'pdf template', 'preview pdf'],
   'aep-lab-profiles': ['profile', 'persona', 'event', 'experience event', 'snowflake', 'dual load', 'enrich', 'seed'],
@@ -396,9 +408,17 @@ export function recommendMcpContexts(goal) {
     .filter((candidate) => candidate.matches.length)
     .sort((a, b) => b.matches.length - a.matches.length || a.id.localeCompare(b.id));
 
+  const platformCleanupGoal = /\b(delete|deleting|remove|cleanup|clean up)\b/.test(normalizedGoal)
+    && /\b(datasets?|schemas?|tables?)\b/.test(normalizedGoal);
+  if (platformCleanupGoal && !ranked.some((candidate) => candidate.id === 'aep-lab-general')) {
+    ranked.push({ id: 'aep-lab-general', matches: ['dataset/schema cleanup'] });
+  }
+  const cleanupIndex = ranked.findIndex((candidate) => candidate.id === 'aep-lab-general');
+  if (cleanupIndex > 0) ranked.unshift(...ranked.splice(cleanupIndex, 1));
   const recommendedIds = ranked.length ? ranked.map((candidate) => candidate.id) : ['aep-lab-general'];
   const contexts = recommendedIds.map((id) => MCP_CONTEXTS.find((context) => context.id === id)).filter(Boolean);
-  const destructiveRisk = contexts.some((context) => context.id === 'aep-lab-audiences' || context.id === 'aep-lab-ajo-cleanup');
+  const destructiveRisk = contexts.some((context) => context.id === 'aep-lab-audiences' || context.id === 'aep-lab-ajo-cleanup')
+    || (ranked.find((candidate) => candidate.id === 'aep-lab-general')?.matches.length > 0);
 
   return {
     goal: String(goal || '').trim(),
